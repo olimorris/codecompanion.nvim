@@ -4,6 +4,12 @@ local schema = require("openai.schema")
 local util = require("openai.util")
 local yaml = require("openai.yaml")
 
+local yaml_query = [[
+(block_mapping_pair
+  key: (_) @key
+  value: (_) @value)
+]]
+
 local chat_query = [[
 (atx_heading
   (atx_h1_marker)
@@ -18,24 +24,22 @@ local chat_query = [[
 ---@param bufnr integer
 ---@return table
 local function parse_settings(bufnr)
-  local parser = vim.treesitter.get_parser(bufnr, "markdown")
-  local yaml_tree = parser:children().yaml
-  if not yaml_tree then
-    return {}
-  end
+  local parser = vim.treesitter.get_parser(bufnr, "yaml")
 
-  local metadata_root = nil
-  local trees = yaml_tree:parse()
-  for _, tree in ipairs(trees) do
-    local root = tree:root()
-    if root:start() <= 1 then
-      metadata_root = root
+  local query = vim.treesitter.query.parse("yaml", yaml_query)
+  local root = parser:parse()[1]:root()
+  pcall(vim.tbl_add_reverse_lookup, query.captures)
+
+  local settings = {}
+  for _, match in query:iter_matches(root, bufnr) do
+    if match[query.captures.key] and match[query.captures.value] then
+      local key = vim.treesitter.get_node_text(match[query.captures.key], bufnr):lower()
+      local value = vim.treesitter.get_node_text(match[query.captures.value], bufnr):lower()
+      settings[key] = yaml.decode(value)
     end
   end
-  if not metadata_root then
-    return {}
-  end
-  return yaml.decode_node(bufnr, metadata_root) or {}
+
+  return settings or {}
 end
 
 ---@param bufnr integer
@@ -43,6 +47,7 @@ end
 ---@return openai.ChatMessage[]
 local function parse_messages_buffer(bufnr)
   local ret = {}
+
   local parser = vim.treesitter.get_parser(bufnr, "markdown")
   local query = vim.treesitter.query.parse("markdown", chat_query)
   local root = parser:parse()[1]:root()
@@ -69,9 +74,12 @@ local function parse_messages_buffer(bufnr)
       end
     end
   end
+
   if not vim.tbl_isempty(message) then
     table.insert(ret, message)
   end
+
+  log:trace("parse_messages_buffer called")
   return parse_settings(bufnr), ret
 end
 
@@ -231,6 +239,7 @@ function Chat:submit()
     vim.bo[self.bufnr].modified = false
     vim.bo[self.bufnr].modifiable = true
   end
+
   local new_message = messages[#messages]
   self.client:stream_chat_completion(
     vim.tbl_extend("keep", settings, {
