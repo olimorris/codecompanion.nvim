@@ -67,18 +67,6 @@ M.repeat_last_edit = function()
 end
 
 M.setup = function()
-  vim.api.nvim_create_user_command("AIChat", function()
-    M.open()
-  end, { desc = "" })
-  vim.api.nvim_create_user_command("AIEdit", function(args)
-    M.edit_text(args.line1, args.line2)
-  end, {
-    desc = "",
-    range = true,
-  })
-  -- TODO
-  -- * edit-like flow using chat chaining
-  -- * annotation tool for diagnostics
   require("openai.config").setup()
 end
 
