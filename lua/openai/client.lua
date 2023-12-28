@@ -132,6 +132,9 @@ function Client:stream_call(url, payload, cb)
   local stdout = ""
   local done = false
   local found_any_stream = false
+
+  vim.api.nvim_exec_autocmds("User", { pattern = "OpenAIStreaming", data = { status = "started" } })
+
   local jid = vim.fn.jobstart(cmd, {
     on_stdout = function(j, output)
       if done then
@@ -158,6 +161,11 @@ function Client:stream_call(url, payload, cb)
       end
     end,
     on_exit = function(j, code)
+      vim.api.nvim_exec_autocmds(
+        "User",
+        { pattern = "OpenAIStreaming", data = { status = "finished" } }
+      )
+
       if not found_any_stream then
         local err, data = parse_response(code, stdout)
         if err then
