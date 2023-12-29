@@ -1,8 +1,11 @@
 {
     "diagnostics.globals": [
-        "vim"
+        "vim",
+        "describe",
+        "it"
     ],
     "diagnostics.disable": [
-        "missing-fields"
+        "missing-fields",
+        "duplicate-doc-field"
     ]
 }

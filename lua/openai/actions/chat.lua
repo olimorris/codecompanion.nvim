@@ -1,8 +1,8 @@
 local config = require("openai.config")
-local log = require("openai.log")
+local log = require("openai.utils.log")
 local schema = require("openai.schema")
-local util = require("openai.util")
-local yaml = require("openai.yaml")
+local util = require("openai.utils.util")
+local yaml = require("openai.utils.yaml")
 
 local yaml_query = [[
 (block_mapping_pair
@@ -274,8 +274,8 @@ function Chat:submit()
 end
 
 ---@param opts nil|table
----@return nil|string
 ---@return nil|TSNode
+
 function Chat:_get_settings_key(opts)
   opts = vim.tbl_extend("force", opts or {}, {
     ignore_injections = false,

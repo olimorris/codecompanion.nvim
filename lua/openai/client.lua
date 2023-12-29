@@ -1,4 +1,4 @@
-local log = require("openai.log")
+local log = require("openai.utils.log")
 
 ---@class openai.Client
 ---@field secret_key string
@@ -59,6 +59,9 @@ function Client:call(url, payload, cb)
   table.insert(cmd, vim.json.encode(payload))
   log:trace("request payload: %s", payload)
   local stdout = ""
+
+  vim.api.nvim_exec_autocmds("User", { pattern = "OpenAIStreaming", data = { status = "started" } })
+
   local jid = vim.fn.jobstart(cmd, {
     stdout_buffered = true,
     on_stdout = function(_, output)

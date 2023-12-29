@@ -1,5 +1,5 @@
 local Client = require("openai.client")
-local util = require("openai.util")
+local util = require("openai.utils.util")
 local M = {}
 
 local _client
@@ -22,7 +22,7 @@ end
 ---@param bufnr nil|integer
 ---@return nil|openai.Chat
 M.buf_get_chat = function(bufnr)
-  return require("openai.chat").buf_get_chat(bufnr)
+  return require("openai.actions.chat").buf_get_chat(bufnr)
 end
 
 M.open = function()
@@ -30,7 +30,7 @@ M.open = function()
   if not client then
     return
   end
-  local Chat = require("openai.chat")
+  local Chat = require("openai.actions.chat")
   local chat = Chat.new({
     client = client,
   })
@@ -47,7 +47,7 @@ M.edit_text = function(line1, line2)
   if not client then
     return
   end
-  local ChatEdit = require("openai.edit")
+  local ChatEdit = require("openai.actions.edit")
   last_edit = ChatEdit.new({
     line1 = line1,
     line2 = line2,

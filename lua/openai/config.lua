@@ -4,7 +4,7 @@ M.setup = function()
   M.INFO_NS = vim.api.nvim_create_namespace("OpenAI-info")
   M.ERROR_NS = vim.api.nvim_create_namespace("OpenAI-error")
 
-  local log = require("openai.log")
+  local log = require("openai.utils.log")
   log.set_root(log.new({
     handlers = {
       {
@@ -14,7 +14,7 @@ M.setup = function()
       {
         type = "file",
         filename = "openai.log",
-        level = vim.log.levels.TRACE,
+        level = vim.log.levels.ERROR,
       },
     },
   }))
