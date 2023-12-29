@@ -24,7 +24,10 @@ local chat_query = [[
 ---@param bufnr integer
 ---@return table
 local function parse_settings(bufnr)
+  -- A chat could have many regions of YAML; we only parse the first block
+  local yaml_start, yaml_end = 2, 10
   local parser = vim.treesitter.get_parser(bufnr, "yaml")
+  parser:set_included_regions({ { yaml_start - 1, 0, yaml_end - 1, 0 } })
 
   local query = vim.treesitter.query.parse("yaml", yaml_query)
   local root = parser:parse()[1]:root()
