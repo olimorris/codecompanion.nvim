@@ -1,5 +1,6 @@
 local log = require("openai.utils.log")
 local schema = require("openai.schema")
+local utils = require("openai.utils.util")
 
 ---@class openai.ChatEdit
 ---@field bufnr integer
@@ -28,7 +29,7 @@ end
 
 ---@param on_complete nil|fun()
 function ChatEdit:start(on_complete)
-  local ft = vim.bo[self.bufnr].filetype
+  local lang = utils.get_language(self.bufnr)
 
   vim.ui.input({ prompt = "Prompt" }, function(prompt)
     if not prompt then
@@ -43,7 +44,7 @@ function ChatEdit:start(on_complete)
       messages = {
         {
           role = "assistant",
-          content = string.format(config.prompts.choices[config.prompts.default], ft),
+          content = string.format(config.prompts.choices[config.prompts.default], lang),
         },
         {
           role = "user",
@@ -59,14 +60,17 @@ function ChatEdit:start(on_complete)
       end
 
       vim.bo[self.bufnr].modifiable = true
+
       if err then
         vim.notify(err, vim.log.levels.ERROR)
         return
       end
+
       local replacement = data.choices[1].message.content
       local new_lines = vim.split(replacement, "\n")
       vim.api.nvim_buf_set_lines(self.bufnr, self.line1 - 1, self.line2, true, new_lines)
       self.line2 = self.line1 + #new_lines - 1
+
       if on_complete then
         on_complete()
       end

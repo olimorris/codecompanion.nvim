@@ -40,4 +40,15 @@ M.set_dot_repeat = function(name)
   vim.go.operatorfunc = string.format("v:lua.require'openai'.%s", name)
 end
 
+---@param bufnr nil|integer
+M.get_language = function(bufnr)
+  bufnr = bufnr or 0
+  local ft = vim.api.nvim_buf_get_option(bufnr, "filetype")
+
+  if ft == "cpp" then
+    return "C++"
+  end
+
+  return ft
+end
 return M

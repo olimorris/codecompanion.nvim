@@ -75,13 +75,20 @@ function Client:call(url, payload, cb)
       else
         cb(nil, data)
       end
+
+      vim.api.nvim_exec_autocmds(
+        "User",
+        { pattern = "OpenAIStreaming", data = { status = "finished" } }
+      )
     end),
   })
+
   if jid == 0 then
     cb("Passed invalid arguments to curl")
   elseif jid == -1 then
     cb("'curl' is not executable")
   end
+
   return jid
 end
 
@@ -139,7 +146,7 @@ function Client:stream_call(url, payload, cb)
   vim.api.nvim_exec_autocmds("User", { pattern = "OpenAIStreaming", data = { status = "started" } })
 
   local jid = vim.fn.jobstart(cmd, {
-    on_stdout = function(j, output)
+    on_stdout = function(_, output)
       if done then
         return
       end
@@ -163,7 +170,7 @@ function Client:stream_call(url, payload, cb)
         end
       end
     end,
-    on_exit = function(j, code)
+    on_exit = function(_, code)
       vim.api.nvim_exec_autocmds(
         "User",
         { pattern = "OpenAIStreaming", data = { status = "finished" } }
