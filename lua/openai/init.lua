@@ -25,7 +25,7 @@ M.buf_get_chat = function(bufnr)
   return require("openai.actions.chat").buf_get_chat(bufnr)
 end
 
-M.open = function()
+M.chat = function()
   local client = get_client()
   if not client then
     return
@@ -42,7 +42,7 @@ end
 local last_edit
 ---@param line1 integer
 ---@param line2 integer
-M.edit_text = function(line1, line2)
+M.edit = function(line1, line2)
   local client = get_client()
   if not client then
     return
