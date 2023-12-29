@@ -118,18 +118,20 @@ end
 
 M.static = {}
 
+local model_choices = {
+  "gpt-4-1106-preview",
+  "gpt-4",
+  "gpt-3.5-turbo-1106",
+  "gpt-3.5-turbo",
+}
+
 M.static.chat_completion_settings = {
   model = {
     order = 1,
     type = "enum",
     desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
     default = "gpt-4-1106-preview",
-    choices = {
-      "gpt-4-1106-preview",
-      "gpt-4",
-      "gpt-3.5-turbo-1106",
-      "gpt-3.5-turbo",
-    },
+    choices = model_choices,
   },
   temperature = {
     order = 2,
@@ -215,6 +217,25 @@ M.static.chat_completion_settings = {
     validate = function(u)
       return u:len() < 100, "Cannot be longer than 100 characters"
     end,
+  },
+}
+
+M.static.edit_settings = {
+  model = {
+    order = 1,
+    type = "enum",
+    desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
+    default = "gpt-4-1106-preview",
+    choices = model_choices,
+  },
+  prompts = {
+    order = 2,
+    type = "enum",
+    desc = "The prompt to use to generate the completion",
+    default = "senior_dev",
+    choices = {
+      senior_dev = "I want you to act as a senior %s developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations)",
+    },
   },
 }
 

@@ -229,7 +229,8 @@ end
 ---@field top_p nil|number Defaults to 1. An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.
 ---@field n nil|integer Defaults to 1. How many chat completion choices to generate for each input message.
 function Client:edit(args, cb)
-  return self:call("https://api.openai.com/v1/edits", args, cb)
+  args.stream = false
+  return self:call("https://api.openai.com/v1/chat/completions", args, cb)
 end
 
 return Client

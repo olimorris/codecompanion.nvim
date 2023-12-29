@@ -1,3 +1,6 @@
+local log = require("openai.utils.log")
+local schema = require("openai.schema")
+
 ---@class openai.ChatEdit
 ---@field bufnr integer
 ---@field line1 integer
@@ -25,30 +28,43 @@ end
 
 ---@param on_complete nil|fun()
 function ChatEdit:start(on_complete)
-  vim.ui.input({ prompt = "prompt" }, function(prompt)
+  local ft = vim.bo[self.bufnr].filetype
+
+  vim.ui.input({ prompt = "Prompt" }, function(prompt)
     if not prompt then
       return
     end
     local lines = vim.api.nvim_buf_get_lines(self.bufnr, self.line1 - 1, self.line2, true)
+
+    local config = schema.static.edit_settings
+
     local settings = {
-      model = "code-davinci-edit-001",
-      input = table.concat(lines, "\n"),
-      instruction = prompt,
+      model = config.model.default,
+      messages = {
+        {
+          role = "assistant",
+          content = string.format(config.prompts.choices[config.prompts.default], ft),
+        },
+        {
+          role = "user",
+          content = prompt,
+        },
+      },
     }
 
     vim.bo[self.bufnr].modifiable = false
     self.client:edit(settings, function(err, data)
+      if err then
+        log:error("ChatEdit Error: %s", err)
+      end
+
       vim.bo[self.bufnr].modifiable = true
       if err then
         vim.notify(err, vim.log.levels.ERROR)
         return
       end
-      local replacement = data.choices[1].text
+      local replacement = data.choices[1].message.content
       local new_lines = vim.split(replacement, "\n")
-      -- OpenAI seems to add a blank line at the end
-      if new_lines[#new_lines] == "" then
-        table.remove(new_lines)
-      end
       vim.api.nvim_buf_set_lines(self.bufnr, self.line1 - 1, self.line2, true, new_lines)
       self.line2 = self.line1 + #new_lines - 1
       if on_complete then
