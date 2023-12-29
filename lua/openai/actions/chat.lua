@@ -236,6 +236,7 @@ end
 
 function Chat:submit()
   local settings, messages = parse_messages_buffer(self.bufnr)
+
   vim.bo[self.bufnr].modified = false
   vim.bo[self.bufnr].modifiable = false
   local function finalize()
@@ -244,6 +245,10 @@ function Chat:submit()
   end
 
   local new_message = messages[#messages]
+  if new_message.role == "user" and new_message.content == "" then
+    return finalize()
+  end
+
   self.client:stream_chat_completion(
     vim.tbl_extend("keep", settings, {
       messages = messages,
