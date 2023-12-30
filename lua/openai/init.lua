@@ -42,7 +42,8 @@ end
 local last_edit
 ---@param line1 integer
 ---@param line2 integer
-M.edit = function(line1, line2)
+---@param mode string
+M.edit = function(line1, line2, mode)
   local client = get_client()
   if not client then
     return
@@ -51,6 +52,7 @@ M.edit = function(line1, line2)
   last_edit = ChatEdit.new({
     line1 = line1,
     line2 = line2,
+    mode = mode,
     client = client,
   })
   last_edit:start(function()

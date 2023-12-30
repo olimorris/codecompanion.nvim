@@ -1,5 +1,7 @@
 local M = {}
 
+local ESC_FEEDKEY = vim.api.nvim_replace_termcodes("<ESC>", true, false, true)
+
 ---@param winid? number
 M.scroll_to_end = function(winid)
   winid = winid or 0
@@ -51,4 +53,37 @@ M.get_language = function(bufnr)
 
   return ft
 end
+
+---@param bufnr nil|integer
+function M.get_visual_selection(bufnr)
+  bufnr = bufnr or 0
+
+  vim.api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
+  vim.api.nvim_feedkeys("gv", "x", false)
+  vim.api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
+
+  local start_row, start_col = unpack(vim.api.nvim_buf_get_mark(bufnr, "<"))
+  local end_row, end_col = unpack(vim.api.nvim_buf_get_mark(bufnr, ">"))
+  local lines = vim.api.nvim_buf_get_lines(bufnr, start_row - 1, end_row, false)
+
+  -- get whole buffer if there is no current/previous visual selection
+  if start_row == 0 then
+    lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+    start_row = 1
+    start_col = 0
+    end_row = #lines
+    end_col = #lines[#lines]
+  end
+
+  -- use 1-based indexing and handle selections made in visual line mode (see :help getpos)
+  start_col = start_col + 1
+  end_col = math.min(end_col, #lines[#lines] - 1) + 1
+
+  -- shorten first/last line according to start_col/end_col
+  lines[#lines] = lines[#lines]:sub(1, end_col)
+  lines[1] = lines[1]:sub(start_col)
+
+  return lines, start_row, start_col, end_row, end_col
+end
+
 return M

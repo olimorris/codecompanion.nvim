@@ -6,12 +6,14 @@ local utils = require("openai.utils.util")
 ---@field bufnr integer
 ---@field line1 integer
 ---@field line2 integer
+---@field mode string
 ---@field client openai.Client
 local ChatEdit = {}
 
 ---@class openai.ChatEditArgs
 ---@field line1 integer
 ---@field line2 integer
+---@field mode string
 ---@field client openai.Client
 
 ---@param opts openai.ChatEditArgs
@@ -22,6 +24,7 @@ function ChatEdit.new(opts)
     bufnr = bufnr,
     line1 = opts.line1,
     line2 = opts.line2,
+    mode = opts.mode,
     client = opts.client,
   }, { __index = ChatEdit })
   return self
@@ -31,12 +34,12 @@ end
 function ChatEdit:start(on_complete)
   local lang = utils.get_language(self.bufnr)
 
-  vim.ui.input({ prompt = "Prompt" }, function(prompt)
+  vim.ui.input({ prompt = string.gsub(lang, "^%l", string.upper) .. " Prompt" }, function(prompt)
     if not prompt then
       return
     end
-    local lines = vim.api.nvim_buf_get_lines(self.bufnr, self.line1 - 1, self.line2, true)
 
+    local is_visual = self.mode:match("^[vV]")
     local config = schema.static.edit_settings
 
     local settings = {
@@ -53,6 +56,15 @@ function ChatEdit:start(on_complete)
       },
     }
 
+    if is_visual then
+      local lines, _, _, _, _ = utils.get_visual_selection(self.bufnr)
+
+      table.insert(settings.messages, {
+        role = "user",
+        content = "For context, this is the code:\n" .. table.concat(lines, "\n"),
+      })
+    end
+
     vim.bo[self.bufnr].modifiable = false
     self.client:edit(settings, function(err, data)
       if err then
@@ -68,8 +80,29 @@ function ChatEdit:start(on_complete)
 
       local replacement = data.choices[1].message.content
       local new_lines = vim.split(replacement, "\n")
-      vim.api.nvim_buf_set_lines(self.bufnr, self.line1 - 1, self.line2, true, new_lines)
-      self.line2 = self.line1 + #new_lines - 1
+
+      if is_visual then
+        local _, start_row, start_col, end_row, end_col = utils.get_visual_selection(self.bufnr)
+        log:trace(
+          "start_row: %s, start_col: %s, end_row: %s, end_col: %s",
+          start_row,
+          start_col,
+          end_row,
+          end_col
+        )
+
+        local replacement_lines = vim.split(replacement, "\n")
+        vim.api.nvim_buf_set_text(
+          self.bufnr,
+          start_row - 1,
+          start_col - 1,
+          end_row - 1,
+          end_col,
+          replacement_lines
+        )
+      else
+        vim.api.nvim_buf_set_lines(self.bufnr, self.line1 - 1, self.line2, true, new_lines)
+      end
 
       if on_complete then
         on_complete()
