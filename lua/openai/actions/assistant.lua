@@ -2,13 +2,13 @@ local log = require("openai.utils.log")
 local schema = require("openai.schema")
 local utils = require("openai.utils.util")
 
----@class openai.ChatEdit
+---@class openai.Assistant
 ---@field bufnr integer
 ---@field line1 integer
 ---@field line2 integer
 ---@field mode string
 ---@field client openai.Client
-local ChatEdit = {}
+local Assistant = {}
 
 ---@class openai.ChatEditArgs
 ---@field line1 integer
@@ -17,8 +17,8 @@ local ChatEdit = {}
 ---@field client openai.Client
 
 ---@param opts openai.ChatEditArgs
----@return openai.ChatEdit
-function ChatEdit.new(opts)
+---@return openai.Assistant
+function Assistant.new(opts)
   local bufnr = vim.api.nvim_get_current_buf()
   local self = setmetatable({
     bufnr = bufnr,
@@ -26,12 +26,12 @@ function ChatEdit.new(opts)
     line2 = opts.line2,
     mode = opts.mode,
     client = opts.client,
-  }, { __index = ChatEdit })
+  }, { __index = Assistant })
   return self
 end
 
 ---@param on_complete nil|fun()
-function ChatEdit:start(on_complete)
+function Assistant:start(on_complete)
   local lang = utils.get_language(self.bufnr)
 
   vim.ui.input({ prompt = string.gsub(lang, "^%l", string.upper) .. " Prompt" }, function(prompt)
@@ -40,7 +40,7 @@ function ChatEdit:start(on_complete)
     end
 
     local is_visual = self.mode:match("^[vV]")
-    local config = schema.static.edit_settings
+    local config = schema.static.assistant_settings
 
     local settings = {
       model = config.model.default,
@@ -66,9 +66,9 @@ function ChatEdit:start(on_complete)
     end
 
     vim.bo[self.bufnr].modifiable = false
-    self.client:edit(settings, function(err, data)
+    self.client:assistant(settings, function(err, data)
       if err then
-        log:error("ChatEdit Error: %s", err)
+        log:error("Assistant Error: %s", err)
       end
 
       vim.bo[self.bufnr].modifiable = true
@@ -83,13 +83,6 @@ function ChatEdit:start(on_complete)
 
       if is_visual then
         local _, start_row, start_col, end_row, end_col = utils.get_visual_selection(self.bufnr)
-        log:trace(
-          "start_row: %s, start_col: %s, end_row: %s, end_col: %s",
-          start_row,
-          start_col,
-          end_row,
-          end_col
-        )
 
         local replacement_lines = vim.split(replacement, "\n")
         vim.api.nvim_buf_set_text(
@@ -111,4 +104,4 @@ function ChatEdit:start(on_complete)
   end)
 end
 
-return ChatEdit
+return Assistant

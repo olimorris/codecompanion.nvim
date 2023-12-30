@@ -220,7 +220,7 @@ M.static.chat_completion_settings = {
   },
 }
 
-M.static.edit_settings = {
+M.static.assistant_settings = {
   model = {
     order = 1,
     type = "enum",

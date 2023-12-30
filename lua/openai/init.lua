@@ -43,13 +43,13 @@ local last_edit
 ---@param line1 integer
 ---@param line2 integer
 ---@param mode string
-M.edit = function(line1, line2, mode)
+M.assistant = function(line1, line2, mode)
   local client = get_client()
   if not client then
     return
   end
-  local ChatEdit = require("openai.actions.edit")
-  last_edit = ChatEdit.new({
+  local Assistant = require("openai.actions.assistant")
+  last_edit = Assistant.new({
     line1 = line1,
     line2 = line2,
     mode = mode,
