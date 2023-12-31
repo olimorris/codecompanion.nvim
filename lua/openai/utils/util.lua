@@ -109,6 +109,7 @@ function M.get_context(bufnr)
   return {
     bufnr = bufnr,
     mode = mode,
+    is_visual = is_visual_mode(mode),
     buftype = vim.api.nvim_buf_get_option(bufnr, "buftype") or "",
     filetype = M.get_filetype(bufnr),
     cursor_pos = cursor_pos,

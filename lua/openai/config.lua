@@ -40,13 +40,27 @@ M.static_commands = {
     end,
   },
   {
-    name = "Inline Assistant Prompt",
-    description = "Prompt the OpenAI assistant to write some code",
     name = "Inline Assistant",
     description = "Prompt the OpenAI assistant to write/refactor some code",
     mode = "n,v",
     action = function(context)
       require("openai").assistant(context)
+    end,
+  },
+  -- {
+  --   name = "Inline Advice",
+  --   description = "Get the OpenAI assistant to provide some context or advice",
+  --   mode = "v",
+  --   action = function(context)
+  --     require("openai").assistant(context)
+  --   end,
+  -- },
+  {
+    name = "LSP Assistant",
+    description = "Get help from the OpenAI Completions API to fix LSP diagnostics",
+    mode = "v",
+    action = function(context)
+      require("openai").lsp_assistant(context)
     end,
   },
 }

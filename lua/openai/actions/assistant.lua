@@ -15,7 +15,7 @@ local Assistant = {}
 ---@param opts openai.ChatEditArgs
 ---@return openai.Assistant
 function Assistant.new(opts)
-  log:debug("Context: %s", opts.context)
+  log:trace("Initiating Assistant")
 
   local self = setmetatable({
     context = opts.context,

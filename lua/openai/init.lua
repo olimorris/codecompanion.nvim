@@ -70,6 +70,23 @@ M.repeat_last_edit = function()
   end
 end
 
+---@param context nil|table
+---@return nil|openai.Assistant
+M.lsp_assistant = function(context)
+  local client = get_client()
+  if not client then
+    return
+  end
+
+  local LSPAssistant = require("openai.actions.lsp_assistant")
+  context = context or utils.get_context(vim.api.nvim_get_current_buf())
+
+  return LSPAssistant.new({
+    context = context,
+    client = client,
+  }):start(require("openai.utils.ui").popup)
+end
+
 M.commands = function()
   local items = config.static_commands
   local context = utils.get_context(vim.api.nvim_get_current_buf())
