@@ -54,6 +54,10 @@ M.get_filetype = function(bufnr)
   return ft
 end
 
+local function is_visual_mode(mode)
+  return mode == "v" or mode == "V" or mode == "^V"
+end
+
 ---@param bufnr nil|integer
 function M.get_visual_selection(bufnr)
   bufnr = bufnr or 0
@@ -64,6 +68,7 @@ function M.get_visual_selection(bufnr)
 
   local start_row, start_col = unpack(vim.api.nvim_buf_get_mark(bufnr, "<"))
   local end_row, end_col = unpack(vim.api.nvim_buf_get_mark(bufnr, ">"))
+
   local lines = vim.api.nvim_buf_get_lines(bufnr, start_row - 1, end_row, false)
 
   -- get whole buffer if there is no current/previous visual selection
@@ -91,14 +96,22 @@ end
 ---@return table
 function M.get_context(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
+  local mode = vim.fn.mode()
+  local cursor_pos = vim.api.nvim_win_get_cursor(vim.api.nvim_get_current_win())
 
-  local lines, start_row, start_col, end_row, end_col = M.get_visual_selection(bufnr)
+  local lines, start_row, start_col, end_row, end_col =
+    {}, cursor_pos[1], cursor_pos[2], cursor_pos[1], cursor_pos[2]
+
+  if is_visual_mode(mode) then
+    lines, start_row, start_col, end_row, end_col = M.get_visual_selection(bufnr)
+  end
 
   return {
     bufnr = bufnr,
-    mode = vim.fn.mode(),
+    mode = mode,
     buftype = vim.api.nvim_buf_get_option(bufnr, "buftype") or "",
     filetype = M.get_filetype(bufnr),
+    cursor_pos = cursor_pos,
     lines = lines,
     start_row = start_row,
     start_col = start_col,

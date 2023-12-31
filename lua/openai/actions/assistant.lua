@@ -88,8 +88,8 @@ function Assistant:start(on_complete)
         else
           vim.api.nvim_buf_set_lines(
             self.context.bufnr,
-            self.context.start_row + 1,
-            self.context.start_row + 1,
+            self.context.cursor_pos[1] - 1,
+            self.context.cursor_pos[1] - 1,
             true,
             new_lines
           )

@@ -42,7 +42,7 @@ local function picker(context, items)
       return
     end
 
-    return selected.action()
+    return selected.action(context)
   end)
 end
 
