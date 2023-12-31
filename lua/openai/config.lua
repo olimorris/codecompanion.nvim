@@ -34,6 +34,7 @@ M.static_commands = {
   {
     name = "Chat",
     description = "Open a chat buffer to converse with the OpenAI Completions API",
+    mode = "n",
     action = function()
       require("openai").chat()
     end,
@@ -41,6 +42,9 @@ M.static_commands = {
   {
     name = "Inline Assistant Prompt",
     description = "Prompt the OpenAI assistant to write some code",
+    name = "Inline Assistant",
+    description = "Prompt the OpenAI assistant to write/refactor some code",
+    mode = "n,v",
     action = function(context)
       require("openai").assistant(context)
     end,
