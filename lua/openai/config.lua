@@ -30,4 +30,21 @@ M.setup = function()
   vim.diagnostic.config(diagnostic_config, M.ERROR_NS)
 end
 
+M.static_commands = {
+  {
+    name = "Chat",
+    description = "Open a chat buffer to converse with the OpenAI Completions API",
+    action = function()
+      require("openai").chat()
+    end,
+  },
+  {
+    name = "Inline Assistant Prompt",
+    description = "Prompt the OpenAI assistant to write some code",
+    action = function(context)
+      require("openai").assistant(context)
+    end,
+  },
+}
+
 return M

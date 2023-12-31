@@ -14,10 +14,11 @@ vim.api.nvim_create_user_command("AIChat", function()
 end, { desc = "" })
 
 vim.api.nvim_create_user_command("AIAssistant", function(args)
-  openai.assistant(args.line1, args.line2, vim.api.nvim_get_mode().mode)
-end, {
-  desc = "",
-  range = true,
-})
+  openai.assistant()
+end, { desc = "", range = true })
+
+vim.api.nvim_create_user_command("AICommands", function(args)
+  openai.commands()
+end, { desc = "", range = true })
 
 vim.g.loaded_openai = true

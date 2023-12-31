@@ -43,7 +43,7 @@ M.set_dot_repeat = function(name)
 end
 
 ---@param bufnr nil|integer
-M.get_language = function(bufnr)
+M.get_filetype = function(bufnr)
   bufnr = bufnr or 0
   local ft = vim.api.nvim_buf_get_option(bufnr, "filetype")
 
@@ -84,6 +84,27 @@ function M.get_visual_selection(bufnr)
   lines[1] = lines[1]:sub(start_col)
 
   return lines, start_row, start_col, end_row, end_col
+end
+
+---Get the context of the current buffer.
+---@param bufnr nil|integer
+---@return table
+function M.get_context(bufnr)
+  bufnr = bufnr or vim.api.nvim_get_current_buf()
+
+  local lines, start_row, start_col, end_row, end_col = M.get_visual_selection(bufnr)
+
+  return {
+    bufnr = bufnr,
+    mode = vim.fn.mode(),
+    buftype = vim.api.nvim_buf_get_option(bufnr, "buftype") or "",
+    filetype = M.get_filetype(bufnr),
+    lines = lines,
+    start_row = start_row,
+    start_col = start_col,
+    end_row = end_row,
+    end_col = end_col,
+  }
 end
 
 return M

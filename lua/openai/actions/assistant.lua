@@ -1,30 +1,25 @@
 local log = require("openai.utils.log")
 local schema = require("openai.schema")
-local utils = require("openai.utils.util")
 
 ---@class openai.Assistant
----@field bufnr integer
----@field line1 integer
----@field line2 integer
----@field mode string
+---@field context table
+---@field is_visual boolean
 ---@field client openai.Client
 local Assistant = {}
 
 ---@class openai.ChatEditArgs
----@field line1 integer
----@field line2 integer
----@field mode string
+---@field context table
+---@field is_visual boolean
 ---@field client openai.Client
 
 ---@param opts openai.ChatEditArgs
 ---@return openai.Assistant
 function Assistant.new(opts)
-  local bufnr = vim.api.nvim_get_current_buf()
+  log:debug("Context: %s", opts.context)
+
   local self = setmetatable({
-    bufnr = bufnr,
-    line1 = opts.line1,
-    line2 = opts.line2,
-    mode = opts.mode,
+    context = opts.context,
+    is_visual = (opts.context.mode:match("^[vV]") == "V"),
     client = opts.client,
   }, { __index = Assistant })
   return self
@@ -32,76 +27,80 @@ end
 
 ---@param on_complete nil|fun()
 function Assistant:start(on_complete)
-  local lang = utils.get_language(self.bufnr)
-
-  vim.ui.input({ prompt = string.gsub(lang, "^%l", string.upper) .. " Prompt" }, function(prompt)
-    if not prompt then
-      return
-    end
-
-    local is_visual = self.mode:match("^[vV]")
-    local config = schema.static.assistant_settings
-
-    local settings = {
-      model = config.model.default,
-      messages = {
-        {
-          role = "assistant",
-          content = string.format(config.prompts.choices[config.prompts.default], lang),
-        },
-        {
-          role = "user",
-          content = prompt,
-        },
-      },
-    }
-
-    if is_visual then
-      local lines, _, _, _, _ = utils.get_visual_selection(self.bufnr)
-
-      table.insert(settings.messages, {
-        role = "user",
-        content = "For context, this is the code:\n" .. table.concat(lines, "\n"),
-      })
-    end
-
-    vim.bo[self.bufnr].modifiable = false
-    self.client:assistant(settings, function(err, data)
-      if err then
-        log:error("Assistant Error: %s", err)
-      end
-
-      vim.bo[self.bufnr].modifiable = true
-
-      if err then
-        vim.notify(err, vim.log.levels.ERROR)
+  vim.ui.input(
+    { prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " Prompt" },
+    function(prompt)
+      if not prompt then
         return
       end
 
-      local replacement = data.choices[1].message.content
-      local new_lines = vim.split(replacement, "\n")
+      local config = schema.static.assistant_settings
 
-      if is_visual then
-        local _, start_row, start_col, end_row, end_col = utils.get_visual_selection(self.bufnr)
+      local settings = {
+        model = config.model.default,
+        messages = {
+          {
+            role = "assistant",
+            content = string.format(
+              config.prompts.choices[config.prompts.default],
+              self.context.filetype
+            ),
+          },
+          {
+            role = "user",
+            content = prompt,
+          },
+        },
+      }
 
-        local replacement_lines = vim.split(replacement, "\n")
-        vim.api.nvim_buf_set_text(
-          self.bufnr,
-          start_row - 1,
-          start_col - 1,
-          end_row - 1,
-          end_col,
-          replacement_lines
-        )
-      else
-        vim.api.nvim_buf_set_lines(self.bufnr, self.line1 - 1, self.line2, true, new_lines)
+      if self.is_visual then
+        table.insert(settings.messages, 2, {
+          role = "user",
+          content = "For context, this is the code I will ask you to help me with:\n"
+            .. table.concat(self.context.lines, "\n"),
+        })
       end
 
-      if on_complete then
-        on_complete()
-      end
-    end)
-  end)
+      vim.bo[self.context.bufnr].modifiable = false
+      self.client:assistant(settings, function(err, data)
+        if err then
+          log:error("Assistant Error: %s", err)
+        end
+
+        vim.bo[self.context.bufnr].modifiable = true
+
+        if err then
+          vim.notify(err, vim.log.levels.ERROR)
+          return
+        end
+
+        local new_lines = vim.split(data.choices[1].message.content, "\n")
+
+        if self.is_visual then
+          vim.api.nvim_buf_set_text(
+            self.context.bufnr,
+            self.context.start_row - 1,
+            self.context.start_col - 1,
+            self.context.end_row - 1,
+            self.context.end_col,
+            new_lines
+          )
+        else
+          vim.api.nvim_buf_set_lines(
+            self.context.bufnr,
+            self.context.start_row + 1,
+            self.context.start_row + 1,
+            true,
+            new_lines
+          )
+        end
+
+        if on_complete then
+          on_complete()
+        end
+      end)
+    end
+  )
 end
 
 return Assistant
