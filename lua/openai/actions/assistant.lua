@@ -19,7 +19,6 @@ function Assistant.new(opts)
 
   local self = setmetatable({
     context = opts.context,
-    is_visual = (opts.context.mode:match("^[vV]") == "V"),
     client = opts.client,
   }, { __index = Assistant })
   return self
@@ -40,7 +39,7 @@ function Assistant:start(on_complete)
         model = config.model.default,
         messages = {
           {
-            role = "assistant",
+            role = "system",
             content = string.format(
               config.prompts.choices[config.prompts.default],
               self.context.filetype
@@ -53,7 +52,7 @@ function Assistant:start(on_complete)
         },
       }
 
-      if self.is_visual then
+      if self.context.is_visual then
         table.insert(settings.messages, 2, {
           role = "user",
           content = "For context, this is the code I will ask you to help me with:\n"
@@ -76,7 +75,7 @@ function Assistant:start(on_complete)
 
         local new_lines = vim.split(data.choices[1].message.content, "\n")
 
-        if self.is_visual then
+        if self.context.is_visual then
           vim.api.nvim_buf_set_text(
             self.context.bufnr,
             self.context.start_line - 1,

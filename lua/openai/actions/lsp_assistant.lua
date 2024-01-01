@@ -61,7 +61,7 @@ function LSPAssistant:start(on_complete)
     model = config.model.default,
     messages = {
       {
-        role = "assistant",
+        role = "system",
         content = config.prompts.choices[config.prompts.default],
       },
       {
