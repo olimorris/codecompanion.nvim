@@ -1,6 +1,64 @@
 local M = {}
 
-M.setup = function()
+local defaults = {
+  api_key = "OPENAI_API_KEY",
+  org_api_key = "OPENAI_ORG_KEY",
+  log_level = "TRACE",
+  display = {
+    type = "popup",
+    width = 0.8,
+    height = 0.8,
+  },
+  commands = {
+    {
+      name = "Chat",
+      description = "Open a chat buffer to converse with the OpenAI Completions API",
+      mode = "n",
+      action = function()
+        require("openai").chat()
+      end,
+    },
+    {
+      name = "Inline Assistant",
+      strategy = "author",
+      description = "Prompt the OpenAI assistant to write/refactor some code",
+      mode = "n,v",
+      prompts = {
+        [1] = {
+          prompt = {
+            role = "system",
+            message = [[I want you to act as a senior %s developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations)]],
+            variables = "{{filetype}",
+          },
+        },
+      },
+
+      action = function(context)
+        require("openai").assistant(context)
+      end,
+    },
+    -- {
+    --   name = "Inline Advice",
+    --   description = "Get the OpenAI assistant to provide some context or advice",
+    --   mode = "v",
+    --   action = function(context)
+    --     require("openai").assistant(context)
+    --   end,
+    -- },
+    {
+      name = "LSP Assistant",
+      description = "Get help from the OpenAI Completions API to fix LSP diagnostics",
+      mode = "v",
+      action = function(context)
+        require("openai").lsp_assistant(context)
+      end,
+    },
+  },
+}
+
+M.setup = function(opts)
+  M.config = vim.tbl_deep_extend("force", {}, defaults, opts or {})
+
   M.INFO_NS = vim.api.nvim_create_namespace("OpenAI-info")
   M.ERROR_NS = vim.api.nvim_create_namespace("OpenAI-error")
 
@@ -14,7 +72,7 @@ M.setup = function()
       {
         type = "file",
         filename = "openai.log",
-        level = vim.log.levels.ERROR,
+        level = vim.log.levels[M.config.log_level],
       },
     },
   }))
@@ -29,40 +87,5 @@ M.setup = function()
   vim.diagnostic.config(diagnostic_config, M.INFO_NS)
   vim.diagnostic.config(diagnostic_config, M.ERROR_NS)
 end
-
-M.static_commands = {
-  {
-    name = "Chat",
-    description = "Open a chat buffer to converse with the OpenAI Completions API",
-    mode = "n",
-    action = function()
-      require("openai").chat()
-    end,
-  },
-  {
-    name = "Inline Assistant",
-    description = "Prompt the OpenAI assistant to write/refactor some code",
-    mode = "n,v",
-    action = function(context)
-      require("openai").assistant(context)
-    end,
-  },
-  -- {
-  --   name = "Inline Advice",
-  --   description = "Get the OpenAI assistant to provide some context or advice",
-  --   mode = "v",
-  --   action = function(context)
-  --     require("openai").assistant(context)
-  --   end,
-  -- },
-  {
-    name = "LSP Assistant",
-    description = "Get help from the OpenAI Completions API to fix LSP diagnostics",
-    mode = "v",
-    action = function(context)
-      require("openai").lsp_assistant(context)
-    end,
-  },
-}
 
 return M

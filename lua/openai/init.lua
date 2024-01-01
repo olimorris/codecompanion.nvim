@@ -7,14 +7,17 @@ local _client
 ---@return nil|openai.Client
 local function get_client()
   if not _client then
-    local secret_key = os.getenv("OPENAI_API_KEY")
+    local secret_key = os.getenv(config.config.api_key)
     if not secret_key then
-      vim.notify("Could not find env variable: OPENAI_API_KEY", vim.log.levels.ERROR)
+      vim.notify(
+        string.format("Could not find env variable: %s", config.config.api_key),
+        vim.log.levels.ERROR
+      )
       return nil
     end
     _client = Client.new({
       secret_key = secret_key,
-      organization = os.getenv("OPENAI_ORG"),
+      organization = os.getenv(config.config.org_api_key),
     })
   end
   return _client
@@ -88,7 +91,7 @@ M.lsp_assistant = function(context)
 end
 
 M.commands = function()
-  local items = config.static_commands
+  local items = config.config.commands
   local context = utils.get_context(vim.api.nvim_get_current_buf())
 
   require("openai.utils.ui").select(context, items)
