@@ -58,6 +58,10 @@ local function is_visual_mode(mode)
   return mode == "v" or mode == "V" or mode == "^V"
 end
 
+local function is_normal_mode(mode)
+  return mode == "n" or mode == "no" or mode == "nov" or mode == "noV" or mode == "no"
+end
+
 ---@param bufnr nil|integer
 function M.get_visual_selection(bufnr)
   bufnr = bufnr or 0
@@ -110,6 +114,7 @@ function M.get_context(bufnr)
     bufnr = bufnr,
     mode = mode,
     is_visual = is_visual_mode(mode),
+    is_normal = is_normal_mode(mode),
     buftype = vim.api.nvim_buf_get_option(bufnr, "buftype") or "",
     filetype = M.get_filetype(bufnr),
     cursor_pos = cursor_pos,
