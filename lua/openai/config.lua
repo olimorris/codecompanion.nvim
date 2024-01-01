@@ -12,32 +12,29 @@ local defaults = {
   commands = {
     {
       name = "Chat",
+      strategy = "chat",
       description = "Open a chat buffer to converse with the OpenAI Completions API",
       mode = "n",
-      action = function()
-        require("openai").chat()
-      end,
     },
     {
       name = "Inline Assistant",
       strategy = "author",
       description = "Prompt the OpenAI assistant to write/refactor some code",
       mode = "n,v",
+      opts = {
+        model = "gpt-4-1106-preview",
+        user_input = true,
+      },
       prompts = {
         [1] = {
-          prompt = {
-            role = "system",
-            message = [[I want you to act as a senior %s developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations)]],
-            variables = "{{filetype}",
+          role = "system",
+          message = [[I want you to act as a senior %s developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations)]],
+          variables = {
+            "filetype",
           },
         },
       },
-
-      action = function(context)
-        require("openai").assistant(context)
-      end,
     },
-    -- {
     --   name = "Inline Advice",
     --   description = "Get the OpenAI assistant to provide some context or advice",
     --   mode = "v",

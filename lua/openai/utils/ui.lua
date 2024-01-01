@@ -29,9 +29,9 @@ local function pad_string(str, max_length)
   end
 end
 
----@param context table
+---@param strategies table
 ---@param items table
-local function picker(context, items)
+local function picker(strategies, items)
   if not items then
     items = config.static_commands
   end
@@ -54,18 +54,17 @@ local function picker(context, items)
       return
     end
 
-    return selected.action(context)
+    return strategies[selected.strategy](selected.opts, selected.prompts)
   end)
 end
 
----@param context table
+---@param strategies table
 ---@param items table
-function M.select(context, items)
+function M.select(strategies, items)
   log:trace("Opening picker")
-  log:trace("Context: %s", context)
 
   --TODO: Put user Autocmd here
-  picker(context, items)
+  picker(strategies, items)
 end
 
 function M.split(code)

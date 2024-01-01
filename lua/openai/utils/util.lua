@@ -121,4 +121,21 @@ function M.get_context(bufnr)
   }
 end
 
+---@param msg string
+---@param vars table
+---@param mapping table
+---@return string
+function M.replace_vars(msg, vars, mapping)
+  local replacements = {}
+  for _, var_name in ipairs(vars) do
+    -- Check if the variable exists in the mapping
+    if mapping[var_name] then
+      table.insert(replacements, mapping[var_name])
+    else
+      error("Variable '" .. var_name .. "' not found in the mapping.")
+    end
+  end
+  return string.format(msg, unpack(replacements))
+end
+
 return M

@@ -240,4 +240,16 @@ function Client:assistant(args, cb)
   return self:call("https://api.openai.com/v1/chat/completions", args, cb)
 end
 
+---@class openai.AuthorArgs
+---@field model string ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.
+---@field input nil|string The input text to use as a starting point for the edit.
+---@field instruction string The instruction that tells the model how to edit the prompt.
+---@field temperature nil|number Defaults to 1. What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.
+---@field top_p nil|number Defaults to 1. An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.
+---@field n nil|integer Defaults to 1. How many chat completion choices to generate for each input message.
+function Client:author(args, cb)
+  args.stream = false
+  return self:call("https://api.openai.com/v1/chat/completions", args, cb)
+end
+
 return Client

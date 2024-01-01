@@ -91,10 +91,31 @@ M.lsp_assistant = function(context)
 end
 
 M.commands = function()
+  local client = get_client()
+  if not client then
+    return
+  end
+
   local items = config.config.commands
   local context = utils.get_context(vim.api.nvim_get_current_buf())
 
-  require("openai.utils.ui").select(context, items)
+  local strategies = {
+    ["author"] = function(opts, prompts)
+      return require("openai.actions.author")
+        .new({
+          context = context,
+          client = client,
+          opts = opts,
+          prompts = prompts,
+        })
+        :start()
+    end,
+    ["chat"] = function()
+      return require("openai").chat()
+    end,
+  }
+
+  require("openai.utils.ui").select(strategies, items)
 end
 
 M.setup = function()
