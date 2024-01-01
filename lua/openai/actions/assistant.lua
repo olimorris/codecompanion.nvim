@@ -79,9 +79,9 @@ function Assistant:start(on_complete)
         if self.is_visual then
           vim.api.nvim_buf_set_text(
             self.context.bufnr,
-            self.context.start_row - 1,
+            self.context.start_line - 1,
             self.context.start_col - 1,
-            self.context.end_row - 1,
+            self.context.end_line - 1,
             self.context.end_col,
             new_lines
           )

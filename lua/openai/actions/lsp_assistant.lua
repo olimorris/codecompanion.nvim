@@ -31,7 +31,7 @@ function LSPAssistant:start(on_complete)
 
   local config = schema.static.lsp_assistant_settings
 
-  local diagnostics = lsp.get_diagnostics(self.context.start_row, self.context.end_row)
+  local diagnostics = lsp.get_diagnostics(self.context.start_line, self.context.end_line)
   log:trace("Diagnostics: %s", diagnostics)
 
   if next(diagnostics) == nil then
@@ -54,7 +54,7 @@ function LSPAssistant:start(on_complete)
       .. "\n"
   end
 
-  local code = lsp.get_code(self.context.start_row, self.context.end_row)
+  local code = lsp.get_code(self.context.start_line, self.context.end_line)
   log:trace("Code: %s", code)
 
   local settings = {

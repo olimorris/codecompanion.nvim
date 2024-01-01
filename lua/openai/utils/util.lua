@@ -66,17 +66,17 @@ function M.get_visual_selection(bufnr)
   vim.api.nvim_feedkeys("gv", "x", false)
   vim.api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
 
-  local start_row, start_col = unpack(vim.api.nvim_buf_get_mark(bufnr, "<"))
-  local end_row, end_col = unpack(vim.api.nvim_buf_get_mark(bufnr, ">"))
+  local start_line, start_col = unpack(vim.api.nvim_buf_get_mark(bufnr, "<"))
+  local end_line, end_col = unpack(vim.api.nvim_buf_get_mark(bufnr, ">"))
 
-  local lines = vim.api.nvim_buf_get_lines(bufnr, start_row - 1, end_row, false)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
 
   -- get whole buffer if there is no current/previous visual selection
-  if start_row == 0 then
+  if start_line == 0 then
     lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-    start_row = 1
+    start_line = 1
     start_col = 0
-    end_row = #lines
+    end_line = #lines
     end_col = #lines[#lines]
   end
 
@@ -88,7 +88,7 @@ function M.get_visual_selection(bufnr)
   lines[#lines] = lines[#lines]:sub(1, end_col)
   lines[1] = lines[1]:sub(start_col)
 
-  return lines, start_row, start_col, end_row, end_col
+  return lines, start_line, start_col, end_line, end_col
 end
 
 ---Get the context of the current buffer.
@@ -99,11 +99,11 @@ function M.get_context(bufnr)
   local mode = vim.fn.mode()
   local cursor_pos = vim.api.nvim_win_get_cursor(vim.api.nvim_get_current_win())
 
-  local lines, start_row, start_col, end_row, end_col =
+  local lines, start_line, start_col, end_line, end_col =
     {}, cursor_pos[1], cursor_pos[2], cursor_pos[1], cursor_pos[2]
 
   if is_visual_mode(mode) then
-    lines, start_row, start_col, end_row, end_col = M.get_visual_selection(bufnr)
+    lines, start_line, start_col, end_line, end_col = M.get_visual_selection(bufnr)
   end
 
   return {
@@ -114,9 +114,9 @@ function M.get_context(bufnr)
     filetype = M.get_filetype(bufnr),
     cursor_pos = cursor_pos,
     lines = lines,
-    start_row = start_row,
+    start_line = start_line,
     start_col = start_col,
-    end_row = end_row,
+    end_line = end_line,
     end_col = end_col,
   }
 end
