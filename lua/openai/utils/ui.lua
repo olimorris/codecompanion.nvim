@@ -37,7 +37,7 @@ local function picker(strategies, items)
   end
 
   local name_pad = get_max_length(items, "name")
-  local mode_pad = get_max_length(items, "mode")
+  local strat_pad = get_max_length(items, "strategy")
 
   vim.ui.select(items, {
     prompt = "OpenAI.nvim",
@@ -45,7 +45,7 @@ local function picker(strategies, items)
     format_item = function(item)
       return pad_string(item.name, name_pad)
         .. " │ "
-        .. pad_string(item.mode, mode_pad)
+        .. pad_string(item.strategy, strat_pad)
         .. " │ "
         .. item.description
     end,
