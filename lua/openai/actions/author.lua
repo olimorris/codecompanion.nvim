@@ -62,7 +62,7 @@ function Author:execute(user_input)
 
   conversation.messages = formatted_messages
 
-  if self.context.is_visual then
+  if self.context.is_visual and utils.contains(self.opts.modes, "v") then
     table.insert(conversation.messages, 2, {
       role = "user",
       content = "For context, this is the code I will ask you to help me with:\n"
@@ -74,18 +74,19 @@ function Author:execute(user_input)
   self.client:assistant(conversation, function(err, data)
     if err then
       log:error("Author Error: %s", err)
+      vim.notify(err, vim.log.levels.ERROR)
     end
+
+    --TODO: Check if the response contains "I'm sorry"
+    --If it does then send an error to the user
 
     vim.bo[self.context.bufnr].modifiable = true
 
-    if err then
-      vim.notify(err, vim.log.levels.ERROR)
-      return
-    end
-
     local new_lines = vim.split(data.choices[1].message.content, "\n")
 
-    if self.context.is_visual then
+    log:trace("Visual %s", self.opts)
+
+    if self.context.is_visual and utils.contains(self.opts.modes, "v") then
       vim.api.nvim_buf_set_text(
         self.context.bufnr,
         self.context.start_line - 1,

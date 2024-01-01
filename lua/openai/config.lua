@@ -14,15 +14,17 @@ local defaults = {
       name = "Chat",
       strategy = "chat",
       description = "Open a chat buffer to converse with the OpenAI Completions API",
-      mode = "n",
+      opts = {
+        modes = { "n" },
+      },
     },
     {
-      name = "Inline Assistant",
+      name = "Code Companion",
       strategy = "author",
       description = "Prompt the OpenAI assistant to write/refactor some code",
-      mode = "n,v",
       opts = {
         model = "gpt-4-1106-preview",
+        modes = { "n", "v" },
         user_input = true,
       },
       prompts = {
@@ -35,20 +37,42 @@ local defaults = {
         },
       },
     },
-    --   name = "Inline Advice",
-    --   description = "Get the OpenAI assistant to provide some context or advice",
-    --   mode = "v",
-    --   action = function(context)
-    --     require("openai").assistant(context)
-    --   end,
-    -- },
     {
       name = "LSP Assistant",
+      strategy = "advisor",
       description = "Get help from the OpenAI Completions API to fix LSP diagnostics",
-      mode = "v",
-      action = function(context)
-        require("openai").lsp_assistant(context)
-      end,
+      opts = {
+        model = "gpt-4-1106-preview",
+        modes = { "v" },
+        user_input = false,
+      },
+      prompts = {
+        [1] = {
+          role = "system",
+          message = [[
+            You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages.
+            When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting
+          ]],
+        },
+        [2] = {
+          role = "user",
+          message = function(context)
+            local formatted_diagnostics = require("openai.helpers.lsp").get_diagnostics(context)
+
+            return "The programming language is "
+              .. context.filetype
+              .. ".\nThis is a list of the diagnostic messages:\n"
+              .. formatted_diagnostics
+          end,
+        },
+        [3] = {
+          role = "user",
+          message = function(context)
+            return "This is the code, for context:\n"
+              .. require("openai.helpers.code").get_code(context.start_line, context.end_line)
+          end,
+        },
+      },
     },
   },
 }

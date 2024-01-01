@@ -138,4 +138,15 @@ function M.replace_vars(msg, vars, mapping)
   return string.format(msg, unpack(replacements))
 end
 
+---@param table table
+---@param value string
+function M.contains(table, value)
+  for _, item in pairs(table) do
+    if string.lower(item) == string.lower(value) then
+      return true
+    end
+  end
+  return false
+end
+
 return M
