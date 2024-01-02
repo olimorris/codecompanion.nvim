@@ -1,6 +1,23 @@
-# CodeCompanion.nvim
+<!-- panvimdoc-ignore-start -->
 
-A wrapper around the OpenAI [Chat Completions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api). Use it to chat, write and advise you on your code from within Neovim.
+<p align="center">
+<img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/f18e654c-27f6-4712-9913-00ed2f3f4bd9" alt="CodeCompanion.nvim" />
+</p>
+
+<h1 align="center">CodeCompanion.nvim</h1>
+
+<!-- <p align="center"> -->
+<!-- <a href="https://github.com/olimorris/codecompanion.nvim/stargazers"><img src="https://img.shields.io/github/stars/olimorris/codecompanion.nvim?color=c678dd&logoColor=e06c75&style=for-the-badge"></a> -->
+<!-- <a href="https://github.com/olimorris/codecompanion.nvim/issues"><img src="https://img.shields.io/github/issues/olimorris/codecompanion.nvim?color=%23d19a66&style=for-the-badge"></a> -->
+<!-- <a href="https://github.com/olimorris/codecompanion.nvim/blob/main/LICENSE"><img src="https://img.shields.io/github/license/olimorris/codecompanion.nvim?style=for-the-badge"></a> -->
+<!-- <a href="https://github.com/olimorris/codecompanion.nvim/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/olimorris/codecompanion.nvim/ci.yml?branch=main&label=tests&style=for-the-badge"></a> -->
+<!-- </p> -->
+
+<p align="center">
+<b>CodeCompanion.nvim</b> is a wrapper around the OpenAI [Chat Completions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api). Use it to chat, write and advise you on your code from within Neovim.<br>
+</p>
+
+<!-- panvimdoc-ignore-end -->
 
 ## Features
 
