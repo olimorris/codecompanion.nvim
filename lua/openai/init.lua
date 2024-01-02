@@ -26,7 +26,7 @@ end
 ---@param bufnr nil|integer
 ---@return nil|openai.Chat
 M.buf_get_chat = function(bufnr)
-  return require("openai.actions.chat").buf_get_chat(bufnr)
+  return require("openai.strategy.chat").buf_get_chat(bufnr)
 end
 
 M.chat = function()
@@ -34,7 +34,7 @@ M.chat = function()
   if not client then
     return
   end
-  local Chat = require("openai.actions.chat")
+  local Chat = require("openai.strategy.chat")
   local chat = Chat.new({
     client = client,
   })
@@ -52,7 +52,7 @@ M.assistant = function(context)
     return
   end
 
-  local Assistant = require("openai.actions.assistant")
+  local Assistant = require("openai.strategy.assistant")
   context = context or utils.get_context(vim.api.nvim_get_current_buf())
 
   last_edit = Assistant.new({
@@ -73,35 +73,28 @@ M.repeat_last_edit = function()
   end
 end
 
----@param context nil|table
----@return nil|openai.Assistant
-M.lsp_assistant = function(context)
-  local client = get_client()
-  if not client then
-    return
-  end
-
-  local LSPAssistant = require("openai.actions.lsp_assistant")
-  context = context or utils.get_context(vim.api.nvim_get_current_buf())
-
-  return LSPAssistant.new({
-    context = context,
-    client = client,
-  }):start(require("openai.utils.ui").popup)
-end
-
 M.commands = function()
   local client = get_client()
   if not client then
     return
   end
 
-  local items = config.config.commands
+  local items = config.config.actions
   local context = utils.get_context(vim.api.nvim_get_current_buf())
 
   local strategies = {
+    ["advisor"] = function(opts, prompts)
+      return require("openai.strategy.advisor")
+        .new({
+          context = context,
+          client = client,
+          opts = opts,
+          prompts = prompts,
+        })
+        :start()
+    end,
     ["author"] = function(opts, prompts)
-      return require("openai.actions.author")
+      return require("openai.strategy.author")
         .new({
           context = context,
           client = client,

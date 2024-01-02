@@ -67,28 +67,26 @@ function M.select(strategies, items)
   picker(strategies, items)
 end
 
-function M.split(code)
-  -- Create a new buffer
+---@param code string
+local function split(code)
+  if not code or code == "" then
+    return
+  end
+
   local buf = vim.api.nvim_create_buf(false, true)
+
   vim.api.nvim_buf_set_option(buf, "filetype", "markdown")
   vim.api.nvim_buf_set_option(buf, "buftype", "nofile")
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(code, "\n"))
   vim.api.nvim_buf_set_option(buf, "modifiable", false)
 
-  -- Calculate height for the split
   local height = math.floor(vim.o.lines * 0.4)
-
-  -- Save the current window id to come back to it later
   local current_win = vim.api.nvim_get_current_win()
 
-  -- Create the bottom split and set its buffer to the new one
   vim.cmd(height .. "new")
   local split_win = vim.api.nvim_get_current_win()
 
-  -- Set the newly created buffer to the split window
   vim.api.nvim_win_set_buf(split_win, buf)
-
-  -- Enable text wrapping in the split window
   vim.api.nvim_win_set_option(split_win, "wrap", true)
 
   -- Set up a keymap for 'q' to close the window
@@ -97,9 +95,7 @@ function M.split(code)
     silent = true,
     callback = function()
       vim.api.nvim_win_close(split_win, true)
-      if vim.api.nvim_buf_is_valid(buf) then
-        vim.api.nvim_buf_delete(buf, { force = true })
-      end
+      vim.api.nvim_buf_delete(buf, { force = true })
     end,
   })
 
@@ -107,7 +103,9 @@ function M.split(code)
   vim.api.nvim_set_current_win(current_win)
 end
 
-function M.popup(code)
+---@param opts table
+---@param code string
+local function popup(opts, code)
   -- Create a new buffer
   local buf = vim.api.nvim_create_buf(false, true)
 
@@ -122,8 +120,8 @@ function M.popup(code)
   vim.api.nvim_buf_set_option(buf, "buftype", "nofile")
 
   -- Define the floating window size and position
-  local win_width = math.floor(vim.o.columns * 0.8)
-  local win_height = math.floor(vim.o.lines * 0.8)
+  local win_width = math.floor(vim.o.columns * (opts.width or 0.8))
+  local win_height = math.floor(vim.o.lines * (opts.height or 0.8))
   local row = math.floor((vim.o.lines - win_height) / 2)
   local col = math.floor((vim.o.columns - win_width) / 2)
 
@@ -148,6 +146,16 @@ function M.popup(code)
       vim.api.nvim_win_close(win, true)
     end,
   })
+end
+
+---@param opts table
+---@param code string
+function M.display(opts, code)
+  if opts.type == "split" then
+    split(code)
+  elseif opts.type == "popup" then
+    popup(opts, code)
+  end
 end
 
 return M

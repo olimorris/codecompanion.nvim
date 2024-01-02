@@ -220,45 +220,4 @@ M.static.chat_completion_settings = {
   },
 }
 
-M.static.assistant_settings = {
-  model = {
-    order = 1,
-    type = "enum",
-    desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
-    default = "gpt-4-1106-preview",
-    choices = model_choices,
-  },
-  prompts = {
-    order = 2,
-    type = "enum",
-    desc = "The prompt to use to generate the completion",
-    default = "senior_dev",
-    choices = {
-      senior_dev = "I want you to act as a senior %s developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations)",
-    },
-  },
-}
-
-M.static.lsp_assistant_settings = {
-  model = {
-    order = 1,
-    type = "enum",
-    desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
-    default = "gpt-4-1106-preview",
-    choices = model_choices,
-  },
-  prompts = {
-    order = 2,
-    type = "enum",
-    desc = "The prompt to use to assist with LSP diagnostics",
-    default = "expert_coder",
-    choices = {
-      expert_coder = [[
-        You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages.
-        When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting
-      ]],
-    },
-  },
-}
-
 return M

@@ -1,12 +1,13 @@
+local config = require("openai.config")
 local log = require("openai.utils.log")
 local utils = require("openai.utils.util")
 
----@class openai.Author
+---@class openai.Advisor
 ---@field context table
 ---@field client openai.Client
 ---@field opts table
 ---@field prompts table
-local Author = {}
+local Advisor = {}
 
 ---@class openai.AuthorArgs
 ---@field context table
@@ -15,22 +16,21 @@ local Author = {}
 ---@field prompts table
 
 ---@param opts openai.AuthorArgs
----@return openai.Author
-function Author.new(opts)
-  log:trace("Initiating Author")
+---@return openai.Advisor
+function Advisor.new(opts)
+  log:trace("Initiating Advisor")
 
   local self = setmetatable({
     context = opts.context,
     client = opts.client,
     opts = opts.opts,
     prompts = opts.prompts,
-    messages = {},
-  }, { __index = Author })
+  }, { __index = Advisor })
   return self
 end
 
 ---@param user_input string|nil
-function Author:execute(user_input)
+function Advisor:execute(user_input)
   local vars = {
     filetype = self.context.filetype,
   }
@@ -42,18 +42,22 @@ function Author:execute(user_input)
 
   local formatted_messages = {}
 
-  -- Add the prompts from the user's config
-  -- TODO: Allow for function messages
   for _, p in ipairs(self.prompts) do
-    local msg = utils.replace_vars(p.message, p.variables or {}, vars)
+    local content
+    if type(p.content) == "function" then
+      content = p.content(self.context)
+    else
+      content = utils.replace_vars(p.content, p.variables or {}, vars)
+    end
+
     table.insert(formatted_messages, {
       role = p.role,
-      content = msg,
+      content = content,
     })
   end
 
-  -- -- Add the user prompt last
-  if self.opts.user_input then
+  -- Add the user prompt last
+  if self.opts.user_input and user_input then
     table.insert(formatted_messages, {
       role = "user",
       content = user_input,
@@ -62,7 +66,10 @@ function Author:execute(user_input)
 
   conversation.messages = formatted_messages
 
-  if self.context.is_visual and utils.contains(self.opts.modes, "v") then
+  if
+    self.opts.send_visual_selection
+    and (self.context.is_visual and utils.contains(self.opts.modes, "v"))
+  then
     table.insert(conversation.messages, 2, {
       role = "user",
       content = "For context, this is the code I will ask you to help me with:\n"
@@ -71,43 +78,19 @@ function Author:execute(user_input)
   end
 
   vim.bo[self.context.bufnr].modifiable = false
-  self.client:assistant(conversation, function(err, data)
+  self.client:advisor(conversation, function(err, data)
     if err then
-      log:error("Author Error: %s", err)
+      log:error("Advisor Error: %s", err)
       vim.notify(err, vim.log.levels.ERROR)
     end
 
-    --TODO: Check if the response contains "I'm sorry"
-    --If it does then send an error to the user
+    local response = data.choices[1].message.content
 
-    vim.bo[self.context.bufnr].modifiable = true
-
-    local new_lines = vim.split(data.choices[1].message.content, "\n")
-
-    log:trace("Visual %s", self.opts)
-
-    if self.context.is_visual and utils.contains(self.opts.modes, "v") then
-      vim.api.nvim_buf_set_text(
-        self.context.bufnr,
-        self.context.start_line - 1,
-        self.context.start_col - 1,
-        self.context.end_line - 1,
-        self.context.end_col,
-        new_lines
-      )
-    else
-      vim.api.nvim_buf_set_lines(
-        self.context.bufnr,
-        self.context.cursor_pos[1] - 1,
-        self.context.cursor_pos[1] - 1,
-        true,
-        new_lines
-      )
-    end
+    return require("openai.utils.ui").display(config.config.display, response)
   end)
 end
 
-function Author:start()
+function Advisor:start()
   if self.context.is_normal and not utils.contains(self.opts.modes, "n") then
     return vim.notify(
       "[CodeCompanion.nvim]\nThis action is not enabled for Normal mode",
@@ -138,4 +121,4 @@ function Author:start()
   end
 end
 
-return Author
+return Advisor
