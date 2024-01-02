@@ -14,7 +14,7 @@
 <!-- </p> -->
 
 <p align="center">
-<b>CodeCompanion.nvim</b> is a wrapper around the OpenAI [Chat Completions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api). Use it to chat, write and advise you on your code from within Neovim.<br>
+<b>CodeCompanion.nvim</b> is a wrapper around the OpenAI <a href="https://platform.openai.com/docs/guides/text-generation/chat-completions-api">Chat Completions API</a>. Use it to chat, write and advise you on your code from within Neovim.<br>
 </p>
 
 <!-- panvimdoc-ignore-end -->
