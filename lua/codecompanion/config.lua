@@ -26,6 +26,7 @@ local defaults = {
         model = "gpt-4-1106-preview",
         modes = { "n", "v" },
         user_input = true,
+        send_visual_selection = true,
       },
       prompts = {
         [1] = {

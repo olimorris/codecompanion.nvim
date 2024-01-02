@@ -14,7 +14,7 @@
 <!-- </p> -->
 
 <p align="center">
-<b>CodeCompanion.nvim</b> is a wrapper around the OpenAI <a href="https://platform.openai.com/docs/guides/text-generation/chat-completions-api">Chat Completions API</a>. Use it to chat, write and advise you on your code from within Neovim.<br>
+A wrapper around the OpenAI <a href="https://platform.openai.com/docs/guides/text-generation/chat-completions-api">Chat Completions API</a>. Use it to chat, write and advise you on your code from within Neovim.<br>
 </p>
 
 <!-- panvimdoc-ignore-end -->
@@ -57,6 +57,7 @@ Let's take a look at one of the default `author` actions in the plugin, the `Cod
         model = "gpt-4-1106-preview",
         modes = { "n", "v" },
         user_input = true,
+        send_visual_selection = true,
     },
     prompts = {
         [1] = {
@@ -79,6 +80,7 @@ Breaking it down:
 - `opts.model` - The OpenAI model to interact with
 - `opts.modes` - The Vim modes for which this action can work in
 - `opts.user_input` - Do we want to prompt the user for their own input?
+- `opts.send_visual_selection` - Do we want to automatically send any visual selection to the API?
 
 The `prompts` structure follows the [Chat Completions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api) format of `role` and `content`. The `system` prompt informs the API of how it should behave when answering any questions. In essence it sets the tone for the response. The plugin allows for you to subsitute variables into the prompt with `%s` and the `variables` table. In this case we're substituting the filetype of the buffer into the prompt. More on this later.
 
@@ -152,27 +154,25 @@ Let's look at a more advanced action which utilises the `advisor` strategy, the 
 
 Breaking it down:
 
-- `modes` - This time we're telling the action to only work in Visual mode
-- `user_input` - We're also telling the action to not prompt the user for input
-- `send_visual_selection` - We're also disabling the default behaviour of sending a visual selection to the API
+- `strategy` - The advisor strategy has read access to the current buffer
+- `opts.modes` - This time we're telling the action to only work in Visual mode
+- `opts.user_input` - We're also telling the action to not prompt the user for input
+- `opts.send_visual_selection` - We're also disabling the default behaviour of sending a visual selection to the API
 
-In this example, the prompts structure is more complicated. It is now a function which returns a string and we're utilising the `context` table as a parameter to do some more complicated prompt generation. The `context` table is something which is generated when the action is initiated, it contains the following items:
+In this example, the prompts structure is more complicated. It is now a function which returns a string and we're utilising the `context` table as a parameter to do some more complicated prompt generation. The `context` table is generated from the buffer where the action was initiated. It contains the following items:
 
-- `bufnr` (int) - The buffer number for the buffer to carry out the action in
-- `mode` (str) - The Vim mode that called the action
-- `is_visual` (bool) - Did the user call the action in Visual mode?
-- `is_normal` (bool) - Did the user call the action in Normal mode?
-- `buftype` (str) - The type of buffer
-- `filetype` (str) - The filetype for the buffer
-- `cursor_pos` (tbl) - The position of the cursor when the action was called
-- `lines` (tbl) - The selected lines in the buffer, if in visual mode
-- `start_line` (int) - The line number the selection starts at
-- `end_line` (int) - The line number the selection ends at
-- `start_col` (int) - The column the selection starts at
-- `end_col` (int) - The column the selection ends at
+- `bufnr` `(int)` - The buffer number for the buffer to carry out the action in
+- `mode` `(str)` - The Vim mode that called the action
+- `is_visual` `(bool)` - Did the user call the action in Visual mode?
+- `is_normal` `(bool)` - Did the user call the action in Normal mode?
+- `buftype` `(str)` - The buffer type
+- `filetype` `(str)` - The buffer's filetype
+- `cursor_pos` `(tbl)` - The position of the cursor when the action was called
+- `lines` `(tbl)` - The selected lines in the buffer, if in visual mode
+- `start_line` `(int)` - The line number the selection starts at
+- `end_line` `(int)` - The line number the selection ends at
+- `start_col` `(int)` - The column the selection starts at
+- `end_col` `(int)` - The column the selection ends at
 
 With this level of context, it allows us to do some advanced prompting, like extracting the LSP's diagnostic messages for the selected lines of code. Finally, for the last prompt, we fetch the selected code and send that as context to the API.
 
-### Other points to note
-
-Actions are smart enough to be able to detect when a user has selected lines of code. When this occurs, the action will send the selected code as context within the prompt
