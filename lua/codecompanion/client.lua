@@ -1,16 +1,16 @@
-local log = require("openai.utils.log")
+local log = require("codecompanion.utils.log")
 
----@class openai.Client
+---@class codecompanion.Client
 ---@field secret_key string
 ---@field organization nil|string
 local Client = {}
 
----@class openai.ClientArgs
+---@class codecompanion.ClientArgs
 ---@field secret_key string
 ---@field organization nil|string
 
----@param args openai.ClientArgs
----@return openai.Client
+---@param args codecompanion.ClientArgs
+---@return codecompanion.Client
 function Client.new(args)
   return setmetatable({
     secret_key = args.secret_key,
@@ -60,7 +60,7 @@ function Client:call(url, payload, cb)
   log:trace("request payload: %s", payload)
   local stdout = ""
 
-  vim.api.nvim_exec_autocmds("User", { pattern = "OpenAIStreaming", data = { status = "started" } })
+  vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanion", data = { status = "started" } })
 
   local jid = vim.fn.jobstart(cmd, {
     stdout_buffered = true,
@@ -78,7 +78,7 @@ function Client:call(url, payload, cb)
 
       vim.api.nvim_exec_autocmds(
         "User",
-        { pattern = "OpenAIStreaming", data = { status = "finished" } }
+        { pattern = "CodeCompanion", data = { status = "finished" } }
       )
     end),
   })
@@ -143,7 +143,7 @@ function Client:stream_call(url, payload, cb)
   local done = false
   local found_any_stream = false
 
-  vim.api.nvim_exec_autocmds("User", { pattern = "OpenAIStreaming", data = { status = "started" } })
+  vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanion", data = { status = "started" } })
 
   local jid = vim.fn.jobstart(cmd, {
     on_stdout = function(_, output)
@@ -173,7 +173,7 @@ function Client:stream_call(url, payload, cb)
     on_exit = function(_, code)
       vim.api.nvim_exec_autocmds(
         "User",
-        { pattern = "OpenAIStreaming", data = { status = "finished" } }
+        { pattern = "CodeCompanion", data = { status = "finished" } }
       )
 
       if not found_any_stream then
@@ -194,11 +194,11 @@ function Client:stream_call(url, payload, cb)
   return jid
 end
 
----@class openai.ChatMessage
+---@class codecompanion.ChatMessage
 ---@field role "system"|"user"|"assistant"
 ---@field content string
 
----@class openai.ChatCompletionSettings
+---@class codecompanion.ChatCompletionSettings
 ---@field model string ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.
 ---@field temperature nil|number Defaults to 1. What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.
 ---@field top_p nil|number Defaults to 1. An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.
@@ -210,10 +210,10 @@ end
 ---@field logit_bias nil|table<integer, integer> Modify the likelihood of specified tokens appearing in the completion. Maps tokens (specified by their token ID) to an associated bias value from -100 to 100. Use https://platform.openai.com/tokenizer to find token IDs.
 ---@field user nil|string A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Learn more.
 
----@class openai.ChatCompletionArgs : openai.ChatCompletionSettings
----@field messages openai.ChatMessage[] The messages to generate chat completions for, in the chat format.
+---@class codecompanion.ChatCompletionArgs : codecompanion.ChatCompletionSettings
+---@field messages codecompanion.ChatMessage[] The messages to generate chat completions for, in the chat format.
 
----@param args openai.ChatCompletionArgs
+---@param args codecompanion.ChatCompletionArgs
 ---@param cb fun(err: nil|string, response: nil|table)
 ---@return integer
 function Client:chat_completion(args, cb)
@@ -221,14 +221,14 @@ function Client:chat_completion(args, cb)
   return self:call("https://api.openai.com/v1/chat/completions", args, cb)
 end
 
----@param args openai.ChatCompletionArgs
+---@param args codecompanion.ChatCompletionArgs
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
 ---@return integer
 function Client:stream_chat_completion(args, cb)
   return self:stream_call("https://api.openai.com/v1/chat/completions", args, cb)
 end
 
----@class openai.AdvsorArgs
+---@class codecompanion.AdvsorArgs
 ---@field model string ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.
 ---@field input nil|string The input text to use as a starting point for the edit.
 ---@field instruction string The instruction that tells the model how to edit the prompt.
@@ -240,7 +240,7 @@ function Client:advisor(args, cb)
   return self:call("https://api.openai.com/v1/chat/completions", args, cb)
 end
 
----@class openai.AuthorArgs
+---@class codecompanion.AuthorArgs
 ---@field model string ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.
 ---@field input nil|string The input text to use as a starting point for the edit.
 ---@field instruction string The instruction that tells the model how to edit the prompt.

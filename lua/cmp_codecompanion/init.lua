@@ -5,7 +5,7 @@ function source.new()
 end
 
 function source:is_available()
-  return vim.b.openai_type == "chat_completion"
+  return vim.b.codecompanion_type == "chat_completion"
 end
 
 source.get_position_encoding_kind = function()
@@ -17,7 +17,7 @@ function source:get_keyword_pattern()
 end
 
 function source:complete(request, callback)
-  local chat = require("openai").buf_get_chat(0)
+  local chat = require("codecompanion").buf_get_chat(0)
   if chat then
     chat:complete(request, callback)
   else

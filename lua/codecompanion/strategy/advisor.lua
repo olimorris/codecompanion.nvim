@@ -1,35 +1,36 @@
-local log = require("openai.utils.log")
-local utils = require("openai.utils.util")
+local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils.util")
 
----@class openai.Author
+---@class codecompanion.Advisor
 ---@field context table
----@field client openai.Client
+---@field client codecompanion.Client
 ---@field opts table
 ---@field prompts table
-local Author = {}
+local Advisor = {}
 
----@class openai.AuthorArgs
+---@class codecompanion.AuthorArgs
 ---@field context table
----@field client openai.Client
+---@field client codecompanion.Client
 ---@field opts table
 ---@field prompts table
 
----@param opts openai.AuthorArgs
----@return openai.Author
-function Author.new(opts)
-  log:trace("Initiating Author")
+---@param opts codecompanion.AuthorArgs
+---@return codecompanion.Advisor
+function Advisor.new(opts)
+  log:trace("Initiating Advisor")
 
   local self = setmetatable({
     context = opts.context,
     client = opts.client,
     opts = opts.opts,
     prompts = opts.prompts,
-  }, { __index = Author })
+  }, { __index = Advisor })
   return self
 end
 
 ---@param user_input string|nil
-function Author:execute(user_input)
+function Advisor:execute(user_input)
   local vars = {
     filetype = self.context.filetype,
   }
@@ -41,9 +42,14 @@ function Author:execute(user_input)
 
   local formatted_messages = {}
 
-  -- TODO: Allow for messages to be functions which are executed
   for _, p in ipairs(self.prompts) do
-    local content = utils.replace_vars(p.content, p.variables or {}, vars)
+    local content
+    if type(p.content) == "function" then
+      content = p.content(self.context)
+    else
+      content = utils.replace_vars(p.content, p.variables or {}, vars)
+    end
+
     table.insert(formatted_messages, {
       role = p.role,
       content = content,
@@ -72,46 +78,19 @@ function Author:execute(user_input)
   end
 
   vim.bo[self.context.bufnr].modifiable = false
-  self.client:author(conversation, function(err, data)
+  self.client:advisor(conversation, function(err, data)
     if err then
-      log:error("Author Error: %s", err)
+      log:error("Advisor Error: %s", err)
       vim.notify(err, vim.log.levels.ERROR)
     end
 
     local response = data.choices[1].message.content
 
-    if string.find(string.lower(response), string.lower("Error")) == 1 then
-      return vim.notify(
-        "[CodeCompanion.nvim]\nThe OpenAI API could not find a response to your prompt",
-        vim.log.levels.ERROR
-      )
-    end
-
-    vim.bo[self.context.bufnr].modifiable = true
-    local output = vim.split(response, "\n")
-
-    if self.context.is_visual and utils.contains(self.opts.modes, "v") then
-      vim.api.nvim_buf_set_text(
-        self.context.bufnr,
-        self.context.start_line - 1,
-        self.context.start_col - 1,
-        self.context.end_line - 1,
-        self.context.end_col,
-        output
-      )
-    else
-      vim.api.nvim_buf_set_lines(
-        self.context.bufnr,
-        self.context.cursor_pos[1] - 1,
-        self.context.cursor_pos[1] - 1,
-        true,
-        output
-      )
-    end
+    return require("codecompanion.utils.ui").display(config.config.display, response)
   end)
 end
 
-function Author:start()
+function Advisor:start()
   if self.context.is_normal and not utils.contains(self.opts.modes, "n") then
     return vim.notify(
       "[CodeCompanion.nvim]\nThis action is not enabled for Normal mode",
@@ -142,4 +121,4 @@ function Author:start()
   end
 end
 
-return Author
+return Advisor

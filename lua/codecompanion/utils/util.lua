@@ -37,9 +37,9 @@ M._noop = function() end
 
 ---@param name string
 M.set_dot_repeat = function(name)
-  vim.go.operatorfunc = "v:lua.require'openai.utils.util'._noop"
+  vim.go.operatorfunc = "v:lua.require'codecompanion.utils.util'._noop"
   vim.cmd.normal({ args = { "g@l" }, bang = true })
-  vim.go.operatorfunc = string.format("v:lua.require'openai'.%s", name)
+  vim.go.operatorfunc = string.format("v:lua.require'codecompanion'.%s", name)
 end
 
 ---@param bufnr nil|integer

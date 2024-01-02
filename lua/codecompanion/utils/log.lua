@@ -1,6 +1,6 @@
-local files = require("openai.files")
+local files = require("codecompanion.files")
 
----@class openai.LogHandler
+---@class codecompanion.LogHandler
 ---@field type string
 ---@field level integer
 ---@field formatter fun(level: integer, msg: string, ...: any)
@@ -52,7 +52,7 @@ local function default_formatter(level, msg, ...)
 end
 
 ---@param opts table
----@return openai.LogHandler
+---@return codecompanion.LogHandler
 local function create_file_handler(opts)
   vim.validate({
     filename = { opts.filename, "s" },
@@ -64,7 +64,7 @@ local function create_file_handler(opts)
   local filepath = files.join(stdpath, opts.filename)
   local logfile, openerr = io.open(filepath, "a+")
   if not logfile then
-    local err_msg = string.format("Failed to open OpenAI log file: %s", openerr)
+    local err_msg = string.format("Failed to open the CodeCompanion log file: %s", openerr)
     vim.notify(err_msg, vim.log.levels.ERROR)
     opts.handle = function() end
   else
@@ -78,7 +78,7 @@ local function create_file_handler(opts)
 end
 
 ---@param opts table
----@return openai.LogHandler
+---@return codecompanion.LogHandler
 local function create_notify_handler(opts)
   opts.handle = function(level, text)
     vim.notify(text, level)
@@ -87,7 +87,7 @@ local function create_notify_handler(opts)
 end
 
 ---@param opts table
----@return openai.LogHandler
+---@return codecompanion.LogHandler
 local function create_echo_handler(opts)
   opts.handle = function(level, text)
     local hl = "Normal"
@@ -101,7 +101,7 @@ local function create_echo_handler(opts)
   return LogHandler.new(opts)
 end
 
----@return openai.LogHandler
+---@return codecompanion.LogHandler
 local function create_null_handler()
   return LogHandler.new({
     formatter = function() end,
@@ -110,7 +110,7 @@ local function create_null_handler()
 end
 
 ---@param opts table
----@return openai.LogHandler
+---@return codecompanion.LogHandler
 local function create_handler(opts)
   vim.validate({
     type = { opts.type, "s" },
@@ -130,15 +130,15 @@ local function create_handler(opts)
   end
 end
 
----@class openai.Logger
----@field handlers openai.LogHandler[]
+---@class codecompanion.Logger
+---@field handlers codecompanion.LogHandler[]
 local Logger = {}
 
----@class openai.LoggerArgs
----@field handlers openai.LogHandler[]
+---@class codecompanion.LoggerArgs
+---@field handlers codecompanion.LogHandler[]
 ---@field level nil|integer
 
----@param opts openai.LoggerArgs
+---@param opts codecompanion.LoggerArgs
 function Logger.new(opts)
   vim.validate({
     handlers = { opts.handlers, "t" },
@@ -164,7 +164,7 @@ function Logger:set_level(level)
   end
 end
 
----@return openai.LogHandler[]
+---@return codecompanion.LogHandler[]
 function Logger:get_handlers()
   return self.handlers
 end
@@ -230,17 +230,17 @@ local root = Logger.new({
   },
 })
 
----@type openai.Logger
+---@type codecompanion.Logger
 local M = {}
 
 M.new = Logger.new
 
----@param logger openai.Logger
+---@param logger codecompanion.Logger
 M.set_root = function(logger)
   root = logger
 end
 
----@return openai.Logger
+---@return codecompanion.Logger
 M.get_root = function()
   return root
 end

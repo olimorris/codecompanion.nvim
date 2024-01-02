@@ -1,10 +1,10 @@
-local Client = require("openai.client")
-local config = require("openai.config")
-local utils = require("openai.utils.util")
+local Client = require("codecompanion.client")
+local config = require("codecompanion.config")
+local utils = require("codecompanion.utils.util")
 local M = {}
 
 local _client
----@return nil|openai.Client
+---@return nil|codecompanion.Client
 local function get_client()
   if not _client then
     local secret_key = os.getenv(config.config.api_key)
@@ -24,9 +24,9 @@ local function get_client()
 end
 
 ---@param bufnr nil|integer
----@return nil|openai.Chat
+---@return nil|codecompanion.Chat
 M.buf_get_chat = function(bufnr)
-  return require("openai.strategy.chat").buf_get_chat(bufnr)
+  return require("codecompanion.strategy.chat").buf_get_chat(bufnr)
 end
 
 M.chat = function()
@@ -34,7 +34,7 @@ M.chat = function()
   if not client then
     return
   end
-  local Chat = require("openai.strategy.chat")
+  local Chat = require("codecompanion.strategy.chat")
   local chat = Chat.new({
     client = client,
   })
@@ -45,14 +45,14 @@ end
 
 local last_edit
 ---@param context nil|table
----@return nil|openai.Assistant
+---@return nil|codecompanion.Assistant
 M.assistant = function(context)
   local client = get_client()
   if not client then
     return
   end
 
-  local Assistant = require("openai.strategy.assistant")
+  local Assistant = require("codecompanion.strategy.assistant")
   context = context or utils.get_context(vim.api.nvim_get_current_buf())
 
   last_edit = Assistant.new({
@@ -84,7 +84,7 @@ M.commands = function()
 
   local strategies = {
     ["advisor"] = function(opts, prompts)
-      return require("openai.strategy.advisor")
+      return require("codecompanion.strategy.advisor")
         .new({
           context = context,
           client = client,
@@ -94,7 +94,7 @@ M.commands = function()
         :start()
     end,
     ["author"] = function(opts, prompts)
-      return require("openai.strategy.author")
+      return require("codecompanion.strategy.author")
         .new({
           context = context,
           client = client,
@@ -104,11 +104,11 @@ M.commands = function()
         :start()
     end,
     ["chat"] = function()
-      return require("openai").chat()
+      return require("codecompanion").chat()
     end,
   }
 
-  require("openai.utils.ui").select(strategies, items)
+  require("codecompanion.utils.ui").select(strategies, items)
 end
 
 M.setup = function()

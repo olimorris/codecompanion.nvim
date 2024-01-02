@@ -79,7 +79,7 @@ local defaults = {
         [2] = {
           role = "user",
           content = function(context)
-            local diagnostics = require("openai.helpers.lsp").get_diagnostics(
+            local diagnostics = require("codecompanion.helpers.lsp").get_diagnostics(
               context.start_line,
               context.end_line,
               context.bufnr
@@ -110,7 +110,10 @@ local defaults = {
           role = "user",
           content = function(context)
             return "This is the code, for context:\n"
-              .. require("openai.helpers.code").get_code(context.start_line, context.end_line)
+              .. require("codecompanion.helpers.code").get_code(
+                context.start_line,
+                context.end_line
+              )
           end,
         },
       },
@@ -121,10 +124,10 @@ local defaults = {
 M.setup = function(opts)
   M.config = vim.tbl_deep_extend("force", {}, defaults, opts or {})
 
-  M.INFO_NS = vim.api.nvim_create_namespace("OpenAI-info")
-  M.ERROR_NS = vim.api.nvim_create_namespace("OpenAI-error")
+  M.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
+  M.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
 
-  local log = require("openai.utils.log")
+  local log = require("codecompanion.utils.log")
   log.set_root(log.new({
     handlers = {
       {
@@ -133,7 +136,7 @@ M.setup = function(opts)
       },
       {
         type = "file",
-        filename = "openai.log",
+        filename = "codecompanion.log",
         level = vim.log.levels[M.config.log_level],
       },
     },

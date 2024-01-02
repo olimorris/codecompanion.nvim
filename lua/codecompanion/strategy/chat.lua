@@ -1,8 +1,8 @@
-local config = require("openai.config")
-local log = require("openai.utils.log")
-local schema = require("openai.schema")
-local util = require("openai.utils.util")
-local yaml = require("openai.utils.yaml")
+local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
+local schema = require("codecompanion.schema")
+local util = require("codecompanion.utils.util")
+local yaml = require("codecompanion.utils.yaml")
 
 local yaml_query = [[
 (block_mapping_pair
@@ -47,7 +47,7 @@ end
 
 ---@param bufnr integer
 ---@return table
----@return openai.ChatMessage[]
+---@return codecompanion.ChatMessage[]
 local function parse_messages_buffer(bufnr)
   local ret = {}
 
@@ -87,8 +87,8 @@ local function parse_messages_buffer(bufnr)
 end
 
 ---@param bufnr integer
----@param settings openai.ChatCompletionSettings
----@param messages openai.ChatMessage[]
+---@param settings codecompanion.ChatCompletionSettings
+---@param messages codecompanion.ChatMessage[]
 local function render_messages(bufnr, settings, messages)
   local lines = { "---" }
   local keys = schema.get_ordered_keys(schema.static.chat_completion_settings)
@@ -116,7 +116,7 @@ local function render_messages(bufnr, settings, messages)
   vim.bo[bufnr].modifiable = modifiable
 end
 
----@type table<integer, openai.Chat>
+---@type table<integer, codecompanion.Chat>
 local chatmap = {}
 
 local cursor_moved_autocmd
@@ -125,7 +125,7 @@ local function watch_cursor()
     return
   end
   cursor_moved_autocmd = vim.api.nvim_create_autocmd({ "CursorMoved", "BufEnter" }, {
-    desc = "Show line information in OpenAI buffer",
+    desc = "Show line information in a Code Companion buffer",
     callback = function(args)
       local chat = chatmap[args.buf]
       if chat then
@@ -139,24 +139,24 @@ end
 
 local registered_cmp = false
 
----@class openai.Chat
----@field client openai.Client
+---@class codecompanion.Chat
+---@field client codecompanion.Client
 ---@field bufnr integer
----@field settings openai.ChatCompletionSettings
+---@field settings codecompanion.ChatCompletionSettings
 local Chat = {}
 
----@class openai.ChatArgs
----@field client openai.Client
----@field messages nil|openai.ChatMessage[]
----@field settings nil|openai.ChatCompletionSettings
+---@class codecompanion.ChatArgs
+---@field client codecompanion.Client
+---@field messages nil|codecompanion.ChatMessage[]
+---@field settings nil|codecompanion.ChatCompletionSettings
 
----@param args openai.ChatArgs
+---@param args codecompanion.ChatArgs
 function Chat.new(args)
   local bufnr = vim.api.nvim_create_buf(true, false)
-  vim.api.nvim_buf_set_name(bufnr, string.format("openai-chat://%d", math.random(10000000)))
+  vim.api.nvim_buf_set_name(bufnr, string.format("CodeCompanion-chat://%d", math.random(10000000)))
   vim.bo[bufnr].filetype = "markdown"
   vim.bo[bufnr].buftype = "acwrite"
-  vim.b[bufnr].openai_type = "chat_completion"
+  vim.b[bufnr].codecompanion_type = "chat_completion"
 
   vim.api.nvim_create_autocmd("BufWriteCmd", {
     buffer = bufnr,
@@ -208,13 +208,13 @@ function Chat.new(args)
       local has_cmp, cmp = pcall(require, "cmp")
       if has_cmp then
         if not registered_cmp then
-          require("cmp").register_source("openai", require("cmp_openai").new())
+          require("cmp").register_source("codecompanion", require("cmp_codecompanion").new())
           registered_cmp = true
         end
         cmp.setup.buffer({
           enabled = true,
           sources = {
-            { name = "openai" },
+            { name = "codecompanion" },
           },
         })
       end
@@ -347,7 +347,7 @@ function Chat:complete(request, callback)
 end
 
 ---@param bufnr nil|integer
----@return nil|openai.Chat
+---@return nil|codecompanion.Chat
 function Chat.buf_get_chat(bufnr)
   if not bufnr or bufnr == 0 then
     bufnr = vim.api.nvim_get_current_buf()

@@ -1,5 +1,5 @@
-local config = require("openai.config")
-local log = require("openai.utils.log")
+local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 
 local M = {}
 
@@ -40,8 +40,8 @@ local function picker(strategies, items)
   local strat_pad = get_max_length(items, "strategy")
 
   vim.ui.select(items, {
-    prompt = "OpenAI.nvim",
-    kind = "openai.nvim",
+    prompt = "CodeCompanion.nvim",
+    kind = "codecompanion.nvim",
     format_item = function(item)
       return pad_string(item.name, name_pad)
         .. " │ "
