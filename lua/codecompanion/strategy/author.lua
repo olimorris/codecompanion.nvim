@@ -1,21 +1,21 @@
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.util")
 
----@class codecompanion.Author
+---@class CodeCompanion.Author
 ---@field context table
----@field client codecompanion.Client
+---@field client CodeCompanion.Client
 ---@field opts table
 ---@field prompts table
 local Author = {}
 
----@class codecompanion.AuthorArgs
+---@class CodeCompanion.AuthorArgs
 ---@field context table
----@field client codecompanion.Client
+---@field client CodeCompanion.Client
 ---@field opts table
 ---@field prompts table
 
----@param opts codecompanion.AuthorArgs
----@return codecompanion.Author
+---@param opts CodeCompanion.AuthorArgs
+---@return CodeCompanion.Author
 function Author.new(opts)
   log:trace("Initiating Author")
 

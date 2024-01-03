@@ -1,22 +1,21 @@
-local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.util")
 
----@class codecompanion.Advisor
+---@class CodeCompanion.Advisor
 ---@field context table
----@field client codecompanion.Client
+---@field client CodeCompanion.Client
 ---@field opts table
 ---@field prompts table
 local Advisor = {}
 
----@class codecompanion.AuthorArgs
+---@class CodeCompanion.AuthorArgs
 ---@field context table
----@field client codecompanion.Client
+---@field client CodeCompanion.Client
 ---@field opts table
 ---@field prompts table
 
----@param opts codecompanion.AuthorArgs
----@return codecompanion.Advisor
+---@param opts CodeCompanion.AuthorArgs
+---@return CodeCompanion.Advisor
 function Advisor.new(opts)
   log:trace("Initiating Advisor")
 
@@ -26,6 +25,7 @@ function Advisor.new(opts)
     opts = opts.opts,
     prompts = opts.prompts,
   }, { __index = Advisor })
+
   return self
 end
 
@@ -72,21 +72,45 @@ function Advisor:execute(user_input)
   then
     table.insert(conversation.messages, 2, {
       role = "user",
-      content = "For context, this is the code I will ask you to help me with:\n"
-        .. table.concat(self.context.lines, "\n"),
+      content = "For context, this is the code I will ask you to help me with:\n\n"
+        .. "```"
+        .. self.context.filetype
+        .. "\n"
+        .. table.concat(self.context.lines, "\n")
+        .. "\n```",
     })
   end
 
   vim.bo[self.context.bufnr].modifiable = false
+
   self.client:advisor(conversation, function(err, data)
     if err then
       log:error("Advisor Error: %s", err)
       vim.notify(err, vim.log.levels.ERROR)
     end
 
-    local response = data.choices[1].message.content
+    local messages = conversation.messages
+    table.insert(messages, data.choices[1].message)
+    table.insert(messages, {
+      role = "user",
+      content = "",
+    })
 
-    return require("codecompanion.utils.ui").display(config.config.display, response)
+    if self.opts.display.type == "chat" then
+      return require("codecompanion.strategy.chat").new({
+        client = self.client,
+        messages = messages,
+        show_buffer = true,
+      })
+    else
+      local response = data.choices[1].message.content
+      return require("codecompanion.utils.ui").display(
+        self.opts.display,
+        response,
+        messages,
+        self.client
+      )
+    end
   end)
 end
 

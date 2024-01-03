@@ -1,16 +1,16 @@
 local log = require("codecompanion.utils.log")
 
----@class codecompanion.Client
+---@class CodeCompanion.Client
 ---@field secret_key string
 ---@field organization nil|string
 local Client = {}
 
----@class codecompanion.ClientArgs
+---@class CodeCompanion.ClientArgs
 ---@field secret_key string
 ---@field organization nil|string
 
----@param args codecompanion.ClientArgs
----@return codecompanion.Client
+---@param args CodeCompanion.ClientArgs
+---@return CodeCompanion.Client
 function Client.new(args)
   return setmetatable({
     secret_key = args.secret_key,
@@ -194,11 +194,11 @@ function Client:stream_call(url, payload, cb)
   return jid
 end
 
----@class codecompanion.ChatMessage
+---@class CodeCompanion.ChatMessage
 ---@field role "system"|"user"|"assistant"
 ---@field content string
 
----@class codecompanion.ChatCompletionSettings
+---@class CodeCompanion.ChatSettings
 ---@field model string ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.
 ---@field temperature nil|number Defaults to 1. What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.
 ---@field top_p nil|number Defaults to 1. An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.
@@ -210,25 +210,26 @@ end
 ---@field logit_bias nil|table<integer, integer> Modify the likelihood of specified tokens appearing in the completion. Maps tokens (specified by their token ID) to an associated bias value from -100 to 100. Use https://platform.openai.com/tokenizer to find token IDs.
 ---@field user nil|string A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Learn more.
 
----@class codecompanion.ChatCompletionArgs : codecompanion.ChatCompletionSettings
----@field messages codecompanion.ChatMessage[] The messages to generate chat completions for, in the chat format.
+---@class CodeCompanion.ChatArgs : CodeCompanion.ChatSettings
+---@field messages CodeCompanion.ChatMessage[] The messages to generate chat completions for, in the chat format.
+---@field stream boolean? Whether to stream the chat output back to Neovim
 
----@param args codecompanion.ChatCompletionArgs
+---@param args CodeCompanion.ChatArgs
 ---@param cb fun(err: nil|string, response: nil|table)
 ---@return integer
-function Client:chat_completion(args, cb)
+function Client:chat(args, cb)
   args.stream = false
   return self:call("https://api.openai.com/v1/chat/completions", args, cb)
 end
 
----@param args codecompanion.ChatCompletionArgs
+---@param args CodeCompanion.ChatArgs
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
 ---@return integer
-function Client:stream_chat_completion(args, cb)
+function Client:stream_chat(args, cb)
   return self:stream_call("https://api.openai.com/v1/chat/completions", args, cb)
 end
 
----@class codecompanion.AdvsorArgs
+---@class CodeCompanion.AdvsorArgs
 ---@field model string ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.
 ---@field input nil|string The input text to use as a starting point for the edit.
 ---@field instruction string The instruction that tells the model how to edit the prompt.
@@ -240,7 +241,7 @@ function Client:advisor(args, cb)
   return self:call("https://api.openai.com/v1/chat/completions", args, cb)
 end
 
----@class codecompanion.AuthorArgs
+---@class CodeCompanion.AuthorArgs
 ---@field model string ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.
 ---@field input nil|string The input text to use as a starting point for the edit.
 ---@field instruction string The instruction that tells the model how to edit the prompt.

@@ -125,7 +125,7 @@ local model_choices = {
   "gpt-3.5-turbo",
 }
 
-M.static.chat_completion_settings = {
+M.static.chat_settings = {
   model = {
     order = 1,
     type = "enum",

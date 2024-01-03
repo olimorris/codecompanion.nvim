@@ -4,24 +4,51 @@ local defaults = {
   api_key = "OPENAI_API_KEY",
   org_api_key = "OPENAI_ORG_KEY",
   log_level = "TRACE",
-  display = {
-    type = "popup",
-    width = 0.8,
-    height = 0.7,
-  },
+  session_save_dir = vim.fn.stdpath("data") .. "/codecompanion/sessions",
   actions = {
     {
       name = "Chat",
       strategy = "chat",
-      description = "Open a chat buffer to converse with the Completions API",
+      description = "Open a new chat buffer to converse with the Completions API",
       opts = {
         modes = { "n" },
       },
     },
     {
-      name = "Code Companion",
+      name = "Chat with selection",
+      strategy = "chat",
+      description = "Paste your selected text into a new chat buffer",
+      opts = {
+        modes = { "v" },
+      },
+      prompts = {
+        [1] = {
+          role = "system",
+          content = function(context)
+            return "I want you to act as a senior "
+              .. context.filetype
+              .. " developer. I will give you specific code examples and ask you questions. I want you to advise me with explanations and code examples."
+          end,
+        },
+        [2] = {
+          role = "user",
+          content = function(context)
+            local text =
+              require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
+
+            return "I have the following code:\n\n```"
+              .. context.filetype
+              .. "\n"
+              .. text
+              .. "\n```\n\n"
+          end,
+        },
+      },
+    },
+    {
+      name = "Code Author",
       strategy = "author",
-      description = "Prompt the Completions API to write/refactor code",
+      description = "Get the Completions API to write/refactor code for you",
       opts = {
         model = "gpt-4-1106-preview",
         modes = { "n", "v" },
@@ -42,18 +69,20 @@ local defaults = {
     {
       name = "Code Advisor",
       strategy = "advisor",
-      description = "Get advise on selected code",
+      description = "Get advice on the code you've selected",
       opts = {
         model = "gpt-4-1106-preview",
         modes = { "v" },
         user_input = true,
         send_visual_selection = true,
+        display = {
+          type = "popup",
+        },
       },
       prompts = {
         [1] = {
           role = "system",
-          content = [[I want you to act as a senior %s developer. I will ask you specific questions and I want you to advise me with explanations and code examples.
-            If you can't respond, just say "Error - I don't know".]],
+          content = [[I want you to act as a senior %s developer. I will ask you specific questions and I want you to advise me with explanations and code examples. If you can't respond, just say "Error - I don't know".]],
           variables = {
             "filetype",
           },
@@ -69,13 +98,16 @@ local defaults = {
         modes = { "v" },
         user_input = false, -- Prompt the user for their own input
         send_visual_selection = false, -- No need to send the visual selection as we do this in prompt 3
+        display = {
+          type = "popup",
+          width = 0.8,
+          height = 0.7,
+        },
       },
       prompts = {
         [1] = {
           role = "system",
-          content = [[You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages.
-            When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting.
-            If you can't respond with an answer, just say "Error - I don't know".]],
+          content = [[You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages. When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting. If you can't respond with an answer, just say "Error - I don't know".]],
         },
         [2] = {
           role = "user",
@@ -92,29 +124,34 @@ local defaults = {
                 .. i
                 .. ". Issue "
                 .. i
-                .. "\n\t- Location: Line "
+                .. "\n  - Location: Line "
                 .. diagnostic.line_number
-                .. "\n\t- Severity: "
+                .. "\n  - Severity: "
                 .. diagnostic.severity
-                .. "\n\t- Message: "
+                .. "\n  - Message: "
                 .. diagnostic.message
                 .. "\n"
             end
 
             return "The programming language is "
               .. context.filetype
-              .. ".\nThis is a list of the diagnostic messages:\n"
+              .. ". This is a list of the diagnostic messages:\n\n"
               .. concatenated_diagnostics
           end,
         },
         [3] = {
           role = "user",
           content = function(context)
-            return "This is the code, for context:\n"
+            return "This is the code, for context:\n\n"
+              .. "```"
+              .. context.filetype
+              .. "\n"
               .. require("codecompanion.helpers.code").get_code(
                 context.start_line,
-                context.end_line
+                context.end_line,
+                { show_line_numbers = true }
               )
+              .. "\n```\n\n"
           end,
         },
       },

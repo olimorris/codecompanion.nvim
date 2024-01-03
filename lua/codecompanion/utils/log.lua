@@ -1,4 +1,4 @@
-local files = require("codecompanion.files")
+local files = require("codecompanion.utils.files")
 
 ---@class codecompanion.LogHandler
 ---@field type string

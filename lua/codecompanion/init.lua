@@ -4,7 +4,7 @@ local utils = require("codecompanion.utils.util")
 local M = {}
 
 local _client
----@return nil|codecompanion.Client
+---@return nil|CodeCompanion.Client
 local function get_client()
   if not _client then
     local secret_key = os.getenv(config.config.api_key)
@@ -24,9 +24,9 @@ local function get_client()
 end
 
 ---@param bufnr nil|integer
----@return nil|codecompanion.Chat
+---@return nil|CodeCompanion.Chat
 M.buf_get_chat = function(bufnr)
-  return require("codecompanion.strategy.chat").buf_get_chat(bufnr)
+  require("codecompanion.strategy.chat").buf_get_chat(bufnr)
 end
 
 M.chat = function()
@@ -34,18 +34,21 @@ M.chat = function()
   if not client then
     return
   end
+
   local Chat = require("codecompanion.strategy.chat")
   local chat = Chat.new({
     client = client,
   })
+
   vim.api.nvim_win_set_buf(0, chat.bufnr)
   utils.scroll_to_end(0)
+
   vim.bo[chat.bufnr].filetype = "markdown"
 end
 
 local last_edit
 ---@param context nil|table
----@return nil|codecompanion.Assistant
+---@return nil|CodeCompanion.Assistant
 M.assistant = function(context)
   local client = get_client()
   if not client then
@@ -73,7 +76,7 @@ M.repeat_last_edit = function()
   end
 end
 
-M.commands = function()
+M.actions = function()
   local client = get_client()
   if not client then
     return
@@ -83,6 +86,32 @@ M.commands = function()
   local context = utils.get_context(vim.api.nvim_get_current_buf())
 
   local strategies = {
+    ["chat"] = function(_, prompts)
+      if not prompts then
+        return require("codecompanion").chat()
+      else
+        local messages = {}
+        for _, prompt in ipairs(prompts) do
+          local content
+          if type(prompt.content) == "function" then
+            content = prompt.content(context)
+          else
+            content = prompt.content
+          end
+
+          table.insert(messages, {
+            role = prompt.role,
+            content = content,
+          })
+        end
+
+        return require("codecompanion.strategy.chat").new({
+          client = client,
+          messages = messages,
+          show_buffer = true,
+        })
+      end
+    end,
     ["advisor"] = function(opts, prompts)
       return require("codecompanion.strategy.advisor")
         .new({
@@ -102,9 +131,6 @@ M.commands = function()
           prompts = prompts,
         })
         :start()
-    end,
-    ["chat"] = function()
-      return require("codecompanion").chat()
     end,
   }
 

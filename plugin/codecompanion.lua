@@ -1,6 +1,5 @@
 if vim.fn.has("nvim-0.9.0") == 0 then
-  vim.api.nvim_err_writeln("CodeCompanion.nvim requires at least nvim-0.9.0")
-  return
+  return vim.api.nvim_err_writeln("CodeCompanion.nvim requires at least nvim-0.9.0")
 end
 
 if vim.g.loaded_codecompanion then
@@ -13,8 +12,8 @@ vim.api.nvim_create_user_command("CodeCompanionChat", function()
   codecompanion.chat()
 end, { desc = "" })
 
-vim.api.nvim_create_user_command("CodeCompanionCommands", function()
-  codecompanion.commands()
+vim.api.nvim_create_user_command("CodeCompanionActions", function()
+  codecompanion.actions()
 end, { desc = "", range = true })
 
 vim.g.loaded_codecompanion = true

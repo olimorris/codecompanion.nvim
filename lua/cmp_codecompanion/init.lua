@@ -5,7 +5,7 @@ function source.new()
 end
 
 function source:is_available()
-  return vim.b.codecompanion_type == "chat_completion"
+  return vim.b.codecompanion_type == "chat"
 end
 
 source.get_position_encoding_kind = function()
