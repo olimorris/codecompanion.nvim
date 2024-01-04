@@ -123,7 +123,7 @@ local function create_commands(bufnr)
       buffer = bufnr,
       callback = function()
         log:debug("Conversation automatically saved")
-        conversation:save(bufnr)
+        conversation:save(bufnr, parse_messages_buffer(bufnr))
       end,
     })
   end
