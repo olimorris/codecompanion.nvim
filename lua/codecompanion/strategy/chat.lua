@@ -35,11 +35,9 @@ local function parse_settings(bufnr)
 
   local settings = {}
   for _, match in query:iter_matches(root, bufnr) do
-    if match[query.captures.key] and match[query.captures.value] then
-      local key = vim.treesitter.get_node_text(match[query.captures.key], bufnr):lower()
-      local value = vim.treesitter.get_node_text(match[query.captures.value], bufnr):lower()
-      settings[key] = yaml.decode(value)
-    end
+    local key = vim.treesitter.get_node_text(match[query.captures.key], bufnr)
+    local value = vim.treesitter.get_node_text(match[query.captures.value], bufnr)
+    settings[key] = yaml.decode(value)
   end
 
   return settings or {}
@@ -305,7 +303,7 @@ function Chat:submit()
 end
 
 ---@param opts nil|table
----@return nil|TSNode
+---@return nil|string Table
 function Chat:_get_settings_key(opts)
   opts = vim.tbl_extend("force", opts or {}, {
     ignore_injections = false,
