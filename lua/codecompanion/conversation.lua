@@ -63,10 +63,12 @@ end
 ---@param bufnr number
 ---@param messages table
 function Conversation:save(bufnr, settings, messages)
+  local files = require("codecompanion.utils.files")
+
   local conversation = {
     meta = {
       updated_at = get_current_datetime(),
-      dir = self.cwd,
+      dir = files.replace_home(self.cwd),
     },
     settings = settings,
     messages = messages,
@@ -78,6 +80,34 @@ function Conversation:save(bufnr, settings, messages)
   end
 
   return save(self.filename, bufnr, conversation)
+end
+
+---@param opts nil|table
+function Conversation:list(opts)
+  local file_paths = vim.fn.glob(prefix .. "*" .. suffix, false, true)
+  local conversations = {}
+
+  for _, file_path in ipairs(file_paths) do
+    local file_content = table.concat(vim.fn.readfile(file_path), "\n")
+    local conversation = vim.fn.json_decode(file_content)
+
+    if conversation and conversation.meta and conversation.meta.updated_at then
+      table.insert(conversations, {
+        filename = file_path:match("([^/]+)%.json$"),
+        path = file_path,
+        dir = conversation.meta.dir,
+        updated_at = conversation.meta.updated_at,
+      })
+    end
+  end
+
+  if opts and opts.sort then
+    table.sort(conversations, function(a, b)
+      return a.updated_at > b.updated_at -- Sort in descending order
+    end)
+  end
+
+  return conversations
 end
 
 return Conversation

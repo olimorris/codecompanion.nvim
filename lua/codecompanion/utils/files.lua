@@ -20,4 +20,14 @@ M.join = function(...)
   return joined
 end
 
+---@param path string
+M.replace_home = function(path)
+  local home = os.getenv("HOME") -- Get the value of the HOME environment variable
+  if home then
+    home = home:gsub("[%(%)%.%%%+%-%*%?%[%]%^%$]", "%%%1")
+    path = path:gsub("^" .. home, "~")
+  end
+  return path
+end
+
 return M

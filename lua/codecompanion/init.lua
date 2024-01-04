@@ -76,6 +76,12 @@ M.repeat_last_edit = function()
   end
 end
 
+M.conversations = function()
+  local conversations = require("codecompanion.conversation").new({}):list({ sort = true })
+
+  require("codecompanion.utils.ui").conversation_picker(conversations)
+end
+
 M.actions = function()
   local client = get_client()
   if not client then
@@ -134,7 +140,7 @@ M.actions = function()
     end,
   }
 
-  require("codecompanion.utils.ui").select(strategies, items)
+  require("codecompanion.utils.ui").strategy_picker(strategies, items)
 end
 
 M.setup = function()

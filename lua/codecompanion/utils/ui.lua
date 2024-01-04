@@ -19,8 +19,14 @@ end
 
 ---@param str string
 ---@param max_length number
-local function pad_string(str, max_length)
+---@param padding number|nil
+local function pad_string(str, max_length, padding)
   local padding_needed = max_length - string.len(str)
+
+  if padding and padding_needed < padding then
+    padding_needed = padding_needed + padding
+  end
+
   if padding_needed > 0 then
     return str .. string.rep(" ", padding_needed)
   else
@@ -28,12 +34,41 @@ local function pad_string(str, max_length)
   end
 end
 
+---@param conversations table
+function M.conversation_picker(conversations)
+  if not conversations then
+    return
+  end
+
+  log:trace("Opening picker")
+
+  local name_pad = get_max_length(conversations, "filename")
+  local dir_pad = get_max_length(conversations, "dir")
+
+  vim.ui.select(conversations, {
+    prompt = "Load Conversations",
+    kind = "codecompanion.nvim",
+    format_item = function(conversation)
+      return pad_string(conversation.filename, name_pad, 10)
+        .. " │ "
+        .. pad_string(conversation.dir, dir_pad)
+    end,
+  }, function(selected)
+    if not selected then
+      return
+    end
+
+    -- return strategies[selected.strategy](selected.opts, selected.prompts)
+  end)
+end
+
 ---@param strategies table
 ---@param items table
-local function picker(strategies, items)
+function M.strategy_picker(strategies, items)
   if not items then
     items = config.static_commands
   end
+  log:trace("Opening picker")
 
   local name_pad = get_max_length(items, "name")
   local strat_pad = get_max_length(items, "strategy")
@@ -55,15 +90,6 @@ local function picker(strategies, items)
 
     return strategies[selected.strategy](selected.opts, selected.prompts)
   end)
-end
-
----@param strategies table
----@param items table
-function M.select(strategies, items)
-  log:trace("Opening picker")
-
-  --TODO: Put user Autocmd here
-  picker(strategies, items)
 end
 
 ---@param win number
