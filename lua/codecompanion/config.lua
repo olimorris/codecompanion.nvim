@@ -159,6 +159,11 @@ local defaults = {
         },
       },
     },
+    {
+      name = "Load Conversations",
+      strategy = "conversations",
+      description = "Load your previous Chat conversations",
+    },
   },
 }
 

@@ -92,6 +92,9 @@ M.actions = function()
   local context = utils.get_context(vim.api.nvim_get_current_buf())
 
   local strategies = {
+    ["conversations"] = function(opts, prompts)
+      return M.conversations()
+    end,
     ["chat"] = function(_, prompts)
       if not prompts then
         return require("codecompanion").chat()
