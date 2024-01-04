@@ -65,9 +65,6 @@ end
 ---@param strategies table
 ---@param items table
 function M.strategy_picker(strategies, items)
-  if not items then
-    items = config.static_commands
-  end
   log:trace("Opening picker")
 
   local name_pad = get_max_length(items, "name")
