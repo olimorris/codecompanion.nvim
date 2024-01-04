@@ -7,17 +7,17 @@ local _client
 ---@return nil|CodeCompanion.Client
 local function get_client()
   if not _client then
-    local secret_key = os.getenv(config.config.api_key)
+    local secret_key = os.getenv(config.options.api_key)
     if not secret_key then
       vim.notify(
-        string.format("Could not find env variable: %s", config.config.api_key),
+        string.format("Could not find env variable: %s", config.options.api_key),
         vim.log.levels.ERROR
       )
       return nil
     end
     _client = Client.new({
       secret_key = secret_key,
-      organization = os.getenv(config.config.org_api_key),
+      organization = os.getenv(config.options.org_api_key),
     })
   end
   return _client
@@ -82,7 +82,7 @@ M.actions = function()
     return
   end
 
-  local items = config.config.actions
+  local items = config.options.actions
   local context = utils.get_context(vim.api.nvim_get_current_buf())
 
   local strategies = {

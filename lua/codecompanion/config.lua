@@ -160,7 +160,7 @@ local defaults = {
 }
 
 M.setup = function(opts)
-  M.config = vim.tbl_deep_extend("force", {}, defaults, opts or {})
+  M.options = vim.tbl_deep_extend("force", {}, defaults, opts or {})
 
   M.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
   M.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
@@ -175,7 +175,7 @@ M.setup = function(opts)
       {
         type = "file",
         filename = "codecompanion.log",
-        level = vim.log.levels[M.config.log_level],
+        level = vim.log.levels[M.options.log_level],
       },
     },
   }))
