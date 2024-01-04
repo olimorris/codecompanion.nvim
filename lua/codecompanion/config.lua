@@ -4,7 +4,10 @@ local defaults = {
   api_key = "OPENAI_API_KEY",
   org_api_key = "OPENAI_ORG_KEY",
   log_level = "TRACE",
-  session_save_dir = vim.fn.stdpath("data") .. "/codecompanion/sessions",
+  conversations = {
+    auto_save = true,
+    save_dir = vim.fn.stdpath("data") .. "/codecompanion/conversations",
+  },
   actions = {
     {
       name = "Chat",

@@ -118,10 +118,34 @@ end
 
 ---@param bufnr number
 local function create_commands(bufnr)
-  local session = require("codecompanion.session").new({})
-  vim.api.nvim_buf_create_user_command(bufnr, "CodeCompanionSaveAsSession", function()
-    session:save(bufnr)
-  end, { desc = "Save the conversation as a session" })
+  local function create_autocmds(conversation)
+    vim.api.nvim_create_autocmd("TextChanged", {
+      buffer = bufnr,
+      callback = function()
+        log:debug("Conversation automatically saved")
+        conversation:save(bufnr)
+      end,
+    })
+  end
+
+  local conversation = require("codecompanion.conversation").new({})
+
+  vim.api.nvim_buf_create_user_command(bufnr, "CodeCompanionConversationSaveAs", function()
+    vim.ui.input({ prompt = "Conversation Name" }, function(filename)
+      if not filename then
+        return
+      end
+      conversation.filename = filename
+
+      conversation:save(bufnr, parse_messages_buffer(bufnr))
+
+      if config.options.conversations.auto_save then
+        create_autocmds(conversation)
+      else
+        -- Create manual save
+      end
+    end)
+  end, { desc = "Save the conversation" })
 end
 
 ---@type table<integer, CodeCompanion.Chat>
