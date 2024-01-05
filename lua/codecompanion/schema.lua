@@ -18,6 +18,7 @@ end
 ---@field type "string"|"number"|"integer"|"boolean"|"enum"|"list"|"map"
 ---@field order nil|integer
 ---@field optional nil|boolean
+---@field choices nil|table
 ---@field desc string
 ---@field validate? fun(value: any): boolean, nil|string
 
