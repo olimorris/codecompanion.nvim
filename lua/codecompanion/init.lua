@@ -90,7 +90,11 @@ M.conversations = function(client)
       return { item.tokens, item.filename, item.dir }
     end,
     callback = function(selected)
-      return conversation:load(client, selected)
+      return conversation
+        .new({
+          filename = selected.filename,
+        })
+        :load(client, selected)
     end,
   })
 end
