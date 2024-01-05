@@ -117,17 +117,19 @@ local function render_messages(bufnr, settings, messages)
 end
 
 ---@param bufnr number
-local function create_commands(bufnr)
-  local function create_autocmds(conversation)
-    vim.api.nvim_create_autocmd("TextChanged", {
-      buffer = bufnr,
-      callback = function()
-        log:debug("Conversation automatically saved")
-        conversation:save(bufnr, parse_messages_buffer(bufnr))
-      end,
-    })
-  end
+---@param conversation CodeCompanion.Conversation
+local function create_conversation_autocmds(bufnr, conversation)
+  vim.api.nvim_create_autocmd("TextChanged", {
+    buffer = bufnr,
+    callback = function()
+      log:trace("Conversation automatically saved")
+      conversation:save(bufnr, parse_messages_buffer(bufnr))
+    end,
+  })
+end
 
+---@param bufnr number
+local function create_conversation_commands(bufnr)
   local conversation = require("codecompanion.conversation").new({})
 
   vim.api.nvim_buf_create_user_command(bufnr, "CodeCompanionConversationSaveAs", function()
@@ -140,7 +142,7 @@ local function create_commands(bufnr)
       conversation:save(bufnr, parse_messages_buffer(bufnr))
 
       if config.options.conversations.auto_save then
-        create_autocmds(conversation)
+        create_conversation_autocmds(bufnr, conversation)
       else
         -- Create manual save
       end
@@ -181,6 +183,7 @@ local Chat = {}
 ---@field client CodeCompanion.Client
 ---@field messages nil|CodeCompanion.ChatMessage[]
 ---@field show_buffer nil|boolean
+---@field conversation nil|CodeCompanion.Conversation
 ---@field settings nil|CodeCompanion.ChatSettings
 
 ---@param args CodeCompanion.ChatArgs
@@ -192,8 +195,6 @@ function Chat.new(args)
   vim.bo[bufnr].filetype = "markdown"
   vim.bo[bufnr].buftype = "acwrite"
   vim.b[bufnr].codecompanion_type = "chat"
-
-  create_commands(bufnr)
 
   vim.api.nvim_create_autocmd("BufWriteCmd", {
     buffer = bufnr,
@@ -266,6 +267,7 @@ function Chat.new(args)
     client = args.client,
     bufnr = bufnr,
     settings = settings,
+    conversation = args.conversation,
   }, { __index = Chat })
 
   chatmap[bufnr] = self
@@ -275,6 +277,13 @@ function Chat.new(args)
     vim.api.nvim_set_current_buf(bufnr)
     util.buf_scroll_to_end(bufnr)
   end
+
+  if self.conversation then
+    local conversation = require("codecompanion.conversation").new({})
+    create_conversation_autocmds(bufnr, conversation)
+  end
+
+  create_conversation_commands(bufnr)
 
   return self
 end

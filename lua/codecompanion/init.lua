@@ -80,6 +80,10 @@ M.conversations = function(client)
   local conversation = require("codecompanion.conversation")
   local conversations = conversation.new({}):list({ sort = true })
 
+  if not conversations or #conversations == 0 then
+    return vim.notify("[CodeCompanion.nvim]\nNo conversations found", vim.log.levels.WARN)
+  end
+
   require("codecompanion.utils.ui").selector(conversations, {
     prompt = "Select a conversation",
     format = function(item)

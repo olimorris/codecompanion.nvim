@@ -1,3 +1,4 @@
+local chat = require("codecompanion.strategy.chat")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
@@ -9,18 +10,18 @@ local function get_current_datetime()
 end
 
 ---@param bufnr number
----@param filename string
-local function rename_buffer(bufnr, filename)
-  vim.api.nvim_buf_set_name(bufnr, "[CodeCompanion] " .. filename)
+---@param name string
+local function rename_buffer(bufnr, name)
+  vim.api.nvim_buf_set_name(bufnr, "[CodeCompanion] " .. name .. ".md")
 end
 
 ---@class CodeCompanion.Conversation
----@field filename string The conversation name
+---@field filename nil|string The conversation name
 ---@field cwd string The current working directory of the editor
 local Conversation = {}
 
 ---@class CodeCompanion.SessionArgs
----@field filename string The conversation name
+---@field filename nil|string The conversation name
 ---@field cwd string The current working directory of the editor
 
 ---@param args CodeCompanion.SessionArgs
@@ -63,12 +64,14 @@ end
 ---@param bufnr number
 ---@param messages table
 function Conversation:save(bufnr, settings, messages)
+  local tokens = require("codecompanion.utils.tokens")
   local files = require("codecompanion.utils.files")
 
   local conversation = {
     meta = {
-      updated_at = get_current_datetime(),
       dir = files.replace_home(self.cwd),
+      tokens = tokens.get_tokens(messages),
+      updated_at = get_current_datetime(),
     },
     settings = settings,
     messages = messages,
@@ -84,17 +87,18 @@ end
 
 ---@param opts nil|table
 function Conversation:list(opts)
-  local file_paths = vim.fn.glob(prefix .. "*" .. suffix, false, true)
+  local paths = vim.fn.glob(prefix .. "*" .. suffix, false, true)
   local conversations = {}
 
-  for _, file_path in ipairs(file_paths) do
-    local file_content = table.concat(vim.fn.readfile(file_path), "\n")
+  for _, path in ipairs(paths) do
+    local file_content = table.concat(vim.fn.readfile(path), "\n")
     local conversation = vim.fn.json_decode(file_content)
 
     if conversation and conversation.meta and conversation.meta.updated_at then
       table.insert(conversations, {
-        filename = file_path:match("([^/]+)%.json$"),
-        path = file_path,
+        tokens = conversation.meta.tokens,
+        filename = path:match("([^/]+)%.json$"),
+        path = path,
         dir = conversation.meta.dir,
         updated_at = conversation.meta.updated_at,
       })
@@ -108,6 +112,25 @@ function Conversation:list(opts)
   end
 
   return conversations
+end
+
+---@param client CodeCompanion.Client
+---@param opts table
+function Conversation:load(client, opts)
+  log:debug("Loading conversation: %s", opts)
+
+  self.filename = opts.filename
+  local content = vim.fn.json_decode(table.concat(vim.fn.readfile(opts.path), "\n"))
+
+  local chat_buf = chat.new({
+    client = client,
+    settings = content.settings,
+    messages = content.messages,
+    show_buffer = true,
+    conversation = self,
+  })
+
+  rename_buffer(chat_buf.bufnr, opts.filename)
 end
 
 return Conversation
