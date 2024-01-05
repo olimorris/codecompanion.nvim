@@ -119,13 +119,15 @@ end
 ---@param bufnr number
 ---@param conversation CodeCompanion.Conversation
 local function create_conversation_autocmds(bufnr, conversation)
-  vim.api.nvim_create_autocmd("TextChanged", {
-    buffer = bufnr,
-    callback = function()
-      log:trace("Conversation automatically saved")
-      conversation:save(bufnr, parse_messages_buffer(bufnr))
-    end,
-  })
+  if config.options.conversations.auto_save then
+    vim.api.nvim_create_autocmd("TextChanged", {
+      buffer = bufnr,
+      callback = function()
+        log:trace("Conversation automatically saved")
+        conversation:save(bufnr, parse_messages_buffer(bufnr))
+      end,
+    })
+  end
 end
 
 ---@param bufnr number
@@ -138,16 +140,12 @@ local function create_conversation_commands(bufnr)
         return
       end
       conversation.filename = filename
-
       conversation:save(bufnr, parse_messages_buffer(bufnr))
-
-      if config.options.conversations.auto_save then
-        create_conversation_autocmds(bufnr, conversation)
-      else
-        -- Create manual save
-      end
+      create_conversation_autocmds(bufnr, conversation)
     end)
   end, { desc = "Save the conversation" })
+
+  -- Create manual save
 end
 
 ---@type table<integer, CodeCompanion.Chat>
@@ -279,8 +277,7 @@ function Chat.new(args)
   end
 
   if self.conversation then
-    local conversation = require("codecompanion.conversation").new({})
-    create_conversation_autocmds(bufnr, conversation)
+    create_conversation_autocmds(bufnr, self.conversation)
   end
 
   create_conversation_commands(bufnr)
