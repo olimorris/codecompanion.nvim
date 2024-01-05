@@ -1,20 +1,17 @@
-local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
 local M = {}
 
----@param tbl table
----@param field string
-local function get_max_length(tbl, field)
-  local max_length = 0
-  for _, str in ipairs(tbl) do
-    local len = string.len(str[field])
-    if len > max_length then
-      max_length = len
+local function get_max_lengths(items, format)
+  local max_lengths = {}
+  for _, item in ipairs(items) do
+    local formatted = format(item)
+    for i, field in ipairs(formatted) do
+      local field_length = string.len(field)
+      max_lengths[i] = math.max(max_lengths[i] or 0, field_length)
     end
   end
-
-  return max_length
+  return max_lengths
 end
 
 ---@param str string
@@ -34,58 +31,38 @@ local function pad_string(str, max_length, padding)
   end
 end
 
----@param conversations table
-function M.conversation_picker(conversations)
-  if not conversations then
-    return
-  end
-
-  log:trace("Opening picker")
-
-  local name_pad = get_max_length(conversations, "filename")
-  local dir_pad = get_max_length(conversations, "dir")
-
-  vim.ui.select(conversations, {
-    prompt = "Load Conversations",
-    kind = "codecompanion.nvim",
-    format_item = function(conversation)
-      return pad_string(conversation.filename, name_pad, 10)
-        .. " │ "
-        .. pad_string(conversation.dir, dir_pad)
-    end,
-  }, function(selected)
-    if not selected then
-      return
+local function pad_item(item, max_lengths)
+  local padded_item = {}
+  for i, field in ipairs(item) do
+    if max_lengths[i] then -- Skip padding if there's no max length for this field
+      padded_item[i] = pad_string(field, max_lengths[i])
+    else
+      padded_item[i] = field
     end
-
-    -- return strategies[selected.strategy](selected.opts, selected.prompts)
-  end)
+  end
+  return table.concat(padded_item, " │ ")
 end
 
----@param strategies table
 ---@param items table
-function M.strategy_picker(strategies, items)
-  log:trace("Opening picker")
+---@param opts table
+function M.selector(items, opts)
+  log:trace("Opening selector")
 
-  local name_pad = get_max_length(items, "name")
-  local strat_pad = get_max_length(items, "strategy")
+  local max_lengths = get_max_lengths(items, opts.format)
 
   vim.ui.select(items, {
-    prompt = "CodeCompanion.nvim",
+    prompt = opts.prompt,
     kind = "codecompanion.nvim",
     format_item = function(item)
-      return pad_string(item.name, name_pad)
-        .. " │ "
-        .. pad_string(item.strategy, strat_pad)
-        .. " │ "
-        .. item.description
+      local formatted = opts.format(item)
+      return pad_item(formatted, max_lengths)
     end,
   }, function(selected)
     if not selected then
       return
     end
 
-    return strategies[selected.strategy](selected.opts, selected.prompts)
+    return opts.callback(selected)
   end)
 end
 

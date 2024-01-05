@@ -76,10 +76,19 @@ M.repeat_last_edit = function()
   end
 end
 
-M.conversations = function()
-  local conversations = require("codecompanion.conversation").new({}):list({ sort = true })
+M.conversations = function(client)
+  local conversation = require("codecompanion.conversation")
+  local conversations = conversation.new({}):list({ sort = true })
 
-  require("codecompanion.utils.ui").conversation_picker(conversations)
+  require("codecompanion.utils.ui").selector(conversations, {
+    prompt = "Select a conversation",
+    format = function(item)
+      return { item.tokens, item.filename, item.dir }
+    end,
+    callback = function(selected)
+      return conversation:load(client, selected)
+    end,
+  })
 end
 
 M.actions = function()
@@ -93,7 +102,7 @@ M.actions = function()
 
   local strategies = {
     ["conversations"] = function(opts, prompts)
-      return M.conversations()
+      return M.conversations(client)
     end,
     ["chat"] = function(_, prompts)
       if not prompts then
@@ -143,7 +152,15 @@ M.actions = function()
     end,
   }
 
-  require("codecompanion.utils.ui").strategy_picker(strategies, items)
+  require("codecompanion.utils.ui").selector(items, {
+    prompt = "Select an action",
+    format = function(item)
+      return { item.name, item.strategy, item.description }
+    end,
+    callback = function(selected)
+      return strategies[selected.strategy](selected.opts, selected.prompts)
+    end,
+  })
 end
 
 M.setup = function()
