@@ -61,8 +61,7 @@ local defaults = {
       prompts = {
         [1] = {
           role = "system",
-          content = [[I want you to act as a senior %s developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations).
-            If you can't respond with code, just say "Error - I don't know".]],
+          content = [[I want you to act as a senior %s developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, just say "Error - I don't know".]],
           variables = {
             "filetype",
           },
