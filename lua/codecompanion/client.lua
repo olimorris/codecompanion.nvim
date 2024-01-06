@@ -158,14 +158,25 @@ function Client:stream_call(url, payload, cb)
         if vim.startswith(line, "data: ") then
           found_any_stream = true
           local chunk = line:sub(7)
+
           if chunk == "[DONE]" then
             return cb(nil, nil, true)
           end
+
           local ok, data = pcall(vim.json.decode, chunk, { luanil = { object = true } })
           if not ok then
             done = true
             return cb(string.format("Error malformed json: %s", data))
           end
+
+          -- Check if the token limit has been reached
+          log:debug("Finish Reason: %s", data.choices[1].finish_reason)
+          if data.choices[1].finish_reason == "length" then
+            log:debug("Token limit reached")
+            done = true
+            return cb("[CodeCompanion.nvim]\nThe token limit for the current chat has been reached")
+          end
+
           cb(nil, data)
         end
       end
