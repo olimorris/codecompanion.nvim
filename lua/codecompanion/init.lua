@@ -76,8 +76,13 @@ M.repeat_last_edit = function()
   end
 end
 
-M.conversations = function(client)
-  local conversation = require("codecompanion.conversation")
+M.conversations = function()
+  local client = get_client()
+  if not client then
+    return
+  end
+
+  local conversation = require("codecompanion.strategy.conversation")
   local conversations = conversation.new({}):list({ sort = true })
 
   if not conversations or #conversations == 0 then

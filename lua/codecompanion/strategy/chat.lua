@@ -132,7 +132,7 @@ end
 
 ---@param bufnr number
 local function create_conversation_commands(bufnr)
-  local conversation = require("codecompanion.conversation").new({})
+  local conversation = require("codecompanion.strategy.conversation").new({})
 
   vim.api.nvim_buf_create_user_command(bufnr, "CodeCompanionConversationSaveAs", function()
     vim.ui.input({ prompt = "Conversation Name" }, function(filename)
@@ -187,8 +187,7 @@ local Chat = {}
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)
   local bufnr = vim.api.nvim_create_buf(true, false)
-  vim.api.nvim_buf_set_name(bufnr, string.format("CodeCompanion-chat://%d", math.random(10000000)))
-  vim.api.nvim_set_option_value("wrap", true, { win = 0 })
+  vim.api.nvim_buf_set_name(bufnr, string.format("[OpenAI Chat] %d", math.random(10000000)))
 
   vim.bo[bufnr].filetype = "markdown"
   vim.bo[bufnr].buftype = "acwrite"
