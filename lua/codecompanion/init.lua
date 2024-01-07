@@ -151,7 +151,8 @@ M.actions = function()
   end
 
   --TODO: Consider merging in the config file
-  local items = require("codecompanion.actions").static.actions
+  local actions = require("codecompanion.actions")
+  local items = actions.validate(actions.static.actions, context)
 
   picker(
     items,

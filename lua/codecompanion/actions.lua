@@ -1,3 +1,5 @@
+local utils = require("codecompanion.utils.util")
+
 local M = {}
 
 M.static = {}
@@ -14,12 +16,28 @@ local send_code = function(context)
   return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
 end
 
+M.validate = function(items, context)
+  local validated_items = {}
+  local mode = context.mode:lower()
+  for _, item in ipairs(items) do
+    if item.opts and item.opts.modes then
+      if utils.contains(item.opts.modes, mode) then
+        table.insert(validated_items, item)
+      end
+    end
+  end
+
+  return validated_items
+end
+
 M.static.actions = {
   {
     name = "Chat",
     strategy = "chat",
     description = "Open a chat buffer to converse with OpenAI",
-    modes = { "n", "v" },
+    opts = {
+      modes = { "n", "v" },
+    },
     prompts = {
       n = function()
         return require("codecompanion").chat()
@@ -47,7 +65,9 @@ M.static.actions = {
     name = "Chat as ...",
     strategy = "chat",
     description = "Open a chat buffer, acting as a specific persona",
-    modes = { "n" },
+    opts = {
+      modes = { "n", "v" },
+    },
     picker = {
       prompt = "Select a persona",
       items = {
@@ -303,6 +323,9 @@ M.static.actions = {
     name = "Load conversations",
     strategy = "conversations",
     description = "Load your previous Chat conversations",
+    opts = {
+      modes = { "n", "v" },
+    },
     picker = {
       prompt = "Conversations",
       columns = {

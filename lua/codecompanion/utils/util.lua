@@ -2,6 +2,17 @@ local M = {}
 
 local ESC_FEEDKEY = vim.api.nvim_replace_termcodes("<ESC>", true, false, true)
 
+---@param table table
+---@param value string
+M.contains = function(table, value)
+  for _, v in pairs(table) do
+    if v == value then
+      return true
+    end
+  end
+  return false
+end
+
 ---@param winid? number
 M.scroll_to_end = function(winid)
   winid = winid or 0
@@ -141,17 +152,6 @@ function M.replace_vars(msg, vars, mapping)
     end
   end
   return string.format(msg, unpack(replacements))
-end
-
----@param table table
----@param value string
-function M.contains(table, value)
-  for _, item in pairs(table) do
-    if string.lower(item) == string.lower(value) then
-      return true
-    end
-  end
-  return false
 end
 
 return M
