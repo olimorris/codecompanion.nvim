@@ -74,6 +74,7 @@ function Author:execute(user_input)
     if err then
       log:error("Author Error: %s", err)
       vim.notify(err, vim.log.levels.ERROR)
+      vim.bo[self.context.bufnr].modifiable = true
     end
 
     local response = data.choices[1].message.content
