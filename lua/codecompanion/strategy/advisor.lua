@@ -1,3 +1,4 @@
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.util")
 
@@ -31,10 +32,6 @@ end
 
 ---@param user_input string|nil
 function Advisor:execute(user_input)
-  local vars = {
-    filetype = self.context.filetype,
-  }
-
   local conversation = {
     model = self.opts.model,
     messages = {},
@@ -42,18 +39,17 @@ function Advisor:execute(user_input)
 
   local formatted_messages = {}
 
-  for _, p in ipairs(self.prompts) do
-    local content
-    if type(p.content) == "function" then
-      content = p.content(self.context)
-    else
-      content = utils.replace_vars(p.content, p.variables or {}, vars)
-    end
+  for _, prompt in ipairs(self.prompts) do
+    if not prompt.contains_code or (prompt.contains_code and config.options.send_code) then
+      if type(prompt.content) == "function" then
+        prompt.content = prompt.content(self.context)
+      end
 
-    table.insert(formatted_messages, {
-      role = p.role,
-      content = content,
-    })
+      table.insert(formatted_messages, {
+        role = prompt.role,
+        content = prompt.content,
+      })
+    end
   end
 
   -- Add the user prompt last
@@ -66,10 +62,7 @@ function Advisor:execute(user_input)
 
   conversation.messages = formatted_messages
 
-  if
-    self.opts.send_visual_selection
-    and (self.context.is_visual and utils.contains(self.opts.modes, "v"))
-  then
+  if config.options.send_code and self.opts.send_visual_selection and self.context.is_visual then
     table.insert(conversation.messages, 2, {
       role = "user",
       content = "For context, this is the code I will ask you to help me with:\n\n"
@@ -96,7 +89,7 @@ function Advisor:execute(user_input)
       content = "",
     })
 
-    if self.opts.display.type == "chat" then
+    if config.options.display == "chat" then
       return require("codecompanion.strategy.chat").new({
         client = self.client,
         messages = messages,
@@ -105,7 +98,7 @@ function Advisor:execute(user_input)
     else
       local response = data.choices[1].message.content
       return require("codecompanion.utils.ui").display(
-        self.opts.display,
+        config.options.display,
         response,
         messages,
         self.client

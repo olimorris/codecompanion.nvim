@@ -101,6 +101,7 @@ function Conversation:list(opts)
         path = path,
         dir = conversation.meta.dir,
         updated_at = conversation.meta.updated_at,
+        strategy = "conversations", -- This allows us to call this very strategy from the picker
       })
     end
   end

@@ -10,7 +10,10 @@ local function get_client()
     local secret_key = os.getenv(config.options.api_key)
     if not secret_key then
       vim.notify(
-        string.format("Could not find env variable: %s", config.options.api_key),
+        string.format(
+          "[CodeCompanion.nvim]\nCould not find env variable: %s",
+          config.options.api_key
+        ),
         vim.log.levels.ERROR
       )
       return nil
@@ -110,70 +113,51 @@ M.actions = function()
     return
   end
 
-  local items = config.options.actions
   local context = utils.get_context(vim.api.nvim_get_current_buf())
 
-  local strategies = {
-    ["conversations"] = function(opts, prompts)
-      return M.conversations(client)
-    end,
-    ["chat"] = function(_, prompts)
-      if not prompts then
-        return require("codecompanion").chat()
-      else
-        local messages = {}
-        for _, prompt in ipairs(prompts) do
-          local content
-          if type(prompt.content) == "function" then
-            content = prompt.content(context)
-          else
-            content = prompt.content
-          end
+  local function picker(items, opts, callback)
+    opts = opts or {}
+    opts.prompt = opts.prompt or "Select an option"
+    opts.columns = opts.columns or { "name", "strategy", "description" }
 
-          table.insert(messages, {
-            role = prompt.role,
-            content = content,
-          })
+    require("codecompanion.utils.ui").selector(items, {
+      prompt = opts.prompt,
+      format = function(item)
+        local formatted_item = {}
+        for _, column in ipairs(opts.columns) do
+          table.insert(formatted_item, item[column] or "")
         end
+        return formatted_item
+      end,
+      callback = callback,
+    })
+  end
 
-        return require("codecompanion.strategy.chat").new({
-          client = client,
-          messages = messages,
-          show_buffer = true,
-        })
-      end
-    end,
-    ["advisor"] = function(opts, prompts)
-      return require("codecompanion.strategy.advisor")
-        .new({
-          context = context,
-          client = client,
-          opts = opts,
-          prompts = prompts,
-        })
-        :start()
-    end,
-    ["author"] = function(opts, prompts)
-      return require("codecompanion.strategy.author")
-        .new({
-          context = context,
-          client = client,
-          opts = opts,
-          prompts = prompts,
-        })
-        :start()
-    end,
-  }
+  local function selection(item)
+    if item.picker and type(item.picker.items) == "table" then
+      local picker_opts = {
+        prompt = item.picker.prompt,
+        columns = item.picker.columns,
+      }
+      picker(item.picker.items, picker_opts, selection)
+    else
+      local Strategy = require("codecompanion.strategy")
+      return Strategy.new({
+        client = client,
+        context = context,
+        selected = item,
+      }):start(item.strategy)
+    end
+  end
 
-  require("codecompanion.utils.ui").selector(items, {
-    prompt = "Select an action",
-    format = function(item)
-      return { item.name, item.strategy, item.description }
-    end,
-    callback = function(selected)
-      return strategies[selected.strategy](selected.opts, selected.prompts)
-    end,
-  })
+  --TODO: Consider merging in the config file
+  local items = require("codecompanion.actions").static.actions
+
+  picker(
+    items,
+    { prompt = "Select an action", columns = { "name", "strategy", "description" } },
+    selection
+  )
 end
 
 M.setup = function()
