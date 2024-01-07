@@ -27,6 +27,15 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 - :floppy_disk: Save and restore your chats
 - :muscle: Async execution for improved performance
 
+## :camera_flash: Screenshots
+
+<div align="center">
+  <p><strong>Chat buffer</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/3ae659f4-9758-47d1-8964-531e9f2901cc" alt="chat buffer" /></p>
+  <p><strong>Action selector</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/1f5a20df-b838-4746-96bc-6af5312e1308" alt="action selector" /></p>
+  <p><strong>Code author</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5bcd3bb4-b763-4812-a686-c2ef5215dc99" alt="code author" /><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/81301839-f5dc-4c79-8e7d-051439ad6c23" alt="code author" /></p>
+  <p><strong>Code advisor</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/bc6181e0-85a8-4009-9cfc-f85898780bd5" alt="code advisor" /><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/cbfafcc0-87f9-43e5-8e27-f8eaaf88637d" alt="code advisor" /></p>
+</div>
+
 ## :zap: Requirements
 
 - An API key from OpenAI (get one [here](https://platform.openai.com/api-keys))
@@ -77,20 +86,40 @@ EOF
 
 ## :wrench: Configuration
 
-The plugin comes with the following defaults
+The plugin comes with the following defaults:
 
 ```lua
 {
   api_key = "OPENAI_API_KEY", -- Your OpenAI API key
   org_api_key = "OPENAI_ORG_KEY", -- Your organisation OpenAI API key
+  openai_settings = {
+    -- Default settings for the Completions API
+    -- See https://platform.openai.com/docs/api-reference/chat/create
+    model = "gpt-4-1106-preview",
+    temperature = 1,
+    top_p = 1,
+    stop = nil,
+    max_tokens = nil,
+    presence_penalty = 0,
+    frequency_penalty = 0,
+    logit_bias = nil,
+    user = nil,
+  },
   conversations = {
     auto_save = true, -- Automatically save conversations as they're updated?
     save_dir = vim.fn.stdpath("data") .. "/codecompanion/conversations",
+  },
+  display = { -- How to display `advisor` strategy outputs
+    type = "popup", -- Can be "popup" or "split"
+    height = 0.7, -- For "popup" only
+    width = 0.8, -- For "popup"
   },
   log_level = "TRACE", -- One of: TRACE, DEBUG, ERROR
   send_code = true, -- Send your code to OpenAI?
 }
 ```
+
+> **Note**: The `send_code` option can prevent any visual selections from being sent to OpenAI for processing
 
 ## :rocket: Usage
 
@@ -128,4 +157,6 @@ Actions can utilise one of three types of strategies for interacting with the Op
 
 ## :clap: Credit
 
-Big props to [Steven Arcangeli](https://github.com/stevearc) for his creation of the chat buffer.
+- Big props to [Steven Arcangeli](https://github.com/stevearc) for his creation of the chat buffer.
+- Wtf.nvim
+- ChatGPT.nvim
