@@ -32,7 +32,7 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 <div align="center">
   <p><strong>Chat buffer</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/3ae659f4-9758-47d1-8964-531e9f2901cc" alt="chat buffer" /></p>
   <p><strong>Action selector</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/1f5a20df-b838-4746-96bc-6af5312e1308" alt="action selector" /></p>
-  <p><strong>Code author</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5bcd3bb4-b763-4812-a686-c2ef5215dc99" alt="code author" /><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/81301839-f5dc-4c79-8e7d-051439ad6c23" alt="code author" /></p>
+  <p><strong>Code author</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5bcd3bb4-b763-4812-a686-c2ef5215dc99" alt="code author" /><br></br>><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/81301839-f5dc-4c79-8e7d-051439ad6c23" alt="code author" /></p>
   <p><strong>Code advisor</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/bc6181e0-85a8-4009-9cfc-f85898780bd5" alt="code advisor" /><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/cbfafcc0-87f9-43e5-8e27-f8eaaf88637d" alt="code advisor" /></p>
 </div>
 
@@ -50,38 +50,17 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 **[Lazy.nvim](https://github.com/folke/lazy.nvim)**
 
 ```lua
--- Lua
 {
   "olimorris/codecompanion.nvim",
+  dependencies = {
+    {
+      "stevearc/dressing.nvim", -- Optional: Improves the default select window
+      opts = {},
+    },
+  },
+  cmd = { "CodeCompanionChat", "CodeCompanionActions" },
   config = true
 }
-```
-
-**[Packer](https://github.com/wbthomason/packer.nvim)**
-
-```lua
--- Lua
-use({
-  "olimorris/codecompanion.nvim",
-  config = function()
-    require("codecompanion").setup()
-  end,
-})
-```
-
-**[Vim Plug](https://github.com/junegunn/vim-plug)**
-
-```vim
-" Vim Script
-Plug 'olimorris/codecompanion.nvim'
-
-lua << EOF
-  require("codecompanion").setup {
-    -- your configuration comes here
-    -- or leave it empty to use the default settings
-    -- refer to the configuration section below
-  }
-EOF
 ```
 
 ## :wrench: Configuration
@@ -131,11 +110,16 @@ The plugin has two primary commands:
 They can be assigned to keymaps with:
 
 ```lua
-
+vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionChat<cr>", { noremap = true, silent = true })
 ```
+
+> **Note**: For some actions, visual mode allows your selection to be sent to the chat buffer or OpenAI themselves
 
 ## :speech_balloon: The Chat Buffer
 
+To be updated
 
 ## :sparkles: Actions
 
