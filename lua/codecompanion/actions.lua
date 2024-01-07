@@ -24,6 +24,8 @@ M.validate = function(items, context)
       if utils.contains(item.opts.modes, mode) then
         table.insert(validated_items, item)
       end
+    else
+      table.insert(validated_items, item)
     end
   end
 
@@ -35,9 +37,6 @@ M.static.actions = {
     name = "Chat",
     strategy = "chat",
     description = "Open a chat buffer to converse with OpenAI",
-    opts = {
-      modes = { "n", "v" },
-    },
     prompts = {
       n = function()
         return require("codecompanion").chat()
@@ -65,9 +64,6 @@ M.static.actions = {
     name = "Chat as ...",
     strategy = "chat",
     description = "Open a chat buffer, acting as a specific persona",
-    opts = {
-      modes = { "n", "v" },
-    },
     picker = {
       prompt = "Select a persona",
       items = {
@@ -220,7 +216,6 @@ M.static.actions = {
     description = "Get OpenAI to write/refactor code for you",
     opts = {
       model = "gpt-4-1106-preview",
-      modes = { "n", "v" },
       user_input = true,
       send_visual_selection = true,
     },
@@ -323,9 +318,6 @@ M.static.actions = {
     name = "Load conversations",
     strategy = "conversations",
     description = "Load your previous Chat conversations",
-    opts = {
-      modes = { "n", "v" },
-    },
     picker = {
       prompt = "Conversations",
       columns = {
