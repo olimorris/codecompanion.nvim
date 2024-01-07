@@ -123,21 +123,7 @@ To be updated
 
 ## :sparkles: Actions
 
-Actions enable users to interact directly with the OpenAI from within Neovim. This makes it easy to send code from a buffer, along with a prompt, to an OpenAI model before parsing and outputting the response back to a buffer. Most importantly, actions are completely customisable and the plugin allows for new actions to be defined with ease.
-
-The plugin comes with some pre-built actions:
-
-- `Chat` (`chat`) - Open a new chat buffer to converse with the Completions API
-- `Chat with selection` (`chat`) - Paste your selected text into a new chat buffer
-- `Code Author` (`author`) - Get the Completions API to write/refactor code for you
-- `Code Advisor` (`advisor`) - Get advice on the code you've selected
-- `LSP Assistant` (`advisor`) - Get help from the Completions API to fix LSP diagnostics
-
-Actions can utilise one of three types of strategies for interacting with the OpenAI APIs:
-
-- `Chat` - An action whereby a user converses with OpenAI directly from a buffer
-- `Author` - An action which grants OpenAI the ability to write text into a buffer
-- `Advisor` - An action whereby OpenAI can advise on a buffer's content and output into a split/popup and/or a chat
+To be updated
 
 ## :clap: Credit
 
