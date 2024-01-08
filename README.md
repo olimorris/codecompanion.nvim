@@ -31,7 +31,6 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 
 <div align="center">
   <p><strong>Chat buffer</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/3ae659f4-9758-47d1-8964-531e9f2901cc" alt="chat buffer" /></p>
-  <p><strong>Action selector</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/1f5a20df-b838-4746-96bc-6af5312e1308" alt="action selector" /></p>
   <p><strong>Code author</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5bcd3bb4-b763-4812-a686-c2ef5215dc99" alt="code author" /></p>
   <p><strong>Code advisor</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/bc6181e0-85a8-4009-9cfc-f85898780bd5" alt="code advisor" /><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/cbfafcc0-87f9-43e5-8e27-f8eaaf88637d" alt="code advisor" /></p>
 </div>
@@ -47,20 +46,30 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 - Set your OpenAI API Key as an environment variable in your shell (default `OPENAI_API_KEY`)
 - Install the plugin with your package manager of choice:
 
-**[Lazy.nvim](https://github.com/folke/lazy.nvim)**
-
 ```lua
+-- Lazy.nvim
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
     {
-      "stevearc/dressing.nvim", -- Optional: Improves the default select window
+      "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
       opts = {},
     },
   },
   cmd = { "CodeCompanionChat", "CodeCompanionActions" },
   config = true
 }
+
+-- Packer.nvim
+use({
+  "olimorris/codecompanion.nvim",
+  config = function()
+    require("codecompanion").setup()
+  end,
+  requires = {
+    "stevearc/dressing.nvim"
+  }
+})
 ```
 
 ## :wrench: Configuration
@@ -85,16 +94,17 @@ The plugin comes with the following defaults:
     user = nil,
   },
   conversations = {
-    auto_save = true, -- Automatically save conversations as they're updated?
+    auto_save = true, -- Once a conversation is created/loaded, automatically save it
     save_dir = vim.fn.stdpath("data") .. "/codecompanion/conversations",
   },
-  display = { -- How to display `advisor` strategy outputs
-    type = "popup", -- Can be "popup" or "split"
-    height = 0.7, -- For "popup" only
-    width = 0.8, -- For "popup"
+  display = { -- How to display `advisor` outputs
+    type = "popup", -- "popup"|"split"
+    height = 0.7,
+    width = 0.8,
   },
   log_level = "TRACE", -- One of: TRACE, DEBUG, ERROR
-  send_code = true, -- Send your code to OpenAI?
+  send_code = true, -- Send your code to OpenAI
+  use_default_actions = true, -- The actions that appear in the action palette
 }
 ```
 
@@ -102,10 +112,11 @@ The plugin comes with the following defaults:
 
 ## :rocket: Usage
 
-The plugin has two primary commands:
+The plugin has a number of commands:
 
 - `CodeCompanionChat` - To open up a new chat buffer
 - `CodeCompanionActions` - To open up the action selector window
+- `CodeCompanionSaveConversationAs` - Saves the chat buffer as a conversation
 
 They can be assigned to keymaps with:
 
@@ -117,11 +128,36 @@ vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionChat<cr>", { n
 
 > **Note**: For some actions, visual mode allows your selection to be sent to the chat buffer or OpenAI themselves
 
-## :speech_balloon: The Chat Buffer
+### The Action Palette
+
+<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/1f5a20df-b838-4746-96bc-6af5312e1308" alt="action selector" /></p>
+
+The Action Palette, opened via `:CodeCompanionActions`, contains all of the actions and their associated strategies for the plugin. It's the fastest way to start leveraging CodeCompanion. Depending on whether you're in _normal_ or _visual_ mode will affect the options that are available in the palette.
+
+You may add your own actions into the palette by altering your configuration:
+
+```lua
+-- Your config
+{
+  actions = {
+    {
+      name = "My new action",
+      strategy = "chat"
+      description = "Some cool action you can do",
+    }
+  }
+}
+```
+
+> **Note**: We describe how to do this in detail within the `RECIPES.md` file
+
+Or, if you wish to turn off the default actions, set `use_default_actions = false` in your config.
+
+### The Chat Buffer
 
 To be updated
 
-## :sparkles: Actions
+### In-Built Actions
 
 To be updated
 
