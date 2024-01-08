@@ -96,7 +96,7 @@ function Conversation:list(opts)
 
     if conversation and conversation.meta and conversation.meta.updated_at then
       table.insert(conversations, {
-        tokens = conversation.meta.tokens,
+        tokens = conversation.meta.tokens .. " tokens",
         filename = path:match("([^/]+)%.json$"),
         path = path,
         dir = conversation.meta.dir,

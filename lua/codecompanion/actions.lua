@@ -19,6 +19,7 @@ end
 M.validate = function(items, context)
   local validated_items = {}
   local mode = context.mode:lower()
+
   for _, item in ipairs(items) do
     if item.opts and item.opts.modes then
       if utils.contains(item.opts.modes, mode) then
@@ -325,7 +326,7 @@ M.static.actions = {
         "filename",
         "dir",
       },
-      items = require("codecompanion.strategy.conversation"):list(),
+      items = require("codecompanion.strategy.conversation"):list({ sort = true }),
     },
   },
 }
