@@ -74,8 +74,6 @@ function Advisor:execute(user_input)
     })
   end
 
-  vim.bo[self.context.bufnr].modifiable = false
-
   self.client:advisor(conversation, function(err, data)
     if err then
       log:error("Advisor Error: %s", err)
