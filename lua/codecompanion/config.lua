@@ -25,8 +25,10 @@ local defaults = {
   },
   log_level = "TRACE",
   send_code = true,
+  use_default_actions = true,
 }
 
+---@param opts nil|table
 M.setup = function(opts)
   M.options = vim.tbl_deep_extend("force", {}, defaults, opts or {})
 

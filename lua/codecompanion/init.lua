@@ -1,6 +1,7 @@
 local Client = require("codecompanion.client")
 local config = require("codecompanion.config")
 local utils = require("codecompanion.utils.util")
+
 local M = {}
 
 local _client
@@ -49,70 +50,14 @@ M.chat = function()
   vim.bo[chat.bufnr].filetype = "markdown"
 end
 
-local last_edit
----@param context nil|table
----@return nil|CodeCompanion.Assistant
-M.assistant = function(context)
-  local client = get_client()
-  if not client then
-    return
-  end
-
-  local Assistant = require("codecompanion.strategy.assistant")
-  context = context or utils.get_context(vim.api.nvim_get_current_buf())
-
-  last_edit = Assistant.new({
-    context = context,
-    client = client,
-  })
-
-  last_edit:start(function()
-    utils.set_dot_repeat("repeat_last_edit")
-  end)
-end
-
-M.repeat_last_edit = function()
-  if last_edit and vim.api.nvim_get_current_buf() == last_edit.bufnr then
-    last_edit:start(function()
-      utils.set_dot_repeat("repeat_last_edit")
-    end)
-  end
-end
-
-M.conversations = function()
-  local client = get_client()
-  if not client then
-    return
-  end
-
-  local conversation = require("codecompanion.strategy.conversation")
-  local conversations = conversation.new({}):list({ sort = true })
-
-  if not conversations or #conversations == 0 then
-    return vim.notify("[CodeCompanion.nvim]\nNo conversations found", vim.log.levels.WARN)
-  end
-
-  require("codecompanion.utils.ui").selector(conversations, {
-    prompt = "Select a conversation",
-    format = function(item)
-      return { item.tokens, item.filename, item.dir }
-    end,
-    callback = function(selected)
-      return conversation
-        .new({
-          filename = selected.filename,
-        })
-        :load(client, selected)
-    end,
-  })
-end
-
+local _cached_actions = {}
 M.actions = function()
   local client = get_client()
   if not client then
     return
   end
 
+  local actions = require("codecompanion.actions")
   local context = utils.get_context(vim.api.nvim_get_current_buf())
 
   local function picker(items, opts, callback)
@@ -150,9 +95,27 @@ M.actions = function()
     end
   end
 
-  --TODO: Consider merging in the config file
-  local actions = require("codecompanion.actions")
-  local items = actions.validate(actions.static.actions, context)
+  if not next(_cached_actions) then
+    if config.options.use_default_actions then
+      for _, action in ipairs(actions.static.actions) do
+        table.insert(_cached_actions, action)
+      end
+    end
+    if config.options.actions and #config.options.actions > 0 then
+      for _, action in ipairs(config.options.actions) do
+        table.insert(_cached_actions, action)
+      end
+    end
+  end
+
+  local items = actions.validate(_cached_actions, context)
+
+  if items and #items == 0 then
+    return vim.notify(
+      "[CodeCompanion.nvim]\nNo actions set. Please create some in your config or turn on the defaults",
+      vim.log.levels.WARN
+    )
+  end
 
   picker(
     items,
@@ -161,8 +124,9 @@ M.actions = function()
   )
 end
 
-M.setup = function()
-  config.setup()
+---@param opts nil|table
+M.setup = function(opts)
+  config.setup(opts)
 end
 
 return M
