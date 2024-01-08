@@ -89,7 +89,7 @@ function Author:execute(user_input)
     vim.bo[self.context.bufnr].modifiable = true
     local output = vim.split(response, "\n")
 
-    if self.context.is_visual and utils.contains(self.opts.modes, "v") then
+    if self.context.is_visual and (self.opts.modes and utils.contains(self.opts.modes, "v")) then
       vim.api.nvim_buf_set_text(
         self.context.bufnr,
         self.context.start_line - 1,
@@ -111,20 +111,6 @@ function Author:execute(user_input)
 end
 
 function Author:start()
-  if self.context.is_normal and not utils.contains(self.opts.modes, "n") then
-    return vim.notify(
-      "[CodeCompanion.nvim]\nThis action is not enabled for Normal mode",
-      vim.log.levels.WARN
-    )
-  end
-
-  if self.context.is_visual and not utils.contains(self.opts.modes, "v") then
-    return vim.notify(
-      "[CodeCompanion.nvim]\nThis action is not enabled for Visual mode",
-      vim.log.levels.WARN
-    )
-  end
-
   if self.opts.user_input then
     vim.ui.input(
       { prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " Prompt" },
