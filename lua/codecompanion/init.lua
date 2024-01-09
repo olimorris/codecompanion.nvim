@@ -30,7 +30,7 @@ end
 ---@param bufnr nil|integer
 ---@return nil|CodeCompanion.Chat
 M.buf_get_chat = function(bufnr)
-  require("codecompanion.strategy.chat").buf_get_chat(bufnr)
+  return require("codecompanion.strategy.chat").buf_get_chat(bufnr)
 end
 
 M.chat = function()
