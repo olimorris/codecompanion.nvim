@@ -108,7 +108,7 @@ The plugin comes with the following defaults:
 }
 ```
 
-> **Note**: The `send_code` option can prevent any visual selections from being sent to OpenAI for processing
+> **Note**: The `send_code` option can prevent any visual selections from being sent to OpenAI for processing as part of any `advisor` or `author` actions
 
 ## :rocket: Usage
 
@@ -137,8 +137,7 @@ The Action Palette, opened via `:CodeCompanionActions`, contains all of the acti
 You may add your own actions into the palette by altering your configuration:
 
 ```lua
--- Your config
-{
+require("codecompanion").setup({
   actions = {
     {
       name = "My new action",
@@ -146,7 +145,7 @@ You may add your own actions into the palette by altering your configuration:
       description = "Some cool action you can do",
     }
   }
-}
+})
 ```
 
 > **Note**: We describe how to do this in detail within the `RECIPES.md` file
@@ -155,7 +154,15 @@ Or, if you wish to turn off the default actions, set `use_default_actions = fals
 
 ### The Chat Buffer
 
-To be updated
+<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/84d5e03a-0b48-4ffb-9ca5-e299d41171bd" alt="chat buffer" /></p>
+
+The Chat Buffer is where you can converse with OpenAI, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (`:h writing`), autocmds trigger the sending of its content to the OpenAI API in the form of prompts. These prompts are segmented by H1 headers into `user` and `assistant` (see OpenAI's [Chat Completions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api)). When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with ChatGPT, from within Neovim.
+
+> **Note**: You can cancel a request at any point by pressing `q`.
+
+At the very top of the Chat Buffer are the parameters which can be changed to affect the API's response back to you. You can find more detail about them by moving the cursor over them or referring to the [Chat Completions reference guide](https://platform.openai.com/docs/api-reference/chat). The parameters can be tweaked and modified throughout the conversation.
+
+Chat Buffers are not automatically saved into sessions owing to them being an `acwrite` buftype (`:h buftype`). However the plugin allows for this via the notion of Conversations. Simply run `:CodeCompanionSaveConversationAs` in the buffer you wish to save. Conversations can then be restored via the Action Palette and the _Load conversations_ actions.
 
 ### In-Built Actions
 
@@ -163,6 +170,6 @@ To be updated
 
 ## :clap: Credit
 
-- Big props to [Steven Arcangeli](https://github.com/stevearc) for his creation of the chat buffer.
-- Wtf.nvim
-- ChatGPT.nvim
+- [Steven Arcangeli](https://github.com/stevearc) for his genius creation of the chat buffer.
+- [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) for the LSP assistant action
+- [ChatGPT.nvim](https://github.com/jackMort/ChatGPT.nvim) for the calculation of tokens
