@@ -79,10 +79,13 @@ function Author:execute(user_input)
 
     local response = data.choices[1].message.content
 
-    if string.find(string.lower(response), string.lower("Error")) == 1 then
-      return vim.notify(
-        "[CodeCompanion.nvim]\nThe OpenAI API could not find a response to your prompt",
-        vim.log.levels.ERROR
+    if string.find(response, "^%[Error%]") == 1 then
+      vim.bo[self.context.bufnr].modifiable = true
+      return require("codecompanion.utils.ui").display(
+        config.options.display,
+        response,
+        conversation.messages,
+        self.client
       )
     end
 

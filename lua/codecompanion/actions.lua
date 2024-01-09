@@ -226,7 +226,7 @@ M.static.actions = {
         content = function(context)
           return "I want you to act as a senior "
             .. context.filetype
-            .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, just say \"Error - I don't know\"."
+            .. ' developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can\'t respond with code, please explain why but ensure that the first word in your response is "[Error]" so I can parse it.'
         end,
       },
     },
@@ -247,7 +247,7 @@ M.static.actions = {
         content = function(context)
           return "I want you to act as a senior "
             .. context.filetype
-            .. " developer. I will ask you specific questions and I want you to advise me with explanations and code examples. If you can't respond, just say \"Error - I don't know\""
+            .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations)."
         end,
       },
     },
@@ -265,7 +265,7 @@ M.static.actions = {
     prompts = {
       {
         role = "system",
-        content = [[You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages. When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting. If you can't respond with an answer, just say "Error - I don't know".]],
+        content = [[You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages. When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting.]],
       },
       {
         role = "user",
