@@ -106,20 +106,6 @@ function Advisor:execute(user_input)
 end
 
 function Advisor:start()
-  if self.context.is_normal and not utils.contains(self.opts.modes, "n") then
-    return vim.notify(
-      "[CodeCompanion.nvim]\nThis action is not enabled for Normal mode",
-      vim.log.levels.WARN
-    )
-  end
-
-  if self.context.is_visual and not utils.contains(self.opts.modes, "v") then
-    return vim.notify(
-      "[CodeCompanion.nvim]\nThis action is not enabled for Visual mode",
-      vim.log.levels.WARN
-    )
-  end
-
   if self.opts.user_input then
     vim.ui.input(
       { prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " Prompt" },
