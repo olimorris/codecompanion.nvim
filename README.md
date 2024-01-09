@@ -156,20 +156,20 @@ Or, if you wish to turn off the default actions, set `use_default_actions = fals
 
 <p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/84d5e03a-0b48-4ffb-9ca5-e299d41171bd" alt="chat buffer" /></p>
 
-The Chat Buffer is where you can converse with OpenAI, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (`:h writing`), autocmds trigger the sending of its content to the OpenAI API in the form of prompts. These prompts are segmented by H1 headers into `user` and `assistant` (see OpenAI's [Chat Completions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api)). When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with ChatGPT, from within Neovim.
+The Chat Buffer is where you can converse with OpenAI, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written, autocmds trigger the sending of its content to the OpenAI API in the form of prompts. These prompts are segmented by H1 headers into `user` and `assistant` (see OpenAI's [Chat Completions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api) for more on this). When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with ChatGPT, from within Neovim.
 
 > **Note**: You can cancel a request at any point by pressing `q`.
 
 At the very top of the Chat Buffer are the parameters which can be changed to affect the API's response back to you. You can find more detail about them by moving the cursor over them or referring to the [Chat Completions reference guide](https://platform.openai.com/docs/api-reference/chat). The parameters can be tweaked and modified throughout the conversation.
 
-Chat Buffers are not automatically saved into sessions owing to them being an `acwrite` buftype (`:h buftype`). However the plugin allows for this via the notion of Conversations. Simply run `:CodeCompanionSaveConversationAs` in the buffer you wish to save. Conversations can then be restored via the Action Palette and the _Load conversations_ actions.
+Chat Buffers are not automatically saved into sessions owing to them being an `acwrite` buftype (`:h buftype`). However the plugin allows for this via the notion of Conversations. Simply run `:CodeCompanionSaveConversationAs` in the buffer you wish to save. Conversations can then be restored via the Action Palette and the _Load conversations_ actions. When a conversation is saved or loaded it will automatically save to disk.
 
 ### In-Built Actions
 
 To be updated
 
-## :clap: Credit
+## :clap: Thanks
 
-- [Steven Arcangeli](https://github.com/stevearc) for his genius creation of the chat buffer.
+- [Steven Arcangeli](https://github.com/stevearc) for his genius creation of the chat buffer and feedback
 - [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) for the LSP assistant action
 - [ChatGPT.nvim](https://github.com/jackMort/ChatGPT.nvim) for the calculation of tokens
