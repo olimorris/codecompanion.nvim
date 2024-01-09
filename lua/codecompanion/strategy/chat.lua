@@ -286,6 +286,13 @@ function Chat:submit()
 
   vim.bo[self.bufnr].modified = false
   vim.bo[self.bufnr].modifiable = false
+  vim.api.nvim_buf_set_keymap(self.bufnr, "n", "q", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      _G.codecompanion_jobs[self.bufnr].status = "stopping"
+    end,
+  })
   local function finalize()
     vim.bo[self.bufnr].modified = false
     vim.bo[self.bufnr].modifiable = true
@@ -300,11 +307,13 @@ function Chat:submit()
     vim.tbl_extend("keep", settings, {
       messages = messages,
     }),
+    self.bufnr,
     function(err, chunk, done)
       if err then
         vim.notify("Error: " .. err, vim.log.levels.ERROR)
         return finalize()
       end
+
       if chunk then
         log:debug("chat chunk: %s", chunk)
         local delta = chunk.choices[1].delta
@@ -312,13 +321,17 @@ function Chat:submit()
           new_message = { role = delta.role, content = "" }
           table.insert(messages, new_message)
         end
+
         if delta.content then
           new_message.content = new_message.content .. delta.content
         end
+
         render_messages(self.bufnr, settings, messages)
         util.buf_scroll_to_end(self.bufnr)
       end
+
       if done then
+        vim.api.nvim_buf_del_keymap(self.bufnr, "n", "q")
         table.insert(messages, { role = "user", content = "" })
         render_messages(self.bufnr, settings, messages)
         util.buf_scroll_to_end(self.bufnr)

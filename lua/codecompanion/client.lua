@@ -1,5 +1,7 @@
 local log = require("codecompanion.utils.log")
 
+_G.codecompanion_jobs = {}
+
 ---@class CodeCompanion.Client
 ---@field secret_key string
 ---@field organization nil|string
@@ -117,9 +119,10 @@ end
 
 ---@param url string
 ---@param payload table
+---@param bufnr number
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
 ---@return integer The job ID
-function Client:stream_call(url, payload, cb)
+function Client:stream_call(url, payload, bufnr, cb)
   cb = log:wrap_cb(cb, "Response error: %s")
   payload.stream = true
   local cmd = {
@@ -163,6 +166,13 @@ function Client:stream_call(url, payload, cb)
             return cb(nil, nil, true)
           end
 
+          if _G.codecompanion_jobs[bufnr].status == "stopping" then
+            done = true
+            vim.fn.jobstop(_G.codecompanion_jobs[bufnr].jid)
+            _G.codecompanion_jobs[bufnr] = nil
+            return cb(nil, nil, true)
+          end
+
           local ok, data = pcall(vim.json.decode, chunk, { luanil = { object = true } })
           if not ok then
             done = true
@@ -201,6 +211,12 @@ function Client:stream_call(url, payload, cb)
     cb("Passed invalid arguments to curl")
   elseif jid == -1 then
     cb("'curl' is not executable")
+  else
+    _G.codecompanion_jobs[bufnr] = {
+      jid = jid,
+      status = "running",
+      strategy = "chat",
+    }
   end
   return jid
 end
@@ -234,10 +250,11 @@ function Client:chat(args, cb)
 end
 
 ---@param args CodeCompanion.ChatArgs
+---@param bufnr integer
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
 ---@return integer
-function Client:stream_chat(args, cb)
-  return self:stream_call("https://api.openai.com/v1/chat/completions", args, cb)
+function Client:stream_chat(args, bufnr, cb)
+  return self:stream_call("https://api.openai.com/v1/chat/completions", args, bufnr, cb)
 end
 
 ---@class CodeCompanion.AdvsorArgs
