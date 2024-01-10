@@ -319,15 +319,6 @@ M.static.actions = {
     name = "Load conversations",
     strategy = "conversations",
     description = "Load your previous Chat conversations",
-    picker = {
-      prompt = "Conversations",
-      columns = {
-        "tokens",
-        "filename",
-        "dir",
-      },
-      items = require("codecompanion.strategy.conversation"):list({ sort = true }),
-    },
   },
 }
 

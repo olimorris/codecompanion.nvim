@@ -98,12 +98,31 @@ end
 
 function Strategy:conversations()
   local conversation = require("codecompanion.strategy.conversation")
+  local items = conversation:list({ sort = true })
 
-  return conversation
-    .new({
-      filename = self.selected.filename,
-    })
-    :load(self.client, self.selected)
+  local columns = {
+    "tokens",
+    "filename",
+    "dir",
+  }
+
+  require("codecompanion.utils.ui").selector(items, {
+    prompt = "Converations",
+    format = function(item)
+      local formatted_item = {}
+      for _, column in ipairs(columns) do
+        table.insert(formatted_item, item[column] or "")
+      end
+      return formatted_item
+    end,
+    callback = function(selected)
+      return conversation
+        .new({
+          filename = selected.filename,
+        })
+        :load(self.client, selected)
+    end,
+  })
 end
 
 return Strategy
