@@ -80,7 +80,7 @@ The plugin comes with the following defaults:
 {
   api_key = "OPENAI_API_KEY", -- Your OpenAI API key
   org_api_key = "OPENAI_ORG_KEY", -- Your organisation OpenAI API key
-  base_url = "https://api.openai.com/v1", -- The URL to use for the API requests
+  base_url = "https://api.openai.com", -- The URL to use for the API requests
   openai_settings = {
     -- Default settings for the Completions API
     -- See https://platform.openai.com/docs/api-reference/chat/create
