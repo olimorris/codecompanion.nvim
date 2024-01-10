@@ -98,7 +98,8 @@ The plugin comes with the following defaults:
     save_dir = vim.fn.stdpath("data") .. "/codecompanion/conversations",
   },
   display = { -- How to display `advisor` outputs
-    type = "popup", -- "popup"|"split"
+    type = "popup", -- popup|split
+    split = "horizontal" -- horizontal|vertical
     height = 0.7,
     width = 0.8,
   },

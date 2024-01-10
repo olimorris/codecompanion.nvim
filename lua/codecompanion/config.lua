@@ -20,6 +20,7 @@ local defaults = {
   },
   display = {
     type = "popup",
+    split = "horizontal",
     height = 0.7,
     width = 0.8,
   },

@@ -80,7 +80,7 @@ local function set_keymaps(win, bufnr, client, conversation)
     noremap = true,
     silent = true,
     callback = function()
-      close(win)
+      pcall(close, win, bufnr)
     end,
   })
 
@@ -88,7 +88,7 @@ local function set_keymaps(win, bufnr, client, conversation)
     noremap = true,
     silent = true,
     callback = function()
-      close(win)
+      pcall(close, win, bufnr)
       return require("codecompanion.strategy.chat").new({
         client = client,
         messages = conversation,
@@ -98,10 +98,27 @@ local function set_keymaps(win, bufnr, client, conversation)
   })
 end
 
+---@param size number
+---@param max_value number
+local function calculate_split_size(size, max_value)
+  if type(size) == "number" then
+    if size < 1 then
+      -- Treat as a percentage
+      return math.floor(max_value * size)
+    else
+      -- Treat as an absolute value
+      return math.floor(size)
+    end
+  else
+    error("Size must be a number")
+  end
+end
+
+---@param opts table
 ---@param response string
 ---@param conversation table
 ---@param client CodeCompanion.Client
-local function split(response, conversation, client)
+local function split(opts, response, conversation, client)
   if not response or response == "" then
     return
   end
@@ -113,17 +130,45 @@ local function split(response, conversation, client)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(response, "\n"))
   vim.api.nvim_buf_set_option(buf, "modifiable", false)
 
-  local height = math.floor(vim.o.lines * 0.4)
-  local current_win = vim.api.nvim_get_current_win()
+  local win_original = vim.api.nvim_get_current_win()
+  -- Determine split dimensions
+  local win_height = vim.api.nvim_win_get_height(win_original)
+  local win_width = vim.api.nvim_win_get_width(win_original)
+  local split_height, split_width
 
-  vim.cmd(height .. "new")
-  local win = vim.api.nvim_get_current_win()
+  -- Size calculation based on opts
+  if opts.split == "horizontal" then
+    split_height = calculate_split_size(opts.height or 0.5, win_height)
+  elseif opts.split == "vertical" then
+    split_width = calculate_split_size(opts.width or 0.5, win_width)
+  else
+    error("Invalid split option. Use 'vertical' or 'horizontal'.")
+    return
+  end
 
-  vim.api.nvim_win_set_buf(win, buf)
-  vim.api.nvim_win_set_option(win, "wrap", true)
-  set_keymaps(win, buf, client, conversation)
+  -- Creating the split
+  local win_new
+  if opts.split == "vertical" then
+    vim.cmd("vsplit")
+    win_new = vim.api.nvim_get_current_win()
+    if split_width then
+      vim.api.nvim_win_set_width(win_new, split_width)
+    end
+  elseif opts.split == "horizontal" then
+    vim.cmd("split")
+    win_new = vim.api.nvim_get_current_win()
+    if split_height then
+      vim.api.nvim_win_set_height(win_new, split_height)
+    end
+  end
 
-  vim.api.nvim_set_current_win(current_win)
+  vim.api.nvim_win_set_buf(win_new, buf)
+  vim.api.nvim_win_set_option(win_new, "wrap", true)
+
+  set_keymaps(win_new, buf, client, conversation)
+
+  -- Return focus to original window
+  vim.api.nvim_set_current_win(win_original)
 end
 
 ---@param opts table
@@ -163,7 +208,7 @@ end
 ---@param client CodeCompanion.Client
 function M.display(opts, response, conversation, client)
   if opts.type == "split" then
-    split(response, conversation, client)
+    split(opts, response, conversation, client)
   elseif opts.type == "popup" then
     popup(opts, response, conversation, client)
   end
