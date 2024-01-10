@@ -109,27 +109,7 @@ The plugin comes with the following defaults:
 }
 ```
 
-These can be modified as follows:
-
-```lua
--- Lazy.nvim
-{
-  "olimorris/codecompanion.nvim",
-  opts = {
-    send_code = false
-  }
-}
-
--- Packer.nvim
-use({
-  "olimorris/codecompanion.nvim",
-  config = function()
-    require("codecompanion").setup({
-      send_code = false
-    })
-  end,
-})
-```
+Modify these settings via the `opts` table in Lazy.nvim or by calling the `require("codecompanion").setup()` function in Packer.
 
 > **Note**: The `send_code` option can prevent any visual selections from being sent to OpenAI for processing as part of any `advisor` or `author` actions
 
