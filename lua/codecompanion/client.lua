@@ -1,3 +1,4 @@
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
 _G.codecompanion_jobs = {}
@@ -246,7 +247,7 @@ end
 ---@return integer
 function Client:chat(args, cb)
   args.stream = false
-  return self:call("https://api.openai.com/v1/chat/completions", args, cb)
+  return self:call(config.options.base_url .. "/chat/completions", args, cb)
 end
 
 ---@param args CodeCompanion.ChatArgs
@@ -254,7 +255,7 @@ end
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
 ---@return integer
 function Client:stream_chat(args, bufnr, cb)
-  return self:stream_call("https://api.openai.com/v1/chat/completions", args, bufnr, cb)
+  return self:stream_call(config.options.base_url .. "/chat/completions", args, bufnr, cb)
 end
 
 ---@class CodeCompanion.AdvsorArgs
@@ -266,7 +267,7 @@ end
 ---@field n nil|integer Defaults to 1. How many chat completion choices to generate for each input message.
 function Client:advisor(args, cb)
   args.stream = false
-  return self:call("https://api.openai.com/v1/chat/completions", args, cb)
+  return self:call(config.options.base_url .. "chat/completions", args, cb)
 end
 
 ---@class CodeCompanion.AuthorArgs
@@ -278,7 +279,7 @@ end
 ---@field n nil|integer Defaults to 1. How many chat completion choices to generate for each input message.
 function Client:author(args, cb)
   args.stream = false
-  return self:call("https://api.openai.com/v1/chat/completions", args, cb)
+  return self:call(config.options.base_url .. "/chat/completions", args, cb)
 end
 
 return Client

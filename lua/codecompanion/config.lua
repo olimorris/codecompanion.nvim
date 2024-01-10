@@ -3,6 +3,7 @@ local M = {}
 local defaults = {
   api_key = "OPENAI_API_KEY",
   org_api_key = "OPENAI_ORG_KEY",
+  base_url = "https://api.openai.com/v1",
   openai_settings = {
     model = "gpt-4-1106-preview",
     temperature = 1,
