@@ -133,7 +133,7 @@ M.static.chat_settings = {
     order = 1,
     type = "enum",
     desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
-    default = config.options.openai_settings.model,
+    default = config.options.openai_settings.models.chat,
     choices = model_choices,
   },
   temperature = {

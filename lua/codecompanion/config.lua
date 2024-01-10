@@ -5,7 +5,11 @@ local defaults = {
   org_api_key = "OPENAI_ORG_KEY",
   base_url = "https://api.openai.com",
   openai_settings = {
-    model = "gpt-4-1106-preview",
+    models = {
+      chat = "gpt-4-1106-preview",
+      author = "gpt-4-1106-preview",
+      advisor = "gpt-4-1106-preview",
+    },
     temperature = 1,
     top_p = 1,
     stop = nil,
