@@ -106,6 +106,10 @@ function Strategy:conversations()
     "dir",
   }
 
+  if #items == 0 then
+    return vim.notify("[CodeCompanion.nvim]\nNo conversations found", vim.log.levels.INFO)
+  end
+
   require("codecompanion.utils.ui").selector(items, {
     prompt = "Converations",
     format = function(item)

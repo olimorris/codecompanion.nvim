@@ -132,6 +132,7 @@ function Conversation:load(client, opts)
   })
 
   rename_buffer(chat_buf.bufnr, opts.filename)
+  vim.api.nvim_buf_set_option(chat_buf.bufnr, "wrap", true)
 end
 
 return Conversation

@@ -117,11 +117,30 @@ end
 ---@param conversation CodeCompanion.Conversation
 local function create_conversation_autocmds(bufnr, conversation)
   if config.options.conversations.auto_save then
-    vim.api.nvim_create_autocmd("TextChanged", {
+    local group = vim.api.nvim_create_augroup("CodeCompanionConversations", {})
+
+    local function save()
+      vim.schedule(function()
+        conversation:save(bufnr, parse_messages_buffer(bufnr))
+      end)
+    end
+
+    vim.api.nvim_create_autocmd("InsertLeave", {
       buffer = bufnr,
+      group = group,
       callback = function()
         log:trace("Conversation automatically saved")
-        conversation:save(bufnr, parse_messages_buffer(bufnr))
+        save()
+      end,
+    })
+    vim.api.nvim_create_autocmd({ "User" }, {
+      group = group,
+      pattern = "CodeCompanion",
+      callback = function(request)
+        if request.buf == bufnr and request.data.status == "finished" then
+          log:trace("Conversation automatically saved")
+          save()
+        end
       end,
     })
   end
@@ -266,6 +285,7 @@ function Chat.new(args)
 
   chatmap[bufnr] = self
   render_messages(bufnr, settings, args.messages or {})
+  vim.api.nvim_buf_set_option(bufnr, "wrap", true)
 
   if args.show_buffer then
     vim.api.nvim_set_current_buf(bufnr)
