@@ -247,7 +247,7 @@ M.static.actions = {
         content = function(context)
           return "I want you to act as a senior "
             .. context.filetype
-            .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations)."
+            .. " developer. I will ask you specific questions and I want you to return concise explanations and codeblock examples."
         end,
       },
     },
