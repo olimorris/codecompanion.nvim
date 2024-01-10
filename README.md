@@ -195,6 +195,26 @@ For some users, the sending of code to OpenAI may be prohibited in certain codeb
 
 Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice (utilising the `advisor` strategy) on any LSP diagnostics which occur across visually selected lines and how they can be fixed. Again, the `send_code = false` value can be set in your config to only send diagnostic errors to OpenAI.
 
+## :rainbow: Helpers
+
+### Hooks / User events
+
+The plugin fires events at the start and the conclusion of an API request. A user can hook into these as follows:
+
+```lua
+local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
+
+vim.api.nvim_create_autocmd({ "User" }, {
+  pattern = "CodeCompanion",
+  group = group,
+  callback = function(request)
+    print(request.data.status) -- outputs "started" or "finished"
+  end,
+})
+```
+
+> **Note**: The author uses these to display an icon in his statusline
+
 ## :clap: Thanks
 
 - [Steven Arcangeli](https://github.com/stevearc) for his genius creation of the chat buffer and his feedback
