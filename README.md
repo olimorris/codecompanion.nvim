@@ -81,10 +81,14 @@ The plugin comes with the following defaults:
   api_key = "OPENAI_API_KEY", -- Your OpenAI API key
   org_api_key = "OPENAI_ORG_KEY", -- Your organisation OpenAI API key
   base_url = "https://api.openai.com", -- The URL to use for the API requests
-  openai_settings = {
+  ai_settings = {
     -- Default settings for the Completions API
     -- See https://platform.openai.com/docs/api-reference/chat/create
-    model = "gpt-4-1106-preview",
+    models = {
+      chat = "gpt-4-1106-preview",
+      author = "gpt-4-1106-preview",
+      advisor = "gpt-4-1106-preview",
+    },
     temperature = 1,
     top_p = 1,
     stop = nil,
