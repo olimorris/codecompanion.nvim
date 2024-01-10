@@ -43,7 +43,7 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 
 ## :package: Installation
 
-- Set your OpenAI API Key as an environment variable in your shell (default `OPENAI_API_KEY`)
+- Set your OpenAI API Key as an environment variable in your shell (default name: `OPENAI_API_KEY`)
 - Install the plugin with your package manager of choice:
 
 ```lua
@@ -103,10 +103,32 @@ The plugin comes with the following defaults:
     height = 0.7,
     width = 0.8,
   },
-  log_level = "TRACE", -- One of: TRACE, DEBUG, ERROR
+  log_level = "ERROR", -- One of: TRACE, DEBUG, ERROR
   send_code = true, -- Send your code to OpenAI
   use_default_actions = true, -- The actions that appear in the action palette
 }
+```
+
+These can be modified as follows:
+
+```lua
+-- Lazy.nvim
+{
+  "olimorris/codecompanion.nvim",
+  opts = {
+    send_code = false
+  }
+}
+
+-- Packer.nvim
+use({
+  "olimorris/codecompanion.nvim",
+  config = function()
+    require("codecompanion").setup({
+      send_code = false
+    })
+  end,
+})
 ```
 
 > **Note**: The `send_code` option can prevent any visual selections from being sent to OpenAI for processing as part of any `advisor` or `author` actions
@@ -127,7 +149,7 @@ vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap
 vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionChat<cr>", { noremap = true, silent = true })
 ```
 
-> **Note**: For some actions, visual mode allows your selection to be sent to the chat buffer or OpenAI themselves
+> **Note**: For some actions, visual mode allows your selection to be sent directly to the chat buffer or OpenAI themselves in the case of `author` actions
 
 ### The Action Palette
 
@@ -173,26 +195,28 @@ The plugin comes with a number of in-built actions which aim to improve your Neo
 - `author` - A strategy for allowing OpenAI responses to be written directly into a Neovim buffer
 - `advisor` - A strategy for outputting OpenAI responses into a split or a popup, alongside a Neovim buffer
 
-#### `Chat` and `Chat as`
+#### Chat and Chat as
 
-Both of these actions utilise the `chat` strategy. The `Chat as` strategy allows for persona based context to be set in the chat buffer allowing for better and more detailed responses from OpenAI.
+Both of these actions utilise the `chat` strategy. The `Chat` action opens up a fresh chat buffer. The `Chat as` action allows for persona based context to be set in the chat buffer allowing for better and more detailed responses from OpenAI.
 
-> **Note**: Both of these actions allow for visually selected code to be sent to the chat buffer.
+> **Note**: Both of these actions allow for visually selected code to be sent to the chat buffer as code blocks.
 
-#### `Code author`
+#### Code author
 
-This action utilises the `author` strategy. This action can be useful for generating code or even refactoring a visual selection.
+This action utilises the `author` strategy. This action can be useful for generating code or even refactoring a visual selection based on a prompt by the user.
 
-#### `Code advisor`
+#### Code advisor
 
-As the name suggests, this action provides advice on a visual selection of code and utilises the `advisor` strategy. It uses the `display` configuration option to output the response from OpenAI into a split or a popup. Inevitably, the response back from OpenAI may lead to more questions. Pressing `c` in the advisor buffer will take the content and open it into a chat buffer. Pressing `q` will close the buffer.
+As the name suggests, this action provides advice on a visual selection of code and utilises the `advisor` strategy. It uses the `display` configuration option to output the response from OpenAI into a split or a popup. Inevitably, the response back from OpenAI may lead to more questions. Pressing `c` in the advisor buffer will take the conversation to a chat buffer. Pressing `q` will close the buffer.
 
-#### `LSP assistant`
+For some users, the sending of code to OpenAI may be prohibited in certain codebases. In those instances, you can set `send_code = false` in your config.
 
-Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice (utilising the `advisor` strategy) on any LSP diagnostics which occur across visually selected lines and how they can be fixed.
+#### LSP assistant
+
+Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice (utilising the `advisor` strategy) on any LSP diagnostics which occur across visually selected lines and how they can be fixed. Again, the `send_code = false` value can be set in your config to only send diagnostic errors to OpenAI.
 
 ## :clap: Thanks
 
-- [Steven Arcangeli](https://github.com/stevearc) for his genius creation of the chat buffer and feedback
+- [Steven Arcangeli](https://github.com/stevearc) for his genius creation of the chat buffer and his feedback
 - [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) for the LSP assistant action
 - [ChatGPT.nvim](https://github.com/jackMort/ChatGPT.nvim) for the calculation of tokens
