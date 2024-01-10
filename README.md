@@ -30,8 +30,8 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 ## :camera_flash: Screenshots
 
 <div align="center">
-  <p><strong>Chat buffer</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/3ae659f4-9758-47d1-8964-531e9f2901cc" alt="chat buffer" /></p>
-  <p><strong>Code author</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5bcd3bb4-b763-4812-a686-c2ef5215dc99" alt="code author" /></p>
+  <p><strong>Chat buffer</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/fd1f11e7-bef4-4bbc-8c7f-0c306e5c72b8" alt="chat buffer" /></p>
+  <p><strong>Code author</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/e21e39df-bbdb-4f28-9732-fbdcaa498c26" alt="code author" /></p>
   <p><strong>Code advisor</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/bc6181e0-85a8-4009-9cfc-f85898780bd5" alt="code advisor" /><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/cbfafcc0-87f9-43e5-8e27-f8eaaf88637d" alt="code advisor" /></p>
 </div>
 
@@ -116,7 +116,7 @@ The plugin has a number of commands:
 
 - `CodeCompanionChat` - To open up a new chat buffer
 - `CodeCompanionActions` - To open up the action selector window
-- `CodeCompanionSaveConversationAs` - Saves the chat buffer as a conversation
+- `CodeCompanionSaveConversationAs` - Saves a chat buffer as a conversation
 
 They can be assigned to keymaps with:
 
@@ -166,7 +166,29 @@ Chat Buffers are not automatically saved into sessions owing to them being an `a
 
 ### In-Built Actions
 
-To be updated
+The plugin comes with a number of in-built actions which aim to improve your Neovim workflow. Actions make use of strategies which are abstractions built around Neovim and OpenAI functionality. Before we dive in to the actions, it's worth explaining what each of the strategies do:
+
+- `chat` - A strategy for opening up a chat buffer allowing the user to converse directly with OpenAI
+- `author` - A strategy for allowing OpenAI responses to be written directly into a Neovim buffer
+- `advisor` - A strategy for outputting OpenAI responses into a split or a popup, alongside a Neovim buffer
+
+#### `Chat` and `Chat as`
+
+Both of these actions utilise the `chat` strategy. The `Chat as` strategy allows for persona based context to be set in the chat buffer allowing for better and more detailed responses from OpenAI.
+
+> **Note**: Both of these actions allow for visually selected code to be sent to the chat buffer.
+
+#### `Code author`
+
+This action utilises the `author` strategy. This action can be useful for generating code or even refactoring a visual selection.
+
+#### `Code advisor`
+
+As the name suggests, this action provides advice on a visual selection of code and utilises the `advisor` strategy. It uses the `display` configuration option to output the response from OpenAI into a split or a popup. Inevitably, the response back from OpenAI may lead to more questions. Pressing `c` in the advisor buffer will take the content and open it into a chat buffer. Pressing `q` will close the buffer.
+
+#### `LSP assistant`
+
+Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice (utilising the `advisor` strategy) on any LSP diagnostics which occur across visually selected lines and how they can be fixed.
 
 ## :clap: Thanks
 
