@@ -189,7 +189,7 @@ Both of these actions utilise the `chat` strategy. The `Chat` action opens up a 
 
 #### Code author
 
-This action utilises the `author` strategy. This action can be useful for generating code or even refactoring a visual selection based on a prompt by the user.
+This action utilises the `author` strategy. This action can be useful for generating code or even refactoring a visual selection based on a prompt by the user. The action is designed to write code for the buffer filetype that it is initated in, or, if run from a terminal prompt, to write commands.
 
 #### Code advisor
 
