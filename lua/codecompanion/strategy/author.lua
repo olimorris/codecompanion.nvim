@@ -92,6 +92,11 @@ function Author:execute(user_input)
     vim.bo[self.context.bufnr].modifiable = true
     local output = vim.split(response, "\n")
 
+    if self.context.buftype == "terminal" then
+      vim.api.nvim_put(output, "", false, true)
+      return
+    end
+
     if self.context.is_visual and (self.opts.modes and utils.contains(self.opts.modes, "v")) then
       vim.api.nvim_buf_set_text(
         self.context.bufnr,
@@ -115,16 +120,20 @@ end
 
 function Author:start()
   if self.opts.user_input then
-    vim.ui.input(
-      { prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " Prompt" },
-      function(input)
-        if not input then
-          return
-        end
+    local title
+    if self.context.buftype == "terminal" then
+      title = "Terminal"
+    else
+      title = string.gsub(self.context.filetype, "^%l", string.upper)
+    end
 
-        return self:execute(input)
+    vim.ui.input({ prompt = title .. " Prompt" }, function(input)
+      if not input then
+        return
       end
-    )
+
+      return self:execute(input)
+    end)
   else
     return self:execute()
   end

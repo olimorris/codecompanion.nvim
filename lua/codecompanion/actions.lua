@@ -225,6 +225,11 @@ M.static.actions = {
       {
         role = "system",
         content = function(context)
+          if context.buftype == "terminal" then
+            return "I want you to act as an expert in writing terminal commands that will work for my current shell "
+              .. os.getenv("SHELL")
+              .. ". I will ask you specific questions and I want you to return the raw command only (no codeblocks and explanations). If you can't respond with a command, please explain why but ensure the first word in your response is '[Error]' so I can parse it"
+          end
           return "I want you to act as a senior "
             .. context.filetype
             .. ' developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can\'t respond with code, please explain why but ensure that the first word in your response is "[Error]" so I can parse it.'
