@@ -293,7 +293,7 @@ function Chat.new(args)
 
   if args.show_buffer then
     vim.api.nvim_set_current_buf(bufnr)
-    util.buf_scroll_to_end(bufnr)
+    util.scroll_to_end(bufnr)
   end
 
   if self.conversation then
@@ -317,9 +317,22 @@ function Chat:submit()
       _G.codecompanion_jobs[self.bufnr].status = "stopping"
     end,
   })
+
   local function finalize()
     vim.bo[self.bufnr].modified = false
     vim.bo[self.bufnr].modifiable = true
+  end
+
+  local function render_buffer()
+    local line_count = vim.api.nvim_buf_line_count(self.bufnr)
+    local current_line = vim.api.nvim_win_get_cursor(0)[1]
+    local cursor_moved = current_line == line_count
+
+    render_messages(self.bufnr, settings, messages)
+
+    if cursor_moved and util.buf_is_active(self.bufnr) then
+      util.scroll_to_end()
+    end
   end
 
   local new_message = messages[#messages]
@@ -350,15 +363,13 @@ function Chat:submit()
           new_message.content = new_message.content .. delta.content
         end
 
-        render_messages(self.bufnr, settings, messages)
-        util.buf_scroll_to_end(self.bufnr)
+        render_buffer()
       end
 
       if done then
         vim.api.nvim_buf_del_keymap(self.bufnr, "n", "q")
         table.insert(messages, { role = "user", content = "" })
-        render_messages(self.bufnr, settings, messages)
-        util.buf_scroll_to_end(self.bufnr)
+        render_buffer()
         finalize()
       end
     end

@@ -13,6 +13,11 @@ M.contains = function(table, value)
   return false
 end
 
+---@param bufnr number
+M.buf_is_active = function(bufnr)
+  return vim.api.nvim_get_current_buf() == bufnr
+end
+
 ---@param winid? number
 M.scroll_to_end = function(winid)
   winid = winid or 0
@@ -20,13 +25,6 @@ M.scroll_to_end = function(winid)
   local lnum = vim.api.nvim_buf_line_count(bufnr)
   local last_line = vim.api.nvim_buf_get_lines(bufnr, -2, -1, true)[1]
   vim.api.nvim_win_set_cursor(winid, { lnum, vim.api.nvim_strwidth(last_line) })
-end
-
----@param bufnr nil|integer
-M.buf_scroll_to_end = function(bufnr)
-  for _, winid in ipairs(M.buf_list_wins(bufnr or 0)) do
-    M.scroll_to_end(winid)
-  end
 end
 
 ---@param bufnr nil|integer
