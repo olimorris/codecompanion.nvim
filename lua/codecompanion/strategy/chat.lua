@@ -287,6 +287,10 @@ function Chat.new(args)
   render_messages(bufnr, settings, args.messages or {})
   vim.api.nvim_buf_set_option(bufnr, "wrap", true)
 
+  if config.options.show_token_count then
+    require("codecompanion.utils.tokens").token_count(bufnr)
+  end
+
   if args.show_buffer then
     vim.api.nvim_set_current_buf(bufnr)
     util.buf_scroll_to_end(bufnr)

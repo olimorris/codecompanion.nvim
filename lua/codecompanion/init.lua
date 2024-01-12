@@ -126,6 +126,8 @@ end
 
 ---@param opts nil|table
 M.setup = function(opts)
+  vim.api.nvim_set_hl(0, "CodeCompanionTokens", { link = "Comment", default = true })
+
   config.setup(opts)
 end
 

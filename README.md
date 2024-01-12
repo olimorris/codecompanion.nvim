@@ -110,6 +110,7 @@ The plugin comes with the following defaults:
   },
   log_level = "ERROR", -- One of: TRACE, DEBUG, ERROR
   send_code = true, -- Send your code to OpenAI
+  show_token_count = true, -- Show the token count for the current chat
   use_default_actions = true, -- The actions that appear in the action palette
 }
 ```

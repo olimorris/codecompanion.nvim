@@ -31,6 +31,7 @@ local defaults = {
   },
   log_level = "TRACE",
   send_code = true,
+  show_token_count = true,
   use_default_actions = true,
 }
 
