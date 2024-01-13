@@ -293,7 +293,7 @@ function Chat.new(args)
 
   if args.show_buffer then
     vim.api.nvim_set_current_buf(bufnr)
-    util.scroll_to_end(bufnr)
+    util.buf_scroll_to_end(bufnr)
   end
 
   if self.conversation then
@@ -331,7 +331,7 @@ function Chat:submit()
     render_messages(self.bufnr, settings, messages)
 
     if cursor_moved and util.buf_is_active(self.bufnr) then
-      util.scroll_to_end()
+      util.buf_scroll_to_end()
     end
   end
 

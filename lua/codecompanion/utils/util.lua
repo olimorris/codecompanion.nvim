@@ -28,6 +28,13 @@ M.scroll_to_end = function(winid)
 end
 
 ---@param bufnr nil|integer
+M.buf_scroll_to_end = function(bufnr)
+  for _, winid in ipairs(M.buf_list_wins(bufnr or 0)) do
+    M.scroll_to_end(winid)
+  end
+end
+
+---@param bufnr nil|integer
 ---@return integer[]
 M.buf_list_wins = function(bufnr)
   local ret = {}
