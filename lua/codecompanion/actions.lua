@@ -276,11 +276,8 @@ M.static.actions = {
       {
         role = "user",
         content = function(context)
-          local diagnostics = require("codecompanion.helpers.lsp").get_diagnostics(
-            context.start_line,
-            context.end_line,
-            context.bufnr
-          )
+          local diagnostics =
+            require("codecompanion.helpers.lsp").get_diagnostics(context.start_line, context.end_line, context.bufnr)
 
           local concatenated_diagnostics = ""
           for i, diagnostic in ipairs(diagnostics) do

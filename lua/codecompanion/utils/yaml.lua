@@ -11,14 +11,7 @@ M.encode = function(data)
   elseif dt == "boolean" then
     return string.format("%s", data)
   elseif dt == "string" then
-    if
-      data == "yes"
-      or data == "no"
-      or data == "true"
-      or data == "false"
-      or data == "on"
-      or data == "off"
-    then
+    if data == "yes" or data == "no" or data == "true" or data == "false" or data == "on" or data == "off" then
       return string.format('"%s"', data)
     else
       return data
@@ -50,13 +43,7 @@ end
 
 local function decode(source, node)
   local nt = node:type()
-  if
-    nt == "stream"
-    or nt == "document"
-    or nt == "block_node"
-    or nt == "flow_node"
-    or nt == "plain_scalar"
-  then
+  if nt == "stream" or nt == "document" or nt == "block_node" or nt == "flow_node" or nt == "plain_scalar" then
     if node:child_count() > 1 then
       error(string.format("Node %s has more than 1 child", nt))
     end

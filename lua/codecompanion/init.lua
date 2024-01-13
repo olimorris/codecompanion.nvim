@@ -11,10 +11,7 @@ local function get_client()
     local secret_key = os.getenv(config.options.api_key)
     if not secret_key then
       vim.notify(
-        string.format(
-          "[CodeCompanion.nvim]\nCould not find env variable: %s",
-          config.options.api_key
-        ),
+        string.format("[CodeCompanion.nvim]\nCould not find env variable: %s", config.options.api_key),
         vim.log.levels.ERROR
       )
       return nil
@@ -117,11 +114,7 @@ M.actions = function()
     )
   end
 
-  picker(
-    items,
-    { prompt = "Select an action", columns = { "name", "strategy", "description" } },
-    selection
-  )
+  picker(items, { prompt = "Select an action", columns = { "name", "strategy", "description" } }, selection)
 end
 
 ---@param opts nil|table

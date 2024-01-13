@@ -119,8 +119,7 @@ function M.get_context(bufnr)
   local mode = vim.fn.mode()
   local cursor_pos = vim.api.nvim_win_get_cursor(vim.api.nvim_get_current_win())
 
-  local lines, start_line, start_col, end_line, end_col =
-    {}, cursor_pos[1], cursor_pos[2], cursor_pos[1], cursor_pos[2]
+  local lines, start_line, start_col, end_line, end_col = {}, cursor_pos[1], cursor_pos[2], cursor_pos[1], cursor_pos[2]
 
   if is_visual_mode(mode) then
     lines, start_line, start_col, end_line, end_col = M.get_visual_selection(bufnr)

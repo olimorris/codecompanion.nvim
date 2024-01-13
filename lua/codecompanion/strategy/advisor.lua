@@ -95,28 +95,20 @@ function Advisor:execute(user_input)
       })
     else
       local response = data.choices[1].message.content
-      return require("codecompanion.utils.ui").display(
-        config.options.display,
-        response,
-        messages,
-        self.client
-      )
+      return require("codecompanion.utils.ui").display(config.options.display, response, messages, self.client)
     end
   end)
 end
 
 function Advisor:start()
   if self.opts.user_input then
-    vim.ui.input(
-      { prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " Prompt" },
-      function(input)
-        if not input then
-          return
-        end
-
-        return self:execute(input)
+    vim.ui.input({ prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " Prompt" }, function(input)
+      if not input then
+        return
       end
-    )
+
+      return self:execute(input)
+    end)
   else
     return self:execute()
   end

@@ -57,8 +57,7 @@ local function parse_messages_buffer(bufnr)
         table.insert(ret, message)
         message = { role = "", content = "" }
       end
-      message.role =
-        vim.trim(vim.treesitter.get_node_text(match[query.captures.role], bufnr):lower())
+      message.role = vim.trim(vim.treesitter.get_node_text(match[query.captures.role], bufnr):lower())
     elseif match[query.captures.text] then
       local text = vim.trim(vim.treesitter.get_node_text(match[query.captures.text], bufnr))
       if message.content then

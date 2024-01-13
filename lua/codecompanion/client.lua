@@ -79,10 +79,7 @@ function Client:call(url, payload, cb)
         cb(nil, data)
       end
 
-      vim.api.nvim_exec_autocmds(
-        "User",
-        { pattern = "CodeCompanion", data = { status = "finished" } }
-      )
+      vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanion", data = { status = "finished" } })
     end),
   })
 
@@ -193,10 +190,7 @@ function Client:stream_call(url, payload, bufnr, cb)
       end
     end,
     on_exit = function(_, code)
-      vim.api.nvim_exec_autocmds(
-        "User",
-        { pattern = "CodeCompanion", data = { status = "finished" } }
-      )
+      vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanion", data = { status = "finished" } })
 
       if not found_any_stream then
         local err, data = parse_response(code, stdout)
