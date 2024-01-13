@@ -175,7 +175,7 @@ Chat Buffers are not automatically saved into sessions owing to them being an `a
 
 ### In-Built Actions
 
-The plugin comes with a number of in-built actions which aim to improve your Neovim workflow. Actions make use of strategies which are abstractions built around Neovim and OpenAI functionality. Before we dive in to the actions, it's worth explaining what each of the strategies do:
+The plugin comes with a number of [in-built actions](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) which aim to improve your Neovim workflow. Actions make use of strategies which are abstractions built around Neovim and OpenAI functionality. Before we dive in to the actions, it's worth explaining what each of the strategies do:
 
 - `chat` - A strategy for opening up a chat buffer allowing the user to converse directly with OpenAI
 - `author` - A strategy for allowing OpenAI responses to be written directly into a Neovim buffer
@@ -195,11 +195,11 @@ This action utilises the `author` strategy. This action can be useful for genera
 
 As the name suggests, this action provides advice on a visual selection of code and utilises the `advisor` strategy. It uses the `display` configuration option to output the response from OpenAI into a split or a popup. Inevitably, the response back from OpenAI may lead to more questions. Pressing `c` in the advisor buffer will take the conversation to a chat buffer. Pressing `q` will close the buffer.
 
-For some users, the sending of code to OpenAI may be prohibited in certain codebases. In those instances, you can set `send_code = false` in your config.
+> **Note**: For some users, the sending of code to OpenAI may not be an option. In those instances, you can set `send_code = false` in your config.
 
 #### LSP assistant
 
-Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice (utilising the `advisor` strategy) on any LSP diagnostics which occur across visually selected lines and how they can be fixed. Again, the `send_code = false` value can be set in your config to only send diagnostic errors to OpenAI.
+Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice (utilising the `advisor` strategy) on any LSP diagnostics which occur across visually selected lines and how they can be fixed. Again, the `send_code = false` value can be set in your config to only send diagnostic messages to OpenAI.
 
 ## :rainbow: Helpers
 
@@ -219,7 +219,34 @@ vim.api.nvim_create_autocmd({ "User" }, {
 })
 ```
 
-> **Note**: The author uses these to display an icon in his statusline
+> **Note**: The author uses these to display an icon in his statusline.
+
+### Heirline.nvim
+
+If you use the fantastic [Heirline.nvim](https://github.com/rebelot/heirline.nvim) plugin, consider the following snippet to display an icon in the statusline whilst CodeCompanion is speaking to the LLM:
+
+```lua
+local OpenAI = {
+  static = {
+    processing = false,
+  },
+  update = {
+    "User",
+    pattern = "CodeCompanion",
+    callback = function(self, args)
+      self.processing = (args.data.status == "started")
+      vim.cmd("redrawstatus")
+    end,
+  },
+  {
+    condition = function(self)
+      return self.processing
+    end,
+    provider = " ",
+    hl = { fg = "yellow" },
+  },
+}
+```
 
 ## :clap: Thanks
 
