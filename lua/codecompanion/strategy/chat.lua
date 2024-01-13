@@ -113,6 +113,12 @@ local function render_messages(bufnr, settings, messages)
   vim.bo[bufnr].modifiable = modifiable
 end
 
+local display_tokens = function(bufnr)
+  if config.options.show_token_count then
+    require("codecompanion.utils.tokens").display_tokens(bufnr)
+  end
+end
+
 ---@param bufnr number
 ---@param conversation CodeCompanion.Conversation
 local function create_conversation_autocmds(bufnr, conversation)
@@ -285,11 +291,8 @@ function Chat.new(args)
 
   chatmap[bufnr] = self
   render_messages(bufnr, settings, args.messages or {})
+  display_tokens(bufnr)
   vim.api.nvim_buf_set_option(bufnr, "wrap", true)
-
-  if config.options.show_token_count then
-    require("codecompanion.utils.tokens").token_count(bufnr)
-  end
 
   if args.show_buffer then
     vim.api.nvim_set_current_buf(bufnr)
@@ -370,6 +373,7 @@ function Chat:submit()
         vim.api.nvim_buf_del_keymap(self.bufnr, "n", "q")
         table.insert(messages, { role = "user", content = "" })
         render_buffer()
+        display_tokens(self.bufnr)
         finalize()
       end
     end

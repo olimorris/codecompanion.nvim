@@ -70,7 +70,7 @@ local function get_messages(bufnr)
 end
 
 ---@param bufnr nil|number
-local function display_tokens(bufnr)
+function M.display_tokens(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
 
   local ns_id = vim.api.nvim_create_namespace("CodeCompanion")
@@ -103,23 +103,6 @@ local function display_tokens(bufnr)
       virt_text_pos = "eol", -- 'overlay' or 'right_align' or 'eol'
     })
   end
-end
-
----@param bufnr nil|number
-function M.token_count(bufnr)
-  local group = vim.api.nvim_create_augroup("CodeCompanionTokens", {})
-
-  vim.api.nvim_create_autocmd({ "User" }, {
-    group = group,
-    pattern = "CodeCompanion",
-    callback = function(request)
-      if request.buf == bufnr and request.data.status == "finished" then
-        display_tokens(bufnr)
-      end
-    end,
-  })
-
-  return display_tokens(bufnr)
 end
 
 return M
