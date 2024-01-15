@@ -27,6 +27,8 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 - :floppy_disk: Save and restore your chats
 - :muscle: Async execution for improved performance
 
+<!-- panvimdoc-ignore-start -->
+
 ## :camera_flash: Screenshots
 
 <div align="center">
@@ -35,11 +37,13 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
   <p><strong>Code advisor</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/bc6181e0-85a8-4009-9cfc-f85898780bd5" alt="code advisor" /><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/cbfafcc0-87f9-43e5-8e27-f8eaaf88637d" alt="code advisor" /></p>
 </div>
 
+<!-- panvimdoc-ignore-end -->
+
 ## :zap: Requirements
 
 - An API key from OpenAI (get one [here](https://platform.openai.com/api-keys))
 - The `curl` library installed
-- Neovim 0.9.0 or greater
+- Neovim 0.9.2 or greater
 
 ## :package: Installation
 
@@ -51,6 +55,7 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
+    "nvim-treesitter/nvim-treesitter",
     {
       "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
       opts = {},
@@ -67,6 +72,7 @@ use({
     require("codecompanion").setup()
   end,
   requires = {
+    "nvim-treesitter/nvim-treesitter",
     "stevearc/dressing.nvim"
   }
 })
@@ -135,7 +141,7 @@ vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap
 vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionChat<cr>", { noremap = true, silent = true })
 ```
 
-> **Note**: For some actions, visual mode allows your selection to be sent directly to the chat buffer or OpenAI themselves in the case of `author` actions
+> **Note**: For some actions, visual mode allows your selection to be sent directly to the chat buffer or OpenAI themselves (in the case of `author` actions).
 
 ### The Action Palette
 
@@ -171,7 +177,9 @@ The Chat Buffer is where you can converse with OpenAI, directly from Neovim. It 
 
 At the very top of the Chat Buffer are the parameters which can be changed to affect the API's response back to you. You can find more detail about them by moving the cursor over them or referring to the [Chat Completions reference guide](https://platform.openai.com/docs/api-reference/chat). The parameters can be tweaked and modified throughout the conversation.
 
-Chat Buffers are not automatically saved into sessions owing to them being an `acwrite` buftype (`:h buftype`). However the plugin allows for this via the notion of Conversations. Simply run `:CodeCompanionSaveConversationAs` in the buffer you wish to save. Conversations can then be restored via the Action Palette and the _Load conversations_ actions. When a conversation is saved or loaded it will automatically save to disk.
+Chat Buffers are not automatically saved owing to them being an `acwrite` buftype (see `:h buftype`). However, the plugin allows for this via the notion of Conversations. Simply run `:CodeCompanionSaveConversationAs` in the chat buffer you wish to save. Conversations can then be restored via the Action Palette and the _Load conversations_ actions.
+
+> **Note**: When a conversation is saved or loaded it will automatically save any changes.
 
 ### In-Built Actions
 
@@ -248,8 +256,12 @@ local OpenAI = {
 }
 ```
 
+<!-- panvimdoc-ignore-start -->
+
 ## :clap: Thanks
 
 - [Steven Arcangeli](https://github.com/stevearc) for his genius creation of the chat buffer and his feedback
 - [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) for the LSP assistant action
 - [ChatGPT.nvim](https://github.com/jackMort/ChatGPT.nvim) for the calculation of tokens
+
+<!-- panvimdoc-ignore-end -->
