@@ -27,15 +27,21 @@ end
 ---@return nil|any
 local function parse_response(code, stdout)
   if code ~= 0 then
+    log:error("Error: %s", stdout)
     return string.format("Error: %s", stdout)
   end
+
   local ok, data = pcall(vim.json.decode, stdout, { luanil = { object = true } })
   if not ok then
+    log:error("Error malformed json: %s", data)
     return string.format("Error malformed json: %s", data)
   end
+
   if data.error then
+    log:error("API Error: %s", data.error.message)
     return string.format("API Error: %s", data.error.message)
   end
+
   return nil, data
 end
 
@@ -174,6 +180,7 @@ function Client:stream_call(url, payload, bufnr, cb)
           local ok, data = pcall(vim.json.decode, chunk, { luanil = { object = true } })
           if not ok then
             done = true
+            log:error("Error malformed json: %s", data)
             return cb(string.format("Error malformed json: %s", data))
           end
 
@@ -202,6 +209,7 @@ function Client:stream_call(url, payload, bufnr, cb)
       end
     end,
   })
+
   if jid == 0 then
     cb("Passed invalid arguments to curl")
   elseif jid == -1 then
@@ -213,6 +221,7 @@ function Client:stream_call(url, payload, bufnr, cb)
       strategy = "chat",
     }
   end
+
   return jid
 end
 
