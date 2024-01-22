@@ -12,7 +12,7 @@ end
 ---@param bufnr number
 ---@param name string
 local function rename_buffer(bufnr, name)
-  vim.api.nvim_buf_set_name(bufnr, "[OpenAI Chat] " .. name .. ".md")
+  vim.api.nvim_buf_set_name(bufnr, "[CodeCompanion Chat] " .. name .. ".md")
 end
 
 ---@class CodeCompanion.Conversation

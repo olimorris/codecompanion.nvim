@@ -2,6 +2,21 @@ local log = require("codecompanion.utils.log")
 
 local M = {}
 
+---Source: https://github.com/stevearc/oil.nvim/blob/dd432e76d01eda08b8658415588d011009478469/lua/oil/layout.lua#L22C8-L22C8
+---@return integer
+M.get_editor_height = function()
+  local editor_height = vim.o.lines - vim.o.cmdheight
+  -- Subtract 1 if tabline is visible
+  if vim.o.showtabline == 2 or (vim.o.showtabline == 1 and #vim.api.nvim_list_tabpages() > 1) then
+    editor_height = editor_height - 1
+  end
+  -- Subtract 1 if statusline is visible
+  if vim.o.laststatus >= 2 or (vim.o.laststatus == 1 and #vim.api.nvim_tabpage_list_wins(0) > 1) then
+    editor_height = editor_height - 1
+  end
+  return editor_height
+end
+
 local function get_max_lengths(items, format)
   local max_lengths = {}
   for _, item in ipairs(items) do
@@ -53,6 +68,12 @@ function M.selector(items, opts)
   vim.ui.select(items, {
     prompt = opts.prompt,
     kind = "codecompanion.nvim",
+    telescope = require("telescope.themes").get_cursor({
+      layout_config = {
+        width = opts.width,
+        height = opts.height,
+      },
+    }),
     format_item = function(item)
       local formatted = opts.format(item)
       return pad_item(formatted, max_lengths)

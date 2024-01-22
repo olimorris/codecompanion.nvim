@@ -43,8 +43,6 @@ M.chat = function()
 
   vim.api.nvim_win_set_buf(0, chat.bufnr)
   utils.scroll_to_end(0)
-
-  vim.bo[chat.bufnr].filetype = "markdown"
 end
 
 local _cached_actions = {}
@@ -64,6 +62,8 @@ M.actions = function()
 
     require("codecompanion.utils.ui").selector(items, {
       prompt = opts.prompt,
+      width = config.options.display.action_palette.width,
+      height = config.options.display.action_palette.height,
       format = function(item)
         local formatted_item = {}
         for _, column in ipairs(opts.columns) do
@@ -120,6 +120,7 @@ end
 ---@param opts nil|table
 M.setup = function(opts)
   vim.api.nvim_set_hl(0, "CodeCompanionTokens", { link = "Comment", default = true })
+  vim.api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
 
   config.setup(opts)
 end

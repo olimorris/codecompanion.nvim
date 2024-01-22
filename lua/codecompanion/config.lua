@@ -24,10 +24,43 @@ local defaults = {
     save_dir = vim.fn.stdpath("data") .. "/codecompanion/conversations",
   },
   display = {
+    action_palette = {
+      width = 90,
+      height = 10,
+    },
+    chat = {
+      type = "float", -- Can be "buffer" or "float"
+      show_settings = false,
+      float = {
+        border = "single",
+        buflisted = false,
+        max_height = 0,
+        max_width = 0,
+        padding = 1,
+      },
+      win_options = {
+        cursorcolumn = false,
+        cursorline = false,
+        foldcolumn = "0",
+        linebreak = true,
+        list = false,
+        signcolumn = "no",
+        spell = false,
+        wrap = true,
+        -- conceallevel = 3,
+        -- concealcursor = "nvic",
+      },
+    },
+    --TODO: Refactor these:
     type = "popup",
     split = "horizontal",
     height = 0.7,
     width = 0.8,
+  },
+  keymaps = {
+    ["<C-q>"] = "actions.close",
+    ["]"] = "actions.next",
+    ["["] = "actions.previous",
   },
   log_level = "TRACE",
   send_code = true,
@@ -56,6 +89,8 @@ M.setup = function(opts)
       },
     },
   }))
+
+  vim.treesitter.language.register("markdown", "codecompanion")
 
   local diagnostic_config = {
     underline = false,

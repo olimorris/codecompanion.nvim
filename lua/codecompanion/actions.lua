@@ -93,7 +93,7 @@ M.static.actions = {
               condition = function(context)
                 return not context.is_visual
               end,
-              content = "",
+              content = "\n \n",
             },
           },
         },
@@ -121,7 +121,7 @@ M.static.actions = {
               condition = function(context)
                 return not context.is_visual
               end,
-              content = "",
+              content = "\n \n",
             },
           },
         },
@@ -149,7 +149,7 @@ M.static.actions = {
               condition = function(context)
                 return not context.is_visual
               end,
-              content = "",
+              content = "\n \n",
             },
           },
         },
@@ -177,7 +177,7 @@ M.static.actions = {
               condition = function(context)
                 return not context.is_visual
               end,
-              content = "",
+              content = "\n \n",
             },
           },
         },
@@ -205,7 +205,7 @@ M.static.actions = {
               condition = function(context)
                 return not context.is_visual
               end,
-              content = "",
+              content = "\n \n",
             },
           },
         },

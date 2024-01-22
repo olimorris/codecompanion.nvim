@@ -38,14 +38,17 @@ end
 ---@return integer[]
 M.buf_list_wins = function(bufnr)
   local ret = {}
+
   if not bufnr or bufnr == 0 then
     bufnr = vim.api.nvim_get_current_buf()
   end
+
   for _, winid in ipairs(vim.api.nvim_list_wins()) do
     if vim.api.nvim_win_is_valid(winid) and vim.api.nvim_win_get_buf(winid) == bufnr then
       table.insert(ret, winid)
     end
   end
+
   return ret
 end
 

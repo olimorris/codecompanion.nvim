@@ -21,16 +21,30 @@ local chat_query = [[
   )
 ]]
 
+local config_settings = {}
 ---@param bufnr integer
 ---@return table
 local function parse_settings(bufnr)
+  if config_settings[bufnr] then
+    return config_settings[bufnr]
+  end
+
+  if not config.options.display.chat.show_settings then
+    config_settings[bufnr] = vim.deepcopy(config.options.ai_settings)
+    config_settings[bufnr].model = config_settings[bufnr].models.chat
+    config_settings[bufnr].models = nil
+
+    log:trace("Using the settings from the user's config: %s", config_settings[bufnr])
+    return config_settings[bufnr]
+  end
+
+  local settings = {}
   local parser = vim.treesitter.get_parser(bufnr, "yaml")
 
   local query = vim.treesitter.query.parse("yaml", yaml_query)
   local root = parser:parse()[1]:root()
   pcall(vim.tbl_add_reverse_lookup, query.captures)
 
-  local settings = {}
   for _, match in query:iter_matches(root, bufnr) do
     local key = vim.treesitter.get_node_text(match[query.captures.key], bufnr)
     local value = vim.treesitter.get_node_text(match[query.captures.value], bufnr)
@@ -83,15 +97,18 @@ end
 ---@param settings CodeCompanion.ChatSettings
 ---@param messages CodeCompanion.ChatMessage[]
 local function render_messages(bufnr, settings, messages)
-  -- Put the settings at the top of the buffer
-  local lines = { "---" }
-  local keys = schema.get_ordered_keys(schema.static.chat_settings)
-  for _, key in ipairs(keys) do
-    table.insert(lines, string.format("%s: %s", key, yaml.encode(settings[key])))
-  end
+  local lines = {}
+  if config.options.display.chat.show_settings then
+    -- Put the settings at the top of the buffer
+    lines = { "---" }
+    local keys = schema.get_ordered_keys(schema.static.chat_settings)
+    for _, key in ipairs(keys) do
+      table.insert(lines, string.format("%s: %s", key, yaml.encode(settings[key])))
+    end
 
-  table.insert(lines, "---")
-  table.insert(lines, "")
+    table.insert(lines, "---")
+    table.insert(lines, "")
+  end
 
   -- Put the messages in the buffer
   for i, message in ipairs(messages) do
@@ -208,9 +225,13 @@ local Chat = {}
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)
   local bufnr = vim.api.nvim_create_buf(true, false)
-  vim.api.nvim_buf_set_name(bufnr, string.format("[OpenAI Chat] %d", math.random(10000000)))
+  local winid = vim.api.nvim_get_current_win()
 
-  vim.bo[bufnr].filetype = "markdown"
+  vim.api.nvim_set_option_value("wrap", true, { scope = "local", win = winid })
+  vim.api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", math.random(10000000)))
+
+  vim.bo[bufnr].filetype = "codecompanion"
+  vim.bo[bufnr].syntax = "markdown"
   vim.bo[bufnr].buftype = "acwrite"
   vim.b[bufnr].codecompanion_type = "chat"
 
@@ -225,33 +246,36 @@ function Chat.new(args)
       end
     end,
   })
-  vim.api.nvim_create_autocmd("InsertLeave", {
-    buffer = bufnr,
-    callback = function()
-      local settings = parse_settings(bufnr)
-      local errors = schema.validate(schema.static.chat_settings, settings)
-      local node = settings.__ts_node
-      local items = {}
-      if errors and node then
-        for child in node:iter_children() do
-          assert(child:type() == "block_mapping_pair")
-          local key = vim.treesitter.get_node_text(child:named_child(0), bufnr)
-          if errors[key] then
-            local lnum, col, end_lnum, end_col = child:range()
-            table.insert(items, {
-              lnum = lnum,
-              col = col,
-              end_lnum = end_lnum,
-              end_col = end_col,
-              severity = vim.diagnostic.severity.ERROR,
-              message = errors[key],
-            })
+
+  if config.options.display.chat.show_settings then
+    vim.api.nvim_create_autocmd("InsertLeave", {
+      buffer = bufnr,
+      callback = function()
+        local settings = parse_settings(bufnr)
+        local errors = schema.validate(schema.static.chat_settings, settings)
+        local node = settings.__ts_node
+        local items = {}
+        if errors and node then
+          for child in node:iter_children() do
+            assert(child:type() == "block_mapping_pair")
+            local key = vim.treesitter.get_node_text(child:named_child(0), bufnr)
+            if errors[key] then
+              local lnum, col, end_lnum, end_col = child:range()
+              table.insert(items, {
+                lnum = lnum,
+                col = col,
+                end_lnum = end_lnum,
+                end_col = end_col,
+                severity = vim.diagnostic.severity.ERROR,
+                message = errors[key],
+              })
+            end
           end
         end
-      end
-      vim.diagnostic.set(config.ERROR_NS, bufnr, items)
-    end,
-  })
+        vim.diagnostic.set(config.ERROR_NS, bufnr, items)
+      end,
+    })
+  end
 
   watch_cursor()
 
@@ -261,6 +285,12 @@ function Chat.new(args)
       if params.buf ~= bufnr then
         return
       end
+
+      local ns_id = vim.api.nvim_create_namespace("CodeCompanionChatVirtualText")
+      vim.api.nvim_buf_set_extmark(bufnr, ns_id, vim.api.nvim_buf_line_count(bufnr) - 1, 0, {
+        virt_text = { { "Save the buffer to send a message to OpenAI...", "CodeCompanionTokens" } },
+        virt_text_pos = "eol",
+      })
 
       local has_cmp, cmp = pcall(require, "cmp")
       if has_cmp then
@@ -279,6 +309,17 @@ function Chat.new(args)
     end,
   })
 
+  vim.api.nvim_create_autocmd("InsertEnter", {
+    callback = function(params)
+      if params.buf ~= bufnr then
+        return
+      end
+
+      local ns_id = vim.api.nvim_create_namespace("CodeCompanionChatVirtualText")
+      vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+    end,
+  })
+
   local settings = schema.get_default(schema.static.chat_settings, args.settings)
 
   local self = setmetatable({
@@ -291,9 +332,8 @@ function Chat.new(args)
   chatmap[bufnr] = self
   render_messages(bufnr, settings, args.messages or {})
   display_tokens(bufnr)
-  vim.api.nvim_buf_set_option(bufnr, "wrap", true)
 
-  if args.show_buffer then
+  if config.options.display.chat.type == "buffer" and args.show_buffer then
     vim.api.nvim_set_current_buf(bufnr)
     util.buf_scroll_to_end(bufnr)
   end
@@ -301,14 +341,68 @@ function Chat.new(args)
   if self.conversation then
     create_conversation_autocmds(bufnr, self.conversation)
   end
-
   create_conversation_commands(bufnr)
+
+  if config.options.display.chat.type == "float" then
+    self:open_float(bufnr, config.options.display.chat.float)
+  end
 
   return self
 end
 
+---@param bufnr number
+function Chat:open_float(bufnr, opts)
+  local ui = require("codecompanion.utils.ui")
+  local keys = require("codecompanion.utils.keymaps")
+
+  local total_width = vim.o.columns
+  local total_height = ui.get_editor_height()
+  local width = total_width - 2 * opts.padding
+  if opts.border ~= "none" then
+    width = width - 2 -- The border consumes 1 col on each side
+  end
+  if opts.max_width > 0 then
+    width = math.min(width, opts.max_width)
+  end
+
+  local height = total_height - 2 * opts.padding
+  if opts.max_height > 0 then
+    height = math.min(height, opts.max_height)
+  end
+
+  local row = math.floor((total_height - height) / 2)
+  local col = math.floor((total_width - width) / 2) - 1 -- adjust for border width
+
+  local winid = vim.api.nvim_open_win(bufnr, true, {
+    relative = "editor",
+    width = width,
+    height = height,
+    row = row,
+    col = col,
+    border = opts.border,
+    zindex = 45,
+    title = "Code Companion",
+    title_pos = "center",
+  })
+
+  for k, v in pairs(config.options.display.chat.win_options) do
+    vim.api.nvim_set_option_value(k, v, { scope = "local", win = winid })
+  end
+
+  keys.set_keymaps(config.options.keymaps, bufnr, self)
+
+  -- Hide the buffer from the buffer list
+  vim.api.nvim_buf_set_option(0, "buflisted", opts.buflisted)
+
+  util.buf_scroll_to_end(bufnr)
+end
+
 function Chat:submit()
   local settings, messages = parse_messages_buffer(self.bufnr)
+
+  if not messages or #messages == 0 then
+    return
+  end
 
   vim.bo[self.bufnr].modified = false
   vim.bo[self.bufnr].modifiable = false
@@ -338,7 +432,8 @@ function Chat:submit()
   end
 
   local new_message = messages[#messages]
-  if new_message.role == "user" and new_message.content == "" then
+
+  if new_message and new_message.role == "user" and new_message.content == "" then
     return finalize()
   end
 
