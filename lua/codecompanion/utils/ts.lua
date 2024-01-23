@@ -1,4 +1,5 @@
 local ts_utils = require("nvim-treesitter.ts_utils")
+local ts_parsers = require("nvim-treesitter.parsers")
 
 local M = {}
 
@@ -7,23 +8,38 @@ function M.goto_heading(direction)
   local cursor = vim.api.nvim_win_get_cursor(0)
   local current_row = cursor[1] - 1
 
-  local query = [[
-  (atx_heading) @heading
-  ]]
+  local parser = ts_parsers.get_parser(bufnr, "markdown")
+  local root_tree = parser:parse()[1]:root()
 
-  local heading_query = vim.treesitter.query.parse("markdown", query)
+  local query = vim.treesitter.query.parse("markdown", [[(atx_heading) @heading]])
 
-  for id, node in heading_query:iter_captures(ts_utils.get_root_for_position(current_row, 0), bufnr, current_row, -1) do
-    if heading_query.captures[id] == "atx_heading" then
-      local node_start_row, _, node_end_row, _ = node:range()
-
-      if direction == "next" and node_start_row > current_row then
-        ts_utils.goto_node(node, true)
-        return
-      elseif direction == "prev" and node_end_row < current_row then
-        ts_utils.goto_node(ts_utils.get_previous_node(node, true), true)
-        return
+  local from_row, to_row, last_heading
+  if direction == "next" then
+    from_row = current_row + 1
+    to_row = -1 -- End of document
+    for id, node in query:iter_captures(root_tree, bufnr, from_row, to_row) do
+      if query.captures[id] == "heading" then
+        local node_start, _, _, _ = node:range()
+        if node_start >= from_row then
+          ts_utils.goto_node(node, false, true)
+          return
+        end
       end
+    end
+  elseif direction == "prev" then
+    from_row = 0
+    to_row = current_row
+    for id, node in query:iter_captures(root_tree, bufnr, from_row, to_row) do
+      if query.captures[id] == "heading" then
+        local _, _, node_end, _ = node:range()
+        last_heading = node
+        if node_end >= current_row then
+          break
+        end
+      end
+    end
+    if last_heading then
+      ts_utils.goto_node(last_heading, false, true)
     end
   end
 end

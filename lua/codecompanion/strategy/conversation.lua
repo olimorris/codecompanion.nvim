@@ -1,4 +1,4 @@
-local chat = require("codecompanion.strategy.chat")
+local Chat = require("codecompanion.strategy.chat")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
@@ -123,7 +123,7 @@ function Conversation:load(client, opts)
   self.filename = opts.filename
   local content = vim.fn.json_decode(table.concat(vim.fn.readfile(opts.path), "\n"))
 
-  local chat_buf = chat.new({
+  local chat_buf = Chat.new({
     client = client,
     settings = content.settings,
     messages = content.messages,

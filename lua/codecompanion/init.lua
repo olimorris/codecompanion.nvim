@@ -36,10 +36,24 @@ M.chat = function()
     return
   end
 
+  local chat
   local Chat = require("codecompanion.strategy.chat")
-  local chat = Chat.new({
-    client = client,
-  })
+
+  if #_G.codecompanion_chats > 0 then
+    local restore = _G.codecompanion_chats[#_G.codecompanion_chats]
+
+    chat = Chat.new({
+      client = client,
+      settings = restore.settings,
+      messages = restore.messages,
+    })
+
+    _G.codecompanion_chats[#_G.codecompanion_chats] = nil
+  else
+    chat = Chat.new({
+      client = client,
+    })
+  end
 
   vim.api.nvim_win_set_buf(0, chat.bufnr)
   utils.scroll_to_end(0)

@@ -1,8 +1,14 @@
+-- Taken from:
+-- https://github.com/stevearc/oil.nvim/blob/master/lua/oil/keymap_util.lua
+
 local actions = require("codecompanion.keymaps")
 
 local M = {}
 
----@param rhs any
+---@param rhs string|table|fun()
+---@return string|fun() rhs
+---@return table opts
+---@return string|nil mode
 local function resolve(rhs)
   if type(rhs) == "string" and vim.startswith(rhs, "actions.") then
     return resolve(actions[vim.split(rhs, ".", { plain = true })[2]])
@@ -26,6 +32,7 @@ end
 
 ---@param keymaps table<string, string|table|fun()>
 ---@param bufnr integer
+---@param data? table
 M.set_keymaps = function(keymaps, bufnr, data)
   for k, v in pairs(keymaps) do
     local rhs, opts, mode = resolve(v)
@@ -33,7 +40,7 @@ M.set_keymaps = function(keymaps, bufnr, data)
       local callback
       if type(rhs) == "function" then
         callback = function()
-          rhs(data)
+          rhs(data or {})
         end
       else
         callback = rhs

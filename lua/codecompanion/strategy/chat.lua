@@ -4,6 +4,8 @@ local schema = require("codecompanion.schema")
 local util = require("codecompanion.utils.util")
 local yaml = require("codecompanion.utils.yaml")
 
+local api = vim.api
+
 local yaml_query = [[
 (block_mapping_pair
   key: (_) @key
@@ -124,7 +126,7 @@ local function render_messages(bufnr, settings, messages)
 
   local modifiable = vim.bo[bufnr].modifiable
   vim.bo[bufnr].modifiable = true
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, true, lines)
+  api.nvim_buf_set_lines(bufnr, 0, -1, true, lines)
   vim.bo[bufnr].modified = false
   vim.bo[bufnr].modifiable = modifiable
 end
@@ -139,7 +141,7 @@ end
 ---@param conversation CodeCompanion.Conversation
 local function create_conversation_autocmds(bufnr, conversation)
   if config.options.conversations.auto_save then
-    local group = vim.api.nvim_create_augroup("CodeCompanionConversations", {})
+    local group = api.nvim_create_augroup("CodeCompanionConversations", {})
 
     local function save()
       vim.schedule(function()
@@ -147,7 +149,7 @@ local function create_conversation_autocmds(bufnr, conversation)
       end)
     end
 
-    vim.api.nvim_create_autocmd("InsertLeave", {
+    api.nvim_create_autocmd("InsertLeave", {
       buffer = bufnr,
       group = group,
       callback = function()
@@ -155,7 +157,7 @@ local function create_conversation_autocmds(bufnr, conversation)
         save()
       end,
     })
-    vim.api.nvim_create_autocmd({ "User" }, {
+    api.nvim_create_autocmd({ "User" }, {
       group = group,
       pattern = "CodeCompanion",
       callback = function(request)
@@ -172,7 +174,7 @@ end
 local function create_conversation_commands(bufnr)
   local conversation = require("codecompanion.strategy.conversation").new({})
 
-  vim.api.nvim_buf_create_user_command(bufnr, "CodeCompanionConversationSaveAs", function()
+  api.nvim_buf_create_user_command(bufnr, "CodeCompanionConversationSaveAs", function()
     vim.ui.input({ prompt = "Conversation Name" }, function(filename)
       if not filename then
         return
@@ -194,12 +196,12 @@ local function watch_cursor()
   if cursor_moved_autocmd then
     return
   end
-  cursor_moved_autocmd = vim.api.nvim_create_autocmd({ "CursorMoved", "BufEnter" }, {
+  cursor_moved_autocmd = api.nvim_create_autocmd({ "CursorMoved", "BufEnter" }, {
     desc = "Show line information in a Code Companion buffer",
     callback = function(args)
       local chat = chatmap[args.buf]
       if chat then
-        if vim.api.nvim_win_get_buf(0) == args.buf then
+        if api.nvim_win_get_buf(0) == args.buf then
           chat:on_cursor_moved()
         end
       end
@@ -207,35 +209,14 @@ local function watch_cursor()
   })
 end
 
+_G.codecompanion_chats = {}
+
 local registered_cmp = false
 
----@class CodeCompanion.Chat
----@field client CodeCompanion.Client
----@field bufnr integer
----@field settings CodeCompanion.ChatSettings
-local Chat = {}
-
----@class CodeCompanion.ChatArgs
----@field client CodeCompanion.Client
----@field messages nil|CodeCompanion.ChatMessage[]
----@field show_buffer nil|boolean
----@field conversation nil|CodeCompanion.Conversation
----@field settings nil|CodeCompanion.ChatSettings
-
----@param args CodeCompanion.ChatArgs
-function Chat.new(args)
-  local bufnr = vim.api.nvim_create_buf(true, false)
-  local winid = vim.api.nvim_get_current_win()
-
-  vim.api.nvim_set_option_value("wrap", true, { scope = "local", win = winid })
-  vim.api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", math.random(10000000)))
-
-  vim.bo[bufnr].filetype = "codecompanion"
-  vim.bo[bufnr].syntax = "markdown"
-  vim.bo[bufnr].buftype = "acwrite"
-  vim.b[bufnr].codecompanion_type = "chat"
-
-  vim.api.nvim_create_autocmd("BufWriteCmd", {
+---@param bufnr number
+local function chat_autocmds(bufnr)
+  -- Submit the chat
+  api.nvim_create_autocmd("BufWriteCmd", {
     buffer = bufnr,
     callback = function()
       local chat = chatmap[bufnr]
@@ -248,7 +229,8 @@ function Chat.new(args)
   })
 
   if config.options.display.chat.show_settings then
-    vim.api.nvim_create_autocmd("InsertLeave", {
+    -- Virtual text for the settings
+    api.nvim_create_autocmd("InsertLeave", {
       buffer = bufnr,
       callback = function()
         local settings = parse_settings(bufnr)
@@ -277,20 +259,18 @@ function Chat.new(args)
     })
   end
 
-  watch_cursor()
-
+  -- Enable cmp and add virtual text to the empty buffer
   local bufenter_autocmd
-  bufenter_autocmd = vim.api.nvim_create_autocmd("BufEnter", {
-    callback = function(params)
-      if params.buf ~= bufnr then
-        return
+  bufenter_autocmd = api.nvim_create_autocmd("BufEnter", {
+    buffer = bufnr,
+    callback = function()
+      if #_G.codecompanion_chats == 0 then
+        local ns_id = api.nvim_create_namespace("CodeCompanionChatVirtualText")
+        api.nvim_buf_set_extmark(bufnr, ns_id, api.nvim_buf_line_count(bufnr) - 1, 0, {
+          virt_text = { { "Save the buffer to send a message to OpenAI...", "CodeCompanionVirtualText" } },
+          virt_text_pos = "eol",
+        })
       end
-
-      local ns_id = vim.api.nvim_create_namespace("CodeCompanionChatVirtualText")
-      vim.api.nvim_buf_set_extmark(bufnr, ns_id, vim.api.nvim_buf_line_count(bufnr) - 1, 0, {
-        virt_text = { { "Save the buffer to send a message to OpenAI...", "CodeCompanionTokens" } },
-        virt_text_pos = "eol",
-      })
 
       local has_cmp, cmp = pcall(require, "cmp")
       if has_cmp then
@@ -305,22 +285,72 @@ function Chat.new(args)
           },
         })
       end
-      vim.api.nvim_del_autocmd(bufenter_autocmd)
+      api.nvim_del_autocmd(bufenter_autocmd)
     end,
   })
 
-  vim.api.nvim_create_autocmd("InsertEnter", {
-    callback = function(params)
-      if params.buf ~= bufnr then
-        return
-      end
+  -- Clear the virtual text when the user starts typing
+  if #_G.codecompanion_chats == 0 then
+    local insertenter_autocmd
+    insertenter_autocmd = api.nvim_create_autocmd("InsertEnter", {
+      buffer = bufnr,
+      callback = function()
+        local ns_id = api.nvim_create_namespace("CodeCompanionChatVirtualText")
+        api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
 
-      local ns_id = vim.api.nvim_create_namespace("CodeCompanionChatVirtualText")
-      vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+        api.nvim_del_autocmd(insertenter_autocmd)
+      end,
+    })
+  end
+
+  -- Save the buffer to memory when closed
+  api.nvim_create_autocmd("BufWinLeave", {
+    buffer = bufnr,
+    callback = function()
+      local contents = {}
+      contents.settings, contents.messages = parse_messages_buffer(bufnr)
+
+      table.insert(_G.codecompanion_chats, contents)
     end,
   })
+end
 
-  local settings = schema.get_default(schema.static.chat_settings, args.settings)
+---@class CodeCompanion.Chat
+---@field client CodeCompanion.Client
+---@field bufnr integer
+---@field settings CodeCompanion.ChatSettings
+local Chat = {}
+
+---@class CodeCompanion.ChatArgs
+---@field client CodeCompanion.Client
+---@field messages nil|CodeCompanion.ChatMessage[]
+---@field show_buffer nil|boolean
+---@field conversation nil|CodeCompanion.Conversation
+---@field settings nil|CodeCompanion.ChatSettings
+
+---@param args CodeCompanion.ChatArgs
+function Chat.new(args)
+  local bufnr
+  if config.options.display.chat.type == "float" then
+    bufnr = api.nvim_create_buf(false, true)
+  else
+    bufnr = api.nvim_create_buf(true, false)
+  end
+  local winid = api.nvim_get_current_win()
+
+  api.nvim_set_option_value("wrap", true, { scope = "local", win = winid })
+  api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", math.random(10000000)))
+
+  api.nvim_buf_set_option(bufnr, "buftype", "acwrite")
+  api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
+  api.nvim_buf_set_option(bufnr, "syntax", "markdown")
+  api.nvim_buf_set_option(bufnr, "bufhidden", "wipe")
+  vim.b[bufnr].codecompanion_type = "chat"
+
+  watch_cursor()
+  chat_autocmds(bufnr)
+
+  local settings = args.settings or schema.get_default(schema.static.chat_settings, args.settings)
 
   local self = setmetatable({
     client = args.client,
@@ -334,7 +364,7 @@ function Chat.new(args)
   display_tokens(bufnr)
 
   if config.options.display.chat.type == "buffer" and args.show_buffer then
-    vim.api.nvim_set_current_buf(bufnr)
+    api.nvim_set_current_buf(bufnr)
     util.buf_scroll_to_end(bufnr)
   end
 
@@ -373,7 +403,7 @@ function Chat:open_float(bufnr, opts)
   local row = math.floor((total_height - height) / 2)
   local col = math.floor((total_width - width) / 2) - 1 -- adjust for border width
 
-  local winid = vim.api.nvim_open_win(bufnr, true, {
+  local winid = api.nvim_open_win(bufnr, true, {
     relative = "editor",
     width = width,
     height = height,
@@ -386,13 +416,10 @@ function Chat:open_float(bufnr, opts)
   })
 
   for k, v in pairs(config.options.display.chat.win_options) do
-    vim.api.nvim_set_option_value(k, v, { scope = "local", win = winid })
+    api.nvim_set_option_value(k, v, { scope = "local", win = winid })
   end
 
   keys.set_keymaps(config.options.keymaps, bufnr, self)
-
-  -- Hide the buffer from the buffer list
-  vim.api.nvim_buf_set_option(0, "buflisted", opts.buflisted)
 
   util.buf_scroll_to_end(bufnr)
 end
@@ -406,7 +433,7 @@ function Chat:submit()
 
   vim.bo[self.bufnr].modified = false
   vim.bo[self.bufnr].modifiable = false
-  vim.api.nvim_buf_set_keymap(self.bufnr, "n", "q", "", {
+  api.nvim_buf_set_keymap(self.bufnr, "n", "q", "", {
     noremap = true,
     silent = true,
     callback = function()
@@ -420,8 +447,8 @@ function Chat:submit()
   end
 
   local function render_buffer()
-    local line_count = vim.api.nvim_buf_line_count(self.bufnr)
-    local current_line = vim.api.nvim_win_get_cursor(0)[1]
+    local line_count = api.nvim_buf_line_count(self.bufnr)
+    local current_line = api.nvim_win_get_cursor(0)[1]
     local cursor_moved = current_line == line_count
 
     render_messages(self.bufnr, settings, messages)
@@ -464,7 +491,7 @@ function Chat:submit()
       end
 
       if done then
-        vim.api.nvim_buf_del_keymap(self.bufnr, "n", "q")
+        api.nvim_buf_del_keymap(self.bufnr, "n", "q")
         table.insert(messages, { role = "user", content = "" })
         render_buffer()
         display_tokens(self.bufnr)
@@ -519,7 +546,7 @@ end
 
 function Chat:complete(request, callback)
   local items = {}
-  local cursor = vim.api.nvim_win_get_cursor(0)
+  local cursor = api.nvim_win_get_cursor(0)
   local key_name, node = self:_get_settings_key({ pos = { cursor[1] - 1, 1 } })
   if not key_name or not node then
     callback({ items = items, isIncomplete = false })
@@ -543,7 +570,7 @@ end
 ---@return nil|CodeCompanion.Chat
 function Chat.buf_get_chat(bufnr)
   if not bufnr or bufnr == 0 then
-    bufnr = vim.api.nvim_get_current_buf()
+    bufnr = api.nvim_get_current_buf()
   end
   return chatmap[bufnr]
 end

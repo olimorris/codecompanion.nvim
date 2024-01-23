@@ -19,7 +19,7 @@ M.next = {
 M.previous = {
   desc = "Go to the previous message",
   callback = function()
-    ts.goto_heading("previous")
+    ts.goto_heading("prev")
   end,
 }
 
