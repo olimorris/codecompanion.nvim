@@ -25,7 +25,7 @@ local defaults = {
   },
   display = {
     action_palette = {
-      width = 90,
+      width = 95,
       height = 10,
     },
     chat = {
@@ -58,9 +58,13 @@ local defaults = {
     width = 0.8,
   },
   keymaps = {
-    ["<C-q>"] = "actions.close",
-    ["]"] = "actions.next",
-    ["["] = "actions.previous",
+    ["<C-q>"] = "keymaps.close",
+    ["<C-d>"] = "keymaps.delete",
+    ["<C-c>"] = "keymaps.clear",
+    ["ga"] = "keymaps.codeblock",
+    -- ["<C-n>"] = "keymaps.new",
+    ["]"] = "keymaps.next",
+    ["["] = "keymaps.previous",
   },
   log_level = "TRACE",
   send_code = true,

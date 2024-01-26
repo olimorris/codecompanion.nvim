@@ -69,6 +69,7 @@ function Strategy:chat()
 
   return require("codecompanion.strategy.chat").new({
     client = self.client,
+    type = self.selected.type,
     messages = messages,
     show_buffer = true,
   })

@@ -214,7 +214,8 @@ _G.codecompanion_chats = {}
 local registered_cmp = false
 
 ---@param bufnr number
-local function chat_autocmds(bufnr)
+---@param args table
+local function chat_autocmds(bufnr, args)
   -- Submit the chat
   api.nvim_create_autocmd("BufWriteCmd", {
     buffer = bufnr,
@@ -307,10 +308,10 @@ local function chat_autocmds(bufnr)
   api.nvim_create_autocmd("BufWinLeave", {
     buffer = bufnr,
     callback = function()
-      local contents = {}
-      contents.settings, contents.messages = parse_messages_buffer(bufnr)
-
-      table.insert(_G.codecompanion_chats, contents)
+      local data = {}
+      data.type = args.type
+      data.settings, data.messages = parse_messages_buffer(bufnr)
+      table.insert(_G.codecompanion_chats, data)
     end,
   })
 end
@@ -325,8 +326,9 @@ local Chat = {}
 ---@field client CodeCompanion.Client
 ---@field messages nil|CodeCompanion.ChatMessage[]
 ---@field show_buffer nil|boolean
----@field conversation nil|CodeCompanion.Conversation
 ---@field settings nil|CodeCompanion.ChatSettings
+---@field type nil|string
+---@field conversation nil|CodeCompanion.Conversation
 
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)
@@ -348,7 +350,7 @@ function Chat.new(args)
   vim.b[bufnr].codecompanion_type = "chat"
 
   watch_cursor()
-  chat_autocmds(bufnr)
+  chat_autocmds(bufnr, args)
 
   local settings = args.settings or schema.get_default(schema.static.chat_settings, args.settings)
 
@@ -356,6 +358,7 @@ function Chat.new(args)
     client = args.client,
     bufnr = bufnr,
     settings = settings,
+    type = args.type,
     conversation = args.conversation,
   }, { __index = Chat })
 

@@ -30,6 +30,24 @@ M.buf_get_chat = function(bufnr)
   return require("codecompanion.strategy.chat").buf_get_chat(bufnr)
 end
 
+M.restore = function(chat, index)
+  local client = get_client()
+  if not client then
+    return
+  end
+
+  local Chat = require("codecompanion.strategy.chat")
+
+  Chat.new({
+    client = client,
+    settings = chat.settings,
+    messages = chat.messages,
+    type = chat.type,
+  })
+
+  _G.codecompanion_chats[index] = nil
+end
+
 M.chat = function()
   local client = get_client()
   if not client then
@@ -44,6 +62,7 @@ M.chat = function()
 
     chat = Chat.new({
       client = client,
+      type = restore.type,
       settings = restore.settings,
       messages = restore.messages,
     })
@@ -95,7 +114,15 @@ M.actions = function()
         prompt = item.picker.prompt,
         columns = item.picker.columns,
       }
-      picker(item.picker.items, picker_opts, selection)
+      return picker(item.picker.items, picker_opts, selection)
+    elseif item.picker and type(item.picker.items) == "function" then
+      local picker_opts = {
+        prompt = item.picker.prompt,
+        columns = item.picker.columns,
+      }
+      picker(item.picker.items(), picker_opts, selection)
+    elseif item and type(item.callback) == "function" then
+      return item.callback(selection)
     else
       local Strategy = require("codecompanion.strategy")
       return Strategy.new({

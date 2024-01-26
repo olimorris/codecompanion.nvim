@@ -1,7 +1,7 @@
 -- Taken from:
 -- https://github.com/stevearc/oil.nvim/blob/master/lua/oil/keymap_util.lua
 
-local actions = require("codecompanion.keymaps")
+local keymaps = require("codecompanion.keymaps")
 
 local M = {}
 
@@ -10,8 +10,8 @@ local M = {}
 ---@return table opts
 ---@return string|nil mode
 local function resolve(rhs)
-  if type(rhs) == "string" and vim.startswith(rhs, "actions.") then
-    return resolve(actions[vim.split(rhs, ".", { plain = true })[2]])
+  if type(rhs) == "string" and vim.startswith(rhs, "keymaps.") then
+    return resolve(keymaps[vim.split(rhs, ".", { plain = true })[2]])
   elseif type(rhs) == "table" then
     local opts = vim.deepcopy(rhs)
     local callback = opts.callback

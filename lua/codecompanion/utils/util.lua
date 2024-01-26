@@ -3,6 +3,16 @@ local M = {}
 local ESC_FEEDKEY = vim.api.nvim_replace_termcodes("<ESC>", true, false, true)
 
 ---@param table table
+M.count = function(table)
+  local count = 0
+  for _ in pairs(table) do
+    count = count + 1
+  end
+
+  return count
+end
+
+---@param table table
 ---@param value string
 M.contains = function(table, value)
   for _, v in pairs(table) do
