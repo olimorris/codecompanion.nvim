@@ -78,6 +78,14 @@ M.chat = function()
   utils.scroll_to_end(0)
 end
 
+M.toggle = function()
+  if vim.bo.filetype == "codecompanion" then
+    vim.api.nvim_win_close(0, true)
+  else
+    M.chat()
+  end
+end
+
 local _cached_actions = {}
 M.actions = function()
   local client = get_client()

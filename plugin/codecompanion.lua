@@ -16,4 +16,8 @@ vim.api.nvim_create_user_command("CodeCompanionActions", function()
   codecompanion.actions()
 end, { desc = "", range = true })
 
+vim.api.nvim_create_user_command("CodeCompanionToggle", function()
+  codecompanion.toggle()
+end, { desc = "" })
+
 vim.g.loaded_codecompanion = true
