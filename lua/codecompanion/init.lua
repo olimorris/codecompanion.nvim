@@ -54,6 +54,8 @@ M.chat = function()
     return
   end
 
+  local context = utils.get_context(vim.api.nvim_get_current_buf())
+
   local chat
   local Chat = require("codecompanion.strategy.chat")
 
@@ -62,6 +64,7 @@ M.chat = function()
 
     chat = Chat.new({
       client = client,
+      context = context,
       type = restore.type,
       settings = restore.settings,
       messages = restore.messages,
@@ -71,6 +74,7 @@ M.chat = function()
   else
     chat = Chat.new({
       client = client,
+      context = context,
     })
   end
 

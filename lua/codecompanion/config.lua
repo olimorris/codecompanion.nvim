@@ -29,8 +29,8 @@ local defaults = {
       height = 10,
     },
     chat = {
-      type = "float", -- Can be "buffer" or "float"
-      show_settings = false,
+      type = "buffer",
+      show_settings = true,
       float = {
         border = "single",
         buflisted = false,
@@ -47,8 +47,6 @@ local defaults = {
         signcolumn = "no",
         spell = false,
         wrap = true,
-        -- conceallevel = 3,
-        -- concealcursor = "nvic",
       },
     },
     --TODO: Refactor these:
@@ -58,11 +56,11 @@ local defaults = {
     width = 0.8,
   },
   keymaps = {
-    ["<C-q>"] = "keymaps.close",
-    ["<C-d>"] = "keymaps.delete",
-    ["<C-c>"] = "keymaps.clear",
+    ["<C-c>"] = "keymaps.close",
+    ["gd"] = "keymaps.delete",
+    ["gc"] = "keymaps.clear",
     ["ga"] = "keymaps.codeblock",
-    -- ["<C-n>"] = "keymaps.new",
+    ["gs"] = "keymaps.save_conversation",
     ["]"] = "keymaps.next",
     ["["] = "keymaps.previous",
   },

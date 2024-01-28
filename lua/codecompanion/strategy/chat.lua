@@ -98,7 +98,8 @@ end
 ---@param bufnr integer
 ---@param settings CodeCompanion.ChatSettings
 ---@param messages CodeCompanion.ChatMessage[]
-local function render_messages(bufnr, settings, messages)
+---@param context table
+local function render_messages(bufnr, settings, messages, context)
   local lines = {}
   if config.options.display.chat.show_settings then
     -- Put the settings at the top of the buffer
@@ -122,6 +123,15 @@ local function render_messages(bufnr, settings, messages)
     for _, text in ipairs(vim.split(message.content, "\n", { plain = true, trimempty = true })) do
       table.insert(lines, text)
     end
+  end
+
+  if context and context.is_visual then
+    table.insert(lines, "")
+    table.insert(lines, "```" .. context.filetype)
+    for _, line in ipairs(context.lines) do
+      table.insert(lines, line)
+    end
+    table.insert(lines, "```")
   end
 
   local modifiable = vim.bo[bufnr].modifiable
@@ -324,6 +334,7 @@ local Chat = {}
 
 ---@class CodeCompanion.ChatArgs
 ---@field client CodeCompanion.Client
+---@field context table
 ---@field messages nil|CodeCompanion.ChatMessage[]
 ---@field show_buffer nil|boolean
 ---@field settings nil|CodeCompanion.ChatSettings
@@ -340,14 +351,11 @@ function Chat.new(args)
   end
   local winid = api.nvim_get_current_win()
 
-  api.nvim_set_option_value("wrap", true, { scope = "local", win = winid })
   api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", math.random(10000000)))
-
   api.nvim_buf_set_option(bufnr, "buftype", "acwrite")
   api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
   api.nvim_buf_set_option(bufnr, "syntax", "markdown")
   api.nvim_buf_set_option(bufnr, "bufhidden", "wipe")
-  vim.b[bufnr].codecompanion_type = "chat"
 
   watch_cursor()
   chat_autocmds(bufnr, args)
@@ -355,16 +363,24 @@ function Chat.new(args)
   local settings = args.settings or schema.get_default(schema.static.chat_settings, args.settings)
 
   local self = setmetatable({
-    client = args.client,
     bufnr = bufnr,
+    client = args.client,
+    context = args.context,
+    conversation = args.conversation,
     settings = settings,
     type = args.type,
-    conversation = args.conversation,
   }, { __index = Chat })
 
+  local keys = require("codecompanion.utils.keymaps")
+  keys.set_keymaps(config.options.keymaps, bufnr, self)
+
   chatmap[bufnr] = self
-  render_messages(bufnr, settings, args.messages or {})
+  render_messages(bufnr, settings, args.messages or {}, args.context or {})
   display_tokens(bufnr)
+
+  for k, v in pairs(config.options.display.chat.win_options) do
+    api.nvim_set_option_value(k, v, { scope = "local", win = winid })
+  end
 
   if config.options.display.chat.type == "buffer" and args.show_buffer then
     api.nvim_set_current_buf(bufnr)
@@ -386,7 +402,6 @@ end
 ---@param bufnr number
 function Chat:open_float(bufnr, opts)
   local ui = require("codecompanion.utils.ui")
-  local keys = require("codecompanion.utils.keymaps")
 
   local total_width = vim.o.columns
   local total_height = ui.get_editor_height()
@@ -406,7 +421,7 @@ function Chat:open_float(bufnr, opts)
   local row = math.floor((total_height - height) / 2)
   local col = math.floor((total_width - width) / 2) - 1 -- adjust for border width
 
-  local winid = api.nvim_open_win(bufnr, true, {
+  api.nvim_open_win(bufnr, true, {
     relative = "editor",
     width = width,
     height = height,
@@ -417,12 +432,6 @@ function Chat:open_float(bufnr, opts)
     title = "Code Companion",
     title_pos = "center",
   })
-
-  for k, v in pairs(config.options.display.chat.win_options) do
-    api.nvim_set_option_value(k, v, { scope = "local", win = winid })
-  end
-
-  keys.set_keymaps(config.options.keymaps, bufnr, self)
 
   util.buf_scroll_to_end(bufnr)
 end
@@ -454,7 +463,7 @@ function Chat:submit()
     local current_line = api.nvim_win_get_cursor(0)[1]
     local cursor_moved = current_line == line_count
 
-    render_messages(self.bufnr, settings, messages)
+    render_messages(self.bufnr, settings, messages, {})
 
     if cursor_moved and util.buf_is_active(self.bufnr) then
       util.buf_scroll_to_end()
