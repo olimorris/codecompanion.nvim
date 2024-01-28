@@ -147,57 +147,6 @@ local display_tokens = function(bufnr)
   end
 end
 
----@param bufnr number
----@param conversation CodeCompanion.Conversation
-local function create_conversation_autocmds(bufnr, conversation)
-  if config.options.conversations.auto_save then
-    local group = api.nvim_create_augroup("CodeCompanionConversations", {})
-
-    local function save()
-      vim.schedule(function()
-        conversation:save(bufnr, parse_messages_buffer(bufnr))
-      end)
-    end
-
-    api.nvim_create_autocmd("InsertLeave", {
-      buffer = bufnr,
-      group = group,
-      callback = function()
-        log:trace("Conversation automatically saved")
-        save()
-      end,
-    })
-    api.nvim_create_autocmd({ "User" }, {
-      group = group,
-      pattern = "CodeCompanion",
-      callback = function(request)
-        if request.buf == bufnr and request.data.status == "finished" then
-          log:trace("Conversation automatically saved")
-          save()
-        end
-      end,
-    })
-  end
-end
-
----@param bufnr number
-local function create_conversation_commands(bufnr)
-  local conversation = require("codecompanion.strategy.conversation").new({})
-
-  api.nvim_buf_create_user_command(bufnr, "CodeCompanionConversationSaveAs", function()
-    vim.ui.input({ prompt = "Conversation Name" }, function(filename)
-      if not filename then
-        return
-      end
-      conversation.filename = filename
-      conversation:save(bufnr, parse_messages_buffer(bufnr))
-      create_conversation_autocmds(bufnr, conversation)
-    end)
-  end, { desc = "Save the conversation" })
-
-  -- Create manual save
-end
-
 ---@type table<integer, CodeCompanion.Chat>
 local chatmap = {}
 
@@ -339,7 +288,7 @@ local Chat = {}
 ---@field show_buffer nil|boolean
 ---@field settings nil|CodeCompanion.ChatSettings
 ---@field type nil|string
----@field conversation nil|CodeCompanion.Conversation
+---@field conversation nil|string
 
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)
@@ -371,10 +320,11 @@ function Chat.new(args)
     type = args.type,
   }, { __index = Chat })
 
+  chatmap[bufnr] = self
+
   local keys = require("codecompanion.utils.keymaps")
   keys.set_keymaps(config.options.keymaps, bufnr, self)
 
-  chatmap[bufnr] = self
   render_messages(bufnr, settings, args.messages or {}, args.context or {})
   display_tokens(bufnr)
 
@@ -386,11 +336,6 @@ function Chat.new(args)
     api.nvim_set_current_buf(bufnr)
     util.buf_scroll_to_end(bufnr)
   end
-
-  if self.conversation then
-    create_conversation_autocmds(bufnr, self.conversation)
-  end
-  create_conversation_commands(bufnr)
 
   if config.options.display.chat.type == "float" then
     self:open_float(bufnr, config.options.display.chat.float)
@@ -585,6 +530,16 @@ function Chat.buf_get_chat(bufnr)
     bufnr = api.nvim_get_current_buf()
   end
   return chatmap[bufnr]
+end
+
+---@param bufnr nil|integer
+---@return table
+---@return nil|CodeCompanion.Chat
+function Chat.buf_get_messages(bufnr)
+  if not bufnr or bufnr == 0 then
+    bufnr = api.nvim_get_current_buf()
+  end
+  return parse_messages_buffer(bufnr)
 end
 
 return Chat

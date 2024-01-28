@@ -125,14 +125,13 @@ function Conversation:load(client, opts)
 
   local chat_buf = Chat.new({
     client = client,
-    settings = content.settings,
+    conversation = self.filename,
     messages = content.messages,
+    settings = content.settings,
     show_buffer = true,
-    conversation = self,
   })
 
   rename_buffer(chat_buf.bufnr, opts.filename)
-  vim.api.nvim_buf_set_option(chat_buf.bufnr, "wrap", true)
 end
 
 return Conversation

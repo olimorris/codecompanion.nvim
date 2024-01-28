@@ -5,7 +5,7 @@ local M = {}
 M.close = {
   desc = "Close the chat window",
   callback = function()
-    vim.api.nvim_win_close(0, true)
+    vim.cmd("bd!")
   end,
 }
 
@@ -17,15 +17,37 @@ M.delete = {
   end,
 }
 
+M.save_conversation = {
+  desc = "Save the chat as a conversation",
+  callback = function(args)
+    local chat = require("codecompanion.strategy.chat")
+    local conversation = require("codecompanion.strategy.conversation").new({})
+
+    if args.conversation then
+      conversation.filename = args.conversation
+      conversation:save(args.bufnr, chat.buf_get_messages(args.bufnr))
+
+      return vim.notify("[CodeCompanion.nvim]\nConversation has been saved", vim.log.levels.INFO)
+    end
+
+    vim.ui.input({ prompt = "Conversation Name" }, function(filename)
+      if not filename then
+        return
+      end
+      conversation.filename = filename
+      conversation:save(args.bufnr, chat.buf_get_messages(args.bufnr))
+      args.conversation = filename
+    end)
+  end,
+}
+
 M.clear = {
   desc = "Clear the current chat",
-  callback = function()
-    local bufnr = vim.api.nvim_get_current_buf()
-
+  callback = function(args)
     local ns_id = vim.api.nvim_create_namespace("CodeCompanionTokens")
-    vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+    vim.api.nvim_buf_clear_namespace(args.bufnr, ns_id, 0, -1)
 
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
+    vim.api.nvim_buf_set_lines(args.bufnr, 0, -1, false, {})
   end,
 }
 
@@ -45,7 +67,6 @@ M.codeblock = {
     }
 
     vim.api.nvim_buf_set_lines(bufnr, line - 1, line, false, codeblock)
-
     vim.api.nvim_win_set_cursor(0, { line + 1, vim.fn.indent(line) })
   end,
 }
