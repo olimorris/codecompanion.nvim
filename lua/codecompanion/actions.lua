@@ -81,9 +81,10 @@ M.static.actions = {
         local cc = require("codecompanion")
         local function load_chat(chat, index)
           cc.restore({
-            type = chat.type,
-            settings = chat.settings,
+            conversation = chat.conversation,
             messages = chat.messages,
+            settings = chat.settings,
+            type = chat.type,
           }, index)
         end
         local chats = {}

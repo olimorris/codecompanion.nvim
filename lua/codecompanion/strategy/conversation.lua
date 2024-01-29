@@ -53,6 +53,7 @@ local function save(filename, bufnr, conversation)
     log:debug('Conversation: "%s.json" saved', filename)
     file:write(vim.json.encode(conversation))
     file:close()
+    vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionConversation", data = { status = "finished" } })
   else
     log:debug("Conversation could not be saved. Error: %s", err)
     vim.notify("[CodeCompanion.nvim]\nCannot save conversation: " .. err, vim.log.levels.ERROR)

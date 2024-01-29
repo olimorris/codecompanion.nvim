@@ -23,7 +23,7 @@ REQUIREMENTS                                      *codecompanion-requirements*
 
 - An API key from OpenAI (get one here <https://platform.openai.com/api-keys>)
 - The `curl` library installed
-- Neovim 0.9.0 or greater
+- Neovim 0.9.2 or greater
 
 
 INSTALLATION                                      *codecompanion-installation*
@@ -36,12 +36,13 @@ INSTALLATION                                      *codecompanion-installation*
     {
       "olimorris/codecompanion.nvim",
       dependencies = {
+        "nvim-treesitter/nvim-treesitter",
         {
           "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
           opts = {},
         },
       },
-      cmd = { "CodeCompanionChat", "CodeCompanionActions" },
+      cmd = { "CodeCompanionToggle", "CodeCompanionActions" },
       config = true
     }
     
@@ -52,6 +53,7 @@ INSTALLATION                                      *codecompanion-installation*
         require("codecompanion").setup()
       end,
       requires = {
+        "nvim-treesitter/nvim-treesitter",
         "stevearc/dressing.nvim"
       }
     })
@@ -60,12 +62,15 @@ INSTALLATION                                      *codecompanion-installation*
 
 CONFIGURATION                                    *codecompanion-configuration*
 
-The plugin comes with the following defaults:
+
+  **Note**You only need to the call the `setup` function if you wish to change
+  any of the defaults.
+Click to see the default configuration ~
 
 >lua
     {
-      api_key = "OPENAI_API_KEY", -- Your OpenAI API key
-      org_api_key = "OPENAI_ORG_KEY", -- Your organisation OpenAI API key
+      api_key = "OPENAI_API_KEY", -- Your API key
+      org_api_key = "OPENAI_ORG_KEY", -- Your organisation API key
       base_url = "https://api.openai.com", -- The URL to use for the API requests
       ai_settings = {
         -- Default settings for the Completions API
@@ -85,48 +90,94 @@ The plugin comes with the following defaults:
         user = nil,
       },
       conversations = {
-        auto_save = true, -- Once a conversation is created/loaded, automatically save it
-        save_dir = vim.fn.stdpath("data") .. "/codecompanion/conversations",
+        save_dir = vim.fn.stdpath("data") .. "/codecompanion/conversations", -- Path to save conversations to
       },
-      display = { -- How to display `advisor` outputs
-        type = "popup", -- popup|split
-        split = "horizontal" -- horizontal|vertical
-        height = 0.7,
-        width = 0.8,
+      display = {
+        action_palette = {
+          width = 95,
+          height = 10,
+        },
+        chat = { -- Options for the chat strategy
+          type = "buffer", -- buffer|float
+          show_settings = false, -- Show the model settings in the chat window
+          float = {
+            border = "single",
+            max_height = 0,
+            max_width = 0,
+            padding = 1,
+          },
+        },
+        win_options = {
+          cursorcolumn = false,
+          cursorline = false,
+          foldcolumn = "0",
+          linebreak = true,
+          list = false,
+          signcolumn = "no",
+          spell = false,
+          wrap = true,
+        },
       },
-      log_level = "ERROR", -- One of: TRACE, DEBUG, ERROR
-      send_code = true, -- Send your code to OpenAI
-      show_token_count = true, -- Show the token count for the current chat
-      use_default_actions = true, -- The actions that appear in the action palette
+      keymaps = {
+        ["<C-c>"] = "keymaps.close", -- Close the chat (can be toggled back)
+        ["q"] = "keymaps.cancel_request", -- Cancel the currently streaming request
+        ["gd"] = "keymaps.delete", -- Delete the chat permanently (cannot be toggled)
+        ["gc"] = "keymaps.clear", -- Clear the contents of the chat
+        ["ga"] = "keymaps.codeblock", -- Insert a codeblock in the chat
+        ["gs"] = "keymaps.save_conversation", -- Save the current chat as a conversation
+        ["]"] = "keymaps.next", -- Move to the next header in the chat
+        ["["] = "keymaps.previous", -- Move to the previous header in the chat
+      },
+      log_level = "ERROR", -- TRACE|DEBUG|ERROR
+      send_code = true, -- Send code context to the API?
+      show_token_count = true, -- Show the token count for the current chat?
+      use_default_actions = true, -- Use the default actions in the action palette?
     }
 <
 
-Modify these settings via the `opts` table in Lazy.nvim or by calling the
-`require("codecompanion").setup()` function in Packer.
 
+EDGY.NVIM CONFIGURATION ~
 
-  **Note**The `send_code` option can prevent any visual selections from being
-  sent to OpenAI for processing as part of any `advisor` or `author` actions
+The author recommends pairing with edgy.nvim
+<https://github.com/folke/edgy.nvim> for a Co-Pilot Chat-like experience:
+
+>lua
+    {
+      "folke/edgy.nvim",
+      event = "VeryLazy",
+      init = function()
+        vim.opt.laststatus = 3
+        vim.opt.splitkeep = "screen"
+      end,
+      opts = {
+        right = {
+          { ft = "codecompanion", title = "Code Companion Chat", size = { width = 0.45 } },
+        }
+      }
+    }
+<
+
 
 USAGE                                                    *codecompanion-usage*
 
 The plugin has a number of commands:
 
 - `CodeCompanionChat` - To open up a new chat buffer
-- `CodeCompanionActions` - To open up the action selector window
-- `CodeCompanionSaveConversationAs` - Saves a chat buffer as a conversation
+- `CodeCompanionToggle` - Toggle a chat buffer
+- `CodeCompanionActions` - To open up the action palette window
 
-They can be assigned to keymaps with:
+For an optimum workflow, the plugin author recommendeds the following keymaps:
 
 >lua
     vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
     vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
-    vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionChat<cr>", { noremap = true, silent = true })
+    vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
+    vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
 <
 
 
   **Note**For some actions, visual mode allows your selection to be sent directly
-  to the chat buffer or OpenAI themselves in the case of `author` actions
+  to the chat buffer or the API itself (in the case of `author` actions).
 
 THE ACTION PALETTE ~
 
@@ -157,30 +208,48 @@ false` in your config.
 
 THE CHAT BUFFER ~
 
-The Chat Buffer is where you can converse with OpenAI, directly from Neovim. It
-behaves as a regular markdown buffer with some clever additions. When the
-buffer is written, autocmds trigger the sending of its content to the OpenAI
-API in the form of prompts. These prompts are segmented by H1 headers into
-`user` and `assistant` (see OpenAI’s Chat Completions API
+The chat buffer is where you can converse with your GenAI API, directly from
+Neovim. It behaves as a regular markdown buffer with some clever additions.
+When the buffer is written (or "saved"), autocmds trigger the sending of its
+content to the API, in the form of prompts. These prompts are segmented by H1
+headers: `user` and `assistant` (see OpenAI’s Chat Completions API
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
 for more on this). When a response is received, it is then streamed back into
 the buffer. The result is that you experience the feel of conversing with
-ChatGPT, from within Neovim.
+GenAI, from within Neovim.
 
 
-  **Note**You can cancel a request at any point by pressing `q`.
-At the very top of the Chat Buffer are the parameters which can be changed to
-affect the API’s response back to you. You can find more detail about them by
-moving the cursor over them or referring to the Chat Completions reference
-guide <https://platform.openai.com/docs/api-reference/chat>. The parameters can
-be tweaked and modified throughout the conversation.
+KEYMAPS
 
-Chat Buffers are not automatically saved into sessions owing to them being an
-`acwrite` buftype (|buftype|). However the plugin allows for this via the
-notion of Conversations. Simply run `:CodeCompanionSaveConversationAs` in the
-buffer you wish to save. Conversations can then be restored via the Action
-Palette and the _Load conversations_ actions. When a conversation is saved or
-loaded it will automatically save to disk.
+When in the chat buffer, there are number of keymaps available to you (which
+can be changed in the config):
+
+- `<C-c>` - Close/hide the buffer (can be toggled back)
+- `q` - Cancel streaming from the API
+- `gd` - Delete the buffer (cannot be toggled back)
+- `gc` - Clear the buffer’s contents
+- `ga` - Add a codeblock
+- `gs` - Save the chat as a conversation
+- `[` - Move to the next header in the buffer
+- `]` - Move to the previous header in the buffer
+
+
+CONVERSATIONS
+
+Chat Buffers are not automatically saved to disk, owing to them being an
+`acwrite` buftype (see |buftype|). However, the plugin allows for this via the
+notion of Conversations and pressing `gs` in the buffer. Conversations can then
+be restored via the Action Palette and the _Load conversations_ action.
+
+
+SETTINGS
+
+If `display.chat.show_settings` is set to `true`, at the very top of the chat
+buffer will be the parameters which can be changed to affect the API’s
+response back to you. This enables fine-tuning and parameter tweaking
+throughout the chat. You can find more detail about them by moving the cursor
+over them or referring to the Chat Completions reference guide
+<https://platform.openai.com/docs/api-reference/chat> if you’re using OpenAI.
 
 
 IN-BUILT ACTIONS ~
@@ -218,15 +287,12 @@ initated in, or, if run from a terminal prompt, to write commands.
 CODE ADVISOR
 
 As the name suggests, this action provides advice on a visual selection of code
-and utilises the `advisor` strategy. It uses the `display` configuration option
-to output the response from OpenAI into a split or a popup. Inevitably, the
-response back from OpenAI may lead to more questions. Pressing `c` in the
-advisor buffer will take the conversation to a chat buffer. Pressing `q` will
-close the buffer.
+and utilises the `advisor` strategy. The response from the API is output into a
+chat buffer which follows the `display.chat` settings in your configuration.
 
 
-  **Note**For some users, the sending of code to OpenAI may not be an option. In
-  those instances, you can set `send_code = false` in your config.
+  **Note**For some users, the sending of code to the GenAI may not be an option.
+  In those instances, you can set `send_code = false` in your config.
 
 LSP ASSISTANT
 
@@ -242,8 +308,12 @@ HELPERS                                                *codecompanion-helpers*
 
 HOOKS / USER EVENTS ~
 
-The plugin fires events at the start and the conclusion of an API request. A
-user can hook into these as follows:
+The plugin fires the following events during its lifecycle:
+
+- `CodeCompanionRequest` - Fired during the API request. Outputs `data.status` with a value of `started` or `finished`
+- `CodeCompanionConversation` - Fired after a conversation has been saved to disk
+
+Events can be hooked into as follows:
 
 >lua
     local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
@@ -268,13 +338,13 @@ snippet to display an icon in the statusline whilst CodeCompanion is speaking
 to the LLM:
 
 >lua
-    local OpenAI = {
+    local GenAI = {
       static = {
         processing = false,
       },
       update = {
         "User",
-        pattern = "CodeCompanion",
+        pattern = "CodeCompanionRequest",
         callback = function(self, args)
           self.processing = (args.data.status == "started")
           vim.cmd("redrawstatus")

@@ -1,7 +1,7 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
-local util = require("codecompanion.utils.util")
+local ui = require("codecompanion.utils.ui")
 local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
@@ -269,6 +269,7 @@ local function chat_autocmds(bufnr, args)
     callback = function()
       local data = {}
       data.type = args.type
+      data.conversation = args.conversation
       data.settings, data.messages = parse_messages_buffer(bufnr)
       table.insert(_G.codecompanion_chats, data)
     end,
@@ -293,18 +294,20 @@ local Chat = {}
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)
   local bufnr
+  local winid
   if config.options.display.chat.type == "float" then
     bufnr = api.nvim_create_buf(false, true)
   else
     bufnr = api.nvim_create_buf(true, false)
+    winid = api.nvim_get_current_win()
   end
-  local winid = api.nvim_get_current_win()
 
   api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", math.random(10000000)))
   api.nvim_buf_set_option(bufnr, "buftype", "acwrite")
   api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
   api.nvim_buf_set_option(bufnr, "syntax", "markdown")
   api.nvim_buf_set_option(bufnr, "bufhidden", "wipe")
+  vim.b[bufnr].codecompanion_type = "chat"
 
   watch_cursor()
   chat_autocmds(bufnr, args)
@@ -328,57 +331,20 @@ function Chat.new(args)
   render_messages(bufnr, settings, args.messages or {}, args.context or {})
   display_tokens(bufnr)
 
-  for k, v in pairs(config.options.display.chat.win_options) do
-    api.nvim_set_option_value(k, v, { scope = "local", win = winid })
+  if config.options.display.chat.type == "float" then
+    winid = ui.open_float(bufnr, {
+      display = config.options.display.chat.float,
+    })
   end
 
   if config.options.display.chat.type == "buffer" and args.show_buffer then
     api.nvim_set_current_buf(bufnr)
-    util.buf_scroll_to_end(bufnr)
   end
 
-  if config.options.display.chat.type == "float" then
-    self:open_float(bufnr, config.options.display.chat.float)
-  end
+  ui.set_options(config.options.display.win_options, winid)
+  ui.buf_scroll_to_end(bufnr)
 
   return self
-end
-
----@param bufnr number
-function Chat:open_float(bufnr, opts)
-  local ui = require("codecompanion.utils.ui")
-
-  local total_width = vim.o.columns
-  local total_height = ui.get_editor_height()
-  local width = total_width - 2 * opts.padding
-  if opts.border ~= "none" then
-    width = width - 2 -- The border consumes 1 col on each side
-  end
-  if opts.max_width > 0 then
-    width = math.min(width, opts.max_width)
-  end
-
-  local height = total_height - 2 * opts.padding
-  if opts.max_height > 0 then
-    height = math.min(height, opts.max_height)
-  end
-
-  local row = math.floor((total_height - height) / 2)
-  local col = math.floor((total_width - width) / 2) - 1 -- adjust for border width
-
-  api.nvim_open_win(bufnr, true, {
-    relative = "editor",
-    width = width,
-    height = height,
-    row = row,
-    col = col,
-    border = opts.border,
-    zindex = 45,
-    title = "Code Companion",
-    title_pos = "center",
-  })
-
-  util.buf_scroll_to_end(bufnr)
 end
 
 function Chat:submit()
@@ -390,13 +356,6 @@ function Chat:submit()
 
   vim.bo[self.bufnr].modified = false
   vim.bo[self.bufnr].modifiable = false
-  api.nvim_buf_set_keymap(self.bufnr, "n", "q", "", {
-    noremap = true,
-    silent = true,
-    callback = function()
-      _G.codecompanion_jobs[self.bufnr].status = "stopping"
-    end,
-  })
 
   local function finalize()
     vim.bo[self.bufnr].modified = false
@@ -410,8 +369,8 @@ function Chat:submit()
 
     render_messages(self.bufnr, settings, messages, {})
 
-    if cursor_moved and util.buf_is_active(self.bufnr) then
-      util.buf_scroll_to_end()
+    if cursor_moved and ui.buf_is_active(self.bufnr) then
+      ui.buf_scroll_to_end()
     end
   end
 

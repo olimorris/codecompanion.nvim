@@ -53,6 +53,9 @@ function Client:call(url, payload, cb)
   cb = log:wrap_cb(cb, "Response error: %s")
   local cmd = {
     "curl",
+    "--silent",
+    "--show-error",
+    "--no-buffer",
     url,
     "-H",
     "Content-Type: application/json",
@@ -69,7 +72,7 @@ function Client:call(url, payload, cb)
   log:trace("request payload: %s", payload)
   local stdout = ""
 
-  vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanion", data = { status = "started" } })
+  vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionRequest", data = { status = "started" } })
 
   local jid = vim.fn.jobstart(cmd, {
     stdout_buffered = true,
@@ -85,7 +88,7 @@ function Client:call(url, payload, cb)
         cb(nil, data)
       end
 
-      vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanion", data = { status = "finished" } })
+      vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionRequest", data = { status = "finished" } })
     end),
   })
 
@@ -131,6 +134,9 @@ function Client:stream_call(url, payload, bufnr, cb)
   payload.stream = true
   local cmd = {
     "curl",
+    "--silent",
+    "--show-error",
+    "--no-buffer",
     url,
     "-H",
     "Content-Type: application/json",
@@ -150,7 +156,7 @@ function Client:stream_call(url, payload, bufnr, cb)
   local done = false
   local found_any_stream = false
 
-  vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanion", data = { status = "started" } })
+  vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionRequest", data = { status = "started" } })
 
   local jid = vim.fn.jobstart(cmd, {
     on_stdout = function(_, output)
@@ -197,7 +203,7 @@ function Client:stream_call(url, payload, bufnr, cb)
       end
     end,
     on_exit = function(_, code)
-      vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanion", data = { status = "finished" } })
+      vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionRequest", data = { status = "finished" } })
 
       if not found_any_stream then
         local err, data = parse_response(code, stdout)

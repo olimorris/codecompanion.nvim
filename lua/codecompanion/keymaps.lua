@@ -1,3 +1,4 @@
+local config = require("codecompanion.config")
 local ts = require("codecompanion.utils.ts")
 
 local M = {}
@@ -6,6 +7,16 @@ M.close = {
   desc = "Close the chat window",
   callback = function()
     vim.cmd("bd!")
+  end,
+}
+
+M.cancel_request = {
+  desc = "Cancel the current request",
+  callback = function(args)
+    if _G.codecompanion_jobs[args.bufnr] == nil then
+      return
+    end
+    _G.codecompanion_jobs[args.bufnr].status = "stopping"
   end,
 }
 
@@ -26,6 +37,10 @@ M.save_conversation = {
     if args.conversation then
       conversation.filename = args.conversation
       conversation:save(args.bufnr, chat.buf_get_messages(args.bufnr))
+
+      if config.options.silence_notifications then
+        return
+      end
 
       return vim.notify("[CodeCompanion.nvim]\nConversation has been saved", vim.log.levels.INFO)
     end

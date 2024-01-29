@@ -32,7 +32,7 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 ## :camera_flash: Screenshots
 
 <div align="center">
-  <p><strong>Chat buffer</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/fd1f11e7-bef4-4bbc-8c7f-0c306e5c72b8" alt="chat buffer" /></p>
+  <p><strong>Chat buffer</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/a19c8397-a1e2-44df-98be-8a1b4d307ea7" alt="chat buffer" /></p>
   <p><strong>Code author</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/64cf4fa1-d5b9-43cc-8351-4d06c06c8b46" alt="code author" /></p>
   <p><strong>Code advisor</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/bc6181e0-85a8-4009-9cfc-f85898780bd5" alt="code advisor" /><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/cbfafcc0-87f9-43e5-8e27-f8eaaf88637d" alt="code advisor" /></p>
 </div>
@@ -61,7 +61,7 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
       opts = {},
     },
   },
-  cmd = { "CodeCompanionChat", "CodeCompanionActions" },
+  cmd = { "CodeCompanionToggle", "CodeCompanionActions" },
   config = true
 }
 
@@ -108,8 +108,7 @@ use({
     user = nil,
   },
   conversations = {
-    auto_save = true, -- Once a conversation is created/loaded, automatically save it
-    save_dir = vim.fn.stdpath("data") .. "/codecompanion/conversations",
+    save_dir = vim.fn.stdpath("data") .. "/codecompanion/conversations", -- Path to save conversations to
   },
   display = {
     action_palette = {
@@ -125,26 +124,22 @@ use({
         max_width = 0,
         padding = 1,
       },
-      win_options = {
-        cursorcolumn = false,
-        cursorline = false,
-        foldcolumn = "0",
-        linebreak = true,
-        list = false,
-        signcolumn = "no",
-        spell = false,
-        wrap = true,
-      },
     },
-    --TODO: Refactor these:
-    type = "popup",
-    split = "horizontal",
-    height = 0.7,
-    width = 0.8,
+    win_options = {
+      cursorcolumn = false,
+      cursorline = false,
+      foldcolumn = "0",
+      linebreak = true,
+      list = false,
+      signcolumn = "no",
+      spell = false,
+      wrap = true,
+    },
   },
   keymaps = {
-    ["<C-c>"] = "keymaps.close", -- Close the chat
-    ["gd"] = "keymaps.delete", -- Delete the chat permanently
+    ["<C-c>"] = "keymaps.close", -- Close the chat (can be toggled back)
+    ["q"] = "keymaps.cancel_request", -- Cancel the currently streaming request
+    ["gd"] = "keymaps.delete", -- Delete the chat permanently (cannot be toggled)
     ["gc"] = "keymaps.clear", -- Clear the contents of the chat
     ["ga"] = "keymaps.codeblock", -- Insert a codeblock in the chat
     ["gs"] = "keymaps.save_conversation", -- Save the current chat as a conversation
@@ -154,13 +149,31 @@ use({
   log_level = "ERROR", -- TRACE|DEBUG|ERROR
   send_code = true, -- Send code context to the API?
   show_token_count = true, -- Show the token count for the current chat?
-  use_default_actions = true, -- Use the default in the action palette?
+  use_default_actions = true, -- Use the default actions in the action palette?
 }
 ```
 
 </details>
 
-Modify the default settings via the `opts` table in Lazy.nvim or by calling the `require("codecompanion").setup()` function in Packer.
+### Edgy.nvim Configuration
+
+The author recommends pairing with [edgy.nvim](https://github.com/folke/edgy.nvim) for a Co-Pilot Chat-like experience:
+
+```lua
+{
+  "folke/edgy.nvim",
+  event = "VeryLazy",
+  init = function()
+    vim.opt.laststatus = 3
+    vim.opt.splitkeep = "screen"
+  end,
+  opts = {
+    right = {
+      { ft = "codecompanion", title = "Code Companion Chat", size = { width = 0.45 } },
+    }
+  }
+}
+```
 
 ## :rocket: Usage
 
@@ -169,7 +182,6 @@ The plugin has a number of commands:
 - `CodeCompanionChat` - To open up a new chat buffer
 - `CodeCompanionToggle` - Toggle a chat buffer
 - `CodeCompanionActions` - To open up the action palette window
-- `CodeCompanionSaveConversationAs` - Saves a chat buffer as a conversation
 
 For an optimum workflow, the plugin author recommendeds the following keymaps:
 
@@ -210,22 +222,28 @@ Or, if you wish to turn off the default actions, set `use_default_actions = fals
 
 <p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/84d5e03a-0b48-4ffb-9ca5-e299d41171bd" alt="chat buffer" /></p>
 
-The Chat buffer is where you can converse with your GenAI API, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the API, in the form of prompts. These prompts are segmented by H1 headers: `user` and `assistant` (see OpenAI's [Chat Completions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api) for more on this). When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with GenAI, from within Neovim.
+The chat buffer is where you can converse with your GenAI API, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the API, in the form of prompts. These prompts are segmented by H1 headers: `user` and `assistant` (see OpenAI's [Chat Completions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api) for more on this). When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with GenAI, from within Neovim.
 
-When in the Chat buffer, there are number of keymaps available to you (which can be changed in the config):
+#### Keymaps
 
-- `<C-c>` - Close/hide the buffer
-- `gd` - Delete the buffer
-- `gc` - Clear the buffer
+When in the chat buffer, there are number of keymaps available to you (which can be changed in the config):
+
+- `<C-c>` - Close/hide the buffer (can be toggled back)
+- `q` - Cancel streaming from the API
+- `gd` - Delete the buffer (cannot be toggled back)
+- `gc` - Clear the buffer's contents
 - `ga` - Add a codeblock
-- `[` - Move to the next header
-- `]` - Move to the previous header
+- `gs` - Save the chat as a conversation
+- `[` - Move to the next header in the buffer
+- `]` - Move to the previous header in the buffer
 
-If `display.chat.show_settings` is set to `true`, at the very top of the Chat buffer will be the parameters which can be changed to affect the API's response back to you. You can find more detail about them by moving the cursor over them or referring to the [Chat Completions reference guide](https://platform.openai.com/docs/api-reference/chat) if you're using OpenAI. The parameters can be tweaked and modified throughout the conversation.
+#### Conversations
 
-Chat Buffers are not automatically saved to disk, owing to them being an `acwrite` buftype (see `:h buftype`). However, the plugin allows for this via the notion of Conversations. Simply run `:CodeCompanionSaveConversationAs` in the chat buffer you wish to save. Conversations can then be restored via the Action Palette and the _Load conversations_ actions.
+Chat Buffers are not automatically saved to disk, owing to them being an `acwrite` buftype (see `:h buftype`). However, the plugin allows for this via the notion of Conversations and pressing `gs` in the buffer. Conversations can then be restored via the Action Palette and the _Load conversations_ action.
 
-> **Note**: When a conversation is saved or loaded it will automatically save any changes.
+#### Settings
+
+If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the parameters which can be changed to affect the API's response back to you. This enables fine-tuning and parameter tweaking throughout the chat. You can find more detail about them by moving the cursor over them or referring to the [Chat Completions reference guide](https://platform.openai.com/docs/api-reference/chat) if you're using OpenAI.
 
 ### In-Built Actions
 
@@ -247,9 +265,9 @@ This action utilises the `author` strategy. This action can be useful for genera
 
 #### Code advisor
 
-As the name suggests, this action provides advice on a visual selection of code and utilises the `advisor` strategy. It uses the `display` configuration option to output the response from OpenAI into a split or a popup. Inevitably, the response back from OpenAI may lead to more questions. Pressing `c` in the advisor buffer will take the conversation to a chat buffer. Pressing `q` will close the buffer.
+As the name suggests, this action provides advice on a visual selection of code and utilises the `advisor` strategy. The response from the API is output into a chat buffer which follows the `display.chat` settings in your configuration.
 
-> **Note**: For some users, the sending of code to OpenAI may not be an option. In those instances, you can set `send_code = false` in your config.
+> **Note**: For some users, the sending of code to the GenAI may not be an option. In those instances, you can set `send_code = false` in your config.
 
 #### LSP assistant
 
@@ -259,7 +277,12 @@ Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) pl
 
 ### Hooks / User events
 
-The plugin fires events at the start and the conclusion of an API request. A user can hook into these as follows:
+The plugin fires the following events during its lifecycle:
+
+- `CodeCompanionRequest` - Fired during the API request. Outputs `data.status` with a value of `started` or `finished`
+- `CodeCompanionConversation` - Fired after a conversation has been saved to disk
+
+Events can be hooked into as follows:
 
 ```lua
 local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
@@ -286,7 +309,7 @@ local GenAI = {
   },
   update = {
     "User",
-    pattern = "CodeCompanion",
+    pattern = "CodeCompanionRequest",
     callback = function(self, args)
       self.processing = (args.data.status == "started")
       vim.cmd("redrawstatus")

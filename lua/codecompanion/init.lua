@@ -1,6 +1,7 @@
 local Client = require("codecompanion.client")
 local config = require("codecompanion.config")
-local utils = require("codecompanion.utils.util")
+local ui = require("codecompanion.utils.ui")
+local util = require("codecompanion.utils.util")
 
 local M = {}
 
@@ -40,8 +41,9 @@ M.restore = function(chat, index)
 
   Chat.new({
     client = client,
-    settings = chat.settings,
+    conversation = chat.conversation,
     messages = chat.messages,
+    settings = chat.settings,
     type = chat.type,
   })
 
@@ -54,7 +56,7 @@ M.chat = function()
     return
   end
 
-  local context = utils.get_context(vim.api.nvim_get_current_buf())
+  local context = util.get_context(vim.api.nvim_get_current_buf())
 
   local chat
   local Chat = require("codecompanion.strategy.chat")
@@ -65,9 +67,10 @@ M.chat = function()
     chat = Chat.new({
       client = client,
       context = context,
-      type = restore.type,
-      settings = restore.settings,
+      conversation = restore.conversation,
       messages = restore.messages,
+      settings = restore.settings,
+      type = restore.type,
     })
 
     _G.codecompanion_chats[#_G.codecompanion_chats] = nil
@@ -79,7 +82,7 @@ M.chat = function()
   end
 
   vim.api.nvim_win_set_buf(0, chat.bufnr)
-  utils.scroll_to_end(0)
+  ui.scroll_to_end(0)
 end
 
 M.toggle = function()
@@ -98,7 +101,7 @@ M.actions = function()
   end
 
   local actions = require("codecompanion.actions")
-  local context = utils.get_context(vim.api.nvim_get_current_buf())
+  local context = util.get_context(vim.api.nvim_get_current_buf())
 
   local function picker(items, opts, callback)
     opts = opts or {}
