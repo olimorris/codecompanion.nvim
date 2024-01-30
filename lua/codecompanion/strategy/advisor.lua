@@ -87,11 +87,13 @@ function Advisor:execute(user_input)
       content = "",
     })
 
-    return require("codecompanion.strategy.chat").new({
+    require("codecompanion.strategy.chat").new({
       client = self.client,
       messages = messages,
       show_buffer = true,
     })
+
+    require("codecompanion.utils.ts").goto_heading("prev", 1)
   end)
 end
 

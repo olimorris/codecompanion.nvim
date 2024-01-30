@@ -89,14 +89,14 @@ M.codeblock = {
 M.next = {
   desc = "Go to the next message",
   callback = function()
-    ts.goto_heading("next")
+    ts.goto_heading("next", 1)
   end,
 }
 
 M.previous = {
   desc = "Go to the previous message",
   callback = function()
-    ts.goto_heading("prev")
+    ts.goto_heading("prev", 1)
   end,
 }
 
