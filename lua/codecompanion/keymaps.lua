@@ -20,14 +20,6 @@ M.cancel_request = {
   end,
 }
 
-M.delete = {
-  desc = "Delete the current chat",
-  callback = function()
-    M.close.callback()
-    table.remove(_G.codecompanion_chats, #_G.codecompanion_chats)
-  end,
-}
-
 M.save_conversation = {
   desc = "Save the chat as a conversation",
   callback = function(args)

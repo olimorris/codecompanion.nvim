@@ -52,7 +52,6 @@ local defaults = {
   keymaps = {
     ["<C-c>"] = "keymaps.close",
     ["q"] = "keymaps.cancel_request",
-    ["gd"] = "keymaps.delete",
     ["gc"] = "keymaps.clear",
     ["ga"] = "keymaps.codeblock",
     ["gs"] = "keymaps.save_conversation",

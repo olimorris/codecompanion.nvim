@@ -137,9 +137,8 @@ use({
     },
   },
   keymaps = {
-    ["<C-c>"] = "keymaps.close", -- Close the chat (can be toggled back)
+    ["<C-c>"] = "keymaps.close", -- Close the chat buffer
     ["q"] = "keymaps.cancel_request", -- Cancel the currently streaming request
-    ["gd"] = "keymaps.delete", -- Delete the chat permanently (cannot be toggled)
     ["gc"] = "keymaps.clear", -- Clear the contents of the chat
     ["ga"] = "keymaps.codeblock", -- Insert a codeblock in the chat
     ["gs"] = "keymaps.save_conversation", -- Save the current chat as a conversation
@@ -228,9 +227,8 @@ The chat buffer is where you can converse with your GenAI API, directly from Neo
 
 When in the chat buffer, there are number of keymaps available to you (which can be changed in the config):
 
-- `<C-c>` - Close/hide the buffer (can be toggled back)
+- `<C-c>` - Close the buffer
 - `q` - Cancel streaming from the API
-- `gd` - Delete the buffer (cannot be toggled back)
 - `gc` - Clear the buffer's contents
 - `ga` - Add a codeblock
 - `gs` - Save the chat as a conversation
