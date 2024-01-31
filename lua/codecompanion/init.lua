@@ -58,36 +58,39 @@ M.chat = function()
 
   local context = util.get_context(vim.api.nvim_get_current_buf())
 
-  local chat
   local Chat = require("codecompanion.strategy.chat")
-
-  if #_G.codecompanion_chats > 0 then
-    local restore = _G.codecompanion_chats[#_G.codecompanion_chats]
-
-    chat = Chat.new({
-      client = client,
-      context = context,
-      conversation = restore.conversation,
-      messages = restore.messages,
-      settings = restore.settings,
-      type = restore.type,
-    })
-
-    _G.codecompanion_chats[#_G.codecompanion_chats] = nil
-  else
-    chat = Chat.new({
-      client = client,
-      context = context,
-    })
-  end
+  local chat = Chat.new({
+    client = client,
+    context = context,
+  })
 
   vim.api.nvim_win_set_buf(0, chat.bufnr)
   ui.scroll_to_end(0)
 end
 
-M.toggle = function()
+M.toggle = function(bufnr)
+  local function buf_toggle(bufnr)
+    if _G.codecompanion_toggle then
+      if config.options.display.chat.type == "float" then
+        ui.open_float(bufnr, {
+          display = config.options.display.chat.float,
+        })
+      else
+        vim.cmd("buffer " .. bufnr)
+      end
+    else
+      if config.options.display.chat.type == "float" then
+        vim.cmd("hide")
+      else
+        vim.cmd("buffer " .. vim.fn.bufnr("#"))
+      end
+    end
+  end
+
   if vim.bo.filetype == "codecompanion" then
-    vim.api.nvim_win_close(0, true)
+    buf_toggle(bufnr or vim.api.nvim_get_current_buf())
+  elseif _G.codecompanion_toggle then
+    buf_toggle(_G.codecompanion_toggle)
   else
     M.chat()
   end

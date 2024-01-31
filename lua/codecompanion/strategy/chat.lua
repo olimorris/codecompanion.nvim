@@ -136,7 +136,7 @@ local function render_messages(bufnr, settings, messages, context)
 
   local modifiable = vim.bo[bufnr].modifiable
   vim.bo[bufnr].modifiable = true
-  api.nvim_buf_set_lines(bufnr, 0, -1, true, lines)
+  api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
   vim.bo[bufnr].modified = false
   vim.bo[bufnr].modifiable = modifiable
 end
@@ -263,15 +263,33 @@ local function chat_autocmds(bufnr, args)
     })
   end
 
-  -- Save the buffer to memory when closed
-  api.nvim_create_autocmd("BufWinLeave", {
+  -- Handle toggling the buffer and chat window
+  api.nvim_create_autocmd("BufHidden", {
     buffer = bufnr,
     callback = function()
+      _G.codecompanion_toggle = bufnr
+
+      -- Store the chat data so we can restore it later
       local data = {}
+      data.bufnr = bufnr
       data.type = args.type
       data.conversation = args.conversation
       data.settings, data.messages = parse_messages_buffer(bufnr)
       table.insert(_G.codecompanion_chats, data)
+    end,
+  })
+  api.nvim_create_autocmd({ "BufWinEnter", "BufDelete", "BufWipeout" }, {
+    buffer = bufnr,
+    callback = function()
+      _G.codecompanion_toggle = nil
+
+      -- Remove the chat from the stored data
+      for key, value in pairs(_G.codecompanion_chats) do
+        if value.bufnr == bufnr then
+          table.remove(_G.codecompanion_chats, key)
+          break
+        end
+      end
     end,
   })
 end
@@ -306,7 +324,7 @@ function Chat.new(args)
   api.nvim_buf_set_option(bufnr, "buftype", "acwrite")
   api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
   api.nvim_buf_set_option(bufnr, "syntax", "markdown")
-  api.nvim_buf_set_option(bufnr, "bufhidden", "wipe")
+  api.nvim_buf_set_option(bufnr, "bufhidden", "hide")
   vim.b[bufnr].codecompanion_type = "chat"
 
   watch_cursor()
@@ -407,7 +425,6 @@ function Chat:submit()
       end
 
       if done then
-        api.nvim_buf_del_keymap(self.bufnr, "n", "q")
         table.insert(messages, { role = "user", content = "" })
         render_buffer()
         display_tokens(self.bufnr)
