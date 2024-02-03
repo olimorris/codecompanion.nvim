@@ -387,6 +387,7 @@ function Chat.new(args)
   end
 
   ui.set_options(config.options.display.win_options, winid)
+  vim.cmd("setlocal formatoptions-=t")
   ui.buf_scroll_to_end(bufnr)
 
   return self
