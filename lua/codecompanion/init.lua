@@ -31,25 +31,6 @@ M.buf_get_chat = function(bufnr)
   return require("codecompanion.strategy.chat").buf_get_chat(bufnr)
 end
 
-M.restore = function(chat, index)
-  local client = get_client()
-  if not client then
-    return
-  end
-
-  local Chat = require("codecompanion.strategy.chat")
-
-  Chat.new({
-    client = client,
-    conversation = chat.conversation,
-    messages = chat.messages,
-    settings = chat.settings,
-    type = chat.type,
-  })
-
-  _G.codecompanion_chats[index] = nil
-end
-
 M.chat = function()
   local client = get_client()
   if not client then
@@ -68,29 +49,37 @@ M.chat = function()
   ui.scroll_to_end(0)
 end
 
-M.toggle = function(bufnr)
-  local function buf_toggle(bufnr)
-    if _G.codecompanion_toggle then
+M.toggle = function()
+  local function buf_toggle(buf, action)
+    if action == "show" then
       if config.options.display.chat.type == "float" then
-        ui.open_float(bufnr, {
+        ui.open_float(buf, {
           display = config.options.display.chat.float,
         })
       else
-        vim.cmd("buffer " .. bufnr)
+        vim.cmd("buffer " .. buf)
       end
-    else
+    elseif action == "hide" then
       if config.options.display.chat.type == "float" then
         vim.cmd("hide")
       else
-        vim.cmd("buffer " .. vim.fn.bufnr("#"))
+        -- Show the previous buffer
+        vim.cmd("buffer " .. vim.fn.buf("#"))
       end
     end
   end
 
+  local function fire_event(status, buf)
+    return vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { action = status, buf = buf } })
+  end
+
   if vim.bo.filetype == "codecompanion" then
-    buf_toggle(bufnr or vim.api.nvim_get_current_buf())
-  elseif _G.codecompanion_toggle then
-    buf_toggle(_G.codecompanion_toggle)
+    local buf = vim.api.nvim_get_current_buf()
+    buf_toggle(buf, "hide")
+    fire_event("hide_buffer", buf)
+  elseif _G.codecompanion_last_chat_buffer then
+    buf_toggle(_G.codecompanion_last_chat_buffer, "show")
+    fire_event("show_buffer")
   else
     M.chat()
   end

@@ -2,6 +2,7 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
 local ui = require("codecompanion.utils.ui")
+local utils = require("codecompanion.utils.util")
 local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
@@ -175,8 +176,13 @@ local registered_cmp = false
 ---@param bufnr number
 ---@param args table
 local function chat_autocmds(bufnr, args)
+  local aug = api.nvim_create_augroup("CodeCompanion", {
+    clear = false,
+  })
+
   -- Submit the chat
   api.nvim_create_autocmd("BufWriteCmd", {
+    group = aug,
     buffer = bufnr,
     callback = function()
       local chat = chatmap[bufnr]
@@ -191,6 +197,7 @@ local function chat_autocmds(bufnr, args)
   if config.options.display.chat.show_settings then
     -- Virtual text for the settings
     api.nvim_create_autocmd("InsertLeave", {
+      group = aug,
       buffer = bufnr,
       callback = function()
         local settings = parse_settings(bufnr)
@@ -222,6 +229,7 @@ local function chat_autocmds(bufnr, args)
   -- Enable cmp and add virtual text to the empty buffer
   local bufenter_autocmd
   bufenter_autocmd = api.nvim_create_autocmd("BufEnter", {
+    group = aug,
     buffer = bufnr,
     callback = function()
       if #_G.codecompanion_chats == 0 then
@@ -253,6 +261,7 @@ local function chat_autocmds(bufnr, args)
   if #_G.codecompanion_chats == 0 then
     local insertenter_autocmd
     insertenter_autocmd = api.nvim_create_autocmd("InsertEnter", {
+      group = aug,
       buffer = bufnr,
       callback = function()
         local ns_id = api.nvim_create_namespace("CodeCompanionChatVirtualText")
@@ -264,32 +273,50 @@ local function chat_autocmds(bufnr, args)
   end
 
   -- Handle toggling the buffer and chat window
-  api.nvim_create_autocmd("BufHidden", {
-    buffer = bufnr,
-    callback = function()
-      _G.codecompanion_toggle = bufnr
+  api.nvim_create_autocmd("User", {
+    desc = "Store the current chat buffer",
+    group = aug,
+    pattern = "CodeCompanionChat",
+    callback = function(request)
+      if request.data.buf ~= bufnr or request.data.action ~= "hide_buffer" then
+        return
+      end
 
-      -- Store the chat data so we can restore it later
-      local data = {}
-      data.bufnr = bufnr
-      data.type = args.type
-      data.conversation = args.conversation
-      data.settings, data.messages = parse_messages_buffer(bufnr)
-      table.insert(_G.codecompanion_chats, data)
+      _G.codecompanion_last_chat_buffer = bufnr
+
+      if _G.codecompanion_chats[bufnr] == nil then
+        local description
+        local _, messages = parse_messages_buffer(bufnr)
+
+        if messages[1] and messages[1].content then
+          description = messages[1].content
+        else
+          description = "[No messages]"
+        end
+
+        _G.codecompanion_chats[bufnr] = {
+          name = "Chat " .. utils.count(_G.codecompanion_chats) + 1,
+          description = description,
+        }
+      end
     end,
   })
-  api.nvim_create_autocmd({ "BufWinEnter", "BufDelete", "BufWipeout" }, {
-    buffer = bufnr,
-    callback = function()
-      _G.codecompanion_toggle = nil
 
-      -- Remove the chat from the stored data
-      for key, value in pairs(_G.codecompanion_chats) do
-        if value.bufnr == bufnr then
-          table.remove(_G.codecompanion_chats, key)
-          break
-        end
+  api.nvim_create_autocmd("User", {
+    desc = "Remove the chat buffer from the stored chats",
+    group = aug,
+    pattern = "CodeCompanionChat",
+    callback = function(request)
+      if request.data.buf ~= bufnr or request.data.action ~= "close_buffer" then
+        return
       end
+
+      if _G.codecompanion_last_chat_buffer == bufnr then
+        _G.codecompanion_last_chat_buffer = nil
+      end
+
+      _G.codecompanion_chats[bufnr] = nil
+      vim.cmd("bd!")
     end,
   })
 end
@@ -313,8 +340,9 @@ local Chat = {}
 function Chat.new(args)
   local bufnr
   local winid
+
   if config.options.display.chat.type == "float" then
-    bufnr = api.nvim_create_buf(false, true)
+    bufnr = api.nvim_create_buf(false, false)
   else
     bufnr = api.nvim_create_buf(true, false)
     winid = api.nvim_get_current_win()
@@ -324,7 +352,6 @@ function Chat.new(args)
   api.nvim_buf_set_option(bufnr, "buftype", "acwrite")
   api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
   api.nvim_buf_set_option(bufnr, "syntax", "markdown")
-  api.nvim_buf_set_option(bufnr, "bufhidden", "hide")
   vim.b[bufnr].codecompanion_type = "chat"
 
   watch_cursor()

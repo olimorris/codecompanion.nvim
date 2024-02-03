@@ -72,41 +72,35 @@ M.static.actions = {
     strategy = "chat",
     description = "Your currently open chats",
     condition = function()
-      -- Don't need to show this if there's only one chat
-      return _G.codecompanion_chats and #_G.codecompanion_chats > 1
+      return _G.codecompanion_chats and utils.count(_G.codecompanion_chats) > 0
     end,
     picker = {
       prompt = "Select a chat",
       items = function()
-        local cc = require("codecompanion")
-        local function load_chat(chat, index)
-          cc.restore({
-            conversation = chat.conversation,
-            messages = chat.messages,
-            settings = chat.settings,
-            type = chat.type,
-          }, index)
-        end
+        local ui = require("codecompanion.utils.ui")
         local chats = {}
 
-        local count = 1
-        for key, chat in pairs(_G.codecompanion_chats) do
-          local description
-          if chat.messages[1] and chat.messages[1].content then
-            description = chat.messages[1].content
-          else
-            description = "[No messages]"
-          end
-
+        for bufnr, chat in pairs(_G.codecompanion_chats) do
           table.insert(chats, {
-            name = "Chat #" .. count,
+            name = chat.name,
             strategy = "chat",
-            description = description,
+            description = chat.description,
             callback = function()
-              return load_chat(chat, key)
+              _G.codecompanion_chats[bufnr] = nil
+
+              local winid = 0
+              if config.options.display.chat.type == "float" then
+                winid = ui.open_float(bufnr, {
+                  display = config.options.display.chat.float,
+                })
+              else
+                vim.api.nvim_set_current_buf(bufnr)
+              end
+
+              ui.set_options(config.options.display.win_options, winid)
+              ui.buf_scroll_to_end(bufnr)
             end,
           })
-          count = count + 1
         end
 
         return chats

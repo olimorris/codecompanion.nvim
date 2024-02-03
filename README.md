@@ -56,6 +56,7 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
   "olimorris/codecompanion.nvim",
   dependencies = {
     "nvim-treesitter/nvim-treesitter",
+    "nvim-lua/plenary.nvim",
     {
       "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
       opts = {},
@@ -73,6 +74,7 @@ use({
   end,
   requires = {
     "nvim-treesitter/nvim-treesitter",
+    "nvim-lua/plenary.nvim",
     "stevearc/dressing.nvim"
   }
 })
@@ -173,6 +175,13 @@ The author recommends pairing with [edgy.nvim](https://github.com/folke/edgy.nvi
   }
 }
 ```
+
+### Highlight Groups
+
+The plugin sets a number of highlights during setup:
+
+- `CodeCompanionTokens` - Virtual text showing the token count when in a chat buffer
+- `CodeCompanionVirtualText` - All other virtual text in the chat buffer
 
 ## :rocket: Usage
 
@@ -279,6 +288,10 @@ The plugin fires the following events during its lifecycle:
 
 - `CodeCompanionRequest` - Fired during the API request. Outputs `data.status` with a value of `started` or `finished`
 - `CodeCompanionConversation` - Fired after a conversation has been saved to disk
+- `CodeCompanionChat` - Fired at various points during the chat buffer. Comes with the following attributes:
+  - `data.action = close_buffer` - For when a chat buffer has been permanently closed
+  - `data.action = hide_buffer` - For when a chat buffer is now hidden
+  - `data.action = show_buffer` - For when a chat buffer is now visible after being hidden
 
 Events can be hooked into as follows:
 
@@ -286,7 +299,7 @@ Events can be hooked into as follows:
 local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
 
 vim.api.nvim_create_autocmd({ "User" }, {
-  pattern = "CodeCompanion",
+  pattern = "CodeCompanionRequest",
   group = group,
   callback = function(request)
     print(request.data.status) -- outputs "started" or "finished"

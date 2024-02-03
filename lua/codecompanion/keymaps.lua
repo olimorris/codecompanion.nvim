@@ -5,8 +5,11 @@ local M = {}
 
 M.close = {
   desc = "Close the chat window",
-  callback = function()
-    vim.cmd("bd!")
+  callback = function(args)
+    vim.api.nvim_exec_autocmds(
+      "User",
+      { pattern = "CodeCompanionChat", data = { action = "close_buffer", buf = args.bufnr } }
+    )
   end,
 }
 
