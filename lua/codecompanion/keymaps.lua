@@ -3,6 +3,13 @@ local ts = require("codecompanion.utils.ts")
 
 local M = {}
 
+M.save = {
+  desc = "Save the chat buffer and trigger the API",
+  callback = function()
+    vim.cmd("w")
+  end,
+}
+
 M.close = {
   desc = "Close the chat window",
   callback = function(args)

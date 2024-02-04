@@ -50,6 +50,7 @@ local defaults = {
     },
   },
   keymaps = {
+    ["<C-s>"] = "keymaps.save",
     ["<C-c>"] = "keymaps.close",
     ["q"] = "keymaps.cancel_request",
     ["gc"] = "keymaps.clear",
