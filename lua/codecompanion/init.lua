@@ -1,4 +1,3 @@
-local Client = require("codecompanion.client")
 local config = require("codecompanion.config")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils.util")
@@ -17,11 +16,15 @@ local function get_client()
       )
       return nil
     end
+
+    local Client = require("codecompanion.client")
+
     _client = Client.new({
       secret_key = secret_key,
       organization = os.getenv(config.options.org_api_key),
     })
   end
+
   return _client
 end
 

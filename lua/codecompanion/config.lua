@@ -28,8 +28,8 @@ local defaults = {
       height = 10,
     },
     chat = {
-      type = "buffer",
-      show_settings = true,
+      type = "float",
+      show_settings = false,
       float = {
         border = "single",
         buflisted = false,
@@ -58,7 +58,7 @@ local defaults = {
     ["]"] = "keymaps.next",
     ["["] = "keymaps.previous",
   },
-  log_level = "TRACE",
+  log_level = "ERROR",
   send_code = true,
   show_token_count = true,
   silence_notifications = false,

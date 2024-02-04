@@ -1,6 +1,6 @@
 local config = require("codecompanion.config")
-local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
+local schema = require("codecompanion.schema")
 
 _G.codecompanion_jobs = {}
 
@@ -36,11 +36,13 @@ end
 ---@class CodeCompanion.Client
 ---@field secret_key string
 ---@field organization nil|string
+---@field settings nil|table
 local Client = {}
 
 ---@class CodeCompanion.ClientArgs
 ---@field secret_key string
 ---@field organization nil|string
+---@field settings nil|table
 
 ---@param args CodeCompanion.ClientArgs
 ---@return CodeCompanion.Client
@@ -48,6 +50,7 @@ function Client.new(args)
   return setmetatable({
     secret_key = args.secret_key,
     organization = args.organization,
+    settings = args.settings or schema.get_default(schema.static.client_settings, args.settings),
   }, { __index = Client })
 end
 
@@ -59,6 +62,7 @@ local function headers(client)
     Authorization = "Bearer " .. client.secret_key,
     OpenAI_Organization = client.organization,
   }
+
   log:trace("Request Headers: %s", group)
 
   return group
@@ -66,15 +70,16 @@ end
 
 ---@param code integer
 ---@param stdout string
+---@param settings table
 ---@return nil|string
 ---@return nil|any
-local function parse_response(code, stdout)
+local function parse_response(code, stdout, settings)
   if code ~= 0 then
     log:error("Error: %s", stdout)
     return string.format("Error: %s", stdout)
   end
 
-  local ok, data = pcall(vim.json.decode, stdout, { luanil = { object = true } })
+  local ok, data = pcall(settings.decode, stdout, { luanil = { object = true } })
   if not ok then
     log:error("Error malformed json: %s", data)
     return string.format("Error malformed json: %s", data)
@@ -94,22 +99,22 @@ end
 function Client:call(url, payload, cb)
   cb = log:wrap_cb(cb, "Response error: %s")
 
-  local handler = curl.post({
+  local handler = self.settings.request({
     url = url,
     raw = { "--no-buffer" },
     headers = headers(self),
-    body = vim.json.encode(payload),
+    body = self.settings.encode(payload),
     callback = function(out)
       if out.exit then
-        local err, data = parse_response(out.exit, out.body)
+        local err, data = parse_response(out.exit, out.body, self.settings)
         if err then
-          vim.schedule(function()
+          self.settings.schedule(function()
             cb(err)
             log:error("Error: %s", err)
             close_request()
           end)
         else
-          vim.schedule(function()
+          self.settings.schedule(function()
             cb(nil, data)
             log:trace("Response: %s", data)
             close_request()
@@ -135,28 +140,28 @@ end
 function Client:stream_call(url, payload, bufnr, cb)
   cb = log:wrap_cb(cb, "Response error: %s")
 
-  local handler = curl.post({
+  local handler = self.settings.request({
     url = url,
     raw = { "--no-buffer" },
     headers = headers(self),
-    body = vim.json.encode(payload),
+    body = self.settings.encode(payload),
     stream = function(_, chunk)
       chunk = chunk:sub(7)
 
       if chunk ~= "" then
         if chunk == "[DONE]" then
-          vim.schedule(function()
+          self.settings.schedule(function()
             close_request(bufnr)
             return cb(nil, nil, true)
           end)
         else
-          vim.schedule(function()
+          self.settings.schedule(function()
             if _G.codecompanion_jobs[bufnr] and _G.codecompanion_jobs[bufnr].status == "stopping" then
               close_request(bufnr, { shutdown = true })
               return cb(nil, nil, true)
             end
 
-            local ok, data = pcall(vim.json.decode, chunk, { luanil = { object = true } })
+            local ok, data = pcall(self.settings.decode, chunk, { luanil = { object = true } })
 
             if not ok then
               log:error("Error malformed json: %s", data)

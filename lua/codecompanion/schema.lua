@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local curl = require("plenary.curl")
 
 local M = {}
 
@@ -225,6 +226,13 @@ M.static.chat_settings = {
       return u:len() < 100, "Cannot be longer than 100 characters"
     end,
   },
+}
+
+M.static.client_settings = {
+  request = { default = curl.post },
+  encode = { default = vim.json.encode },
+  decode = { default = vim.json.decode },
+  schedule = { default = vim.schedule },
 }
 
 return M
