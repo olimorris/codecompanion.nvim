@@ -42,3 +42,4 @@ luac.out
 .direnv/
 .testenv/
 misc/
+todo.md

@@ -2,7 +2,9 @@
     "diagnostics.globals": [
         "vim",
         "describe",
-        "it"
+        "it",
+        "after_each",
+        "before_each"
     ],
     "diagnostics.disable": [
         "missing-fields",
