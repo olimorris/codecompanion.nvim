@@ -33,8 +33,8 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 
 <div align="center">
   <p><strong>Chat buffer</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/a19c8397-a1e2-44df-98be-8a1b4d307ea7" alt="chat buffer" /></p>
-  <p><strong>Code author</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/64cf4fa1-d5b9-43cc-8351-4d06c06c8b46" alt="code author" /></p>
-  <p><strong>Code advisor</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/bc6181e0-85a8-4009-9cfc-f85898780bd5" alt="code advisor" /><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/cbfafcc0-87f9-43e5-8e27-f8eaaf88637d" alt="code advisor" /></p>
+  <p><strong>Code author</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5a7178d7-d31c-4baf-b2bd-244d45466b85" alt="code author" /></p>
+  <p><strong>Code advisor</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/889df5ee-048f-4a13-b2b5-4d999a2de600" alt="code advisor" /><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/6bdeac30-c2a0-4213-be0e-a27a7695a3f4" alt="code advisor" /></p>
 </div>
 
 <!-- panvimdoc-ignore-end -->
@@ -88,7 +88,7 @@ use({
   <summary>Click to see the default configuration</summary>
 
 ```lua
-{
+require("codecompanion").setup({
   api_key = "OPENAI_API_KEY", -- Your API key
   org_api_key = "OPENAI_ORG_KEY", -- Your organisation API key
   base_url = "https://api.openai.com", -- The URL to use for the API requests
@@ -118,16 +118,17 @@ use({
       height = 10,
     },
     chat = { -- Options for the chat strategy
-      type = "buffer", -- buffer|float
+      type = "float", -- float|buffer
       show_settings = false, -- Show the model settings in the chat window
-      float = {
+      float = { -- Options for the floating window
         border = "single",
+        buflisted = false,
         max_height = 0,
         max_width = 0,
         padding = 1,
       },
     },
-    win_options = {
+    win_options = { -- Options for the chat buffer
       cursorcolumn = false,
       cursorline = false,
       foldcolumn = "0",
@@ -139,10 +140,11 @@ use({
     },
   },
   keymaps = {
+    ["<C-s>"] = "keymaps.save", -- Save the chat buffer and trigger the API
     ["<C-c>"] = "keymaps.close", -- Close the chat buffer
     ["q"] = "keymaps.cancel_request", -- Cancel the currently streaming request
     ["gc"] = "keymaps.clear", -- Clear the contents of the chat
-    ["ga"] = "keymaps.codeblock", -- Insert a codeblock in the chat
+    ["ga"] = "keymaps.codeblock", -- Insert a codeblock into the chat
     ["gs"] = "keymaps.save_conversation", -- Save the current chat as a conversation
     ["]"] = "keymaps.next", -- Move to the next header in the chat
     ["["] = "keymaps.previous", -- Move to the previous header in the chat
@@ -150,8 +152,9 @@ use({
   log_level = "ERROR", -- TRACE|DEBUG|ERROR
   send_code = true, -- Send code context to the API?
   show_token_count = true, -- Show the token count for the current chat?
+  silence_notifications = false, -- Silence notifications for actions like saving conversations?
   use_default_actions = true, -- Use the default actions in the action palette?
-}
+})
 ```
 
 </details>
@@ -236,8 +239,9 @@ The chat buffer is where you can converse with your GenAI API, directly from Neo
 
 When in the chat buffer, there are number of keymaps available to you (which can be changed in the config):
 
+- `<C-s>` - Save the buffer and trigger a response from the GenAI
 - `<C-c>` - Close the buffer
-- `q` - Cancel streaming from the API
+- `q` - Cancel streaming from the GenAI
 - `gc` - Clear the buffer's contents
 - `ga` - Add a codeblock
 - `gs` - Save the chat as a conversation
@@ -246,11 +250,11 @@ When in the chat buffer, there are number of keymaps available to you (which can
 
 #### Conversations
 
-Chat Buffers are not automatically saved to disk, owing to them being an `acwrite` buftype (see `:h buftype`). However, the plugin allows for this via the notion of Conversations and pressing `gs` in the buffer. Conversations can then be restored via the Action Palette and the _Load conversations_ action.
+Chat Buffers are not automatically saved to disk, owing to them being an `acwrite` buffer (see `:h buftype`). However, the plugin allows for this via the notion of Conversations. By pressing `gs` in the buffer, the current chat will be saved. Conversations can then be restored via the Action Palette and the _Load conversations_ action.
 
 #### Settings
 
-If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the parameters which can be changed to affect the API's response back to you. This enables fine-tuning and parameter tweaking throughout the chat. You can find more detail about them by moving the cursor over them or referring to the [Chat Completions reference guide](https://platform.openai.com/docs/api-reference/chat) if you're using OpenAI.
+If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the GenAI parameters which can be changed to affect the API's response back to you. This enables fine-tuning and parameter tweaking throughout the chat. You can find more detail about them by moving the cursor over them or referring to the [Chat Completions reference guide](https://platform.openai.com/docs/api-reference/chat) if you're using OpenAI.
 
 ### In-Built Actions
 
@@ -265,6 +269,10 @@ The plugin comes with a number of [in-built actions](https://github.com/olimorri
 Both of these actions utilise the `chat` strategy. The `Chat` action opens up a fresh chat buffer. The `Chat as` action allows for persona based context to be set in the chat buffer allowing for better and more detailed responses from OpenAI.
 
 > **Note**: Both of these actions allow for visually selected code to be sent to the chat buffer as code blocks.
+
+#### Open chats
+
+This action enables users to easily navigate between their open chat buffers. A chat buffer maybe deleted (and removed from this action) by pressing `<C-q>` when in the chat buffer.
 
 #### Code author
 
@@ -311,7 +319,7 @@ vim.api.nvim_create_autocmd({ "User" }, {
 
 ### Heirline.nvim
 
-If you use the fantastic [Heirline.nvim](https://github.com/rebelot/heirline.nvim) plugin, consider the following snippet to display an icon in the statusline whilst CodeCompanion is speaking to the LLM:
+If you use the fantastic [Heirline.nvim](https://github.com/rebelot/heirline.nvim) plugin, consider the following snippet to display an icon in the statusline whilst CodeCompanion is speaking to a GenAI model:
 
 ```lua
 local GenAI = {
