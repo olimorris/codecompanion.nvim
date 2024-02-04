@@ -14,8 +14,12 @@
 </p>
 
 <p align="center">
-Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-completions-api">OpenAI APIs</a> directly in Neovim. Use it to chat, author and advise you on your code.<br>
+Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-completions-api">OpenAI APIs</a> directly in Neovim. Use it to chat, author and advise you on your code.
 </p>
+
+## :warning: Disclaimer
+
+This plugin has been created purely for my own use. Whilst I've made it publically available, I will _not_ accept any enhancement requests. Feel free to submit your own PR but I will be very selective about what I accept. Finally, I will only fix bugs if they relate to my own workflow.
 
 <!-- panvimdoc-ignore-end -->
 
