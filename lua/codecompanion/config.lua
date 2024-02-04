@@ -20,18 +20,48 @@ local defaults = {
     user = nil,
   },
   conversations = {
-    auto_save = true,
     save_dir = vim.fn.stdpath("data") .. "/codecompanion/conversations",
   },
   display = {
-    type = "popup",
-    split = "horizontal",
-    height = 0.7,
-    width = 0.8,
+    action_palette = {
+      width = 95,
+      height = 10,
+    },
+    chat = {
+      type = "float",
+      show_settings = false,
+      float = {
+        border = "single",
+        buflisted = false,
+        max_height = 0,
+        max_width = 0,
+        padding = 1,
+      },
+    },
+    win_options = {
+      cursorcolumn = false,
+      cursorline = false,
+      foldcolumn = "0",
+      linebreak = true,
+      list = false,
+      signcolumn = "no",
+      spell = false,
+      wrap = true,
+    },
   },
-  log_level = "TRACE",
+  keymaps = {
+    ["<C-c>"] = "keymaps.close",
+    ["q"] = "keymaps.cancel_request",
+    ["gc"] = "keymaps.clear",
+    ["ga"] = "keymaps.codeblock",
+    ["gs"] = "keymaps.save_conversation",
+    ["]"] = "keymaps.next",
+    ["["] = "keymaps.previous",
+  },
+  log_level = "ERROR",
   send_code = true,
   show_token_count = true,
+  silence_notifications = false,
   use_default_actions = true,
 }
 
@@ -56,6 +86,8 @@ M.setup = function(opts)
       },
     },
   }))
+
+  vim.treesitter.language.register("markdown", "codecompanion")
 
   local diagnostic_config = {
     underline = false,

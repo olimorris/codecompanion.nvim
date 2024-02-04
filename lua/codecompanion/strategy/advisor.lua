@@ -87,16 +87,13 @@ function Advisor:execute(user_input)
       content = "",
     })
 
-    if config.options.display == "chat" then
-      return require("codecompanion.strategy.chat").new({
-        client = self.client,
-        messages = messages,
-        show_buffer = true,
-      })
-    else
-      local response = data.choices[1].message.content
-      return require("codecompanion.utils.ui").display(config.options.display, response, messages, self.client)
-    end
+    require("codecompanion.strategy.chat").new({
+      client = self.client,
+      messages = messages,
+      show_buffer = true,
+    })
+
+    require("codecompanion.utils.ts").goto_heading("prev", 1)
   end)
 end
 

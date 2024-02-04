@@ -22,7 +22,11 @@ M.validate = function(items, context)
   local mode = context.mode:lower()
 
   for _, item in ipairs(items) do
-    if item.opts and item.opts.modes then
+    if item.condition and type(item.condition) == "function" then
+      if item.condition(context) then
+        table.insert(validated_items, item)
+      end
+    elseif item.opts and item.opts.modes then
       if utils.contains(item.opts.modes, mode) then
         table.insert(validated_items, item)
       end
@@ -38,7 +42,8 @@ M.static.actions = {
   {
     name = "Chat",
     strategy = "chat",
-    description = "Open a chat buffer to converse with OpenAI",
+    description = "Open/restore a chat buffer to converse with your GenAI",
+    type = nil,
     prompts = {
       n = function()
         return require("codecompanion").chat()
@@ -63,6 +68,46 @@ M.static.actions = {
     },
   },
   {
+    name = "Open chats",
+    strategy = "chat",
+    description = "Your currently open chats",
+    condition = function()
+      return _G.codecompanion_chats and utils.count(_G.codecompanion_chats) > 0
+    end,
+    picker = {
+      prompt = "Select a chat",
+      items = function()
+        local ui = require("codecompanion.utils.ui")
+        local chats = {}
+
+        for bufnr, chat in pairs(_G.codecompanion_chats) do
+          table.insert(chats, {
+            name = chat.name,
+            strategy = "chat",
+            description = chat.description,
+            callback = function()
+              _G.codecompanion_chats[bufnr] = nil
+
+              local winid = 0
+              if config.options.display.chat.type == "float" then
+                winid = ui.open_float(bufnr, {
+                  display = config.options.display.chat.float,
+                })
+              else
+                vim.api.nvim_set_current_buf(bufnr)
+              end
+
+              ui.set_options(config.options.display.win_options, winid)
+              ui.buf_scroll_to_end(bufnr)
+            end,
+          })
+        end
+
+        return chats
+      end,
+    },
+  },
+  {
     name = "Chat as ...",
     strategy = "chat",
     description = "Open a chat buffer, acting as a specific persona",
@@ -73,6 +118,7 @@ M.static.actions = {
           name = "JavaScript",
           strategy = "chat",
           description = "Chat as a senior JavaScript developer",
+          type = "javascript",
           prompts = {
             {
               role = "system",
@@ -93,7 +139,7 @@ M.static.actions = {
               condition = function(context)
                 return not context.is_visual
               end,
-              content = "",
+              content = "\n \n",
             },
           },
         },
@@ -101,6 +147,7 @@ M.static.actions = {
           name = "Lua",
           strategy = "chat",
           description = "Chat as a senior Lua developer",
+          type = "lua",
           prompts = {
             {
               role = "system",
@@ -121,7 +168,7 @@ M.static.actions = {
               condition = function(context)
                 return not context.is_visual
               end,
-              content = "",
+              content = "\n \n",
             },
           },
         },
@@ -129,6 +176,7 @@ M.static.actions = {
           name = "PHP",
           strategy = "chat",
           description = "Chat as a senior PHP developer",
+          type = "php",
           prompts = {
             {
               role = "system",
@@ -149,7 +197,7 @@ M.static.actions = {
               condition = function(context)
                 return not context.is_visual
               end,
-              content = "",
+              content = "\n \n",
             },
           },
         },
@@ -157,6 +205,7 @@ M.static.actions = {
           name = "Python",
           strategy = "chat",
           description = "Chat as a senior Python developer",
+          type = "python",
           prompts = {
             {
               role = "system",
@@ -177,7 +226,7 @@ M.static.actions = {
               condition = function(context)
                 return not context.is_visual
               end,
-              content = "",
+              content = "\n \n",
             },
           },
         },
@@ -185,6 +234,7 @@ M.static.actions = {
           name = "Ruby",
           strategy = "chat",
           description = "Chat as a senior Ruby developer",
+          type = "ruby",
           prompts = {
             {
               role = "system",
@@ -205,7 +255,7 @@ M.static.actions = {
               condition = function(context)
                 return not context.is_visual
               end,
-              content = "",
+              content = "\n \n",
             },
           },
         },
@@ -215,7 +265,7 @@ M.static.actions = {
   {
     name = "Code author",
     strategy = "author",
-    description = "Get OpenAI to write/refactor code for you",
+    description = "Get GenAI to write/refactor code for you",
     opts = {
       model = config.options.ai_settings.models.author,
       user_input = true,
@@ -261,7 +311,7 @@ M.static.actions = {
   {
     name = "LSP assistant",
     strategy = "advisor",
-    description = "Get help from OpenAI to fix LSP diagnostics",
+    description = "Get help from GenAI to fix LSP diagnostics",
     opts = {
       model = config.options.ai_settings.models.advisor,
       modes = { "v" },

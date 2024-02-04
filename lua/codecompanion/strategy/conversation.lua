@@ -1,4 +1,4 @@
-local chat = require("codecompanion.strategy.chat")
+local Chat = require("codecompanion.strategy.chat")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
@@ -12,7 +12,7 @@ end
 ---@param bufnr number
 ---@param name string
 local function rename_buffer(bufnr, name)
-  vim.api.nvim_buf_set_name(bufnr, "[OpenAI Chat] " .. name .. ".md")
+  vim.api.nvim_buf_set_name(bufnr, "[CodeCompanion Chat] " .. name .. ".md")
 end
 
 ---@class CodeCompanion.Conversation
@@ -53,6 +53,7 @@ local function save(filename, bufnr, conversation)
     log:debug('Conversation: "%s.json" saved', filename)
     file:write(vim.json.encode(conversation))
     file:close()
+    vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionConversation", data = { status = "finished" } })
   else
     log:debug("Conversation could not be saved. Error: %s", err)
     vim.notify("[CodeCompanion.nvim]\nCannot save conversation: " .. err, vim.log.levels.ERROR)
@@ -123,16 +124,15 @@ function Conversation:load(client, opts)
   self.filename = opts.filename
   local content = vim.fn.json_decode(table.concat(vim.fn.readfile(opts.path), "\n"))
 
-  local chat_buf = chat.new({
+  local chat_buf = Chat.new({
     client = client,
-    settings = content.settings,
+    conversation = self.filename,
     messages = content.messages,
+    settings = content.settings,
     show_buffer = true,
-    conversation = self,
   })
 
   rename_buffer(chat_buf.bufnr, opts.filename)
-  vim.api.nvim_buf_set_option(chat_buf.bufnr, "wrap", true)
 end
 
 return Conversation

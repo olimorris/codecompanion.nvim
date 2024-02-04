@@ -1,16 +1,48 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local schema = require("codecompanion.schema")
 
 _G.codecompanion_jobs = {}
+
+---@param status string
+local function fire_autocmd(status)
+  vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionRequest", data = { status = status } })
+end
+
+---@param bufnr? number
+---@param handler? table
+local function start_request(bufnr, handler)
+  if bufnr and handler then
+    _G.codecompanion_jobs[bufnr] = {
+      status = "running",
+      handler = handler,
+    }
+  end
+  fire_autocmd("started")
+end
+
+---@param bufnr? number
+---@param opts? table
+local function close_request(bufnr, opts)
+  if bufnr then
+    if opts and opts.shutdown then
+      _G.codecompanion_jobs[bufnr].handler:shutdown()
+    end
+    _G.codecompanion_jobs[bufnr] = nil
+  end
+  fire_autocmd("finished")
+end
 
 ---@class CodeCompanion.Client
 ---@field secret_key string
 ---@field organization nil|string
+---@field settings nil|table
 local Client = {}
 
 ---@class CodeCompanion.ClientArgs
 ---@field secret_key string
 ---@field organization nil|string
+---@field settings nil|table
 
 ---@param args CodeCompanion.ClientArgs
 ---@return CodeCompanion.Client
@@ -18,20 +50,36 @@ function Client.new(args)
   return setmetatable({
     secret_key = args.secret_key,
     organization = args.organization,
+    settings = args.settings or schema.get_default(schema.static.client_settings, args.settings),
   }, { __index = Client })
+end
+
+---@param client CodeCompanion.Client
+---@return table<string, string>
+local function headers(client)
+  local group = {
+    content_type = "application/json",
+    Authorization = "Bearer " .. client.secret_key,
+    OpenAI_Organization = client.organization,
+  }
+
+  log:trace("Request Headers: %s", group)
+
+  return group
 end
 
 ---@param code integer
 ---@param stdout string
+---@param settings table
 ---@return nil|string
 ---@return nil|any
-local function parse_response(code, stdout)
+local function parse_response(code, stdout, settings)
   if code ~= 0 then
     log:error("Error: %s", stdout)
     return string.format("Error: %s", stdout)
   end
 
-  local ok, data = pcall(vim.json.decode, stdout, { luanil = { object = true } })
+  local ok, data = pcall(settings.decode, stdout, { luanil = { object = true } })
   if not ok then
     log:error("Error malformed json: %s", data)
     return string.format("Error malformed json: %s", data)
@@ -48,181 +96,102 @@ end
 ---@param url string
 ---@param payload table
 ---@param cb fun(err: nil|string, response: nil|table)
----@return integer The job ID
 function Client:call(url, payload, cb)
   cb = log:wrap_cb(cb, "Response error: %s")
-  local cmd = {
-    "curl",
-    url,
-    "-H",
-    "Content-Type: application/json",
-    "-H",
-    string.format("Authorization: Bearer %s", self.secret_key),
-  }
-  if self.organization then
-    table.insert(cmd, "-H")
-    table.insert(cmd, string.format("OpenAI-Organization: %s", self.organization))
-  end
-  log:trace("request command: %s", cmd)
-  table.insert(cmd, "-d")
-  table.insert(cmd, vim.json.encode(payload))
-  log:trace("request payload: %s", payload)
-  local stdout = ""
 
-  vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanion", data = { status = "started" } })
-
-  local jid = vim.fn.jobstart(cmd, {
-    stdout_buffered = true,
-    on_stdout = function(_, output)
-      stdout = table.concat(output, "\n")
-    end,
-    on_exit = vim.schedule_wrap(function(_, code)
-      log:trace("response: %s", stdout)
-      local err, data = parse_response(code, stdout)
-      if err then
-        cb(err)
-      else
-        cb(nil, data)
+  local handler = self.settings.request({
+    url = url,
+    raw = { "--no-buffer" },
+    headers = headers(self),
+    body = self.settings.encode(payload),
+    callback = function(out)
+      if out.exit then
+        local err, data = parse_response(out.exit, out.body, self.settings)
+        if err then
+          self.settings.schedule(function()
+            cb(err)
+            log:error("Error: %s", err)
+            close_request()
+          end)
+        else
+          self.settings.schedule(function()
+            cb(nil, data)
+            log:trace("Response: %s", data)
+            close_request()
+          end)
+        end
       end
-
-      vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanion", data = { status = "finished" } })
-    end),
+    end,
+    on_error = function(err, _, _)
+      log:error("Error: %s", err)
+      close_request()
+    end,
   })
 
-  if jid == 0 then
-    cb("Passed invalid arguments to curl")
-  elseif jid == -1 then
-    cb("'curl' is not executable")
-  end
-
-  return jid
-end
-
-local function get_stdout_line_iter()
-  local pending = ""
-  return function(data)
-    local ret = {}
-    for i, chunk in ipairs(data) do
-      if i == 1 then
-        if chunk == "" then
-          table.insert(ret, pending)
-          pending = ""
-        else
-          pending = pending .. chunk
-        end
-      else
-        if data[1] ~= "" then
-          table.insert(ret, pending)
-        end
-        pending = chunk
-      end
-    end
-    return ret
-  end
+  log:trace("Request: %s", handler.args)
+  start_request()
 end
 
 ---@param url string
 ---@param payload table
 ---@param bufnr number
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
----@return integer The job ID
+---@return nil
 function Client:stream_call(url, payload, bufnr, cb)
   cb = log:wrap_cb(cb, "Response error: %s")
-  payload.stream = true
-  local cmd = {
-    "curl",
-    url,
-    "-H",
-    "Content-Type: application/json",
-    "-H",
-    string.format("Authorization: Bearer %s", self.secret_key),
-  }
-  if self.organization then
-    table.insert(cmd, "-H")
-    table.insert(cmd, string.format("OpenAI-Organization: %s", self.organization))
-  end
-  log:trace("stream request command: %s", cmd)
-  table.insert(cmd, "-d")
-  table.insert(cmd, vim.json.encode(payload))
-  log:trace("stream request payload: %s", payload)
-  local line_iter = get_stdout_line_iter()
-  local stdout = ""
-  local done = false
-  local found_any_stream = false
 
-  vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanion", data = { status = "started" } })
+  local handler = self.settings.request({
+    url = url,
+    raw = { "--no-buffer" },
+    headers = headers(self),
+    body = self.settings.encode(payload),
+    stream = function(_, chunk)
+      chunk = chunk:sub(7)
 
-  local jid = vim.fn.jobstart(cmd, {
-    on_stdout = function(_, output)
-      if done then
-        return
-      end
-      if not found_any_stream then
-        stdout = stdout .. table.concat(output, "\n")
-      end
-      for _, line in ipairs(line_iter(output)) do
-        log:trace("stream response line: %s", line)
-        if vim.startswith(line, "data: ") then
-          found_any_stream = true
-          local chunk = line:sub(7)
-
-          if chunk == "[DONE]" then
+      if chunk ~= "" then
+        if chunk == "[DONE]" then
+          self.settings.schedule(function()
+            close_request(bufnr)
             return cb(nil, nil, true)
-          end
+          end)
+        else
+          self.settings.schedule(function()
+            if _G.codecompanion_jobs[bufnr] and _G.codecompanion_jobs[bufnr].status == "stopping" then
+              close_request(bufnr, { shutdown = true })
+              return cb(nil, nil, true)
+            end
 
-          if _G.codecompanion_jobs[bufnr].status == "stopping" then
-            done = true
-            vim.fn.jobstop(_G.codecompanion_jobs[bufnr].jid)
-            _G.codecompanion_jobs[bufnr] = nil
-            return cb(nil, nil, true)
-          end
+            local ok, data = pcall(self.settings.decode, chunk, { luanil = { object = true } })
 
-          local ok, data = pcall(vim.json.decode, chunk, { luanil = { object = true } })
-          if not ok then
-            done = true
-            log:error("Error malformed json: %s", data)
-            return cb(string.format("Error malformed json: %s", data))
-          end
+            if not ok then
+              log:error("Error malformed json: %s", data)
+              close_request(bufnr)
+              return cb(string.format("Error malformed json: %s", data))
+            end
 
-          -- Check if the token limit has been reached
-          log:debug("Finish Reason: %s", data.choices[1].finish_reason)
-          if data.choices[1].finish_reason == "length" then
-            log:debug("Token limit reached")
-            done = true
-            return cb("[CodeCompanion.nvim]\nThe token limit for the current chat has been reached")
-          end
+            if data.choices[1].finish_reason then
+              log:debug("Finish Reason: %s", data.choices[1].finish_reason)
+            end
 
-          cb(nil, data)
+            if data.choices[1].finish_reason == "length" then
+              log:debug("Token limit reached")
+              close_request(bufnr)
+              return cb("[CodeCompanion.nvim]\nThe token limit for the current chat has been reached")
+            end
+
+            cb(nil, data)
+          end)
         end
       end
     end,
-    on_exit = function(_, code)
-      vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanion", data = { status = "finished" } })
-
-      if not found_any_stream then
-        local err, data = parse_response(code, stdout)
-        if err then
-          cb(err)
-        else
-          cb(nil, data, true)
-        end
-      end
+    on_error = function(err, _, _)
+      close_request(bufnr)
+      log:error("Error: %s", err)
     end,
   })
 
-  if jid == 0 then
-    cb("Passed invalid arguments to curl")
-  elseif jid == -1 then
-    cb("'curl' is not executable")
-  else
-    _G.codecompanion_jobs[bufnr] = {
-      jid = jid,
-      status = "running",
-      strategy = "chat",
-    }
-  end
-
-  return jid
+  log:trace("Stream Request: %s", handler.args)
+  start_request(bufnr, handler)
 end
 
 ---@class CodeCompanion.ChatMessage
@@ -247,17 +216,17 @@ end
 
 ---@param args CodeCompanion.ChatArgs
 ---@param cb fun(err: nil|string, response: nil|table)
----@return integer
+---@return nil
 function Client:chat(args, cb)
-  args.stream = false
   return self:call(config.options.base_url .. "/v1/chat/completions", args, cb)
 end
 
 ---@param args CodeCompanion.ChatArgs
 ---@param bufnr integer
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
----@return integer
+---@return nil
 function Client:stream_chat(args, bufnr, cb)
+  args.stream = true
   return self:stream_call(config.options.base_url .. "/v1/chat/completions", args, bufnr, cb)
 end
 

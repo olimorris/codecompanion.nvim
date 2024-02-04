@@ -1,6 +1,6 @@
-local Client = require("codecompanion.client")
 local config = require("codecompanion.config")
-local utils = require("codecompanion.utils.util")
+local ui = require("codecompanion.utils.ui")
+local util = require("codecompanion.utils.util")
 
 local M = {}
 
@@ -16,11 +16,15 @@ local function get_client()
       )
       return nil
     end
+
+    local Client = require("codecompanion.client")
+
     _client = Client.new({
       secret_key = secret_key,
       organization = os.getenv(config.options.org_api_key),
     })
   end
+
   return _client
 end
 
@@ -36,15 +40,52 @@ M.chat = function()
     return
   end
 
+  local context = util.get_context(vim.api.nvim_get_current_buf())
+
   local Chat = require("codecompanion.strategy.chat")
   local chat = Chat.new({
     client = client,
+    context = context,
   })
 
   vim.api.nvim_win_set_buf(0, chat.bufnr)
-  utils.scroll_to_end(0)
+  ui.scroll_to_end(0)
+end
 
-  vim.bo[chat.bufnr].filetype = "markdown"
+M.toggle = function()
+  local function buf_toggle(buf, action)
+    if action == "show" then
+      if config.options.display.chat.type == "float" then
+        ui.open_float(buf, {
+          display = config.options.display.chat.float,
+        })
+      else
+        vim.cmd("buffer " .. buf)
+      end
+    elseif action == "hide" then
+      if config.options.display.chat.type == "float" then
+        vim.cmd("hide")
+      else
+        -- Show the previous buffer
+        vim.cmd("buffer " .. vim.fn.buf("#"))
+      end
+    end
+  end
+
+  local function fire_event(status, buf)
+    return vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { action = status, buf = buf } })
+  end
+
+  if vim.bo.filetype == "codecompanion" then
+    local buf = vim.api.nvim_get_current_buf()
+    buf_toggle(buf, "hide")
+    fire_event("hide_buffer", buf)
+  elseif _G.codecompanion_last_chat_buffer then
+    buf_toggle(_G.codecompanion_last_chat_buffer, "show")
+    fire_event("show_buffer")
+  else
+    M.chat()
+  end
 end
 
 local _cached_actions = {}
@@ -55,7 +96,7 @@ M.actions = function()
   end
 
   local actions = require("codecompanion.actions")
-  local context = utils.get_context(vim.api.nvim_get_current_buf())
+  local context = util.get_context(vim.api.nvim_get_current_buf())
 
   local function picker(items, opts, callback)
     opts = opts or {}
@@ -64,6 +105,8 @@ M.actions = function()
 
     require("codecompanion.utils.ui").selector(items, {
       prompt = opts.prompt,
+      width = config.options.display.action_palette.width,
+      height = config.options.display.action_palette.height,
       format = function(item)
         local formatted_item = {}
         for _, column in ipairs(opts.columns) do
@@ -81,7 +124,15 @@ M.actions = function()
         prompt = item.picker.prompt,
         columns = item.picker.columns,
       }
-      picker(item.picker.items, picker_opts, selection)
+      return picker(item.picker.items, picker_opts, selection)
+    elseif item.picker and type(item.picker.items) == "function" then
+      local picker_opts = {
+        prompt = item.picker.prompt,
+        columns = item.picker.columns,
+      }
+      picker(item.picker.items(), picker_opts, selection)
+    elseif item and type(item.callback) == "function" then
+      return item.callback(selection)
     else
       local Strategy = require("codecompanion.strategy")
       return Strategy.new({
@@ -120,6 +171,7 @@ end
 ---@param opts nil|table
 M.setup = function(opts)
   vim.api.nvim_set_hl(0, "CodeCompanionTokens", { link = "Comment", default = true })
+  vim.api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
 
   config.setup(opts)
 end

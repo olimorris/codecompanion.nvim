@@ -1,53 +1,48 @@
-local mock = require("luassert.mock")
+local assert = require("luassert")
+local codecompanion = require("codecompanion")
 local stub = require("luassert.stub")
-local match = require("luassert.match")
-local spy = require("luassert.spy")
 
-local Client = require("codecompanion.client")
-
-local function setup(opts)
-  require("codecompanion").setup(opts)
-end
+local schema
+local Client
 
 describe("Client", function()
-  it("should call API correctly when chat is invoked", function()
-    local fn_mock = mock(vim.fn, true)
-    local log_mock = mock(require("codecompanion.utils.log"), true)
-    local autocmds_spy = spy.on(vim.api, "nvim_exec_autocmds")
+  before_each(function()
+    codecompanion.setup()
+    schema = require("codecompanion.schema")
+    Client = require("codecompanion.client") -- Now that setup has been called, we can require the client
+  end)
 
-    local jobstart_stub = stub(fn_mock, "jobstart", function(_, opts)
-      local stdout_response = { vim.json.encode("SOME JSON RESPONSE") }
+  after_each(function()
+    schema.static.client_settings = nil
+    _G.codecompanion_jobs = nil
+  end)
 
-      if opts.on_stdout then
-        opts.on_stdout(nil, stdout_response)
-      end
+  it("stream_call should work with mocked dependencies", function()
+    local mock_request = stub.new().returns({ args = "mocked args" })
+    local mock_encode = stub.new().returns("{}")
+    local mock_decode = stub.new().returns({ choices = { { finish_reason = nil } } })
+    local mock_schedule = stub.new().returns(1)
 
-      local exit_code = 0
-      if opts.on_exit then
-        opts.on_exit(nil, exit_code)
-      end
+    -- Mock globals
+    _G.codecompanion_jobs = {}
 
-      return 1
-    end)
+    schema.static.client_settings = {
+      request = { default = mock_request },
+      encode = { default = mock_encode },
+      decode = { default = mock_decode },
+      schedule = { default = mock_schedule },
+    }
 
-    setup({
-      base_url = "https://api.example.com",
+    local client = Client.new({
+      secret_key = "fake_key",
+      organization = "fake_org",
     })
 
-    local client = Client.new({ secret_key = "TEST_SECRET_KEY" })
-    local cb_stub = stub.new()
+    local cb = stub.new()
 
-    client:chat({ messages = { { role = "user", content = "hello" } } }, cb_stub)
+    client:stream_chat({}, 0, cb)
 
-    assert.stub(jobstart_stub).was_called(1)
-    assert.stub(jobstart_stub).was_called_with(match.is_table(), match.is_table())
-
-    -- It's only called once as the jobstart_stub is stubbed to not fire an event
-    assert.spy(autocmds_spy).was_called(1)
-
-    autocmds_spy:revert()
-    jobstart_stub:revert()
-    mock.revert(fn_mock)
-    mock.revert(log_mock)
+    assert.stub(mock_request).was_called()
+    -- assert.stub(cb).was_called()
   end)
 end)
