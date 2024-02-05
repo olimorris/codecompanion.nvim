@@ -17,9 +17,12 @@
 Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-completions-api">OpenAI APIs</a> directly in Neovim. Use it to chat, author and advise you on your code.
 </p>
 
-## :warning: Disclaimer
+> [!IMPORTANT]
+> This plugin is provided as-is and is primarily developed for my own workflows. As such, I offer no guarantees of regular updates or support. Bug fixes and feature enhancements will be implemented at my discretion, and only if they align with my personal use-case. Feel free to fork the project and customize it to your needs, but please understand my involvement in further development will be minimal.
 
-This plugin has been created purely for my own use. Whilst I've made it publically available, I will _not_ accept any enhancement requests. Feel free to submit your own PR but I will be very selective about what I accept. Finally, I will only fix bugs if they relate to my own workflow.
+<p align="center">
+<img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5e5a5e54-c1d9-4fe2-8ae0-1cfbfdd6cea5" alt="Header" />
+</p>
 
 <!-- panvimdoc-ignore-end -->
 
