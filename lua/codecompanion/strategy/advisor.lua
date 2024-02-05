@@ -74,13 +74,24 @@ function Advisor:execute(user_input)
     })
   end
 
+  local messages = conversation.messages
+
+  if config.options.display.advisor.stream then
+    local chat = require("codecompanion.strategy.chat").new({
+      client = self.client,
+      messages = messages,
+      show_buffer = true,
+    })
+
+    return chat:submit()
+  end
+
   self.client:advisor(conversation, function(err, data)
     if err then
       log:error("Advisor Error: %s", err)
       vim.notify(err, vim.log.levels.ERROR)
     end
 
-    local messages = conversation.messages
     table.insert(messages, data.choices[1].message)
     table.insert(messages, {
       role = "user",

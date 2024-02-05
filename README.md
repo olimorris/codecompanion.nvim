@@ -124,9 +124,12 @@ require("codecompanion").setup({
       width = 95,
       height = 10,
     },
+    advisor = {
+      stream = false, -- Stream the output like a chat buffer?
+    },
     chat = { -- Options for the chat strategy
       type = "float", -- float|buffer
-      show_settings = false, -- Show the model settings in the chat window
+      show_settings = false, -- Show the model settings in the chat window?
       show_token_count = true, -- Show the token count for the current chat?
       buf_options = { -- Buffer options for the chat buffer
         buflisted = false,
