@@ -232,7 +232,7 @@ local function chat_autocmds(bufnr, args)
     group = aug,
     buffer = bufnr,
     callback = function()
-      if #_G.codecompanion_chats == 0 then
+      if utils.count(_G.codecompanion_chats) == 0 then
         local ns_id = api.nvim_create_namespace("CodeCompanionChatVirtualText")
         api.nvim_buf_set_extmark(bufnr, ns_id, api.nvim_buf_line_count(bufnr) - 1, 0, {
           virt_text = { { "Save the buffer to send a message to OpenAI...", "CodeCompanionVirtualText" } },
@@ -253,12 +253,13 @@ local function chat_autocmds(bufnr, args)
           },
         })
       end
+
       api.nvim_del_autocmd(bufenter_autocmd)
     end,
   })
 
   -- Clear the virtual text when the user starts typing
-  if #_G.codecompanion_chats == 0 then
+  if utils.count(_G.codecompanion_chats) == 0 then
     local insertenter_autocmd
     insertenter_autocmd = api.nvim_create_autocmd("InsertEnter", {
       group = aug,
