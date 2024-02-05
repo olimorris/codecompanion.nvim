@@ -129,8 +129,8 @@ require("codecompanion").setup({
     },
     chat = { -- Options for the chat strategy
       type = "float", -- float|buffer
-      show_settings = false, -- Show the model settings in the chat window?
-      show_token_count = true, -- Show the token count for the current chat?
+      show_settings = false, -- Show the model settings in the chat buffer?
+      show_token_count = true, -- Show the token count for the current chat in the buffer?
       buf_options = { -- Buffer options for the chat buffer
         buflisted = false,
       },
@@ -293,9 +293,9 @@ This action utilises the `author` strategy. This action can be useful for genera
 
 #### Code advisor
 
-As the name suggests, this action provides advice on a visual selection of code and utilises the `advisor` strategy. The response from the API is output into a chat buffer which follows the `display.chat` settings in your configuration.
+As the name suggests, this action provides advice on a visual selection of code and utilises the `advisor` strategy. The response from the API is streamed into a chat buffer which follows the `display.chat` settings in your configuration. If you wish to turn the streaming off, set `display.advisor.stream = false` in your config.
 
-> **Note**: For some users, the sending of code to the GenAI may not be an option. In those instances, you can set `send_code = false` in your config.
+> **Note**: For some users, the sending of any code to an LLM may not be an option. In those instances, you can set `send_code = false` in your config.
 
 #### LSP assistant
 
