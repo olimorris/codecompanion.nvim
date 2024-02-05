@@ -88,16 +88,14 @@ M.static.actions = {
             callback = function()
               _G.codecompanion_chats[bufnr] = nil
 
-              local winid = 0
               if config.options.display.chat.type == "float" then
-                winid = ui.open_float(bufnr, {
-                  display = config.options.display.chat.float,
+                ui.open_float(bufnr, {
+                  display = config.options.display.chat.float_options,
                 })
               else
                 vim.api.nvim_set_current_buf(bufnr)
               end
 
-              ui.set_options(config.options.display.win_options, winid)
               ui.buf_scroll_to_end(bufnr)
             end,
           })

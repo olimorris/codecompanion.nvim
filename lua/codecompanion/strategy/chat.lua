@@ -143,7 +143,7 @@ local function render_messages(bufnr, settings, messages, context)
 end
 
 local display_tokens = function(bufnr)
-  if config.options.show_token_count then
+  if config.options.display.chat.show_token_count then
     require("codecompanion.utils.tokens").display_tokens(bufnr)
   end
 end
@@ -354,6 +354,8 @@ function Chat.new(args)
   api.nvim_buf_set_option(bufnr, "syntax", "markdown")
   vim.b[bufnr].codecompanion_type = "chat"
 
+  ui.set_buf_options(bufnr, config.options.display.chat.buf_options)
+
   watch_cursor()
   chat_autocmds(bufnr, args)
 
@@ -378,7 +380,7 @@ function Chat.new(args)
 
   if config.options.display.chat.type == "float" then
     winid = ui.open_float(bufnr, {
-      display = config.options.display.chat.float,
+      display = config.options.display.chat.float_options,
     })
   end
 
@@ -386,7 +388,7 @@ function Chat.new(args)
     api.nvim_set_current_buf(bufnr)
   end
 
-  ui.set_options(config.options.display.win_options, winid)
+  ui.set_win_options(winid, config.options.display.chat.win_options)
   vim.cmd("setlocal formatoptions-=t")
   ui.buf_scroll_to_end(bufnr)
 

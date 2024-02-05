@@ -102,23 +102,27 @@ Click to see the default configuration ~
         chat = { -- Options for the chat strategy
           type = "float", -- float|buffer
           show_settings = false, -- Show the model settings in the chat window
-          float = { -- Options for the floating window
+          show_token_count = true, -- Show the token count for the current chat?
+          buf_options = { -- Buffer options for the chat buffer
+            buflisted = false,
+          },
+          float_options = { -- Float window options if the type is "float"
             border = "single",
             buflisted = false,
             max_height = 0,
             max_width = 0,
             padding = 1,
           },
-        },
-        win_options = { -- Options for the chat buffer
-          cursorcolumn = false,
-          cursorline = false,
-          foldcolumn = "0",
-          linebreak = true,
-          list = false,
-          signcolumn = "no",
-          spell = false,
-          wrap = true,
+          win_options = { -- Window options for the chat buffer
+            cursorcolumn = false,
+            cursorline = false,
+            foldcolumn = "0",
+            linebreak = true,
+            list = false,
+            signcolumn = "no",
+            spell = false,
+            wrap = true,
+          },
         },
       },
       keymaps = {
@@ -133,7 +137,6 @@ Click to see the default configuration ~
       },
       log_level = "ERROR", -- TRACE|DEBUG|ERROR
       send_code = true, -- Send code context to the API?
-      show_token_count = true, -- Show the token count for the current chat?
       silence_notifications = false, -- Silence notifications for actions like saving conversations?
       use_default_actions = true, -- Use the default actions in the action palette?
     })

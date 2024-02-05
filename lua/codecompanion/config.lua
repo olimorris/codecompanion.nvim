@@ -30,23 +30,26 @@ local defaults = {
     chat = {
       type = "float",
       show_settings = false,
-      float = {
-        border = "single",
+      show_token_count = true,
+      buf_options = {
         buflisted = false,
+      },
+      float_options = {
+        border = "single",
         max_height = 0,
         max_width = 0,
         padding = 1,
       },
-    },
-    win_options = {
-      cursorcolumn = false,
-      cursorline = false,
-      foldcolumn = "0",
-      linebreak = true,
-      list = false,
-      signcolumn = "no",
-      spell = false,
-      wrap = true,
+      win_options = {
+        cursorcolumn = false,
+        cursorline = false,
+        foldcolumn = "0",
+        linebreak = true,
+        list = false,
+        signcolumn = "no",
+        spell = false,
+        wrap = true,
+      },
     },
   },
   keymaps = {
@@ -61,7 +64,6 @@ local defaults = {
   },
   log_level = "ERROR",
   send_code = true,
-  show_token_count = true,
   silence_notifications = false,
   use_default_actions = true,
 }

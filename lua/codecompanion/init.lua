@@ -57,7 +57,7 @@ M.toggle = function()
     if action == "show" then
       if config.options.display.chat.type == "float" then
         ui.open_float(buf, {
-          display = config.options.display.chat.float,
+          display = config.options.display.chat.float_options,
         })
       else
         vim.cmd("buffer " .. buf)
@@ -67,7 +67,7 @@ M.toggle = function()
         vim.cmd("hide")
       else
         -- Show the previous buffer
-        vim.cmd("buffer " .. vim.fn.buf("#"))
+        vim.cmd("buffer " .. vim.fn.bufnr("#"))
       end
     end
   end

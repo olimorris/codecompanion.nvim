@@ -129,11 +129,19 @@ function M.selector(items, opts)
   end)
 end
 
----@param opts table
 ---@param winid number
-function M.set_options(opts, winid)
+---@param opts table
+function M.set_win_options(winid, opts)
   for k, v in pairs(opts) do
     api.nvim_set_option_value(k, v, { scope = "local", win = winid })
+  end
+end
+
+---@param bufnr number
+---@param opts table
+function M.set_buf_options(bufnr, opts)
+  for k, v in pairs(opts) do
+    api.nvim_buf_set_option(bufnr, k, v)
   end
 end
 
