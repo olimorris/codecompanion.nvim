@@ -125,7 +125,7 @@ require("codecompanion").setup({
       height = 10,
     },
     advisor = {
-      stream = false, -- Stream the output like a chat buffer?
+      stream = true, -- Stream the output like a chat buffer?
     },
     chat = { -- Options for the chat strategy
       type = "float", -- float|buffer

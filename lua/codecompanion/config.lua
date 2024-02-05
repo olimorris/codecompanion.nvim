@@ -28,7 +28,7 @@ local defaults = {
       height = 10,
     },
     advisor = {
-      stream = false,
+      stream = true,
     },
     chat = {
       type = "float",
