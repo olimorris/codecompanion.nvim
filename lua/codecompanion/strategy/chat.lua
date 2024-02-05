@@ -419,7 +419,9 @@ function Chat:submit()
     render_messages(self.bufnr, settings, messages, {})
 
     if cursor_moved and ui.buf_is_active(self.bufnr) then
-      ui.buf_scroll_to_end()
+      ui.buf_scroll_to_end(self.bufnr)
+    elseif not ui.buf_is_active(self.bufnr) then
+      ui.buf_scroll_to_end(self.bufnr)
     end
   end
 
