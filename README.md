@@ -18,7 +18,7 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 </p>
 
 > [!IMPORTANT]
-> This plugin is provided as-is and is primarily developed for my own workflows. As such, I offer no guarantees of regular updates or support. Bug fixes and feature enhancements will be implemented at my discretion, and only if they align with my personal use-case. Feel free to fork the project and customize it to your needs, but please understand my involvement in further development will be minimal.
+> This plugin is provided as-is and is primarily developed for my own workflows. As such, I offer no guarantees of regular updates or support and I expect the plugin's API to change regularly. Bug fixes and feature enhancements will be implemented at my discretion, and only if they align with my personal use-case. Feel free to fork the project and customize it to your needs, but please understand my involvement in further development will be minimal.
 
 <p align="center">
 <img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5e5a5e54-c1d9-4fe2-8ae0-1cfbfdd6cea5" alt="Header" />
@@ -307,15 +307,15 @@ Both of these actions utilise the `chat` strategy. The `Chat` action opens up a 
 
 This action enables users to easily navigate between their open chat buffers. A chat buffer maybe deleted (and removed from this action) by pressing `<C-q>` when in the chat buffer.
 
-#### Code author
-
-This action utilises the `author` strategy. This action can be useful for generating code or even refactoring a visual selection based on a prompt by the user. The action is designed to write code for the buffer filetype that it is initated in, or, if run from a terminal prompt, to write commands.
-
 #### Code advisor
 
 As the name suggests, this action provides advice on a visual selection of code and utilises the `advisor` strategy. The response from the API is streamed into a chat buffer which follows the `display.chat` settings in your configuration. If you wish to turn the streaming off, set `display.advisor.stream = false` in your config.
 
 > **Note**: For some users, the sending of any code to an LLM may not be an option. In those instances, you can set `send_code = false` in your config.
+
+#### Code author
+
+This action utilises the `author` strategy. This action can be useful for generating code or even refactoring a visual selection based on a prompt by the user. The action is designed to write code for the buffer filetype that it is initated in, or, if run from a terminal prompt, to write commands.
 
 #### LSP assistant
 

@@ -1,8 +1,9 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.util")
+local api = vim.api
 
 ---@class CodeCompanion.Author
+---@field settings table
 ---@field context table
 ---@field client CodeCompanion.Client
 ---@field opts table
@@ -10,6 +11,7 @@ local utils = require("codecompanion.utils.util")
 local Author = {}
 
 ---@class CodeCompanion.AuthorArgs
+---@field settings table
 ---@field context table
 ---@field client CodeCompanion.Client
 ---@field opts table
@@ -20,22 +22,17 @@ local Author = {}
 function Author.new(opts)
   log:trace("Initiating Author")
 
-  local self = setmetatable({
+  return setmetatable({
+    settings = config.options.ai_settings.author,
     context = opts.context,
     client = opts.client,
     opts = opts.opts,
     prompts = opts.prompts,
   }, { __index = Author })
-  return self
 end
 
 ---@param user_input string|nil
 function Author:execute(user_input)
-  local conversation = {
-    model = self.opts.model,
-    messages = {},
-  }
-
   local formatted_messages = {}
 
   for _, prompt in ipairs(self.prompts) do
@@ -59,63 +56,94 @@ function Author:execute(user_input)
     })
   end
 
-  conversation.messages = formatted_messages
-
   if config.options.send_code and self.opts.send_visual_selection and self.context.is_visual then
-    table.insert(conversation.messages, 2, {
+    table.insert(formatted_messages, 2, {
       role = "user",
       content = "For context, this is the code I will ask you to help me with:\n"
         .. table.concat(self.context.lines, "\n"),
     })
   end
 
-  vim.bo[self.context.bufnr].modifiable = false
-  self.client:author(conversation, function(err, data)
-    if err then
-      vim.bo[self.context.bufnr].modifiable = true
-      log:error("Author Error: %s", err)
-      vim.notify(err, vim.log.levels.ERROR)
+  -- Clear any visual selection
+  if self.context.is_visual then
+    api.nvim_buf_set_text(
+      self.context.bufnr,
+      self.context.start_line - 1,
+      self.context.start_col - 1,
+      self.context.end_line - 1,
+      self.context.end_col,
+      { "" }
+    )
+    api.nvim_win_set_cursor(self.context.winid, { self.context.start_line, self.context.start_col - 1 })
+  end
+
+  local cursor_pos = api.nvim_win_get_cursor(self.context.winid)
+  local pos = {
+    line = cursor_pos[1],
+    col = cursor_pos[2],
+  }
+
+  local function stream_buffer_text(text)
+    local line = pos.line - 1
+    local col = pos.col
+
+    local index = 1
+    while index <= #text do
+      local newline = text:find("\n", index) or (#text + 1)
+      local substring = text:sub(index, newline - 1)
+
+      if #substring > 0 then
+        api.nvim_buf_set_text(self.context.bufnr, line, col, line, col, { substring })
+        col = col + #substring
+      end
+
+      if newline <= #text then
+        api.nvim_buf_set_lines(self.context.bufnr, line + 1, line + 1, false, { "" })
+        line = line + 1
+        col = 0
+      end
+
+      index = newline + 1
     end
 
-    local response = data.choices[1].message.content
+    pos.line = line + 1
+    pos.col = col
+    api.nvim_win_set_cursor(self.context.winid, { pos.line, pos.col })
+  end
 
-    if string.find(response, "^%[Error%]") == 1 then
-      vim.bo[self.context.bufnr].modifiable = true
-      return require("codecompanion.utils.ui").display(
-        config.options.display,
-        response,
-        conversation.messages,
-        self.client
-      )
+  local output = {}
+  self.client:stream_chat(
+    vim.tbl_extend("keep", self.settings, {
+      messages = formatted_messages,
+    }),
+    self.context.bufnr,
+    function(err, chunk, done)
+      if err then
+        vim.notify("Error: " .. err, vim.log.levels.ERROR)
+        return
+      end
+
+      if chunk then
+        log:debug("chat chunk: %s", chunk)
+
+        local delta = chunk.choices[1].delta
+        if delta.content and not delta.role then
+          if self.context.buftype == "terminal" then
+            table.insert(output, delta.content)
+          else
+            stream_buffer_text(delta.content)
+          end
+        end
+      end
+
+      if done then
+        if self.context.buftype == "terminal" then
+          log:debug("terminal: %s", output)
+          api.nvim_put({ table.concat(output, "") }, "", false, true)
+        end
+      end
     end
-
-    vim.bo[self.context.bufnr].modifiable = true
-    local output = vim.split(response, "\n")
-
-    if self.context.buftype == "terminal" then
-      vim.api.nvim_put(output, "", false, true)
-      return
-    end
-
-    if self.context.is_visual and (self.opts.modes and utils.contains(self.opts.modes, "v")) then
-      vim.api.nvim_buf_set_text(
-        self.context.bufnr,
-        self.context.start_line - 1,
-        self.context.start_col - 1,
-        self.context.end_line - 1,
-        self.context.end_col,
-        output
-      )
-    else
-      vim.api.nvim_buf_set_lines(
-        self.context.bufnr,
-        self.context.cursor_pos[1] - 1,
-        self.context.cursor_pos[1] - 1,
-        true,
-        output
-      )
-    end
-  end)
+  )
 end
 
 function Author:start()
