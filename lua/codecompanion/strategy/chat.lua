@@ -33,9 +33,7 @@ local function parse_settings(bufnr)
   end
 
   if not config.options.display.chat.show_settings then
-    config_settings[bufnr] = vim.deepcopy(config.options.ai_settings)
-    config_settings[bufnr].model = config_settings[bufnr].models.chat
-    config_settings[bufnr].models = nil
+    config_settings[bufnr] = vim.deepcopy(config.options.ai_settings.chat)
 
     log:trace("Using the settings from the user's config: %s", config_settings[bufnr])
     return config_settings[bufnr]

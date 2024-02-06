@@ -102,19 +102,39 @@ require("codecompanion").setup({
   ai_settings = {
     -- Default settings for the Completions API
     -- See https://platform.openai.com/docs/api-reference/chat/create
-    models = {
-      chat = "gpt-4-1106-preview",
-      author = "gpt-4-1106-preview",
-      advisor = "gpt-4-1106-preview",
+    advisor = {
+      model = "gpt-4-1106-preview",
+      temperature = 1,
+      top_p = 1,
+      stop = nil,
+      max_tokens = nil,
+      presence_penalty = 0,
+      frequency_penalty = 0,
+      logit_bias = nil,
+      user = nil,
     },
-    temperature = 1,
-    top_p = 1,
-    stop = nil,
-    max_tokens = nil,
-    presence_penalty = 0,
-    frequency_penalty = 0,
-    logit_bias = nil,
-    user = nil,
+    author = {
+      model = "gpt-4-1106-preview",
+      temperature = 1,
+      top_p = 1,
+      stop = nil,
+      max_tokens = nil,
+      presence_penalty = 0,
+      frequency_penalty = 0,
+      logit_bias = nil,
+      user = nil,
+    },
+    chat = {
+      model = "gpt-4-1106-preview",
+      temperature = 1,
+      top_p = 1,
+      stop = nil,
+      max_tokens = nil,
+      presence_penalty = 0,
+      frequency_penalty = 0,
+      logit_bias = nil,
+      user = nil,
+    },
   },
   conversations = {
     save_dir = vim.fn.stdpath("data") .. "/codecompanion/conversations", -- Path to save conversations to

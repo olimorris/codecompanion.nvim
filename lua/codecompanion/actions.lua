@@ -265,7 +265,7 @@ M.static.actions = {
     strategy = "author",
     description = "Get OpenAI to write/refactor code for you",
     opts = {
-      model = config.options.ai_settings.models.author,
+      model = config.options.ai_settings.author.model,
       user_input = true,
       send_visual_selection = true,
     },
@@ -276,11 +276,11 @@ M.static.actions = {
           if context.buftype == "terminal" then
             return "I want you to act as an expert in writing terminal commands that will work for my current shell "
               .. os.getenv("SHELL")
-              .. ". I will ask you specific questions and I want you to return the raw command only (no codeblocks and explanations). If you can't respond with a command, please explain why but ensure the first word in your response is '[Error]' so I can parse it"
+              .. ". I will ask you specific questions and I want you to return the raw command only (no codeblocks and explanations). If you can't respond with a command, respond with nothing"
           end
           return "I want you to act as a senior "
             .. context.filetype
-            .. ' developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can\'t respond with code, please explain why but ensure that the first word in your response is "[Error]" so I can parse it.'
+            .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing"
         end,
       },
     },
@@ -290,7 +290,7 @@ M.static.actions = {
     strategy = "advisor",
     description = "Get advice on the code you've selected",
     opts = {
-      model = config.options.ai_settings.models.advisor,
+      model = config.options.ai_settings.advisor.model,
       modes = { "v" },
       user_input = true,
       send_visual_selection = true,
@@ -311,7 +311,7 @@ M.static.actions = {
     strategy = "advisor",
     description = "Get help from OpenAI to fix LSP diagnostics",
     opts = {
-      model = config.options.ai_settings.models.advisor,
+      model = config.options.ai_settings.advisor.model,
       modes = { "v" },
       user_input = false, -- Prompt the user for their own input
       send_visual_selection = false, -- No need to send the visual selection as we do this in prompt 3

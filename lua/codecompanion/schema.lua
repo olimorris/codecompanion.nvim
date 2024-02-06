@@ -134,14 +134,14 @@ M.static.chat_settings = {
     order = 1,
     type = "enum",
     desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
-    default = config.options.ai_settings.models.chat,
+    default = config.options.ai_settings.chat.model,
     choices = model_choices,
   },
   temperature = {
     order = 2,
     type = "number",
     optional = true,
-    default = config.options.ai_settings.temperature,
+    default = config.options.ai_settings.chat.temperature,
     desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
     validate = function(n)
       return n >= 0 and n <= 2, "Must be between 0 and 2"
@@ -151,7 +151,7 @@ M.static.chat_settings = {
     order = 3,
     type = "number",
     optional = true,
-    default = config.options.ai_settings.top_p,
+    default = config.options.ai_settings.chat.top_p,
     desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
     validate = function(n)
       return n >= 0 and n <= 1, "Must be between 0 and 1"
@@ -161,7 +161,7 @@ M.static.chat_settings = {
     order = 4,
     type = "list",
     optional = true,
-    default = config.options.ai_settings.stop,
+    default = config.options.ai_settings.chat.stop,
     subtype = {
       type = "string",
     },
@@ -174,7 +174,7 @@ M.static.chat_settings = {
     order = 5,
     type = "integer",
     optional = true,
-    default = config.options.ai_settings.max_tokens,
+    default = config.options.ai_settings.chat.max_tokens,
     desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
     validate = function(n)
       return n > 0, "Must be greater than 0"
@@ -184,7 +184,7 @@ M.static.chat_settings = {
     order = 6,
     type = "number",
     optional = true,
-    default = config.options.ai_settings.presence_penalty,
+    default = config.options.ai_settings.chat.presence_penalty,
     desc = "Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.",
     validate = function(n)
       return n >= -2 and n <= 2, "Must be between -2 and 2"
@@ -194,7 +194,7 @@ M.static.chat_settings = {
     order = 7,
     type = "number",
     optional = true,
-    default = config.options.ai_settings.frequency_penalty,
+    default = config.options.ai_settings.chat.frequency_penalty,
     desc = "Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.",
     validate = function(n)
       return n >= -2 and n <= 2, "Must be between -2 and 2"
@@ -204,7 +204,7 @@ M.static.chat_settings = {
     order = 8,
     type = "map",
     optional = true,
-    default = config.options.ai_settings.logit_bias,
+    default = config.options.ai_settings.chat.logit_bias,
     desc = "Modify the likelihood of specified tokens appearing in the completion. Maps tokens (specified by their token ID) to an associated bias value from -100 to 100. Use https://platform.openai.com/tokenizer to find token IDs.",
     subtype_key = {
       type = "integer",
@@ -220,7 +220,7 @@ M.static.chat_settings = {
     order = 9,
     type = "string",
     optional = true,
-    default = config.options.ai_settings.user,
+    default = config.options.ai_settings.chat.user,
     desc = "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Learn more.",
     validate = function(u)
       return u:len() < 100, "Cannot be longer than 100 characters"
