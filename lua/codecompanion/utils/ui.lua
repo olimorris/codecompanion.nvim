@@ -44,6 +44,16 @@ M.buf_scroll_to_end = function(bufnr)
   end
 end
 
+---@param bufnr nil|integer
+---@return nil|integer
+M.buf_get_win = function(bufnr)
+  for _, winid in ipairs(api.nvim_list_wins()) do
+    if api.nvim_win_get_buf(winid) == bufnr then
+      return winid
+    end
+  end
+end
+
 ---Source: https://github.com/stevearc/oil.nvim/blob/dd432e76d01eda08b8658415588d011009478469/lua/oil/layout.lua#L22C8-L22C8
 ---@return integer
 M.get_editor_height = function()
