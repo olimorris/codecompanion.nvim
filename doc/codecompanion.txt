@@ -322,6 +322,14 @@ chat buffer maybe deleted (and removed from this action) by pressing `<C-q>`
 when in the chat buffer.
 
 
+CODE AUTHOR
+
+This action utilises the `author` strategy. This action can be useful for
+writing code into a buffer or even refactoring a visual selection; all based on
+a user’s prompt. The action is designed to write code for the buffer filetype
+that it is initated in, or, if run from a terminal prompt, to write commands.
+
+
 CODE ADVISOR
 
 As the name suggests, this action provides advice on a visual selection of code
@@ -333,14 +341,6 @@ your config.
 
   **Note**For some users, the sending of any code to an LLM may not be an option.
   In those instances, you can set `send_code = false` in your config.
-
-CODE AUTHOR
-
-This action utilises the `author` strategy. This action can be useful for
-generating code or even refactoring a visual selection based on a prompt by the
-user. The action is designed to write code for the buffer filetype that it is
-initated in, or, if run from a terminal prompt, to write commands.
-
 
 LSP ASSISTANT
 

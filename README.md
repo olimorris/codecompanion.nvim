@@ -40,7 +40,7 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 
 <div align="center">
   <p><strong>Chat buffer</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/a19c8397-a1e2-44df-98be-8a1b4d307ea7" alt="chat buffer" /></p>
-  <p><strong>Code author</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5a7178d7-d31c-4baf-b2bd-244d45466b85" alt="code author" /></p>
+  <p><strong>Code author</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/13af2dd2-d7bc-4f90-941e-e0a764e99e5a" alt="code author" /></p>
   <p><strong>Code advisor</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/889df5ee-048f-4a13-b2b5-4d999a2de600" alt="code advisor" /><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/6bdeac30-c2a0-4213-be0e-a27a7695a3f4" alt="code advisor" /></p>
 </div>
 
@@ -307,15 +307,15 @@ Both of these actions utilise the `chat` strategy. The `Chat` action opens up a 
 
 This action enables users to easily navigate between their open chat buffers. A chat buffer maybe deleted (and removed from this action) by pressing `<C-q>` when in the chat buffer.
 
+#### Code author
+
+This action utilises the `author` strategy. This action can be useful for writing code into a buffer or even refactoring a visual selection; all based on a user's prompt. The action is designed to write code for the buffer filetype that it is initated in, or, if run from a terminal prompt, to write commands.
+
 #### Code advisor
 
 As the name suggests, this action provides advice on a visual selection of code and utilises the `advisor` strategy. The response from the API is streamed into a chat buffer which follows the `display.chat` settings in your configuration. If you wish to turn the streaming off, set `display.advisor.stream = false` in your config.
 
 > **Note**: For some users, the sending of any code to an LLM may not be an option. In those instances, you can set `send_code = false` in your config.
-
-#### Code author
-
-This action utilises the `author` strategy. This action can be useful for generating code or even refactoring a visual selection based on a prompt by the user. The action is designed to write code for the buffer filetype that it is initated in, or, if run from a terminal prompt, to write commands.
 
 #### LSP assistant
 
