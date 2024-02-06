@@ -40,7 +40,7 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 
 <div align="center">
   <p><strong>Chat buffer</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/a19c8397-a1e2-44df-98be-8a1b4d307ea7" alt="chat buffer" /></p>
-  <p><strong>Code author</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/13af2dd2-d7bc-4f90-941e-e0a764e99e5a" alt="code author" /></p>
+  <p><strong>Code author</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/7e1f2e16-7b6f-453e-b3b0-650f3ac0fc0a" alt="code author" /></p>
   <p><strong>Code advisor</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/889df5ee-048f-4a13-b2b5-4d999a2de600" alt="code advisor" /><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/6bdeac30-c2a0-4213-be0e-a27a7695a3f4" alt="code advisor" /></p>
 </div>
 
