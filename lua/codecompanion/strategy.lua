@@ -112,7 +112,7 @@ function Strategy:conversations()
   end
 
   require("codecompanion.utils.ui").selector(items, {
-    prompt = "Converations",
+    prompt = "Conversations",
     format = function(item)
       local formatted_item = {}
       for _, column in ipairs(columns) do
