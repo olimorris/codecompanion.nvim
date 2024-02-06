@@ -27,7 +27,7 @@ function Author.new(opts)
     context = opts.context,
     client = opts.client,
     opts = opts.opts,
-    prompts = opts.prompts,
+    prompts = vim.deepcopy(opts.prompts),
   }, { __index = Author })
 end
 
@@ -38,6 +38,7 @@ function Author:execute(user_input)
   for _, prompt in ipairs(self.prompts) do
     if not prompt.contains_code or (prompt.contains_code and config.options.send_code) then
       if type(prompt.content) == "function" then
+        print(vim.inspect(self.context))
         prompt.content = prompt.content(self.context)
       end
 
