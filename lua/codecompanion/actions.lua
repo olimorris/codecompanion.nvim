@@ -42,7 +42,7 @@ M.static.actions = {
   {
     name = "Chat",
     strategy = "chat",
-    description = "Open/restore a chat buffer to converse with your GenAI",
+    description = "Open/restore a chat buffer to converse with OpenAI",
     type = nil,
     prompts = {
       n = function()
@@ -263,7 +263,7 @@ M.static.actions = {
   {
     name = "Code author",
     strategy = "author",
-    description = "Get GenAI to write/refactor code for you",
+    description = "Get OpenAI to write/refactor code for you",
     opts = {
       model = config.options.ai_settings.models.author,
       user_input = true,
@@ -309,7 +309,7 @@ M.static.actions = {
   {
     name = "LSP assistant",
     strategy = "advisor",
-    description = "Get help from GenAI to fix LSP diagnostics",
+    description = "Get help from OpenAI to fix LSP diagnostics",
     opts = {
       model = config.options.ai_settings.models.advisor,
       modes = { "v" },
