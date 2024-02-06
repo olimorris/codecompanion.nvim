@@ -34,13 +34,14 @@ M.buf_get_chat = function(bufnr)
   return require("codecompanion.strategy.chat").buf_get_chat(bufnr)
 end
 
-M.chat = function()
+---@param args? table
+M.chat = function(args)
   local client = get_client()
   if not client then
     return
   end
 
-  local context = util.get_context(vim.api.nvim_get_current_buf())
+  local context = util.get_context(vim.api.nvim_get_current_buf(), args)
 
   local Chat = require("codecompanion.strategy.chat")
   local chat = Chat.new({

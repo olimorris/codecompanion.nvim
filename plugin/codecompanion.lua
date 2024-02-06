@@ -8,9 +8,9 @@ end
 
 local codecompanion = require("codecompanion")
 
-vim.api.nvim_create_user_command("CodeCompanionChat", function()
-  codecompanion.chat()
-end, { desc = "" })
+vim.api.nvim_create_user_command("CodeCompanionChat", function(opts)
+  codecompanion.chat(opts)
+end, { desc = "", range = true })
 
 vim.api.nvim_create_user_command("CodeCompanionActions", function()
   codecompanion.actions()

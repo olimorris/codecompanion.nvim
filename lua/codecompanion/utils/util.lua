@@ -86,24 +86,25 @@ function M.get_visual_selection(bufnr)
 end
 
 ---Get the context of the current buffer.
----@param bufnr nil|integer
+---@param bufnr? integer
+---@param args? table
 ---@return table
-function M.get_context(bufnr)
+function M.get_context(bufnr, args)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
   local mode = vim.fn.mode()
   local cursor_pos = vim.api.nvim_win_get_cursor(vim.api.nvim_get_current_win())
 
   local lines, start_line, start_col, end_line, end_col = {}, cursor_pos[1], cursor_pos[2], cursor_pos[1], cursor_pos[2]
 
-  if is_visual_mode(mode) then
+  if (args and args.range > 0) or is_visual_mode(mode) then
     lines, start_line, start_col, end_line, end_col = M.get_visual_selection(bufnr)
   end
 
   return {
     bufnr = bufnr,
     mode = mode,
-    is_visual = is_visual_mode(mode),
-    is_normal = is_normal_mode(mode),
+    is_visual = (args and args.range > 0) or is_visual_mode(mode),
+    is_normal = (args and args.range == 0) or is_normal_mode(mode),
     buftype = vim.api.nvim_buf_get_option(bufnr, "buftype") or "",
     filetype = M.get_filetype(bufnr),
     cursor_pos = cursor_pos,
