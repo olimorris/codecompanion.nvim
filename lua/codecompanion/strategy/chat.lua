@@ -233,7 +233,7 @@ local function chat_autocmds(bufnr, args)
       if utils.count(_G.codecompanion_chats) == 0 then
         local ns_id = api.nvim_create_namespace("CodeCompanionChatVirtualText")
         api.nvim_buf_set_extmark(bufnr, ns_id, api.nvim_buf_line_count(bufnr) - 1, 0, {
-          virt_text = { { "Save the buffer to send a message to OpenAI...", "CodeCompanionVirtualText" } },
+          virt_text = { { config.options.intro_message, "CodeCompanionVirtualText" } },
           virt_text_pos = "eol",
         })
       end

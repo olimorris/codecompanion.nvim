@@ -6,7 +6,7 @@ local M = {}
 
 local _client
 ---@return nil|CodeCompanion.Client
-local function get_client()
+function M.get_client()
   if not _client then
     local secret_key = os.getenv(config.options.api_key)
     if not secret_key then
@@ -36,7 +36,7 @@ end
 
 ---@param args? table
 M.chat = function(args)
-  local client = get_client()
+  local client = M.get_client()
   if not client then
     return
   end
@@ -91,7 +91,7 @@ end
 
 local _cached_actions = {}
 M.actions = function()
-  local client = get_client()
+  local client = M.get_client()
   if not client then
     return
   end

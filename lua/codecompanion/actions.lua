@@ -370,6 +370,38 @@ M.static.actions = {
     name = "Load chats",
     strategy = "saved_chats",
     description = "Load your previous chats",
+    condition = function()
+      local saved_chats = require("codecompanion.strategy.saved_chats")
+      local items = saved_chats:list({ sort = true })
+      return #items > 0
+    end,
+    picker = {
+      prompt = "Saved chats",
+      items = function()
+        local client = require("codecompanion").get_client()
+        local saved_chats = require("codecompanion.strategy.saved_chats")
+        local items = saved_chats:list({ sort = true })
+
+        local chats = {}
+
+        for _, chat in pairs(items) do
+          table.insert(chats, {
+            name = chat.tokens,
+            strategy = chat.filename,
+            description = chat.dir,
+            callback = function()
+              return saved_chats
+                .new({
+                  filename = chat.filename,
+                })
+                :load(client, chat)
+            end,
+          })
+        end
+
+        return chats
+      end,
+    },
   },
 }
 

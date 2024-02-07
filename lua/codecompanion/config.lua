@@ -85,6 +85,7 @@ local defaults = {
     ["]"] = "keymaps.next",
     ["["] = "keymaps.previous",
   },
+  intro_message = "Welcome to Code Companion ✨! Save the buffer to send a message to OpenAI...",
   log_level = "ERROR",
   send_code = true,
   silence_notifications = false,

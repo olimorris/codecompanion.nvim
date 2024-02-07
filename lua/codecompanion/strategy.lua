@@ -97,37 +97,4 @@ function Strategy:author()
     :start()
 end
 
-function Strategy:saved_chats()
-  local saved_chats = require("codecompanion.strategy.saved_chats")
-  local items = saved_chats:list({ sort = true })
-
-  local columns = {
-    "tokens",
-    "filename",
-    "dir",
-  }
-
-  if #items == 0 then
-    return vim.notify("[CodeCompanion.nvim]\nNo saved chats found", vim.log.levels.INFO)
-  end
-
-  require("codecompanion.utils.ui").selector(items, {
-    prompt = "Saved chats",
-    format = function(item)
-      local formatted_item = {}
-      for _, column in ipairs(columns) do
-        table.insert(formatted_item, item[column] or "")
-      end
-      return formatted_item
-    end,
-    callback = function(selected)
-      return saved_chats
-        .new({
-          filename = selected.filename,
-        })
-        :load(self.client, selected)
-    end,
-  })
-end
-
 return Strategy
