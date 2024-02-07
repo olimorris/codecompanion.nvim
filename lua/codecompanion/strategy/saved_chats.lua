@@ -135,4 +135,8 @@ function SavedChat:load(client, opts)
   rename_buffer(chat_buf.bufnr, opts.filename)
 end
 
+function SavedChat:has_chats()
+  return #self:list() > 0
+end
+
 return SavedChat

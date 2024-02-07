@@ -372,8 +372,7 @@ M.static.actions = {
     description = "Load your previous chats",
     condition = function()
       local saved_chats = require("codecompanion.strategy.saved_chats")
-      local items = saved_chats:list({ sort = true })
-      return #items > 0
+      return saved_chats:has_chats()
     end,
     picker = {
       prompt = "Saved chats",
