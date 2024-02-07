@@ -136,8 +136,8 @@ require("codecompanion").setup({
       user = nil,
     },
   },
-  conversations = {
-    save_dir = vim.fn.stdpath("data") .. "/codecompanion/conversations", -- Path to save conversations to
+  saved_chats = {
+    save_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats", -- Path to save chats to
   },
   display = {
     action_palette = {
@@ -179,13 +179,13 @@ require("codecompanion").setup({
     ["q"] = "keymaps.cancel_request", -- Cancel the currently streaming request
     ["gc"] = "keymaps.clear", -- Clear the contents of the chat
     ["ga"] = "keymaps.codeblock", -- Insert a codeblock into the chat
-    ["gs"] = "keymaps.save_conversation", -- Save the current chat as a conversation
+    ["gs"] = "keymaps.save_chat", -- Save the current chat
     ["]"] = "keymaps.next", -- Move to the next header in the chat
     ["["] = "keymaps.previous", -- Move to the previous header in the chat
   },
   log_level = "ERROR", -- TRACE|DEBUG|ERROR
   send_code = true, -- Send code context to the API?
-  silence_notifications = false, -- Silence notifications for actions like saving conversations?
+  silence_notifications = false, -- Silence notifications for actions like saving saving chats?
   use_default_actions = true, -- Use the default actions in the action palette?
 })
 ```
@@ -277,13 +277,13 @@ When in the chat buffer, there are number of keymaps available to you (which can
 - `q` - Cancel streaming from the GenAI
 - `gc` - Clear the buffer's contents
 - `ga` - Add a codeblock
-- `gs` - Save the chat as a conversation
+- `gs` - Save the chat
 - `[` - Move to the next header in the buffer
 - `]` - Move to the previous header in the buffer
 
-#### Conversations
+#### Saved Chats
 
-Chat Buffers are not automatically saved to disk, owing to them being an `acwrite` buffer (see `:h buftype`). However, the plugin allows for this via the notion of Conversations. By pressing `gs` in the buffer, the current chat will be saved. Conversations can then be restored via the Action Palette and the _Load conversations_ action.
+Chat Buffers are not automatically saved, but can be by pressing `gs` in the buffer. Saved chats can then be restored via the Action Palette and the _Saved chats_ action.
 
 #### Settings
 
@@ -328,7 +328,7 @@ Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) pl
 The plugin fires the following events during its lifecycle:
 
 - `CodeCompanionRequest` - Fired during the API request. Outputs `data.status` with a value of `started` or `finished`
-- `CodeCompanionConversation` - Fired after a conversation has been saved to disk
+- `CodeCompanionChatSaved` - Fired after a chat has been saved to disk
 - `CodeCompanionChat` - Fired at various points during the chat buffer. Comes with the following attributes:
   - `data.action = close_buffer` - For when a chat buffer has been permanently closed
   - `data.action = hide_buffer` - For when a chat buffer is now hidden

@@ -39,8 +39,8 @@ local defaults = {
       user = nil,
     },
   },
-  conversations = {
-    save_dir = vim.fn.stdpath("data") .. "/codecompanion/conversations",
+  saved_chats = {
+    save_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats",
   },
   display = {
     action_palette = {
@@ -81,7 +81,7 @@ local defaults = {
     ["q"] = "keymaps.cancel_request",
     ["gc"] = "keymaps.clear",
     ["ga"] = "keymaps.codeblock",
-    ["gs"] = "keymaps.save_conversation",
+    ["gs"] = "keymaps.save_chat",
     ["]"] = "keymaps.next",
     ["["] = "keymaps.previous",
   },

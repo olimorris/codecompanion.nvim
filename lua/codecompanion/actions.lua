@@ -367,9 +367,9 @@ M.static.actions = {
     },
   },
   {
-    name = "Load conversations",
-    strategy = "conversations",
-    description = "Load your previous Chat conversations",
+    name = "Load chats",
+    strategy = "saved_chats",
+    description = "Load your previous chats",
   },
 }
 

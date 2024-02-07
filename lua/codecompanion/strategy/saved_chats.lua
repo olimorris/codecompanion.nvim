@@ -2,7 +2,7 @@ local Chat = require("codecompanion.strategy.chat")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
-local prefix = config.options.conversations.save_dir .. "/"
+local prefix = config.options.saved_chats.save_dir .. "/"
 local suffix = ".json"
 
 local function get_current_datetime()
@@ -15,32 +15,32 @@ local function rename_buffer(bufnr, name)
   vim.api.nvim_buf_set_name(bufnr, "[CodeCompanion Chat] " .. name .. ".md")
 end
 
----@class CodeCompanion.Conversation
----@field filename nil|string The conversation name
+---@class CodeCompanion.SavedChat
+---@field filename nil|string The saved_chat name
 ---@field cwd string The current working directory of the editor
-local Conversation = {}
+local SavedChat = {}
 
 ---@class CodeCompanion.SessionArgs
----@field filename nil|string The conversation name
+---@field filename nil|string The saved_chat name
 ---@field cwd string The current working directory of the editor
 
 ---@param args CodeCompanion.SessionArgs
----@return CodeCompanion.Conversation
-function Conversation.new(args)
-  log:trace("Initiating Conversation")
+---@return CodeCompanion.SavedChat
+function SavedChat.new(args)
+  log:trace("Initiating saved chat")
 
   local self = setmetatable({
     filename = args.filename,
     cwd = args.cwd or vim.fn.getcwd(),
-  }, { __index = Conversation })
+  }, { __index = SavedChat })
 
   return self
 end
 
 ---@param filename string
 ---@param bufnr number
----@param conversation table
-local function save(filename, bufnr, conversation)
+---@param saved_chat table
+local function save(filename, bufnr, saved_chat)
   local path = prefix .. filename .. suffix
 
   local match = path:match("(.*/)")
@@ -50,13 +50,13 @@ local function save(filename, bufnr, conversation)
 
   local file, err = io.open(path, "w")
   if file ~= nil then
-    log:debug('Conversation: "%s.json" saved', filename)
-    file:write(vim.json.encode(conversation))
+    log:debug('Saved Chat: "%s.json" saved', filename)
+    file:write(vim.json.encode(saved_chat))
     file:close()
-    vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionConversation", data = { status = "finished" } })
+    vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChatSaved", data = { status = "finished" } })
   else
-    log:debug("Conversation could not be saved. Error: %s", err)
-    vim.notify("[CodeCompanion.nvim]\nCannot save conversation: " .. err, vim.log.levels.ERROR)
+    log:debug("Saved chat could not be saved. Error: %s", err)
+    vim.notify("[CodeCompanion.nvim]\nCannot save chat: " .. err, vim.log.levels.ERROR)
   end
 
   rename_buffer(bufnr, filename)
@@ -64,11 +64,11 @@ end
 
 ---@param bufnr number
 ---@param messages table
-function Conversation:save(bufnr, settings, messages)
+function SavedChat:save(bufnr, settings, messages)
   local tokens = require("codecompanion.utils.tokens")
   local files = require("codecompanion.utils.files")
 
-  local conversation = {
+  local saved_chat = {
     meta = {
       dir = files.replace_home(self.cwd),
       tokens = tokens.get_tokens(messages),
@@ -79,54 +79,54 @@ function Conversation:save(bufnr, settings, messages)
   }
 
   if not self.filename then
-    log:debug("Conversation: No filename provided, skipping save")
+    log:debug("Saved Chat: No filename provided, skipping save")
     return
   end
 
-  return save(self.filename, bufnr, conversation)
+  return save(self.filename, bufnr, saved_chat)
 end
 
 ---@param opts nil|table
-function Conversation:list(opts)
+function SavedChat:list(opts)
   local paths = vim.fn.glob(prefix .. "*" .. suffix, false, true)
-  local conversations = {}
+  local saved_chats = {}
 
   for _, path in ipairs(paths) do
     local file_content = table.concat(vim.fn.readfile(path), "\n")
-    local conversation = vim.fn.json_decode(file_content)
+    local saved_chat = vim.fn.json_decode(file_content)
 
-    if conversation and conversation.meta and conversation.meta.updated_at then
-      table.insert(conversations, {
-        tokens = conversation.meta.tokens .. " tokens",
+    if saved_chat and saved_chat.meta and saved_chat.meta.updated_at then
+      table.insert(saved_chats, {
+        tokens = saved_chat.meta.tokens .. " tokens",
         filename = path:match("([^/]+)%.json$"),
         path = path,
-        dir = conversation.meta.dir,
-        updated_at = conversation.meta.updated_at,
-        strategy = "conversations", -- This allows us to call this very strategy from the picker
+        dir = saved_chat.meta.dir,
+        updated_at = saved_chat.meta.updated_at,
+        strategy = "saved_chats", -- This allows us to call this very strategy from the picker
       })
     end
   end
 
   if opts and opts.sort then
-    table.sort(conversations, function(a, b)
+    table.sort(saved_chats, function(a, b)
       return a.updated_at > b.updated_at -- Sort in descending order
     end)
   end
 
-  return conversations
+  return saved_chats
 end
 
 ---@param client CodeCompanion.Client
 ---@param opts table
-function Conversation:load(client, opts)
-  log:debug("Loading conversation: %s", opts)
+function SavedChat:load(client, opts)
+  log:debug("Loading saved chat: %s", opts)
 
   self.filename = opts.filename
   local content = vim.fn.json_decode(table.concat(vim.fn.readfile(opts.path), "\n"))
 
   local chat_buf = Chat.new({
     client = client,
-    conversation = self.filename,
+    saved_chat = self.filename,
     messages = content.messages,
     settings = content.settings,
     show_buffer = true,
@@ -135,4 +135,4 @@ function Conversation:load(client, opts)
   rename_buffer(chat_buf.bufnr, opts.filename)
 end
 
-return Conversation
+return SavedChat

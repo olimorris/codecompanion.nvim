@@ -30,30 +30,30 @@ M.cancel_request = {
   end,
 }
 
-M.save_conversation = {
-  desc = "Save the chat as a conversation",
+M.save_chat = {
+  desc = "Save the current chat",
   callback = function(args)
     local chat = require("codecompanion.strategy.chat")
-    local conversation = require("codecompanion.strategy.conversation").new({})
+    local saved_chat = require("codecompanion.strategy.saved_chats").new({})
 
-    if args.conversation then
-      conversation.filename = args.conversation
-      conversation:save(args.bufnr, chat.buf_get_messages(args.bufnr))
+    if args.saved_chat then
+      saved_chat.filename = args.saved_chat
+      saved_chat:save(args.bufnr, chat.buf_get_messages(args.bufnr))
 
       if config.options.silence_notifications then
         return
       end
 
-      return vim.notify("[CodeCompanion.nvim]\nConversation has been saved", vim.log.levels.INFO)
+      return vim.notify("[CodeCompanion.nvim]\nChat has been saved", vim.log.levels.INFO)
     end
 
-    vim.ui.input({ prompt = "Conversation Name" }, function(filename)
+    vim.ui.input({ prompt = "Chat Name" }, function(filename)
       if not filename then
         return
       end
-      conversation.filename = filename
-      conversation:save(args.bufnr, chat.buf_get_messages(args.bufnr))
-      args.conversation = filename
+      saved_chat.filename = filename
+      saved_chat:save(args.bufnr, chat.buf_get_messages(args.bufnr))
+      args.saved_chat = filename
     end)
   end,
 }

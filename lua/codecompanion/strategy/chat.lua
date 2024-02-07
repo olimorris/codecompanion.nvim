@@ -333,7 +333,7 @@ local Chat = {}
 ---@field show_buffer nil|boolean
 ---@field settings nil|CodeCompanion.ChatSettings
 ---@field type nil|string
----@field conversation nil|string
+---@field saved_chat nil|string
 
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)
@@ -364,7 +364,7 @@ function Chat.new(args)
     bufnr = bufnr,
     client = args.client,
     context = args.context,
-    conversation = args.conversation,
+    saved_chat = args.saved_chat,
     settings = settings,
     type = args.type,
   }, { __index = Chat })
