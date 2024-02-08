@@ -38,7 +38,6 @@ function Author:execute(user_input)
   for _, prompt in ipairs(self.prompts) do
     if not prompt.contains_code or (prompt.contains_code and config.options.send_code) then
       if type(prompt.content) == "function" then
-        print(vim.inspect(self.context))
         prompt.content = prompt.content(self.context)
       end
 
@@ -65,7 +64,7 @@ function Author:execute(user_input)
     })
   end
 
-  -- Clear any visual selection
+  -- Overwrite any visual selection
   if self.context.is_visual then
     api.nvim_buf_set_text(
       self.context.bufnr,
