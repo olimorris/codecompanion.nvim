@@ -90,14 +90,14 @@ M.toggle = function()
 end
 
 local _cached_actions = {}
-M.actions = function()
+M.actions = function(args)
   local client = M.get_client()
   if not client then
     return
   end
 
   local actions = require("codecompanion.actions")
-  local context = util.get_context(vim.api.nvim_get_current_buf())
+  local context = util.get_context(vim.api.nvim_get_current_buf(), args)
 
   local function picker(items, opts, callback)
     opts = opts or {}
