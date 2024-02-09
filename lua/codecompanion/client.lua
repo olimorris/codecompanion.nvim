@@ -63,7 +63,7 @@ local function headers(client)
     OpenAI_Organization = client.organization,
   }
 
-  log:trace("Request Headers: %s", group)
+  log:debug("Request Headers: %s", group)
 
   return group
 end
@@ -116,7 +116,7 @@ function Client:call(url, payload, cb)
         else
           self.settings.schedule(function()
             cb(nil, data)
-            log:trace("Response: %s", data)
+            log:debug("Response: %s", data)
             close_request()
           end)
         end
@@ -128,7 +128,7 @@ function Client:call(url, payload, cb)
     end,
   })
 
-  log:trace("Request: %s", handler.args)
+  log:debug("Request: %s", handler.args)
   start_request()
 end
 
@@ -190,7 +190,7 @@ function Client:stream_call(url, payload, bufnr, cb)
     end,
   })
 
-  log:trace("Stream Request: %s", handler.args)
+  log:debug("Stream Request: %s", handler.args)
   start_request(bufnr, handler)
 end
 
@@ -242,11 +242,11 @@ function Client:advisor(args, cb)
   return self:call(config.options.base_url .. "/v1/chat/completions", args, cb)
 end
 
----@class args CodeCompanion.AuthorArgs
+---@class args CodeCompanion.InlineArgs
 ---@param bufnr integer
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
 ---@return nil
-function Client:author(args, bufnr, cb)
+function Client:inline(args, bufnr, cb)
   args.stream = true
   return self:stream_call(config.options.base_url .. "/v1/chat/completions", args, bufnr, cb)
 end

@@ -35,7 +35,7 @@ local function parse_settings(bufnr)
   if not config.options.display.chat.show_settings then
     config_settings[bufnr] = vim.deepcopy(config.options.ai_settings.chat)
 
-    log:trace("Using the settings from the user's config: %s", config_settings[bufnr])
+    log:debug("Using the settings from the user's config: %s", config_settings[bufnr])
     return config_settings[bufnr]
   end
 
@@ -230,7 +230,7 @@ local function chat_autocmds(bufnr, args)
     group = aug,
     buffer = bufnr,
     callback = function()
-      if utils.count(_G.codecompanion_chats) == 0 then
+      if ui.buf_is_empty(bufnr) then
         local ns_id = api.nvim_create_namespace("CodeCompanionChatVirtualText")
         api.nvim_buf_set_extmark(bufnr, ns_id, api.nvim_buf_line_count(bufnr) - 1, 0, {
           virt_text = { { config.options.intro_message, "CodeCompanionVirtualText" } },
@@ -436,12 +436,13 @@ function Chat:submit()
     self.bufnr,
     function(err, chunk, done)
       if err then
+        log:error("Error: %s", err)
         vim.notify("Error: " .. err, vim.log.levels.ERROR)
         return finalize()
       end
 
       if chunk then
-        log:debug("chat chunk: %s", chunk)
+        log:debug("Chat chunk: %s", chunk)
         local delta = chunk.choices[1].delta
         if delta.role and delta.role ~= new_message.role then
           new_message = { role = delta.role, content = "" }
