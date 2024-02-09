@@ -16,7 +16,7 @@ local defaults = {
       logit_bias = nil,
       user = nil,
     },
-    author = {
+    inline = {
       model = "gpt-4-1106-preview",
       temperature = 1,
       top_p = 1,
@@ -85,7 +85,7 @@ local defaults = {
     ["]"] = "keymaps.next",
     ["["] = "keymaps.previous",
   },
-  intro_message = "Welcome to Code Companion ✨! Save the buffer to send a message to OpenAI...",
+  intro_message = "Welcome to CodeCompanion ✨! Save the buffer to send a message to OpenAI...",
   log_level = "ERROR",
   send_code = true,
   silence_notifications = false,

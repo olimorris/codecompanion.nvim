@@ -40,7 +40,7 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 
 <div align="center">
   <p><strong>Chat buffer</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/a19c8397-a1e2-44df-98be-8a1b4d307ea7" alt="chat buffer" /></p>
-  <p><strong>Code author</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/7e1f2e16-7b6f-453e-b3b0-650f3ac0fc0a" alt="code author" /></p>
+  <p><strong>Inline code</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/7e1f2e16-7b6f-453e-b3b0-650f3ac0fc0a" alt="Inline code" /></p>
   <p><strong>Code advisor</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/889df5ee-048f-4a13-b2b5-4d999a2de600" alt="code advisor" /><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/6bdeac30-c2a0-4213-be0e-a27a7695a3f4" alt="code advisor" /></p>
 </div>
 
@@ -113,7 +113,7 @@ require("codecompanion").setup({
       logit_bias = nil,
       user = nil,
     },
-    author = {
+    inline = {
       model = "gpt-4-1106-preview",
       temperature = 1,
       top_p = 1,
@@ -236,7 +236,7 @@ vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", {
 vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
 ```
 
-> **Note**: For some actions, visual mode allows your selection to be sent directly to the chat buffer or the API itself (in the case of `author` actions).
+> **Note**: For some actions, visual mode allows your selection to be sent directly to the chat buffer or the API itself (in the case of `inline code` actions).
 
 ### The Action Palette
 
@@ -294,7 +294,7 @@ If `display.chat.show_settings` is set to `true`, at the very top of the chat bu
 The plugin comes with a number of [in-built actions](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) which aim to improve your Neovim workflow. Actions make use of strategies which are abstractions built around Neovim and OpenAI functionality. Before we dive in to the actions, it's worth explaining what each of the strategies do:
 
 - `chat` - A strategy for opening up a chat buffer allowing the user to converse directly with OpenAI
-- `author` - A strategy for allowing OpenAI responses to be written directly into a Neovim buffer
+- `inline` - A strategy for allowing OpenAI responses to be written directly into a Neovim buffer
 - `advisor` - A strategy for outputting OpenAI responses into a split or a popup, alongside a Neovim buffer
 
 #### Chat and Chat as
@@ -307,9 +307,15 @@ Both of these actions utilise the `chat` strategy. The `Chat` action opens up a 
 
 This action enables users to easily navigate between their open chat buffers. A chat buffer maybe deleted (and removed from this action) by pressing `<C-q>` when in the chat buffer.
 
-#### Code author
+#### Inline code
 
-This action utilises the `author` strategy. This action can be useful for writing code into a buffer or even refactoring a visual selection; all based on a user's prompt. The action is designed to write code for the buffer filetype that it is initated in, or, if run from a terminal prompt, to write commands.
+This action utilises the `inline` strategy. This action can be useful for writing code into a buffer or even refactoring a visual selection; all based on a user's prompt. The action is designed to write code for the buffer filetype that it is initated in, or, if run from a terminal prompt, to write commands.
+
+The strategy comes with a number of helpers which the user can type in the prompt, similar to GitHub Copilot Chat:
+
+- `/doc` to add a documentation comment
+- `/tests` to create unit tests for the selected code
+- `/optimize` to analyze and improve the running time of the selected code
 
 #### Code advisor
 

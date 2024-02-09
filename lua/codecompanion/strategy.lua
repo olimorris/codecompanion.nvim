@@ -86,8 +86,8 @@ function Strategy:advisor()
     :start()
 end
 
-function Strategy:author()
-  return require("codecompanion.strategy.author")
+function Strategy:inline()
+  return require("codecompanion.strategy.inline")
     .new({
       context = self.context,
       client = self.client,

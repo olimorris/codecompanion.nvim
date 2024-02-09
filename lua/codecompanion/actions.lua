@@ -261,8 +261,8 @@ M.static.actions = {
     },
   },
   {
-    name = "Code author",
-    strategy = "author",
+    name = "Inline code",
+    strategy = "inline",
     description = "Get OpenAI to write/refactor code for you",
     opts = {
       user_prompt = true,
@@ -406,7 +406,7 @@ M.static.commands = {
     command = "/doc",
     description = "Add a documentation comment",
     opts = {
-      placement = "before", -- before|after|replace selection
+      placement = "before", -- before|after|replace|new
       send_visual_selection = true,
     },
     prompts = {
@@ -425,16 +425,46 @@ M.static.commands = {
     },
   },
   {
-    command = "/test",
-    description = "Create unit tests for the selected code",
+    command = "/optimize",
+    description = "Optimize the selected code",
     opts = {
-      new_file = true, -- Put the generated code into a new file
+      placement = "replace",
       send_visual_selection = true,
     },
     prompts = {
       {
+        role = "system",
+        content = function(context)
+          return "You are an expert coder and helpful assistant who can help optimize code for the "
+            .. context.filetype
+            .. " language"
+        end,
+      },
+      {
         role = "user",
-        content = "Please create a unit test for the provided code",
+        content = "Please optimize the provided code. Please just respond with the code only and no explanation or markdown block syntax",
+      },
+    },
+  },
+  {
+    command = "/test",
+    description = "Create unit tests for the selected code",
+    opts = {
+      placement = "new",
+      send_visual_selection = true,
+    },
+    prompts = {
+      {
+        role = "system",
+        content = function(context)
+          return "You are an expert coder and helpful assistant who can help write unit tests for the "
+            .. context.filetype
+            .. " language"
+        end,
+      },
+      {
+        role = "user",
+        content = "Please create a unit test for the provided code. Please just respond with the code only and no explanation or markdown block syntax",
       },
     },
   },
