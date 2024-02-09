@@ -6,6 +6,12 @@ local M = {}
 
 ---@param bufnr number
 ---@return boolean
+M.buf_is_empty = function(bufnr)
+  return api.nvim_buf_line_count(bufnr) == 1 and api.nvim_buf_get_lines(bufnr, 0, -1, false)[1] == ""
+end
+
+---@param bufnr number
+---@return boolean
 M.buf_is_active = function(bufnr)
   return api.nvim_get_current_buf() == bufnr
 end
