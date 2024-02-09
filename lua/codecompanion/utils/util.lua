@@ -94,10 +94,8 @@ end
 function M.get_context(bufnr, args)
   bufnr = bufnr or api.nvim_get_current_buf()
   local winid = api.nvim_get_current_win()
+  local mode = vim.fn.mode()
   local cursor_pos = api.nvim_win_get_cursor(api.nvim_get_current_win())
-
-  -- Detect if we've made a visual selection via the command line
-  local mode = vim.fn.visualmode() == "" and vim.fn.mode() or vim.fn.visualmode()
 
   local lines, start_line, start_col, end_line, end_col = {}, cursor_pos[1], cursor_pos[2], cursor_pos[1], cursor_pos[2]
 

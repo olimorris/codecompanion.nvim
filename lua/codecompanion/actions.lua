@@ -265,7 +265,7 @@ M.static.actions = {
     strategy = "author",
     description = "Get OpenAI to write/refactor code for you",
     opts = {
-      user_input = true,
+      user_prompt = true,
       send_visual_selection = true,
     },
     prompts = {
@@ -290,7 +290,7 @@ M.static.actions = {
     description = "Get advice on the code you've selected",
     opts = {
       modes = { "v" },
-      user_input = true,
+      user_prompt = true,
       send_visual_selection = true,
     },
     prompts = {
@@ -310,7 +310,7 @@ M.static.actions = {
     description = "Get help from OpenAI to fix LSP diagnostics",
     opts = {
       modes = { "v" },
-      user_input = false, -- Prompt the user for their own input
+      user_prompt = false, -- Prompt the user for their own input
       send_visual_selection = false, -- No need to send the visual selection as we do this in prompt 3
     },
     prompts = {
@@ -397,6 +397,45 @@ M.static.actions = {
 
         return chats
       end,
+    },
+  },
+}
+
+M.static.commands = {
+  {
+    command = "/doc",
+    description = "Add a documentation comment",
+    opts = {
+      placement = "before", -- before|after|replace selection
+      send_visual_selection = true,
+    },
+    prompts = {
+      {
+        role = "system",
+        content = function(context)
+          return "You are an expert coder and helpful assistant who can help write documentation comments for the "
+            .. context.filetype
+            .. " language"
+        end,
+      },
+      {
+        role = "user",
+        content = "Please add a documentation comment to the provided code and reply with just the comment only and no explanation, no codeblocks and do not return the code either. If neccessary add parameter and return types",
+      },
+    },
+  },
+  {
+    command = "/test",
+    description = "Create unit tests for the selected code",
+    opts = {
+      new_file = true, -- Put the generated code into a new file
+      send_visual_selection = true,
+    },
+    prompts = {
+      {
+        role = "user",
+        content = "Please create a unit test for the provided code",
+      },
     },
   },
 }

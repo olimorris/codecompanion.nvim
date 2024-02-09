@@ -9,13 +9,13 @@ local utils = require("codecompanion.utils.util")
 ---@field prompts table
 local Advisor = {}
 
----@class CodeCompanion.AuthorArgs
+---@class CodeCompanion.AdvisorArgs
 ---@field context table
 ---@field client CodeCompanion.Client
 ---@field opts table
 ---@field prompts table
 
----@param opts CodeCompanion.AuthorArgs
+---@param opts CodeCompanion.AdvisorArgs
 ---@return CodeCompanion.Advisor
 function Advisor.new(opts)
   log:trace("Initiating Advisor")
