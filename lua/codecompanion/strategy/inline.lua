@@ -205,7 +205,6 @@ function Inline:execute(user_prompt)
 
     pos.line = line + 1
     pos.col = col
-    api.nvim_win_set_cursor(self.context.winid, { pos.line, pos.col })
   end
 
   log:debug("Messages: %s", messages)
