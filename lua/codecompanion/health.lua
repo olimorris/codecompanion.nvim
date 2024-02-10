@@ -79,18 +79,18 @@ function M.check()
       ok(fmt("%s installed", plugin.name))
     else
       if plugin.optional then
-        warn(fmt("Optional %s dependency not found", plugin.name))
+        warn(fmt("%s not found", plugin.name))
       else
-        error(fmt("Dependency %s not found", plugin.name))
+        error(fmt("%s not found", plugin.name))
       end
     end
   end
 
   for _, library in ipairs(M.libraries) do
     if lib_available(library) then
-      ok(fmt("%s library installed", library))
+      ok(fmt("%s installed", library))
     else
-      error(fmt("%s library not installed", library))
+      error(fmt("%s not installed", library))
     end
   end
 
@@ -99,9 +99,9 @@ function M.check()
       ok(fmt("%s key found", env.name))
     else
       if env.optional then
-        warn(fmt("Optional %s key not found", env.name))
+        warn(fmt("%s key not found", env.name))
       else
-        error(fmt("Key %s not found", env.name))
+        error(fmt("%s key not found", env.name))
       end
     end
   end
