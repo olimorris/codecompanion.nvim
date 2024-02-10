@@ -265,15 +265,15 @@ Or, if you wish to turn off the default actions, set `use_default_actions = fals
 
 <p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/84d5e03a-0b48-4ffb-9ca5-e299d41171bd" alt="chat buffer" /></p>
 
-The chat buffer is where you can converse with your GenAI API, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the API, in the form of prompts. These prompts are segmented by H1 headers: `user` and `assistant` (see OpenAI's [Chat Completions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api) for more on this). When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with GenAI, from within Neovim.
+The chat buffer is where you can converse with OpenAI API, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the API, in the form of prompts. These prompts are segmented by H1 headers: `user` and `assistant` (see OpenAI's [Chat Completions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api) for more on this). When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with ChatGPT, from within Neovim.
 
 #### Keymaps
 
 When in the chat buffer, there are number of keymaps available to you (which can be changed in the config):
 
-- `<C-s>` - Save the buffer and trigger a response from the GenAI
+- `<C-s>` - Save the buffer and trigger a response from the OpenAI API
 - `<C-c>` - Close the buffer
-- `q` - Cancel streaming from the GenAI
+- `q` - Cancel streaming from OpenAI
 - `gc` - Clear the buffer's contents
 - `ga` - Add a codeblock
 - `gs` - Save the chat
@@ -286,7 +286,7 @@ Chat Buffers are not automatically saved, but can be by pressing `gs` in the buf
 
 #### Settings
 
-If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the GenAI parameters which can be changed to affect the API's response back to you. This enables fine-tuning and parameter tweaking throughout the chat. You can find more detail about them by moving the cursor over them or referring to the [Chat Completions reference guide](https://platform.openai.com/docs/api-reference/chat) if you're using OpenAI.
+If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the OpenAI parameters which can be changed to affect the API's response back to you. This enables fine-tuning and parameter tweaking throughout the chat. You can find more detail about them by moving the cursor over them or referring to the [Chat Completions reference guide](https://platform.openai.com/docs/api-reference/chat) if you're using OpenAI.
 
 ### In-Built Actions
 
@@ -359,10 +359,10 @@ vim.api.nvim_create_autocmd({ "User" }, {
 
 ### Heirline.nvim
 
-If you use the fantastic [Heirline.nvim](https://github.com/rebelot/heirline.nvim) plugin, consider the following snippet to display an icon in the statusline whilst CodeCompanion is speaking to a GenAI model:
+If you use the fantastic [Heirline.nvim](https://github.com/rebelot/heirline.nvim) plugin, consider the following snippet to display an icon in the statusline whilst CodeCompanion is speaking to OpenAI:
 
 ```lua
-local GenAI = {
+local OpenAI = {
   static = {
     processing = false,
   },
