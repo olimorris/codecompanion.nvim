@@ -110,7 +110,7 @@ M.static.actions = {
     strategy = "chat",
     description = "Open a chat buffer, acting as a specific persona",
     picker = {
-      prompt = "Select a persona",
+      prompt = "Chat as a persona",
       items = {
         {
           name = "JavaScript",
@@ -473,7 +473,7 @@ M.static.actions = {
       return saved_chats:has_chats()
     end,
     picker = {
-      prompt = "Saved chats",
+      prompt = "Load chats",
       items = function()
         local client = require("codecompanion").get_client()
         local saved_chats = require("codecompanion.strategy.saved_chats")
