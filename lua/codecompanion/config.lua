@@ -6,7 +6,7 @@ local defaults = {
   base_url = "https://api.openai.com",
   ai_settings = {
     advisor = {
-      model = "gpt-4-1106-preview",
+      model = "gpt-4-0125-preview",
       temperature = 1,
       top_p = 1,
       stop = nil,
@@ -17,7 +17,7 @@ local defaults = {
       user = nil,
     },
     inline = {
-      model = "gpt-4-1106-preview",
+      model = "gpt-3.5-turbo-0125",
       temperature = 1,
       top_p = 1,
       stop = nil,
@@ -28,7 +28,7 @@ local defaults = {
       user = nil,
     },
     chat = {
-      model = "gpt-4-1106-preview",
+      model = "gpt-4-0125-preview",
       temperature = 1,
       top_p = 1,
       stop = nil,

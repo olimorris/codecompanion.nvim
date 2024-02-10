@@ -125,13 +125,13 @@ M.actions = function(args)
         prompt = item.picker.prompt,
         columns = item.picker.columns,
       }
-      return picker(item.picker.items, picker_opts, selection)
+      return picker(actions.validate(item.picker.items, context), picker_opts, selection)
     elseif item.picker and type(item.picker.items) == "function" then
       local picker_opts = {
         prompt = item.picker.prompt,
         columns = item.picker.columns,
       }
-      picker(item.picker.items(), picker_opts, selection)
+      picker(actions.validate(item.picker.items(), context), picker_opts, selection)
     elseif item and type(item.callback) == "function" then
       return item.callback(selection)
     else

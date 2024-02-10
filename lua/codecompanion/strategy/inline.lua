@@ -1,6 +1,6 @@
-local commands = require("codecompanion.actions").static.commands
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local ui = require("codecompanion.utils.ui")
 
 local api = vim.api
 
@@ -15,51 +15,10 @@ local function code_block(filetype, lines)
     .. "```"
 end
 
----@param prompt? string
----@return table|nil
-local function parse_prompt(prompt)
-  if not prompt then
-    return
-  end
-
-  for _, cmd in ipairs(commands) do
-    if cmd.command == prompt then
-      return cmd
-    end
-  end
-end
-
----@param inline CodeCompanion.Inline
----@param command table
----@return table
-local prompt_from_command = function(inline, command)
-  local output = {}
-
-  for _, prompt in ipairs(command.prompts) do
-    if type(prompt.content) == "function" then
-      prompt.content = prompt.content(inline.context)
-    end
-
-    table.insert(output, {
-      role = prompt.role,
-      content = prompt.content,
-    })
-  end
-
-  if config.options.send_code and inline.opts.send_visual_selection and inline.context.is_visual then
-    table.insert(output, {
-      role = "user",
-      content = code_block(inline.context.filetype, inline.context.lines),
-    })
-  end
-
-  return output
-end
-
 ---@param inline CodeCompanion.Inline
 ---@param user_prompt? string
 ---@return table
-local prompt_from_action = function(inline, user_prompt)
+local get_action = function(inline, user_prompt)
   local output = {}
 
   for _, prompt in ipairs(inline.prompts) do
@@ -138,17 +97,10 @@ end
 
 ---@param user_prompt string|nil
 function Inline:execute(user_prompt)
-  local command = parse_prompt(user_prompt)
-
-  local messages = {}
-  if command then
-    messages = prompt_from_command(self, command)
-  else
-    messages = prompt_from_action(self, user_prompt)
-  end
+  local messages = get_action(self, user_prompt)
 
   -- Overwrite any visual selection
-  if (self.context.is_visual and not command) or (command and command.opts.placement == "replace") then
+  if self.context.is_visual and self.opts.placement == "replace" then
     log:trace("Overwriting selection")
     overwrite_selection(self.context)
   end
@@ -161,16 +113,16 @@ function Inline:execute(user_prompt)
   log:debug("Cursor position: %s", pos)
 
   -- Adjust the cursor position based on the command
-  if command and self.context.is_visual then
-    if command.opts.placement == "before" then
+  if self.opts.placement and self.context.is_visual then
+    if self.opts.placement == "before" then
       log:debug("Placing before selection: %s", self.context)
       pos.line = self.context.start_line - 1
       pos.col = self.context.start_col - 1
-    elseif command.opts.placement == "after" then
+    elseif self.opts.placement == "after" then
       log:debug("Placing after selection: %s", self.context)
       pos.line = self.context.end_line + 1
       pos.col = 0
-    elseif command.opts.placement == "new" then
+    elseif self.opts.placement == "new" then
       self.context.bufnr = api.nvim_create_buf(true, false)
       api.nvim_buf_set_option(self.context.bufnr, "filetype", self.context.filetype)
       api.nvim_set_current_buf(self.context.bufnr)
@@ -238,6 +190,9 @@ function Inline:execute(user_prompt)
             table.insert(output, delta.content)
           else
             stream_buffer_text(delta.content)
+            if self.opts.placement == "new" then
+              ui.buf_scroll_to_end(self.context.bufnr)
+            end
           end
         end
       end

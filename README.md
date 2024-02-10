@@ -103,7 +103,7 @@ require("codecompanion").setup({
     -- Default settings for the Completions API
     -- See https://platform.openai.com/docs/api-reference/chat/create
     advisor = {
-      model = "gpt-4-1106-preview",
+      model = "gpt-4-0125-preview",
       temperature = 1,
       top_p = 1,
       stop = nil,
@@ -114,7 +114,7 @@ require("codecompanion").setup({
       user = nil,
     },
     inline = {
-      model = "gpt-4-1106-preview",
+      model = "gpt-3.5-turbo-0125",
       temperature = 1,
       top_p = 1,
       stop = nil,
@@ -125,7 +125,7 @@ require("codecompanion").setup({
       user = nil,
     },
     chat = {
-      model = "gpt-4-1106-preview",
+      model = "gpt-4-0125-preview",
       temperature = 1,
       top_p = 1,
       stop = nil,
@@ -184,7 +184,7 @@ require("codecompanion").setup({
     ["["] = "keymaps.previous", -- Move to the previous header in the chat
   },
   log_level = "ERROR", -- TRACE|DEBUG|ERROR
-  send_code = true, -- Send code context to the API?
+  send_code = true, -- Send code context to the API? Disable to prevent leaking code to OpenAI
   silence_notifications = false, -- Silence notifications for actions like saving saving chats?
   use_default_actions = true, -- Use the default actions in the action palette?
 })
@@ -294,8 +294,8 @@ If `display.chat.show_settings` is set to `true`, at the very top of the chat bu
 The plugin comes with a number of [in-built actions](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) which aim to improve your Neovim workflow. Actions make use of strategies which are abstractions built around Neovim and OpenAI functionality. Before we dive in to the actions, it's worth explaining what each of the strategies do:
 
 - `chat` - A strategy for opening up a chat buffer allowing the user to converse directly with OpenAI
-- `inline` - A strategy for allowing OpenAI responses to be written directly into a Neovim buffer
-- `advisor` - A strategy for outputting OpenAI responses into a split or a popup, alongside a Neovim buffer
+- `inline` - A strategy for allowing OpenAI responses to be written inline to a Neovim buffer
+- `advisor` - A strategy for providing specific advice on a selection of code via a chat buffer
 
 #### Chat and Chat as
 
@@ -305,17 +305,19 @@ Both of these actions utilise the `chat` strategy. The `Chat` action opens up a 
 
 #### Open chats
 
-This action enables users to easily navigate between their open chat buffers. A chat buffer maybe deleted (and removed from this action) by pressing `<C-q>` when in the chat buffer.
+This action enables users to easily navigate between their open chat buffers. A chat buffer maybe deleted (and removed from this action) by pressing `<C-q>` from within it.
 
 #### Inline code
 
-This action utilises the `inline` strategy. This action can be useful for writing code into a buffer or even refactoring a visual selection; all based on a user's prompt. The action is designed to write code for the buffer filetype that it is initated in, or, if run from a terminal prompt, to write commands.
+This action utilises the `inline` strategy. This action can be useful for writing inline code in a buffer or even refactoring a visual selection; all based on a user's prompt. The action is designed to write code for the buffer filetype that it is initated in, or, if run from a terminal prompt, to write commands.
 
-The strategy comes with a number of helpers which the user can type in the prompt, similar to GitHub Copilot Chat:
+The strategy comes with a number of helpers which the user can type in the prompt, similar to [GitHub Copilot Chat](https://github.blog/changelog/2024-01-30-code-faster-and-better-with-github-copilots-new-features-in-visual-studio/):
 
 - `/doc` to add a documentation comment
-- `/tests` to create unit tests for the selected code
 - `/optimize` to analyze and improve the running time of the selected code
+- `/tests` to create unit tests for the selected code
+
+> **Note**: The options available to the user in the Action Palette will depend on the Vim mode.
 
 #### Code advisor
 

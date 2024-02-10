@@ -261,26 +261,127 @@ M.static.actions = {
     },
   },
   {
-    name = "Inline code",
+    name = "Inline code ...",
     strategy = "inline",
     description = "Get OpenAI to write/refactor code for you",
-    opts = {
-      user_prompt = true,
-      send_visual_selection = true,
-    },
-    prompts = {
-      {
-        role = "system",
-        content = function(context)
-          if context.buftype == "terminal" then
-            return "I want you to act as an expert in writing terminal commands that will work for my current shell "
-              .. os.getenv("SHELL")
-              .. ". I will ask you specific questions and I want you to return the raw command only (no codeblocks and explanations). If you can't respond with a command, respond with nothing"
-          end
-          return "I want you to act as a senior "
-            .. context.filetype
-            .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing"
-        end,
+    picker = {
+      prompt = "Select an inline code action",
+      items = {
+        {
+          name = "Custom",
+          strategy = "inline",
+          description = "Custom user input",
+          opts = {
+            user_prompt = true,
+            send_visual_selection = true,
+          },
+          prompts = {
+            {
+              role = "system",
+              content = function(context)
+                if context.buftype == "terminal" then
+                  return "I want you to act as an expert in writing terminal commands that will work for my current shell "
+                    .. os.getenv("SHELL")
+                    .. ". I will ask you specific questions and I want you to return the raw command only (no codeblocks and explanations). If you can't respond with a command, respond with nothing"
+                end
+                return "I want you to act as a senior "
+                  .. context.filetype
+                  .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing"
+              end,
+            },
+          },
+        },
+        {
+          name = "/doc",
+          strategy = "inline",
+          description = "Add a documentation comment",
+          opts = {
+            modes = { "v" },
+            placement = "before", -- before|after|replace|new
+          },
+          prompts = {
+            {
+              role = "system",
+              content = function(context)
+                return "You are an expert coder and helpful assistant who can help write documentation comments for the "
+                  .. context.filetype
+                  .. " language"
+              end,
+            },
+            {
+              role = "user",
+              contains_code = true,
+              content = function(context)
+                return send_code(context)
+              end,
+            },
+            {
+              role = "user",
+              content = "Please add a documentation comment to the provided code and reply with just the comment only and no explanation, no codeblocks and do not return the code either. If neccessary add parameter and return types",
+            },
+          },
+        },
+        {
+          name = "/optimize",
+          strategy = "inline",
+          description = "Optimize the selected code",
+          opts = {
+            modes = { "v" },
+            placement = "replace",
+          },
+          prompts = {
+            {
+              role = "system",
+              content = function(context)
+                return "You are an expert coder and helpful assistant who can help optimize code for the "
+                  .. context.filetype
+                  .. " language"
+              end,
+            },
+
+            {
+              role = "user",
+              contains_code = true,
+              content = function(context)
+                return send_code(context)
+              end,
+            },
+            {
+              role = "user",
+              content = "Please optimize the provided code. Please just respond with the code only and no explanation or markdown block syntax",
+            },
+          },
+        },
+        {
+          name = "/test",
+          strategy = "inline",
+          description = "Create unit tests for the selected code",
+          opts = {
+            modes = { "v" },
+            placement = "new",
+          },
+          prompts = {
+            {
+              role = "system",
+              content = function(context)
+                return "You are an expert coder and helpful assistant who can help write unit tests for the "
+                  .. context.filetype
+                  .. " language"
+              end,
+            },
+            {
+              role = "user",
+              contains_code = true,
+              content = function(context)
+                return send_code(context)
+              end,
+            },
+            {
+              role = "user",
+              content = "Please create a unit test for the provided code. Please just respond with the code only and no explanation or markdown block syntax",
+            },
+          },
+        },
       },
     },
   },
@@ -364,7 +465,7 @@ M.static.actions = {
     },
   },
   {
-    name = "Load chats",
+    name = "Load chats ...",
     strategy = "saved_chats",
     description = "Load your previous chats",
     condition = function()
@@ -397,75 +498,6 @@ M.static.actions = {
 
         return chats
       end,
-    },
-  },
-}
-
-M.static.commands = {
-  {
-    command = "/doc",
-    description = "Add a documentation comment",
-    opts = {
-      placement = "before", -- before|after|replace|new
-      send_visual_selection = true,
-    },
-    prompts = {
-      {
-        role = "system",
-        content = function(context)
-          return "You are an expert coder and helpful assistant who can help write documentation comments for the "
-            .. context.filetype
-            .. " language"
-        end,
-      },
-      {
-        role = "user",
-        content = "Please add a documentation comment to the provided code and reply with just the comment only and no explanation, no codeblocks and do not return the code either. If neccessary add parameter and return types",
-      },
-    },
-  },
-  {
-    command = "/optimize",
-    description = "Optimize the selected code",
-    opts = {
-      placement = "replace",
-      send_visual_selection = true,
-    },
-    prompts = {
-      {
-        role = "system",
-        content = function(context)
-          return "You are an expert coder and helpful assistant who can help optimize code for the "
-            .. context.filetype
-            .. " language"
-        end,
-      },
-      {
-        role = "user",
-        content = "Please optimize the provided code. Please just respond with the code only and no explanation or markdown block syntax",
-      },
-    },
-  },
-  {
-    command = "/test",
-    description = "Create unit tests for the selected code",
-    opts = {
-      placement = "new",
-      send_visual_selection = true,
-    },
-    prompts = {
-      {
-        role = "system",
-        content = function(context)
-          return "You are an expert coder and helpful assistant who can help write unit tests for the "
-            .. context.filetype
-            .. " language"
-        end,
-      },
-      {
-        role = "user",
-        content = "Please create a unit test for the provided code. Please just respond with the code only and no explanation or markdown block syntax",
-      },
     },
   },
 }
