@@ -1,5 +1,5 @@
 if vim.fn.has("nvim-0.9.0") == 0 then
-  return vim.api.nvim_err_writeln("CodeCompanion.nvim requires at nvim-0.9.0 as a minimum")
+  return vim.api.nvim_err_writeln("CodeCompanion.nvim requires Neovim 0.9.0+")
 end
 
 if vim.g.loaded_codecompanion then
