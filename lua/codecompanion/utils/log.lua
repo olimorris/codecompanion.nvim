@@ -235,6 +235,15 @@ local M = {}
 
 M.new = Logger.new
 
+M.get_logfile = function()
+  local ok, stdpath = pcall(vim.fn.stdpath, "log")
+  if not ok then
+    stdpath = vim.fn.stdpath("cache")
+  end
+
+  return files.join(stdpath, "codecompanion.log")
+end
+
 ---@param logger codecompanion.Logger
 M.set_root = function(logger)
   root = logger
