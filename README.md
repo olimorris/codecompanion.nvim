@@ -69,7 +69,6 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
       opts = {},
     },
   },
-  cmd = { "CodeCompanionToggle", "CodeCompanionActions", "CodeCompanionChat" },
   config = true
 }
 
