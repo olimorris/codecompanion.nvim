@@ -13,16 +13,20 @@ local M = {}
 M.plugins = {
   {
     name = "nvim-treesitter",
+    plugin_name = "nvim-treesitter",
   },
   {
-    name = "plenary",
+    name = "plenary.nvim",
+    plugin_name = "plenary",
   },
   {
-    name = "dressing",
+    name = "dressing.nvim",
+    plugin_name = "dressing",
     optional = true,
   },
   {
-    name = "edgy",
+    name = "edgy.nvim",
+    plugin_name = "edgy",
     optional = true,
   },
 }
@@ -71,7 +75,7 @@ function M.check()
   info(fmt("Log file: %s", log.get_logfile()))
 
   for _, plugin in ipairs(M.plugins) do
-    if plugin_available(plugin.name) then
+    if plugin_available(plugin.plugin_name) then
       ok(fmt("%s installed", plugin.name))
     else
       if plugin.optional then
@@ -84,9 +88,9 @@ function M.check()
 
   for _, library in ipairs(M.libraries) do
     if lib_available(library) then
-      ok(fmt("%s installed", library))
+      ok(fmt("%s library installed", library))
     else
-      error(fmt("%s not installed", library))
+      error(fmt("%s library not installed", library))
     end
   end
 
