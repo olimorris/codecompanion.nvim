@@ -331,6 +331,7 @@ local Chat = {}
 ---@field context table
 ---@field messages nil|CodeCompanion.ChatMessage[]
 ---@field show_buffer nil|boolean
+---@field auto_submit nil|boolean
 ---@field settings nil|CodeCompanion.ChatSettings
 ---@field type nil|string
 ---@field saved_chat nil|string
@@ -390,6 +391,10 @@ function Chat.new(args)
   ui.set_win_options(winid, config.options.display.chat.win_options)
   vim.cmd("setlocal formatoptions-=t")
   ui.buf_scroll_to_end(bufnr)
+
+  if args.auto_submit then
+    self:submit()
+  end
 
   return self
 end

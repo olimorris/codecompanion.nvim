@@ -12,7 +12,7 @@ Table of Contents                            *codecompanion-table-of-contents*
 
 FEATURES                                              *codecompanion-features*
 
-- Chat with the OpenAI APIs via a Neovim buffer
+- Chat with the OpenAI APIs in a Neovim buffer
 - Built in actions for specific language prompts, LSP error fixes and inline code generation
 - Create your own custom actions for Neovim which hook into OpenAI
 - Save and restore your chats
@@ -43,7 +43,6 @@ INSTALLATION                                      *codecompanion-installation*
           opts = {},
         },
       },
-      cmd = { "CodeCompanionToggle", "CodeCompanionActions", "CodeCompanionChat" },
       config = true
     }
     
@@ -77,7 +76,7 @@ Click to see the default configuration ~
       ai_settings = {
         -- Default settings for the Completions API
         -- See https://platform.openai.com/docs/api-reference/chat/create
-        advisor = {
+        chat = {
           model = "gpt-4-0125-preview",
           temperature = 1,
           top_p = 1,
@@ -99,17 +98,6 @@ Click to see the default configuration ~
           logit_bias = nil,
           user = nil,
         },
-        chat = {
-          model = "gpt-4-0125-preview",
-          temperature = 1,
-          top_p = 1,
-          stop = nil,
-          max_tokens = nil,
-          presence_penalty = 0,
-          frequency_penalty = 0,
-          logit_bias = nil,
-          user = nil,
-        },
       },
       saved_chats = {
         save_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats", -- Path to save chats to
@@ -118,9 +106,6 @@ Click to see the default configuration ~
         action_palette = {
           width = 95,
           height = 10,
-        },
-        advisor = {
-          stream = true, -- Stream the output like a chat buffer?
         },
         chat = { -- Options for the chat strategy
           type = "float", -- float|buffer
@@ -159,7 +144,7 @@ Click to see the default configuration ~
         ["["] = "keymaps.previous", -- Move to the previous header in the chat
       },
       log_level = "ERROR", -- TRACE|DEBUG|ERROR
-      send_code = true, -- Send code context to the API? Disable to prevent leaking code to OpenAI
+      send_code = true, -- Send code context to OpenAI? Disable to prevent leaking code outside of Neovim
       silence_notifications = false, -- Silence notifications for actions like saving saving chats?
       use_default_actions = true, -- Use the default actions in the action palette?
     })
@@ -190,7 +175,7 @@ The author recommends pairing with edgy.nvim
 
 HIGHLIGHT GROUPS ~
 
-The plugin sets a number of highlights during setup:
+The plugin sets the highlight groups during setup:
 
 - `CodeCompanionTokens` - Virtual text showing the token count when in a chat buffer
 - `CodeCompanionVirtualText` - All other virtual text in the chat buffer
@@ -215,7 +200,7 @@ For an optimum workflow, the plugin author recommendeds the following keymaps:
 
 
   **Note**For some actions, visual mode allows your selection to be sent directly
-  to the chat buffer or the API itself (in the case of `inline code` actions).
+  to the chat buffer or the API itself (in the case of _inline code_ actions).
 
 THE ACTION PALETTE ~
 
@@ -239,22 +224,23 @@ You may add your own actions into the palette by altering your configuration:
 <
 
 
-  **Note**We describe how to do this in detail within the `RECIPES.md` file
+  **Note**I will describe how to do this in detail within a `RECIPES.md` file in
+  the near future.
 Or, if you wish to turn off the default actions, set `use_default_actions =
 false` in your config.
 
 
 THE CHAT BUFFER ~
 
-The chat buffer is where you can converse with your GenAI API, directly from
+The chat buffer is where you can converse with OpenAI API, directly from
 Neovim. It behaves as a regular markdown buffer with some clever additions.
 When the buffer is written (or "saved"), autocmds trigger the sending of its
-content to the API, in the form of prompts. These prompts are segmented by H1
+content to OpenAI, in the form of prompts. These prompts are segmented by H1
 headers: `user` and `assistant` (see OpenAI’s Chat Completions API
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
 for more on this). When a response is received, it is then streamed back into
 the buffer. The result is that you experience the feel of conversing with
-GenAI, from within Neovim.
+ChatGPT, from within Neovim.
 
 
 KEYMAPS
@@ -262,9 +248,9 @@ KEYMAPS
 When in the chat buffer, there are number of keymaps available to you (which
 can be changed in the config):
 
-- `<C-s>` - Save the buffer and trigger a response from the GenAI
+- `<C-s>` - Save the buffer and trigger a response from the OpenAI API
 - `<C-c>` - Close the buffer
-- `q` - Cancel streaming from the GenAI
+- `q` - Cancel streaming from OpenAI
 - `gc` - Clear the buffer’s contents
 - `ga` - Add a codeblock
 - `gs` - Save the chat
@@ -274,15 +260,15 @@ can be changed in the config):
 
 SAVED CHATS
 
-Chat Buffers are not automatically saved, but can be by pressing `gs` in the
-buffer. Saved chats can then be restored via the Action Palette and the _Saved
-chats_ action.
+Chat Buffers are not saved to disk by default, but can be by pressing `gs` in
+the buffer. Saved chats can then be restored via the Action Palette and the
+_Saved chats_ action.
 
 
 SETTINGS
 
 If `display.chat.show_settings` is set to `true`, at the very top of the chat
-buffer will be the GenAI parameters which can be changed to affect the API’s
+buffer will be the OpenAI parameters which can be changed to affect the API’s
 response back to you. This enables fine-tuning and parameter tweaking
 throughout the chat. You can find more detail about them by moving the cursor
 over them or referring to the Chat Completions reference guide
@@ -293,13 +279,10 @@ IN-BUILT ACTIONS ~
 
 The plugin comes with a number of in-built actions
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua>
-which aim to improve your Neovim workflow. Actions make use of strategies which
-are abstractions built around Neovim and OpenAI functionality. Before we dive
-in to the actions, it’s worth explaining what each of the strategies do:
-
-- `chat` - A strategy for opening up a chat buffer allowing the user to converse directly with OpenAI
-- `inline` - A strategy for allowing OpenAI responses to be written inline to a Neovim buffer
-- `advisor` - A strategy for providing specific advice on a selection of code via a chat buffer
+which aim to improve your Neovim workflow. Actions make use of either a _chat_
+or an _inline_ strategy, which are abstractions built around Neovim and OpenAI.
+The chat strategy opens up a chat buffer whilst an inline strategy will write
+any output into the Neovim buffer.
 
 
 CHAT AND CHAT AS
@@ -343,10 +326,8 @@ prompt, similar to GitHub Copilot Chat
 CODE ADVISOR
 
 As the name suggests, this action provides advice on a visual selection of code
-and utilises the `advisor` strategy. The response from the API is streamed into
-a chat buffer which follows the `display.chat` settings in your configuration.
-If you wish to turn the streaming off, set `display.advisor.stream = false` in
-your config.
+and utilises the `chat` strategy. The response from the API is streamed into a
+chat buffer which follows the `display.chat` settings in your configuration.
 
 
   **Note**For some users, the sending of any code to an LLM may not be an option.
@@ -355,10 +336,10 @@ your config.
 LSP ASSISTANT
 
 Taken from the fantastic Wtf.nvim <https://github.com/piersolenski/wtf.nvim>
-plugin, this action provides advice (utilising the `advisor` strategy) on any
-LSP diagnostics which occur across visually selected lines and how they can be
-fixed. Again, the `send_code = false` value can be set in your config to only
-send diagnostic messages to OpenAI.
+plugin, this action provides advice on any LSP diagnostics which occur across
+visually selected lines and how they can be fixed. Again, the `send_code =
+false` value can be set in your config to only send diagnostic messages to
+OpenAI.
 
 
 HELPERS                                                *codecompanion-helpers*
@@ -397,10 +378,10 @@ HEIRLINE.NVIM ~
 If you use the fantastic Heirline.nvim
 <https://github.com/rebelot/heirline.nvim> plugin, consider the following
 snippet to display an icon in the statusline whilst CodeCompanion is speaking
-to a GenAI model:
+to OpenAI:
 
 >lua
-    local GenAI = {
+    local OpenAI = {
       static = {
         processing = false,
       },

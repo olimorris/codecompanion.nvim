@@ -1,5 +1,4 @@
 local config = require("codecompanion.config")
-local log = require("codecompanion.utils.log")
 
 ---@param prompts table
 ---@param context table
@@ -52,7 +51,7 @@ function Strategy:start(strategy)
   return self[strategy](self)
 end
 
----@return CodeCompanion.Chat
+---@return nil|CodeCompanion.Chat
 function Strategy:chat()
   local messages
   local mode = self.context.mode:lower()
@@ -67,23 +66,34 @@ function Strategy:chat()
     messages = modal_prompts(prompts, self.context)
   end
 
-  return require("codecompanion.strategy.chat").new({
-    client = self.client,
-    type = self.selected.type,
-    messages = messages,
-    show_buffer = true,
-  })
-end
+  local function chat(input)
+    if input then
+      table.insert(messages, {
+        role = "user",
+        content = input,
+      })
+    end
 
-function Strategy:advisor()
-  return require("codecompanion.strategy.advisor")
-    .new({
-      context = self.context,
+    return require("codecompanion.strategy.chat").new({
       client = self.client,
-      opts = self.selected.opts,
-      prompts = self.selected.prompts,
+      type = self.selected.type,
+      messages = messages,
+      show_buffer = true,
+      auto_submit = self.selected.opts.auto_submit or false,
     })
-    :start()
+  end
+
+  if self.selected.opts.user_prompt then
+    vim.ui.input({ prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " Prompt" }, function(input)
+      if not input then
+        return
+      end
+
+      return chat(input)
+    end)
+  else
+    return chat()
+  end
 end
 
 function Strategy:inline()

@@ -5,7 +5,7 @@ local defaults = {
   org_api_key = "OPENAI_ORG_KEY",
   base_url = "https://api.openai.com",
   ai_settings = {
-    advisor = {
+    chat = {
       model = "gpt-4-0125-preview",
       temperature = 1,
       top_p = 1,
@@ -27,17 +27,6 @@ local defaults = {
       logit_bias = nil,
       user = nil,
     },
-    chat = {
-      model = "gpt-4-0125-preview",
-      temperature = 1,
-      top_p = 1,
-      stop = nil,
-      max_tokens = nil,
-      presence_penalty = 0,
-      frequency_penalty = 0,
-      logit_bias = nil,
-      user = nil,
-    },
   },
   saved_chats = {
     save_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats",
@@ -46,9 +35,6 @@ local defaults = {
     action_palette = {
       width = 95,
       height = 10,
-    },
-    advisor = {
-      stream = true,
     },
     chat = {
       type = "float",

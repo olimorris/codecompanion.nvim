@@ -387,10 +387,11 @@ M.static.actions = {
   },
   {
     name = "Code advisor",
-    strategy = "advisor",
+    strategy = "chat",
     description = "Get advice on the code you've selected",
     opts = {
       modes = { "v" },
+      auto_submit = true,
       user_prompt = true,
       send_visual_selection = true,
     },
@@ -403,14 +404,22 @@ M.static.actions = {
             .. " developer. I will ask you specific questions and I want you to return concise explanations and codeblock examples."
         end,
       },
+      {
+        role = "user",
+        contains_code = true,
+        content = function(context)
+          return send_code(context)
+        end,
+      },
     },
   },
   {
     name = "LSP assistant",
-    strategy = "advisor",
+    strategy = "chat",
     description = "Get help from OpenAI to fix LSP diagnostics",
     opts = {
       modes = { "v" },
+      auto_submit = true, -- Automatically submit the chat
       user_prompt = false, -- Prompt the user for their own input
       send_visual_selection = false, -- No need to send the visual selection as we do this in prompt 3
     },
@@ -465,9 +474,9 @@ M.static.actions = {
     },
   },
   {
-    name = "Load chats ...",
+    name = "Load saved chats ...",
     strategy = "saved_chats",
-    description = "Load your previous chats",
+    description = "Load your previously saved chats",
     condition = function()
       local saved_chats = require("codecompanion.strategy.saved_chats")
       return saved_chats:has_chats()
