@@ -52,7 +52,7 @@ local defaults = {
     },
     chat = {
       type = "float",
-      show_settings = false,
+      show_settings = true,
       show_token_count = true,
       buf_options = {
         buflisted = false,

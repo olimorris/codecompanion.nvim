@@ -148,7 +148,7 @@ require("codecompanion").setup({
     },
     chat = { -- Options for the chat strategy
       type = "float", -- float|buffer
-      show_settings = false, -- Show the model settings in the chat buffer?
+      show_settings = true, -- Show the model settings in the chat buffer?
       show_token_count = true, -- Show the token count for the current chat in the buffer?
       buf_options = { -- Buffer options for the chat buffer
         buflisted = false,
