@@ -235,7 +235,7 @@ require("codecompanion").setup({
   actions = {
     {
       name = "My new action",
-      strategy = "chat"
+      strategy = "chat",
       description = "Some cool action you can do",
     }
   }

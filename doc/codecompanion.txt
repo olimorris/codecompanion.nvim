@@ -216,7 +216,7 @@ You may add your own actions into the palette by altering your configuration:
       actions = {
         {
           name = "My new action",
-          strategy = "chat"
+          strategy = "chat",
           description = "Some cool action you can do",
         }
       }
