@@ -297,7 +297,7 @@ M.static.actions = {
           description = "Add a documentation comment",
           opts = {
             modes = { "v" },
-            placement = "before", -- before|after|replace|new
+            placement = "before", -- cursor|before|after|replace|new
           },
           prompts = {
             {

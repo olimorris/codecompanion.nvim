@@ -129,6 +129,10 @@ function Inline:execute(user_prompt)
 
       pos.line = 1
       pos.col = 0
+    else
+      log:debug("Placing at cursor: %s", self.context)
+      pos.line = self.context.start_line
+      pos.col = 0
     end
   end
 
