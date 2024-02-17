@@ -68,7 +68,7 @@ M.static.actions = {
     },
   },
   {
-    name = "Open chats",
+    name = "Open chats ...",
     strategy = "chat",
     description = "Your currently open chats",
     condition = function()
