@@ -64,7 +64,6 @@ function M.get_visual_selection(bufnr)
 
   local start_line, start_col = unpack(api.nvim_buf_get_mark(bufnr, "<"))
   local end_line, end_col = unpack(api.nvim_buf_get_mark(bufnr, ">"))
-
   local lines = api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
 
   -- get whole buffer if there is no current/previous visual selection
@@ -95,20 +94,32 @@ function M.get_context(bufnr, args)
   bufnr = bufnr or api.nvim_get_current_buf()
   local winid = api.nvim_get_current_win()
   local mode = vim.fn.mode()
-  local cursor_pos = api.nvim_win_get_cursor(api.nvim_get_current_win())
+  local cursor_pos = api.nvim_win_get_cursor(winid)
 
   local lines, start_line, start_col, end_line, end_col = {}, cursor_pos[1], cursor_pos[2], cursor_pos[1], cursor_pos[2]
 
-  if (args and args.range > 0) or is_visual_mode(mode) then
+  local is_visual = false
+  local is_normal = true
+
+  if args and args.range and args.range > 0 then
+    is_visual = true
+    is_normal = false
+    mode = "v"
+    lines, start_line, start_col, end_line, end_col = M.get_visual_selection(bufnr)
+  elseif is_visual_mode(mode) then
+    is_visual = true
+    is_normal = false
     lines, start_line, start_col, end_line, end_col = M.get_visual_selection(bufnr)
   end
+
+  -- Consider adjustment here for is_normal if there are scenarios where it doesn't align appropriately
 
   return {
     winid = winid,
     bufnr = bufnr,
     mode = mode,
-    is_visual = (args and args.range > 0) or is_visual_mode(mode),
-    is_normal = (args and args.range == 0) or is_normal_mode(mode),
+    is_visual = is_visual,
+    is_normal = is_normal,
     buftype = api.nvim_buf_get_option(bufnr, "buftype") or "",
     filetype = M.get_filetype(bufnr),
     cursor_pos = cursor_pos,

@@ -273,7 +273,6 @@ M.static.actions = {
           description = "Custom user input",
           opts = {
             user_prompt = true,
-            send_visual_selection = true,
           },
           prompts = {
             {
@@ -393,7 +392,6 @@ M.static.actions = {
       modes = { "v" },
       auto_submit = true,
       user_prompt = true,
-      send_visual_selection = true,
     },
     prompts = {
       {
@@ -421,7 +419,6 @@ M.static.actions = {
       modes = { "v" },
       auto_submit = true, -- Automatically submit the chat
       user_prompt = false, -- Prompt the user for their own input
-      send_visual_selection = false, -- No need to send the visual selection as we do this in prompt 3
     },
     prompts = {
       {

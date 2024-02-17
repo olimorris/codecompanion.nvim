@@ -34,6 +34,32 @@ M.buf_get_chat = function(bufnr)
   return require("codecompanion.strategy.chat").buf_get_chat(bufnr)
 end
 
+M.inline = function(opts)
+  local client = M.get_client()
+  if not client then
+    return
+  end
+
+  local context = util.get_context(vim.api.nvim_get_current_buf(), opts)
+
+  return require("codecompanion.strategy.inline")
+    .new({
+      context = context,
+      client = client,
+      prompts = {
+        {
+          role = "system",
+          content = function()
+            return "I want you to act as a senior "
+              .. context.filetype
+              .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing"
+          end,
+        },
+      },
+    })
+    :start(opts.args)
+end
+
 ---@param args? table
 M.chat = function(args)
   local client = M.get_client()

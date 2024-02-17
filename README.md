@@ -207,9 +207,10 @@ The plugin sets the highlight groups during setup:
 
 The plugin has a number of commands:
 
-- `CodeCompanionChat` - To open up a new chat buffer
-- `CodeCompanionToggle` - Toggle a chat buffer
-- `CodeCompanionActions` - To open up the action palette window
+- `:CodeCompanion` - Inline code writing and refactoring
+- `:CodeCompanionChat` - To open up a new chat buffer
+- `:CodeCompanionToggle` - Toggle a chat buffer
+- `:CodeCompanionActions` - To open up the action palette window
 
 For an optimum workflow, the plugin author recommendeds the following keymaps:
 
@@ -272,6 +273,18 @@ Chat Buffers are not saved to disk by default, but can be by pressing `gs` in th
 #### Settings
 
 If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the OpenAI parameters which can be changed to affect the API's response back to you. This enables fine-tuning and parameter tweaking throughout the chat. You can find more detail about them by moving the cursor over them or referring to the [Chat Completions reference guide](https://platform.openai.com/docs/api-reference/chat) if you're using OpenAI.
+
+### Inline Editing
+
+The plugin allows you to utilise the OpenAI APIs to create inline code in Neovim. Run the `:CodeCompanion` command followed by a prompt. For example:
+
+```
+:CodeCompanion create a table of 5 fruits
+:'<,'>CodeCompanion refactor the code to make it more concise
+:'<,'>CodeCompanion can you fix this lsp warning? "unpack" is the culprit
+```
+
+The command can detect if you've made a visual selection and send any code as context to the API, alongside the filetype of the buffer.
 
 ### In-Built Actions
 

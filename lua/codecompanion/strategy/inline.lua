@@ -16,9 +16,9 @@ local function code_block(filetype, lines)
 end
 
 ---@param inline CodeCompanion.Inline
----@param user_prompt? string
+---@param user_input? string
 ---@return table
-local get_action = function(inline, user_prompt)
+local get_action = function(inline, user_input)
   local output = {}
 
   for _, prompt in ipairs(inline.prompts) do
@@ -35,15 +35,15 @@ local get_action = function(inline, user_prompt)
   end
 
   -- Add the user prompt
-  if inline.opts.user_prompt and user_prompt then
+  if user_input then
     table.insert(output, {
       role = "user",
-      content = user_prompt,
+      content = user_input,
     })
   end
 
   -- Send code as context
-  if config.options.send_code and inline.opts.send_visual_selection and inline.context.is_visual then
+  if config.options.send_code and inline.context.is_visual then
     table.insert(output, {
       role = "user",
       content = code_block(inline.context.filetype, inline.context.lines),
@@ -95,12 +95,15 @@ function Inline.new(opts)
   }, { __index = Inline })
 end
 
----@param user_prompt string|nil
-function Inline:execute(user_prompt)
-  local messages = get_action(self, user_prompt)
+---@param user_input string|nil
+function Inline:execute(user_input)
+  local messages = get_action(self, user_input)
 
   -- Overwrite any visual selection
-  if self.context.is_visual and self.opts.placement == "replace" then
+  if
+    (self.context.is_visual and self.opts and self.opts.placement == "replace")
+    or (self.context.is_visual and not self.opts)
+  then
     log:trace("Overwriting selection")
     overwrite_selection(self.context)
   end
@@ -113,7 +116,7 @@ function Inline:execute(user_prompt)
   log:debug("Cursor position: %s", pos)
 
   -- Adjust the cursor position based on the command
-  if self.opts.placement and self.context.is_visual then
+  if self.opts and self.opts.placement and self.context.is_visual then
     if self.opts.placement == "before" then
       log:debug("Placing before selection: %s", self.context)
       pos.line = self.context.start_line - 1
@@ -194,7 +197,7 @@ function Inline:execute(user_prompt)
             table.insert(output, delta.content)
           else
             stream_buffer_text(delta.content)
-            if self.opts.placement == "new" then
+            if self.opts and self.opts.placement == "new" then
               ui.buf_scroll_to_end(self.context.bufnr)
             end
           end
@@ -212,8 +215,13 @@ function Inline:execute(user_prompt)
   )
 end
 
-function Inline:start()
-  if self.opts.user_prompt then
+---@param input? string
+function Inline:start(input)
+  if input then
+    return self:execute(input)
+  end
+
+  if self.opts and self.opts.user_prompt then
     local title
     if self.context.buftype == "terminal" then
       title = "Terminal"

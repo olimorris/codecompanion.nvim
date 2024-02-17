@@ -8,16 +8,20 @@ end
 
 local codecompanion = require("codecompanion")
 
+vim.api.nvim_create_user_command("CodeCompanion", function(opts)
+  codecompanion.inline(opts)
+end, { desc = "Trigger CodeCompanion inline", range = true, nargs = "*" })
+
 vim.api.nvim_create_user_command("CodeCompanionChat", function(opts)
   codecompanion.chat(opts)
-end, { desc = "Open a Code Companion chat buffer", range = true })
+end, { desc = "Open a CodeCompanion chat buffer", range = true })
 
 vim.api.nvim_create_user_command("CodeCompanionActions", function(opts)
   codecompanion.actions(opts)
-end, { desc = "Open the Code Companion actions palette", range = true })
+end, { desc = "Open the CodeCompanion actions palette", range = true })
 
 vim.api.nvim_create_user_command("CodeCompanionToggle", function()
   codecompanion.toggle()
-end, { desc = "Toggle a Code Companion chat buffer" })
+end, { desc = "Toggle a CodeCompanion chat buffer" })
 
 vim.g.loaded_codecompanion = true
