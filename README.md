@@ -280,8 +280,9 @@ The plugin allows you to utilise the OpenAI APIs to create inline code in Neovim
 
 ```
 :CodeCompanion create a table of 5 fruits
+```
+```
 :'<,'>CodeCompanion refactor the code to make it more concise
-:'<,'>CodeCompanion can you fix this lsp warning? "unpack" is the culprit
 ```
 
 The command can detect if you've made a visual selection and send any code as context to the API, alongside the filetype of the buffer.

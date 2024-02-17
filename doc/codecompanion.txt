@@ -283,8 +283,10 @@ Neovim. Run the `:CodeCompanion` command followed by a prompt. For example:
 
 >
     :CodeCompanion create a table of 5 fruits
+<
+
+>
     :'<,'>CodeCompanion refactor the code to make it more concise
-    :'<,'>CodeCompanion can you fix this lsp warning? "unpack" is the culprit
 <
 
 The command can detect if you’ve made a visual selection and send any code as
