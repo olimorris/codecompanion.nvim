@@ -79,11 +79,11 @@ function Strategy:chat()
       type = self.selected.type,
       messages = messages,
       show_buffer = true,
-      auto_submit = self.selected.opts.auto_submit or false,
+      auto_submit = (self.selected.opts and self.selected.opts.auto_submit) or false,
     })
   end
 
-  if self.selected.opts.user_prompt then
+  if self.selected.opts and self.selected.opts.user_prompt then
     vim.ui.input({ prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " Prompt" }, function(input)
       if not input then
         return
