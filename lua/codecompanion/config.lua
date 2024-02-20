@@ -17,7 +17,7 @@ local defaults = {
       user = nil,
     },
     inline = {
-      model = "gpt-3.5-turbo-0125",
+      model = "gpt-4-0125-preview",
       temperature = 1,
       top_p = 1,
       stop = nil,
