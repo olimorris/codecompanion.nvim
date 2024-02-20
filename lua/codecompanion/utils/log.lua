@@ -45,7 +45,7 @@ local function default_formatter(level, msg, ...)
   local ok, text = pcall(string.format, msg, vim.F.unpack_len(args))
   if ok then
     local str_level = levels[level]
-    return string.format("[%s] %s", str_level, text)
+    return string.format("[%s] %s\n%s", str_level, os.date("%Y-%m-%d %H:%M:%S"), text)
   else
     return string.format("[ERROR] error formatting log line: '%s' args %s", msg, vim.inspect(args))
   end
