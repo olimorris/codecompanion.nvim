@@ -4,6 +4,44 @@ local ui = require("codecompanion.utils.ui")
 
 local api = vim.api
 
+---@param inline CodeCompanion.Inline
+---@param prompt string
+---@return string
+local function get_placement_position(inline, prompt)
+  local output = "cursor"
+
+  local messages = {
+    {
+      role = "system",
+      content = 'I am writing a prompt from within the Neovim text editor. This prompt will go to a GenAI model which will return a response. The response will then be streamed into Neovim. However, depending on the nature of the prompt, how Neovim handles the streaming will vary. For instance, if the user references the words "refactor" or "update" in their prompt, they will likely want the response to replace a visual selection they\'ve made in the editor. However, if they include words such as "after" or "before", it may be insinuated that they wish the response to be placed after or before the current selection. They may also ask for the response to be placed in a new buffer or a new tab. Finally, if you they don\'t specify what they wish to do, then they likely want to stream the response into where the cursor is currently. What I\'d like you to do is analyse the following prompt and determine whether the response should be one of: 1) after 2) before 3) replace 4) new 5) cursor. Please only respond with a single word.',
+    },
+    {
+      role = "user",
+      content = 'The prompt to analyse is: "' .. prompt .. '"',
+    },
+  }
+
+  inline.client:chat(
+    vim.tbl_extend("keep", inline.settings, {
+      messages = messages,
+    }),
+    function(err, chunk)
+      if err then
+        return
+      end
+
+      if chunk then
+        local content = chunk.choices[1].message.content
+        if content then
+          output = content
+        end
+      end
+    end
+  )
+
+  return output
+end
+
 ---@param filetype string
 ---@param lines table
 ---@return string
@@ -66,6 +104,14 @@ local function overwrite_selection(context)
   api.nvim_win_set_cursor(context.winid, { context.start_line, context.start_col - 1 })
 end
 
+---@param winid number
+---@return number line
+---@return number col
+local function get_cursor(winid)
+  local cursor_pos = api.nvim_win_get_cursor(winid)
+  return cursor_pos[1], cursor_pos[2]
+end
+
 ---@class CodeCompanion.Inline
 ---@field settings table
 ---@field context table
@@ -90,54 +136,60 @@ function Inline.new(opts)
     settings = config.options.ai_settings.inline,
     context = opts.context,
     client = opts.client,
-    opts = opts.opts,
+    opts = opts.opts or {},
     prompts = vim.deepcopy(opts.prompts),
   }, { __index = Inline })
 end
 
 ---@param user_input string|nil
 function Inline:execute(user_input)
+  local pos = { line = self.context.start_line, col = 0 }
+
   local messages = get_action(self, user_input)
 
-  -- Overwrite any visual selection
-  if
-    (self.context.is_visual and self.opts and self.opts.placement == "replace")
-    or (self.context.is_visual and not self.opts)
-  then
-    log:trace("Overwriting selection")
-    overwrite_selection(self.context)
+  if not self.opts.placement and user_input then
+    self.opts.placement = get_placement_position(self, user_input)
+    log:debug("Setting the placement to: %s", self.opts.placement)
   end
 
-  local cursor_pos = api.nvim_win_get_cursor(self.context.winid)
-  local pos = {
-    line = cursor_pos[1],
-    col = cursor_pos[2],
-  }
-  log:debug("Cursor position: %s", pos)
-
   -- Adjust the cursor position based on the command
-  if self.opts and self.opts.placement and self.context.is_visual then
+  if self.opts and self.opts.placement then
     if self.opts.placement == "before" then
       log:debug("Placing before selection: %s", self.context)
+      vim.api.nvim_buf_set_lines(
+        self.context.bufnr,
+        self.context.start_line - 1,
+        self.context.start_line - 1,
+        false,
+        { "" }
+      )
+      self.context.start_line = self.context.start_line + 1
       pos.line = self.context.start_line - 1
       pos.col = self.context.start_col - 1
     elseif self.opts.placement == "after" then
       log:debug("Placing after selection: %s", self.context)
+      vim.api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
       pos.line = self.context.end_line + 1
       pos.col = 0
+    elseif self.opts.placement == "replace" then
+      log:trace("Placing by overwriting selection")
+      overwrite_selection(self.context)
+
+      pos.line, pos.col = get_cursor(self.context.winid)
+      pos.line = pos.line - 1
     elseif self.opts.placement == "new" then
+      log:trace("Placing in a new buffer")
       self.context.bufnr = api.nvim_create_buf(true, false)
       api.nvim_buf_set_option(self.context.bufnr, "filetype", self.context.filetype)
       api.nvim_set_current_buf(self.context.bufnr)
 
       pos.line = 1
       pos.col = 0
-    else
-      log:debug("Placing at cursor: %s", self.context)
-      pos.line = self.context.start_line
-      pos.col = 0
     end
   end
+
+  log:debug("Context for inline: %s", self.context)
+  log:debug("Cursor position to use: %s", pos)
 
   local function stream_buffer_text(text)
     local line = pos.line - 1
@@ -188,7 +240,7 @@ function Inline:execute(user_input)
       end
 
       if chunk then
-        log:debug("chat chunk: %s", chunk)
+        log:trace("chat chunk: %s", chunk)
 
         local delta = chunk.choices[1].delta
         if delta.content and not delta.role and delta.content ~= "```" and delta.content ~= self.context.filetype then

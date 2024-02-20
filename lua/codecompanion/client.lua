@@ -70,16 +70,15 @@ end
 
 ---@param code integer
 ---@param stdout string
----@param settings table
 ---@return nil|string
 ---@return nil|any
-local function parse_response(code, stdout, settings)
+local function parse_response(code, stdout)
   if code ~= 0 then
     log:error("Error: %s", stdout)
     return string.format("Error: %s", stdout)
   end
 
-  local ok, data = pcall(settings.decode, stdout, { luanil = { object = true } })
+  local ok, data = pcall(vim.json.decode, stdout, { luanil = { object = true } })
   if not ok then
     log:error("Error malformed json: %s", data)
     return string.format("Error malformed json: %s", data)
@@ -93,43 +92,46 @@ local function parse_response(code, stdout, settings)
   return nil, data
 end
 
+---Call the OpenAI API but block the main loop until the response is received
 ---@param url string
 ---@param payload table
 ---@param cb fun(err: nil|string, response: nil|table)
 function Client:call(url, payload, cb)
   cb = log:wrap_cb(cb, "Response error: %s")
 
-  local handler = self.settings.request({
-    url = url,
-    raw = { "--no-buffer" },
-    headers = headers(self),
-    body = self.settings.encode(payload),
-    callback = function(out)
-      if out.exit then
-        local err, data = parse_response(out.exit, out.body, self.settings)
-        if err then
-          self.settings.schedule(function()
-            cb(err)
-            log:error("Error: %s", err)
-            close_request()
-          end)
-        else
-          self.settings.schedule(function()
-            cb(nil, data)
-            log:debug("Response: %s", data)
-            close_request()
-          end)
-        end
-      end
-    end,
-    on_error = function(err, _, _)
-      log:error("Error: %s", err)
-      close_request()
-    end,
-  })
+  local cmd = {
+    "curl",
+    url,
+    "--silent",
+    "--no-buffer",
+    "-H",
+    "Content-Type: application/json",
+    "-H",
+    string.format("Authorization: Bearer %s", self.secret_key),
+  }
 
-  log:debug("Request: %s", handler.args)
-  start_request()
+  if self.organization then
+    table.insert(cmd, "-H")
+    table.insert(cmd, string.format("OpenAI-Organization: %s", self.organization))
+  end
+
+  table.insert(cmd, "-d")
+  table.insert(cmd, vim.json.encode(payload))
+  log:trace("Request payload: %s", cmd)
+
+  local result = vim.fn.system(cmd)
+
+  if vim.v.shell_error ~= 0 then
+    log:error("Error calling curl: %s", result)
+    return cb("Error executing curl", nil)
+  else
+    local err, data = parse_response(0, result)
+    if err then
+      return cb(err, nil)
+    else
+      return cb(nil, data)
+    end
+  end
 end
 
 ---@param url string

@@ -251,7 +251,7 @@ Or, if you wish to turn off the default actions, set `use_default_actions = fals
 
 <p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/84d5e03a-0b48-4ffb-9ca5-e299d41171bd" alt="chat buffer" /></p>
 
-The chat buffer is where you can converse with OpenAI API, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to OpenAI, in the form of prompts. These prompts are segmented by H1 headers: `user` and `assistant` (see OpenAI's [Chat Completions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api) for more on this). When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with ChatGPT, from within Neovim.
+The chat buffer is where you can converse with the OpenAI APIs, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to OpenAI, in the form of prompts. These prompts are segmented by H1 headers: `user` and `assistant` (see OpenAI's [Chat Completions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api) for more on this). When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with ChatGPT from within Neovim.
 
 #### Keymaps
 
@@ -259,37 +259,48 @@ When in the chat buffer, there are number of keymaps available to you (which can
 
 - `<C-s>` - Save the buffer and trigger a response from the OpenAI API
 - `<C-c>` - Close the buffer
-- `q` - Cancel streaming from OpenAI
+- `q` - Cancel the stream from the API
 - `gc` - Clear the buffer's contents
 - `ga` - Add a codeblock
-- `gs` - Save the chat
-- `[` - Move to the next header in the buffer
-- `]` - Move to the previous header in the buffer
+- `gs` - Save the chat to disk
+- `[` - Move to the next header
+- `]` - Move to the previous header
 
 #### Saved Chats
 
-Chat Buffers are not saved to disk by default, but can be by pressing `gs` in the buffer. Saved chats can then be restored via the Action Palette and the _Saved chats_ action.
+Chat buffers are not saved to disk by default, but can be by pressing `gs` in the buffer. Saved chats can then be restored via the Action Palette and the _Saved chats_ action.
 
 #### Settings
 
-If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the OpenAI parameters which can be changed to affect the API's response back to you. This enables fine-tuning and parameter tweaking throughout the chat. You can find more detail about them by moving the cursor over them or referring to the [Chat Completions reference guide](https://platform.openai.com/docs/api-reference/chat) if you're using OpenAI.
+If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the OpenAI parameters which can be changed to tweak the response back to you. This enables fine-tuning and parameter tweaking throughout the chat. You can find more detail about them by moving the cursor over them or referring to the [OpenAI Chat Completions reference guide](https://platform.openai.com/docs/api-reference/chat).
 
 ### Inline Editing
 
-The plugin allows you to utilise the OpenAI APIs to create inline code in Neovim. Run the `:CodeCompanion` command followed by a prompt. For example:
+The plugin allows you to utilise the OpenAI APIs to create inline code in Neovim. This can be invoked by using the _Action Palette_ or by running the `:CodeCompanion` command followed by a prompt. For example:
 
 ```
 :CodeCompanion create a table of 5 fruits
 ```
+
 ```
 :'<,'>CodeCompanion refactor the code to make it more concise
 ```
 
-The command can detect if you've made a visual selection and send any code as context to the API, alongside the filetype of the buffer.
+The command can detect if you've made a visual selection and send any code as context to the API, alongside the filetype of the buffer. This is an alternative to using the _Action Palette_.
+
+One of the challenges with inline editing is determining how the API's response should be handled in the Neovim buffer. If you've prompted the API to _"create a table of 5 fruits"_ then you may wish for the response to be placed at the cursor in the buffer. However, if you asked the API to _"refactor this method"_ then you'd expect the response to overwrite a visual selection. If this `placement` isn't specified then the plugin will use OpenAI itself to determine if the response should follow any of the placements below:
+
+- `after` - after the visual selection
+- `before` - before the visual selection
+- `cursor` - at the cursor position
+- `new` - in a new buffer
+- `replace` - replacing the visual selection
+
+So specifying a prompt such as _"create a test for this method in a new buffer"_ would result in the `new` placement being chosen for the response.
 
 ### In-Built Actions
 
-The plugin comes with a number of [in-built actions](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) which aim to improve your Neovim workflow. Actions make use of either a _chat_ or an _inline_ strategy, which are abstractions built around Neovim and OpenAI. The chat strategy opens up a chat buffer whilst an inline strategy will write any output into the Neovim buffer.
+The plugin comes with a number of [in-built actions](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) which aim to improve your Neovim workflow. Actions make use of either a _chat_ or an _inline_ strategy, which are essentially bridges between Neovim and OpenAI. The chat strategy opens up a chat buffer whilst an inline strategy will write output from OpenAI into the Neovim buffer.
 
 #### Chat and Chat as
 
@@ -299,7 +310,7 @@ Both of these actions utilise the `chat` strategy. The `Chat` action opens up a 
 
 #### Open chats
 
-This action enables users to easily navigate between their open chat buffers. A chat buffer maybe deleted (and removed from this action) by pressing `<C-q>` from within it.
+This action enables users to easily navigate between their open chat buffers. A chat buffer maybe deleted (and removed from memory) by pressing `<C-q>`.
 
 #### Inline code
 
@@ -317,11 +328,11 @@ The strategy comes with a number of helpers which the user can type in the promp
 
 As the name suggests, this action provides advice on a visual selection of code and utilises the `chat` strategy. The response from the API is streamed into a chat buffer which follows the `display.chat` settings in your configuration.
 
-> **Note**: For some users, the sending of any code to an LLM may not be an option. In those instances, you can set `send_code = false` in your config.
+> **Note**: For some users, the sending of any code to OpenAI may not be an option. In those instances, you can set `send_code = false` in your config.
 
 #### LSP assistant
 
-Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice on any LSP diagnostics which occur across visually selected lines and how they can be fixed. Again, the `send_code = false` value can be set in your config to only send diagnostic messages to OpenAI.
+Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice on how to correct any LSP diagnostics which are present on the visually selected lines. Again, the `send_code = false` value can be set in your config to prevent the code itself being sent to OpenAI.
 
 ## :rainbow: Helpers
 
@@ -354,7 +365,7 @@ vim.api.nvim_create_autocmd({ "User" }, {
 
 ### Heirline.nvim
 
-If you use the fantastic [Heirline.nvim](https://github.com/rebelot/heirline.nvim) plugin, consider the following snippet to display an icon in the statusline whilst CodeCompanion is speaking to OpenAI:
+If you're using the fantastic [Heirline.nvim](https://github.com/rebelot/heirline.nvim) plugin, consider the following snippet to display an icon in the statusline whilst CodeCompanion is conversing with OpenAI:
 
 ```lua
 local OpenAI = {
