@@ -273,6 +273,7 @@ M.static.actions = {
           description = "Custom user input",
           opts = {
             user_prompt = true,
+            -- Placement should be determined
           },
           prompts = {
             {

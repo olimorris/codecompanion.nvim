@@ -447,7 +447,7 @@ function Chat:submit()
       end
 
       if chunk then
-        log:debug("Chat chunk: %s", chunk)
+        log:trace("Chat chunk: %s", chunk)
         local delta = chunk.choices[1].delta
         if delta.role and delta.role ~= new_message.role then
           new_message = { role = delta.role, content = "" }

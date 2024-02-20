@@ -34,13 +34,15 @@ M.buf_get_chat = function(bufnr)
   return require("codecompanion.strategy.chat").buf_get_chat(bufnr)
 end
 
-M.inline = function(opts)
+---@param args table
+---@return nil|CodeCompanion.Inline
+M.inline = function(args)
   local client = M.get_client()
   if not client then
     return
   end
 
-  local context = util.get_context(vim.api.nvim_get_current_buf(), opts)
+  local context = util.get_context(vim.api.nvim_get_current_buf(), args)
 
   return require("codecompanion.strategy.inline")
     .new({
@@ -57,7 +59,7 @@ M.inline = function(opts)
         },
       },
     })
-    :start(opts.args)
+    :start(args.args)
 end
 
 ---@param args? table
@@ -69,8 +71,7 @@ M.chat = function(args)
 
   local context = util.get_context(vim.api.nvim_get_current_buf(), args)
 
-  local Chat = require("codecompanion.strategy.chat")
-  local chat = Chat.new({
+  local chat = require("codecompanion.strategy.chat").new({
     client = client,
     context = context,
   })
@@ -192,7 +193,7 @@ M.actions = function(args)
     )
   end
 
-  picker(items, { prompt = "Select an action", columns = { "name", "strategy", "description" } }, selection)
+  picker(items, { prompt = "CodeCompanion actions", columns = { "name", "strategy", "description" } }, selection)
 end
 
 ---@param opts nil|table
