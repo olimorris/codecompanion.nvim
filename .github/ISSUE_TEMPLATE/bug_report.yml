@@ -76,22 +76,6 @@ body:
           > **Note:** You may need to do this a couple of times for Treesitter to fully download and sync
 
     - type: textarea
-      id: health
-      attributes:
-        label: Health check
-        description: Please paste the output from `:checkhealth codecompanion`
-      validations:
-        required: true
-
-    - type: textarea
-      id: logs
-      attributes:
-        label: Logs
-        description: Please paste the output from the codecompanion log
-      validations:
-        required: true
-
-    - type: textarea
       id: codecompanion-config
       attributes:
         label: Your `minimal.lua` config
@@ -116,16 +100,31 @@ body:
         required: false
 
     - type: textarea
+      id: health
+      attributes:
+        label: Health check output
+        description: Please paste the output from `:checkhealth codecompanion`
+      validations:
+        required: true
+
+    - type: textarea
+      id: logs
+      attributes:
+        label: Log output
+        description: Please paste the output from the log located at `~/.local/state/nvim/codecompanion.log`
+      validations:
+        required: true
+
+    - type: textarea
       id: bug
       attributes:
         label: Describe the bug
         description: Please describe the bug and include any screenshots
         placeholder: |
           ### What I expect to happen
-          [Your text here]
 
           ### What actually happens
-          [Your text here]
+
       validations:
         required: true
 
@@ -149,8 +148,6 @@ body:
         description: |
           Before you submit, please make sure you have completed the following steps:
         options:
-          - label: I have run `:checkhealth codecompanion`
-            required: true
           - label: I have made sure this issue exists in the latest version of the plugin
             required: true
           - label: I have tested with the `minimal.lua` config file above and still get the issue
