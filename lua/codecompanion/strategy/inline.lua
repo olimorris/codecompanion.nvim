@@ -177,7 +177,7 @@ function Inline:execute(user_input)
   -- Determine where to place the response in the buffer
   if self.opts and self.opts.placement then
     if self.opts.placement == "before" then
-      log:debug("Placing before selection: %s", self.context)
+      log:trace("Placing before selection: %s", self.context)
       vim.api.nvim_buf_set_lines(
         self.context.bufnr,
         self.context.start_line - 1,
@@ -189,7 +189,7 @@ function Inline:execute(user_input)
       pos.line = self.context.start_line - 1
       pos.col = self.context.start_col - 1
     elseif self.opts.placement == "after" then
-      log:debug("Placing after selection: %s", self.context)
+      log:trace("Placing after selection: %s", self.context)
       vim.api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
       pos.line = self.context.end_line + 1
       pos.col = 0
@@ -198,7 +198,6 @@ function Inline:execute(user_input)
       overwrite_selection(self.context)
 
       pos.line, pos.col = get_cursor(self.context.winid)
-      pos.line = pos.line - 1
     elseif self.opts.placement == "new" then
       log:trace("Placing in a new buffer")
       self.context.bufnr = api.nvim_create_buf(true, false)
