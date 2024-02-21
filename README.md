@@ -41,7 +41,7 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 
 <div align="center">
   <p><strong>Chat</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/a19c8397-a1e2-44df-98be-8a1b4d307ea7" alt="chat" /></p>
-  <p><strong>Inline code</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/6766e142-91a0-4ea0-9d01-e81ec93bc755" alt="Inline code" /></p>
+  <p><strong>Inline code</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/909277f9-7a5f-455e-b25a-84e85b47440b" alt="Inline code" /></p>
 </div>
 
 <!-- panvimdoc-ignore-end -->
