@@ -111,7 +111,7 @@ body:
       id: logs
       attributes:
         label: Log output
-        description: Please paste the output from the log located at `~/.local/state/nvim/codecompanion.log`
+        description: Please paste the relevant output from the log located at `~/.local/state/nvim/codecompanion.log`
       validations:
         required: true
 
