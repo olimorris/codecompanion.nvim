@@ -6,14 +6,19 @@ local api = vim.api
 
 ---@param inline CodeCompanion.Inline
 ---@param prompt string
----@return string
+---@return string, boolean
 local function get_placement_position(inline, prompt)
-  local output = "cursor"
+  local placement = "cursor"
+  local return_code = false
 
   local messages = {
     {
       role = "system",
-      content = 'I am writing a prompt from within the Neovim text editor. This prompt will go to a GenAI model which will return a response. The response will then be streamed into Neovim. However, depending on the nature of the prompt, how Neovim handles the streaming will vary. For instance, if the user references the words "refactor" or "update" in their prompt, they will likely want the response to replace a visual selection they\'ve made in the editor. However, if they include words such as "after" or "before", it may be insinuated that they wish the response to be placed after or before the current selection. They may also ask for the response to be placed in a new buffer or a new tab. Finally, if you they don\'t specify what they wish to do, then they likely want to stream the response into where the cursor is currently. What I\'d like you to do is analyse the following prompt and determine whether the response should be one of: 1) after 2) before 3) replace 4) new 5) cursor. Please only respond with a single word.',
+      content = 'I am writing a prompt from within the Neovim text editor. This prompt will go to a GenAI model which will return a response. The response will then be streamed into Neovim. However, depending on the nature of the prompt, how Neovim handles the streaming will vary. For instance, if the user references the words "refactor" or "update" in their prompt, they will likely want the response to replace a visual selection they\'ve made in the editor. However, if they include words such as "after" or "before", it may be insinuated that they wish the response to be placed after or before the current selection. They may also ask for the response to be placed in a new buffer. Finally, if you they don\'t specify what they wish to do, then they likely want to stream the response into where the cursor is currently. What I\'d like you to do is analyse the following prompt and determine whether the response should be one of: 1) after 2) before 3) replace 4) new 5) cursor. We\'ll call this the "placement" and please only respond with a single word.',
+    },
+    {
+      role = "system",
+      content = 'The user may not wish for their original code to be returned back to them from the GenAI model as part of the response. An example would be if they\'ve asked the model to generate comments or documentation. However if they\'ve asked for some refactoring/modification, then the original code should be returned. Please can you determine whether the code should be returned or not by responding with a boolean flag. Can you append this to the "placement" from earlier and seperate them with a "|" character?',
     },
     {
       role = "user",
@@ -21,6 +26,7 @@ local function get_placement_position(inline, prompt)
     },
   }
 
+  local output
   inline.client:chat(
     vim.tbl_extend("keep", inline.settings, {
       messages = messages,
@@ -33,13 +39,20 @@ local function get_placement_position(inline, prompt)
       if chunk then
         local content = chunk.choices[1].message.content
         if content then
+          log:trace("Placement response: %s", content)
           output = content
         end
       end
     end
   )
 
-  return output
+  if output then
+    local parts = vim.split(output, "|")
+    placement = parts[1]
+    return_code = parts[2] == "true"
+  end
+
+  return placement, return_code
 end
 
 ---@param filetype string
@@ -148,11 +161,20 @@ function Inline:execute(user_input)
   local messages = get_action(self, user_input)
 
   if not self.opts.placement and user_input then
-    self.opts.placement = get_placement_position(self, user_input)
+    local return_code
+    self.opts.placement, return_code = get_placement_position(self, user_input)
+
+    if not return_code then
+      table.insert(messages, {
+        role = "user",
+        content = "Please do not return the code I have sent in the response",
+      })
+    end
+
     log:debug("Setting the placement to: %s", self.opts.placement)
   end
 
-  -- Adjust the cursor position based on the command
+  -- Determine where to place the response in the buffer
   if self.opts and self.opts.placement then
     if self.opts.placement == "before" then
       log:debug("Placing before selection: %s", self.context)
@@ -240,7 +262,7 @@ function Inline:execute(user_input)
       end
 
       if chunk then
-        log:trace("chat chunk: %s", chunk)
+        log:trace("Chat chunk: %s", chunk)
 
         local delta = chunk.choices[1].delta
         if delta.content and not delta.role and delta.content ~= "```" and delta.content ~= self.context.filetype then
@@ -267,10 +289,10 @@ function Inline:execute(user_input)
   )
 end
 
----@param input? string
-function Inline:start(input)
-  if input then
-    return self:execute(input)
+---@param user_input? string
+function Inline:start(user_input)
+  if user_input then
+    return self:execute(user_input)
   end
 
   if self.opts and self.opts.user_prompt then
