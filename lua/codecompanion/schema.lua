@@ -17,7 +17,7 @@ M.get_default = function(schema, defaults)
   return ret
 end
 
----@class codecompanion.SchemaParam
+---@class CodeCompanion.SchemaParam
 ---@field type "string"|"number"|"integer"|"boolean"|"enum"|"list"|"map"
 ---@field order nil|integer
 ---@field optional nil|boolean
@@ -25,7 +25,7 @@ end
 ---@field desc string
 ---@field validate? fun(value: any): boolean, nil|string
 
----@param schema codecompanion.SchemaParam
+---@param schema CodeCompanion.SchemaParam
 ---@param value any
 ---@return boolean
 ---@return nil|string
@@ -64,7 +64,7 @@ local function validate_type(schema, value)
   end
 end
 
----@param schema codecompanion.SchemaParam
+---@param schema CodeCompanion.SchemaParam
 ---@param value any
 ---@return boolean
 ---@return nil|string
@@ -79,7 +79,7 @@ local function validate_field(schema, value)
   return true
 end
 
----@param schema codecompanion.SchemaParam
+---@param schema CodeCompanion.SchemaParam
 ---@param values table
 ---@return nil|table<string, string>
 M.validate = function(schema, values)
@@ -95,7 +95,7 @@ M.validate = function(schema, values)
   end
 end
 
----@param schema codecompanion.SchemaParam
+---@param schema CodeCompanion.SchemaParam
 ---@return string[]
 M.get_ordered_keys = function(schema)
   local keys = vim.tbl_keys(schema)
