@@ -28,8 +28,9 @@ Use the <a href="https://platform.openai.com/docs/guides/text-generation/chat-co
 
 ## :sparkles: Features
 
-- :speech_balloon: Chat with the OpenAI APIs in a Neovim buffer
-- :sparkles: Built in actions for specific language prompts, LSP error fixes and inline code generation
+- :speech_balloon: A Copilot Chat experience from within Neovim
+- :rocket: Inline code creation and modification
+- :sparkles: Built in actions for specific language prompts LSP error fixes and code advice
 - :building_construction: Create your own custom actions for Neovim which hook into OpenAI
 - :floppy_disk: Save and restore your chats
 - :muscle: Async execution for improved performance
@@ -274,9 +275,11 @@ Chat buffers are not saved to disk by default, but can be by pressing `gs` in th
 
 If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the OpenAI parameters which can be changed to tweak the response back to you. This enables fine-tuning and parameter tweaking throughout the chat. You can find more detail about them by moving the cursor over them or referring to the [OpenAI Chat Completions reference guide](https://platform.openai.com/docs/api-reference/chat).
 
-### Inline Editing
+### Inline Code
 
-The plugin allows you to utilise the OpenAI APIs to create inline code in Neovim. This can be invoked by using the _Action Palette_ or by running the `:CodeCompanion` command followed by a prompt. For example:
+<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/7e1f2e16-7b6f-453e-b3b0-650f3ac0fc0a" alt="Inline code" /></p>
+
+You can use the plugin to create inline code directly into a Neovim buffer. This can be invoked by using the _Action Palette_ (as above) or from the command line via `:CodeCompanion`. For example:
 
 ```
 :CodeCompanion create a table of 5 fruits
@@ -286,17 +289,17 @@ The plugin allows you to utilise the OpenAI APIs to create inline code in Neovim
 :'<,'>CodeCompanion refactor the code to make it more concise
 ```
 
-The command can detect if you've made a visual selection and send any code as context to the API, alongside the filetype of the buffer. This is an alternative to using the _Action Palette_.
+> **Note**: The command can detect if you've made a visual selection and send any code as context to the API alongside the filetype of the buffer.
 
-One of the challenges with inline editing is determining how the API's response should be handled in the Neovim buffer. If you've prompted the API to _"create a table of 5 fruits"_ then you may wish for the response to be placed at the cursor in the buffer. However, if you asked the API to _"refactor this method"_ then you'd expect the response to overwrite a visual selection. If this `placement` isn't specified then the plugin will use OpenAI itself to determine if the response should follow any of the placements below:
+One of the challenges with inline editing is determining how the API's response should be handled in the buffer. If you've prompted the API to _"create a table of 5 fruits"_ then you may wish for the response to be placed after the cursor in the buffer. However, if you asked the API to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. If this _placement_ isn't specified then the plugin will use OpenAI itself to determine if the response should follow any of the placements below:
 
-- `after` - after the visual selection
-- `before` - before the visual selection
-- `cursor` - at the cursor position
-- `new` - in a new buffer
-- `replace` - replacing the visual selection
+- _after_ - after the visual selection
+- _before_ - before the visual selection
+- _cursor_ - one column after the cursor position
+- _new_ - in a new buffer
+- _replace_ - replacing the visual selection
 
-So specifying a prompt such as _"create a test for this method in a new buffer"_ would result in the `new` placement being chosen for the response.
+As a final example, specifying a prompt like _"create a test for this code in a new buffer"_ would result in the _new_ placement being chosen for the response and a new Neovim buffer being created.
 
 ### In-Built Actions
 
