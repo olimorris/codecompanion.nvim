@@ -88,7 +88,8 @@ use({
 
 ## :wrench: Configuration
 
-> **Note**: You only need to the call the `setup` function if you wish to change any of the defaults.
+> [!TIP]
+> You only need to the call the `setup` function if you wish to change any of the defaults.
 
 <details>
   <summary>Click to see the default configuration</summary>
@@ -177,6 +178,9 @@ require("codecompanion").setup({
 
 </details>
 
+> [!WARNING]
+> For some users, the sending of any code to OpenAI may not be an option. In those instances, you can set `send_code = false` in your config.
+
 ### Edgy.nvim Configuration
 
 The author recommends pairing with [edgy.nvim](https://github.com/folke/edgy.nvim) for a Co-Pilot Chat-like experience:
@@ -222,7 +226,8 @@ vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", {
 vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
 ```
 
-> **Note**: For some actions, visual mode allows your selection to be sent directly to the chat buffer or the API itself (in the case of _inline code_ actions).
+> [!NOTE]
+> For some actions, visual mode allows your selection to be sent directly to the chat buffer or the API itself (in the case of _inline code_ actions).
 
 ### The Action Palette
 
@@ -244,7 +249,8 @@ require("codecompanion").setup({
 })
 ```
 
-> **Note**: I will describe how to do this in detail within a `RECIPES.md` file in the near future.
+> [!NOTE]
+> I will describe how to do this in detail within a `RECIPES.md` file in the near future.
 
 Or, if you wish to turn off the default actions, set `use_default_actions = false` in your config.
 
@@ -289,7 +295,8 @@ You can use the plugin to create inline code directly into a Neovim buffer. This
 :'<,'>CodeCompanion refactor the code to make it more concise
 ```
 
-> **Note**: The command can detect if you've made a visual selection and send any code as context to the API alongside the filetype of the buffer.
+> [!NOTE]
+> The command can detect if you've made a visual selection and send any code as context to the API alongside the filetype of the buffer.
 
 One of the challenges with inline editing is determining how the API's response should be handled in the buffer. If you've prompted the API to _"create a table of 5 fruits"_ then you may wish for the response to be placed after the cursor in the buffer. However, if you asked the API to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. If this _placement_ isn't specified then the plugin will use OpenAI itself to determine if the response should follow any of the placements below:
 
@@ -299,7 +306,7 @@ One of the challenges with inline editing is determining how the API's response 
 - _new_ - in a new buffer
 - _replace_ - replacing the visual selection
 
-As a final example, specifying a prompt like _"create a test for this code in a new buffer"_ would result in the _new_ placement being chosen for the response and a new Neovim buffer being created.
+As a final example, specifying a prompt like _"create a test for this code in a new buffer"_ would result in a new Neovim buffer being created.
 
 ### In-Built Actions
 
@@ -309,7 +316,8 @@ The plugin comes with a number of [in-built actions](https://github.com/olimorri
 
 Both of these actions utilise the `chat` strategy. The `Chat` action opens up a fresh chat buffer. The `Chat as` action allows for persona based context to be set in the chat buffer allowing for better and more detailed responses from OpenAI.
 
-> **Note**: Both of these actions allow for visually selected code to be sent to the chat buffer as code blocks.
+> [!TIP]
+> Both of these actions allow for visually selected code to be sent to the chat buffer as code blocks.
 
 #### Open chats
 
@@ -325,13 +333,12 @@ The strategy comes with a number of helpers which the user can type in the promp
 - `/optimize` to analyze and improve the running time of the selected code
 - `/tests` to create unit tests for the selected code
 
-> **Note**: The options available to the user in the Action Palette will depend on the Vim mode.
+> [!NOTE]
+> The options available to the user in the Action Palette will depend on the Vim mode.
 
 #### Code advisor
 
 As the name suggests, this action provides advice on a visual selection of code and utilises the `chat` strategy. The response from the API is streamed into a chat buffer which follows the `display.chat` settings in your configuration.
-
-> **Note**: For some users, the sending of any code to OpenAI may not be an option. In those instances, you can set `send_code = false` in your config.
 
 #### LSP assistant
 
@@ -364,7 +371,8 @@ vim.api.nvim_create_autocmd({ "User" }, {
 })
 ```
 
-> **Note**: The author uses these to display an icon in his statusline.
+> [!NOTE]
+> The author uses these to display an icon in his statusline.
 
 ### Heirline.nvim
 

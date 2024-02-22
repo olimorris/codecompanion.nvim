@@ -65,8 +65,8 @@ INSTALLATION                                      *codecompanion-installation*
 CONFIGURATION                                    *codecompanion-configuration*
 
 
-  **Note**You only need to the call the `setup` function if you wish to change
-  any of the defaults.
+  [!TIP] You only need to the call the `setup` function if you wish to change any
+  of the defaults.
 Click to see the default configuration ~
 
 >lua
@@ -152,6 +152,9 @@ Click to see the default configuration ~
 <
 
 
+  [!WARNING] For some users, the sending of any code to OpenAI may not be an
+  option. In those instances, you can set `send_code = false` in your config.
+
 EDGY.NVIM CONFIGURATION ~
 
 The author recommends pairing with edgy.nvim
@@ -201,7 +204,7 @@ For an optimum workflow, the plugin author recommendeds the following keymaps:
 <
 
 
-  **Note**For some actions, visual mode allows your selection to be sent directly
+  [!NOTE] For some actions, visual mode allows your selection to be sent directly
   to the chat buffer or the API itself (in the case of _inline code_ actions).
 
 THE ACTION PALETTE ~
@@ -226,7 +229,7 @@ You may add your own actions into the palette by altering your configuration:
 <
 
 
-  **Note**I will describe how to do this in detail within a `RECIPES.md` file in
+  [!NOTE] I will describe how to do this in detail within a `RECIPES.md` file in
   the near future.
 Or, if you wish to turn off the default actions, set `use_default_actions =
 false` in your config.
@@ -292,7 +295,7 @@ command line via `:CodeCompanion`. For example:
 <
 
 
-  **Note**The command can detect if you’ve made a visual selection and send any
+  [!NOTE] The command can detect if you’ve made a visual selection and send any
   code as context to the API alongside the filetype of the buffer.
 One of the challenges with inline editing is determining how the API’s
 response should be handled in the buffer. If you’ve prompted the API to
@@ -310,8 +313,7 @@ placements below:
 - _replace_ - replacing the visual selection
 
 As a final example, specifying a prompt like _“create a test for this code in
-a new buffer”_ would result in the _new_ placement being chosen for the
-response and a new Neovim buffer being created.
+a new buffer”_ would result in a new Neovim buffer being created.
 
 
 IN-BUILT ACTIONS ~
@@ -332,8 +334,8 @@ set in the chat buffer allowing for better and more detailed responses from
 OpenAI.
 
 
-  **Note**Both of these actions allow for visually selected code to be sent to
-  the chat buffer as code blocks.
+  [!TIP] Both of these actions allow for visually selected code to be sent to the
+  chat buffer as code blocks.
 
 OPEN CHATS
 
@@ -358,7 +360,7 @@ prompt, similar to GitHub Copilot Chat
 - `/tests` to create unit tests for the selected code
 
 
-  **Note**The options available to the user in the Action Palette will depend on
+  [!NOTE] The options available to the user in the Action Palette will depend on
   the Vim mode.
 
 CODE ADVISOR
@@ -367,9 +369,6 @@ As the name suggests, this action provides advice on a visual selection of code
 and utilises the `chat` strategy. The response from the API is streamed into a
 chat buffer which follows the `display.chat` settings in your configuration.
 
-
-  **Note**For some users, the sending of any code to OpenAI may not be an option.
-  In those instances, you can set `send_code = false` in your config.
 
 LSP ASSISTANT
 
@@ -409,7 +408,7 @@ Events can be hooked into as follows:
 <
 
 
-  **Note**The author uses these to display an icon in his statusline.
+  [!NOTE] The author uses these to display an icon in his statusline.
 
 HEIRLINE.NVIM ~
 
