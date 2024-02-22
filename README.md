@@ -88,8 +88,7 @@ use({
 
 ## :wrench: Configuration
 
-> [!TIP]
-> You only need to the call the `setup` function if you wish to change any of the defaults.
+You only need to the call the `setup` function if you wish to change any of the defaults:
 
 <details>
   <summary>Click to see the default configuration</summary>

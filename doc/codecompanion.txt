@@ -64,9 +64,9 @@ INSTALLATION                                      *codecompanion-installation*
 
 CONFIGURATION                                    *codecompanion-configuration*
 
+You only need to the call the `setup` function if you wish to change any of the
+defaults:
 
-  [!TIP] You only need to the call the `setup` function if you wish to change any
-  of the defaults.
 Click to see the default configuration ~
 
 >lua
