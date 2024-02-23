@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 
 ---@param prompts table
 ---@param context table
@@ -40,6 +41,7 @@ local Strategy = {}
 ---@param args CodeCompanion.StrategyArgs
 ---@return CodeCompanion.Strategy
 function Strategy.new(args)
+  log:trace("Context: %s", args.context)
   return setmetatable({
     client = args.client,
     context = args.context,
