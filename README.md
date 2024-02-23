@@ -243,15 +243,22 @@ require("codecompanion").setup({
       name = "My new action",
       strategy = "chat",
       description = "Some cool action you can do",
-    }
-  }
+      prompts = {
+        {
+          role = "system",
+          content = "you can do something cool",
+        },
+      },
+    },
+  },
 })
 ```
 
 > [!NOTE]
-> I will describe how to do this in detail within a `RECIPES.md` file in the near future.
+> Please see [RECIPES.md](RECIPES.md) for how you can add your own actions.
 
-Or, if you wish to turn off the default actions, set `use_default_actions = false` in your config.
+> [!TIP]
+> If you wish to turn off the default actions, set `use_default_actions = false` in your config.
 
 ### The Chat Buffer
 
