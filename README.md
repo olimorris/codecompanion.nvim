@@ -353,8 +353,9 @@ The plugin fires the following events during its lifecycle:
 - `CodeCompanionChatSaved` - Fired after a chat has been saved to disk
 - `CodeCompanionChat` - Fired at various points during the chat buffer. Comes with the following attributes:
   - `data.action = close_buffer` - For when a chat buffer has been permanently closed
-  - `data.action = hide_buffer` - For when a chat buffer is now hidden
-  - `data.action = show_buffer` - For when a chat buffer is now visible after being hidden
+  - `data.action = hide_buffer` - For when a chat buffer is hidden
+  - `data.action = show_buffer` - For when a chat buffer is visible after being hidden
+- `CodeCompanionInline` - Fired during the inline API request alongside `CodeCompanionRequest`. Outputs `data.status` with a value of `started` or `finished`
 
 Events can be hooked into as follows:
 
@@ -362,7 +363,7 @@ Events can be hooked into as follows:
 local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
 
 vim.api.nvim_create_autocmd({ "User" }, {
-  pattern = "CodeCompanionRequest",
+  pattern = "CodeCompanionInline",
   group = group,
   callback = function(request)
     print(request.data.status) -- outputs "started" or "finished"
@@ -370,8 +371,8 @@ vim.api.nvim_create_autocmd({ "User" }, {
 })
 ```
 
-> [!NOTE]
-> The author uses these to display an icon in his statusline.
+> [!TIP]
+> A possible use case is for formatting the buffer after an inline code request
 
 ### Heirline.nvim
 

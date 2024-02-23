@@ -4,6 +4,11 @@ local ui = require("codecompanion.utils.ui")
 
 local api = vim.api
 
+---@param status string
+local function fire_autocmd(status)
+  vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionInline", data = { status = status } })
+end
+
 ---@param inline CodeCompanion.Inline
 ---@param prompt string
 ---@return string, boolean
@@ -177,7 +182,7 @@ function Inline:execute(user_input)
   -- Determine where to place the response in the buffer
   if self.opts and self.opts.placement then
     if self.opts.placement == "before" then
-      log:trace("Placing before selection: %s", self.context)
+      log:trace("Placing before selection")
       vim.api.nvim_buf_set_lines(
         self.context.bufnr,
         self.context.start_line - 1,
@@ -189,7 +194,7 @@ function Inline:execute(user_input)
       pos.line = self.context.start_line - 1
       pos.col = self.context.start_col - 1
     elseif self.opts.placement == "after" then
-      log:trace("Placing after selection: %s", self.context)
+      log:trace("Placing after selection")
       vim.api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
       pos.line = self.context.end_line + 1
       pos.col = 0
@@ -249,6 +254,8 @@ function Inline:execute(user_input)
     end,
   })
 
+  fire_autocmd("started")
+
   local output = {}
   self.client:stream_chat(
     vim.tbl_extend("keep", self.settings, {
@@ -283,6 +290,7 @@ function Inline:execute(user_input)
           log:debug("Terminal output: %s", output)
           api.nvim_put({ table.concat(output, "") }, "", false, true)
         end
+        fire_autocmd("finished")
       end
     end
   )
