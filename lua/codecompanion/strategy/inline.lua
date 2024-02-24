@@ -143,12 +143,23 @@ local Inline = {}
 ---@field context table
 ---@field client CodeCompanion.Client
 ---@field opts table
+---@field pre_hook fun():number -- Assuming pre_hook returns a number for example
 ---@field prompts table
 
 ---@param opts CodeCompanion.InlineArgs
 ---@return CodeCompanion.Inline
 function Inline.new(opts)
   log:trace("Initiating Inline")
+
+  if type(opts.pre_hook) == "function" then
+    local bufnr = opts.pre_hook()
+
+    if type(bufnr) == "number" then
+      opts.context.bufnr = bufnr
+      opts.context.start_line = 1
+      opts.context.start_col = 1
+    end
+  end
 
   return setmetatable({
     settings = config.options.ai_settings.inline,

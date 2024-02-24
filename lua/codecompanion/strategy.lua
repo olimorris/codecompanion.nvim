@@ -104,6 +104,7 @@ function Strategy:inline()
       context = self.context,
       client = self.client,
       opts = self.selected.opts,
+      pre_hook = self.selected.pre_hook,
       prompts = self.selected.prompts,
     })
     :start()

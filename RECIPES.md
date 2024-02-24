@@ -115,7 +115,29 @@ require("codecompanion").setup({
 
 If you run `:CodeCompanionActions`, you should see that the two boilerplate prompts are now nested in their own `vim.ui.select` component.
 
-Whilst these examples were useful at demonstrating the functionality of the _Action Palette_, they're not leveraging GenAI to add any real value to your workflow (this boilerplate could be snippets after all)...So let's step things up in the next section.
+### Leveraging pre-hooks
+
+To make this example complete, we can leverage a pre-hook to create a new buffer and set the filetype to be html:
+
+```lua
+{
+  name = "HTML boilerplate",
+  strategy = "inline",
+  description = "Create some HTML boilerplate",
+  pre_hook = function()
+    local bufnr = vim.api.nvim_create_buf(true, false)
+    vim.api.nvim_buf_set_option(bufnr, "filetype", "html")
+    vim.api.nvim_set_current_buf(bufnr)
+    return bufnr
+  end
+}
+```
+
+For the inline strategy, the plugin will detect a number being returned and assume that is the buffer number you wish any code to be streamed into.
+
+### Conclusion
+
+Whilst these examples were useful at demonstrating the functionality of the _Action Palette_, they're not making the most of the GenAI models to add any real value to your workflow (this boilerplate could be snippets after all). So let's step things up in the next section.
 
 ## Recipe #2: Using context in your prompts
 
