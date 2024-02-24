@@ -36,7 +36,7 @@ In the following sections, we'll explore how you can customise these actions eve
 
 As the years go by, I find myself writing less and less HTML. So when it comes to quickly scaffolding out a HTML page, I inevitably turn to a search engine. It would be great if I could have an action that could quickly generate some boilerplate HTML from the _Action Palette_.
 
-Let's take a look at how we can achieve that below:
+Let's take a look at how we can achieve that:
 
 ```lua
 require("codecompanion").setup({
@@ -130,10 +130,11 @@ To make this example complete, we can leverage a pre-hook to create a new buffer
     vim.api.nvim_set_current_buf(bufnr)
     return bufnr
   end
+  ---
 }
 ```
 
-For the inline strategy, the plugin will detect a number being returned and assume that is the buffer number you wish any code to be streamed into.
+For the inline strategy, the plugin will detect a number being returned from the `pre_hook` and assume that is the buffer number you wish any code to be streamed into.
 
 ### Conclusion
 
@@ -141,7 +142,7 @@ Whilst these examples were useful at demonstrating the functionality of the _Act
 
 ## Recipe #2: Using context in your prompts
 
-Now let's look at how we can get GenAI to advise us on some selected code. This is builtin to the plugin as the _Code advisor_ action:
+Now let's look at how we can get our GenAI model to advise us on some code that we have visually selected in a buffer. Infact, this very example is builtin to the plugin as the _Code advisor_ action:
 
 ```lua
 require("codecompanion").setup({
@@ -179,7 +180,7 @@ require("codecompanion").setup({
 })
 ```
 
-Holy smokes there's a lot of new stuff in this. Let's break it down.
+At first glance there's a lot of new stuff in this. Let's break it down.
 
 ### Palette options
 
@@ -191,9 +192,11 @@ opts = {
 },
 ```
 
-In the `opts` table we're specifying that we only want this action to appear if we're in visual mode. We're also asking the chat strategy to automatically send the prompts to OpenAI. It may be useful to turn this off if you wish to add some additional context prior to asking for a response. Finally, we're telling the picker that we want to prompt the user for some custom input.
+In the `opts` table we're specifying that we only want this action to appear in the _Action Palette_ if we're in visual mode. We're also asking the chat strategy to automatically send the prompts to the GenAI model. It may be useful to turn this off if you wish to add some additional context prior to asking for a response. Finally, we're telling the picker that we want to get the user's prompt before we action the response.
 
 ### Prompt options and context
+
+In the example below you can see how we've structured the prompts to get advice on the code:
 
 ```lua
 prompts = {
@@ -217,7 +220,7 @@ prompts = {
 },
 ```
 
-One of the most useful features of the _Action Palette_ prompts is the ability to receive context about the current buffer which can then be used in the prompts themselves. A typical context table looks like:
+One of the most useful features of the _Action Palette_ prompts is the ability to receive context about the current buffer and any lines of code we've selected. An example context table looks like:
 
 ```lua
 {
@@ -237,7 +240,7 @@ One of the most useful features of the _Action Palette_ prompts is the ability t
 }
 ```
 
-Using the above context as an example, our first prompt then makes more sense:
+Using the context above, our first prompt then makes more sense:
 
 ```lua
 {
