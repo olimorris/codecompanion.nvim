@@ -316,7 +316,9 @@ local function chat_autocmds(bufnr, args)
 
       _G.codecompanion_chats[bufnr] = nil
 
-      vim.api.nvim_buf_delete(bufnr, { force = true })
+      _G.codecompanion_jobs[request.data.buf].handler:shutdown()
+      vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionRequest", data = { status = "finished" } })
+      vim.api.nvim_buf_delete(request.data.buf, { force = true })
     end,
   })
 end
