@@ -315,7 +315,8 @@ local function chat_autocmds(bufnr, args)
       end
 
       _G.codecompanion_chats[bufnr] = nil
-      vim.cmd("bd!")
+
+      vim.api.nvim_buf_delete(bufnr, { force = true })
     end,
   })
 end
