@@ -257,6 +257,35 @@ M.static.actions = {
             },
           },
         },
+        {
+          name = "Rust",
+          strategy = "chat",
+          description = "Chat as a senior Rust developer",
+          type = "rust",
+          prompts = {
+            {
+              role = "system",
+              content = expert("Rust"),
+            },
+            {
+              role = "user",
+              contains_code = true,
+              condition = function(context)
+                return context.is_visual
+              end,
+              content = function(context)
+                return send_code(context)
+              end,
+            },
+            {
+              role = "user",
+              condition = function(context)
+                return not context.is_visual
+              end,
+              content = "\n \n",
+            },
+          },
+        },
       },
     },
   },
