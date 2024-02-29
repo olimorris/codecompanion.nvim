@@ -13,7 +13,7 @@ local chat_buffer_settings = {
 }
 
 describe("Adapter", function()
-  it("can receive parameters from a chat buffer's settings", function()
+  it("can form parameters from a chat buffer's settings", function()
     local adapter = require("codecompanion.adapters.openai")
     local result = adapter:set_params(chat_buffer_settings)
 
