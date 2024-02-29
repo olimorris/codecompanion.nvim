@@ -179,7 +179,7 @@ The author recommends pairing with edgy.nvim
 
 HIGHLIGHT GROUPS ~
 
-The plugin sets the highlight groups during setup:
+The plugin sets the following highlight groups during setup:
 
 - `CodeCompanionTokens` - Virtual text showing the token count when in a chat buffer
 - `CodeCompanionVirtualText` - All other virtual text in the chat buffer
@@ -209,34 +209,14 @@ For an optimum workflow, the plugin author recommendeds the following keymaps:
 
 THE ACTION PALETTE ~
 
+
+  [!NOTE] Please see the RECIPES <RECIPES.md> guide in order to add your own
+  actions to the palette.
 The Action Palette, opened via `:CodeCompanionActions`, contains all of the
 actions and their associated strategies for the plugin. It’s the fastest way
 to start leveraging CodeCompanion. Depending on whether you’re in _normal_ or
-_visual_ mode will affect the options that are available in the palette.
+_visual_ mode will affect the options that are available to you in the palette.
 
-You may add your own actions into the palette by altering your configuration:
-
->lua
-    require("codecompanion").setup({
-      actions = {
-        {
-          name = "My new action",
-          strategy = "chat",
-          description = "Some cool action you can do",
-          prompts = {
-            {
-              role = "system",
-              content = "you can do something cool",
-            },
-          },
-        },
-      },
-    })
-<
-
-
-  [!NOTE] Please see RECIPES.md <RECIPES.md> for how you can add your own
-  actions.
 
   [!TIP] If you wish to turn off the default actions, set `use_default_actions =
   false` in your config.
