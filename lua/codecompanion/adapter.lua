@@ -22,6 +22,7 @@ end
 ---@param settings table
 ---@return CodeCompanion.Adapter
 function Adapter:set_params(settings)
+  -- TODO: Need to take into account the schema's "mapping" field
   for k, v in pairs(settings) do
     self.parameters[k] = v
   end
