@@ -33,27 +33,6 @@ local function close_request(bufnr, opts)
   fire_autocmd("finished")
 end
 
----@class CodeCompanion.Client
----@field secret_key string
----@field organization nil|string
----@field settings nil|table
-local Client = {}
-
----@class CodeCompanion.ClientArgs
----@field secret_key string
----@field organization nil|string
----@field settings nil|table
-
----@param args CodeCompanion.ClientArgs
----@return CodeCompanion.Client
-function Client.new(args)
-  return setmetatable({
-    secret_key = args.secret_key,
-    organization = args.organization,
-    settings = args.settings or schema.get_default(schema.static.client_settings, args.settings),
-  }, { __index = Client })
-end
-
 ---@param client CodeCompanion.Client
 ---@return table<string, string>
 local function headers(client)
@@ -92,11 +71,32 @@ local function parse_response(code, stdout)
   return nil, data
 end
 
+---@class CodeCompanion.Client
+---@field secret_key string
+---@field organization nil|string
+---@field settings nil|table
+local Client = {}
+
+---@class CodeCompanion.ClientArgs
+---@field secret_key string
+---@field organization nil|string
+---@field settings nil|table
+
+---@param args CodeCompanion.ClientArgs
+---@return CodeCompanion.Client
+function Client.new(args)
+  return setmetatable({
+    secret_key = args.secret_key,
+    organization = args.organization,
+    settings = args.settings or schema.get_default(schema.static.client_settings, args.settings),
+  }, { __index = Client })
+end
+
 ---Call the OpenAI API but block the main loop until the response is received
 ---@param url string
 ---@param payload table
 ---@param cb fun(err: nil|string, response: nil|table)
-function Client:call(url, payload, cb)
+function Client:block_request(url, payload, cb)
   cb = log:wrap_cb(cb, "Response error: %s")
 
   local cmd = {
@@ -139,7 +139,7 @@ end
 ---@param bufnr number
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
 ---@return nil
-function Client:stream_call(url, payload, bufnr, cb)
+function Client:stream_request(url, payload, bufnr, cb)
   cb = log:wrap_cb(cb, "Response error: %s")
 
   local handler = self.settings.request({
@@ -220,7 +220,7 @@ end
 ---@param cb fun(err: nil|string, response: nil|table)
 ---@return nil
 function Client:chat(args, cb)
-  return self:call(config.options.base_url .. "/v1/chat/completions", args, cb)
+  return self:block_request(config.options.base_url .. "/v1/chat/completions", args, cb)
 end
 
 ---@param args CodeCompanion.ChatArgs
@@ -229,7 +229,7 @@ end
 ---@return nil
 function Client:stream_chat(args, bufnr, cb)
   args.stream = true
-  return self:stream_call(config.options.base_url .. "/v1/chat/completions", args, bufnr, cb)
+  return self:stream_request(config.options.base_url .. "/v1/chat/completions", args, bufnr, cb)
 end
 
 ---@class args CodeCompanion.InlineArgs
@@ -238,7 +238,7 @@ end
 ---@return nil
 function Client:inline(args, bufnr, cb)
   args.stream = true
-  return self:stream_call(config.options.base_url .. "/v1/chat/completions", args, bufnr, cb)
+  return self:stream_request(config.options.base_url .. "/v1/chat/completions", args, bufnr, cb)
 end
 
 return Client
