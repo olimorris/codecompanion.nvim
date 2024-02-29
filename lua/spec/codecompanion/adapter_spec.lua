@@ -143,8 +143,8 @@ describe("Adapter", function()
     local result = Adapter.new(adapter):process(chat_buffer_settings)
 
     -- Remove the stream key from the payload as this isn't handled via the settings in the chat buffer
-    result.data.payload.stream = nil
+    result.payload.stream = nil
 
-    assert.are.same(chat_buffer_settings, result.data.payload)
+    assert.are.same(chat_buffer_settings, result.payload)
   end)
 end)
