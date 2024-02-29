@@ -1,7 +1,5 @@
 local assert = require("luassert")
 
-local Adapter = require("codecompanion.adapter")
-
 local chat_buffer_settings = {
   frequency_penalty = 0,
   model = "gpt-4-0125-preview",
@@ -19,7 +17,7 @@ describe("Adapter", function()
     local adapter = require("codecompanion.adapters.openai")
     local result = adapter:set_params(chat_buffer_settings)
 
-    -- The `stream` parameter is not present in the chat buffer's settings, so remove it to get the tests to pass
+    -- Ignore this for now
     result.parameters.stream = nil
 
     assert.are.same(chat_buffer_settings, result.parameters)
