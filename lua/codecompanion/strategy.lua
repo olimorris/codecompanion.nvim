@@ -76,7 +76,7 @@ function Strategy:chat()
       })
     end
 
-    return require("codecompanion.strategy.chat").new({
+    return require("codecompanion.strategies.chat").new({
       client = self.client,
       type = self.selected.type,
       messages = messages,
@@ -99,7 +99,7 @@ function Strategy:chat()
 end
 
 function Strategy:inline()
-  return require("codecompanion.strategy.inline")
+  return require("codecompanion.strategies.inline")
     .new({
       context = self.context,
       client = self.client,

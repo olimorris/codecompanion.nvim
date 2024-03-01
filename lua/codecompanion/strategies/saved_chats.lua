@@ -1,4 +1,4 @@
-local Chat = require("codecompanion.strategy.chat")
+local Chat = require("codecompanion.strategies.chat")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 

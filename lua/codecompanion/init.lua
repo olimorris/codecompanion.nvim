@@ -31,7 +31,7 @@ end
 ---@param bufnr nil|integer
 ---@return nil|CodeCompanion.Chat
 M.buf_get_chat = function(bufnr)
-  return require("codecompanion.strategy.chat").buf_get_chat(bufnr)
+  return require("codecompanion.strategies.chat").buf_get_chat(bufnr)
 end
 
 ---@param args table
@@ -44,7 +44,7 @@ M.inline = function(args)
 
   local context = util.get_context(vim.api.nvim_get_current_buf(), args)
 
-  return require("codecompanion.strategy.inline")
+  return require("codecompanion.strategies.inline")
     .new({
       context = context,
       client = client,
@@ -71,7 +71,7 @@ M.chat = function(args)
 
   local context = util.get_context(vim.api.nvim_get_current_buf(), args)
 
-  local chat = require("codecompanion.strategy.chat").new({
+  local chat = require("codecompanion.strategies.chat").new({
     client = client,
     context = context,
   })

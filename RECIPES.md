@@ -298,7 +298,7 @@ And to determine the visibility of actions in the palette itself:
   strategy = "saved_chats",
   description = "Load your previously saved chats",
   condition = function()
-    local saved_chats = require("codecompanion.strategy.saved_chats")
+    local saved_chats = require("codecompanion.strategies.saved_chats")
     return saved_chats:has_chats()
   end,
   picker = {

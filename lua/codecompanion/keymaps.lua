@@ -33,8 +33,8 @@ M.cancel_request = {
 M.save_chat = {
   desc = "Save the current chat",
   callback = function(args)
-    local chat = require("codecompanion.strategy.chat")
-    local saved_chat = require("codecompanion.strategy.saved_chats").new({})
+    local chat = require("codecompanion.strategies.chat")
+    local saved_chat = require("codecompanion.strategies.saved_chats").new({})
 
     if args.saved_chat then
       saved_chat.filename = args.saved_chat
