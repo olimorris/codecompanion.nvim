@@ -22,9 +22,33 @@ end
 ---@param settings table
 ---@return CodeCompanion.Adapter
 function Adapter:set_params(settings)
-  -- TODO: Need to take into account the schema's "mapping" field
   for k, v in pairs(settings) do
-    self.parameters[k] = v
+    local mapping = self.schema[k] and self.schema[k].mapping
+    if mapping then
+      local segments = {}
+      for segment in string.gmatch(mapping, "[^.]+") do
+        table.insert(segments, segment)
+      end
+
+      local current = self
+      for i = 1, #segments - 1 do
+        if not current[segments[i]] then
+          current[segments[i]] = {}
+        end
+        current = current[segments[i]]
+      end
+
+      -- Before setting the value, ensure the target exists or initialize it.
+      local target = segments[#segments]
+      if not current[target] then
+        current[target] = {}
+      end
+
+      -- Ensure 'target' is not nil and 'k' can be assigned to the final segment.
+      if target then
+        current[target][k] = v
+      end
+    end
   end
 
   return self

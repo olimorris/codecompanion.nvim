@@ -8,15 +8,19 @@ local Adapter = require("codecompanion.adapter")
 ---@field schema table
 
 local adapter = {
-  name = "OpenAI",
+  opts = {
+    name = "OpenAI",
+    stream = true, -- Need this to determine if we use the plenary.curl stream functionality
+  },
   url = "https://api.openai.com/v1/chat/completions",
   headers = {
     content_type = "application/json",
-    Authorization = "Bearer ", -- ignore the API key for now
+    Authorization = "Bearer " .. os.getenv("OPENAI_API_KEY"),
   },
   parameters = {
     stream = true,
   },
+  -- TODO: Need to map roles/messages based on Tree-sitter parsing of the chat buffer
   schema = {
     model = {
       order = 1,
