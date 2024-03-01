@@ -369,7 +369,6 @@ function Chat.new(args)
   local self = setmetatable({
     bufnr = bufnr,
     client = args.client,
-    adapter = args.adapter,
     context = args.context,
     saved_chat = args.saved_chat,
     settings = settings,
@@ -441,6 +440,7 @@ function Chat:submit()
   end
 
   self.client:stream_chat(
+    config.options.adapters.chat,
     vim.tbl_extend("keep", settings, {
       messages = messages,
     }),

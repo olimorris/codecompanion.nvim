@@ -15,7 +15,8 @@ local adapter = {
   url = "https://api.openai.com/v1/chat/completions",
   headers = {
     content_type = "application/json",
-    Authorization = "Bearer " .. os.getenv("OPENAI_API_KEY"),
+    -- FIX: Need a way to check if the key is set
+    Authorization = "Bearer " .. os.getenv("OPENAI_API_KEY") or nil,
   },
   parameters = {
     stream = true,
