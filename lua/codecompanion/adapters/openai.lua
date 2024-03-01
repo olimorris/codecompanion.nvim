@@ -8,9 +8,9 @@ local Adapter = require("codecompanion.adapter")
 ---@field schema table
 
 local adapter = {
-  opts = {
-    name = "OpenAI",
-    stream = true, -- Need this to determine if we use the plenary.curl stream functionality
+  name = "OpenAI",
+  client = {
+    stream = true,
   },
   url = "https://api.openai.com/v1/chat/completions",
   headers = {

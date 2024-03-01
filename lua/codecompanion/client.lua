@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
 
@@ -72,10 +73,19 @@ local function parse_response(code, stdout)
 end
 
 ---@class CodeCompanion.Client
+---@field static table
 ---@field secret_key string
 ---@field organization nil|string
 ---@field settings nil|table
 local Client = {}
+Client.static = {}
+
+Client.static.settings = {
+  request = { default = curl.post },
+  encode = { default = vim.json.encode },
+  decode = { default = vim.json.decode },
+  schedule = { default = vim.schedule },
+}
 
 ---@class CodeCompanion.ClientArgs
 ---@field secret_key string
@@ -88,7 +98,7 @@ function Client.new(args)
   return setmetatable({
     secret_key = args.secret_key,
     organization = args.organization,
-    settings = args.settings or schema.get_default(schema.static.client_settings, args.settings),
+    settings = args.settings or schema.get_default(Client.static.settings, args.settings),
   }, { __index = Client })
 end
 
