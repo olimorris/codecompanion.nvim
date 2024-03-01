@@ -101,9 +101,8 @@ end
 local function render_messages(bufnr, settings, messages, context)
   local lines = {}
   if config.options.display.chat.show_settings then
-    -- Put the settings at the top of the buffer
     lines = { "---" }
-    local keys = schema.get_ordered_keys(schema.static.chat_settings)
+    local keys = schema.get_ordered_keys(config.options.adapters.chat.schema)
     for _, key in ipairs(keys) do
       table.insert(lines, string.format("%s: %s", key, yaml.encode(settings[key])))
     end
@@ -199,7 +198,7 @@ local function chat_autocmds(bufnr, args)
       buffer = bufnr,
       callback = function()
         local settings = parse_settings(bufnr)
-        local errors = schema.validate(schema.static.chat_settings, settings)
+        local errors = schema.validate(config.options.adapters.chat.schema, settings)
         local node = settings.__ts_node
         local items = {}
         if errors and node then
@@ -333,6 +332,7 @@ local Chat = {}
 
 ---@class CodeCompanion.ChatArgs
 ---@field client CodeCompanion.Client
+---@field adapter CodeCompanion.Adapter
 ---@field context table
 ---@field messages nil|CodeCompanion.ChatMessage[]
 ---@field show_buffer nil|boolean
@@ -364,11 +364,12 @@ function Chat.new(args)
   watch_cursor()
   chat_autocmds(bufnr, args)
 
-  local settings = args.settings or schema.get_default(schema.static.chat_settings, args.settings)
+  local settings = args.settings or schema.get_default(config.options.adapters.chat.schema, args.settings)
 
   local self = setmetatable({
     bufnr = bufnr,
     client = args.client,
+    adapter = args.adapter,
     context = args.context,
     saved_chat = args.saved_chat,
     settings = settings,
@@ -500,7 +501,7 @@ function Chat:on_cursor_moved()
     vim.diagnostic.set(config.INFO_NS, self.bufnr, {})
     return
   end
-  local key_schema = schema.static.chat_settings[key_name]
+  local key_schema = config.options.adapters.chat.schema[key_name]
 
   if key_schema and key_schema.desc then
     local lnum, col, end_lnum, end_col = node:range()
@@ -528,7 +529,7 @@ function Chat:complete(request, callback)
     return
   end
 
-  local key_schema = schema.static.chat_settings[key_name]
+  local key_schema = config.options.adapters.chat.schema[key_name]
   if key_schema.type == "enum" then
     for _, choice in ipairs(key_schema.choices) do
       table.insert(items, {

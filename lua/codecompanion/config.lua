@@ -4,6 +4,9 @@ local defaults = {
   api_key = "OPENAI_API_KEY",
   org_api_key = "OPENAI_ORG_KEY",
   base_url = "https://api.openai.com",
+  adapters = {
+    chat = require("codecompanion.adapters.openai"),
+  },
   ai_settings = {
     chat = {
       model = "gpt-4-0125-preview",
