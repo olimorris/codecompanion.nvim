@@ -1,6 +1,7 @@
 ---@class CodeCompanion.Adapter
 ---@field name string
 ---@field url string
+---@field raw table
 ---@field header table
 ---@field parameters table
 ---@field schema table
@@ -9,6 +10,7 @@ local Adapter = {}
 ---@class CodeCompanion.AdapterArgs
 ---@field name string
 ---@field url string
+---@field raw table
 ---@field header table
 ---@field parameters table
 ---@field schema table

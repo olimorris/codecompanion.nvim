@@ -144,19 +144,23 @@ function Client:block_request(url, payload, cb)
   end
 end
 
----@param url string
+---@param adapter CodeCompanion.Adapter
 ---@param payload table
 ---@param bufnr number
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
 ---@return nil
-function Client:stream_request(url, payload, bufnr, cb)
+function Client:stream_request(adapter, payload, bufnr, cb)
   cb = log:wrap_cb(cb, "Response error: %s")
 
+  log:debug("Adapter: %s", { adapter.name, adapter.url, adapter.raw, adapter.headers, adapter.parameters })
+
   local handler = self.settings.request({
-    url = url,
-    raw = { "--no-buffer" },
-    headers = headers(self),
-    body = self.settings.encode(payload),
+    url = adapter.url,
+    raw = adapter.raw,
+    headers = adapter.headers,
+    body = self.settings.encode(vim.tbl_extend("keep", adapter.parameters, {
+      messages = payload,
+    })),
     stream = function(_, chunk)
       chunk = chunk:sub(7)
 
@@ -231,15 +235,6 @@ end
 ---@return nil
 function Client:chat(args, cb)
   return self:block_request(config.options.base_url .. "/v1/chat/completions", args, cb)
-end
-
----@param args CodeCompanion.ChatArgs
----@param bufnr integer
----@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
----@return nil
-function Client:stream_chat(args, bufnr, cb)
-  args.stream = true
-  return self:stream_request(config.options.base_url .. "/v1/chat/completions", args, bufnr, cb)
 end
 
 ---@class args CodeCompanion.InlineArgs

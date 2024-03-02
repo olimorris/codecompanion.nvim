@@ -439,11 +439,9 @@ function Chat:submit()
     return finalize()
   end
 
-  self.client:stream_chat(
-    config.options.adapters.chat,
-    vim.tbl_extend("keep", settings, {
-      messages = messages,
-    }),
+  self.client:stream_request(
+    config.options.adapters.chat:set_params(settings),
+    messages,
     self.bufnr,
     function(err, chunk, done)
       if err then

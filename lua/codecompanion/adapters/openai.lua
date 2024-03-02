@@ -13,6 +13,7 @@ local adapter = {
     stream = true,
   },
   url = "https://api.openai.com/v1/chat/completions",
+  raw = { "--no-buffer" },
   headers = {
     content_type = "application/json",
     -- FIX: Need a way to check if the key is set
