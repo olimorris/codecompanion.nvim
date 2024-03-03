@@ -51,6 +51,6 @@ describe("Client", function()
 
     client:stream(adapter, {}, 0, cb)
 
-    assert.stub(mock_request).was_called()
+    assert.stub(mock_request).was_called(1)
   end)
 end)
