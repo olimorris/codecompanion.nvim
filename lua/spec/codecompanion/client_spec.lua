@@ -42,14 +42,9 @@ describe("Client", function()
       schedule = { default = mock_schedule },
     }
 
-    local client = Client.new({
-      secret_key = "fake_key",
-      organization = "fake_org",
-    })
-
     local cb = stub.new()
 
-    client:stream(adapter, {}, 0, cb)
+    Client.new():stream(adapter, {}, 0, cb)
 
     assert.stub(mock_request).was_called(1)
   end)
