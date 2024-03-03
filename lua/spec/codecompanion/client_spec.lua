@@ -49,7 +49,7 @@ describe("Client", function()
 
     local cb = stub.new()
 
-    client:stream_request(adapter, {}, 0, cb)
+    client:stream(adapter, {}, 0, cb)
 
     assert.stub(mock_request).was_called()
   end)
