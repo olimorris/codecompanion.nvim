@@ -84,7 +84,7 @@ Client.static.opts = {
   request = { default = curl.post },
   encode = { default = vim.json.encode },
   decode = { default = vim.json.decode },
-  schedule = { default = vim.schedule },
+  schedule = { default = vim.schedule_wrap },
 }
 
 ---@class CodeCompanion.ClientArgs
@@ -107,7 +107,7 @@ end
 ---@param bufnr number
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
 ---@return nil
-function Client:stream_request(adapter, payload, bufnr, cb)
+function Client:stream(adapter, payload, bufnr, cb)
   cb = log:wrap_cb(cb, "Response error: %s")
 
   log:debug("Adapter: %s", { adapter.name, adapter.url, adapter.raw, adapter.headers, adapter.parameters })
@@ -119,48 +119,30 @@ function Client:stream_request(adapter, payload, bufnr, cb)
     body = self.opts.encode(vim.tbl_extend("keep", adapter.parameters, {
       messages = payload,
     })),
-    stream = function(_, chunk)
-      chunk = chunk:sub(7)
-
-      if chunk ~= "" then
-        if chunk == "[DONE]" then
-          self.opts.schedule(function()
-            close_request(bufnr)
-            return cb(nil, nil, true)
-          end)
-        else
-          self.opts.schedule(function()
-            if _G.codecompanion_jobs[bufnr] and _G.codecompanion_jobs[bufnr].status == "stopping" then
-              close_request(bufnr, { shutdown = true })
-              return cb(nil, nil, true)
-            end
-
-            local ok, data = pcall(self.opts.decode, chunk, { luanil = { object = true } })
-
-            if not ok then
-              log:error("Error malformed json: %s", data)
-              close_request(bufnr)
-              return cb(string.format("Error malformed json: %s", data))
-            end
-
-            if data.choices[1].finish_reason then
-              log:debug("Finish Reason: %s", data.choices[1].finish_reason)
-            end
-
-            if data.choices[1].finish_reason == "length" then
-              log:debug("Token limit reached")
-              close_request(bufnr)
-              return cb("[CodeCompanion.nvim]\nThe token limit for the current chat has been reached")
-            end
-
-            cb(nil, data)
-          end)
-        end
+    stream = self.opts.schedule(function(_, data)
+      if type(adapter.callbacks.format_data) == "function" then
+        data = adapter.callbacks.format_data(data)
       end
-    end,
+
+      if adapter.callbacks.is_complete(data) then
+        close_request(bufnr)
+        return cb(nil, nil, true)
+      end
+
+      if data ~= "" then
+        local ok, json = pcall(self.opts.decode, data, { luanil = { object = true } })
+
+        if not ok then
+          close_request(bufnr)
+          return cb(string.format("Error malformed json: %s", json))
+        end
+
+        cb(nil, json)
+      end
+    end),
     on_error = function(err, _, _)
-      close_request(bufnr)
       log:error("Error: %s", err)
+      close_request(bufnr)
     end,
   })
 
@@ -243,7 +225,7 @@ end
 ---@return nil
 function Client:inline(args, bufnr, cb)
   args.stream = true
-  return self:stream_request(config.options.base_url .. "/v1/chat/completions", args, bufnr, cb)
+  return self:stream(config.options.base_url .. "/v1/chat/completions", args, bufnr, cb)
 end
 
 return Client

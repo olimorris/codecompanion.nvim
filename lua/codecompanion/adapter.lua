@@ -1,18 +1,20 @@
 ---@class CodeCompanion.Adapter
 ---@field name string
 ---@field url string
----@field raw table
+---@field raw? table
 ---@field header table
 ---@field parameters table
+---@field callbacks table
 ---@field schema table
 local Adapter = {}
 
 ---@class CodeCompanion.AdapterArgs
 ---@field name string
 ---@field url string
----@field raw table
+---@field raw? table
 ---@field header table
 ---@field parameters table
+---@field callbacks table
 ---@field schema table
 
 ---@param args table

@@ -3,6 +3,7 @@ local Adapter = require("codecompanion.adapter")
 ---@class CodeCompanion.Adapter
 ---@field name string
 ---@field url string
+---@field raw? table
 ---@field headers table
 ---@field parameters table
 ---@field schema table
@@ -17,6 +18,22 @@ local adapter = {
   },
   parameters = {
     stream = true,
+  },
+  callbacks = {
+    ---Format any data before it's consumed by the other callbacks
+    ---@param data string
+    ---@return string
+    format_data = function(data)
+      -- Remove the "data: " prefix
+      return data:sub(7)
+    end,
+
+    ---Has the streaming completed?
+    ---@param formatted_data string The table from the format_data callback
+    ---@return boolean
+    is_complete = function(formatted_data)
+      return formatted_data == "[DONE]"
+    end,
   },
   -- TODO: Need to map roles/messages based on Tree-sitter parsing of the chat buffer
   schema = {

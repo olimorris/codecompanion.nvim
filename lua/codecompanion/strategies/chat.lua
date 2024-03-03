@@ -439,16 +439,15 @@ function Chat:submit()
 
   local adapter = config.options.adapters.chat
 
-  client.new():stream_request(adapter:set_params(settings), messages, self.bufnr, function(err, chunk, done)
+  client.new():stream(adapter:set_params(settings), messages, self.bufnr, function(err, data, done)
     if err then
-      log:error("Error: %s", err)
       vim.notify("Error: " .. err, vim.log.levels.ERROR)
       return finalize()
     end
 
-    if chunk then
-      log:trace("Chat chunk: %s", chunk)
-      local delta = chunk.choices[1].delta
+    if data then
+      log:trace("Chat data: %s", data)
+      local delta = data.choices[1].delta
       if delta.role and delta.role ~= new_message.role then
         new_message = { role = delta.role, content = "" }
         table.insert(messages, new_message)
@@ -462,6 +461,7 @@ function Chat:submit()
     end
 
     if done then
+      log:debug("Chat is done")
       table.insert(messages, { role = "user", content = "" })
       render_buffer()
       display_tokens(self.bufnr)

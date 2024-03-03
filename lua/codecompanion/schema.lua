@@ -16,6 +16,7 @@ end
 
 ---@class CodeCompanion.SchemaParam
 ---@field type "string"|"number"|"integer"|"boolean"|"enum"|"list"|"map"
+---@field mapping string
 ---@field order nil|integer
 ---@field optional nil|boolean
 ---@field choices nil|table
