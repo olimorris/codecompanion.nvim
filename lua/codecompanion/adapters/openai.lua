@@ -14,7 +14,7 @@ local adapter = {
   headers = {
     content_type = "application/json",
     -- FIX: Need a way to check if the key is set
-    Authorization = "Bearer " .. os.getenv("OPENAI_API_KEY") or nil,
+    Authorization = "Bearer " .. os.getenv("OPENAI_API_KEY"),
   },
   parameters = {
     stream = true,
