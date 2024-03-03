@@ -34,7 +34,7 @@ local function parse_settings(bufnr)
   end
 
   if not config.options.display.chat.show_settings then
-    config_settings[bufnr] = vim.deepcopy(config.options.ai_settings.chat)
+    config_settings[bufnr] = config.options.adapters.chat:get_default_settings()
 
     log:debug("Using the settings from the user's config: %s", config_settings[bufnr])
     return config_settings[bufnr]
@@ -447,25 +447,16 @@ function Chat:submit()
 
     if data then
       log:trace("Chat data: %s", data)
-      local delta = data.choices[1].delta
-      if delta.role and delta.role ~= new_message.role then
-        new_message = { role = delta.role, content = "" }
-        table.insert(messages, new_message)
-      end
-
-      if delta.content then
-        new_message.content = new_message.content .. delta.content
-      end
-
+      new_message = adapter.callbacks.format_messages(data, messages, new_message)
       render_buffer()
     end
 
     if done then
-      log:debug("Chat is done")
+      log:trace("Chat streaming is done")
       table.insert(messages, { role = "user", content = "" })
       render_buffer()
       display_tokens(self.bufnr)
-      finalize()
+      return finalize()
     end
   end)
 end

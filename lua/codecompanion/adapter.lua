@@ -23,6 +23,19 @@ function Adapter.new(args)
   return setmetatable(args, { __index = Adapter })
 end
 
+---@return table
+function Adapter:get_default_settings()
+  local settings = {}
+
+  for key, value in pairs(self.schema) do
+    if value.default ~= nil then
+      settings[key] = value.default
+    end
+  end
+
+  return settings
+end
+
 ---@param settings table
 ---@return CodeCompanion.Adapter
 function Adapter:set_params(settings)

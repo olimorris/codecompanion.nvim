@@ -120,7 +120,12 @@ function Client:stream(adapter, payload, bufnr, cb)
       messages = payload,
     })),
     stream = self.opts.schedule(function(_, data)
-      if type(adapter.callbacks.format_data) == "function" then
+      if _G.codecompanion_jobs[bufnr] and _G.codecompanion_jobs[bufnr].status == "stopping" then
+        close_request(bufnr, { shutdown = true })
+        return cb(nil, nil, true)
+      end
+
+      if data and type(adapter.callbacks.format_data) == "function" then
         data = adapter.callbacks.format_data(data)
       end
 
@@ -129,7 +134,7 @@ function Client:stream(adapter, payload, bufnr, cb)
         return cb(nil, nil, true)
       end
 
-      if data ~= "" then
+      if data and data ~= "" then
         local ok, json = pcall(self.opts.decode, data, { luanil = { object = true } })
 
         if not ok then

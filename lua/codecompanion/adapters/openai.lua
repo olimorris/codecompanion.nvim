@@ -34,8 +34,27 @@ local adapter = {
     is_complete = function(formatted_data)
       return formatted_data == "[DONE]"
     end,
+
+    ---Format the messages from the API
+    ---@param data table
+    ---@param messages table
+    ---@param new_message table
+    ---@return table
+    format_messages = function(data, messages, new_message)
+      local delta = data.choices[1].delta
+
+      if delta.role and delta.role ~= new_message.role then
+        new_message = { role = delta.role, content = "" }
+        table.insert(messages, new_message)
+      end
+
+      if delta.content then
+        new_message.content = new_message.content .. delta.content
+      end
+
+      return new_message
+    end,
   },
-  -- TODO: Need to map roles/messages based on Tree-sitter parsing of the chat buffer
   schema = {
     model = {
       order = 1,
