@@ -1,3 +1,4 @@
+local client = require("codecompanion.client")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
@@ -318,20 +319,18 @@ local function chat_autocmds(bufnr, args)
       if _G.codecompanion_jobs[request.data.buf] then
         _G.codecompanion_jobs[request.data.buf].handler:shutdown()
       end
-      vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionRequest", data = { status = "finished" } })
-      vim.api.nvim_buf_delete(request.data.buf, { force = true })
+      api.nvim_exec_autocmds("User", { pattern = "CodeCompanionRequest", data = { status = "finished" } })
+      api.nvim_buf_delete(request.data.buf, { force = true })
     end,
   })
 end
 
 ---@class CodeCompanion.Chat
----@field client CodeCompanion.Client
 ---@field bufnr integer
 ---@field settings CodeCompanion.ChatSettings
 local Chat = {}
 
 ---@class CodeCompanion.ChatArgs
----@field client CodeCompanion.Client
 ---@field adapter CodeCompanion.Adapter
 ---@field context table
 ---@field messages nil|CodeCompanion.ChatMessage[]
@@ -368,7 +367,6 @@ function Chat.new(args)
 
   local self = setmetatable({
     bufnr = bufnr,
-    client = args.client,
     context = args.context,
     saved_chat = args.saved_chat,
     settings = settings,
@@ -439,40 +437,37 @@ function Chat:submit()
     return finalize()
   end
 
-  self.client:stream_request(
-    config.options.adapters.chat:set_params(settings),
-    messages,
-    self.bufnr,
-    function(err, chunk, done)
-      if err then
-        log:error("Error: %s", err)
-        vim.notify("Error: " .. err, vim.log.levels.ERROR)
-        return finalize()
-      end
+  local adapter = config.options.adapters.chat
 
-      if chunk then
-        log:trace("Chat chunk: %s", chunk)
-        local delta = chunk.choices[1].delta
-        if delta.role and delta.role ~= new_message.role then
-          new_message = { role = delta.role, content = "" }
-          table.insert(messages, new_message)
-        end
-
-        if delta.content then
-          new_message.content = new_message.content .. delta.content
-        end
-
-        render_buffer()
-      end
-
-      if done then
-        table.insert(messages, { role = "user", content = "" })
-        render_buffer()
-        display_tokens(self.bufnr)
-        finalize()
-      end
+  client.new():stream_request(adapter:set_params(settings), messages, self.bufnr, function(err, chunk, done)
+    if err then
+      log:error("Error: %s", err)
+      vim.notify("Error: " .. err, vim.log.levels.ERROR)
+      return finalize()
     end
-  )
+
+    if chunk then
+      log:trace("Chat chunk: %s", chunk)
+      local delta = chunk.choices[1].delta
+      if delta.role and delta.role ~= new_message.role then
+        new_message = { role = delta.role, content = "" }
+        table.insert(messages, new_message)
+      end
+
+      if delta.content then
+        new_message.content = new_message.content .. delta.content
+      end
+
+      render_buffer()
+    end
+
+    if done then
+      table.insert(messages, { role = "user", content = "" })
+      render_buffer()
+      display_tokens(self.bufnr)
+      finalize()
+    end
+  end)
 end
 
 ---@param opts nil|table

@@ -1,10 +1,7 @@
 local assert = require("luassert")
 
 local test_adapter = {
-  opts = {
-    name = "TestAdapter",
-    stream = true,
-  },
+  name = "TestAdapter",
   url = "https://api.openai.com/v1/chat/completions",
   headers = {
     content_type = "application/json",

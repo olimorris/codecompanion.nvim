@@ -9,11 +9,7 @@ local Adapter = require("codecompanion.adapter")
 
 local adapter = {
   name = "OpenAI",
-  client = {
-    stream = true,
-  },
   url = "https://api.openai.com/v1/chat/completions",
-  raw = { "--no-buffer" },
   headers = {
     content_type = "application/json",
     -- FIX: Need a way to check if the key is set

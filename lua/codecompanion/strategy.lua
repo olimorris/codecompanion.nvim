@@ -28,13 +28,11 @@ local function modal_prompts(prompts, context)
 end
 
 ---@class CodeCompanion.Strategy
----@field client CodeCompanion.Client
 ---@field context table
 ---@field selected table
 local Strategy = {}
 
 ---@class CodeCompanion.StrategyArgs
----@field client CodeCompanion.Client
 ---@field context table
 ---@field selected table
 
@@ -43,7 +41,6 @@ local Strategy = {}
 function Strategy.new(args)
   log:trace("Context: %s", args.context)
   return setmetatable({
-    client = args.client,
     context = args.context,
     selected = args.selected,
   }, { __index = Strategy })
@@ -77,7 +74,6 @@ function Strategy:chat()
     end
 
     return require("codecompanion.strategies.chat").new({
-      client = self.client,
       type = self.selected.type,
       messages = messages,
       show_buffer = true,
@@ -102,7 +98,6 @@ function Strategy:inline()
   return require("codecompanion.strategies.inline")
     .new({
       context = self.context,
-      client = self.client,
       opts = self.selected.opts,
       pre_hook = self.selected.pre_hook,
       prompts = self.selected.prompts,

@@ -76,11 +76,11 @@ end
 ---@field static table
 ---@field secret_key string
 ---@field organization nil|string
----@field settings nil|table
+---@field opts nil|table
 local Client = {}
 Client.static = {}
 
-Client.static.settings = {
+Client.static.opts = {
   request = { default = curl.post },
   encode = { default = vim.json.encode },
   decode = { default = vim.json.decode },
@@ -90,16 +90,82 @@ Client.static.settings = {
 ---@class CodeCompanion.ClientArgs
 ---@field secret_key string
 ---@field organization nil|string
----@field settings nil|table
+---@field opts nil|table
 
----@param args CodeCompanion.ClientArgs
+---@param args? CodeCompanion.ClientArgs
 ---@return CodeCompanion.Client
 function Client.new(args)
+  args = args or {}
+
   return setmetatable({
-    secret_key = args.secret_key,
-    organization = args.organization,
-    settings = args.settings or schema.get_default(Client.static.settings, args.settings),
+    opts = args.opts or schema.get_default(Client.static.opts, args.opts),
   }, { __index = Client })
+end
+
+---@param adapter CodeCompanion.Adapter
+---@param payload table
+---@param bufnr number
+---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
+---@return nil
+function Client:stream_request(adapter, payload, bufnr, cb)
+  cb = log:wrap_cb(cb, "Response error: %s")
+
+  log:debug("Adapter: %s", { adapter.name, adapter.url, adapter.raw, adapter.headers, adapter.parameters })
+
+  local handler = self.opts.request({
+    url = adapter.url,
+    raw = adapter.raw or { "--no-buffer" },
+    headers = adapter.headers or {},
+    body = self.opts.encode(vim.tbl_extend("keep", adapter.parameters, {
+      messages = payload,
+    })),
+    stream = function(_, chunk)
+      chunk = chunk:sub(7)
+
+      if chunk ~= "" then
+        if chunk == "[DONE]" then
+          self.opts.schedule(function()
+            close_request(bufnr)
+            return cb(nil, nil, true)
+          end)
+        else
+          self.opts.schedule(function()
+            if _G.codecompanion_jobs[bufnr] and _G.codecompanion_jobs[bufnr].status == "stopping" then
+              close_request(bufnr, { shutdown = true })
+              return cb(nil, nil, true)
+            end
+
+            local ok, data = pcall(self.opts.decode, chunk, { luanil = { object = true } })
+
+            if not ok then
+              log:error("Error malformed json: %s", data)
+              close_request(bufnr)
+              return cb(string.format("Error malformed json: %s", data))
+            end
+
+            if data.choices[1].finish_reason then
+              log:debug("Finish Reason: %s", data.choices[1].finish_reason)
+            end
+
+            if data.choices[1].finish_reason == "length" then
+              log:debug("Token limit reached")
+              close_request(bufnr)
+              return cb("[CodeCompanion.nvim]\nThe token limit for the current chat has been reached")
+            end
+
+            cb(nil, data)
+          end)
+        end
+      end
+    end,
+    on_error = function(err, _, _)
+      close_request(bufnr)
+      log:error("Error: %s", err)
+    end,
+  })
+
+  log:debug("Stream Request: %s", handler.args)
+  start_request(bufnr, handler)
 end
 
 ---Call the OpenAI API but block the main loop until the response is received
@@ -142,72 +208,6 @@ function Client:block_request(url, payload, cb)
       return cb(nil, data)
     end
   end
-end
-
----@param adapter CodeCompanion.Adapter
----@param payload table
----@param bufnr number
----@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
----@return nil
-function Client:stream_request(adapter, payload, bufnr, cb)
-  cb = log:wrap_cb(cb, "Response error: %s")
-
-  log:debug("Adapter: %s", { adapter.name, adapter.url, adapter.raw, adapter.headers, adapter.parameters })
-
-  local handler = self.settings.request({
-    url = adapter.url,
-    raw = adapter.raw,
-    headers = adapter.headers,
-    body = self.settings.encode(vim.tbl_extend("keep", adapter.parameters, {
-      messages = payload,
-    })),
-    stream = function(_, chunk)
-      chunk = chunk:sub(7)
-
-      if chunk ~= "" then
-        if chunk == "[DONE]" then
-          self.settings.schedule(function()
-            close_request(bufnr)
-            return cb(nil, nil, true)
-          end)
-        else
-          self.settings.schedule(function()
-            if _G.codecompanion_jobs[bufnr] and _G.codecompanion_jobs[bufnr].status == "stopping" then
-              close_request(bufnr, { shutdown = true })
-              return cb(nil, nil, true)
-            end
-
-            local ok, data = pcall(self.settings.decode, chunk, { luanil = { object = true } })
-
-            if not ok then
-              log:error("Error malformed json: %s", data)
-              close_request(bufnr)
-              return cb(string.format("Error malformed json: %s", data))
-            end
-
-            if data.choices[1].finish_reason then
-              log:debug("Finish Reason: %s", data.choices[1].finish_reason)
-            end
-
-            if data.choices[1].finish_reason == "length" then
-              log:debug("Token limit reached")
-              close_request(bufnr)
-              return cb("[CodeCompanion.nvim]\nThe token limit for the current chat has been reached")
-            end
-
-            cb(nil, data)
-          end)
-        end
-      end
-    end,
-    on_error = function(err, _, _)
-      close_request(bufnr)
-      log:error("Error: %s", err)
-    end,
-  })
-
-  log:debug("Stream Request: %s", handler.args)
-  start_request(bufnr, handler)
 end
 
 ---@class CodeCompanion.ChatMessage

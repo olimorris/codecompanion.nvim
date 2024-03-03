@@ -4,30 +4,6 @@ local util = require("codecompanion.utils.util")
 
 local M = {}
 
-local _client
----@return nil|CodeCompanion.Client
-function M.get_client()
-  if not _client then
-    local secret_key = os.getenv(config.options.api_key)
-    if not secret_key then
-      vim.notify(
-        string.format("[CodeCompanion.nvim]\nCould not find env variable: %s", config.options.api_key),
-        vim.log.levels.ERROR
-      )
-      return nil
-    end
-
-    local Client = require("codecompanion.client")
-
-    _client = Client.new({
-      secret_key = secret_key,
-      organization = os.getenv(config.options.org_api_key),
-    })
-  end
-
-  return _client
-end
-
 ---@param bufnr nil|integer
 ---@return nil|CodeCompanion.Chat
 M.buf_get_chat = function(bufnr)
@@ -37,17 +13,11 @@ end
 ---@param args table
 ---@return nil|CodeCompanion.Inline
 M.inline = function(args)
-  local client = M.get_client()
-  if not client then
-    return
-  end
-
   local context = util.get_context(vim.api.nvim_get_current_buf(), args)
 
   return require("codecompanion.strategies.inline")
     .new({
       context = context,
-      client = client,
       prompts = {
         {
           role = "system",
@@ -64,15 +34,9 @@ end
 
 ---@param args? table
 M.chat = function(args)
-  local client = M.get_client()
-  if not client then
-    return
-  end
-
   local context = util.get_context(vim.api.nvim_get_current_buf(), args)
 
   local chat = require("codecompanion.strategies.chat").new({
-    client = client,
     context = context,
   })
 
@@ -118,11 +82,6 @@ end
 
 local _cached_actions = {}
 M.actions = function(args)
-  local client = M.get_client()
-  if not client then
-    return
-  end
-
   local actions = require("codecompanion.actions")
   local context = util.get_context(vim.api.nvim_get_current_buf(), args)
 
@@ -164,7 +123,6 @@ M.actions = function(args)
     else
       local Strategy = require("codecompanion.strategy")
       return Strategy.new({
-        client = client,
         context = context,
         selected = item,
       }):start(item.strategy)

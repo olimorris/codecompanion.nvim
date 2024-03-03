@@ -4,6 +4,18 @@ local stub = require("luassert.stub")
 
 local Client
 
+local adapter = {
+  name = "TestAdapter",
+  url = "https://api.openai.com/v1/chat/completions",
+  headers = {
+    content_type = "application/json",
+  },
+  parameters = {
+    stream = true,
+  },
+  schema = {},
+}
+
 describe("Client", function()
   before_each(function()
     codecompanion.setup()
@@ -23,7 +35,7 @@ describe("Client", function()
     -- Mock globals
     _G.codecompanion_jobs = {}
 
-    Client.static.settings = {
+    Client.static.opts = {
       request = { default = mock_request },
       encode = { default = mock_encode },
       decode = { default = mock_decode },
@@ -37,7 +49,7 @@ describe("Client", function()
 
     local cb = stub.new()
 
-    client:stream_chat({}, 0, cb)
+    client:stream_request(adapter, {}, 0, cb)
 
     assert.stub(mock_request).was_called()
   end)
