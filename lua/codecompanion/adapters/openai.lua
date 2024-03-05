@@ -26,6 +26,13 @@ local adapter = {
     stream = true,
   },
   callbacks = {
+    ---Set the format of the role and content for the messages from the chat buffer
+    ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
+    ---@return table
+    form_messages = function(messages)
+      return { messages = messages }
+    end,
+
     ---Format any data before it's consumed by the other callbacks
     ---@param data string
     ---@return string
@@ -35,14 +42,14 @@ local adapter = {
     end,
 
     ---Has the streaming completed?
-    ---@param formatted_data string The table from the format_data callback
+    ---@param data string The data from the format_data callback
     ---@return boolean
-    is_complete = function(formatted_data)
-      return formatted_data == "[DONE]"
+    is_complete = function(data)
+      return data == "[DONE]"
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
-    ---@param data table The streamed data from the API
+    ---@param data table The streamed data from the API, also formatted by the format_data callback
     ---@param messages table A table of all of the messages in the chat buffer
     ---@param current_message table The current/latest message in the chat buffer
     ---@return table
@@ -54,7 +61,6 @@ local adapter = {
         table.insert(messages, current_message)
       end
 
-      -- Append the new message to the
       if delta.content then
         current_message.content = current_message.content .. delta.content
       end
@@ -63,7 +69,7 @@ local adapter = {
     end,
 
     ---Output the data from the API ready for inlining into the current buffer
-    ---@param data table The streamed data from the API
+    ---@param data table The streamed data from the API, also formatted by the format_data callback
     ---@param context table Useful context about the buffer to inline to
     ---@return table
     output_inline = function(data, context)

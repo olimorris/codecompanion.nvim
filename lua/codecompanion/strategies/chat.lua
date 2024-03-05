@@ -58,7 +58,7 @@ end
 
 ---@param bufnr integer
 ---@return table
----@return CodeCompanion.ChatMessage[]
+---@return table
 local function parse_messages_buffer(bufnr)
   local ret = {}
 
@@ -96,8 +96,8 @@ local function parse_messages_buffer(bufnr)
 end
 
 ---@param bufnr integer
----@param settings CodeCompanion.ChatSettings
----@param messages CodeCompanion.ChatMessage[]
+---@param settings table
+---@param messages table
 ---@param context table
 local function render_messages(bufnr, settings, messages, context)
   local lines = {}
@@ -327,16 +327,16 @@ end
 
 ---@class CodeCompanion.Chat
 ---@field bufnr integer
----@field settings CodeCompanion.ChatSettings
+---@field settings table
 local Chat = {}
 
 ---@class CodeCompanion.ChatArgs
 ---@field adapter CodeCompanion.Adapter
 ---@field context table
----@field messages nil|CodeCompanion.ChatMessage[]
+---@field messages nil|table
 ---@field show_buffer nil|boolean
 ---@field auto_submit nil|boolean
----@field settings nil|CodeCompanion.ChatSettings
+---@field settings nil|table
 ---@field type nil|string
 ---@field saved_chat nil|string
 

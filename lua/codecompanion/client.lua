@@ -103,10 +103,8 @@ function Client:stream(adapter, payload, bufnr, cb)
   local handler = self.opts.request({
     url = adapter.url,
     raw = adapter.raw or { "--no-buffer" },
-    body = self.opts.encode(vim.tbl_extend("keep", adapter.parameters, {
-      messages = payload,
-    })),
     headers = headers,
+    body = self.opts.encode(vim.tbl_extend("keep", adapter.parameters, adapter.callbacks.form_messages(payload))),
     stream = self.opts.schedule(function(_, data)
       if _G.codecompanion_jobs[bufnr] and _G.codecompanion_jobs[bufnr].status == "stopping" then
         close_request(bufnr, { shutdown = true })
