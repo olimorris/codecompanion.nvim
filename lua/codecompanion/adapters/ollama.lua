@@ -33,7 +33,8 @@ local adapter = {
     ---@param data table The data from the format_data callback
     ---@return boolean
     is_complete = function(data)
-      return data.done == true
+      data = vim.fn.json_decode(data)
+      return data.done
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
