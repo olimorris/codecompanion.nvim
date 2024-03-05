@@ -13,6 +13,11 @@ local adapter = {
   parameters = {
     stream = true,
   },
+  callbacks = {
+    form_messages = function()
+      return {}
+    end,
+  },
   schema = {},
 }
 
@@ -43,6 +48,8 @@ describe("Client", function()
     }
 
     local cb = stub.new()
+
+    adapter = require("codecompanion.adapter").new(adapter)
 
     Client.new():stream(adapter, {}, 0, cb)
 
