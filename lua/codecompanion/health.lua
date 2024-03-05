@@ -94,17 +94,17 @@ function M.check()
     end
   end
 
-  for _, env in ipairs(M.env_vars) do
-    if env_available(env.name) then
-      ok(fmt("%s key found", env.name))
-    else
-      if env.optional then
-        warn(fmt("%s key not found", env.name))
-      else
-        error(fmt("%s key not found", env.name))
-      end
-    end
-  end
+  -- for _, env in ipairs(M.env_vars) do
+  --   if env_available(env.name) then
+  --     ok(fmt("%s key found", env.name))
+  --   else
+  --     if env.optional then
+  --       warn(fmt("%s key not found", env.name))
+  --     else
+  --       error(fmt("%s key not found", env.name))
+  --     end
+  --   end
+  -- end
 end
 
 return M

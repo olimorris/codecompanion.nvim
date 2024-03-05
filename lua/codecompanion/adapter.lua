@@ -36,9 +36,13 @@ function Adapter:get_default_settings()
   return settings
 end
 
----@param settings table
+---@param settings? table
 ---@return CodeCompanion.Adapter
 function Adapter:set_params(settings)
+  if not settings then
+    settings = self:get_default_settings()
+  end
+
   for k, v in pairs(settings) do
     local mapping = self.schema[k] and self.schema[k].mapping
     if mapping then

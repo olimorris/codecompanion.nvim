@@ -95,34 +95,9 @@ You only need to the call the `setup` function if you wish to change any of the 
 
 ```lua
 require("codecompanion").setup({
-  api_key = "OPENAI_API_KEY", -- Your API key
-  org_api_key = "OPENAI_ORG_KEY", -- Your organisation API key
-  base_url = "https://api.openai.com", -- The URL to use for the API requests
-  ai_settings = {
-    -- Default settings for the Completions API
-    -- See https://platform.openai.com/docs/api-reference/chat/create
-    chat = {
-      model = "gpt-4-0125-preview",
-      temperature = 1,
-      top_p = 1,
-      stop = nil,
-      max_tokens = nil,
-      presence_penalty = 0,
-      frequency_penalty = 0,
-      logit_bias = nil,
-      user = nil,
-    },
-    inline = {
-      model = "gpt-3.5-turbo-0125",
-      temperature = 1,
-      top_p = 1,
-      stop = nil,
-      max_tokens = nil,
-      presence_penalty = 0,
-      frequency_penalty = 0,
-      logit_bias = nil,
-      user = nil,
-    },
+  adapters = {
+    chat = require("codecompanion.adapters.openai"),
+    inline = require("codecompanion.adapters.openai"),
   },
   saved_chats = {
     save_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats", -- Path to save chats to

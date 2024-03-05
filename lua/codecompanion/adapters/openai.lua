@@ -11,8 +11,12 @@ local Adapter = require("codecompanion.adapter")
 local adapter = {
   name = "OpenAI",
   url = "https://api.openai.com/v1/chat/completions",
+  raw = {
+    "--no-buffer",
+    "--silent",
+  },
   headers = {
-    content_type = "application/json",
+    ["Content-Type"] = "application/json",
     -- FIX: Need a way to check if the key is set
     Authorization = "Bearer " .. os.getenv("OPENAI_API_KEY"),
   },
@@ -35,24 +39,33 @@ local adapter = {
       return formatted_data == "[DONE]"
     end,
 
-    ---Format the messages from the API
-    ---@param data table
-    ---@param messages table
-    ---@param new_message table
+    ---Output the data from the API ready for insertion into the chat buffer
+    ---@param data table The streamed data from the API
+    ---@param messages table A table of all of the messages in the chat buffer
+    ---@param current_message table The current/latest message in the chat buffer
     ---@return table
-    format_messages = function(data, messages, new_message)
+    output_chat = function(data, messages, current_message)
       local delta = data.choices[1].delta
 
-      if delta.role and delta.role ~= new_message.role then
-        new_message = { role = delta.role, content = "" }
-        table.insert(messages, new_message)
+      if delta.role and delta.role ~= current_message.role then
+        current_message = { role = delta.role, content = "" }
+        table.insert(messages, current_message)
       end
 
+      -- Append the new message to the
       if delta.content then
-        new_message.content = new_message.content .. delta.content
+        current_message.content = current_message.content .. delta.content
       end
 
-      return new_message
+      return current_message
+    end,
+
+    ---Output the data from the API ready for inlining into the current buffer
+    ---@param data table The streamed data from the API
+    ---@param context table Useful context about the buffer to inline to
+    ---@return table
+    output_inline = function(data, context)
+      return data.choices[1].delta.content
     end,
   },
   schema = {

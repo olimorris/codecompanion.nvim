@@ -431,9 +431,9 @@ function Chat:submit()
     end
   end
 
-  local new_message = messages[#messages]
+  local current_message = messages[#messages]
 
-  if new_message and new_message.role == "user" and new_message.content == "" then
+  if current_message and current_message.role == "user" and current_message.content == "" then
     return finalize()
   end
 
@@ -447,7 +447,7 @@ function Chat:submit()
 
     if data then
       log:trace("Chat data: %s", data)
-      new_message = adapter.callbacks.format_messages(data, messages, new_message)
+      current_message = adapter.callbacks.output_chat(data, messages, current_message)
       render_buffer()
     end
 
