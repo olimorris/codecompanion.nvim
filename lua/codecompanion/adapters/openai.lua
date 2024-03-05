@@ -7,7 +7,6 @@ local Adapter = require("codecompanion.adapter")
 ---@field headers table
 ---@field parameters table
 ---@field schema table
-
 local adapter = {
   name = "OpenAI",
   url = "https://api.openai.com/v1/chat/completions",
@@ -49,12 +48,12 @@ local adapter = {
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
-    ---@param data table The streamed data from the API, also formatted by the format_data callback
+    ---@param json_data table The streamed JSON data from the API, also formatted by the format_data callback
     ---@param messages table A table of all of the messages in the chat buffer
     ---@param current_message table The current/latest message in the chat buffer
     ---@return table
-    output_chat = function(data, messages, current_message)
-      local delta = data.choices[1].delta
+    output_chat = function(json_data, messages, current_message)
+      local delta = json_data.choices[1].delta
 
       if delta.role and delta.role ~= current_message.role then
         current_message = { role = delta.role, content = "" }
@@ -69,11 +68,11 @@ local adapter = {
     end,
 
     ---Output the data from the API ready for inlining into the current buffer
-    ---@param data table The streamed data from the API, also formatted by the format_data callback
+    ---@param json_data table The streamed JSON data from the API, also formatted by the format_data callback
     ---@param context table Useful context about the buffer to inline to
     ---@return table
-    output_inline = function(data, context)
-      return data.choices[1].delta.content
+    output_inline = function(json_data, context)
+      return json_data.choices[1].delta.content
     end,
   },
   schema = {

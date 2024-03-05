@@ -11,9 +11,6 @@ local Adapter = require("codecompanion.adapter")
 local adapter = {
   name = "Ollama",
   url = "http://localhost:11434/api/chat",
-  raw = {
-    "--no-buffer",
-  },
   callbacks = {
     ---Set the format of the role and content for the messages from the chat buffer
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
@@ -38,12 +35,12 @@ local adapter = {
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
-    ---@param data table The streamed data from the API, also formatted by the format_data callback
+    ---@param json_data table The streamed JSON data from the API, also formatted by the format_data callback
     ---@param messages table A table of all of the messages in the chat buffer
     ---@param current_message table The current/latest message in the chat buffer
     ---@return table
-    output_chat = function(data, messages, current_message)
-      local delta = data.message
+    output_chat = function(json_data, messages, current_message)
+      local delta = json_data.message
 
       if delta.role and delta.role ~= current_message.role then
         current_message = { role = delta.role, content = "" }
@@ -58,11 +55,11 @@ local adapter = {
     end,
 
     ---Output the data from the API ready for inlining into the current buffer
-    ---@param data table The streamed data from the API, also formatted by the format_data callback
+    ---@param json_data table The streamed JSON data from the API, also formatted by the format_data callback
     ---@param context table Useful context about the buffer to inline to
     ---@return table
-    output_inline = function(data, context)
-      return data.message.content
+    output_inline = function(json_data, context)
+      return json_data.message.content
     end,
   },
   schema = {
@@ -78,6 +75,17 @@ local adapter = {
         "dolphin-phi",
         "phi",
       },
+    },
+    temperature = {
+      order = 2,
+      mapping = "parameters.options",
+      type = "number",
+      optional = true,
+      default = 0.8,
+      desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
+      validate = function(n)
+        return n >= 0 and n <= 2, "Must be between 0 and 2"
+      end,
     },
   },
 }
