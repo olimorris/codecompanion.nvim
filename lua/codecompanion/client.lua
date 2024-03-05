@@ -33,20 +33,6 @@ local function close_request(bufnr, opts)
   fire_autocmd("finished")
 end
 
----@param client CodeCompanion.Client
----@return table<string, string>
-local function headers(client)
-  local group = {
-    content_type = "application/json",
-    Authorization = "Bearer " .. client.secret_key,
-    OpenAI_Organization = client.organization,
-  }
-
-  log:debug("Request Headers: %s", group)
-
-  return group
-end
-
 ---@param code integer
 ---@param stdout string
 ---@return nil|string
@@ -102,22 +88,25 @@ function Client.new(args)
 end
 
 ---@param adapter CodeCompanion.Adapter
----@param payload table
+---@param payload table the messages to send to the API
 ---@param bufnr number
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
 ---@return nil
 function Client:stream(adapter, payload, bufnr, cb)
   cb = log:wrap_cb(cb, "Response error: %s")
 
-  log:debug("Adapter: %s", { adapter.name, adapter.url, adapter.raw, adapter.headers, adapter.parameters })
+  --TODO: Check for any errors env variables
+  local headers = adapter:replace_header_vars().headers
+
+  log:debug("Adapter: %s", { adapter.name, adapter.url, adapter.raw, headers, adapter.parameters })
 
   local handler = self.opts.request({
     url = adapter.url,
     raw = adapter.raw or { "--no-buffer" },
-    headers = adapter.headers or {},
     body = self.opts.encode(vim.tbl_extend("keep", adapter.parameters, {
       messages = payload,
     })),
+    headers = headers,
     stream = self.opts.schedule(function(_, data)
       if _G.codecompanion_jobs[bufnr] and _G.codecompanion_jobs[bufnr].status == "stopping" then
         close_request(bufnr, { shutdown = true })

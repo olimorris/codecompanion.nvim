@@ -11,14 +11,16 @@ local Adapter = require("codecompanion.adapter")
 local adapter = {
   name = "OpenAI",
   url = "https://api.openai.com/v1/chat/completions",
+  env = {
+    openai_api_key = "OPENAI_API_KEY",
+  },
   raw = {
     "--no-buffer",
     "--silent",
   },
   headers = {
     ["Content-Type"] = "application/json",
-    -- FIX: Need a way to check if the key is set
-    Authorization = "Bearer " .. os.getenv("OPENAI_API_KEY"),
+    Authorization = "Bearer ${openai_api_key}",
   },
   parameters = {
     stream = true,
