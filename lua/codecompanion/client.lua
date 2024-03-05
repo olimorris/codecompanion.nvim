@@ -97,14 +97,16 @@ function Client:stream(adapter, payload, bufnr, cb)
 
   --TODO: Check for any errors env variables
   local headers = adapter:replace_header_vars().headers
+  local body =
+    self.opts.encode(vim.tbl_extend("keep", adapter.parameters or {}, adapter.callbacks.form_messages(payload)))
 
-  log:debug("Adapter: %s", { adapter.name, adapter.url, adapter.raw, headers, adapter.parameters })
+  log:debug("Adapter: %s", { adapter.name, adapter.url, adapter.raw, headers, body })
 
   local handler = self.opts.request({
     url = adapter.url,
     raw = adapter.raw or { "--no-buffer" },
     headers = headers,
-    body = self.opts.encode(vim.tbl_extend("keep", adapter.parameters, adapter.callbacks.form_messages(payload))),
+    body = body,
     stream = self.opts.schedule(function(_, data)
       if _G.codecompanion_jobs[bufnr] and _G.codecompanion_jobs[bufnr].status == "stopping" then
         close_request(bufnr, { shutdown = true })

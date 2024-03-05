@@ -2,8 +2,8 @@ local M = {}
 
 local defaults = {
   adapters = {
-    chat = require("codecompanion.adapters.openai"),
-    inline = require("codecompanion.adapters.openai"),
+    chat = require("codecompanion.adapters.ollama"),
+    inline = require("codecompanion.adapters.ollama"),
   },
   saved_chats = {
     save_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats",
