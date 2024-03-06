@@ -104,33 +104,47 @@ function Client:stream(adapter, payload, bufnr, cb)
 
   local handler = self.opts.request({
     url = adapter.url,
+    timeout = 1000,
     raw = adapter.raw or { "--no-buffer" },
     headers = headers,
     body = body,
     stream = self.opts.schedule(function(_, data)
+      log:trace("Chat data: %s", data)
+      -- log:trace("----- For Adapter test creation -----\nRequest: %s\n ---------- // END ----------", data)
+
       if _G.codecompanion_jobs[bufnr] and _G.codecompanion_jobs[bufnr].status == "stopping" then
         close_request(bufnr, { shutdown = true })
         return cb(nil, nil, true)
       end
 
-      if data and type(adapter.callbacks.format_data) == "function" then
-        data = adapter.callbacks.format_data(data)
-      end
-
-      if adapter.callbacks.is_complete(data) then
-        close_request(bufnr)
-        return cb(nil, nil, true)
-      end
-
-      if data and data ~= "" then
-        local ok, json = pcall(self.opts.decode, data, { luanil = { object = true } })
-
-        if not ok then
-          close_request(bufnr)
-          return cb(string.format("Error malformed json: %s", json))
+      if not adapter.callbacks.should_skip(data) then
+        if data and type(adapter.callbacks.format_data) == "function" then
+          data = adapter.callbacks.format_data(data)
         end
 
-        cb(nil, json)
+        if adapter.callbacks.is_complete(data) then
+          log:trace("Chat completed")
+          close_request(bufnr)
+          return cb(nil, nil, true)
+        end
+
+        if data and data ~= "" then
+          local ok, json = pcall(self.opts.decode, data, { luanil = { object = true } })
+
+          if not ok then
+            close_request(bufnr)
+            log:error("Decoding error: %s", json)
+            log:error("Data trace: %s", data)
+            return cb(string.format("Error decoding data: %s", json))
+          end
+
+          cb(nil, json)
+        end
+      else
+        if adapter.callbacks.should_handle_errors(data) then
+          close_request(bufnr)
+          return cb(string.format("There was an error from API: %s: ", data))
+        end
       end
     end),
     on_error = function(err, _, _)

@@ -7,10 +7,21 @@ local Adapter = require("codecompanion.adapter")
 ---@field headers table
 ---@field parameters table
 ---@field schema table
-
 local adapter = {
-  name = "Ollama",
-  url = "http://localhost:11434/api/chat",
+  name = "Anthropic",
+  url = "https://api.anthropic.com/v1/messages",
+  env = {
+    anthropic_api_key = "ANTHROPIC_API_KEY",
+  },
+  headers = {
+    ["anthropic-version"] = "2023-06-01",
+    -- ["anthropic-beta"] = "messages-2023-12-15",
+    ["content-type"] = "application/json",
+    ["x-api-key"] = "${anthropic_api_key}",
+  },
+  parameters = {
+    stream = true,
+  },
   callbacks = {
     ---Set the format of the role and content for the messages from the chat buffer
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
@@ -23,29 +34,38 @@ local adapter = {
     ---@param data table
     ---@return boolean
     should_skip = function(data)
+      if type(data) == "string" then
+        return string.sub(data, 1, 6) == "event:"
+      end
       return false
     end,
 
     ---Format any data before it's consumed by the other callbacks
-    ---@param data table
-    ---@return table
+    ---@param data string
+    ---@return string
     format_data = function(data)
-      return data
+      return data:sub(6)
     end,
 
     ---Handle any errors from the API
     ---@param data string
     ---@return boolean
     should_handle_errors = function(data)
+      if type(data) == "string" then
+        return string.sub(data, 1, 12) == "event: error"
+      end
       return false
     end,
 
     ---Has the streaming completed?
-    ---@param data table The data from the format_data callback
+    ---@param data string The data from the format_data callback
     ---@return boolean
     is_complete = function(data)
-      data = vim.fn.json_decode(data)
-      return data.done
+      local ok, data = pcall(vim.fn.json_decode, data)
+      if ok and data.type then
+        return data.type == "message_stop"
+      end
+      return false
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
@@ -54,15 +74,13 @@ local adapter = {
     ---@param current_message table The current/latest message in the chat buffer
     ---@return table
     output_chat = function(json_data, messages, current_message)
-      local delta = json_data.message
-
-      if delta.role and delta.role ~= current_message.role then
-        current_message = { role = delta.role, content = "" }
+      if json_data.type == "message_start" then
+        current_message = { role = json_data.message.role, content = "" }
         table.insert(messages, current_message)
       end
 
-      if delta.content then
-        current_message.content = current_message.content .. delta.content
+      if json_data.type == "content_block_delta" then
+        current_message.content = current_message.content .. json_data.delta.text
       end
 
       return current_message
@@ -73,7 +91,7 @@ local adapter = {
     ---@param context table Useful context about the buffer to inline to
     ---@return table
     output_inline = function(json_data, context)
-      return json_data.message.content
+      return json_data.choices[1].delta.content
     end,
   },
   schema = {
@@ -81,24 +99,34 @@ local adapter = {
       order = 1,
       mapping = "parameters",
       type = "enum",
-      desc = "ID of the model to use.",
-      default = "llama2",
+      desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
+      default = "claude-3-opus-20240229",
       choices = {
-        "llama2",
-        "mistral",
-        "dolphin-phi",
-        "phi",
+        "claude-3-opus-20240229",
+        "claude-3-sonnet-20240229",
+        "claude-2.1",
       },
     },
-    temperature = {
+    max_tokens = {
       order = 2,
-      mapping = "parameters.options",
+      mapping = "parameters",
       type = "number",
       optional = true,
-      default = 0.8,
-      desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
+      default = 1024,
+      desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
       validate = function(n)
-        return n >= 0 and n <= 2, "Must be between 0 and 2"
+        return n > 0, "Must be greater than 0"
+      end,
+    },
+    temperature = {
+      order = 3,
+      mapping = "parameters",
+      type = "number",
+      optional = true,
+      default = 0,
+      desc = "What sampling temperature to use, between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
+      validate = function(n)
+        return n >= 0 and n <= 1, "Must be between 0 and 1"
       end,
     },
   },

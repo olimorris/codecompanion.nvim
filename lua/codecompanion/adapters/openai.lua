@@ -32,12 +32,26 @@ local adapter = {
       return { messages = messages }
     end,
 
+    ---Event based responses sometimes include data that shouldn't be processed
+    ---@param data table
+    ---@return boolean
+    should_skip = function(data)
+      return false
+    end,
+
     ---Format any data before it's consumed by the other callbacks
     ---@param data string
     ---@return string
     format_data = function(data)
       -- Remove the "data: " prefix
       return data:sub(7)
+    end,
+
+    ---Handle any errors from the API
+    ---@param data string
+    ---@return boolean
+    should_handle_errors = function(data)
+      return false
     end,
 
     ---Has the streaming completed?

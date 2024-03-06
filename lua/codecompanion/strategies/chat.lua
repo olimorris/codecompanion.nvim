@@ -437,6 +437,9 @@ function Chat:submit()
     return finalize()
   end
 
+  -- log:trace("----- For Adapter test creation -----\nMessages: %s\n ---------- // END ----------", messages)
+  log:trace("Settings: %s", settings)
+
   local adapter = config.options.adapters.chat
 
   client.new():stream(adapter:set_params(settings), messages, self.bufnr, function(err, data, done)
@@ -446,13 +449,12 @@ function Chat:submit()
     end
 
     if data then
-      log:trace("Chat data: %s", data)
       current_message = adapter.callbacks.output_chat(data, messages, current_message)
+      -- log:trace("----- For Adapter test creation -----\nOutput: %s\n ---------- // END ----------", current_message)
       render_buffer()
     end
 
     if done then
-      log:trace("Chat streaming is done")
       table.insert(messages, { role = "user", content = "" })
       render_buffer()
       display_tokens(self.bufnr)
