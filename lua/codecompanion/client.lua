@@ -102,6 +102,12 @@ function Client:stream(adapter, payload, bufnr, cb)
 
   log:debug("Adapter: %s", { adapter.name, adapter.url, adapter.raw, headers, body })
 
+  local function handle_error(data)
+    log:error("Error: %s", data)
+    close_request(bufnr)
+    return cb(string.format("There was an error from API: %s: ", data))
+  end
+
   local handler = self.opts.request({
     url = adapter.url,
     timeout = 1000,
@@ -118,6 +124,10 @@ function Client:stream(adapter, payload, bufnr, cb)
       end
 
       if not adapter.callbacks.should_skip(data) then
+        if adapter.callbacks.has_error(data) then
+          return handle_error(data)
+        end
+
         if data and type(adapter.callbacks.format_data) == "function" then
           data = adapter.callbacks.format_data(data)
         end
@@ -142,8 +152,7 @@ function Client:stream(adapter, payload, bufnr, cb)
         end
       else
         if adapter.callbacks.has_error(data) then
-          close_request(bufnr)
-          return cb(string.format("There was an error from API: %s: ", data))
+          return handle_error(data)
         end
       end
     end),

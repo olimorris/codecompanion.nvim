@@ -6,6 +6,7 @@ local Adapter = require("codecompanion.adapter")
 ---@field raw? table
 ---@field headers table
 ---@field parameters table
+---@field callbacks table
 ---@field schema table
 local adapter = {
   name = "Anthropic",
@@ -30,7 +31,7 @@ local adapter = {
       return { messages = messages }
     end,
 
-    ---Event based responses sometimes include data that shouldn't be processed
+    ---Does this streamed data need to be skipped?
     ---@param data table
     ---@return boolean
     should_skip = function(data)
@@ -47,21 +48,20 @@ local adapter = {
       return data:sub(6)
     end,
 
-    ---Handle any errors from the API
+    ---Does the data contain an error?
     ---@param data string
     ---@return boolean
     has_error = function(data)
-      if type(data) == "string" then
-        return string.sub(data, 1, 12) == "event: error"
-      end
-      return false
+      local msg = "event: error"
+      return string.sub(data, 1, string.len(msg)) == msg
     end,
 
     ---Has the streaming completed?
     ---@param data string The data from the format_data callback
     ---@return boolean
     is_complete = function(data)
-      local ok, data = pcall(vim.fn.json_decode, data)
+      local ok
+      ok, data = pcall(vim.fn.json_decode, data)
       if ok and data.type then
         return data.type == "message_stop"
       end
@@ -89,9 +89,12 @@ local adapter = {
     ---Output the data from the API ready for inlining into the current buffer
     ---@param json_data table The streamed JSON data from the API, also formatted by the format_data callback
     ---@param context table Useful context about the buffer to inline to
-    ---@return table
+    ---@return table|nil
     output_inline = function(json_data, context)
-      return json_data.choices[1].delta.content
+      if json_data.type == "content_block_delta" then
+        return json_data.delta.text
+      end
+      return nil
     end,
   },
   schema = {

@@ -6,6 +6,7 @@ local Adapter = require("codecompanion.adapter")
 ---@field raw? table
 ---@field headers table
 ---@field parameters table
+---@field callbacks table
 ---@field schema table
 local adapter = {
   name = "OpenAI",
@@ -32,7 +33,7 @@ local adapter = {
       return { messages = messages }
     end,
 
-    ---Event based responses sometimes include data that shouldn't be processed
+    ---Does this streamed data need to be skipped?
     ---@param data table
     ---@return boolean
     should_skip = function(data)
@@ -47,7 +48,7 @@ local adapter = {
       return data:sub(7)
     end,
 
-    ---Handle any errors from the API
+    ---Does the data contain an error?
     ---@param data string
     ---@return boolean
     has_error = function(data)
