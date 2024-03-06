@@ -141,7 +141,7 @@ function Client:stream(adapter, payload, bufnr, cb)
           cb(nil, json)
         end
       else
-        if adapter.callbacks.should_handle_errors(data) then
+        if adapter.callbacks.has_error(data) then
           close_request(bufnr)
           return cb(string.format("There was an error from API: %s: ", data))
         end

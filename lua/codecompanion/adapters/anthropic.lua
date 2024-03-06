@@ -50,7 +50,7 @@ local adapter = {
     ---Handle any errors from the API
     ---@param data string
     ---@return boolean
-    should_handle_errors = function(data)
+    has_error = function(data)
       if type(data) == "string" then
         return string.sub(data, 1, 12) == "event: error"
       end
