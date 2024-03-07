@@ -1,3 +1,5 @@
+local log = require("codecompanion.utils.log")
+
 ---@class CodeCompanion.Adapter
 ---@field name string
 ---@field url string
@@ -29,70 +31,84 @@ return {
       return { messages = messages }
     end,
 
-    ---Does this streamed data need to be skipped?
-    ---@param data table
-    ---@return boolean
-    should_skip = function(data)
-      if type(data) == "string" then
-        return string.sub(data, 1, 6) == "event:"
-      end
-      return false
-    end,
-
-    ---Format any data before it's consumed by the other callbacks
-    ---@param data string
-    ---@return string
-    format_data = function(data)
-      return data:sub(6)
-    end,
-
-    ---Does the data contain an error?
-    ---@param data string
-    ---@return boolean
-    has_error = function(data)
-      local msg = "event: error"
-      return string.sub(data, 1, string.len(msg)) == msg
-    end,
-
     ---Has the streaming completed?
     ---@param data string The data from the format_data callback
     ---@return boolean
     is_complete = function(data)
-      local ok
-      ok, data = pcall(vim.fn.json_decode, data)
-      if ok and data.type then
-        return data.type == "message_stop"
+      if data then
+        data = data:sub(6)
+
+        local ok
+        ok, data = pcall(vim.fn.json_decode, data)
+        if ok and data.type then
+          return data.type == "message_stop"
+        end
+        if ok and data.delta.stop_reason then
+          return data.delta.stop_reason == "end_turn"
+        end
       end
       return false
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
-    ---@param json_data table The streamed JSON data from the API, also formatted by the format_data callback
-    ---@param messages table A table of all of the messages in the chat buffer
-    ---@param current_message table The current/latest message in the chat buffer
-    ---@return table
-    output_chat = function(json_data, messages, current_message)
-      if json_data.type == "message_start" then
-        current_message = { role = json_data.message.role, content = "" }
-        table.insert(messages, current_message)
+    ---@param data string The streamed JSON data from the API, also formatted by the format_data callback
+    ---@return table|nil
+    chat_output = function(data)
+      local output = {}
+
+      -- Skip the event messages
+      if type(data) == "string" and string.sub(data, 1, 6) == "event:" then
+        return
       end
 
-      if json_data.type == "content_block_delta" then
-        current_message.content = current_message.content .. json_data.delta.text
-      end
+      if data and data ~= "" then
+        data = data:sub(6)
+        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
-      return current_message
+        if not ok then
+          return {
+            status = "error",
+            output = string.format("Error malformed json: %s", json),
+          }
+        end
+
+        if json.type == "message_start" then
+          output.role = json.message.role
+          output.content = ""
+        end
+
+        if json.type == "content_block_delta" then
+          output.role = nil
+          output.content = json.delta.text
+        end
+
+        -- log:trace("----- For Adapter test creation -----\nOutput: %s\n ---------- // END ----------", output)
+
+        return {
+          status = "success",
+          output = output,
+        }
+      end
     end,
 
     ---Output the data from the API ready for inlining into the current buffer
-    ---@param json_data table The streamed JSON data from the API, also formatted by the format_data callback
+    ---@param data table The streamed JSON data from the API, also formatted by the format_data callback
     ---@param context table Useful context about the buffer to inline to
     ---@return table|nil
-    output_inline = function(json_data, context)
-      if json_data.type == "content_block_delta" then
-        return json_data.delta.text
+    inline_output = function(data, context)
+      data = data:sub(6)
+      local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
+
+      if not ok then
+        return
       end
-      return nil
+
+      log:trace("INLINE JSON: %s", json)
+      if json.type == "content_block_delta" then
+        return json.delta.text
+      end
+
+      return
     end,
   },
   schema = {

@@ -78,8 +78,6 @@ function Client:stream(adapter, payload, bufnr, cb)
   local body =
     self.opts.encode(vim.tbl_extend("keep", adapter.parameters or {}, adapter.callbacks.form_messages(payload)))
 
-  log:debug("Adapter: %s", { adapter.name, adapter.url, adapter.raw, headers, body })
-
   local stop_request_cmd = api.nvim_create_autocmd("User", {
     desc = "Stop the current request",
     pattern = "CodeCompanionRequest",
@@ -94,12 +92,11 @@ function Client:stream(adapter, payload, bufnr, cb)
 
   local handler = self.opts.request({
     url = adapter.url,
-    timeout = 1000,
     raw = adapter.raw or { "--no-buffer" },
     headers = headers,
     body = body,
     stream = self.opts.schedule(function(_, data)
-      log:trace("Chat data: %s", data)
+      -- log:trace("Chat data: %s", data)
       -- log:trace("----- For Adapter test creation -----\nRequest: %s\n ---------- // END ----------", data)
 
       if _G.codecompanion_jobs[bufnr] and _G.codecompanion_jobs[bufnr].status == "stopping" then
