@@ -2,7 +2,7 @@ local assert = require("luassert")
 
 local test_adapter = {
   name = "TestAdapter",
-  url = "https://api.openai.com/v1/chat/completions",
+  url = "https://api.testgenai.com/v1/chat/completions",
   headers = {
     content_type = "application/json",
   },
@@ -62,7 +62,7 @@ local chat_buffer_settings = {
 
 describe("Adapter", function()
   it("can form parameters from a chat buffer's settings", function()
-    local adapter = require("codecompanion.adapters.openai")
+    local adapter = require("codecompanion.adapters").use("openai")
     local result = adapter:set_params(chat_buffer_settings)
 
     -- Ignore this for now
@@ -72,7 +72,7 @@ describe("Adapter", function()
   end)
 
   it("can nest parameters based on an adapter's schema", function()
-    local adapter = require("codecompanion.adapter").new(test_adapter)
+    local adapter = require("codecompanion.adapters").use(test_adapter)
     local result = adapter:set_params(chat_buffer_settings)
 
     local expected = {
