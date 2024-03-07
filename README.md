@@ -14,8 +14,8 @@
 </p>
 
 <p align="center">
-Use the power of Generative AI in Neovim. Use it to chat, author and advise you on your code.<br>
-Currently supports OpenAI and Ollama.
+Use the power of generative AI in Neovim. Use it to chat, author and advise you on your code.<br><br>
+Supports Anthropic, Ollama and OpenAI.
 </p>
 
 > [!IMPORTANT]
@@ -30,10 +30,10 @@ Currently supports OpenAI and Ollama.
 ## :sparkles: Features
 
 - :speech_balloon: A Copilot Chat experience from within Neovim
-- :electric_plug: Adapter support for many Generative AI services such as OpenAI and Ollama
+- :electric_plug: Adapter support for many generative AI services
 - :rocket: Inline code creation and modification
 - :sparkles: Built in actions for specific language prompts LSP error fixes and code advice
-- :building_construction: Create your own custom actions for Neovim which hook into Generative AI APIs
+- :building_construction: Create your own custom actions for Neovim which hook into generative AI APIs
 - :floppy_disk: Save and restore your chats
 - :muscle: Async execution for improved performance
 
@@ -52,7 +52,7 @@ Currently supports OpenAI and Ollama.
 
 - The `curl` library installed
 - Neovim 0.9.2 or greater
-- _(Optional)_ An API key to be set in your shell for your chosen Generative AI service
+- _(Optional)_ An API key to be set in your shell for your chosen generative AI service
 
 ## :package: Installation
 
@@ -145,7 +145,7 @@ require("codecompanion").setup({
     ["["] = "keymaps.previous", -- Move to the previous header in the chat
   },
   log_level = "ERROR", -- TRACE|DEBUG|ERROR
-  send_code = true, -- Send code context to the Generative AI service? Disable to prevent leaking code outside of Neovim
+  send_code = true, -- Send code context to the generative AI service? Disable to prevent leaking code outside of Neovim
   silence_notifications = false, -- Silence notifications for actions like saving saving chats?
   use_default_actions = true, -- Use the default actions in the action palette?
 })
@@ -158,7 +158,7 @@ require("codecompanion").setup({
 
 ### Adapters
 
-The plugin uses adapters to bridge between Generative AI services and the plugin. Currently the plugin supports:
+The plugin uses adapters to bridge between generative AI services and the plugin. Currently the plugin supports:
 
 - Anthropic (`anthropic`) - Requires `ANTHROPIC_API_KEY` to be set in your shell
 - Ollama (`ollama`)
@@ -258,13 +258,13 @@ The Action Palette, opened via `:CodeCompanionActions`, contains all of the acti
 
 <p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/84d5e03a-0b48-4ffb-9ca5-e299d41171bd" alt="chat buffer" /></p>
 
-The chat buffer is where you can converse with the Generative AI service, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the Generative AI service, in the form of prompts. These prompts are segmented by H1 headers: `user` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with ChatGPT from within Neovim.
+The chat buffer is where you can converse with the generative AI service, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the generative AI service, in the form of prompts. These prompts are segmented by H1 headers: `user` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with ChatGPT from within Neovim.
 
 #### Keymaps
 
 When in the chat buffer, there are number of keymaps available to you (which can be changed in the config):
 
-- `<C-s>` - Save the buffer and trigger a response from the Generative AI service
+- `<C-s>` - Save the buffer and trigger a response from the generative AI service
 - `<C-c>` - Close the buffer
 - `q` - Cancel the stream from the API
 - `gc` - Clear the buffer's contents
@@ -298,7 +298,7 @@ You can use the plugin to create inline code directly into a Neovim buffer. This
 > [!NOTE]
 > The command can detect if you've made a visual selection and send any code as context to the API alongside the filetype of the buffer.
 
-One of the challenges with inline editing is determining how the API's response should be handled in the buffer. If you've prompted the API to _"create a table of 5 fruits"_ then you may wish for the response to be placed after the cursor in the buffer. However, if you asked the API to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. If this _placement_ isn't specified then the plugin will use Generative AI itself to determine if the response should follow any of the placements below:
+One of the challenges with inline editing is determining how the API's response should be handled in the buffer. If you've prompted the API to _"create a table of 5 fruits"_ then you may wish for the response to be placed after the cursor in the buffer. However, if you asked the API to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. If this _placement_ isn't specified then the plugin will use generative AI itself to determine if the response should follow any of the placements below:
 
 - _after_ - after the visual selection
 - _before_ - before the visual selection
@@ -310,11 +310,11 @@ As a final example, specifying a prompt like _"create a test for this code in a 
 
 ### In-Built Actions
 
-The plugin comes with a number of [in-built actions](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) which aim to improve your Neovim workflow. Actions make use of either a _chat_ or an _inline_ strategy. The chat strategy opens up a chat buffer whilst an inline strategy will write output from the Generative AI service into the Neovim buffer.
+The plugin comes with a number of [in-built actions](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) which aim to improve your Neovim workflow. Actions make use of either a _chat_ or an _inline_ strategy. The chat strategy opens up a chat buffer whilst an inline strategy will write output from the generative AI service into the Neovim buffer.
 
 #### Chat and Chat as
 
-Both of these actions utilise the `chat` strategy. The `Chat` action opens up a fresh chat buffer. The `Chat as` action allows for persona based context to be set in the chat buffer allowing for better and more detailed responses from the Generative AI service.
+Both of these actions utilise the `chat` strategy. The `Chat` action opens up a fresh chat buffer. The `Chat as` action allows for persona based context to be set in the chat buffer allowing for better and more detailed responses from the generative AI service.
 
 > [!TIP]
 > Both of these actions allow for visually selected code to be sent to the chat buffer as code blocks.
@@ -342,7 +342,7 @@ As the name suggests, this action provides advice on a visual selection of code 
 
 #### LSP assistant
 
-Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice on how to correct any LSP diagnostics which are present on the visually selected lines. Again, the `send_code = false` value can be set in your config to prevent the code itself being sent to the Generative AI service.
+Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice on how to correct any LSP diagnostics which are present on the visually selected lines. Again, the `send_code = false` value can be set in your config to prevent the code itself being sent to the generative AI service.
 
 ## :rainbow: Helpers
 
@@ -377,7 +377,7 @@ vim.api.nvim_create_autocmd({ "User" }, {
 
 ### Heirline.nvim
 
-If you're using the fantastic [Heirline.nvim](https://github.com/rebelot/heirline.nvim) plugin, consider the following snippet to display an icon in the statusline whilst CodeCompanion is conversing with the Generative AI service:
+If you're using the fantastic [Heirline.nvim](https://github.com/rebelot/heirline.nvim) plugin, consider the following snippet to display an icon in the statusline whilst CodeCompanion is conversing with the generative AI service:
 
 ```lua
 local CodeCompanion = {
