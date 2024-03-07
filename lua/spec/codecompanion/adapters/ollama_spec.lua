@@ -10,51 +10,51 @@ local messages = { {
 
 local stream_response = {
   {
-    request = [[{"model":"llama2","created_at":"2024-03-06T18:35:15.715665Z","message":{"role":"assistant","content":"\n"},"done":false}]],
+    request = [[{"model":"llama2","created_at":"2024-03-07T20:02:30.622386Z","message":{"role":"assistant","content":"\n"},"done":false}]],
     output = {
       content = "\n",
       role = "assistant",
     },
   },
   {
-    request = [[{"model":"llama2","created_at":"2024-03-06T18:35:15.745213Z","message":{"role":"assistant","content":"\""},"done":false}]],
+    request = [[{"model":"llama2","created_at":"2024-03-07T20:02:30.652682Z","message":{"role":"assistant","content":"\""},"done":false}]],
     output = {
-      content = '\n"',
+      content = '"',
       role = "assistant",
     },
   },
   {
-    request = [[{"model":"llama2","created_at":"2024-03-06T18:35:15.77473Z","message":{"role":"assistant","content":"E"},"done":false}]],
+    request = [[{"model":"llama2","created_at":"2024-03-07T20:02:30.681756Z","message":{"role":"assistant","content":"Be"},"done":false}]],
     output = {
-      content = '\n"E',
+      content = "Be",
       role = "assistant",
     },
   },
   {
-    request = [[{"model":"llama2","created_at":"2024-03-06T18:35:15.803753Z","message":{"role":"assistant","content":"asy"},"done":false}]],
+    request = [[{"model":"llama2","created_at":"2024-03-07T20:02:30.710758Z","message":{"role":"assistant","content":"aut"},"done":false}]],
     output = {
-      content = '\n"Easy',
+      content = "aut",
       role = "assistant",
     },
   },
   {
-    request = [[{"model":"llama2","created_at":"2024-03-06T18:35:15.833925Z","message":{"role":"assistant","content":" Program"},"done":false}]],
+    request = [[{"model":"llama2","created_at":"2024-03-07T20:02:30.739508Z","message":{"role":"assistant","content":"iful"},"done":false}]],
     output = {
-      content = '\n"Easy Program',
+      content = "iful",
       role = "assistant",
     },
   },
   {
-    request = [[{"model":"llama2","created_at":"2024-03-06T18:35:15.862917Z","message":{"role":"assistant","content":"ming"},"done":false}]],
+    request = [[{"model":"llama2","created_at":"2024-03-07T20:02:30.770345Z","message":{"role":"assistant","content":" Language"},"done":false}]],
     output = {
-      content = '\n"Easy Programming',
+      content = " Language",
       role = "assistant",
     },
   },
   {
-    request = [[{"model":"llama2","created_at":"2024-03-06T18:35:15.892319Z","message":{"role":"assistant","content":"\""},"done":false}]],
+    request = [[{"model":"llama2","created_at":"2024-03-07T20:02:30.7994Z","message":{"role":"assistant","content":"\""},"done":false}]],
     output = {
-      content = '\n"Easy Programming"',
+      content = '"',
       role = "assistant",
     },
   },
@@ -70,15 +70,10 @@ describe("Ollama adapter", function()
   end)
 
   it("can check if the streaming is complete", function()
-    local data = adapter.callbacks.format_data(done_response)
-
-    assert.is_true(adapter.callbacks.is_complete(data))
+    assert.is_true(adapter.callbacks.is_complete(done_response))
   end)
 
   it("can output streamed data into a format for the chat buffer", function()
-    assert.are.same(
-      stream_response[#stream_response].output,
-      helpers.chat_buffer_output(stream_response, adapter, messages)
-    )
+    assert.are.same(stream_response[#stream_response].output, helpers.chat_buffer_output(stream_response, adapter))
   end)
 end)

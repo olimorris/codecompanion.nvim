@@ -112,6 +112,13 @@ local function render_messages(bufnr, settings, messages, context)
     table.insert(lines, "")
   end
 
+  -- Start with the user heading
+  if #messages == 0 then
+    table.insert(lines, "# user")
+    table.insert(lines, "")
+    table.insert(lines, "")
+  end
+
   -- Put the messages in the buffer
   for i, message in ipairs(messages) do
     if i > 1 then
@@ -379,7 +386,10 @@ function Chat.new(args)
   keys.set_keymaps(config.options.keymaps, bufnr, self)
 
   render_messages(bufnr, settings, args.messages or {}, args.context or {})
-  display_tokens(bufnr)
+
+  if args.saved_chat then
+    display_tokens(bufnr)
+  end
 
   if config.options.display.chat.type == "float" then
     winid = ui.open_float(bufnr, {
@@ -417,17 +427,41 @@ function Chat:submit()
     vim.bo[self.bufnr].modifiable = true
   end
 
-  local function render_buffer()
-    local line_count = api.nvim_buf_line_count(self.bufnr)
+  local role = ""
+  local function render_new_messages(data)
+    local total_lines = api.nvim_buf_line_count(self.bufnr)
     local current_line = api.nvim_win_get_cursor(0)[1]
-    local cursor_moved = current_line == line_count
+    local cursor_moved = current_line == total_lines
 
-    render_messages(self.bufnr, settings, messages, {})
+    local lines = {}
+    if data.role and data.role ~= role then
+      role = data.role
+      table.insert(lines, "")
+      table.insert(lines, "")
+      table.insert(lines, string.format("# %s", data.role))
+      table.insert(lines, "")
+    end
 
-    if cursor_moved and ui.buf_is_active(self.bufnr) then
-      ui.buf_scroll_to_end(self.bufnr)
-    elseif not ui.buf_is_active(self.bufnr) then
-      ui.buf_scroll_to_end(self.bufnr)
+    if data.content then
+      for _, text in ipairs(vim.split(data.content, "\n", { plain = true, trimempty = false })) do
+        table.insert(lines, text)
+      end
+
+      local modifiable = vim.bo[self.bufnr].modifiable
+      vim.bo[self.bufnr].modifiable = true
+
+      local last_line = api.nvim_buf_get_lines(self.bufnr, total_lines - 1, total_lines, false)[1]
+      local last_col = last_line and #last_line or 0
+      api.nvim_buf_set_text(self.bufnr, total_lines - 1, last_col, total_lines - 1, last_col, lines)
+
+      vim.bo[self.bufnr].modified = false
+      vim.bo[self.bufnr].modifiable = modifiable
+
+      if cursor_moved and ui.buf_is_active(self.bufnr) then
+        ui.buf_scroll_to_end(self.bufnr)
+      elseif not ui.buf_is_active(self.bufnr) then
+        ui.buf_scroll_to_end(self.bufnr)
+      end
     end
   end
 
@@ -438,7 +472,7 @@ function Chat:submit()
   end
 
   -- log:trace("----- For Adapter test creation -----\nMessages: %s\n ---------- // END ----------", messages)
-  log:trace("Settings: %s", settings)
+  -- log:trace("Settings: %s", settings)
 
   local adapter = config.options.adapters.chat
 
@@ -448,17 +482,25 @@ function Chat:submit()
       return finalize()
     end
 
-    if data then
-      current_message = adapter.callbacks.output_chat(data, messages, current_message)
-      -- log:trace("----- For Adapter test creation -----\nOutput: %s\n ---------- // END ----------", current_message)
-      render_buffer()
-    end
-
     if done then
-      table.insert(messages, { role = "user", content = "" })
-      render_buffer()
+      render_new_messages({ role = "user", content = "" })
       display_tokens(self.bufnr)
       return finalize()
+    end
+
+    if data then
+      local result = adapter.callbacks.chat_output(data)
+
+      if result and result.status == "success" then
+        render_new_messages(result.output)
+      elseif result and result.status == "error" then
+        vim.api.nvim_exec_autocmds(
+          "User",
+          { pattern = "CodeCompanionRequest", data = { buf = self.bufnr, action = "stop_request" } }
+        )
+        vim.notify("Error: " .. result.output, vim.log.levels.ERROR)
+        return finalize()
+      end
     end
   end)
 end

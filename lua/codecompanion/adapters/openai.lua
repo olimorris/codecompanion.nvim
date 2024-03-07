@@ -1,3 +1,5 @@
+local log = require("codecompanion.utils.log")
+
 ---@class CodeCompanion.Adapter
 ---@field name string
 ---@field url string
@@ -31,53 +33,49 @@ return {
       return { messages = messages }
     end,
 
-    ---Does this streamed data need to be skipped?
-    ---@param data table
-    ---@return boolean
-    should_skip = function(data)
-      return false
-    end,
-
-    ---Format any data before it's consumed by the other callbacks
-    ---@param data string
-    ---@return string
-    format_data = function(data)
-      -- Remove the "data: " prefix
-      return data:sub(7)
-    end,
-
-    ---Does the data contain an error?
-    ---@param data string
-    ---@return boolean
-    has_error = function(data)
-      return false
-    end,
-
     ---Has the streaming completed?
-    ---@param data string The data from the format_data callback
+    ---@param data string The streamed data from the API
     ---@return boolean
     is_complete = function(data)
-      return data == "[DONE]"
+      if data then
+        data = data:sub(7)
+        return data == "[DONE]"
+      end
+      return false
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
-    ---@param json_data table The streamed JSON data from the API, also formatted by the format_data callback
-    ---@param messages table A table of all of the messages in the chat buffer
-    ---@param current_message table The current/latest message in the chat buffer
-    ---@return table
-    output_chat = function(json_data, messages, current_message)
-      local delta = json_data.choices[1].delta
+    ---@param data table The streamed JSON data from the API, also formatted by the format_data callback
+    ---@return table|nil
+    chat_output = function(data)
+      local output = {}
 
-      if delta.role and delta.role ~= current_message.role then
-        current_message = { role = delta.role, content = "" }
-        table.insert(messages, current_message)
+      if data and data ~= "" then
+        data = data:sub(7)
+        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
+
+        if not ok then
+          return {
+            status = "error",
+            output = string.format("Error malformed json: %s", json),
+          }
+        end
+
+        local delta = json.choices[1].delta
+
+        if delta.content then
+          output.content = delta.content
+          output.role = delta.role or nil
+        end
+
+        log:trace("----- For Adapter test creation -----\nOutput: %s\n ---------- // END ----------", output)
+
+        return {
+          status = "success",
+          output = output,
+        }
       end
-
-      if delta.content then
-        current_message.content = current_message.content .. delta.content
-      end
-
-      return current_message
+      return nil
     end,
 
     ---Output the data from the API ready for inlining into the current buffer
