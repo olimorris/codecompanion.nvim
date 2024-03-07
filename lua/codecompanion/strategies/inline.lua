@@ -1,4 +1,6 @@
+local client = require("codecompanion.client")
 local config = require("codecompanion.config")
+local adapter = config.options.adapters.inline
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 
@@ -9,6 +11,14 @@ local function fire_autocmd(status)
   vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionInline", data = { status = status } })
 end
 
+---When a user initiates an inline request, it will be possible to infer from
+---their prompt, how the output should be placed in the buffer. For instance, if
+---they reference the words "refactor" or "update" in their prompt, they will
+---likely want the response to replace a visual selection they've made in the
+---editor. However, if they include words such as "after" or "before", it may
+---be insinuated that they wish the response to be placed after or before the
+---cursor. In this function, we use the power of Generative AI to determine
+---the user's intent and return a placement position.
 ---@param inline CodeCompanion.Inline
 ---@param prompt string
 ---@return string, boolean
@@ -32,24 +42,17 @@ local function get_placement_position(inline, prompt)
   }
 
   local output
-  inline.client:chat(
-    vim.tbl_extend("keep", inline.settings, {
-      messages = messages,
-    }),
-    function(err, chunk)
-      if err then
-        return
-      end
-
-      if chunk then
-        local content = chunk.choices[1].message.content
-        if content then
-          log:trace("Placement response: %s", content)
-          output = content
-        end
-      end
+  client.new():call(adapter:set_params(), messages, function(err, data)
+    if err then
+      return
     end
-  )
+
+    if data then
+      print(vim.inspect(data))
+    end
+  end)
+
+  log:trace("Placement output: %s", output)
 
   if output then
     local parts = vim.split(output, "|")
@@ -131,17 +134,13 @@ local function get_cursor(winid)
 end
 
 ---@class CodeCompanion.Inline
----@field settings table
 ---@field context table
----@field client CodeCompanion.Client
 ---@field opts table
 ---@field prompts table
 local Inline = {}
 
 ---@class CodeCompanion.InlineArgs
----@field settings table
 ---@field context table
----@field client CodeCompanion.Client
 ---@field opts table
 ---@field pre_hook fun():number -- Assuming pre_hook returns a number for example
 ---@field prompts table
@@ -162,9 +161,7 @@ function Inline.new(opts)
   end
 
   return setmetatable({
-    settings = config.options.ai_settings.inline,
     context = opts.context,
-    client = opts.client,
     opts = opts.opts or {},
     prompts = vim.deepcopy(opts.prompts),
   }, { __index = Inline })
@@ -176,54 +173,10 @@ function Inline:execute(user_input)
 
   local messages = get_action(self, user_input)
 
-  if not self.opts.placement and user_input then
-    local return_code
-    self.opts.placement, return_code = get_placement_position(self, user_input)
-
-    if not return_code then
-      table.insert(messages, {
-        role = "user",
-        content = "Please do not return the code I have sent in the response",
-      })
-    end
-
-    log:debug("Setting the placement to: %s", self.opts.placement)
-  end
-
-  -- Determine where to place the response in the buffer
-  if self.opts and self.opts.placement then
-    if self.opts.placement == "before" then
-      log:trace("Placing before selection")
-      vim.api.nvim_buf_set_lines(
-        self.context.bufnr,
-        self.context.start_line - 1,
-        self.context.start_line - 1,
-        false,
-        { "" }
-      )
-      self.context.start_line = self.context.start_line + 1
-      pos.line = self.context.start_line - 1
-      pos.col = self.context.start_col - 1
-    elseif self.opts.placement == "after" then
-      log:trace("Placing after selection")
-      vim.api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
-      pos.line = self.context.end_line + 1
-      pos.col = 0
-    elseif self.opts.placement == "replace" then
-      log:trace("Placing by overwriting selection")
-      overwrite_selection(self.context)
-
-      pos.line, pos.col = get_cursor(self.context.winid)
-    elseif self.opts.placement == "new" then
-      log:trace("Placing in a new buffer")
-      self.context.bufnr = api.nvim_create_buf(true, false)
-      api.nvim_buf_set_option(self.context.bufnr, "filetype", self.context.filetype)
-      api.nvim_set_current_buf(self.context.bufnr)
-
-      pos.line = 1
-      pos.col = 0
-    end
-  end
+  -- Assume the placement should be after the cursor
+  vim.api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
+  pos.line = self.context.end_line + 1
+  pos.col = 0
 
   log:debug("Context for inline: %s", self.context)
   log:debug("Cursor position to use: %s", pos)
@@ -268,43 +221,39 @@ function Inline:execute(user_input)
   fire_autocmd("started")
 
   local output = {}
-  self.client:stream_chat(
-    vim.tbl_extend("keep", self.settings, {
-      messages = messages,
-    }),
-    self.context.bufnr,
-    function(err, chunk, done)
-      if err then
-        return
-      end
+  client.new():stream(adapter:set_params(), messages, self.context.bufnr, function(err, data, done)
+    if err then
+      fire_autocmd("finished")
+      return
+    end
 
-      if chunk then
-        log:trace("Chat chunk: %s", chunk)
+    if data then
+      log:trace("Inline data: %s", data)
 
-        local delta = chunk.choices[1].delta
-        if delta.content and not delta.role and delta.content ~= "```" and delta.content ~= self.context.filetype then
-          if self.context.buftype == "terminal" then
-            -- Don't stream to the terminal
-            table.insert(output, delta.content)
-          else
-            stream_buffer_text(delta.content)
-            if self.opts and self.opts.placement == "new" then
-              ui.buf_scroll_to_end(self.context.bufnr)
-            end
+      local content = adapter.callbacks.inline_output(data, self.context)
+
+      if self.context.buftype == "terminal" then
+        -- Don't stream to the terminal
+        table.insert(output, content)
+      else
+        if content then
+          stream_buffer_text(content)
+          if self.opts and self.opts.placement == "new" then
+            ui.buf_scroll_to_end(self.context.bufnr)
           end
         end
       end
-
-      if done then
-        api.nvim_buf_del_keymap(self.context.bufnr, "n", "q")
-        if self.context.buftype == "terminal" then
-          log:debug("Terminal output: %s", output)
-          api.nvim_put({ table.concat(output, "") }, "", false, true)
-        end
-        fire_autocmd("finished")
-      end
     end
-  )
+
+    if done then
+      api.nvim_buf_del_keymap(self.context.bufnr, "n", "q")
+      if self.context.buftype == "terminal" then
+        log:debug("Terminal output: %s", output)
+        api.nvim_put({ table.concat(output, "") }, "", false, true)
+      end
+      fire_autocmd("finished")
+    end
+  end)
 end
 
 ---@param user_input? string

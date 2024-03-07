@@ -1,3 +1,4 @@
+local client = require("codecompanion.client")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
@@ -33,7 +34,7 @@ local function parse_settings(bufnr)
   end
 
   if not config.options.display.chat.show_settings then
-    config_settings[bufnr] = vim.deepcopy(config.options.ai_settings.chat)
+    config_settings[bufnr] = config.options.adapters.chat:get_default_settings()
 
     log:debug("Using the settings from the user's config: %s", config_settings[bufnr])
     return config_settings[bufnr]
@@ -57,7 +58,7 @@ end
 
 ---@param bufnr integer
 ---@return table
----@return CodeCompanion.ChatMessage[]
+---@return table
 local function parse_messages_buffer(bufnr)
   local ret = {}
 
@@ -95,20 +96,26 @@ local function parse_messages_buffer(bufnr)
 end
 
 ---@param bufnr integer
----@param settings CodeCompanion.ChatSettings
----@param messages CodeCompanion.ChatMessage[]
+---@param settings table
+---@param messages table
 ---@param context table
 local function render_messages(bufnr, settings, messages, context)
   local lines = {}
   if config.options.display.chat.show_settings then
-    -- Put the settings at the top of the buffer
     lines = { "---" }
-    local keys = schema.get_ordered_keys(schema.static.chat_settings)
+    local keys = schema.get_ordered_keys(config.options.adapters.chat.schema)
     for _, key in ipairs(keys) do
       table.insert(lines, string.format("%s: %s", key, yaml.encode(settings[key])))
     end
 
     table.insert(lines, "---")
+    table.insert(lines, "")
+  end
+
+  -- Start with the user heading
+  if #messages == 0 then
+    table.insert(lines, "# user")
+    table.insert(lines, "")
     table.insert(lines, "")
   end
 
@@ -199,7 +206,7 @@ local function chat_autocmds(bufnr, args)
       buffer = bufnr,
       callback = function()
         local settings = parse_settings(bufnr)
-        local errors = schema.validate(schema.static.chat_settings, settings)
+        local errors = schema.validate(config.options.adapters.chat.schema, settings)
         local node = settings.__ts_node
         local items = {}
         if errors and node then
@@ -316,26 +323,27 @@ local function chat_autocmds(bufnr, args)
 
       _G.codecompanion_chats[bufnr] = nil
 
-      _G.codecompanion_jobs[request.data.buf].handler:shutdown()
-      vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionRequest", data = { status = "finished" } })
-      vim.api.nvim_buf_delete(request.data.buf, { force = true })
+      if _G.codecompanion_jobs[request.data.buf] then
+        _G.codecompanion_jobs[request.data.buf].handler:shutdown()
+      end
+      api.nvim_exec_autocmds("User", { pattern = "CodeCompanionRequest", data = { status = "finished" } })
+      api.nvim_buf_delete(request.data.buf, { force = true })
     end,
   })
 end
 
 ---@class CodeCompanion.Chat
----@field client CodeCompanion.Client
 ---@field bufnr integer
----@field settings CodeCompanion.ChatSettings
+---@field settings table
 local Chat = {}
 
 ---@class CodeCompanion.ChatArgs
----@field client CodeCompanion.Client
+---@field adapter CodeCompanion.Adapter
 ---@field context table
----@field messages nil|CodeCompanion.ChatMessage[]
+---@field messages nil|table
 ---@field show_buffer nil|boolean
 ---@field auto_submit nil|boolean
----@field settings nil|CodeCompanion.ChatSettings
+---@field settings nil|table
 ---@field type nil|string
 ---@field saved_chat nil|string
 
@@ -362,11 +370,10 @@ function Chat.new(args)
   watch_cursor()
   chat_autocmds(bufnr, args)
 
-  local settings = args.settings or schema.get_default(schema.static.chat_settings, args.settings)
+  local settings = args.settings or schema.get_default(config.options.adapters.chat.schema, args.settings)
 
   local self = setmetatable({
     bufnr = bufnr,
-    client = args.client,
     context = args.context,
     saved_chat = args.saved_chat,
     settings = settings,
@@ -379,7 +386,10 @@ function Chat.new(args)
   keys.set_keymaps(config.options.keymaps, bufnr, self)
 
   render_messages(bufnr, settings, args.messages or {}, args.context or {})
-  display_tokens(bufnr)
+
+  if args.saved_chat then
+    display_tokens(bufnr)
+  end
 
   if config.options.display.chat.type == "float" then
     winid = ui.open_float(bufnr, {
@@ -417,61 +427,82 @@ function Chat:submit()
     vim.bo[self.bufnr].modifiable = true
   end
 
-  local function render_buffer()
-    local line_count = api.nvim_buf_line_count(self.bufnr)
+  local role = ""
+  local function render_new_messages(data)
+    local total_lines = api.nvim_buf_line_count(self.bufnr)
     local current_line = api.nvim_win_get_cursor(0)[1]
-    local cursor_moved = current_line == line_count
+    local cursor_moved = current_line == total_lines
 
-    render_messages(self.bufnr, settings, messages, {})
+    local lines = {}
+    if data.role and data.role ~= role then
+      role = data.role
+      table.insert(lines, "")
+      table.insert(lines, "")
+      table.insert(lines, string.format("# %s", data.role))
+      table.insert(lines, "")
+    end
 
-    if cursor_moved and ui.buf_is_active(self.bufnr) then
-      ui.buf_scroll_to_end(self.bufnr)
-    elseif not ui.buf_is_active(self.bufnr) then
-      ui.buf_scroll_to_end(self.bufnr)
+    if data.content then
+      for _, text in ipairs(vim.split(data.content, "\n", { plain = true, trimempty = false })) do
+        table.insert(lines, text)
+      end
+
+      local modifiable = vim.bo[self.bufnr].modifiable
+      vim.bo[self.bufnr].modifiable = true
+
+      local last_line = api.nvim_buf_get_lines(self.bufnr, total_lines - 1, total_lines, false)[1]
+      local last_col = last_line and #last_line or 0
+      api.nvim_buf_set_text(self.bufnr, total_lines - 1, last_col, total_lines - 1, last_col, lines)
+
+      vim.bo[self.bufnr].modified = false
+      vim.bo[self.bufnr].modifiable = modifiable
+
+      if cursor_moved and ui.buf_is_active(self.bufnr) then
+        ui.buf_scroll_to_end(self.bufnr)
+      elseif not ui.buf_is_active(self.bufnr) then
+        ui.buf_scroll_to_end(self.bufnr)
+      end
     end
   end
 
-  local new_message = messages[#messages]
+  local current_message = messages[#messages]
 
-  if new_message and new_message.role == "user" and new_message.content == "" then
+  if current_message and current_message.role == "user" and current_message.content == "" then
     return finalize()
   end
 
-  self.client:stream_chat(
-    vim.tbl_extend("keep", settings, {
-      messages = messages,
-    }),
-    self.bufnr,
-    function(err, chunk, done)
-      if err then
-        log:error("Error: %s", err)
-        vim.notify("Error: " .. err, vim.log.levels.ERROR)
+  -- log:trace("----- For Adapter test creation -----\nMessages: %s\n ---------- // END ----------", messages)
+  -- log:trace("Settings: %s", settings)
+
+  local adapter = config.options.adapters.chat
+
+  client.new():stream(adapter:set_params(settings), messages, self.bufnr, function(err, data, done)
+    if err then
+      vim.notify("Error: " .. err, vim.log.levels.ERROR)
+      return finalize()
+    end
+
+    if done then
+      render_new_messages({ role = "user", content = "" })
+      display_tokens(self.bufnr)
+      return finalize()
+    end
+
+    if data then
+      local result = adapter.callbacks.chat_output(data)
+
+      if result and result.status == "success" then
+        render_new_messages(result.output)
+      elseif result and result.status == "error" then
+        vim.api.nvim_exec_autocmds(
+          "User",
+          { pattern = "CodeCompanionRequest", data = { buf = self.bufnr, action = "stop_request" } }
+        )
+        vim.notify("Error: " .. result.output, vim.log.levels.ERROR)
         return finalize()
       end
-
-      if chunk then
-        log:trace("Chat chunk: %s", chunk)
-        local delta = chunk.choices[1].delta
-        if delta.role and delta.role ~= new_message.role then
-          new_message = { role = delta.role, content = "" }
-          table.insert(messages, new_message)
-        end
-
-        if delta.content then
-          new_message.content = new_message.content .. delta.content
-        end
-
-        render_buffer()
-      end
-
-      if done then
-        table.insert(messages, { role = "user", content = "" })
-        render_buffer()
-        display_tokens(self.bufnr)
-        finalize()
-      end
     end
-  )
+  end)
 end
 
 ---@param opts nil|table
@@ -498,7 +529,7 @@ function Chat:on_cursor_moved()
     vim.diagnostic.set(config.INFO_NS, self.bufnr, {})
     return
   end
-  local key_schema = schema.static.chat_settings[key_name]
+  local key_schema = config.options.adapters.chat.schema[key_name]
 
   if key_schema and key_schema.desc then
     local lnum, col, end_lnum, end_col = node:range()
@@ -526,7 +557,7 @@ function Chat:complete(request, callback)
     return
   end
 
-  local key_schema = schema.static.chat_settings[key_name]
+  local key_schema = config.options.adapters.chat.schema[key_name]
   if key_schema.type == "enum" then
     for _, choice in ipairs(key_schema.choices) do
       table.insert(items, {

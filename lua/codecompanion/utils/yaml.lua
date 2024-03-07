@@ -7,7 +7,11 @@ M.encode = function(data)
   if data == nil then
     return "null"
   elseif dt == "number" then
-    return string.format("%d", data)
+    if data % 1 == 0 then
+      return string.format("%d", data)
+    else
+      return string.format("%.1f", data)
+    end
   elseif dt == "boolean" then
     return string.format("%s", data)
   elseif dt == "string" then

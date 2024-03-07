@@ -2,18 +2,32 @@ local assert = require("luassert")
 local codecompanion = require("codecompanion")
 local stub = require("luassert.stub")
 
-local schema
 local Client
+
+local adapter = {
+  name = "TestAdapter",
+  url = "https://api.openai.com/v1/chat/completions",
+  headers = {
+    content_type = "application/json",
+  },
+  parameters = {
+    stream = true,
+  },
+  callbacks = {
+    form_messages = function()
+      return {}
+    end,
+  },
+  schema = {},
+}
 
 describe("Client", function()
   before_each(function()
     codecompanion.setup()
-    schema = require("codecompanion.schema")
     Client = require("codecompanion.client") -- Now that setup has been called, we can require the client
   end)
 
   after_each(function()
-    schema.static.client_settings = nil
     _G.codecompanion_jobs = nil
   end)
 
@@ -26,23 +40,19 @@ describe("Client", function()
     -- Mock globals
     _G.codecompanion_jobs = {}
 
-    schema.static.client_settings = {
+    Client.static.opts = {
       request = { default = mock_request },
       encode = { default = mock_encode },
       decode = { default = mock_decode },
       schedule = { default = mock_schedule },
     }
 
-    local client = Client.new({
-      secret_key = "fake_key",
-      organization = "fake_org",
-    })
-
     local cb = stub.new()
 
-    client:stream_chat({}, 0, cb)
+    adapter = require("codecompanion.adapter").new(adapter)
 
-    assert.stub(mock_request).was_called()
-    -- assert.stub(cb).was_called()
+    Client.new():stream(adapter, {}, 0, cb)
+
+    assert.stub(mock_request).was_called(1)
   end)
 end)

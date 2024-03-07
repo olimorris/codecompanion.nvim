@@ -1,32 +1,9 @@
 local M = {}
 
 local defaults = {
-  api_key = "OPENAI_API_KEY",
-  org_api_key = "OPENAI_ORG_KEY",
-  base_url = "https://api.openai.com",
-  ai_settings = {
-    chat = {
-      model = "gpt-4-0125-preview",
-      temperature = 1,
-      top_p = 1,
-      stop = nil,
-      max_tokens = nil,
-      presence_penalty = 0,
-      frequency_penalty = 0,
-      logit_bias = nil,
-      user = nil,
-    },
-    inline = {
-      model = "gpt-4-0125-preview",
-      temperature = 1,
-      top_p = 1,
-      stop = nil,
-      max_tokens = nil,
-      presence_penalty = 0,
-      frequency_penalty = 0,
-      logit_bias = nil,
-      user = nil,
-    },
+  adapters = {
+    chat = require("codecompanion.adapters").use("openai"),
+    inline = require("codecompanion.adapters").use("openai"),
   },
   saved_chats = {
     save_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats",
