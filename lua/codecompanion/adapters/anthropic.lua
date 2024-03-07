@@ -1,5 +1,3 @@
-local Adapter = require("codecompanion.adapter")
-
 ---@class CodeCompanion.Adapter
 ---@field name string
 ---@field url string
@@ -8,17 +6,17 @@ local Adapter = require("codecompanion.adapter")
 ---@field parameters table
 ---@field callbacks table
 ---@field schema table
-local adapter = {
+return {
   name = "Anthropic",
   url = "https://api.anthropic.com/v1/messages",
   env = {
-    anthropic_api_key = "ANTHROPIC_API_KEY",
+    api_key = "ANTHROPIC_API_KEY",
   },
   headers = {
     ["anthropic-version"] = "2023-06-01",
     -- ["anthropic-beta"] = "messages-2023-12-15",
     ["content-type"] = "application/json",
-    ["x-api-key"] = "${anthropic_api_key}",
+    ["x-api-key"] = "${api_key}",
   },
   parameters = {
     stream = true,
@@ -134,5 +132,3 @@ local adapter = {
     },
   },
 }
-
-return Adapter.new(adapter)

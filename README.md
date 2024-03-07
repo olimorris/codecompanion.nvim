@@ -52,7 +52,7 @@ Currently supports OpenAI and Ollama.
 
 - The `curl` library installed
 - Neovim 0.9.2 or greater
-- _(Optional)_ An API key from your chosen Generative AI service
+- _(Optional)_ An API key to be set in your shell for your chosen Generative AI service
 
 ## :package: Installation
 
@@ -97,8 +97,8 @@ You only need to the call the `setup` function if you wish to change any of the 
 ```lua
 require("codecompanion").setup({
   adapters = {
-    chat = require("codecompanion.adapters.openai"),
-    inline = require("codecompanion.adapters.openai"),
+    chat = require("codecompanion.adapters").use("openai"),
+    inline = require("codecompanion.adapters").use("openai"),
   },
   saved_chats = {
     save_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats", -- Path to save chats to
@@ -158,24 +158,41 @@ require("codecompanion").setup({
 
 ### Adapters
 
-The plugin uses adapters to bridge between Generative AI services and the plugin itself. More information can be found in the [ADAPTERS](ADAPTERS.md) guide. Below are the configuration requirements for each adapter:
+The plugin uses adapters to bridge between Generative AI services and the plugin. Currently the plugin supports:
 
-- **OpenAI** - Set the `OPENAI_API_KEY` variable within your shell
-- **Ollama** - None
+- Anthropic (`anthropic`) - Requires `ANTHROPIC_API_KEY` to be set in your shell
+- Ollama (`ollama`)
+- OpenAI (`openai`) - Requires `OPENAI_API_KEY` to be set in your shell
 
-#### Modifying Adapters
-
-It may be neccessary for you to modify in-built adapters. This can be done by calling the `setup` method:
+You can specify an adapter for each of the strategies in the plugin:
 
 ```lua
 require("codecompanion").setup({
   adapters = {
-    chat = require("codecompanion.adapters.openai").setup({
+    chat = require("codecompanion.adapters").use("openai"),
+    inline = require("codecompanion.adapters").use("openai"),
+  },
+})
+```
 
+#### Modifying Adapters
+
+It may be necessary to modify certain parameters of an adapter. In the example below, we're changing the name of the API key that the OpenAI adapter uses by passing in a table to the `use` method:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    chat = require("codecompanion.adapters").use("openai", {
+      env = {
+        api_key = "DIFFERENT_OPENAI_KEY",
+      },
     }),
   },
 })
 ```
+
+> [!TIP]
+> To create your own adapter please refer to the [ADAPTERS](ADAPTERS.md) guide
 
 ### Edgy.nvim Configuration
 

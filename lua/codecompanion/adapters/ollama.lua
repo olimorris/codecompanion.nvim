@@ -1,5 +1,3 @@
-local Adapter = require("codecompanion.adapter")
-
 ---@class CodeCompanion.Adapter
 ---@field name string
 ---@field url string
@@ -8,7 +6,7 @@ local Adapter = require("codecompanion.adapter")
 ---@field parameters table
 ---@field callbacks table
 ---@field schema table
-local adapter = {
+return {
   name = "Ollama",
   url = "http://localhost:11434/api/chat",
   callbacks = {
@@ -103,5 +101,3 @@ local adapter = {
     },
   },
 }
-
-return Adapter.new(adapter)

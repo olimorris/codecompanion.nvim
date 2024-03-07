@@ -1,5 +1,3 @@
-local Adapter = require("codecompanion.adapter")
-
 ---@class CodeCompanion.Adapter
 ---@field name string
 ---@field url string
@@ -8,11 +6,11 @@ local Adapter = require("codecompanion.adapter")
 ---@field parameters table
 ---@field callbacks table
 ---@field schema table
-local adapter = {
+return {
   name = "OpenAI",
   url = "https://api.openai.com/v1/chat/completions",
   env = {
-    openai_api_key = "OPENAI_API_KEY",
+    api_key = "OPENAI_API_KEY",
   },
   raw = {
     "--no-buffer",
@@ -20,7 +18,7 @@ local adapter = {
   },
   headers = {
     ["Content-Type"] = "application/json",
-    Authorization = "Bearer ${openai_api_key}",
+    Authorization = "Bearer ${api_key}",
   },
   parameters = {
     stream = true,
@@ -203,5 +201,3 @@ local adapter = {
     },
   },
 }
-
-return Adapter.new(adapter)
