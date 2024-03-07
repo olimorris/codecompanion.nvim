@@ -173,60 +173,10 @@ function Inline:execute(user_input)
 
   local messages = get_action(self, user_input)
 
-  -- if not self.opts.placement and user_input then
-  --   local return_code
-  --   self.opts.placement, return_code = get_placement_position(self, user_input)
-  --
-  --   if not return_code then
-  --     table.insert(messages, {
-  --       role = "user",
-  --       content = "Please do not return the code I have sent in the response",
-  --     })
-  --   end
-  --
-  --   log:debug("Setting the placement to: %s", self.opts.placement)
-  -- end
-
   -- Assume the placement should be after the cursor
   vim.api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
   pos.line = self.context.end_line + 1
   pos.col = 0
-
-  --TODO: Workout how we can re-enable this
-  -- Determine where to place the response in the buffer
-  -- if self.opts and self.opts.placement then
-  --   if self.opts.placement == "before" then
-  --     log:trace("Placing before selection")
-  --     vim.api.nvim_buf_set_lines(
-  --       self.context.bufnr,
-  --       self.context.start_line - 1,
-  --       self.context.start_line - 1,
-  --       false,
-  --       { "" }
-  --     )
-  --     self.context.start_line = self.context.start_line + 1
-  --     pos.line = self.context.start_line - 1
-  --     pos.col = self.context.start_col - 1
-  --   elseif self.opts.placement == "after" then
-  --     log:trace("Placing after selection")
-  --     vim.api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
-  --     pos.line = self.context.end_line + 1
-  --     pos.col = 0
-  --   elseif self.opts.placement == "replace" then
-  --     log:trace("Placing by overwriting selection")
-  --     overwrite_selection(self.context)
-  --
-  --     pos.line, pos.col = get_cursor(self.context.winid)
-  --   elseif self.opts.placement == "new" then
-  --     log:trace("Placing in a new buffer")
-  --     self.context.bufnr = api.nvim_create_buf(true, false)
-  --     api.nvim_buf_set_option(self.context.bufnr, "filetype", self.context.filetype)
-  --     api.nvim_set_current_buf(self.context.bufnr)
-  --
-  --     pos.line = 1
-  --     pos.col = 0
-  --   end
-  -- end
 
   log:debug("Context for inline: %s", self.context)
   log:debug("Cursor position to use: %s", pos)

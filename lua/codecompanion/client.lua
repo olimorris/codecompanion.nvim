@@ -46,7 +46,6 @@ Client.static = {}
 Client.static.opts = {
   request = { default = curl.post },
   encode = { default = vim.json.encode },
-  decode = { default = vim.json.decode },
   schedule = { default = vim.schedule_wrap },
 }
 
@@ -96,7 +95,7 @@ function Client:stream(adapter, payload, bufnr, cb)
     headers = headers,
     body = body,
     stream = self.opts.schedule(function(_, data)
-      -- log:trace("Chat data: %s", data)
+      log:trace("Chat data: %s", data)
       -- log:trace("----- For Adapter test creation -----\nRequest: %s\n ---------- // END ----------", data)
 
       if _G.codecompanion_jobs[bufnr] and _G.codecompanion_jobs[bufnr].status == "stopping" then
