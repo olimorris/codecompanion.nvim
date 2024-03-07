@@ -53,7 +53,7 @@ return {
           output.role = message.role or nil
         end
 
-        log:trace("----- For Adapter test creation -----\nOutput: %s\n ---------- // END ----------", output)
+        -- log:trace("----- For Adapter test creation -----\nOutput: %s\n ---------- // END ----------", output)
 
         return {
           status = "success",
@@ -65,11 +65,17 @@ return {
     end,
 
     ---Output the data from the API ready for inlining into the current buffer
-    ---@param json_data table The streamed JSON data from the API, also formatted by the format_data callback
+    ---@param data table The streamed JSON data from the API, also formatted by the format_data callback
     ---@param context table Useful context about the buffer to inline to
-    ---@return table
-    output_inline = function(json_data, context)
-      return json_data.message.content
+    ---@return table|nil
+    inline_output = function(data, context)
+      local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
+
+      if not ok then
+        return
+      end
+
+      return json.message.content
     end,
   },
   schema = {

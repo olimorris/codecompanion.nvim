@@ -100,7 +100,7 @@ function Client:stream(adapter, payload, bufnr, cb)
     body = body,
     stream = self.opts.schedule(function(_, data)
       log:trace("Chat data: %s", data)
-      log:trace("----- For Adapter test creation -----\nRequest: %s\n ---------- // END ----------", data)
+      -- log:trace("----- For Adapter test creation -----\nRequest: %s\n ---------- // END ----------", data)
 
       if _G.codecompanion_jobs[bufnr] and _G.codecompanion_jobs[bufnr].status == "stopping" then
         stop_request(bufnr, { shutdown = true })

@@ -280,7 +280,7 @@ function Inline:execute(user_input)
     if data then
       log:trace("Inline data: %s", data)
 
-      local content = adapter.callbacks.output_inline(data, self.context)
+      local content = adapter.callbacks.inline_output(data, self.context)
 
       if self.context.buftype == "terminal" then
         -- Don't stream to the terminal
