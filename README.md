@@ -97,8 +97,8 @@ You only need to the call the `setup` function if you wish to change any of the 
 ```lua
 require("codecompanion").setup({
   adapters = {
-    chat = require("codecompanion.adapters").use("openai"),
-    inline = require("codecompanion.adapters").use("openai"),
+    chat = "openai",
+    inline = "openai",
   },
   saved_chats = {
     save_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats", -- Path to save chats to
