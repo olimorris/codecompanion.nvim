@@ -1,10 +1,18 @@
 local function to_legendary_keymap(key, keymap)
   return {
     key,
-    keymap.callback,
-    desc = require("legendary.util").get_desc(keymap),
+    -- prefix makes it easier to search in legendary.nvim window
+    desc = string.format("codecompanion.nvim: %s", require("legendary.util").get_desc(keymap)),
     -- keymaps are all for the chat buffer
     filters = { filetype = "codecompanion" },
+  }
+end
+
+---@param cmd CodeCompanionCommand
+local function to_legendary_cmd(cmd)
+  return {
+    cmd.cmd,
+    desc = cmd.opts.desc,
   }
 end
 
@@ -18,5 +26,15 @@ return function()
       end
       table.insert(legendary_keys, to_legendary_keymap(lhs, rhs))
     end
+
+    local legendary_cmds = {}
+    for _, cmd in ipairs(require("codecompanion.commands")) do
+      table.insert(legendary_cmds, to_legendary_cmd(cmd))
+    end
+
+    local legendary = require("legendary")
+    legendary.keymaps(legendary_keys)
+    legendary.commands(legendary_cmds)
+    return true
   end)
 end

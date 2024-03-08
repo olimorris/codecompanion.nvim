@@ -24,7 +24,8 @@ M.inline = function(args)
           content = function()
             return "I want you to act as a senior "
               .. context.filetype
-              .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing"
+              .. " developer. I will ask you specific questions and I want you to return RAW CODE ONLY (NO CODEBLOCKS and NO EXPLANATIONS). If you can't respond with code, respond with nothing."
+              .. " DO NOT INCLUDE CODE BLOCKS (```) in your response."
           end,
         },
       },
