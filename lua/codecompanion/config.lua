@@ -92,6 +92,15 @@ M.setup = function(opts)
   }
   vim.diagnostic.config(diagnostic_config, M.INFO_NS)
   vim.diagnostic.config(diagnostic_config, M.ERROR_NS)
+
+  local chat_adapter = vim.tbl_get(M.options, "adapters", "chat")
+  if type(chat_adapter) == "string" then
+    M.options.adapters.chat = require("codecompanion.adapters").use(chat_adapter)
+  end
+  local inline_adapter = vim.tbl_get(M.options, "adapters", "inline")
+  if type(inline_adapter) == "string" then
+    M.options.adapters.inline = require("codecompanion.adapters").use(inline_adapter)
+  end
 end
 
 return M
