@@ -59,6 +59,10 @@ local defaults = {
 M.setup = function(opts)
   M.options = vim.tbl_deep_extend("force", {}, defaults, opts or {})
 
+  if opts and opts.adapters then
+    M.options.adapters = opts.adapters
+  end
+
   M.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
   M.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
 
