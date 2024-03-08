@@ -15,7 +15,7 @@
 
 <p align="center">
 Use the power of generative AI in Neovim. Use it to chat, author and advise you on your code.<br><br>
-Supports Anthropic, Ollama and OpenAI.
+Currently supports: Anthropic, Ollama and OpenAI adapters.
 </p>
 
 > [!IMPORTANT]
@@ -311,7 +311,7 @@ Both of these actions utilise the `chat` strategy. The `Chat` action opens up a 
 
 #### Open chats
 
-This action enables users to easily navigate between their open chat buffers. A chat buffer maybe deleted (and removed from memory) by pressing `<C-c>`.
+This action enables users to easily navigate between their open chat buffers. A chat buffer can be deleted (and removed from memory) by pressing `<C-c>`.
 
 #### Inline code
 
