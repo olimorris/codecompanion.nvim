@@ -9,16 +9,16 @@ local M = {}
 ---@return string|fun() rhs
 ---@return table opts
 ---@return string|nil mode
-local function resolve(rhs)
+M.resolve = function(rhs)
   if type(rhs) == "string" and vim.startswith(rhs, "keymaps.") then
-    return resolve(keymaps[vim.split(rhs, ".", { plain = true })[2]])
+    return M.resolve(keymaps[vim.split(rhs, ".", { plain = true })[2]])
   elseif type(rhs) == "table" then
     local opts = vim.deepcopy(rhs)
     local callback = opts.callback
     local mode = opts.mode
     if type(rhs.callback) == "string" then
       local action_opts, action_mode
-      callback, action_opts, action_mode = resolve(rhs.callback)
+      callback, action_opts, action_mode = M.resolve(rhs.callback)
       opts = vim.tbl_extend("keep", opts, action_opts)
       mode = mode or action_mode
     end
@@ -35,7 +35,7 @@ end
 ---@param data? table
 M.set_keymaps = function(keymaps, bufnr, data)
   for k, v in pairs(keymaps) do
-    local rhs, opts, mode = resolve(v)
+    local rhs, opts, mode = M.resolve(v)
     if rhs then
       local callback
       if type(rhs) == "function" then
