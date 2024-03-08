@@ -9,7 +9,17 @@ end
 local codecompanion = require("codecompanion")
 
 vim.api.nvim_create_user_command("CodeCompanion", function(opts)
-  codecompanion.inline(opts)
+  if #vim.trim(opts.args or "") == 0 then
+    vim.ui.input({ prompt = "Prompt" }, function(input)
+      if #vim.trim(input or "") == 0 then
+        return
+      end
+      opts.args = input
+      codecompanion.inline(opts)
+    end)
+  else
+    codecompanion.inline(opts)
+  end
 end, { desc = "Trigger CodeCompanion inline", range = true, nargs = "*" })
 
 vim.api.nvim_create_user_command("CodeCompanionChat", function(opts)
