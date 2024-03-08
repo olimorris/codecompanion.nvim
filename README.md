@@ -258,7 +258,7 @@ The Action Palette, opened via `:CodeCompanionActions`, contains all of the acti
 
 <p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/84d5e03a-0b48-4ffb-9ca5-e299d41171bd" alt="chat buffer" /></p>
 
-The chat buffer is where you can converse with the generative AI service, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the generative AI service, in the form of prompts. These prompts are segmented by H1 headers: `user` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with ChatGPT from within Neovim.
+The chat buffer is where you can converse with the generative AI service, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the generative AI service, in the form of prompts. These prompts are segmented by H1 headers, commonly `user`, `system` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with the generative AI from within Neovim.
 
 #### Keymaps
 
@@ -279,7 +279,7 @@ Chat buffers are not saved to disk by default, but can be by pressing `gs` in th
 
 #### Settings
 
-If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the adapter parameters which can be changed to tweak the response back to you. This enables fine-tuning and parameter tweaking throughout the chat. You can find more detail about them by moving the cursor over them.
+If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the adapter parameters which can be changed to tweak the response back to you. This enables fine-tuning and parameter of the generative AI results throughout the chat. You can find more detail about them by moving the cursor over them.
 
 ### Inline Code
 
@@ -298,16 +298,6 @@ You can use the plugin to create inline code directly into a Neovim buffer. This
 > [!NOTE]
 > The command can detect if you've made a visual selection and send any code as context to the API alongside the filetype of the buffer.
 
-One of the challenges with inline editing is determining how the API's response should be handled in the buffer. If you've prompted the API to _"create a table of 5 fruits"_ then you may wish for the response to be placed after the cursor in the buffer. However, if you asked the API to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. If this _placement_ isn't specified then the plugin will use generative AI itself to determine if the response should follow any of the placements below:
-
-- _after_ - after the visual selection
-- _before_ - before the visual selection
-- _cursor_ - one column after the cursor position
-- _new_ - in a new buffer
-- _replace_ - replacing the visual selection
-
-As a final example, specifying a prompt like _"create a test for this code in a new buffer"_ would result in a new Neovim buffer being created.
-
 ### In-Built Actions
 
 The plugin comes with a number of [in-built actions](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) which aim to improve your Neovim workflow. Actions make use of either a _chat_ or an _inline_ strategy. The chat strategy opens up a chat buffer whilst an inline strategy will write output from the generative AI service into the Neovim buffer.
@@ -321,7 +311,7 @@ Both of these actions utilise the `chat` strategy. The `Chat` action opens up a 
 
 #### Open chats
 
-This action enables users to easily navigate between their open chat buffers. A chat buffer maybe deleted (and removed from memory) by pressing `<C-q>`.
+This action enables users to easily navigate between their open chat buffers. A chat buffer maybe deleted (and removed from memory) by pressing `<C-c>`.
 
 #### Inline code
 
