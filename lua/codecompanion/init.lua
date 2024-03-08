@@ -13,43 +13,23 @@ end
 ---@param args table
 ---@return nil|CodeCompanion.Inline
 M.inline = function(args)
-  local function inline(context, prompt)
-    return require("codecompanion.strategies.inline")
-      .new({
-        context = context,
-        prompts = {
-          {
-            role = "system",
-            content = function()
-              return "I want you to act as a senior "
-                .. context.filetype
-                .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing"
-            end,
-          },
-        },
-      })
-      :start(prompt)
-  end
-
   local context = util.get_context(vim.api.nvim_get_current_buf(), args)
 
-  local input = args.args
-
-  if input == "" then
-    vim.ui.input({ prompt = string.gsub(context.filetype, "^%l", string.upper) .. " Prompt" }, function(user_input)
-      if not user_input then
-        return
-      end
-
-      return inline(context, user_input)
-    end)
-  end
-
-  if not input or input == "" then
-    return
-  end
-
-  return inline(context, args.args)
+  return require("codecompanion.strategies.inline")
+    .new({
+      context = context,
+      prompts = {
+        {
+          role = "system",
+          content = function()
+            return "I want you to act as a senior "
+              .. context.filetype
+              .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing"
+          end,
+        },
+      },
+    })
+    :start(args.args)
 end
 
 ---@param args? table
