@@ -84,8 +84,9 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use.",
-      default = "llama2",
+      default = "dolphin-mixtral",
       choices = {
+        "dolphin-mixtral",
         "llama2",
         "mistral",
         "dolphin-phi",
