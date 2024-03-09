@@ -457,6 +457,7 @@ M.static.actions = {
       },
       {
         role = "user",
+        contains_code = true,
         content = function(context)
           local diagnostics =
             require("codecompanion.helpers.lsp").get_diagnostics(context.start_line, context.end_line, context.bufnr)
@@ -480,13 +481,7 @@ M.static.actions = {
             .. context.filetype
             .. ". This is a list of the diagnostic messages:\n\n"
             .. concatenated_diagnostics
-        end,
-      },
-      {
-        role = "user",
-        contains_code = true,
-        content = function(context)
-          return "This is the code, for context:\n\n"
+            .. "\n\nThis is the code, for context:\n\n"
             .. "```"
             .. context.filetype
             .. "\n"

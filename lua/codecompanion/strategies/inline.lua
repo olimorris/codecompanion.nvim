@@ -221,6 +221,12 @@ function Inline:execute(user_input)
   fire_autocmd("started")
 
   local output = {}
+
+  if not adapter then
+    vim.notify("No adapter found for inline requests", vim.log.levels.ERROR)
+    return
+  end
+
   client.new():stream(adapter:set_params(), messages, self.context.bufnr, function(err, data, done)
     if err then
       fire_autocmd("finished")

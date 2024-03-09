@@ -38,7 +38,9 @@ return {
     ---@return table
     form_parameters = function(params, messages)
       local system_prompt_index = get_system_prompt(messages)
-      params.system = messages[system_prompt_index].content
+      if system_prompt_index then
+        params.system = messages[system_prompt_index].content
+      end
 
       return params
     end,
@@ -48,7 +50,9 @@ return {
     ---@return table
     form_messages = function(messages)
       local system_prompt_index = get_system_prompt(messages)
-      table.remove(messages, system_prompt_index)
+      if system_prompt_index then
+        table.remove(messages, system_prompt_index)
+      end
 
       return { messages = messages }
     end,
