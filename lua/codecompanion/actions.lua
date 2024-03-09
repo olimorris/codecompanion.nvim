@@ -506,7 +506,6 @@ M.static.actions = {
     picker = {
       prompt = "Load chats",
       items = function()
-        local client = require("codecompanion").get_client()
         local saved_chats = require("codecompanion.strategies.saved_chats")
         local items = saved_chats:list({ sort = true })
 
@@ -522,7 +521,7 @@ M.static.actions = {
                 .new({
                   filename = chat.filename,
                 })
-                :load(client, chat)
+                :load(chat)
             end,
           })
         end

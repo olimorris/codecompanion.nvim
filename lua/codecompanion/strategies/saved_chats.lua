@@ -116,16 +116,14 @@ function SavedChat:list(opts)
   return saved_chats
 end
 
----@param client CodeCompanion.Client
 ---@param opts table
-function SavedChat:load(client, opts)
+function SavedChat:load(opts)
   log:debug("Loading saved chat: %s", opts)
 
   self.filename = opts.filename
   local content = vim.fn.json_decode(table.concat(vim.fn.readfile(opts.path), "\n"))
 
   local chat_buf = Chat.new({
-    client = client,
     saved_chat = self.filename,
     messages = content.messages,
     settings = content.settings,
