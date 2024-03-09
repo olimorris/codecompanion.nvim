@@ -71,9 +71,9 @@ Click to see the default configuration ~
 
 >lua
     require("codecompanion").setup({
-      adapters = {
-        chat = require("codecompanion.adapters").use("openai"),
-        inline = require("codecompanion.adapters").use("openai"),
+      adapters = { -- anthropic|ollama|openai
+        chat = "openai",
+        inline = "openai",
       },
       saved_chats = {
         save_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats", -- Path to save chats to
@@ -325,7 +325,7 @@ generative AI service.
 OPEN CHATS
 
 This action enables users to easily navigate between their open chat buffers. A
-chat buffer maybe deleted (and removed from memory) by pressing `<C-c>`.
+chat buffer can be deleted (and removed from memory) by pressing `<C-c>`.
 
 
 INLINE CODE
