@@ -474,6 +474,10 @@ function Chat:submit()
   -- log:trace("Settings: %s", settings)
 
   local adapter = config.options.adapters.chat
+  if not adapter then
+    vim.notify("No adapter found", vim.log.levels.ERROR)
+    return finalize()
+  end
 
   client.new():stream(adapter:set_params(settings), messages, self.bufnr, function(err, data, done)
     if err then

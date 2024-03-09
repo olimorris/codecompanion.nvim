@@ -14,6 +14,10 @@ local adapter = {
     stream = true,
   },
   callbacks = {
+    form_parameters = function()
+      return {}
+    end,
+
     form_messages = function()
       return {}
     end,

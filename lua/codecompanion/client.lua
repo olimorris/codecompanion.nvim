@@ -65,7 +65,7 @@ function Client.new(args)
 end
 
 ---@param adapter CodeCompanion.Adapter
----@param payload table the messages to send to the API
+---@param payload table the payload to send to the API
 ---@param bufnr number
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
 ---@return nil
@@ -74,8 +74,13 @@ function Client:stream(adapter, payload, bufnr, cb)
 
   --TODO: Check for any errors env variables
   local headers = adapter:replace_header_vars().headers
-  local body =
-    self.opts.encode(vim.tbl_extend("keep", adapter.parameters or {}, adapter.callbacks.form_messages(payload)))
+  local body = self.opts.encode(
+    vim.tbl_extend(
+      "keep",
+      adapter.callbacks.form_parameters(adapter.parameters, payload) or {},
+      adapter.callbacks.form_messages(payload)
+    )
+  )
 
   local stop_request_cmd = api.nvim_create_autocmd("User", {
     desc = "Stop the current request",

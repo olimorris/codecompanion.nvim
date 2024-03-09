@@ -12,6 +12,14 @@ return {
   name = "Ollama",
   url = "http://localhost:11434/api/chat",
   callbacks = {
+    ---Set the parameters
+    ---@param params table
+    ---@param messages table
+    ---@return table
+    form_parameters = function(params, messages)
+      return params
+    end,
+
     ---Set the format of the role and content for the messages from the chat buffer
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table

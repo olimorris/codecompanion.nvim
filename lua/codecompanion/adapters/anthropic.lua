@@ -1,5 +1,14 @@
 local log = require("codecompanion.utils.log")
 
+local function get_system_prompt(tbl)
+  for i, element in ipairs(tbl) do
+    if element.role == "system" then
+      return i
+    end
+  end
+  return nil
+end
+
 ---@class CodeCompanion.Adapter
 ---@field name string
 ---@field url string
@@ -16,7 +25,6 @@ return {
   },
   headers = {
     ["anthropic-version"] = "2023-06-01",
-    -- ["anthropic-beta"] = "messages-2023-12-15",
     ["content-type"] = "application/json",
     ["x-api-key"] = "${api_key}",
   },
@@ -24,10 +32,24 @@ return {
     stream = true,
   },
   callbacks = {
+    ---Set phe parameters
+    ---@param params table
+    ---@param messages table
+    ---@return table
+    form_parameters = function(params, messages)
+      local system_prompt_index = get_system_prompt(messages)
+      params.system = messages[system_prompt_index].content
+
+      return params
+    end,
+
     ---Set the format of the role and content for the messages from the chat buffer
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(messages)
+      local system_prompt_index = get_system_prompt(messages)
+      table.remove(messages, system_prompt_index)
+
       return { messages = messages }
     end,
 
