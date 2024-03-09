@@ -11,58 +11,6 @@ local function fire_autocmd(status)
   vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionInline", data = { status = status } })
 end
 
----When a user initiates an inline request, it will be possible to infer from
----their prompt, how the output should be placed in the buffer. For instance, if
----they reference the words "refactor" or "update" in their prompt, they will
----likely want the response to replace a visual selection they've made in the
----editor. However, if they include words such as "after" or "before", it may
----be insinuated that they wish the response to be placed after or before the
----cursor. In this function, we use the power of Generative AI to determine
----the user's intent and return a placement position.
----@param inline CodeCompanion.Inline
----@param prompt string
----@return string, boolean
-local function get_placement_position(inline, prompt)
-  local placement = "cursor"
-  local return_code = false
-
-  local messages = {
-    {
-      role = "system",
-      content = 'I am writing a prompt from within the Neovim text editor. This prompt will go to a GenAI model which will return a response. The response will then be streamed into Neovim. However, depending on the nature of the prompt, how Neovim handles the streaming will vary. For instance, if the user references the words "refactor" or "update" in their prompt, they will likely want the response to replace a visual selection they\'ve made in the editor. However, if they include words such as "after" or "before", it may be insinuated that they wish the response to be placed after or before the current selection. They may also ask for the response to be placed in a new buffer. Finally, if you they don\'t specify what they wish to do, then they likely want to stream the response into where the cursor is currently. What I\'d like you to do is analyse the following prompt and determine whether the response should be one of: 1) after 2) before 3) replace 4) new 5) cursor. We\'ll call this the "placement" and please only respond with a single word.',
-    },
-    {
-      role = "system",
-      content = 'The user may not wish for their original code to be returned back to them from the GenAI model as part of the response. An example would be if they\'ve asked the model to generate comments or documentation. However if they\'ve asked for some refactoring/modification, then the original code should be returned. Please can you determine whether the code should be returned or not by responding with a boolean flag. Can you append this to the "placement" from earlier and seperate them with a "|" character?',
-    },
-    {
-      role = "user",
-      content = 'The prompt to analyse is: "' .. prompt .. '"',
-    },
-  }
-
-  local output
-  client.new():call(adapter:set_params(), messages, function(err, data)
-    if err then
-      return
-    end
-
-    if data then
-      print(vim.inspect(data))
-    end
-  end)
-
-  log:trace("Placement output: %s", output)
-
-  if output then
-    local parts = vim.split(output, "|")
-    placement = parts[1]
-    return_code = parts[2] == "true"
-  end
-
-  return placement, return_code
-end
-
 ---@param filetype string
 ---@param lines table
 ---@return string
@@ -77,7 +25,7 @@ end
 ---@param inline CodeCompanion.Inline
 ---@param user_input? string
 ---@return table
-local get_action = function(inline, user_input)
+local build_messages = function(inline, user_input)
   local output = {}
 
   for _, prompt in ipairs(inline.prompts) do
@@ -110,27 +58,6 @@ local get_action = function(inline, user_input)
   end
 
   return output
-end
-
----@param context table
-local function overwrite_selection(context)
-  api.nvim_buf_set_text(
-    context.bufnr,
-    context.start_line - 1,
-    context.start_col - 1,
-    context.end_line - 1,
-    context.end_col,
-    { "" }
-  )
-  api.nvim_win_set_cursor(context.winid, { context.start_line, context.start_col - 1 })
-end
-
----@param winid number
----@return number line
----@return number col
-local function get_cursor(winid)
-  local cursor_pos = api.nvim_win_get_cursor(winid)
-  return cursor_pos[1], cursor_pos[2]
 end
 
 ---@class CodeCompanion.Inline
@@ -171,7 +98,7 @@ end
 function Inline:execute(user_input)
   local pos = { line = self.context.start_line, col = 0 }
 
-  local messages = get_action(self, user_input)
+  local messages = build_messages(self, user_input)
 
   -- Assume the placement should be after the cursor
   vim.api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
@@ -233,6 +160,16 @@ function Inline:execute(user_input)
       return
     end
 
+    if done then
+      api.nvim_buf_del_keymap(self.context.bufnr, "n", "q")
+      if self.context.buftype == "terminal" then
+        log:debug("Terminal output: %s", output)
+        api.nvim_put({ table.concat(output, "") }, "", false, true)
+      end
+      fire_autocmd("finished")
+      return
+    end
+
     if data then
       log:trace("Inline data: %s", data)
 
@@ -249,15 +186,6 @@ function Inline:execute(user_input)
           end
         end
       end
-    end
-
-    if done then
-      api.nvim_buf_del_keymap(self.context.bufnr, "n", "q")
-      if self.context.buftype == "terminal" then
-        log:debug("Terminal output: %s", output)
-        api.nvim_put({ table.concat(output, "") }, "", false, true)
-      end
-      fire_autocmd("finished")
     end
   end)
 end
