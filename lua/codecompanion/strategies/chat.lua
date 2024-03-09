@@ -179,8 +179,7 @@ _G.codecompanion_chats = {}
 local registered_cmp = false
 
 ---@param bufnr number
----@param args table
-local function chat_autocmds(bufnr, args)
+local function chat_autocmds(bufnr)
   local aug = api.nvim_create_augroup("CodeCompanion", {
     clear = false,
   })
@@ -368,7 +367,7 @@ function Chat.new(args)
   ui.set_buf_options(bufnr, config.options.display.chat.buf_options)
 
   watch_cursor()
-  chat_autocmds(bufnr, args)
+  chat_autocmds(bufnr)
 
   local settings = args.settings or schema.get_default(config.options.adapters.chat.schema, args.settings)
 
