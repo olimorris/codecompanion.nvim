@@ -32,11 +32,13 @@ return {
     stream = true,
   },
   callbacks = {
-    ---Set phe parameters
+    ---Set the parameters
     ---@param params table
     ---@param messages table
     ---@return table
     form_parameters = function(params, messages)
+      -- As per: https://docs.anthropic.com/claude/docs/system-prompts
+      -- Claude doesn't put the system prompt in the messages array, but in the parameters.system field
       local system_prompt_index = get_system_prompt(messages)
       if system_prompt_index then
         params.system = messages[system_prompt_index].content
@@ -133,8 +135,6 @@ return {
       if json.type == "content_block_delta" then
         return json.delta.text
       end
-
-      return
     end,
   },
   schema = {
