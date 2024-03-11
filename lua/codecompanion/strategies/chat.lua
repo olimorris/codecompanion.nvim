@@ -499,7 +499,7 @@ function Chat:submit()
       elseif result and result.status == "error" then
         vim.api.nvim_exec_autocmds(
           "User",
-          { pattern = "CodeCompanionRequest", data = { buf = self.bufnr, action = "stop_request" } }
+          { pattern = "CodeCompanionRequest", data = { buf = self.bufnr, action = "cancel_request" } }
         )
         vim.notify("Error: " .. result.output, vim.log.levels.ERROR)
         return finalize()

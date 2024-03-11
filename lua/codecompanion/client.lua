@@ -82,15 +82,15 @@ function Client:stream(adapter, payload, bufnr, cb)
     )
   )
 
-  local stop_request_cmd = api.nvim_create_autocmd("User", {
+  local cancel_request = api.nvim_create_autocmd("User", {
     desc = "Stop the current request",
     pattern = "CodeCompanionRequest",
     callback = function(request)
-      if request.data.buf ~= bufnr or request.data.action ~= "stop_request" then
+      if request.data.buf ~= bufnr or request.data.action ~= "cancel_request" then
         return
       end
 
-      return stop_request(bufnr, { shutdown = true })
+      return stop_request(request.data.buf, { shutdown = true })
     end,
   })
 
@@ -99,28 +99,26 @@ function Client:stream(adapter, payload, bufnr, cb)
     raw = adapter.raw or { "--no-buffer" },
     headers = headers,
     body = body,
-    stream = self.opts.schedule(function(_, data)
+    stream = self.opts.schedule(function(_, data, _)
       log:trace("Chat data: %s", data)
       -- log:trace("----- For Adapter test creation -----\nRequest: %s\n ---------- // END ----------", data)
-
-      if _G.codecompanion_jobs[bufnr] and _G.codecompanion_jobs[bufnr].status == "stopping" then
-        stop_request(bufnr, { shutdown = true })
-        return cb(nil, nil, true)
-      end
 
       if adapter.callbacks.is_complete(data) then
         log:trace("Chat completed")
         stop_request(bufnr)
-        api.nvim_del_autocmd(stop_request_cmd)
+        api.nvim_del_autocmd(cancel_request)
         return cb(nil, nil, true)
       end
 
       cb(nil, data)
     end),
-    on_error = function(err, _, _)
-      log:error("Error: %s", err)
+    on_error = function(err, _, code)
+      if code then
+        log:error("Error: %s", err)
+      end
       stop_request(bufnr)
-      api.nvim_del_autocmd(stop_request_cmd)
+      api.nvim_del_autocmd(cancel_request)
+      return cb(nil, nil, true)
     end,
   })
 

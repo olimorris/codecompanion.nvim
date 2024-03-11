@@ -26,7 +26,10 @@ M.cancel_request = {
     if _G.codecompanion_jobs[args.bufnr] == nil then
       return
     end
-    _G.codecompanion_jobs[args.bufnr].status = "stopping"
+    vim.api.nvim_exec_autocmds(
+      "User",
+      { pattern = "CodeCompanionRequest", data = { buf = args.bufnr, action = "cancel_request" } }
+    )
   end,
 }
 
