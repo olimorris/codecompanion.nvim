@@ -90,16 +90,21 @@ return {
     ---Output the data from the API ready for inlining into the current buffer
     ---@param data table The streamed JSON data from the API, also formatted by the format_data callback
     ---@param context table Useful context about the buffer to inline to
-    ---@return table|nil
+    ---@return string|nil
     inline_output = function(data, context)
-      data = data:sub(7)
-      local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
+      if data and data ~= "" then
+        data = data:sub(7)
+        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
-      if not ok then
-        return
+        if not ok then
+          return
+        end
+
+        local content = json.choices[1].delta.content
+        if content then
+          return content
+        end
       end
-
-      return json.choices[1].delta.content
     end,
   },
   schema = {

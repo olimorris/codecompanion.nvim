@@ -99,8 +99,10 @@ function Client:stream(adapter, payload, bufnr, cb)
     raw = adapter.raw or { "--no-buffer" },
     headers = headers,
     body = body,
-    stream = self.opts.schedule(function(_, data, _)
-      log:trace("Chat data: %s", data)
+    stream = self.opts.schedule(function(_, data)
+      if data then
+        log:trace("Chat data: %s", data)
+      end
       -- log:trace("----- For Adapter test creation -----\nRequest: %s\n ---------- // END ----------", data)
 
       if adapter.callbacks.is_complete(data) then

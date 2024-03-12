@@ -77,13 +77,15 @@ return {
     ---@param context table Useful context about the buffer to inline to
     ---@return table|nil
     inline_output = function(data, context)
-      local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
+      if data and data ~= "" then
+        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
-      if not ok then
-        return
+        if not ok then
+          return
+        end
+
+        return json.message.content
       end
-
-      return json.message.content
     end,
   },
   schema = {

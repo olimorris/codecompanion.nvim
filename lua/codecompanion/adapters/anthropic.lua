@@ -6,7 +6,6 @@ local function get_system_prompt(tbl)
       return i
     end
   end
-  return nil
 end
 
 ---@class CodeCompanion.Adapter
@@ -124,16 +123,18 @@ return {
     ---@param context table Useful context about the buffer to inline to
     ---@return table|nil
     inline_output = function(data, context)
-      data = data:sub(6)
-      local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
+      if data and data ~= "" then
+        data = data:sub(6)
+        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
-      if not ok then
-        return
-      end
+        if not ok then
+          return
+        end
 
-      log:trace("INLINE JSON: %s", json)
-      if json.type == "content_block_delta" then
-        return json.delta.text
+        -- log:trace("INLINE JSON: %s", json)
+        if json.type == "content_block_delta" then
+          return json.delta.text
+        end
       end
     end,
   },

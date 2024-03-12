@@ -298,6 +298,16 @@ You can use the plugin to create inline code directly into a Neovim buffer. This
 > [!NOTE]
 > The command can detect if you've made a visual selection and send any code as context to the API alongside the filetype of the buffer.
 
+One of the challenges with inline editing is determining how the generative AI's response should be handled in the buffer. If you've prompted the API to "create a table of 5 fruits" then you may wish for the response to be placed after the cursor in the buffer. However, if you asked the API to "refactor this function" then you'd expect the response to overwrite a visual selection. If this placement isn't specified then the plugin will use generative AI itself to determine if the response should follow any of the placements below:
+
+- _after_ - after the visual selection
+- _before_ - before the visual selection
+- _cursor_ - one column after the cursor position
+- _new_ - in a new buffer
+- _replace_ - replacing the visual selection
+
+As a final example, specifying a prompt like _"create a test for this code in a new buffer"_ would result in a new Neovim buffer being created.
+
 ### In-Built Actions
 
 The plugin comes with a number of [in-built actions](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) which aim to improve your Neovim workflow. Actions make use of either a _chat_ or an _inline_ strategy. The chat strategy opens up a chat buffer whilst an inline strategy will write output from the generative AI service into the Neovim buffer.
