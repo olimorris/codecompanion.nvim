@@ -145,8 +145,8 @@ You can specify an adapter for each of the strategies in the plugin:
 >lua
     require("codecompanion").setup({
       adapters = {
-        chat = require("codecompanion.adapters").use("openai"),
-        inline = require("codecompanion.adapters").use("openai"),
+        chat = "anthropic",
+        inline = "openai"
       },
     })
 <
@@ -245,17 +245,16 @@ THE CHAT BUFFER ~
 The chat buffer is where you can converse with the generative AI service,
 directly from Neovim. It behaves as a regular markdown buffer with some clever
 additions. When the buffer is written (or "saved"), autocmds trigger the
-sending of its content to the generative AI service, in the form of prompts.
-These prompts are segmented by H1 headers, commonly `user`, `system` and
-`assistant`. When a response is received, it is then streamed back into the
-buffer. The result is that you experience the feel of conversing with the
-generative AI from within Neovim.
+sending of its content to the generative AI service in the form of prompts.
+These prompts are segmented by H1 headers: `user`, `system` and `assistant`.
+When a response is received, it is then streamed back into the buffer. The
+result is that you experience the feel of conversing with your generative AI
+service from within Neovim.
 
 
 KEYMAPS
 
-When in the chat buffer, there are number of keymaps available to you (which
-can be changed in the config):
+When in the chat buffer, there are number of keymaps available to you:
 
 - `<C-s>` - Save the buffer and trigger a response from the generative AI service
 - `<C-c>` - Close the buffer
@@ -271,16 +270,15 @@ SAVED CHATS
 
 Chat buffers are not saved to disk by default, but can be by pressing `gs` in
 the buffer. Saved chats can then be restored via the Action Palette and the
-_Saved chats_ action.
+_Load saved chats_ action.
 
 
 SETTINGS
 
 If `display.chat.show_settings` is set to `true`, at the very top of the chat
-buffer will be the adapter parameters which can be changed to tweak the
-response back to you. This enables fine-tuning and parameter of the generative
-AI results throughout the chat. You can find more detail about them by moving
-the cursor over them.
+buffer will be the adapter’s model parameters which can be changed to tweak
+the response. You can find more detail about them by moving the cursor over
+them.
 
 
 INLINE CODE ~
@@ -302,11 +300,12 @@ command line via `:CodeCompanion`. For example:
   code as context to the API alongside the filetype of the buffer.
 One of the challenges with inline editing is determining how the generative
 AI’s response should be handled in the buffer. If you’ve prompted the API
-to "create a table of 5 fruits" then you may wish for the response to be placed
-after the cursor in the buffer. However, if you asked the API to "refactor this
-function" then you’d expect the response to overwrite a visual selection. If
-this placement isn’t specified then the plugin will use generative AI itself
-to determine if the response should follow any of the placements below:
+to _“create a table of 5 fruits”_ then you may wish for the response to be
+placed after the cursor’s current position in the buffer. However, if you
+asked the API to _“refactor this function”_ then you’d expect the
+response to overwrite a visual selection. If this placement isn’t specified
+then the plugin will use generative AI itself to determine if the response
+should follow any of the placements below:
 
 - _after_ - after the visual selection
 - _before_ - before the visual selection
@@ -419,7 +418,7 @@ HEIRLINE.NVIM ~
 If you’re using the fantastic Heirline.nvim
 <https://github.com/rebelot/heirline.nvim> plugin, consider the following
 snippet to display an icon in the statusline whilst CodeCompanion is conversing
-with the generative AI service:
+with a generative AI service:
 
 >lua
     local CodeCompanion = {

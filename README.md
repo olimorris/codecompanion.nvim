@@ -169,8 +169,8 @@ You can specify an adapter for each of the strategies in the plugin:
 ```lua
 require("codecompanion").setup({
   adapters = {
-    chat = require("codecompanion.adapters").use("openai"),
-    inline = require("codecompanion.adapters").use("openai"),
+    chat = "anthropic",
+    inline = "openai"
   },
 })
 ```
@@ -258,11 +258,11 @@ The Action Palette, opened via `:CodeCompanionActions`, contains all of the acti
 
 <p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/84d5e03a-0b48-4ffb-9ca5-e299d41171bd" alt="chat buffer" /></p>
 
-The chat buffer is where you can converse with the generative AI service, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the generative AI service, in the form of prompts. These prompts are segmented by H1 headers, commonly `user`, `system` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with the generative AI from within Neovim.
+The chat buffer is where you can converse with the generative AI service, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the generative AI service in the form of prompts. These prompts are segmented by H1 headers: `user`, `system` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with your generative AI service from within Neovim.
 
 #### Keymaps
 
-When in the chat buffer, there are number of keymaps available to you (which can be changed in the config):
+When in the chat buffer, there are number of keymaps available to you:
 
 - `<C-s>` - Save the buffer and trigger a response from the generative AI service
 - `<C-c>` - Close the buffer
@@ -275,11 +275,11 @@ When in the chat buffer, there are number of keymaps available to you (which can
 
 #### Saved Chats
 
-Chat buffers are not saved to disk by default, but can be by pressing `gs` in the buffer. Saved chats can then be restored via the Action Palette and the _Saved chats_ action.
+Chat buffers are not saved to disk by default, but can be by pressing `gs` in the buffer. Saved chats can then be restored via the Action Palette and the _Load saved chats_ action.
 
 #### Settings
 
-If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the adapter parameters which can be changed to tweak the response back to you. This enables fine-tuning and parameter of the generative AI results throughout the chat. You can find more detail about them by moving the cursor over them.
+If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the adapter's model parameters which can be changed to tweak the response. You can find more detail about them by moving the cursor over them.
 
 ### Inline Code
 
@@ -298,7 +298,7 @@ You can use the plugin to create inline code directly into a Neovim buffer. This
 > [!NOTE]
 > The command can detect if you've made a visual selection and send any code as context to the API alongside the filetype of the buffer.
 
-One of the challenges with inline editing is determining how the generative AI's response should be handled in the buffer. If you've prompted the API to "create a table of 5 fruits" then you may wish for the response to be placed after the cursor in the buffer. However, if you asked the API to "refactor this function" then you'd expect the response to overwrite a visual selection. If this placement isn't specified then the plugin will use generative AI itself to determine if the response should follow any of the placements below:
+One of the challenges with inline editing is determining how the generative AI's response should be handled in the buffer. If you've prompted the API to _"create a table of 5 fruits"_ then you may wish for the response to be placed after the cursor's current position in the buffer. However, if you asked the API to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. If this placement isn't specified then the plugin will use generative AI itself to determine if the response should follow any of the placements below:
 
 - _after_ - after the visual selection
 - _before_ - before the visual selection
@@ -325,7 +325,7 @@ This action enables users to easily navigate between their open chat buffers. A 
 
 #### Inline code
 
-This action utilises the `inline` strategy. This action can be useful for writing inline code in a buffer or even refactoring a visual selection; all based on a user's prompt. The action is designed to write code for the buffer filetype that it is initated in, or, if run from a terminal prompt, to write commands.
+These actions utilize the `inline` strategy. They can be useful for writing inline code in a buffer or even refactoring a visual selection; all based on a user's prompt. The actions are designed to write code for the buffer filetype that it is initated in, or, if run from a terminal prompt, to write commands.
 
 The strategy comes with a number of helpers which the user can type in the prompt, similar to [GitHub Copilot Chat](https://github.blog/changelog/2024-01-30-code-faster-and-better-with-github-copilots-new-features-in-visual-studio/):
 
@@ -377,7 +377,7 @@ vim.api.nvim_create_autocmd({ "User" }, {
 
 ### Heirline.nvim
 
-If you're using the fantastic [Heirline.nvim](https://github.com/rebelot/heirline.nvim) plugin, consider the following snippet to display an icon in the statusline whilst CodeCompanion is conversing with the generative AI service:
+If you're using the fantastic [Heirline.nvim](https://github.com/rebelot/heirline.nvim) plugin, consider the following snippet to display an icon in the statusline whilst CodeCompanion is conversing with a generative AI service:
 
 ```lua
 local CodeCompanion = {
