@@ -307,6 +307,34 @@ And to determine the visibility of actions in the palette itself:
 }
 ```
 
+## Gotchas
+
+Please be mindful of how the different generative AI providers function. Anthropic does not allow for successive `user` prompts in a request. So something like:
+
+```lua
+prompts = {
+  {
+    role = "user",
+    content = "My first prompt"
+  },
+  {
+    role = "user",
+    content = "My second prompt"
+  },
+},
+```
+
+will cause an error. Instead, the prompts should be combined:
+
+```lua
+prompts = {
+  {
+    role = "user",
+    content = "My first prompt and my second prompt"
+  },
+},
+```
+
 ## Conclusion
 
 Hopefully this serves as a useful introduction on how you can expand CodeCompanion to create custom actions that suit your workflow. It's worth checking out the [actions.lua](https://github.com/olimorris/codecompanion.nvim/blob/5cac252cc402429ac766f1b1fe54988d89391206/lua/codecompanion/actions.lua) for more complex examples.
