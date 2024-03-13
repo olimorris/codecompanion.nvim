@@ -35,14 +35,10 @@ M.libraries = {
   "curl",
 }
 
-M.env_vars = {
-  {
-    name = config.options.api_key,
-  },
-  {
-    name = config.options.org_api_key,
-    optional = true,
-  },
+M.adapters = {
+  "anthropic",
+  "ollama",
+  "openai",
 }
 
 local function plugin_available(name)
@@ -94,17 +90,19 @@ function M.check()
     end
   end
 
-  -- for _, env in ipairs(M.env_vars) do
-  --   if env_available(env.name) then
-  --     ok(fmt("%s key found", env.name))
-  --   else
-  --     if env.optional then
-  --       warn(fmt("%s key not found", env.name))
-  --     else
-  --       error(fmt("%s key not found", env.name))
-  --     end
-  --   end
-  -- end
+  for _, name in ipairs(M.adapters) do
+    local adapter = require("codecompanion.adapters." .. name)
+
+    if adapter.env then
+      for _, v in pairs(adapter.env) do
+        if env_available(v) then
+          ok(fmt("%s key found (%s)", name, v))
+        else
+          warn(fmt("%s key not found (%s)", name, v))
+        end
+      end
+    end
+  end
 end
 
 return M
