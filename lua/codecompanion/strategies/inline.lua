@@ -258,51 +258,49 @@ end
 ---@param user_input string|nil
 function Inline:execute(user_input)
   if not adapter then
+    vim.notify("No adapter found for inline requests", vim.log.levels.ERROR)
     return
   end
 
   local prompt = build_prompt(self, user_input)
 
-  local action = {
-    {
-      role = "system",
-      content = 'I am writing a prompt from within the Neovim text editor. This prompt will go to a generative AI model which will return a response. The response will then be streamed into Neovim. However, depending on the nature of the prompt, how Neovim handles the output will vary. For instance, if the user references the words "refactor" or "update" in their prompt, they will likely want the response to replace a visual selection they\'ve made in the editor. However, if they include words such as "after" or "before", it may be insinuated that they wish the response to be placed after or before the cursor position. They may also ask for the response to be placed in a new buffer. Finally, if you they don\'t specify what they wish to do, then they likely want to stream the response into where the cursor is currently. What I\'d like you to do is analyse the following prompt and determine whether the response should be one of: 1) after 2) before 3) replace 4) new 5) cursor. We\'ll call this the "placement" and please only respond with a single word. The user may not wish for their original code to be returned back to them from the generative AI model as part of the response. An example would be if they\'ve asked the model to generate comments or documentation. However if they\'ve asked for some refactoring/modification, then the original code should be returned. Please can you determine whether the code should be returned or not by responding with a boolean flag. Can you append this to the "placement" from earlier and seperate them with a "|" character? An example would be "cursor|true".',
-    },
-    {
-      role = "user",
-      content = 'The prompt to analyse is: "' .. user_input .. '"',
-    },
-  }
+  if not self.opts.placement then
+    local action = {
+      {
+        role = "system",
+        content = 'I am writing a prompt from within the Neovim text editor. This prompt will go to a generative AI model which will return a response. The response will then be streamed into Neovim. However, depending on the nature of the prompt, how Neovim handles the output will vary. For instance, if the user references the words "refactor" or "update" in their prompt, they will likely want the response to replace a visual selection they\'ve made in the editor. However, if they include words such as "after" or "before", it may be insinuated that they wish the response to be placed after or before the cursor position. They may also ask for the response to be placed in a new buffer. Finally, if you they don\'t specify what they wish to do, then they likely want to stream the response into where the cursor is currently. What I\'d like you to do is analyse the following prompt and determine whether the response should be one of: 1) after 2) before 3) replace 4) new 5) cursor. We\'ll call this the "placement" and please only respond with a single word. The user may not wish for their original code to be returned back to them from the generative AI model as part of the response. An example would be if they\'ve asked the model to generate comments or documentation. However if they\'ve asked for some refactoring/modification, then the original code should be returned. Please can you determine whether the code should be returned or not by responding with a boolean flag. Can you append this to the "placement" from earlier and seperate them with a "|" character? An example would be "cursor|true".',
+      },
+      {
+        role = "user",
+        content = 'The prompt to analyse is: "' .. user_input .. '"',
+      },
+    }
 
-  -- Assume the placement should be after the cursor
-  vim.api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
+    -- Assume the placement should be after the cursor
+    vim.api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
 
-  local placement = ""
-  fire_autocmd("started")
-  client.new():stream(adapter:set_params(), action, self.context.bufnr, function(err, data, done)
-    if err then
-      fire_autocmd("finished")
-      return
-    end
+    local placement = ""
+    fire_autocmd("started")
+    client.new():stream(adapter:set_params(), action, self.context.bufnr, function(err, data, done)
+      if err then
+        fire_autocmd("finished")
+        return
+      end
 
-    if done then
-      log:trace("Placement: %s", placement)
-      get_inline_output(self, placement, prompt, {})
-      return
-    end
+      if done then
+        log:trace("Placement: %s", placement)
+        get_inline_output(self, placement, prompt, {})
+        return
+      end
 
-    if data then
-      placement = placement .. (adapter.callbacks.inline_output(data) or "")
-    end
-  end)
-
-  if not adapter then
-    vim.notify("No adapter found for inline requests", vim.log.levels.ERROR)
+      if data then
+        placement = placement .. (adapter.callbacks.inline_output(data) or "")
+      end
+    end)
+  else
+    get_inline_output(self, self.opts.placement, prompt, {})
     return
   end
-
-  --Make initial call to determine the action to take:
-  --Within this then call the stream function
 end
 
 ---@param user_input? string

@@ -341,12 +341,10 @@ M.static.actions = {
               role = "user",
               contains_code = true,
               content = function(context)
-                return send_code(context)
+                return "This the code:\n"
+                  .. send_code(context)
+                  .. "\nPlease add a documentation comment to the provided code and reply with just the comment only and no explanation, no codeblocks and do not return the code either. If neccessary add parameter and return types"
               end,
-            },
-            {
-              role = "user",
-              content = "Please add a documentation comment to the provided code and reply with just the comment only and no explanation, no codeblocks and do not return the code either. If neccessary add parameter and return types",
             },
           },
         },
@@ -367,17 +365,14 @@ M.static.actions = {
                   .. " language"
               end,
             },
-
             {
               role = "user",
               contains_code = true,
               content = function(context)
-                return send_code(context)
+                return "This is the code:\n"
+                  .. send_code(context)
+                  .. "\nPlease optimize the provided code. Please just respond with the code only and no explanation and no markdown codeblocks"
               end,
-            },
-            {
-              role = "user",
-              content = "Please optimize the provided code. Please just respond with the code only and no explanation or markdown block syntax",
             },
           },
         },
@@ -402,12 +397,10 @@ M.static.actions = {
               role = "user",
               contains_code = true,
               content = function(context)
-                return send_code(context)
+                return "This is the code:\n"
+                  .. send_code(context)
+                  .. "\nPlease create a unit test for the provided code. Please just respond with the code only and no explanation or markdown block syntax"
               end,
-            },
-            {
-              role = "user",
-              content = "Please create a unit test for the provided code. Please just respond with the code only and no explanation or markdown block syntax",
             },
           },
         },
