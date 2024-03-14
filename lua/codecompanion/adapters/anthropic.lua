@@ -1,8 +1,8 @@
 local log = require("codecompanion.utils.log")
 
 local function get_system_prompt(tbl)
-  for i, element in ipairs(tbl) do
-    if element.role == "system" then
+  for i = 1, #tbl do
+    if tbl[i].role == "system" then
       return i
     end
   end
@@ -50,9 +50,28 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(messages)
+      -- Remove any system prompts from the messages array
       local system_prompt_index = get_system_prompt(messages)
       if system_prompt_index then
         table.remove(messages, system_prompt_index)
+      end
+
+      -- Combine user prompts into a single prompt
+      local user_role_content = {}
+      for i = #messages, 1, -1 do
+        local message = messages[i]
+        if message.role == "user" then
+          table.insert(user_role_content, 1, message.content)
+          table.remove(messages, i)
+        end
+      end
+      local output = table.concat(user_role_content, " ")
+
+      if output ~= "" then
+        table.insert(messages, {
+          role = "user",
+          content = output,
+        })
       end
 
       return { messages = messages }

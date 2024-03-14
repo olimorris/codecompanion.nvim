@@ -341,10 +341,12 @@ M.static.actions = {
               role = "user",
               contains_code = true,
               content = function(context)
-                return "This the code:\n"
-                  .. send_code(context)
-                  .. "\nPlease add a documentation comment to the provided code and reply with just the comment only and no explanation, no codeblocks and do not return the code either. If neccessary add parameter and return types"
+                return send_code(context)
               end,
+            },
+            {
+              role = "user",
+              content = "Please add a documentation comment to the provided code and reply with just the comment only and no explanation, no codeblocks and do not return the code either. If neccessary add parameter and return types",
             },
           },
         },
@@ -369,10 +371,12 @@ M.static.actions = {
               role = "user",
               contains_code = true,
               content = function(context)
-                return "This is the code:\n"
-                  .. send_code(context)
-                  .. "\nPlease optimize the provided code. Please just respond with the code only and no explanation and no markdown codeblocks"
+                return send_code(context)
               end,
+            },
+            {
+              role = "user",
+              content = "Please optimize the provided code. Please just respond with the code only and no explanation or markdown block syntax",
             },
           },
         },
@@ -397,10 +401,12 @@ M.static.actions = {
               role = "user",
               contains_code = true,
               content = function(context)
-                return "This is the code:\n"
-                  .. send_code(context)
-                  .. "\nPlease create a unit test for the provided code. Please just respond with the code only and no explanation or markdown block syntax"
+                return send_code(context)
               end,
+            },
+            {
+              role = "user",
+              content = "Please create a unit test for the provided code. Please just respond with the code only and no explanation or markdown block syntax",
             },
           },
         },
@@ -450,7 +456,6 @@ M.static.actions = {
       },
       {
         role = "user",
-        contains_code = true,
         content = function(context)
           local diagnostics =
             require("codecompanion.helpers.lsp").get_diagnostics(context.start_line, context.end_line, context.bufnr)
@@ -474,7 +479,13 @@ M.static.actions = {
             .. context.filetype
             .. ". This is a list of the diagnostic messages:\n\n"
             .. concatenated_diagnostics
-            .. "\n\nThis is the code, for context:\n\n"
+        end,
+      },
+      {
+        role = "user",
+        contains_code = true,
+        content = function(context)
+          return "This is the code, for context:\n\n"
             .. "```"
             .. context.filetype
             .. "\n"
