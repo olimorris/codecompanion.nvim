@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-Use the power of generative AI in Neovim. Use it to chat, author and advise you on your code.<br><br>
+A Copilot Chat like experience in Neovim.<br><br>
 Currently supports: Anthropic, Ollama and OpenAI adapters.
 </p>
 
@@ -403,6 +403,10 @@ local CodeCompanion = {
 ```
 
 <!-- panvimdoc-ignore-start -->
+
+## :gift: Contributing
+
+I am open to contributions but they will be implemented at my discretion. Feel free to open up a discussion before embarking on a big PR.
 
 ## :clap: Thanks
 

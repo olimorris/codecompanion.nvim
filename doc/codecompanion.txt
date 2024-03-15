@@ -346,11 +346,10 @@ chat buffer can be deleted (and removed from memory) by pressing `<C-c>`.
 
 INLINE CODE
 
-This action utilises the `inline` strategy. This action can be useful for
-writing inline code in a buffer or even refactoring a visual selection; all
-based on a user’s prompt. The action is designed to write code for the buffer
-filetype that it is initated in, or, if run from a terminal prompt, to write
-commands.
+These actions utilize the `inline` strategy. They can be useful for writing
+inline code in a buffer or even refactoring a visual selection; all based on a
+user’s prompt. The actions are designed to write code for the buffer filetype
+that it is initated in, or, if run from a terminal prompt, to write commands.
 
 The strategy comes with a number of helpers which the user can type in the
 prompt, similar to GitHub Copilot Chat
