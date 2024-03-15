@@ -87,7 +87,7 @@ results in the following output:
 
 #### `form_messages` callback
 
-So we can just pass this to a messages table in the `form_messages` callback:
+The chat buffer's output is passed to the callback in for the form of the `messages` parameter. So we can just output this as part of a messages table:
 
 ```lua
 callbacks = {
@@ -101,19 +101,19 @@ callbacks = {
 
 Now let's look at how we format the output from OpenAI. Running that request results in:
 
-```json
+```sh
 data: {"id":"chatcmpl-90DdmqMKOKpqFemxX0OhTVdH042gu","object":"chat.completion.chunk","created":1709839462,"model":"gpt-4-0125-preview","system_fingerprint":"fp_70b2088885","choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}]}
 ```
 
-```json
+```sh
 data: {"id":"chatcmpl-90DdmqMKOKpqFemxX0OhTVdH042gu","object":"chat.completion.chunk","created":1709839462,"model":"gpt-4-0125-preview","system_fingerprint":"fp_70b2088885","choices":[{"index":0,"delta":{"content":"Programming"},"logprobs":null,"finish_reason":null}]}
 ```
 
-```json
+```sh
 data: {"id":"chatcmpl-90DdmqMKOKpqFemxX0OhTVdH042gu","object":"chat.completion.chunk","created":1709839462,"model":"gpt-4-0125-preview","system_fingerprint":"fp_70b2088885","choices":[{"index":0,"delta":{"content":" language"},"logprobs":null,"finish_reason":null}]},
 ```
 
-```json
+```sh
 data: [DONE]
 ```
 
@@ -122,7 +122,7 @@ data: [DONE]
 
 Remember that we're streaming from the API so the request comes through in batches. Thankfully the client implementation handles this and we just have to handle formatting the output into the chat buffer.
 
-The first thing to note with streaming endpoints is that they often contain text like `data: ` that we don't need. So let's remove it:
+The first thing to note with streaming endpoints is that they don't return valid JSON. In this case, the output is prefixed with `data: `. So let's remove it:
 
 ```lua
 callbacks = {
@@ -133,7 +133,7 @@ callbacks = {
 ```
 
 > [!IMPORTANT]
-> The data passed to the `chat_output` callback is the data from OpenAI
+> The data passed to the `chat_output` callback is the response from OpenAI
 
 We can then decode the JSON using native vim functions:
 
@@ -156,7 +156,7 @@ callbacks = {
 
 We want to include any nil values so we pass in `luanil = { object = true }`.
 
-Examining the output of the API, we see that the streamed data is housed in a choices then delta array. That's easy to pickup:
+Examining the output of the API, we see that the streamed data is stored in a `choices[1].delta` table. That's easy to pickup:
 
 ```lua
 callbacks = {
@@ -167,7 +167,7 @@ callbacks = {
 }
 ```
 
-and we can pickup the new streamed data with:
+and we can then access the new streamed data that we want to write into the chat buffer, with:
 
 ```lua
 callbacks = {
@@ -198,7 +198,7 @@ callbacks = {
 }
 ```
 
-Now if we put it all together, and put some checks in place that data is returned from OpenAI:
+Now if we put it all together, and put some checks in place to make sure that we have data in our response:
 
 ```lua
 callbacks = {
@@ -252,7 +252,7 @@ callbacks = {
 }
 ```
 
-This will tell the client to end the connection with the OpenAI endpoint.
+This will tell the client to end the request.
 
 #### `form_parameters` callback
 
@@ -275,3 +275,5 @@ callbacks = {
 [To be updated]
 
 ## Creating Your Own Adapter
+
+[To be updated]
