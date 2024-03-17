@@ -1,4 +1,5 @@
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils.util")
 
 ---@class CodeCompanion.Adapter
 ---@field name string
@@ -84,19 +85,41 @@ function Adapter:replace_header_vars()
   if self.headers then
     for k, v in pairs(self.headers) do
       self.headers[k] = v:gsub("${(.-)}", function(var)
-        local env_var = self.env[var]
+        local env_var_or_cmd = self.env[var]
 
-        if env_var then
-          env_var = os.getenv(env_var)
-          if not env_var then
-            log:error("Error: Could not find env var: %s", self.env[var])
+        if not env_var_or_cmd then
+          log:error("Error: Could not find env var or command: %s", self.env[var])
+          return vim.notify(
+            string.format("[CodeCompanion.nvim]\nCould not find env var or command: %s", self.env[var]),
+            vim.log.levels.ERROR
+          )
+        end
+
+        if utils.is_cmd_var(env_var_or_cmd) then
+          local command = env_var_or_cmd:sub(5)
+          local handle = io.popen(command, "r")
+          if handle then
+            local result = handle:read("*a")
+            handle:close()
+            return result:gsub("%s+$", "")
+          else
+            log:error("Error: Could not execute command: %s", command)
             return vim.notify(
-              string.format("[CodeCompanion.nvim]\nCould not find env var: %s", self.env[var]),
+              string.format("[CodeCompanion.nvim]\nCould not execute command: %s", command),
               vim.log.levels.ERROR
             )
           end
-          return env_var
         end
+
+        local env_var = os.getenv(env_var_or_cmd)
+        if not env_var then
+          log:error("Error: Could not find env var: %s", self.env[var])
+          return vim.notify(
+            string.format("[CodeCompanion.nvim]\nCould not find env var: %s", self.env[var]),
+            vim.log.levels.ERROR
+          )
+        end
+        return env_var
       end)
     end
   end
