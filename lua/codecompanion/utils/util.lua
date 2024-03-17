@@ -148,4 +148,11 @@ function M.replace_vars(msg, vars, mapping)
   return string.format(msg, unpack(replacements))
 end
 
+---Check if value starts with "cmd:"
+---@param value string
+---@return boolean
+function M.is_cmd_var(value)
+  return value:match("^cmd:")
+end
+
 return M
