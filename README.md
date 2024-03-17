@@ -160,9 +160,9 @@ require("codecompanion").setup({
 
 The plugin uses adapters to bridge between generative AI services and the plugin. Currently the plugin supports:
 
-- Anthropic (`anthropic`) - Requires `ANTHROPIC_API_KEY` to be set in your shell
+- Anthropic (`anthropic`) - Requires an API key
 - Ollama (`ollama`)
-- OpenAI (`openai`) - Requires `OPENAI_API_KEY` to be set in your shell
+- OpenAI (`openai`) - Requires an API key
 
 You can specify an adapter for each of the strategies in the plugin:
 
@@ -175,9 +175,7 @@ require("codecompanion").setup({
 })
 ```
 
-#### Modifying Adapters
-
-It may be necessary to modify certain parameters of an adapter. In the example below, we're changing the name of the API key that the OpenAI adapter uses by passing in a table to the `use` method:
+Of course, you may need to modify certain parameters of an adapter. In the example below, we're changing the name of the API key that the OpenAI adapter uses by passing in a table to the `use` method:
 
 ```lua
 require("codecompanion").setup({
@@ -185,8 +183,6 @@ require("codecompanion").setup({
     chat = require("codecompanion.adapters").use("openai", {
       env = {
         api_key = "DIFFERENT_OPENAI_KEY",
-        -- To execute a shell command, prefix it with "cmd:"
-        -- api_key = "cmd:gpg --decrypt ~/.openai-api-key.gpg 2>/dev/null",
       },
     }),
   },
@@ -195,6 +191,22 @@ require("codecompanion").setup({
 
 > [!TIP]
 > To create your own adapter please refer to the [ADAPTERS](ADAPTERS.md) guide
+
+#### Additional API Key Options
+
+Having API keys in plain text in your shell is not always safe as any application could access them. Thanks to [this PR](https://github.com/olimorris/codecompanion.nvim/pull/24), you can use encrypted files instead:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    chat = require("codecompanion.adapters").use("openai", {
+      env = {
+        api_key = "cmd:gpg --decrypt ~/.openai-api-key.gpg 2>/dev/null",
+      },
+    }),
+  },
+})
+```
 
 ### Edgy.nvim Configuration
 
