@@ -185,7 +185,7 @@ require("codecompanion").setup({
     chat = require("codecompanion.adapters").use("openai", {
       env = {
         api_key = "DIFFERENT_OPENAI_KEY",
-        -- To execute a shell command, prefix it with `cmd:`.
+        -- To execute a shell command, prefix it with "cmd:"
         -- api_key = "cmd:gpg --decrypt ~/.openai-api-key.gpg 2>/dev/null",
       },
     }),
