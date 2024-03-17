@@ -1,14 +1,20 @@
 local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Adapter
----@field name string
----@field url string
----@field env? table
----@field raw? table
----@field header table
----@field parameters table
----@field callbacks table
----@field schema table
+---@field name string The name of the adapter
+---@field url string The URL of the generative AI service to connect to
+---@field env? table Environment variables which can be referenced in the parameters
+---@field headers table The headers to pass to the request
+---@field parameters table The parameters to pass to the request
+---@field raw? table Any additional curl arguments to pass to the request
+---@field opts? table Additional options for the adapter
+---@field callbacks table Functions which link the output from the request to CodeCompanion
+---@field callbacks.form_parameters fun()
+---@field callbacks.form_messages fun()
+---@field callbacks.is_complete fun()
+---@field callbacks.chat_output fun()
+---@field callbacks.inline_output fun()
+---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 local Adapter = {}
 
 ---@class CodeCompanion.AdapterArgs
@@ -18,6 +24,7 @@ local Adapter = {}
 ---@field raw? table
 ---@field header table
 ---@field parameters table
+---@field opts? table
 ---@field callbacks table
 ---@field schema table
 

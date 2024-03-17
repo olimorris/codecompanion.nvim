@@ -7,6 +7,11 @@ local log = require("codecompanion.utils.log")
 ---@field headers table
 ---@field parameters table
 ---@field callbacks table
+---@field callbacks.form_parameters fun()
+---@field callbacks.form_messages fun()
+---@field callbacks.is_complete fun()
+---@field callbacks.chat_output fun()
+---@field callbacks.inline_output fun()
 ---@field schema table
 return {
   name = "OpenAI",
@@ -54,7 +59,7 @@ return {
 
     ---Output the data from the API ready for insertion into the chat buffer
     ---@param data table The streamed JSON data from the API, also formatted by the format_data callback
-    ---@return table|nil
+    ---@return table|nil [status: string, output: table]
     chat_output = function(data)
       local output = {}
 
