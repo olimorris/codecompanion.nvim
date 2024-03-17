@@ -410,7 +410,7 @@ local CodeCompanion = {
 
 I am open to contributions but they will be implemented at my discretion. Feel free to open up a discussion before embarking on a big PR.
 
-## :clap: Thanks
+## :clap: Acknowledgements
 
 - [Steven Arcangeli](https://github.com/stevearc) for his genius creation of the chat buffer and his feedback
 - [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) for the LSP assistant action
