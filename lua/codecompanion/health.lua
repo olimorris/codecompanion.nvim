@@ -1,5 +1,3 @@
-local config = require("codecompanion.config")
-
 local start = vim.health.start or vim.health.report_start
 local ok = vim.health.ok or vim.health.report_ok
 local info = vim.health.info or vim.health.report_info
@@ -90,19 +88,19 @@ function M.check()
     end
   end
 
-  for _, name in ipairs(M.adapters) do
-    local adapter = require("codecompanion.adapters." .. name)
-
-    if adapter.env then
-      for _, v in pairs(adapter.env) do
-        if env_available(v) then
-          ok(fmt("%s key found (%s)", name, v))
-        else
-          warn(fmt("%s key not found (%s)", name, v))
-        end
-      end
-    end
-  end
+  -- for _, name in ipairs(M.adapters) do
+  --   local adapter = require("codecompanion.adapters." .. name)
+  --
+  --   if adapter.env then
+  --     for _, v in pairs(adapter.env) do
+  --       if env_available(v) then
+  --         ok(fmt("%s key found (%s)", name, v))
+  --       else
+  --         warn(fmt("%s key not found (%s)", name, v))
+  --       end
+  --     end
+  --   end
+  -- end
 end
 
 return M
