@@ -175,7 +175,7 @@ require("codecompanion").setup({
 })
 ```
 
-Of course, you may need to modify certain parameters of an adapter. In the example below, we're changing the name of the API key that the OpenAI adapter uses by passing in a table to the `use` method:
+Of course, you may need to modify certain parameters of an adapter (please see [here](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters)). In the example below, we're changing the name of the API key that the OpenAI adapter uses by passing in a table to the `use` method:
 
 ```lua
 require("codecompanion").setup({
@@ -194,7 +194,7 @@ require("codecompanion").setup({
 
 #### Additional API Key Options
 
-Having API keys in plain text in your shell is not always safe as any application could access them. Thanks to [this PR](https://github.com/olimorris/codecompanion.nvim/pull/24), you can use encrypted files instead:
+Having API keys in plain text in your shell is not always safe. Thanks to [this PR](https://github.com/olimorris/codecompanion.nvim/pull/24), you can run commands from within the plugin:
 
 ```lua
 require("codecompanion").setup({
@@ -207,6 +207,8 @@ require("codecompanion").setup({
   },
 })
 ```
+
+In this example, we're using `gpg` to decrypt a file to obtain an API key.
 
 ### Edgy.nvim Configuration
 
