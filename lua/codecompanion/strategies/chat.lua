@@ -175,6 +175,7 @@ local function watch_cursor()
 end
 
 _G.codecompanion_chats = {}
+_G.codecompanion_win_opts = {}
 
 local registered_cmp = false
 
@@ -259,6 +260,21 @@ local function chat_autocmds(bufnr)
       end
 
       api.nvim_del_autocmd(bufenter_autocmd)
+    end,
+  })
+
+  api.nvim_create_autocmd("BufEnter", {
+    group = aug,
+    buffer = bufnr,
+    callback = function()
+      ui.set_win_options(api.nvim_get_current_win(), config.options.display.chat.win_options)
+    end,
+  })
+  api.nvim_create_autocmd("BufLeave", {
+    group = aug,
+    buffer = bufnr,
+    callback = function()
+      ui.set_win_options(api.nvim_get_current_win(), _G.codecompanion_win_opts)
     end,
   })
 
@@ -400,6 +416,7 @@ function Chat.new(args)
     api.nvim_set_current_buf(bufnr)
   end
 
+  _G.codecompanion_win_opts = ui.get_win_options(winid, config.options.display.chat.win_options)
   ui.set_win_options(winid, config.options.display.chat.win_options)
   vim.cmd("setlocal formatoptions-=t")
   ui.buf_scroll_to_end(bufnr)

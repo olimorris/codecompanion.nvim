@@ -147,6 +147,17 @@ end
 
 ---@param winid number
 ---@param opts table
+function M.get_win_options(winid, opts)
+  local options = {}
+  for k, _ in pairs(opts) do
+    options[k] = api.nvim_get_option_value(k, { scope = "local", win = winid })
+  end
+
+  return options
+end
+
+---@param winid number
+---@param opts table
 function M.set_win_options(winid, opts)
   for k, v in pairs(opts) do
     api.nvim_set_option_value(k, v, { scope = "local", win = winid })
