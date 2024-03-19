@@ -274,7 +274,7 @@ local function chat_autocmds(bufnr)
     group = aug,
     buffer = bufnr,
     callback = function()
-      ui.set_win_options(api.nvim_get_current_win(), _G.codecompanion_win_opts)
+      ui.set_win_options(api.nvim_get_current_win(), _G.codecompanion_win_opts[bufnr])
     end,
   })
 
@@ -416,7 +416,7 @@ function Chat.new(args)
     api.nvim_set_current_buf(bufnr)
   end
 
-  _G.codecompanion_win_opts = ui.get_win_options(winid, config.options.display.chat.win_options)
+  _G.codecompanion_win_opts[bufnr] = ui.get_win_options(winid, config.options.display.chat.win_options)
   ui.set_win_options(winid, config.options.display.chat.win_options)
   vim.cmd("setlocal formatoptions-=t")
   ui.buf_scroll_to_end(bufnr)
