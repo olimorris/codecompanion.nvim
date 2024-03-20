@@ -4,8 +4,6 @@
 <img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/e54f98b6-8bfd-465a-85b6-73ab6bb274fa" alt="CodeCompanion.nvim" />
 </p>
 
-<h1 align="center">CodeCompanion.nvim</h1>
-
 <p align="center">
 <a href="https://github.com/olimorris/codecompanion.nvim/stargazers"><img src="https://img.shields.io/github/stars/olimorris/codecompanion.nvim?color=c678dd&logoColor=e06c75&style=for-the-badge"></a>
 <a href="https://github.com/olimorris/codecompanion.nvim/issues"><img src="https://img.shields.io/github/issues/olimorris/codecompanion.nvim?color=%23d19a66&style=for-the-badge"></a>
@@ -41,8 +39,8 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 ## :camera_flash: Screenshots
 
 <div align="center">
-  <p><strong>Chat</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/a19c8397-a1e2-44df-98be-8a1b4d307ea7" alt="chat" /></p>
-  <p><strong>Inline code</strong><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/909277f9-7a5f-455e-b25a-84e85b47440b" alt="Inline code" /></p>
+  <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/99ef145e-378a-4210-96f7-ab7f4fa4ea0b</p>
+  <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/6387547b-9255-4787-a2b7-2c3258ed6e95</p>
 </div>
 
 <!-- panvimdoc-ignore-end -->
@@ -300,7 +298,7 @@ If `display.chat.show_settings` is set to `true`, at the very top of the chat bu
 
 ### Inline Code
 
-<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/7e1f2e16-7b6f-453e-b3b0-650f3ac0fc0a" alt="Inline code" /></p>
+https://github.com/olimorris/codecompanion.nvim/assets/9512444/0a448d12-5b8b-4932-b2e9-871eec45c534
 
 You can use the plugin to create inline code directly into a Neovim buffer. This can be invoked by using the _Action Palette_ (as above) or from the command line via `:CodeCompanion`. For example:
 

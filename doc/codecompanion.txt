@@ -305,6 +305,9 @@ them.
 
 INLINE CODE ~
 
+
+https://github.com/olimorris/codecompanion.nvim/assets/9512444/0a448d12-5b8b-4932-b2e9-871eec45c534
+
 You can use the plugin to create inline code directly into a Neovim buffer.
 This can be invoked by using the _Action Palette_ (as above) or from the
 command line via `:CodeCompanion`. For example:
