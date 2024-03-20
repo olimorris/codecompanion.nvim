@@ -123,20 +123,26 @@ function M.selector(items, opts)
 
   local max_lengths = get_max_lengths(items, opts.format)
 
-  vim.ui.select(items, {
+  local select_opts = {
     prompt = opts.prompt,
     kind = "codecompanion.nvim",
-    telescope = require("telescope.themes").get_cursor({
-      layout_config = {
-        width = opts.width,
-        height = opts.height,
-      },
-    }),
     format_item = function(item)
       local formatted = opts.format(item)
       return pad_item(formatted, max_lengths)
     end,
-  }, function(selected)
+  }
+
+  -- Check if telescope exists and add telescope-specific options if available
+  if pcall(require, "telescope.themes") then
+    select_opts.telescope = require("telescope.themes").get_cursor({
+      layout_config = {
+        width = opts.width,
+        height = opts.height,
+      },
+    })
+  end
+
+  vim.ui.select(items, select_opts, function(selected)
     if not selected then
       return
     end
