@@ -30,15 +30,16 @@ REQUIREMENTS                                      *codecompanion-requirements*
 
 INSTALLATION                                      *codecompanion-installation*
 
-- Install the plugin with your package manager of choice:
+Install the plugin with your package manager of choice:
 
 >lua
     -- Lazy.nvim
     {
       "olimorris/codecompanion.nvim",
       dependencies = {
-        "nvim-treesitter/nvim-treesitter",
         "nvim-lua/plenary.nvim",
+        "nvim-treesitter/nvim-treesitter",
+        "nvim-telescope/telescope.nvim" -- Optional
         {
           "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
           opts = {},
@@ -54,9 +55,10 @@ INSTALLATION                                      *codecompanion-installation*
         require("codecompanion").setup()
       end,
       requires = {
-        "nvim-treesitter/nvim-treesitter",
         "nvim-lua/plenary.nvim",
-        "stevearc/dressing.nvim"
+        "nvim-treesitter/nvim-treesitter",
+        "nvim-telescope/telescope.nvim", -- Optional
+        "stevearc/dressing.nvim" -- Optional: Improves the default Neovim UI
       }
     })
 <
@@ -196,7 +198,8 @@ In this example, we’re using `gpg` to decrypt a file to obtain an API key.
 EDGY.NVIM CONFIGURATION ~
 
 The author recommends pairing with edgy.nvim
-<https://github.com/folke/edgy.nvim> for a Co-Pilot Chat-like experience:
+<https://github.com/folke/edgy.nvim> for an experience similar to that of
+GitHub’s Copilot Chat:
 
 >lua
     {

@@ -1,7 +1,7 @@
 <!-- panvimdoc-ignore-start -->
 
 <p align="center">
-<img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/cc50a085-722b-4299-9f26-0373a96c7c55" alt="CodeCompanion.nvim" />
+<img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/dc581211-9675-43c0-a003-02be8d93248a" alt="CodeCompanion.nvim" />
 </p>
 
 <h1 align="center">CodeCompanion.nvim</h1>
@@ -14,12 +14,11 @@
 </p>
 
 <p align="center">
-A Copilot Chat like experience in Neovim.<br><br>
-Currently supports: Anthropic, Ollama and OpenAI adapters.
+Currently supports: Anthropic, Ollama and OpenAI adapters
 </p>
 
 > [!IMPORTANT]
-> This plugin is provided as-is and is primarily developed for my own workflows. As such, I offer no guarantees of regular updates or support and I expect the plugin's API to change regularly. Bug fixes and feature enhancements will be implemented at my discretion, and only if they align with my personal use-case. Feel free to fork the project and customize it to your needs, but please understand my involvement in further development will be minimal. To be notified of breaking changes in the plugin, please subscribe to [this issue](https://github.com/olimorris/codecompanion.nvim/issues/9).
+> This plugin is provided as-is and is primarily developed for my own workflows. As such, I offer no guarantees of regular updates or support and I expect the plugin's API to change regularly. Bug fixes and feature enhancements will be implemented at my discretion, and only if they align with my personal use-case. Feel free to fork the project and customize it to your needs, but please understand my involvement in further development will be intermittent. To be notified of breaking changes in the plugin, please subscribe to [this issue](https://github.com/olimorris/codecompanion.nvim/issues/9).
 
 <p align="center">
 <img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5e5a5e54-c1d9-4fe2-8ae0-1cfbfdd6cea5" alt="Header" />
@@ -56,15 +55,16 @@ Currently supports: Anthropic, Ollama and OpenAI adapters.
 
 ## :package: Installation
 
-- Install the plugin with your package manager of choice:
+Install the plugin with your package manager of choice:
 
 ```lua
 -- Lazy.nvim
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
-    "nvim-treesitter/nvim-treesitter",
     "nvim-lua/plenary.nvim",
+    "nvim-treesitter/nvim-treesitter",
+    "nvim-telescope/telescope.nvim" -- Optional
     {
       "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
       opts = {},
@@ -80,9 +80,10 @@ use({
     require("codecompanion").setup()
   end,
   requires = {
-    "nvim-treesitter/nvim-treesitter",
     "nvim-lua/plenary.nvim",
-    "stevearc/dressing.nvim"
+    "nvim-treesitter/nvim-treesitter",
+    "nvim-telescope/telescope.nvim", -- Optional
+    "stevearc/dressing.nvim" -- Optional: Improves the default Neovim UI
   }
 })
 ```
@@ -212,7 +213,7 @@ In this example, we're using `gpg` to decrypt a file to obtain an API key.
 
 ### Edgy.nvim Configuration
 
-The author recommends pairing with [edgy.nvim](https://github.com/folke/edgy.nvim) for a Co-Pilot Chat-like experience:
+The author recommends pairing with [edgy.nvim](https://github.com/folke/edgy.nvim) for an experience similar to that of GitHub's Copilot Chat:
 
 ```lua
 {
