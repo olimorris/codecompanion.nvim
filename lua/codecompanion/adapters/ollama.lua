@@ -94,8 +94,9 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use.",
-      default = "dolphin-mistral-coding-ai-assistant",
+      default = "dolphin-mistral-code-generation-temperature-0.2-top-p-0.1",
       choices = {
+        "dolphin-mistral-code-generation-temperature-0.2-top-p-0.1",
         "dolphin-mistral-coding-ai-assistant",
         "dolphin-mistral-fabric-ai",
         "dolphin-mistral-fabric-explain-code",
