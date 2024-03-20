@@ -94,13 +94,16 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use.",
-      default = "dolphin-mixtral",
+      default = "dolphin-mistral-coding-ai-assistant",
       choices = {
-        "dolphin-mixtral",
-        "llama2",
-        "mistral",
+        "dolphin-mistral-coding-ai-assistant",
+        "dolphin-mistral-fabric-ai",
+        "dolphin-mistral-fabric-explain-code",
+        "dolphin-mistral",
         "dolphin-phi",
+        "magicoder",
         "phi",
+        "codellama:7b-code",
       },
     },
     temperature = {
@@ -108,7 +111,7 @@ return {
       mapping = "parameters.options",
       type = "number",
       optional = true,
-      default = 0.8,
+      default = 0.2,
       desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
       validate = function(n)
         return n >= 0 and n <= 2, "Must be between 0 and 2"

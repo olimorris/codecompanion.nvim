@@ -10,49 +10,49 @@ local messages = { {
 
 local stream_response = {
   {
-    request = [[{"model":"llama2","created_at":"2024-03-07T20:02:30.622386Z","message":{"role":"assistant","content":"\n"},"done":false}]],
+    request = [[{"model":"dolphin-mistral","created_at":"2024-03-07T20:02:30.622386Z","message":{"role":"assistant","content":"\n"},"done":false}]],
     output = {
       content = "\n",
       role = "assistant",
     },
   },
   {
-    request = [[{"model":"llama2","created_at":"2024-03-07T20:02:30.652682Z","message":{"role":"assistant","content":"\""},"done":false}]],
+    request = [[{"model":"dolphin-mistral","created_at":"2024-03-07T20:02:30.652682Z","message":{"role":"assistant","content":"\""},"done":false}]],
     output = {
       content = '"',
       role = "assistant",
     },
   },
   {
-    request = [[{"model":"llama2","created_at":"2024-03-07T20:02:30.681756Z","message":{"role":"assistant","content":"Be"},"done":false}]],
+    request = [[{"model":"dolphin-mistral","created_at":"2024-03-07T20:02:30.681756Z","message":{"role":"assistant","content":"Be"},"done":false}]],
     output = {
       content = "Be",
       role = "assistant",
     },
   },
   {
-    request = [[{"model":"llama2","created_at":"2024-03-07T20:02:30.710758Z","message":{"role":"assistant","content":"aut"},"done":false}]],
+    request = [[{"model":"dolphin-mistral","created_at":"2024-03-07T20:02:30.710758Z","message":{"role":"assistant","content":"aut"},"done":false}]],
     output = {
       content = "aut",
       role = "assistant",
     },
   },
   {
-    request = [[{"model":"llama2","created_at":"2024-03-07T20:02:30.739508Z","message":{"role":"assistant","content":"iful"},"done":false}]],
+    request = [[{"model":"dolphin-mistral","created_at":"2024-03-07T20:02:30.739508Z","message":{"role":"assistant","content":"iful"},"done":false}]],
     output = {
       content = "iful",
       role = "assistant",
     },
   },
   {
-    request = [[{"model":"llama2","created_at":"2024-03-07T20:02:30.770345Z","message":{"role":"assistant","content":" Language"},"done":false}]],
+    request = [[{"model":"dolphin-mistral","created_at":"2024-03-07T20:02:30.770345Z","message":{"role":"assistant","content":" Language"},"done":false}]],
     output = {
       content = " Language",
       role = "assistant",
     },
   },
   {
-    request = [[{"model":"llama2","created_at":"2024-03-07T20:02:30.7994Z","message":{"role":"assistant","content":"\""},"done":false}]],
+    request = [[{"model":"dolphin-mistral","created_at":"2024-03-07T20:02:30.7994Z","message":{"role":"assistant","content":"\""},"done":false}]],
     output = {
       content = '"',
       role = "assistant",
@@ -61,7 +61,7 @@ local stream_response = {
 }
 
 local done_response =
-  [[{"model":"llama2","created_at":"2024-03-06T18:35:15.921631Z","message":{"role":"assistant","content":""},"done":true,"total_duration":6035327208,"load_duration":5654490167,"prompt_eval_count":26,"prompt_eval_duration":173338000,"eval_count":8,"eval_duration":205986000}]]
+  [[{"model":"dolphin-mistral","created_at":"2024-03-06T18:35:15.921631Z","message":{"role":"assistant","content":""},"done":true,"total_duration":6035327208,"load_duration":5654490167,"prompt_eval_count":26,"prompt_eval_duration":173338000,"eval_count":8,"eval_duration":205986000}]]
 ------------------------------------------------------------------------ // END
 
 describe("Ollama adapter", function()
