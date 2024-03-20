@@ -62,7 +62,7 @@ Install the plugin with your package manager of choice:
   dependencies = {
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
-    "nvim-telescope/telescope.nvim" -- Optional
+    "nvim-telescope/telescope.nvim", -- Optional
     {
       "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
       opts = {},
