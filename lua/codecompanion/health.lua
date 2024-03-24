@@ -59,8 +59,8 @@ local function env_available(env)
 end
 
 function M.check()
-  if vim.fn.has("nvim-0.9") == 0 then
-    error("codecompanion.nvim requires Neovim 0.9.0+")
+  if vim.fn.has("nvim-0.9.2") == 0 then
+    error("codecompanion.nvim requires Neovim 0.9.2+")
   end
 
   start("codecompanion.nvim report")
