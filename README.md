@@ -29,8 +29,8 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 - :speech_balloon: A Copilot Chat experience from within Neovim
 - :electric_plug: Adapter support for many generative AI services
 - :rocket: Inline code creation and modification
-- :sparkles: Built in actions for specific language prompts LSP error fixes and code advice
-- :building_construction: Create your own custom actions for Neovim which hook into generative AI APIs
+- :sparkles: Built in actions for specific language prompts, LSP error fixes and code advice
+- :building_construction: Create your own custom actions for Neovim
 - :floppy_disk: Save and restore your chats
 - :muscle: Async execution for improved performance
 
@@ -49,7 +49,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 
 - The `curl` library installed
 - Neovim 0.9.2 or greater
-- _(Optional)_ An API key to be set in your shell for your chosen generative AI service
+- _(Optional)_ An API key for your chosen generative AI service
 
 ## :package: Installation
 
@@ -155,7 +155,7 @@ require("codecompanion").setup({
 ### Adapters
 
 > [!WARNING]
-> Depending on your chosen adapter, you may need to ensure that an API key is set. See your [chosen adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters) for more information.
+> Depending on your [chosen adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters), you may need to ensure that an API key is set.
 
 The plugin uses adapters to bridge between generative AI services and the plugin. Currently the plugin supports:
 
@@ -189,7 +189,7 @@ require("codecompanion").setup({
 ```
 
 > [!TIP]
-> To create your own adapter please refer to the [ADAPTERS](ADAPTERS.md) guide
+> To create your own adapter please refer to the [ADAPTERS](ADAPTERS.md) guide.
 
 #### Additional API Key Options
 

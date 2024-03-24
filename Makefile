@@ -12,7 +12,8 @@ docs: $(PANVIMDOC_DIR)
 	cd $(PANVIMDOC_DIR) && \
 	pandoc \
 		--metadata="project:codecompanion" \
-		--metadata="description:Use the OpenAI APIs directly in Neovim" \
+		--metadata="vimversion:NVIM v0.9.2" \
+		--metadata="titledatepattern:%Y %B %d" \
 		--metadata="toc:true" \
 		--metadata="incrementheadinglevelby:0" \
 		--metadata="treesitter:true" \
