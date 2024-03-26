@@ -94,7 +94,7 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use.",
-      default = "dolphin-mistral-code-companion-temperature-0.2-top_p-0.1-num_ctx-16384",
+      default = "dolphin-mistral-code-companion",
       choices = {
         "dolphin-mistral-code-companion-temperature-0.2-top_p-0.1-num_ctx-16384",
         "dolphin-mistral-code-generation-temperature-0.2-top_p-0.1-num_ctx-16384",
@@ -103,6 +103,9 @@ return {
         "dolphin-mistral-creative-code-writing-temperature-0.6-top_p-0.7-num_ctx-16384",
         "dolphin-mistral-extract-wisdom-temperature-0.7-top_p-0.8-num_ctx-16384",
         "dolphin-mistral-improve-writing-temperature-0.7-top_p-0.8-num_ctx-16384",
+        "dolphin-mistral-code-companion",
+        "dolphin-mistral-extract-wisdom",
+        "dolphin-mistral-improve-writing",
         "dolphin-mistral",
         "dolphin-phi",
         "magicoder",
