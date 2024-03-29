@@ -155,7 +155,7 @@ require("codecompanion").setup({
 ### Adapters
 
 > [!WARNING]
-> Depending on your [chosen adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters), you may need to ensure that an API key is set.
+> Depending on your [chosen adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters), you may need to set an API key.
 
 The plugin uses adapters to bridge between generative AI services and the plugin. Currently the plugin supports:
 
@@ -174,7 +174,7 @@ require("codecompanion").setup({
 })
 ```
 
-Of course, you may need to modify certain parameters of an adapter. In the example below, we're changing the name of the API key that the OpenAI adapter uses by passing in a table to the `use` method:
+You may need to modify certain parameters of an adapter. In the example below, we're changing the name of the API key that the OpenAI adapter uses by passing in a table to the `use` method:
 
 ```lua
 require("codecompanion").setup({
