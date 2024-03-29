@@ -143,5 +143,16 @@ return {
         return n >= 0 and n <= 1, "Must be between 0 and 1"
       end,
     },
+    num_ctx = {
+      order = 4,
+      mapping = "parameters.options",
+      type = "number",
+      optional = true,
+      default = 16384,
+      desc = "Sets the size of the context window used to generate the next token. (Default: 2048)",
+      validate = function(n)
+        return n >= 2048, "Must be greater than or equal to 2048"
+      end,
+    },
   },
 }
