@@ -429,6 +429,10 @@ function Chat.new(args)
 end
 
 function Chat:submit()
+  if _G.codecompanion_jobs[self.bufnr] then
+    return
+  end
+
   local settings, messages = parse_messages_buffer(self.bufnr)
 
   if not messages or #messages == 0 then
