@@ -290,6 +290,62 @@ M.static.actions = {
     },
   },
   {
+    name = "Agentic Workflows...",
+    strategy = "chat",
+    description = "Workflows to improve the performance of your LLM",
+    picker = {
+      prompt = "Select a workflow",
+      items = {
+        {
+          name = "Code a feature - Outline, draft, consider and then revise",
+          callback = function(context)
+            local agent = require("codecompanion.agent")
+            return agent:workflow({
+              {
+                role = "system",
+                content = "You are an expert coder and helpful assistant who can help outline, draft, consider and revise code for the "
+                  .. context.filetype
+                  .. " language",
+              },
+              {
+                condition = function()
+                  return context.is_visual
+                end,
+                role = "user",
+                content = "Here is some relevant context: " .. send_code(context),
+              },
+              {
+                role = "user",
+                content = "I want you to help me code a feature. Before we write any code let's outline how we'll architect and implement the feature with the context you already have. The feature I'd like to add is ",
+                start = true,
+              },
+              {
+                role = "user",
+                content = "Thanks. Now let's draft the code for the feature. Please provide a rough draft of the code for the feature",
+                auto_submit = true,
+              },
+              {
+                role = "user",
+                content = "Great. Now let's consider the code. Please provide feedback on the code you've drafted",
+                auto_submit = true,
+              },
+              {
+                role = "user",
+                content = "Thanks. Now let's revise the code. Please provide a revised version of the code",
+                auto_submit = true,
+              },
+              {
+                role = "user",
+                content = "Thanks for your help. I'll take it from here",
+                auto_submit = true,
+              },
+            })
+          end,
+        },
+      },
+    },
+  },
+  {
     name = "Inline code ...",
     strategy = "inline",
     description = "Get OpenAI to write/refactor code for you",
