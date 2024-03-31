@@ -300,10 +300,12 @@ M.static.actions = {
           name = "Code a feature - Outline, draft, consider and then revise",
           callback = function(context)
             local agent = require("codecompanion.agent")
-            return agent:workflow({
-              context = context,
-              strategy = "chat",
-              prompts = {
+            return agent
+              .new({
+                context = context,
+                strategy = "chat",
+              })
+              :workflow({
                 {
                   role = "system",
                   content = "You are an expert coder and helpful assistant who can help outline, draft, consider and revise code for the "
@@ -314,6 +316,7 @@ M.static.actions = {
                   condition = function()
                     return context.is_visual
                   end,
+                  contains_code = true,
                   role = "user",
                   content = "Here is some relevant context: " .. send_code(context),
                 },
@@ -337,8 +340,7 @@ M.static.actions = {
                   content = "Thanks. Now let's revise the code based on the feedback",
                   auto_submit = true,
                 },
-              },
-            })
+              })
           end,
         },
       },
