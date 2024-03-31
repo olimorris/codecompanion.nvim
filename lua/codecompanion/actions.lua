@@ -290,7 +290,7 @@ M.static.actions = {
     },
   },
   {
-    name = "Workflows...",
+    name = "Agentic Workflows...",
     strategy = "chat",
     description = "Workflows to improve the performance of your LLM",
     picker = {

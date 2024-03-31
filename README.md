@@ -28,6 +28,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 
 - :speech_balloon: A Copilot Chat experience from within Neovim
 - :electric_plug: Adapter support for many generative AI services
+- :robot: Agentic workflows to improve LLM output
 - :rocket: Inline code creation and modification
 - :sparkles: Built in actions for specific language prompts, LSP error fixes and code advice
 - :building_construction: Create your own custom actions for Neovim
@@ -341,7 +342,21 @@ Both of these actions utilise the `chat` strategy. The `Chat` action opens up a 
 
 This action enables users to easily navigate between their open chat buffers. A chat buffer can be deleted (and removed from memory) by pressing `<C-c>`.
 
+#### Agentic Workflows
+
+> "Instead of having an LLM generate its final output directly, an agentic workflow prompts the LLM multiple times, giving it opportunities to build step by step to higher-quality output"
+
+As outlined in Andrew Ng's [tweet](https://twitter.com/AndrewYNg/status/1773393357022298617), agentic workflows have the ability to dramatically improve the output from an LLM. The plugin supports this via the use of workflows. Currently, the plugin only supports "reflection" (multiple prompts within the same application) and comes in built with some for:
+
+- Adding a new feature
+- Fixing a bug
+
+Of course you can add new workflows by following the [RECIPES](RECIPES.md) guide.
+
 #### Inline code
+
+> [!NOTE]
+> The options available to the user in the Action Palette will depend on the Vim mode.
 
 These actions utilize the `inline` strategy. They can be useful for writing inline code in a buffer or even refactoring a visual selection; all based on a user's prompt. The actions are designed to write code for the buffer filetype that it is initated in, or, if run from a terminal prompt, to write commands.
 
@@ -351,14 +366,18 @@ The strategy comes with a number of helpers which the user can type in the promp
 - `/optimize` to analyze and improve the running time of the selected code
 - `/tests` to create unit tests for the selected code
 
-> [!NOTE]
-> The options available to the user in the Action Palette will depend on the Vim mode.
 
 #### Code advisor
+
+> [!NOTE]
+> This option is only available in visual mode
 
 As the name suggests, this action provides advice on a visual selection of code and utilises the `chat` strategy. The response from the API is streamed into a chat buffer which follows the `display.chat` settings in your configuration.
 
 #### LSP assistant
+
+> [!NOTE]
+> This option is only available in visual mode
 
 Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice on how to correct any LSP diagnostics which are present on the visually selected lines. Again, the `send_code = false` value can be set in your config to prevent the code itself being sent to the generative AI service.
 
