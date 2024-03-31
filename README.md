@@ -245,13 +245,16 @@ The plugin has a number of commands:
 - `:CodeCompanionToggle` - Toggle a chat buffer
 - `:CodeCompanionActions` - To open up the action palette window
 
-For an optimum workflow, the plugin author recommendeds the following keymaps:
+For an optimum workflow, the plugin author recommendeds the following:
 
 ```lua
 vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
+
+-- Quickly type out CodeCompanion in the command line with `cc`
+vim.cmd([[cab cc CodeCompanion]])
 ```
 
 > [!NOTE]
