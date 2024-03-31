@@ -254,7 +254,7 @@ vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap
 vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
 
--- Quickly type out CodeCompanion in the command line with `cc`
+-- Expand `cc` into CodeCompanion in the command line
 vim.cmd([[cab cc CodeCompanion]])
 ```
 
@@ -333,10 +333,10 @@ The plugin comes with a number of [in-built actions](https://github.com/olimorri
 
 #### Chat and Chat as
 
-Both of these actions utilise the `chat` strategy. The `Chat` action opens up a fresh chat buffer. The `Chat as` action allows for persona based context to be set in the chat buffer allowing for better and more detailed responses from the generative AI service.
-
 > [!TIP]
 > Both of these actions allow for visually selected code to be sent to the chat buffer as code blocks.
+
+Both of these actions utilise the `chat` strategy. The `Chat` action opens up a fresh chat buffer. The `Chat as` action allows for persona based context to be set in the chat buffer allowing for better and more detailed responses from the generative AI service.
 
 #### Open chats
 
