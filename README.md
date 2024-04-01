@@ -344,15 +344,20 @@ This action enables users to easily navigate between their open chat buffers. A 
 
 #### Agentic Workflows
 
-> "Instead of having an LLM generate its final output directly, an agentic workflow prompts the LLM multiple times, giving it opportunities to build step by step to higher-quality output"
+> [!WARNING]
+> Agentic workflows are heavy consumers of tokens.
 
-As outlined in Andrew Ng's [tweet](https://twitter.com/AndrewYNg/status/1773393357022298617), agentic workflows have the ability to dramatically improve the output from an LLM. The plugin supports this via the use of workflows. Currently, the plugin only supports "reflection" (multiple prompts within the same application) and comes with the following workflows:
+> "Instead of having an LLM generate its final output directly, an agentic workflow prompts the LLM multiple times, giving it opportunities to build step by step to higher-quality output" Andrew Ng, 2024
+
+As outlined in Andrew Ng's [tweet](https://twitter.com/AndrewYNg/status/1773393357022298617), agentic workflows have the ability to dramatically improve the output of an LLM. The plugin supports this via the use of workflows. At various stages of the workflow, the plugin will automatically prompt the LLM for feedback and self-reflection without any input from the user.
+
+Currently, the plugin only supports _"reflection"_ (multiple prompts within the same application) and comes with the following workflows:
 
 - Adding a new feature
 - Refactoring code
 - Fixing a bug
 
-Of course you can add new workflows by following the [RECIPES](RECIPES.md) guide. At various stages of the workflow, the plugin will automatically prompt the LLM for feedback and self-reflection without any input from the user.
+Of course you can add new workflows by following the [RECIPES](RECIPES.md) guide.
 
 #### Inline code
 

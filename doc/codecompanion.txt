@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.9.2         Last change: 2024 March 24
+*codecompanion.txt*         For NVIM v0.9.2         Last change: 2024 April 01
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -14,6 +14,7 @@ FEATURES                                              *codecompanion-features*
 
 - A Copilot Chat experience from within Neovim
 - Adapter support for many generative AI services
+- Agentic workflows to improve LLM output
 - Inline code creation and modification
 - Built in actions for specific language prompts, LSP error fixes and code advice
 - Create your own custom actions for Neovim
@@ -234,13 +235,16 @@ The plugin has a number of commands:
 - `:CodeCompanionToggle` - Toggle a chat buffer
 - `:CodeCompanionActions` - To open up the action palette window
 
-For an optimum workflow, the plugin author recommendeds the following keymaps:
+For an optimum workflow, the plugin author recommendeds the following:
 
 >lua
     vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
     vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
     vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
     vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
+    
+    -- Expand `cc` into CodeCompanion in the command line
+    vim.cmd([[cab cc CodeCompanion]])
 <
 
 
@@ -353,14 +357,14 @@ Neovim buffer.
 
 CHAT AND CHAT AS
 
+
+  [!TIP] Both of these actions allow for visually selected code to be sent to the
+  chat buffer as code blocks.
 Both of these actions utilise the `chat` strategy. The `Chat` action opens up a
 fresh chat buffer. The `Chat as` action allows for persona based context to be
 set in the chat buffer allowing for better and more detailed responses from the
 generative AI service.
 
-
-  [!TIP] Both of these actions allow for visually selected code to be sent to the
-  chat buffer as code blocks.
 
 OPEN CHATS
 
@@ -368,8 +372,37 @@ This action enables users to easily navigate between their open chat buffers. A
 chat buffer can be deleted (and removed from memory) by pressing `<C-c>`.
 
 
+AGENTIC WORKFLOWS
+
+
+  [!WARNING] Agentic workflows are heavy consumers of tokens.
+
+  "Instead of having an LLM generate its final output directly, an agentic
+  workflow prompts the LLM multiple times, giving it opportunities to build step
+  by step to higher-quality output" Andrew Ng, 2024
+As outlined in Andrew Ng’s tweet
+<https://twitter.com/AndrewYNg/status/1773393357022298617>, agentic workflows
+have the ability to dramatically improve the output of an LLM. The plugin
+supports this via the use of workflows. At various stages of the workflow, the
+plugin will automatically prompt the LLM for feedback and self-reflection
+without any input from the user.
+
+Currently, the plugin only supports _“reflection”_ (multiple prompts within
+the same application) and comes with the following workflows:
+
+- Adding a new feature
+- Refactoring code
+- Fixing a bug
+
+Of course you can add new workflows by following the RECIPES <RECIPES.md>
+guide.
+
+
 INLINE CODE
 
+
+  [!NOTE] The options available to the user in the Action Palette will depend on
+  the Vim mode.
 These actions utilize the `inline` strategy. They can be useful for writing
 inline code in a buffer or even refactoring a visual selection; all based on a
 user’s prompt. The actions are designed to write code for the buffer filetype
@@ -384,11 +417,10 @@ prompt, similar to GitHub Copilot Chat
 - `/tests` to create unit tests for the selected code
 
 
-  [!NOTE] The options available to the user in the Action Palette will depend on
-  the Vim mode.
-
 CODE ADVISOR
 
+
+  [!NOTE] This option is only available in visual mode
 As the name suggests, this action provides advice on a visual selection of code
 and utilises the `chat` strategy. The response from the API is streamed into a
 chat buffer which follows the `display.chat` settings in your configuration.
@@ -396,6 +428,8 @@ chat buffer which follows the `display.chat` settings in your configuration.
 
 LSP ASSISTANT
 
+
+  [!NOTE] This option is only available in visual mode
 Taken from the fantastic Wtf.nvim <https://github.com/piersolenski/wtf.nvim>
 plugin, this action provides advice on how to correct any LSP diagnostics which
 are present on the visually selected lines. Again, the `send_code = false`
