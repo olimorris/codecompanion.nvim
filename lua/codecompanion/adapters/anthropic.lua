@@ -137,9 +137,17 @@ return {
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
         if not ok then
+          log:error("Malformed json: %s", json)
           return {
             status = "error",
             output = string.format("Error malformed json: %s", json),
+          }
+        end
+
+        if json.type == "error" then
+          return {
+            status = "error",
+            output = json.error.message,
           }
         end
 
