@@ -16,7 +16,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 </p>
 
 > [!IMPORTANT]
-> This plugin is provided as-is and is primarily developed for my own workflows. As such, I offer no guarantees of regular updates or support and I expect the plugin's API to change regularly. Bug fixes and feature enhancements will be implemented at my discretion, and only if they align with my personal use-case. Feel free to fork the project and customize it to your needs, but please understand my involvement in further development will be intermittent. To be notified of breaking changes in the plugin, please subscribe to [this issue](https://github.com/olimorris/codecompanion.nvim/issues/9).
+> This plugin is provided as-is and is primarily developed for my own workflows. As such, I offer no guarantees of regular updates or support and I expect the plugin's API to change regularly. Bug fixes and feature enhancements will be implemented at my discretion, and only if they align with my personal use-cases. Feel free to fork the project and customize it to your needs, but please understand my involvement in further development will be intermittent. To be notified of breaking changes in the plugin, please subscribe to [this issue](https://github.com/olimorris/codecompanion.nvim/issues/9).
 
 <p align="center">
 <img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5e5a5e54-c1d9-4fe2-8ae0-1cfbfdd6cea5" alt="Header" />
@@ -346,12 +346,13 @@ This action enables users to easily navigate between their open chat buffers. A 
 
 > "Instead of having an LLM generate its final output directly, an agentic workflow prompts the LLM multiple times, giving it opportunities to build step by step to higher-quality output"
 
-As outlined in Andrew Ng's [tweet](https://twitter.com/AndrewYNg/status/1773393357022298617), agentic workflows have the ability to dramatically improve the output from an LLM. The plugin supports this via the use of workflows. Currently, the plugin only supports "reflection" (multiple prompts within the same application) and comes in built with some for:
+As outlined in Andrew Ng's [tweet](https://twitter.com/AndrewYNg/status/1773393357022298617), agentic workflows have the ability to dramatically improve the output from an LLM. The plugin supports this via the use of workflows. Currently, the plugin only supports "reflection" (multiple prompts within the same application) and comes with the following workflows:
 
 - Adding a new feature
+- Refactoring code
 - Fixing a bug
 
-Of course you can add new workflows by following the [RECIPES](RECIPES.md) guide.
+Of course you can add new workflows by following the [RECIPES](RECIPES.md) guide. At various stages of the workflow, the plugin will automatically prompt the LLM for feedback and self-reflection without any input from the user.
 
 #### Inline code
 

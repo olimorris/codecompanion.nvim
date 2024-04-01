@@ -310,7 +310,8 @@ M.static.actions = {
                   role = "system",
                   content = "You are an expert coder and helpful assistant who can help outline, draft, consider and revise code for the "
                     .. context.filetype
-                    .. " language",
+                    .. " language.",
+                  start = true,
                 },
                 {
                   condition = function()
@@ -319,6 +320,7 @@ M.static.actions = {
                   contains_code = true,
                   role = "user",
                   content = "Here is some relevant context: " .. send_code(context),
+                  start = true,
                 },
                 {
                   role = "user",
@@ -327,17 +329,17 @@ M.static.actions = {
                 },
                 {
                   role = "user",
-                  content = "Thanks. Now let's draft the code for the feature. Please provide a rough draft of the code for the feature",
+                  content = "Thanks. Now let's draft the code for the feature.",
                   auto_submit = true,
                 },
                 {
                   role = "user",
-                  content = "Great. Now let's consider the code. Check the code carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it",
+                  content = "Great. Now let's consider the code. I'd like you to check it carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it.",
                   auto_submit = true,
                 },
                 {
                   role = "user",
-                  content = "Thanks. Now let's revise the code based on the feedback",
+                  content = "Thanks. Now let's revise the code based on the feedback.",
                   auto_submit = true,
                 },
               })
