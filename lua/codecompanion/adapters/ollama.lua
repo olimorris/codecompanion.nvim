@@ -94,8 +94,11 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use.",
-      default = "dolphin-mixtral",
+      default = "deepseek-coder:6.7b",
       choices = {
+        "deepseek-coder:6.7b",
+        "deepseek-coder",
+        "dolphin-mistral",
         "dolphin-mixtral",
         "llama2",
         "mistral",
