@@ -377,12 +377,15 @@ AGENTIC WORKFLOWS
 
   [!WARNING] Agentic workflows may result in the significant consumption of
   tokens if you’re using an external generative AI service.
-As outlined in Andrew Ng’s tweet
-<https://twitter.com/AndrewYNg/status/1773393357022298617>, agentic workflows
-have the ability to dramatically improve the output of an LLM and can be as
-simple as prompting an LLM multiple times. The plugin supports this via the use
-of workflows. At various stages of the workflow, the plugin will automatically
-prompt the LLM for feedback and self-reflection without any input from the
+As outlined <https://www.deeplearning.ai/the-batch/issue-242/> by Andrew Ng,
+agentic workflows have the ability to dramatically improve the output of an
+LLM. Infact, it’s possible for older models like GPT 3.5 to outperform newer
+models with traditional zero-shot inference. Andrew discussed
+<https://www.youtube.com/watch?v=sal78ACtGTc&t=249s> how an agentic workflow
+can be utilised via multiple prompts that invoke the LLM to self reflect.
+Implementing Andrew’s advice, the plugin supports this notion via the use of
+workflows. At various stages of a pre-defined workflow, the plugin will
+automatically prompt the LLM without any input or triggering required from the
 user.
 
 Currently, the plugin only supports _“reflection”_ (multiple prompts within
