@@ -355,7 +355,6 @@ Currently, the plugin only supports _"reflection"_ (multiple prompts within the 
 
 - Adding a new feature
 - Refactoring code
-- Fixing a bug
 
 Of course you can add new workflows by following the [RECIPES](RECIPES.md) guide.
 
