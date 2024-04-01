@@ -196,8 +196,9 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
-      default = "claude-3-opus-20240229",
+      default = "claude-3-haiku-20240307",
       choices = {
+        "claude-3-haiku-20240307",
         "claude-3-opus-20240229",
         "claude-3-sonnet-20240229",
         "claude-2.1",
