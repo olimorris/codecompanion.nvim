@@ -290,6 +290,124 @@ M.static.actions = {
     },
   },
   {
+    name = "Agentic Workflows...",
+    strategy = "chat",
+    description = "Workflows to improve the performance of your LLM",
+    picker = {
+      prompt = "Select a workflow",
+      items = {
+        {
+          name = "Code a feature - Outline, draft, consider and then revise",
+          callback = function(context)
+            local agent = require("codecompanion.agent")
+            return agent
+              .new({
+                context = context,
+                strategy = "chat",
+              })
+              :workflow({
+                {
+                  role = "system",
+                  content = "You are an expert coder and helpful assistant who can help outline, draft, consider and revise code for the "
+                    .. context.filetype
+                    .. " language.",
+                  start = true,
+                },
+                {
+                  condition = function()
+                    return context.is_visual
+                  end,
+                  contains_code = true,
+                  role = "user",
+                  content = "Here is some relevant context: " .. send_code(context),
+                  start = true,
+                },
+                {
+                  role = "user",
+                  content = "I want you to help me code a feature. Before we write any code let's outline how we'll architect and implement the feature with the context you already have. The feature I'd like to add is ",
+                  start = true,
+                },
+                {
+                  role = "user",
+                  content = "Thanks. Now let's draft the code for the feature.",
+                  auto_submit = true,
+                },
+                {
+                  role = "user",
+                  content = "Great. Now let's consider the code. I'd like you to check it carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it.",
+                  auto_submit = true,
+                },
+                {
+                  role = "user",
+                  content = "Thanks. Now let's revise the code based on the feedback.",
+                  auto_submit = true,
+                },
+                {
+                  role = "user",
+                  content = "For clarity, can you show the final code without any explanations?",
+                  auto_submit = true,
+                },
+              })
+          end,
+        },
+        {
+          name = "Refactor some code - Outline, draft, consider and then revise",
+          callback = function(context)
+            local agent = require("codecompanion.agent")
+            return agent
+              .new({
+                context = context,
+                strategy = "chat",
+              })
+              :workflow({
+                {
+                  role = "system",
+                  content = "You are an expert coder and helpful assistant who can help outline, draft, consider and revise code for the "
+                    .. context.filetype
+                    .. " language.",
+                  start = true,
+                },
+                {
+                  condition = function()
+                    return context.is_visual
+                  end,
+                  contains_code = true,
+                  role = "user",
+                  content = "Here is some relevant context: " .. send_code(context),
+                  start = true,
+                },
+                {
+                  role = "user",
+                  content = "I want you to help me with a refactor. Before we write any code let's outline how we'll architect and implement the code with the context you already have. What I'm looking to achieve is ",
+                  start = true,
+                },
+                {
+                  role = "user",
+                  content = "Thanks. Now let's draft the code for the refactor.",
+                  auto_submit = true,
+                },
+                {
+                  role = "user",
+                  content = "Great. Now let's consider the code. I'd like you to check it carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it.",
+                  auto_submit = true,
+                },
+                {
+                  role = "user",
+                  content = "Thanks. Now let's revise the code based on the feedback.",
+                  auto_submit = true,
+                },
+                {
+                  role = "user",
+                  content = "For clarity, can you show the final code without any explanations?",
+                  auto_submit = true,
+                },
+              })
+          end,
+        },
+      },
+    },
+  },
+  {
     name = "Inline code ...",
     strategy = "inline",
     description = "Get OpenAI to write/refactor code for you",

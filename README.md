@@ -16,7 +16,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 </p>
 
 > [!IMPORTANT]
-> This plugin is provided as-is and is primarily developed for my own workflows. As such, I offer no guarantees of regular updates or support and I expect the plugin's API to change regularly. Bug fixes and feature enhancements will be implemented at my discretion, and only if they align with my personal use-case. Feel free to fork the project and customize it to your needs, but please understand my involvement in further development will be intermittent. To be notified of breaking changes in the plugin, please subscribe to [this issue](https://github.com/olimorris/codecompanion.nvim/issues/9).
+> This plugin is provided as-is and is primarily developed for my own workflows. As such, I offer no guarantees of regular updates or support and I expect the plugin's API to change regularly. Bug fixes and feature enhancements will be implemented at my discretion, and only if they align with my personal use-cases. Feel free to fork the project and customize it to your needs, but please understand my involvement in further development will be intermittent. To be notified of breaking changes in the plugin, please subscribe to [this issue](https://github.com/olimorris/codecompanion.nvim/issues/9).
 
 <p align="center">
 <img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5e5a5e54-c1d9-4fe2-8ae0-1cfbfdd6cea5" alt="Header" />
@@ -28,6 +28,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 
 - :speech_balloon: A Copilot Chat experience from within Neovim
 - :electric_plug: Adapter support for many generative AI services
+- :robot: Agentic workflows to improve LLM output
 - :rocket: Inline code creation and modification
 - :sparkles: Built in actions for specific language prompts, LSP error fixes and code advice
 - :building_construction: Create your own custom actions for Neovim
@@ -245,13 +246,16 @@ The plugin has a number of commands:
 - `:CodeCompanionToggle` - Toggle a chat buffer
 - `:CodeCompanionActions` - To open up the action palette window
 
-For an optimum workflow, the plugin author recommendeds the following keymaps:
+For an optimum workflow, the plugin author recommendeds the following:
 
 ```lua
 vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
+
+-- Expand `cc` into CodeCompanion in the command line
+vim.cmd([[cab cc CodeCompanion]])
 ```
 
 > [!NOTE]
@@ -329,16 +333,33 @@ The plugin comes with a number of [in-built actions](https://github.com/olimorri
 
 #### Chat and Chat as
 
-Both of these actions utilise the `chat` strategy. The `Chat` action opens up a fresh chat buffer. The `Chat as` action allows for persona based context to be set in the chat buffer allowing for better and more detailed responses from the generative AI service.
-
 > [!TIP]
 > Both of these actions allow for visually selected code to be sent to the chat buffer as code blocks.
+
+Both of these actions utilise the `chat` strategy. The `Chat` action opens up a fresh chat buffer. The `Chat as` action allows for persona based context to be set in the chat buffer allowing for better and more detailed responses from the generative AI service.
 
 #### Open chats
 
 This action enables users to easily navigate between their open chat buffers. A chat buffer can be deleted (and removed from memory) by pressing `<C-c>`.
 
+#### Agentic Workflows
+
+> [!WARNING]
+> Agentic workflows may result in the significant consumption of tokens if you're using an external generative AI service.
+
+As outlined in Andrew Ng's [tweet](https://twitter.com/AndrewYNg/status/1773393357022298617), agentic workflows have the ability to dramatically improve the output of an LLM and can be as simple as prompting an LLM multiple times. The plugin supports this via the use of workflows. At various stages of the workflow, the plugin will automatically prompt the LLM for feedback and self-reflection without any input from the user.
+
+Currently, the plugin only supports _"reflection"_ (multiple prompts within the same application) and comes with the following workflows:
+
+- Adding a new feature
+- Refactoring code
+
+Of course you can add new workflows by following the [RECIPES](RECIPES.md) guide.
+
 #### Inline code
+
+> [!NOTE]
+> The options available to the user in the Action Palette will depend on the Vim mode.
 
 These actions utilize the `inline` strategy. They can be useful for writing inline code in a buffer or even refactoring a visual selection; all based on a user's prompt. The actions are designed to write code for the buffer filetype that it is initated in, or, if run from a terminal prompt, to write commands.
 
@@ -348,14 +369,18 @@ The strategy comes with a number of helpers which the user can type in the promp
 - `/optimize` to analyze and improve the running time of the selected code
 - `/tests` to create unit tests for the selected code
 
-> [!NOTE]
-> The options available to the user in the Action Palette will depend on the Vim mode.
 
 #### Code advisor
+
+> [!NOTE]
+> This option is only available in visual mode
 
 As the name suggests, this action provides advice on a visual selection of code and utilises the `chat` strategy. The response from the API is streamed into a chat buffer which follows the `display.chat` settings in your configuration.
 
 #### LSP assistant
+
+> [!NOTE]
+> This option is only available in visual mode
 
 Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice on how to correct any LSP diagnostics which are present on the visually selected lines. Again, the `send_code = false` value can be set in your config to prevent the code itself being sent to the generative AI service.
 

@@ -97,7 +97,9 @@ M.actions = function(args)
       format = function(item)
         local formatted_item = {}
         for _, column in ipairs(opts.columns) do
-          table.insert(formatted_item, item[column] or "")
+          if item[column] ~= nil then
+            table.insert(formatted_item, item[column] or "")
+          end
         end
         return formatted_item
       end,
@@ -119,7 +121,7 @@ M.actions = function(args)
       }
       picker(actions.validate(item.picker.items(), context), picker_opts, selection)
     elseif item and type(item.callback) == "function" then
-      return item.callback(selection)
+      return item.callback(context)
     else
       local Strategy = require("codecompanion.strategy")
       return Strategy.new({

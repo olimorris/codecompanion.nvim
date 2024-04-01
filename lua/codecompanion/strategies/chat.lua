@@ -356,6 +356,7 @@ local Chat = {}
 ---@field adapter CodeCompanion.Adapter
 ---@field context table
 ---@field messages nil|table
+---@field workflow nil|table
 ---@field show_buffer nil|boolean
 ---@field auto_submit nil|boolean
 ---@field settings nil|table
@@ -391,6 +392,7 @@ function Chat.new(args)
     bufnr = bufnr,
     context = args.context,
     saved_chat = args.saved_chat,
+    workflow = args.workflow or nil,
     settings = settings,
     type = args.type,
   }, { __index = Chat })
@@ -485,6 +487,30 @@ function Chat:submit()
     end
   end
 
+  local function apply_workflow()
+    local i = 0
+    for _, prompt in ipairs(self.workflow) do
+      i = i + 1
+      if not prompt.status then
+        log:trace("Workflow: %s", prompt)
+        prompt.status = "done"
+        render_new_messages({ role = prompt.role, content = prompt.content })
+
+        if prompt.auto_submit then
+          log:trace("Auto-submitting")
+          self:submit()
+        end
+
+        return
+      end
+
+      -- At the end of the prompts, ensure the chat buffer is ready for the user
+      if i == #self.workflow then
+        return render_new_messages({ role = "user", content = "" })
+      end
+    end
+  end
+
   local current_message = messages[#messages]
 
   if current_message and current_message.role == "user" and current_message.content == "" then
@@ -507,7 +533,11 @@ function Chat:submit()
     end
 
     if done then
-      render_new_messages({ role = "user", content = "" })
+      if self.workflow then
+        apply_workflow()
+      else
+        render_new_messages({ role = "user", content = "" })
+      end
       display_tokens(self.bufnr)
       return finalize()
     end
