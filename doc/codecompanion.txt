@@ -375,24 +375,21 @@ chat buffer can be deleted (and removed from memory) by pressing `<C-c>`.
 AGENTIC WORKFLOWS
 
 
-  [!WARNING] Agentic workflows are heavy consumers of tokens.
-
-  "Instead of having an LLM generate its final output directly, an agentic
-  workflow prompts the LLM multiple times, giving it opportunities to build step
-  by step to higher-quality output" Andrew Ng, 2024
+  [!WARNING] Agentic workflows may result in the significant consumption of
+  tokens if you’re using an external generative AI service.
 As outlined in Andrew Ng’s tweet
 <https://twitter.com/AndrewYNg/status/1773393357022298617>, agentic workflows
-have the ability to dramatically improve the output of an LLM. The plugin
-supports this via the use of workflows. At various stages of the workflow, the
-plugin will automatically prompt the LLM for feedback and self-reflection
-without any input from the user.
+have the ability to dramatically improve the output of an LLM and can be as
+simple as prompting an LLM multiple times. The plugin supports this via the use
+of workflows. At various stages of the workflow, the plugin will automatically
+prompt the LLM for feedback and self-reflection without any input from the
+user.
 
 Currently, the plugin only supports _“reflection”_ (multiple prompts within
 the same application) and comes with the following workflows:
 
 - Adding a new feature
 - Refactoring code
-- Fixing a bug
 
 Of course you can add new workflows by following the RECIPES <RECIPES.md>
 guide.
