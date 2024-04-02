@@ -408,36 +408,11 @@ vim.api.nvim_create_autocmd({ "User" }, {
 > [!TIP]
 > A possible use case is for formatting the buffer after an inline code request
 
-### Heirline.nvim
+### Statuslines
 
-If you're using the fantastic [Heirline.nvim](https://github.com/rebelot/heirline.nvim) plugin, consider the following snippet to display an icon in the statusline whilst CodeCompanion is conversing with a generative AI service:
+It can be helpful to have a visual indicator in your statusline to know when the plugin is communicating with a generative AI service. Below are two ways to achieve this:
 
-```lua
-local CodeCompanion = {
-  static = {
-    processing = false,
-  },
-  update = {
-    "User",
-    pattern = "CodeCompanionRequest",
-    callback = function(self, args)
-      self.processing = (args.data.status == "started")
-      vim.cmd("redrawstatus")
-    end,
-  },
-  {
-    condition = function(self)
-      return self.processing
-    end,
-    provider = " ",
-    hl = { fg = "yellow" },
-  },
-}
-```
-
-### lualine.nvim
-
-If you're using the fantastic [lualine.nvim](https://github.com/nvim-lualine/lualine.nvim) plugin, consider the following snippet to display an icon in the statusline whilst CodeCompanion is conversing with a generative AI service:
+#### lualine.nvim
 
 ```lua
 local M = require("lualine.component"):extend()
@@ -485,6 +460,31 @@ function M:update_status()
 end
 
 return M
+```
+
+#### heirline.nvim
+
+```lua
+local CodeCompanion = {
+  static = {
+    processing = false,
+  },
+  update = {
+    "User",
+    pattern = "CodeCompanionRequest",
+    callback = function(self, args)
+      self.processing = (args.data.status == "started")
+      vim.cmd("redrawstatus")
+    end,
+  },
+  {
+    condition = function(self)
+      return self.processing
+    end,
+    provider = " ",
+    hl = { fg = "yellow" },
+  },
+}
 ```
 
 <!-- panvimdoc-ignore-start -->

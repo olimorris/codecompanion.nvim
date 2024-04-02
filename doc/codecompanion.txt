@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.9.2         Last change: 2024 April 01
+*codecompanion.txt*         For NVIM v0.9.2         Last change: 2024 April 02
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -463,12 +463,65 @@ Events can be hooked into as follows:
   [!TIP] A possible use case is for formatting the buffer after an inline code
   request
 
-HEIRLINE.NVIM ~
+STATUSLINES ~
 
-If you’re using the fantastic Heirline.nvim
-<https://github.com/rebelot/heirline.nvim> plugin, consider the following
-snippet to display an icon in the statusline whilst CodeCompanion is conversing
-with a generative AI service:
+It can be helpful to have a visual indicator in your statusline to know when
+the plugin is communicating with a generative AI service. Below are two ways to
+achieve this:
+
+
+LUALINE.NVIM
+
+>lua
+    local M = require("lualine.component"):extend()
+    
+    M.processing = false
+    M.spinner_index = 1
+    
+    local spinner_symbols = {
+      "⠋",
+      "⠙",
+      "⠹",
+      "⠸",
+      "⠼",
+      "⠴",
+      "⠦",
+      "⠧",
+      "⠇",
+      "⠏",
+    }
+    local spinner_symbols_len = 10
+    
+    -- Initializer
+    function M:init(options)
+      M.super.init(self, options)
+    
+      local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
+    
+      vim.api.nvim_create_autocmd({ "User" }, {
+        pattern = "CodeCompanionRequest",
+        group = group,
+        callback = function(request)
+          self.processing = (request.data.status == "started")
+        end,
+      })
+    end
+    
+    -- Function that runs every time statusline is updated
+    function M:update_status()
+      if self.processing then
+        self.spinner_index = (self.spinner_index % spinner_symbols_len) + 1
+        return spinner_symbols[self.spinner_index]
+      else
+        return nil
+      end
+    end
+    
+    return M
+<
+
+
+HEIRLINE.NVIM
 
 >lua
     local CodeCompanion = {
