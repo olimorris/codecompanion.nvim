@@ -308,7 +308,7 @@ M.static.actions = {
               :workflow({
                 {
                   role = "system",
-                  content = "You are an expert coder and helpful assistant who can help outline, draft, consider and revise code for the "
+                  content = "You carefully provide accurate, factual, thoughtful, nuanced answers, and are brilliant at reasoning. If you think there might not be a correct answer, you say so. Always spend a few sentences explaining background context, assumptions, and step-by-step thinking BEFORE you try to answer a question. Don't be verbose in your answers, but do provide details and examples where it might help the explanation. You are an expert software engineer for the "
                     .. context.filetype
                     .. " language.",
                   start = true,
@@ -339,12 +339,7 @@ M.static.actions = {
                 },
                 {
                   role = "user",
-                  content = "Thanks. Now let's revise the code based on the feedback.",
-                  auto_submit = true,
-                },
-                {
-                  role = "user",
-                  content = "For clarity, can you show the final code without any explanations?",
+                  content = "Thanks. Now let's revise the code based on the feedback, without additional explanations.",
                   auto_submit = true,
                 },
               })
@@ -362,7 +357,7 @@ M.static.actions = {
               :workflow({
                 {
                   role = "system",
-                  content = "You are an expert coder and helpful assistant who can help outline, draft, consider and revise code for the "
+                  content = "You carefully provide accurate, factual, thoughtful, nuanced answers, and are brilliant at reasoning. If you think there might not be a correct answer, you say so. Always spend a few sentences explaining background context, assumptions, and step-by-step thinking BEFORE you try to answer a question. Don't be verbose in your answers, but do provide details and examples where it might help the explanation. You are an expert software engineer for the "
                     .. context.filetype
                     .. " language.",
                   start = true,
@@ -393,12 +388,7 @@ M.static.actions = {
                 },
                 {
                   role = "user",
-                  content = "Thanks. Now let's revise the code based on the feedback.",
-                  auto_submit = true,
-                },
-                {
-                  role = "user",
-                  content = "For clarity, can you show the final code without any explanations?",
+                  content = "Thanks. Now let's revise the code based on the feedback, without additional explanations.",
                   auto_submit = true,
                 },
               })
