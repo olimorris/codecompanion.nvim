@@ -2,6 +2,11 @@ local M = {}
 
 local defaults = {
   adapters = {
+    anthropic = require("codecompanion.adapters").use("anthropic"),
+    ollama = require("codecompanion.adapters").use("ollama"),
+    openai = require("codecompanion.adapters").use("openai"),
+  },
+  strategies = {
     chat = "openai",
     inline = "openai",
   },
@@ -57,11 +62,14 @@ local defaults = {
 
 ---@param opts nil|table
 M.setup = function(opts)
-  M.options = vim.tbl_deep_extend("force", {}, defaults, opts or {})
+  local merged_options = vim.tbl_deep_extend("force", {}, defaults, opts or {})
 
+  -- Handle adapter updates
   if opts and opts.adapters then
-    M.options.adapters = opts.adapters
+    merged_options.adapters = vim.tbl_deep_extend("force", {}, defaults.adapters, opts.adapters)
   end
+
+  M.options = merged_options
 
   M.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
   M.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
@@ -92,15 +100,6 @@ M.setup = function(opts)
   }
   vim.diagnostic.config(diagnostic_config, M.INFO_NS)
   vim.diagnostic.config(diagnostic_config, M.ERROR_NS)
-
-  local chat_adapter = vim.tbl_get(M.options, "adapters", "chat")
-  if type(chat_adapter) == "string" then
-    M.options.adapters.chat = require("codecompanion.adapters").use(chat_adapter)
-  end
-  local inline_adapter = vim.tbl_get(M.options, "adapters", "inline")
-  if type(inline_adapter) == "string" then
-    M.options.adapters.inline = require("codecompanion.adapters").use(inline_adapter)
-  end
 end
 
 return M

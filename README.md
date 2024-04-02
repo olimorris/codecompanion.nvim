@@ -96,7 +96,12 @@ You only need to the call the `setup` function if you wish to change any of the 
 
 ```lua
 require("codecompanion").setup({
-  adapters = { -- anthropic|ollama|openai
+  adapters = {
+    anthropic = require("codecompanion.adapters").use("anthropic"),
+    ollama = require("codecompanion.adapters").use("ollama"),
+    openai = require("codecompanion.adapters").use("openai"),
+  },
+  strategies = {
     chat = "openai",
     inline = "openai",
   },
@@ -164,37 +169,21 @@ The plugin uses adapters to bridge between generative AI services and the plugin
 - Ollama (`ollama`)
 - OpenAI (`openai`) - Requires an API key
 
-You can specify an adapter for each of the strategies in the plugin:
+You can customise an adapter's configuration as follows:
 
 ```lua
 require("codecompanion").setup({
   adapters = {
-    chat = "anthropic",
-    inline = "openai"
-  },
-})
-```
-
-You may need to modify certain parameters of an adapter. In the example below, we're changing the name of the API key that the OpenAI adapter uses by passing in a table to the `use` method:
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    chat = require("codecompanion.adapters").use("openai", {
+    anthropic = require("codecompanion.adapters").use("anthropic", {
       env = {
-        api_key = "DIFFERENT_OPENAI_KEY",
+        api_key = "ANTHROPIC_API_KEY_1"
       },
     }),
   },
 })
 ```
 
-> [!TIP]
-> To create your own adapter please refer to the [ADAPTERS](ADAPTERS.md) guide.
-
-#### Additional API Key Options
-
-Having API keys in plain text in your shell is not always safe. Thanks to [this PR](https://github.com/olimorris/codecompanion.nvim/pull/24), you can run commands from within the plugin:
+In the example above, we've changed the name of the default API key which the Anthropic adapter uses. Having API keys in plain text in your shell is not always safe. Thanks to [this PR](https://github.com/olimorris/codecompanion.nvim/pull/24), you can run commands from within the configuration:
 
 ```lua
 require("codecompanion").setup({
@@ -208,7 +197,10 @@ require("codecompanion").setup({
 })
 ```
 
-In this example, we're using `gpg` to decrypt a file to obtain an API key.
+In this example, we're using `gpg` to decrypt a file to obtain an API key for OpenAI.
+
+> [!TIP]
+> To create your own adapter please refer to the [ADAPTERS](ADAPTERS.md) guide.
 
 ### Edgy.nvim Configuration
 
@@ -243,6 +235,7 @@ The plugin has a number of commands:
 
 - `:CodeCompanion` - Inline code writing and refactoring
 - `:CodeCompanionChat` - To open up a new chat buffer
+- `:CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
 - `:CodeCompanionToggle` - Toggle a chat buffer
 - `:CodeCompanionActions` - To open up the action palette window
 

@@ -39,6 +39,7 @@ return {
     opts = {
       desc = "Open a CodeCompanion chat buffer",
       range = true,
+      nargs = "*",
     },
   },
   {

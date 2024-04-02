@@ -27,14 +27,15 @@ local chat_query = [[
 
 local config_settings = {}
 ---@param bufnr integer
+---@param adapter CodeCompanion.Adapter
 ---@return table
-local function parse_settings(bufnr)
+local function parse_settings(bufnr, adapter)
   if config_settings[bufnr] then
     return config_settings[bufnr]
   end
 
   if not config.options.display.chat.show_settings then
-    config_settings[bufnr] = config.options.adapters.chat:get_default_settings()
+    config_settings[bufnr] = adapter:get_default_settings()
 
     log:debug("Using the settings from the user's config: %s", config_settings[bufnr])
     return config_settings[bufnr]
@@ -57,9 +58,10 @@ local function parse_settings(bufnr)
 end
 
 ---@param bufnr integer
+---@param adapter CodeCompanion.Adapter
 ---@return table
 ---@return table
-local function parse_messages_buffer(bufnr)
+local function parse_messages_buffer(bufnr, adapter)
   local ret = {}
 
   local parser = vim.treesitter.get_parser(bufnr, "markdown")
@@ -92,18 +94,19 @@ local function parse_messages_buffer(bufnr)
     table.insert(ret, message)
   end
 
-  return parse_settings(bufnr), ret
+  return parse_settings(bufnr, adapter), ret
 end
 
 ---@param bufnr integer
+---@param adapter CodeCompanion.Adapter
 ---@param settings table
 ---@param messages table
 ---@param context table
-local function render_messages(bufnr, settings, messages, context)
+local function render_messages(bufnr, adapter, settings, messages, context)
   local lines = {}
   if config.options.display.chat.show_settings then
     lines = { "---" }
-    local keys = schema.get_ordered_keys(config.options.adapters.chat.schema)
+    local keys = schema.get_ordered_keys(adapter.schema)
     for _, key in ipairs(keys) do
       table.insert(lines, string.format("%s: %s", key, yaml.encode(settings[key])))
     end
@@ -180,7 +183,8 @@ _G.codecompanion_win_opts = {}
 local registered_cmp = false
 
 ---@param bufnr number
-local function chat_autocmds(bufnr)
+---@param adapter CodeCompanion.Adapter
+local function chat_autocmds(bufnr, adapter)
   local aug = api.nvim_create_augroup("CodeCompanion", {
     clear = false,
   })
@@ -205,8 +209,8 @@ local function chat_autocmds(bufnr)
       group = aug,
       buffer = bufnr,
       callback = function()
-        local settings = parse_settings(bufnr)
-        local errors = schema.validate(config.options.adapters.chat.schema, settings)
+        local settings = parse_settings(bufnr, adapter)
+        local errors = schema.validate(adapter.schema, settings)
         local node = settings.__ts_node
         local items = {}
         if errors and node then
@@ -307,7 +311,7 @@ local function chat_autocmds(bufnr)
 
       if _G.codecompanion_chats[bufnr] == nil then
         local description
-        local _, messages = parse_messages_buffer(bufnr)
+        local _, messages = parse_messages_buffer(bufnr, adapter)
 
         if messages[1] and messages[1].content then
           description = messages[1].content
@@ -348,15 +352,20 @@ local function chat_autocmds(bufnr)
 end
 
 ---@class CodeCompanion.Chat
+---@field adapter CodeCompanion.Adapter
 ---@field bufnr integer
+---@field context table
+---@field saved_chat? string
+---@field workflow? table
 ---@field settings table
+---@field type string
 local Chat = {}
 
 ---@class CodeCompanion.ChatArgs
----@field adapter CodeCompanion.Adapter
 ---@field context table
+---@field adapter? CodeCompanion.Adapter
+---@field workflow? table
 ---@field messages nil|table
----@field workflow nil|table
 ---@field show_buffer nil|boolean
 ---@field auto_submit nil|boolean
 ---@field settings nil|table
@@ -383,12 +392,16 @@ function Chat.new(args)
 
   ui.set_buf_options(bufnr, config.options.display.chat.buf_options)
 
-  watch_cursor()
-  chat_autocmds(bufnr)
+  local adapter = args.adapter or config.options.adapters[config.options.strategies.chat]
+  if adapter == nil then
+    vim.notify("No adapter found", vim.log.levels.ERROR)
+    return
+  end
 
-  local settings = args.settings or schema.get_default(config.options.adapters.chat.schema, args.settings)
+  local settings = args.settings or schema.get_default(adapter.schema, args.settings)
 
   local self = setmetatable({
+    adapter = adapter,
     bufnr = bufnr,
     context = args.context,
     saved_chat = args.saved_chat,
@@ -399,10 +412,13 @@ function Chat.new(args)
 
   chatmap[bufnr] = self
 
+  watch_cursor()
+  chat_autocmds(bufnr, adapter)
+
   local keys = require("codecompanion.utils.keymaps")
   keys.set_keymaps(config.options.keymaps, bufnr, self)
 
-  render_messages(bufnr, settings, args.messages or {}, args.context or {})
+  render_messages(bufnr, adapter, settings, args.messages or {}, args.context or {})
 
   if args.saved_chat then
     display_tokens(bufnr)
@@ -435,7 +451,7 @@ function Chat:submit()
     return
   end
 
-  local settings, messages = parse_messages_buffer(self.bufnr)
+  local settings, messages = parse_messages_buffer(self.bufnr, self.adapter)
 
   if not messages or #messages == 0 then
     return
@@ -520,13 +536,7 @@ function Chat:submit()
   -- log:trace("----- For Adapter test creation -----\nMessages: %s\n ---------- // END ----------", messages)
   -- log:trace("Settings: %s", settings)
 
-  local adapter = config.options.adapters.chat
-  if not adapter then
-    vim.notify("No adapter found", vim.log.levels.ERROR)
-    return finalize()
-  end
-
-  client.new():stream(adapter:set_params(settings), messages, self.bufnr, function(err, data, done)
+  client.new():stream(self.adapter:set_params(settings), messages, self.bufnr, function(err, data, done)
     if err then
       vim.notify("Error: " .. err, vim.log.levels.ERROR)
       return finalize()
@@ -543,7 +553,7 @@ function Chat:submit()
     end
 
     if data then
-      local result = adapter.callbacks.chat_output(data)
+      local result = self.adapter.callbacks.chat_output(data)
 
       if result and result.status == "success" then
         render_new_messages(result.output)
@@ -583,7 +593,7 @@ function Chat:on_cursor_moved()
     vim.diagnostic.set(config.INFO_NS, self.bufnr, {})
     return
   end
-  local key_schema = config.options.adapters.chat.schema[key_name]
+  local key_schema = self.adapter.schema[key_name]
 
   if key_schema and key_schema.desc then
     local lnum, col, end_lnum, end_col = node:range()
@@ -611,7 +621,7 @@ function Chat:complete(request, callback)
     return
   end
 
-  local key_schema = config.options.adapters.chat.schema[key_name]
+  local key_schema = self.adapter.schema[key_name]
   if key_schema.type == "enum" then
     for _, choice in ipairs(key_schema.choices) do
       table.insert(items, {
@@ -640,7 +650,8 @@ function Chat.buf_get_messages(bufnr)
   if not bufnr or bufnr == 0 then
     bufnr = api.nvim_get_current_buf()
   end
-  return parse_messages_buffer(bufnr)
+  local adapter = chatmap[bufnr].adapter
+  return parse_messages_buffer(bufnr, adapter)
 end
 
 return Chat

@@ -1,6 +1,5 @@
 local client = require("codecompanion.client")
 local config = require("codecompanion.config")
-local adapter = config.options.adapters.inline
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 
@@ -95,15 +94,20 @@ end
 ---Overwrite the given selection in the buffer with an empty string
 ---@param context table
 local function overwrite_selection(context)
+  log:trace("Overwriting selection: %s", context)
+  if context.start_col > 0 then
+    context.start_col = context.start_col - 1
+  end
+
   api.nvim_buf_set_text(
     context.bufnr,
     context.start_line - 1,
-    context.start_col - 1,
+    context.start_col,
     context.end_line - 1,
     context.end_col,
     { "" }
   )
-  api.nvim_win_set_cursor(context.winid, { context.start_line, context.start_col - 1 })
+  api.nvim_win_set_cursor(context.winid, { context.start_line, context.start_col })
 end
 
 ---Ge the curret cursor position in the window
@@ -164,7 +168,7 @@ end
 ---@param output table
 ---@return nil
 local function get_inline_output(inline, placement, prompt, output)
-  if not adapter then
+  if not inline.adapter then
     return
   end
 
@@ -185,7 +189,7 @@ local function get_inline_output(inline, placement, prompt, output)
     end,
   })
 
-  client.new():stream(adapter:set_params(), prompt, inline.context.bufnr, function(err, data, done)
+  client.new():stream(inline.adapter:set_params(), prompt, inline.context.bufnr, function(err, data, done)
     if err then
       fire_autocmd("finished")
       return
@@ -204,7 +208,7 @@ local function get_inline_output(inline, placement, prompt, output)
     if data then
       log:trace("Inline data: %s", data)
 
-      local content = adapter.callbacks.inline_output(data, inline.context)
+      local content = inline.adapter.callbacks.inline_output(data, inline.context)
 
       if inline.context.buftype == "terminal" then
         -- Don't stream to the terminal
@@ -223,12 +227,14 @@ end
 
 ---@class CodeCompanion.Inline
 ---@field context table
+---@field adapter CodeCompanion.Adapter
 ---@field opts table
 ---@field prompts table
 local Inline = {}
 
 ---@class CodeCompanion.InlineArgs
 ---@field context table
+---@field adapter CodeCompanion.Adapter
 ---@field opts table
 ---@field pre_hook fun():number -- Assuming pre_hook returns a number for example
 ---@field prompts table
@@ -250,6 +256,7 @@ function Inline.new(opts)
 
   return setmetatable({
     context = opts.context,
+    adapter = config.options.adapters[config.options.strategies.inline],
     opts = opts.opts or {},
     prompts = vim.deepcopy(opts.prompts),
   }, { __index = Inline })
@@ -257,7 +264,7 @@ end
 
 ---@param user_input string|nil
 function Inline:execute(user_input)
-  if not adapter then
+  if not self.adapter then
     vim.notify("No adapter found for inline requests", vim.log.levels.ERROR)
     return
   end
@@ -268,11 +275,13 @@ function Inline:execute(user_input)
     local action = {
       {
         role = "system",
-        content = 'I am writing a prompt from within the Neovim text editor. This prompt will go to a generative AI model which will return a response. The response will then be streamed into Neovim. However, depending on the nature of the prompt, how Neovim handles the output will vary. For instance, if the user references the words "refactor" or "update" in their prompt, they will likely want the response to replace a visual selection they\'ve made in the editor. However, if they include words such as "after" or "before", it may be insinuated that they wish the response to be placed after or before the cursor position. They may also ask for the response to be placed in a new buffer. Finally, if you they don\'t specify what they wish to do, then they likely want to stream the response into where the cursor is currently. What I\'d like you to do is analyse the following prompt and determine whether the response should be one of: 1) after 2) before 3) replace 4) new 5) cursor. We\'ll call this the "placement" and please only respond with a single word. The user may not wish for their original code to be returned back to them from the generative AI model as part of the response. An example would be if they\'ve asked the model to generate comments or documentation. However if they\'ve asked for some refactoring/modification, then the original code should be returned. Please can you determine whether the code should be returned or not by responding with a boolean flag. Can you append this to the "placement" from earlier and seperate them with a "|" character? An example would be "cursor|true".',
+        content = 'I am writing a prompt from within the Neovim text editor. This prompt will go to a generative AI model which will return a response. The response will then be streamed into Neovim. However, depending on the nature of the prompt, how Neovim handles the output will vary. For instance, if the user references the words "refactor" or "update" in their prompt, they will likely want the response to replace a visual selection they\'ve made in the editor. However, if they include words such as "after" or "before", it may be insinuated that they wish the response to be placed after or before the cursor position. They may also ask for the response to be placed in a new buffer. Finally, if you they don\'t specify what they wish to do, then they likely want to stream the response into where the cursor is currently. What I\'d like you to do is analyse the following prompt and determine whether the response should be one of: 1) after 2) before 3) replace 4) new 5) cursor. We\'ll call this the "placement" and please only respond with a single word. The user may not wish for their original code to be returned back to them from the generative AI model as part of the response. An example would be if they\'ve asked the model to generate comments or documentation. However if they\'ve asked for some refactoring/modification, then the original code should be returned. Please can you determine whether the code should be returned or not by responding with a boolean flag. Can you append this to the "placement" from earlier and seperate them with a "|" character? An example would be "cursor|true". DO NOT response with anything other than "cursor|true".',
       },
       {
         role = "user",
-        content = 'The prompt to analyse is: "' .. user_input .. '"',
+        content = 'The prompt to analyse is: "'
+          .. user_input
+          .. '". Please respond with the placement and a boolean flag ONLY e.g. "cursor|true"',
       },
     }
 
@@ -281,7 +290,7 @@ function Inline:execute(user_input)
 
     local placement = ""
     fire_autocmd("started")
-    client.new():stream(adapter:set_params(), action, self.context.bufnr, function(err, data, done)
+    client.new():stream(self.adapter:set_params(), action, self.context.bufnr, function(err, data, done)
       if err then
         fire_autocmd("finished")
         return
@@ -294,7 +303,7 @@ function Inline:execute(user_input)
       end
 
       if data then
-        placement = placement .. (adapter.callbacks.inline_output(data) or "")
+        placement = placement .. (self.adapter.callbacks.inline_output(data) or "")
       end
     end)
   else

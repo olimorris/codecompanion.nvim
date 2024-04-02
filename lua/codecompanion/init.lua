@@ -34,10 +34,16 @@ end
 
 ---@param args? table
 M.chat = function(args)
+  local adapter
   local context = util.get_context(vim.api.nvim_get_current_buf(), args)
+
+  if args and args.fargs then
+    adapter = config.options.adapters[args.fargs[1]]
+  end
 
   local chat = require("codecompanion.strategies.chat").new({
     context = context,
+    adapter = adapter,
   })
 
   vim.api.nvim_win_set_buf(0, chat.bufnr)
