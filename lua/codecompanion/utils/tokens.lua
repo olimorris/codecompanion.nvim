@@ -74,6 +74,7 @@ function M.display_tokens(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
 
   local ns_id = vim.api.nvim_create_namespace("CodeCompanionTokens")
+  vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
 
   local parser = vim.treesitter.get_parser(bufnr, "markdown", {})
   local tree = parser:parse()[1]
