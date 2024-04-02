@@ -5,6 +5,8 @@ local M = {}
 
 M.static = {}
 
+local adapter = config.options.strategies.chat:gsub("^%l", string.upper)
+
 local expert = function(filetype)
   return "I want you to act as a senior "
     .. filetype
@@ -42,7 +44,7 @@ M.static.actions = {
   {
     name = "Chat",
     strategy = "chat",
-    description = "Open/restore a chat buffer to converse with OpenAI",
+    description = "Open/restore a chat buffer to converse with " .. adapter,
     type = nil,
     prompts = {
       n = function()
@@ -400,7 +402,7 @@ M.static.actions = {
   {
     name = "Inline code ...",
     strategy = "inline",
-    description = "Get OpenAI to write/refactor code for you",
+    description = "Get " .. adapter .. " to write/refactor code for you",
     picker = {
       prompt = "Select an inline code action",
       items = {
