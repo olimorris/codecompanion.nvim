@@ -163,11 +163,24 @@ require("codecompanion").setup({
 > [!WARNING]
 > Depending on your [chosen adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters), you may need to set an API key.
 
-The plugin uses adapters to bridge between generative AI services and the plugin. Currently the plugin supports:
+The plugin uses adapters to bridge between generative AI services and the plugin (notably strategies). Currently the plugin supports:
 
 - Anthropic (`anthropic`) - Requires an API key
 - Ollama (`ollama`)
 - OpenAI (`openai`) - Requires an API key
+
+Strategies are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the generative AI service. The _inline_ strategy allows for output from the generative AI service to be written directly into a pre-existing Neovim buffer.
+
+To specify a different adapter to the defaults, you can map an adapter to a strategy:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = "ollama",
+    inline = "ollama"
+  },
+})
+```
 
 You can customise an adapter's configuration as follows:
 
@@ -322,7 +335,7 @@ As a final example, specifying a prompt like _"create a test for this code in a 
 
 ### In-Built Actions
 
-The plugin comes with a number of [in-built actions](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) which aim to improve your Neovim workflow. Actions make use of either a _chat_ or an _inline_ strategy. The chat strategy opens up a chat buffer whilst an inline strategy will write output from the generative AI service into the Neovim buffer.
+The plugin comes with a number of [in-built actions](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) which aim to improve your Neovim workflow. Actions make use of either a _chat_ or an _inline_ strategy. As mentioned above, the chat strategy opens up a chat buffer whilst an inline strategy will write output from the generative AI service into a Neovim buffer.
 
 #### Chat and Chat as
 
