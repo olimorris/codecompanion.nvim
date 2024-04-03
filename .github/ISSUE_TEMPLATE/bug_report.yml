@@ -38,19 +38,27 @@ body:
           end
           vim.opt.runtimepath:prepend(lazypath)
 
-          -- install plugins
+          -- Your CodeCompanion setup
           local plugins = {
             {
               "olimorris/codecompanion.nvim",
               dependencies = {
                 { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate"},
                 "nvim-lua/plenary.nvim",
+                "nvim-telescope/telescope.nvim",
                 {
-                  "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
+                  "stevearc/dressing.nvim",
                   opts = {},
                 },
               },
-              config = true
+              config = function()
+                require("codecompanion").setup({
+                  strategies = { -- Change the adapters as required
+                    chat = "openai",
+                    inline = "openai",
+                  },
+                })
+              end,
             }
           }
 
