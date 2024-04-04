@@ -66,7 +66,11 @@ M.setup = function(opts)
 
   -- Handle adapter updates
   if opts and opts.adapters then
-    M.options.adapters = opts.adapters
+    for name, adapter in pairs(opts.adapters) do
+      if M.options.adapters[name] then
+        M.options.adapters[name] = adapter
+      end
+    end
   end
 
   M.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
