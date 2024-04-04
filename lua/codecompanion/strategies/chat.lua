@@ -397,7 +397,6 @@ end
 ---@field bufnr integer
 ---@field context table
 ---@field saved_chat? string
----@field workflow? table
 ---@field settings table
 ---@field type string
 local Chat = {}
@@ -405,7 +404,6 @@ local Chat = {}
 ---@class CodeCompanion.ChatArgs
 ---@field context table
 ---@field adapter? CodeCompanion.Adapter
----@field workflow? table
 ---@field messages nil|table
 ---@field show_buffer nil|boolean
 ---@field auto_submit nil|boolean
@@ -446,7 +444,6 @@ function Chat.new(args)
     bufnr = bufnr,
     context = args.context,
     saved_chat = args.saved_chat,
-    workflow = args.workflow or nil,
     settings = settings,
     type = args.type,
   }, { __index = Chat })
