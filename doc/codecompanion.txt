@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.9.2         Last change: 2024 April 03
+*codecompanion.txt*         For NVIM v0.9.2         Last change: 2024 April 04
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -175,6 +175,10 @@ You can customise an adapter’s configuration as follows:
             api_key = "ANTHROPIC_API_KEY_1"
           },
         }),
+      },
+      strategies = {
+        chat = "anthropic",
+        inline = "anthropic"
       },
     })
 <

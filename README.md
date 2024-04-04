@@ -193,6 +193,10 @@ require("codecompanion").setup({
       },
     }),
   },
+  strategies = {
+    chat = "anthropic",
+    inline = "anthropic"
+  },
 })
 ```
 
