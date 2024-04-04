@@ -103,10 +103,12 @@ function Adapter:replace_header_vars()
         end
 
         if utils.is_cmd_var(env_var_or_cmd) then
+          log:trace("Detected cmd in environment variable")
           local command = env_var_or_cmd:sub(5)
           local handle = io.popen(command, "r")
           if handle then
             local result = handle:read("*a")
+            log:trace("Executed command: %s", command)
             handle:close()
             return result:gsub("%s+$", "")
           else

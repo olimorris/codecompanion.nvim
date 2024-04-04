@@ -62,14 +62,12 @@ local defaults = {
 
 ---@param opts nil|table
 M.setup = function(opts)
-  local merged_options = vim.tbl_deep_extend("force", {}, defaults, opts or {})
+  M.options = vim.tbl_deep_extend("force", {}, defaults, opts or {})
 
   -- Handle adapter updates
   if opts and opts.adapters then
-    merged_options.adapters = vim.tbl_deep_extend("force", {}, defaults.adapters, opts.adapters)
+    M.options.adapters = opts.adapters
   end
-
-  M.options = merged_options
 
   M.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
   M.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
