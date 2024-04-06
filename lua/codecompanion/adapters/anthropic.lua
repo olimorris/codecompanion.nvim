@@ -195,7 +195,7 @@ return {
       order = 1,
       mapping = "parameters",
       type = "enum",
-      desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
+      desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
       default = "claude-3-haiku-20240307",
       choices = {
         "claude-3-haiku-20240307",
@@ -210,7 +210,7 @@ return {
       type = "number",
       optional = true,
       default = 1024,
-      desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
+      desc = "The maximum number of tokens to generate before stopping. This parameter only specifies the absolute maximum number of tokens to generate. Different models have different maximum values for this parameter.",
       validate = function(n)
         return n > 0, "Must be greater than 0"
       end,
@@ -221,7 +221,7 @@ return {
       type = "number",
       optional = true,
       default = 0,
-      desc = "What sampling temperature to use, between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
+      desc = "Amount of randomness injected into the response. Ranges from 0.0 to 1.0. Use temperature closer to 0.0 for analytical / multiple choice, and closer to 1.0 for creative and generative tasks. Note that even with temperature of 0.0, the results will not be fully deterministic.",
       validate = function(n)
         return n >= 0 and n <= 1, "Must be between 0 and 1"
       end,
