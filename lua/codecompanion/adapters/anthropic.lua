@@ -9,43 +9,43 @@ local function get_system_prompt(tbl)
 end
 
 local function merge_messages(messages)
-  local new_messages = {}
-  local temp_content = {} -- Temporary storage for consecutive "user" messages content
-  local last_role = nil -- Track the last role we encountered
+  local new_msgs = {}
+  local temp_msgs = {}
+  local last_role = nil
 
   for _, message in ipairs(messages) do
     if message.role == "user" then
       if last_role == "user" then
         -- If the last role was also "user", we continue accumulating the content
-        table.insert(temp_content, message.content)
+        table.insert(temp_msgs, message.content)
       else
         -- If we encounter "user" after a different role, start a new accumulation
-        temp_content = { message.content }
+        temp_msgs = { message.content }
       end
     else
       -- For any non-user message:
       if last_role == "user" then
         -- If the last message was a user message, we need to insert the accumulated content first
-        table.insert(new_messages, {
+        table.insert(new_msgs, {
           role = "user",
-          content = table.concat(temp_content, " "),
+          content = table.concat(temp_msgs, " "),
         })
       end
       -- Insert the current non-user message
-      table.insert(new_messages, message)
+      table.insert(new_msgs, message)
     end
     last_role = message.role
   end
 
   -- After looping, check if the last messages were from "user" and need to be inserted
   if last_role == "user" then
-    table.insert(new_messages, {
+    table.insert(new_msgs, {
       role = "user",
-      content = table.concat(temp_content, " "),
+      content = table.concat(temp_msgs, " "),
     })
   end
 
-  return new_messages
+  return new_msgs
 end
 
 ---@class CodeCompanion.Adapter
@@ -78,9 +78,9 @@ return {
     form_parameters = function(params, messages)
       -- As per: https://docs.anthropic.com/claude/docs/system-prompts
       -- Claude doesn't put the system prompt in the messages array, but in the parameters.system field
-      local system_prompt_index = get_system_prompt(messages)
-      if system_prompt_index then
-        params.system = messages[system_prompt_index].content
+      local sys_prompt = get_system_prompt(messages)
+      if sys_prompt then
+        params.system = messages[sys_prompt].content
       end
 
       return params
@@ -91,9 +91,9 @@ return {
     ---@return table
     form_messages = function(messages)
       -- Remove any system prompts from the messages array
-      local system_prompt_index = get_system_prompt(messages)
-      if system_prompt_index then
-        table.remove(messages, system_prompt_index)
+      local sys_prompt = get_system_prompt(messages)
+      if sys_prompt then
+        table.remove(messages, sys_prompt)
       end
 
       -- Combine consecutive user prompts into a single prompt
@@ -199,8 +199,8 @@ return {
       default = "claude-3-haiku-20240307",
       choices = {
         "claude-3-haiku-20240307",
-        "claude-3-opus-20240229",
         "claude-3-sonnet-20240229",
+        "claude-3-opus-20240229",
         "claude-2.1",
       },
     },
