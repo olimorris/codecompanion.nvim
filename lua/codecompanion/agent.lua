@@ -44,8 +44,8 @@ function Agent:workflow(prompts)
     ::continue::
   end
 
-  local function send_agent_prompt(chat)
-    log:trace("Sending agent prompt to chat buffer")
+  local function send_prompt(chat)
+    log:trace("Sending agentic prompt to chat buffer")
 
     if #workflow_prompts == 0 then
       return
@@ -84,7 +84,7 @@ function Agent:workflow(prompts)
         return
       end
 
-      send_agent_prompt(chat)
+      send_prompt(chat)
 
       if #workflow_prompts == 0 then
         vim.api.nvim_del_augroup_by_id(group)
