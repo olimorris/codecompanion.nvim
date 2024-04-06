@@ -235,6 +235,10 @@ configured during setup:
 <
 
 
+  [!TIP] Refer to your chosen adapter
+  <https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters>
+  to see the settings available
+
 EDGY.NVIM CONFIGURATION ~
 
 The author recommends pairing with edgy.nvim

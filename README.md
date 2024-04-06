@@ -243,6 +243,9 @@ require("codecompanion").setup({
 })
 ```
 
+> [!TIP]
+> Refer to your chosen [adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters) to see the settings available
+
 ### Edgy.nvim Configuration
 
 The author recommends pairing with [edgy.nvim](https://github.com/folke/edgy.nvim) for an experience similar to that of GitHub's Copilot Chat:
