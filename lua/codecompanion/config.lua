@@ -68,6 +68,10 @@ M.setup = function(opts)
   if opts and opts.adapters then
     for name, adapter in pairs(opts.adapters) do
       if M.options.adapters[name] then
+        if adapter.schema then
+          M.options.adapters[name].schema =
+            vim.tbl_deep_extend("force", M.options.adapters[name].schema, adapter.schema)
+        end
         M.options.adapters[name] = adapter
       end
     end

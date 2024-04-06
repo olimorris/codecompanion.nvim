@@ -182,6 +182,11 @@ require("codecompanion").setup({
 })
 ```
 
+> [!TIP]
+> To create your own adapter please refer to the [ADAPTERS](ADAPTERS.md) guide.
+
+#### Configuring environment variables
+
 You can customise an adapter's configuration as follows:
 
 ```lua
@@ -205,19 +210,38 @@ In the example above, we've changed the name of the default API key which the An
 ```lua
 require("codecompanion").setup({
   adapters = {
-    chat = require("codecompanion.adapters").use("openai", {
+    openai = require("codecompanion.adapters").use("openai", {
       env = {
-        api_key = "cmd:gpg --decrypt ~/.openai-api-key.gpg 2>/dev/null",
+        api_key = "cmd:op read op://personal/OpenAI/credential --no-newline",
+      },
+    }),
+    strategies = {
+      chat = "openai",
+      inline = "anthropic"
+    },
+  },
+})
+```
+
+In this example, we're using the 1Password CLI to read an OpenAI credential.
+
+#### Configuring adapter settings
+
+Generative AI services have many settings such as _model_, _temperature_ and _max_tokens_. In an adapter, these sit within a schema table and can be configured during setup:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    anthropic = require("codecompanion.adapters").use("anthropic", {
+      schema = {
+        model = {
+          default = "claude-3-sonnet-20240229",
+        },
       },
     }),
   },
 })
 ```
-
-In this example, we're using `gpg` to decrypt a file to obtain an API key for OpenAI.
-
-> [!TIP]
-> To create your own adapter please refer to the [ADAPTERS](ADAPTERS.md) guide.
 
 ### Edgy.nvim Configuration
 
