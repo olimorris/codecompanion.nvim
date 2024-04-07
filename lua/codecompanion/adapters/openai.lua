@@ -1,5 +1,8 @@
 local log = require("codecompanion.utils.log")
 
+local iter = 0
+local iter_content = ""
+
 ---@class CodeCompanion.Adapter
 ---@field name string
 ---@field url string
@@ -64,14 +67,39 @@ return {
       local output = {}
 
       if data and data ~= "" then
-        data = data:sub(7)
-        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
+        local data_mod = data:sub(7)
+        local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if not ok then
-          return {
-            status = "error",
-            output = string.format("Error malformed json: %s", json),
-          }
+          iter = iter + 1
+          iter_content = iter_content .. data
+          log:debug("Couldn't parse JSON: %s", data)
+          log:debug("iter_content: %s", iter_content)
+
+          -- Try and parse the JSON again
+          ok, json = pcall(vim.json.decode, iter_content, { luanil = { object = true } })
+
+          if not ok then
+            if iter > 10 then
+              -- log:error("Error data stack: %s", iter_content)
+              return {
+                status = "error",
+                output = string.format("Error malformed json: %s", json),
+              }
+            end
+
+            return {
+              status = "pending",
+              output = nil,
+            }
+          end
+
+          if json.error.message then
+            return {
+              status = "error",
+              output = "OpenAI Adapter - " .. json.error.message,
+            }
+          end
         end
 
         local delta = json.choices[1].delta
