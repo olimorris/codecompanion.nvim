@@ -3,6 +3,16 @@ local log = require("codecompanion.utils.log")
 local iter = 0
 local iter_content = ""
 
+local function iterate_over_error(data)
+  iter = iter + 1
+  iter_content = iter_content .. data
+end
+
+local function reset()
+  iter = 0
+  iter_content = ""
+end
+
 ---@class CodeCompanion.Adapter
 ---@field name string
 ---@field url string
@@ -71,8 +81,7 @@ return {
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if not ok then
-          iter = iter + 1
-          iter_content = iter_content .. data
+          iterate_over_error(data)
           log:debug("Couldn't parse JSON: %s", data)
           log:debug("iter_content: %s", iter_content)
 
@@ -95,6 +104,7 @@ return {
           end
 
           if json.error.message then
+            reset()
             return {
               status = "error",
               output = "OpenAI Adapter - " .. json.error.message,
