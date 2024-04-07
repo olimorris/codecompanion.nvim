@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.9.2         Last change: 2024 April 06
+*codecompanion.txt*         For NVIM v0.9.2         Last change: 2024 April 07
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -12,7 +12,7 @@ Table of Contents                            *codecompanion-table-of-contents*
 
 FEATURES                                              *codecompanion-features*
 
-- A Copilot Chat experience from within Neovim
+- A Copilot Chat experience in Neovim
 - Adapter support for many generative AI services
 - Agentic workflows to improve LLM output
 - Inline code creation and modification
@@ -237,7 +237,7 @@ configured during setup:
 
   [!TIP] Refer to your chosen adapter
   <https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters>
-  to see the settings available
+  to see the settings available.
 
 EDGY.NVIM CONFIGURATION ~
 
@@ -517,9 +517,8 @@ Events can be hooked into as follows:
 
 STATUSLINES ~
 
-It can be helpful to have a visual indicator in your statusline to know when
-the plugin is communicating with a generative AI service. Below are two ways to
-achieve this:
+You can incorporate a visual indication to show when the plugin is
+communicating with a generative AI service in your Neovim configuration.
 
 
 LUALINE.NVIM

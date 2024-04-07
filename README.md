@@ -26,7 +26,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 
 ## :sparkles: Features
 
-- :speech_balloon: A Copilot Chat experience from within Neovim
+- :speech_balloon: A Copilot Chat experience in Neovim
 - :electric_plug: Adapter support for many generative AI services
 - :robot: Agentic workflows to improve LLM output
 - :rocket: Inline code creation and modification
@@ -244,7 +244,7 @@ require("codecompanion").setup({
 ```
 
 > [!TIP]
-> Refer to your chosen [adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters) to see the settings available
+> Refer to your chosen [adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters) to see the settings available.
 
 ### Edgy.nvim Configuration
 
@@ -454,7 +454,7 @@ vim.api.nvim_create_autocmd({ "User" }, {
 
 ### Statuslines
 
-It can be helpful to have a visual indicator in your statusline to know when the plugin is communicating with a generative AI service. Below are two ways to achieve this:
+You can incorporate a visual indication to show when the plugin is communicating with a generative AI service in your Neovim configuration.
 
 #### lualine.nvim
 
