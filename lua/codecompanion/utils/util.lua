@@ -122,6 +122,7 @@ function M.get_context(bufnr, args)
     is_normal = is_normal,
     buftype = api.nvim_buf_get_option(bufnr, "buftype") or "",
     filetype = M.get_filetype(bufnr),
+    filename = api.nvim_buf_get_name(bufnr),
     cursor_pos = cursor_pos,
     lines = lines,
     start_line = start_line,

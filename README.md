@@ -280,6 +280,7 @@ The plugin has a number of commands:
 - `:CodeCompanion` - Inline code writing and refactoring
 - `:CodeCompanionChat` - To open up a new chat buffer
 - `:CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
+- `:CodeCompanionAdd` - To add visually selected chat to the current chat buffer
 - `:CodeCompanionToggle` - Toggle a chat buffer
 - `:CodeCompanionActions` - To open up the action palette window
 

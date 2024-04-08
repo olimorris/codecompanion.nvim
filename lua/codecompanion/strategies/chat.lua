@@ -423,6 +423,8 @@ function Chat.new(args)
     winid = api.nvim_get_current_win()
   end
 
+  _G.codecompanion_last_chat_buffer = bufnr
+
   api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", math.random(10000000)))
   api.nvim_buf_set_option(bufnr, "buftype", "acwrite")
   api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")

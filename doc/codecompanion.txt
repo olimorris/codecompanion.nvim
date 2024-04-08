@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.9.2         Last change: 2024 April 07
+*codecompanion.txt*         For NVIM v0.9.2         Last change: 2024 April 08
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -277,6 +277,7 @@ The plugin has a number of commands:
 - `:CodeCompanion` - Inline code writing and refactoring
 - `:CodeCompanionChat` - To open up a new chat buffer
 - `:CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
+- `:CodeCompanionAdd` - To add visually selected chat to the current chat buffer
 - `:CodeCompanionToggle` - Toggle a chat buffer
 - `:CodeCompanionActions` - To open up the action palette window
 

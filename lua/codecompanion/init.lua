@@ -1,6 +1,7 @@
 local config = require("codecompanion.config")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils.util")
+local api = vim.api
 
 local M = {}
 
@@ -13,7 +14,7 @@ end
 ---@param args table
 ---@return nil|CodeCompanion.Inline
 M.inline = function(args)
-  local context = util.get_context(vim.api.nvim_get_current_buf(), args)
+  local context = util.get_context(api.nvim_get_current_buf(), args)
 
   return require("codecompanion.strategies.inline")
     .new({
@@ -32,10 +33,30 @@ M.inline = function(args)
     :start(args.args)
 end
 
+M.add = function(args)
+  local bufnr = _G.codecompanion_last_chat_buffer
+
+  if not bufnr then
+    return vim.notify("[CodeCompanion.nvim]\nNo chat buffer found", vim.log.levels.WARN)
+  end
+
+  local context = util.get_context(api.nvim_get_current_buf(), args)
+  local total_lines = api.nvim_buf_line_count(bufnr)
+
+  local content = table.concat(context.lines, "  ")
+  api.nvim_buf_set_lines(
+    bufnr,
+    total_lines,
+    total_lines,
+    false,
+    { context.filename .. ":", "", "```" .. context.filetype .. "", content, "```", "" }
+  )
+end
+
 ---@param args? table
 M.chat = function(args)
   local adapter
-  local context = util.get_context(vim.api.nvim_get_current_buf(), args)
+  local context = util.get_context(api.nvim_get_current_buf(), args)
 
   if args and args.fargs then
     adapter = config.options.adapters[args.fargs[1]]
@@ -46,7 +67,7 @@ M.chat = function(args)
     adapter = adapter,
   })
 
-  vim.api.nvim_win_set_buf(0, chat.bufnr)
+  api.nvim_win_set_buf(0, chat.bufnr)
   ui.scroll_to_end(0)
 end
 
@@ -71,11 +92,11 @@ M.toggle = function()
   end
 
   local function fire_event(status, buf)
-    return vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { action = status, buf = buf } })
+    return api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { action = status, buf = buf } })
   end
 
   if vim.bo.filetype == "codecompanion" then
-    local buf = vim.api.nvim_get_current_buf()
+    local buf = api.nvim_get_current_buf()
     buf_toggle(buf, "hide")
     fire_event("hide_buffer", buf)
   elseif _G.codecompanion_last_chat_buffer then
@@ -89,7 +110,7 @@ end
 local _cached_actions = {}
 M.actions = function(args)
   local actions = require("codecompanion.actions")
-  local context = util.get_context(vim.api.nvim_get_current_buf(), args)
+  local context = util.get_context(api.nvim_get_current_buf(), args)
 
   local function picker(items, opts, callback)
     opts = opts or {}
@@ -164,8 +185,8 @@ end
 
 ---@param opts nil|table
 M.setup = function(opts)
-  vim.api.nvim_set_hl(0, "CodeCompanionTokens", { link = "Comment", default = true })
-  vim.api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
+  api.nvim_set_hl(0, "CodeCompanionTokens", { link = "Comment", default = true })
+  api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
 
   config.setup(opts)
 end
