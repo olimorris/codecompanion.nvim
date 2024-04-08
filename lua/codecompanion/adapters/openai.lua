@@ -1,16 +1,15 @@
 local log = require("codecompanion.utils.log")
 
-local iter = 0
-local iter_content = ""
+local cycles = 0
+local error_content = ""
 
-local function iterate_over_error(data)
-  iter = iter + 1
-  iter_content = iter_content .. data
+local function cycle_error(data)
+  cycles = cycles + 1
+  error_content = error_content .. data
 end
-
-local function reset()
-  iter = 0
-  iter_content = ""
+local function reset_cycle()
+  cycles = 0
+  error_content = ""
 end
 
 ---@class CodeCompanion.Adapter
@@ -81,16 +80,15 @@ return {
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if not ok then
-          iterate_over_error(data)
+          cycle_error(data)
           log:debug("Couldn't parse JSON: %s", data)
-          log:debug("iter_content: %s", iter_content)
+          log:trace("Error content so far: %s", error_content)
 
           -- Try and parse the JSON again
-          ok, json = pcall(vim.json.decode, iter_content, { luanil = { object = true } })
+          ok, json = pcall(vim.json.decode, error_content, { luanil = { object = true } })
 
           if not ok then
-            if iter > 10 then
-              -- log:error("Error data stack: %s", iter_content)
+            if cycles > 10 then
               return {
                 status = "error",
                 output = string.format("Error malformed json: %s", json),
@@ -104,7 +102,7 @@ return {
           end
 
           if json.error.message then
-            reset()
+            reset_cycle()
             return {
               status = "error",
               output = "OpenAI Adapter - " .. json.error.message,
