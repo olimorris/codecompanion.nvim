@@ -1,5 +1,22 @@
 local log = require("codecompanion.utils.log")
 
+local function get_ollama_choices()
+  local handle = io.popen 'ollama list'
+  local result = {}
+
+  if handle then
+    for line in handle:lines() do
+      local first_word = line:match '%S+'
+      if first_word ~= nil and first_word ~= 'NAME' then
+        table.insert(result, first_word)
+      end
+    end
+
+    handle:close()
+  end
+  return result
+end
+
 ---@class CodeCompanion.Adapter
 ---@field name string
 ---@field url string
@@ -96,16 +113,7 @@ return {
       type = "enum",
       desc = "ID of the model to use.",
       default = "deepseek-coder:6.7b",
-      choices = {
-        "deepseek-coder:6.7b",
-        "deepseek-coder",
-        "dolphin-mistral",
-        "dolphin-mixtral",
-        "llama2",
-        "mistral",
-        "dolphin-phi",
-        "phi",
-      },
+      choices = get_ollama_choices(),
     },
     temperature = {
       order = 2,
