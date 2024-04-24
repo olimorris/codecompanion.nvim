@@ -154,11 +154,10 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
-      default = "gpt-4-0125-preview",
+      default = "gpt-4-turbo-preview",
       choices = {
-        "gpt-4-1106-preview",
+        "gpt-4-turbo-preview",
         "gpt-4",
-        "gpt-3.5-turbo-1106",
         "gpt-3.5-turbo",
       },
     },
