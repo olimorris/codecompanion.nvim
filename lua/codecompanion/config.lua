@@ -64,7 +64,7 @@ local defaults = {
 M.setup = function(opts)
   M.options = vim.tbl_deep_extend("force", {}, defaults, opts or {})
 
-  -- Handle adapter updates
+  -- Handle custom adapter config
   if opts and opts.adapters then
     for name, adapter in pairs(opts.adapters) do
       if M.options.adapters[name] then
@@ -77,6 +77,12 @@ M.setup = function(opts)
               vim.tbl_deep_extend("force", M.options.adapters[name].schema, adapter.schema)
           end
         end
+      end
+    end
+  else
+    for _, adapter in pairs(M.options.strategies) do
+      if type(M.options.adapters[adapter]) == "string" then
+        M.options.adapters[adapter] = require("codecompanion.adapters").use(adapter)
       end
     end
   end
