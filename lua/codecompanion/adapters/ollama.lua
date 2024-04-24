@@ -1,13 +1,13 @@
 local log = require("codecompanion.utils.log")
 
 local function get_ollama_choices()
-  local handle = io.popen 'ollama list'
+  local handle = io.popen("ollama list")
   local result = {}
 
   if handle then
     for line in handle:lines() do
-      local first_word = line:match '%S+'
-      if first_word ~= nil and first_word ~= 'NAME' then
+      local first_word = line:match("%S+")
+      if first_word ~= nil and first_word ~= "NAME" then
         table.insert(result, first_word)
       end
     end

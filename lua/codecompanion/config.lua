@@ -2,9 +2,9 @@ local M = {}
 
 local defaults = {
   adapters = {
-    anthropic = require("codecompanion.adapters").use("anthropic"),
-    ollama = require("codecompanion.adapters").use("ollama"),
-    openai = require("codecompanion.adapters").use("openai"),
+    anthropic = "anthropic",
+    ollama = "ollama",
+    openai = "openai",
   },
   strategies = {
     chat = "openai",
@@ -68,11 +68,15 @@ M.setup = function(opts)
   if opts and opts.adapters then
     for name, adapter in pairs(opts.adapters) do
       if M.options.adapters[name] then
-        if adapter.schema then
-          M.options.adapters[name].schema =
-            vim.tbl_deep_extend("force", M.options.adapters[name].schema, adapter.schema)
+        if type(adapter) == "string" then
+          M.options.adapters[name] = require("codecompanion.adapters").use(adapter)
+        elseif type(adapter) == "table" then
+          M.options.adapters[name] = adapter
+          if adapter.schema then
+            M.options.adapters[name].schema =
+              vim.tbl_deep_extend("force", M.options.adapters[name].schema, adapter.schema)
+          end
         end
-        M.options.adapters[name] = adapter
       end
     end
   end

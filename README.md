@@ -97,9 +97,9 @@ You only need to the call the `setup` function if you wish to change any of the 
 ```lua
 require("codecompanion").setup({
   adapters = {
-    anthropic = require("codecompanion.adapters").use("anthropic"),
-    ollama = require("codecompanion.adapters").use("ollama"),
-    openai = require("codecompanion.adapters").use("openai"),
+    anthropic = "anthropic",
+    ollama = "ollama",
+    openai = "openai",
   },
   strategies = {
     chat = "openai",
