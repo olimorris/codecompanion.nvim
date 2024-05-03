@@ -46,11 +46,14 @@ local function parse_settings(bufnr, adapter)
 
   local query = vim.treesitter.query.parse("yaml", yaml_query)
   local root = parser:parse()[1]:root()
-  pcall(vim.tbl_add_reverse_lookup, query.captures)
+  local captures = {}
+  for k, v in pairs(query.captures) do
+    captures[v] = k
+  end
 
   for _, match in query:iter_matches(root, bufnr) do
-    local key = vim.treesitter.get_node_text(match[query.captures.key], bufnr)
-    local value = vim.treesitter.get_node_text(match[query.captures.value], bufnr)
+    local key = vim.treesitter.get_node_text(match[captures.key], bufnr)
+    local value = vim.treesitter.get_node_text(match[captures.value], bufnr)
     settings[key] = yaml.decode(value)
   end
 
@@ -67,17 +70,21 @@ local function parse_messages_buffer(bufnr, adapter)
   local parser = vim.treesitter.get_parser(bufnr, "markdown")
   local query = vim.treesitter.query.parse("markdown", chat_query)
   local root = parser:parse()[1]:root()
-  pcall(vim.tbl_add_reverse_lookup, query.captures)
+  local captures = {}
+  for k, v in pairs(query.captures) do
+    captures[v] = k
+  end
+
   local message = {}
   for _, match in query:iter_matches(root, bufnr) do
-    if match[query.captures.role] then
+    if match[captures.role] then
       if not vim.tbl_isempty(message) then
         table.insert(ret, message)
         message = { role = "", content = "" }
       end
-      message.role = vim.trim(vim.treesitter.get_node_text(match[query.captures.role], bufnr):lower())
-    elseif match[query.captures.text] then
-      local text = vim.trim(vim.treesitter.get_node_text(match[query.captures.text], bufnr))
+      message.role = vim.trim(vim.treesitter.get_node_text(match[captures.role], bufnr):lower())
+    elseif match[captures.text] then
+      local text = vim.trim(vim.treesitter.get_node_text(match[captures.text], bufnr))
       if message.content then
         message.content = message.content .. "\n\n" .. text
       else
