@@ -61,15 +61,14 @@ local function parse_settings(bufnr, adapter)
 end
 
 ---@param bufnr integer
----@param adapter CodeCompanion.Adapter
 ---@return table
----@return table
-local function parse_messages_buffer(bufnr, adapter)
-  local ret = {}
+local function parse_messages(bufnr)
+  local output = {}
 
   local parser = vim.treesitter.get_parser(bufnr, "markdown")
   local query = vim.treesitter.query.parse("markdown", chat_query)
   local root = parser:parse()[1]:root()
+
   local captures = {}
   for k, v in pairs(query.captures) do
     captures[v] = k
@@ -79,7 +78,7 @@ local function parse_messages_buffer(bufnr, adapter)
   for _, match in query:iter_matches(root, bufnr) do
     if match[captures.role] then
       if not vim.tbl_isempty(message) then
-        table.insert(ret, message)
+        table.insert(output, message)
         message = { role = "", content = "" }
       end
       message.role = vim.trim(vim.treesitter.get_node_text(match[captures.role], bufnr):lower())
@@ -98,10 +97,11 @@ local function parse_messages_buffer(bufnr, adapter)
   end
 
   if not vim.tbl_isempty(message) then
-    table.insert(ret, message)
+    table.insert(output, message)
   end
 
-  return parse_settings(bufnr, adapter), ret
+  -- return parse_settings(bufnr, adapter), output
+  return output
 end
 
 ---@param bufnr integer
@@ -359,7 +359,7 @@ local function chat_autocmds(bufnr, adapter)
 
       if _G.codecompanion_chats[bufnr] == nil then
         local description
-        local _, messages = parse_messages_buffer(bufnr, adapter)
+        local messages = parse_messages(bufnr)
 
         if messages[1] and messages[1].content then
           description = messages[1].content
@@ -498,7 +498,7 @@ function Chat:submit()
     return
   end
 
-  local settings, messages = parse_messages_buffer(self.bufnr, self.adapter)
+  local settings, messages = parse_settings(self.bufnr, self.adapter), parse_messages(self.bufnr)
 
   if not messages or #messages == 0 then
     return
@@ -630,14 +630,13 @@ function Chat.buf_get_chat(bufnr)
 end
 
 ---@param bufnr nil|integer
----@return table
----@return nil|CodeCompanion.Chat
+---@return table, table
 function Chat.buf_get_messages(bufnr)
   if not bufnr or bufnr == 0 then
     bufnr = api.nvim_get_current_buf()
   end
   local adapter = chatmap[bufnr].adapter
-  return parse_messages_buffer(bufnr, adapter)
+  return parse_settings(bufnr, adapter), parse_messages(bufnr)
 end
 
 return Chat
