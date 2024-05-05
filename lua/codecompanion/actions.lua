@@ -323,16 +323,19 @@ This may be useful for testing code you've written or for doing mathematical cal
 
 The tools available to you, and their config:
 
-- `python_code_executor` - This tool allows you to execute Python code on my machine. The code must be placed within the parameters tag. For example:
+- `code_runner` - This tool allows you to execute code on my machine. The code and language must be specified as inputs. For example:
 
 ```xml
 <tool>
-  <name>python_code_executor</name>
+  <name>code_runner</name>
   <parameters>
     <inputs>
+      <!-- Choose the language to run -->
+      <!-- Currently you can only choose python or ruby -->
+      <lang>python</lang>
       <!-- Anything within the code tag will be executed -->
       <code>print("Hello World")</code>
-      <!-- The version of Python to use -->
+      <!-- The version of the lang to use -->
       <version>3.11.0</version>
     </inputs>
   </parameters>
