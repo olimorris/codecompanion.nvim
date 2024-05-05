@@ -37,7 +37,9 @@ local cmd_query = [[
     )
     (#match? @heading "tools")
   )
-  (fenced_code_block (code_fence_content) @tools)
+  (
+    (fenced_code_block (info_string) @lang (code_fence_content) @tools) (#match? @lang "xml")
+  )
 )
 ]]
 
@@ -227,9 +229,11 @@ local function run_tools(bufnr)
   local tools = {}
   for _, match in query:iter_matches(root, bufnr) do
     local tool = vim.trim(vim.treesitter.get_node_text(match[captures.tools], bufnr):lower())
+
     table.insert(tools, tool)
   end
 
+  log:debug("Running tool: %s", tools[#tools])
   return require("codecompanion.tools").run(bufnr, tools[#tools])
 end
 
