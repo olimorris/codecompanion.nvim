@@ -291,6 +291,65 @@ M.static.actions = {
     },
   },
   {
+    name = "Tools",
+    strategy = "chat",
+    description = "Use the built-in tools to help you code",
+    opts = {
+      modes = { "n" },
+    },
+    prompts = {
+      {
+        role = "system",
+        content = function(context)
+          return [[You have a selection of tools available to you which will aid you in responding to my questions. These tools allow you to trigger commands on my machine. Once triggered, I will then share the output of the command back to you, giving you the ability to revise your answer or perhaps trigger additional tools and commands.
+
+This may be useful for testing code you've written or for doing mathematical calculations. In order for you to trigger a command, simply use a markdown h2 header with the title of "tools" e.g. `## tools`. Also, the tools must be placed within an xml code block, under the h2 header, and follow the below format:
+
+## tools
+
+```xml
+<tool>
+  <name>Name of the tool</name>
+  <parameters>
+    <inputs>
+      <!-- Inputs go here -->
+    </inputs>
+    <outputs>
+      <!-- Outputs go here -->
+    </outputs>
+  </parameters>
+</tool>
+```
+
+The tools available to you, and their config:
+
+- `python_code_executor` - This tool allows you to execute Python code on my machine. The code must be placed within the parameters tag. For example:
+
+```xml
+<tool>
+  <name>python_code_executor</name>
+  <parameters>
+    <inputs>
+      <!-- Anything within the code tag will be executed -->
+      <code>print("Hello World")</code>
+      <!-- The version of Python to use -->
+      <version>3.11.0</version>
+    </inputs>
+  </parameters>
+</tool>
+```
+
+Note: If you wish to trigger multiple tools, place them after one another in the codeblock. The order in which you place them will be the order in which they're executed.
+]]
+        end,
+      },
+      {
+        role = "user",
+        content = "",
+      },
+    },
+  },
+  {
     name = "Agentic Workflows...",
     strategy = "chat",
     description = "Workflows to improve the performance of your LLM",

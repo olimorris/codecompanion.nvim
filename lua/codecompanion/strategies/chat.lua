@@ -9,20 +9,36 @@ local yaml = require("codecompanion.utils.yaml")
 local api = vim.api
 
 local yaml_query = [[
-(block_mapping_pair
+(
+  block_mapping_pair
   key: (_) @key
-  value: (_) @value)
+  value: (_) @value
+)
 ]]
 
 local chat_query = [[
-(atx_heading
+(
+  atx_heading
   (atx_h1_marker)
   heading_content: (_) @role
-  )
-
-(section
+)
+(
+  section
   [(paragraph) (fenced_code_block) (list)] @text
+)
+]]
+
+local cmd_query = [[
+(
+  (
+    (atx_heading
+      (atx_h2_marker)
+      heading_content: (_) @heading
+    )
+    (#match? @heading "tools")
   )
+  (fenced_code_block (code_fence_content) @tools)
+)
 ]]
 
 local config_settings = {}
@@ -89,7 +105,6 @@ local function parse_messages(bufnr)
       else
         message.content = text
       end
-      -- If there's no role because they just started typing in a blank file, assign the user role
       if not message.role then
         message.role = "user"
       end
@@ -100,7 +115,6 @@ local function parse_messages(bufnr)
     table.insert(output, message)
   end
 
-  -- return parse_settings(bufnr, adapter), output
   return output
 end
 
@@ -196,6 +210,27 @@ local function render_new_messages(bufnr, data)
       ui.buf_scroll_to_end(bufnr)
     end
   end
+end
+
+---@param bufnr integer
+---@return CodeCompanion.Tool
+local function run_tools(bufnr)
+  local parser = vim.treesitter.get_parser(bufnr, "markdown")
+  local query = vim.treesitter.query.parse("markdown", cmd_query)
+  local root = parser:parse()[1]:root()
+
+  local captures = {}
+  for k, v in pairs(query.captures) do
+    captures[v] = k
+  end
+
+  local tools = {}
+  for _, match in query:iter_matches(root, bufnr) do
+    local tool = vim.trim(vim.treesitter.get_node_text(match[captures.tools], bufnr):lower())
+    table.insert(tools, tool)
+  end
+
+  return require("codecompanion.tools").run(bufnr, tools[#tools])
 end
 
 local display_tokens = function(bufnr)
@@ -531,6 +566,7 @@ function Chat:submit()
       render_new_messages(self.bufnr, { role = "user", content = "" })
       display_tokens(self.bufnr)
       finalize()
+      run_tools(self.bufnr)
       return api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { status = "finished" } })
     end
 
