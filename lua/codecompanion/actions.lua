@@ -347,7 +347,7 @@ Note: Here are some REALLY IMPORTANT things to note:
 
 1. If you wish to trigger multiple tools, place them after one another in the codeblock. The order in which you place them will be the order in which they're executed.
 2. Not every question I ask of you will require the use of a tool.
-3. Tools will only be executed if you use the `## tools` header BEFOREthe XML code block.
+3. Tools will only be executed if you use the `## tools` header BEFORE the XML code block.
 ]]
         end,
       },
