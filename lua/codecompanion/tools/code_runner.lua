@@ -10,6 +10,7 @@ function M.run(bufnr, tool)
 
   -- Set the variables that the user can use in their environment
   local temp_input = vim.fn.tempname()
+  local temp_dir = temp_input:match("(.*/)")
   local temp_output = vim.fn.tempname()
   local lang = tool.parameters.inputs.lang
   local code = tool.parameters.inputs.code
@@ -18,6 +19,7 @@ function M.run(bufnr, tool)
   utils.replace_placeholders(cmds, {
     code = code,
     lang = lang,
+    temp_dir = temp_dir,
     temp_input = temp_input,
     temp_output = temp_output,
   })

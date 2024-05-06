@@ -15,7 +15,7 @@ local defaults = {
       env = {
         cmd = {
           "docker pull ${lang}",
-          "docker run --rm ${lang} ${lang} ${temp_input} > ${temp_output}",
+          "docker run --rm -v ${temp_dir}:${temp_dir} ${lang} ${lang} ${temp_input} > ${temp_output}",
         },
       },
     },
