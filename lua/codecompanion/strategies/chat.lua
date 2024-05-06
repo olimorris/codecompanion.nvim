@@ -253,13 +253,14 @@ local function run_tools(bufnr)
     end
   end
 
-  log:debug("Running tool: %s", tools)
+  log:debug("Tools detected: %s", tools)
 
   if tools and #tools > 0 then
-    return require("codecompanion.tools").run(bufnr, tools)
+    return require("codecompanion.tools").run(bufnr, tools[#tools])
   end
 end
 
+---@param bufnr integer
 local display_tokens = function(bufnr)
   if config.options.display.chat.show_token_count then
     require("codecompanion.utils.tokens").display_tokens(bufnr)
