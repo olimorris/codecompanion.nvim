@@ -18,27 +18,41 @@ function M.run(chat, tools)
     return
   end
 
+  local ns_id = vim.api.nvim_create_namespace("CodeCompanionToolVirtualText")
+  vim.api.nvim_buf_set_extmark(chat.bufnr, ns_id, vim.api.nvim_buf_line_count(chat.bufnr) - 1, 0, {
+    virt_text = { { "Waiting for tool ...", "CodeCompanionVirtualText" } },
+    virt_text_pos = "eol",
+  })
+
   vim.api.nvim_create_autocmd("User", {
     desc = "Handle the tool finished event",
     pattern = "CodeCompanionToolFinished",
     callback = function(request)
       log:debug("Tool finished event: %s", request)
+      vim.api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
 
-      if request.buf ~= chat.bufnr then
+      if request.buf ~= chat.bufnr or request.data.status == "error" then
         return
+      end
+
+      local output = request.data.output
+
+      if type(request.data.output) == "table" then
+        output = table.concat(request.data.output, ", ")
       end
 
       chat:add_message({
         role = "user",
         content = "After the tool completed, the output was: `"
-          .. request.data.output
-          .. "`. Is that what you expected?",
+          .. output
+          .. "`. Is that what you expected? If it is, just reply with a confirmation. If not, say so and I can plan our next step.",
       })
       chat:submit()
     end,
   })
 
   tool.run(chat.bufnr, xml)
+  handler = nil
 end
 
 return M
