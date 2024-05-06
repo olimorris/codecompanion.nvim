@@ -296,6 +296,7 @@ M.static.actions = {
     description = "Use the built-in tools to help you code",
     opts = {
       modes = { "n" },
+      tools = true,
     },
     prompts = {
       {
@@ -303,7 +304,7 @@ M.static.actions = {
         content = function(context)
           return [[You have a selection of tools available to you which will aid you in responding to my questions. These tools allow you to trigger commands on my machine. Once triggered, I will then share the output of the command back to you, giving you the ability to revise your answer or perhaps trigger additional tools and commands.
 
-This may be useful for testing code you've written or for doing mathematical calculations. In order for you to trigger a command, simply use a markdown h2 header with the title of "tools" e.g. `## tools`. Also, the tools must be placed within an xml code block, under the h2 header, and follow the below format:
+This may be useful for testing code you've written or for doing mathematical calculations. In order for you to trigger a tool you must use a markdown h2 header with the title of "tools" (e.g. `## tools`) in your response back to me. The tool request must then be placed within an xml code block under the h2 header. Below is a perfect example of how to do this:
 
 ## tools
 
@@ -342,7 +343,11 @@ The tools available to you, and their config:
 </tool>
 ```
 
-Note: If you wish to trigger multiple tools, place them after one another in the codeblock. The order in which you place them will be the order in which they're executed.
+Note: Here are some REALLY IMPORTANT things to note:
+
+1. If you wish to trigger multiple tools, place them after one another in the codeblock. The order in which you place them will be the order in which they're executed.
+2. Not every question I ask of you will require the use of a tool.
+3. Tools will only be executed if you use a `## tools` header OUTSIDE of the XML code block.
 ]]
         end,
       },
@@ -353,7 +358,7 @@ Note: If you wish to trigger multiple tools, place them after one another in the
     },
   },
   {
-    name = "Agentic Workflows...",
+    name = "Agentic Workflows ...",
     strategy = "chat",
     description = "Workflows to improve the performance of your LLM",
     picker = {
