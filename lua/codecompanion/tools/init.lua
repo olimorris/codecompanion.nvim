@@ -20,7 +20,7 @@ function M.run(chat, tools)
 
   local ns_id = vim.api.nvim_create_namespace("CodeCompanionToolVirtualText")
   vim.api.nvim_buf_set_extmark(chat.bufnr, ns_id, vim.api.nvim_buf_line_count(chat.bufnr) - 1, 0, {
-    virt_text = { { "Waiting for tool ...", "CodeCompanionVirtualText" } },
+    virt_text = { { "Waiting for the tool ...", "CodeCompanionVirtualText" } },
     virt_text_pos = "eol",
   })
 

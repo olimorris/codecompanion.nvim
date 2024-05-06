@@ -353,7 +353,7 @@ Note: Here are some REALLY IMPORTANT things to note:
       },
       {
         role = "user",
-        content = "",
+        content = "\n \n",
       },
     },
   },
