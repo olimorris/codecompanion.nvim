@@ -28,18 +28,14 @@ local chat_query = [[
 )
 ]]
 
-local cmd_query = [[
+local tool_query = [[
 (
-  (
-    (atx_heading
-      (atx_h2_marker)
-      heading_content: (_) @heading
-    )
-    (#match? @heading "tools")
-  )
-  (
-    (fenced_code_block (info_string) @lang (code_fence_content) @tools) (#match? @lang "xml")
-  )
+ (section
+  (atx_heading) @header
+  (fenced_code_block
+    (info_string) @lang
+    (code_fence_content) @tools
+  ) (#match? @header "## tools") (#match? @lang "xml"))
 )
 ]]
 
@@ -215,26 +211,53 @@ local function render_new_messages(bufnr, data)
 end
 
 ---@param bufnr integer
----@return CodeCompanion.Tool
+---@return CodeCompanion.Tool|nil
 local function run_tools(bufnr)
-  local parser = vim.treesitter.get_parser(bufnr, "markdown")
-  local query = vim.treesitter.query.parse("markdown", cmd_query)
-  local root = parser:parse()[1]:root()
+  -- Parse the buffer and retrieve the assistant's response
+  local assistant_parser = vim.treesitter.get_parser(bufnr, "markdown")
+  local assistant_query = vim.treesitter.query.parse(
+    "markdown",
+    [[
+(
+  (section
+    (atx_heading) @heading
+    (#match? @heading "# assistant")
+  ) @content
+)
+  ]]
+  )
+  local assistant_tree = assistant_parser:parse()[1]
 
-  local captures = {}
-  for k, v in pairs(query.captures) do
-    captures[v] = k
+  local assistant_response = {}
+  for id, node in assistant_query:iter_captures(assistant_tree:root(), bufnr, 0, -1) do
+    local name = assistant_query.captures[id]
+    if name == "content" then
+      local response = vim.treesitter.get_node_text(node, bufnr)
+      table.insert(assistant_response, response)
+    end
   end
+
+  local response = assistant_response[#assistant_response]
+
+  -- Now parse the assistant's response for any tools
+  local parser = vim.treesitter.get_string_parser(response, "markdown")
+  local tree = parser:parse()[1]
+  local query = vim.treesitter.query.parse("markdown", tool_query)
 
   local tools = {}
-  for _, match in query:iter_matches(root, bufnr) do
-    local tool = vim.trim(vim.treesitter.get_node_text(match[captures.tools], bufnr):lower())
-
-    table.insert(tools, tool)
+  for id, node in query:iter_captures(tree:root(), response, 0, -1) do
+    local name = query.captures[id]
+    if name == "tools" then
+      local tool = vim.treesitter.get_node_text(node, response)
+      table.insert(tools, tool)
+    end
   end
 
-  log:debug("Running tool: %s", tools[#tools])
-  return require("codecompanion.tools").run(bufnr, tools[#tools])
+  log:debug("Running tool: %s", tools)
+
+  if tools and #tools > 0 then
+    return require("codecompanion.tools").run(bufnr, tools)
+  end
 end
 
 local display_tokens = function(bufnr)
