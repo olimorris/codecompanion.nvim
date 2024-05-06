@@ -210,11 +210,11 @@ local function render_new_messages(bufnr, data)
   end
 end
 
----@param bufnr integer
+---@param chat CodeCompanion.Chat
 ---@return CodeCompanion.Tool|nil
-local function run_tools(bufnr)
+local function run_tools(chat)
   -- Parse the buffer and retrieve the assistant's response
-  local assistant_parser = vim.treesitter.get_parser(bufnr, "markdown")
+  local assistant_parser = vim.treesitter.get_parser(chat.bufnr, "markdown")
   local assistant_query = vim.treesitter.query.parse(
     "markdown",
     [[
@@ -229,10 +229,10 @@ local function run_tools(bufnr)
   local assistant_tree = assistant_parser:parse()[1]
 
   local assistant_response = {}
-  for id, node in assistant_query:iter_captures(assistant_tree:root(), bufnr, 0, -1) do
+  for id, node in assistant_query:iter_captures(assistant_tree:root(), chat.bufnr, 0, -1) do
     local name = assistant_query.captures[id]
     if name == "content" then
-      local response = vim.treesitter.get_node_text(node, bufnr)
+      local response = vim.treesitter.get_node_text(node, chat.bufnr)
       table.insert(assistant_response, response)
     end
   end
@@ -256,7 +256,7 @@ local function run_tools(bufnr)
   log:debug("Tools detected: %s", tools)
 
   if tools and #tools > 0 then
-    return require("codecompanion.tools").run(bufnr, tools[#tools])
+    return require("codecompanion.tools").run(chat, tools[#tools])
   end
 end
 
@@ -594,7 +594,7 @@ function Chat:submit()
       render_new_messages(self.bufnr, { role = "user", content = "" })
       display_tokens(self.bufnr)
       finalize()
-      run_tools(self.bufnr)
+      run_tools(self)
       return api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { status = "finished" } })
     end
 

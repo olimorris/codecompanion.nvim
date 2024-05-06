@@ -4,7 +4,7 @@ local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local M = {}
 
-function M.run(bufnr, tools)
+function M.run(chat, tools)
   local parser = xml2lua.parser(handler)
   parser:parse(tools)
 
@@ -18,7 +18,27 @@ function M.run(bufnr, tools)
     return
   end
 
-  tool.run(bufnr, xml)
+  vim.api.nvim_create_autocmd("User", {
+    desc = "Handle the tool finished event",
+    pattern = "CodeCompanionToolFinished",
+    callback = function(request)
+      log:debug("Tool finished event: %s", request)
+
+      if request.buf ~= chat.bufnr then
+        return
+      end
+
+      chat:add_message({
+        role = "user",
+        content = "After the tool completed, the output was: `"
+          .. request.data.output
+          .. "`. Is that what you expected?",
+      })
+      chat:submit()
+    end,
+  })
+
+  tool.run(chat.bufnr, xml)
 end
 
 return M
