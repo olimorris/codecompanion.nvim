@@ -10,6 +10,16 @@ local defaults = {
     chat = "openai",
     inline = "openai",
   },
+  tools = {
+    code_runner = {
+      env = {
+        cmd = {
+          "docker pull ${lang}",
+          "docker run --rm ${lang} ${lang} ${temp_input} > ${temp_output}",
+        },
+      },
+    },
+  },
   saved_chats = {
     save_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats",
   },
