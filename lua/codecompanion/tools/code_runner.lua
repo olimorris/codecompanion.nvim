@@ -87,7 +87,7 @@ function M.run(bufnr, tool)
     return
   end
 
-  -- on_start()
+  on_start()
   run_jobs(cmds, 1)
 end
 

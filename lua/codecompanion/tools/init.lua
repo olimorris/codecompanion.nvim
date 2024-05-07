@@ -21,7 +21,6 @@ function M.run(chat, tools)
   end
 
   local ns_id = vim.api.nvim_create_namespace("CodeCompanionToolVirtualText")
-  ui.set_virtual_text(chat.bufnr, ns_id, "Tool processing ...")
 
   local group_name = "CodeCompanionTool_" .. chat.bufnr
   vim.api.nvim_create_augroup(group_name, { clear = true })
@@ -32,14 +31,19 @@ function M.run(chat, tools)
     pattern = "CodeCompanionTool",
     callback = function(request)
       log:debug("Tool finished event: %s", request)
-      vim.api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
+      if request.data.status == "started" then
+        ui.set_virtual_text(chat.bufnr, ns_id, "Tool processing ...")
+        return
+      end
 
       if request.buf ~= chat.bufnr or request.data.status == "error" then
+        vim.api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
         vim.api.nvim_clear_autocmds({ group = group_name })
         return
       end
 
       if request.data.status == "success" then
+        vim.api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
         local output = request.data.output
 
         if type(request.data.output) == "table" then
