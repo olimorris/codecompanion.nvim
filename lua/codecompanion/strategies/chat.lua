@@ -354,10 +354,7 @@ local function chat_autocmds(bufnr, adapter)
     callback = function()
       if ui.buf_is_empty(bufnr) then
         local ns_id = api.nvim_create_namespace("CodeCompanionChatVirtualText")
-        api.nvim_buf_set_extmark(bufnr, ns_id, api.nvim_buf_line_count(bufnr) - 1, 0, {
-          virt_text = { { config.options.intro_message, "CodeCompanionVirtualText" } },
-          virt_text_pos = "eol",
-        })
+        ui.set_virtual_text(bufnr, ns_id, config.options.intro_message)
       end
 
       local has_cmp, cmp = pcall(require, "cmp")

@@ -4,6 +4,20 @@ local api = vim.api
 
 local M = {}
 
+M.set_virtual_text = function(bufnr, ns_id, message, opts)
+  local defaults = {
+    hl_group = "CodeCompanionVirtualText",
+    virt_text_pos = "eol",
+  }
+
+  opts = vim.tbl_deep_extend("force", {}, defaults, opts or {})
+
+  api.nvim_buf_set_extmark(bufnr, ns_id, api.nvim_buf_line_count(bufnr) - 1, 0, {
+    virt_text = { { message, opts.hl_group } },
+    virt_text_pos = opts.virt_text_pos,
+  })
+end
+
 ---@param bufnr number
 ---@return boolean
 M.buf_is_empty = function(bufnr)
