@@ -306,25 +306,11 @@ M.static.actions = {
 
 This may be useful for testing code you've written or for doing mathematical calculations. In order for you to trigger a tool you must use a markdown h2 header with the title of "tools" (e.g. `## tools`) in your response back to me. The tool request must then be placed within an xml code block under the h2 header. Below is a perfect example of how to do this:
 
-## tools
-
-```xml
-<tool>
-  <name>Name of the tool</name>
-  <parameters>
-    <inputs>
-      <!-- Inputs go here -->
-    </inputs>
-    <outputs>
-      <!-- Outputs go here -->
-    </outputs>
-  </parameters>
-</tool>
-```
-
 The tools available to you, and their config:
 
 - `code_runner` - This tool allows you to execute code on my machine. The code and language must be specified as inputs. For example:
+
+## tools
 
 ```xml
 <tool>

@@ -1,10 +1,12 @@
-local handler = require("codecompanion.utils.xml.xmlhandler.tree")
+local TreeHandler = require("codecompanion.utils.xml.xmlhandler.tree")
 local log = require("codecompanion.utils.log")
+local ui = require("codecompanion.utils.ui")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local M = {}
 
 function M.run(chat, tools)
+  local handler = TreeHandler:new()
   local parser = xml2lua.parser(handler)
   parser:parse(tools)
 
@@ -19,40 +21,45 @@ function M.run(chat, tools)
   end
 
   local ns_id = vim.api.nvim_create_namespace("CodeCompanionToolVirtualText")
-  vim.api.nvim_buf_set_extmark(chat.bufnr, ns_id, vim.api.nvim_buf_line_count(chat.bufnr) - 1, 0, {
-    virt_text = { { "Waiting for the tool ...", "CodeCompanionVirtualText" } },
-    virt_text_pos = "eol",
-  })
+  ui.set_virtual_text(chat.bufnr, ns_id, "Tool processing ...")
+
+  local group_name = "CodeCompanionTool_" .. chat.bufnr
+  vim.api.nvim_create_augroup(group_name, { clear = true })
 
   vim.api.nvim_create_autocmd("User", {
-    desc = "Handle the tool finished event",
-    pattern = "CodeCompanionToolFinished",
+    desc = "Handle responses from any tools",
+    group = group_name,
+    pattern = "CodeCompanionTool",
     callback = function(request)
       log:debug("Tool finished event: %s", request)
       vim.api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
 
       if request.buf ~= chat.bufnr or request.data.status == "error" then
+        vim.api.nvim_clear_autocmds({ group = group_name })
         return
       end
 
-      local output = request.data.output
+      if request.data.status == "success" then
+        local output = request.data.output
 
-      if type(request.data.output) == "table" then
-        output = table.concat(request.data.output, ", ")
+        if type(request.data.output) == "table" then
+          output = table.concat(request.data.output, ", ")
+        end
+
+        chat:add_message({
+          role = "user",
+          content = "After the tool completed, the output was: `"
+            .. output
+            .. "`. Is that what you expected? If it is, just reply with a confirmation. Don't reply with any code. If not, say so and I can plan our next step.",
+        })
+        chat:submit()
+
+        vim.api.nvim_clear_autocmds({ group = group_name })
       end
-
-      chat:add_message({
-        role = "user",
-        content = "After the tool completed, the output was: `"
-          .. output
-          .. "`. Is that what you expected? If it is, just reply with a confirmation. If not, say so and I can plan our next step.",
-      })
-      chat:submit()
     end,
   })
 
   tool.run(chat.bufnr, xml)
-  handler = nil
 end
 
 return M
