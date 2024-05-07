@@ -27,7 +27,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 ## :sparkles: Features
 
 - :speech_balloon: A Copilot Chat experience in Neovim
-- :electric_plug: Adapter support for many generative AI services
+- :electric_plug: Adapter support for many LLMs
 - :robot: Agentic workflows to improve LLM output
 - :rocket: Inline code creation and modification
 - :sparkles: Built in actions for specific language prompts, LSP error fixes and code advice
@@ -50,7 +50,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 
 - The `curl` library installed
 - Neovim 0.9.2 or greater
-- _(Optional)_ An API key for your chosen generative AI service
+- _(Optional)_ An API key for your chosen LLM
 
 ## :package: Installation
 
@@ -150,7 +150,7 @@ require("codecompanion").setup({
     ["["] = "keymaps.previous", -- Move to the previous header in the chat
   },
   log_level = "ERROR", -- TRACE|DEBUG|ERROR
-  send_code = true, -- Send code context to the generative AI service? Disable to prevent leaking code outside of Neovim
+  send_code = true, -- Send code context to the LLM? Disable to prevent leaking code outside of Neovim
   silence_notifications = false, -- Silence notifications for actions like saving saving chats?
   use_default_actions = true, -- Use the default actions in the action palette?
 })
@@ -163,13 +163,13 @@ require("codecompanion").setup({
 > [!WARNING]
 > Depending on your [chosen adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters), you may need to set an API key.
 
-The plugin uses adapters to bridge between generative AI services and the plugin (notably strategies). Currently the plugin supports:
+The plugin uses adapters to bridge between LLMs and the plugin (notably strategies). Currently the plugin supports:
 
 - Anthropic (`anthropic`) - Requires an API key
 - Ollama (`ollama`)
 - OpenAI (`openai`) - Requires an API key
 
-Strategies are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the generative AI service. The _inline_ strategy allows for output from the generative AI service to be written directly into a pre-existing Neovim buffer.
+Strategies are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
 
 To specify a different adapter to the defaults, you can map an adapter to a strategy:
 
@@ -227,7 +227,7 @@ In this example, we're using the 1Password CLI to read an OpenAI credential.
 
 #### Configuring adapter settings
 
-Generative AI services have many settings such as _model_, _temperature_ and _max_tokens_. In an adapter, these sit within a schema table and can be configured during setup:
+LLMs have many settings such as _model_, _temperature_ and _max_tokens_. In an adapter, these sit within a schema table and can be configured during setup:
 
 ```lua
 require("codecompanion").setup({
@@ -315,13 +315,13 @@ The Action Palette, opened via `:CodeCompanionActions`, contains all of the acti
 
 <p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/84d5e03a-0b48-4ffb-9ca5-e299d41171bd" alt="chat buffer" /></p>
 
-The chat buffer is where you can converse with the generative AI service, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the generative AI service in the form of prompts. These prompts are segmented by H1 headers: `user`, `system` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with your generative AI service from within Neovim.
+The chat buffer is where you can converse with the LLM, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the LLM in the form of prompts. These prompts are segmented by H1 headers: `user`, `system` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with your LLM from within Neovim.
 
 #### Keymaps
 
 When in the chat buffer, there are number of keymaps available to you:
 
-- `<C-s>` - Save the buffer and trigger a response from the generative AI service
+- `<C-s>` - Save the buffer and trigger a response from the LLM
 - `<C-c>` - Close the buffer
 - `q` - Cancel the stream from the API
 - `gc` - Clear the buffer's contents
@@ -337,6 +337,10 @@ Chat buffers are not saved to disk by default, but can be by pressing `gs` in th
 #### Settings
 
 If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the adapter's model parameters which can be changed to tweak the response. You can find more detail about them by moving the cursor over them.
+
+#### Open Chats
+
+From the Action Palette, the `Open Chats` action enables users to easily navigate between their open chat buffers. A chat buffer can be deleted (and removed from memory) by pressing `<C-c>`.
 
 ### Inline Code
 
@@ -363,27 +367,25 @@ One of the challenges with inline editing is determining how the generative AI's
 - _new_ - in a new buffer
 - _replace_ - replacing the visual selection
 
-As a final example, specifying a prompt like _"create a test for this code in a new buffer"_ would result in a new Neovim buffer being created.
+The strategy comes with a number of helpers which the user can type in the prompt, similar to [GitHub Copilot Chat](https://github.blog/changelog/2024-01-30-code-faster-and-better-with-github-copilots-new-features-in-visual-studio/):
 
-### In-Built Actions
+- `/doc` to add a documentation comment
+- `/optimize` to analyze and improve the running time of the selected code
+- `/tests` to create unit tests for the selected code
 
-The plugin comes with a number of [in-built actions](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) which aim to improve your Neovim workflow. Actions make use of either a _chat_ or an _inline_ strategy. As mentioned above, the chat strategy opens up a chat buffer whilst an inline strategy will write output from the generative AI service into a Neovim buffer.
-
-#### Chat and Chat as
-
-> [!TIP]
-> Both of these actions allow for visually selected code to be sent to the chat buffer as code blocks.
-
-Both of these actions utilise the `chat` strategy. The `Chat` action opens up a fresh chat buffer. The `Chat as` action allows for persona based context to be set in the chat buffer allowing for better and more detailed responses from the generative AI service.
-
-#### Open chats
-
-This action enables users to easily navigate between their open chat buffers. A chat buffer can be deleted (and removed from memory) by pressing `<C-c>`.
-
-#### Agentic Workflows
+### Tools
 
 > [!WARNING]
-> Agentic workflows may result in the significant consumption of tokens if you're using an external generative AI service.
+> The use of tools may result in the significant consumption of tokens if you're using an external LLM.
+
+LLMs have the ability to act as agents when they can take advantage of external tools, enabling them to seach the web or execute code. One of the challenges when using this plugin within Neovim is that it becomes cumbersome to test if generated code works as expected, often moving between the chat and a Neovim buffer.
+
+The plugin comes with a `code_runner` tool by default. This enables an LLM to trigger the execution of code (in a remote environment) and have the output fed back into the conversation, allowing for the LLMs to self-reflect.
+
+### Agentic Workflows
+
+> [!WARNING]
+> Agentic workflows may result in the significant consumption of tokens if you're using an external LLM.
 
 As [outlined](https://www.deeplearning.ai/the-batch/issue-242/) by Andrew Ng, agentic workflows have the ability to dramatically improve the output of an LLM. Infact, it's possible for older models like GPT 3.5 to outperform newer models with traditional zero-shot inference. Andrew [discussed](https://www.youtube.com/watch?v=sal78ACtGTc&t=249s) how an agentic workflow can be utilised via multiple prompts that invoke the LLM to self reflect. Implementing Andrew's advice, the plugin supports this notion via the use of workflows. At various stages of a pre-defined workflow, the plugin will automatically prompt the LLM without any input or triggering required from the user.
 
@@ -394,33 +396,22 @@ Currently, the plugin only supports _"reflection"_ (multiple prompts within the 
 
 Of course you can add new workflows by following the [RECIPES](RECIPES.md) guide.
 
-#### Inline code
 
-> [!NOTE]
-> The options available to the user in the Action Palette will depend on the Vim mode.
+### Other Actions
 
-These actions utilize the `inline` strategy. They can be useful for writing inline code in a buffer or even refactoring a visual selection; all based on a user's prompt. The actions are designed to write code for the buffer filetype that it is initated in, or, if run from a terminal prompt, to write commands.
-
-The strategy comes with a number of helpers which the user can type in the prompt, similar to [GitHub Copilot Chat](https://github.blog/changelog/2024-01-30-code-faster-and-better-with-github-copilots-new-features-in-visual-studio/):
-
-- `/doc` to add a documentation comment
-- `/optimize` to analyze and improve the running time of the selected code
-- `/tests` to create unit tests for the selected code
-
-
-#### Code advisor
+#### Code Advisor
 
 > [!NOTE]
 > This option is only available in visual mode
 
 As the name suggests, this action provides advice on a visual selection of code and utilises the `chat` strategy. The response from the API is streamed into a chat buffer which follows the `display.chat` settings in your configuration.
 
-#### LSP assistant
+#### LSP Assistant
 
 > [!NOTE]
 > This option is only available in visual mode
 
-Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice on how to correct any LSP diagnostics which are present on the visually selected lines. Again, the `send_code = false` value can be set in your config to prevent the code itself being sent to the generative AI service.
+Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice on how to correct any LSP diagnostics which are present on the visually selected lines. Again, the `send_code = false` value can be set in your config to prevent the code itself being sent to the LLM.
 
 ## :rainbow: Helpers
 
@@ -455,7 +446,7 @@ vim.api.nvim_create_autocmd({ "User" }, {
 
 ### Statuslines
 
-You can incorporate a visual indication to show when the plugin is communicating with a generative AI service in your Neovim configuration.
+You can incorporate a visual indication to show when the plugin is communicating with an LLM in your Neovim configuration.
 
 #### lualine.nvim
 
