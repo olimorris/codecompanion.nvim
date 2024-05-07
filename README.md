@@ -105,6 +105,23 @@ require("codecompanion").setup({
     chat = "openai",
     inline = "openai",
   },
+  tools = {
+    code_runner = {
+      cmds = { -- commands will be run consecutively during the tool's execution
+        { "docker", "pull", "${lang}" },
+        {
+          "docker",
+          "run",
+          "--rm",
+          "-v",
+          "${temp_dir}:${temp_dir}",
+          "${lang}",
+          "${lang}",
+          "${temp_input}",
+        },
+      },
+    },
+  },
   saved_chats = {
     save_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats", -- Path to save chats to
   },
@@ -378,9 +395,39 @@ The strategy comes with a number of helpers which the user can type in the promp
 > [!WARNING]
 > The use of tools may result in the significant consumption of tokens if you're using an external LLM.
 
-LLMs have the ability to act as agents when they can take advantage of external tools, enabling them to seach the web or execute code. One of the challenges when using this plugin within Neovim is that it becomes cumbersome to test if generated code works as expected, often moving between the chat and a Neovim buffer.
+LLMs have the ability to act as agents where they can take advantage of external tools, enabling them to seach the web or execute code. One of the challenges when using this plugin within Neovim is that it becomes cumbersome to test if generated code works as expected, often moving between the chat and a Neovim buffer.
 
 The plugin comes with a `code_runner` tool by default. This enables an LLM to trigger the execution of code (in a remote environment) and have the output fed back into the conversation, allowing for the LLMs to self-reflect.
+
+#### Configuring Tools
+
+To prevent an LLM from running commands on your machine directly, users can specify commands for each tool. In the example below, we're executing code in a Docker container using an image we've pulled from the Docker registry:
+
+```lua
+tools = {
+  code_runner = {
+    cmds = { -- commands will be run consecutively during the tool's execution
+      { "docker", "pull", "${lang}" },
+      {
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "${temp_dir}:${temp_dir}",
+        "${lang}",
+        "${lang}",
+        "${temp_input}",
+      },
+    },
+  }
+}
+```
+
+There are a number of variables available to you to use within your commands:
+
+- `lang` - The language of the code you're executing
+- `temp_input` - The temporary location where the tool saves any input code to
+- `temp_dir` - The temporary location of the directory containing any inputs
 
 ### Agentic Workflows
 
