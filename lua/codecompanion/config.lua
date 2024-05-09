@@ -9,20 +9,24 @@ local defaults = {
   strategies = {
     chat = "openai",
     inline = "openai",
+    tools = "openai",
   },
   tools = {
+    enabled = true,
     code_runner = {
       cmds = {
-        { "docker", "pull", "${lang}" },
-        {
-          "docker",
-          "run",
-          "--rm",
-          "-v",
-          "${temp_dir}:${temp_dir}",
-          "${lang}",
-          "${lang}",
-          "${temp_input}",
+        default = {
+          { "docker", "pull", "${lang}" },
+          {
+            "docker",
+            "run",
+            "--rm",
+            "-v",
+            "${temp_dir}:${temp_dir}",
+            "${lang}",
+            "${lang}",
+            "${temp_input}",
+          },
         },
       },
     },

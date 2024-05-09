@@ -161,7 +161,12 @@ M.actions = function(args)
   if not next(_cached_actions) then
     if config.options.use_default_actions then
       for _, action in ipairs(actions.static.actions) do
-        table.insert(_cached_actions, action)
+        if action.opts and action.opts.enabled == false then
+          goto continue
+        else
+          table.insert(_cached_actions, action)
+        end
+        ::continue::
       end
     end
     if config.options.actions and #config.options.actions > 0 then

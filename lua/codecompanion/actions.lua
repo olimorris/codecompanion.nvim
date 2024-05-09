@@ -292,11 +292,11 @@ M.static.actions = {
   },
   {
     name = "Tools",
-    strategy = "chat",
+    strategy = "tools",
     description = "Use the built-in tools to help you code",
     opts = {
+      enabled = config.options.tools.enabled,
       modes = { "n" },
-      tools = true,
     },
     prompts = {
       {
