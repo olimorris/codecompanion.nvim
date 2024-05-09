@@ -301,16 +301,14 @@ M.static.actions = {
     prompts = {
       {
         role = "system",
-        content = function(context)
+        content = function()
           return [[You have a selection of tools available to you which will aid you in responding to my questions. These tools allow you to trigger commands on my machine. Once triggered, I will then share the output of the command back to you, giving you the ability to revise your answer or perhaps trigger additional tools and commands.
 
-This may be useful for testing code you've written or for doing mathematical calculations. In order for you to trigger a tool you must use a markdown h2 header with the title of "tools" (e.g. `## tools`) in your response back to me. The tool request must then be placed within an xml code block under the h2 header. Below is a perfect example of how to do this:
+This may be useful for testing code you've written or for doing mathematical calculations. In order for you to trigger a tool, the request must then be placed within an xml code block. Below is a perfect example of how to do this:
 
 The tools available to you, and their config:
 
 - `code_runner` - This tool allows you to execute code on my machine. The code and language must be specified as inputs. For example:
-
-## tools
 
 ```xml
 <tool>
@@ -329,11 +327,12 @@ The tools available to you, and their config:
 </tool>
 ```
 
+You can use the code runner to solve math problems by writing Python code. However, please don't hypothesise or guess the output in your response.
+
 Note: Here are some REALLY IMPORTANT things to note:
 
 1. If you wish to trigger multiple tools, place them after one another in the codeblock. The order in which you place them will be the order in which they're executed.
 2. Not every question I ask of you will require the use of a tool.
-3. Tools will only be executed if you use the `## tools` header BEFORE the XML code block.
 ]]
         end,
       },

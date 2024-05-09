@@ -31,11 +31,10 @@ local chat_query = [[
 local tool_query = [[
 (
  (section
-  (atx_heading) @header
   (fenced_code_block
     (info_string) @lang
     (code_fence_content) @tools
-  ) (#match? @header "## tools") (#match? @lang "xml"))
+  ) (#match? @lang "xml"))
 )
 ]]
 
@@ -254,6 +253,8 @@ local function run_tools(chat)
   end
 
   log:debug("Tools detected: %s", tools)
+
+  --TODO: Parse XML to ensure the STag is <tool>
 
   if tools and #tools > 0 then
     return require("codecompanion.tools").run(chat, tools[#tools])

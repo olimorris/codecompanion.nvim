@@ -47,14 +47,16 @@ function M.run(chat, tools)
         local output = request.data.output
 
         if type(request.data.output) == "table" then
-          output = table.concat(request.data.output, ", ")
+          output = table.concat(request.data.output, "\n")
         end
 
         chat:add_message({
           role = "user",
-          content = "After the tool completed, the output was: `"
+          content = "After the tool completed, the output was:"
+            .. "\n\n```\n"
             .. output
-            .. "`. Is that what you expected? If it is, just reply with a confirmation. Don't reply with any code. If not, say so and I can plan our next step.",
+            .. "\n```\n\n"
+            .. "Is that what you expected? If it is, just reply with a confirmation. Don't reply with any code. If not, say so and I can plan our next step.",
         })
         chat:submit()
 

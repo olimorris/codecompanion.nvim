@@ -17,6 +17,9 @@ local function on_finish()
   api.nvim_exec_autocmds("User", { pattern = "CodeCompanionTool", data = { status = status, output = stdout } })
 end
 
+---@param cmds table
+---@param index number
+---@return nil
 local function run_jobs(cmds, index)
   if index > #cmds then
     return
@@ -55,6 +58,9 @@ local function run_jobs(cmds, index)
   }):start()
 end
 
+---@param bufnr number
+---@param tool table
+---@return nil|table
 function M.run(bufnr, tool)
   log:info("code runner initiated")
 
@@ -69,7 +75,7 @@ function M.run(bufnr, tool)
   local code = tool.parameters.inputs.code
 
   -- and apply them to the tool commands
-  local cmds = vim.deepcopy(config.options.tools.code_runner.cmds)
+  local cmds = vim.deepcopy(config.options.tools.code_runner.cmds.default)
   utils.replace_placeholders(cmds, {
     code = code,
     lang = lang,
@@ -88,7 +94,7 @@ function M.run(bufnr, tool)
   end
 
   on_start()
-  run_jobs(cmds, 1)
+  return run_jobs(cmds, 1)
 end
 
 return M
