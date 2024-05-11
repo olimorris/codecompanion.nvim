@@ -44,21 +44,11 @@ return {
       .. schema
       .. "\n"
   end,
-  pre_cmd = function(xml)
+  env = function(xml)
     local temp_input = vim.fn.tempname()
     local temp_dir = temp_input:match("(.*/)")
     local lang = xml.parameters.inputs.lang
     local code = xml.parameters.inputs.code
-
-    -- Write the code to a temporary file
-    local file = io.open(temp_input, "w")
-    if file then
-      file:write(code)
-      file:close()
-    else
-      log:error("failed to write code to temporary file")
-      return
-    end
 
     return {
       code = code,
@@ -66,6 +56,17 @@ return {
       temp_dir = temp_dir,
       temp_input = temp_input,
     }
+  end,
+  pre_cmd = function(env, xml)
+    -- Write the code to a temporary file
+    local file = io.open(env.temp_input, "w")
+    if file then
+      file:write(env.code)
+      file:close()
+    else
+      log:error("failed to write code to temporary file")
+      return
+    end
   end,
   output = function(output)
     if type(output) == "table" then
