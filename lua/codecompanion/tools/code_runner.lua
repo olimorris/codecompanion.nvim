@@ -23,7 +23,8 @@ return {
       },
     },
   },
-  schema = [[<tool>
+  schema = [[```xml
+<tool>
   <name>code_runner</name>
   <parameters>
     <inputs>
@@ -35,12 +36,13 @@ return {
       <version>3.11.0</version>
     </inputs>
   </parameters>
-</tool>]],
+</tool>
+```]],
   prompt = function(schema)
-    return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nAnyway, to execute code, create an XML block which follows the below schema:"
-      .. "\n\n```xml\n"
+    return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return a markdown code block which follows the below schema:"
+      .. "\n\n"
       .. schema
-      .. "\n```\n\n"
+      .. "\n"
   end,
   pre_cmd = function(xml)
     local temp_input = vim.fn.tempname()
@@ -65,7 +67,6 @@ return {
       temp_input = temp_input,
     }
   end,
-  post_cmd = function(xml) end,
   output = function(output)
     if type(output) == "table" then
       output = table.concat(output, "\n")

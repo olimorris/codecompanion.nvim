@@ -82,10 +82,17 @@ function M.run(chat, ts)
   -- Set the autocmds which will be called on closing the job
   set_autocmds(chat, tool)
 
-  -- Run the pre_cmds
-  local pre_cmds = tool.pre_cmd(xml)
+  -- Overwrite any default cmds
   local cmds = vim.deepcopy(tool.cmds.default)
-  utils.replace_placeholders(cmds, pre_cmds)
+  if type(tool.override) == "function" then
+    cmds = tool.override_cmds(cmds)
+  end
+
+  -- Run the pre_cmds
+  if type(tool.pre_cmd) == "function" then
+    local pre_cmds = tool.pre_cmd(xml)
+    utils.replace_placeholders(cmds, pre_cmds)
+  end
 
   -- Run the tool's cmds
   log:debug("Running cmd: %s", cmds)
