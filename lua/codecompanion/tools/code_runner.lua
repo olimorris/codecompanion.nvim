@@ -23,8 +23,7 @@ return {
       },
     },
   },
-  schema = [[```xml
-<tool>
+  schema = [[<tool>
   <name>code_runner</name>
   <parameters>
     <inputs>
@@ -32,17 +31,14 @@ return {
       <lang>python</lang>
       <!-- Anything within the code tag will be executed. For example: -->
       <code>print("Hello World")</code>
-      <!-- The version of the lang to use -->
-      <version>3.11.0</version>
     </inputs>
   </parameters>
-</tool>
-```]],
+</tool>]],
   prompt = function(schema)
     return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return a markdown code block which follows the below schema:"
-      .. "\n\n"
+      .. "\n\n```xml\n"
       .. schema
-      .. "\n"
+      .. "\n```\n"
   end,
   env = function(xml)
     local temp_input = vim.fn.tempname()
@@ -64,7 +60,7 @@ return {
       file:write(env.code)
       file:close()
     else
-      log:error("failed to write code to temporary file")
+      log:error("Failed to write code to temporary file")
       return
     end
   end,
