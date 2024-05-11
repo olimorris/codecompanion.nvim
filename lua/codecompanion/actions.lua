@@ -291,55 +291,43 @@ M.static.actions = {
     },
   },
   {
-    name = "Tools",
+    name = "Tools ...",
     strategy = "tools",
     description = "Use the built-in tools to help you code",
-    opts = {
-      enabled = config.options.tools.enabled,
-      modes = { "n" },
-    },
-    prompts = {
-      {
-        role = "system",
-        content = function()
-          return [[You have a selection of tools available to you which will aid you in responding to my questions. These tools allow you to trigger commands on my machine. Once triggered, I will then share the output of the command back to you, giving you the ability to revise your answer or perhaps trigger additional tools and commands.
+    picker = {
+      prompt = "Chat with a tool",
+      items = function()
+        local tools = {}
 
-This may be useful for testing code you've written or for doing mathematical calculations. In order for you to trigger a tool, the request must then be placed within an xml code block. Below is a perfect example of how to do this:
+        for id, tool in pairs(config.options.tools) do
+          table.insert(tools, {
+            name = tool.name,
+            strategy = "tools",
+            description = tool.description or nil,
+            prompts = {
+              {
+                role = "system",
+                content = function()
+                  local t
+                  if tool.location then
+                    t = require(tool.location .. "." .. id)
+                  else
+                    t = require("codecompanion.tools." .. id)
+                  end
 
-The tools available to you, and their config:
+                  return t.prompt(t.schema)
+                end,
+              },
+              {
+                role = "user",
+                content = "\n \n",
+              },
+            },
+          })
+        end
 
-- `code_runner` - This tool allows you to execute code on my machine. The code and language must be specified as inputs. For example:
-
-```xml
-<tool>
-  <name>code_runner</name>
-  <parameters>
-    <inputs>
-      <!-- Choose the language to run -->
-      <!-- Currently you can only choose python or ruby -->
-      <lang>python</lang>
-      <!-- Anything within the code tag will be executed -->
-      <code>print("Hello World")</code>
-      <!-- The version of the lang to use -->
-      <version>3.11.0</version>
-    </inputs>
-  </parameters>
-</tool>
-```
-
-You can use the code runner to solve math problems by writing Python code. However, please don't hypothesise or guess the output in your response.
-
-Note: Here are some REALLY IMPORTANT things to note:
-
-1. If you wish to trigger multiple tools, place them after one another in the codeblock. The order in which you place them will be the order in which they're executed.
-2. Not every question I ask of you will require the use of a tool.
-]]
-        end,
-      },
-      {
-        role = "user",
-        content = "\n \n",
-      },
+        return tools
+      end,
     },
   },
   {

@@ -1,71 +1,95 @@
-local TreeHandler = require("codecompanion.utils.xml.xmlhandler.tree")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
+local utils = require("codecompanion.utils.util")
+
+local TreeHandler = require("codecompanion.utils.xml.xmlhandler.tree")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
+
+local api = vim.api
 
 local M = {}
 
-function M.run(chat, tools)
+---Parse the Tree-sitter output into XML
+---@param tools table
+---@return table
+local function parse_xml(tools)
   local handler = TreeHandler:new()
   local parser = xml2lua.parser(handler)
   parser:parse(tools)
 
-  log:debug("Parsed xml: %s", handler.root)
+  log:trace("Parsed xml: %s", handler.root)
 
-  local xml = handler.root.tool
+  return handler.root.tool
+end
 
-  local ok, tool = pcall(require, "codecompanion.tools." .. xml.name)
-  if not ok then
-    log:error("Tool not found: %s", xml.name)
-    return
-  end
+---Set the autocmds for the tool
+---@param chat CodeCompanion.Chat
+---@param tool CodeCompanion.Tool
+---@return nil
+local function set_autocmds(chat, tool)
+  local ns_id = api.nvim_create_namespace("CodeCompanionToolVirtualText")
+  local group = "CodeCompanionTool_" .. chat.bufnr
 
-  local ns_id = vim.api.nvim_create_namespace("CodeCompanionToolVirtualText")
+  api.nvim_create_augroup(group, { clear = true })
 
-  local group_name = "CodeCompanionTool_" .. chat.bufnr
-  vim.api.nvim_create_augroup(group_name, { clear = true })
-
-  vim.api.nvim_create_autocmd("User", {
+  return api.nvim_create_autocmd("User", {
     desc = "Handle responses from any tools",
-    group = group_name,
+    group = group,
     pattern = "CodeCompanionTool",
     callback = function(request)
-      log:debug("Tool finished event: %s", request)
+      log:trace("Tool finished event: %s", request)
       if request.data.status == "started" then
         ui.set_virtual_text(chat.bufnr, ns_id, "Tool processing ...")
         return
       end
 
       if request.buf ~= chat.bufnr or request.data.status == "error" then
-        vim.api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
-        vim.api.nvim_clear_autocmds({ group = group_name })
+        api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
+        api.nvim_clear_autocmds({ group = group })
         return
       end
 
       if request.data.status == "success" then
-        vim.api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
-        local output = request.data.output
-
-        if type(request.data.output) == "table" then
-          output = table.concat(request.data.output, "\n")
-        end
+        api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
 
         chat:add_message({
           role = "user",
-          content = "After the tool completed, the output was:"
-            .. "\n\n```\n"
-            .. output
-            .. "\n```\n\n"
-            .. "Is that what you expected? If it is, just reply with a confirmation. Don't reply with any code. If not, say so and I can plan our next step.",
+          content = tool.output(request.data.output),
         })
         chat:submit()
 
-        vim.api.nvim_clear_autocmds({ group = group_name })
+        api.nvim_clear_autocmds({ group = group })
       end
     end,
   })
+end
 
-  tool.run(chat.bufnr, xml)
+---Run the tool
+---@param chat CodeCompanion.Chat
+---@param ts table
+---@return nil
+function M.run(chat, ts)
+  -- Parse the XML
+  local xml = parse_xml(ts)
+
+  -- Load the tool
+  local ok, tool = pcall(require, "codecompanion.tools." .. xml.name)
+  if not ok then
+    log:error("Tool not found: %s", xml.name)
+    return
+  end
+
+  -- Set the autocmds which will be called on closing the job
+  set_autocmds(chat, tool)
+
+  -- Run the pre_cmds
+  local pre_cmds = tool.pre_cmd(xml)
+  local cmds = vim.deepcopy(tool.cmds.default)
+  utils.replace_placeholders(cmds, pre_cmds)
+
+  -- Run the tool's cmds
+  log:debug("Running cmd: %s", cmds)
+  return require("codecompanion.tools.job_runner").run(cmds)
 end
 
 return M

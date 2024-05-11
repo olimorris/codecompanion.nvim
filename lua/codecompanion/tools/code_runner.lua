@@ -1,100 +1,80 @@
-local Job = require("plenary.job")
-local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.util")
 
-local api = vim.api
+---@class CodeCompanion.Tool
+---@field cmd table
+---@field schema string
+---@field prompt fun(schema: string): string
+---@field pre_cmd fun(xml: table): table|nil
+---@field post_cmd fun(xml: table): table|nil
+---@field output fun(output: table): string
+return {
+  cmds = {
+    default = {
+      { "docker", "pull", "${lang}" },
+      {
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "${temp_dir}:${temp_dir}",
+        "${lang}",
+        "${lang}",
+        "${temp_input}",
+      },
+    },
+  },
+  schema = [[<tool>
+  <name>code_runner</name>
+  <parameters>
+    <inputs>
+      <!-- Choose the language to run. Use Python by default -->
+      <lang>python</lang>
+      <!-- Anything within the code tag will be executed. For example: -->
+      <code>print("Hello World")</code>
+      <!-- The version of the lang to use -->
+      <version>3.11.0</version>
+    </inputs>
+  </parameters>
+</tool>]],
+  prompt = function(schema)
+    return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nAnyway, to execute code, create an XML block which follows the below schema:"
+      .. "\n\n```xml\n"
+      .. schema
+      .. "\n```\n\n"
+  end,
+  pre_cmd = function(xml)
+    local temp_input = vim.fn.tempname()
+    local temp_dir = temp_input:match("(.*/)")
+    local lang = xml.parameters.inputs.lang
+    local code = xml.parameters.inputs.code
 
-local M = {}
+    -- Write the code to a temporary file
+    local file = io.open(temp_input, "w")
+    if file then
+      file:write(code)
+      file:close()
+    else
+      log:error("failed to write code to temporary file")
+      return
+    end
 
-local stdout = {}
-local status = ""
+    return {
+      code = code,
+      lang = lang,
+      temp_dir = temp_dir,
+      temp_input = temp_input,
+    }
+  end,
+  post_cmd = function(xml) end,
+  output = function(output)
+    if type(output) == "table" then
+      output = table.concat(output, "\n")
+    end
 
-local function on_start()
-  api.nvim_exec_autocmds("User", { pattern = "CodeCompanionTool", data = { status = "started" } })
-end
-local function on_finish()
-  api.nvim_exec_autocmds("User", { pattern = "CodeCompanionTool", data = { status = status, output = stdout } })
-end
-
----@param cmds table
----@param index number
----@return nil
-local function run_jobs(cmds, index)
-  if index > #cmds then
-    return
-  end
-
-  local cmd = cmds[index]
-
-  log:debug("running cmd: %s", cmd)
-
-  Job:new({
-    command = cmd[1],
-    args = { unpack(cmd, 2) }, -- args start from index 2
-    on_exit = function(_, _)
-      run_jobs(cmds, index + 1)
-
-      vim.schedule(function()
-        if index == #cmds then
-          return on_finish()
-        end
-      end)
-    end,
-    on_stdout = function(_, data)
-      vim.schedule(function()
-        log:debug("stdout: %s", data)
-        if index == #cmds then
-          table.insert(stdout, data)
-        end
-      end)
-    end,
-    on_stderr = function(_, data)
-      status = "error"
-      vim.schedule(function()
-        log:error("Error running job: %s", data)
-      end)
-    end,
-  }):start()
-end
-
----@param bufnr number
----@param tool table
----@return nil|table
-function M.run(bufnr, tool)
-  log:info("code runner initiated")
-
-  -- Reset the status and stdout
-  status = "success"
-  stdout = {}
-
-  -- set the variables that the user can use in their environment
-  local temp_input = vim.fn.tempname()
-  local temp_dir = temp_input:match("(.*/)")
-  local lang = tool.parameters.inputs.lang
-  local code = tool.parameters.inputs.code
-
-  -- and apply them to the tool commands
-  local cmds = vim.deepcopy(config.options.tools.code_runner.cmds.default)
-  utils.replace_placeholders(cmds, {
-    code = code,
-    lang = lang,
-    temp_dir = temp_dir,
-    temp_input = temp_input,
-  })
-
-  -- Write the code to a temporary file
-  local file = io.open(temp_input, "w")
-  if file then
-    file:write(code)
-    file:close()
-  else
-    log:error("failed to write code to temporary file")
-    return
-  end
-
-  on_start()
-  return run_jobs(cmds, 1)
-end
-
-return M
+    return "After the tool completed, the output was:"
+      .. "\n\n```\n"
+      .. output
+      .. "\n```\n\n"
+      .. "Is that what you expected? If it is, just reply with a confirmation. Don't reply with any code. If not, say so and I can plan our next step."
+  end,
+}
