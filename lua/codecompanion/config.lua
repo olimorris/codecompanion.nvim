@@ -58,6 +58,7 @@ local defaults = {
     ["gc"] = "keymaps.clear",
     ["ga"] = "keymaps.codeblock",
     ["gs"] = "keymaps.save_chat",
+    ["gt"] = "keymaps.add_tool",
     ["]"] = "keymaps.next",
     ["["] = "keymaps.previous",
   },

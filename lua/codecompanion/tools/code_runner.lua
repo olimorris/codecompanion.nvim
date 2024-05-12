@@ -69,7 +69,7 @@ return {
       output = table.concat(output, "\n")
     end
 
-    return "After the tool completed, the output was:"
+    return "After the tool completed the output was:"
       .. "\n\n```\n"
       .. output
       .. "\n```\n\n"

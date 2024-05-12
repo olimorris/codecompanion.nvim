@@ -105,4 +105,19 @@ M.previous = {
   end,
 }
 
+M.add_tool = {
+  desc = "Add a tool to the chat buffer",
+  callback = function(args)
+    -- Picker of all the available tools
+
+    -- Add the tool to the chat buffer
+    local tool = require("codecompanion.tools.code_runner")
+
+    args:add_message({
+      role = "system",
+      content = tool.prompt(tool.schema),
+    })
+  end,
+}
+
 return M

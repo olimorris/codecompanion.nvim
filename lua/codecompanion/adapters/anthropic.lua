@@ -95,6 +95,7 @@ return {
       -- Claude doesn't put the system prompt in the messages array, but in the parameters.system field
       local sys_prompts = get_system_prompts(messages)
 
+      -- Merge system prompts together
       if sys_prompts and #sys_prompts > 0 then
         for _, prompt in ipairs(sys_prompts) do
           params.system = (params.system or "") .. messages[prompt].content
@@ -110,9 +111,8 @@ return {
     form_messages = function(messages)
       -- Remove any system prompts from the messages array
       local sys_prompt = get_system_prompts(messages)
-
       if sys_prompt and #sys_prompt > 0 then
-        -- Sort the prompts in descending order so we can more accurately remove them from the messages table
+        -- Sort the prompts in descending order so we can remove them from the table without shifting indexes
         table.sort(sys_prompt, function(a, b)
           return a > b
         end)
