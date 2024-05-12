@@ -111,12 +111,11 @@ return {
       -- Remove any system prompts from the messages array
       local sys_prompt = get_system_prompts(messages)
 
-      -- Sort the prompts in descending order so we can more accurately remove them from the messages table
-      table.sort(sys_prompt, function(a, b)
-        return a > b
-      end)
-
       if sys_prompt and #sys_prompt > 0 then
+        -- Sort the prompts in descending order so we can more accurately remove them from the messages table
+        table.sort(sys_prompt, function(a, b)
+          return a > b
+        end)
         for _, prompt in ipairs(sys_prompt) do
           table.remove(messages, prompt)
         end
