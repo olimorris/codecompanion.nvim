@@ -393,8 +393,11 @@ The strategy comes with a number of helpers which the user can type in the promp
 
 ### Tools
 
-> [!WARNING]
-> The use of tools may result in the significant consumption of tokens if you're using an external LLM.
+<!-- panvimdoc-ignore-start -->
+<div align="center">
+  <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/a19229b1-36b2-43b0-ad87-600da06b371e</p>
+</div>
+<!-- panvimdoc-ignore-end -->
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs. In this plugin, tools are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response and the plugin can then parse, execute and feedback.
 
