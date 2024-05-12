@@ -318,7 +318,9 @@ vim.cmd([[cab cc CodeCompanion]])
 
 ### The Action Palette
 
+<!-- panvimdoc-ignore-start -->
 <p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/b5e2ad2d-c6a2-45a4-a4d0-c118dfaec943" alt="action selector" /></p>
+<!-- panvimdoc-ignore-end -->
 
 > [!NOTE]
 > Please see the [RECIPES](RECIPES.md) guide in order to add your own actions to the palette.
@@ -330,7 +332,9 @@ The Action Palette, opened via `:CodeCompanionActions`, contains all of the acti
 
 ### The Chat Buffer
 
+<!-- panvimdoc-ignore-start -->
 <p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/84d5e03a-0b48-4ffb-9ca5-e299d41171bd" alt="chat buffer" /></p>
+<!-- panvimdoc-ignore-end -->
 
 The chat buffer is where you can converse with the LLM, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the LLM in the form of prompts. These prompts are segmented by H1 headers: `user`, `system` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with your LLM from within Neovim.
 
@@ -362,7 +366,9 @@ From the Action Palette, the `Open Chats` action enables users to easily navigat
 
 ### Inline Code
 
+<!-- panvimdoc-ignore-start -->
 https://github.com/olimorris/codecompanion.nvim/assets/9512444/0a448d12-5b8b-4932-b2e9-871eec45c534
+<!-- panvimdoc-ignore-end -->
 
 You can use the plugin to create inline code directly into a Neovim buffer. This can be invoked by using the _Action Palette_ (as above) or from the command line via `:CodeCompanion`. For example:
 
@@ -394,9 +400,7 @@ The strategy comes with a number of helpers which the user can type in the promp
 ### Tools
 
 <!-- panvimdoc-ignore-start -->
-<div align="center">
   <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/a19229b1-36b2-43b0-ad87-600da06b371e</p>
-</div>
 <!-- panvimdoc-ignore-end -->
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs. In this plugin, tools are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response and the plugin can then parse, execute and feedback.
