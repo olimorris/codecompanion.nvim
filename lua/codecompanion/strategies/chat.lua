@@ -171,8 +171,9 @@ end
 local last_role = ""
 ---@param bufnr integer
 ---@param data table
+---@param opts? table
 ---@return nil
-local function render_new_messages(bufnr, data)
+local function render_new_messages(bufnr, data, opts)
   local total_lines = api.nvim_buf_line_count(bufnr)
   local current_line = api.nvim_win_get_cursor(0)[1]
   local cursor_moved = current_line == total_lines
@@ -196,7 +197,11 @@ local function render_new_messages(bufnr, data)
 
     local last_line = api.nvim_buf_get_lines(bufnr, total_lines - 1, total_lines, false)[1]
     local last_col = last_line and #last_line or 0
-    api.nvim_buf_set_text(bufnr, total_lines - 1, last_col, total_lines - 1, last_col, lines)
+    if opts and opts.insert_at then
+      api.nvim_buf_set_text(bufnr, opts.insert_at, 0, opts.insert_at, 0, lines)
+    else
+      api.nvim_buf_set_text(bufnr, total_lines - 1, last_col, total_lines - 1, last_col, lines)
+    end
 
     vim.bo[bufnr].modified = false
     vim.bo[bufnr].modifiable = modifiable
@@ -656,8 +661,15 @@ function Chat:on_cursor_moved()
   end
 end
 
-function Chat:add_message(message)
-  render_new_messages(self.bufnr, { role = message.role, content = message.content })
+function Chat:add_message(message, opts)
+  render_new_messages(self.bufnr, { role = message.role, content = message.content }, opts)
+
+  if opts and opts.confirm then
+    vim.api.nvim_echo({
+      { "[CodeCompanion.nvim]\n", "Normal" },
+      { "The Code Runner tool was added to the chat buffer", "WarningMsg" },
+    }, true, {})
+  end
 end
 
 function Chat:complete(request, callback)

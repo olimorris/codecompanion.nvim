@@ -113,10 +113,19 @@ M.add_tool = {
     -- Add the tool to the chat buffer
     local tool = require("codecompanion.tools.code_runner")
 
+    local insert_at = 0
+    if config.options.display.chat.show_settings then
+      local count = 0
+      for _ in pairs(args.settings) do
+        count = count + 1
+      end
+      insert_at = count + 2
+    end
+
     args:add_message({
       role = "system",
       content = tool.prompt(tool.schema),
-    })
+    }, { insert_at = insert_at, confirm = true })
   end,
 }
 
