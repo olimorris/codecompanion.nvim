@@ -1,26 +1,41 @@
 local log = require("codecompanion.utils.log")
 
-local function get_system_prompt(tbl)
-  for i = 1, #tbl do
-    if tbl[i].role == "system" then
-      return i
+---Get the indexes of all of the system prompts in the chat buffer
+---@param messages table
+---@return table
+local function get_system_prompts(messages)
+  local prompts = {}
+  for i = 1, #messages do
+    if messages[i].role == "system" then
+      table.insert(prompts, i)
     end
+  end
+
+  if #prompts > 0 then
+    return prompts
   end
 end
 
+---Takes multiple user messages and merges them into a single message
+---@param messages table
+---@return table
 local function merge_messages(messages)
   local new_msgs = {}
   local temp_msgs = {}
   local last_role = nil
 
+  local function trim_newlines(message)
+    return (message:gsub("^%s*\n\n", ""))
+  end
+
   for _, message in ipairs(messages) do
     if message.role == "user" then
       if last_role == "user" then
         -- If the last role was also "user", we continue accumulating the content
-        table.insert(temp_msgs, message.content)
+        table.insert(temp_msgs, trim_newlines(message.content))
       else
         -- If we encounter "user" after a different role, start a new accumulation
-        temp_msgs = { message.content }
+        temp_msgs = { trim_newlines(message.content) }
       end
     else
       -- For any non-user message:
@@ -78,9 +93,12 @@ return {
     form_parameters = function(params, messages)
       -- As per: https://docs.anthropic.com/claude/docs/system-prompts
       -- Claude doesn't put the system prompt in the messages array, but in the parameters.system field
-      local sys_prompt = get_system_prompt(messages)
-      if sys_prompt then
-        params.system = messages[sys_prompt].content
+      local sys_prompts = get_system_prompts(messages)
+
+      if sys_prompts and #sys_prompts > 0 then
+        for _, prompt in ipairs(sys_prompts) do
+          params.system = (params.system or "") .. messages[prompt].content
+        end
       end
 
       return params
@@ -91,9 +109,17 @@ return {
     ---@return table
     form_messages = function(messages)
       -- Remove any system prompts from the messages array
-      local sys_prompt = get_system_prompt(messages)
-      if sys_prompt then
-        table.remove(messages, sys_prompt)
+      local sys_prompt = get_system_prompts(messages)
+
+      -- Sort the prompts in descending order so we can more accurately remove them from the messages table
+      table.sort(sys_prompt, function(a, b)
+        return a > b
+      end)
+
+      if sys_prompt and #sys_prompt > 0 then
+        for _, prompt in ipairs(sys_prompt) do
+          table.remove(messages, prompt)
+        end
       end
 
       -- Combine consecutive user prompts into a single prompt
