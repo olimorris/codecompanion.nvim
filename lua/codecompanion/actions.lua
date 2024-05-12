@@ -42,8 +42,7 @@ M.static.actions = {
   {
     name = "Chat",
     strategy = "chat",
-    description = "Open/restore a chat buffer to converse with "
-      .. config.options.strategies.chat:gsub("^%l", string.upper),
+    description = "Open/restore a chat buffer to converse with an LLM",
     type = nil,
     prompts = {
       n = function()
@@ -441,9 +440,7 @@ M.static.actions = {
   {
     name = "Inline code ...",
     strategy = "inline",
-    description = "Get "
-      .. config.options.strategies.inline:gsub("^%l", string.upper)
-      .. " to write/refactor code for you",
+    description = "Get an LLM to write/refactor code for you",
     picker = {
       prompt = "Select an inline code action",
       items = {
