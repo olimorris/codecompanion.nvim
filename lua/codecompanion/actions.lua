@@ -293,36 +293,48 @@ M.static.actions = {
     name = "Tools ...",
     strategy = "tools",
     description = "Use the built-in tools to help you code",
+    condition = function()
+      local tools = config.options.tools
+      local i = 0
+      for _, tool in pairs(tools) do
+        if tool.enabled then
+          i = i + 1
+        end
+      end
+      return i > 0
+    end,
     picker = {
       prompt = "Chat with a tool",
       items = function()
         local tools = {}
 
         for id, tool in pairs(config.options.tools) do
-          table.insert(tools, {
-            name = tool.name,
-            strategy = "tools",
-            description = tool.description or nil,
-            prompts = {
-              {
-                role = "system",
-                content = function()
-                  local t
-                  if tool.location then
-                    t = require(tool.location .. "." .. id)
-                  else
-                    t = require("codecompanion.tools." .. id)
-                  end
+          if tool.enabled then
+            table.insert(tools, {
+              name = tool.name,
+              strategy = "tools",
+              description = tool.description or nil,
+              prompts = {
+                {
+                  role = "system",
+                  content = function()
+                    local t
+                    if tool.location then
+                      t = require(tool.location .. "." .. id)
+                    else
+                      t = require("codecompanion.tools." .. id)
+                    end
 
-                  return t.prompt(t.schema)
-                end,
+                    return t.prompt(t.schema)
+                  end,
+                },
+                {
+                  role = "user",
+                  content = "\n \n",
+                },
               },
-              {
-                role = "user",
-                content = "\n \n",
-              },
-            },
-          })
+            })
+          end
         end
 
         return tools

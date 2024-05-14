@@ -128,10 +128,10 @@ local function render_messages(bufnr, adapter, settings, messages, context)
     for _, key in ipairs(keys) do
       table.insert(lines, string.format("%s: %s", key, yaml.encode(settings[key])))
     end
-
     table.insert(lines, "---")
-    table.insert(lines, "")
   end
+
+  table.insert(lines, "")
 
   -- Start with the user heading
   if #messages == 0 then
@@ -179,7 +179,7 @@ local function render_new_messages(bufnr, data, opts)
   local cursor_moved = current_line == total_lines
 
   local lines = {}
-  if data.role and data.role ~= last_role then
+  if (data.role and data.role ~= last_role) or (opts and opts.force_role) then
     last_role = data.role
     table.insert(lines, "")
     table.insert(lines, "")
@@ -664,10 +664,10 @@ end
 function Chat:add_message(message, opts)
   render_new_messages(self.bufnr, { role = message.role, content = message.content }, opts)
 
-  if opts and opts.confirm then
+  if opts and opts.notify then
     vim.api.nvim_echo({
       { "[CodeCompanion.nvim]\n", "Normal" },
-      { "The Code Runner tool was added to the chat buffer", "WarningMsg" },
+      { "The Code Runner tool was added to the chat buffer", "MoreMsg" },
     }, true, {})
   end
 end
