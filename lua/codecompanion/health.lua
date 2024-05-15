@@ -10,12 +10,17 @@ local M = {}
 
 M.plugins = {
   {
+    name = "plenary.nvim",
+    plugin_name = "plenary",
+  },
+  {
     name = "nvim-treesitter",
     plugin_name = "nvim-treesitter",
   },
   {
-    name = "plenary.nvim",
-    plugin_name = "plenary",
+    name = "telescope.nvim",
+    plugin_name = "telescope",
+    optional = true,
   },
   {
     name = "dressing.nvim",
