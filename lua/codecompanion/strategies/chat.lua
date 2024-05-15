@@ -129,9 +129,8 @@ local function render_messages(bufnr, adapter, settings, messages, context)
       table.insert(lines, string.format("%s: %s", key, yaml.encode(settings[key])))
     end
     table.insert(lines, "---")
+    table.insert(lines, "")
   end
-
-  table.insert(lines, "")
 
   -- Start with the user heading
   if #messages == 0 then
