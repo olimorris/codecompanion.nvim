@@ -408,7 +408,7 @@ The strategy comes with a number of helpers which the user can type in the promp
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
-In this plugin, tools are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response for the plugin to parse, execute and feedback on. Tools can be leveraged by opening up the action palette and choosing the _tools_ option. Or, tools can be added to existing chat buffers via a keymap.
+In this plugin, tools are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response for the plugin to parse, execute and feedback on. Tools can be leveraged by opening up the action palette and choosing the _tools_ option. Or, tools can be added when in an existing chat buffer via the `gt` keymap.
 
 More information on how tools work and how you can create your own can be found in the [TOOLS](TOOLS.md) guide.
 

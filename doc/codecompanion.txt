@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.9.2          Last change: 2024 May 12
+*codecompanion.txt*          For NVIM v0.9.2          Last change: 2024 May 15
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -378,63 +378,20 @@ removed from memory) by pressing `<C-c>`.
 INLINE CODE ~
 
 
-https://github.com/olimorris/codecompanion.nvim/assets/9512444/0a448d12-5b8b-4932-b2e9-871eec45c534
-
-You can use the plugin to create inline code directly into a Neovim buffer.
-This can be invoked by using the _Action Palette_ (as above) or from the
-command line via `:CodeCompanion`. For example:
-
->
-    :CodeCompanion create a table of 5 fruits
-<
-
->
-    :'<,'>CodeCompanion refactor the code to make it more concise
-<
-
-
-  [!NOTE] The command can detect if you’ve made a visual selection and send any
-  code as context to the API alongside the filetype of the buffer.
-One of the challenges with inline editing is determining how the generative
-AI’s response should be handled in the buffer. If you’ve prompted the API
-to _“create a table of 5 fruits”_ then you may wish for the response to be
-placed after the cursor’s current position in the buffer. However, if you
-asked the API to _“refactor this function”_ then you’d expect the
-response to overwrite a visual selection. If this placement isn’t specified
-then the plugin will use generative AI itself to determine if the response
-should follow any of the placements below:
-
-- _after_ - after the visual selection
-- _before_ - before the visual selection
-- _cursor_ - one column after the cursor position
-- _new_ - in a new buffer
-- _replace_ - replacing the visual selection
-
-The strategy comes with a number of helpers which the user can type in the
-prompt, similar to GitHub Copilot Chat
-<https://github.blog/changelog/2024-01-30-code-faster-and-better-with-github-copilots-new-features-in-visual-studio/>
-
-- `/doc`to add a documentation comment
-- `/optimize` to analyze and improve the running time of the selected code
-- `/tests` to create unit tests for the selected code
-
-
-TOOLS ~
-
-
-  [!WARNING] The use of tools may result in the significant consumption of tokens
-  if you’re using an external LLM.
+  [!IMPORTANT] Tools are currently at an alpha stage. I’m yet to properly
+  battle test them so feedback is much appreciated.
 As outlined by Andrew Ng in Agentic Design Patterns Part 3, Tool Use
 <https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use>,
 LLMs can act as agents by leveraging external tools. Andrew notes some common
 examples such as web searching or code execution that have obvious benefits
-when using LLMs. In this plugin, tools are simply context that’s given to an
-LLM via a `system` prompt. This gives it knowledge and a defined schema which
-it can include in its response and the plugin can then parse, execute and
-feedback.
+when using LLMs.
 
-Tools can be leveraged by opening up the action palette and choosing the
-_tools_ option. Or, tools can be added to existing chat buffers via a keymap.
+In this plugin, tools are simply context that’s given to an LLM via a
+`system` prompt. This gives it knowledge and a defined schema which it can
+include in its response for the plugin to parse, execute and feedback on. Tools
+can be leveraged by opening up the action palette and choosing the _tools_
+option. Or, tools can be added when in an existing chat buffer via the `gt`
+keymap.
 
 More information on how tools work and how you can create your own can be found
 in the TOOLS <TOOLS.md> guide.
