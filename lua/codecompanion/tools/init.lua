@@ -54,7 +54,7 @@ local function set_autocmds(chat, tool)
 
         chat:add_message({
           role = "user",
-          content = tool.output(request.data.output),
+          content = tool.output_prompt(request.data.output),
         })
         chat:submit()
 
@@ -89,8 +89,8 @@ function M.run(chat, ts)
   end
 
   -- Overwrite any default cmds
-  local cmds = vim.deepcopy(tool.cmds.default)
-  if type(tool.override) == "function" then
+  local cmds = vim.deepcopy(tool.cmds)
+  if type(tool.override_cmds) == "function" then
     cmds = tool.override_cmds(cmds)
   end
 

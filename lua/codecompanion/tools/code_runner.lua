@@ -1,26 +1,24 @@
 local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Tool
----@field cmd table
+---@field cmds table
 ---@field schema string
 ---@field prompt fun(schema: string): string
----@field pre_cmd fun(xml: table): table|nil
----@field post_cmd fun(xml: table): table|nil
----@field output fun(output: table): string
+---@field env fun(xml: table): table|nil
+---@field pre_cmd fun(env: table, xml: table): table|nil
+---@field output_prompt fun(output: table): string
 return {
   cmds = {
-    default = {
-      { "docker", "pull", "${lang}" },
-      {
-        "docker",
-        "run",
-        "--rm",
-        "-v",
-        "${temp_dir}:${temp_dir}",
-        "${lang}",
-        "${lang}",
-        "${temp_input}",
-      },
+    { "docker", "pull", "${lang}" },
+    {
+      "docker",
+      "run",
+      "--rm",
+      "-v",
+      "${temp_dir}:${temp_dir}",
+      "${lang}",
+      "${lang}",
+      "${temp_input}",
     },
   },
   schema = [[<tool>
@@ -64,7 +62,7 @@ return {
       return
     end
   end,
-  output = function(output)
+  output_prompt = function(output)
     if type(output) == "table" then
       output = table.concat(output, "\n")
     end
