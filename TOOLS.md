@@ -36,7 +36,7 @@ In the Code Runner tool, the schema is defined with XML and a number of inputs:
       <code>print("Hello World")</code>
     </inputs>
   </parameters>
-</tool>,
+</tool>
 ```
 
 If the LLM outputs a markdown XML block as per the schema, the plugin will parse it and duly execute the code.
@@ -50,12 +50,12 @@ In the tool, the prompt is a function which returns a string, receiving the sche
 For the Code Runner tool, the prompt is:
 
 ```lua
-  prompt = function(schema)
-    return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return a markdown code block which follows the below schema:"
-      .. "\n\n```xml\n"
-      .. schema
-      .. "\n```\n"
-  end,
+prompt = function(schema)
+  return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return a markdown code block which follows the below schema:"
+    .. "\n\n```xml\n"
+    .. schema
+    .. "\n```\n"
+end
 ```
 
 ### Env
@@ -77,7 +77,7 @@ env = function(xml)
     temp_dir = temp_dir,
     temp_input = temp_input,
   }
-end,
+end
 ```
 
 Note that a table has been returned that can then be used in other functions.
@@ -147,7 +147,7 @@ output_prompt = function(output)
     .. output
     .. "\n```\n\n"
     .. "Is that what you expected? If it is, just reply with a confirmation. Don't reply with any code. If not, say so and I can plan our next step."
-end,
+end
 ```
 
 ## Config
