@@ -132,6 +132,22 @@ function M.get_context(bufnr, args)
   }
 end
 
+---@param tbl table
+---@param replacements table
+---@return nil
+function M.replace_placeholders(tbl, replacements)
+  for key, value in pairs(tbl) do
+    if type(value) == "table" then
+      M.replace_placeholders(value, replacements)
+    elseif type(value) == "string" then
+      for placeholder, replacement in pairs(replacements) do
+        value = value:gsub("%${" .. placeholder .. "}", replacement)
+      end
+      tbl[key] = value
+    end
+  end
+end
+
 ---@param msg string
 ---@param vars table
 ---@param mapping table

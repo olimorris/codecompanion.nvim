@@ -9,20 +9,33 @@ local yaml = require("codecompanion.utils.yaml")
 local api = vim.api
 
 local yaml_query = [[
-(block_mapping_pair
+(
+  block_mapping_pair
   key: (_) @key
-  value: (_) @value)
+  value: (_) @value
+)
 ]]
 
 local chat_query = [[
-(atx_heading
+(
+  atx_heading
   (atx_h1_marker)
   heading_content: (_) @role
-  )
-
-(section
+)
+(
+  section
   [(paragraph) (fenced_code_block) (list)] @text
-  )
+)
+]]
+
+local tool_query = [[
+(
+ (section
+  (fenced_code_block
+    (info_string) @lang
+    (code_fence_content) @tools
+  ) (#match? @lang "xml"))
+)
 ]]
 
 local config_settings = {}
@@ -46,11 +59,14 @@ local function parse_settings(bufnr, adapter)
 
   local query = vim.treesitter.query.parse("yaml", yaml_query)
   local root = parser:parse()[1]:root()
-  pcall(vim.tbl_add_reverse_lookup, query.captures)
+  local captures = {}
+  for k, v in pairs(query.captures) do
+    captures[v] = k
+  end
 
   for _, match in query:iter_matches(root, bufnr) do
-    local key = vim.treesitter.get_node_text(match[query.captures.key], bufnr)
-    local value = vim.treesitter.get_node_text(match[query.captures.value], bufnr)
+    local key = vim.treesitter.get_node_text(match[captures.key], bufnr)
+    local value = vim.treesitter.get_node_text(match[captures.value], bufnr)
     settings[key] = yaml.decode(value)
   end
 
@@ -58,32 +74,34 @@ local function parse_settings(bufnr, adapter)
 end
 
 ---@param bufnr integer
----@param adapter CodeCompanion.Adapter
 ---@return table
----@return table
-local function parse_messages_buffer(bufnr, adapter)
-  local ret = {}
+local function parse_messages(bufnr)
+  local output = {}
 
   local parser = vim.treesitter.get_parser(bufnr, "markdown")
   local query = vim.treesitter.query.parse("markdown", chat_query)
   local root = parser:parse()[1]:root()
-  pcall(vim.tbl_add_reverse_lookup, query.captures)
+
+  local captures = {}
+  for k, v in pairs(query.captures) do
+    captures[v] = k
+  end
+
   local message = {}
   for _, match in query:iter_matches(root, bufnr) do
-    if match[query.captures.role] then
+    if match[captures.role] then
       if not vim.tbl_isempty(message) then
-        table.insert(ret, message)
+        table.insert(output, message)
         message = { role = "", content = "" }
       end
-      message.role = vim.trim(vim.treesitter.get_node_text(match[query.captures.role], bufnr):lower())
-    elseif match[query.captures.text] then
-      local text = vim.trim(vim.treesitter.get_node_text(match[query.captures.text], bufnr))
+      message.role = vim.trim(vim.treesitter.get_node_text(match[captures.role], bufnr):lower())
+    elseif match[captures.text] then
+      local text = vim.trim(vim.treesitter.get_node_text(match[captures.text], bufnr))
       if message.content then
         message.content = message.content .. "\n\n" .. text
       else
         message.content = text
       end
-      -- If there's no role because they just started typing in a blank file, assign the user role
       if not message.role then
         message.role = "user"
       end
@@ -91,10 +109,10 @@ local function parse_messages_buffer(bufnr, adapter)
   end
 
   if not vim.tbl_isempty(message) then
-    table.insert(ret, message)
+    table.insert(output, message)
   end
 
-  return parse_settings(bufnr, adapter), ret
+  return output
 end
 
 ---@param bufnr integer
@@ -110,7 +128,6 @@ local function render_messages(bufnr, adapter, settings, messages, context)
     for _, key in ipairs(keys) do
       table.insert(lines, string.format("%s: %s", key, yaml.encode(settings[key])))
     end
-
     table.insert(lines, "---")
     table.insert(lines, "")
   end
@@ -153,14 +170,15 @@ end
 local last_role = ""
 ---@param bufnr integer
 ---@param data table
+---@param opts? table
 ---@return nil
-local function render_new_messages(bufnr, data)
+local function render_new_messages(bufnr, data, opts)
   local total_lines = api.nvim_buf_line_count(bufnr)
   local current_line = api.nvim_win_get_cursor(0)[1]
   local cursor_moved = current_line == total_lines
 
   local lines = {}
-  if data.role and data.role ~= last_role then
+  if (data.role and data.role ~= last_role) or (opts and opts.force_role) then
     last_role = data.role
     table.insert(lines, "")
     table.insert(lines, "")
@@ -178,7 +196,11 @@ local function render_new_messages(bufnr, data)
 
     local last_line = api.nvim_buf_get_lines(bufnr, total_lines - 1, total_lines, false)[1]
     local last_col = last_line and #last_line or 0
-    api.nvim_buf_set_text(bufnr, total_lines - 1, last_col, total_lines - 1, last_col, lines)
+    if opts and opts.insert_at then
+      api.nvim_buf_set_text(bufnr, opts.insert_at, 0, opts.insert_at, 0, lines)
+    else
+      api.nvim_buf_set_text(bufnr, total_lines - 1, last_col, total_lines - 1, last_col, lines)
+    end
 
     vim.bo[bufnr].modified = false
     vim.bo[bufnr].modifiable = modifiable
@@ -191,6 +213,59 @@ local function render_new_messages(bufnr, data)
   end
 end
 
+---@param chat CodeCompanion.Chat
+---@return CodeCompanion.Tool|nil
+local function run_tools(chat)
+  -- Parse the buffer and retrieve the assistant's response
+  local assistant_parser = vim.treesitter.get_parser(chat.bufnr, "markdown")
+  local assistant_query = vim.treesitter.query.parse(
+    "markdown",
+    [[
+(
+  (section
+    (atx_heading) @heading
+    (#match? @heading "# assistant")
+  ) @content
+)
+  ]]
+  )
+  local assistant_tree = assistant_parser:parse()[1]
+
+  local assistant_response = {}
+  for id, node in assistant_query:iter_captures(assistant_tree:root(), chat.bufnr, 0, -1) do
+    local name = assistant_query.captures[id]
+    if name == "content" then
+      local response = vim.treesitter.get_node_text(node, chat.bufnr)
+      table.insert(assistant_response, response)
+    end
+  end
+
+  local response = assistant_response[#assistant_response]
+
+  -- Now parse the assistant's response for any tools
+  local parser = vim.treesitter.get_string_parser(response, "markdown")
+  local tree = parser:parse()[1]
+  local query = vim.treesitter.query.parse("markdown", tool_query)
+
+  local tools = {}
+  for id, node in query:iter_captures(tree:root(), response, 0, -1) do
+    local name = query.captures[id]
+    if name == "tools" then
+      local tool = vim.treesitter.get_node_text(node, response)
+      table.insert(tools, tool)
+    end
+  end
+
+  log:debug("Tools detected: %s", tools)
+
+  --TODO: Parse XML to ensure the STag is <tool>
+
+  if tools and #tools > 0 then
+    return require("codecompanion.tools").run(chat, tools[#tools])
+  end
+end
+
+---@param bufnr integer
 local display_tokens = function(bufnr)
   if config.options.display.chat.show_token_count then
     require("codecompanion.utils.tokens").display_tokens(bufnr)
@@ -284,10 +359,7 @@ local function chat_autocmds(bufnr, adapter)
     callback = function()
       if ui.buf_is_empty(bufnr) then
         local ns_id = api.nvim_create_namespace("CodeCompanionChatVirtualText")
-        api.nvim_buf_set_extmark(bufnr, ns_id, api.nvim_buf_line_count(bufnr) - 1, 0, {
-          virt_text = { { config.options.intro_message, "CodeCompanionVirtualText" } },
-          virt_text_pos = "eol",
-        })
+        ui.set_virtual_text(bufnr, ns_id, config.options.intro_message)
       end
 
       local has_cmp, cmp = pcall(require, "cmp")
@@ -352,7 +424,7 @@ local function chat_autocmds(bufnr, adapter)
 
       if _G.codecompanion_chats[bufnr] == nil then
         local description
-        local _, messages = parse_messages_buffer(bufnr, adapter)
+        local messages = parse_messages(bufnr)
 
         if messages[1] and messages[1].content then
           description = messages[1].content
@@ -491,7 +563,7 @@ function Chat:submit()
     return
   end
 
-  local settings, messages = parse_messages_buffer(self.bufnr, self.adapter)
+  local settings, messages = parse_settings(self.bufnr, self.adapter), parse_messages(self.bufnr)
 
   if not messages or #messages == 0 then
     return
@@ -524,6 +596,7 @@ function Chat:submit()
       render_new_messages(self.bufnr, { role = "user", content = "" })
       display_tokens(self.bufnr)
       finalize()
+      run_tools(self)
       return api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { status = "finished" } })
     end
 
@@ -587,8 +660,15 @@ function Chat:on_cursor_moved()
   end
 end
 
-function Chat:add_message(message)
-  render_new_messages(self.bufnr, { role = message.role, content = message.content })
+function Chat:add_message(message, opts)
+  render_new_messages(self.bufnr, { role = message.role, content = message.content }, opts)
+
+  if opts and opts.notify then
+    vim.api.nvim_echo({
+      { "[CodeCompanion.nvim]\n", "Normal" },
+      { "The Code Runner tool was added to the chat buffer", "MoreMsg" },
+    }, true, {})
+  end
 end
 
 function Chat:complete(request, callback)
@@ -623,14 +703,13 @@ function Chat.buf_get_chat(bufnr)
 end
 
 ---@param bufnr nil|integer
----@return table
----@return nil|CodeCompanion.Chat
+---@return table, table
 function Chat.buf_get_messages(bufnr)
   if not bufnr or bufnr == 0 then
     bufnr = api.nvim_get_current_buf()
   end
   local adapter = chatmap[bufnr].adapter
-  return parse_messages_buffer(bufnr, adapter)
+  return parse_settings(bufnr, adapter), parse_messages(bufnr)
 end
 
 return Chat

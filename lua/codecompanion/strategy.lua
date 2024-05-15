@@ -105,4 +105,16 @@ function Strategy:inline()
     :start()
 end
 
+---@return nil|CodeCompanion.Chat
+function Strategy:tools()
+  local messages = modal_prompts(self.selected.prompts, self.context)
+
+  return require("codecompanion.strategies.chat").new({
+    adapter = config.options.adapters[config.options.strategies.tools],
+    type = self.selected.type,
+    messages = messages,
+    show_buffer = true,
+  })
+end
+
 return Strategy

@@ -1,5 +1,7 @@
 local M = {}
 
+local islist = vim.islist or vim.tbl_islist
+
 ---@param data any
 ---@return string
 M.encode = function(data)
@@ -22,7 +24,7 @@ M.encode = function(data)
     end
   elseif dt == "table" then
     local lines = {}
-    if vim.tbl_islist(data) then
+    if islist(data) then
       if vim.tbl_isempty(data) then
         return "[]"
       else

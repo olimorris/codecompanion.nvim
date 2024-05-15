@@ -42,8 +42,7 @@ M.static.actions = {
   {
     name = "Chat",
     strategy = "chat",
-    description = "Open/restore a chat buffer to converse with "
-      .. config.options.strategies.chat:gsub("^%l", string.upper),
+    description = "Open/restore a chat buffer to converse with an LLM",
     type = nil,
     prompts = {
       n = function()
@@ -291,7 +290,59 @@ M.static.actions = {
     },
   },
   {
-    name = "Agentic Workflows...",
+    name = "Tools ...",
+    strategy = "tools",
+    description = "Use the built-in tools to help you code",
+    condition = function()
+      local tools = config.options.tools
+      local i = 0
+      for _, tool in pairs(tools) do
+        if tool.enabled then
+          i = i + 1
+        end
+      end
+      return i > 0
+    end,
+    picker = {
+      prompt = "Chat with a tool",
+      items = function()
+        local tools = {}
+
+        for id, tool in pairs(config.options.tools) do
+          if tool.enabled then
+            table.insert(tools, {
+              name = tool.name,
+              strategy = "tools",
+              description = tool.description or nil,
+              prompts = {
+                {
+                  role = "system",
+                  content = function()
+                    local t
+                    if tool.location then
+                      t = require(tool.location .. "." .. id)
+                    else
+                      t = require("codecompanion.tools." .. id)
+                    end
+
+                    return t.prompt(t.schema)
+                  end,
+                },
+                {
+                  role = "user",
+                  content = "\n \n",
+                },
+              },
+            })
+          end
+        end
+
+        return tools
+      end,
+    },
+  },
+  {
+    name = "Agentic Workflows ...",
     strategy = "chat",
     description = "Workflows to improve the performance of your LLM",
     picker = {
@@ -401,9 +452,7 @@ M.static.actions = {
   {
     name = "Inline code ...",
     strategy = "inline",
-    description = "Get "
-      .. config.options.strategies.inline:gsub("^%l", string.upper)
-      .. " to write/refactor code for you",
+    description = "Get an LLM to write/refactor code for you",
     picker = {
       prompt = "Select an inline code action",
       items = {
