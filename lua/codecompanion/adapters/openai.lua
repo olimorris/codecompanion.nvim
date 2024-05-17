@@ -14,6 +14,7 @@ end
 
 ---@class CodeCompanion.Adapter
 ---@field name string
+---@field features table
 ---@field url string
 ---@field raw? table
 ---@field headers table
@@ -27,6 +28,10 @@ end
 ---@field schema table
 return {
   name = "OpenAI",
+  features = {
+    text = true,
+    vision = true,
+  },
   url = "https://api.openai.com/v1/chat/completions",
   env = {
     api_key = "OPENAI_API_KEY",

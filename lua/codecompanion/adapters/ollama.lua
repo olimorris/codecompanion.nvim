@@ -19,14 +19,24 @@ end
 
 ---@class CodeCompanion.Adapter
 ---@field name string
+---@field features table
 ---@field url string
 ---@field raw? table
 ---@field headers table
 ---@field parameters table
 ---@field callbacks table
+---@field callbacks.form_parameters fun()
+---@field callbacks.form_messages fun()
+---@field callbacks.is_complete fun()
+---@field callbacks.chat_output fun()
+---@field callbacks.inline_output fun()
 ---@field schema table
 return {
   name = "Ollama",
+  features = {
+    text = true,
+    vision = false,
+  },
   url = "http://localhost:11434/api/chat",
   callbacks = {
     ---Set the parameters

@@ -2,7 +2,7 @@ local log = require("codecompanion.utils.log")
 
 ---Get the indexes of all of the system prompts in the chat buffer
 ---@param messages table
----@return table
+---@return table|nil
 local function get_system_prompts(messages)
   local prompts = {}
   for i = 1, #messages do
@@ -65,14 +65,24 @@ end
 
 ---@class CodeCompanion.Adapter
 ---@field name string
+---@field features table
 ---@field url string
 ---@field raw? table
 ---@field headers table
 ---@field parameters table
 ---@field callbacks table
+---@field callbacks.form_parameters fun()
+---@field callbacks.form_messages fun()
+---@field callbacks.is_complete fun()
+---@field callbacks.chat_output fun()
+---@field callbacks.inline_output fun()
 ---@field schema table
 return {
   name = "Anthropic",
+  features = {
+    text = true,
+    vision = true,
+  },
   url = "https://api.anthropic.com/v1/messages",
   env = {
     api_key = "ANTHROPIC_API_KEY",
