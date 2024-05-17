@@ -104,6 +104,7 @@ require("codecompanion").setup({
   strategies = {
     chat = "openai",
     inline = "openai",
+    tools = "openai",
   },
   tools = {
     ["code_runner"] = {
@@ -147,12 +148,13 @@ require("codecompanion").setup({
     },
   },
   keymaps = {
-    ["<C-s>"] = "keymaps.save", -- Save the chat buffer and trigger the API
+    ["<C-s>"] = "keymaps.save", -- Save the chat buffer and trigger the LLM
     ["<C-c>"] = "keymaps.close", -- Close the chat buffer
     ["q"] = "keymaps.cancel_request", -- Cancel the currently streaming request
     ["gc"] = "keymaps.clear", -- Clear the contents of the chat
     ["ga"] = "keymaps.codeblock", -- Insert a codeblock into the chat
     ["gs"] = "keymaps.save_chat", -- Save the current chat
+    ["gt"] = "keymaps.add_tool", -- Add a tool to the current chat buffer
     ["]"] = "keymaps.next", -- Move to the next header in the chat
     ["["] = "keymaps.previous", -- Move to the previous header in the chat
   },
@@ -304,7 +306,7 @@ vim.cmd([[cab cc CodeCompanion]])
 ```
 
 > [!NOTE]
-> For some actions, visual mode allows your selection to be sent directly to the chat buffer or the API itself (in the case of _inline code_ actions).
+> For some actions, visual mode allows your selection to be sent directly to the chat buffer or the LLM (in the case of _inline code_ actions).
 
 ### The Action Palette
 
@@ -316,9 +318,6 @@ vim.cmd([[cab cc CodeCompanion]])
 > Please see the [RECIPES](RECIPES.md) guide in order to add your own actions to the palette.
 
 The Action Palette, opened via `:CodeCompanionActions`, contains all of the actions and their associated strategies for the plugin. It's the fastest way to start leveraging CodeCompanion. Depending on whether you're in _normal_ or _visual_ mode will affect the options that are available to you in the palette.
-
-> [!TIP]
-> If you wish to turn off the default actions, set `use_default_actions = false` in your config.
 
 ### The Chat Buffer
 
@@ -334,7 +333,7 @@ When in the chat buffer, there are number of keymaps available to you:
 
 - `<C-s>` - Save the buffer and trigger a response from the LLM
 - `<C-c>` - Close the buffer
-- `q` - Cancel the stream from the API
+- `q` - Cancel the stream from the LLM
 - `gc` - Clear the buffer's contents
 - `ga` - Add a codeblock
 - `gs` - Save the chat to disk
@@ -371,9 +370,9 @@ You can use the plugin to create inline code directly into a Neovim buffer. This
 ```
 
 > [!NOTE]
-> The command can detect if you've made a visual selection and send any code as context to the API alongside the filetype of the buffer.
+> The command can detect if you've made a visual selection and send any code as context to the LLM alongside the filetype of the buffer.
 
-One of the challenges with inline editing is determining how the generative AI's response should be handled in the buffer. If you've prompted the API to _"create a table of 5 fruits"_ then you may wish for the response to be placed after the cursor's current position in the buffer. However, if you asked the API to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. If this placement isn't specified then the plugin will use generative AI itself to determine if the response should follow any of the placements below:
+One of the challenges with inline editing is determining how the generative AI's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 fruits"_ then you may wish for the response to be placed after the cursor's current position in the buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. If this placement isn't specified then the plugin will use generative AI itself to determine if the response should follow any of the placements below:
 
 - _after_ - after the visual selection
 - _before_ - before the visual selection
@@ -418,17 +417,14 @@ Of course you can add new workflows by following the [RECIPES](RECIPES.md) guide
 
 ### Other Actions
 
+> [!NOTE]
+> These actions are only available in visual mode
+
 #### Code Advisor
 
-> [!NOTE]
-> This option is only available in visual mode
-
-As the name suggests, this action provides advice on a visual selection of code and utilises the `chat` strategy. The response from the API is streamed into a chat buffer which follows the `display.chat` settings in your configuration.
+As the name suggests, this action provides advice on a visual selection of code and utilises the `chat` strategy. The response from the LLM is streamed into a chat buffer which follows the `display.chat` settings in your configuration.
 
 #### LSP Assistant
-
-> [!NOTE]
-> This option is only available in visual mode
 
 Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice on how to correct any LSP diagnostics which are present on the visually selected lines. Again, the `send_code = false` value can be set in your config to prevent the code itself being sent to the LLM.
 
@@ -461,12 +457,9 @@ vim.api.nvim_create_autocmd({ "User" }, {
 })
 ```
 
-> [!TIP]
-> A possible use case is for formatting the buffer after an inline code request
-
 ### Statuslines
 
-You can incorporate a visual indication to show when the plugin is communicating with an LLM in your Neovim configuration.
+You can incorporate a visual indication to show when the plugin is communicating with an LLM in your Neovim configuration. Below are examples for two popular statusline plugins.
 
 #### lualine.nvim
 
@@ -547,7 +540,7 @@ local CodeCompanion = {
 
 ## :gift: Contributing
 
-I am open to contributions but they will be implemented at my discretion. Feel free to open up a discussion before embarking on a big PR.
+I am open to contributions but they will be implemented at my discretion. Feel free to open up a discussion before embarking on a big PR and please make sure you've read the [CONTRIBUTING.md](CONTRIBUTING.md) guide.
 
 ## :clap: Acknowledgements
 
