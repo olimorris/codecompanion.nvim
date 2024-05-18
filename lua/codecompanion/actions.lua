@@ -291,7 +291,7 @@ M.static.actions = {
   },
   {
     name = "Tools ...",
-    strategy = "tools",
+    strategy = "tool",
     description = "Use the built-in tools to help you code",
     condition = function()
       local tools = config.options.tools
@@ -312,7 +312,7 @@ M.static.actions = {
           if tool.enabled then
             table.insert(tools, {
               name = tool.name,
-              strategy = "tools",
+              strategy = "tool",
               description = tool.description or nil,
               prompts = {
                 {

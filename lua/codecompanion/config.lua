@@ -9,7 +9,7 @@ local defaults = {
   strategies = {
     chat = "openai",
     inline = "openai",
-    tools = "openai",
+    tool = "openai",
   },
   tools = {
     ["code_runner"] = {

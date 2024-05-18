@@ -150,7 +150,7 @@ output_error_prompt = function(error)
 end,
 ```
 
-By default, the plugin will *not* automatically send this to the LLM for feedback, in order to avoid an expensive loop. However, this can be enabled by changing `tools.opts.auto_submit = true` in the config.
+By default, the plugin will *not* automatically send this to the LLM for feedback, in order to avoid an expensive loop. However, this can be enabled by changing `tools.opts.auto_submit_errors = true` in the config.
 
 ### Output Prompt
 
