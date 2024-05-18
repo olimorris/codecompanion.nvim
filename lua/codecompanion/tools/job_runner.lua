@@ -63,7 +63,7 @@ local function run_jobs(cmds, index)
 end
 
 function M.run(cmds)
-  -- Reset the status and stdout
+  -- Reset defaults
   status = "success"
   stderr = {}
   stdout = {}

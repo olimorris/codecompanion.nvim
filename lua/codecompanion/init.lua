@@ -192,6 +192,7 @@ end
 M.setup = function(opts)
   api.nvim_set_hl(0, "CodeCompanionTokens", { link = "Comment", default = true })
   api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
+  api.nvim_set_hl(0, "CodeCompanionVirtualTextTools", { link = "CodeCompanionVirtualText", default = true })
 
   config.setup(opts)
 end

@@ -286,8 +286,9 @@ The author recommends pairing with [edgy.nvim](https://github.com/folke/edgy.nvi
 
 The plugin sets the following highlight groups during setup:
 
-- `CodeCompanionTokens` - Virtual text showing the token count when in a chat buffer
+- `CodeCompanionTokens` - Virtual text in the chat buffer showing the token count
 - `CodeCompanionVirtualText` - All other virtual text in the chat buffer
+- `CodeCompanionVirtualTextTools` - Virtual text in the chat buffer for when a tool is running
 
 ## :rocket: Usage
 

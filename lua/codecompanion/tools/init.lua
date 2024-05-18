@@ -40,7 +40,7 @@ local function set_autocmds(chat, tool)
     callback = function(request)
       log:trace("Tool finished event: %s", request)
       if request.data.status == "started" then
-        ui.set_virtual_text(chat.bufnr, ns_id, "Tool processing ...")
+        ui.set_virtual_text(chat.bufnr, ns_id, "Tool processing ...", { hl_group = "CodeCompanionVirtualTextTools" })
         return
       end
 
