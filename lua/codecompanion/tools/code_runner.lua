@@ -6,6 +6,7 @@ local log = require("codecompanion.utils.log")
 ---@field prompt fun(schema: string): string
 ---@field env fun(xml: table): table|nil
 ---@field pre_cmd fun(env: table, xml: table): table|nil
+---@field output_error_prompt fun(error: table): string
 ---@field output_prompt fun(output: table): string
 return {
   cmds = {
@@ -61,6 +62,16 @@ return {
       log:error("Failed to write code to temporary file")
       return
     end
+  end,
+  output_error_prompt = function(error)
+    if type(error) == "table" then
+      error = table.concat(error, "\n")
+    end
+    return "After the tool completed, there was an error:"
+      .. "\n\n```\n"
+      .. error
+      .. "\n```\n\n"
+      .. "Can you attempt to fix this?"
   end,
   output_prompt = function(output)
     if type(output) == "table" then

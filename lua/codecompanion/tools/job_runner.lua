@@ -1,8 +1,11 @@
 local Job = require("plenary.job")
+
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
 local M = {}
 
+local stderr = {}
 local stdout = {}
 local status = ""
 
@@ -12,7 +15,10 @@ local function on_start()
   api.nvim_exec_autocmds("User", { pattern = "CodeCompanionTool", data = { status = "started" } })
 end
 local function on_finish()
-  api.nvim_exec_autocmds("User", { pattern = "CodeCompanionTool", data = { status = status, output = stdout } })
+  api.nvim_exec_autocmds(
+    "User",
+    { pattern = "CodeCompanionTool", data = { status = status, error = stderr, output = stdout } }
+  )
 end
 
 local function run_jobs(cmds, index)
@@ -46,9 +52,12 @@ local function run_jobs(cmds, index)
     end,
     on_stderr = function(_, data)
       status = "error"
-      vim.schedule(function()
-        log:error("Error running job: %s", data)
-      end)
+      table.insert(stderr, data)
+      if config.options.tools.opts.mute_errors == false then
+        vim.schedule(function()
+          log:error("Error running job: %s", data)
+        end)
+      end
     end,
   }):start()
 end
@@ -56,6 +65,7 @@ end
 function M.run(cmds)
   -- Reset the status and stdout
   status = "success"
+  stderr = {}
   stdout = {}
 
   on_start()

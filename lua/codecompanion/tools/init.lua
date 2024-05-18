@@ -1,3 +1,4 @@
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils.util")
@@ -43,23 +44,34 @@ local function set_autocmds(chat, tool)
         return
       end
 
-      if request.buf ~= chat.bufnr or request.data.status == "error" then
+      if request.buf ~= chat.bufnr then
         api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
         api.nvim_clear_autocmds({ group = group })
         return
       end
 
-      if request.data.status == "success" then
-        api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
+      api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
 
+      if request.data.status == "error" then
+        chat:add_message({
+          role = "user",
+          content = tool.output_error_prompt(request.data.error),
+        })
+
+        if config.options.tools.opts.auto_submit_errors then
+          chat:submit()
+        end
+      end
+
+      if request.data.status == "success" then
         chat:add_message({
           role = "user",
           content = tool.output_prompt(request.data.output),
         })
         chat:submit()
-
-        api.nvim_clear_autocmds({ group = group })
       end
+
+      api.nvim_clear_autocmds({ group = group })
     end,
   })
 end

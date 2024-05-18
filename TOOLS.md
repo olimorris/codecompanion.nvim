@@ -14,7 +14,8 @@ Let's take a look at the interface of a tool as per the `code_runner.lua` file:
 ---@field env fun(xml: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
 ---@field pre_cmd fun(env: table, xml: table): table|nil Function to call before the cmd table is executed
 ---@field override_cmds fun(cmds: table): table Function to call to override the default cmds table
----@field output_prompt fun(output: table): string The output from the cmd table that is then shared with the LLM
+---@field output_error_prompt fun(error: table): string The prompt to share with the LLM if an error is encountered
+---@field output_prompt fun(output: table): string The prompt to share with the LLM if the cmd is successful
 ```
 
 Hopefully the fields should be self-explanatory but we'll investigate how they're used in the Code Runner tool in the next sections.
@@ -129,6 +130,27 @@ pre_cmd = function(env, xml)
   end
 end
 ```
+
+### Output Error Prompt
+
+There may be instances when the command executes with an error. This can be fed back to the LLM via the `output_error_prompt` function which outputs a string.
+
+For the Code Runner tool, the `output_error_prompt` has been setup as:
+
+```lua
+output_error_prompt = function(error)
+  if type(error) == "table" then
+    error = table.concat(error, "\n")
+  end
+  return "After the tool completed, there was an error:"
+    .. "\n\n```\n"
+    .. error
+    .. "\n```\n\n"
+    .. "Can you attempt to fix this?"
+end,
+```
+
+By default, the plugin will *not* automatically send this to the LLM for feedback, in order to avoid an expensive loop. However, this can be enabled by changing `tools.opts.auto_submit = true` in the config.
 
 ### Output Prompt
 
