@@ -401,14 +401,14 @@ In this plugin, tools are simply context that's given to an LLM via a `system` p
 
 More information on how tools work and how you can create your own can be found in the [TOOLS](TOOLS.md) guide.
 
-### Agentic Workflows
+### Workflows
 
 > [!WARNING]
-> Agentic workflows may result in the significant consumption of tokens if you're using an external LLM.
+> Workflows may result in the significant consumption of tokens if you're using an external LLM.
 
-As [outlined](https://www.deeplearning.ai/the-batch/issue-242/) by Andrew Ng, agentic workflows have the ability to dramatically improve the output of an LLM. Infact, it's possible for older models like GPT 3.5 to outperform newer models with traditional zero-shot inference. Andrew [discussed](https://www.youtube.com/watch?v=sal78ACtGTc&t=249s) how an agentic workflow can be utilised via multiple prompts that invoke the LLM to self reflect. Implementing Andrew's advice, the plugin supports this notion via the use of workflows. At various stages of a pre-defined workflow, the plugin will automatically prompt the LLM without any input or triggering required from the user.
+As [outlined](https://www.deeplearning.ai/the-batch/issue-242/) by Andrew Ng, agentic workflows have the ability to dramatically improve the output of an LLM. Infact, it's possible for older models like GPT 3.5 to outperform newer models (using traditional zero-shot inference). Andrew [discussed](https://www.youtube.com/watch?v=sal78ACtGTc&t=249s) how an agentic workflow can be utilised via multiple prompts that invoke the LLM to self reflect. Implementing Andrew's advice, the plugin supports this notion via the use of workflows. At various stages of a pre-defined workflow, the plugin will automatically prompt the LLM without any input or triggering required from the user.
 
-Currently, the plugin only supports _"reflection"_ (multiple prompts within the same application) and comes with the following workflows:
+Currently, the plugin comes with the following workflows:
 
 - Adding a new feature
 - Refactoring code

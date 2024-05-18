@@ -1,21 +1,21 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
----@class CodeCompanion.Agent
-local Agent = {}
+---@class CodeCompanion.Workflow
+local Workflow = {}
 
----@class CodeCompanion.AgentArgs
+---@class CodeCompanion.WorkflowArgs
 ---@field context table
 ---@field strategy string
 
 ---@param args table
----@return CodeCompanion.Agent
-function Agent.new(args)
-  return setmetatable(args, { __index = Agent })
+---@return CodeCompanion.Workflow
+function Workflow.new(args)
+  return setmetatable(args, { __index = Workflow })
 end
 
 ---@param prompts table
-function Agent:workflow(prompts)
+function Workflow:workflow(prompts)
   log:trace("Initiating workflow")
 
   local starting_prompts = {}
@@ -71,7 +71,7 @@ function Agent:workflow(prompts)
     return
   end
 
-  local group = vim.api.nvim_create_augroup("CodeCompanionAgent", {
+  local group = vim.api.nvim_create_augroup("CodeCompanionWorkflow", {
     clear = false,
   })
 
@@ -93,4 +93,4 @@ function Agent:workflow(prompts)
   })
 end
 
-return Agent
+return Workflow
