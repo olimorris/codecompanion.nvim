@@ -176,21 +176,22 @@ require("codecompanion").setup({
 > [!WARNING]
 > Depending on your [chosen adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters), you may need to set an API key.
 
-The plugin uses adapters to bridge between LLMs and the plugin (notably strategies). Currently the plugin supports:
+The plugin uses adapters to bridge between LLMs and the plugin. Currently the plugin supports:
 
 - Anthropic (`anthropic`) - Requires an API key
 - Ollama (`ollama`)
 - OpenAI (`openai`) - Requires an API key
 
-Strategies are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
+Strategies are the different ways that a user can interact with the plugin. The _chat_ and _tool_ strategies harness a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
 
-To specify a different adapter to the defaults, you can map an adapter to a strategy:
+To specify a different adapter to the defaults, simply change the `strategies.*` table:
 
 ```lua
 require("codecompanion").setup({
   strategies = {
     chat = "ollama",
-    inline = "ollama"
+    inline = "ollama",
+    tool = "anthropic"
   },
 })
 ```
@@ -213,7 +214,8 @@ require("codecompanion").setup({
   },
   strategies = {
     chat = "anthropic",
-    inline = "anthropic"
+    inline = "anthropic",
+    tool = "anthropic"
   },
 })
 ```
@@ -230,7 +232,8 @@ require("codecompanion").setup({
     }),
     strategies = {
       chat = "openai",
-      inline = "anthropic"
+      inline = "anthropic",
+      tool = "openai"
     },
   },
 })
