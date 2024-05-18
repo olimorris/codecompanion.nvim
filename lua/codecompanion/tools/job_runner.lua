@@ -53,7 +53,11 @@ local function run_jobs(cmds, index)
     on_stderr = function(_, data)
       status = "error"
       table.insert(stderr, data)
-      if config.options.tools.opts.mute_errors == false then
+      if config.options.tools.opts.mute_errors then
+        vim.schedule(function()
+          log:debug("Error running job: %s", data)
+        end)
+      else
         vim.schedule(function()
           log:error("Error running job: %s", data)
         end)
