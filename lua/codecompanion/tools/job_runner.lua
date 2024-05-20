@@ -33,11 +33,15 @@ local function run_jobs(cmds, index)
   Job:new({
     command = cmd[1],
     args = { unpack(cmd, 2) }, -- args start from index 2
-    on_exit = function(_, _)
+    on_exit = function(_, exit_code)
       run_jobs(cmds, index + 1)
 
       vim.schedule(function()
         if index == #cmds then
+          if exit_code ~= 0 then
+            status = "error"
+            log:error("Job failed with exit code: %d", exit_code)
+          end
           return on_finish()
         end
       end)
@@ -51,17 +55,7 @@ local function run_jobs(cmds, index)
       end)
     end,
     on_stderr = function(_, data)
-      status = "error"
       table.insert(stderr, data)
-      if config.options.tools.opts.mute_errors then
-        vim.schedule(function()
-          log:debug("Error running job: %s", data)
-        end)
-      else
-        vim.schedule(function()
-          log:error("Error running job: %s", data)
-        end)
-      end
     end,
   }):start()
 end

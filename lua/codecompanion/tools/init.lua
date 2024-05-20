@@ -64,9 +64,18 @@ local function set_autocmds(chat, tool)
       end
 
       if request.data.status == "success" then
+        local output
+        -- Sometimes, the output from a command will get sent to stderr instead
+        -- of stdout. We can do a check and redirect the output accordingly
+        if #request.data.output > 0 then
+          output = request.data.output
+        else
+          output = request.data.error
+        end
         chat:add_message({
+
           role = "user",
-          content = tool.output_prompt(request.data.output),
+          content = tool.output_prompt(output),
         })
         chat:submit()
       end
@@ -82,7 +91,12 @@ end
 ---@return nil
 function M.run(chat, ts)
   -- Parse the XML
-  local xml = parse_xml(ts)
+  local ok, xml = pcall(parse_xml, ts)
+
+  if not ok then
+    log:error("Failed to parse the XML: %s", xml)
+    return
+  end
 
   -- Load the tool
   local ok, tool = pcall(require, "codecompanion.tools." .. xml.name)
