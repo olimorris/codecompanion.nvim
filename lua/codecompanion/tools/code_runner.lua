@@ -24,13 +24,11 @@ return {
     },
   },
   schema = {
-    tool = {
-      name = "code_runner",
-      parameters = {
-        inputs = {
-          lang = "python",
-          code = "print('Hello World')",
-        },
+    name = "code_runner",
+    parameters = {
+      inputs = {
+        lang = "python",
+        code = "print('Hello World')",
       },
     },
   },
