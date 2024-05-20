@@ -1,6 +1,5 @@
 local Job = require("plenary.job")
 
-local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
 local M = {}
@@ -11,17 +10,17 @@ local status = ""
 
 local api = vim.api
 
-local function on_start()
-  api.nvim_exec_autocmds("User", { pattern = "CodeCompanionTool", data = { status = "started" } })
+local function on_start(bufnr)
+  api.nvim_exec_autocmds("User", { pattern = "CodeCompanionTool", data = { bufnr = bufnr, status = "started" } })
 end
-local function on_finish()
+local function on_finish(bufnr)
   api.nvim_exec_autocmds(
     "User",
-    { pattern = "CodeCompanionTool", data = { status = status, error = stderr, output = stdout } }
+    { pattern = "CodeCompanionTool", data = { bufnr = bufnr, status = status, error = stderr, output = stdout } }
   )
 end
 
-local function run_jobs(cmds, index)
+local function run_jobs(cmds, bufnr, index)
   if index > #cmds then
     return
   end
@@ -34,15 +33,15 @@ local function run_jobs(cmds, index)
     command = cmd[1],
     args = { unpack(cmd, 2) }, -- args start from index 2
     on_exit = function(_, exit_code)
-      run_jobs(cmds, index + 1)
+      run_jobs(cmds, bufnr, index + 1)
 
       vim.schedule(function()
         if index == #cmds then
           if exit_code ~= 0 then
             status = "error"
-            log:error("Job failed with exit code: %d", exit_code)
+            log:error("Command failed: %s", stderr)
           end
-          return on_finish()
+          return on_finish(bufnr)
         end
       end)
     end,
@@ -60,14 +59,14 @@ local function run_jobs(cmds, index)
   }):start()
 end
 
-function M.run(cmds)
+function M.run(cmds, bufnr)
   -- Reset defaults
   status = "success"
   stderr = {}
   stdout = {}
 
-  on_start()
-  return run_jobs(cmds, 1)
+  on_start(bufnr)
+  return run_jobs(cmds, bufnr, 1)
 end
 
 return M

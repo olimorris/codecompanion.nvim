@@ -38,15 +38,13 @@ local function set_autocmds(chat, tool)
     group = group,
     pattern = "CodeCompanionTool",
     callback = function(request)
-      log:trace("Tool finished event: %s", request)
-      if request.data.status == "started" then
-        ui.set_virtual_text(chat.bufnr, ns_id, "Tool processing ...", { hl_group = "CodeCompanionVirtualTextTools" })
+      if request.data.bufnr ~= chat.bufnr then
         return
       end
 
-      if request.buf ~= chat.bufnr then
-        api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
-        api.nvim_clear_autocmds({ group = group })
+      log:trace("Tool finished event: %s", request)
+      if request.data.status == "started" then
+        ui.set_virtual_text(chat.bufnr, ns_id, "Tool processing ...", { hl_group = "CodeCompanionVirtualTextTools" })
         return
       end
 
@@ -73,7 +71,6 @@ local function set_autocmds(chat, tool)
           output = request.data.error
         end
         chat:add_message({
-
           role = "user",
           content = tool.output_prompt(output),
         })
@@ -130,7 +127,7 @@ function M.run(chat, ts)
 
   -- Run the tool's cmds
   log:debug("Running cmd: %s", cmds)
-  return require("codecompanion.tools.job_runner").run(cmds)
+  return require("codecompanion.tools.job_runner").run(cmds, chat.bufnr)
 end
 
 return M
