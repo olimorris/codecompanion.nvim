@@ -24,20 +24,20 @@ Hopefully the fields should be self-explanatory but we'll investigate how they'r
 
 The schema represents the structure of the response that the LLM must follow in order to enable the tool to be called.
 
-In the Code Runner tool, the schema is defined with XML and a number of inputs:
+In the Code Runner tool, the schema is defined as a Lua table and then converted into XML in the chat buffer:
 
-```xml
-<tool>
-  <name>code_runner</name>
-  <parameters>
-    <inputs>
-      <!-- Choose the language to run. Use Python by default -->
-      <lang>python</lang>
-      <!-- Anything within the code tag will be executed. For example: -->
-      <code>print("Hello World")</code>
-    </inputs>
-  </parameters>
-</tool>
+```lua
+schema = {
+  tool = {
+    name = "code_runner",
+    parameters = {
+      inputs = {
+        lang = "python",
+        code = "print('Hello World')",
+      },
+    },
+  },
+},
 ```
 
 If the LLM outputs a markdown XML block as per the schema, the plugin will parse it and duly execute the code.
