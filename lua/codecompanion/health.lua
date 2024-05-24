@@ -35,7 +35,13 @@ M.plugins = {
 }
 
 M.libraries = {
-  "curl",
+  {
+    name = "curl",
+  },
+  {
+    name = "base64",
+    optional = true,
+  },
 }
 
 M.adapters = {
@@ -86,10 +92,14 @@ function M.check()
   end
 
   for _, library in ipairs(M.libraries) do
-    if lib_available(library) then
-      ok(fmt("%s installed", library))
+    if lib_available(library.name) then
+      ok(fmt("%s installed", library.name))
     else
-      error(fmt("%s not installed", library))
+      if library.optional then
+        warn(fmt("%s not found", library.name))
+      else
+        error(fmt("%s not found", library.name))
+      end
     end
   end
 
