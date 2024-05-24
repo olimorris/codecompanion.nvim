@@ -67,6 +67,10 @@ M.chat = function(args)
     adapter = adapter,
   })
 
+  if not chat then
+    return vim.notify("[CodeCompanion.nvim]\nNo chat strategy found", vim.log.levels.WARN)
+  end
+
   api.nvim_win_set_buf(0, chat.bufnr)
   ui.scroll_to_end(0)
 end

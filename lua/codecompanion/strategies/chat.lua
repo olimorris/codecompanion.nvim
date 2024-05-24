@@ -506,8 +506,8 @@ function Chat.new(args)
   ui.set_buf_options(bufnr, config.options.display.chat.buf_options)
 
   local adapter = args.adapter or config.options.adapters[config.options.strategies.chat]
-  if adapter == nil then
-    vim.notify("No adapter found", vim.log.levels.ERROR)
+  if not adapter or not adapter.schema then
+    vim.notify("[CodeCompanion.nvim]\nNo adapter found", vim.log.levels.ERROR)
     return
   end
 
@@ -618,7 +618,7 @@ function Chat:submit()
 end
 
 ---@param opts nil|table
----@return nil|string Table
+---@return nil|string,table
 function Chat:_get_settings_key(opts)
   opts = vim.tbl_extend("force", opts or {}, {
     ignore_injections = false,
@@ -628,7 +628,7 @@ function Chat:_get_settings_key(opts)
     node = node:parent()
   end
   if not node then
-    return
+    return nil, {}
   end
   local key_node = node:named_child(0)
   local key_name = vim.treesitter.get_node_text(key_node, self.bufnr)
