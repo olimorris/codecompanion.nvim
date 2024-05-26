@@ -146,6 +146,11 @@ return {
           return
         end
 
+        --- Some third-party OpenAI forwarding services may have a return package with an empty json.choices.
+        if #json.choices == 0 then
+          return
+        end
+
         local content = json.choices[1].delta.content
         if content then
           return content
