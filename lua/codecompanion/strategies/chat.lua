@@ -416,7 +416,7 @@ local function chat_autocmds(bufnr, adapter)
     group = aug,
     pattern = "CodeCompanionChat",
     callback = function(request)
-      if request.data.buf ~= bufnr or request.data.action ~= "hide_buffer" then
+      if request.data.bufnr ~= bufnr or request.data.action ~= "hide_buffer" then
         return
       end
 
@@ -445,7 +445,7 @@ local function chat_autocmds(bufnr, adapter)
     group = aug,
     pattern = "CodeCompanionChat",
     callback = function(request)
-      if request.data.buf ~= bufnr or request.data.action ~= "close_buffer" then
+      if request.data.bufnr ~= bufnr or request.data.action ~= "close_buffer" then
         return
       end
 
@@ -455,11 +455,11 @@ local function chat_autocmds(bufnr, adapter)
 
       _G.codecompanion_chats[bufnr] = nil
 
-      if _G.codecompanion_jobs[request.data.buf] then
-        _G.codecompanion_jobs[request.data.buf].handler:shutdown()
+      if _G.codecompanion_jobs[request.data.bufnr] then
+        _G.codecompanion_jobs[request.data.bufnr].handler:shutdown()
       end
       api.nvim_exec_autocmds("User", { pattern = "CodeCompanionRequest", data = { status = "finished" } })
-      api.nvim_buf_delete(request.data.buf, { force = true })
+      api.nvim_buf_delete(request.data.bufnr, { force = true })
     end,
   })
 end
@@ -608,7 +608,7 @@ function Chat:submit()
       elseif result and result.status == "error" then
         vim.api.nvim_exec_autocmds(
           "User",
-          { pattern = "CodeCompanionRequest", data = { buf = self.bufnr, action = "cancel_request" } }
+          { pattern = "CodeCompanionRequest", data = { bufnr = self.bufnr, action = "cancel_request" } }
         )
         vim.notify("Error: " .. result.output, vim.log.levels.ERROR)
         return finalize()

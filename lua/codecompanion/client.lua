@@ -86,11 +86,11 @@ function Client:stream(adapter, payload, bufnr, cb)
     desc = "Stop the current request",
     pattern = "CodeCompanionRequest",
     callback = function(request)
-      if request.data.buf ~= bufnr or request.data.action ~= "cancel_request" then
+      if request.data.bufnr ~= bufnr or request.data.action ~= "cancel_request" then
         return
       end
 
-      return stop_request(request.data.buf, { shutdown = true })
+      return stop_request(request.data.bufnr, { shutdown = true })
     end,
   })
 

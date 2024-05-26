@@ -28,7 +28,7 @@ M.cancel_request = {
     end
     vim.api.nvim_exec_autocmds(
       "User",
-      { pattern = "CodeCompanionRequest", data = { buf = args.bufnr, action = "cancel_request" } }
+      { pattern = "CodeCompanionRequest", data = { bufnr = args.bufnr, action = "cancel_request" } }
     )
   end,
 }

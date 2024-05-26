@@ -184,7 +184,7 @@ local function get_inline_output(inline, placement, prompt, output)
       log:trace("Cancelling the inline request")
       vim.api.nvim_exec_autocmds(
         "User",
-        { pattern = "CodeCompanionRequest", data = { buf = inline.context.bufnr, action = "cancel_request" } }
+        { pattern = "CodeCompanionRequest", data = { bufnr = inline.context.bufnr, action = "cancel_request" } }
       )
     end,
   })
