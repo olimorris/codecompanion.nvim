@@ -215,7 +215,7 @@ end
 
 ---@param chat CodeCompanion.Chat
 ---@return CodeCompanion.Tool|nil
-local function run_tools(chat)
+local function parse_tools(chat)
   -- Parse the buffer and retrieve the assistant's response
   local assistant_parser = vim.treesitter.get_parser(chat.bufnr, "markdown")
   local assistant_query = vim.treesitter.query.parse(
@@ -596,7 +596,7 @@ function Chat:submit()
       render_new_messages(self.bufnr, { role = "user", content = "" })
       display_tokens(self.bufnr)
       finalize()
-      run_tools(self)
+      parse_tools(self)
       return api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { status = "finished" } })
     end
 
