@@ -127,7 +127,7 @@ function M.run(chat, ts)
 
   -- Run the tool's cmds
   log:debug("Running cmd: %s", cmds)
-  return require("codecompanion.tools.job_runner").run(cmds, chat.bufnr)
+  return require("codecompanion.tools.job_runner").init(cmds, chat.bufnr)
 end
 
 return M
