@@ -482,6 +482,7 @@ local Chat = {}
 ---@field settings nil|table
 ---@field type nil|string
 ---@field saved_chat nil|string
+---@field status nil|string
 
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)
@@ -520,6 +521,7 @@ function Chat.new(args)
     saved_chat = args.saved_chat,
     settings = settings,
     type = args.type,
+    status = "",
   }, { __index = Chat })
 
   chatmap[bufnr] = self
@@ -563,6 +565,9 @@ function Chat:submit()
     return
   end
 
+  -- Reset the status
+  self.status = ""
+
   local settings, messages = parse_settings(self.bufnr, self.adapter), parse_messages(self.bufnr)
 
   if not messages or #messages == 0 then
@@ -596,7 +601,9 @@ function Chat:submit()
       render_new_messages(self.bufnr, { role = "user", content = "" })
       display_tokens(self.bufnr)
       finalize()
-      parse_tools(self)
+      if self.status ~= "error" then
+        parse_tools(self)
+      end
       return api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { status = "finished" } })
     end
 
@@ -606,7 +613,8 @@ function Chat:submit()
       if result and result.status == "success" then
         render_new_messages(self.bufnr, result.output)
       elseif result and result.status == "error" then
-        vim.api.nvim_exec_autocmds(
+        self.status = "error"
+        api.nvim_exec_autocmds(
           "User",
           { pattern = "CodeCompanionRequest", data = { bufnr = self.bufnr, action = "cancel_request" } }
         )
