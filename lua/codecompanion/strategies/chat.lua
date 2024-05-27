@@ -38,20 +38,20 @@ local tool_query = [[
 )
 ]]
 
-local config_settings = {}
+local cached_settings = {}
 ---@param bufnr integer
 ---@param adapter CodeCompanion.Adapter
 ---@return table
 local function parse_settings(bufnr, adapter)
-  if config_settings[bufnr] then
-    return config_settings[bufnr]
+  if cached_settings[bufnr] then
+    return cached_settings[bufnr]
   end
 
   if not config.options.display.chat.show_settings then
-    config_settings[bufnr] = adapter:get_default_settings()
+    cached_settings[bufnr] = adapter:get_default_settings()
 
-    log:debug("Using the settings from the user's config: %s", config_settings[bufnr])
-    return config_settings[bufnr]
+    log:debug("Using the settings from the user's config: %s", cached_settings[bufnr])
+    return cached_settings[bufnr]
   end
 
   local settings = {}
@@ -118,7 +118,6 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return CodeCompanion.Tool|nil
 local function parse_tools(chat)
-  -- Parse the buffer and retrieve the assistant's response
   local assistant_parser = vim.treesitter.get_parser(chat.bufnr, "markdown")
   local assistant_query = vim.treesitter.query.parse(
     "markdown",
@@ -144,7 +143,6 @@ local function parse_tools(chat)
 
   local response = assistant_response[#assistant_response]
 
-  -- Now parse the assistant's response for any tools
   local parser = vim.treesitter.get_string_parser(response, "markdown")
   local tree = parser:parse()[1]
   local query = vim.treesitter.query.parse("markdown", tool_query)
@@ -183,10 +181,12 @@ local function set_autocmds(chat)
     clear = false,
   })
 
+  local bufnr = chat.bufnr
+
   -- Submit the chat
   api.nvim_create_autocmd("BufWriteCmd", {
     group = aug,
-    buffer = chat.bufnr,
+    buffer = bufnr,
     callback = function()
       if not chat then
         vim.notify("[CodeCompanion.nvim]\nChat session has been deleted", vim.log.levels.ERROR)
@@ -201,10 +201,10 @@ local function set_autocmds(chat)
     local insertenter_autocmd
     insertenter_autocmd = api.nvim_create_autocmd("InsertEnter", {
       group = aug,
-      buffer = chat.bufnr,
+      buffer = bufnr,
       callback = function()
         local ns_id = api.nvim_create_namespace("CodeCompanionChatVirtualText")
-        api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
+        api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
 
         api.nvim_del_autocmd(insertenter_autocmd)
       end,
@@ -217,15 +217,15 @@ local function set_autocmds(chat)
     group = aug,
     pattern = "CodeCompanionChat",
     callback = function(request)
-      if request.data.bufnr ~= chat.bufnr or request.data.action ~= "hide_buffer" then
+      if request.data.bufnr ~= bufnr or request.data.action ~= "hide_buffer" then
         return
       end
 
-      _G.codecompanion_last_chat_buffer = chat.bufnr
+      _G.codecompanion_last_chat_buffer = bufnr
 
-      if _G.codecompanion_chats[chat.bufnr] == nil then
+      if _G.codecompanion_chats[bufnr] == nil then
         local description
-        local messages = parse_messages(chat.bufnr)
+        local messages = parse_messages(bufnr)
 
         if messages[1] and messages[1].content then
           description = messages[1].content
@@ -233,7 +233,7 @@ local function set_autocmds(chat)
           description = "[No messages]"
         end
 
-        _G.codecompanion_chats[chat.bufnr] = {
+        _G.codecompanion_chats[bufnr] = {
           name = "Chat " .. utils.count(_G.codecompanion_chats) + 1,
           description = description,
         }
@@ -246,15 +246,15 @@ local function set_autocmds(chat)
     group = aug,
     pattern = "CodeCompanionChat",
     callback = function(request)
-      if request.data.bufnr ~= chat.bufnr or request.data.action ~= "close_buffer" then
+      if request.data.bufnr ~= bufnr or request.data.action ~= "close_buffer" then
         return
       end
 
-      if _G.codecompanion_last_chat_buffer == chat.bufnr then
+      if _G.codecompanion_last_chat_buffer == bufnr then
         _G.codecompanion_last_chat_buffer = nil
       end
 
-      _G.codecompanion_chats[chat.bufnr] = nil
+      _G.codecompanion_chats[bufnr] = nil
 
       if _G.codecompanion_jobs[request.data.bufnr] then
         _G.codecompanion_jobs[request.data.bufnr].handler:shutdown()
