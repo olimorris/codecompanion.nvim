@@ -28,7 +28,13 @@ end
 local function stop_request(bufnr, opts)
   if bufnr then
     if opts and opts.shutdown then
-      _G.codecompanion_jobs[bufnr].handler:shutdown()
+      if
+        _G.codecompanion_jobs[bufnr]
+        and _G.codecompanion_jobs[bufnr].handler
+        and type(_G.codecompanion_jobs[bufnr].handler.shutdown) == "function"
+      then
+        _G.codecompanion_jobs[bufnr].handler:shutdown()
+      end
     end
     _G.codecompanion_jobs[bufnr] = nil
   end
