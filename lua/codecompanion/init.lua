@@ -76,14 +76,14 @@ M.chat = function(args)
 end
 
 M.toggle = function()
-  local function buf_toggle(buf, action)
+  local function buf_toggle(bufnr, action)
     if action == "show" then
       if config.options.display.chat.type == "float" then
-        ui.open_float(buf, {
+        ui.open_float(bufnr, {
           display = config.options.display.chat.float_options,
         })
       else
-        vim.cmd("buffer " .. buf)
+        vim.cmd("buffer " .. bufnr)
       end
     elseif action == "hide" then
       if config.options.display.chat.type == "float" then
@@ -95,14 +95,14 @@ M.toggle = function()
     end
   end
 
-  local function fire_event(status, buf)
-    return api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { action = status, buf = buf } })
+  local function fire_event(status, bufnr)
+    return api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { action = status, bufnr = bufnr } })
   end
 
   if vim.bo.filetype == "codecompanion" then
-    local buf = api.nvim_get_current_buf()
-    buf_toggle(buf, "hide")
-    fire_event("hide_buffer", buf)
+    local bufnr = api.nvim_get_current_buf()
+    buf_toggle(bufnr, "hide")
+    fire_event("hide_buffer", bufnr)
   elseif _G.codecompanion_last_chat_buffer then
     buf_toggle(_G.codecompanion_last_chat_buffer, "show")
     fire_event("show_buffer")
