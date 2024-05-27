@@ -194,6 +194,7 @@ end
 
 ---@param bufnr number
 ---@param opts table
+---@return number
 function M.open_float(bufnr, opts)
   local total_width = vim.o.columns
   local total_height = M.get_editor_height()

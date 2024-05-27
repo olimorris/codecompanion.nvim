@@ -174,45 +174,20 @@ local display_tokens = function(bufnr)
   end
 end
 
----@type table<integer, CodeCompanion.Chat>
-local chatmap = {}
-
-local cursor_moved_autocmd
-local function watch_cursor()
-  if cursor_moved_autocmd then
-    return
-  end
-  cursor_moved_autocmd = api.nvim_create_autocmd({ "CursorMoved", "BufEnter" }, {
-    desc = "Show line information in a Code Companion buffer",
-    callback = function(args)
-      local chat = chatmap[args.buf]
-      if chat then
-        if api.nvim_win_get_buf(0) == args.buf then
-          chat:on_cursor_moved()
-        end
-      end
-    end,
-  })
-end
-
 _G.codecompanion_chats = {}
-_G.codecompanion_win_opts = {}
+-- _G.codecompanion_win_opts = {}
 
-local registered_cmp = false
-
----@param bufnr number
----@param adapter CodeCompanion.Adapter
-local function chat_autocmds(bufnr, adapter)
-  local aug = api.nvim_create_augroup("CodeCompanion", {
+---@param chat CodeCompanion.Chat
+local function set_autocmds(chat)
+  local aug = api.nvim_create_augroup("CodeCompanion_" .. chat.id, {
     clear = false,
   })
 
   -- Submit the chat
   api.nvim_create_autocmd("BufWriteCmd", {
     group = aug,
-    buffer = bufnr,
+    buffer = chat.bufnr,
     callback = function()
-      local chat = chatmap[bufnr]
       if not chat then
         vim.notify("[CodeCompanion.nvim]\nChat session has been deleted", vim.log.levels.ERROR)
       else
@@ -221,91 +196,15 @@ local function chat_autocmds(bufnr, adapter)
     end,
   })
 
-  if config.options.display.chat.show_settings then
-    -- Virtual text for the settings
-    api.nvim_create_autocmd("InsertLeave", {
-      group = aug,
-      buffer = bufnr,
-      callback = function()
-        local settings = parse_settings(bufnr, adapter)
-        local errors = schema.validate(adapter.schema, settings)
-        local node = settings.__ts_node
-        local items = {}
-        if errors and node then
-          for child in node:iter_children() do
-            assert(child:type() == "block_mapping_pair")
-            local key = vim.treesitter.get_node_text(child:named_child(0), bufnr)
-            if errors[key] then
-              local lnum, col, end_lnum, end_col = child:range()
-              table.insert(items, {
-                lnum = lnum,
-                col = col,
-                end_lnum = end_lnum,
-                end_col = end_col,
-                severity = vim.diagnostic.severity.ERROR,
-                message = errors[key],
-              })
-            end
-          end
-        end
-        vim.diagnostic.set(config.ERROR_NS, bufnr, items)
-      end,
-    })
-  end
-
-  -- Enable cmp and add virtual text to the empty buffer
-  local bufenter_autocmd
-  bufenter_autocmd = api.nvim_create_autocmd("BufEnter", {
-    group = aug,
-    buffer = bufnr,
-    callback = function()
-      if ui.buf_is_empty(bufnr) then
-        local ns_id = api.nvim_create_namespace("CodeCompanionChatVirtualText")
-        ui.set_virtual_text(bufnr, ns_id, config.options.intro_message)
-      end
-
-      local has_cmp, cmp = pcall(require, "cmp")
-      if has_cmp then
-        if not registered_cmp then
-          require("cmp").register_source("codecompanion", require("cmp_codecompanion").new())
-          registered_cmp = true
-        end
-        cmp.setup.buffer({
-          enabled = true,
-          sources = {
-            { name = "codecompanion" },
-          },
-        })
-      end
-
-      api.nvim_del_autocmd(bufenter_autocmd)
-    end,
-  })
-
-  api.nvim_create_autocmd("BufEnter", {
-    group = aug,
-    buffer = bufnr,
-    callback = function()
-      ui.set_win_options(api.nvim_get_current_win(), config.options.display.chat.win_options)
-    end,
-  })
-  api.nvim_create_autocmd("BufLeave", {
-    group = aug,
-    buffer = bufnr,
-    callback = function()
-      ui.set_win_options(api.nvim_get_current_win(), _G.codecompanion_win_opts[bufnr])
-    end,
-  })
-
   -- Clear the virtual text when the user starts typing
   if utils.count(_G.codecompanion_chats) == 0 then
     local insertenter_autocmd
     insertenter_autocmd = api.nvim_create_autocmd("InsertEnter", {
       group = aug,
-      buffer = bufnr,
+      buffer = chat.bufnr,
       callback = function()
         local ns_id = api.nvim_create_namespace("CodeCompanionChatVirtualText")
-        api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+        api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
 
         api.nvim_del_autocmd(insertenter_autocmd)
       end,
@@ -318,15 +217,15 @@ local function chat_autocmds(bufnr, adapter)
     group = aug,
     pattern = "CodeCompanionChat",
     callback = function(request)
-      if request.data.bufnr ~= bufnr or request.data.action ~= "hide_buffer" then
+      if request.data.bufnr ~= chat.bufnr or request.data.action ~= "hide_buffer" then
         return
       end
 
-      _G.codecompanion_last_chat_buffer = bufnr
+      _G.codecompanion_last_chat_buffer = chat.bufnr
 
-      if _G.codecompanion_chats[bufnr] == nil then
+      if _G.codecompanion_chats[chat.bufnr] == nil then
         local description
-        local messages = parse_messages(bufnr)
+        local messages = parse_messages(chat.bufnr)
 
         if messages[1] and messages[1].content then
           description = messages[1].content
@@ -334,7 +233,7 @@ local function chat_autocmds(bufnr, adapter)
           description = "[No messages]"
         end
 
-        _G.codecompanion_chats[bufnr] = {
+        _G.codecompanion_chats[chat.bufnr] = {
           name = "Chat " .. utils.count(_G.codecompanion_chats) + 1,
           description = description,
         }
@@ -347,15 +246,15 @@ local function chat_autocmds(bufnr, adapter)
     group = aug,
     pattern = "CodeCompanionChat",
     callback = function(request)
-      if request.data.bufnr ~= bufnr or request.data.action ~= "close_buffer" then
+      if request.data.bufnr ~= chat.bufnr or request.data.action ~= "close_buffer" then
         return
       end
 
-      if _G.codecompanion_last_chat_buffer == bufnr then
+      if _G.codecompanion_last_chat_buffer == chat.bufnr then
         _G.codecompanion_last_chat_buffer = nil
       end
 
-      _G.codecompanion_chats[bufnr] = nil
+      _G.codecompanion_chats[chat.bufnr] = nil
 
       if _G.codecompanion_jobs[request.data.bufnr] then
         _G.codecompanion_jobs[request.data.bufnr].handler:shutdown()
@@ -367,6 +266,7 @@ local function chat_autocmds(bufnr, adapter)
 end
 
 ---@class CodeCompanion.Chat
+---@field id integer
 ---@field adapter CodeCompanion.Adapter
 ---@field bufnr integer
 ---@field context table
@@ -394,14 +294,21 @@ function Chat.new(args)
 
   if config.options.display.chat.type == "float" then
     bufnr = api.nvim_create_buf(false, false)
+    winid = ui.open_float(bufnr, {
+      display = config.options.display.chat.float_options,
+    })
   else
     bufnr = api.nvim_create_buf(true, false)
     winid = api.nvim_get_current_win()
+    if args.show_buffer then
+      api.nvim_set_current_buf(bufnr)
+    end
   end
 
   _G.codecompanion_last_chat_buffer = bufnr
+  local id = math.random(10000000)
 
-  api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", math.random(10000000)))
+  api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
   api.nvim_buf_set_option(bufnr, "buftype", "acwrite")
   api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
   api.nvim_buf_set_option(bufnr, "syntax", "markdown")
@@ -418,6 +325,7 @@ function Chat.new(args)
   local settings = args.settings or schema.get_default(adapter.schema, args.settings)
 
   local self = setmetatable({
+    id = id,
     adapter = adapter,
     bufnr = bufnr,
     context = args.context,
@@ -428,31 +336,17 @@ function Chat.new(args)
     last_role = "user",
   }, { __index = Chat })
 
-  chatmap[bufnr] = self
-
-  watch_cursor()
-  chat_autocmds(bufnr, adapter)
-
   local keys = require("codecompanion.utils.keymaps")
-  keys.set_keymaps(config.options.keymaps, bufnr, self)
 
+  keys.set_keymaps(config.options.keymaps, bufnr, self)
+  set_autocmds(self)
   self:init(args.messages or {})
 
   if args.saved_chat then
     display_tokens(bufnr)
   end
 
-  if config.options.display.chat.type == "float" then
-    winid = ui.open_float(bufnr, {
-      display = config.options.display.chat.float_options,
-    })
-  end
-
-  if config.options.display.chat.type == "buffer" and args.show_buffer then
-    api.nvim_set_current_buf(bufnr)
-  end
-
-  _G.codecompanion_win_opts[bufnr] = ui.get_win_options(winid, config.options.display.chat.win_options)
+  -- _G.codecompanion_win_opts[bufnr] = ui.get_win_options(winid, config.options.display.chat.win_options)
   ui.set_win_options(winid, config.options.display.chat.win_options)
   vim.cmd("setlocal formatoptions-=t")
   ui.buf_scroll_to_end(bufnr)
@@ -518,19 +412,21 @@ function Chat:submit()
     return
   end
 
-  local settings, messages = parse_settings(self.bufnr, self.adapter), parse_messages(self.bufnr)
+  local bufnr = self.bufnr
+
+  local settings, messages = parse_settings(bufnr, self.adapter), parse_messages(bufnr)
 
   if not messages or #messages == 0 or (not messages[#messages].content or messages[#messages].content == "") then
     return
   end
 
-  vim.bo[self.bufnr].modified = false
-  vim.bo[self.bufnr].modifiable = false
+  vim.bo[bufnr].modified = false
+  vim.bo[bufnr].modifiable = false
 
   -- log:trace("----- For Adapter test creation -----\nMessages: %s\n ---------- // END ----------", messages)
   -- log:trace("Settings: %s", settings)
 
-  client.new():stream(self.adapter:set_params(settings), messages, self.bufnr, function(err, data, done)
+  client.new():stream(self.adapter:set_params(settings), messages, bufnr, function(err, data, done)
     if err then
       vim.notify("Error: " .. err, vim.log.levels.ERROR)
       return self:finalize()
@@ -538,7 +434,7 @@ function Chat:submit()
 
     if done then
       self:append({ role = "user", content = "" })
-      display_tokens(self.bufnr)
+      display_tokens(bufnr)
       self:finalize()
       if self.status ~= "error" then
         parse_tools(self)
@@ -555,56 +451,13 @@ function Chat:submit()
         self.status = "error"
         api.nvim_exec_autocmds(
           "User",
-          { pattern = "CodeCompanionRequest", data = { bufnr = self.bufnr, action = "cancel_request" } }
+          { pattern = "CodeCompanionRequest", data = { bufnr = bufnr, action = "cancel_request" } }
         )
         vim.notify("Error: " .. result.output, vim.log.levels.ERROR)
         return self:finalize()
       end
     end
   end)
-end
-
----@param opts nil|table
----@return nil|string,table
-function Chat:_get_settings_key(opts)
-  opts = vim.tbl_extend("force", opts or {}, {
-    ignore_injections = false,
-  })
-  local node = vim.treesitter.get_node(opts)
-  while node and node:type() ~= "block_mapping_pair" do
-    node = node:parent()
-  end
-  if not node then
-    return nil, {}
-  end
-  local key_node = node:named_child(0)
-  local key_name = vim.treesitter.get_node_text(key_node, self.bufnr)
-  return key_name, node
-end
-
-function Chat:on_cursor_moved()
-  local key_name, node = self:_get_settings_key()
-  if not key_name or not node then
-    vim.diagnostic.set(config.INFO_NS, self.bufnr, {})
-    return
-  end
-  local key_schema = self.adapter.schema[key_name]
-
-  if key_schema and key_schema.desc then
-    local lnum, col, end_lnum, end_col = node:range()
-    local diagnostic = {
-      lnum = lnum,
-      col = col,
-      end_lnum = end_lnum,
-      end_col = end_col,
-      severity = vim.diagnostic.severity.INFO,
-
-      message = key_schema.desc,
-    }
-    vim.diagnostic.set(config.INFO_NS, self.bufnr, { diagnostic })
-  else
-    vim.diagnostic.set(config.INFO_NS, self.bufnr, {})
-  end
 end
 
 ---@return integer, integer, integer
@@ -676,37 +529,17 @@ function Chat:add_message(data, opts)
   if opts and opts.notify then
     vim.api.nvim_echo({
       { "[CodeCompanion.nvim]\n", "Normal" },
-      { "The Code Runner tool was added to the chat buffer", "MoreMsg" },
+      { opts.notify, "MoreMsg" },
     }, true, {})
   end
 end
 
-function Chat:complete(request, callback)
-  local items = {}
-  local cursor = api.nvim_win_get_cursor(0)
-  local key_name, node = self:_get_settings_key({ pos = { cursor[1] - 1, 1 } })
-  if not key_name or not node then
-    callback({ items = items, isIncomplete = false })
-    return
-  end
-
-  local key_schema = self.adapter.schema[key_name]
-  if key_schema.type == "enum" then
-    for _, choice in ipairs(key_schema.choices) do
-      table.insert(items, {
-        label = choice,
-        kind = require("cmp").lsp.CompletionItemKind.Keyword,
-      })
-    end
-  end
-
-  callback({ items = items, isIncomplete = false })
-end
-
 function Chat:finalize()
+  local bufnr = self.bufnr
+
   self.status = ""
-  vim.bo[self.bufnr].modified = false
-  vim.bo[self.bufnr].modifiable = true
+  vim.bo[bufnr].modified = false
+  vim.bo[bufnr].modifiable = true
 end
 
 ---@return boolean
@@ -714,23 +547,10 @@ function Chat:active()
   return api.nvim_get_current_buf() == self.bufnr
 end
 
----@param bufnr nil|integer
----@return nil|CodeCompanion.Chat
-function Chat.buf_get_chat(bufnr)
-  if not bufnr or bufnr == 0 then
-    bufnr = api.nvim_get_current_buf()
-  end
-  return chatmap[bufnr]
-end
-
----@param bufnr nil|integer
 ---@return table, table
-function Chat.buf_get_messages(bufnr)
-  if not bufnr or bufnr == 0 then
-    bufnr = api.nvim_get_current_buf()
-  end
-  local adapter = chatmap[bufnr].adapter
-  return parse_settings(bufnr, adapter), parse_messages(bufnr)
+function Chat:get_messages()
+  local bufnr = self.bufnr
+  return parse_settings(bufnr, self.adapter), parse_messages(bufnr)
 end
 
 return Chat

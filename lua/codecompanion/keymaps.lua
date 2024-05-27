@@ -35,13 +35,13 @@ M.cancel_request = {
 
 M.save_chat = {
   desc = "Save the current chat",
-  callback = function(args)
-    local chat = require("codecompanion.strategies.chat")
+  callback = function(chat)
+    -- local chat = require("codecompanion.strategies.chat")
     local saved_chat = require("codecompanion.strategies.saved_chats").new({})
 
-    if args.saved_chat then
-      saved_chat.filename = args.saved_chat
-      saved_chat:save(args.bufnr, chat.buf_get_messages(args.bufnr))
+    if chat.saved_chat then
+      saved_chat.filename = chat.saved_chat
+      saved_chat:save(chat.bufnr, chat:get_messages())
 
       if config.options.silence_notifications then
         return
@@ -55,8 +55,8 @@ M.save_chat = {
         return
       end
       saved_chat.filename = filename
-      saved_chat:save(args.bufnr, chat.buf_get_messages(args.bufnr))
-      args.saved_chat = filename
+      saved_chat:save(chat.bufnr, chat:get_messages())
+      chat.saved_chat = filename
     end)
   end,
 }
@@ -169,7 +169,11 @@ M.add_tool = {
         chat:add_message({
           role = "system",
           content = tool.prompt(tool.schema),
-        }, { insert_at = insert_at, force_role = true, notify = true })
+        }, {
+          insert_at = insert_at,
+          force_role = true,
+          notify = "The Code Runner tool was added to the chat buffer",
+        })
       end,
     })
   end,

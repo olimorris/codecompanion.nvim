@@ -5,12 +5,6 @@ local api = vim.api
 
 local M = {}
 
----@param bufnr nil|integer
----@return nil|CodeCompanion.Chat
-M.buf_get_chat = function(bufnr)
-  return require("codecompanion.strategies.chat").buf_get_chat(bufnr)
-end
-
 ---@param args table
 ---@return nil|CodeCompanion.Inline
 M.inline = function(args)
