@@ -91,7 +91,9 @@ function Client:stream(adapter, payload, cb, after_fn)
       end
     end)
 
-  log:debug("Stream Request: %s", handler.args)
+  if handler and handler.args then
+    log:debug("Stream Request: %s", handler.args)
+  end
   announce("started")
 
   return handler
