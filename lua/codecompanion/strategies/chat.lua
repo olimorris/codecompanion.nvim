@@ -395,6 +395,14 @@ function Chat:submit()
     return
   end
 
+  -- Add the adapter's chat prompt
+  if self.adapter.chat_prompt then
+    table.insert(messages, {
+      role = "system",
+      content = self.adapter.chat_prompt,
+    })
+  end
+
   vim.bo[bufnr].modified = false
   vim.bo[bufnr].modifiable = false
 
