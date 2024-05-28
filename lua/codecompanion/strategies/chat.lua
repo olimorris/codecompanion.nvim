@@ -461,10 +461,8 @@ function Chat:close()
     self:stop()
   end
 
-  local last_chat = _G.codecompanion_last_chat_buffer
-
-  if last_chat.bufnr and last_chat.bufnr == self.bufnr then
-    last_chat = nil
+  if _G.codecompanion_last_chat_buffer and _G.codecompanion_last_chat_buffer.bufnr == self.bufnr then
+    _G.codecompanion_last_chat_buffer = nil
   end
   api.nvim_buf_delete(self.bufnr, { force = true })
 end
