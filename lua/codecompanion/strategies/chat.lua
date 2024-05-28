@@ -3,7 +3,7 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
 local ui = require("codecompanion.utils.ui")
-local utils = require("codecompanion.utils.util")
+local util = require("codecompanion.utils.util")
 local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
@@ -38,20 +38,20 @@ local tool_query = [[
 )
 ]]
 
-local cached_settings = {}
+local _cached_settings = {}
 ---@param bufnr integer
 ---@param adapter CodeCompanion.Adapter
 ---@return table
 local function parse_settings(bufnr, adapter)
-  if cached_settings[bufnr] then
-    return cached_settings[bufnr]
+  if _cached_settings[bufnr] then
+    return _cached_settings[bufnr]
   end
 
   if not config.options.display.chat.show_settings then
-    cached_settings[bufnr] = adapter:get_default_settings()
+    _cached_settings[bufnr] = adapter:get_default_settings()
 
-    log:debug("Using the settings from the user's config: %s", cached_settings[bufnr])
-    return cached_settings[bufnr]
+    log:debug("Using the settings from the user's config: %s", _cached_settings[bufnr])
+    return _cached_settings[bufnr]
   end
 
   local settings = {}
@@ -197,7 +197,7 @@ local function set_autocmds(chat)
   })
 
   -- Clear the virtual text when the user starts typing
-  if utils.count(_G.codecompanion_chats) == 0 then
+  if util.count(_G.codecompanion_chats) == 0 then
     local insertenter_autocmd
     insertenter_autocmd = api.nvim_create_autocmd("InsertEnter", {
       group = aug,
@@ -221,8 +221,9 @@ local function set_autocmds(chat)
         return
       end
 
-      _G.codecompanion_last_chat_buffer = bufnr
+      _G.codecompanion_last_chat_buffer = chat
 
+      --- Store a snapshot of the chat in the global table
       if _G.codecompanion_chats[bufnr] == nil then
         local description
         local messages = parse_messages(bufnr)
@@ -234,33 +235,10 @@ local function set_autocmds(chat)
         end
 
         _G.codecompanion_chats[bufnr] = {
-          name = "Chat " .. utils.count(_G.codecompanion_chats) + 1,
+          name = "Chat " .. util.count(_G.codecompanion_chats) + 1,
           description = description,
         }
       end
-    end,
-  })
-
-  api.nvim_create_autocmd("User", {
-    desc = "Remove the chat buffer from the stored chats",
-    group = aug,
-    pattern = "CodeCompanionChat",
-    callback = function(request)
-      if request.data.bufnr ~= bufnr or request.data.action ~= "close_buffer" then
-        return
-      end
-
-      if _G.codecompanion_last_chat_buffer == bufnr then
-        _G.codecompanion_last_chat_buffer = nil
-      end
-
-      _G.codecompanion_chats[bufnr] = nil
-
-      if _G.codecompanion_jobs[request.data.bufnr] then
-        _G.codecompanion_jobs[request.data.bufnr].handler:shutdown()
-      end
-      api.nvim_exec_autocmds("User", { pattern = "CodeCompanionRequest", data = { status = "finished" } })
-      api.nvim_buf_delete(request.data.bufnr, { force = true })
     end,
   })
 end
@@ -268,6 +246,7 @@ end
 ---@class CodeCompanion.Chat
 ---@field id integer
 ---@field adapter CodeCompanion.Adapter
+---@field current_request table
 ---@field bufnr integer
 ---@field context table
 ---@field saved_chat? string
@@ -305,7 +284,6 @@ function Chat.new(args)
     end
   end
 
-  _G.codecompanion_last_chat_buffer = bufnr
   local id = math.random(10000000)
 
   api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
@@ -327,6 +305,7 @@ function Chat.new(args)
   local self = setmetatable({
     id = id,
     adapter = adapter,
+    current_request = nil,
     bufnr = bufnr,
     context = args.context,
     saved_chat = args.saved_chat,
@@ -350,6 +329,7 @@ function Chat.new(args)
   ui.set_win_options(winid, config.options.display.chat.win_options)
   vim.cmd("setlocal formatoptions-=t")
   ui.buf_scroll_to_end(bufnr)
+  _G.codecompanion_last_chat_buffer = self
 
   if args.auto_submit then
     self:submit()
@@ -358,6 +338,7 @@ function Chat.new(args)
   return self
 end
 
+---Setup the chat buffer
 ---@param messages table
 function Chat:init(messages)
   local lines = {}
@@ -406,16 +387,10 @@ function Chat:init(messages)
   vim.bo[self.bufnr].modifiable = modifiable
 end
 
+---Submit the chat buffer to the LLM
 function Chat:submit()
-  -- TODO: Not sure if we need this anymore
-  if _G.codecompanion_jobs[self.bufnr] then
-    return
-  end
-
   local bufnr = self.bufnr
-
   local settings, messages = parse_settings(bufnr, self.adapter), parse_messages(bufnr)
-
   if not messages or #messages == 0 or (not messages[#messages].content or messages[#messages].content == "") then
     return
   end
@@ -426,16 +401,16 @@ function Chat:submit()
   -- log:trace("----- For Adapter test creation -----\nMessages: %s\n ---------- // END ----------", messages)
   -- log:trace("Settings: %s", settings)
 
-  client.new():stream(self.adapter:set_params(settings), messages, bufnr, function(err, data, done)
+  self.current_request = client.new():stream(self.adapter:set_params(settings), messages, function(err, data, done)
     if err then
       vim.notify("Error: " .. err, vim.log.levels.ERROR)
-      return self:finalize()
+      return self:reset()
     end
 
     if done then
       self:append({ role = "user", content = "" })
       display_tokens(bufnr)
-      self:finalize()
+      self:reset()
       if self.status ~= "error" then
         parse_tools(self)
       end
@@ -449,17 +424,42 @@ function Chat:submit()
         self:append(result.output)
       elseif result and result.status == "error" then
         self.status = "error"
-        api.nvim_exec_autocmds(
-          "User",
-          { pattern = "CodeCompanionRequest", data = { bufnr = bufnr, action = "cancel_request" } }
-        )
+        self:stop()
         vim.notify("Error: " .. result.output, vim.log.levels.ERROR)
-        return self:finalize()
+        return self:reset()
       end
     end
+  end, function()
+    self.current_request = nil
   end)
 end
 
+---Stop the response from the LLM
+---@return boolean
+function Chat:stop()
+  if self.current_request then
+    local job = self.current_request
+    self.current_request = nil
+    job:shutdown()
+    return true
+  end
+
+  return false
+end
+
+---Close the current chat buffer
+function Chat:close()
+  if self.current_request then
+    self:stop()
+  end
+
+  if _G.codecompanion_last_chat_buffer.bufnr == self.bufnr then
+    _G.codecompanion_last_chat_buffer = nil
+  end
+  api.nvim_buf_delete(self.bufnr, { force = true })
+end
+
+---Get the last line and column in the chat buffer
 ---@return integer, integer, integer
 function Chat:last()
   local line_count = api.nvim_buf_line_count(self.bufnr)
@@ -479,6 +479,7 @@ function Chat:last()
   return last_line, last_column, line_count
 end
 
+---Append a message to the chat buffer
 ---@param data table
 ---@param opts? table
 function Chat:append(data, opts)
@@ -521,6 +522,7 @@ function Chat:append(data, opts)
   end
 end
 
+---Wrapper for appending a message to the chat buffer
 ---@param data table
 ---@param opts? table
 function Chat:add_message(data, opts)
@@ -534,7 +536,8 @@ function Chat:add_message(data, opts)
   end
 end
 
-function Chat:finalize()
+---When a request has finished, reset the chat buffer
+function Chat:reset()
   local bufnr = self.bufnr
 
   self.status = ""
@@ -542,11 +545,13 @@ function Chat:finalize()
   vim.bo[bufnr].modifiable = true
 end
 
+---Determine if the current chat buffer is active
 ---@return boolean
 function Chat:active()
   return api.nvim_get_current_buf() == self.bufnr
 end
 
+---Get the messages from the chat buffer
 ---@return table, table
 function Chat:get_messages()
   local bufnr = self.bufnr

@@ -6,7 +6,7 @@ local ui = require("codecompanion.utils.ui")
 local api = vim.api
 
 ---@param status string
-local function fire_autocmd(status)
+local function announce(status)
   vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionInline", data = { status = status } })
 end
 
@@ -189,9 +189,9 @@ local function get_inline_output(inline, placement, prompt, output)
     end,
   })
 
-  client.new():stream(inline.adapter:set_params(), prompt, inline.context.bufnr, function(err, data, done)
+  client.new():stream(inline.adapter:set_params(), prompt, function(err, data, done)
     if err then
-      fire_autocmd("finished")
+      announce("finished")
       return
     end
 
@@ -201,7 +201,7 @@ local function get_inline_output(inline, placement, prompt, output)
         log:debug("Terminal output: %s", output)
         api.nvim_put({ table.concat(output, "") }, "", false, true)
       end
-      fire_autocmd("finished")
+      announce("finished")
       return
     end
 
@@ -289,10 +289,10 @@ function Inline:execute(user_input)
     vim.api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
 
     local placement = ""
-    fire_autocmd("started")
-    client.new():stream(self.adapter:set_params(), action, self.context.bufnr, function(err, data, done)
+    announce("started")
+    client.new():stream(self.adapter:set_params(), action, function(err, data, done)
       if err then
-        fire_autocmd("finished")
+        announce("finished")
         return
       end
 

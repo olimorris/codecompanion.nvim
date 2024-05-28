@@ -31,18 +31,11 @@ describe("Client", function()
     Client = require("codecompanion.client") -- Now that setup has been called, we can require the client
   end)
 
-  after_each(function()
-    _G.codecompanion_jobs = nil
-  end)
-
   it("stream_call should work with mocked dependencies", function()
     local mock_request = stub.new().returns({ args = "mocked args" })
     local mock_encode = stub.new().returns("{}")
     local mock_decode = stub.new().returns({ choices = { { finish_reason = nil } } })
     local mock_schedule = stub.new().returns(1)
-
-    -- Mock globals
-    _G.codecompanion_jobs = {}
 
     Client.static.opts = {
       request = { default = mock_request },

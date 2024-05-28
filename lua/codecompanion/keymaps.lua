@@ -12,31 +12,23 @@ M.save = {
 
 M.close = {
   desc = "Close the chat window",
-  callback = function(args)
-    vim.api.nvim_exec_autocmds(
-      "User",
-      { pattern = "CodeCompanionChat", data = { action = "close_buffer", buf = args.bufnr } }
-    )
+  callback = function(chat)
+    chat:close()
   end,
 }
 
-M.cancel_request = {
-  desc = "Cancel the current request",
-  callback = function(args)
-    if _G.codecompanion_jobs[args.bufnr] == nil then
-      return
+M.stop = {
+  desc = "Stop the current request",
+  callback = function(chat)
+    if chat.current_job then
+      chat:stop()
     end
-    vim.api.nvim_exec_autocmds(
-      "User",
-      { pattern = "CodeCompanionRequest", data = { bufnr = args.bufnr, action = "cancel_request" } }
-    )
   end,
 }
 
 M.save_chat = {
   desc = "Save the current chat",
   callback = function(chat)
-    -- local chat = require("codecompanion.strategies.chat")
     local saved_chat = require("codecompanion.strategies.saved_chats").new({})
 
     if chat.saved_chat then

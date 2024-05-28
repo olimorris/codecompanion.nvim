@@ -308,6 +308,7 @@ vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap
 vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "ga", "<cmd>CodeCompanionAdd<cr>", { noremap = true, silent = true })
 
 -- Expand `cc` into CodeCompanion in the command line
 vim.cmd([[cab cc CodeCompanion]])
@@ -445,7 +446,6 @@ The plugin fires the following events during its lifecycle:
 - `CodeCompanionRequest` - Fired during the API request. Outputs `data.status` with a value of `started` or `finished`
 - `CodeCompanionChatSaved` - Fired after a chat has been saved to disk
 - `CodeCompanionChat` - Fired at various points during the chat buffer. Comes with the following attributes:
-  - `data.action = close_buffer` - For when a chat buffer has been permanently closed
   - `data.action = hide_buffer` - For when a chat buffer is hidden
   - `data.action = show_buffer` - For when a chat buffer is visible after being hidden
 - `CodeCompanionInline` - Fired during the inline API request alongside `CodeCompanionRequest`. Outputs `data.status` with a value of `started` or `finished`

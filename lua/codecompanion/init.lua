@@ -28,23 +28,25 @@ M.inline = function(args)
 end
 
 M.add = function(args)
-  local bufnr = _G.codecompanion_last_chat_buffer
+  local chat = _G.codecompanion_last_chat_buffer
 
-  if not bufnr then
+  if not chat then
     return vim.notify("[CodeCompanion.nvim]\nNo chat buffer found", vim.log.levels.WARN)
   end
 
   local context = util.get_context(api.nvim_get_current_buf(), args)
-  local total_lines = api.nvim_buf_line_count(bufnr)
+  local content = table.concat(context.lines, "\n")
 
-  local content = table.concat(context.lines, "  ")
-  api.nvim_buf_set_lines(
-    bufnr,
-    total_lines,
-    total_lines,
-    false,
-    { context.filename .. ":", "", "```" .. context.filetype .. "", content, "```", "" }
-  )
+  chat:append({
+    role = "user",
+    content = "Here is some code from "
+      .. context.filename
+      .. ":\n\n```"
+      .. context.filetype
+      .. "\n"
+      .. content
+      .. "\n```\n",
+  })
 end
 
 ---@param args? table
@@ -89,17 +91,17 @@ M.toggle = function()
     end
   end
 
-  local function fire_event(status, bufnr)
+  local function announce(status, bufnr)
     return api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { action = status, bufnr = bufnr } })
   end
 
   if vim.bo.filetype == "codecompanion" then
     local bufnr = api.nvim_get_current_buf()
     buf_toggle(bufnr, "hide")
-    fire_event("hide_buffer", bufnr)
+    announce("hide_buffer", bufnr)
   elseif _G.codecompanion_last_chat_buffer then
-    buf_toggle(_G.codecompanion_last_chat_buffer, "show")
-    fire_event("show_buffer")
+    buf_toggle(_G.codecompanion_last_chat_buffer.bufnr, "show")
+    announce("show_buffer")
   else
     M.chat()
   end

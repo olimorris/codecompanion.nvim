@@ -58,7 +58,7 @@ local defaults = {
   keymaps = {
     ["<C-s>"] = "keymaps.save",
     ["<C-c>"] = "keymaps.close",
-    ["q"] = "keymaps.cancel_request",
+    ["q"] = "keymaps.stop",
     ["gc"] = "keymaps.clear",
     ["ga"] = "keymaps.codeblock",
     ["gs"] = "keymaps.save_chat",
@@ -82,6 +82,7 @@ M.setup = function(opts)
     for name, adapter in pairs(opts.adapters) do
       if M.options.adapters[name] then
         if type(adapter) == "string" then
+          -- TODO: Do we need to resolve this in the config?!
           M.options.adapters[name] = require("codecompanion.adapters").use(adapter)
         elseif type(adapter) == "table" then
           M.options.adapters[name] = adapter
@@ -95,6 +96,7 @@ M.setup = function(opts)
   else
     for _, adapter in pairs(M.options.strategies) do
       if type(M.options.adapters[adapter]) == "string" then
+        -- TODO: Do we need to resolve this in the config?!
         M.options.adapters[adapter] = require("codecompanion.adapters").use(adapter)
       end
     end
