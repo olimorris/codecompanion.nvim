@@ -17,9 +17,11 @@ local adapter = {
     form_parameters = function()
       return {}
     end,
-
     form_messages = function()
       return {}
+    end,
+    is_complete = function()
+      return false
     end,
   },
   schema = {},
@@ -32,7 +34,12 @@ describe("Client", function()
   end)
 
   it("stream_call should work with mocked dependencies", function()
-    local mock_request = stub.new().returns({ args = "mocked args" })
+    local mock_handler = {
+      after = stub.new().returns(nil),
+      args = "mocked args",
+    }
+
+    local mock_request = stub.new().returns(mock_handler)
     local mock_encode = stub.new().returns("{}")
     local mock_decode = stub.new().returns({ choices = { { finish_reason = nil } } })
     local mock_schedule = stub.new().returns(1)
