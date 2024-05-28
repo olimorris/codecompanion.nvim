@@ -33,6 +33,9 @@ M.add = function(args)
   if not chat then
     return vim.notify("[CodeCompanion.nvim]\nNo chat buffer found", vim.log.levels.WARN)
   end
+  if not config.options.send_code then
+    return vim.notify("[CodeCompanion.nvim]\nSending of code to an LLM is currently disabled", vim.log.levels.WARN)
+  end
 
   local context = util.get_context(api.nvim_get_current_buf(), args)
   local content = table.concat(context.lines, "\n")
