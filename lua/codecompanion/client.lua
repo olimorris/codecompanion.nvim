@@ -41,9 +41,9 @@ end
 ---@param adapter CodeCompanion.Adapter
 ---@param payload table the payload to send to the API
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
----@param after_fn? fun() Will be called after the request is finished
+---@param after? fun() Will be called after the request is finished
 ---@return table The Plenary job
-function Client:stream(adapter, payload, cb, after_fn)
+function Client:stream(adapter, payload, cb, after)
   cb = log:wrap_cb(cb, "Response error: %s")
 
   --TODO: Check for any errors env variables
@@ -86,8 +86,8 @@ function Client:stream(adapter, payload, cb, after_fn)
       vim.schedule(function()
         announce("finished")
       end)
-      if after_fn and type(after_fn) == "function" then
-        after_fn()
+      if after and type(after) == "function" then
+        after()
       end
     end)
 
