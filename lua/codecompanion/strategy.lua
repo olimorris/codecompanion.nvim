@@ -1,4 +1,4 @@
-local config = require("codecompanion.config")
+local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
 
 ---@param prompts table
@@ -7,7 +7,7 @@ local function modal_prompts(prompts, context)
   local messages = {}
   for _, prompt in ipairs(prompts) do
     --TODO: These nested conditionals suck. Refactor soon
-    if not prompt.contains_code or (prompt.contains_code and config.options.send_code) then
+    if not prompt.contains_code or (prompt.contains_code and config.send_code) then
       if not prompt.condition or (prompt.condition and prompt.condition(context)) then
         local content
         if type(prompt.content) == "function" then
@@ -110,7 +110,7 @@ function Strategy:tool()
   local messages = modal_prompts(self.selected.prompts, self.context)
 
   return require("codecompanion.strategies.chat").new({
-    adapter = config.options.adapters[config.options.strategies.tool],
+    adapter = config.adapters[config.strategies.tool],
     type = self.selected.type,
     messages = messages,
     show_buffer = true,

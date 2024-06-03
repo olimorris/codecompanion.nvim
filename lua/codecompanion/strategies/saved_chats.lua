@@ -1,8 +1,8 @@
 local Chat = require("codecompanion.strategies.chat")
-local config = require("codecompanion.config")
+local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
 
-local prefix = config.options.saved_chats.save_dir .. "/"
+local prefix = config.saved_chats.save_dir .. "/"
 local suffix = ".json"
 
 local function get_current_datetime()

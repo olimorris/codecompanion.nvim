@@ -1,5 +1,6 @@
 local client = require("codecompanion.client")
-local config = require("codecompanion.config")
+local config = require("codecompanion").config
+local keys = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
 local ui = require("codecompanion.utils.ui")
@@ -47,7 +48,7 @@ local function parse_settings(bufnr, adapter)
     return _cached_settings[bufnr]
   end
 
-  if not config.options.display.chat.show_settings then
+  if not config.display.chat.show_settings then
     _cached_settings[bufnr] = adapter:get_default_settings()
 
     log:debug("Using the settings from the user's config: %s", _cached_settings[bufnr])
@@ -167,7 +168,7 @@ end
 
 ---@param bufnr integer
 local display_tokens = function(bufnr)
-  if config.options.display.chat.show_token_count then
+  if config.display.chat.show_token_count then
     require("codecompanion.utils.tokens").display_tokens(bufnr)
   end
 end
@@ -237,6 +238,7 @@ local function set_autocmds(chat)
         _G.codecompanion_chats[bufnr] = {
           name = "Chat " .. util.count(_G.codecompanion_chats) + 1,
           description = description,
+          chat = chat,
         }
       end
     end,
@@ -248,6 +250,7 @@ end
 ---@field adapter CodeCompanion.Adapter
 ---@field current_request table
 ---@field bufnr integer
+---@field opts CodeCompanion.ChatArgs
 ---@field context table
 ---@field saved_chat? string
 ---@field settings table
@@ -268,81 +271,94 @@ local Chat = {}
 
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)
-  local bufnr
-  local winid
-
-  if config.options.display.chat.type == "float" then
-    bufnr = api.nvim_create_buf(false, false)
-    winid = ui.open_float(bufnr, {
-      display = config.options.display.chat.float_options,
-    })
-  else
-    bufnr = api.nvim_create_buf(true, false)
-    winid = api.nvim_get_current_win()
-    if args.show_buffer then
-      api.nvim_set_current_buf(bufnr)
-    end
-  end
-
   local id = math.random(10000000)
 
-  api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
-  api.nvim_buf_set_option(bufnr, "buftype", "acwrite")
-  api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
-  api.nvim_buf_set_option(bufnr, "syntax", "markdown")
-  vim.b[bufnr].codecompanion_type = "chat"
+  local self = setmetatable({
+    id = id,
+    context = args.context,
+    saved_chat = args.saved_chat,
+    opts = args,
+    status = "",
+    last_role = "user",
+    create_buf = function()
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
+      api.nvim_buf_set_option(bufnr, "buftype", "acwrite")
+      api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
+      api.nvim_buf_set_option(bufnr, "syntax", "markdown")
+      vim.b[bufnr].codecompanion_type = "chat"
 
-  ui.set_buf_options(bufnr, config.options.display.chat.buf_options)
+      return bufnr
+    end,
+  }, { __index = Chat })
 
-  local adapter = args.adapter or config.options.adapters[config.options.strategies.chat]
-  if not adapter or not adapter.schema then
+  self.bufnr = self.create_buf()
+  self:open()
+
+  self.adapter = args.adapter or config.adapters[config.strategies.chat]
+  if not self.adapter or not self.adapter.schema then
     vim.notify("[CodeCompanion.nvim]\nNo adapter found", vim.log.levels.ERROR)
     return
   end
 
-  local settings = args.settings or schema.get_default(adapter.schema, args.settings)
+  self.settings = args.settings or schema.get_default(self.adapter.schema, args.settings)
 
-  local self = setmetatable({
-    id = id,
-    adapter = adapter,
-    current_request = nil,
-    bufnr = bufnr,
-    context = args.context,
-    saved_chat = args.saved_chat,
-    settings = settings,
-    type = args.type,
-    status = "",
-    last_role = "user",
-  }, { __index = Chat })
-
-  local keys = require("codecompanion.utils.keymaps")
-
-  keys.set_keymaps(config.options.keymaps, bufnr, self)
   set_autocmds(self)
-  self:init(args.messages or {})
+  self:render(args.messages or {})
 
   if args.saved_chat then
-    display_tokens(bufnr)
+    display_tokens(self.bufnr)
   end
-
-  -- _G.codecompanion_win_opts[bufnr] = ui.get_win_options(winid, config.options.display.chat.win_options)
-  ui.set_win_options(winid, config.options.display.chat.win_options)
-  vim.cmd("setlocal formatoptions-=t")
-  ui.buf_scroll_to_end(bufnr)
-  _G.codecompanion_last_chat_buffer = self
-
   if args.auto_submit then
     self:submit()
   end
 
+  _G.codecompanion_last_chat_buffer = self
   return self
+end
+
+---Open/create the chat window
+function Chat:open()
+  if self:visible() then
+    return
+  end
+
+  local window = config.display.chat.window
+  local width = window.width > 1 and window.width or math.floor(vim.o.columns * window.width)
+  local height = window.height > 1 and window.height or math.floor(vim.o.lines * window.height)
+
+  if window.layout == "float" then
+    local win_opts = {
+      relative = window.relative,
+      width = width,
+      height = height,
+      row = window.row or math.floor((vim.o.lines - height) / 2),
+      col = window.col or math.floor((vim.o.columns - width) / 2),
+      border = window.border,
+      title = "Code Companion",
+      title_pos = "center",
+      zindex = 45,
+    }
+    self.winnr = vim.api.nvim_open_win(self.bufnr, true, win_opts)
+    ui.set_win_options(self.winnr, window.opts)
+  else
+    self.winnr = api.nvim_get_current_win()
+    api.nvim_set_current_buf(self.bufnr)
+  end
+
+  ui.buf_scroll_to_end(self.bufnr)
+  keys.set_keymaps(config.keymaps, self.bufnr, self)
+end
+
+function Chat:visible()
+  return self.winnr and vim.api.nvim_win_is_valid(self.winnr) and vim.api.nvim_win_get_buf(self.winnr) == self.bufnr
 end
 
 ---Setup the chat buffer
 ---@param messages table
-function Chat:init(messages)
+function Chat:render(messages)
   local lines = {}
-  if config.options.display.chat.show_settings then
+  if config.display.chat.show_settings then
     lines = { "---" }
     local keys = schema.get_ordered_keys(self.adapter.schema)
     for _, key in ipairs(keys) do
@@ -455,6 +471,26 @@ function Chat:stop()
   return false
 end
 
+---Hide the current buffer from view
+function Chat:hide()
+  local layout = config.display.chat.window.layout
+
+  if layout == "float" then
+    if self:active() then
+      vim.cmd("hide")
+    else
+      api.nvim_win_hide(self.winnr)
+    end
+  else
+    vim.cmd("buffer " .. vim.fn.bufnr("#"))
+  end
+
+  api.nvim_exec_autocmds(
+    "User",
+    { pattern = "CodeCompanionChat", data = { action = "hide_buffer", bufnr = self.bufnr } }
+  )
+end
+
 ---Close the current chat buffer
 function Chat:close()
   if self.current_request then
@@ -464,6 +500,8 @@ function Chat:close()
   if _G.codecompanion_last_chat_buffer and _G.codecompanion_last_chat_buffer.bufnr == self.bufnr then
     _G.codecompanion_last_chat_buffer = nil
   end
+
+  _G.codecompanion_chats[self.bufnr] = nil
   api.nvim_buf_delete(self.bufnr, { force = true })
 end
 

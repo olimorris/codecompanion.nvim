@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.9.2          Last change: 2024 May 18
+*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 June 02
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -27,6 +27,7 @@ REQUIREMENTS                                      *codecompanion-requirements*
 - The `curl` library installed
 - Neovim 0.9.2 or greater
 - _(Optional)_ An API key for your chosen LLM
+- _(Optional)_ The `base64` library installed
 
 
 INSTALLATION                                      *codecompanion-installation*
@@ -103,30 +104,26 @@ Click to see the default configuration ~
           width = 95,
           height = 10,
         },
-        chat = { -- Options for the chat strategy
-          type = "float", -- float|buffer
-          show_settings = true, -- Show the model settings in the chat buffer?
-          show_token_count = true, -- Show the token count for the current chat in the buffer?
-          buf_options = { -- Buffer options for the chat buffer
-            buflisted = false,
-          },
-          float_options = { -- Float window options if the type is "float"
+        chat = {
+          window = {
+            layout = "float",
             border = "single",
-            buflisted = false,
-            max_height = 0,
-            max_width = 0,
-            padding = 1,
+            height = 0.8,
+            width = 0.8,
+            relative = "editor",
+            opts = {
+              cursorcolumn = false,
+              cursorline = false,
+              foldcolumn = "0",
+              linebreak = true,
+              list = false,
+              signcolumn = "no",
+              spell = false,
+              wrap = true,
+            },
           },
-          win_options = { -- Window options for the chat buffer
-            cursorcolumn = false,
-            cursorline = false,
-            foldcolumn = "0",
-            linebreak = true,
-            list = false,
-            signcolumn = "no",
-            spell = false,
-            wrap = true,
-          },
+          show_settings = true,
+          show_token_count = true,
         },
       },
       keymaps = {
@@ -304,6 +301,7 @@ For an optimum workflow, the plugin author recommendeds the following:
     vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
     vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
     vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
+    vim.api.nvim_set_keymap("v", "ga", "<cmd>CodeCompanionAdd<cr>", { noremap = true, silent = true })
     
     -- Expand `cc` into CodeCompanion in the command line
     vim.cmd([[cab cc CodeCompanion]])
@@ -450,7 +448,6 @@ The plugin fires the following events during its lifecycle:
 - `CodeCompanionRequest` - Fired during the API request. Outputs `data.status` with a value of `started` or `finished`
 - `CodeCompanionChatSaved` - Fired after a chat has been saved to disk
 - `CodeCompanionChat` - Fired at various points during the chat buffer. Comes with the following attributes:
-    - `data.action = close_buffer` - For when a chat buffer has been permanently closed
     - `data.action = hide_buffer` - For when a chat buffer is hidden
     - `data.action = show_buffer` - For when a chat buffer is visible after being hidden
 - `CodeCompanionInline` - Fired during the inline API request alongside `CodeCompanionRequest`. Outputs `data.status` with a value of `started` or `finished`

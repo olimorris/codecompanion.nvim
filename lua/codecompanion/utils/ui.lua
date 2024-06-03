@@ -192,41 +192,4 @@ function M.set_buf_options(bufnr, opts)
   end
 end
 
----@param bufnr number
----@param opts table
----@return number
-function M.open_float(bufnr, opts)
-  local total_width = vim.o.columns
-  local total_height = M.get_editor_height()
-  local width = total_width - 2 * opts.display.padding
-  if opts.display.border ~= "none" then
-    width = width - 2 -- The border consumes 1 col on each side
-  end
-  if opts.display.max_width > 0 then
-    width = math.min(width, opts.display.max_width)
-  end
-
-  local height = total_height - 2 * opts.display.padding
-  if opts.display.max_height > 0 then
-    height = math.min(height, opts.display.max_height)
-  end
-
-  local row = math.floor((total_height - height) / 2)
-  local col = math.floor((total_width - width) / 2) - 1 -- adjust for border width
-
-  local winid = api.nvim_open_win(bufnr, true, {
-    relative = "editor",
-    width = width,
-    height = height,
-    row = row,
-    col = col,
-    border = opts.display.border,
-    zindex = 45,
-    title = "Code Companion",
-    title_pos = "center",
-  })
-
-  return winid
-end
-
 return M

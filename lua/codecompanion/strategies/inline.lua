@@ -1,5 +1,5 @@
 local client = require("codecompanion.client")
-local config = require("codecompanion.config")
+local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 
@@ -28,7 +28,7 @@ local build_prompt = function(inline, user_input)
   local output = {}
 
   for _, prompt in ipairs(inline.prompts) do
-    if not prompt.contains_code or (prompt.contains_code and config.options.send_code) then
+    if not prompt.contains_code or (prompt.contains_code and config.send_code) then
       if type(prompt.content) == "function" then
         prompt.content = prompt.content(inline.context)
       end
@@ -49,7 +49,7 @@ local build_prompt = function(inline, user_input)
   end
 
   -- Send code as context
-  if config.options.send_code and inline.context.is_visual then
+  if config.send_code and inline.context.is_visual then
     table.insert(output, {
       role = "user",
       content = code_block(inline.context.filetype, inline.context.lines),
@@ -259,7 +259,7 @@ function Inline.new(opts)
 
   return setmetatable({
     context = opts.context,
-    adapter = config.options.adapters[config.options.strategies.inline],
+    adapter = config.adapters[config.strategies.inline],
     opts = opts.opts or {},
     prompts = vim.deepcopy(opts.prompts),
   }, { __index = Inline })

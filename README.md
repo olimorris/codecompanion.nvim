@@ -51,6 +51,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 - The `curl` library installed
 - Neovim 0.9.2 or greater
 - _(Optional)_ An API key for your chosen LLM
+- _(Optional)_ The `base64` library installed
 
 ## :package: Installation
 
@@ -125,30 +126,26 @@ require("codecompanion").setup({
       width = 95,
       height = 10,
     },
-    chat = { -- Options for the chat strategy
-      type = "float", -- float|buffer
-      show_settings = true, -- Show the model settings in the chat buffer?
-      show_token_count = true, -- Show the token count for the current chat in the buffer?
-      buf_options = { -- Buffer options for the chat buffer
-        buflisted = false,
-      },
-      float_options = { -- Float window options if the type is "float"
+    chat = {
+      window = {
+        layout = "float",
         border = "single",
-        buflisted = false,
-        max_height = 0,
-        max_width = 0,
-        padding = 1,
+        height = 0.8,
+        width = 0.8,
+        relative = "editor",
+        opts = {
+          cursorcolumn = false,
+          cursorline = false,
+          foldcolumn = "0",
+          linebreak = true,
+          list = false,
+          signcolumn = "no",
+          spell = false,
+          wrap = true,
+        },
       },
-      win_options = { -- Window options for the chat buffer
-        cursorcolumn = false,
-        cursorline = false,
-        foldcolumn = "0",
-        linebreak = true,
-        list = false,
-        signcolumn = "no",
-        spell = false,
-        wrap = true,
-      },
+      show_settings = true,
+      show_token_count = true,
     },
   },
   keymaps = {

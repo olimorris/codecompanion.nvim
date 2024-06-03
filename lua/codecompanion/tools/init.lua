@@ -1,4 +1,4 @@
-local config = require("codecompanion.config")
+local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils.util")
@@ -56,7 +56,7 @@ local function set_autocmds(chat, tool)
           content = tool.output_error_prompt(request.data.error),
         })
 
-        if config.options.tools.opts.auto_submit_errors then
+        if config.tools.opts.auto_submit_errors then
           chat:submit()
         end
       end

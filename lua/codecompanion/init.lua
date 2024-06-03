@@ -1,10 +1,11 @@
-local config = require("codecompanion.config")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils.util")
 local api = vim.api
 
 local M = {}
+M.config = require("codecompanion.config")
 
+---Prompt the LLM from within the current buffer
 ---@param args table
 ---@return nil|CodeCompanion.Inline
 M.inline = function(args)
@@ -27,13 +28,16 @@ M.inline = function(args)
     :start(args.args)
 end
 
+---Add visually selected code to the current chat buffer
+---@param args table
+---@return nil
 M.add = function(args)
   local chat = _G.codecompanion_last_chat_buffer
 
   if not chat then
     return vim.notify("[CodeCompanion.nvim]\nNo chat buffer found", vim.log.levels.WARN)
   end
-  if not config.options.send_code then
+  if not M.config.send_code then
     return vim.notify("[CodeCompanion.nvim]\nSending of code to an LLM is currently disabled", vim.log.levels.WARN)
   end
 
@@ -52,13 +56,15 @@ M.add = function(args)
   })
 end
 
+---Open a chat buffer and converse with an LLM
 ---@param args? table
+---@return nil
 M.chat = function(args)
   local adapter
   local context = util.get_context(api.nvim_get_current_buf(), args)
 
   if args and args.fargs then
-    adapter = config.options.adapters[args.fargs[1]]
+    adapter = M.config.adapters[args.fargs[1]]
   end
 
   local chat = require("codecompanion.strategies.chat").new({
@@ -70,47 +76,26 @@ M.chat = function(args)
     return vim.notify("[CodeCompanion.nvim]\nNo chat strategy found", vim.log.levels.WARN)
   end
 
-  api.nvim_win_set_buf(0, chat.bufnr)
   ui.scroll_to_end(0)
 end
 
+---Toggle the chat buffer
 M.toggle = function()
-  local function buf_toggle(bufnr, action)
-    if action == "show" then
-      if config.options.display.chat.type == "float" then
-        ui.open_float(bufnr, {
-          display = config.options.display.chat.float_options,
-        })
-      else
-        vim.cmd("buffer " .. bufnr)
-      end
-    elseif action == "hide" then
-      if config.options.display.chat.type == "float" then
-        vim.cmd("hide")
-      else
-        -- Show the previous buffer
-        vim.cmd("buffer " .. vim.fn.bufnr("#"))
-      end
-    end
+  local chat = _G.codecompanion_last_chat_buffer
+  if not chat then
+    return M.chat()
   end
 
-  local function announce(status, bufnr)
-    return api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { action = status, bufnr = bufnr } })
+  if chat:visible() then
+    return chat:hide()
   end
 
-  if vim.bo.filetype == "codecompanion" then
-    local bufnr = api.nvim_get_current_buf()
-    buf_toggle(bufnr, "hide")
-    announce("hide_buffer", bufnr)
-  elseif _G.codecompanion_last_chat_buffer then
-    buf_toggle(_G.codecompanion_last_chat_buffer.bufnr, "show")
-    announce("show_buffer")
-  else
-    M.chat()
-  end
+  chat:open()
 end
 
 local _cached_actions = {}
+---Show the action palette
+---@param args table
 M.actions = function(args)
   local actions = require("codecompanion.actions")
   local context = util.get_context(api.nvim_get_current_buf(), args)
@@ -122,8 +107,8 @@ M.actions = function(args)
 
     require("codecompanion.utils.ui").selector(items, {
       prompt = opts.prompt,
-      width = config.options.display.action_palette.width,
-      height = config.options.display.action_palette.height,
+      width = M.config.display.action_palette.width,
+      height = M.config.display.action_palette.height,
       format = function(item)
         local formatted_item = {}
         for _, column in ipairs(opts.columns) do
@@ -162,7 +147,7 @@ M.actions = function(args)
   end
 
   if not next(_cached_actions) then
-    if config.options.use_default_actions then
+    if M.config.use_default_actions then
       for _, action in ipairs(actions.static.actions) do
         if action.opts and action.opts.enabled == false then
           goto continue
@@ -172,8 +157,8 @@ M.actions = function(args)
         ::continue::
       end
     end
-    if config.options.actions and #config.options.actions > 0 then
-      for _, action in ipairs(config.options.actions) do
+    if M.config.actions and #M.config.actions > 0 then
+      for _, action in ipairs(M.config.actions) do
         table.insert(_cached_actions, action)
       end
     end
@@ -191,13 +176,58 @@ M.actions = function(args)
   picker(items, { prompt = "CodeCompanion actions", columns = { "name", "strategy", "description" } }, selection)
 end
 
+---Setup the plugin
 ---@param opts nil|table
 M.setup = function(opts)
   api.nvim_set_hl(0, "CodeCompanionTokens", { link = "Comment", default = true })
   api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
   api.nvim_set_hl(0, "CodeCompanionVirtualTextTools", { link = "CodeCompanionVirtualText", default = true })
+  M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 
-  config.setup(opts)
+  -- Handle custom adapter config
+  if opts and opts.adapters then
+    for name, adapter in pairs(opts.adapters) do
+      if M.config.adapters[name] then
+        if type(adapter) == "string" then
+          -- TODO: Do we need to resolve this in the config?!
+          M.config.adapters[name] = require("codecompanion.adapters").use(adapter)
+        elseif type(adapter) == "table" then
+          M.config.adapters[name] = adapter
+          if adapter.schema then
+            M.config.adapters[name].schema =
+              vim.tbl_deep_extend("force", M.config.adapters[name].schema, adapter.schema)
+          end
+        end
+      end
+    end
+  else
+    for _, adapter in pairs(M.config.strategies) do
+      if type(M.config.adapters[adapter]) == "string" then
+        -- TODO: Do we need to resolve this in the config?!
+        M.config.adapters[adapter] = require("codecompanion.adapters").use(adapter)
+      end
+    end
+  end
+
+  M.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
+  M.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
+
+  local log = require("codecompanion.utils.log")
+  log.set_root(log.new({
+    handlers = {
+      {
+        type = "echo",
+        level = vim.log.levels.WARN,
+      },
+      {
+        type = "file",
+        filename = "codecompanion.log",
+        level = vim.log.levels[M.config.log_level],
+      },
+    },
+  }))
+
+  vim.treesitter.language.register("markdown", "codecompanion")
 end
 
 return M
