@@ -47,19 +47,19 @@ function Client:stream(adapter, payload, cb, after)
   cb = log:wrap_cb(cb, "Response error: %s")
 
   --TODO: Check for any errors env variables
-  local headers = adapter:replace_header_vars().headers
+  local headers = adapter:replace_header_vars().args.headers
   local body = self.opts.encode(
     vim.tbl_extend(
       "keep",
-      adapter.callbacks.form_parameters(adapter.parameters, payload) or {},
-      adapter.callbacks.form_messages(payload)
+      adapter.args.callbacks.form_parameters(adapter.args.parameters, payload) or {},
+      adapter.args.callbacks.form_messages(payload)
     )
   )
 
   local handler = self.opts
     .request({
-      url = adapter.url,
-      raw = adapter.raw or { "--no-buffer" },
+      url = adapter.args.url,
+      raw = adapter.args.raw or { "--no-buffer" },
       headers = headers,
       body = body,
       stream = self.opts.schedule(function(_, data)
@@ -68,7 +68,7 @@ function Client:stream(adapter, payload, cb, after)
         end
         -- log:trace("----- For Adapter test creation -----\nRequest: %s\n ---------- // END ----------", data)
 
-        if adapter.callbacks.is_complete(data) then
+        if adapter.args.callbacks.is_complete(data) then
           log:trace("Chat completed")
           return cb(nil, nil, true)
         end

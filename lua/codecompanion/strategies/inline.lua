@@ -205,7 +205,7 @@ local function get_inline_output(inline, placement, prompt, output)
     if data then
       log:trace("Inline data: %s", data)
 
-      local content = inline.adapter.callbacks.inline_output(data, inline.context)
+      local content = inline.adapter.args.callbacks.inline_output(data, inline.context)
 
       if inline.context.buftype == "terminal" then
         -- Don't stream to the terminal
@@ -237,9 +237,9 @@ local Inline = {}
 
 ---@class CodeCompanion.InlineArgs
 ---@field context table
----@field adapter CodeCompanion.Adapter
----@field opts table
----@field pre_hook fun():number -- Assuming pre_hook returns a number for example
+---@field adapter? CodeCompanion.Adapter
+---@field opts? table
+---@field pre_hook? fun():number -- Assuming pre_hook returns a number for example
 ---@field prompts table
 
 ---@param opts CodeCompanion.InlineArgs
@@ -313,7 +313,7 @@ function Inline:execute(user_input)
       end
 
       if data then
-        placement = placement .. (self.adapter.callbacks.inline_output(data) or "")
+        placement = placement .. (self.adapter.args.callbacks.inline_output(data) or "")
       end
     end, function()
       vim.schedule(function()

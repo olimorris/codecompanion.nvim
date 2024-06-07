@@ -66,9 +66,9 @@ describe("Adapter", function()
     local result = adapter:set_params(chat_buffer_settings)
 
     -- Ignore this for now
-    result.parameters.stream = nil
+    result.args.parameters.stream = nil
 
-    assert.are.same(chat_buffer_settings, result.parameters)
+    assert.are.same(chat_buffer_settings, result.args.parameters)
   end)
 
   it("can nest parameters based on an adapter's schema", function()
@@ -86,6 +86,6 @@ describe("Adapter", function()
       },
     }
 
-    assert.are.same(expected, result.parameters)
+    assert.are.same(expected, result.args.parameters)
   end)
 end)

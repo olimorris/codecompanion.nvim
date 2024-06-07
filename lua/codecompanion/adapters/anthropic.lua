@@ -63,21 +63,7 @@ local function merge_messages(messages)
   return new_msgs
 end
 
----@class CodeCompanion.Adapter
----@field name string
----@field features table
----@field url string
----@field raw? table
----@field headers table
----@field parameters table
----@field chat_prompt string
----@field callbacks table
----@field callbacks.form_parameters fun()
----@field callbacks.form_messages fun()
----@field callbacks.is_complete fun()
----@field callbacks.chat_output fun()
----@field callbacks.inline_output fun()
----@field schema table
+---@class CodeCompanion.AdapterArgs
 return {
   name = "Anthropic",
   features = {

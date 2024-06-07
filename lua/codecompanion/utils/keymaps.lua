@@ -33,7 +33,7 @@ end
 ---@param keymaps table<string, string|table|fun()>
 ---@param bufnr integer
 ---@param data? table
-M.set_keymaps = function(keymaps, bufnr, data)
+M.set = function(keymaps, bufnr, data)
   for k, v in pairs(keymaps) do
     local rhs, opts, mode = resolve(v)
     if rhs then

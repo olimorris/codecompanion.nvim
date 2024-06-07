@@ -1,6 +1,6 @@
 local client = require("codecompanion.client")
 local config = require("codecompanion").config
-local keys = require("codecompanion.utils.keymaps")
+local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
 local ui = require("codecompanion.utils.ui")
@@ -38,6 +38,22 @@ local tool_query = [[
   ) (#match? @lang "xml"))
 )
 ]]
+
+---@return CodeCompanion.Adapter|nil
+local function resolve_adapter()
+  local adapter = config.adapters[config.strategies.chat]
+
+  if type(adapter) == "string" then
+    local resolved = require("codecompanion.adapters").use(adapter)
+    if not resolved then
+      return nil
+    end
+
+    return resolved
+  end
+
+  return adapter
+end
 
 local _cached_settings = {}
 ---@param bufnr integer
@@ -258,7 +274,7 @@ end
 local Chat = {}
 
 ---@class CodeCompanion.ChatArgs
----@field context table
+---@field context? table
 ---@field adapter? CodeCompanion.Adapter
 ---@field messages nil|table
 ---@field show_buffer nil|boolean
@@ -267,7 +283,7 @@ local Chat = {}
 ---@field type nil|string
 ---@field saved_chat nil|string
 ---@field status nil|string
----@field last_role string
+---@field last_role? string
 
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)
@@ -295,13 +311,13 @@ function Chat.new(args)
   self.bufnr = self.create_buf()
   self:open()
 
-  self.adapter = args.adapter or config.adapters[config.strategies.chat]
-  if not self.adapter or not self.adapter.schema then
+  self.adapter = args.adapter or resolve_adapter()
+  if not self.adapter then
     vim.notify("[CodeCompanion.nvim]\nNo adapter found", vim.log.levels.ERROR)
     return
   end
 
-  self.settings = args.settings or schema.get_default(self.adapter.schema, args.settings)
+  self.settings = args.settings or schema.get_default(self.adapter.args.schema, args.settings)
 
   set_autocmds(self)
   self:render(args.messages or {})
@@ -347,20 +363,16 @@ function Chat:open()
   end
 
   ui.buf_scroll_to_end(self.bufnr)
-  keys.set_keymaps(config.keymaps, self.bufnr, self)
+  keymaps.set(config.keymaps, self.bufnr, self)
 end
 
-function Chat:visible()
-  return self.winnr and vim.api.nvim_win_is_valid(self.winnr) and vim.api.nvim_win_get_buf(self.winnr) == self.bufnr
-end
-
----Setup the chat buffer
+---Render the chat buffer
 ---@param messages table
 function Chat:render(messages)
   local lines = {}
   if config.display.chat.show_settings then
     lines = { "---" }
-    local keys = schema.get_ordered_keys(self.adapter.schema)
+    local keys = schema.get_ordered_keys(self.adapter.args.schema)
     for _, key in ipairs(keys) do
       table.insert(lines, string.format("%s: %s", key, yaml.encode(self.settings[key])))
     end
@@ -403,7 +415,7 @@ function Chat:render(messages)
   vim.bo[self.bufnr].modifiable = modifiable
 end
 
----Submit the chat buffer to the LLM
+---Submit the chat buffer's contents to the LLM
 function Chat:submit()
   local bufnr = self.bufnr
   local settings, messages = parse_settings(bufnr, self.adapter), parse_messages(bufnr)
@@ -412,10 +424,10 @@ function Chat:submit()
   end
 
   -- Add the adapter's chat prompt
-  if self.adapter.chat_prompt then
+  if self.adapter.args.chat_prompt then
     table.insert(messages, {
       role = "system",
-      content = self.adapter.chat_prompt,
+      content = self.adapter.args.chat_prompt,
     })
   end
 
@@ -442,7 +454,7 @@ function Chat:submit()
     end
 
     if data then
-      local result = self.adapter.callbacks.chat_output(data)
+      local result = self.adapter.args.callbacks.chat_output(data)
 
       if result and result.status == "success" then
         self:append(result.output)
@@ -458,7 +470,7 @@ function Chat:submit()
   end)
 end
 
----Stop the response from the LLM
+---Stop and cancel the response from the LLM
 ---@return boolean
 function Chat:stop()
   if self.current_request then
@@ -471,7 +483,7 @@ function Chat:stop()
   return false
 end
 
----Hide the current buffer from view
+---Hide the chat buffer from view
 function Chat:hide()
   local layout = config.display.chat.window.layout
 
@@ -591,17 +603,22 @@ function Chat:reset()
   vim.bo[bufnr].modifiable = true
 end
 
+---Get the messages from the chat buffer
+---@return table, table
+function Chat:get_messages()
+  return parse_settings(self.bufnr, self.adapter), parse_messages(self.bufnr)
+end
+
+---Determine if the chat buffer is visible
+---@return boolean
+function Chat:visible()
+  return self.winnr and vim.api.nvim_win_is_valid(self.winnr) and vim.api.nvim_win_get_buf(self.winnr) == self.bufnr
+end
+
 ---Determine if the current chat buffer is active
 ---@return boolean
 function Chat:active()
   return api.nvim_get_current_buf() == self.bufnr
-end
-
----Get the messages from the chat buffer
----@return table, table
-function Chat:get_messages()
-  local bufnr = self.bufnr
-  return parse_settings(bufnr, self.adapter), parse_messages(bufnr)
 end
 
 return Chat

@@ -1,10 +1,10 @@
 local files = require("codecompanion.utils.files")
 
----@class codecompanion.LogHandler
+---@class CodeCompanion.LogHandler
 ---@field type string
 ---@field level integer
----@field formatter fun(level: integer, msg: string, ...: any)
----@field handle fun(level: integer, text: string)
+---@field formatter? fun(level: integer, msg: string, ...: any)
+---@field handle? fun(level: integer, text: string)
 local LogHandler = {}
 
 local levels_reverse = {}
@@ -54,7 +54,7 @@ local function default_formatter(level, msg, ...)
 end
 
 ---@param opts table
----@return codecompanion.LogHandler
+---@return CodeCompanion.LogHandler
 local function create_file_handler(opts)
   vim.validate({
     filename = { opts.filename, "s" },
@@ -80,7 +80,7 @@ local function create_file_handler(opts)
 end
 
 ---@param opts table
----@return codecompanion.LogHandler
+---@return CodeCompanion.LogHandler
 local function create_notify_handler(opts)
   opts.handle = function(level, text)
     vim.notify(text, level)
@@ -89,7 +89,7 @@ local function create_notify_handler(opts)
 end
 
 ---@param opts table
----@return codecompanion.LogHandler
+---@return CodeCompanion.LogHandler
 local function create_echo_handler(opts)
   opts.handle = function(level, text)
     local hl = "Normal"
@@ -103,7 +103,7 @@ local function create_echo_handler(opts)
   return LogHandler.new(opts)
 end
 
----@return codecompanion.LogHandler
+---@return CodeCompanion.LogHandler
 local function create_null_handler()
   return LogHandler.new({
     formatter = function() end,
@@ -112,7 +112,7 @@ local function create_null_handler()
 end
 
 ---@param opts table
----@return codecompanion.LogHandler
+---@return CodeCompanion.LogHandler
 local function create_handler(opts)
   vim.validate({
     type = { opts.type, "s" },
@@ -132,15 +132,15 @@ local function create_handler(opts)
   end
 end
 
----@class codecompanion.Logger
----@field handlers codecompanion.LogHandler[]
+---@class CodeCompanion.Logger
+---@field handlers CodeCompanion.LogHandler[]
 local Logger = {}
 
----@class codecompanion.LoggerArgs
----@field handlers codecompanion.LogHandler[]
+---@class CodeCompanion.LoggerArgs
+---@field handlers CodeCompanion.LogHandler[]
 ---@field level nil|integer
 
----@param opts codecompanion.LoggerArgs
+---@param opts CodeCompanion.LoggerArgs
 function Logger.new(opts)
   vim.validate({
     handlers = { opts.handlers, "t" },
@@ -166,7 +166,7 @@ function Logger:set_level(level)
   end
 end
 
----@return codecompanion.LogHandler[]
+---@return CodeCompanion.LogHandler[]
 function Logger:get_handlers()
   return self.handlers
 end
@@ -232,7 +232,7 @@ local root = Logger.new({
   },
 })
 
----@type codecompanion.Logger
+---@type CodeCompanion.Logger
 local M = {}
 
 M.new = Logger.new
@@ -246,12 +246,12 @@ M.get_logfile = function()
   return files.join(stdpath, "codecompanion.log")
 end
 
----@param logger codecompanion.Logger
+---@param logger CodeCompanion.Logger
 M.set_root = function(logger)
   root = logger
 end
 
----@return codecompanion.Logger
+---@return CodeCompanion.Logger
 M.get_root = function()
   return root
 end

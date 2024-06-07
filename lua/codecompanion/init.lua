@@ -188,23 +188,13 @@ M.setup = function(opts)
   if opts and opts.adapters then
     for name, adapter in pairs(opts.adapters) do
       if M.config.adapters[name] then
-        if type(adapter) == "string" then
-          -- TODO: Do we need to resolve this in the config?!
-          M.config.adapters[name] = require("codecompanion.adapters").use(adapter)
-        elseif type(adapter) == "table" then
+        if type(adapter) == "table" then
           M.config.adapters[name] = adapter
           if adapter.schema then
             M.config.adapters[name].schema =
               vim.tbl_deep_extend("force", M.config.adapters[name].schema, adapter.schema)
           end
         end
-      end
-    end
-  else
-    for _, adapter in pairs(M.config.strategies) do
-      if type(M.config.adapters[adapter]) == "string" then
-        -- TODO: Do we need to resolve this in the config?!
-        M.config.adapters[adapter] = require("codecompanion.adapters").use(adapter)
       end
     end
   end
