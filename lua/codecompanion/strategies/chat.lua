@@ -356,7 +356,6 @@ function Chat:open()
       zindex = 45,
     }
     self.winnr = vim.api.nvim_open_win(self.bufnr, true, win_opts)
-    ui.set_win_options(self.winnr, window.opts)
   elseif window.layout == "vertical" then
     local cmd = "vsplit"
     if width ~= 0 then
@@ -378,6 +377,7 @@ function Chat:open()
     api.nvim_set_current_buf(self.bufnr)
   end
 
+  ui.set_win_options(self.winnr, window.opts)
   ui.buf_scroll_to_end(self.bufnr)
   keymaps.set(config.keymaps, self.bufnr, self)
 end
