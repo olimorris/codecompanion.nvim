@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 June 02
+*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 June 07
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -106,10 +106,10 @@ Click to see the default configuration ~
         },
         chat = {
           window = {
-            layout = "float",
+            layout = "vertical", -- one of: float|vertical|horizontal|buffer
             border = "single",
             height = 0.8,
-            width = 0.8,
+            width = 0.45,
             relative = "editor",
             opts = {
               cursorcolumn = false,

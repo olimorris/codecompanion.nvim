@@ -30,10 +30,10 @@ return {
     },
     chat = {
       window = {
-        layout = "float",
+        layout = "vertical", -- float|vertical|horizontal|buffer
         border = "single",
         height = 0.8,
-        width = 0.8,
+        width = 0.45,
         relative = "editor",
         opts = {
           cursorcolumn = false,
