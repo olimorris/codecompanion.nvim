@@ -357,6 +357,22 @@ function Chat:open()
     }
     self.winnr = vim.api.nvim_open_win(self.bufnr, true, win_opts)
     ui.set_win_options(self.winnr, window.opts)
+  elseif window.layout == "vertical" then
+    local cmd = "vsplit"
+    if width ~= 0 then
+      cmd = width .. cmd
+    end
+    vim.cmd(cmd)
+    self.winnr = vim.api.nvim_get_current_win()
+    vim.api.nvim_win_set_buf(self.winnr, self.bufnr)
+  elseif window.layout == "horizontal" then
+    local cmd = "split"
+    if height ~= 0 then
+      cmd = height .. cmd
+    end
+    vim.cmd(cmd)
+    self.winnr = vim.api.nvim_get_current_win()
+    vim.api.nvim_win_set_buf(self.winnr, self.bufnr)
   else
     self.winnr = api.nvim_get_current_win()
     api.nvim_set_current_buf(self.bufnr)
@@ -487,7 +503,7 @@ end
 function Chat:hide()
   local layout = config.display.chat.window.layout
 
-  if layout == "float" then
+  if layout == "float" or layout == "vertical" or layout == "horizontal" then
     if self:active() then
       vim.cmd("hide")
     else
