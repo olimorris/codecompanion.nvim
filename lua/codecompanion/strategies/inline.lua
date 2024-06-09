@@ -1,12 +1,12 @@
 local client = require("codecompanion.client")
-local config = require("codecompanion.config")
+local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 
 local api = vim.api
 
 ---@param status string
-local function fire_autocmd(status)
+local function announce(status)
   vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionInline", data = { status = status } })
 end
 
@@ -28,7 +28,7 @@ local build_prompt = function(inline, user_input)
   local output = {}
 
   for _, prompt in ipairs(inline.prompts) do
-    if not prompt.contains_code or (prompt.contains_code and config.options.send_code) then
+    if not prompt.contains_code or (prompt.contains_code and config.send_code) then
       if type(prompt.content) == "function" then
         prompt.content = prompt.content(inline.context)
       end
@@ -49,7 +49,7 @@ local build_prompt = function(inline, user_input)
   end
 
   -- Send code as context
-  if config.options.send_code and inline.context.is_visual then
+  if config.send_code and inline.context.is_visual then
     table.insert(output, {
       role = "user",
       content = code_block(inline.context.filetype, inline.context.lines),
@@ -179,19 +179,17 @@ local function get_inline_output(inline, placement, prompt, output)
   local pos = calc_placement(inline, action)
 
   vim.api.nvim_buf_set_keymap(inline.context.bufnr, "n", "q", "", {
-    desc = "Cancel the request",
+    desc = "Stop the request",
     callback = function()
       log:trace("Cancelling the inline request")
-      vim.api.nvim_exec_autocmds(
-        "User",
-        { pattern = "CodeCompanionRequest", data = { buf = inline.context.bufnr, action = "cancel_request" } }
-      )
+      if inline.current_request then
+        inline:stop()
+      end
     end,
   })
 
-  client.new():stream(inline.adapter:set_params(), prompt, inline.context.bufnr, function(err, data, done)
+  inline.current_request = client.new():stream(inline.adapter:set_params(), prompt, function(err, data, done)
     if err then
-      fire_autocmd("finished")
       return
     end
 
@@ -201,14 +199,13 @@ local function get_inline_output(inline, placement, prompt, output)
         log:debug("Terminal output: %s", output)
         api.nvim_put({ table.concat(output, "") }, "", false, true)
       end
-      fire_autocmd("finished")
       return
     end
 
     if data then
       log:trace("Inline data: %s", data)
 
-      local content = inline.adapter.callbacks.inline_output(data, inline.context)
+      local content = inline.adapter.args.callbacks.inline_output(data, inline.context)
 
       if inline.context.buftype == "terminal" then
         -- Don't stream to the terminal
@@ -222,21 +219,27 @@ local function get_inline_output(inline, placement, prompt, output)
         end
       end
     end
+  end, function()
+    inline.current_request = nil
+    vim.schedule(function()
+      announce("finished")
+    end)
   end)
 end
 
 ---@class CodeCompanion.Inline
 ---@field context table
 ---@field adapter CodeCompanion.Adapter
+---@field current_request table
 ---@field opts table
 ---@field prompts table
 local Inline = {}
 
 ---@class CodeCompanion.InlineArgs
 ---@field context table
----@field adapter CodeCompanion.Adapter
----@field opts table
----@field pre_hook fun():number -- Assuming pre_hook returns a number for example
+---@field adapter? CodeCompanion.Adapter
+---@field opts? table
+---@field pre_hook? fun():number -- Assuming pre_hook returns a number for example
 ---@field prompts table
 
 ---@param opts CodeCompanion.InlineArgs
@@ -256,10 +259,18 @@ function Inline.new(opts)
 
   return setmetatable({
     context = opts.context,
-    adapter = config.options.adapters[config.options.strategies.inline],
+    adapter = config.adapters[config.strategies.inline],
     opts = opts.opts or {},
     prompts = vim.deepcopy(opts.prompts),
   }, { __index = Inline })
+end
+
+---Stop the current request
+function Inline:stop()
+  if self.current_request then
+    self.current_request:shutdown()
+    self.current_request = nil
+  end
 end
 
 ---@param user_input string|nil
@@ -289,10 +300,9 @@ function Inline:execute(user_input)
     vim.api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
 
     local placement = ""
-    fire_autocmd("started")
-    client.new():stream(self.adapter:set_params(), action, self.context.bufnr, function(err, data, done)
+    announce("started")
+    client.new():stream(self.adapter:set_params(), action, function(err, data, done)
       if err then
-        fire_autocmd("finished")
         return
       end
 
@@ -303,8 +313,12 @@ function Inline:execute(user_input)
       end
 
       if data then
-        placement = placement .. (self.adapter.callbacks.inline_output(data) or "")
+        placement = placement .. (self.adapter.args.callbacks.inline_output(data) or "")
       end
+    end, function()
+      vim.schedule(function()
+        announce("finished")
+      end)
     end)
   else
     get_inline_output(self, self.opts.placement, prompt, {})

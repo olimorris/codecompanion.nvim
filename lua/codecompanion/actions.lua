@@ -1,4 +1,4 @@
-local config = require("codecompanion.config")
+local config = require("codecompanion").config
 local utils = require("codecompanion.utils.util")
 
 local M = {}
@@ -87,15 +87,7 @@ M.static.actions = {
             description = chat.description,
             callback = function()
               _G.codecompanion_chats[bufnr] = nil
-
-              if config.options.display.chat.type == "float" then
-                ui.open_float(bufnr, {
-                  display = config.options.display.chat.float_options,
-                })
-              else
-                vim.api.nvim_set_current_buf(bufnr)
-              end
-
+              chat.chat:open()
               ui.buf_scroll_to_end(bufnr)
             end,
           })
@@ -294,7 +286,7 @@ M.static.actions = {
     strategy = "tool",
     description = "Use the built-in tools to help you code",
     condition = function()
-      local tools = config.options.tools
+      local tools = config.tools
       local i = 0
       for _, tool in pairs(tools) do
         if tool.enabled then
@@ -308,7 +300,7 @@ M.static.actions = {
       items = function()
         local tools = {}
 
-        for id, tool in pairs(config.options.tools) do
+        for id, tool in pairs(config.tools) do
           if tool.enabled then
             table.insert(tools, {
               name = tool.name,

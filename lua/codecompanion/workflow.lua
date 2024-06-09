@@ -1,4 +1,4 @@
-local config = require("codecompanion.config")
+local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Workflow
@@ -25,7 +25,7 @@ function Workflow:workflow(prompts)
     if prompt.start then
       if
         (type(prompt.condition) == "function" and not prompt.condition())
-        or (prompt.contains_code and not config.options.send_code)
+        or (prompt.contains_code and not config.send_code)
       then
         goto continue
       end

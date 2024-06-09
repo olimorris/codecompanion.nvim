@@ -4,35 +4,9 @@ local schema = require("codecompanion.schema")
 
 local api = vim.api
 
-_G.codecompanion_jobs = {}
-
 ---@param status string
-local function fire_autocmd(status)
+local function announce(status)
   api.nvim_exec_autocmds("User", { pattern = "CodeCompanionRequest", data = { status = status } })
-end
-
----@param bufnr? number
----@param handler? table
-local function start_request(bufnr, handler)
-  if bufnr and handler then
-    _G.codecompanion_jobs[bufnr] = {
-      status = "running",
-      handler = handler,
-    }
-  end
-  fire_autocmd("started")
-end
-
----@param bufnr? number
----@param opts? table
-local function stop_request(bufnr, opts)
-  if bufnr then
-    if opts and opts.shutdown then
-      _G.codecompanion_jobs[bufnr].handler:shutdown()
-    end
-    _G.codecompanion_jobs[bufnr] = nil
-  end
-  fire_autocmd("finished")
 end
 
 ---@class CodeCompanion.Client
@@ -66,66 +40,63 @@ end
 
 ---@param adapter CodeCompanion.Adapter
 ---@param payload table the payload to send to the API
----@param bufnr number
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
----@return nil
-function Client:stream(adapter, payload, bufnr, cb)
+---@param after? fun() Will be called after the request is finished
+---@return table The Plenary job
+function Client:stream(adapter, payload, cb, after)
   cb = log:wrap_cb(cb, "Response error: %s")
 
   --TODO: Check for any errors env variables
-  local headers = adapter:replace_header_vars().headers
+  local headers = adapter:replace_header_vars().args.headers
   local body = self.opts.encode(
     vim.tbl_extend(
       "keep",
-      adapter.callbacks.form_parameters(adapter.parameters, payload) or {},
-      adapter.callbacks.form_messages(payload)
+      adapter.args.callbacks.form_parameters(adapter.args.parameters, payload) or {},
+      adapter.args.callbacks.form_messages(payload)
     )
   )
 
-  local cancel_request = api.nvim_create_autocmd("User", {
-    desc = "Stop the current request",
-    pattern = "CodeCompanionRequest",
-    callback = function(request)
-      if request.data.buf ~= bufnr or request.data.action ~= "cancel_request" then
-        return
-      end
+  local handler = self.opts
+    .request({
+      url = adapter.args.url,
+      raw = adapter.args.raw or { "--no-buffer" },
+      headers = headers,
+      body = body,
+      stream = self.opts.schedule(function(_, data)
+        if data then
+          log:trace("Chat data: %s", data)
+        end
+        -- log:trace("----- For Adapter test creation -----\nRequest: %s\n ---------- // END ----------", data)
 
-      return stop_request(request.data.buf, { shutdown = true })
-    end,
-  })
+        if adapter.args.callbacks.is_complete(data) then
+          log:trace("Chat completed")
+          return cb(nil, nil, true)
+        end
 
-  local handler = self.opts.request({
-    url = adapter.url,
-    raw = adapter.raw or { "--no-buffer" },
-    headers = headers,
-    body = body,
-    stream = self.opts.schedule(function(_, data)
-      if data then
-        log:trace("Chat data: %s", data)
-      end
-      -- log:trace("----- For Adapter test creation -----\nRequest: %s\n ---------- // END ----------", data)
-
-      if adapter.callbacks.is_complete(data) then
-        log:trace("Chat completed")
-        stop_request(bufnr)
-        api.nvim_del_autocmd(cancel_request)
+        cb(nil, data)
+      end),
+      on_error = function(err, _, code)
+        if code then
+          log:error("Error: %s", err)
+        end
         return cb(nil, nil, true)
+      end,
+    })
+    :after(function()
+      vim.schedule(function()
+        announce("finished")
+      end)
+      if after and type(after) == "function" then
+        after()
       end
+    end)
 
-      cb(nil, data)
-    end),
-    on_error = function(err, _, code)
-      if code then
-        log:error("Error: %s", err)
-      end
-      stop_request(bufnr)
-      api.nvim_del_autocmd(cancel_request)
-      return cb(nil, nil, true)
-    end,
-  })
+  if handler and handler.args then
+    log:debug("Stream Request: %s", handler.args)
+  end
+  announce("started")
 
-  log:debug("Stream Request: %s", handler.args)
-  start_request(bufnr, handler)
+  return handler
 end
 
 return Client

@@ -1,13 +1,5 @@
 {
     "diagnostics.globals": [
-        "vim",
-        "describe",
-        "it",
-        "after_each",
-        "before_each"
-    ],
-    "diagnostics.disable": [
-        "missing-fields",
-        "duplicate-doc-field"
+        "vim"
     ]
 }

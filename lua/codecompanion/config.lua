@@ -1,6 +1,4 @@
-local M = {}
-
-local defaults = {
+return {
   adapters = {
     anthropic = "anthropic",
     ollama = "ollama",
@@ -31,34 +29,31 @@ local defaults = {
       height = 10,
     },
     chat = {
-      type = "float",
+      window = {
+        layout = "vertical", -- float|vertical|horizontal|buffer
+        border = "single",
+        height = 0.8,
+        width = 0.45,
+        relative = "editor",
+        opts = {
+          cursorcolumn = false,
+          cursorline = false,
+          foldcolumn = "0",
+          linebreak = true,
+          list = false,
+          signcolumn = "no",
+          spell = false,
+          wrap = true,
+        },
+      },
       show_settings = true,
       show_token_count = true,
-      buf_options = {
-        buflisted = false,
-      },
-      float_options = {
-        border = "single",
-        max_height = 0,
-        max_width = 0,
-        padding = 1,
-      },
-      win_options = {
-        cursorcolumn = false,
-        cursorline = false,
-        foldcolumn = "0",
-        linebreak = true,
-        list = false,
-        signcolumn = "no",
-        spell = false,
-        wrap = true,
-      },
     },
   },
   keymaps = {
     ["<C-s>"] = "keymaps.save",
     ["<C-c>"] = "keymaps.close",
-    ["q"] = "keymaps.cancel_request",
+    ["q"] = "keymaps.stop",
     ["gc"] = "keymaps.clear",
     ["ga"] = "keymaps.codeblock",
     ["gs"] = "keymaps.save_chat",
@@ -72,63 +67,3 @@ local defaults = {
   silence_notifications = false,
   use_default_actions = true,
 }
-
----@param opts nil|table
-M.setup = function(opts)
-  M.options = vim.tbl_deep_extend("force", {}, defaults, opts or {})
-
-  -- Handle custom adapter config
-  if opts and opts.adapters then
-    for name, adapter in pairs(opts.adapters) do
-      if M.options.adapters[name] then
-        if type(adapter) == "string" then
-          M.options.adapters[name] = require("codecompanion.adapters").use(adapter)
-        elseif type(adapter) == "table" then
-          M.options.adapters[name] = adapter
-          if adapter.schema then
-            M.options.adapters[name].schema =
-              vim.tbl_deep_extend("force", M.options.adapters[name].schema, adapter.schema)
-          end
-        end
-      end
-    end
-  else
-    for _, adapter in pairs(M.options.strategies) do
-      if type(M.options.adapters[adapter]) == "string" then
-        M.options.adapters[adapter] = require("codecompanion.adapters").use(adapter)
-      end
-    end
-  end
-
-  M.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
-  M.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
-
-  local log = require("codecompanion.utils.log")
-  log.set_root(log.new({
-    handlers = {
-      {
-        type = "echo",
-        level = vim.log.levels.WARN,
-      },
-      {
-        type = "file",
-        filename = "codecompanion.log",
-        level = vim.log.levels[M.options.log_level],
-      },
-    },
-  }))
-
-  vim.treesitter.language.register("markdown", "codecompanion")
-
-  local diagnostic_config = {
-    underline = false,
-    virtual_text = {
-      severity = { min = vim.diagnostic.severity.INFO },
-    },
-    signs = false,
-  }
-  vim.diagnostic.config(diagnostic_config, M.INFO_NS)
-  vim.diagnostic.config(diagnostic_config, M.ERROR_NS)
-end
-
-return M
