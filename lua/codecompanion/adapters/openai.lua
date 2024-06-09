@@ -116,11 +116,13 @@ First think step-by-step - describe your plan for what to build in pseudocode, w
           end
         end
 
-        local delta = json.choices[1].delta
+        if #json.choices > 0 then
+          local delta = json.choices[1].delta
 
-        if delta.content then
-          output.content = delta.content
-          output.role = delta.role or nil
+          if delta.content then
+            output.content = delta.content
+            output.role = delta.role or nil
+          end
         end
 
         -- log:trace("----- For Adapter test creation -----\nOutput: %s\n ---------- // END ----------", output)
