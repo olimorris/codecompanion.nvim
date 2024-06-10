@@ -21,7 +21,7 @@ M.close = {
 M.stop = {
   desc = "Stop the current request",
   callback = function(chat)
-    if chat.current_job then
+    if chat.current_request then
       chat:stop()
     end
   end,
