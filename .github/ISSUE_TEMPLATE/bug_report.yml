@@ -56,7 +56,9 @@ body:
                   strategies = { -- Change the adapters as required
                     chat = "openai",
                     inline = "openai",
+                    tools = "openai",
                   },
+                  log_level = "TRACE",
                 })
               end,
             }
@@ -129,9 +131,9 @@ body:
         label: Describe the bug
         description: Please describe the bug and include any screenshots
         placeholder: |
-          ### What I expect to happen
+          What I expect to happen:
 
-          ### What actually happens
+          What actually happens:
 
       validations:
         required: true
@@ -159,4 +161,6 @@ body:
           - label: I have made sure this issue exists in the latest version of the plugin
             required: true
           - label: I have tested with the `minimal.lua` config file above and still get the issue
+            required: true
+          - label: I have shared the contents of the log file
             required: true
