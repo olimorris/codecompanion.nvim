@@ -7,7 +7,7 @@ local api = vim.api
 
 ---@param status string
 local function announce(status)
-  vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionInline", data = { status = status } })
+  api.nvim_exec_autocmds("User", { pattern = "CodeCompanionInline", data = { status = status } })
 end
 
 ---@param filetype string
@@ -143,7 +143,7 @@ local function calc_placement(inline, placement)
 
   if placement == "before" then
     log:trace("Placing before selection")
-    vim.api.nvim_buf_set_lines(
+    api.nvim_buf_set_lines(
       inline.context.bufnr,
       inline.context.start_line - 1,
       inline.context.start_line - 1,
@@ -155,7 +155,7 @@ local function calc_placement(inline, placement)
     pos.col = inline.context.start_col - 1
   elseif placement == "after" then
     log:trace("Placing after selection")
-    vim.api.nvim_buf_set_lines(inline.context.bufnr, inline.context.end_line, inline.context.end_line, false, { "" })
+    api.nvim_buf_set_lines(inline.context.bufnr, inline.context.end_line, inline.context.end_line, false, { "" })
     pos.line = inline.context.end_line + 1
     pos.col = 0
   elseif placement == "replace" then
@@ -192,7 +192,7 @@ local function get_inline_output(inline, placement, prompt, output)
 
   local pos = calc_placement(inline, action)
 
-  vim.api.nvim_buf_set_keymap(inline.context.bufnr, "n", "q", "", {
+  api.nvim_buf_set_keymap(inline.context.bufnr, "n", "q", "", {
     desc = "Stop the request",
     callback = function()
       log:trace("Cancelling the inline request")
@@ -311,7 +311,7 @@ function Inline:execute(user_input)
     }
 
     -- Assume the placement should be after the cursor
-    vim.api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
+    api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
 
     local placement = ""
     announce("started")

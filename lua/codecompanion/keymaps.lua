@@ -1,5 +1,6 @@
 local config = require("codecompanion").config
 local ts = require("codecompanion.utils.ts")
+local api = vim.api
 
 local M = {}
 
@@ -56,18 +57,18 @@ M.save_chat = {
 M.clear = {
   desc = "Clear the current chat",
   callback = function(args)
-    local ns_id = vim.api.nvim_create_namespace("CodeCompanionTokens")
-    vim.api.nvim_buf_clear_namespace(args.bufnr, ns_id, 0, -1)
+    local ns_id = api.nvim_create_namespace("CodeCompanionTokens")
+    api.nvim_buf_clear_namespace(args.bufnr, ns_id, 0, -1)
 
-    vim.api.nvim_buf_set_lines(args.bufnr, 0, -1, false, {})
+    api.nvim_buf_set_lines(args.bufnr, 0, -1, false, {})
   end,
 }
 
 M.codeblock = {
   desc = "Insert a codeblock",
   callback = function(args)
-    local bufnr = vim.api.nvim_get_current_buf()
-    local cursor_pos = vim.api.nvim_win_get_cursor(0)
+    local bufnr = api.nvim_get_current_buf()
+    local cursor_pos = api.nvim_win_get_cursor(0)
     local line = cursor_pos[1]
 
     args.type = args.type or ""
@@ -78,8 +79,8 @@ M.codeblock = {
       "```",
     }
 
-    vim.api.nvim_buf_set_lines(bufnr, line - 1, line, false, codeblock)
-    vim.api.nvim_win_set_cursor(0, { line + 1, vim.fn.indent(line) })
+    api.nvim_buf_set_lines(bufnr, line - 1, line, false, codeblock)
+    api.nvim_win_set_cursor(0, { line + 1, vim.fn.indent(line) })
   end,
 }
 

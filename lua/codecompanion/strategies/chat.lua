@@ -297,7 +297,7 @@ function Chat.new(args)
     status = "",
     last_role = "user",
     create_buf = function()
-      local bufnr = vim.api.nvim_create_buf(false, true)
+      local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
       api.nvim_buf_set_option(bufnr, "buftype", "acwrite")
       api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
@@ -355,23 +355,23 @@ function Chat:open()
       title_pos = "center",
       zindex = 45,
     }
-    self.winnr = vim.api.nvim_open_win(self.bufnr, true, win_opts)
+    self.winnr = api.nvim_open_win(self.bufnr, true, win_opts)
   elseif window.layout == "vertical" then
     local cmd = "vsplit"
     if width ~= 0 then
       cmd = width .. cmd
     end
     vim.cmd(cmd)
-    self.winnr = vim.api.nvim_get_current_win()
-    vim.api.nvim_win_set_buf(self.winnr, self.bufnr)
+    self.winnr = api.nvim_get_current_win()
+    api.nvim_win_set_buf(self.winnr, self.bufnr)
   elseif window.layout == "horizontal" then
     local cmd = "split"
     if height ~= 0 then
       cmd = height .. cmd
     end
     vim.cmd(cmd)
-    self.winnr = vim.api.nvim_get_current_win()
-    vim.api.nvim_win_set_buf(self.winnr, self.bufnr)
+    self.winnr = api.nvim_get_current_win()
+    api.nvim_win_set_buf(self.winnr, self.bufnr)
   else
     self.winnr = api.nvim_get_current_win()
     api.nvim_set_current_buf(self.bufnr)
@@ -603,7 +603,7 @@ function Chat:add_message(data, opts)
   self:append({ role = data.role, content = data.content }, opts)
 
   if opts and opts.notify then
-    vim.api.nvim_echo({
+    api.nvim_echo({
       { "[CodeCompanion.nvim]\n", "Normal" },
       { opts.notify, "MoreMsg" },
     }, true, {})
@@ -628,7 +628,7 @@ end
 ---Determine if the chat buffer is visible
 ---@return boolean
 function Chat:visible()
-  return self.winnr and vim.api.nvim_win_is_valid(self.winnr) and vim.api.nvim_win_get_buf(self.winnr) == self.bufnr
+  return self.winnr and api.nvim_win_is_valid(self.winnr) and api.nvim_win_get_buf(self.winnr) == self.bufnr
 end
 
 ---Determine if the current chat buffer is active

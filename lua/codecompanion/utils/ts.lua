@@ -1,11 +1,12 @@
 local ts_parsers = require("nvim-treesitter.parsers")
 local ts_utils = require("nvim-treesitter.ts_utils")
+local api = vim.api
 
 local M = {}
 
 function M.goto_heading(direction, count)
-  local bufnr = vim.api.nvim_get_current_buf()
-  local cursor = vim.api.nvim_win_get_cursor(0)
+  local bufnr = api.nvim_get_current_buf()
+  local cursor = api.nvim_win_get_cursor(0)
   local current_row = cursor[1] - 1
 
   local parser = ts_parsers.get_parser(bufnr, "markdown")

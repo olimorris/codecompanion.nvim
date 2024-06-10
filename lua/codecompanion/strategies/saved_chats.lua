@@ -2,6 +2,7 @@ local Chat = require("codecompanion.strategies.chat")
 local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
 
+local api = vim.api
 local prefix = config.saved_chats.save_dir .. "/"
 local suffix = ".json"
 
@@ -12,7 +13,7 @@ end
 ---@param bufnr number
 ---@param name string
 local function rename_buffer(bufnr, name)
-  vim.api.nvim_buf_set_name(bufnr, "[CodeCompanion Chat] " .. name .. ".md")
+  api.nvim_buf_set_name(bufnr, "[CodeCompanion Chat] " .. name .. ".md")
 end
 
 ---@class CodeCompanion.SavedChat
@@ -53,7 +54,7 @@ local function save(filename, bufnr, saved_chat)
     log:debug('Saved Chat: "%s.json" saved', filename)
     file:write(vim.json.encode(saved_chat))
     file:close()
-    vim.api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChatSaved", data = { status = "finished" } })
+    api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChatSaved", data = { status = "finished" } })
   else
     log:debug("Saved chat could not be saved. Error: %s", err)
     vim.notify("[CodeCompanion.nvim]\nCannot save chat: " .. err, vim.log.levels.ERROR)

@@ -1,4 +1,5 @@
 --Taken from https://github.com/jackMort/ChatGPT.nvim/blob/main/lua/chatgpt/flows/chat/tokens.lua
+local api = vim.api
 
 local M = {}
 
@@ -42,7 +43,7 @@ function M.get_tokens(messages)
 end
 
 local function get_messages(bufnr)
-  bufnr = bufnr or vim.api.nvim_get_current_buf()
+  bufnr = bufnr or api.nvim_get_current_buf()
 
   local query_str = [[
     (section) @section
@@ -57,7 +58,7 @@ local function get_messages(bufnr)
     if query.captures[pattern] == "section" then
       local section_node = match[pattern]
       local section_start_row, _, section_end_row, _ = section_node:range()
-      local lines = vim.api.nvim_buf_get_lines(bufnr, section_start_row, section_end_row + 1, false)
+      local lines = api.nvim_buf_get_lines(bufnr, section_start_row, section_end_row + 1, false)
       for id, _ in ipairs(match) do
         if query.captures[id] ~= "heading" then
           table.insert(messages, lines)
@@ -71,10 +72,10 @@ end
 
 ---@param bufnr nil|number
 function M.display_tokens(bufnr)
-  bufnr = bufnr or vim.api.nvim_get_current_buf()
+  bufnr = bufnr or api.nvim_get_current_buf()
 
-  local ns_id = vim.api.nvim_create_namespace("CodeCompanionTokens")
-  vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+  local ns_id = api.nvim_create_namespace("CodeCompanionTokens")
+  api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
 
   local parser = vim.treesitter.get_parser(bufnr, "markdown", {})
   local tree = parser:parse()[1]
@@ -99,7 +100,7 @@ function M.display_tokens(bufnr)
 
     local virtual_text = { { " (" .. tokens .. " tokens)", "CodeCompanionTokens" } }
 
-    vim.api.nvim_buf_set_extmark(bufnr, ns_id, end_row - 1, 0, {
+    api.nvim_buf_set_extmark(bufnr, ns_id, end_row - 1, 0, {
       virt_text = virtual_text,
       virt_text_pos = "eol", -- 'overlay' or 'right_align' or 'eol'
     })

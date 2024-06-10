@@ -199,8 +199,8 @@ M.setup = function(opts)
     end
   end
 
-  M.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
-  M.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
+  M.INFO_NS = api.nvim_create_namespace("CodeCompanion-info")
+  M.ERROR_NS = api.nvim_create_namespace("CodeCompanion-error")
 
   local log = require("codecompanion.utils.log")
   log.set_root(log.new({
