@@ -294,6 +294,12 @@ function Inline:execute(user_input)
     return
   end
 
+  if type(self.adapter) == "string" then
+    self.adapter = require("codecompanion.adapters").use(self.adapter)
+  end
+
+  log:trace("Inline adapter config: %s", self.adapter)
+
   local prompt = build_prompt(self, user_input)
 
   if not self.opts.placement then
