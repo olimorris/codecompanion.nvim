@@ -49,11 +49,25 @@ local build_prompt = function(inline, user_input)
   end
 
   -- Send code as context
-  if config.send_code and inline.context.is_visual then
-    table.insert(output, {
-      role = "user",
-      content = code_block(inline.context.filetype, inline.context.lines),
-    })
+  if config.send_code then
+    if inline.opts.send_open_buffers then
+      log:trace("Sending open buffers to the LLM")
+      local buf_utils = require("codecompanion.utils.buffers")
+      local buffers = buf_utils.get_open_buffers(inline.context.filetype)
+
+      table.insert(output, {
+        role = "user",
+        content = "I've included some additional context in the form of open buffers: \n"
+          .. buf_utils.format(buffers, inline.context.filetype),
+      })
+    end
+    if inline.context.is_visual then
+      log:trace("Sending visual selection")
+      table.insert(output, {
+        role = "user",
+        content = code_block(inline.context.filetype, inline.context.lines),
+      })
+    end
   end
 
   return output
@@ -286,7 +300,7 @@ function Inline:execute(user_input)
     local action = {
       {
         role = "system",
-        content = 'I am writing a prompt from within the Neovim text editor. This prompt will go to a generative AI model which will return a response. The response will then be streamed into Neovim. However, depending on the nature of the prompt, how Neovim handles the output will vary. For instance, if the user references the words "refactor" or "update" in their prompt, they will likely want the response to replace a visual selection they\'ve made in the editor. However, if they include words such as "after" or "before", it may be insinuated that they wish the response to be placed after or before the cursor position. They may also ask for the response to be placed in a new buffer. Finally, if you they don\'t specify what they wish to do, then they likely want to stream the response into where the cursor is currently. What I\'d like you to do is analyse the following prompt and determine whether the response should be one of: 1) after 2) before 3) replace 4) new 5) cursor. We\'ll call this the "placement" and please only respond with a single word. The user may not wish for their original code to be returned back to them from the generative AI model as part of the response. An example would be if they\'ve asked the model to generate comments or documentation. However if they\'ve asked for some refactoring/modification, then the original code should be returned. Please can you determine whether the code should be returned or not by responding with a boolean flag. Can you append this to the "placement" from earlier and seperate them with a "|" character? An example would be "cursor|true". DO NOT response with anything other than "cursor|true".',
+        content = 'I am writing a prompt from within the Neovim text editor. This prompt will go to an LLM which will return a response. The response will then be streamed into Neovim. However, depending on the nature of the prompt, how Neovim handles the output will vary. For instance, if the user references the words "refactor" or "update" in their prompt, they will likely want the response to replace a visual selection they\'ve made in the editor. However, if they include words such as "after" or "before", it may be insinuated that they wish the response to be placed after or before the cursor position. They may also ask for the response to be placed in a new buffer. Finally, if you they don\'t specify what they wish to do, then they likely want to stream the response into where the cursor is currently. What I\'d like you to do is analyse the following prompt and determine whether the response should be one of: 1) after 2) before 3) replace 4) new 5) cursor. We\'ll call this the "placement" and please only respond with a single word. The user may not wish for their original code to be returned back to them from the generative AI model as part of the response. An example would be if they\'ve asked the model to generate comments or documentation. However if they\'ve asked for some refactoring/modification, then the original code should be returned. Please can you determine whether the code should be returned or not by responding with a boolean flag. Can you append this to the "placement" from earlier and seperate them with a "|" character? An example would be "cursor|true". DO NOT respond with anything other than "cursor|true".',
       },
       {
         role = "user",
@@ -326,10 +340,13 @@ function Inline:execute(user_input)
   end
 end
 
----@param user_input? string
-function Inline:start(user_input)
-  if user_input then
-    return self:execute(user_input)
+---@param opts? table
+function Inline:start(opts)
+  if opts and opts[1] then
+    self.opts = opts[1]
+  end
+  if opts and opts.args then
+    return self:execute(opts.args)
   end
 
   if self.opts and self.opts.user_prompt then

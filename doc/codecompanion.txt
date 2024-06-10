@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 June 07
+*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 June 10
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -106,7 +106,7 @@ Click to see the default configuration ~
         },
         chat = {
           window = {
-            layout = "vertical", -- one of: float|vertical|horizontal|buffer
+            layout = "vertical", -- float|vertical|horizontal|buffer
             border = "single",
             height = 0.8,
             width = 0.45,
@@ -288,6 +288,7 @@ USAGE                                                    *codecompanion-usage*
 The plugin has a number of commands:
 
 - `:CodeCompanion` - Inline code writing and refactoring
+- `:CodeCompanionWithBuffers` - Inline coding and also sends open buffers to the LLM
 - `:CodeCompanionChat` - To open up a new chat buffer
 - `:CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
 - `:CodeCompanionAdd` - To add visually selected chat to the current chat buffer
@@ -305,6 +306,7 @@ For an optimum workflow, the plugin author recommendeds the following:
     
     -- Expand `cc` into CodeCompanion in the command line
     vim.cmd([[cab cc CodeCompanion]])
+    vim.cmd([[cab ccb CodeCompanionWithBuffers]])
 <
 
 
@@ -371,6 +373,60 @@ removed from memory) by pressing `<C-c>`.
 
 
 INLINE CODE ~
+
+You can use the plugin to create inline code directly into a Neovim buffer.
+This can be invoked by using the _Action Palette_ (as above) or from the
+command line via `:CodeCompanion`. For example:
+
+>
+    :CodeCompanion create a table of 5 common text editors and loop through them
+<
+
+>
+    :'<,'>CodeCompanion refactor the code to make it more concise
+<
+
+
+  [!NOTE] The command can detect if you’ve made a visual selection and send any
+  code as context to the LLM alongside the filetype of the buffer.
+You can also send the contents of any loaded buffers (which match the current
+buffer’s filetype) to the LLM as context:
+
+>
+    :CodeCompanionWithBuffers <your request>
+<
+
+
+  [!NOTE] If `send_code = false` then this will take precedent and no buffers
+  will be sent to the LLM
+
+OTHER POINTS TO NOTE
+
+One of the challenges with inline editing is determining how the LLM’s
+response should be handled in the buffer. If you’ve prompted the LLM to
+_“create a table of 5 common text editors”_ then you may wish for the
+response to be placed after the cursor’s current position in the buffer.
+However, if you asked the LLM to _“refactor this function”_ then you’d
+expect the response to overwrite a visual selection. The plugin will use the
+inline LLM you’ve specified to determine if the response should follow any of
+the placements below:
+
+- _after_ - after the visual selection
+- _before_ - before the visual selection
+- _cursor_ - one column after the cursor position
+- _new_ - in a new buffer
+- _replace_ - replacing the visual selection
+
+The strategy comes with a number of helpers via the action palette which the
+user can type in the prompt, similar to GitHub Copilot Chat
+<https://github.blog/changelog/2024-01-30-code-faster-and-better-with-github-copilots-new-features-in-visual-studio/>
+
+- `/doc`to add a documentation comment
+- `/optimize` to analyze and improve the running time of the selected code
+- `/tests` to create unit tests for the selected code
+
+
+TOOLS ~
 
 
   [!IMPORTANT] Tools are currently at an alpha stage. I’m yet to properly

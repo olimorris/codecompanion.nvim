@@ -1,3 +1,4 @@
+---
 ---@class CodeCompanionCommandOpts:table
 ---@field desc string
 
@@ -8,25 +9,41 @@
 
 local codecompanion = require("codecompanion")
 
+local function inline(opts)
+  if #vim.trim(opts.args or "") == 0 then
+    vim.ui.input({ prompt = "Prompt" }, function(input)
+      if #vim.trim(input or "") == 0 then
+        return
+      end
+      opts.args = input
+      codecompanion.inline(opts)
+    end)
+  else
+    codecompanion.inline(opts)
+  end
+end
+
 ---@type CodeCompanionCommand[]
 return {
   {
     cmd = "CodeCompanion",
     callback = function(opts)
-      if #vim.trim(opts.args or "") == 0 then
-        vim.ui.input({ prompt = "Prompt" }, function(input)
-          if #vim.trim(input or "") == 0 then
-            return
-          end
-          opts.args = input
-          codecompanion.inline(opts)
-        end)
-      else
-        codecompanion.inline(opts)
-      end
+      inline(opts)
     end,
     opts = {
       desc = "Trigger CodeCompanion inline",
+      range = true,
+      nargs = "*",
+    },
+  },
+  {
+    cmd = "CodeCompanionWithBuffers",
+    callback = function(opts)
+      table.insert(opts, { send_open_buffers = true })
+      inline(opts)
+    end,
+    opts = {
+      desc = "Trigger CodeCompanion inline and send open buffers as context",
       range = true,
       nargs = "*",
     },

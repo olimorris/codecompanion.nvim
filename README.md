@@ -128,7 +128,7 @@ require("codecompanion").setup({
     },
     chat = {
       window = {
-        layout = "vertical", -- one of: float|vertical|horizontal|buffer
+        layout = "vertical", -- float|vertical|horizontal|buffer
         border = "single",
         height = 0.8,
         width = 0.45,
@@ -292,6 +292,7 @@ The plugin sets the following highlight groups during setup:
 The plugin has a number of commands:
 
 - `:CodeCompanion` - Inline code writing and refactoring
+- `:CodeCompanionWithBuffers` - Inline coding and also sends open buffers to the LLM
 - `:CodeCompanionChat` - To open up a new chat buffer
 - `:CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
 - `:CodeCompanionAdd` - To add visually selected chat to the current chat buffer
@@ -309,6 +310,7 @@ vim.api.nvim_set_keymap("v", "ga", "<cmd>CodeCompanionAdd<cr>", { noremap = true
 
 -- Expand `cc` into CodeCompanion in the command line
 vim.cmd([[cab cc CodeCompanion]])
+vim.cmd([[cab ccb CodeCompanionWithBuffers]])
 ```
 
 > [!NOTE]
@@ -317,7 +319,9 @@ vim.cmd([[cab cc CodeCompanion]])
 ### The Action Palette
 
 <!-- panvimdoc-ignore-start -->
+
 <p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/b5e2ad2d-c6a2-45a4-a4d0-c118dfaec943" alt="action selector" /></p>
+
 <!-- panvimdoc-ignore-end -->
 
 > [!NOTE]
@@ -328,7 +332,9 @@ The Action Palette, opened via `:CodeCompanionActions`, contains all of the acti
 ### The Chat Buffer
 
 <!-- panvimdoc-ignore-start -->
+
 <p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/84d5e03a-0b48-4ffb-9ca5-e299d41171bd" alt="chat buffer" /></p>
+
 <!-- panvimdoc-ignore-end -->
 
 The chat buffer is where you can converse with the LLM, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the LLM in the form of prompts. These prompts are segmented by H1 headers: `user`, `system` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with your LLM from within Neovim.
@@ -362,13 +368,15 @@ From the Action Palette, the `Open Chats` action enables users to easily navigat
 ### Inline Code
 
 <!-- panvimdoc-ignore-start -->
+
 https://github.com/olimorris/codecompanion.nvim/assets/9512444/0a448d12-5b8b-4932-b2e9-871eec45c534
+
 <!-- panvimdoc-ignore-end -->
 
 You can use the plugin to create inline code directly into a Neovim buffer. This can be invoked by using the _Action Palette_ (as above) or from the command line via `:CodeCompanion`. For example:
 
 ```
-:CodeCompanion create a table of 5 fruits
+:CodeCompanion create a table of 5 common text editors and loop through them
 ```
 
 ```
@@ -378,7 +386,18 @@ You can use the plugin to create inline code directly into a Neovim buffer. This
 > [!NOTE]
 > The command can detect if you've made a visual selection and send any code as context to the LLM alongside the filetype of the buffer.
 
-One of the challenges with inline editing is determining how the generative AI's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 fruits"_ then you may wish for the response to be placed after the cursor's current position in the buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. If this placement isn't specified then the plugin will use generative AI itself to determine if the response should follow any of the placements below:
+You can also send the contents of any loaded buffers (which match the current buffer's filetype) to the LLM as context:
+
+```
+:CodeCompanionWithBuffers <your request>
+```
+
+> [!NOTE]
+> If `send_code = false` then this will take precedent and no buffers will be sent to the LLM
+
+#### Other Points to Note
+
+One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed after the cursor's current position in the buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. The plugin will use the inline LLM you've specified to determine if the response should follow any of the placements below:
 
 - _after_ - after the visual selection
 - _before_ - before the visual selection
@@ -386,7 +405,7 @@ One of the challenges with inline editing is determining how the generative AI's
 - _new_ - in a new buffer
 - _replace_ - replacing the visual selection
 
-The strategy comes with a number of helpers which the user can type in the prompt, similar to [GitHub Copilot Chat](https://github.blog/changelog/2024-01-30-code-faster-and-better-with-github-copilots-new-features-in-visual-studio/):
+The strategy comes with a number of helpers via the action palette which the user can type in the prompt, similar to [GitHub Copilot Chat](https://github.blog/changelog/2024-01-30-code-faster-and-better-with-github-copilots-new-features-in-visual-studio/):
 
 - `/doc` to add a documentation comment
 - `/optimize` to analyze and improve the running time of the selected code
@@ -395,7 +414,9 @@ The strategy comes with a number of helpers which the user can type in the promp
 ### Tools
 
 <!-- panvimdoc-ignore-start -->
+
 <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/a19229b1-36b2-43b0-ad87-600da06b371e</p>
+
 <!-- panvimdoc-ignore-end -->
 
 > [!IMPORTANT]

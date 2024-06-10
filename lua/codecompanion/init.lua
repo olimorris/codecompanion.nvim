@@ -25,7 +25,7 @@ M.inline = function(args)
         },
       },
     })
-    :start(args.args)
+    :start(args)
 end
 
 ---Add visually selected code to the current chat buffer
