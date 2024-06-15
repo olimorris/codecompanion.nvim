@@ -182,10 +182,6 @@ end
 ---@param output table
 ---@return nil
 local function get_inline_output(inline, placement, prompt, output)
-  if not inline.adapter then
-    return
-  end
-
   -- Work out where to place the output from the inline prompt
   local parts = vim.split(placement, "|")
   local action = parts[1]
@@ -291,14 +287,14 @@ end
 function Inline:execute(user_input)
   if not self.adapter then
     vim.notify("No adapter found for inline requests", vim.log.levels.ERROR)
+    log:debug("Could not find an adapter for Inline request")
     return
   end
-
   if type(self.adapter) == "string" then
     self.adapter = require("codecompanion.adapters").use(self.adapter)
   end
 
-  log:trace("Inline adapter config: %s", self.adapter)
+  log:debug("Inline adapter config: %s", self.adapter)
 
   local prompt = build_prompt(self, user_input)
 
