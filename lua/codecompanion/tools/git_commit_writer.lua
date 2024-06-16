@@ -42,6 +42,6 @@ return {
       .. "\n\n```\n"
       .. output
       .. "\n```\n\n"
-      .. "Now please respond with the git commit message in a code block."
+      .. "If appropriate, please respond with the git commit message in a code block."
   end,
 }
