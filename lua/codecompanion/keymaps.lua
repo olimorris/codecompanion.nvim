@@ -117,10 +117,6 @@ M.add_tool = {
       return vim.notify("[CodeCompanion.nvim]\nNo tools available", vim.log.levels.WARN)
     end
 
-    table.sort(items, function(a, b)
-      return a > b
-    end)
-
     -- Picker of available tools
     require("codecompanion.utils.ui").selector(items, {
       prompt = "Select a tool",
@@ -161,12 +157,19 @@ M.add_tool = {
 
         chat:add_message({
           role = "system",
-          content = tool.prompt(tool.schema),
+          content = tool.prompts.system(tool.schema),
         }, {
           insert_at = insert_at,
           force_role = true,
           notify = "The Code Runner tool was added to the chat buffer",
         })
+
+        if tool.prompts.user then
+          chat:append({
+            role = "user",
+            content = tool.prompts.user,
+          })
+        end
       end,
     })
   end,

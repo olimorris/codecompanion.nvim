@@ -302,6 +302,13 @@ M.static.actions = {
 
         for id, tool in pairs(config.tools) do
           if tool.enabled then
+            local t
+            if tool.location then
+              t = require(tool.location .. "." .. id)
+            else
+              t = require("codecompanion.tools." .. id)
+            end
+
             table.insert(tools, {
               name = tool.name,
               strategy = "tool",
@@ -310,19 +317,14 @@ M.static.actions = {
                 {
                   role = "system",
                   content = function()
-                    local t
-                    if tool.location then
-                      t = require(tool.location .. "." .. id)
-                    else
-                      t = require("codecompanion.tools." .. id)
-                    end
-
-                    return t.prompt(t.schema)
+                    return t.prompts.system(t.schema)
                   end,
                 },
                 {
                   role = "user",
-                  content = "\n \n",
+                  content = function()
+                    return type(t.prompts.user) == "function" and t.prompts.user() or "\n \n"
+                  end,
                 },
               },
             })

@@ -2,13 +2,6 @@ local log = require("codecompanion.utils.log")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 ---@class CodeCompanion.Tool
----@field cmds table
----@field schema table
----@field prompt fun(schema: string): string
----@field env fun(xml: table): table|nil
----@field pre_cmd fun(env: table, xml: table): table|nil
----@field output_error_prompt fun(error: table): string
----@field output_prompt fun(output: table): string
 return {
   cmds = {
     { "docker", "pull", "${lang}" },
@@ -32,12 +25,14 @@ return {
       },
     },
   },
-  prompt = function(schema)
-    return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return a markdown code block which follows the below schema:"
-      .. "\n\n```xml\n"
-      .. xml2lua.toXml(schema, "tool")
-      .. "\n```\n"
-  end,
+  prompts = {
+    system = function(schema)
+      return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return a markdown code block which follows the below schema:"
+        .. "\n\n```xml\n"
+        .. xml2lua.toXml(schema, "tool")
+        .. "\n```\n"
+    end,
+  },
   env = function(xml)
     local temp_input = vim.fn.tempname()
     local temp_dir = temp_input:match("(.*/)")
