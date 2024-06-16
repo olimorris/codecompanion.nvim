@@ -26,12 +26,19 @@ return {
     },
   },
   prompts = {
-    system = function(schema)
-      return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return a markdown code block which follows the below schema:"
-        .. "\n\n```xml\n"
-        .. xml2lua.toXml(schema, "tool")
-        .. "\n```\n"
-    end,
+    {
+      role = "system",
+      content = function(schema)
+        return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return a markdown code block which follows the below schema:"
+          .. "\n\n```xml\n"
+          .. xml2lua.toXml(schema, "tool")
+          .. "\n```\n"
+      end,
+    },
+    {
+      role = "user",
+      content = "\n \n",
+    },
   },
   env = function(xml)
     local temp_input = vim.fn.tempname()

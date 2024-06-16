@@ -309,24 +309,22 @@ M.static.actions = {
               t = require("codecompanion.tools." .. id)
             end
 
+            -- Form the prompts
+            local prompts = {}
+            for _, prompt in ipairs(t.prompts) do
+              table.insert(prompts, {
+                role = prompt.role,
+                content = function()
+                  return type(prompt.content) == "function" and prompt.content(t.schema) or "\n \n"
+                end,
+              })
+            end
+
             table.insert(tools, {
               name = tool.name,
               strategy = "tool",
               description = tool.description or nil,
-              prompts = {
-                {
-                  role = "system",
-                  content = function()
-                    return t.prompts.system(t.schema)
-                  end,
-                },
-                {
-                  role = "user",
-                  content = function()
-                    return type(t.prompts.user) == "function" and t.prompts.user() or "\n \n"
-                  end,
-                },
-              },
+              prompts = prompts,
             })
           end
         end

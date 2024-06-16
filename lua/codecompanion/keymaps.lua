@@ -155,20 +155,29 @@ M.add_tool = {
           insert_at = #settings + 2
         end
 
-        chat:add_message({
-          role = "system",
-          content = tool.prompts.system(tool.schema),
-        }, {
-          insert_at = insert_at,
-          force_role = true,
-          notify = "The Code Runner tool was added to the chat buffer",
-        })
+        for _, prompt in ipairs(tool.prompts) do
+          local content
+          if type(prompt.content) == "function" then
+            content = prompt.content(tool.schema)
+          else
+            content = prompt.content
+          end
 
-        if tool.prompts.user then
-          chat:append({
-            role = "user",
-            content = tool.prompts.user,
-          })
+          if prompt.role == "system" then
+            chat:add_message({
+              role = "system",
+              content = content,
+            }, {
+              insert_at = insert_at,
+              force_role = true,
+              notify = "The Code Runner tool was added to the chat buffer",
+            })
+          else
+            chat:append({
+              role = prompt.role,
+              content = content,
+            })
+          end
         end
       end,
     })

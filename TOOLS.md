@@ -10,8 +10,7 @@ Let's take a look at the interface of a tool as per the `code_runner.lua` file:
 ---@class CodeCompanion.Tool
 ---@field cmd table The commands to execute
 ---@field schema string The schema that the LLM must use in its response to execute a tool
----@field prompts.system fun(schema: string): string The system prompt to the LLM explaining the tool and the schema
----@field prompts.user? fun(): string The user prompt which accompanies the system prompt
+---@field prompts table The prompts to the LLM explaining the tool and the schema
 ---@field env fun(xml: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
 ---@field pre_cmd fun(env: table, xml: table): table|nil Function to call before the cmd table is executed
 ---@field override_cmds fun(cmds: table): table Function to call to override the default cmds table
@@ -47,19 +46,24 @@ If the LLM outputs a markdown XML block as per the schema, the plugin will parse
 
 In the plugin, tools are shared with the LLM via a system prompt. This gives the LLM knowledge of the tool and instructions (via the schema) on how to utilize it.
 
-In the tool, the prompts table consists of a mandatory `system` function and an optional `user` function which both return a string.
-
 For the Code Runner tool, the prompts table is:
 
 ```lua
-prompts = {
-  system = function(schema)
-    return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return a markdown code block which follows the below schema:"
-      .. "\n\n```xml\n"
-      .. schema
-      .. "\n```\n"
-  end
-}
+  prompts = {
+    {
+      role = "system",
+      content = function(schema)
+        return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return a markdown code block which follows the below schema:"
+          .. "\n\n```xml\n"
+          .. xml2lua.toXml(schema, "tool")
+          .. "\n```\n"
+      end,
+    },
+    {
+      role = "user",
+      content = "\n \n",
+    },
+  },
 ```
 
 ### Env
