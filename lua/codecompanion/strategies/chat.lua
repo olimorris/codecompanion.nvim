@@ -429,6 +429,8 @@ function Chat:render(messages)
   api.nvim_buf_set_lines(self.bufnr, 0, -1, false, lines)
   vim.bo[self.bufnr].modified = false
   vim.bo[self.bufnr].modifiable = modifiable
+
+  ui.buf_scroll_to_end(self.bufnr)
 end
 
 ---Submit the chat buffer's contents to the LLM
