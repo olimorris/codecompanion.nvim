@@ -16,10 +16,11 @@ return {
     {
       role = "system",
       content = function(schema)
-        return "I am giving you the ability to run tools in real time. You are an expert in writing singular git commit messages using the Conventional Commits specification. I'm giving you access to be able to run a tool which shows you the git diff in the current git repository. When requested, all you need to do is return a markdown code block which follows the below schema, exactly:"
+        return "You are an expert in writing singular git commit messages using the Conventional Commits specification.\n\nI am giving you access to a tool that shows you the git diff of the current repository. When prompted by the user, you can initiate the tool and receive the git diff output. Simply return a markdown code block that follows the given schema exactly:"
           .. "\n\n```xml\n"
           .. schema
-          .. "\n```\n"
+          .. "\n```"
+          .. "\n\nThe tool will then execute and the output will be shown to you so you can write the commit message."
       end,
     },
     {
