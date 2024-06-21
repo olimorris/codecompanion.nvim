@@ -17,7 +17,9 @@ function M.use(adapter, opts)
 
   if type(adapter) == "string" then
     adapter_config = require("codecompanion.adapters." .. adapter)
-  elseif type(adapter) == "table" then
+  elseif type(adapter) == "function" then
+    adapter_config = adapter()
+  else
     adapter_config = adapter
   end
 
