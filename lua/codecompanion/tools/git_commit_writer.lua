@@ -1,6 +1,3 @@
-local log = require("codecompanion.utils.log")
-local xml2lua = require("codecompanion.utils.xml.xml2lua")
-
 ---@class CodeCompanion.Tool
 return {
   cmds = {
@@ -16,11 +13,11 @@ return {
     {
       role = "system",
       content = function(schema)
-        return "You are an expert in writing singular git commit messages using the Conventional Commits specification.\n\nI am giving you access to a tool that shows you the git diff of the current repository. When prompted by the user, you can initiate the tool and receive the git diff output. Simply return a markdown code block that follows the given schema exactly:"
+        return "I am giving you access to view the git diff of a local repository using something I'm calling a tool. When prompted by the user, you can initiate the tool and receive the git diff output. In order to do so, return a markdown code block that follows the given schema exactly:"
           .. "\n\n```xml\n"
           .. schema
           .. "\n```"
-          .. "\n\nThe tool will then execute and the output will be shown to you so you can write the commit message."
+          .. "\n\nThe tool will then execute and the output will be shown to you so you can write the commit message following the Conventional Commits specification."
       end,
     },
     {
