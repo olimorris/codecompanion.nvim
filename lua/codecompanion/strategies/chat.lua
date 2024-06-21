@@ -438,10 +438,10 @@ function Chat:submit()
   end
 
   -- Add the adapter's chat prompt
-  if self.adapter.args.chat_prompt then
-    table.insert(messages, {
+  if config.plugin_system_prompt then
+    table.insert(messages, 1, {
       role = "system",
-      content = self.adapter.args.chat_prompt,
+      content = config.plugin_system_prompt,
     })
   end
 
