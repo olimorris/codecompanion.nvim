@@ -109,8 +109,17 @@ end
 function Strategy:tool()
   local messages = modal_prompts(self.selected.prompts, self.context)
 
+  local adapter = config.adapters[config.strategies.tool]
+
+  if type(adapter) == "string" then
+    adapter = require("codecompanion.adapters").use(adapter)
+    if not adapter then
+      return nil
+    end
+  end
+
   return require("codecompanion.strategies.chat").new({
-    adapter = config.adapters[config.strategies.tool],
+    adapter = adapter,
     type = self.selected.type,
     messages = messages,
     show_buffer = true,
