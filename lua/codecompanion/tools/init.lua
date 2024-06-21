@@ -74,6 +74,9 @@ local function set_autocmds(chat, tool)
           role = "user",
           content = tool.output_prompt(output),
         })
+        if tool.opts and tool.opts.hide_output then
+          chat:hide_tool_output()
+        end
         chat:submit()
       end
 

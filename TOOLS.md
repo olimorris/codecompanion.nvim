@@ -10,6 +10,7 @@ Let's take a look at the interface of a tool as per the `code_runner.lua` file:
 ---@class CodeCompanion.Tool
 ---@field cmd table The commands to execute
 ---@field schema string The schema that the LLM must use in its response to execute a tool
+---@field opts? table The options for the tool
 ---@field prompts table The prompts to the LLM explaining the tool and the schema
 ---@field env fun(xml: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
 ---@field pre_cmd fun(env: table, xml: table): table|nil Function to call before the cmd table is executed

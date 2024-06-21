@@ -634,6 +634,37 @@ function Chat:visible()
   return self.winnr and api.nvim_win_is_valid(self.winnr) and api.nvim_win_get_buf(self.winnr) == self.bufnr
 end
 
+---Conceal parts of the chat buffer
+function Chat:hide_tool_output()
+  local parser = vim.treesitter.get_parser(self.bufnr, "markdown")
+  local query = vim.treesitter.query.parse(
+    "markdown",
+    [[
+  ((section
+  ((atx_heading) @heading)
+  (#eq? @heading "## Tool")) @content)
+]]
+  )
+  local tree = parser:parse()[1]
+  local root = tree:root()
+
+  for _, captures, _ in query:iter_matches(root, self.bufnr, 0, -1, { all = true }) do
+    if captures[2] then
+      local node = captures[2]
+      local start_row, _, end_row, _ = node[1]:range()
+
+      if start_row < end_row then
+        vim.api.nvim_buf_set_option(self.bufnr, "foldmethod", "manual")
+        vim.api.nvim_buf_call(self.bufnr, function()
+          vim.fn.setpos(".", { self.bufnr, start_row + 1, 0, 0 })
+          vim.cmd("normal! zf" .. (end_row - 1) .. "G")
+        end)
+        ui.buf_scroll_to_end(self.bufnr)
+      end
+    end
+  end
+end
+
 ---Determine if the current chat buffer is active
 ---@return boolean
 function Chat:active()
