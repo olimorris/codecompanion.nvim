@@ -20,6 +20,11 @@ return {
       description = "Write Git commit messages on your behalf",
       enabled = true,
     },
+    ["rag"] = {
+      name = "RAG",
+      description = "Supplement the LLM with update information",
+      enabled = true,
+    },
     opts = {
       auto_submit_errors = false,
       mute_errors = false,

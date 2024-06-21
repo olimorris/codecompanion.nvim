@@ -96,6 +96,11 @@ Click to see the default configuration ~
           description = "Write Git commit messages on your behalf",
           enabled = true,
         },
+        ["rag"] = {
+          name = "RAG",
+          description = "Supplement the LLM with update information",
+          enabled = true,
+        },
         opts = {
           auto_submit_errors = false, -- Automatically send and submit the errors to the LLM?
           mute_errors = false, -- Hide any tool errors from being displayed in Neovim?
