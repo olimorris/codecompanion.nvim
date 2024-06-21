@@ -265,6 +265,7 @@ end
 ---@field id integer
 ---@field adapter CodeCompanion.Adapter
 ---@field current_request table
+---@field current_tool table
 ---@field bufnr integer
 ---@field opts CodeCompanion.ChatArgs
 ---@field context table
@@ -489,16 +490,21 @@ function Chat:submit()
 end
 
 ---Stop and cancel the response from the LLM
----@return boolean
+---@return nil
 function Chat:stop()
+  local job
+  if self.current_tool then
+    job = self.current_tool
+    self.current_tool = nil
+
+    _G.codecompanion_cancel_tool = true
+    job:shutdown()
+  end
   if self.current_request then
-    local job = self.current_request
+    job = self.current_request
     self.current_request = nil
     job:shutdown()
-    return true
   end
-
-  return false
 end
 
 ---Hide the chat buffer from view

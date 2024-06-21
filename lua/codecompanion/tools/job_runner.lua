@@ -25,10 +25,10 @@ end
 
 ---Run the jobs
 ---@param cmds table
----@param bufnr number
+---@param chat CodeCompanion.Chat
 ---@param index number
 ---@return nil
-local function run(cmds, bufnr, index)
+local function run(cmds, chat, index)
   if index > #cmds then
     return
   end
@@ -37,19 +37,23 @@ local function run(cmds, bufnr, index)
 
   log:debug("Running cmd: %s", cmd)
 
-  Job:new({
+  chat.current_tool = Job:new({
     command = cmd[1],
     args = { unpack(cmd, 2) }, -- args start from index 2
     on_exit = function(_, exit_code)
-      run(cmds, bufnr, index + 1)
+      run(cmds, chat, index + 1)
 
       vim.schedule(function()
+        if _G.codecompanion_cancel_tool then
+          return announce_end(chat.bufnr)
+        end
+
         if index == #cmds then
           if exit_code ~= 0 then
             status = "error"
             log:error("Command failed: %s", stderr)
           end
-          return announce_end(bufnr)
+          return announce_end(chat.bufnr)
         end
       end)
     end,
@@ -69,16 +73,17 @@ end
 
 ---Initiate the job runner
 ---@param cmds table
----@param bufnr number
+---@param chat CodeCompanion.Chat
 ---@return nil
-function M.init(cmds, bufnr)
+function M.init(cmds, chat)
   -- Reset defaults
   status = "success"
   stderr = {}
   stdout = {}
+  _G.codecompanion_cancel_tool = false
 
-  announce_start(bufnr)
-  return run(cmds, bufnr, 1)
+  announce_start(chat.bufnr)
+  return run(cmds, chat, 1)
 end
 
 return M
