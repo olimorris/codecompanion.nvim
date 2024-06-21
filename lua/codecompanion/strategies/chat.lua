@@ -39,17 +39,12 @@ local tool_query = [[
 )
 ]]
 
----@return CodeCompanion.Adapter|nil
+---@return CodeCompanion.Adapter
 local function resolve_adapter()
   local adapter = config.adapters[config.strategies.chat]
 
   if type(adapter) == "string" then
-    local resolved = require("codecompanion.adapters").use(adapter)
-    if not resolved then
-      return nil
-    end
-
-    return resolved
+    return require("codecompanion.adapters").use(adapter)
   end
 
   return adapter

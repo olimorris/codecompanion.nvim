@@ -11,7 +11,7 @@ end
 
 ---@param adapter string|table
 ---@param opts? table
----@return CodeCompanion.Adapter|nil
+---@return CodeCompanion.Adapter
 function M.use(adapter, opts)
   local adapter_config
 
@@ -19,9 +19,6 @@ function M.use(adapter, opts)
     adapter_config = require("codecompanion.adapters." .. adapter)
   elseif type(adapter) == "table" then
     adapter_config = adapter
-  else
-    error("Adapter must be a string or a table")
-    return
   end
 
   if opts then
