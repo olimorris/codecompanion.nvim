@@ -39,7 +39,7 @@ return {
     {
       role = "system",
       content = function(schema)
-        return "I am giving you access to a real-time capabilities and external databases via the use of something I'm calling a tool."
+        return "I am giving you access to a real-time capabilities and external databases via the use of something I'm calling a RAG (retrieval augmented generation) tool."
           .. "\n\nWith this tool, you can search and read from the internet. To execute this tool, you need to return a markdown code block which follows the below schema:"
           .. "\n\n```xml\n"
           .. xml2lua.toXml(schema, "tool")
@@ -50,7 +50,7 @@ return {
     {
       role = "user",
       content = function()
-        return "Using the tool, can you "
+        return "Using the rag tool, can you "
       end,
     },
   },
@@ -65,7 +65,7 @@ return {
       output = table.concat(output, "\n")
     end
 
-    return "The output from the tool can be seen below. Please use the output to answer the user's question or run another of the tools at your disposal:"
+    return "After browsing the internet, this is what the rag tool found:"
       .. "\n\n## Tool"
       .. "\n\n```\n"
       .. rag.strip_markdown(output)
