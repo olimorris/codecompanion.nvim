@@ -283,26 +283,6 @@ require("codecompanion").setup({
 > [!TIP]
 > Refer to your chosen [adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters) to see the settings available.
 
-### Edgy.nvim Configuration
-
-The author recommends pairing with [edgy.nvim](https://github.com/folke/edgy.nvim) for an experience similar to that of GitHub's Copilot Chat:
-
-```lua
-{
-  "folke/edgy.nvim",
-  event = "VeryLazy",
-  init = function()
-    vim.opt.laststatus = 3
-    vim.opt.splitkeep = "screen"
-  end,
-  opts = {
-    right = {
-      { ft = "codecompanion", title = "Code Companion Chat", size = { width = 0.45 } },
-    }
-  }
-}
-```
-
 ### Highlight Groups
 
 The plugin sets the following highlight groups during setup:

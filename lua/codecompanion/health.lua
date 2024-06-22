@@ -27,11 +27,6 @@ M.plugins = {
     plugin_name = "dressing",
     optional = true,
   },
-  {
-    name = "edgy.nvim",
-    plugin_name = "edgy",
-    optional = true,
-  },
 }
 
 M.libraries = {
