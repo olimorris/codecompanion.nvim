@@ -22,7 +22,7 @@ return {
     },
     ["rag"] = {
       name = "RAG",
-      description = "Supplement the LLM with update information",
+      description = "Supplement the LLM with real-time information",
       enabled = true,
     },
     opts = {

@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 June 21
+*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 June 22
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -98,7 +98,7 @@ Click to see the default configuration ~
         },
         ["rag"] = {
           name = "RAG",
-          description = "Supplement the LLM with update information",
+          description = "Supplement the LLM with real-time information",
           enabled = true,
         },
         opts = {
@@ -275,29 +275,6 @@ adapter, these sit within a schema table and can be configured during setup:
   <https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters>
   to see the settings available.
 
-EDGY.NVIM CONFIGURATION ~
-
-The author recommends pairing with edgy.nvim
-<https://github.com/folke/edgy.nvim> for an experience similar to that of
-GitHub’s Copilot Chat:
-
->lua
-    {
-      "folke/edgy.nvim",
-      event = "VeryLazy",
-      init = function()
-        vim.opt.laststatus = 3
-        vim.opt.splitkeep = "screen"
-      end,
-      opts = {
-        right = {
-          { ft = "codecompanion", title = "Code Companion Chat", size = { width = 0.45 } },
-        }
-      }
-    }
-<
-
-
 HIGHLIGHT GROUPS ~
 
 The plugin sets the following highlight groups during setup:
@@ -311,7 +288,7 @@ USAGE                                                    *codecompanion-usage*
 
 The plugin has a number of commands:
 
-- `:CodeCompanion` - Inline code writing and refactoring
+- `:CodeCompanion` - Inline coding
 - `:CodeCompanionWithBuffers` - Inline coding and also sends open buffers to the LLM
 - `:CodeCompanionChat` - To open up a new chat buffer
 - `:CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter

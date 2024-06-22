@@ -120,7 +120,7 @@ require("codecompanion").setup({
     },
     ["rag"] = {
       name = "RAG",
-      description = "Supplement the LLM with update information",
+      description = "Supplement the LLM with real-time information",
       enabled = true,
     },
     opts = {
@@ -295,7 +295,7 @@ The plugin sets the following highlight groups during setup:
 
 The plugin has a number of commands:
 
-- `:CodeCompanion` - Inline code writing and refactoring
+- `:CodeCompanion` - Inline coding
 - `:CodeCompanionWithBuffers` - Inline coding and also sends open buffers to the LLM
 - `:CodeCompanionChat` - To open up a new chat buffer
 - `:CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
