@@ -39,37 +39,37 @@ M.buf_list_wins = function(bufnr)
     bufnr = api.nvim_get_current_buf()
   end
 
-  for _, winid in ipairs(api.nvim_list_wins()) do
-    if api.nvim_win_is_valid(winid) and api.nvim_win_get_buf(winid) == bufnr then
-      table.insert(wins, winid)
+  for _, winnr in ipairs(api.nvim_list_wins()) do
+    if api.nvim_win_is_valid(winnr) and api.nvim_win_get_buf(winnr) == bufnr then
+      table.insert(wins, winnr)
     end
   end
 
   return wins
 end
 
----@param winid? number
-M.scroll_to_end = function(winid)
-  winid = winid or 0
-  local bufnr = api.nvim_win_get_buf(winid)
+---@param winnr? number
+M.scroll_to_end = function(winnr)
+  winnr = winnr or 0
+  local bufnr = api.nvim_win_get_buf(winnr)
   local lnum = api.nvim_buf_line_count(bufnr)
   local last_line = api.nvim_buf_get_lines(bufnr, -2, -1, true)[1]
-  api.nvim_win_set_cursor(winid, { lnum, api.nvim_strwidth(last_line) })
+  api.nvim_win_set_cursor(winnr, { lnum, api.nvim_strwidth(last_line) })
 end
 
 ---@param bufnr nil|integer
 M.buf_scroll_to_end = function(bufnr)
-  for _, winid in ipairs(M.buf_list_wins(bufnr or 0)) do
-    M.scroll_to_end(winid)
+  for _, winnr in ipairs(M.buf_list_wins(bufnr or 0)) do
+    M.scroll_to_end(winnr)
   end
 end
 
 ---@param bufnr nil|integer
 ---@return nil|integer
 M.buf_get_win = function(bufnr)
-  for _, winid in ipairs(api.nvim_list_wins()) do
-    if api.nvim_win_get_buf(winid) == bufnr then
-      return winid
+  for _, winnr in ipairs(api.nvim_list_wins()) do
+    if api.nvim_win_get_buf(winnr) == bufnr then
+      return winnr
     end
   end
 end
@@ -165,22 +165,22 @@ function M.selector(items, opts)
   end)
 end
 
----@param winid number
+---@param winnr number
 ---@param opts table
-function M.get_win_options(winid, opts)
+function M.get_win_options(winnr, opts)
   local options = {}
   for k, _ in pairs(opts) do
-    options[k] = api.nvim_get_option_value(k, { scope = "local", win = winid })
+    options[k] = api.nvim_get_option_value(k, { scope = "local", win = winnr })
   end
 
   return options
 end
 
----@param winid number
+---@param winnr number
 ---@param opts table
-function M.set_win_options(winid, opts)
+function M.set_win_options(winnr, opts)
   for k, v in pairs(opts) do
-    api.nvim_set_option_value(k, v, { scope = "local", win = winid })
+    api.nvim_set_option_value(k, v, { scope = "local", win = winnr })
   end
 end
 

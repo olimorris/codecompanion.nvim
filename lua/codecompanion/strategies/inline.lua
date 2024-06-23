@@ -121,15 +121,15 @@ local function overwrite_selection(context)
     context.end_col,
     { "" }
   )
-  api.nvim_win_set_cursor(context.winid, { context.start_line, context.start_col })
+  api.nvim_win_set_cursor(context.winnr, { context.start_line, context.start_col })
 end
 
 ---Ge the curret cursor position in the window
----@param winid number
+---@param winnr number
 ---@return number line
 ---@return number col
-local function get_cursor(winid)
-  local cursor_pos = api.nvim_win_get_cursor(winid)
+local function get_cursor(winnr)
+  local cursor_pos = api.nvim_win_get_cursor(winnr)
   return cursor_pos[1], cursor_pos[2]
 end
 
@@ -161,7 +161,7 @@ local function calc_placement(inline, placement)
   elseif placement == "replace" then
     log:trace("Placing by overwriting selection")
     overwrite_selection(inline.context)
-    pos.line, pos.col = get_cursor(inline.context.winid)
+    pos.line, pos.col = get_cursor(inline.context.winnr)
   elseif placement == "new" then
     log:trace("Placing in a new buffer")
     inline.context.bufnr = api.nvim_create_buf(true, false)

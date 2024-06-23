@@ -236,7 +236,7 @@ One of the most useful features of the _Action Palette_ prompts is the ability t
   mode = "V",
   start_col = 1,
   start_line = 8,
-  winid = 1000
+  winnr = 1000
 }
 ```
 

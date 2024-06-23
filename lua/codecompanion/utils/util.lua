@@ -92,9 +92,9 @@ end
 ---@return table
 function M.get_context(bufnr, args)
   bufnr = bufnr or api.nvim_get_current_buf()
-  local winid = api.nvim_get_current_win()
+  local winnr = api.nvim_get_current_win()
   local mode = vim.fn.mode()
-  local cursor_pos = api.nvim_win_get_cursor(winid)
+  local cursor_pos = api.nvim_win_get_cursor(winnr)
 
   local lines, start_line, start_col, end_line, end_col = {}, cursor_pos[1], cursor_pos[2], cursor_pos[1], cursor_pos[2]
 
@@ -115,7 +115,7 @@ function M.get_context(bufnr, args)
   -- Consider adjustment here for is_normal if there are scenarios where it doesn't align appropriately
 
   return {
-    winid = winid,
+    winnr = winnr,
     bufnr = bufnr,
     mode = mode,
     is_visual = is_visual,
