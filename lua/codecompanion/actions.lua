@@ -595,7 +595,7 @@ M.static.actions = {
   {
     name = "LSP assistant",
     strategy = "chat",
-    description = "Get help from OpenAI to fix LSP diagnostics",
+    description = "Get help from an LLM to fix LSP diagnostics",
     opts = {
       modes = { "v" },
       auto_submit = true, -- Automatically submit the chat
