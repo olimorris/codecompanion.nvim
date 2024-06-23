@@ -57,9 +57,7 @@ return {
       end
 
       -- Combine consecutive user prompts into a single prompt
-      messages = utils.merge_messages(messages)
-
-      return { messages = messages }
+      return { messages = utils.merge_messages(messages) }
     end,
 
     ---Has the streaming completed?

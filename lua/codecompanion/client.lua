@@ -51,7 +51,7 @@ function Client:stream(adapter, payload, cb, after)
   local body = self.opts.encode(
     vim.tbl_extend(
       "keep",
-      adapter.args.callbacks.form_parameters(adapter.args.parameters, payload) or {},
+      adapter.args.callbacks.form_parameters(vim.deepcopy(adapter.args.parameters), payload) or {},
       adapter.args.callbacks.form_messages(payload)
     )
   )
