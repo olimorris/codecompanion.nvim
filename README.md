@@ -480,7 +480,7 @@ The plugin sets the following highlight groups during setup:
 
 ## :rocket: Usage
 
-The plugin has a number of commands:
+The only command to memorise is `:CodeCompanionActions` which will open the _Action Palette_. Of course the plugin has a number of other commands:
 
 - `:CodeCompanionChat` - To open up a new chat buffer
 - `:CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
@@ -488,7 +488,6 @@ The plugin has a number of commands:
 - `:CodeCompanion` - Inline coding
 - `:CodeCompanionWithBuffers` - Inline coding and also sends open buffers to the LLM
 - `:CodeCompanionAdd` - To add visually selected chat to the current chat buffer
-- `:CodeCompanionActions` - To open up the action palette window
 
 For an optimum workflow, the plugin author recommendeds setting the following:
 
