@@ -5,12 +5,6 @@ local M = {}
 
 M.static = {}
 
-local expert = function(filetype)
-  return "I want you to act as a senior "
-    .. filetype
-    .. " developer. I will give you specific code examples and ask you questions. I want you to advise me with explanations and code examples."
-end
-
 local send_code = function(context)
   local text = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
 
@@ -68,6 +62,49 @@ M.static.actions = {
     },
   },
   {
+    name = "Pre-defined Prompts ...",
+    strategy = " ",
+    description = "Pre-defined prompts to help you code",
+    condition = function()
+      return config.prompts and utils.count(config.prompts) > 0
+    end,
+    picker = {
+      prompt = "Pre-defined Prompts",
+      items = function()
+        local prompts = {}
+
+        local sort_index = true
+        for name, prompt in pairs(config.prompts) do
+          if not config.use_default_prompts and prompt.opts and prompt.opts.default_prompt then
+            goto continue
+          end
+
+          if not prompt.opts or not prompt.opts.index then
+            sort_index = false
+          end
+
+          table.insert(prompts, {
+            name = name,
+            strategy = prompt.strategy,
+            description = prompt.description,
+            opts = prompt.opts,
+            prompts = prompt.prompts,
+          })
+
+          ::continue::
+        end
+
+        if sort_index then
+          table.sort(prompts, function(a, b)
+            return a.opts.index < b.opts.index
+          end)
+        end
+
+        return prompts
+      end,
+    },
+  },
+  {
     name = "Open chats ...",
     strategy = "chat",
     description = "Your currently open chats",
@@ -95,190 +132,6 @@ M.static.actions = {
 
         return chats
       end,
-    },
-  },
-  {
-    name = "Chat as ...",
-    strategy = "chat",
-    description = "Open a chat buffer, acting as a specific persona",
-    picker = {
-      prompt = "Chat as a persona",
-      items = {
-        {
-          name = "JavaScript",
-          strategy = "chat",
-          description = "Chat as a senior JavaScript developer",
-          type = "javascript",
-          prompts = {
-            {
-              role = "system",
-              content = expert("JavaScript"),
-            },
-            {
-              role = "user",
-              contains_code = true,
-              condition = function(context)
-                return context.is_visual
-              end,
-              content = function(context)
-                return send_code(context)
-              end,
-            },
-            {
-              role = "user",
-              condition = function(context)
-                return not context.is_visual
-              end,
-              content = "\n \n",
-            },
-          },
-        },
-        {
-          name = "Lua",
-          strategy = "chat",
-          description = "Chat as a senior Lua developer",
-          type = "lua",
-          prompts = {
-            {
-              role = "system",
-              content = expert("Lua"),
-            },
-            {
-              role = "user",
-              contains_code = true,
-              condition = function(context)
-                return context.is_visual
-              end,
-              content = function(context)
-                return send_code(context)
-              end,
-            },
-            {
-              role = "user",
-              condition = function(context)
-                return not context.is_visual
-              end,
-              content = "\n \n",
-            },
-          },
-        },
-        {
-          name = "PHP",
-          strategy = "chat",
-          description = "Chat as a senior PHP developer",
-          type = "php",
-          prompts = {
-            {
-              role = "system",
-              content = expert("PHP"),
-            },
-            {
-              role = "user",
-              contains_code = true,
-              condition = function(context)
-                return context.is_visual
-              end,
-              content = function(context)
-                return send_code(context)
-              end,
-            },
-            {
-              role = "user",
-              condition = function(context)
-                return not context.is_visual
-              end,
-              content = "\n \n",
-            },
-          },
-        },
-        {
-          name = "Python",
-          strategy = "chat",
-          description = "Chat as a senior Python developer",
-          type = "python",
-          prompts = {
-            {
-              role = "system",
-              content = expert("Python"),
-            },
-            {
-              role = "user",
-              contains_code = true,
-              condition = function(context)
-                return context.is_visual
-              end,
-              content = function(context)
-                return send_code(context)
-              end,
-            },
-            {
-              role = "user",
-              condition = function(context)
-                return not context.is_visual
-              end,
-              content = "\n \n",
-            },
-          },
-        },
-        {
-          name = "Ruby",
-          strategy = "chat",
-          description = "Chat as a senior Ruby developer",
-          type = "ruby",
-          prompts = {
-            {
-              role = "system",
-              content = expert("Ruby"),
-            },
-            {
-              role = "user",
-              contains_code = true,
-              condition = function(context)
-                return context.is_visual
-              end,
-              content = function(context)
-                return send_code(context)
-              end,
-            },
-            {
-              role = "user",
-              condition = function(context)
-                return not context.is_visual
-              end,
-              content = "\n \n",
-            },
-          },
-        },
-        {
-          name = "Rust",
-          strategy = "chat",
-          description = "Chat as a senior Rust developer",
-          type = "rust",
-          prompts = {
-            {
-              role = "system",
-              content = expert("Rust"),
-            },
-            {
-              role = "user",
-              contains_code = true,
-              condition = function(context)
-                return context.is_visual
-              end,
-              content = function(context)
-                return send_code(context)
-              end,
-            },
-            {
-              role = "user",
-              condition = function(context)
-                return not context.is_visual
-              end,
-              content = "\n \n",
-            },
-          },
-        },
-      },
     },
   },
   {
@@ -438,216 +291,6 @@ M.static.actions = {
               })
           end,
         },
-      },
-    },
-  },
-  {
-    name = "Inline code ...",
-    strategy = "inline",
-    description = "Get an LLM to write/refactor code for you",
-    picker = {
-      prompt = "Select an inline code action",
-      items = {
-        {
-          name = "Custom",
-          strategy = "inline",
-          description = "Custom user input",
-          opts = {
-            user_prompt = true,
-            -- Placement should be determined
-          },
-          prompts = {
-            {
-              role = "system",
-              content = function(context)
-                if context.buftype == "terminal" then
-                  return "I want you to act as an expert in writing terminal commands that will work for my current shell "
-                    .. os.getenv("SHELL")
-                    .. ". I will ask you specific questions and I want you to return the raw command only (no codeblocks and explanations). If you can't respond with a command, respond with nothing"
-                end
-                return "I want you to act as a senior "
-                  .. context.filetype
-                  .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing"
-              end,
-            },
-          },
-        },
-        {
-          name = "/doc",
-          strategy = "inline",
-          description = "Add a documentation comment",
-          opts = {
-            modes = { "v" },
-            placement = "before", -- cursor|before|after|replace|new
-          },
-          prompts = {
-            {
-              role = "system",
-              content = function(context)
-                return "You are an expert coder and helpful assistant who can help write documentation comments for the "
-                  .. context.filetype
-                  .. " language"
-              end,
-            },
-            {
-              role = "user",
-              contains_code = true,
-              content = function(context)
-                return send_code(context)
-              end,
-            },
-            {
-              role = "user",
-              content = "Please add a documentation comment to the provided code and reply with just the comment only and no explanation, no codeblocks and do not return the code either. If neccessary add parameter and return types",
-            },
-          },
-        },
-        {
-          name = "/optimize",
-          strategy = "inline",
-          description = "Optimize the selected code",
-          opts = {
-            modes = { "v" },
-            placement = "replace",
-          },
-          prompts = {
-            {
-              role = "system",
-              content = function(context)
-                return "You are an expert coder and helpful assistant who can help optimize code for the "
-                  .. context.filetype
-                  .. " language"
-              end,
-            },
-            {
-              role = "user",
-              contains_code = true,
-              content = function(context)
-                return send_code(context)
-              end,
-            },
-            {
-              role = "user",
-              content = "Please optimize the provided code. Please just respond with the code only and no explanation or markdown block syntax",
-            },
-          },
-        },
-        {
-          name = "/test",
-          strategy = "inline",
-          description = "Create unit tests for the selected code",
-          opts = {
-            modes = { "v" },
-            placement = "new",
-          },
-          prompts = {
-            {
-              role = "system",
-              content = function(context)
-                return "You are an expert coder and helpful assistant who can help write unit tests for the "
-                  .. context.filetype
-                  .. " language"
-              end,
-            },
-            {
-              role = "user",
-              contains_code = true,
-              content = function(context)
-                return send_code(context)
-              end,
-            },
-            {
-              role = "user",
-              content = "Please create a unit test for the provided code. Please just respond with the code only and no explanation or markdown block syntax",
-            },
-          },
-        },
-      },
-    },
-  },
-  {
-    name = "Code advisor",
-    strategy = "chat",
-    description = "Get advice on the code you've selected",
-    opts = {
-      modes = { "v" },
-      auto_submit = true,
-      user_prompt = true,
-    },
-    prompts = {
-      {
-        role = "system",
-        content = function(context)
-          return "I want you to act as a senior "
-            .. context.filetype
-            .. " developer. I will ask you specific questions and I want you to return concise explanations and codeblock examples."
-        end,
-      },
-      {
-        role = "user",
-        contains_code = true,
-        content = function(context)
-          return send_code(context)
-        end,
-      },
-    },
-  },
-  {
-    name = "LSP assistant",
-    strategy = "chat",
-    description = "Get help from an LLM to fix LSP diagnostics",
-    opts = {
-      modes = { "v" },
-      auto_submit = true, -- Automatically submit the chat
-      user_prompt = false, -- Prompt the user for their own input
-    },
-    prompts = {
-      {
-        role = "system",
-        content = [[You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages. When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting.]],
-      },
-      {
-        role = "user",
-        content = function(context)
-          local diagnostics =
-            require("codecompanion.helpers.lsp").get_diagnostics(context.start_line, context.end_line, context.bufnr)
-
-          local concatenated_diagnostics = ""
-          for i, diagnostic in ipairs(diagnostics) do
-            concatenated_diagnostics = concatenated_diagnostics
-              .. i
-              .. ". Issue "
-              .. i
-              .. "\n  - Location: Line "
-              .. diagnostic.line_number
-              .. "\n  - Severity: "
-              .. diagnostic.severity
-              .. "\n  - Message: "
-              .. diagnostic.message
-              .. "\n"
-          end
-
-          return "The programming language is "
-            .. context.filetype
-            .. ". This is a list of the diagnostic messages:\n\n"
-            .. concatenated_diagnostics
-        end,
-      },
-      {
-        role = "user",
-        contains_code = true,
-        content = function(context)
-          return "This is the code, for context:\n\n"
-            .. "```"
-            .. context.filetype
-            .. "\n"
-            .. require("codecompanion.helpers.code").get_code(
-              context.start_line,
-              context.end_line,
-              { show_line_numbers = true }
-            )
-            .. "\n```\n\n"
-        end,
       },
     },
   },

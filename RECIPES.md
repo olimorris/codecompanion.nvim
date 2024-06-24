@@ -1,8 +1,6 @@
 # Recipes
 
-The purpose of this guide is to showcase how you can extend the functionality of CodeCompanion by adding your own actions to the _Action Palette_.
-
-The _Action Palette_ is a lua table which is parsed by the plugin and displayed as a `vim.ui.select` component. By specifying certain keys, the behaviour of the table can be customised further.
+The purpose of this guide is to showcase how you can extend the functionality of CodeCompanion by adding your own prompts to the config that are reflected in the _Action Palette_. The _Action Palette_ is a lua table which is parsed by the plugin and displayed as a `vim.ui.select` component. By specifying certain keys, the behaviour of the table can be customised further.
 
 ## Adding an action to the palette
 
@@ -10,23 +8,26 @@ Actions can be added via the `setup` function:
 
 ```lua
 require("codecompanion").setup({
-  actions = {
-    {
-      name = "My new action",
+  prompts = {
+    ["My New Prompt"] = {
       strategy = "chat",
-      description = "Some cool action you can do",
+      description = "Some cool custom prompt you can do",
       prompts = {
         {
           role = "system",
-          content = "you can do something cool",
+          content = "You are an experienced developer with Lua and Neovim",
         },
+        {
+          role = "user",
+          content = "Can you explain why ..."
+        }
       },
     }
   }
 })
 ```
 
-In this example, if you run `:CodeCompanionActions`, you should see "My new action" at the bottom of the palette. Clicking on it will initiate the _chat_ strategy and set the value of the chat buffer based on the _role_ and _content_ that's been specified in the prompt.
+In this example, if you run `:CodeCompanionActions`, you should see "My New Prompt" in the bottom of the _Pre-defined Prompts_ section of the palette. Clicking on your new action will initiate the _chat_ strategy and set the value of the chat buffer based on the _role_ and _content_ that's been specified in the prompt.
 
 In the following sections, we'll explore how you can customise these actions even more.
 
@@ -40,11 +41,13 @@ Let's take a look at how we can achieve that:
 
 ```lua
 require("codecompanion").setup({
-  actions = {
-    {
-      name = "Boilerplate HTML",
+  prompts = {
+    ["Boilerplate HTML"] = {
       strategy = "inline",
       description = "Generate some boilerplate HTML",
+      opts = {
+        mapping = "<LocalLeader>ch"
+      },
       prompts = {
         {
           role = "system",
@@ -60,60 +63,7 @@ require("codecompanion").setup({
 })
 ```
 
-Nice! We've used some careful prompting to ensure that we get the HTML boilerplate. But we could expand this far beyond just HTML.
-
-### MORE boilerplate
-
-With the _Action Palette_ we can call additional `vim.ui.select` components with the `picker` table key. Let's expand on our HTML boilerplate by adding some Ruby on Rails controller boilerplate:
-
-```lua
-require("codecompanion").setup({
-  actions = {
-    {
-      name = "Boilerplate",
-      strategy = "inline",
-      description = "Generate some boilerplate",
-      picker = {
-        prompt = "Select some boilerplate",
-        items = {
-          {
-            name = "HTML boilerplate",
-            strategy = "inline",
-            description = "Create some HTML boilerplate",
-            prompts = {
-              {
-                role = "system",
-                content = "You are an expert HTML programmer",
-              },
-              {
-                role = "user",
-                content = "Please generate some HTML boilerplate for me. Return the code only and no markdown codeblocks",
-              },
-            },
-          },
-          {
-            name = "Rails Controller",
-            strategy = "inline",
-            description = "Create some Rails controller boilerplate",
-            prompts = {
-              {
-                role = "system",
-                content = "You are an expert Ruby on Rails programmer",
-              },
-              {
-                role = "user",
-                content = "Please generate a Rails controller. Return the code only and no markdown codeblocks",
-              },
-            },
-          },
-        },
-      },
-    },
-  }
-})
-```
-
-If you run `:CodeCompanionActions`, you should see that the two boilerplate prompts are now nested in their own `vim.ui.select` component.
+Nice! We've used some careful prompting to ensure that we get HTML boilerplate back from the LLM. Oh...and notice that I added a key map too!
 
 ### Leveraging pre-hooks
 
@@ -121,16 +71,19 @@ To make this example complete, we can leverage a pre-hook to create a new buffer
 
 ```lua
 {
-  name = "HTML boilerplate",
-  strategy = "inline",
-  description = "Create some HTML boilerplate",
-  pre_hook = function()
-    local bufnr = vim.api.nvim_create_buf(true, false)
-    vim.api.nvim_buf_set_option(bufnr, "filetype", "html")
-    vim.api.nvim_set_current_buf(bufnr)
-    return bufnr
-  end
-  ---
+  ["Boilerplate HTML"] = {
+    strategy = "inline",
+    description = "Generate some boilerplate HTML",
+    opts = {
+      pre_hook = function()
+        local bufnr = vim.api.nvim_create_buf(true, false)
+        vim.api.nvim_buf_set_option(bufnr, "filetype", "html")
+        vim.api.nvim_set_current_buf(bufnr)
+        return bufnr
+      end
+    }
+    ---
+  }
 }
 ```
 
@@ -138,20 +91,20 @@ For the inline strategy, the plugin will detect a number being returned from the
 
 ### Conclusion
 
-Whilst these examples were useful at demonstrating the functionality of the _Action Palette_, they're not making the most of the GenAI models to add any real value to your workflow (this boilerplate could be snippets after all). So let's step things up in the next section.
+Whilst this example was useful at demonstrating the functionality of the _Action Palette_ and your custom prompts, it's not using LLMs to add any real value to your workflow (this boilerplate could be a snippet after all!). So let's step things up in the next section.
 
 ## Recipe #2: Using context in your prompts
 
-Now let's look at how we can get our GenAI model to advise us on some code that we have visually selected in a buffer. Infact, this very example is builtin to the plugin as the _Code advisor_ action:
+Now let's look at how we can use an LLM to advise us on some code that we have visually selected in a buffer. Infact, this very example is builtin to the plugin as the _Code Advisor_ action:
 
 ```lua
 require("codecompanion").setup({
-  actions = {
-    {
-      name = "Special advisor",
+  prompts = {
+    ["Code Expert"] = {
       strategy = "chat",
-      description = "Get some special GenAI advice",
+      description = "Get some special advice from an LLM",
       opts = {
+        mapping = "<LocalLeader>ce",
         modes = { "v" },
         auto_submit = true,
         user_prompt = true,
@@ -186,13 +139,14 @@ At first glance there's a lot of new stuff in this. Let's break it down.
 
 ```lua
 opts = {
+  mapping = "<LocalLeader>ce",
   modes = { "v" },
   auto_submit = true,
   user_prompt = true,
 },
 ```
 
-In the `opts` table we're specifying that we only want this action to appear in the _Action Palette_ if we're in visual mode. We're also asking the chat strategy to automatically send the prompts to the GenAI model. It may be useful to turn this off if you wish to add some additional context prior to asking for a response. Finally, we're telling the picker that we want to get the user's prompt before we action the response.
+In the `opts` table we're specifying that we only want this action to appear in the _Action Palette_ if we're in visual mode. We're also asking the chat strategy to automatically submit the prompts to the LLM. It may be useful to turn this off if you wish to add some additional context prior to asking for a response. Finally, we're telling the picker that we want to get the user's prompt before we action the response.
 
 ### Prompt options and context
 
@@ -220,7 +174,7 @@ prompts = {
 },
 ```
 
-One of the most useful features of the _Action Palette_ prompts is the ability to receive context about the current buffer and any lines of code we've selected. An example context table looks like:
+One of the most useful features of the custom prompts is the ability to receive context about the current buffer and any lines of code we've selected. An example context table looks like:
 
 ```lua
 {
@@ -253,7 +207,7 @@ Using the context above, our first prompt then makes more sense:
 },
 ```
 
-We are telling the GenAI model to act as a "senior _Lua_ developer" based on the filetype of the buffer we initiated the action from.
+We are telling the LLM to act as a "senior _Lua_ developer" based on the filetype of the buffer we initiated the action from.
 
 Lets now take a look at the second prompt:
 
@@ -272,8 +226,7 @@ Lets now take a look at the second prompt:
 You can see that we're using a handy helper to get the code between two lines and formatting it into a markdown code block.
 
 > [!IMPORTANT]
-> We've also specifed a `contains_code = true` flag. If you've turned off the sending of code to a GenAI model then the
-> plugin will block this from happening.
+> We've also specifed a `contains_code = true` flag. If you've turned off the sending of code to LLMs then the plugin will block this from happening.
 
 ### Conditionals
 
@@ -309,32 +262,8 @@ And to determine the visibility of actions in the palette itself:
 
 ## Gotchas
 
-Please be mindful of how the different generative AI providers function. Anthropic does not allow for successive `user` prompts in a request. So something like:
-
-```lua
-prompts = {
-  {
-    role = "user",
-    content = "My first prompt"
-  },
-  {
-    role = "user",
-    content = "My second prompt"
-  },
-},
-```
-
-will cause an error. Instead, the prompts should be combined:
-
-```lua
-prompts = {
-  {
-    role = "user",
-    content = "My first prompt and my second prompt"
-  },
-},
-```
+Please be mindful of how different LLMs function. A prompt that works perfectly in Anthropic may not function as well with Ollama and the specific model you've chosen. So please test!
 
 ## Conclusion
 
-Hopefully this serves as a useful introduction on how you can expand CodeCompanion to create custom actions that suit your workflow. It's worth checking out the [actions.lua](https://github.com/olimorris/codecompanion.nvim/blob/5cac252cc402429ac766f1b1fe54988d89391206/lua/codecompanion/actions.lua) for more complex examples.
+Hopefully this serves as a useful introduction on how you can expand CodeCompanion to create prompts that suit your workflow. It's worth checking out the [actions.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) and [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) files for more complex examples.

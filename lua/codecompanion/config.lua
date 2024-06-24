@@ -9,15 +9,191 @@ return {
     inline = "openai",
     tool = "openai",
   },
+  prompts = {
+    ["Custom Prompt"] = {
+      strategy = "inline",
+      description = "Custom user input",
+      opts = {
+        index = 1,
+        default_prompt = true,
+        mapping = "<LocalLeader>cc",
+        user_prompt = true,
+      },
+      prompts = {
+        {
+          role = "system",
+          content = function(context)
+            if context.buftype == "terminal" then
+              return "I want you to act as an expert in writing terminal commands that will work for my current shell "
+                .. os.getenv("SHELL")
+                .. ". I will ask you specific questions and I want you to return the raw command only (no codeblocks and explanations). If you can't respond with a command, respond with nothing"
+            end
+            return "I want you to act as a senior "
+              .. context.filetype
+              .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing"
+          end,
+        },
+      },
+    },
+    ["Chat with an Expert"] = {
+      strategy = "chat",
+      description = "Chat with an expert for the current filetype",
+      opts = {
+        index = 2,
+        default_prompt = true,
+        modes = { "n", "v" },
+        mapping = "<LocalLeader>ce",
+        auto_submit = false,
+      },
+      prompts = {
+        {
+          role = "system",
+          content = function(context)
+            return "I want you to act as an expert and senior developer in the "
+              .. context.filetype
+              .. " language. I will ask you questions, perhaps giving you code examples, and I want you to advise me with explanations and code where neccessary."
+          end,
+        },
+        {
+          role = "user",
+          contains_code = true,
+          condition = function(context)
+            return context.is_visual
+          end,
+          content = function(context)
+            local text = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
+
+            return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
+          end,
+        },
+        {
+          role = "user",
+          condition = function(context)
+            return not context.is_visual
+          end,
+          content = "\n \n",
+        },
+      },
+    },
+    ["Code Advisor"] = {
+      strategy = "chat",
+      description = "Get advice on the code you've selected",
+      opts = {
+        index = 3,
+        default_prompt = true,
+        mapping = "<LocalLeader>ca",
+        modes = { "v" },
+        auto_submit = true,
+        user_prompt = true,
+      },
+      prompts = {
+        {
+          role = "system",
+          content = function(context)
+            return "I want you to act as a senior "
+              .. context.filetype
+              .. " developer. I will ask you specific questions and I want you to return concise explanations and codeblock examples."
+          end,
+        },
+        {
+          role = "user",
+          contains_code = true,
+          content = function(context)
+            local text = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
+
+            return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
+          end,
+        },
+      },
+    },
+    ["Fix LSP Diagnostics"] = {
+      strategy = "chat",
+      description = "Use an LLM to fix your LSP diagnostics",
+      opts = {
+        index = 4,
+        default_prompt = true,
+        mapping = "<LocalLeader>cl",
+        modes = { "v" },
+        auto_submit = true,
+        user_prompt = false, -- Prompt the user for their own input
+      },
+      prompts = {
+        {
+          role = "system",
+          content = [[You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages. When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting.]],
+        },
+        {
+          role = "user",
+          content = function(context)
+            local diagnostics =
+              require("codecompanion.helpers.lsp").get_diagnostics(context.start_line, context.end_line, context.bufnr)
+
+            local concatenated_diagnostics = ""
+            for i, diagnostic in ipairs(diagnostics) do
+              concatenated_diagnostics = concatenated_diagnostics
+                .. i
+                .. ". Issue "
+                .. i
+                .. "\n  - Location: Line "
+                .. diagnostic.line_number
+                .. "\n  - Severity: "
+                .. diagnostic.severity
+                .. "\n  - Message: "
+                .. diagnostic.message
+                .. "\n"
+            end
+
+            return "The programming language is "
+              .. context.filetype
+              .. ". This is a list of the diagnostic messages:\n\n"
+              .. concatenated_diagnostics
+          end,
+        },
+        {
+          role = "user",
+          contains_code = true,
+          content = function(context)
+            return "This is the code, for context:\n\n"
+              .. "```"
+              .. context.filetype
+              .. "\n"
+              .. require("codecompanion.helpers.code").get_code(
+                context.start_line,
+                context.end_line,
+                { show_line_numbers = true }
+              )
+              .. "\n```\n\n"
+          end,
+        },
+      },
+    },
+    ["Generate a Commit Message"] = {
+      strategy = "chat",
+      description = "Generate a commit message",
+      opts = {
+        index = 5,
+        default_prompt = true,
+        mapping = "<LocalLeader>cm",
+        auto_submit = true,
+      },
+      prompts = {
+        {
+          role = "user",
+          contains_code = true,
+          content = function()
+            return "You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:"
+              .. "\n\n```\n"
+              .. vim.fn.system("git diff")
+              .. "\n```"
+          end,
+        },
+      },
+    },
+  },
   tools = {
     ["code_runner"] = {
       name = "Code Runner",
       description = "Run code generated by the LLM",
-      enabled = true,
-    },
-    ["git_commit_writer"] = {
-      name = "Git Commit Writer",
-      description = "Write Git commit messages on your behalf",
       enabled = true,
     },
     ["rag"] = {
@@ -56,6 +232,7 @@ return {
           wrap = true,
         },
       },
+      intro_message = "Welcome to CodeCompanion ✨! Save the buffer to send a message...",
       show_settings = true,
       show_token_count = true,
     },
@@ -71,7 +248,8 @@ return {
     ["]"] = "keymaps.next",
     ["["] = "keymaps.previous",
   },
-  plugin_system_prompt = [[You are an AI programming assistant named "CodeCompanion," built by Oli Morris. Follow the user's requirements carefully and to the letter. Your expertise is strictly limited to software development topics. Avoid content that violates copyrights. For questions not related to software development, remind the user that you are an AI programming assistant. Keep your answers short and impersonal.
+  plugin_system_prompt = string.format(
+    [[You are an AI programming assistant named "CodeCompanion," built by Oli Morris. Follow the user's requirements carefully and to the letter. Your expertise is strictly limited to software development topics. Avoid content that violates copyrights. For questions not related to software development, remind the user that you are an AI programming assistant. Keep your answers short and impersonal.
 
 You can answer general programming questions and perform the following tasks:
 - Ask questions about the files in your current workspace
@@ -82,12 +260,20 @@ You can answer general programming questions and perform the following tasks:
 - Ask questions about Neovim
 - Ask how to do something in the terminal
 
-First, think step-by-step and describe your plan in pseudocode, written out in great detail. Then, output the code in a single code block. Minimize any other prose. Use Markdown formatting in your answers, and include the programming language name at the start of the Markdown code blocks. Avoid wrapping the whole response in triple backticks. The user works in a text editor called Neovim, which has concepts for editors with open files, integrated unit test support, an output pane for running code, and an integrated terminal. The active document is the source code the user is looking at right now. You can only give one reply for each conversation turn.
+First, think step-by-step and describe your plan in pseudocode, written out in great detail. Then, output the code in a single code block. Minimize any other prose. Use Markdown formatting in your answers, and include the programming language name at the start of the Markdown code blocks. Avoid wrapping the whole response in triple backticks. The user works in a text editor called Neovim and the version is %d.%d.%d. Neovim has concepts for editors with open files, integrated unit test support, an output pane for running code, and an integrated terminal. The active document is the source code the user is looking at right now. You can only give one reply for each conversation turn.
 
-The user may notify you that you have the ability to run tools on the user's machine. When notified, pay attention to the schema that the user provides in order to execute the tool.]],
-  intro_message = "Welcome to CodeCompanion ✨! Save the buffer to send a message...",
+You also have access to tools that you can use to initiate actions on the user's machine:
+- Code Runner: To run any code that you've generated and receive the output
+- RAG: To supplement your responses with real-time information and insight
+
+When informed by the user of an available tool, pay attention to the schema that the user provides in order to execute the tool.]],
+    vim.version().major,
+    vim.version().minor,
+    vim.version().patch
+  ),
   log_level = "ERROR",
   send_code = true,
   silence_notifications = false,
   use_default_actions = true,
+  use_default_prompts = true,
 }

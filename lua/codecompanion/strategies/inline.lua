@@ -23,7 +23,7 @@ end
 
 ---@param inline CodeCompanion.Inline
 ---@param user_input? string
----@return table
+---@return table, string
 local build_prompt = function(inline, user_input)
   local output = {}
 
@@ -70,7 +70,14 @@ local build_prompt = function(inline, user_input)
     end
   end
 
-  return output
+  local user_prompts = ""
+  for _, prompt in ipairs(output) do
+    if prompt.role == "user" then
+      user_prompts = user_prompts .. prompt.content
+    end
+  end
+
+  return output, user_prompts
 end
 
 ---Stream the text to the buffer
@@ -252,26 +259,26 @@ local Inline = {}
 ---@field pre_hook? fun():number -- Assuming pre_hook returns a number for example
 ---@field prompts table
 
----@param opts CodeCompanion.InlineArgs
+---@param args CodeCompanion.InlineArgs
 ---@return CodeCompanion.Inline
-function Inline.new(opts)
+function Inline.new(args)
   log:trace("Initiating Inline")
 
-  if type(opts.pre_hook) == "function" then
-    local bufnr = opts.pre_hook()
+  if args.opts and type(args.opts.pre_hook) == "function" then
+    local bufnr = args.opts.pre_hook()
 
     if type(bufnr) == "number" then
-      opts.context.bufnr = bufnr
-      opts.context.start_line = 1
-      opts.context.start_col = 1
+      args.context.bufnr = bufnr
+      args.context.start_line = 1
+      args.context.start_col = 1
     end
   end
 
   return setmetatable({
-    context = opts.context,
+    context = args.context,
     adapter = config.adapters[config.strategies.inline],
-    opts = opts.opts or {},
-    prompts = vim.deepcopy(opts.prompts),
+    opts = args.opts or {},
+    prompts = vim.deepcopy(args.prompts),
   }, { __index = Inline })
 end
 
@@ -283,20 +290,20 @@ function Inline:stop()
   end
 end
 
----@param user_input string|nil
+---@param user_input? string
 function Inline:execute(user_input)
   if not self.adapter then
-    vim.notify("No adapter found for inline requests", vim.log.levels.ERROR)
-    log:debug("Could not find an adapter for Inline request")
+    log:error("No adapter found for Inline strategies")
     return
   end
+
   if type(self.adapter) == "string" then
     self.adapter = require("codecompanion.adapters").use(self.adapter)
   end
 
-  log:debug("Inline adapter config: %s", self.adapter)
+  log:trace("Inline adapter config: %s", self.adapter)
 
-  local prompt = build_prompt(self, user_input)
+  local prompt, user_prompts = build_prompt(self, user_input)
 
   if not self.opts.placement then
     local action = {
@@ -307,7 +314,7 @@ function Inline:execute(user_input)
       {
         role = "user",
         content = 'The prompt to analyse is: "'
-          .. user_input
+          .. user_prompts
           .. '". Please respond with the placement and a boolean flag ONLY e.g. "cursor|true"',
       },
     }

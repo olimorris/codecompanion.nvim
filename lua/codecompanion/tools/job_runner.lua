@@ -59,7 +59,7 @@ local function run(cmds, chat, index)
     end,
     on_stdout = function(_, data)
       vim.schedule(function()
-        log:debug("stdout: %s", data)
+        log:trace("stdout: %s", data)
         if index == #cmds then
           table.insert(stdout, data)
         end

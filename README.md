@@ -28,10 +28,10 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 
 - :speech_balloon: A Copilot Chat experience in Neovim
 - :electric_plug: Adapter support for many LLMs
-- :robot: Agentic Workflows and Tools to improve LLM output
 - :rocket: Inline code creation and modification
-- :sparkles: Built in actions for specific language prompts, LSP error fixes and code advice
-- :building_construction: Create your own custom actions for Neovim
+- :robot: Agentic Workflows and Tools to improve LLM output
+- :sparkles: Built in prompts for LSP error fixes and code advice
+- :building_construction: Create your own custom prompts for Neovim
 - :floppy_disk: Save and restore your chats
 - :muscle: Async execution for improved performance
 
@@ -40,8 +40,8 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 ## :camera_flash: Screenshots
 
 <div align="center">
-  <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/99ef145e-378a-4210-96f7-ab7f4fa4ea0b</p>
-  <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/6387547b-9255-4787-a2b7-2c3258ed6e95</p>
+  <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/3bd96f3e-6195-40f4-b427-99999a3fff99</p>
+  <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/4e7972d3-4c53-4fe7-8fb7-0dce174d94b5</p>
 </div>
 
 <!-- panvimdoc-ignore-end -->
@@ -105,17 +105,193 @@ require("codecompanion").setup({
   strategies = {
     chat = "openai",
     inline = "openai",
-    tools = "openai",
+    tool = "openai",
+  },
+  prompts = {
+    ["Custom Prompt"] = {
+      strategy = "inline",
+      description = "Custom user input",
+      opts = {
+        index = 1,
+        default_prompt = true,
+        mapping = "<LocalLeader>cc",
+        user_prompt = true,
+      },
+      prompts = {
+        {
+          role = "system",
+          content = function(context)
+            if context.buftype == "terminal" then
+              return "I want you to act as an expert in writing terminal commands that will work for my current shell "
+                .. os.getenv("SHELL")
+                .. ". I will ask you specific questions and I want you to return the raw command only (no codeblocks and explanations). If you can't respond with a command, respond with nothing"
+            end
+            return "I want you to act as a senior "
+              .. context.filetype
+              .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing"
+          end,
+        },
+      },
+    },
+    ["Chat with an Expert"] = {
+      strategy = "chat",
+      description = "Chat with an expert for the current filetype",
+      opts = {
+        index = 2,
+        default_prompt = true,
+        modes = { "n", "v" },
+        mapping = "<LocalLeader>ce",
+        auto_submit = false,
+      },
+      prompts = {
+        {
+          role = "system",
+          content = function(context)
+            return "I want you to act as an expert and senior developer in the "
+              .. context.filetype
+              .. " language. I will ask you questions, perhaps giving you code examples, and I want you to advise me with explanations and code where neccessary."
+          end,
+        },
+        {
+          role = "user",
+          contains_code = true,
+          condition = function(context)
+            return context.is_visual
+          end,
+          content = function(context)
+            local text = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
+
+            return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
+          end,
+        },
+        {
+          role = "user",
+          condition = function(context)
+            return not context.is_visual
+          end,
+          content = "\n \n",
+        },
+      },
+    },
+    ["Code Advisor"] = {
+      strategy = "chat",
+      description = "Get advice on the code you've selected",
+      opts = {
+        index = 3,
+        default_prompt = true,
+        mapping = "<LocalLeader>ca",
+        modes = { "v" },
+        auto_submit = true,
+        user_prompt = true,
+      },
+      prompts = {
+        {
+          role = "system",
+          content = function(context)
+            return "I want you to act as a senior "
+              .. context.filetype
+              .. " developer. I will ask you specific questions and I want you to return concise explanations and codeblock examples."
+          end,
+        },
+        {
+          role = "user",
+          contains_code = true,
+          content = function(context)
+            local text = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
+
+            return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
+          end,
+        },
+      },
+    },
+    ["Fix LSP Diagnostics"] = {
+      strategy = "chat",
+      description = "Use an LLM to fix your LSP diagnostics",
+      opts = {
+        index = 4,
+        default_prompt = true,
+        mapping = "<LocalLeader>cl",
+        modes = { "v" },
+        auto_submit = true,
+        user_prompt = false, -- Prompt the user for their own input
+      },
+      prompts = {
+        {
+          role = "system",
+          content = [[You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages. When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting.]],
+        },
+        {
+          role = "user",
+          content = function(context)
+            local diagnostics =
+              require("codecompanion.helpers.lsp").get_diagnostics(context.start_line, context.end_line, context.bufnr)
+
+            local concatenated_diagnostics = ""
+            for i, diagnostic in ipairs(diagnostics) do
+              concatenated_diagnostics = concatenated_diagnostics
+                .. i
+                .. ". Issue "
+                .. i
+                .. "\n  - Location: Line "
+                .. diagnostic.line_number
+                .. "\n  - Severity: "
+                .. diagnostic.severity
+                .. "\n  - Message: "
+                .. diagnostic.message
+                .. "\n"
+            end
+
+            return "The programming language is "
+              .. context.filetype
+              .. ". This is a list of the diagnostic messages:\n\n"
+              .. concatenated_diagnostics
+          end,
+        },
+        {
+          role = "user",
+          contains_code = true,
+          content = function(context)
+            return "This is the code, for context:\n\n"
+              .. "```"
+              .. context.filetype
+              .. "\n"
+              .. require("codecompanion.helpers.code").get_code(
+                context.start_line,
+                context.end_line,
+                { show_line_numbers = true }
+              )
+              .. "\n```\n\n"
+          end,
+        },
+      },
+    },
+    ["Generate a Commit Message"] = {
+      strategy = "chat",
+      description = "Generate a commit message",
+      opts = {
+        index = 5,
+        default_prompt = true,
+        mapping = "<LocalLeader>cm",
+        auto_submit = true,
+      },
+      prompts = {
+        {
+          role = "user",
+          contains_code = true,
+          content = function()
+            return "You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:"
+              .. "\n\n```\n"
+              .. vim.fn.system("git diff")
+              .. "\n```"
+          end,
+        },
+      },
+    },
   },
   tools = {
     ["code_runner"] = {
       name = "Code Runner",
       description = "Run code generated by the LLM",
-      enabled = true,
-    },
-    ["git_commit_writer"] = {
-      name = "Git Commit Writer",
-      description = "Write Git commit messages on your behalf",
       enabled = true,
     },
     ["rag"] = {
@@ -124,12 +300,12 @@ require("codecompanion").setup({
       enabled = true,
     },
     opts = {
-      auto_submit_errors = false, -- Automatically send and submit the errors to the LLM?
-      mute_errors = false, -- Hide any tool errors from being displayed in Neovim?
+      auto_submit_errors = false,
+      mute_errors = false,
     },
   },
   saved_chats = {
-    save_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats", -- Path to save chats to
+    save_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats",
   },
   display = {
     action_palette = {
@@ -154,22 +330,24 @@ require("codecompanion").setup({
           wrap = true,
         },
       },
+      intro_message = "Welcome to CodeCompanion ✨! Save the buffer to send a message...",
       show_settings = true,
       show_token_count = true,
     },
   },
   keymaps = {
-    ["<C-s>"] = "keymaps.save", -- Save the chat buffer and trigger the LLM
-    ["<C-c>"] = "keymaps.close", -- Close the chat buffer
-    ["q"] = "keymaps.cancel_request", -- Cancel the currently streaming request
-    ["gc"] = "keymaps.clear", -- Clear the contents of the chat
-    ["ga"] = "keymaps.codeblock", -- Insert a codeblock into the chat
-    ["gs"] = "keymaps.save_chat", -- Save the current chat
-    ["gt"] = "keymaps.add_tool", -- Add a tool to the current chat buffer
-    ["]"] = "keymaps.next", -- Move to the next header in the chat
-    ["["] = "keymaps.previous", -- Move to the previous header in the chat
+    ["<C-s>"] = "keymaps.save",
+    ["<C-c>"] = "keymaps.close",
+    ["q"] = "keymaps.stop",
+    ["gc"] = "keymaps.clear",
+    ["ga"] = "keymaps.codeblock",
+    ["gs"] = "keymaps.save_chat",
+    ["gt"] = "keymaps.add_tool",
+    ["]"] = "keymaps.next",
+    ["["] = "keymaps.previous",
   },
-  plugin_system_prompt = [[You are an AI programming assistant named "CodeCompanion," built by Oli Morris. Follow the user's requirements carefully and to the letter. Your expertise is strictly limited to software development topics. Avoid content that violates copyrights. For questions not related to software development, remind the user that you are an AI programming assistant. Keep your answers short and impersonal.
+  plugin_system_prompt = string.format(
+    [[You are an AI programming assistant named "CodeCompanion," built by Oli Morris. Follow the user's requirements carefully and to the letter. Your expertise is strictly limited to software development topics. Avoid content that violates copyrights. For questions not related to software development, remind the user that you are an AI programming assistant. Keep your answers short and impersonal.
 
 You can answer general programming questions and perform the following tasks:
 - Ask questions about the files in your current workspace
@@ -180,13 +358,22 @@ You can answer general programming questions and perform the following tasks:
 - Ask questions about Neovim
 - Ask how to do something in the terminal
 
-First, think step-by-step and describe your plan in pseudocode, written out in great detail. Then, output the code in a single code block. Minimize any other prose. Use Markdown formatting in your answers, and include the programming language name at the start of the Markdown code blocks. Avoid wrapping the whole response in triple backticks. The user works in a text editor called Neovim, which has concepts for editors with open files, integrated unit test support, an output pane for running code, and an integrated terminal. The active document is the source code the user is looking at right now. You can only give one reply for each conversation turn.
+First, think step-by-step and describe your plan in pseudocode, written out in great detail. Then, output the code in a single code block. Minimize any other prose. Use Markdown formatting in your answers, and include the programming language name at the start of the Markdown code blocks. Avoid wrapping the whole response in triple backticks. The user works in a text editor called Neovim and the version is %d.%d.%d. Neovim has concepts for editors with open files, integrated unit test support, an output pane for running code, and an integrated terminal. The active document is the source code the user is looking at right now. You can only give one reply for each conversation turn.
 
-The user may notify you that you have the ability to run tools on the user's machine. When notified, pay attention to the schema that the user provides in order to execute the tool.]],
-  log_level = "ERROR", -- TRACE|DEBUG|ERROR
-  send_code = true, -- Send code context to the LLM? Disable to prevent leaking code outside of Neovim
-  silence_notifications = false, -- Silence notifications for actions like saving saving chats?
-  use_default_actions = true, -- Use the default actions in the action palette?
+You also have access to tools that you can use to initiate actions on the user's machine:
+- Code Runner: To run any code that you've generated and receive the output
+- RAG: To supplement your responses with real-time information and insight
+
+When informed by the user of an available tool, pay attention to the schema that the user provides in order to execute the tool.]],
+    vim.version().major,
+    vim.version().minor,
+    vim.version().patch
+  ),
+  log_level = "ERROR",
+  send_code = true,
+  silence_notifications = false,
+  use_default_actions = true,
+  use_default_prompts = true,
 })
 ```
 
@@ -295,12 +482,14 @@ The plugin sets the following highlight groups during setup:
 
 The plugin has a number of commands:
 
-- `:CodeCompanion` - Inline coding
-- `:CodeCompanionWithBuffers` - Inline coding and also sends open buffers to the LLM
 - `:CodeCompanionChat` - To open up a new chat buffer
 - `:CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
+- `:CodeCompanionToggle` - To Toggle a chat buffer
+
+- `:CodeCompanion` - Inline coding
+- `:CodeCompanionWithBuffers` - Inline coding and also sends open buffers to the LLM
+
 - `:CodeCompanionAdd` - To add visually selected chat to the current chat buffer
-- `:CodeCompanionToggle` - Toggle a chat buffer
 - `:CodeCompanionActions` - To open up the action palette window
 
 For an optimum workflow, the plugin author recommendeds the following:
@@ -324,7 +513,7 @@ vim.cmd([[cab ccb CodeCompanionWithBuffers]])
 
 <!-- panvimdoc-ignore-start -->
 
-<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/b5e2ad2d-c6a2-45a4-a4d0-c118dfaec943" alt="action selector" /></p>
+<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/550f7897-60af-4c4a-ace6-abdd73bd3605" alt="action selector" /></p>
 
 <!-- panvimdoc-ignore-end -->
 
@@ -337,7 +526,7 @@ The Action Palette, opened via `:CodeCompanionActions`, contains all of the acti
 
 <!-- panvimdoc-ignore-start -->
 
-<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/84d5e03a-0b48-4ffb-9ca5-e299d41171bd" alt="chat buffer" /></p>
+<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/fdabd2c1-9c77-41ce-a8d3-d01dab7e23ed" alt="chat buffer" /></p>
 
 <!-- panvimdoc-ignore-end -->
 
@@ -373,7 +562,7 @@ From the Action Palette, the `Open Chats` action enables users to easily navigat
 
 <!-- panvimdoc-ignore-start -->
 
-https://github.com/olimorris/codecompanion.nvim/assets/9512444/0a448d12-5b8b-4932-b2e9-871eec45c534
+https://github.com/olimorris/codecompanion.nvim/assets/9512444/3bf8a03f-5984-4db1-b499-7e7d41b058e8
 
 <!-- panvimdoc-ignore-end -->
 

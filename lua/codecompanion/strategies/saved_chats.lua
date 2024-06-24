@@ -128,7 +128,6 @@ function SavedChat:load(opts)
     saved_chat = self.filename,
     messages = content.messages,
     settings = content.settings,
-    show_buffer = true,
   })
 
   rename_buffer(chat_buf.bufnr, opts.filename)

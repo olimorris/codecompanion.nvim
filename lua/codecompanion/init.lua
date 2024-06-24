@@ -3,6 +3,7 @@ local util = require("codecompanion.utils.util")
 local api = vim.api
 
 local M = {}
+M.prompts_to_use = {}
 M.config = require("codecompanion.config")
 
 ---Prompt the LLM from within the current buffer
@@ -199,8 +200,11 @@ M.setup = function(opts)
     end
   end
 
-  M.INFO_NS = api.nvim_create_namespace("CodeCompanion-info")
-  M.ERROR_NS = api.nvim_create_namespace("CodeCompanion-error")
+  -- Setup the user's custom prompts
+  local prompts = require("codecompanion.prompts").new(M.config.prompts):setup()
+  M.prompts_to_use = prompts.prompts
+
+  -- TODO: Create namespaces here
 
   local log = require("codecompanion.utils.log")
   log.set_root(log.new({

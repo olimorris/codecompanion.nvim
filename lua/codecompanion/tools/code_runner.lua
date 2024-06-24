@@ -37,7 +37,9 @@ return {
     },
     {
       role = "user",
-      content = "\n \n",
+      content = function()
+        return "Using the tool, "
+      end,
     },
   },
   env = function(xml)

@@ -39,9 +39,10 @@ local tool_query = [[
 )
 ]]
 
+---@param adapter? CodeCompanion.Adapter|string
 ---@return CodeCompanion.Adapter
-local function resolve_adapter()
-  local adapter = config.adapters[config.strategies.chat]
+local function resolve_adapter(adapter)
+  adapter = adapter or config.adapters[config.strategies.chat]
 
   if type(adapter) == "string" then
     return require("codecompanion.adapters").use(adapter)
@@ -185,7 +186,6 @@ local display_tokens = function(bufnr)
 end
 
 _G.codecompanion_chats = {}
--- _G.codecompanion_win_opts = {}
 
 ---@param chat CodeCompanion.Chat
 local function set_autocmds(chat)
@@ -256,6 +256,29 @@ local function set_autocmds(chat)
   })
 end
 
+---@param chat CodeCompanion.Chat
+local function set_welcome_message(chat)
+  if chat.intro_message then
+    return
+  end
+
+  local ns_id = api.nvim_create_namespace("CodeCompanionChatIntroMessage")
+
+  local id = api.nvim_buf_set_extmark(chat.bufnr, ns_id, api.nvim_buf_line_count(chat.bufnr) - 1, 0, {
+    virt_text = { { config.display.chat.intro_message, "CodeCompanionVirtualText" } },
+    virt_text_pos = "eol",
+  })
+
+  api.nvim_create_autocmd("InsertEnter", {
+    buffer = chat.bufnr,
+    callback = function()
+      api.nvim_buf_del_extmark(chat.bufnr, ns_id, id)
+    end,
+  })
+
+  chat.intro_message = true
+end
+
 ---@class CodeCompanion.Chat
 ---@field id integer
 ---@field adapter CodeCompanion.Adapter
@@ -273,7 +296,6 @@ local Chat = {}
 ---@field context? table
 ---@field adapter? CodeCompanion.Adapter
 ---@field messages nil|table
----@field show_buffer nil|boolean
 ---@field auto_submit nil|boolean
 ---@field settings nil|table
 ---@field type nil|string
@@ -307,7 +329,7 @@ function Chat.new(args)
   self.bufnr = self.create_buf()
   self:open()
 
-  self.adapter = args.adapter or resolve_adapter()
+  self.adapter = resolve_adapter(args.adapter)
   if not self.adapter then
     vim.notify("[CodeCompanion.nvim]\nNo adapter found", vim.log.levels.ERROR)
     return
@@ -315,9 +337,12 @@ function Chat.new(args)
 
   self.settings = args.settings or schema.get_default(self.adapter.args.schema, args.settings)
 
-  set_autocmds(self)
   self:render(args.messages or {})
+  set_autocmds(self)
 
+  if not args.messages or #args.messages == 0 then
+    set_welcome_message(self)
+  end
   if args.saved_chat then
     display_tokens(self.bufnr)
   end
@@ -657,7 +682,7 @@ function Chat:hide_tool_output()
         vim.api.nvim_buf_set_option(self.bufnr, "foldmethod", "manual")
         vim.api.nvim_buf_call(self.bufnr, function()
           vim.fn.setpos(".", { self.bufnr, start_row + 1, 0, 0 })
-          vim.cmd("normal! zf" .. (end_row - 1) .. "G")
+          vim.cmd("normal! zf" .. end_row .. "G")
         end)
         ui.buf_scroll_to_end(self.bufnr)
       end

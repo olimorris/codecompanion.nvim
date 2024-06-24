@@ -3,9 +3,15 @@ local log = require("codecompanion.utils.log")
 
 ---@param prompts table
 ---@param context table
-local function modal_prompts(prompts, context)
+local function process_prompts(prompts, context)
   local messages = {}
   for _, prompt in ipairs(prompts) do
+    if prompt.condition then
+      if not prompt.condition(context) then
+        goto continue
+      end
+    end
+
     --TODO: These nested conditionals suck. Refactor soon
     if not prompt.contains_code or (prompt.contains_code and config.send_code) then
       if not prompt.condition or (prompt.condition and prompt.condition(context)) then
@@ -22,6 +28,7 @@ local function modal_prompts(prompts, context)
         })
       end
     end
+    ::continue::
   end
 
   return messages
@@ -59,10 +66,15 @@ function Strategy:chat()
   if type(prompts[mode]) == "function" then
     return prompts[mode]()
   elseif type(prompts[mode]) == "table" then
-    messages = modal_prompts(prompts[mode], self.context)
+    messages = process_prompts(prompts[mode], self.context)
   else
     -- No mode specified
-    messages = modal_prompts(prompts, self.context)
+    messages = process_prompts(prompts, self.context)
+  end
+
+  if not messages or #messages == 0 then
+    vim.notify("[CodeCompanion.nvim]\nThere are no messages to prompt the LLM", vim.log.levels.WARN)
+    return
   end
 
   local function chat(input)
@@ -75,8 +87,8 @@ function Strategy:chat()
 
     return require("codecompanion.strategies.chat").new({
       type = self.selected.type,
+      adapter = self.selected.adapter,
       messages = messages,
-      show_buffer = true,
       auto_submit = (self.selected.opts and self.selected.opts.auto_submit) or false,
     })
   end
@@ -99,7 +111,6 @@ function Strategy:inline()
     .new({
       context = self.context,
       opts = self.selected.opts,
-      pre_hook = self.selected.pre_hook,
       prompts = self.selected.prompts,
     })
     :start()
@@ -107,7 +118,7 @@ end
 
 ---@return nil|CodeCompanion.Chat
 function Strategy:tool()
-  local messages = modal_prompts(self.selected.prompts, self.context)
+  local messages = process_prompts(self.selected.prompts, self.context)
 
   local adapter = config.adapters[config.strategies.tool]
 
@@ -122,7 +133,6 @@ function Strategy:tool()
     adapter = adapter,
     type = self.selected.type,
     messages = messages,
-    show_buffer = true,
   })
 end
 

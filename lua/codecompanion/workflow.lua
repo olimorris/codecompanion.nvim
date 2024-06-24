@@ -65,7 +65,6 @@ function Workflow:workflow(prompts)
   local chat = require("codecompanion.strategies.chat").new({
     type = "chat",
     messages = starting_prompts,
-    show_buffer = true,
   })
 
   if not chat then
