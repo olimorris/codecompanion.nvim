@@ -476,16 +476,14 @@ USAGE                                                    *codecompanion-usage*
 The plugin has a number of commands:
 
 - `:CodeCompanionChat` - To open up a new chat buffer
-- `:CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific
-    adapter
+- `:CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
 - `:CodeCompanionToggle` - To Toggle a chat buffer
 - `:CodeCompanion` - Inline coding
-- `:CodeCompanionWithBuffers` - Inline coding and also sends open buffers to the
-    LLM
+- `:CodeCompanionWithBuffers` - Inline coding and also sends open buffers to the LLM
 - `:CodeCompanionAdd` - To add visually selected chat to the current chat buffer
 - `:CodeCompanionActions` - To open up the action palette window
 
-For an optimum workflow, the plugin author recommendeds the following:
+For an optimum workflow, the plugin author recommendeds setting the following:
 
 >lua
     vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
@@ -507,7 +505,7 @@ THE ACTION PALETTE ~
 
 
   [!NOTE] Please see the RECIPES <RECIPES.md> guide in order to add your own
-  actions to the palette.
+  pre-defined prompts to the palette.
 The Action Palette, opened via `:CodeCompanionActions`, contains all of the
 actions and their associated strategies for the plugin. It’s the fastest way
 to start leveraging CodeCompanion. Depending on whether you’re in _normal_ or
@@ -516,8 +514,8 @@ _visual_ mode will affect the options that are available to you in the palette.
 
 THE CHAT BUFFER ~
 
-The chat buffer is where you can converse with the LLM, directly from Neovim.
-It behaves as a regular markdown buffer with some clever additions. When the
+The chat buffer is where you can converse with an LLM, directly from Neovim. It
+behaves as a regular markdown buffer with some clever additions. When the
 buffer is written (or "saved"), autocmds trigger the sending of its content to
 the LLM in the form of prompts. These prompts are segmented by H1 headers:
 `user`, `system` and `assistant`. When a response is received, it is then
@@ -607,13 +605,20 @@ the placements below:
 - _new_ - in a new buffer
 - _replace_ - replacing the visual selection
 
-The strategy comes with a number of helpers via the action palette which the
-user can type in the prompt, similar to GitHub Copilot Chat
-<https://github.blog/changelog/2024-01-30-code-faster-and-better-with-github-copilots-new-features-in-visual-studio/>
 
-- `/doc`to add a documentation comment
-- `/optimize` to analyze and improve the running time of the selected code
-- `/tests` to create unit tests for the selected code
+PRE-DEFINED PROMPTS ~
+
+
+  [!NOTE] Please see the RECIPES <RECIPES.md> guide in order to add your own
+  pre-defined prompts to the palette.
+The plugin comes with a number of pre-defined prompts and corresponding
+keymaps:
+
+- Custom Prompt - For custom inline prompting of an LLM (mapping: `<LocalLeader>cc`)
+- Chat with an Expert - Chat with a coding expert for the given filetype (mapping: `<LocalLeader>ce`)
+- Generate a Commit Message - Use an LLM to write a commit message for you (mapping: `<LocalLeader>cm`)
+- Code Advisor - Get advice from an LLM on code you’ve selected (mapping: `<LocalLeader>ca`)
+- Fix LSP Diagnostics - Use an LLM to fix LSP diagnostics for code you’ve selected (mapping: `<LocalLeader>cl`)
 
 
 TOOLS ~
@@ -661,27 +666,6 @@ Currently, the plugin comes with the following workflows:
 
 Of course you can add new workflows by following the RECIPES <RECIPES.md>
 guide.
-
-
-OTHER ACTIONS ~
-
-
-  [!NOTE] These actions are only available in visual mode
-
-CODE ADVISOR
-
-As the name suggests, this action provides advice on a visual selection of code
-and utilises the `chat` strategy. The response from the LLM is streamed into a
-chat buffer which follows the `display.chat` settings in your configuration.
-
-
-LSP ASSISTANT
-
-Taken from the fantastic Wtf.nvim <https://github.com/piersolenski/wtf.nvim>
-plugin, this action provides advice on how to correct any LSP diagnostics which
-are present on the visually selected lines. Again, the `send_code = false`
-value can be set in your config to prevent the code itself being sent to the
-LLM.
 
 
 HELPERS                                                *codecompanion-helpers*

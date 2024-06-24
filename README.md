@@ -485,14 +485,12 @@ The plugin has a number of commands:
 - `:CodeCompanionChat` - To open up a new chat buffer
 - `:CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
 - `:CodeCompanionToggle` - To Toggle a chat buffer
-
 - `:CodeCompanion` - Inline coding
 - `:CodeCompanionWithBuffers` - Inline coding and also sends open buffers to the LLM
-
 - `:CodeCompanionAdd` - To add visually selected chat to the current chat buffer
 - `:CodeCompanionActions` - To open up the action palette window
 
-For an optimum workflow, the plugin author recommendeds the following:
+For an optimum workflow, the plugin author recommendeds setting the following:
 
 ```lua
 vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
@@ -518,7 +516,7 @@ vim.cmd([[cab ccb CodeCompanionWithBuffers]])
 <!-- panvimdoc-ignore-end -->
 
 > [!NOTE]
-> Please see the [RECIPES](RECIPES.md) guide in order to add your own actions to the palette.
+> Please see the [RECIPES](RECIPES.md) guide in order to add your own pre-defined prompts to the palette.
 
 The Action Palette, opened via `:CodeCompanionActions`, contains all of the actions and their associated strategies for the plugin. It's the fastest way to start leveraging CodeCompanion. Depending on whether you're in _normal_ or _visual_ mode will affect the options that are available to you in the palette.
 
@@ -530,7 +528,7 @@ The Action Palette, opened via `:CodeCompanionActions`, contains all of the acti
 
 <!-- panvimdoc-ignore-end -->
 
-The chat buffer is where you can converse with the LLM, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the LLM in the form of prompts. These prompts are segmented by H1 headers: `user`, `system` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with your LLM from within Neovim.
+The chat buffer is where you can converse with an LLM, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the LLM in the form of prompts. These prompts are segmented by H1 headers: `user`, `system` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with your LLM from within Neovim.
 
 #### Keymaps
 
@@ -598,11 +596,18 @@ One of the challenges with inline editing is determining how the LLM's response 
 - _new_ - in a new buffer
 - _replace_ - replacing the visual selection
 
-The strategy comes with a number of helpers via the action palette which the user can type in the prompt, similar to [GitHub Copilot Chat](https://github.blog/changelog/2024-01-30-code-faster-and-better-with-github-copilots-new-features-in-visual-studio/):
+### Pre-defined Prompts
 
-- `/doc` to add a documentation comment
-- `/optimize` to analyze and improve the running time of the selected code
-- `/tests` to create unit tests for the selected code
+> [!NOTE]
+> Please see the [RECIPES](RECIPES.md) guide in order to add your own pre-defined prompts to the palette.
+
+The plugin comes with a number of pre-defined prompts and corresponding keymaps:
+
+- Custom Prompt - For custom inline prompting of an LLM (mapping: `<LocalLeader>cc`)
+- Chat with an Expert - Chat with a coding expert for the given filetype (mapping: `<LocalLeader>ce`)
+- Generate a Commit Message - Use an LLM to write a commit message for you (mapping: `<LocalLeader>cm`)
+- Code Advisor - Get advice from an LLM on code you've selected (mapping: `<LocalLeader>ca`)
+- Fix LSP Diagnostics - Use an LLM to fix LSP diagnostics for code you've selected (mapping: `<LocalLeader>cl`)
 
 ### Tools
 
@@ -634,19 +639,6 @@ Currently, the plugin comes with the following workflows:
 - Refactoring code
 
 Of course you can add new workflows by following the [RECIPES](RECIPES.md) guide.
-
-### Other Actions
-
-> [!NOTE]
-> These actions are only available in visual mode
-
-#### Code Advisor
-
-As the name suggests, this action provides advice on a visual selection of code and utilises the `chat` strategy. The response from the LLM is streamed into a chat buffer which follows the `display.chat` settings in your configuration.
-
-#### LSP Assistant
-
-Taken from the fantastic [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) plugin, this action provides advice on how to correct any LSP diagnostics which are present on the visually selected lines. Again, the `send_code = false` value can be set in your config to prevent the code itself being sent to the LLM.
 
 ## :rainbow: Helpers
 
