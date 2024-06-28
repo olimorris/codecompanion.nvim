@@ -110,7 +110,7 @@ require("codecompanion").setup({
   prompts = {
     ["Custom Prompt"] = {
       strategy = "inline",
-      description = "Custom user input",
+      description = "Send a custom prompt to the LLM",
       opts = {
         index = 1,
         default_prompt = true,
@@ -133,9 +133,18 @@ require("codecompanion").setup({
         },
       },
     },
-    ["Chat with an Expert"] = {
+    ["Senior Developer"] = {
       strategy = "chat",
-      description = "Chat with an expert for the current filetype",
+      name_f = function(context)
+        return "Senior " .. utils.capitalize(context.filetype) .. " Developer"
+      end,
+      description = function(context)
+        local filetype
+        if context and context.filetype then
+          filetype = utils.capitalize(context.filetype)
+        end
+        return "Chat with a senior " .. (filetype or "") .. " developer"
+      end,
       opts = {
         index = 2,
         default_prompt = true,
@@ -181,6 +190,7 @@ require("codecompanion").setup({
         default_prompt = true,
         mapping = "<LocalLeader>ca",
         modes = { "v" },
+        shortcut = "advisor",
         auto_submit = true,
         user_prompt = true,
       },
@@ -212,6 +222,7 @@ require("codecompanion").setup({
         default_prompt = true,
         mapping = "<LocalLeader>cl",
         modes = { "v" },
+        shortcut = "lsp",
         auto_submit = true,
         user_prompt = false, -- Prompt the user for their own input
       },
@@ -272,6 +283,7 @@ require("codecompanion").setup({
         index = 5,
         default_prompt = true,
         mapping = "<LocalLeader>cm",
+        shortcut = "commit",
         auto_submit = true,
       },
       prompts = {
@@ -346,8 +358,14 @@ require("codecompanion").setup({
     ["]"] = "keymaps.next",
     ["["] = "keymaps.previous",
   },
-  plugin_system_prompt = string.format(
-    [[You are an AI programming assistant named "CodeCompanion," built by Oli Morris. Follow the user's requirements carefully and to the letter. Your expertise is strictly limited to software development topics. Avoid content that violates copyrights. For questions not related to software development, remind the user that you are an AI programming assistant. Keep your answers short and impersonal.
+  default_prompts = {
+    inline_to_chat = function(context)
+      return "I want you to act as an expert and senior developer in the "
+        .. context.filetype
+        .. " language. I will ask you questions, perhaps giving you code examples, and I want you to advise me with explanations and code where neccessary."
+    end,
+    system = string.format(
+      [[You are an AI programming assistant named "CodeCompanion," built by Oli Morris. Follow the user's requirements carefully and to the letter. Your expertise is strictly limited to software development topics. Avoid content that violates copyrights. For questions not related to the general topic of software development, remind the user that you are an AI programming assistant. Keep your answers short and impersonal.
 
 You can answer general programming questions and perform the following tasks:
 - Ask questions about the files in your current workspace
@@ -365,10 +383,11 @@ You also have access to tools that you can use to initiate actions on the user's
 - RAG: To supplement your responses with real-time information and insight
 
 When informed by the user of an available tool, pay attention to the schema that the user provides in order to execute the tool.]],
-    vim.version().major,
-    vim.version().minor,
-    vim.version().patch
-  ),
+      vim.version().major,
+      vim.version().minor,
+      vim.version().patch
+    ),
+  },
   log_level = "ERROR",
   send_code = true,
   silence_notifications = false,
@@ -379,7 +398,7 @@ When informed by the user of an available tool, pay attention to the schema that
 
 </details>
 
-### Adapters
+**Adapters**
 
 > [!WARNING]
 > Depending on your [chosen adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters), you may need to set an API key.
@@ -407,7 +426,7 @@ require("codecompanion").setup({
 > [!TIP]
 > To create your own adapter please refer to the [ADAPTERS](ADAPTERS.md) guide.
 
-#### Configuring environment variables
+**Configuring environment variables**
 
 You can customise an adapter's configuration as follows:
 
@@ -449,7 +468,7 @@ require("codecompanion").setup({
 
 In this example, we're using the 1Password CLI to read an OpenAI credential.
 
-#### Configuring adapter settings
+**Configuring adapter settings**
 
 LLMs have many settings such as _model_, _temperature_ and _max_tokens_. In an adapter, these sit within a schema table and can be configured during setup:
 
@@ -470,7 +489,7 @@ require("codecompanion").setup({
 > [!TIP]
 > Refer to your chosen [adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters) to see the settings available.
 
-### Highlight Groups
+**Highlight Groups**
 
 The plugin sets the following highlight groups during setup:
 
@@ -480,12 +499,22 @@ The plugin sets the following highlight groups during setup:
 
 ## :rocket: Getting Started
 
-[Video to go here] - Remove videos from elsewhere in the README
+**Inline Prompting**
+
+<!-- panvimdoc-ignore-start -->
+
+<div align="center">
+  <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/2b072735-eb43-468a-9d4b-8e401a46beca</p>
+</div>
+
+<!-- panvimdoc-ignore-end -->
 
 To start interacting with the plugin you can run `:CodeCompanion <your prompt>` from the command line. You can also make a visual selection in Neovim and run `:'<,'>CodeCompanion <your prompt>` to send it as context. A command such as `:'<,'>CodeCompanion what does this code do?` will prompt the LLM the respond in a chat buffer allowing you to ask any follow up questions. Whereas a command such as `:CodeCompanion can you create a function that outputs the current date and time` would result in the output being placed at the cursor's position in the buffer.
 
 > [!NOTE]
 > Any open and loaded buffers can be sent to the LLM as context with the `@buffers` keyword, assuming they match the current filetype. For example: `:'<,'>CodeCompanion @buffers can you explain this class?`.
+
+**Chat Buffer**
 
 <!-- panvimdoc-ignore-start -->
 
@@ -494,6 +523,8 @@ To start interacting with the plugin you can run `:CodeCompanion <your prompt>` 
 <!-- panvimdoc-ignore-end -->
 
 The chat buffer is where you'll likely spend most of your time. Running `:CodeCompanionChat` or `:'<,'>CodeCompanionChat` will open up a chat buffer where you can converse directly with an LLM. As a convenience, you can use `:CodeCompanionToggle` to toggle the latest chat buffer. There are many convenient keymaps you can leverage in the chat buffer which are covered in the section below.
+
+**Action Palette**
 
 <!-- panvimdoc-ignore-start -->
 
@@ -506,7 +537,7 @@ The `:CodeCompanionActions` command will open the _Action Palette_, giving you a
 > [!NOTE]
 > Some actions will only be visible in the _Action Palette_ if you're in Visual mode.
 
-### List of commands
+**List of commands**
 
 Below is the full list of commands that are available in the plugin:
 
@@ -518,7 +549,7 @@ Below is the full list of commands that are available in the plugin:
 - `CodeCompanionToggle` - To toggle a chat buffer
 - `CodeCompanionAdd` - To add visually selected chat to the current chat buffer
 
-### Suggested workflow
+**Suggested workflow**
 
 For an optimum workflow, I recommend the following options:
 
@@ -543,7 +574,7 @@ A [RECIPES](RECIPES.md) guide has been created to show you how you can add your 
 
 The chat buffer is where you can converse with an LLM, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the LLM in the form of prompts. These prompts are segmented by H1 headers: `user`, `system` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with your LLM from within Neovim.
 
-#### Keymaps
+**Keymaps**
 
 When in the chat buffer, there are number of keymaps available to you:
 
@@ -557,19 +588,19 @@ When in the chat buffer, there are number of keymaps available to you:
 - `[` - Move to the next header
 - `]` - Move to the previous header
 
-#### Saved Chats
+**Saved Chats**
 
 Chat buffers are not saved to disk by default, but can be by pressing `gs` in the buffer. Saved chats can then be restored via the Action Palette and the _Load saved chats_ action.
 
-#### Settings
+**Settings**
 
 If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the adapter's model parameters which can be changed to tweak the response. You can find more detail about them by moving the cursor over them.
 
-#### Open Chats
+**Open Chats**
 
 From the Action Palette, the `Open Chats` action enables users to easily navigate between their open chat buffers. A chat buffer can be deleted (and removed from memory) by pressing `<C-c>`.
 
-### Inline Prompts
+### Inline Prompting
 
 > [!NOTE]
 > If `send_code = false` then this will take precedent and no buffers will be sent to the LLM
@@ -630,7 +661,7 @@ Of course you can add new workflows by following the [RECIPES](RECIPES.md) guide
 
 ## :rainbow: Helpers
 
-### Hooks / User events
+**Hooks / User events**
 
 The plugin fires the following events during its lifecycle:
 
@@ -656,11 +687,11 @@ vim.api.nvim_create_autocmd({ "User" }, {
 })
 ```
 
-### Statuslines
+**Statuslines**
 
 You can incorporate a visual indication to show when the plugin is communicating with an LLM in your Neovim configuration. Below are examples for two popular statusline plugins.
 
-#### lualine.nvim
+**lualine.nvim:**
 
 ```lua
 local M = require("lualine.component"):extend()
@@ -710,7 +741,7 @@ end
 return M
 ```
 
-#### heirline.nvim
+**heirline.nvim:**
 
 ```lua
 local CodeCompanion = {
