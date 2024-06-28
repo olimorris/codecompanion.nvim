@@ -511,8 +511,10 @@ The plugin sets the following highlight groups during setup:
 
 To start interacting with the plugin you can run `:CodeCompanion <your prompt>` from the command line. You can also make a visual selection in Neovim and run `:'<,'>CodeCompanion <your prompt>` to send it as context. A command such as `:'<,'>CodeCompanion what does this code do?` will prompt the LLM the respond in a chat buffer allowing you to ask any follow up questions. Whereas a command such as `:CodeCompanion can you create a function that outputs the current date and time` would result in the output being placed at the cursor's position in the buffer.
 
+In the video, you'll notice that we're triggering a pre-defined prompt (from the config defaults) to explain any LSP warnings by running `:'<,'>:CodeCompanion @lsp`. More on this in the [default prompts](#default-prompts) section.
+
 > [!NOTE]
-> Any open and loaded buffers can be sent to the LLM as context with the `@buffers` keyword, assuming they match the current filetype. For example: `:'<,'>CodeCompanion @buffers can you explain this class?`.
+> Any open and loaded buffers can be sent to the LLM as context with the `@buffers` keyword, assuming they match the current filetype. For example: `:'<,'>CodeCompanion @buffers <your prompt>`.
 
 **Chat Buffer**
 
@@ -522,7 +524,7 @@ To start interacting with the plugin you can run `:CodeCompanion <your prompt>` 
 
 <!-- panvimdoc-ignore-end -->
 
-The chat buffer is where you'll likely spend most of your time. Running `:CodeCompanionChat` or `:'<,'>CodeCompanionChat` will open up a chat buffer where you can converse directly with an LLM. As a convenience, you can use `:CodeCompanionToggle` to toggle the latest chat buffer. There are many convenient keymaps you can leverage in the chat buffer which are covered in the section below.
+The chat buffer is where you'll likely spend most of your time interacting with the plugin. Running `:CodeCompanionChat` or `:'<,'>CodeCompanionChat` will open up a chat buffer where you can converse directly with an LLM. As a convenience, you can use `:CodeCompanionToggle` to toggle the visibility of a chat buffer. There are many convenient keymaps you can leverage in the chat buffer which are covered in the [chat buffer section](#the-chat-buffer) below.
 
 **Action Palette**
 
@@ -532,7 +534,7 @@ The chat buffer is where you'll likely spend most of your time. Running `:CodeCo
 
 <!-- panvimdoc-ignore-end -->
 
-The `:CodeCompanionActions` command will open the _Action Palette_, giving you access to all of the functionality in the plugin. The _Prompts_ section is where your custom prompts and the pre-defined ones can be accessed. You'll notice that some prompts have a label in their description such as `@commit`. This enables you to more easily trigger them from the command line by doing `:CodeCompanion @commit`. Some of these prompts also have keymaps assigned to them (which can be overwritten!) which offers an even easier route to triggering them.
+The `:CodeCompanionActions` command will open the _Action Palette_, giving you access to all of the functionality in the plugin. The _Prompts_ section is where your custom prompts and the pre-defined ones can be accessed. You'll notice that some prompts have a label in their description such as `@commit`. This enables you to trigger them from the command line by doing `:CodeCompanion @commit`. Some of these prompts also have keymaps assigned to them (which can be overwritten!) which offers an even easier route to triggering them.
 
 > [!NOTE]
 > Some actions will only be visible in the _Action Palette_ if you're in Visual mode.
