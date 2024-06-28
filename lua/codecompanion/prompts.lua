@@ -2,6 +2,15 @@ local Strategy = require("codecompanion.strategy")
 local util = require("codecompanion.utils.util")
 local api = vim.api
 
+local function resolve_description(desc)
+  if type(desc) == "string" then
+    return desc
+  end
+  if type(desc) == "function" then
+    return desc()
+  end
+end
+
 ---@param config table
 ---@param mode string
 local function map(config, mode)
@@ -14,7 +23,7 @@ local function map(config, mode)
         selected = config,
       }):start(config.strategy)
     end,
-    desc = config.description,
+    desc = resolve_description(config.description),
     noremap = true,
     silent = true,
   })

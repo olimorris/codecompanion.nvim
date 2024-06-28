@@ -1,3 +1,5 @@
+local utils = require("codecompanion.utils.util")
+
 return {
   adapters = {
     anthropic = "anthropic",
@@ -12,7 +14,7 @@ return {
   prompts = {
     ["Custom Prompt"] = {
       strategy = "inline",
-      description = "Custom user input",
+      description = "Send a custom prompt to the LLM",
       opts = {
         index = 1,
         default_prompt = true,
@@ -35,9 +37,18 @@ return {
         },
       },
     },
-    ["Chat with an Expert"] = {
+    ["Senior Developer"] = {
       strategy = "chat",
-      description = "Chat with an expert for the current filetype",
+      name_f = function(context)
+        return "Senior " .. utils.capitalize(context.filetype) .. " Developer"
+      end,
+      description = function(context)
+        local filetype
+        if context and context.filetype then
+          filetype = utils.capitalize(context.filetype)
+        end
+        return "Chat with a senior " .. (filetype or "") .. " developer"
+      end,
       opts = {
         index = 2,
         default_prompt = true,
@@ -83,6 +94,7 @@ return {
         default_prompt = true,
         mapping = "<LocalLeader>ca",
         modes = { "v" },
+        shortcut = "advisor",
         auto_submit = true,
         user_prompt = true,
       },
@@ -114,6 +126,7 @@ return {
         default_prompt = true,
         mapping = "<LocalLeader>cl",
         modes = { "v" },
+        shortcut = "lsp",
         auto_submit = true,
         user_prompt = false, -- Prompt the user for their own input
       },
@@ -174,6 +187,7 @@ return {
         index = 5,
         default_prompt = true,
         mapping = "<LocalLeader>cm",
+        shortcut = "commit",
         auto_submit = true,
       },
       prompts = {
@@ -248,8 +262,14 @@ return {
     ["]"] = "keymaps.next",
     ["["] = "keymaps.previous",
   },
-  plugin_system_prompt = string.format(
-    [[You are an AI programming assistant named "CodeCompanion," built by Oli Morris. Follow the user's requirements carefully and to the letter. Your expertise is strictly limited to software development topics. Avoid content that violates copyrights. For questions not related to software development, remind the user that you are an AI programming assistant. Keep your answers short and impersonal.
+  default_prompts = {
+    inline_to_chat = function(context)
+      return "I want you to act as an expert and senior developer in the "
+        .. context.filetype
+        .. " language. I will ask you questions, perhaps giving you code examples, and I want you to advise me with explanations and code where neccessary."
+    end,
+    system = string.format(
+      [[You are an AI programming assistant named "CodeCompanion," built by Oli Morris. Follow the user's requirements carefully and to the letter. Your expertise is strictly limited to software development topics. Avoid content that violates copyrights. For questions not related to the general topic of software development, remind the user that you are an AI programming assistant. Keep your answers short and impersonal.
 
 You can answer general programming questions and perform the following tasks:
 - Ask questions about the files in your current workspace
@@ -267,10 +287,11 @@ You also have access to tools that you can use to initiate actions on the user's
 - RAG: To supplement your responses with real-time information and insight
 
 When informed by the user of an available tool, pay attention to the schema that the user provides in order to execute the tool.]],
-    vim.version().major,
-    vim.version().minor,
-    vim.version().patch
-  ),
+      vim.version().major,
+      vim.version().minor,
+      vim.version().patch
+    ),
+  },
   log_level = "ERROR",
   send_code = true,
   silence_notifications = false,

@@ -36,7 +36,7 @@ M.static.actions = {
   {
     name = "Chat",
     strategy = "chat",
-    description = "Open/restore a chat buffer to converse with an LLM",
+    description = "Open a chat buffer to converse with an LLM",
     type = nil,
     prompts = {
       n = function()
@@ -62,15 +62,15 @@ M.static.actions = {
     },
   },
   {
-    name = "Pre-defined Prompts ...",
+    name = "Prompts ...",
     strategy = " ",
     description = "Pre-defined prompts to help you code",
     condition = function()
       return config.prompts and utils.count(config.prompts) > 0
     end,
     picker = {
-      prompt = "Pre-defined Prompts",
-      items = function()
+      prompt = "Prompts",
+      items = function(context)
         local prompts = {}
 
         local sort_index = true
@@ -83,10 +83,22 @@ M.static.actions = {
             sort_index = false
           end
 
+          if type(prompt.name_f) == "function" then
+            name = prompt.name_f(context)
+          end
+
+          local description = prompt.description
+          if type(prompt.description) == "function" then
+            description = prompt.description(context)
+          end
+          if prompt.opts and prompt.opts.shortcut then
+            description = "(@" .. prompt.opts.shortcut .. ") " .. description
+          end
+
           table.insert(prompts, {
             name = name,
             strategy = prompt.strategy,
-            description = prompt.description,
+            description = description,
             opts = prompt.opts,
             prompts = prompt.prompts,
           })
@@ -106,7 +118,7 @@ M.static.actions = {
   },
   {
     name = "Open chats ...",
-    strategy = "chat",
+    strategy = " ",
     description = "Your currently open chats",
     condition = function()
       return _G.codecompanion_chats and utils.count(_G.codecompanion_chats) > 0
@@ -136,7 +148,7 @@ M.static.actions = {
   },
   {
     name = "Tools ...",
-    strategy = "tool",
+    strategy = " ",
     description = "Use the built-in tools to help you code",
     condition = function()
       local tools = config.tools
@@ -188,7 +200,7 @@ M.static.actions = {
   },
   {
     name = "Workflows ...",
-    strategy = "chat",
+    strategy = " ",
     description = "Workflows to improve the performance of your LLM",
     picker = {
       prompt = "Select a workflow",
@@ -296,7 +308,7 @@ M.static.actions = {
   },
   {
     name = "Load saved chats ...",
-    strategy = "saved_chats",
+    strategy = " ",
     description = "Load your previously saved chats",
     condition = function()
       local saved_chats = require("codecompanion.strategies.saved_chats")

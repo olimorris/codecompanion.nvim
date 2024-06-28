@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 June 24
+*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 June 28
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -7,14 +7,15 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Requirements                                  |codecompanion-requirements|
   - Installation                                  |codecompanion-installation|
   - Configuration                                |codecompanion-configuration|
-  - Usage                                                |codecompanion-usage|
+  - Getting Started                            |codecompanion-getting-started|
+  - Advanced Usage                              |codecompanion-advanced-usage|
   - Helpers                                            |codecompanion-helpers|
 
 FEATURES                                              *codecompanion-features*
 
 - A Copilot Chat experience in Neovim
-- Adapter support for many LLMs
-- Inline code creation and modification
+- Support for OpenAI, Anthropic and Ollama
+- Inline code creation and refactoring
 - Agentic Workflows and Tools to improve LLM output
 - Built in prompts for LSP error fixes and code advice
 - Create your own custom prompts for Neovim
@@ -471,19 +472,59 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionVirtualTextTools` - Virtual text in the chat buffer for when a tool is running
 
 
-USAGE                                                    *codecompanion-usage*
+GETTING STARTED                                *codecompanion-getting-started*
 
-The only command to memorise is `:CodeCompanionActions` which will open the
-_Action Palette_. Of course the plugin has a number of other commands:
+[Video to go here] - Remove videos from elsewhere in the README
 
-- `:CodeCompanionChat` - To open up a new chat buffer
-- `:CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
-- `:CodeCompanionToggle` - To Toggle a chat buffer
-- `:CodeCompanion` - Inline coding
-- `:CodeCompanionWithBuffers` - Inline coding and also sends open buffers to the LLM
-- `:CodeCompanionAdd` - To add visually selected chat to the current chat buffer
+To start interacting with the plugin you can run `:CodeCompanion <your prompt>`
+from the command line. You can also make a visual selection in Neovim and run
+`:'<,'>CodeCompanion <your prompt>` to send it as context. A command such as
+`:'<,'>CodeCompanion what does this code do?` will prompt the LLM the respond
+in a chat buffer allowing you to ask any follow up questions. Whereas a command
+such as `:CodeCompanion can you create a function that outputs the current date
+and time` would result in the output being placed at the cursor’s position in
+the buffer.
 
-For an optimum workflow, the plugin author recommendeds setting the following:
+
+  [!NOTE] Any open and loaded buffers can be sent to the LLM as context with the
+  `@buffers` keyword, assuming they match the current filetype. For example:
+  `:'<,'>CodeCompanion @buffers can you explain this class?`.
+The chat buffer is where you’ll likely spend most of your time. Running
+`:CodeCompanionChat` or `:'<,'>CodeCompanionChat` will open up a chat buffer
+where you can converse directly with an LLM. As a convenience, you can use
+`:CodeCompanionToggle` to toggle the latest chat buffer. There are many
+convenient keymaps you can leverage in the chat buffer which are covered in the
+section below.
+
+The `:CodeCompanionActions` command will open the _Action Palette_, giving you
+access to all of the functionality in the plugin. The _Prompts_ section is
+where your custom prompts and the pre-defined ones can be accessed. You’ll
+notice that some prompts have a label in their description such as `@commit`.
+This enables you to more easily trigger them from the command line by doing
+`:CodeCompanion @commit`. Some of these prompts also have keymaps assigned to
+them (which can be overwritten!) which offers an even easier route to
+triggering them.
+
+
+  [!NOTE] Some actions will only be visible in the _Action Palette_ if you’re
+  in Visual mode.
+
+LIST OF COMMANDS ~
+
+Below is the full list of commands that are available in the plugin:
+
+- `CodeCompanionActions` - To open the _Action Palette_
+- `CodeCompanion` - Inline prompting of the plugin
+- `CodeCompanion <shortcut>` - Inline prompting of the plugin with a shortcut e.g. `@commit`
+- `CodeCompanionChat` - To open up a new chat buffer
+- `CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
+- `CodeCompanionToggle` - To toggle a chat buffer
+- `CodeCompanionAdd` - To add visually selected chat to the current chat buffer
+
+
+SUGGESTED WORKFLOW ~
+
+For an optimum workflow, I recommend the following options:
 
 >lua
     vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
@@ -492,24 +533,18 @@ For an optimum workflow, the plugin author recommendeds setting the following:
     vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
     vim.api.nvim_set_keymap("v", "ga", "<cmd>CodeCompanionAdd<cr>", { noremap = true, silent = true })
     
-    -- Expand `cc` into CodeCompanion in the command line
+    -- Expand 'cc' into 'CodeCompanion' in the command line
     vim.cmd([[cab cc CodeCompanion]])
-    vim.cmd([[cab ccb CodeCompanionWithBuffers]])
 <
 
 
-  [!NOTE] For some actions, visual mode allows your selection to be sent directly
-  to the chat buffer or the LLM (in the case of _inline code_ actions).
-
-THE ACTION PALETTE ~
+ADVANCED USAGE                                  *codecompanion-advanced-usage*
 
 
-  [!NOTE] Please see the RECIPES <RECIPES.md> guide in order to add your own
-  pre-defined prompts to the palette.
-The Action Palette, opened via `:CodeCompanionActions`, contains all of the
-actions and their associated strategies for the plugin. It’s the fastest way
-to start leveraging CodeCompanion. Depending on whether you’re in _normal_ or
-_visual_ mode will affect the options that are available to you in the palette.
+CUSTOMISING THE ACTION PALETTE ~
+
+A RECIPES <RECIPES.md> guide has been created to show you how you can add your
+own prompts to the _Action Palette_
 
 
 THE CHAT BUFFER ~
@@ -560,35 +595,14 @@ navigate between their open chat buffers. A chat buffer can be deleted (and
 removed from memory) by pressing `<C-c>`.
 
 
-INLINE CODE ~
-
-You can use the plugin to create inline code directly into a Neovim buffer.
-This can be invoked by using the _Action Palette_ (as above) or from the
-command line via `:CodeCompanion`. For example:
-
->
-    :CodeCompanion create a table of 5 common text editors and loop through them
-<
-
->
-    :'<,'>CodeCompanion refactor the code to make it more concise
-<
-
-
-  [!NOTE] The command can detect if you’ve made a visual selection and send any
-  code as context to the LLM alongside the filetype of the buffer.
-You can also send the contents of any loaded buffers (which match the current
-buffer’s filetype) to the LLM as context:
-
->
-    :CodeCompanionWithBuffers <your request>
-<
+INLINE PROMPTS ~
 
 
   [!NOTE] If `send_code = false` then this will take precedent and no buffers
   will be sent to the LLM
-
-OTHER POINTS TO NOTE
+Inline prompts can be triggered via the `CodeCompanion <your prompt>` command.
+As mentioned in the |codecompanion-getting-started| guide, you can also
+leverage visual selections and prompt shortcuts like `'<,'>CodeCompanion @lsp`.
 
 One of the challenges with inline editing is determining how the LLM’s
 response should be handled in the buffer. If you’ve prompted the LLM to
@@ -599,26 +613,26 @@ expect the response to overwrite a visual selection. The plugin will use the
 inline LLM you’ve specified to determine if the response should follow any of
 the placements below:
 
-- _after_ - after the visual selection
-- _before_ - before the visual selection
-- _cursor_ - one column after the cursor position
+- _after_ - after the visual selection/cursor
+- _before_ - before the visual selection/cursor
 - _new_ - in a new buffer
 - _replace_ - replacing the visual selection
+- _chat_ - in a chat buffer
 
 
-PRE-DEFINED PROMPTS ~
+DEFAULT PROMPTS ~
 
 
   [!NOTE] Please see the RECIPES <RECIPES.md> guide in order to add your own
   pre-defined prompts to the palette.
-The plugin comes with a number of pre-defined prompts and corresponding
-keymaps:
+The plugin comes with a number of default prompts and corresponding
+keymaps/shortcuts:
 
-- Custom Prompt - For custom inline prompting of an LLM (mapping: `<LocalLeader>cc`)
-- Chat with an Expert - Chat with a coding expert for the given filetype (mapping: `<LocalLeader>ce`)
-- Generate a Commit Message - Use an LLM to write a commit message for you (mapping: `<LocalLeader>cm`)
-- Code Advisor - Get advice from an LLM on code you’ve selected (mapping: `<LocalLeader>ca`)
-- Fix LSP Diagnostics - Use an LLM to fix LSP diagnostics for code you’ve selected (mapping: `<LocalLeader>cl`)
+- Custom Prompt - For custom inline prompting of an LLM (`<LocalLeader>cc`)
+- Senior Developer - Chat with a senior developer for the given filetype (`<LocalLeader>ce`)
+- Generate a Commit Message - Use an LLM to write a commit message for you (`<LocalLeader>cm` / `@commit`)
+- Code Advisor - Get advice from an LLM on code you’ve selected (`<LocalLeader>ca` / `@advisor`)
+- Fix LSP Diagnostics - Use an LLM to fix LSP diagnostics for code you’ve selected (`<LocalLeader>cl` / `@lsp`)
 
 
 TOOLS ~

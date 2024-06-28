@@ -14,11 +14,12 @@ end
 ---@param lines table
 ---@return string
 local function code_block(filetype, lines)
-  return "For context, this is the code I will ask you to help me with: ```"
-    .. filetype
-    .. "  "
-    .. table.concat(lines, "  ")
+  return "For context, this is the code I will ask you to help me with:\n\n"
     .. "```"
+    .. filetype
+    .. "\n"
+    .. table.concat(lines, "  ")
+    .. "\n```\n"
 end
 
 ---@param inline CodeCompanion.Inline
@@ -35,6 +36,7 @@ local build_prompt = function(inline, user_input)
 
       table.insert(output, {
         role = prompt.role,
+        tag = prompt.tag,
         content = prompt.content,
       })
     end
@@ -44,12 +46,21 @@ local build_prompt = function(inline, user_input)
   if user_input then
     table.insert(output, {
       role = "user",
+      tag = "user_prompt",
       content = user_input,
     })
   end
 
   -- Send code as context
   if config.send_code then
+    if inline.context.is_visual then
+      log:trace("Sending visual selection")
+      table.insert(output, {
+        role = "user",
+        tag = "visual",
+        content = code_block(inline.context.filetype, inline.context.lines),
+      })
+    end
     if inline.opts.send_open_buffers then
       log:trace("Sending open buffers to the LLM")
       local buf_utils = require("codecompanion.utils.buffers")
@@ -57,15 +68,9 @@ local build_prompt = function(inline, user_input)
 
       table.insert(output, {
         role = "user",
-        content = "I've included some additional context in the form of open buffers: \n"
+        tag = "buffers",
+        content = "I've included some additional context in the form of open buffers:\n\n"
           .. buf_utils.format(buffers, inline.context.filetype),
-      })
-    end
-    if inline.context.is_visual then
-      log:trace("Sending visual selection")
-      table.insert(output, {
-        role = "user",
-        content = code_block(inline.context.filetype, inline.context.lines),
       })
     end
   end
@@ -182,6 +187,50 @@ local function calc_placement(inline, placement)
   return pos
 end
 
+local function extract_placement(str)
+  return str:match("(%w+|%w+)")
+end
+
+local function send_to_chat(inline, prompt)
+  -- If we're converting an inline prompt to a chat, we need to perform some
+  -- additional steps. We need to remove any visual selections as the chat
+  -- buffer will account for this. We also need to swap the system prompt
+  for i = #prompt, 1, -1 do
+    if inline.context.is_visual and prompt[i].tag == "visual" then
+      table.remove(prompt, i)
+    elseif prompt[i].tag == "system_tag" then
+      prompt[i].content = config.default_prompts.inline_to_chat(inline.context)
+    end
+  end
+
+  -- Lastly, we need to re-arrange the table of prompts
+  table.sort(prompt, function(a, b)
+    -- System prompts come first...
+    if a.role == "system" then
+      return true
+    end
+    if b.role == "system" then
+      return false
+    end
+    -- ...and user prompts last
+    if a.tag == "user_prompt" then
+      return false
+    end
+    if b.tag == "user_prompt" then
+      return true
+    end
+
+    return false
+  end)
+
+  return require("codecompanion.strategies.chat").new({
+    context = inline.context,
+    adapter = inline.adapter,
+    messages = prompt,
+    auto_submit = true,
+  })
+end
+
 ---Get the output for the inline prompt from the generative AI
 ---@param inline CodeCompanion.Inline
 ---@param placement string
@@ -190,8 +239,20 @@ end
 ---@return nil
 local function get_inline_output(inline, placement, prompt, output)
   -- Work out where to place the output from the inline prompt
-  local parts = vim.split(placement, "|")
+  local parts = vim.split(extract_placement(placement), "|")
+
+  if #parts < 2 then
+    log:error("Could not determine where to place the output from the prompt")
+    return
+  end
+
   local action = parts[1]
+
+  if action == "chat" then
+    return send_to_chat(inline, prompt)
+  end
+
+  log:debug("Prompt: %s", prompt)
 
   local pos = calc_placement(inline, action)
 
@@ -309,18 +370,34 @@ function Inline:execute(user_input)
     local action = {
       {
         role = "system",
-        content = 'I am writing a prompt from within the Neovim text editor. This prompt will go to an LLM which will return a response. The response will then be streamed into Neovim. However, depending on the nature of the prompt, how Neovim handles the output will vary. For instance, if the user references the words "refactor" or "update" in their prompt, they will likely want the response to replace a visual selection they\'ve made in the editor. However, if they include words such as "after" or "before", it may be insinuated that they wish the response to be placed after or before the cursor position. They may also ask for the response to be placed in a new buffer. Finally, if you they don\'t specify what they wish to do, then they likely want to stream the response into where the cursor is currently. What I\'d like you to do is analyse the following prompt and determine whether the response should be one of: 1) after 2) before 3) replace 4) new 5) cursor. We\'ll call this the "placement" and please only respond with a single word. The user may not wish for their original code to be returned back to them from the generative AI model as part of the response. An example would be if they\'ve asked the model to generate comments or documentation. However if they\'ve asked for some refactoring/modification, then the original code should be returned. Please can you determine whether the code should be returned or not by responding with a boolean flag. Can you append this to the "placement" from earlier and seperate them with a "|" character? An example would be "cursor|true". DO NOT respond with anything other than "cursor|true".',
+        content = [[I would like you to assess a prompt which has been made from within the Neovim text editor. Based on this prompt, I require you to determine where the output from this prompt should be placed. I am calling this determination the "<method>". For example, the user may wish for the output to be placed:
+
+1) `after` the current cursor position
+2) `before` the current cursor position
+3) `replace` the current selection
+4) `new` in a new buffer/file
+5) `chat` in a buffer which can be used to ask additional questions
+
+Here are some example prompts and their correct method classification to help you:
+
+* "Can you create a method/function that does XYZ" would be `after`
+* "Can you create XYZ method/function before the cursor" would be `before`
+* "Can you refactor/fix/amend this code?" would be `replace`
+* "Can you create a method/function for XYZ and put it in a new buffer?" would be `new`
+* "Why is Neovim so popular?" or "What does this code do?" would be `chat`
+
+As a final assessment, I'd like you to determine if any code that the user has provided to you within their prompt should be returned in your response. I am calling this determination the "<return>" evaluation and it should be a boolean value.
+
+Please respond to this prompt in the format "<method>|<return>" where "<method>" is a string and "<replace>" is a boolean value. For example `after|false` or `chat|false` or `replace|true`. Do not provide any addition text other than]],
       },
       {
         role = "user",
-        content = 'The prompt to analyse is: "'
-          .. user_prompts
-          .. '". Please respond with the placement and a boolean flag ONLY e.g. "cursor|true"',
+        content = 'The prompt to assess is: "' .. user_prompts,
       },
     }
 
     -- Assume the placement should be after the cursor
-    api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
+    -- api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
 
     local placement = ""
     announce("started")
@@ -330,7 +407,7 @@ function Inline:execute(user_input)
       end
 
       if done then
-        log:trace("Placement: %s", placement)
+        log:debug("Placement: %s", placement)
         get_inline_output(self, placement, prompt, {})
         return
       end

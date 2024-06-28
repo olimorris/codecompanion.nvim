@@ -27,8 +27,8 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 ## :sparkles: Features
 
 - :speech_balloon: A Copilot Chat experience in Neovim
-- :electric_plug: Adapter support for many LLMs
-- :rocket: Inline code creation and modification
+- :electric_plug: Support for OpenAI, Anthropic and Ollama
+- :rocket: Inline code creation and refactoring
 - :robot: Agentic Workflows and Tools to improve LLM output
 - :sparkles: Built in prompts for LSP error fixes and code advice
 - :building_construction: Create your own custom prompts for Neovim
@@ -88,7 +88,7 @@ use({
 })
 ```
 
-## :wrench: Configuration
+## :gear: Configuration
 
 You only need to the call the `setup` function if you wish to change any of the defaults:
 
@@ -478,18 +478,49 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionVirtualText` - All other virtual text in the chat buffer
 - `CodeCompanionVirtualTextTools` - Virtual text in the chat buffer for when a tool is running
 
-## :rocket: Usage
+## :rocket: Getting Started
 
-The only command to memorise is `:CodeCompanionActions` which will open the _Action Palette_. Of course the plugin has a number of other commands:
+[Video to go here] - Remove videos from elsewhere in the README
 
-- `:CodeCompanionChat` - To open up a new chat buffer
-- `:CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
-- `:CodeCompanionToggle` - To Toggle a chat buffer
-- `:CodeCompanion` - Inline coding
-- `:CodeCompanionWithBuffers` - Inline coding and also sends open buffers to the LLM
-- `:CodeCompanionAdd` - To add visually selected chat to the current chat buffer
+To start interacting with the plugin you can run `:CodeCompanion <your prompt>` from the command line. You can also make a visual selection in Neovim and run `:'<,'>CodeCompanion <your prompt>` to send it as context. A command such as `:'<,'>CodeCompanion what does this code do?` will prompt the LLM the respond in a chat buffer allowing you to ask any follow up questions. Whereas a command such as `:CodeCompanion can you create a function that outputs the current date and time` would result in the output being placed at the cursor's position in the buffer.
 
-For an optimum workflow, the plugin author recommendeds setting the following:
+> [!NOTE]
+> Any open and loaded buffers can be sent to the LLM as context with the `@buffers` keyword, assuming they match the current filetype. For example: `:'<,'>CodeCompanion @buffers can you explain this class?`.
+
+<!-- panvimdoc-ignore-start -->
+
+<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/654b8ce6-be61-42c8-b5e7-0437ea03ac8e" alt="Chat buffer"></p>
+
+<!-- panvimdoc-ignore-end -->
+
+The chat buffer is where you'll likely spend most of your time. Running `:CodeCompanionChat` or `:'<,'>CodeCompanionChat` will open up a chat buffer where you can converse directly with an LLM. As a convenience, you can use `:CodeCompanionToggle` to toggle the latest chat buffer. There are many convenient keymaps you can leverage in the chat buffer which are covered in the section below.
+
+<!-- panvimdoc-ignore-start -->
+
+<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/efb7013e-6c73-48fe-bd79-cdc233dfdc61" alt="Action Palette"></p>
+
+<!-- panvimdoc-ignore-end -->
+
+The `:CodeCompanionActions` command will open the _Action Palette_, giving you access to all of the functionality in the plugin. The _Prompts_ section is where your custom prompts and the pre-defined ones can be accessed. You'll notice that some prompts have a label in their description such as `@commit`. This enables you to more easily trigger them from the command line by doing `:CodeCompanion @commit`. Some of these prompts also have keymaps assigned to them (which can be overwritten!) which offers an even easier route to triggering them.
+
+> [!NOTE]
+> Some actions will only be visible in the _Action Palette_ if you're in Visual mode.
+
+### List of commands
+
+Below is the full list of commands that are available in the plugin:
+
+- `CodeCompanionActions` - To open the _Action Palette_
+- `CodeCompanion` - Inline prompting of the plugin
+- `CodeCompanion <shortcut>` - Inline prompting of the plugin with a shortcut e.g. `@commit`
+- `CodeCompanionChat` - To open up a new chat buffer
+- `CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
+- `CodeCompanionToggle` - To toggle a chat buffer
+- `CodeCompanionAdd` - To add visually selected chat to the current chat buffer
+
+### Suggested workflow
+
+For an optimum workflow, I recommend the following options:
 
 ```lua
 vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
@@ -498,34 +529,17 @@ vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", {
 vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "ga", "<cmd>CodeCompanionAdd<cr>", { noremap = true, silent = true })
 
--- Expand `cc` into CodeCompanion in the command line
+-- Expand 'cc' into 'CodeCompanion' in the command line
 vim.cmd([[cab cc CodeCompanion]])
-vim.cmd([[cab ccb CodeCompanionWithBuffers]])
 ```
 
-> [!NOTE]
-> For some actions, visual mode allows your selection to be sent directly to the chat buffer or the LLM (in the case of _inline code_ actions).
+## :bulb: Advanced Usage
 
-### The Action Palette
+### Customising the Action Palette
 
-<!-- panvimdoc-ignore-start -->
-
-<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/550f7897-60af-4c4a-ace6-abdd73bd3605" alt="action selector" /></p>
-
-<!-- panvimdoc-ignore-end -->
-
-> [!NOTE]
-> Please see the [RECIPES](RECIPES.md) guide in order to add your own pre-defined prompts to the palette.
-
-The Action Palette, opened via `:CodeCompanionActions`, contains all of the actions and their associated strategies for the plugin. It's the fastest way to start leveraging CodeCompanion. Depending on whether you're in _normal_ or _visual_ mode will affect the options that are available to you in the palette.
+A [RECIPES](RECIPES.md) guide has been created to show you how you can add your own prompts to the _Action Palette_
 
 ### The Chat Buffer
-
-<!-- panvimdoc-ignore-start -->
-
-<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/fdabd2c1-9c77-41ce-a8d3-d01dab7e23ed" alt="chat buffer" /></p>
-
-<!-- panvimdoc-ignore-end -->
 
 The chat buffer is where you can converse with an LLM, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the LLM in the form of prompts. These prompts are segmented by H1 headers: `user`, `system` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with your LLM from within Neovim.
 
@@ -555,58 +569,33 @@ If `display.chat.show_settings` is set to `true`, at the very top of the chat bu
 
 From the Action Palette, the `Open Chats` action enables users to easily navigate between their open chat buffers. A chat buffer can be deleted (and removed from memory) by pressing `<C-c>`.
 
-### Inline Code
-
-<!-- panvimdoc-ignore-start -->
-
-https://github.com/olimorris/codecompanion.nvim/assets/9512444/3bf8a03f-5984-4db1-b499-7e7d41b058e8
-
-<!-- panvimdoc-ignore-end -->
-
-You can use the plugin to create inline code directly into a Neovim buffer. This can be invoked by using the _Action Palette_ (as above) or from the command line via `:CodeCompanion`. For example:
-
-```
-:CodeCompanion create a table of 5 common text editors and loop through them
-```
-
-```
-:'<,'>CodeCompanion refactor the code to make it more concise
-```
-
-> [!NOTE]
-> The command can detect if you've made a visual selection and send any code as context to the LLM alongside the filetype of the buffer.
-
-You can also send the contents of any loaded buffers (which match the current buffer's filetype) to the LLM as context:
-
-```
-:CodeCompanionWithBuffers <your request>
-```
+### Inline Prompts
 
 > [!NOTE]
 > If `send_code = false` then this will take precedent and no buffers will be sent to the LLM
 
-#### Other Points to Note
+Inline prompts can be triggered via the `CodeCompanion <your prompt>` command. As mentioned in the [Getting Started](#rocket-getting-started) guide, you can also leverage visual selections and prompt shortcuts like `'<,'>CodeCompanion @lsp`.
 
 One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed after the cursor's current position in the buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. The plugin will use the inline LLM you've specified to determine if the response should follow any of the placements below:
 
-- _after_ - after the visual selection
-- _before_ - before the visual selection
-- _cursor_ - one column after the cursor position
+- _after_ - after the visual selection/cursor
+- _before_ - before the visual selection/cursor
 - _new_ - in a new buffer
 - _replace_ - replacing the visual selection
+- _chat_ - in a chat buffer
 
-### Pre-defined Prompts
+### Default Prompts
 
 > [!NOTE]
 > Please see the [RECIPES](RECIPES.md) guide in order to add your own pre-defined prompts to the palette.
 
-The plugin comes with a number of pre-defined prompts and corresponding keymaps:
+The plugin comes with a number of default prompts and corresponding keymaps/shortcuts:
 
-- Custom Prompt - For custom inline prompting of an LLM (mapping: `<LocalLeader>cc`)
-- Chat with an Expert - Chat with a coding expert for the given filetype (mapping: `<LocalLeader>ce`)
-- Generate a Commit Message - Use an LLM to write a commit message for you (mapping: `<LocalLeader>cm`)
-- Code Advisor - Get advice from an LLM on code you've selected (mapping: `<LocalLeader>ca`)
-- Fix LSP Diagnostics - Use an LLM to fix LSP diagnostics for code you've selected (mapping: `<LocalLeader>cl`)
+- Custom Prompt - For custom inline prompting of an LLM (`<LocalLeader>cc`)
+- Senior Developer - Chat with a senior developer for the given filetype (`<LocalLeader>ce`)
+- Generate a Commit Message - Use an LLM to write a commit message for you (`<LocalLeader>cm` / `@commit`)
+- Code Advisor - Get advice from an LLM on code you've selected (`<LocalLeader>ca` / `@advisor`)
+- Fix LSP Diagnostics - Use an LLM to fix LSP diagnostics for code you've selected (`<LocalLeader>cl` / `@lsp`)
 
 ### Tools
 

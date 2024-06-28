@@ -3,7 +3,8 @@ local util = require("codecompanion.utils.util")
 local api = vim.api
 
 local M = {}
-M.prompts_to_use = {}
+
+M.pre_defined_prompts = {}
 M.config = require("codecompanion.config")
 
 ---Prompt the LLM from within the current buffer
@@ -18,15 +19,31 @@ M.inline = function(args)
       prompts = {
         {
           role = "system",
+          tag = "system_tag",
           content = function()
             return "I want you to act as a senior "
               .. context.filetype
-              .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing"
+              .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing."
           end,
         },
       },
     })
     :start(args)
+end
+
+---Run the prompt that the user initiated from the command line
+---@param prompt table The prompt to resolve from the command
+---@param args table The arguments that were passed to the command
+M.run_pre_defined_prompts = function(prompt, args)
+  local context = util.get_context(vim.api.nvim_get_current_buf(), args)
+  local item = M.pre_defined_prompts[prompt]
+
+  return require("codecompanion.strategy")
+    .new({
+      context = context,
+      selected = item,
+    })
+    :start(item.strategy)
 end
 
 ---Add visually selected code to the current chat buffer
@@ -114,7 +131,11 @@ M.actions = function(args)
         local formatted_item = {}
         for _, column in ipairs(opts.columns) do
           if item[column] ~= nil then
-            table.insert(formatted_item, item[column] or "")
+            if type(item[column]) == "function" then
+              table.insert(formatted_item, item[column](context))
+            else
+              table.insert(formatted_item, item[column] or "")
+            end
           end
         end
         return formatted_item
@@ -135,7 +156,7 @@ M.actions = function(args)
         prompt = item.picker.prompt,
         columns = item.picker.columns,
       }
-      picker(actions.validate(item.picker.items(), context), picker_opts, selection)
+      picker(actions.validate(item.picker.items(context), context), picker_opts, selection)
     elseif item and type(item.callback) == "function" then
       return item.callback(context)
     else
@@ -200,9 +221,14 @@ M.setup = function(opts)
     end
   end
 
-  -- Setup the user's custom prompts
+  -- Setup the pre-defined prompts
   local prompts = require("codecompanion.prompts").new(M.config.prompts):setup()
-  M.prompts_to_use = prompts.prompts
+  for name, prompt in pairs(prompts.prompts) do
+    if prompt.opts.shortcut then
+      prompt.name = name
+      M.pre_defined_prompts[prompt.opts.shortcut] = prompt
+    end
+  end
 
   -- TODO: Create namespaces here
 

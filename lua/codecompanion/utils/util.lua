@@ -4,6 +4,13 @@ local M = {}
 
 local ESC_FEEDKEY = api.nvim_replace_termcodes("<ESC>", true, false, true)
 
+---Make the first letter uppercase
+---@param str string
+---@return string
+M.capitalize = function(str)
+  return (str:gsub("^%l", string.upper))
+end
+
 ---@param table table
 M.count = function(table)
   local count = 0

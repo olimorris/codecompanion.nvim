@@ -2,9 +2,9 @@
 
 The purpose of this guide is to showcase how you can extend the functionality of CodeCompanion by adding your own prompts to the config that are reflected in the _Action Palette_. The _Action Palette_ is a lua table which is parsed by the plugin and displayed as a `vim.ui.select` component. By specifying certain keys, the behaviour of the table can be customised further.
 
-## Adding an action to the palette
+## Adding a prompt to the palette
 
-Actions can be added via the `setup` function:
+A prompt can be added via the `setup` function:
 
 ```lua
 require("codecompanion").setup({
@@ -27,9 +27,9 @@ require("codecompanion").setup({
 })
 ```
 
-In this example, if you run `:CodeCompanionActions`, you should see "My New Prompt" in the bottom of the _Pre-defined Prompts_ section of the palette. Clicking on your new action will initiate the _chat_ strategy and set the value of the chat buffer based on the _role_ and _content_ that's been specified in the prompt.
+In this example, if you run `:CodeCompanionActions`, you should see "My New Prompt" in the bottom of the _Prompts_ section of the palette. Clicking on your new action will initiate the _chat_ strategy and set the value of the chat buffer based on the _role_ and _content_ that's been specified in the prompt.
 
-In the following sections, we'll explore how you can customise these actions even more.
+In the following sections, we'll explore how you can customise your prompts even more.
 
 ## Recipe #1: Creating boilerplate code
 
@@ -106,6 +106,7 @@ require("codecompanion").setup({
       opts = {
         mapping = "<LocalLeader>ce",
         modes = { "v" },
+        shortcut = "expert",
         auto_submit = true,
         user_prompt = true,
       },
@@ -141,12 +142,13 @@ At first glance there's a lot of new stuff in this. Let's break it down.
 opts = {
   mapping = "<LocalLeader>ce",
   modes = { "v" },
+  shortcut = "expert",
   auto_submit = true,
   user_prompt = true,
 },
 ```
 
-In the `opts` table we're specifying that we only want this action to appear in the _Action Palette_ if we're in visual mode. We're also asking the chat strategy to automatically submit the prompts to the LLM. It may be useful to turn this off if you wish to add some additional context prior to asking for a response. Finally, we're telling the picker that we want to get the user's prompt before we action the response.
+In the `opts` table we're specifying that we only want this action to appear in the _Action Palette_ if we're in visual mode. We're also asking the chat strategy to automatically submit the prompts to the LLM via the `auto_submit = true` value. We're also telling the picker that we want to get the user's input before we action the response with `user_prompt = true`. Finally, with the `shortcut = "expert"` option, the user can run `:CodeCompanion @expert` from the cmdline in order to trigger this prompt.
 
 ### Prompt options and context
 
