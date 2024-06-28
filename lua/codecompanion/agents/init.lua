@@ -11,40 +11,40 @@ local api = vim.api
 local M = {}
 
 ---Parse the Tree-sitter output into XML
----@param tools table
+---@param agents table
 ---@return table
-local function parse_xml(tools)
+local function parse_xml(agents)
   local handler = TreeHandler:new()
   local parser = xml2lua.parser(handler)
-  parser:parse(tools)
+  parser:parse(agents)
 
   log:trace("Parsed xml: %s", handler.root)
 
-  return handler.root.tool
+  return handler.root.agent
 end
 
----Set the autocmds for the tool
+---Set the autocmds for the agent
 ---@param chat CodeCompanion.Chat
----@param tool CodeCompanion.Tool
+---@param agent CodeCompanion.Agent
 ---@return nil
-local function set_autocmds(chat, tool)
-  local ns_id = api.nvim_create_namespace("CodeCompanionToolVirtualText")
-  local group = "CodeCompanionTool_" .. chat.bufnr
+local function set_autocmds(chat, agent)
+  local ns_id = api.nvim_create_namespace("CodeCompanionAgentVirtualText")
+  local group = "CodeCompanionAgent_" .. chat.bufnr
 
   api.nvim_create_augroup(group, { clear = true })
 
   return api.nvim_create_autocmd("User", {
-    desc = "Handle responses from any tools",
+    desc = "Handle responses from any agents",
     group = group,
-    pattern = "CodeCompanionTool",
+    pattern = "CodeCompanionAgent",
     callback = function(request)
       if request.data.bufnr ~= chat.bufnr then
         return
       end
 
-      log:trace("Tool finished event: %s", request)
+      log:trace("Agent finished event: %s", request)
       if request.data.status == "started" then
-        ui.set_virtual_text(chat.bufnr, ns_id, "Tool processing ...", { hl_group = "CodeCompanionVirtualTextTools" })
+        ui.set_virtual_text(chat.bufnr, ns_id, "Agent processing ...", { hl_group = "CodeCompanionVirtualTextAgents" })
         return
       end
 
@@ -53,10 +53,10 @@ local function set_autocmds(chat, tool)
       if request.data.status == "error" then
         chat:add_message({
           role = "user",
-          content = tool.output_error_prompt(request.data.error),
+          content = agent.output_error_prompt(request.data.error),
         })
 
-        if config.tools.opts.auto_submit_errors then
+        if config.agents.opts.auto_submit_errors then
           chat:submit()
         end
       end
@@ -72,10 +72,10 @@ local function set_autocmds(chat, tool)
         end
         chat:add_message({
           role = "user",
-          content = tool.output_prompt(output),
+          content = agent.output_prompt(output),
         })
-        if tool.opts and tool.opts.hide_output then
-          chat:hide_tool_output()
+        if agent.opts and agent.opts.hide_output then
+          chat:hide_agent_output()
         end
         chat:submit()
       end
@@ -85,7 +85,7 @@ local function set_autocmds(chat, tool)
   })
 end
 
----Run the tool
+---Run the agent
 ---@param chat CodeCompanion.Chat
 ---@param ts table
 ---@return nil
@@ -98,39 +98,39 @@ function M.run(chat, ts)
     return
   end
 
-  -- Load the tool
-  local ok, tool = pcall(require, "codecompanion.tools." .. xml.name)
+  -- Load the agent
+  local ok, agent = pcall(require, "codecompanion.agents." .. xml.name)
   if not ok then
-    log:error("Tool not found: %s", xml.name)
+    log:error("Agent not found: %s", xml.name)
     return
   end
 
   -- Set the autocmds which will be called on closing the job
-  set_autocmds(chat, tool)
+  set_autocmds(chat, agent)
 
   -- Set the env
   local env = {}
-  if type(tool.env) == "function" then
-    env = tool.env(xml)
+  if type(agent.env) == "function" then
+    env = agent.env(xml)
   end
 
   -- Overwrite any default cmds
-  local cmds = vim.deepcopy(tool.cmds)
-  if type(tool.override_cmds) == "function" then
-    cmds = tool.override_cmds(cmds)
+  local cmds = vim.deepcopy(agent.cmds)
+  if type(agent.override_cmds) == "function" then
+    cmds = agent.override_cmds(cmds)
   end
 
   -- Run the pre_cmds
-  if type(tool.pre_cmd) == "function" then
-    tool.pre_cmd(env, xml)
+  if type(agent.pre_cmd) == "function" then
+    agent.pre_cmd(env, xml)
   end
 
   -- Replace any vars
   utils.replace_placeholders(cmds, env)
 
-  -- Run the tool's cmds
+  -- Run the agent's cmds
   log:debug("Running cmd: %s", cmds)
-  return require("codecompanion.tools.job_runner").init(cmds, chat)
+  return require("codecompanion.agents.job_runner").init(cmds, chat)
 end
 
 return M

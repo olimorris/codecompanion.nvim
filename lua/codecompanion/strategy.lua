@@ -117,10 +117,10 @@ function Strategy:inline()
 end
 
 ---@return nil|CodeCompanion.Chat
-function Strategy:tool()
+function Strategy:agent()
   local messages = process_prompts(self.selected.prompts, self.context)
 
-  local adapter = config.adapters[config.strategies.tool]
+  local adapter = config.adapters[config.strategies.agent]
 
   if type(adapter) == "string" then
     adapter = require("codecompanion.adapters").use(adapter)

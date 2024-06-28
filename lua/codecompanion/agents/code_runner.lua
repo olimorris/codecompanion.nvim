@@ -1,7 +1,7 @@
 local log = require("codecompanion.utils.log")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
----@class CodeCompanion.Tool
+---@class CodeCompanion.Agent
 return {
   cmds = {
     { "docker", "pull", "${lang}" },
@@ -31,14 +31,14 @@ return {
       content = function(schema)
         return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return a markdown code block which follows the below schema:"
           .. "\n\n```xml\n"
-          .. xml2lua.toXml(schema, "tool")
+          .. xml2lua.toXml(schema, "agent")
           .. "\n```\n"
       end,
     },
     {
       role = "user",
       content = function()
-        return "Using the tool, "
+        return "Using the agent, "
       end,
     },
   },
@@ -70,7 +70,7 @@ return {
     if type(error) == "table" then
       error = table.concat(error, "\n")
     end
-    return "After the tool completed, there was an error:"
+    return "After the agent completed, there was an error:"
       .. "\n\n```\n"
       .. error
       .. "\n```\n\n"
@@ -81,7 +81,7 @@ return {
       output = table.concat(output, "\n")
     end
 
-    return "After the tool completed the output was:"
+    return "After the agent completed the output was:"
       .. "\n\n```\n"
       .. output
       .. "\n```\n\n"

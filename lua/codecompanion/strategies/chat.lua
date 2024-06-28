@@ -29,12 +29,12 @@ local chat_query = [[
 )
 ]]
 
-local tool_query = [[
+local agent_query = [[
 (
  (section
   (fenced_code_block
     (info_string) @lang
-    (code_fence_content) @tools
+    (code_fence_content) @agents
   ) (#match? @lang "xml"))
 )
 ]]
@@ -128,9 +128,9 @@ local function parse_messages(bufnr)
   return output
 end
 
----@param chat CodeCompanion.Chat
----@return CodeCompanion.Tool|nil
-local function parse_tools(chat)
+---@class CodeCompanion.Chat
+---@return CodeCompanion.Agent|nil
+local function parse_agents(chat)
   local assistant_parser = vim.treesitter.get_parser(chat.bufnr, "markdown")
   local assistant_query = vim.treesitter.query.parse(
     "markdown",
@@ -158,23 +158,23 @@ local function parse_tools(chat)
 
   local parser = vim.treesitter.get_string_parser(response, "markdown")
   local tree = parser:parse()[1]
-  local query = vim.treesitter.query.parse("markdown", tool_query)
+  local query = vim.treesitter.query.parse("markdown", agent_query)
 
-  local tools = {}
+  local agents = {}
   for id, node in query:iter_captures(tree:root(), response, 0, -1) do
     local name = query.captures[id]
-    if name == "tools" then
-      local tool = vim.treesitter.get_node_text(node, response)
-      table.insert(tools, tool)
+    if name == "agents" then
+      local agent = vim.treesitter.get_node_text(node, response)
+      table.insert(agents, agent)
     end
   end
 
-  log:debug("Tools detected: %s", tools)
+  log:debug("Agents detected: %s", agents)
 
-  --TODO: Parse XML to ensure the STag is <tool>
+  --TODO: Parse XML to ensure the STag is <agent>
 
-  if tools and #tools > 0 then
-    return require("codecompanion.tools").run(chat, tools[#tools])
+  if agents and #agents > 0 then
+    return require("lua.codecompanion.agents.init").run(chat, agents[#agents])
   end
 end
 
@@ -256,7 +256,7 @@ local function set_autocmds(chat)
   })
 end
 
----@param chat CodeCompanion.Chat
+---@class chat CodeCompanion.Chat
 local function set_welcome_message(chat)
   if chat.intro_message then
     return
@@ -283,7 +283,7 @@ end
 ---@field id integer
 ---@field adapter CodeCompanion.Adapter
 ---@field current_request table
----@field current_tool table
+---@field current_agent table
 ---@field bufnr integer
 ---@field opts CodeCompanion.ChatArgs
 ---@field context table
@@ -487,7 +487,7 @@ function Chat:submit()
       display_tokens(bufnr)
       self:reset()
       if self.status ~= "error" then
-        parse_tools(self)
+        parse_agents(self)
       end
       return api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { status = "finished" } })
     end
@@ -513,11 +513,11 @@ end
 ---@return nil
 function Chat:stop()
   local job
-  if self.current_tool then
-    job = self.current_tool
-    self.current_tool = nil
+  if self.current_agent then
+    job = self.current_agent
+    self.current_agent = nil
 
-    _G.codecompanion_cancel_tool = true
+    _G.codecompanion_cancel_agent = true
     job:shutdown()
   end
   if self.current_request then
@@ -660,14 +660,14 @@ function Chat:visible()
 end
 
 ---Conceal parts of the chat buffer
-function Chat:hide_tool_output()
+function Chat:hide_agent_output()
   local parser = vim.treesitter.get_parser(self.bufnr, "markdown")
   local query = vim.treesitter.query.parse(
     "markdown",
     [[
   ((section
   ((atx_heading) @heading)
-  (#eq? @heading "## Tool")) @content)
+  (#eq? @heading "## agent")) @content)
 ]]
   )
   local tree = parser:parse()[1]

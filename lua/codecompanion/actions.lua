@@ -147,31 +147,31 @@ M.static.actions = {
     },
   },
   {
-    name = "Tools ...",
+    name = "Agents ...",
     strategy = " ",
-    description = "Use the built-in tools to help you code",
+    description = "Use the built-in agents to help you code",
     condition = function()
-      local tools = config.tools
+      local agents = config.agents
       local i = 0
-      for _, tool in pairs(tools) do
-        if tool.enabled then
+      for _, agent in pairs(agents) do
+        if agent.enabled then
           i = i + 1
         end
       end
       return i > 0
     end,
     picker = {
-      prompt = "Chat with a tool",
+      prompt = "Chat with an Agent",
       items = function()
-        local tools = {}
+        local agents = {}
 
-        for id, tool in pairs(config.tools) do
-          if tool.enabled then
+        for id, agent in pairs(config.agents) do
+          if agent.enabled then
             local t
-            if tool.location then
-              t = require(tool.location .. "." .. id)
+            if agent.location then
+              t = require(agent.location .. "." .. id)
             else
-              t = require("codecompanion.tools." .. id)
+              t = require("codecompanion.agents." .. id)
             end
 
             -- Form the prompts
@@ -185,16 +185,16 @@ M.static.actions = {
               })
             end
 
-            table.insert(tools, {
-              name = tool.name,
-              strategy = "tool",
-              description = tool.description or nil,
+            table.insert(agents, {
+              name = agent.name,
+              strategy = "agent",
+              description = agent.description or nil,
               prompts = prompts,
             })
           end
         end
 
-        return tools
+        return agents
       end,
     },
   },

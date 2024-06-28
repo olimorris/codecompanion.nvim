@@ -12,14 +12,14 @@ local api = vim.api
 
 ---@param bufnr number
 local function announce_start(bufnr)
-  api.nvim_exec_autocmds("User", { pattern = "CodeCompanionTool", data = { bufnr = bufnr, status = "started" } })
+  api.nvim_exec_autocmds("User", { pattern = "CodeCompanionAgent", data = { bufnr = bufnr, status = "started" } })
 end
 
 ---@param bufnr number
 local function announce_end(bufnr)
   api.nvim_exec_autocmds(
     "User",
-    { pattern = "CodeCompanionTool", data = { bufnr = bufnr, status = status, error = stderr, output = stdout } }
+    { pattern = "CodeCompanionAgent", data = { bufnr = bufnr, status = status, error = stderr, output = stdout } }
   )
 end
 
@@ -37,14 +37,14 @@ local function run(cmds, chat, index)
 
   log:debug("Running cmd: %s", cmd)
 
-  chat.current_tool = Job:new({
+  chat.current_agent = Job:new({
     command = cmd[1],
     args = { unpack(cmd, 2) }, -- args start from index 2
     on_exit = function(_, exit_code)
       run(cmds, chat, index + 1)
 
       vim.schedule(function()
-        if _G.codecompanion_cancel_tool then
+        if _G.codecompanion_cancel_agent then
           return announce_end(chat.bufnr)
         end
 
@@ -80,7 +80,7 @@ function M.init(cmds, chat)
   status = "success"
   stderr = {}
   stdout = {}
-  _G.codecompanion_cancel_tool = false
+  _G.codecompanion_cancel_agent = false
 
   announce_start(chat.bufnr)
   return run(cmds, chat, 1)

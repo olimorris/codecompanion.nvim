@@ -98,40 +98,40 @@ M.previous = {
   end,
 }
 
-M.add_tool = {
-  desc = "Add a tool to the chat buffer",
+M.add_agent = {
+  desc = "Add a agent to the chat buffer",
   callback = function(chat)
     local items = {}
-    for id, tool in pairs(config.tools) do
-      if tool.enabled then
+    for id, agent in pairs(config.agents) do
+      if agent.enabled then
         table.insert(items, {
           id = id,
-          name = tool.name,
-          description = tool.description,
-          location = tool.location,
+          name = agent.name,
+          description = agent.description,
+          location = agent.location,
         })
       end
     end
 
     if #items == 0 then
-      return vim.notify("[CodeCompanion.nvim]\nNo tools available", vim.log.levels.WARN)
+      return vim.notify("[CodeCompanion.nvim]\nNo agents available", vim.log.levels.WARN)
     end
 
-    -- Picker of available tools
+    -- Picker of available agents
     require("codecompanion.utils.ui").selector(items, {
-      prompt = "Select a tool",
+      prompt = "Select an agent",
       width = config.display.action_palette.width,
       height = config.display.action_palette.height,
       format = function(item)
         return {
           item.name,
-          "tools",
+          "agents",
           item.description,
         }
       end,
       callback = function(item)
-        local location = item.location or "codecompanion.tools"
-        local tool = require(location .. "." .. item.id)
+        local location = item.location or "codecompanion.agents"
+        local agents = require(location .. "." .. item.id)
 
         -- Parse the buffer to determine where to insert the prompt
         local insert_at = 0
@@ -155,10 +155,10 @@ M.add_tool = {
           insert_at = #settings + 2
         end
 
-        for _, prompt in ipairs(tool.prompts) do
+        for _, prompt in ipairs(agents.prompts) do
           local content
           if type(prompt.content) == "function" then
-            content = prompt.content(tool.schema)
+            content = prompt.content(agents.schema)
           else
             content = prompt.content
           end
@@ -170,7 +170,7 @@ M.add_tool = {
             }, {
               insert_at = insert_at,
               force_role = true,
-              notify = "The Code Runner tool was added to the chat buffer",
+              notify = "The Code Runner agent was added to the chat buffer",
             })
           else
             chat:append({

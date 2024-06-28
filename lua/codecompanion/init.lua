@@ -203,7 +203,7 @@ end
 M.setup = function(opts)
   api.nvim_set_hl(0, "CodeCompanionTokens", { link = "Comment", default = true })
   api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
-  api.nvim_set_hl(0, "CodeCompanionVirtualTextTools", { link = "CodeCompanionVirtualText", default = true })
+  api.nvim_set_hl(0, "CodeCompanionVirtualTextAgents", { link = "CodeCompanionVirtualText", default = true })
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 
   -- Handle custom adapter config
