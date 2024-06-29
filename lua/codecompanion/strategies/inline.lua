@@ -282,8 +282,6 @@ local function get_inline_output(inline, placement, prompt, output)
 
     if data then
       log:trace("Inline data: %s", data)
-      inline:diff()
-
       local content = inline.adapter.args.callbacks.inline_output(data, inline.context)
 
       if inline.context.buftype == "terminal" then
@@ -291,6 +289,7 @@ local function get_inline_output(inline, placement, prompt, output)
         table.insert(output, content)
       else
         if content then
+          inline:apply_diff()
           stream_text_to_buffer(pos, inline.context.bufnr, content)
           if inline.opts and inline.opts.placement == "new" then
             ui.buf_scroll_to_end(inline.context.bufnr)
@@ -307,6 +306,7 @@ local function get_inline_output(inline, placement, prompt, output)
 end
 
 ---@class CodeCompanion.Inline
+---@field id integer
 ---@field context table
 ---@field adapter CodeCompanion.Adapter
 ---@field current_request table
@@ -337,6 +337,7 @@ function Inline.new(args)
   end
 
   return setmetatable({
+    id = math.random(10000000),
     context = args.context,
     adapter = config.adapters[config.strategies.inline],
     opts = args.opts or {},
@@ -456,8 +457,8 @@ function Inline:start(opts)
   end
 end
 
-function Inline:diff()
-  if self.diff_set then
+function Inline:apply_diff()
+  if self.diffed == self.id or (#self.context.lines == 0 or not self.context.lines) then
     return
   end
 
@@ -484,7 +485,7 @@ function Inline:diff()
   vim.api.nvim_buf_set_extmark(self.context.bufnr, ns_id, self.context.start_line - 2, 0, opts)
 
   keymaps.set(config.keymaps.inline, self.context.bufnr, self)
-  self.diff_set = true
+  self.diffed = self.id
 end
 
 return Inline
