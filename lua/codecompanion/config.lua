@@ -236,6 +236,7 @@ return {
         width = 0.45,
         relative = "editor",
         opts = {
+          breakindent = true,
           cursorcolumn = false,
           cursorline = false,
           foldcolumn = "0",
@@ -250,17 +251,25 @@ return {
       show_settings = true,
       show_token_count = true,
     },
+    inline = {
+      show_diff = false,
+    },
   },
   keymaps = {
-    ["<C-s>"] = "keymaps.save",
-    ["<C-c>"] = "keymaps.close",
-    ["q"] = "keymaps.stop",
-    ["gc"] = "keymaps.clear",
-    ["ga"] = "keymaps.codeblock",
-    ["gs"] = "keymaps.save_chat",
-    ["gt"] = "keymaps.add_agent",
-    ["]"] = "keymaps.next",
-    ["["] = "keymaps.previous",
+    chat = {
+      ["<C-s>"] = "keymaps.save",
+      ["<C-c>"] = "keymaps.close",
+      ["q"] = "keymaps.stop",
+      ["gc"] = "keymaps.clear",
+      ["ga"] = "keymaps.codeblock",
+      ["gs"] = "keymaps.save_chat",
+      ["gt"] = "keymaps.add_agent",
+      ["]"] = "keymaps.next",
+      ["["] = "keymaps.previous",
+    },
+    inline = {
+      ["gc"] = "keymaps.clear_diff",
+    },
   },
   default_prompts = {
     inline_to_chat = function(context)

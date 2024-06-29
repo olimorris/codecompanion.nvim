@@ -1,8 +1,8 @@
 local client = require("codecompanion.client")
 local config = require("codecompanion").config
+local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
-
 local api = vim.api
 
 ---@param status string
@@ -282,6 +282,7 @@ local function get_inline_output(inline, placement, prompt, output)
 
     if data then
       log:trace("Inline data: %s", data)
+      inline:diff()
 
       local content = inline.adapter.args.callbacks.inline_output(data, inline.context)
 
@@ -453,6 +454,37 @@ function Inline:start(opts)
   else
     return self:execute()
   end
+end
+
+function Inline:diff()
+  if self.diff_set then
+    return
+  end
+
+  local ns_id = vim.api.nvim_create_namespace("CodeCompanionInlineDiff")
+
+  local opts = {
+    virt_lines = {},
+    hl_eol = true,
+    hl_mode = "replace",
+  }
+
+  local function pad_to_width(str, width)
+    return str .. string.rep(" ", width - vim.fn.strdisplaywidth(str))
+  end
+
+  -- Add each line of code as virtual text
+  for _, line in ipairs(self.context.lines) do
+    local width = vim.api.nvim_win_get_width(0)
+    local padded_line = pad_to_width(line, width)
+    table.insert(opts.virt_lines, { { padded_line, "DiffDelete" } })
+  end
+
+  -- Add the extmark to the buffer
+  vim.api.nvim_buf_set_extmark(self.context.bufnr, ns_id, self.context.start_line - 2, 0, opts)
+
+  keymaps.set(config.keymaps.inline, self.context.bufnr, self)
+  self.diff_set = true
 end
 
 return Inline

@@ -400,7 +400,7 @@ function Chat:open()
 
   ui.set_win_options(self.winnr, window.opts)
   ui.buf_scroll_to_end(self.bufnr)
-  keymaps.set(config.keymaps, self.bufnr, self)
+  keymaps.set(config.keymaps.chat, self.bufnr, self)
 end
 
 ---Render the chat buffer
