@@ -30,7 +30,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 - :electric_plug: Support for OpenAI, Anthropic and Ollama
 - :rocket: Inline code creation and refactoring
 - :robot: Agents and Workflows to improve LLM output
-- :sparkles: Built in prompts for LSP error fixes and code advice
+- :sparkles: Built in prompts for LSP errors and code advice
 - :building_construction: Create your own custom prompts for Neovim
 - :floppy_disk: Save and restore your chats
 - :muscle: Async execution for improved performance
@@ -41,7 +41,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 
 <div align="center">
   <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/3bd96f3e-6195-40f4-b427-99999a3fff99</p>
-  <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/4e7972d3-4c53-4fe7-8fb7-0dce174d94b5</p>
+  <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/24fec0ac-203f-4a4b-aafd-064d90ea71ae</p>
 </div>
 
 <!-- panvimdoc-ignore-end -->
@@ -214,9 +214,9 @@ require("codecompanion").setup({
         },
       },
     },
-    ["Fix LSP Diagnostics"] = {
+    ["Explain LSP Diagnostics"] = {
       strategy = "chat",
-      description = "Use an LLM to fix your LSP diagnostics",
+      description = "Use an LLM to explain any LSP diagnostics",
       opts = {
         index = 4,
         default_prompt = true,
@@ -520,7 +520,7 @@ In the video, you'll notice that we're triggering a pre-defined prompt (from the
 
 <!-- panvimdoc-ignore-start -->
 
-<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/654b8ce6-be61-42c8-b5e7-0437ea03ac8e" alt="Chat buffer"></p>
+<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5349c177-2fb2-4c00-9c06-194767a9cf6e" alt="Chat buffer"></p>
 
 <!-- panvimdoc-ignore-end -->
 
@@ -628,7 +628,7 @@ The plugin comes with a number of default prompts and corresponding keymaps/shor
 - Senior Developer - Chat with a senior developer for the given filetype (`<LocalLeader>ce`)
 - Generate a Commit Message - Use an LLM to write a commit message for you (`<LocalLeader>cm` / `@commit`)
 - Code Advisor - Get advice from an LLM on code you've selected (`<LocalLeader>ca` / `@advisor`)
-- Fix LSP Diagnostics - Use an LLM to fix LSP diagnostics for code you've selected (`<LocalLeader>cl` / `@lsp`)
+- Explain LSP Diagnostics - Use an LLM to explain LSP diagnostics for code you've selected (`<LocalLeader>cl` / `@lsp`)
 
 ### Agents
 

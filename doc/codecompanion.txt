@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 June 28
+*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 June 29
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -17,7 +17,7 @@ FEATURES                                              *codecompanion-features*
 - Support for OpenAI, Anthropic and Ollama
 - Inline code creation and refactoring
 - Agents and Workflows to improve LLM output
-- Built in prompts for LSP error fixes and code advice
+- Built in prompts for LSP errors and code advice
 - Create your own custom prompts for Neovim
 - Save and restore your chats
 - Async execution for improved performance
@@ -193,9 +193,9 @@ Click to see the default configuration ~
             },
           },
         },
-        ["Fix LSP Diagnostics"] = {
+        ["Explain LSP Diagnostics"] = {
           strategy = "chat",
-          description = "Use an LLM to fix your LSP diagnostics",
+          description = "Use an LLM to explain any LSP diagnostics",
           opts = {
             index = 4,
             default_prompt = true,
@@ -649,7 +649,7 @@ keymaps/shortcuts:
 - Senior Developer - Chat with a senior developer for the given filetype (`<LocalLeader>ce`)
 - Generate a Commit Message - Use an LLM to write a commit message for you (`<LocalLeader>cm` / `@commit`)
 - Code Advisor - Get advice from an LLM on code you’ve selected (`<LocalLeader>ca` / `@advisor`)
-- Fix LSP Diagnostics - Use an LLM to fix LSP diagnostics for code you’ve selected (`<LocalLeader>cl` / `@lsp`)
+- Explain LSP Diagnostics - Use an LLM to explain LSP diagnostics for code you’ve selected (`<LocalLeader>cl` / `@lsp`)
 
 
 AGENTS ~

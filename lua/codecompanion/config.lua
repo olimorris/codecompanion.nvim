@@ -118,9 +118,9 @@ return {
         },
       },
     },
-    ["Fix LSP Diagnostics"] = {
+    ["Explain LSP Diagnostics"] = {
       strategy = "chat",
-      description = "Use an LLM to fix your LSP diagnostics",
+      description = "Use an LLM to explain any LSP diagnostics",
       opts = {
         index = 4,
         default_prompt = true,
