@@ -195,7 +195,7 @@ M.add_agent = {
 M.clear_diff = {
   desc = "Clear the inline diff extmarks",
   callback = function(inline)
-    local ns_id = vim.api.nvim_create_namespace("CodeCompanionInlineDiff")
+    local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_removed_")
     api.nvim_buf_clear_namespace(inline.context.bufnr, ns_id, 0, -1)
 
     clear_map(inline.mapping, inline.context.bufnr)

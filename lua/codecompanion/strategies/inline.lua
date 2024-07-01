@@ -483,7 +483,7 @@ function Inline:diff_removed()
     return
   end
 
-  local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_removed")
+  local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_removed_")
   vim.api.nvim_buf_clear_namespace(self.context.bufnr, ns_id, 0, -1)
 
   local diff_hl_group = vim.api.nvim_get_hl(0, { name = config.display.inline.diff.hl_group or "DiffDelete" })
