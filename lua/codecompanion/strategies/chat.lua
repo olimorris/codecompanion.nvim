@@ -399,6 +399,7 @@ function Chat:open()
   end
 
   ui.set_win_options(self.winnr, window.opts)
+  vim.bo[self.bufnr].textwidth = 0
   ui.buf_scroll_to_end(self.bufnr)
   keymaps.set(config.keymaps.chat, self.bufnr, self)
 end
