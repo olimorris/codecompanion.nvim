@@ -41,7 +41,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 
 <div align="center">
   <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/3bd96f3e-6195-40f4-b427-99999a3fff99</p>
-  <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/24fec0ac-203f-4a4b-aafd-064d90ea71ae</p>
+  <p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/02e391de-2772-47ad-80f8-8de26a4e90b5</p>
 </div>
 
 <!-- panvimdoc-ignore-end -->
