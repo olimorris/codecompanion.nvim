@@ -252,7 +252,10 @@ return {
       show_token_count = true,
     },
     inline = {
-      show_diff = false,
+      diff = {
+        enabled = true,
+        hl_group = "DiffDelete",
+      },
     },
   },
   keymaps = {

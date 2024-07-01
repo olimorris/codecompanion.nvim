@@ -346,6 +346,12 @@ require("codecompanion").setup({
       show_settings = true,
       show_token_count = true,
     },
+    inline = {
+      diff = {
+        enabled = true,
+        hl_group = "DiffDelete",
+      },
+    },
   },
   keymaps = {
     ["<C-s>"] = "keymaps.save",
@@ -355,6 +361,7 @@ require("codecompanion").setup({
     ["ga"] = "keymaps.codeblock",
     ["gs"] = "keymaps.save_chat",
     ["gt"] = "keymaps.add_agent",
+    ["gq"] = "keymaps.clear_diff",
     ["]"] = "keymaps.next",
     ["["] = "keymaps.previous",
   },
