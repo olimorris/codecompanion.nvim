@@ -265,7 +265,7 @@ local function get_inline_output(inline, placement, prompt, output)
     return send_to_chat(inline, prompt)
   end
 
-  log:debug("Prompt: %s", prompt)
+  log:trace("Prompt: %s", prompt)
 
   local pos = calc_placement(inline, action)
 
@@ -360,6 +360,35 @@ function Inline.new(args)
   }, { __index = Inline })
 end
 
+---@param opts? table
+function Inline:start(opts)
+  if opts and opts[1] then
+    self.opts = opts[1]
+  end
+  if opts and opts.args then
+    return self:submit(opts.args)
+  end
+
+  if self.opts and self.opts.user_prompt then
+    local title
+    if self.context.buftype == "terminal" then
+      title = "Terminal"
+    else
+      title = string.gsub(self.context.filetype, "^%l", string.upper)
+    end
+
+    vim.ui.input({ prompt = title .. " Prompt" }, function(input)
+      if not input then
+        return
+      end
+
+      return self:submit(input)
+    end)
+  else
+    return self:submit()
+  end
+end
+
 ---Stop the current request
 function Inline:stop()
   if self.current_request then
@@ -369,7 +398,7 @@ function Inline:stop()
 end
 
 ---@param user_input? string
-function Inline:execute(user_input)
+function Inline:submit(user_input)
   if not self.adapter then
     log:error("No adapter found for Inline strategies")
     return
@@ -440,35 +469,6 @@ Please respond to this prompt in the format "<method>|<return>" where "<method>"
   else
     get_inline_output(self, self.opts.placement, prompt, {})
     return
-  end
-end
-
----@param opts? table
-function Inline:start(opts)
-  if opts and opts[1] then
-    self.opts = opts[1]
-  end
-  if opts and opts.args then
-    return self:execute(opts.args)
-  end
-
-  if self.opts and self.opts.user_prompt then
-    local title
-    if self.context.buftype == "terminal" then
-      title = "Terminal"
-    else
-      title = string.gsub(self.context.filetype, "^%l", string.upper)
-    end
-
-    vim.ui.input({ prompt = title .. " Prompt" }, function(input)
-      if not input then
-        return
-      end
-
-      return self:execute(input)
-    end)
-  else
-    return self:execute()
   end
 end
 
