@@ -92,7 +92,7 @@ end
 ---@param pos table
 ---@param bufnr number
 ---@param text string
----@return nil
+---@return table
 local function stream_text_to_buffer(pos, bufnr, text)
   local line = pos.line - 1
   local col = pos.col
@@ -118,6 +118,8 @@ local function stream_text_to_buffer(pos, bufnr, text)
 
   pos.line = line + 1
   pos.col = col
+
+  return pos
 end
 
 ---Overwrite the given selection in the buffer with an empty string
@@ -175,7 +177,7 @@ local function calc_placement(inline, placement)
     pos.col = 0
   elseif placement == "replace" then
     log:trace("Placing by overwriting selection")
-    inline:apply_diff()
+    inline:diff_removed()
     overwrite_selection(inline.context)
     pos.line, pos.col = get_cursor(inline.context.winnr)
   elseif placement == "new" then
@@ -300,7 +302,8 @@ local function get_inline_output(inline, placement, prompt, output)
         table.insert(output, content)
       else
         if content then
-          stream_text_to_buffer(pos, inline.context.bufnr, content)
+          local updated_pos = stream_text_to_buffer(pos, inline.context.bufnr, content)
+          -- inline:diff_added(updated_pos.line)
           if inline.opts and inline.opts.placement == "new" then
             ui.buf_scroll_to_end(inline.context.bufnr)
           end
@@ -321,6 +324,7 @@ end
 ---@field adapter CodeCompanion.Adapter
 ---@field current_request table
 ---@field opts table
+---@field diff table
 ---@field prompts table
 local Inline = {}
 
@@ -351,6 +355,7 @@ function Inline.new(args)
     context = args.context,
     adapter = config.adapters[config.strategies.inline],
     opts = args.opts or {},
+    diff = {},
     prompts = vim.deepcopy(args.prompts),
   }, { __index = Inline })
 end
@@ -469,16 +474,16 @@ end
 
 ---Apply diff coloring to any replaced text
 ---@return nil
-function Inline:apply_diff()
+function Inline:diff_removed()
   if
     config.display.inline.diff.enabled == false
-    or self.diffed == self.id
+    or self.diff.removed_id == self.id
     or (#self.context.lines == 0 or not self.context.lines)
   then
     return
   end
 
-  local ns_id = vim.api.nvim_create_namespace("CodeCompanionInlineDiff")
+  local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_removed")
   vim.api.nvim_buf_clear_namespace(self.context.bufnr, ns_id, 0, -1)
 
   local diff_hl_group = vim.api.nvim_get_hl(0, { name = config.display.inline.diff.hl_group or "DiffDelete" })
@@ -518,10 +523,33 @@ function Inline:apply_diff()
   vim.api.nvim_buf_set_extmark(self.context.bufnr, ns_id, self.context.start_line - 1, 0, {
     virt_lines = virt_lines,
     virt_lines_above = true,
+    priority = config.display.inline.diff.priority,
   })
 
   keymaps.set(config.keymaps.inline, self.context.bufnr, self)
-  self.diffed = self.id
+  self.diff.removed_id = self.id
 end
+
+---Apply diff coloring to any added text
+---@return nil
+-- function Inline:diff_added(line)
+--   if config.display.inline.diff.enabled == false then
+--     return
+--   end
+--
+--   if not self.diff.added_line then
+--     self.diff.added_line = {}
+--   end
+--
+--   local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_added")
+--
+--   vim.api.nvim_buf_set_extmark(self.context.bufnr, ns_id, line - 1, 0, {
+--     sign_text = config.display.inline.diff.sign_text,
+--     sign_hl_group = config.display.inline.diff.hl_groups.added,
+--     priority = config.display.inline.diff.priority,
+--   })
+--
+--   self.diff.added_line[line] = true
+-- end
 
 return Inline

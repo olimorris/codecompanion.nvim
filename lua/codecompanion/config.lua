@@ -254,7 +254,10 @@ return {
     inline = {
       diff = {
         enabled = true,
-        hl_group = "DiffDelete",
+        priority = 130,
+        hl_groups = {
+          removed = "DiffDelete",
+        },
       },
     },
   },
