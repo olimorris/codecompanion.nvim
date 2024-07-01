@@ -686,7 +686,7 @@ The plugin fires the following events during its lifecycle:
 - `CodeCompanionChat` - Fired at various points during the chat buffer. Comes with the following attributes:
   - `data.action = hide_buffer` - For when a chat buffer is hidden
   - `data.action = show_buffer` - For when a chat buffer is visible after being hidden
-- `CodeCompanionInline` - Fired during the inline API request alongside `CodeCompanionRequest`. Outputs `data.status` with a value of `started` or `finished`
+- `CodeCompanionInline` - Fired during the inline API request alongside `CodeCompanionRequest`. Outputs `data.status` with a value of `started` or `finished` and `data.placement` with the placement of the text from the LLM
 - `CodeCompanionAgent` - Fired when an agent is running. Outputs `data.status` with a value of `started` or `success`/`failure`
 
 Events can be hooked into as follows:

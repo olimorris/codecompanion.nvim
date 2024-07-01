@@ -9,8 +9,12 @@ local ui = require("codecompanion.utils.ui")
 local api = vim.api
 
 ---@param status string
-local function announce(status)
-  api.nvim_exec_autocmds("User", { pattern = "CodeCompanionInline", data = { status = status } })
+---@param opts? table
+local function announce(status, opts)
+  opts = opts or {}
+  opts.status = status
+
+  api.nvim_exec_autocmds("User", { pattern = "CodeCompanionInline", data = opts })
 end
 
 ---@param filetype string
@@ -279,6 +283,7 @@ local function get_inline_output(inline, placement, prompt, output)
     end,
   })
 
+  announce("started")
   inline.current_request = client.new():stream(inline.adapter:set_params(), prompt, function(err, data, done)
     if err then
       return
@@ -313,7 +318,7 @@ local function get_inline_output(inline, placement, prompt, output)
   end, function()
     inline.current_request = nil
     vim.schedule(function()
-      announce("finished")
+      announce("finished", { placement = action })
     end)
   end)
 end
