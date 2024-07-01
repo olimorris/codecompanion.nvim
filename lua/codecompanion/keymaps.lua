@@ -4,6 +4,14 @@ local api = vim.api
 
 local M = {}
 
+---Clear a keymap from a specific buffer
+---@param keys string
+---@param bufnr? integer
+local function clear_map(keys, bufnr)
+  bufnr = bufnr or 0
+  vim.keymap.del("n", keys, { buffer = bufnr })
+end
+
 M.save = {
   desc = "Save the chat buffer and trigger the API",
   callback = function()
@@ -181,6 +189,16 @@ M.add_agent = {
         end
       end,
     })
+  end,
+}
+
+M.clear_diff = {
+  desc = "Clear the inline diff extmarks",
+  callback = function(inline)
+    local ns_id = vim.api.nvim_create_namespace("CodeCompanionInlineDiff")
+    api.nvim_buf_clear_namespace(inline.context.bufnr, ns_id, 0, -1)
+
+    clear_map(inline.mapping, inline.context.bufnr)
   end,
 }
 

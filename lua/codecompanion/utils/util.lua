@@ -69,8 +69,8 @@ function M.get_visual_selection(bufnr)
   api.nvim_feedkeys("gv", "x", false)
   api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
 
-  local start_line, start_col = unpack(api.nvim_buf_get_mark(bufnr, "<"))
   local end_line, end_col = unpack(api.nvim_buf_get_mark(bufnr, ">"))
+  local start_line, start_col = unpack(api.nvim_buf_get_mark(bufnr, "<"))
   local lines = api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
 
   -- get whole buffer if there is no current/previous visual selection

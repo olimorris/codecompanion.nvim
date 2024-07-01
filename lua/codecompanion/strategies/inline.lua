@@ -1,5 +1,8 @@
 local client = require("codecompanion.client")
 local config = require("codecompanion").config
+
+local hl = require("codecompanion.utils.highlights")
+local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 
@@ -89,7 +92,7 @@ end
 ---@param pos table
 ---@param bufnr number
 ---@param text string
----@return nil
+---@return table
 local function stream_text_to_buffer(pos, bufnr, text)
   local line = pos.line - 1
   local col = pos.col
@@ -115,6 +118,8 @@ local function stream_text_to_buffer(pos, bufnr, text)
 
   pos.line = line + 1
   pos.col = col
+
+  return pos
 end
 
 ---Overwrite the given selection in the buffer with an empty string
@@ -172,6 +177,7 @@ local function calc_placement(inline, placement)
     pos.col = 0
   elseif placement == "replace" then
     log:trace("Placing by overwriting selection")
+    inline:diff_removed()
     overwrite_selection(inline.context)
     pos.line, pos.col = get_cursor(inline.context.winnr)
   elseif placement == "new" then
@@ -187,10 +193,17 @@ local function calc_placement(inline, placement)
   return pos
 end
 
+---Some LLMs ignore the ask to just return text in the form of "placement|return"
+---@param str string
+---@return string
 local function extract_placement(str)
   return str:match("(%w+|%w+)")
 end
 
+---A user's prompt may need to be converted into a chat
+---@param inline CodeCompanion.Inline
+---@param prompt table
+---@return CodeCompanion.Chat|nil
 local function send_to_chat(inline, prompt)
   -- If we're converting an inline prompt to a chat, we need to perform some
   -- additional steps. We need to remove any visual selections as the chat
@@ -282,7 +295,6 @@ local function get_inline_output(inline, placement, prompt, output)
 
     if data then
       log:trace("Inline data: %s", data)
-
       local content = inline.adapter.args.callbacks.inline_output(data, inline.context)
 
       if inline.context.buftype == "terminal" then
@@ -290,7 +302,8 @@ local function get_inline_output(inline, placement, prompt, output)
         table.insert(output, content)
       else
         if content then
-          stream_text_to_buffer(pos, inline.context.bufnr, content)
+          local updated_pos = stream_text_to_buffer(pos, inline.context.bufnr, content)
+          -- inline:diff_added(updated_pos.line)
           if inline.opts and inline.opts.placement == "new" then
             ui.buf_scroll_to_end(inline.context.bufnr)
           end
@@ -306,10 +319,12 @@ local function get_inline_output(inline, placement, prompt, output)
 end
 
 ---@class CodeCompanion.Inline
+---@field id integer
 ---@field context table
 ---@field adapter CodeCompanion.Adapter
 ---@field current_request table
 ---@field opts table
+---@field diff table
 ---@field prompts table
 local Inline = {}
 
@@ -336,9 +351,11 @@ function Inline.new(args)
   end
 
   return setmetatable({
+    id = math.random(10000000),
     context = args.context,
     adapter = config.adapters[config.strategies.inline],
     opts = args.opts or {},
+    diff = {},
     prompts = vim.deepcopy(args.prompts),
   }, { __index = Inline })
 end
@@ -454,5 +471,85 @@ function Inline:start(opts)
     return self:execute()
   end
 end
+
+---Apply diff coloring to any replaced text
+---@return nil
+function Inline:diff_removed()
+  if
+    config.display.inline.diff.enabled == false
+    or self.diff.removed_id == self.id
+    or (#self.context.lines == 0 or not self.context.lines)
+  then
+    return
+  end
+
+  local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_removed")
+  vim.api.nvim_buf_clear_namespace(self.context.bufnr, ns_id, 0, -1)
+
+  local diff_hl_group = vim.api.nvim_get_hl(0, { name = config.display.inline.diff.hl_group or "DiffDelete" })
+
+  local virt_lines = {}
+  local win_width = vim.api.nvim_win_get_width(0)
+
+  for i, line in ipairs(self.context.lines) do
+    local virt_text = {}
+
+    local start_col = self.context.start_col
+    local row = self.context.start_line + i - 1
+
+    -- Set the highlights for each character on the line
+    local highlights = {}
+    for col = start_col, #line do
+      local char = line:sub(col, col)
+      local current = hl.get_hl_group(self.context.bufnr, row, col)
+
+      if not highlights[current] then
+        highlights[current] = hl.combine(diff_hl_group, current)
+      end
+
+      table.insert(virt_text, { char, highlights[current] })
+    end
+
+    -- Calculate remaining width and add right padding
+    local current_width = vim.fn.strdisplaywidth(line:sub(start_col))
+    local remaining_width = win_width - current_width
+    if remaining_width > 0 then
+      table.insert(virt_text, { string.rep(" ", remaining_width), hl.combine(diff_hl_group, "Normal") })
+    end
+
+    table.insert(virt_lines, virt_text)
+  end
+
+  vim.api.nvim_buf_set_extmark(self.context.bufnr, ns_id, self.context.start_line - 1, 0, {
+    virt_lines = virt_lines,
+    virt_lines_above = true,
+    priority = config.display.inline.diff.priority,
+  })
+
+  keymaps.set(config.keymaps.inline, self.context.bufnr, self)
+  self.diff.removed_id = self.id
+end
+
+---Apply diff coloring to any added text
+---@return nil
+-- function Inline:diff_added(line)
+--   if config.display.inline.diff.enabled == false then
+--     return
+--   end
+--
+--   if not self.diff.added_line then
+--     self.diff.added_line = {}
+--   end
+--
+--   local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_added")
+--
+--   vim.api.nvim_buf_set_extmark(self.context.bufnr, ns_id, line - 1, 0, {
+--     sign_text = config.display.inline.diff.sign_text,
+--     sign_hl_group = config.display.inline.diff.hl_groups.added,
+--     priority = config.display.inline.diff.priority,
+--   })
+--
+--   self.diff.added_line[line] = true
+-- end
 
 return Inline

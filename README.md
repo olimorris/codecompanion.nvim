@@ -346,17 +346,31 @@ require("codecompanion").setup({
       show_settings = true,
       show_token_count = true,
     },
+    inline = {
+      diff = {
+        enabled = true,
+        priority = 130,
+        hl_groups = {
+          removed = "DiffDelete",
+        },
+      },
+    },
   },
   keymaps = {
-    ["<C-s>"] = "keymaps.save",
-    ["<C-c>"] = "keymaps.close",
-    ["q"] = "keymaps.stop",
-    ["gc"] = "keymaps.clear",
-    ["ga"] = "keymaps.codeblock",
-    ["gs"] = "keymaps.save_chat",
-    ["gt"] = "keymaps.add_agent",
-    ["]"] = "keymaps.next",
-    ["["] = "keymaps.previous",
+    chat = {
+      ["<C-s>"] = "keymaps.save",
+      ["<C-c>"] = "keymaps.close",
+      ["q"] = "keymaps.stop",
+      ["gc"] = "keymaps.clear",
+      ["ga"] = "keymaps.codeblock",
+      ["gs"] = "keymaps.save_chat",
+      ["gt"] = "keymaps.add_agent",
+      ["]"] = "keymaps.next",
+      ["["] = "keymaps.previous",
+    },
+    inline = {
+      ["gc"] = "keymaps.clear_diff",
+    },
   },
   default_prompts = {
     inline_to_chat = function(context)
