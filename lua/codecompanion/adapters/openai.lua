@@ -12,6 +12,36 @@ local function reset_cycle()
   error_content = ""
 end
 
+local function handle_streamed_error(data)
+  log:debug("Couldn't parse JSON: %s", data)
+  log:trace("Error content so far: %s", error_content)
+
+  -- Try and parse the JSON again
+  local ok, json = pcall(vim.json.decode, error_content, { luanil = { object = true } })
+
+  if not ok then
+    if cycles > 10 then
+      return {
+        status = "error",
+        output = string.format("Error malformed json: %s", json),
+      }
+    end
+
+    return {
+      status = "pending",
+      output = nil,
+    }
+  end
+
+  if json.error.message then
+    reset_cycle()
+    return {
+      status = "error",
+      output = "OpenAI Adapter - " .. json.error.message,
+    }
+  end
+end
+
 ---@class CodeCompanion.AdapterArgs
 return {
   name = "OpenAI",
@@ -73,33 +103,7 @@ return {
 
         if not ok then
           cycle_error(data)
-          log:debug("Couldn't parse JSON: %s", data)
-          log:trace("Error content so far: %s", error_content)
-
-          -- Try and parse the JSON again
-          ok, json = pcall(vim.json.decode, error_content, { luanil = { object = true } })
-
-          if not ok then
-            if cycles > 10 then
-              return {
-                status = "error",
-                output = string.format("Error malformed json: %s", json),
-              }
-            end
-
-            return {
-              status = "pending",
-              output = nil,
-            }
-          end
-
-          if json.error.message then
-            reset_cycle()
-            return {
-              status = "error",
-              output = "OpenAI Adapter - " .. json.error.message,
-            }
-          end
+          return handle_streamed_error(data)
         end
 
         if #json.choices > 0 then
@@ -125,14 +129,14 @@ return {
     ---Output the data from the API ready for inlining into the current buffer
     ---@param data table The streamed JSON data from the API, also formatted by the format_data callback
     ---@param context table Useful context about the buffer to inline to
-    ---@return string|nil
+    ---@return string|table|nil
     inline_output = function(data, context)
       if data and data ~= "" then
         data = data:sub(7)
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
         if not ok then
-          return
+          return log:error("Error: Please see the log for more information")
         end
 
         --- Some third-party OpenAI forwarding services may have a return package with an empty json.choices.
