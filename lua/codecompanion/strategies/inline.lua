@@ -248,80 +248,6 @@ local function send_to_chat(inline, prompt)
   })
 end
 
----Get the output for the inline prompt from the generative AI
----@param inline CodeCompanion.Inline
----@param placement string
----@param prompt table
----@param output table
----@return nil
-local function get_inline_output(inline, placement, prompt, output)
-  -- Work out where to place the output from the inline prompt
-  local parts = vim.split(extract_placement(placement), "|")
-
-  if #parts < 2 then
-    log:error("Could not determine where to place the output from the prompt")
-    return
-  end
-
-  local action = parts[1]
-
-  if action == "chat" then
-    return send_to_chat(inline, prompt)
-  end
-
-  log:trace("Prompt: %s", prompt)
-
-  local pos = calc_placement(inline, action)
-
-  api.nvim_buf_set_keymap(inline.context.bufnr, "n", "q", "", {
-    desc = "Stop the request",
-    callback = function()
-      log:trace("Cancelling the inline request")
-      if inline.current_request then
-        inline:stop()
-      end
-    end,
-  })
-
-  inline.current_request = client.new():stream(inline.adapter:set_params(), prompt, function(err, data, done)
-    if err then
-      return
-    end
-
-    if done then
-      api.nvim_buf_del_keymap(inline.context.bufnr, "n", "q")
-      if inline.context.buftype == "terminal" then
-        log:debug("Terminal output: %s", output)
-        api.nvim_put({ table.concat(output, "") }, "", false, true)
-      end
-      return
-    end
-
-    if data then
-      log:trace("Inline data: %s", data)
-      local content = inline.adapter.args.callbacks.inline_output(data, inline.context)
-
-      if inline.context.buftype == "terminal" then
-        -- Don't stream to the terminal
-        table.insert(output, content)
-      else
-        if content then
-          local updated_pos = stream_text_to_buffer(pos, inline.context.bufnr, content)
-          -- inline:diff_added(updated_pos.line)
-          if inline.opts and inline.opts.placement == "new" then
-            ui.buf_scroll_to_end(inline.context.bufnr)
-          end
-        end
-      end
-    end
-  end, function()
-    inline.current_request = nil
-    vim.schedule(function()
-      announce("finished", { placement = action })
-    end)
-  end)
-end
-
 ---@class CodeCompanion.Inline
 ---@field id integer
 ---@field context table
@@ -458,7 +384,7 @@ Please respond to this prompt in the format "<method>|<return>" where "<method>"
 
       if done then
         log:debug("Placement: %s", placement)
-        get_inline_output(self, placement, prompt, {})
+        self.stream(self, placement, prompt, {})
         return
       end
 
@@ -467,9 +393,82 @@ Please respond to this prompt in the format "<method>|<return>" where "<method>"
       end
     end)
   else
-    get_inline_output(self, self.opts.placement, prompt, {})
+    self.stream(self, self.opts.placement, prompt, {})
     return
   end
+end
+
+---Get the output for the inline prompt from the generative AI
+---@param placement string
+---@param prompt table
+---@param output table
+---@return nil
+function Inline:stream(placement, prompt, output)
+  -- Work out where to place the output from the inline prompt
+  local parts = vim.split(extract_placement(placement), "|")
+
+  if #parts < 2 then
+    log:error("Could not determine where to place the output from the prompt")
+    return
+  end
+
+  local action = parts[1]
+
+  if action == "chat" then
+    return send_to_chat(self, prompt)
+  end
+
+  log:trace("Prompt: %s", prompt)
+
+  local pos = calc_placement(self, action)
+
+  api.nvim_buf_set_keymap(self.context.bufnr, "n", "q", "", {
+    desc = "Stop the request",
+    callback = function()
+      log:trace("Cancelling the inline request")
+      if self.current_request then
+        self:stop()
+      end
+    end,
+  })
+
+  self.current_request = client.new():stream(self.adapter:set_params(), prompt, function(err, data, done)
+    if err then
+      return
+    end
+
+    if done then
+      api.nvim_buf_del_keymap(self.context.bufnr, "n", "q")
+      if self.context.buftype == "terminal" then
+        log:debug("Terminal output: %s", output)
+        api.nvim_put({ table.concat(output, "") }, "", false, true)
+      end
+      return
+    end
+
+    if data then
+      log:trace("Inline data: %s", data)
+      local content = self.adapter.args.callbacks.inline_output(data, self.context)
+
+      if self.context.buftype == "terminal" then
+        -- Don't stream to the terminal
+        table.insert(output, content)
+      else
+        if content then
+          local updated_pos = stream_text_to_buffer(pos, self.context.bufnr, content)
+          -- self:diff_added(updated_pos.line)
+          if self.opts and self.opts.placement == "new" then
+            ui.buf_scroll_to_end(self.context.bufnr)
+          end
+        end
+      end
+    end
+  end, function()
+    self.current_request = nil
+    vim.schedule(function()
+      announce("finished", { placement = action })
+    end)
+  end)
 end
 
 ---Apply diff coloring to any replaced text
