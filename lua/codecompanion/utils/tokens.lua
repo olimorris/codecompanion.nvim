@@ -3,7 +3,9 @@ local api = vim.api
 
 local M = {}
 
----@param message string The text to calculate the number of tokens for.
+---Calculate the number of tokens in a message
+---@param message string The text to calculate the number of tokens for
+---@return number The number of tokens in the message
 local function calculate_tokens(message)
   local tokens = 0
 
@@ -32,6 +34,7 @@ local function calculate_tokens(message)
 end
 
 ---@param messages table The messages to calculate the number of tokens for.
+---@return number The number of tokens in the messages.
 function M.get_tokens(messages)
   local tokens = 0
 
@@ -70,7 +73,9 @@ local function get_messages(bufnr)
   return messages
 end
 
+---Display the number of tokens in the current buffer
 ---@param bufnr nil|number
+---@return nil
 function M.display_tokens(bufnr)
   bufnr = bufnr or api.nvim_get_current_buf()
 

@@ -4,6 +4,11 @@ local api = vim.api
 
 local M = {}
 
+---@param bufnr number
+---@param ns_id number
+---@param message string
+---@param opts? table
+---@return nil
 M.set_virtual_text = function(bufnr, ns_id, message, opts)
   local defaults = {
     hl_group = "CodeCompanionVirtualText",
@@ -49,6 +54,7 @@ M.buf_list_wins = function(bufnr)
 end
 
 ---@param winnr? number
+---@return nil
 M.scroll_to_end = function(winnr)
   winnr = winnr or 0
   local bufnr = api.nvim_win_get_buf(winnr)
@@ -58,6 +64,7 @@ M.scroll_to_end = function(winnr)
 end
 
 ---@param bufnr nil|integer
+---@return nil
 M.buf_scroll_to_end = function(bufnr)
   for _, winnr in ipairs(M.buf_list_wins(bufnr or 0)) do
     M.scroll_to_end(winnr)
@@ -89,6 +96,9 @@ M.get_editor_height = function()
   return editor_height
 end
 
+---@param items table
+---@param format function
+---@return table
 local function get_max_lengths(items, format)
   local max_lengths = {}
   for _, item in ipairs(items) do
@@ -104,6 +114,7 @@ end
 ---@param str string
 ---@param max_length number
 ---@param padding number|nil
+---@return string
 local function pad_string(str, max_length, padding)
   local padding_needed = max_length - string.len(str)
 
@@ -118,6 +129,9 @@ local function pad_string(str, max_length, padding)
   end
 end
 
+---@param item table
+---@param max_lengths table
+---@return string
 local function pad_item(item, max_lengths)
   local padded_item = {}
   for i, field in ipairs(item) do
@@ -132,6 +146,7 @@ end
 
 ---@param items table
 ---@param opts table
+---@return nil|table
 function M.selector(items, opts)
   log:trace("Opening selector")
 
@@ -167,6 +182,7 @@ end
 
 ---@param winnr number
 ---@param opts table
+---@return table
 function M.get_win_options(winnr, opts)
   local options = {}
   for k, _ in pairs(opts) do
@@ -178,6 +194,7 @@ end
 
 ---@param winnr number
 ---@param opts table
+---@return nil
 function M.set_win_options(winnr, opts)
   for k, v in pairs(opts) do
     api.nvim_set_option_value(k, v, { scope = "local", win = winnr })
@@ -186,6 +203,7 @@ end
 
 ---@param bufnr number
 ---@param opts table
+---@return nil
 function M.set_buf_options(bufnr, opts)
   for k, v in pairs(opts) do
     api.nvim_buf_set_option(bufnr, k, v)

@@ -2,6 +2,9 @@ local api = vim.api
 
 local M = {}
 
+---Fetches all of the open buffers with the specified filetype
+---@param ft string The filetype to filter the buffers by
+---@return table
 function M.get_open_buffers(ft)
   local buffers = api.nvim_list_bufs()
   local buffer_content = {}
@@ -18,6 +21,10 @@ function M.get_open_buffers(ft)
   return buffer_content
 end
 
+---Formats the buffers into a markdown string
+---@param buffers table The buffers to format
+---@param ft string The filetype of the buffers
+---@return string
 function M.format(buffers, ft)
   local formatted = {}
 

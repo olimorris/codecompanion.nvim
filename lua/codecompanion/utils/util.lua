@@ -12,6 +12,7 @@ M.capitalize = function(str)
 end
 
 ---@param table table
+---@return integer
 M.count = function(table)
   local count = 0
   for _ in pairs(table) do
@@ -23,6 +24,7 @@ end
 
 ---@param table table
 ---@param value string
+---@return boolean
 M.contains = function(table, value)
   for _, v in pairs(table) do
     if v == value then
@@ -35,6 +37,7 @@ end
 M._noop = function() end
 
 ---@param name string
+---@return nil
 M.set_dot_repeat = function(name)
   vim.go.operatorfunc = "v:lua.require'codecompanion.utils.util'._noop"
   vim.cmd.normal({ args = { "g@l" }, bang = true })
@@ -42,6 +45,7 @@ M.set_dot_repeat = function(name)
 end
 
 ---@param bufnr nil|integer
+---@return string
 M.get_filetype = function(bufnr)
   bufnr = bufnr or 0
   local ft = api.nvim_buf_get_option(bufnr, "filetype")
@@ -53,15 +57,20 @@ M.get_filetype = function(bufnr)
   return ft
 end
 
+---@param mode string
+---@return boolean
 local function is_visual_mode(mode)
   return mode == "v" or mode == "V" or mode == "^V"
 end
 
+---@param mode string
+---@return boolean
 local function is_normal_mode(mode)
   return mode == "n" or mode == "no" or mode == "nov" or mode == "noV" or mode == "no"
 end
 
 ---@param bufnr nil|integer
+---@return table,number,number,number,number
 function M.get_visual_selection(bufnr)
   bufnr = bufnr or 0
 

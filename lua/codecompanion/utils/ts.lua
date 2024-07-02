@@ -4,6 +4,9 @@ local api = vim.api
 
 local M = {}
 
+---@param direction string
+---@param count integer
+---@return nil
 function M.goto_heading(direction, count)
   local bufnr = api.nvim_get_current_buf()
   local cursor = api.nvim_win_get_cursor(0)
