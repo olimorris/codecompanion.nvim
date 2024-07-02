@@ -638,11 +638,11 @@ One of the challenges with inline editing is determining how the LLM's response 
 
 The plugin comes with a number of default prompts and corresponding keymaps/shortcuts:
 
-- Custom Prompt - For custom inline prompting of an LLM (`<LocalLeader>cc`)
-- Senior Developer - Chat with a senior developer for the given filetype (`<LocalLeader>ce`)
-- Generate a Commit Message - Use an LLM to write a commit message for you (`<LocalLeader>cm` / `@commit`)
-- Code Advisor - Get advice from an LLM on code you've selected (`<LocalLeader>ca` / `@advisor`)
-- Explain LSP Diagnostics - Use an LLM to explain LSP diagnostics for code you've selected (`<LocalLeader>cl` / `@lsp`)
+- **Custom Prompt** - For custom inline prompting of an LLM (`<LocalLeader>cc`)
+- **Senior Developer** - Chat with a senior developer for the given filetype (`<LocalLeader>ce`)
+- **Generate a Commit Message** - Use an LLM to write a commit message for you (`<LocalLeader>cm` / `@commit`)
+- **Code Advisor** - Get advice from an LLM on code you've selected (`<LocalLeader>ca` / `@advisor`)
+- **Explain LSP Diagnostics** - Use an LLM to explain LSP diagnostics for code you've selected (`<LocalLeader>cl` / `@lsp`)
 
 ### Agents
 
@@ -685,7 +685,6 @@ The plugin fires the following events during its lifecycle:
 - `CodeCompanionChatSaved` - Fired after a chat has been saved to disk
 - `CodeCompanionChat` - Fired at various points during the chat buffer. Comes with the following attributes:
   - `data.action = hide_buffer` - For when a chat buffer is hidden
-  - `data.action = show_buffer` - For when a chat buffer is visible after being hidden
 - `CodeCompanionInline` - Fired during the inline API request alongside `CodeCompanionRequest`. Outputs `data.status` with a value of `started` or `finished` and `data.placement` with the placement of the text from the LLM
 - `CodeCompanionAgent` - Fired when an agent is running. Outputs `data.status` with a value of `started` or `success`/`failure`
 
@@ -697,8 +696,11 @@ local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
 vim.api.nvim_create_autocmd({ "User" }, {
   pattern = "CodeCompanionInline",
   group = group,
-  callback = function(request)
-    print(request.data.status) -- outputs "started" or "finished"
+  callback = function(args)
+    if args.data.status == "finished" then
+      -- Format the buffer after the inline request has completed
+      require("conform").format({ bufnr = args.buf })
+    end
   end,
 })
 ```

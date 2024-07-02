@@ -283,7 +283,6 @@ local function get_inline_output(inline, placement, prompt, output)
     end,
   })
 
-  announce("started")
   inline.current_request = client.new():stream(inline.adapter:set_params(), prompt, function(err, data, done)
     if err then
       return
@@ -466,10 +465,6 @@ Please respond to this prompt in the format "<method>|<return>" where "<method>"
       if data then
         placement = placement .. (self.adapter.args.callbacks.inline_output(data) or "")
       end
-    end, function()
-      vim.schedule(function()
-        announce("finished")
-      end)
     end)
   else
     get_inline_output(self, self.opts.placement, prompt, {})
