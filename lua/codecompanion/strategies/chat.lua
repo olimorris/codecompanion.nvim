@@ -486,11 +486,11 @@ function Chat:submit()
     if done then
       self:append({ role = "user", content = "" })
       display_tokens(bufnr)
-      self:reset()
       if self.status ~= "error" then
         parse_agents(self)
       end
-      return api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { status = "finished" } })
+      api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { status = "finished" } })
+      return self:reset()
     end
 
     if data then
@@ -502,7 +502,6 @@ function Chat:submit()
         self.status = "error"
         self:stop()
         vim.notify("Error: " .. result.output, vim.log.levels.ERROR)
-        return self:reset()
       end
     end
   end, function()
