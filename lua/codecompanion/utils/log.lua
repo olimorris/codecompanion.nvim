@@ -232,7 +232,7 @@ local root = Logger.new({
   },
 })
 
----@type CodeCompanion.Logger
+---@class CodeCompanion.Logger
 local M = {}
 
 M.new = Logger.new
