@@ -29,7 +29,7 @@ return {
     {
       role = "system",
       content = function(schema)
-        return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return a markdown code block which follows the below schema:"
+        return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return an XML markdown code block (with backticks) which follows the below schema:"
           .. "\n\n```xml\n"
           .. xml2lua.toXml(schema, "agent")
           .. "\n```\n"
