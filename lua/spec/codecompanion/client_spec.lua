@@ -53,7 +53,7 @@ describe("Client", function()
 
     local cb = stub.new()
 
-    adapter = require("codecompanion.adapter").new(adapter)
+    adapter = require("codecompanion.adapters").new(adapter)
 
     Client.new():stream(adapter, {}, 0, cb)
 

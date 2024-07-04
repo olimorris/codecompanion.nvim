@@ -129,4 +129,22 @@ function Adapter:replace_header_vars()
   return self
 end
 
+function Adapter.use(adapter, opts)
+  local adapter_config
+
+  if type(adapter) == "string" then
+    adapter_config = require("codecompanion.adapters." .. adapter)
+  elseif type(adapter) == "function" then
+    adapter_config = adapter()
+  else
+    adapter_config = adapter
+  end
+
+  if opts then
+    adapter_config = vim.tbl_deep_extend("force", {}, vim.deepcopy(adapter_config), opts or {})
+  end
+
+  return Adapter.new(adapter_config)
+end
+
 return Adapter
