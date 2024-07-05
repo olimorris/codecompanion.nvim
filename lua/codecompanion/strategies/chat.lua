@@ -187,75 +187,6 @@ end
 
 _G.codecompanion_chats = {}
 
----@param chat CodeCompanion.Chat
-local function set_autocmds(chat)
-  local aug = api.nvim_create_augroup("CodeCompanion_" .. chat.id, {
-    clear = false,
-  })
-
-  local bufnr = chat.bufnr
-
-  -- Submit the chat
-  api.nvim_create_autocmd("BufWriteCmd", {
-    group = aug,
-    buffer = bufnr,
-    callback = function()
-      if not chat then
-        vim.notify("[CodeCompanion.nvim]\nChat session has been deleted", vim.log.levels.ERROR)
-      else
-        chat:submit()
-      end
-    end,
-  })
-
-  -- Clear the virtual text when the user starts typing
-  if util.count(_G.codecompanion_chats) == 0 then
-    local insertenter_autocmd
-    insertenter_autocmd = api.nvim_create_autocmd("InsertEnter", {
-      group = aug,
-      buffer = bufnr,
-      callback = function()
-        local ns_id = api.nvim_create_namespace("CodeCompanionChatVirtualText")
-        api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
-
-        api.nvim_del_autocmd(insertenter_autocmd)
-      end,
-    })
-  end
-
-  -- Handle toggling the buffer and chat window
-  api.nvim_create_autocmd("User", {
-    desc = "Store the current chat buffer",
-    group = aug,
-    pattern = "CodeCompanionChat",
-    callback = function(request)
-      if request.data.bufnr ~= bufnr or request.data.action ~= "hide_buffer" then
-        return
-      end
-
-      _G.codecompanion_last_chat_buffer = chat
-
-      --- Store a snapshot of the chat in the global table
-      if _G.codecompanion_chats[bufnr] == nil then
-        local description
-        local messages = parse_messages(bufnr)
-
-        if messages[1] and messages[1].content then
-          description = messages[1].content
-        else
-          description = "[No messages]"
-        end
-
-        _G.codecompanion_chats[bufnr] = {
-          name = "Chat " .. util.count(_G.codecompanion_chats) + 1,
-          description = description,
-          chat = chat,
-        }
-      end
-    end,
-  })
-end
-
 ---@class chat CodeCompanion.Chat
 local function set_welcome_message(chat)
   if chat.intro_message then
@@ -338,7 +269,7 @@ function Chat.new(args)
   self.settings = args.settings or schema.get_default(self.adapter.args.schema, args.settings)
 
   self:render(args.messages or {})
-  set_autocmds(self)
+  self:set_autocmds()
 
   if not args.messages or #args.messages == 0 then
     set_welcome_message(self)
@@ -453,6 +384,70 @@ function Chat:render(messages)
   vim.bo[self.bufnr].modifiable = modifiable
 
   ui.buf_scroll_to_end(self.bufnr)
+end
+
+function Chat:set_autocmds()
+  local aug = api.nvim_create_augroup("CodeCompanion_" .. self.id, {
+    clear = false,
+  })
+
+  local bufnr = self.bufnr
+
+  -- Submit the chat
+  api.nvim_create_autocmd("BufWriteCmd", {
+    group = aug,
+    buffer = bufnr,
+    callback = function()
+      self:submit()
+    end,
+  })
+
+  -- Clear the virtual text when the user starts typing
+  if util.count(_G.codecompanion_chats) == 0 then
+    local insertenter_autocmd
+    insertenter_autocmd = api.nvim_create_autocmd("InsertEnter", {
+      group = aug,
+      buffer = bufnr,
+      callback = function()
+        local ns_id = api.nvim_create_namespace("CodeCompanionChatVirtualText")
+        api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+
+        api.nvim_del_autocmd(insertenter_autocmd)
+      end,
+    })
+  end
+
+  -- Handle toggling the buffer and chat window
+  api.nvim_create_autocmd("User", {
+    desc = "Store the current chat buffer",
+    group = aug,
+    pattern = "CodeCompanionChat",
+    callback = function(request)
+      if request.data.bufnr ~= bufnr or request.data.action ~= "hide_buffer" then
+        return
+      end
+
+      _G.codecompanion_last_chat_buffer = self
+
+      --- Store a snapshot of the chat in the global table
+      if _G.codecompanion_chats[bufnr] == nil then
+        local description
+        local messages = parse_messages(bufnr)
+
+        if messages[1] and messages[1].content then
+          description = messages[1].content
+        else
+          description = "[No messages]"
+        end
+
+        _G.codecompanion_chats[bufnr] = {
+          name = "Chat " .. util.count(_G.codecompanion_chats) + 1,
+          description = description,
+          chat = self,
+        }
+      end
+    end,
+  })
 end
 
 ---Submit the chat buffer's contents to the LLM
