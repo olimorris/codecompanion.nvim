@@ -38,11 +38,11 @@ M.stop = {
 M.save_chat = {
   desc = "Save the current chat",
   callback = function(chat)
-    local saved_chat = require("codecompanion.strategies.saved_chats").new({})
+    local saved_chat = require("codecompanion.strategies.saved_chats")
 
     if chat.saved_chat then
-      saved_chat.filename = chat.saved_chat
-      saved_chat:save(chat.bufnr, chat:get_messages())
+      saved_chat = saved_chat.new({ filename = chat.saved_chat })
+      saved_chat:save(chat)
 
       if config.silence_notifications then
         return
@@ -55,8 +55,8 @@ M.save_chat = {
       if not filename then
         return
       end
-      saved_chat.filename = filename
-      saved_chat:save(chat.bufnr, chat:get_messages())
+      saved_chat = saved_chat.new({ filename = filename })
+      saved_chat:save(chat)
       chat.saved_chat = filename
     end)
   end,

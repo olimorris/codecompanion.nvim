@@ -23,7 +23,7 @@ local SavedChat = {}
 
 ---@class CodeCompanion.SessionArgs
 ---@field filename nil|string The saved_chat name
----@field cwd string The current working directory of the editor
+---@field cwd? string The current working directory of the editor
 
 ---@param args CodeCompanion.SessionArgs
 ---@return CodeCompanion.SavedChat
@@ -63,16 +63,16 @@ local function save(filename, bufnr, saved_chat)
   rename_buffer(bufnr, filename)
 end
 
----@param bufnr number
----@param messages table
-function SavedChat:save(bufnr, settings, messages)
-  local tokens = require("codecompanion.utils.tokens")
+---@param chat CodeCompanion.Chat
+function SavedChat:save(chat)
   local files = require("codecompanion.utils.files")
+
+  local settings, messages = chat:get_messages()
 
   local saved_chat = {
     meta = {
       dir = files.replace_home(self.cwd),
-      tokens = tokens.get_tokens(messages),
+      tokens = chat.tokens,
       updated_at = get_current_datetime(),
     },
     settings = settings,
@@ -84,7 +84,7 @@ function SavedChat:save(bufnr, settings, messages)
     return
   end
 
-  return save(self.filename, bufnr, saved_chat)
+  return save(self.filename, chat.bufnr, saved_chat)
 end
 
 ---@param opts nil|table
@@ -124,13 +124,18 @@ function SavedChat:load(opts)
   self.filename = opts.filename
   local content = vim.fn.json_decode(table.concat(vim.fn.readfile(opts.path), "\n"))
 
-  local chat_buf = Chat.new({
+  local chat = Chat.new({
     saved_chat = self.filename,
     messages = content.messages,
     settings = content.settings,
+    tokens = content.meta.tokens,
   })
 
-  rename_buffer(chat_buf.bufnr, opts.filename)
+  if not chat then
+    return log:error("Could not load chat")
+  end
+
+  rename_buffer(chat.bufnr, opts.filename)
 end
 
 function SavedChat:has_chats()
