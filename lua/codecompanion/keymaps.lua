@@ -107,7 +107,7 @@ M.previous = {
 }
 
 M.add_agent = {
-  desc = "Add a agent to the chat buffer",
+  desc = "Add an agent to the chat buffer",
   callback = function(chat)
     local items = {}
     for id, agent in pairs(config.agents) do

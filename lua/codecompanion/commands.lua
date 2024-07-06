@@ -43,7 +43,7 @@ return {
       end
     end,
     opts = {
-      desc = "Trigger CodeCompanion",
+      desc = "Start a custom prompt",
       range = true,
       nargs = "*",
     },

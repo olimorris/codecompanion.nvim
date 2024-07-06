@@ -675,7 +675,7 @@ Currently, the plugin comes with the following workflows:
 
 Of course you can add new workflows by following the [RECIPES](RECIPES.md) guide.
 
-## :rainbow: Helpers
+## :lollipop: Helpers
 
 **Hooks / User events**
 
@@ -709,7 +709,7 @@ vim.api.nvim_create_autocmd({ "User" }, {
 
 You can incorporate a visual indication to show when the plugin is communicating with an LLM in your Neovim configuration. Below are examples for two popular statusline plugins.
 
-**lualine.nvim:**
+_lualine.nvim:_
 
 ```lua
 local M = require("lualine.component"):extend()
@@ -759,7 +759,7 @@ end
 return M
 ```
 
-**heirline.nvim:**
+_heirline.nvim:_
 
 ```lua
 local CodeCompanion = {
@@ -782,6 +782,18 @@ local CodeCompanion = {
     hl = { fg = "yellow" },
   },
 }
+```
+
+**Legendary.nvim**
+
+The plugin also supports the amazing [legendary.nvim](https://github.com/mrjones2014/legendary.nvim) plugin. Simply enable it in your config:
+
+```lua
+require('legendary').setup({
+  extensions = {
+    codecompanion = true,
+  },
+})
 ```
 
 <!-- panvimdoc-ignore-start -->
