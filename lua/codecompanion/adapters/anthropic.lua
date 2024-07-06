@@ -5,6 +5,7 @@ local utils = require("codecompanion.utils.adapters")
 return {
   name = "Anthropic",
   features = {
+    tokens = true,
     text = true,
     vision = true,
   },
@@ -77,6 +78,27 @@ return {
         end
       end
       return false
+    end,
+
+    ---Returns the number of tokens generated from the LLM
+    ---@param data string The data from the LLM
+    ---@return number|nil
+    tokens = function(data)
+      if data then
+        data = data:sub(6)
+
+        local ok
+        ok, data = pcall(vim.fn.json_decode, data)
+
+        if not ok then
+          return
+        end
+
+        if data.type == "message_delta" then
+          log:trace("Tokens: %s", data)
+          return data.usage.output_tokens
+        end
+      end
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer

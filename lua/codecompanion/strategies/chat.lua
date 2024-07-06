@@ -178,13 +178,6 @@ local function parse_agents(chat)
   end
 end
 
----@param bufnr integer
-local display_tokens = function(bufnr)
-  if config.display.chat.show_token_count then
-    require("codecompanion.utils.tokens").display_tokens(bufnr)
-  end
-end
-
 _G.codecompanion_chats = {}
 
 ---@class chat CodeCompanion.Chat
@@ -219,6 +212,7 @@ end
 ---@field opts CodeCompanion.ChatArgs
 ---@field context table
 ---@field saved_chat? string
+---@field tokens? nil|number
 ---@field settings table
 ---@field type string
 local Chat = {}
@@ -274,9 +268,9 @@ function Chat.new(args)
   if not args.messages or #args.messages == 0 then
     set_welcome_message(self)
   end
-  if args.saved_chat then
-    display_tokens(self.bufnr)
-  end
+  -- if args.saved_chat then
+  -- display_tokens(self.bufnr)
+  -- end
   if args.auto_submit then
     self:submit()
   end
@@ -480,7 +474,7 @@ function Chat:submit()
 
     if done then
       self:append({ role = "user", content = "" })
-      display_tokens(bufnr)
+      self:display_tokens()
       if self.status ~= "error" then
         parse_agents(self)
       end
@@ -489,6 +483,7 @@ function Chat:submit()
     end
 
     if data then
+      self:get_tokens(data)
       local result = self.adapter.args.callbacks.chat_output(data)
 
       if result and result.status == "success" then
@@ -652,6 +647,24 @@ end
 ---@return boolean
 function Chat:visible()
   return self.winnr and api.nvim_win_is_valid(self.winnr) and api.nvim_win_get_buf(self.winnr) == self.bufnr
+end
+
+---@param data table
+---@return nil
+function Chat:get_tokens(data)
+  if self.adapter.args.features.tokens then
+    local tokens = self.adapter.args.callbacks.tokens(data)
+    if tokens then
+      self.tokens = tokens
+    end
+  end
+end
+
+---Display the tokens in the chat buffer
+function Chat:display_tokens()
+  if config.display.chat.show_token_count and self.tokens then
+    require("codecompanion.utils.tokens").display(self.tokens, self.bufnr)
+  end
 end
 
 ---Conceal parts of the chat buffer

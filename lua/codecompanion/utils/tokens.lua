@@ -74,9 +74,10 @@ local function get_messages(bufnr)
 end
 
 ---Display the number of tokens in the current buffer
----@param bufnr nil|number
+---@param tokens number
+---@param bufnr? number
 ---@return nil
-function M.display_tokens(bufnr)
+function M.display(tokens, bufnr)
   bufnr = bufnr or api.nvim_get_current_buf()
 
   local ns_id = api.nvim_create_namespace("CodeCompanionTokens")
@@ -95,13 +96,6 @@ function M.display_tokens(bufnr)
 
   if last_heading_node then
     local _, _, end_row, _ = last_heading_node:range()
-
-    local tokens = 0
-    for _, messages in ipairs(get_messages(bufnr)) do
-      for _, message in ipairs(messages) do
-        tokens = tokens + calculate_tokens(message)
-      end
-    end
 
     local virtual_text = { { " (" .. tokens .. " tokens)", "CodeCompanionTokens" } }
 

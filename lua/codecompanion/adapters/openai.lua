@@ -47,6 +47,7 @@ return {
   name = "OpenAI",
   features = {
     text = true,
+    tokens = true,
     vision = true,
   },
   url = "https://api.openai.com/v1/chat/completions",
@@ -63,6 +64,9 @@ return {
   },
   parameters = {
     stream = true,
+    stream_options = {
+      include_usage = true,
+    },
   },
   callbacks = {
     ---Set the parameters
@@ -89,6 +93,26 @@ return {
         return data == "[DONE]"
       end
       return false
+    end,
+
+    ---Returns the number of tokens generated from the LLM
+    ---@param data table The data from the LLM
+    ---@return number|nil
+    tokens = function(data)
+      if data and data ~= "" then
+        local data_mod = data:sub(7)
+        local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
+
+        if not ok then
+          return
+        end
+
+        if json.usage then
+          local tokens = json.usage.total_tokens
+          log:trace("Tokens: %s", tokens)
+          return tokens
+        end
+      end
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer

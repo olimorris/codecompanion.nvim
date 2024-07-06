@@ -23,6 +23,7 @@ return {
   name = "Ollama",
   features = {
     text = true,
+    tokens = false,
     vision = false,
   },
   url = "http://localhost:11434/api/chat",

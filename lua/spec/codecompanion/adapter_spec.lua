@@ -67,6 +67,7 @@ describe("Adapter", function()
 
     -- Ignore this for now
     result.args.parameters.stream = nil
+    result.args.parameters.stream_options = nil
 
     assert.are.same(chat_buffer_settings, result.args.parameters)
   end)

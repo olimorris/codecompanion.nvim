@@ -7,6 +7,7 @@ local Adapter = {}
 
 ---@class CodeCompanion.AdapterArgs
 ---@field name string The name of the adapter
+---@field features table The features that the adapter supports
 ---@field url string The URL of the generative AI service to connect to
 ---@field env? table Environment variables which can be referenced in the parameters
 ---@field headers table The headers to pass to the request
