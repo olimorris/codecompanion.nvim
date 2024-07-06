@@ -220,12 +220,13 @@ local Chat = {}
 ---@class CodeCompanion.ChatArgs
 ---@field context? table
 ---@field adapter? CodeCompanion.Adapter
----@field messages nil|table
----@field auto_submit nil|boolean
----@field settings nil|table
----@field type nil|string
----@field saved_chat nil|string
----@field status nil|string
+---@field messages? table
+---@field auto_submit? boolean
+---@field settings? table
+---@field tokens? table
+---@field type? string
+---@field saved_chat? string
+---@field status?string
 ---@field last_role? string
 
 ---@param args CodeCompanion.ChatArgs
@@ -271,6 +272,9 @@ function Chat.new(args)
   -- if args.saved_chat then
   -- display_tokens(self.bufnr)
   -- end
+  if args.saved_chat then
+    self:display_tokens()
+  end
   if args.auto_submit then
     self:submit()
   end
