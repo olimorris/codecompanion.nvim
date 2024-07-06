@@ -47,6 +47,7 @@ local Strategy = {}
 ---@return CodeCompanion.Strategy
 function Strategy.new(args)
   log:trace("Context: %s", args.context)
+
   return setmetatable({
     context = args.context,
     selected = args.selected,
@@ -88,6 +89,7 @@ function Strategy:chat()
     return require("codecompanion.strategies.chat").new({
       type = self.selected.type,
       adapter = self.selected.adapter,
+      context = self.context,
       messages = messages,
       auto_submit = (self.selected.opts and self.selected.opts.auto_submit) or false,
     })

@@ -74,15 +74,15 @@ M.clear = {
 
 M.codeblock = {
   desc = "Insert a codeblock",
-  callback = function(args)
+  callback = function(chat)
     local bufnr = api.nvim_get_current_buf()
     local cursor_pos = api.nvim_win_get_cursor(0)
     local line = cursor_pos[1]
 
-    args.type = args.type or ""
+    local ft = chat.context.filetype or ""
 
     local codeblock = {
-      "```" .. args.type,
+      "```" .. ft,
       "",
       "```",
     }
