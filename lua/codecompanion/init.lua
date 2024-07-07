@@ -108,6 +108,10 @@ M.toggle = function()
     return chat:hide()
   end
 
+  -- Update the context of the chat object
+  local context = util.get_context(api.nvim_get_current_buf())
+  chat.context = context
+
   chat:open()
 end
 
