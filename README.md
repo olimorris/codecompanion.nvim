@@ -107,6 +107,12 @@ require("codecompanion").setup({
     inline = "openai",
     agent = "openai",
   },
+  chat_helpers = {
+    buffers = {
+      ["@buffer"] = "helpers.chat.buffer",
+      ["@buffers"] = "helpers.chat.buffers",
+    },
+  },
   prompts = {
     ["Custom Prompt"] = {
       strategy = "inline",
@@ -538,7 +544,14 @@ In the video, you'll notice that we're triggering a pre-defined prompt (from the
 
 <!-- panvimdoc-ignore-end -->
 
-The chat buffer is where you'll likely spend most of your time interacting with the plugin. Running `:CodeCompanionChat` or `:'<,'>CodeCompanionChat` will open up a chat buffer where you can converse directly with an LLM. As a convenience, you can use `:CodeCompanionToggle` to toggle the visibility of a chat buffer. There are many convenient keymaps you can leverage in the chat buffer which are covered in the [chat buffer section](#the-chat-buffer) below.
+The chat buffer is where you'll likely spend most of your time when interacting with the plugin. Running `:CodeCompanionChat` or `:'<,'>CodeCompanionChat` will open up a chat buffer where you can converse directly with an LLM. As a convenience, you can use `:CodeCompanionToggle` to toggle the visibility of a chat buffer.
+
+When in the chat buffer, you can leverage helpers via the use of keywords, anywhere under the `user` heading:
+
+- `@buffer` - To include the contents of the buffer you initiated the chat from
+- `@buffers` - To include the contents of all loaded buffers that match the current filetype
+
+There are also many keymaps you can leverage in the chat buffer which are covered in the [chat buffer section](#the-chat-buffer) of this readme.
 
 **Action Palette**
 
@@ -675,7 +688,7 @@ Currently, the plugin comes with the following workflows:
 
 Of course you can add new workflows by following the [RECIPES](RECIPES.md) guide.
 
-## :lollipop: Helpers
+## :lollipop: Extras
 
 **Hooks / User events**
 

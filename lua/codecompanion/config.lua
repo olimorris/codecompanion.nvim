@@ -11,6 +11,12 @@ return {
     inline = "openai",
     agent = "openai",
   },
+  chat_helpers = {
+    buffers = {
+      ["@buffer"] = "helpers.chat.buffer",
+      ["@buffers"] = "helpers.chat.buffers",
+    },
+  },
   prompts = {
     ["Custom Prompt"] = {
       strategy = "inline",

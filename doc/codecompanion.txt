@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 July 06
+*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 July 07
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -9,7 +9,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Configuration                                |codecompanion-configuration|
   - Getting Started                            |codecompanion-getting-started|
   - Advanced Usage                              |codecompanion-advanced-usage|
-  - Helpers                                            |codecompanion-helpers|
+  - Extras                                              |codecompanion-extras|
 
 FEATURES                                              *codecompanion-features*
 
@@ -85,6 +85,12 @@ Click to see the default configuration ~
         chat = "openai",
         inline = "openai",
         agent = "openai",
+      },
+      chat_helpers = {
+        buffers = {
+          ["@buffer"] = "helpers.chat.buffer",
+          ["@buffers"] = "helpers.chat.buffers",
+        },
       },
       prompts = {
         ["Custom Prompt"] = {
@@ -525,12 +531,20 @@ In the video, you’ll notice that we’re triggering a pre-defined prompt
   `:'<,'>CodeCompanion @buffers <your prompt>`.
 **Chat Buffer**
 
-The chat buffer is where you’ll likely spend most of your time interacting
-with the plugin. Running `:CodeCompanionChat` or `:'<,'>CodeCompanionChat` will
-open up a chat buffer where you can converse directly with an LLM. As a
-convenience, you can use `:CodeCompanionToggle` to toggle the visibility of a
-chat buffer. There are many convenient keymaps you can leverage in the chat
-buffer which are covered in the |codecompanion-chat-buffer-section| below.
+The chat buffer is where you’ll likely spend most of your time when
+interacting with the plugin. Running `:CodeCompanionChat` or
+`:'<,'>CodeCompanionChat` will open up a chat buffer where you can converse
+directly with an LLM. As a convenience, you can use `:CodeCompanionToggle` to
+toggle the visibility of a chat buffer.
+
+When in the chat buffer, you can leverage helpers via the use of keywords,
+anywhere under the `user` heading:
+
+- `@buffer` - To include the contents of the buffer you initiated the chat from
+- `@buffers` - To include the contents of all loaded buffers that match the current filetype
+
+There are also many keymaps you can leverage in the chat buffer which are
+covered in the |codecompanion-chat-buffer-section| of this readme.
 
 **Action Palette**
 
@@ -713,7 +727,7 @@ Of course you can add new workflows by following the RECIPES <RECIPES.md>
 guide.
 
 
-HELPERS                                                *codecompanion-helpers*
+EXTRAS                                                  *codecompanion-extras*
 
 **Hooks / User events**
 

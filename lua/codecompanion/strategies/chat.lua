@@ -223,6 +223,7 @@ end
 ---@field opts CodeCompanion.ChatArgs
 ---@field context table
 ---@field saved_chat? string
+---@field buffers? nil|table
 ---@field tokens? nil|number
 ---@field settings table
 ---@field type string
@@ -457,6 +458,46 @@ function Chat:set_autocmds()
   })
 end
 
+---Parse the buffer for any keywords as defined in the config
+---@param messages table
+function Chat:parse_buffer(messages)
+  local chat_maps = require("codecompanion.helpers.chat")
+
+  ---@param rhs string|table|fun(self)
+  local function resolve(rhs)
+    if type(rhs) == "string" and vim.startswith(rhs, "helpers.chat.") then
+      -- The last part of the string is the function to call
+      local splits = vim.split(rhs, ".", { plain = true })
+      return resolve(chat_maps[splits[#splits]])
+    else
+      return rhs(self)
+    end
+  end
+
+  local find = function(message, helpers)
+    for helper, _ in pairs(helpers) do
+      if message:find(helper, 1, true) then
+        return helper
+      end
+    end
+    return nil
+  end
+
+  local message = messages[#messages]
+
+  local pattern = find(message.content, config.chat_helpers.buffers)
+  if pattern then
+    local content = resolve(config.chat_helpers.buffers[pattern])
+
+    if content then
+      self.buffers = {
+        index = #messages,
+        content = content,
+      }
+    end
+  end
+end
+
 ---Submit the chat buffer's contents to the LLM
 function Chat:submit()
   local bufnr = self.bufnr
@@ -470,6 +511,15 @@ function Chat:submit()
     table.insert(messages, 1, {
       role = "system",
       content = config.default_prompts.system,
+    })
+  end
+
+  -- Add the contents of any buffers
+  self:parse_buffer(messages)
+  if self.buffers then
+    table.insert(messages, self.buffers.index, {
+      role = "user",
+      content = self.buffers.content,
     })
   end
 
