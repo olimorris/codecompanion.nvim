@@ -461,6 +461,9 @@ end
 ---Parse the buffer for any keywords as defined in the config
 ---@param messages table
 function Chat:parse_buffer(messages)
+  if not config.send_code then
+    return
+  end
   local chat_maps = require("codecompanion.helpers.chat")
 
   ---@param rhs string|table|fun(self)
