@@ -9,6 +9,17 @@ local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
 
+local CONSTANTS = {
+  NS_INTRO_MESSAGE = "CodeCompanionChatIntroMessage",
+  NS_VIRTUAL_TEXT = "CodeCompanionChatVirtualText",
+
+  AUTOCMD_CHAT = "CodeCompanionChat",
+
+  STATUS_ERROR = "error",
+  STATUS_SUCCESS = "success",
+  STATUS_FINISHED = "finished",
+}
+
 local yaml_query = [[
 (
   block_mapping_pair
@@ -186,7 +197,7 @@ local function set_welcome_message(chat)
     return
   end
 
-  local ns_id = api.nvim_create_namespace("CodeCompanionChatIntroMessage")
+  local ns_id = api.nvim_create_namespace(CONSTANTS.NS_INTRO_MESSAGE)
 
   local id = api.nvim_buf_set_extmark(chat.bufnr, ns_id, api.nvim_buf_line_count(chat.bufnr) - 1, 0, {
     virt_text = { { config.display.chat.intro_message, "CodeCompanionVirtualText" } },
@@ -237,6 +248,7 @@ function Chat.new(args)
     id = id,
     context = args.context,
     saved_chat = args.saved_chat,
+    tokens = args.tokens,
     opts = args,
     status = "",
     last_role = "user",
@@ -269,9 +281,6 @@ function Chat.new(args)
   if not args.messages or #args.messages == 0 then
     set_welcome_message(self)
   end
-  -- if args.saved_chat then
-  -- display_tokens(self.bufnr)
-  -- end
   if args.saved_chat then
     self:display_tokens()
   end
@@ -407,7 +416,7 @@ function Chat:set_autocmds()
       group = aug,
       buffer = bufnr,
       callback = function()
-        local ns_id = api.nvim_create_namespace("CodeCompanionChatVirtualText")
+        local ns_id = api.nvim_create_namespace(CONSTANTS.NS_VIRTUAL_TEXT)
         api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
 
         api.nvim_del_autocmd(insertenter_autocmd)
@@ -419,7 +428,7 @@ function Chat:set_autocmds()
   api.nvim_create_autocmd("User", {
     desc = "Store the current chat buffer",
     group = aug,
-    pattern = "CodeCompanionChat",
+    pattern = CONSTANTS.AUTOCMD_CHAT,
     callback = function(request)
       if request.data.bufnr ~= bufnr or request.data.action ~= "hide_buffer" then
         return
@@ -479,10 +488,13 @@ function Chat:submit()
     if done then
       self:append({ role = "user", content = "" })
       self:display_tokens()
-      if self.status ~= "error" then
+      if self.status ~= CONSTANTS.STATUS_ERROR then
         parse_agents(self)
       end
-      api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChat", data = { status = "finished" } })
+      api.nvim_exec_autocmds(
+        "User",
+        { pattern = CONSTANTS.AUTOCMD_CHAT, data = { status = CONSTANTS.STATUS_FINISHED } }
+      )
       return self:reset()
     end
 
@@ -490,10 +502,10 @@ function Chat:submit()
       self:get_tokens(data)
       local result = self.adapter.args.callbacks.chat_output(data)
 
-      if result and result.status == "success" then
+      if result and result.status == CONSTANTS.STATUS_SUCCESS then
         self:append(result.output)
-      elseif result and result.status == "error" then
-        self.status = "error"
+      elseif result and result.status == CONSTANTS.STATUS_ERROR then
+        self.status = CONSTANTS.STATUS_ERROR
         self:stop()
         vim.notify("Error: " .. result.output, vim.log.levels.ERROR)
       end
@@ -537,7 +549,7 @@ function Chat:hide()
 
   api.nvim_exec_autocmds(
     "User",
-    { pattern = "CodeCompanionChat", data = { action = "hide_buffer", bufnr = self.bufnr } }
+    { pattern = CONSTANTS.AUTOCMD_CHAT, data = { action = "hide_buffer", bufnr = self.bufnr } }
   )
 end
 
