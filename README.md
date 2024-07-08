@@ -531,10 +531,10 @@ The plugin sets the following highlight groups during setup:
 
 To start interacting with the plugin you can run `:CodeCompanion <your prompt>` from the command line. You can also make a visual selection in Neovim and run `:'<,'>CodeCompanion <your prompt>` to send it as context. A command such as `:'<,'>CodeCompanion what does this code do?` will prompt the LLM the respond in a chat buffer allowing you to ask any follow up questions. Whereas a command such as `:CodeCompanion can you create a function that outputs the current date and time` would result in the output being placed at the cursor's position in the buffer.
 
-In the video, you'll notice that we're triggering a pre-defined prompt (from the config defaults) to explain any LSP warnings by running `:'<,'>:CodeCompanion @lsp`. More on this in the [default prompts](#default-prompts) section.
+In the video, you'll notice that we're triggering a pre-defined LSP warnings prompt by running `:'<,'>:CodeCompanion @lsp`. You can find more on this in the [default prompts](#default-prompts) section.
 
 > [!NOTE]
-> Any open and loaded buffers can be sent to the LLM as context with the `@buffers` keyword, assuming they match the current filetype. For example: `:'<,'>CodeCompanion @buffers <your prompt>`.
+> Any open and loaded buffers can be sent to the LLM as context with the `@buffers` keyword, assuming they match the current filetype. For example: `:'<,'>CodeCompanion @buffers <your prompt>`. The `@buffer` keyword is also available for sending the current open buffer to the LLM.
 
 **Chat Buffer**
 
@@ -656,6 +656,8 @@ The plugin comes with a number of default prompts and corresponding keymaps/shor
 - **Generate a Commit Message** - Use an LLM to write a commit message for you (`<LocalLeader>cm` / `@commit`)
 - **Code Advisor** - Get advice from an LLM on code you've selected (`<LocalLeader>ca` / `@advisor`)
 - **Explain LSP Diagnostics** - Use an LLM to explain LSP diagnostics for code you've selected (`<LocalLeader>cl` / `@lsp`)
+
+Shortcuts can be accessed via the command line by typing `:CodeCompanion @commit`.
 
 ### Agents
 

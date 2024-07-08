@@ -32,6 +32,9 @@ return {
           if string.match(prompt, "^(%S+)") == "buffers" then
             opts.args = clean_up_prompt(opts.args)
             table.insert(opts, { send_open_buffers = true })
+          elseif string.match(prompt, "^(%S+)") == "buffer" then
+            opts.args = clean_up_prompt(opts.args)
+            table.insert(opts, { send_current_buffer = true })
           end
 
           if codecompanion.pre_defined_prompts[prompt] then

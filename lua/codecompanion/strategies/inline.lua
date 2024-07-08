@@ -80,6 +80,18 @@ local build_prompt = function(inline, user_input)
           .. helpers.format(buffers, inline.context.filetype),
       })
     end
+    if inline.opts.send_current_buffer then
+      log:trace("Sending current buffer to the LLM")
+      local helpers = require("codecompanion.helpers.buffers")
+      local buffer = helpers.get_buffer_content(inline.context.bufnr)
+
+      table.insert(output, {
+        role = "user",
+        tag = "buffers",
+        content = "I've included some additional context in the form of a buffer:\n\n"
+          .. helpers.format(buffer, inline.context.filetype),
+      })
+    end
   end
 
   local user_prompts = ""
