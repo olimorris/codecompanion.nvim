@@ -464,6 +464,7 @@ function Chat:parse_buffer(messages)
   if not config.send_code then
     return
   end
+
   local chat_maps = require("codecompanion.helpers.chat")
 
   ---@param rhs string|table|fun(self)
@@ -744,16 +745,22 @@ function Chat:display_tokens()
   end
 end
 
----Conceal parts of the chat buffer
-function Chat:hide_agent_output()
+---Conceal parts of the chat buffer enclosed by a H2 heading
+---@param heading string
+---@return self
+function Chat:conceal(heading)
   local parser = vim.treesitter.get_parser(self.bufnr, "markdown")
+
   local query = vim.treesitter.query.parse(
     "markdown",
-    [[
-  ((section
-  ((atx_heading) @heading)
-  (#eq? @heading "## agent")) @content)
-]]
+    string.format(
+      [[
+    ((section
+      ((atx_heading) @heading)
+      (#eq? @heading "## %s")) @content)
+  ]],
+      heading
+    )
   )
   local tree = parser:parse()[1]
   local root = tree:root()
@@ -773,6 +780,8 @@ function Chat:hide_agent_output()
       end
     end
   end
+
+  return self
 end
 
 ---Determine if the current chat buffer is active

@@ -75,7 +75,7 @@ local function set_autocmds(chat, agent)
           content = agent.output_prompt(output),
         })
         if agent.opts and agent.opts.hide_output then
-          chat:hide_agent_output()
+          chat:conceal("agent")
         end
         chat:submit()
       end
