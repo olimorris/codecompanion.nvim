@@ -76,8 +76,9 @@ local build_prompt = function(inline, user_input)
       table.insert(output, {
         role = "user",
         tag = "buffers",
-        content = "I've included some additional context in the form of open buffers:\n\n"
-          .. helpers.format(buffers, inline.context.filetype),
+        content = "## buffers\n\nI've included some additional context in the form of open buffers:\n\n"
+          .. helpers.format(buffers, inline.context.filetype)
+          .. "\n\n",
       })
     end
     if inline.opts.send_current_buffer then
@@ -88,8 +89,9 @@ local build_prompt = function(inline, user_input)
       table.insert(output, {
         role = "user",
         tag = "buffers",
-        content = "I've included some additional context in the form of a buffer:\n\n"
-          .. helpers.format(buffer, inline.context.filetype),
+        content = "## buffers\n\nI've included some additional context in the form of a buffer:\n\n"
+          .. helpers.format(buffer, inline.context.filetype)
+          .. "\n\n",
       })
     end
   end
@@ -252,12 +254,14 @@ local function send_to_chat(inline, prompt)
     return false
   end)
 
-  return require("codecompanion.strategies.chat").new({
-    context = inline.context,
-    adapter = inline.adapter,
-    messages = prompt,
-    auto_submit = true,
-  })
+  return require("codecompanion.strategies.chat")
+    .new({
+      context = inline.context,
+      adapter = inline.adapter,
+      messages = prompt,
+      auto_submit = true,
+    })
+    :conceal("buffers")
 end
 
 ---@class CodeCompanion.Inline
