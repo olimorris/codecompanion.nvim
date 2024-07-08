@@ -468,6 +468,7 @@ function Chat:parse_buffer(messages)
 
   ---@param rhs string|table|fun(self)
   local function resolve(rhs)
+    log:trace("parse_buffer resolving: %s", rhs)
     if type(rhs) == "string" and vim.startswith(rhs, "helpers.chat.") then
       -- The last part of the string is the function to call
       local splits = vim.split(rhs, ".", { plain = true })
@@ -493,6 +494,8 @@ function Chat:parse_buffer(messages)
     local content = resolve(config.chat_helpers.buffers[pattern])
 
     if content then
+      log:debug("Parsed buffer content")
+      log:trace("parse_buffer content: %s", content)
       self.buffers = {
         index = #messages,
         content = content,
@@ -502,6 +505,7 @@ function Chat:parse_buffer(messages)
 end
 
 ---Submit the chat buffer's contents to the LLM
+---@return nil
 function Chat:submit()
   local bufnr = self.bufnr
   local settings, messages = parse_settings(bufnr, self.adapter), parse_messages(bufnr)
@@ -587,6 +591,7 @@ function Chat:stop()
 end
 
 ---Hide the chat buffer from view
+---@return nil
 function Chat:hide()
   local layout = config.display.chat.window.layout
 
@@ -607,6 +612,7 @@ function Chat:hide()
 end
 
 ---Close the current chat buffer
+---@return nil
 function Chat:close()
   if self.current_request then
     self:stop()
@@ -620,7 +626,7 @@ function Chat:close()
   api.nvim_buf_delete(self.bufnr, { force = true })
 end
 
----Get the last line and column in the chat buffer
+---Get the last line, column and line count in the chat buffer
 ---@return integer, integer, integer
 function Chat:last()
   local line_count = api.nvim_buf_line_count(self.bufnr)
@@ -686,6 +692,7 @@ end
 ---Wrapper for appending a message to the chat buffer
 ---@param data table
 ---@param opts? table
+---@return nil
 function Chat:add_message(data, opts)
   self:append({ role = data.role, content = data.content }, opts)
 
@@ -698,6 +705,7 @@ function Chat:add_message(data, opts)
 end
 
 ---When a request has finished, reset the chat buffer
+---@return nil
 function Chat:reset()
   local bufnr = self.bufnr
 
