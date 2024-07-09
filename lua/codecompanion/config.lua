@@ -30,6 +30,7 @@ return {
       prompts = {
         {
           role = "system",
+          tag = "system_tag",
           content = function(context)
             if context.buftype == "terminal" then
               return "I want you to act as an expert in writing terminal commands that will work for my current shell "
