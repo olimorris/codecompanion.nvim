@@ -185,7 +185,7 @@ local function parse_agents(chat)
   --TODO: Parse XML to ensure the STag is <agent>
 
   if agents and #agents > 0 then
-    return require("lua.codecompanion.agents.init").run(chat, agents[#agents])
+    return require("codecompanion.agents").run(chat, agents[#agents])
   end
 end
 
