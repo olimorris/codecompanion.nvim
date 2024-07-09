@@ -211,7 +211,7 @@ M.static.actions = {
         {
           name = "Code a feature - Outline, draft, consider and then revise",
           callback = function(context)
-            local agent = require("lua.codecompanion.workflow")
+            local agent = require("codecompanion.workflow")
             return agent
               .new({
                 context = context,
@@ -260,7 +260,7 @@ M.static.actions = {
         {
           name = "Refactor some code - Outline, draft, consider and then revise",
           callback = function(context)
-            local agent = require("lua.codecompanion.workflow")
+            local agent = require("codecompanion.workflow")
             return agent
               .new({
                 context = context,
