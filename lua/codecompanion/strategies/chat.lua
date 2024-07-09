@@ -460,13 +460,11 @@ function Chat:set_autocmds()
   api.nvim_create_autocmd("InsertEnter", {
     group = aug,
     buffer = bufnr,
+    once = true,
     callback = function()
       local has_cmp, cmp = pcall(require, "cmp")
       if has_cmp then
-        if not self.registered_cmp then
-          require("cmp").register_source("codecompanion", require("cmp_codecompanion").new())
-          self.registered_cmp = true
-        end
+        require("cmp").register_source("codecompanion", require("cmp_codecompanion").new())
         cmp.setup.buffer({
           enabled = true,
           sources = {
