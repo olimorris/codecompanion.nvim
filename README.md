@@ -108,9 +108,15 @@ require("codecompanion").setup({
     agent = "openai",
   },
   chat_helpers = {
-    buffers = {
-      ["@buffer"] = "helpers.chat.buffer",
-      ["@buffers"] = "helpers.chat.buffers",
+    ["@buffer"] = {
+      callback = "helpers.chat.buffer",
+      category = "buffer",
+      description = "Share the current buffer with the LLM",
+    },
+    ["@buffers"] = {
+      callback = "helpers.chat.buffers",
+      category = "buffer",
+      description = "Share all loaded buffers (matching the filetype) with the LLM",
     },
   },
   prompts = {

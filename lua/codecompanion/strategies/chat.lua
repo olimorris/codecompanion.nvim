@@ -139,6 +139,55 @@ local function parse_messages(bufnr)
   return output
 end
 
+---Parse the buffer for any keywords as defined in the config
+---@param chat CodeCompanion.Chat
+---@param messages table
+---@return nil
+local function parse_helpers(chat, messages)
+  if not config.send_code then
+    return
+  end
+
+  local chat_maps = require("codecompanion.helpers.chat")
+
+  ---@param rhs string|table|fun(self)
+  local function resolve(rhs)
+    log:trace("parse_buffer resolving: %s", rhs)
+    if type(rhs) == "string" and vim.startswith(rhs, "helpers.chat.") then
+      -- The last part of the string is the function to call
+      local splits = vim.split(rhs, ".", { plain = true })
+      return resolve(chat_maps[splits[#splits]])
+    else
+      return rhs(chat)
+    end
+  end
+
+  local find = function(message, helpers)
+    for helper, _ in pairs(helpers) do
+      if message:find(helper, 1, true) then
+        return helper
+      end
+    end
+    return nil
+  end
+
+  local message = messages[#messages]
+
+  local helper = find(message.content, config.chat_helpers)
+  if helper then
+    local content = resolve(config.chat_helpers[helper].callback)
+
+    if content then
+      log:debug("Parsed buffer content")
+      log:trace("parse_buffer content: %s", content)
+      chat.buffers = {
+        index = #messages,
+        content = content,
+      }
+    end
+  end
+end
+
 ---@class CodeCompanion.Chat
 ---@return CodeCompanion.Agent|nil
 local function parse_agents(chat)
@@ -277,8 +326,7 @@ function Chat.new(args)
 
   self.settings = args.settings or schema.get_default(self.adapter.args.schema, args.settings)
 
-  self:render(args.messages or {})
-  self:set_autocmds()
+  self:render(args.messages or {}):set_autocmds()
 
   if not args.messages or #args.messages == 0 then
     set_welcome_message(self)
@@ -346,6 +394,7 @@ end
 
 ---Render the chat buffer
 ---@param messages table
+---@return self
 function Chat:render(messages)
   local lines = {}
   if config.display.chat.show_settings then
@@ -394,6 +443,8 @@ function Chat:render(messages)
   vim.bo[self.bufnr].modifiable = modifiable
 
   ui.buf_scroll_to_end(self.bufnr)
+
+  return self
 end
 
 ---Set the autocmds for the chat buffer
@@ -404,6 +455,27 @@ function Chat:set_autocmds()
   })
 
   local bufnr = self.bufnr
+
+  -- Setup completion
+  api.nvim_create_autocmd("InsertEnter", {
+    group = aug,
+    buffer = bufnr,
+    callback = function()
+      local has_cmp, cmp = pcall(require, "cmp")
+      if has_cmp then
+        if not self.registered_cmp then
+          require("cmp").register_source("codecompanion", require("cmp_codecompanion").new())
+          self.registered_cmp = true
+        end
+        cmp.setup.buffer({
+          enabled = true,
+          sources = {
+            { name = "codecompanion" },
+          },
+        })
+      end
+    end,
+  })
 
   -- Submit the chat
   api.nvim_create_autocmd("BufWriteCmd", {
@@ -462,54 +534,6 @@ function Chat:set_autocmds()
   })
 end
 
----Parse the buffer for any keywords as defined in the config
----@param messages table
----@return nil
-function Chat:parse_buffer(messages)
-  if not config.send_code then
-    return
-  end
-
-  local chat_maps = require("codecompanion.helpers.chat")
-
-  ---@param rhs string|table|fun(self)
-  local function resolve(rhs)
-    log:trace("parse_buffer resolving: %s", rhs)
-    if type(rhs) == "string" and vim.startswith(rhs, "helpers.chat.") then
-      -- The last part of the string is the function to call
-      local splits = vim.split(rhs, ".", { plain = true })
-      return resolve(chat_maps[splits[#splits]])
-    else
-      return rhs(self)
-    end
-  end
-
-  local find = function(message, helpers)
-    for helper, _ in pairs(helpers) do
-      if message:find(helper, 1, true) then
-        return helper
-      end
-    end
-    return nil
-  end
-
-  local message = messages[#messages]
-
-  local pattern = find(message.content, config.chat_helpers.buffers)
-  if pattern then
-    local content = resolve(config.chat_helpers.buffers[pattern])
-
-    if content then
-      log:debug("Parsed buffer content")
-      log:trace("parse_buffer content: %s", content)
-      self.buffers = {
-        index = #messages,
-        content = content,
-      }
-    end
-  end
-end
-
 ---Submit the chat buffer's contents to the LLM
 ---@return nil
 function Chat:submit()
@@ -528,7 +552,7 @@ function Chat:submit()
   end
 
   -- Add the contents of any buffers
-  self:parse_buffer(messages)
+  parse_helpers(self, messages)
   if self.buffers then
     table.insert(messages, self.buffers.index, {
       role = "user",
