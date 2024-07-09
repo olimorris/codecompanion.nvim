@@ -61,6 +61,7 @@ return {
         modes = { "n", "v" },
         mapping = "<LocalLeader>ce",
         auto_submit = false,
+        stop_context_insertion = true,
       },
       prompts = {
         {
@@ -103,6 +104,7 @@ return {
         shortcut = "advisor",
         auto_submit = true,
         user_prompt = true,
+        stop_context_insertion = true,
       },
       prompts = {
         {
@@ -117,9 +119,9 @@ return {
           role = "user",
           contains_code = true,
           content = function(context)
-            local text = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
+            local code = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
 
-            return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
+            return "I have the following code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
           end,
         },
       },

@@ -92,6 +92,7 @@ function Strategy:chat()
       context = self.context,
       messages = messages,
       auto_submit = (self.selected.opts and self.selected.opts.auto_submit) or false,
+      stop_context_insertion = (self.selected.opts and self.selected.opts.stop_context_insertion) or false,
     })
   end
 

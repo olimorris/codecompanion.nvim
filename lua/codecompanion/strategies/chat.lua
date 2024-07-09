@@ -234,6 +234,7 @@ local Chat = {}
 ---@field adapter? CodeCompanion.Adapter
 ---@field messages? table
 ---@field auto_submit? boolean
+---@field stop_context_insertion? boolean
 ---@field settings? table
 ---@field tokens? table
 ---@field type? string
@@ -364,7 +365,7 @@ function Chat:render(messages)
     table.insert(lines, "")
   end
 
-  -- Put the messages in the buffer
+  -- Add any messages to the buffer
   for i, message in ipairs(messages) do
     if i > 1 then
       table.insert(lines, "")
@@ -376,7 +377,8 @@ function Chat:render(messages)
     end
   end
 
-  if self.context and self.context.is_visual then
+  -- and if the user has visually selected some text, add that
+  if self.context and self.context.is_visual and not self.opts.stop_context_insertion then
     table.insert(lines, "")
     table.insert(lines, "```" .. self.context.filetype)
     for _, line in ipairs(self.context.lines) do
@@ -394,6 +396,8 @@ function Chat:render(messages)
   ui.buf_scroll_to_end(self.bufnr)
 end
 
+---Set the autocmds for the chat buffer
+---@return nil
 function Chat:set_autocmds()
   local aug = api.nvim_create_augroup("CodeCompanion_" .. self.id, {
     clear = false,
@@ -460,6 +464,7 @@ end
 
 ---Parse the buffer for any keywords as defined in the config
 ---@param messages table
+---@return nil
 function Chat:parse_buffer(messages)
   if not config.send_code then
     return
@@ -573,7 +578,7 @@ function Chat:submit()
   end)
 end
 
----Stop and cancel the response from the LLM
+---Stop streaming the response from the LLM
 ---@return nil
 function Chat:stop()
   local job

@@ -38,6 +38,9 @@ M.static.actions = {
     strategy = "chat",
     description = "Open a chat buffer to converse with an LLM",
     type = nil,
+    opts = {
+      stop_context_insertion = true,
+    },
     prompts = {
       n = function()
         return require("codecompanion").chat()
