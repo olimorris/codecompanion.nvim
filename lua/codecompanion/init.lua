@@ -38,7 +38,7 @@ M.run_pre_defined_prompts = function(prompt, args)
   local context = util.get_context(vim.api.nvim_get_current_buf(), args)
   local item = M.pre_defined_prompts[prompt]
 
-  return require("codecompanion.strategy")
+  return require("codecompanion.strategies")
     .new({
       context = context,
       selected = item,
@@ -164,7 +164,7 @@ M.actions = function(args)
     elseif item and type(item.callback) == "function" then
       return item.callback(context)
     else
-      local Strategy = require("codecompanion.strategy")
+      local Strategy = require("codecompanion.strategies")
       return Strategy.new({
         context = context,
         selected = item,

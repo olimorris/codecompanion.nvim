@@ -1,4 +1,4 @@
-local Strategy = require("codecompanion.strategy")
+local Strategy = require("codecompanion.strategies")
 local util = require("codecompanion.utils.util")
 local api = vim.api
 

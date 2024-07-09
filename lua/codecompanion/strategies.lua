@@ -34,32 +34,32 @@ local function process_prompts(prompts, context)
   return messages
 end
 
----@class CodeCompanion.Strategy
+---@class CodeCompanion.Strategies
 ---@field context table
 ---@field selected table
-local Strategy = {}
+local Strategies = {}
 
 ---@class CodeCompanion.StrategyArgs
 ---@field context table
 ---@field selected table
 
 ---@param args CodeCompanion.StrategyArgs
----@return CodeCompanion.Strategy
-function Strategy.new(args)
+---@return CodeCompanion.Strategies
+function Strategies.new(args)
   log:trace("Context: %s", args.context)
 
   return setmetatable({
     context = args.context,
     selected = args.selected,
-  }, { __index = Strategy })
+  }, { __index = Strategies })
 end
 
-function Strategy:start(strategy)
+function Strategies:start(strategy)
   return self[strategy](self)
 end
 
 ---@return nil|CodeCompanion.Chat
-function Strategy:chat()
+function Strategies:chat()
   local messages
   local mode = self.context.mode:lower()
   local prompts = self.selected.prompts
@@ -109,7 +109,7 @@ function Strategy:chat()
   end
 end
 
-function Strategy:inline()
+function Strategies:inline()
   return require("codecompanion.strategies.inline")
     .new({
       context = self.context,
@@ -120,7 +120,7 @@ function Strategy:inline()
 end
 
 ---@return nil|CodeCompanion.Chat
-function Strategy:agent()
+function Strategies:agent()
   local messages = process_prompts(self.selected.prompts, self.context)
 
   local adapter = config.adapters[config.strategies.agent]
@@ -139,4 +139,4 @@ function Strategy:agent()
   })
 end
 
-return Strategy
+return Strategies
