@@ -1,3 +1,5 @@
+local config = require("codecompanion").config
+
 local source = {}
 
 function source.new()
@@ -5,7 +7,7 @@ function source.new()
 end
 
 function source:is_available()
-  return vim.b.codecompanion_type == "chat"
+  return vim.bo.filetype == "codecompanion"
 end
 
 source.get_position_encoding_kind = function()
@@ -13,16 +15,24 @@ source.get_position_encoding_kind = function()
 end
 
 function source:get_keyword_pattern()
-  return [[\w*]]
+  -- Match '@' followed by word characters
+  return [[@\w*]]
 end
 
-function source:complete(request, callback)
-  local chat = require("codecompanion").buf_get_chat(0)
-  if chat then
-    chat:complete(request, callback)
-  else
-    callback({ items = {}, isIncomplete = false })
+function source:complete(_, callback)
+  local items = {}
+  for label, data in pairs(config.chat_helpers) do
+    table.insert(items, {
+      label = label,
+      kind = "keyword",
+      detail = data.description,
+    })
   end
+
+  callback({
+    items = items,
+    isIncomplete = false,
+  })
 end
 
 return source
