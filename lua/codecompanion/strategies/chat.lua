@@ -476,6 +476,17 @@ function Chat:set_autocmds()
     end,
   })
 
+  if config.display.chat.show_settings then
+    api.nvim_create_autocmd({ "CursorMoved" }, {
+      group = aug,
+      buffer = bufnr,
+      desc = "Show settings information in the CodeCompanion chat buffer",
+      callback = function()
+        self:on_cursor_moved()
+      end,
+    })
+  end
+
   -- Submit the chat
   api.nvim_create_autocmd("BufWriteCmd", {
     group = aug,
@@ -531,6 +542,48 @@ function Chat:set_autocmds()
       end
     end,
   })
+end
+
+function Chat:_get_settings_key(opts)
+  opts = vim.tbl_extend("force", opts or {}, {
+    lang = "yaml",
+    ignore_injections = false,
+  })
+  local node = vim.treesitter.get_node(opts)
+  while node and node:type() ~= "block_mapping_pair" do
+    node = node:parent()
+  end
+  if not node then
+    return
+  end
+  local key_node = node:named_child(0)
+  local key_name = vim.treesitter.get_node_text(key_node, self.bufnr)
+  return key_name, node
+end
+
+---Actions to take when the cursor moves in the chat buffer
+---Used to show the LLM settings at the top of the buffer
+---@return nil
+function Chat:on_cursor_moved()
+  local key_name, node = self:_get_settings_key()
+  if not key_name or not node then
+    vim.diagnostic.set(config.INFO_NS, self.bufnr, {})
+    return
+  end
+
+  local key_schema = self.adapter.args.schema[key_name]
+  if key_schema and key_schema.desc then
+    local lnum, col, end_lnum, end_col = node:range()
+    local diagnostic = {
+      lnum = lnum,
+      col = col,
+      end_lnum = end_lnum,
+      end_col = end_col,
+      severity = vim.diagnostic.severity.INFO,
+      message = key_schema.desc,
+    }
+    vim.diagnostic.set(config.INFO_NS, self.bufnr, { diagnostic })
+  end
 end
 
 ---Submit the chat buffer's contents to the LLM

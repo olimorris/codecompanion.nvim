@@ -239,7 +239,19 @@ M.setup = function(opts)
     end
   end
 
-  -- TODO: Create namespaces here
+  M.config.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
+  M.config.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
+
+  local diagnostic_config = {
+    underline = false,
+    virtual_text = {
+      spacing = 2,
+      severity = { min = vim.diagnostic.severity.INFO },
+    },
+    signs = false,
+  }
+  vim.diagnostic.config(diagnostic_config, M.config.INFO_NS)
+  vim.diagnostic.config(diagnostic_config, M.config.ERROR_NS)
 
   local log = require("codecompanion.utils.log")
   log.set_root(log.new({
