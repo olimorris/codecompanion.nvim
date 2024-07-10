@@ -633,6 +633,12 @@ function Chat:submit()
       return self:reset()
     end
 
+    -- Sometimes the token payload comes as part of the final response so we
+    -- need to check for the tokens before the client is terminated
+    if data then
+      self:get_tokens(data)
+    end
+
     if done then
       self:append({ role = "user", content = "" })
       self:display_tokens()
@@ -647,7 +653,6 @@ function Chat:submit()
     end
 
     if data then
-      self:get_tokens(data)
       local result = self.adapter.args.callbacks.chat_output(data)
 
       if result and result.status == CONSTANTS.STATUS_SUCCESS then

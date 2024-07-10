@@ -23,7 +23,7 @@ return {
   name = "Ollama",
   features = {
     text = true,
-    tokens = false,
+    tokens = true,
     vision = false,
   },
   url = "http://localhost:11434/api/chat",
@@ -53,6 +53,24 @@ return {
         return data.done
       end
       return false
+    end,
+
+    ---Returns the number of tokens generated from the LLM
+    ---@param data table The data from the LLM
+    ---@return number|nil
+    tokens = function(data)
+      if data then
+        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
+
+        if not ok then
+          return
+        end
+
+        if json.eval_count then
+          log:debug("Done! %s", json.eval_count)
+          return json.eval_count
+        end
+      end
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer

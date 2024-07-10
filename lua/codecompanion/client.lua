@@ -70,7 +70,7 @@ function Client:stream(adapter, payload, cb, after)
 
         if adapter.args.callbacks.is_complete(data) then
           log:trace("Chat completed")
-          return cb(nil, nil, true)
+          return cb(nil, data, true)
         end
 
         cb(nil, data)
