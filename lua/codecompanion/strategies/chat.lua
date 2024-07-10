@@ -486,15 +486,13 @@ function Chat:set_autocmds()
 
   -- Clear the virtual text when the user starts typing
   if util.count(_G.codecompanion_chats) == 0 then
-    local insertenter_autocmd
-    insertenter_autocmd = api.nvim_create_autocmd("InsertEnter", {
+    api.nvim_create_autocmd("InsertEnter", {
       group = aug,
       buffer = bufnr,
+      once = true,
       callback = function()
         local ns_id = api.nvim_create_namespace(CONSTANTS.NS_VIRTUAL_TEXT)
         api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
-
-        api.nvim_del_autocmd(insertenter_autocmd)
       end,
     })
   end
