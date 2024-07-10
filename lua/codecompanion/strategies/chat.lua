@@ -238,6 +238,10 @@ local function parse_agents(chat)
   end
 end
 
+---@type table<integer, CodeCompanion.Chat>
+local chatmap = {}
+
+---@type table<CodeCompanion.Chat>
 _G.codecompanion_chats = {}
 
 ---@class chat CodeCompanion.Chat
@@ -316,6 +320,7 @@ function Chat.new(args)
   }, { __index = Chat })
 
   self.bufnr = self.create_buf()
+  chatmap[self.bufnr] = self
   self:open()
 
   self.adapter = resolve_adapter(args.adapter)
@@ -450,7 +455,7 @@ end
 ---Set the autocmds for the chat buffer
 ---@return nil
 function Chat:set_autocmds()
-  local aug = api.nvim_create_augroup("CodeCompanion_" .. self.id, {
+  local aug = api.nvim_create_augroup("CodeCompanion_" .. self.bufnr, {
     clear = false,
   })
 
@@ -465,11 +470,13 @@ function Chat:set_autocmds()
     callback = function()
       local has_cmp, cmp = pcall(require, "cmp")
       if has_cmp then
-        require("cmp").register_source("codecompanion", require("cmp_codecompanion").new())
+        require("cmp").register_source("codecompanion_helpers", require("cmp_codecompanion.helpers").new())
+        require("cmp").register_source("codecompanion_models", require("cmp_codecompanion.models").new())
         cmp.setup.buffer({
           enabled = true,
           sources = {
-            { name = "codecompanion" },
+            { name = "codecompanion_helpers" },
+            { name = "codecompanion_models" },
           },
         })
       end
@@ -544,6 +551,8 @@ function Chat:set_autocmds()
   })
 end
 
+---Get the settings key at the current cursor position
+---@param opts? table
 function Chat:_get_settings_key(opts)
   opts = vim.tbl_extend("force", opts or {}, {
     lang = "yaml",
@@ -869,6 +878,42 @@ end
 ---@return boolean
 function Chat:active()
   return api.nvim_get_current_buf() == self.bufnr
+end
+
+---CodeCompanion models completion source
+---@param request table
+---@param callback fun(request: table)
+---@return nil
+function Chat:complete(request, callback)
+  local items = {}
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local key_name, node = self:_get_settings_key({ pos = { cursor[1] - 1, 1 } })
+  if not key_name or not node then
+    callback({ items = items, isIncomplete = false })
+    return
+  end
+
+  local key_schema = self.adapter.args.schema[key_name]
+  if key_schema.type == "enum" then
+    for _, choice in ipairs(key_schema.choices) do
+      table.insert(items, {
+        label = choice,
+        kind = require("cmp").lsp.CompletionItemKind.Keyword,
+      })
+    end
+  end
+
+  callback({ items = items, isIncomplete = false })
+end
+
+---Returns the chat object based on the buffer number
+---@param bufnr? integer
+---@return nil|CodeCompanion.Chat
+function Chat.buf_get_chat(bufnr)
+  if not bufnr or bufnr == 0 then
+    bufnr = vim.api.nvim_get_current_buf()
+  end
+  return chatmap[bufnr]
 end
 
 return Chat

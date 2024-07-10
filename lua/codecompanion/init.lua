@@ -117,6 +117,12 @@ M.toggle = function()
   chat:open()
 end
 
+---@param bufnr nil|integer
+---@return nil|CodeCompanion.Chat
+M.buf_get_chat = function(bufnr)
+  return require("codecompanion.strategies.chat").buf_get_chat(bufnr)
+end
+
 local _cached_actions = {}
 ---Show the action palette
 ---@param args table
