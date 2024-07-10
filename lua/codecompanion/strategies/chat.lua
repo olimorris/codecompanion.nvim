@@ -10,8 +10,8 @@ local yaml = require("codecompanion.utils.yaml")
 local api = vim.api
 
 local CONSTANTS = {
-  NS_INTRO_MESSAGE = "CodeCompanionChatIntroMessage",
-  NS_VIRTUAL_TEXT = "CodeCompanionChatVirtualText",
+  NS_INTRO_MESSAGE = "CodeCompanion-intro_message",
+  NS_VIRTUAL_TEXT = "CodeCompanion-virtual_text",
 
   AUTOCMD_CHAT = "CodeCompanionChat",
 
@@ -461,6 +461,7 @@ function Chat:set_autocmds()
     group = aug,
     buffer = bufnr,
     once = true,
+    desc = "Setup the completion of helpers in the chat buffer",
     callback = function()
       local has_cmp, cmp = pcall(require, "cmp")
       if has_cmp then
@@ -479,6 +480,7 @@ function Chat:set_autocmds()
   api.nvim_create_autocmd("BufWriteCmd", {
     group = aug,
     buffer = bufnr,
+    desc = "Submit the CodeCompanion chat buffer",
     callback = function()
       self:submit()
     end,
@@ -490,6 +492,7 @@ function Chat:set_autocmds()
       group = aug,
       buffer = bufnr,
       once = true,
+      desc = "Clear the virtual text in the CodeCompanion chat buffer",
       callback = function()
         local ns_id = api.nvim_create_namespace(CONSTANTS.NS_VIRTUAL_TEXT)
         api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)

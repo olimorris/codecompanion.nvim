@@ -34,6 +34,7 @@ end
 ---Run the prompt that the user initiated from the command line
 ---@param prompt table The prompt to resolve from the command
 ---@param args table The arguments that were passed to the command
+---@return CodeCompanion.Strategies
 M.run_pre_defined_prompts = function(prompt, args)
   local context = util.get_context(vim.api.nvim_get_current_buf(), args)
   local item = M.pre_defined_prompts[prompt]
@@ -98,6 +99,7 @@ M.chat = function(args)
 end
 
 ---Toggle the chat buffer
+---@return nil
 M.toggle = function()
   local chat = _G.codecompanion_last_chat_buffer
   if not chat then
@@ -118,6 +120,7 @@ end
 local _cached_actions = {}
 ---Show the action palette
 ---@param args table
+---@return nil
 M.actions = function(args)
   local actions = require("codecompanion.actions")
   local context = util.get_context(api.nvim_get_current_buf(), args)
@@ -204,10 +207,12 @@ end
 
 ---Setup the plugin
 ---@param opts nil|table
+---@return nil
 M.setup = function(opts)
   api.nvim_set_hl(0, "CodeCompanionTokens", { link = "Comment", default = true })
   api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
   api.nvim_set_hl(0, "CodeCompanionVirtualTextAgents", { link = "CodeCompanionVirtualText", default = true })
+
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 
   -- Handle custom adapter config
