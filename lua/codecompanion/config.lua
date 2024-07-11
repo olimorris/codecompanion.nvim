@@ -230,8 +230,15 @@ return {
       description = "Supplement the LLM with real-time information",
       enabled = true,
     },
+    ["buffer_editor"] = {
+      index = 1,
+      name = "Buffer Editor",
+      description = "Edit code by searching and replacing blocks",
+      enabled = true,
+    },
     opts = {
       auto_submit_errors = false,
+      auto_submit_success = false,
       mute_errors = false,
     },
   },

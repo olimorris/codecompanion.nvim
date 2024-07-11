@@ -102,6 +102,21 @@ function M.get_visual_selection(bufnr)
   return lines, start_line, start_col, end_line, end_col
 end
 
+local function get_active_buffers()
+  local buffers = {}
+  for _, bufnr in ipairs(api.nvim_list_bufs()) do
+    if api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buflisted then
+      table.insert(buffers, {
+        id = bufnr,
+        name = vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":t"),
+        path = api.nvim_buf_get_name(bufnr),
+        filetype = vim.bo[bufnr].filetype,
+      })
+    end
+  end
+  return buffers
+end
+
 ---Get the context of the current buffer.
 ---@param bufnr? integer
 ---@param args? table
@@ -145,6 +160,7 @@ function M.get_context(bufnr, args)
     start_col = start_col,
     end_line = end_line,
     end_col = end_col,
+    active_buffers = get_active_buffers(),
   }
 end
 

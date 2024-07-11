@@ -39,6 +39,9 @@ luac.out
 *.x86_64
 *.hex
 
+# Macos
+.DS_Store
+
 .direnv/
 .testenv/
 misc/
