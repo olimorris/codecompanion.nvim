@@ -16,11 +16,12 @@ local Adapter = {}
 ---@field raw? table Any additional curl arguments to pass to the request
 ---@field opts? table Additional options for the adapter
 ---@field callbacks table Functions which link the output from the request to CodeCompanion
----@field callbacks.form_parameters fun()
----@field callbacks.form_messages fun()
----@field callbacks.is_complete fun()
----@field callbacks.chat_output fun()
----@field callbacks.inline_output fun()
+---@field callbacks.form_parameters fun(params: table, messages: table): table
+---@field callbacks.form_messages fun(messages: table): table
+---@field callbacks.is_complete fun(data: table): boolean
+---@field callbacks.tokens? fun(data: table): number|nil
+---@field callbacks.chat_output fun(data: table): table|nil
+---@field callbacks.inline_output fun(data: table, context: table): table|nil
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 
 ---@param args CodeCompanion.AdapterArgs
@@ -29,6 +30,9 @@ function Adapter.new(args)
   return setmetatable({ args = args }, { __index = Adapter })
 end
 
+---TODO: Refactor this to return self so we can chain it
+
+---Get the default settings from the schema
 ---@return table
 function Adapter:get_default_settings()
   local settings = {}
@@ -42,6 +46,7 @@ function Adapter:get_default_settings()
   return settings
 end
 
+---Set parameters based on the schema table's mappings
 ---@param settings? table
 ---@return CodeCompanion.Adapter
 function Adapter:set_params(settings)
@@ -81,6 +86,7 @@ function Adapter:set_params(settings)
   return self
 end
 
+---Replace any variables in the header with env vars or cmd outputs
 ---@return CodeCompanion.Adapter
 function Adapter:replace_header_vars()
   if self.args.headers then
@@ -130,6 +136,9 @@ function Adapter:replace_header_vars()
   return self
 end
 
+---@param adapter table|string|function
+---@param opts? table
+---@return CodeCompanion.Adapter
 function Adapter.use(adapter, opts)
   local adapter_config
 
@@ -141,9 +150,7 @@ function Adapter.use(adapter, opts)
     adapter_config = adapter
   end
 
-  if opts then
-    adapter_config = vim.tbl_deep_extend("force", {}, vim.deepcopy(adapter_config), opts or {})
-  end
+  adapter_config = vim.tbl_deep_extend("force", {}, vim.deepcopy(adapter_config), opts or {})
 
   return Adapter.new(adapter_config)
 end
