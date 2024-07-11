@@ -130,8 +130,18 @@ end
 ---@param ts table
 ---@return nil| CodeCompanion.AgentExecuteResult
 function M.run(chat, ts)
-  local xml = parse_xml(ts)
-  local agent = require("codecompanion.agents." .. xml.name)
+  local ok, xml = pcall(parse_xml, ts)
+  if not ok then
+    log:error("Error parsing XML: %s", xml)
+    return
+  end
+
+  local ok, agent = pcall(require, "codecompanion.agents." .. xml.name)
+  if not ok then
+    log:error("Error loading agent: %s", agent)
+    return
+  end
+
   return run_agent(chat, agent, xml)
 end
 

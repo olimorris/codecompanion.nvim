@@ -4,23 +4,31 @@ local xml2lua = require("codecompanion.utils.xml.xml2lua")
 local M = {}
 
 M.schema = {
-  name = "buffer_editor",
   parameters = {
     inputs = {
       content = "string containing file paths and SEARCH/REPLACE blocks",
     },
   },
+  name = "buffer_editor",
 }
 
 M.prompts = {
   {
     role = "system",
     content = function(schema)
-      return [[You are an expert in writing and reviewing code. To aid you further, I'm giving you access to a block editor that can make changes to the code in the current buffer. This enables you to propose edits, trigger their execution, and immediately see the results of your efforts.
+      return [[You are an expert in writing and reviewing code. Always use best practices when coding. If the user request is ambiguous, ask questions. Always reply to the user in the same language they are using.
+
+Once you understand the request you MUST:
+1. Decide if you need to use block editor to edits any files that haven't been added to the chat. You can create new files without asking.  You can keep asking if you then decide you need to edit more files.
+2. Think step-by-step and explain the needed changes with a numbered list of short sentences.
+
+To aid you further, I'm giving you access to a block editor that can make changes to the code in the current buffer. This enables you to propose edits, trigger their execution, and immediately see the results of your efforts.
 
 To use the block editor, you need to return an XML markdown code block (with backticks) which follows the below schema:
+```xml
 ]] .. xml2lua.toXml(schema, "agent") .. [[
 
+```
 The content parameter should contain one or more SEARCH/REPLACE blocks, wrapped in a CDATA section. Each block MUST have the following exact format:
 
 <content><![CDATA[
@@ -90,6 +98,7 @@ This example demonstrates how to add comments to the main.go and config.go files
     ---@param context CodeCompanion.Context
     content = function(context)
       return [[Here are the code files you need to focus on and edit, these codes are always in the most up-to-date state
+
 @buffers
 
 I need you
@@ -151,7 +160,6 @@ local function apply_edit(bufnr, search_lines, replace_lines)
   local search = table.concat(search_lines, "\n")
   local replace = table.concat(replace_lines, "\n")
 
-  -- 添加更多的日志输出
   log:debug("Content length: %d", #content)
   log:debug("Search length: %d", #search)
   log:debug("Replace length: %d", #replace)
@@ -160,9 +168,8 @@ local function apply_edit(bufnr, search_lines, replace_lines)
   -- stylua: ignore
   log:trace("Search (hex):\n%s", search:gsub(".", function(c) return string.format("%02X ", string.byte(c)) end))
 
-  -- 尝试更宽松的匹配
   local function find_fuzzy(text, pattern)
-    pattern = pattern:gsub("%s+", "%%s*") -- 允许任意数量的空白字符
+    pattern = pattern:gsub("%s+", "%%s*")
     pattern = pattern:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1") -- 转义特殊字符
     return text:match("()" .. pattern)
   end
@@ -177,7 +184,7 @@ local function apply_edit(bufnr, search_lines, replace_lines)
     end
   end
 
-  local end_pos = start_pos + #search
+  local end_pos = start_pos + #search - 1
   local start_line = select(2, content:sub(1, start_pos):gsub("\n", "")) + 1
   local end_line = select(2, content:sub(1, end_pos):gsub("\n", "")) + 1
 
@@ -318,11 +325,11 @@ end
 
 -- The prompt to share with the LLM if an error is encountered
 M.output_error_prompt = function(error)
-  return "The buffer editor encountered an error: " .. error .. "\n\n Can you fix this issue?"
+  return "The buffer editor encountered an error: " .. error .. "\n\nCan you fix this issue?"
 end
 
 M.output_prompt = function(output)
-  return "The buffer editor completed successfully with the following output:\n\n" .. output .. "\n\n Now I need you"
+  return "The buffer editor completed successfully with the following output:\n\n" .. output .. "\n\nNow I need you"
 end
 
 return M

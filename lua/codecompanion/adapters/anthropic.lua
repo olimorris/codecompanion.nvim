@@ -108,7 +108,7 @@ return {
       local output = {}
 
       -- Skip the event messages
-      if type(data) == "string" and string.sub(data, 1, 6) == "event:" then
+      if type(data) == "string" and (string.sub(data, 1, 6) == "event:" or data == "data: [DONE]") then
         return
       end
 
