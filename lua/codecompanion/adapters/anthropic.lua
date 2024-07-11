@@ -176,7 +176,7 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
-      default = "claude-3-haiku-20240307",
+      default = "claude-3-5-sonnet-20240620",
       choices = {
         "claude-3-5-sonnet-20240620",
         "claude-3-opus-20240229",
