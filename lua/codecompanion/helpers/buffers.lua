@@ -29,10 +29,10 @@ local function format_buffer_content(buffer_info, content)
 
   return string.format(
     [[
-ID: %d
+Buffer ID: %d
 Name: %s
 Path: %s
-Type: %s
+Filetype: %s
 Content:
 ```%s
 %s
@@ -64,7 +64,7 @@ end
 ---@param ft string The filetype to filter the buffers by
 ---@param bufs? table The table of buffers to filter
 ---@return table
-function M.get_opened_content(ft, bufs)
+function M.get_open_buffers(ft, bufs)
   local buffers = bufs or api.nvim_list_bufs()
   local content = {}
 
@@ -77,6 +77,16 @@ function M.get_opened_content(ft, bufs)
   end
 
   return content
+end
+
+function M.get_qf_buffers()
+  local qf_list = vim.fn.getqflist()
+
+  for _, item in ipairs(qf_list) do
+    local bufnr = item.bufnr
+    local filename = item.text
+    item.content = get_content(bufnr)
+  end
 end
 
 ---Formats the buffers into a markdown string

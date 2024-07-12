@@ -71,7 +71,7 @@ local build_prompt = function(inline, user_input)
     if inline.opts.send_open_buffers then
       log:trace("Sending open buffers to the LLM")
       local helpers = require("codecompanion.helpers.buffers")
-      local buffers = helpers.get_opened_content(inline.context.filetype)
+      local buffers = helpers.get_open_buffers(inline.context.filetype)
 
       table.insert(output, {
         role = "user",

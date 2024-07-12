@@ -178,8 +178,8 @@ local function parse_helpers(chat, messages)
       local content = resolve(config.chat_helpers[helper].callback)
 
       if content then
-        log:debug("Parsed buffer content")
-        log:trace("parse_buffer content: %s", content)
+        log:debug("Parsed helper content")
+        log:trace("parse_helper content: %s", content)
         chat.buffers = {
           index = i,
           content = content,

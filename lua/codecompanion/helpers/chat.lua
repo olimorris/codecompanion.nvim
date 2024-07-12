@@ -13,7 +13,7 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return string
 M.buffers = function(chat)
-  return helpers.format(helpers.get_opened_content(chat.context.filetype), chat.context.filetype)
+  return helpers.format(helpers.get_open_buffers(chat.context.filetype), chat.context.filetype)
 end
 
 return M
