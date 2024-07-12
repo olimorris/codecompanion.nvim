@@ -164,7 +164,7 @@ local function parse_helpers(chat, messages)
 
   local find = function(message, helpers)
     for helper, _ in pairs(helpers) do
-      if message:find(helper, 1, true) then
+      if message:match("%f[%w@]" .. helper .. "%f[%W]") then
         return helper
       end
     end
