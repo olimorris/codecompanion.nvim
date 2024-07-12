@@ -9,6 +9,44 @@ local function get_content(bufnr)
   return content
 end
 
+---@param bufnr number
+---@return table
+local function get_buffer_info(bufnr)
+  return {
+    id = bufnr,
+    name = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":t"),
+    path = vim.api.nvim_buf_get_name(bufnr),
+    filetype = vim.api.nvim_buf_get_option(bufnr, "filetype"),
+  }
+end
+
+local function format_buffer_content(buffer_info, content)
+  local lines = vim.split(content, "\n")
+  local formatted_content = {}
+  for i, line in ipairs(lines) do
+    table.insert(formatted_content, string.format("%d  %s", i, line))
+  end
+
+  return string.format(
+    [[
+ID: %d
+Name: %s
+Path: %s
+Type: %s
+Content:
+```%s
+%s
+```
+]],
+    buffer_info.id,
+    buffer_info.name,
+    buffer_info.path,
+    buffer_info.filetype,
+    buffer_info.filetype,
+    table.concat(formatted_content, "\n")
+  )
+end
+
 local M = {}
 
 ---@param bufnr number
@@ -49,7 +87,9 @@ function M.format(buf_content, ft)
   local formatted = {}
 
   for name, content in pairs(buf_content) do
-    table.insert(formatted, name .. ":\n\n```" .. ft .. "\n" .. content .. "\n```")
+    local bufnr = vim.fn.bufnr(name)
+    local buffer_info = get_buffer_info(bufnr)
+    table.insert(formatted, format_buffer_content(buffer_info, content))
   end
 
   return table.concat(formatted, "\n\n")

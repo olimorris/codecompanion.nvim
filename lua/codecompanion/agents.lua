@@ -10,6 +10,25 @@ local api = vim.api
 
 local M = {}
 
+---@class CodeCompanion.Agent
+---@field cmd table The commands to execute
+---@field schema string The schema that the LLM must use in its response to execute a agent
+---@field opts? table The options for the agent
+---@field prompts table The prompts to the LLM explaining the agent and the schema
+---@field env fun(xml: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
+---@field pre_cmd fun(env: table, xml: table): table|nil Function to call before the cmd table is executed
+---@field override_cmds fun(cmds: table): table Function to call to override the default cmds table
+---@field output_error_prompt fun(error: table): string The prompt to share with the LLM if an error is encountered
+---@field output_prompt fun(output: table): string The prompt to share with the LLM if the cmd is successful
+---@field execute fun(chat: CodeCompanion.Chat, inputs: table): CodeCompanion.AgentExecuteResult|nil Function to execute the agent (used by Buffer Editor)
+
+---@class CodeCompanion.AgentExecuteResult
+---@field success boolean Whether the agent was successful
+---@field message string The message to display to the user
+---@field modified_files? table<string, string> The files that were modified by the agent
+
+---@class CodeCompanion.AgentExecuteInputs
+
 ---Parse the Tree-sitter output into XML
 ---@param agents table
 ---@return table
@@ -77,7 +96,9 @@ local function set_autocmds(chat, agent)
         if agent.opts and agent.opts.hide_output then
           chat:conceal("agent")
         end
-        chat:submit()
+        if config.agents.opts.auto_submit_success then
+          chat:submit()
+        end
       end
 
       api.nvim_clear_autocmds({ group = group })
@@ -85,52 +106,43 @@ local function set_autocmds(chat, agent)
   })
 end
 
+local function run_agent(chat, agent, xml)
+  set_autocmds(chat, agent)
+
+  if type(agent.execute) == "function" then
+    return agent.execute(chat, xml.parameters.inputs)
+  else
+    local env = type(agent.env) == "function" and agent.env(xml) or {}
+    local cmds = type(agent.override_cmds) == "function" and agent.override_cmds(vim.deepcopy(agent.cmds))
+      or vim.deepcopy(agent.cmds)
+
+    if type(agent.pre_cmd) == "function" then
+      agent.pre_cmd(env, xml)
+    end
+
+    require("codecompanion.utils.util").replace_placeholders(cmds, env)
+    return require("codecompanion.agents.job_runner").init(cmds, chat)
+  end
+end
+
 ---Run the agent
 ---@param chat CodeCompanion.Chat
 ---@param ts table
----@return nil
+---@return nil| CodeCompanion.AgentExecuteResult
 function M.run(chat, ts)
-  -- Parse the XML
   local ok, xml = pcall(parse_xml, ts)
-
   if not ok then
-    log:error("Failed to parse the XML: %s", xml)
+    log:error("Error parsing XML: %s", xml)
     return
   end
 
-  -- Load the agent
   local ok, agent = pcall(require, "codecompanion.agents." .. xml.name)
   if not ok then
-    log:error("Agent not found: %s", xml.name)
+    log:error("Error loading agent: %s", agent)
     return
   end
 
-  -- Set the autocmds which will be called on closing the job
-  set_autocmds(chat, agent)
-
-  -- Set the env
-  local env = {}
-  if type(agent.env) == "function" then
-    env = agent.env(xml)
-  end
-
-  -- Overwrite any default cmds
-  local cmds = vim.deepcopy(agent.cmds)
-  if type(agent.override_cmds) == "function" then
-    cmds = agent.override_cmds(cmds)
-  end
-
-  -- Run the pre_cmds
-  if type(agent.pre_cmd) == "function" then
-    agent.pre_cmd(env, xml)
-  end
-
-  -- Replace any vars
-  utils.replace_placeholders(cmds, env)
-
-  -- Run the agent's cmds
-  log:debug("Running cmd: %s", cmds)
-  return require("codecompanion.agents.job_runner").init(cmds, chat)
+  return run_agent(chat, agent, xml)
 end
 
 return M
