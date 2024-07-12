@@ -1,4 +1,5 @@
 local log = require("codecompanion.utils.log")
+local config = require("codecompanion").config
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local M = {}
@@ -50,6 +51,8 @@ IMPORTANT RULES:
 7. DO NOT include line numbers in either the SEARCH or REPLACE sections. Line numbers are provided for your reference only and should not be part of the actual code blocks.
 8. For empty lines in the SEARCH section, do not include any whitespace characters. Just use a blank line.
 9. In the REPLACE section, maintain the same indentation as the original code for consistency.
+10. Each SEARCH/REPLACE should contain as few modifications as possible
+11. Please use tabs instead of spaces for indentation 
 
 Be extremely careful and precise when creating these blocks. If the SEARCH section doesn't match exactly, the edit will fail.
 
@@ -329,7 +332,13 @@ M.output_error_prompt = function(error)
 end
 
 M.output_prompt = function(output)
-  return "The buffer editor completed successfully with the following output:\n\n" .. output .. "\n\nNow I need you"
+  if config.agents.opts.auto_submit_success then
+    return "The buffer editor completed successfully with the following output:\n\n"
+      .. output
+      .. "\nWhat do you want to do next?"
+  else
+    return "The buffer editor completed successfully with the following output:\n\n" .. output .. "\nNow I need you "
+  end
 end
 
 return M
