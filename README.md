@@ -95,7 +95,7 @@ You only need to the call the `setup` function if you wish to change any of the 
 <details>
   <summary>Click to see the default configuration</summary>
 
-````lua
+```lua
 require("codecompanion").setup({
   adapters = {
     anthropic = "anthropic",
@@ -323,9 +323,14 @@ require("codecompanion").setup({
       description = "Supplement the LLM with real-time information",
       enabled = true,
     },
+    ["buffer_editor"] = {
+      name = "Buffer Editor",
+      description = "Edit code by searching and replacing blocks",
+      enabled = true,
+    },
     opts = {
-      auto_submit_errors = false,
-      mute_errors = false,
+      auto_submit_errors = false, -- Automatically send any agent errors to the LLM?
+      auto_submit_success = false, -- Automatically send the success message to the LLM?
     },
   },
   saved_chats = {
@@ -420,7 +425,7 @@ When informed by the user of an available agent, pay attention to the schema tha
   use_default_actions = true,
   use_default_prompts = true,
 })
-````
+```
 
 </details>
 
