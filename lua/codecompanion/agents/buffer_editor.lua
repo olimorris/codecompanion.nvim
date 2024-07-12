@@ -143,7 +143,7 @@ local function find_blocks(content)
       current_block.current = "replace"
     elseif line:match("^>>>>>>>%s*REPLACE%s*$") and in_block then
       in_block = false
-      if current_file and #current_block.search > 0 and #current_block.replace > 0 then
+      if current_file and #current_block.search > 0 then
         log:trace("Found block for file: %s", current_file)
         log:trace("Search: %s", vim.inspect(current_block.search))
         log:trace("Replace: %s", vim.inspect(current_block.replace))
