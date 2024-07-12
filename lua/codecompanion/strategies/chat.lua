@@ -171,19 +171,20 @@ local function parse_helpers(chat, messages)
     return nil
   end
 
-  local message = messages[#messages]
+  -- resolve all messages
+  for i, message in pairs(messages) do
+    local helper = find(message.content, config.chat_helpers)
+    if helper then
+      local content = resolve(config.chat_helpers[helper].callback)
 
-  local helper = find(message.content, config.chat_helpers)
-  if helper then
-    local content = resolve(config.chat_helpers[helper].callback)
-
-    if content then
-      log:debug("Parsed buffer content")
-      log:trace("parse_buffer content: %s", content)
-      chat.buffers = {
-        index = #messages,
-        content = content,
-      }
+      if content then
+        log:debug("Parsed buffer content")
+        log:trace("parse_buffer content: %s", content)
+        chat.buffers = {
+          index = i,
+          content = content,
+        }
+      end
     end
   end
 end
