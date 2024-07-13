@@ -152,7 +152,6 @@ local function parse_helpers(chat, messages)
 
   ---@param rhs string|table|fun(self)
   local function resolve(rhs)
-    log:trace("parse_buffer resolving: %s", rhs)
     if type(rhs) == "string" and vim.startswith(rhs, "helpers.chat.") then
       -- The last part of the string is the function to call
       local splits = vim.split(rhs, ".", { plain = true })
@@ -164,7 +163,7 @@ local function parse_helpers(chat, messages)
 
   local find = function(message, helpers)
     for helper, _ in pairs(helpers) do
-      if message:match("%f[%w@]" .. helper .. "%f[%W]") then
+      if message:match("%f[%w@]" .. "@" .. helper .. "%f[%W]") then
         return helper
       end
     end
@@ -178,7 +177,7 @@ local function parse_helpers(chat, messages)
       local content = resolve(config.chat_helpers[helper].callback)
 
       if content then
-        log:debug("Parsed helper content")
+        log:debug("Parsed helper in chat buffer")
         log:trace("parse_helper content: %s", content)
         chat.buffers = {
           index = i,
@@ -190,7 +189,7 @@ local function parse_helpers(chat, messages)
 end
 
 ---@class CodeCompanion.Chat
----@return CodeCompanion.Agent|nil
+---@return CodeCompanion.AgentExecuteResult|nil
 local function parse_agents(chat)
   local assistant_parser = vim.treesitter.get_parser(chat.bufnr, "markdown")
   local assistant_query = vim.treesitter.query.parse(

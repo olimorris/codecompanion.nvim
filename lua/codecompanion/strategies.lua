@@ -1,4 +1,5 @@
 local config = require("codecompanion").config
+
 local log = require("codecompanion.utils.log")
 
 ---@param prompts table
@@ -86,6 +87,7 @@ function Strategies:chat()
       })
     end
 
+    log:trace("Strategy: Chat")
     return require("codecompanion.strategies.chat").new({
       type = self.selected.type,
       adapter = self.selected.adapter,
@@ -109,7 +111,9 @@ function Strategies:chat()
   end
 end
 
+---@return nil|CodeCompanion.Inline
 function Strategies:inline()
+  log:trace("Strategy: Inline")
   return require("codecompanion.strategies.inline")
     .new({
       context = self.context,
@@ -132,6 +136,7 @@ function Strategies:agent()
     end
   end
 
+  log:trace("Strategy: Agent")
   return require("codecompanion.strategies.chat").new({
     adapter = adapter,
     type = self.selected.type,

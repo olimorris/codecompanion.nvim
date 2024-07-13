@@ -23,7 +23,7 @@ function source:complete(_, callback)
   local items = {}
   for label, data in pairs(config.chat_helpers) do
     table.insert(items, {
-      label = label,
+      label = "@" .. label,
       kind = require("cmp").lsp.CompletionItemKind.Keyword,
       detail = data.description,
     })

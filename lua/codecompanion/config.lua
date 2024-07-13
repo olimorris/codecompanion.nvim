@@ -12,12 +12,12 @@ return {
     agent = "openai",
   },
   chat_helpers = {
-    ["@buffer"] = {
+    ["buffer"] = {
       callback = "helpers.chat.buffer",
       category = "buffer",
       description = "Share the current buffer with the LLM",
     },
-    ["@buffers"] = {
+    ["buffers"] = {
       callback = "helpers.chat.buffers",
       category = "buffer",
       description = "Share all loaded buffers (matching the filetype) with the LLM",
@@ -144,6 +144,7 @@ return {
         shortcut = "lsp",
         auto_submit = true,
         user_prompt = false, -- Prompt the user for their own input
+        stop_context_insertion = true,
       },
       prompts = {
         {
