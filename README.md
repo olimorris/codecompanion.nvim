@@ -463,9 +463,15 @@ To specify a different adapter to the defaults, simply change the `strategies.*`
 ```lua
 require("codecompanion").setup({
   strategies = {
-    chat = "ollama",
-    inline = "ollama",
-    agent = "anthropic"
+    chat = {
+      adapter = "ollama",
+    },
+    inline = {
+      adapter = "ollama",
+    },
+    agent = {
+      adapter = "anthropic",
+    },
   },
 })
 ```
@@ -487,14 +493,16 @@ require("codecompanion").setup({
     }),
   },
   strategies = {
-    chat = "anthropic",
-    inline = "anthropic",
-    agent = "anthropic"
+    chat = {
+      adapter = "anthropic",
+    },
   },
 })
 ```
 
-In the example above, we've changed the name of the default API key which the Anthropic adapter uses. Having API keys in plain text in your shell is not always safe. Thanks to [this PR](https://github.com/olimorris/codecompanion.nvim/pull/24), you can run commands from within the configuration:
+In the example above, we've changed the name of the default API key which the Anthropic adapter uses.
+
+Having API keys in plain text in your shell is not always safe. Thanks to [this PR](https://github.com/olimorris/codecompanion.nvim/pull/24), you can run commands from within the configuration:
 
 ```lua
 require("codecompanion").setup({
@@ -505,9 +513,9 @@ require("codecompanion").setup({
       },
     }),
     strategies = {
-      chat = "openai",
-      inline = "anthropic",
-      agent = "openai"
+      chat = {
+        adapter = "openai",
+      },
     },
   },
 })
