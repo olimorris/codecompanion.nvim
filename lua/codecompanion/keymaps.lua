@@ -44,7 +44,7 @@ M.save_chat = {
       saved_chat = saved_chat.new({ filename = chat.saved_chat })
       saved_chat:save(chat)
 
-      if config.silence_notifications then
+      if config.opts.silence_notifications then
         return
       end
 
@@ -110,7 +110,7 @@ M.add_agent = {
   desc = "Add an agent to the chat buffer",
   callback = function(chat)
     local items = {}
-    for id, agent in pairs(config.agents) do
+    for id, agent in pairs(config.strategies.agent.agents) do
       if agent.enabled then
         table.insert(items, {
           id = id,

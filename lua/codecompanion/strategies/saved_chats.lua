@@ -3,7 +3,7 @@ local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
-local prefix = config.saved_chats.save_dir .. "/"
+local prefix = config.opts.saved_chats_dir .. "/"
 local suffix = ".json"
 
 local function get_current_datetime()
@@ -72,7 +72,7 @@ function SavedChat:save(chat)
   local saved_chat = {
     meta = {
       dir = files.replace_home(self.cwd),
-      tokens = chat.tokens,
+      tokens = chat.tokens or 0,
       updated_at = get_current_datetime(),
     },
     settings = settings,

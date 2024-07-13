@@ -2,6 +2,7 @@ local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils.util")
 local api = vim.api
 
+---@class CodeCompanion
 local M = {}
 
 M.pre_defined_prompts = {}
@@ -56,7 +57,7 @@ M.add = function(args)
   if not chat then
     return vim.notify("[CodeCompanion.nvim]\nNo chat buffer found", vim.log.levels.WARN)
   end
-  if not M.config.send_code then
+  if not M.config.opts.send_code then
     return vim.notify("[CodeCompanion.nvim]\nSending of code to an LLM is currently disabled", vim.log.levels.WARN)
   end
 
@@ -182,7 +183,7 @@ M.actions = function(args)
   end
 
   if not next(_cached_actions) then
-    if M.config.use_default_actions then
+    if M.config.opts.use_default_actions then
       for _, action in ipairs(actions.static.actions) do
         if action.opts and action.opts.enabled == false then
           goto continue
@@ -237,7 +238,7 @@ M.setup = function(opts)
   end
 
   -- Setup the pre-defined prompts
-  local prompts = require("codecompanion.prompts").new(M.config.prompts):setup()
+  local prompts = require("codecompanion.prompts").new(M.config.action_prompts):setup()
   for name, prompt in pairs(prompts.prompts) do
     if prompt.opts.shortcut then
       prompt.name = name
@@ -269,7 +270,7 @@ M.setup = function(opts)
       {
         type = "file",
         filename = "codecompanion.log",
-        level = vim.log.levels[M.config.log_level],
+        level = vim.log.levels[M.config.opts.log_level],
       },
     },
   }))

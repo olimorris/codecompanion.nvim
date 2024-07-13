@@ -75,7 +75,7 @@ local function set_autocmds(chat, agent)
           content = agent.output_error_prompt(request.data.error),
         })
 
-        if config.agents.opts.auto_submit_errors then
+        if config.strategies.agent.agents.opts.auto_submit_errors then
           chat:submit()
         end
       end
@@ -96,7 +96,7 @@ local function set_autocmds(chat, agent)
         if agent.opts and agent.opts.hide_output then
           chat:conceal("agent")
         end
-        if config.agents.opts.auto_submit_success then
+        if config.strategies.agent.agents.opts.auto_submit_success then
           chat:submit()
         end
       end

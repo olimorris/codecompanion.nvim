@@ -36,7 +36,7 @@ local build_prompt = function(inline, user_input)
   local output = {}
 
   for _, prompt in ipairs(inline.prompts) do
-    if not prompt.contains_code or (prompt.contains_code and config.send_code) then
+    if not prompt.contains_code or (prompt.contains_code and config.opts.send_code) then
       if type(prompt.content) == "function" then
         prompt.content = prompt.content(inline.context)
       end
@@ -59,7 +59,7 @@ local build_prompt = function(inline, user_input)
   end
 
   -- Send code as context
-  if config.send_code then
+  if config.opts.send_code then
     if inline.context.is_visual then
       log:trace("Sending visual selection")
       table.insert(output, {
@@ -68,32 +68,32 @@ local build_prompt = function(inline, user_input)
         content = code_block(inline.context.filetype, inline.context.lines),
       })
     end
-    if inline.opts.send_open_buffers then
-      log:trace("Sending open buffers to the LLM")
-      local helpers = require("codecompanion.helpers.buffers")
-      local buffers = helpers.get_open_buffers(inline.context.filetype)
-
-      table.insert(output, {
-        role = "user",
-        tag = "buffers",
-        content = "## buffers\n\nI've included some additional context in the form of open buffers:\n\n"
-          .. helpers.format(buffers, inline.context.filetype)
-          .. "\n\n",
-      })
-    end
-    if inline.opts.send_current_buffer then
-      log:trace("Sending current buffer to the LLM")
-      local helpers = require("codecompanion.helpers.buffers")
-      local buffer = helpers.get_buffer_content(inline.context.bufnr)
-
-      table.insert(output, {
-        role = "user",
-        tag = "buffers",
-        content = "## buffers\n\nI've included some additional context in the form of a buffer:\n\n"
-          .. helpers.format(buffer, inline.context.filetype)
-          .. "\n\n",
-      })
-    end
+    -- if inline.opts.send_open_buffers then
+    --   log:trace("Sending open buffers to the LLM")
+    --   local helpers = require("codecompanion.helpers.buffers")
+    --   local buffers = helpers.get_open_buffers(inline.context.filetype)
+    --
+    --   table.insert(output, {
+    --     role = "user",
+    --     tag = "buffers",
+    --     content = "## buffers\n\nI've included some additional context in the form of open buffers:\n\n"
+    --       .. helpers.format(buffers, inline.context.filetype)
+    --       .. "\n\n",
+    --   })
+    -- end
+    -- if inline.opts.send_current_buffer then
+    --   log:trace("Sending current buffer to the LLM")
+    --   local helpers = require("codecompanion.helpers.buffers")
+    --   local buffer = helpers.get_buffer_content(inline.context.bufnr)
+    --
+    --   table.insert(output, {
+    --     role = "user",
+    --     tag = "buffers",
+    --     content = "## buffers\n\nI've included some additional context in the form of a buffer:\n\n"
+    --       .. helpers.format(buffer, inline.context.filetype)
+    --       .. "\n\n",
+    --   })
+    -- end
   end
 
   local user_prompts = ""
@@ -230,7 +230,7 @@ local function send_to_chat(inline, prompt)
     if inline.context.is_visual and prompt[i].tag == "visual" then
       table.remove(prompt, i)
     elseif prompt[i].tag == "system_tag" then
-      prompt[i].content = config.default_prompts.inline_to_chat(inline.context)
+      prompt[i].content = config.strategies.inline.prompts.inline_to_chat(inline.context)
     end
   end
 
@@ -299,7 +299,7 @@ function Inline.new(args)
   return setmetatable({
     id = math.random(10000000),
     context = args.context,
-    adapter = config.adapters[config.strategies.inline],
+    adapter = config.adapters[config.strategies.inline.adapter],
     opts = args.opts or {},
     diff = {},
     prompts = vim.deepcopy(args.prompts),
@@ -541,7 +541,7 @@ function Inline:diff_removed()
     priority = config.display.inline.diff.priority,
   })
 
-  keymaps.set(config.keymaps.inline, self.context.bufnr, self)
+  keymaps.set(config.strategies.inline.keymaps, self.context.bufnr, self)
   self.diff.removed_id = self.id
 end
 

@@ -69,7 +69,7 @@ M.static.actions = {
     strategy = " ",
     description = "Pre-defined prompts to help you code",
     condition = function()
-      return config.prompts and utils.count(config.prompts) > 0
+      return config.action_prompts and utils.count(config.action_prompts) > 0
     end,
     picker = {
       prompt = "Prompts",
@@ -77,8 +77,8 @@ M.static.actions = {
         local prompts = {}
 
         local sort_index = true
-        for name, prompt in pairs(config.prompts) do
-          if not config.use_default_prompts and prompt.opts and prompt.opts.default_prompt then
+        for name, prompt in pairs(config.action_prompts) do
+          if not config.opts.use_default_prompts and prompt.opts and prompt.opts.default_prompt then
             goto continue
           end
 
@@ -154,7 +154,7 @@ M.static.actions = {
     strategy = " ",
     description = "Use the built-in agents to help you code",
     condition = function()
-      local agents = config.agents
+      local agents = config.strategies.agent.agents
       local i = 0
       for _, agent in pairs(agents) do
         if agent.enabled then
@@ -168,7 +168,7 @@ M.static.actions = {
       items = function()
         local agents = {}
 
-        for id, agent in pairs(config.agents) do
+        for id, agent in pairs(config.strategies.agent.agents) do
           if agent.enabled then
             local t
             if agent.location then

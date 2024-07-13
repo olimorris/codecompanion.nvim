@@ -52,7 +52,7 @@ IMPORTANT RULES:
 8. For empty lines in the SEARCH section, do not include any whitespace characters. Just use a blank line.
 9. In the REPLACE section, maintain the same indentation as the original code for consistency.
 10. Each SEARCH/REPLACE should contain as few modifications as possible
-11. Please use tabs instead of spaces for indentation 
+11. Please use tabs instead of spaces for indentation
 
 Be extremely careful and precise when creating these blocks. If the SEARCH section doesn't match exactly, the edit will fail.
 
@@ -332,7 +332,7 @@ M.output_error_prompt = function(error)
 end
 
 M.output_prompt = function(output)
-  if config.agents.opts.auto_submit_success then
+  if config.strategies.agent.agents.opts.auto_submit_success then
     return "The buffer editor completed successfully with the following output:\n\n"
       .. output
       .. "\nWhat do you want to do next?"

@@ -53,7 +53,7 @@ local agent_query = [[
 ---@param adapter? CodeCompanion.Adapter|string
 ---@return CodeCompanion.Adapter
 local function resolve_adapter(adapter)
-  adapter = adapter or config.adapters[config.strategies.chat]
+  adapter = adapter or config.adapters[config.strategies.chat.adapter]
 
   if type(adapter) == "string" then
     return require("codecompanion.adapters").use(adapter)
@@ -144,7 +144,7 @@ end
 ---@param messages table
 ---@return nil
 local function parse_helpers(chat, messages)
-  if not config.send_code then
+  if not config.opts.send_code then
     return
   end
 
@@ -172,9 +172,9 @@ local function parse_helpers(chat, messages)
 
   -- resolve all messages
   for i, message in pairs(messages) do
-    local helper = find(message.content, config.chat_helpers)
+    local helper = find(message.content, config.strategies.chat.helpers)
     if helper then
-      local content = resolve(config.chat_helpers[helper].callback)
+      local content = resolve(config.strategies.chat.helpers[helper].callback)
 
       if content then
         log:debug("Parsed helper in chat buffer")
@@ -394,7 +394,7 @@ function Chat:open()
   ui.set_win_options(self.winnr, window.opts)
   vim.bo[self.bufnr].textwidth = 0
   ui.buf_scroll_to_end(self.bufnr)
-  keymaps.set(config.keymaps.chat, self.bufnr, self)
+  keymaps.set(config.strategies.chat.keymaps, self.bufnr, self)
 end
 
 ---Render the chat buffer
@@ -605,10 +605,10 @@ function Chat:submit()
   end
 
   -- Add the adapter's chat prompt
-  if config.default_prompts.system then
+  if config.opts.system_prompt then
     table.insert(messages, 1, {
       role = "system",
-      content = config.default_prompts.system,
+      content = config.opts.system_prompt,
     })
   end
 

@@ -14,7 +14,7 @@ local function process_prompts(prompts, context)
     end
 
     --TODO: These nested conditionals suck. Refactor soon
-    if not prompt.contains_code or (prompt.contains_code and config.send_code) then
+    if not prompt.contains_code or (prompt.contains_code and config.opts.send_code) then
       if not prompt.condition or (prompt.condition and prompt.condition(context)) then
         local content
         if type(prompt.content) == "function" then
@@ -127,7 +127,7 @@ end
 function Strategies:agent()
   local messages = process_prompts(self.selected.prompts, self.context)
 
-  local adapter = config.adapters[config.strategies.agent]
+  local adapter = config.adapters[config.strategies.agent.adapter]
 
   if type(adapter) == "string" then
     adapter = require("codecompanion.adapters").use(adapter)

@@ -18,7 +18,7 @@ end
 
 return function()
   require("legendary.extensions").pre_ui_hook(function()
-    local keys = require("codecompanion.config").keymaps.chat
+    local keys = require("codecompanion.config").strategies.chat.keymaps
     local legendary_keys = {}
     for lhs, rhs in pairs(keys) do
       if type(rhs) == "string" and vim.startswith(rhs, "keymaps.") then
