@@ -205,7 +205,7 @@ return {
       mapping = "parameters.options",
       type = "string",
       optional = true,
-      default = "",
+      default = nil,
       desc = "Sets the stop sequences to use. When this pattern is encountered the LLM will stop generating text and return. Multiple stop patterns may be set by specifying multiple separate stop parameters in a modelfile.",
     },
     tfs_z = {

@@ -64,37 +64,47 @@ end
 
 local _cached_settings = {}
 ---@param bufnr integer
----@param adapter CodeCompanion.Adapter
+---@param adapter? CodeCompanion.Adapter
 ---@return table
 local function parse_settings(bufnr, adapter)
   if _cached_settings[bufnr] then
     return _cached_settings[bufnr]
   end
 
+  -- If the user has disabled settings in the chat buffer, use the default settings
   if not config.display.chat.show_settings then
-    _cached_settings[bufnr] = adapter:get_default_settings()
+    if adapter then
+      _cached_settings[bufnr] = adapter:get_default_settings()
 
-    log:debug("Using the settings from the user's config: %s", _cached_settings[bufnr])
-    return _cached_settings[bufnr]
+      log:debug("Using the settings from the user's config: %s", _cached_settings[bufnr])
+      return _cached_settings[bufnr]
+    end
   end
 
-  local settings = {}
-  local parser = vim.treesitter.get_parser(bufnr, "yaml")
+  local yaml_parser = vim.treesitter.get_parser(bufnr, "yaml")
 
-  local query = vim.treesitter.query.parse("yaml", yaml_query)
-  local root = parser:parse()[1]:root()
-  local captures = {}
-  for k, v in pairs(query.captures) do
-    captures[v] = k
+  if not yaml_parser then
+    log:error("No YAML tree-sitter parser found")
+    return {}
   end
 
-  for _, match in query:iter_matches(root, bufnr) do
-    local key = vim.treesitter.get_node_text(match[captures.key], bufnr)
-    local value = vim.treesitter.get_node_text(match[captures.value], bufnr)
-    settings[key] = yaml.decode(value)
+  local metadata_root = nil
+  local trees = yaml_parser:parse()
+
+  for _, tree in ipairs(trees) do
+    local root = tree:root()
+    if root:type() == "stream" and root:start() <= 1 then
+      metadata_root = root
+      break
+    end
   end
 
-  return settings or {}
+  if not metadata_root then
+    log:error("Could not parse the settings in the chat buffer")
+    return {}
+  end
+
+  return yaml.decode_node(bufnr, metadata_root) or {}
 end
 
 ---@param bufnr integer
@@ -490,6 +500,38 @@ function Chat:set_autocmds()
       desc = "Show settings information in the CodeCompanion chat buffer",
       callback = function()
         self:on_cursor_moved()
+      end,
+    })
+
+    -- Validate the settings
+    vim.api.nvim_create_autocmd("InsertLeave", {
+      group = aug,
+      buffer = bufnr,
+      desc = "Parse the settings in the CodeCompanion chat buffer for any errors",
+      callback = function()
+        local settings = parse_settings(bufnr, self.adapter)
+        local errors = schema.validate(self.adapter.args.schema, settings)
+        local node = settings.__ts_node
+
+        local items = {}
+        if errors and node then
+          for child in node:iter_children() do
+            assert(child:type() == "block_mapping_pair")
+            local key = vim.treesitter.get_node_text(child:named_child(0), bufnr)
+            if errors[key] then
+              local lnum, col, end_lnum, end_col = child:range()
+              table.insert(items, {
+                lnum = lnum,
+                col = col,
+                end_lnum = end_lnum,
+                end_col = end_col,
+                severity = vim.diagnostic.severity.ERROR,
+                message = errors[key],
+              })
+            end
+          end
+        end
+        vim.diagnostic.set(config.ERROR_NS, bufnr, items)
       end,
     })
   end

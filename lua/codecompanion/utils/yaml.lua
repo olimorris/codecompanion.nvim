@@ -50,28 +50,23 @@ end
 local function decode(source, node)
   local nt = node:type()
   if nt == "stream" or nt == "document" or nt == "block_node" or nt == "flow_node" or nt == "plain_scalar" then
-    if node:child_count() > 1 then
-      error(string.format("Node %s has more than 1 child", nt))
+    for child in node:iter_children() do
+      if child:named() then
+        return decode(source, child)
+      end
     end
-    return decode(source, node:child(0))
-  elseif nt == "block_sequence_item" then
-    if node:child_count() ~= 2 then
-      error("block_sequence_item should have exactly 2 children")
-    end
-    -- First child is anonymous "-"
-    return decode(source, node:child(1))
   elseif nt == "block_mapping" then
-    local ret = {}
+    local result = {}
     for child in node:iter_children() do
       assert(child:type() == "block_mapping_pair")
       local key = decode(source, child:named_child(0))
       if not key then
         error("Could not decode map key")
       end
-      ret[key] = decode(source, child:named_child(1))
+      result[key] = decode(source, child:named_child(1))
     end
     -- Provide a way to get the TSNode for a map
-    return setmetatable(ret, {
+    return setmetatable(result, {
       __index = {
         __ts_node = node,
       },
@@ -84,8 +79,21 @@ local function decode(source, node)
       end
     end
     return ret
+  elseif nt == "plain_scalar" then
+    local text = vim.trim(vim.treesitter.get_node_text(node, source))
+    if text == "null" or text == "~" then
+      return nil
+    elseif text == "true" then
+      return true
+    elseif text == "false" then
+      return false
+    else
+      -- Try to convert to number, if fails, return as string
+      local num = tonumber(text)
+      return num or text
+    end
   elseif nt == "string_scalar" then
-    return vim.treesitter.get_node_text(node, source)
+    return vim.trim(vim.treesitter.get_node_text(node, source))
   elseif nt == "single_quote_scalar" or nt == "double_quote_scalar" then
     local text = vim.treesitter.get_node_text(node, source)
     return text:sub(2, text:len() - 1)
@@ -93,6 +101,9 @@ local function decode(source, node)
     return tonumber(vim.treesitter.get_node_text(node, source))
   elseif nt == "null_scalar" then
     return nil
+  elseif nt == "boolean_scalar" then
+    local text = vim.treesitter.get_node_text(node, source)
+    return text == "true"
   elseif nt == "ERROR" then
     -- TODO should probably annotate this and pass it up somehow
     return nil
