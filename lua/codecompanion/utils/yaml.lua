@@ -79,21 +79,8 @@ local function decode(source, node)
       end
     end
     return ret
-  elseif nt == "plain_scalar" then
-    local text = vim.trim(vim.treesitter.get_node_text(node, source))
-    if text == "null" or text == "~" then
-      return nil
-    elseif text == "true" then
-      return true
-    elseif text == "false" then
-      return false
-    else
-      -- Try to convert to number, if fails, return as string
-      local num = tonumber(text)
-      return num or text
-    end
   elseif nt == "string_scalar" then
-    return vim.trim(vim.treesitter.get_node_text(node, source))
+    return vim.treesitter.get_node_text(node, source)
   elseif nt == "single_quote_scalar" or nt == "double_quote_scalar" then
     local text = vim.treesitter.get_node_text(node, source)
     return text:sub(2, text:len() - 1)
@@ -101,9 +88,6 @@ local function decode(source, node)
     return tonumber(vim.treesitter.get_node_text(node, source))
   elseif nt == "null_scalar" then
     return nil
-  elseif nt == "boolean_scalar" then
-    local text = vim.treesitter.get_node_text(node, source)
-    return text == "true"
   elseif nt == "ERROR" then
     -- TODO should probably annotate this and pass it up somehow
     return nil
