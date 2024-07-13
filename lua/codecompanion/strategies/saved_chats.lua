@@ -1,6 +1,7 @@
 local Chat = require("codecompanion.strategies.chat")
 local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
+local util = require("codecompanion.utils.util")
 
 local api = vim.api
 local prefix = config.opts.saved_chats_dir .. "/"
@@ -128,6 +129,7 @@ function SavedChat:load(opts)
     saved_chat = self.filename,
     messages = content.messages,
     settings = content.settings,
+    context = util.get_context(api.nvim_get_current_buf()),
     tokens = content.meta.tokens,
   })
 
