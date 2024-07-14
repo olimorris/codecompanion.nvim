@@ -200,10 +200,46 @@ return {
       mapping = "parameters",
       type = "number",
       optional = true,
-      default = 0,
+      default = 1,
       desc = "Amount of randomness injected into the response. Ranges from 0.0 to 1.0. Use temperature closer to 0.0 for analytical / multiple choice, and closer to 1.0 for creative and generative tasks. Note that even with temperature of 0.0, the results will not be fully deterministic.",
       validate = function(n)
+        return n >= 0 and n <= 1, "Must be between 0 and 1.0"
+      end,
+    },
+    top_p = {
+      order = 4,
+      mapping = "parameters",
+      type = "number",
+      optional = true,
+      default = nil,
+      desc = "Computes the cumulative distribution over all the options for each subsequent token in decreasing probability order and cuts it off once it reaches a particular probability specified by top_p",
+      validate = function(n)
         return n >= 0 and n <= 1, "Must be between 0 and 1"
+      end,
+    },
+    top_k = {
+      order = 5,
+      mapping = "parameters",
+      type = "number",
+      optional = true,
+      default = nil,
+      desc = "Only sample from the top K options for each subsequent token. Use top_k to remove long tail low probability responses",
+      validate = function(n)
+        return n >= 0 and n <= 500, "Must be between 0 and 500"
+      end,
+    },
+    stop_sequences = {
+      order = 6,
+      mapping = "parameters",
+      type = "list",
+      optional = true,
+      default = nil,
+      subtype = {
+        type = "string",
+      },
+      desc = "Sequences where the API will stop generating further tokens",
+      validate = function(l)
+        return #l >= 1, "Must have more than 1 element"
       end,
     },
   },
