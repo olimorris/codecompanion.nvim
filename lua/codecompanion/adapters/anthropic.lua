@@ -200,7 +200,7 @@ return {
       mapping = "parameters",
       type = "number",
       optional = true,
-      default = 1,
+      default = 0,
       desc = "Amount of randomness injected into the response. Ranges from 0.0 to 1.0. Use temperature closer to 0.0 for analytical / multiple choice, and closer to 1.0 for creative and generative tasks. Note that even with temperature of 0.0, the results will not be fully deterministic.",
       validate = function(n)
         return n >= 0 and n <= 1, "Must be between 0 and 1.0"
