@@ -20,14 +20,6 @@ local CONSTANTS = {
   STATUS_FINISHED = "finished",
 }
 
-local yaml_query = [[
-(
-  block_mapping_pair
-  key: (_) @key
-  value: (_) @value
-)
-]]
-
 local chat_query = [[
 (
   atx_heading
@@ -161,6 +153,7 @@ local function parse_helpers(chat, messages)
   local chat_maps = require("codecompanion.helpers.chat")
 
   ---@param rhs string|table|fun(self)
+  ---@return table|nil
   local function resolve(rhs)
     if type(rhs) == "string" and vim.startswith(rhs, "helpers.chat.") then
       -- The last part of the string is the function to call
@@ -171,7 +164,10 @@ local function parse_helpers(chat, messages)
     end
   end
 
-  local find = function(message, helpers)
+  ---@param message string
+  ---@param helpers table
+  ---@return string|nil
+  local function find(message, helpers)
     for helper, _ in pairs(helpers) do
       if message:match("%f[%w@]" .. "@" .. helper .. "%f[%W]") then
         return helper
