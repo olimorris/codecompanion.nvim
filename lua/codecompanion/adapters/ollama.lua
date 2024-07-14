@@ -9,11 +9,11 @@ local function get_ollama_choices()
     for line in handle:lines() do
       local first_word = line:match("%S+")
       if first_word ~= nil and first_word ~= "NAME" then
-        table.insert(result, first_word)  -- Insert the full name
-        if first_word:find(":latest$") then  -- Check if it ends with :latest
-          local base_name = first_word:match("([^:]+)")  -- Extract the base name
+        table.insert(result, first_word) -- Insert the full name
+        if first_word:find(":latest$") then -- Check if it ends with :latest
+          local base_name = first_word:match("([^:]+)") -- Extract the base name
           if base_name then
-            table.insert(result, base_name)  -- Insert the base name
+            table.insert(result, base_name) -- Insert the base name
           end
         end
       end
