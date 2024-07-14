@@ -1,6 +1,9 @@
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.adapters")
 
+local input_tokens = 0
+local output_tokens = 0
+
 ---@class CodeCompanion.AdapterArgs
 return {
   name = "Anthropic",
@@ -94,9 +97,15 @@ return {
           return
         end
 
+        if data.type == "message_start" then
+          log:debug("Message start: %s", data)
+          input_tokens = data.message.usage.input_tokens or 0
+          output_tokens = data.message.usage.output_tokens or 0
+        end
+
         if data.type == "message_delta" then
-          log:trace("Tokens: %s", data)
-          return data.usage.output_tokens
+          log:debug("Message end: %s", data)
+          return (input_tokens + output_tokens + data.usage.output_tokens)
         end
       end
     end,
