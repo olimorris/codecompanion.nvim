@@ -57,8 +57,9 @@ end
 local _cached_settings = {}
 ---@param bufnr integer
 ---@param adapter? CodeCompanion.Adapter
+---@param ts_query? string
 ---@return table
-local function parse_settings(bufnr, adapter)
+local function parse_settings(bufnr, adapter, ts_query)
   if _cached_settings[bufnr] then
     return _cached_settings[bufnr]
   end
@@ -68,35 +69,32 @@ local function parse_settings(bufnr, adapter)
     if adapter then
       _cached_settings[bufnr] = adapter:get_default_settings()
 
-      log:debug("Using the settings from the user's config: %s", _cached_settings[bufnr])
       return _cached_settings[bufnr]
     end
   end
 
-  local yaml_parser = vim.treesitter.get_parser(bufnr, "yaml")
+  ts_query = ts_query or [[
+    ((block_mapping (_)) @block)
+  ]]
 
-  if not yaml_parser then
-    log:error("No YAML tree-sitter parser found")
+  local settings = {}
+  local parser = vim.treesitter.get_parser(bufnr, "yaml", { ignore_injections = false })
+  local query = vim.treesitter.query.parse("yaml", ts_query)
+  local root = parser:parse()[1]:root()
+
+  for _, match in query:iter_matches(root, bufnr) do
+    local value = vim.treesitter.get_node_text(match[1], bufnr)
+
+    settings = yaml.decode(value)
+    break
+  end
+
+  if not settings then
+    log:error("Failed to parse settings in chat buffer")
     return {}
   end
 
-  local metadata_root = nil
-  local trees = yaml_parser:parse()
-
-  for _, tree in ipairs(trees) do
-    local root = tree:root()
-    if root:type() == "stream" and root:start() <= 1 then
-      metadata_root = root
-      break
-    end
-  end
-
-  if not metadata_root then
-    log:error("Could not parse the settings in the chat buffer")
-    return {}
-  end
-
-  return yaml.decode_node(bufnr, metadata_root) or {}
+  return settings
 end
 
 ---@param bufnr integer
@@ -505,7 +503,8 @@ function Chat:set_autocmds()
       buffer = bufnr,
       desc = "Parse the settings in the CodeCompanion chat buffer for any errors",
       callback = function()
-        local settings = parse_settings(bufnr, self.adapter)
+        local settings = parse_settings(bufnr, self.adapter, [[((stream (_)) @block)]])
+
         local errors = schema.validate(self.adapter.args.schema, settings)
         local node = settings.__ts_node
 
