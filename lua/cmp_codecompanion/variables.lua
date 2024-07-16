@@ -1,3 +1,4 @@
+local variables = require("codecompanion.strategies.chat.variables").new()
 local config = require("codecompanion").config
 
 local source = {}
@@ -21,7 +22,7 @@ end
 
 function source:complete(_, callback)
   local items = {}
-  for label, data in pairs(config.strategies.chat.variables) do
+  for label, data in pairs(variables.opts) do
     table.insert(items, {
       label = "#" .. label,
       kind = require("cmp").lsp.CompletionItemKind.Variable,
