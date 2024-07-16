@@ -1,5 +1,5 @@
 local ui = require("codecompanion.utils.ui")
-local util = require("codecompanion.utils.util")
+local util = require("codecompanion.utils.context")
 local api = vim.api
 
 ---@class CodeCompanion
@@ -238,7 +238,7 @@ M.setup = function(opts)
   end
 
   -- Setup the pre-defined prompts
-  local prompts = require("codecompanion.prompts").new(M.config.action_prompts):setup()
+  local prompts = require("codecompanion.utils.prompts").new(M.config.action_prompts):setup()
   for name, prompt in pairs(prompts.prompts) do
     if prompt.opts.shortcut then
       prompt.name = name
