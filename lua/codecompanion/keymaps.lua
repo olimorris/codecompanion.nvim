@@ -181,6 +181,10 @@ M.add_agent = {
               notify = "The Code Runner agent was added to the chat buffer",
             })
           else
+            if content == "" then
+              return
+            end
+
             chat:append({
               role = prompt.role,
               content = content,

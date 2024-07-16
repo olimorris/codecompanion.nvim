@@ -6,6 +6,7 @@ local M = {}
 
 local stderr = {}
 local stdout = {}
+local last_execute = false
 local status = ""
 
 local api = vim.api
@@ -17,10 +18,10 @@ end
 
 ---@param bufnr number
 local function announce_end(bufnr)
-  api.nvim_exec_autocmds(
-    "User",
-    { pattern = "CodeCompanionAgent", data = { bufnr = bufnr, status = status, error = stderr, output = stdout } }
-  )
+  api.nvim_exec_autocmds("User", {
+    pattern = "CodeCompanionAgent",
+    data = { bufnr = bufnr, status = status, error = stderr, output = stdout, last_execute = last_execute },
+  })
 end
 
 ---Run the jobs
@@ -37,7 +38,7 @@ local function run(cmds, chat, index)
 
   log:debug("Running cmd: %s", cmd)
 
-  chat.current_agent = Job:new({
+  local job = Job:new({
     command = cmd[1],
     args = { unpack(cmd, 2) }, -- args start from index 2
     on_exit = function(_, exit_code)
@@ -68,18 +69,23 @@ local function run(cmds, chat, index)
     on_stderr = function(_, data)
       table.insert(stderr, data)
     end,
-  }):start()
+  })
+
+  chat.current_agent = job
+  job:start()
 end
 
 ---Initiate the job runner
 ---@param cmds table
 ---@param chat CodeCompanion.Chat
+---@param last_init boolean Whether this is the last agent in one conversation turn
 ---@return nil
-function M.init(cmds, chat)
+function M.init(cmds, chat, last_init)
   -- Reset defaults
   status = "success"
   stderr = {}
   stdout = {}
+  last_execute = last_init
   _G.codecompanion_cancel_agent = false
 
   announce_start(chat.bufnr)

@@ -1,7 +1,6 @@
 local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
-local utils = require("codecompanion.utils.util")
 
 local TreeHandler = require("codecompanion.utils.xml.xmlhandler.tree")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
@@ -11,8 +10,8 @@ local api = vim.api
 local M = {}
 
 ---@class CodeCompanion.Agent
----@field cmd table The commands to execute
----@field schema string The schema that the LLM must use in its response to execute a agent
+---@field cmds table The commands to execute
+---@field schema table The schema that the LLM must use in its response to execute a agent
 ---@field opts? table The options for the agent
 ---@field prompts table The prompts to the LLM explaining the agent and the schema
 ---@field env fun(xml: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
@@ -20,14 +19,7 @@ local M = {}
 ---@field override_cmds fun(cmds: table): table Function to call to override the default cmds table
 ---@field output_error_prompt fun(error: table): string The prompt to share with the LLM if an error is encountered
 ---@field output_prompt fun(output: table): string The prompt to share with the LLM if the cmd is successful
----@field execute fun(chat: CodeCompanion.Chat, inputs: table): CodeCompanion.AgentExecuteResult|nil Function to execute the agent (used by Buffer Editor)
-
----@class CodeCompanion.AgentExecuteResult
----@field success boolean Whether the agent was successful
----@field message string The message to display to the user
----@field modified_files? table<string, string> The files that were modified by the agent
-
----@class CodeCompanion.AgentExecuteInputs
+---@field execute fun(chat: CodeCompanion.Chat, inputs: table, last_execute?: boolean) Function to execute the agent (used by Buffer Editor)
 
 ---Parse the Tree-sitter output into XML
 ---@param agents table
@@ -69,13 +61,26 @@ local function set_autocmds(chat, agent)
 
       api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
 
-      if request.data.status == "error" then
-        chat:add_message({
-          role = "user",
-          content = agent.output_error_prompt(request.data.error),
-        })
+      -- If the agent is still in progress, we need check stream_output and put it in to chat buffer
+      if request.data.status == "progress" then
+        if request.data.stream_output then
+          chat:add_message({
+            role = "user",
+            content = request.data.stream_output .. "\n",
+          })
+          return
+        end
+      end
 
-        if config.strategies.agent.agents.opts.auto_submit_errors then
+      if request.data.status == "error" then
+        if request.data.error then
+          chat:add_message({
+            role = "user",
+            content = agent.output_error_prompt(request.data.error),
+          })
+        end
+
+        if request.data.last_execute and config.strategies.agent.agents.opts.auto_submit_errors then
           chat:submit()
         end
       end
@@ -84,19 +89,24 @@ local function set_autocmds(chat, agent)
         local output
         -- Sometimes, the output from a command will get sent to stderr instead
         -- of stdout. We can do a check and redirect the output accordingly
-        if #request.data.output > 0 then
+        if request.data.output and #request.data.output > 0 then
           output = request.data.output
         else
           output = request.data.error
         end
-        chat:add_message({
-          role = "user",
-          content = agent.output_prompt(output),
-        })
+
+        if output and #output > 0 then
+          chat:add_message({
+            role = "user",
+            content = agent.output_prompt(output),
+          })
+        end
+
         if agent.opts and agent.opts.hide_output then
           chat:conceal("agent")
         end
-        if config.strategies.agent.agents.opts.auto_submit_success then
+
+        if request.data.last_execute and config.strategies.agent.agents.opts.auto_submit_success then
           chat:submit()
         end
       end
@@ -106,11 +116,15 @@ local function set_autocmds(chat, agent)
   })
 end
 
-local function run_agent(chat, agent, xml)
+---@param chat CodeCompanion.Chat
+---@param agent CodeCompanion.Agent
+---@param last_agent boolean
+---@param xml table
+local function run_agent(chat, agent, last_agent, xml)
   set_autocmds(chat, agent)
 
   if type(agent.execute) == "function" then
-    return agent.execute(chat, xml.parameters.inputs)
+    return agent.execute(chat, xml.parameters.inputs, last_agent)
   else
     local env = type(agent.env) == "function" and agent.env(xml) or {}
     local cmds = type(agent.override_cmds) == "function" and agent.override_cmds(vim.deepcopy(agent.cmds))
@@ -121,28 +135,35 @@ local function run_agent(chat, agent, xml)
     end
 
     require("codecompanion.utils.util").replace_placeholders(cmds, env)
-    return require("codecompanion.agents.job_runner").init(cmds, chat)
+    return require("codecompanion.agents.job_runner").init(cmds, chat, last_agent)
   end
 end
+
+---@class CodeCompanion.AgentRunOpts
+---@field last_agent? boolean Whether this is the last agent in one conversation turn
 
 ---Run the agent
 ---@param chat CodeCompanion.Chat
 ---@param ts table
----@return nil| CodeCompanion.AgentExecuteResult
-function M.run(chat, ts)
+---@param opts? CodeCompanion.AgentRunOpts
+function M.run(chat, ts, opts)
   local ok, xml = pcall(parse_xml, ts)
   if not ok then
-    log:error("Error parsing XML: %s", xml)
+    -- format str
+    local err = string.format("Error parsing XML: %s", xml)
+    log:info(err)
     return
   end
 
-  local ok, agent = pcall(require, "codecompanion.agents." .. xml.name)
+  ---@type CodeCompanion.Agent
+  local agent
+  ok, agent = pcall(require, "codecompanion.agents." .. xml.name)
   if not ok then
-    log:error("Error loading agent: %s", agent)
+    log:info("Error loading agent: %s", agent)
     return
   end
 
-  return run_agent(chat, agent, xml)
+  return run_agent(chat, agent, opts and opts.last_agent or false, xml)
 end
 
 return M

@@ -1,3 +1,4 @@
+local Job = require("plenary.job")
 local client = require("codecompanion.client")
 local config = require("codecompanion").config
 local keymaps = require("codecompanion.utils.keymaps")
@@ -224,21 +225,27 @@ local function parse_agents(chat)
   local tree = parser:parse()[1]
   local query = vim.treesitter.query.parse("markdown", agent_query)
 
-  local agents = {}
+  local agent_xmls = {}
   for id, node in query:iter_captures(tree:root(), response, 0, -1) do
     local name = query.captures[id]
     if name == "agents" then
       local agent = vim.treesitter.get_node_text(node, response)
-      table.insert(agents, agent)
+      table.insert(agent_xmls, agent)
     end
   end
 
-  log:debug("Agents detected: %s", agents)
+  log:debug("Agents detected: %s", agent_xmls)
+  log:debug("Agents num: %s", #agent_xmls)
 
   --TODO: Parse XML to ensure the STag is <agent>
 
-  if agents and #agents > 0 then
-    return require("codecompanion.agents").run(chat, agents[#agents])
+  -- execute all agent
+  if agent_xmls and #agent_xmls > 0 then
+    for i, agent_xml in ipairs(agent_xmls) do
+      log:info("agent run: %s", agent_xml)
+      -- NOTE: when the last agent is executed, the last_agent flag is set to true make sure the chat:submit() is called after the last agent is executed
+      require("codecompanion.agents").run(chat, agent_xml, { last_agent = i == #agent_xmls })
+    end
   end
 end
 
@@ -275,7 +282,7 @@ end
 ---@field id integer
 ---@field adapter CodeCompanion.Adapter
 ---@field current_request table
----@field current_agent table
+---@field current_agent Job|CodeCompanion.Agent
 ---@field bufnr integer
 ---@field opts CodeCompanion.ChatArgs
 ---@field context table
@@ -537,7 +544,11 @@ function Chat:set_autocmds()
     buffer = bufnr,
     desc = "Submit the CodeCompanion chat buffer",
     callback = function()
-      self:submit()
+      -- make sure submit after current request is done or agent is done
+      -- prevent two requests from being sent simultaneously and writing to the same buffer
+      if not self.current_request or not self.current_agent then
+        self:submit()
+      end
     end,
   })
 
@@ -680,7 +691,8 @@ function Chat:submit()
       self:append({ role = "user", content = "" })
       self:display_tokens()
       if self.status ~= CONSTANTS.STATUS_ERROR then
-        parse_agents(self)
+        -- after shutdown this parse_agents may be called multiple times
+        pcall(parse_agents, self)
       end
       api.nvim_exec_autocmds(
         "User",
@@ -784,9 +796,12 @@ end
 ---@param opts? table
 function Chat:append(data, opts)
   local lines = {}
+  opts = vim.tbl_extend("force", { force_role = false, update_last_role = true }, opts or {})
 
   if (data.role and data.role ~= self.last_role) or (opts and opts.force_role) then
-    self.last_role = data.role
+    if opts.update_last_role then
+      self.last_role = data.role
+    end
     table.insert(lines, "")
     table.insert(lines, "")
     table.insert(lines, string.format("# %s", data.role))

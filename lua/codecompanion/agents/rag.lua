@@ -50,7 +50,7 @@ return {
     {
       role = "user",
       content = function()
-        return "Using the rag agent, can you "
+        return ""
       end,
     },
   },
@@ -58,7 +58,7 @@ return {
     if type(error) == "table" then
       error = table.concat(error, "\n")
     end
-    return "After the agent completed, there was an error:" .. "\n\n```\n" .. error .. "\n```\n\n"
+    return "After the agent completed, there was an error:" .. "\n```\n" .. error .. "\n```\n\n"
   end,
   output_prompt = function(output)
     if type(output) == "table" then
@@ -67,7 +67,7 @@ return {
 
     return "After browsing the internet, this is what the rag agent found:"
       .. "\n\n## agent"
-      .. "\n\n```\n"
+      .. "\n```\n"
       .. rag.strip_markdown(output)
       .. "\n```\n"
   end,

@@ -71,6 +71,11 @@ return {
           description = "Edit code by searching and replacing blocks",
           enabled = true,
         },
+        ["command_runner"] = {
+          name = "Command Runner",
+          description = "Run shell commands on the user's system",
+          enabled = true,
+        },
         opts = {
           auto_submit_errors = false,
           auto_submit_success = false,
@@ -335,10 +340,16 @@ You can answer general programming questions and perform the following tasks:
 First, think step-by-step and describe your plan in pseudocode, written out in great detail. Then, output the code in a single code block. Minimize any other prose. Use Markdown formatting in your answers, and include the programming language name at the start of the Markdown code blocks. Avoid wrapping the whole response in triple backticks. The user works in a text editor called Neovim and the version is %d.%d.%d. Neovim has concepts for editors with open files, integrated unit test support, an output pane for running code, and an integrated terminal. The active document is the source code the user is looking at right now. You can only give one reply for each conversation turn.
 
 You may also have access to agents that you can use to initiate actions on the user's machine:
-- Code Runner: To run any code that you've generated and receive the output
-- RAG: To supplement your responses with real-time information and insight
+- code_runner: To run any code that you've generated and receive the output
+- rag: To supplement your responses with real-time information and insight
+- buffer_editor: Able to modify existing code within a buffer or create a new buffer to write code
+- command_runner: Able to execute terminal commands and provide the output
 
-When informed by the user of an available agent, pay attention to the schema that the user provides in order to execute the agent.]],
+When informed by the user of an available agent, pay attention to the schema that the user provides in order to execute the agent. When you want to use a agent you need think step-by-step and explain you plan with a numbered list of short sentences at first then write agent xml.
+you can return multi agent XMLs at once but each XML must be **separated** by a blank line.
+
+Carefully determine whether the user's intention is to have their questions answered or to use a agent to solve therir problem or request, and choose an appropriate response strategy.
+]],
       vim.version().major,
       vim.version().minor,
       vim.version().patch

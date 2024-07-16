@@ -38,7 +38,7 @@ return {
     {
       role = "user",
       content = function()
-        return "Using the agent, "
+        return ""
       end,
     },
   },
@@ -70,21 +70,13 @@ return {
     if type(error) == "table" then
       error = table.concat(error, "\n")
     end
-    return "After the agent completed, there was an error:"
-      .. "\n\n```\n"
-      .. error
-      .. "\n```\n\n"
-      .. "Can you attempt to fix this?"
+    return "After the code_runner completed, there was an error:" .. "\n```\n" .. error .. "\n```\n"
   end,
   output_prompt = function(output)
     if type(output) == "table" then
       output = table.concat(output, "\n")
     end
 
-    return "After the agent completed the output was:"
-      .. "\n\n```\n"
-      .. output
-      .. "\n```\n\n"
-      .. "Is that what you expected? If it is, just reply with a confirmation. Don't reply with any code. If not, say so and I can plan our next step."
+    return "After the code_runner completed the output was:" .. "\n```\n" .. output .. "\n```\n"
   end,
 }
