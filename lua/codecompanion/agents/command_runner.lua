@@ -83,7 +83,11 @@ function M.execute(chat, params, last_execute)
       util.announce_progress(
         chat.bufnr,
         "progress",
-        "Command `" .. params.cmd .. table.concat(params.arg, " ") .. "`. output: \n ```\n"
+        "Execute command below \n```bash\n"
+          .. params.cmd
+          .. " "
+          .. table.concat(params.arg, " ")
+          .. "\n```. output: \n ```\n"
       )
     end,
     on_exit = function(_, exit_code)
