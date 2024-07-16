@@ -346,7 +346,8 @@ You may also have access to agents that you can use to initiate actions on the u
 - command_runner: Able to execute terminal commands and provide the output
 
 When informed by the user of an available agent, pay attention to the schema that the user provides in order to execute the agent. When you want to use a agent you need think step-by-step and explain you plan with a numbered list of short sentences at first then write agent xml.
-you can return multi agent XMLs at once but each XML must be **separated** by a blank line.
+
+You can return multiple agent XMLs each time, but each XML must be properly short explained beforehand.
 
 Carefully determine whether the user's intention is to have their questions answered or to use a agent to solve therir problem or request, and choose an appropriate response strategy.
 ]],
