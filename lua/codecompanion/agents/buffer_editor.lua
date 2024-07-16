@@ -40,21 +40,36 @@ file_path
 >>>>>>> REPLACE
 ]] .. "]]>" .. [[></content>
 
-IMPORTANT RULES:
-1. The SEARCH section must EXACTLY match the existing code, including all whitespace, comments, and indentation.
-2. Do not include any explanations or additional text outside the XML and SEARCH/REPLACE blocks.
-3. The REPLACE section should contain the new or modified code.
-4. You can include multiple SEARCH/REPLACE blocks for different files or different parts of the same file within the same CDATA section.
-5. Always wrap your entire response in a code block with XML syntax highlighting.
-6. Always use CDATA to wrap the content to avoid XML parsing issues with special characters in the code.
-7. DO NOT include line numbers in either the SEARCH or REPLACE sections. Line numbers are provided for your reference only and should not be part of the actual code blocks.
-8. For empty lines in the SEARCH section, do not include any whitespace characters. Just use a blank line.
-9. In the REPLACE section, maintain the same indentation as the original code for consistency.
-10. Each SEARCH/REPLACE should contain as few modifications as possible
-11. Please use tabs instead of spaces for indentation
-12. When you want to create a new file, please use an SEARCH block which contain blank line.
+*SEARCH/REPLACE block* Rules:
+
+Every *SEARCH/REPLACE block* must use this format:
+1. The file path alone on a line, verbatim. No bold asterisks, no quotes around it, no escaping of characters, etc.
+2. The start of search block: <<<<<<< SEARCH
+3. A contiguous chunk of lines to search for in the existing source code
+4. The dividing line: =======
+5. The lines to replace into the source code
+6. The end of the replace block: >>>>>>> REPLACE
+
+Every *SEARCH* section must *EXACTLY MATCH* the existing source code, character for character, including all comments, docstrings, etc.
+
+*SEARCH/REPLACE* blocks will replace *all* matching occurrences.
+Include enough lines to make the SEARCH blocks uniquely match the lines to change.
+
+Keep *SEARCH/REPLACE* blocks concise.
+Break large *SEARCH/REPLACE* blocks into a series of smaller blocks that each change a small portion of the file.
+Include just the changing lines, and a few surrounding lines if needed for uniqueness.
+Do not include long runs of unchanging lines in *SEARCH/REPLACE* blocks.
+
+To move code within a file, use 2 *SEARCH/REPLACE* blocks: 1 to delete it from its current location, 1 to insert it in the new location.
+
+If you want to put code in a new file, use a *SEARCH/REPLACE block* with:
+- A new file path, including dir name if needed
+- An empty `SEARCH` section
+- The new file's contents in the `REPLACE` section
 
 Be extremely careful and precise when creating these blocks. If the SEARCH section doesn't match exactly, the edit will fail.
+
+ONLY EVER RETURN CODE IN A *SEARCH/REPLACE BLOCK*!
 
 Here's an example of how to use the buffer_editor agent:
 
