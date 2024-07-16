@@ -68,32 +68,32 @@ local build_prompt = function(inline, user_input)
         content = code_block(inline.context.filetype, inline.context.lines),
       })
     end
-    if inline.opts.send_open_buffers then
-      log:trace("Sending open buffers to the LLM")
-      local helpers = require("codecompanion.helpers.buffers")
-      local buffers = helpers.get_open_buffers(inline.context.filetype)
-
-      table.insert(output, {
-        role = "user",
-        tag = "buffers",
-        content = "## buffers\n\nI've included some additional context in the form of open buffers:\n\n"
-          .. helpers.format(buffers, inline.context.filetype)
-          .. "\n\n",
-      })
-    end
-    if inline.opts.send_current_buffer then
-      log:trace("Sending current buffer to the LLM")
-      local helpers = require("codecompanion.helpers.buffers")
-      local buffer = helpers.get_buffer_content(inline.context.bufnr)
-
-      table.insert(output, {
-        role = "user",
-        tag = "buffers",
-        content = "## buffers\n\nI've included some additional context in the form of a buffer:\n\n"
-          .. helpers.format(buffer, inline.context.filetype)
-          .. "\n\n",
-      })
-    end
+    -- if inline.opts.send_open_buffers then
+    --   log:trace("Sending open buffers to the LLM")
+    --   local helpers = require("codecompanion.helpers.buffers")
+    --   local buffers = helpers.get_open_buffers(inline.context.filetype)
+    --
+    --   table.insert(output, {
+    --     role = "user",
+    --     tag = "buffers",
+    --     content = "## buffers\n\nI've included some additional context in the form of open buffers:\n\n"
+    --       .. helpers.format(buffers, inline.context.filetype)
+    --       .. "\n\n",
+    --   })
+    -- end
+    -- if inline.opts.send_current_buffer then
+    --   log:trace("Sending current buffer to the LLM")
+    --   local helpers = require("codecompanion.helpers.buffers")
+    --   local buffer = helpers.get_content(inline.context.bufnr)
+    --
+    --   table.insert(output, {
+    --     role = "user",
+    --     tag = "buffers",
+    --     content = "## buffers\n\nI've included some additional context in the form of a buffer:\n\n"
+    --       .. helpers.format(buffer, inline.context.filetype)
+    --       .. "\n\n",
+    --   })
+    -- end
   end
 
   local user_prompts = ""

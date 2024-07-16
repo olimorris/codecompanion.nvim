@@ -568,9 +568,6 @@ To start interacting with the plugin you can run `:CodeCompanion <your prompt>` 
 
 In the video, you'll notice that we're triggering a pre-defined LSP warnings prompt by running `:'<,'>:CodeCompanion @lsp`. You can find more on this in the [default prompts](#default-prompts) section.
 
-> [!NOTE]
-> Any open and loaded buffers can be sent to the LLM as context with the `@buffers` keyword, assuming they match the current filetype. For example: `:'<,'>CodeCompanion @buffers <your prompt>`. The `@buffer` keyword is also available for sending the current open buffer to the LLM.
-
 **Chat Buffer**
 
 <!-- panvimdoc-ignore-start -->
