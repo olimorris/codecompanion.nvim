@@ -498,13 +498,13 @@ function Inline:diff_removed()
     return
   end
 
-  local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_removed_")
-  vim.api.nvim_buf_clear_namespace(self.context.bufnr, ns_id, 0, -1)
+  local ns_id = api.nvim_create_namespace("codecompanion_diff_removed_")
+  api.nvim_buf_clear_namespace(self.context.bufnr, ns_id, 0, -1)
 
-  local diff_hl_group = vim.api.nvim_get_hl(0, { name = config.display.inline.diff.hl_group or "DiffDelete" })
+  local diff_hl_group = api.nvim_get_hl(0, { name = config.display.inline.diff.hl_group or "DiffDelete" })
 
   local virt_lines = {}
-  local win_width = vim.api.nvim_win_get_width(0)
+  local win_width = api.nvim_win_get_width(0)
 
   for i, line in ipairs(self.context.lines) do
     local virt_text = {}
@@ -535,7 +535,7 @@ function Inline:diff_removed()
     table.insert(virt_lines, virt_text)
   end
 
-  vim.api.nvim_buf_set_extmark(self.context.bufnr, ns_id, self.context.start_line - 1, 0, {
+  api.nvim_buf_set_extmark(self.context.bufnr, ns_id, self.context.start_line - 1, 0, {
     virt_lines = virt_lines,
     virt_lines_above = true,
     priority = config.display.inline.diff.priority,
@@ -556,9 +556,9 @@ end
 --     self.diff.added_line = {}
 --   end
 --
---   local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_added")
+--   local ns_id = api.nvim_create_namespace("codecompanion_diff_added")
 --
---   vim.api.nvim_buf_set_extmark(self.context.bufnr, ns_id, line - 1, 0, {
+--   api.nvim_buf_set_extmark(self.context.bufnr, ns_id, line - 1, 0, {
 --     sign_text = config.display.inline.diff.sign_text,
 --     sign_hl_group = config.display.inline.diff.hl_groups.added,
 --     priority = config.display.inline.diff.priority,
