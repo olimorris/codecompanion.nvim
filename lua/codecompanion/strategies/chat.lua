@@ -474,12 +474,12 @@ function Chat:set_autocmds()
     callback = function()
       local has_cmp, cmp = pcall(require, "cmp")
       if has_cmp then
-        require("cmp").register_source("codecompanion_helpers", require("cmp_codecompanion.helpers").new())
+        require("cmp").register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
         require("cmp").register_source("codecompanion_models", require("cmp_codecompanion.models").new())
         cmp.setup.buffer({
           enabled = true,
           sources = {
-            { name = "codecompanion_helpers" },
+            { name = "codecompanion_variables" },
             { name = "codecompanion_models" },
           },
         })
@@ -650,13 +650,13 @@ function Chat:submit()
   end
 
   -- Add the contents of any buffers
-  parse_helpers(self, messages)
-  if self.buffers then
-    table.insert(messages, self.buffers.index, {
-      role = "user",
-      content = self.buffers.content,
-    })
-  end
+  -- parse_helpers(self, messages)
+  -- if self.buffers then
+  --   table.insert(messages, self.buffers.index, {
+  --     role = "user",
+  --     content = self.buffers.content,
+  --   })
+  -- end
 
   vim.bo[bufnr].modified = false
   vim.bo[bufnr].modifiable = false

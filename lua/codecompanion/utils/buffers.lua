@@ -1,8 +1,29 @@
 local api = vim.api
 
+local M = {}
+
+---Get all of the currently valid and loaded buffers
+---@return table
+function M.get_active()
+  local buffers = {}
+
+  for _, bufnr in ipairs(api.nvim_list_bufs()) do
+    if api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buflisted then
+      table.insert(buffers, {
+        id = bufnr,
+        name = vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":t"),
+        path = api.nvim_buf_get_name(bufnr),
+        filetype = vim.bo[bufnr].filetype,
+      })
+    end
+  end
+
+  return buffers
+end
+
 ---@param bufnr number
 ---@return string
-local function get_content(bufnr)
+function M.get_content(bufnr)
   local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local content = table.concat(lines, "\n")
 
@@ -11,7 +32,7 @@ end
 
 ---@param bufnr number
 ---@return table
-local function get_buffer_info(bufnr)
+function M.get_info(bufnr)
   return {
     id = bufnr,
     name = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":t"),
@@ -20,7 +41,7 @@ local function get_buffer_info(bufnr)
   }
 end
 
-local function format_buffer_content(buffer_info, content)
+function M.format_content(buffer_info, content)
   local lines = vim.split(content, "\n")
   local formatted_content = {}
   for i, line in ipairs(lines) do
@@ -47,15 +68,13 @@ Content:
   )
 end
 
-local M = {}
-
 ---@param bufnr number
 ---@return table
 function M.get_buffer_content(bufnr)
   local content = {}
 
   local name = api.nvim_buf_get_name(bufnr)
-  content[name] = get_content(bufnr)
+  content[name] = M.get_content(bufnr)
 
   return content
 end
@@ -72,21 +91,11 @@ function M.get_open_buffers(ft, bufs)
     if api.nvim_buf_is_valid(buf) and vim.bo[buf].filetype == ft then
       local filename = api.nvim_buf_get_name(buf)
       local name = filename:match("^.+/(.+)$")
-      content[name] = get_content(buf)
+      content[name] = M.get_content(buf)
     end
   end
 
   return content
-end
-
-function M.get_qf_buffers()
-  local qf_list = vim.fn.getqflist()
-
-  for _, item in ipairs(qf_list) do
-    local bufnr = item.bufnr
-    local filename = item.text
-    item.content = get_content(bufnr)
-  end
 end
 
 ---Formats the buffers into a markdown string
@@ -98,8 +107,8 @@ function M.format(buf_content, ft)
 
   for name, content in pairs(buf_content) do
     local bufnr = vim.fn.bufnr(name)
-    local buffer_info = get_buffer_info(bufnr)
-    table.insert(formatted, format_buffer_content(buffer_info, content))
+    local buffer_info = M.get_info(bufnr)
+    table.insert(formatted, M.format_content(buffer_info, content))
   end
 
   return table.concat(formatted, "\n\n")

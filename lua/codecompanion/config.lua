@@ -9,23 +9,16 @@ return {
   strategies = {
     chat = {
       adapter = "openai",
-      -- Helpers which can be referenced in the chat buffer with the "@" symbol e.g. "@buffer"
-      helpers = {
+      -- Variables you can reference in your chats
+      variables = {
         ["buffer"] = {
-          callback = "helpers.chat.buffer",
-          category = "buffer",
+          callback = "helpers.variables.buffer",
           description = "Share the current buffer with the LLM",
         },
         ["buffers"] = {
-          callback = "helpers.chat.buffers",
-          category = "buffer",
-          description = "Share all loaded buffers (matching the filetype) with the LLM",
+          callback = "helpers.variables.buffers",
+          description = "Share all current open buffers with the LLM",
         },
-        -- ["bufferq"] = {
-        --   callback = "helpers.chat.bufferq",
-        --   category = "buffer",
-        --   description = "Share the content of the buffers from the quickfix list",
-        -- },
       },
       keymaps = {
         ["<C-s>"] = "keymaps.save",
@@ -141,7 +134,7 @@ return {
             return context.is_visual
           end,
           content = function(context)
-            local text = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
+            local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
           end,
@@ -181,7 +174,7 @@ return {
           role = "user",
           contains_code = true,
           content = function(context)
-            local code = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
+            local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return "I have the following code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
           end,
@@ -209,8 +202,11 @@ return {
         {
           role = "user",
           content = function(context)
-            local diagnostics =
-              require("codecompanion.helpers.lsp").get_diagnostics(context.start_line, context.end_line, context.bufnr)
+            local diagnostics = require("codecompanion.helpers.actions").get_diagnostics(
+              context.start_line,
+              context.end_line,
+              context.bufnr
+            )
 
             local concatenated_diagnostics = ""
             for i, diagnostic in ipairs(diagnostics) do
@@ -241,7 +237,7 @@ return {
               .. "```"
               .. context.filetype
               .. "\n"
-              .. require("codecompanion.helpers.code").get_code(
+              .. require("codecompanion.helpers.actions").get_code(
                 context.start_line,
                 context.end_line,
                 { show_line_numbers = true }
