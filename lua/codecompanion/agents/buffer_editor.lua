@@ -22,8 +22,6 @@ M.prompts = {
     content = function(schema)
       return [[To aid you further, I'm giving you access to a Buffer Editor which can modify existing code within a buffer or create a new buffer to write code. 
 
-When you use this agent, you do not need to output the code in a single code block.
-
 To use the block editor, you need to return an XML markdown code block (with backticks) which follows the below schema:
 ```xml
 ]] .. xml2lua.toXml(schema, "agent") .. [[
@@ -425,11 +423,11 @@ end
 
 -- The prompt to share with the LLM if an error is encountered
 M.output_error_prompt = function(error)
-  return "After the buffer_editor completed, there was an error:" .. "\n```\n" .. table.concat(error, "\n") .. "\n```\n"
+  return "After the buffer_editor completed, there was an error:" .. "\n```\n" .. table.concat(error, "\n") .. "\n```"
 end
 
 M.output_prompt = function(output)
-  return "After the buffer_editor completed the output was:" .. "\n```\n" .. table.concat(output, "\n") .. "\n```\n"
+  return "After the buffer_editor completed the output was:" .. "\n```\n" .. table.concat(output, "\n") .. "\n```"
 end
 
 return M

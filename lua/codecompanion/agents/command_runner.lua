@@ -92,18 +92,19 @@ function M.execute(chat, params, last_execute)
     end,
     on_exit = function(_, exit_code)
       vim.schedule(function()
-        util.announce_progress(chat.bufnr, "progress", "\n```\n")
+        util.announce_progress(chat.bufnr, "progress", "\n```")
 
         log:trace("Command Runner: Command exited with code: %s", exit_code)
         if exit_code ~= 0 then
           status = "error"
           log:info("Command failed: %s", stderr)
-          return util.announce_end(chat.bufnr, status, stderr, nil, last_execute)
+
+          if vim.tbl_isempty(stderr) then
+            stderr = nil
+          end
         end
 
-        if _G.codecompanion_cancel_agent then
-          return util.announce_end(chat.bufnr, status, stderr, nil, last_execute)
-        end
+        return util.announce_end(chat.bufnr, status, stderr, nil, last_execute)
       end)
     end,
     on_stdout = vim.schedule_wrap(function(_, data)
@@ -125,14 +126,11 @@ function M.execute(chat, params, last_execute)
 end
 
 M.output_error_prompt = function(error)
-  return "After the command_runner completed, there was an error:"
-    .. "\n```\n"
-    .. table.concat(error, "\n")
-    .. "\n```\n"
+  return "After the command_runner completed, there was an error:" .. "\n```\n" .. table.concat(error, "\n") .. "\n```"
 end
 
 M.output_prompt = function(output)
-  return "After the command_runner completed the output was:" .. "\n```\n" .. table.concat(output, "\n") .. "\n```\n"
+  return "After the command_runner completed the output was:" .. "\n```\n" .. table.concat(output, "\n") .. "\n```"
 end
 
 return M
