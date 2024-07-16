@@ -250,6 +250,7 @@ local Chat = {}
 ---@field saved_chat? string
 ---@field status?string
 ---@field last_role? string
+---@field variables CodeCompanion.Variables
 
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)
