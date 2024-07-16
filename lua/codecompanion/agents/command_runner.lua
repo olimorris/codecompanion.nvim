@@ -87,23 +87,23 @@ function M.execute(chat, params, last_execute)
           .. params.cmd
           .. " "
           .. table.concat(params.arg, " ")
-          .. "\n```. output: \n ```\n"
+          .. "\n```\nExecute command output: \n```bash\n"
       )
     end,
     on_exit = function(_, exit_code)
       vim.schedule(function()
-        log:trace("Command Runner: Command exited with code: %s", exit_code)
         util.announce_progress(chat.bufnr, "progress", "\n```\n")
+
+        log:trace("Command Runner: Command exited with code: %s", exit_code)
+        if exit_code ~= 0 then
+          status = "error"
+          log:info("Command failed: %s", stderr)
+          return util.announce_end(chat.bufnr, status, stderr, nil, last_execute)
+        end
 
         if _G.codecompanion_cancel_agent then
           return util.announce_end(chat.bufnr, status, stderr, nil, last_execute)
         end
-
-        if exit_code ~= 0 then
-          status = "error"
-          log:info("Command failed: %s", stderr)
-        end
-        return util.announce_end(chat.bufnr, status, stderr, nil, last_execute)
       end)
     end,
     on_stdout = vim.schedule_wrap(function(_, data)
