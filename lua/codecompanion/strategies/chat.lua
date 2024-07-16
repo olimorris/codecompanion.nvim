@@ -1,8 +1,9 @@
 local client = require("codecompanion.client")
 local config = require("codecompanion").config
 local keymaps = require("codecompanion.utils.keymaps")
-local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
+
+local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils.util")
 local yaml = require("codecompanion.utils.yaml")
@@ -298,6 +299,7 @@ local Chat = {}
 ---@field saved_chat? string
 ---@field status?string
 ---@field last_role? string
+---@field variables CodeCompanion.Variables
 
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)
@@ -311,13 +313,13 @@ function Chat.new(args)
     opts = args,
     status = "",
     last_role = "user",
+    variables = require("codecompanion.strategies.chat.variables").new(),
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
       api.nvim_buf_set_option(bufnr, "buftype", "acwrite")
       api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
       api.nvim_buf_set_option(bufnr, "syntax", "markdown")
-      vim.b[bufnr].codecompanion_type = "chat"
 
       return bufnr
     end,
