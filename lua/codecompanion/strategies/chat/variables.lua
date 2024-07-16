@@ -1,3 +1,5 @@
+local config = require("codecompanion").config
+
 local _CONSTANTS = {
   SUFFIX = "#",
 }
@@ -5,10 +7,11 @@ local _CONSTANTS = {
 ---@class CodeCompanion.Variables
 local Variables = {}
 
----@param opts table
-function Variables.new(opts)
-  local self = setmetatable({}, { __index = Variables })
-  self.opts = opts
+---@param args? table
+function Variables.new(args)
+  local self = setmetatable({
+    opts = config.strategies.chat.variables,
+  }, { __index = Variables })
 
   return self
 end
