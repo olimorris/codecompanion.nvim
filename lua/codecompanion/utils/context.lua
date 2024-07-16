@@ -105,7 +105,7 @@ function M.get_context(bufnr, args)
     start_col = start_col,
     end_line = end_line,
     end_col = end_col,
-    active_buffers = require("codecompanion.utils.buffers").get_active(),
+    active_buffers = require("codecompanion.utils.buffers").get_open(),
   }
 end
 

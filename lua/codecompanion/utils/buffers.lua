@@ -2,25 +2,41 @@ local api = vim.api
 
 local M = {}
 
----Get all of the currently valid and loaded buffers
+---Get the information of a given buffer
+---@param bufnr number
 ---@return table
-function M.get_active()
+function M.get_info(bufnr)
+  return {
+    id = bufnr,
+    name = vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":t"),
+    path = api.nvim_buf_get_name(bufnr),
+    filetype = api.nvim_buf_get_option(bufnr, "filetype"),
+  }
+end
+
+---Return metadata on all of the currently valid and loaded buffers
+---@param ft? string The filetype to filter the buffers by
+---@return table
+function M.get_open(ft)
   local buffers = {}
 
   for _, bufnr in ipairs(api.nvim_list_bufs()) do
     if api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buflisted then
-      table.insert(buffers, {
-        id = bufnr,
-        name = vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":t"),
-        path = api.nvim_buf_get_name(bufnr),
-        filetype = vim.bo[bufnr].filetype,
-      })
+      table.insert(buffers, M.get_info(bufnr))
     end
+  end
+
+  -- Filter by filetype if needed
+  if ft then
+    buffers = vim.tbl_filter(function(buf)
+      return buf.filetype == ft
+    end, buffers)
   end
 
   return buffers
 end
 
+---Get the content of a given buffer
 ---@param bufnr number
 ---@return string
 function M.get_content(bufnr)
@@ -30,22 +46,15 @@ function M.get_content(bufnr)
   return content
 end
 
----@param bufnr number
----@return table
-function M.get_info(bufnr)
-  return {
-    id = bufnr,
-    name = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":t"),
-    path = vim.api.nvim_buf_get_name(bufnr),
-    filetype = vim.api.nvim_buf_get_option(bufnr, "filetype"),
-  }
-end
-
-function M.format_content(buffer_info, content)
-  local lines = vim.split(content, "\n")
-  local formatted_content = {}
+---Formats the content of a buffer into a markdown string
+---@param buffer table The buffer data to include
+---@param lines string The lines of the buffer to include
+---@return string
+local function format(buffer, lines)
+  lines = vim.split(lines, "\n")
+  local formatted = {}
   for i, line in ipairs(lines) do
-    table.insert(formatted_content, string.format("%d  %s", i, line))
+    table.insert(formatted, string.format("%d  %s", i, line))
   end
 
   return string.format(
@@ -59,59 +68,20 @@ Content:
 %s
 ```
 ]],
-    buffer_info.id,
-    buffer_info.name,
-    buffer_info.path,
-    buffer_info.filetype,
-    buffer_info.filetype,
-    table.concat(formatted_content, "\n")
+    buffer.id,
+    buffer.name,
+    buffer.path,
+    buffer.filetype,
+    buffer.filetype,
+    table.concat(formatted, "\n")
   )
 end
 
+---Format a buffer with only the buffer ID
 ---@param bufnr number
----@return table
-function M.get_buffer_content(bufnr)
-  local content = {}
-
-  local name = api.nvim_buf_get_name(bufnr)
-  content[name] = M.get_content(bufnr)
-
-  return content
-end
-
----Fetches all of the open buffers with the specified filetype
----@param ft string The filetype to filter the buffers by
----@param bufs? table The table of buffers to filter
----@return table
-function M.get_open_buffers(ft, bufs)
-  local buffers = bufs or api.nvim_list_bufs()
-  local content = {}
-
-  for _, buf in ipairs(buffers) do
-    if api.nvim_buf_is_valid(buf) and vim.bo[buf].filetype == ft then
-      local filename = api.nvim_buf_get_name(buf)
-      local name = filename:match("^.+/(.+)$")
-      content[name] = M.get_content(buf)
-    end
-  end
-
-  return content
-end
-
----Formats the buffers into a markdown string
----@param buf_content table(<name><content>) The buffers to format
----@param ft string The filetype of the buffers
 ---@return string
-function M.format(buf_content, ft)
-  local formatted = {}
-
-  for name, content in pairs(buf_content) do
-    local bufnr = vim.fn.bufnr(name)
-    local buffer_info = M.get_info(bufnr)
-    table.insert(formatted, M.format_content(buffer_info, content))
-  end
-
-  return table.concat(formatted, "\n\n")
+function M.format_by_id(bufnr)
+  return format(M.get_info(bufnr), M.get_content(bufnr))
 end
 
 return M

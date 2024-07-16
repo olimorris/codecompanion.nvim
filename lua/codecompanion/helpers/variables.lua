@@ -1,4 +1,4 @@
-local helpers = require("codecompanion.helpers.buffers")
+local buf_utils = require("codecompanion.utils.buffers")
 
 local M = {}
 
@@ -6,14 +6,21 @@ local M = {}
 ---@param chat CodeCompanion.Chat
 ---@return string
 M.buffer = function(chat)
-  return helpers.format(helpers.get_buffer_content(chat.context.bufnr), chat.context.filetype)
+  return buf_utils.format_by_id(chat.context.bufnr)
 end
 
 ---Return the open buffers that match the current filetype
 ---@param chat CodeCompanion.Chat
 ---@return string
 M.buffers = function(chat)
-  return helpers.format(helpers.get_open_buffers(chat.context.filetype), chat.context.filetype)
+  local output
+
+  local buffers = buf_utils.get_open(chat.context.filetype)
+  for _, buffer in ipairs(buffers) do
+    output = output .. "\n\n" .. buf_utils.format_by_id(buffer.id)
+  end
+
+  return output
 end
 
 return M
