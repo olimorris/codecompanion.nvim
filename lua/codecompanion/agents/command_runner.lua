@@ -81,7 +81,7 @@ function M.execute(chat, params, last_execute)
       log:trace("Command Runner: Starting command: %s", cmd)
       util.announce_progress(chat.bufnr, "progress", "Command executed successfully. output: \n ```\n")
     end,
-    on_exit = function(j, exit_code)
+    on_exit = function(_, exit_code)
       vim.schedule(function()
         log:trace("Command Runner: Command exited with code: %s", exit_code)
         util.announce_progress(chat.bufnr, "progress", "\n```\n")
@@ -94,8 +94,7 @@ function M.execute(chat, params, last_execute)
           status = "error"
           log:info("Command failed: %s", stderr)
         end
-        log:trace("Command Runner: Command output: %s", j:result())
-        return util.announce_end(chat.bufnr, status, stderr, j:result(), last_execute)
+        return util.announce_end(chat.bufnr, status, stderr, nil, last_execute)
       end)
     end,
     on_stdout = vim.schedule_wrap(function(_, data)
