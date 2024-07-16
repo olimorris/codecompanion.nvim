@@ -37,7 +37,7 @@ end
 ---@param args table The arguments that were passed to the command
 ---@return CodeCompanion.Strategies
 M.run_pre_defined_prompts = function(prompt, args)
-  local context = util.get_context(vim.api.nvim_get_current_buf(), args)
+  local context = util.get_context(api.nvim_get_current_buf(), args)
   local item = M.pre_defined_prompts[prompt]
 
   return require("codecompanion.strategies")
@@ -246,8 +246,8 @@ M.setup = function(opts)
     end
   end
 
-  M.config.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
-  M.config.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
+  M.config.INFO_NS = api.nvim_create_namespace("CodeCompanion-info")
+  M.config.ERROR_NS = api.nvim_create_namespace("CodeCompanion-error")
 
   local diagnostic_config = {
     underline = false,

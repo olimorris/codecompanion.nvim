@@ -498,7 +498,7 @@ function Chat:set_autocmds()
     })
 
     -- Validate the settings
-    vim.api.nvim_create_autocmd("InsertLeave", {
+    api.nvim_create_autocmd("InsertLeave", {
       group = aug,
       buffer = bufnr,
       desc = "Parse the settings in the CodeCompanion chat buffer for any errors",
@@ -903,8 +903,8 @@ function Chat:conceal(heading)
       local start_row, _, end_row, _ = node[1]:range()
 
       if start_row < end_row then
-        vim.api.nvim_buf_set_option(self.bufnr, "foldmethod", "manual")
-        vim.api.nvim_buf_call(self.bufnr, function()
+        api.nvim_buf_set_option(self.bufnr, "foldmethod", "manual")
+        api.nvim_buf_call(self.bufnr, function()
           vim.fn.setpos(".", { self.bufnr, start_row + 1, 0, 0 })
           vim.cmd("normal! zf" .. end_row .. "G")
         end)
@@ -928,7 +928,7 @@ end
 ---@return nil
 function Chat:complete(request, callback)
   local items = {}
-  local cursor = vim.api.nvim_win_get_cursor(0)
+  local cursor = api.nvim_win_get_cursor(0)
   local key_name, node = self:_get_settings_key({ pos = { cursor[1] - 1, 1 } })
   if not key_name or not node then
     callback({ items = items, isIncomplete = false })
@@ -953,7 +953,7 @@ end
 ---@return nil|CodeCompanion.Chat
 function Chat.buf_get_chat(bufnr)
   if not bufnr or bufnr == 0 then
-    bufnr = vim.api.nvim_get_current_buf()
+    bufnr = api.nvim_get_current_buf()
   end
   return chatmap[bufnr]
 end
