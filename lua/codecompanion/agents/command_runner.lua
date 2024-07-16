@@ -73,13 +73,18 @@ function M.execute(chat, params, last_execute)
 
   local status = "success"
   local stderr = {}
+  local args = type(params.arg) == "table" and params.arg or { type(params.arg) == "string" and params.arg or "" }
 
   local job = Job:new({
     command = params.cmd,
-    args = type(params.arg) == "table" and params.arg or { type(params.arg) == "string" and params.arg or "" },
+    args = args,
     on_start = function()
       log:trace("Command Runner: Starting command: %s", cmd)
-      util.announce_progress(chat.bufnr, "progress", "Command executed successfully. output: \n ```\n")
+      util.announce_progress(
+        chat.bufnr,
+        "progress",
+        "Command `" .. params.cmd .. table.concat(params.arg, " ") .. "`. output: \n ```\n"
+      )
     end,
     on_exit = function(_, exit_code)
       vim.schedule(function()
