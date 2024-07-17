@@ -427,7 +427,7 @@ M.output_error_prompt = function(error)
 end
 
 M.output_prompt = function(output)
-  return "After the buffer_editor completed the output was:" .. "\n```\n" .. table.concat(output, "\n") .. "\n```"
+  return "After the buffer_editor completed the output was:" .. "\n```\n" .. table.concat(output, "\n") .. "\n```\n"
 end
 
 return M
