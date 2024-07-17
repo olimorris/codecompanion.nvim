@@ -272,6 +272,8 @@ local function set_welcome_message(chat)
   chat.intro_message = true
 end
 
+local registered_cmp = false
+
 ---@class CodeCompanion.Chat
 ---@field id integer
 ---@field adapter CodeCompanion.Adapter
@@ -476,8 +478,11 @@ function Chat:set_autocmds()
     callback = function()
       local has_cmp, cmp = pcall(require, "cmp")
       if has_cmp then
-        require("cmp").register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
-        require("cmp").register_source("codecompanion_models", require("cmp_codecompanion.models").new())
+        if not registered_cmp then
+          registered_cmp = true
+          cmp.register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
+          cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new())
+        end
         cmp.setup.buffer({
           enabled = true,
           sources = {
