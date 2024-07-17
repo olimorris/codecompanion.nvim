@@ -700,6 +700,11 @@ function Chat:submit()
     end
 
     if done then
+      -- if find unclosed markdown code block close it
+      if table.concat(api.nvim_buf_get_lines(self.bufnr, 0, -1, false), "\n"):match("```[^`]*$") then
+        self:append({ role = "assistant", content = "\n```" })
+      end
+
       self:append({ role = "user", content = "" })
       self:display_tokens()
       if self.status ~= CONSTANTS.STATUS_ERROR then
