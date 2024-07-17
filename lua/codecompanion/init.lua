@@ -216,12 +216,14 @@ end
 ---@param opts nil|table
 ---@return nil
 M.setup = function(opts)
-  api.nvim_set_hl(0, "CodeCompanionTokens", { link = "Comment", default = true })
-  api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
-  api.nvim_set_hl(0, "CodeCompanionVirtualTextAgents", { link = "CodeCompanionVirtualText", default = true })
-
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 
+  -- Set the highlight groups
+  local hg = M.config.display.chat.highlights
+  api.nvim_set_hl(0, "CodeCompanionTokens", { link = hg.tokens, default = true })
+  api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = hg.virtual_text, default = true })
+  api.nvim_set_hl(0, "CodeCompanionVirtualTextAgents", { link = hg.virtual_text_agents, default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = hg.variables, default = true })
   -- Handle custom adapter config
   if opts and opts.adapters then
     for name, adapter in pairs(opts.adapters) do
