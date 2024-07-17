@@ -43,7 +43,7 @@ file_path
 Every *SEARCH/REPLACE block* must use this format:
 1. The file path alone on a line, verbatim. No bold asterisks, no quotes around it, no escaping of characters, etc.
 2. The start of search block: <<<<<<< SEARCH
-3. A contiguous chunk of lines to search for in the existing source code
+3. A contiguous chunk of lines to search for in the existing source code. **DO NOT** include line numbers.
 4. The dividing line: =======
 5. The lines to replace into the source code
 6. The end of the replace block: >>>>>>> REPLACE
