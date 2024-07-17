@@ -295,6 +295,12 @@ return {
           wrap = true,
         },
       },
+      highlights = {
+        tokens = "Comment",
+        virtual_text = "Comment",
+        virtual_text_agents = "Comment",
+        variables = "Identifier",
+      },
       intro_message = "Welcome to CodeCompanion ✨! Save the buffer to send a message...",
       show_settings = true,
       show_token_count = true,
