@@ -285,6 +285,7 @@ local registered_cmp = false
 ---@field saved_chat? string
 ---@field buffers? nil|table
 ---@field tokens? nil|number
+---@field variables? CodeCompanion.Variables
 ---@field settings table
 ---@field type string
 local Chat = {}
@@ -301,7 +302,6 @@ local Chat = {}
 ---@field saved_chat? string
 ---@field status?string
 ---@field last_role? string
----@field variables CodeCompanion.Variables
 
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)

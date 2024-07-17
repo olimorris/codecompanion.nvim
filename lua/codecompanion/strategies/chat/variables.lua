@@ -10,7 +10,8 @@ local Variables = {}
 ---@param args? table
 function Variables.new(args)
   local self = setmetatable({
-    opts = config.strategies.chat.variables,
+    vars = config.strategies.chat.variables,
+    args = args,
   }, { __index = Variables })
 
   return self

@@ -22,7 +22,7 @@ end
 
 function source:complete(_, callback)
   local items = {}
-  for label, data in pairs(variables.opts) do
+  for label, data in pairs(variables.vars) do
     table.insert(items, {
       label = "#" .. label,
       kind = require("cmp").lsp.CompletionItemKind.Variable,
