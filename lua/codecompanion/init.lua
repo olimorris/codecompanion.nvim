@@ -278,4 +278,41 @@ M.setup = function(opts)
   vim.treesitter.language.register("markdown", "codecompanion")
 end
 
+---Add current buffer lsp diagnostics to current chat buffer
+---@param opts table
+---@return nil
+M.add_lsp_diagnostics = function(opts)
+  local chat = _G.codecompanion_last_chat_buffer
+  if not chat then
+    return vim.notify("[CodeCompanion.nvim]\nNo chat buffer found", vim.log.levels.WARN)
+  end
+
+  local context = util.get_context(api.nvim_get_current_buf(), args)
+  local diagnostics =
+    require("codecompanion.helpers.lsp").get_diagnostics(context.start_line, context.end_line, context.bufnr)
+
+  chat:append({
+    role = "user",
+    content = "The programming language is " .. context.filetype .. ". This is a list of the diagnostic messages:\n\n",
+  })
+
+  for i, diagnostic in ipairs(diagnostics) do
+    chat:append({
+      role = "user",
+      content = i
+        .. ". Issue "
+        .. i
+        .. "\n  - File Name: "
+        .. context.filename
+        .. "\n  - Location: Line "
+        .. diagnostic.line_number
+        .. "\n  - Severity: "
+        .. diagnostic.severity
+        .. "\n  - Message: "
+        .. diagnostic.message
+        .. "\n",
+    })
+  end
+end
+
 return M

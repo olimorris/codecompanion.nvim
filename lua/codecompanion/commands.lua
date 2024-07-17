@@ -86,4 +86,11 @@ return {
     end,
     opts = { desc = "Add the current selection to a chat buffer", range = true },
   },
+  {
+    cmd = "CodeCompanionAddLSPDiagnostics",
+    callback = function(opts)
+      codecompanion.add_lsp_diagnostics(opts)
+    end,
+    opts = { desc = "Add the current LSP diagnostics to a chat buffer", range = true },
+  },
 }
