@@ -290,6 +290,32 @@ local function set_welcome_message(chat)
   chat.intro_message = true
 end
 
+---close the unclosed code block this function must called before append role user message
+---@param chat CodeCompanion.Chat
+local function close_codeblock(chat)
+  local stack = {}
+  local lines = api.nvim_buf_get_lines(chat.bufnr, 0, -1, false), "\n"
+  local processed_lines = {}
+
+  for _, line in ipairs(lines) do
+    if line:match("^```") then
+      if #stack > 0 and stack[#stack] == "```" then
+        -- 闭合已打开的代码块
+        table.remove(stack)
+      else
+        -- 开始新的代码块
+        table.insert(stack, "```")
+      end
+    end
+    table.insert(processed_lines, line)
+  end
+
+  -- check if there is unclosed code block
+  if #stack > 0 then
+    chat:append({ role = "assistant", content = "\n```" })
+  end
+end
+
 ---@class CodeCompanion.Chat
 ---@field id integer
 ---@field adapter CodeCompanion.Adapter
@@ -701,10 +727,7 @@ function Chat:submit()
 
     if done then
       -- if find unclosed markdown code block close it
-      if table.concat(api.nvim_buf_get_lines(self.bufnr, 0, -1, false), "\n"):match("```[^`]*$") then
-        self:append({ role = "assistant", content = "\n```" })
-      end
-
+      close_codeblock(self)
       self:append({ role = "user", content = "" })
       self:display_tokens()
       if self.status ~= CONSTANTS.STATUS_ERROR then
