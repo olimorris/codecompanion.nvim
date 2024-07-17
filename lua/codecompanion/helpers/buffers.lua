@@ -71,8 +71,7 @@ function M.get_open_buffers(ft, bufs)
   for _, buf in ipairs(buffers) do
     if api.nvim_buf_is_valid(buf) and vim.bo[buf].filetype == ft then
       local filename = api.nvim_buf_get_name(buf)
-      local name = filename:match("^.+/(.+)$")
-      content[name] = get_content(buf)
+      content[filename] = get_content(buf)
     end
   end
 
