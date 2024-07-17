@@ -192,8 +192,7 @@ local function parse_helpers(chat, messages)
   end
 end
 
----@class CodeCompanion.Chat
----@return CodeCompanion.AgentExecuteResult|nil
+---@param chat CodeCompanion.Chat
 local function parse_agents(chat)
   local assistant_parser = vim.treesitter.get_parser(chat.bufnr, "markdown")
   local assistant_query = vim.treesitter.query.parse(
@@ -241,6 +240,20 @@ local function parse_agents(chat)
   -- execute all agent
   if agent_xmls and #agent_xmls > 0 then
     for i, agent_xml in ipairs(agent_xmls) do
+      if chat.current_agent then
+        log:info("Command Runner: There is an agent running, waiting for it to finish")
+        -- if there is an job agent running, we should wait for it to finish
+        chat.current_agent:join()
+        -- when current_agent is done the last on_exit method may be called later, so we need to wait for it to finish
+        vim.wait(1000, function()
+          return not vim.g.codecompanion_agent_running
+        end)
+        log:info("Command Runner: Agent finished running")
+      end
+
+      -- after last agent is done, we need to set the current_agent to nil
+      chat.current_agent = nil
+
       log:info("agent run: %s", agent_xml)
       -- NOTE: when the last agent is executed, the last_agent flag is set to true make sure the chat:submit() is called after the last agent is executed
       require("codecompanion.agents").run(chat, agent_xml, { last_agent = i == #agent_xmls })
@@ -281,7 +294,7 @@ end
 ---@field id integer
 ---@field adapter CodeCompanion.Adapter
 ---@field current_request table
----@field current_agent Job|CodeCompanion.Agent
+---@field current_agent Job
 ---@field bufnr integer
 ---@field opts CodeCompanion.ChatArgs
 ---@field context table

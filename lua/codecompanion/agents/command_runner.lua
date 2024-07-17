@@ -1,8 +1,6 @@
 local Job = require("plenary.job")
-local config = require("codecompanion").config
-local util = require("codecompanion.utils.agent")
-local api = vim.api
 local log = require("codecompanion.utils.log")
+local util = require("codecompanion.utils.agent")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 ---@type CodeCompanion.Agent
@@ -13,9 +11,6 @@ M.schema = {
   parameters = {
     inputs = {
       cmd = "The command to execute",
-      -- args = {
-      --   arg = "The arguments to pass to the command",
-      -- },
       arg = "The arguments to pass to the command",
     },
   },
@@ -92,7 +87,11 @@ function M.execute(chat, params, last_execute)
     end,
     on_exit = function(_, exit_code)
       vim.schedule(function()
-        util.announce_progress(chat.bufnr, "progress", "\n```")
+        util.announce_progress(chat.bufnr, "progress", "\n```\n")
+
+        if _G.codecompanion_cancel_agent then
+          return util.announce_end(chat.bufnr, status, stderr, nil, last_execute)
+        end
 
         log:trace("Command Runner: Command exited with code: %s", exit_code)
         if exit_code ~= 0 then
@@ -115,7 +114,6 @@ function M.execute(chat, params, last_execute)
     end),
     on_stderr = function(_, data)
       if data then
-        log:trace("command runner stderr: %s", data)
         table.insert(stderr, data)
       end
     end,

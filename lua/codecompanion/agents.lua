@@ -55,6 +55,7 @@ local function set_autocmds(chat, agent)
 
       log:trace("Agent finished event: %s", request)
       if request.data.status == "started" then
+        vim.g.codecompanion_agent_running = true
         ui.set_virtual_text(chat.bufnr, ns_id, "Agent processing ...", { hl_group = "CodeCompanionVirtualTextAgents" })
         return
       end
@@ -63,6 +64,7 @@ local function set_autocmds(chat, agent)
 
       -- If the agent is still in progress, we need check stream_output and put it in to chat buffer
       if request.data.status == "progress" then
+        vim.g.codecompanion_agent_running = true
         if request.data.stream_output then
           chat:add_message({
             role = "user",
@@ -73,6 +75,7 @@ local function set_autocmds(chat, agent)
       end
 
       if request.data.status == "error" then
+        vim.g.codecompanion_agent_running = false
         if request.data.error then
           chat:add_message({
             role = "user",
@@ -86,6 +89,7 @@ local function set_autocmds(chat, agent)
       end
 
       if request.data.status == "success" then
+        vim.g.codecompanion_agent_running = false
         local output
         -- Sometimes, the output from a command will get sent to stderr instead
         -- of stdout. We can do a check and redirect the output accordingly
