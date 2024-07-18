@@ -288,12 +288,21 @@ M.add_lsp_diagnostics = function(opts)
   end
 
   local context = util.get_context(api.nvim_get_current_buf(), args)
+
+  if context.start_line == context.end_line then
+    context.end_line = vim.api.nvim_buf_line_count(context.bufnr)
+  end
+
   local diagnostics =
     require("codecompanion.helpers.lsp").get_diagnostics(context.start_line, context.end_line, context.bufnr)
 
   chat:append({
     role = "user",
-    content = "The programming language is " .. context.filetype .. ". This is a list of the diagnostic messages:\n\n",
+    content = "The programming language is "
+      .. context.filetype
+      .. ". This is a list of the diagnostic in file:"
+      .. context.filename
+      .. "\n\n",
   })
 
   for i, diagnostic in ipairs(diagnostics) do
@@ -302,8 +311,6 @@ M.add_lsp_diagnostics = function(opts)
       content = i
         .. ". Issue "
         .. i
-        .. "\n  - File Name: "
-        .. context.filename
         .. "\n  - Location: Line "
         .. diagnostic.line_number
         .. "\n  - Severity: "
