@@ -21,7 +21,9 @@ M.prompts = {
     role = "system",
     content = function(schema)
       return "To aid you further, I'm giving you access to Command Runner which can run command in user's terminal."
-        .. [[Please be very cautious when suggesting commands, as they will be executed on the user's system. If the command may have destructive effects, please inform the user as first.
+        .. [[
+Be aware that each command does not share environment variables with others. The order of the command_runner agent calls determines the execution order. Plan your commands accordingly, and if you need to use variables across commands, consider using a single command with appropriate shell syntax.
+Please be very cautious when suggesting commands, as they will be executed on the user's system. If the command may have destructive effects, please inform the user as first.
 ]]
         .. "To use Command Runner, provide a command in the following format:\n\n"
         .. "```xml\n"

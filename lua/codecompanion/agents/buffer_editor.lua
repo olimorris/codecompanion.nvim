@@ -21,7 +21,7 @@ M.prompts = {
     role = "system",
     content = function(schema)
       return [[To aid you further, I'm giving you access to a Buffer Editor which can modify existing code within a buffer or create a new buffer to write code. 
-
+When using this agent, do not output the code to be edited in a Markdown code block. Instead, use the buffer_editor agent directly to modify or create the code.
 To use the block editor, you need to return an XML markdown code block (with backticks) which follows the below schema:
 ```xml
 ]] .. xml2lua.toXml(schema, "agent") .. [[
