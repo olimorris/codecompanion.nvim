@@ -1,4 +1,4 @@
-<!-- panvimdoc-ignore-start -->rem
+<!-- panvimdoc-ignore-start -->
 
 <p align="center">
 <img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/e54f98b6-8bfd-465a-85b6-73ab6bb274fa" alt="CodeCompanion.nvim" />
@@ -95,7 +95,7 @@ You only need to the call the `setup` function if you wish to change any of the 
 <details>
   <summary>Click to see the default configuration</summary>
 
-````lua
+```lua
 require("codecompanion").setup({
   adapters = {
     anthropic = "anthropic",
@@ -441,7 +441,7 @@ When informed by the user of an available agent, pay attention to the schema tha
     ),
   },
 })
-````
+```
 
 </details>
 
