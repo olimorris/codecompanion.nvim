@@ -160,7 +160,6 @@ function M.get_context(bufnr, args)
     start_col = start_col,
     end_line = end_line,
     end_col = end_col,
-    active_buffers = get_active_buffers(),
   }
 end
 
