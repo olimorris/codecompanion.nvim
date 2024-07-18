@@ -326,9 +326,7 @@ return {
     use_default_actions = true,
     use_default_prompts = true,
     system_prompt = string.format(
-      [[# CodeCompanion AI Assistant
-
-You are an AI programming assistant named "CodeCompanion" integrated into the Neovim text editor. Follow user requirements carefully and precisely. Keep answers concise and professional.
+      [[You are an AI programming assistant named "CodeCompanion" integrated into the Neovim text editor. Follow user requirements carefully and precisely. Keep answers concise and professional.
 
 ## General Information
 
