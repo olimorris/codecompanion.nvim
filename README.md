@@ -1,4 +1,4 @@
-<!-- panvimdoc-ignore-start -->
+<!-- panvimdoc-ignore-start -->rem
 
 <p align="center">
 <img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/e54f98b6-8bfd-465a-85b6-73ab6bb274fa" alt="CodeCompanion.nvim" />
@@ -95,7 +95,7 @@ You only need to the call the `setup` function if you wish to change any of the 
 <details>
   <summary>Click to see the default configuration</summary>
 
-```lua
+````lua
 require("codecompanion").setup({
   adapters = {
     anthropic = "anthropic",
@@ -441,7 +441,7 @@ When informed by the user of an available agent, pay attention to the schema tha
     ),
   },
 })
-```
+````
 
 </details>
 
@@ -612,6 +612,7 @@ Below is the full list of commands that are available in the plugin:
 - `CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
 - `CodeCompanionToggle` - To toggle a chat buffer
 - `CodeCompanionAdd` - To add visually selected chat to the current chat buffer
+- `CodeCompanionAddLSPDiagnostics` - To add the current LSP diagnostics to a chat buffer
 
 **Suggested workflow**
 
@@ -623,6 +624,7 @@ vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap
 vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "ga", "<cmd>CodeCompanionAdd<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "gl", "<cmd>CodeCompanionAddLSPDiagnostics<cr>", { noremap = true, silent = true })
 
 -- Expand 'cc' into 'CodeCompanion' in the command line
 vim.cmd([[cab cc CodeCompanion]])

@@ -281,7 +281,7 @@ end
 ---Add current buffer lsp diagnostics to current chat buffer
 ---@param opts table
 ---@return nil
-M.add_lsp_diagnostics = function(opts)
+M.add_lsp_diagnostics = function(args)
   local chat = _G.codecompanion_last_chat_buffer
   if not chat then
     return vim.notify("[CodeCompanion.nvim]\nNo chat buffer found", vim.log.levels.WARN)

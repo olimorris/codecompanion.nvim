@@ -153,9 +153,7 @@ end
 function M.run(chat, ts, opts)
   local ok, xml = pcall(parse_xml, ts)
   if not ok then
-    -- format str
-    local err = string.format("Error parsing XML: %s", xml)
-    log:info(err)
+    log:info("Error parsing XML: %s", xml)
     return
   end
 

@@ -1,4 +1,3 @@
-local Job = require("plenary.job")
 local client = require("codecompanion.client")
 local config = require("codecompanion").config
 local keymaps = require("codecompanion.utils.keymaps")
@@ -167,6 +166,7 @@ local function parse_helpers(chat, messages)
   ---@param helpers table
   ---@return string|nil
   local function find(message, helpers)
+    log:info("parse_helper message: %s", message)
     for helper, _ in pairs(helpers) do
       if message:match("%f[%w@]" .. "@" .. helper .. "%f[%W]") then
         return helper
@@ -175,19 +175,21 @@ local function parse_helpers(chat, messages)
     return nil
   end
 
-  -- Only parse the last message
-  local message = messages[#messages]
-  local helper = find(message.content, config.strategies.chat.helpers)
-  if helper then
-    local content = resolve(config.strategies.chat.helpers[helper].callback)
+  -- resolve all messages
+  for i, message in pairs(messages) do
+    local helper = find(message.content, config.strategies.chat.helpers)
+    if helper then
+      local content = resolve(config.strategies.chat.helpers[helper].callback)
 
-    if content then
-      log:debug("Parsed helper in chat buffer at message index %d", #messages)
-      log:trace("parse_helper content: %s", content)
-      chat.buffers = {
-        index = #messages,
-        content = content,
-      }
+      if content then
+        log:debug("Parsed helper in chat buffer")
+        log:trace("parse_helper content: %s", content)
+        log:info("parse_helper content: %s", content)
+        chat.buffers = {
+          index = i,
+          content = content,
+        }
+      end
     end
   end
 end
