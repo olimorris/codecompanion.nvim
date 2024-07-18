@@ -42,7 +42,7 @@ file_path
 
 Every *SEARCH/REPLACE block* must use this format:
 1. The file path alone on a line, verbatim. No bold asterisks, no quotes around it, no escaping of characters, etc.
-2. The start of search block: <<<<<<< SEARCH
+2. The start of search block: <<<<<<< SEARCH even if there is no content needed to search for.
 3. A contiguous chunk of lines to search for in the existing source code. **DO NOT** include line numbers.
 4. The dividing line: =======
 5. The lines to replace into the source code
@@ -67,9 +67,18 @@ If you want to put code in a new file, use a *SEARCH/REPLACE block* with:
 
 Be extremely careful and precise when creating these blocks. If the SEARCH section doesn't match exactly, the edit will fail.
 
-ONLY EVER RETURN CODE IN A *SEARCH/REPLACE BLOCK*!
+ONLY EVER RETURN CODE IN A *SEARCH/REPLACE BLOCK*!]] .. [[
 
-Here's an example of how to use the buffer_editor agent:
+## Example conversations:
+
+### USER: Change get_factorial() to use math.factorial
+### ASSISTANT: To make this change we need to modify `mathweb/flask/app.py` to:
+
+1. Import the math package.
+2. Remove the existing factorial() function.
+3. Update get_factorial() to call math.factorial instead.
+
+Here are the *SEARCH/REPLACE* blocks:
 
 ```xml
 <agent>
@@ -77,45 +86,76 @@ Here's an example of how to use the buffer_editor agent:
   <parameters>
     <inputs>
       <content><![CDATA[
-/Users/user/projects/myproject/main.go
+mathweb/flask/app.py
 <<<<<<< SEARCH
-func main() {
-    fmt.Println("Hello, world!")
-}
+from flask import Flask
 =======
-func main() {
-    // Starting the main function
-    fmt.Println("Hello, world!") // Printing Hello, world! to the console
-}
+import math
+from flask import Flask
 >>>>>>> REPLACE
 
-/Users/user/projects/myproject/config.go
+mathweb/flask/app.py
 <<<<<<< SEARCH
-package main
+def factorial(n):
+    "compute factorial"
 
-import "fmt"
+    if n == 0:
+        return 1
+    else:
+        return n * factorial(n-1)
 
 =======
-package main
-
-// Importing the fmt package
-import "fmt"
-
 >>>>>>> REPLACE
 
-/Users/user/projects/myproject/config_test.go
+mathweb/flask/app.py
 <<<<<<< SEARCH
+    return str(factorial(n))
 =======
-package main
-
->>>>>>> REPLACE
-]] .. "]]>" .. [[</content>
+    return str(math.factorial(n))
+>>>>>>> REPLACE]] .. "]]>" .. [[</content>
     </inputs>
   </parameters>
 </agent>
 ```
 
-This example demonstrates how to add comments to the main.go and config.go files and creat a new file config_test.go. Note how each SEARCH/REPLACE block starts with the file path, and how the SEARCH section exactly matches the existing code. Also, notice that the entire content is wrapped in a CDATA section to prevent XML parsing issues with special characters in the code.]]
+### USER: Refactor hello() into its own file.
+### ASSISTANT: To make this change we need to modify `main.py` and make a new file `hello.py`:
+
+1. Make a new hello.py file with hello() in it.
+2. Remove hello() from main.py and replace it with an import.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+```xml
+<agent>
+  <name>buffer_editor</name>
+  <parameters>
+    <inputs>
+      <content><![CDATA[
+hello.py
+<<<<<<< SEARCH
+=======
+def hello():
+    "print a greeting"
+
+    print("hello")
+>>>>>>> REPLACE
+
+main.py
+<<<<<<< SEARCH
+def hello():
+    "print a greeting"
+
+    print("hello")
+=======
+from hello import hello
+>>>>>>> REPLACE
+
+]] .. "]]>" .. [[</content>
+    </inputs>
+  </parameters>
+</agent>
+```]]
     end,
   },
   {
