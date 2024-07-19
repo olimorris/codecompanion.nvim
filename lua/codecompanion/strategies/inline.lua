@@ -352,6 +352,8 @@ function Inline:submit(user_input)
 
   if type(self.adapter) == "string" then
     self.adapter = require("codecompanion.adapters").use(self.adapter)
+  elseif type(self.adapter) == "function" then
+    self.adapter = self.adapter()
   end
 
   log:trace("Inline adapter config: %s", self.adapter)
