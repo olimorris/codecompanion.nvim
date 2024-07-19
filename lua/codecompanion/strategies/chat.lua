@@ -321,7 +321,6 @@ function Chat.new(args)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
       api.nvim_buf_set_option(bufnr, "buftype", "acwrite")
       api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
-      api.nvim_buf_set_option(bufnr, "syntax", "markdown")
 
       return bufnr
     end,

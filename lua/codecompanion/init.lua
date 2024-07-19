@@ -224,6 +224,17 @@ M.setup = function(opts)
   api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = hg.virtual_text, default = true })
   api.nvim_set_hl(0, "CodeCompanionVirtualTextAgents", { link = hg.virtual_text_agents, default = true })
   api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = hg.variables, default = true })
+
+  -- Setup syntax highlighting for the chat buffer
+  -- TODO: Need to make this dynamic for the many variables
+  vim.api.nvim_create_autocmd("FileType", {
+    pattern = "codecompanion",
+    callback = function()
+      vim.cmd.syntax('match CodeCompanionChatVariable "#buffer"')
+      vim.cmd.syntax('match CodeCompanionChatVariable "#buffers"')
+    end,
+  })
+
   -- Handle custom adapter config
   if opts and opts.adapters then
     for name, adapter in pairs(opts.adapters) do
