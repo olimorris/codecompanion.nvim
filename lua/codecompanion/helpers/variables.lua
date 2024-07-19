@@ -1,4 +1,5 @@
 local buf_utils = require("codecompanion.utils.buffers")
+local log = require("codecompanion.utils.log")
 
 local M = {}
 
@@ -6,7 +7,10 @@ local M = {}
 ---@param chat CodeCompanion.Chat
 ---@return string
 M.buffer = function(chat)
-  return buf_utils.format_by_id(chat.context.bufnr)
+  local output = buf_utils.format_by_id(chat.context.bufnr)
+  log:trace("Buffer Variable:\n---\n%s", output)
+
+  return output
 end
 
 ---Return the open buffers that match the current filetype
