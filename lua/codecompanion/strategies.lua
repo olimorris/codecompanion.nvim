@@ -89,7 +89,6 @@ function Strategies:chat()
 
     log:trace("Strategy: Chat")
     return require("codecompanion.strategies.chat").new({
-      type = self.selected.type,
       adapter = self.selected.adapter,
       context = self.context,
       messages = messages,
