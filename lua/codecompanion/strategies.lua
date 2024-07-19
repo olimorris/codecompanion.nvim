@@ -130,9 +130,12 @@ function Strategies:agent()
 
   if type(adapter) == "string" then
     adapter = require("codecompanion.adapters").use(adapter)
-    if not adapter then
-      return nil
-    end
+  elseif type(adapter) == "function" then
+    adapter = adapter()
+  end
+
+  if not adapter then
+    return nil
   end
 
   log:trace("Strategy: Agent")

@@ -43,13 +43,15 @@ local agent_query = [[
 )
 ]]
 
----@param adapter? CodeCompanion.Adapter|string
+---@param adapter? CodeCompanion.Adapter|string|function
 ---@return CodeCompanion.Adapter
 local function resolve_adapter(adapter)
   adapter = adapter or config.adapters[config.strategies.chat.adapter]
 
   if type(adapter) == "string" then
     return require("codecompanion.adapters").use(adapter)
+  elseif type(adapter) == "function" then
+    return adapter()
   end
 
   return adapter
