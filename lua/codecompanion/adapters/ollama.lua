@@ -254,8 +254,8 @@ return {
       mapping = "parameters.options",
       type = "number",
       optional = true,
-      default = 128,
-      desc = "Maximum number of tokens to predict when generating text. (Default: 128, -1 = infinite generation, -2 = fill context)",
+      default = -1,
+      desc = "Maximum number of tokens to predict when generating text. (Default: -1, -1 = infinite generation, -2 = fill context)",
       validate = function(n)
         return n >= -2, "Must be -2 or greater"
       end,
