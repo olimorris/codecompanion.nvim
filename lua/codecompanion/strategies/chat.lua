@@ -14,7 +14,8 @@ local CONSTANTS = {
   NS_INTRO_MESSAGE = "CodeCompanion-intro_message",
   NS_VIRTUAL_TEXT = "CodeCompanion-virtual_text",
 
-  AUTOCMD_CHAT = "CodeCompanionChat",
+  AUGROUP = "codecompanion.chat",
+  AU_USER_EVENT = "CodeCompanionChat",
 
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
@@ -140,59 +141,6 @@ local function parse_messages(bufnr)
   end
 
   return output
-end
-
----Parse the buffer for any keywords as defined in the config
----@param chat CodeCompanion.Chat
----@param messages table
----@return nil
-local function parse_helpers(chat, messages)
-  if not config.opts.send_code then
-    return
-  end
-
-  local chat_maps = require("codecompanion.helpers.chat")
-
-  ---@param rhs string|table|fun(self)
-  ---@return table|nil
-  local function resolve(rhs)
-    if type(rhs) == "string" and vim.startswith(rhs, "helpers.chat.") then
-      -- The last part of the string is the function to call
-      local splits = vim.split(rhs, ".", { plain = true })
-      return resolve(chat_maps[splits[#splits]])
-    else
-      return rhs(chat)
-    end
-  end
-
-  ---@param message string
-  ---@param helpers table
-  ---@return string|nil
-  local function find(message, helpers)
-    for helper, _ in pairs(helpers) do
-      if message:match("%f[%w@]" .. "@" .. helper .. "%f[%W]") then
-        return helper
-      end
-    end
-    return nil
-  end
-
-  -- resolve all messages
-  for i, message in pairs(messages) do
-    local helper = find(message.content, config.strategies.chat.helpers)
-    if helper then
-      local content = resolve(config.strategies.chat.helpers[helper].callback)
-
-      if content then
-        log:debug("Parsed helper in chat buffer")
-        log:trace("parse_helper content: %s", content)
-        chat.buffers = {
-          index = i,
-          content = content,
-        }
-      end
-    end
-  end
 end
 
 ---@class CodeCompanion.Chat
@@ -463,7 +411,7 @@ end
 ---Set the autocmds for the chat buffer
 ---@return nil
 function Chat:set_autocmds()
-  local aug = api.nvim_create_augroup("CodeCompanion_" .. self.bufnr, {
+  local aug = api.nvim_create_augroup(CONSTANTS.AUGROUP .. self.bufnr, {
     clear = false,
   })
 
@@ -566,7 +514,7 @@ function Chat:set_autocmds()
   api.nvim_create_autocmd("User", {
     desc = "Store the current chat buffer",
     group = aug,
-    pattern = CONSTANTS.AUTOCMD_CHAT,
+    pattern = CONSTANTS.AU_USER_EVENT,
     callback = function(request)
       if request.data.bufnr ~= bufnr or request.data.action ~= "hide_buffer" then
         return
@@ -656,14 +604,28 @@ function Chat:submit()
     })
   end
 
-  -- Add the contents of any buffers
-  -- parse_helpers(self, messages)
-  -- if self.buffers then
-  --   table.insert(messages, self.buffers.index, {
-  --     role = "user",
-  --     content = self.buffers.content,
-  --   })
-  -- end
+  -- Detect if the user has called any variables in their latest message
+  local vars = self.variables:parse(self, messages[#messages].content, #messages)
+  if vars then
+    -- For the message that includes the variable, remove it from the content
+    -- so we don't confuse the LLM. We don't need to remove the variable in
+    -- future replies as the LLM has already processed it.
+    messages[#messages].content = vim.trim(self.variables:replace(messages[#messages].content, vars))
+    table.insert(self.variable_output, vars)
+  end
+
+  -- Always add the variables to the same place in the message stack
+  if self.variable_output then
+    for _, var in ipairs(self.variable_output) do
+      table.insert(messages, var.index, {
+        role = "user",
+        content = var.content,
+      })
+    end
+    log:trace("Variable used in response: %s", self.variable_output)
+  end
+
+  log:debug("Messages: %s", messages)
 
   vim.bo[bufnr].modified = false
   vim.bo[bufnr].modifiable = false
@@ -677,8 +639,8 @@ function Chat:submit()
       return self:reset()
     end
 
-    -- Sometimes the token payload comes as part of the final response so we
-    -- need to check for the tokens before the client is terminated
+    -- With some adapters, the tokens come as part of the regular response so
+    -- we need to account for that here before the client is terminated
     if data then
       self:get_tokens(data)
     end
@@ -691,7 +653,7 @@ function Chat:submit()
       end
       api.nvim_exec_autocmds(
         "User",
-        { pattern = CONSTANTS.AUTOCMD_CHAT, data = { status = CONSTANTS.STATUS_FINISHED } }
+        { pattern = CONSTANTS.AU_USER_EVENT, data = { status = CONSTANTS.STATUS_FINISHED } }
       )
       return self:reset()
     end
@@ -747,7 +709,7 @@ function Chat:hide()
 
   api.nvim_exec_autocmds(
     "User",
-    { pattern = CONSTANTS.AUTOCMD_CHAT, data = { action = "hide_buffer", bufnr = self.bufnr } }
+    { pattern = CONSTANTS.AU_USER_EVENT, data = { action = "hide_buffer", bufnr = self.bufnr } }
   )
 end
 

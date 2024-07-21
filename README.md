@@ -578,10 +578,11 @@ In the video, you'll notice that we're triggering a pre-defined LSP warnings pro
 
 The chat buffer is where you'll likely spend most of your time when interacting with the plugin. Running `:CodeCompanionChat` or `:'<,'>CodeCompanionChat` will open up a chat buffer where you can converse directly with an LLM. As a convenience, you can use `:CodeCompanionToggle` to toggle the visibility of a chat buffer.
 
-When in the chat buffer, you can leverage helpers via the use of keywords, anywhere under the `user` heading:
+When in the chat buffer you can include variables in your message such as:
 
-- `@buffer` - To include the contents of the buffer you initiated the chat from
-- `@buffers` - To include the contents of all loaded buffers that match the current filetype
+- `#buffer` - The contents of the buffer you were last in before opening up a chat buffer
+- `#buffers` - The contents of all loaded buffers that match the filetype of the buffer you were last in
+- `#editor` - The code in the editor's viewport (all visible buffers and lines)
 
 There are also many keymaps you can leverage in the chat buffer which are covered in the [chat buffer section](#the-chat-buffer) of this readme.
 
