@@ -226,14 +226,16 @@ M.setup = function(opts)
   api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = hg.variables, default = true })
 
   -- Setup syntax highlighting for the chat buffer
-  -- TODO: Need to make this dynamic for the many variables
+  local group = "codecompanion.syntax"
+  vim.api.nvim_create_augroup(group, { clear = true })
   vim.api.nvim_create_autocmd("FileType", {
     pattern = "codecompanion",
-    callback = function()
-      vim.cmd.syntax('match CodeCompanionChatVariable "#editor"')
+    group = group,
+    callback = vim.schedule_wrap(function()
       vim.cmd.syntax('match CodeCompanionChatVariable "#buffer"')
       vim.cmd.syntax('match CodeCompanionChatVariable "#buffers"')
-    end,
+      vim.cmd.syntax('match CodeCompanionChatVariable "#editor"')
+    end),
   })
 
   -- Handle custom adapter config
