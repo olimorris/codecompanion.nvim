@@ -17,14 +17,33 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return string
 M.buffers = function(chat)
-  local output
+  local output = ""
 
   local buffers = buf_utils.get_open(chat.context.filetype)
+
   for _, buffer in ipairs(buffers) do
     output = output .. "\n\n" .. buf_utils.format_by_id(buffer.id)
   end
 
+  log:trace("Buffers Variable:\n---\n%s", output)
+
   return output
+end
+
+---Return the selection
+---@param chat CodeCompanion.Chat
+---@return string
+M.editor = function(chat)
+  local buf_lines = buf_utils.get_visible_lines()
+
+  -- Replace the line numbers with content
+  local formatted = {}
+  for bufnr, range in pairs(buf_lines) do
+    range = range[1]
+    table.insert(formatted, buf_utils.format_by_id(bufnr, range))
+  end
+
+  return table.concat(formatted, "\n\n")
 end
 
 return M

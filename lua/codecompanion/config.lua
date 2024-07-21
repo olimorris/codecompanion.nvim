@@ -19,6 +19,10 @@ return {
           callback = "helpers.variables.buffers",
           description = "Share all current open buffers with the LLM",
         },
+        ["editor"] = {
+          callback = "helpers.variables.editor",
+          description = "Share the buffers and lines that you see in the editor",
+        },
       },
       keymaps = {
         ["<C-s>"] = "keymaps.save",

@@ -230,6 +230,7 @@ M.setup = function(opts)
   vim.api.nvim_create_autocmd("FileType", {
     pattern = "codecompanion",
     callback = function()
+      vim.cmd.syntax('match CodeCompanionChatVariable "#editor"')
       vim.cmd.syntax('match CodeCompanionChatVariable "#buffer"')
       vim.cmd.syntax('match CodeCompanionChatVariable "#buffers"')
     end,

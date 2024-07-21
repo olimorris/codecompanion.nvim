@@ -285,11 +285,10 @@ local registered_cmp = false
 ---@field opts CodeCompanion.ChatArgs
 ---@field context table
 ---@field saved_chat? string
----@field buffers? nil|table
 ---@field tokens? nil|number
 ---@field variables? CodeCompanion.Variables
+---@field variable_output? nil|table
 ---@field settings table
----@field type string
 local Chat = {}
 
 ---@class CodeCompanion.ChatArgs
@@ -300,7 +299,6 @@ local Chat = {}
 ---@field stop_context_insertion? boolean
 ---@field settings? table
 ---@field tokens? table
----@field type? string
 ---@field saved_chat? string
 ---@field status?string
 ---@field last_role? string
@@ -318,6 +316,7 @@ function Chat.new(args)
     status = "",
     last_role = "user",
     variables = require("codecompanion.strategies.chat.variables").new(),
+    variable_output = {},
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
@@ -649,7 +648,7 @@ function Chat:submit()
     return
   end
 
-  -- Add the adapter's chat prompt
+  -- Add the default system prompt
   if config.opts.system_prompt then
     table.insert(messages, 1, {
       role = "system",
