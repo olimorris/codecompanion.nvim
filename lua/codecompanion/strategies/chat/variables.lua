@@ -79,7 +79,7 @@ end
 ---@return string
 function Variables:replace(message, vars)
   var = _CONSTANTS.SUFFIX .. vars.var
-  return message:gsub(var, "")
+  return vim.trim(message:gsub(var, ""))
 end
 
 return Variables

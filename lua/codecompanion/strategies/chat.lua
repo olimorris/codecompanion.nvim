@@ -610,7 +610,7 @@ function Chat:submit()
     -- For the message that includes the variable, remove it from the content
     -- so we don't confuse the LLM. We don't need to remove the variable in
     -- future replies as the LLM has already processed it.
-    messages[#messages].content = vim.trim(self.variables:replace(messages[#messages].content, vars))
+    messages[#messages].content = self.variables:replace(messages[#messages].content, vars)
     table.insert(self.variable_output, vars)
   end
 
