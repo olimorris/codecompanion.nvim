@@ -23,10 +23,14 @@ local Adapter = {}
 ---@field callbacks.chat_output fun(data: table): table|nil
 ---@field callbacks.inline_output fun(data: table, context: table): table|nil
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
+---@field init? function Function to call during intialisation of the object, useful if you want to modify the schema using values from the schema
 
 ---@param args CodeCompanion.AdapterArgs
 ---@return CodeCompanion.Adapter
 function Adapter.new(args)
+  if args.init then
+    args = args.init(args)
+  end
   return setmetatable({ args = args }, { __index = Adapter })
 end
 
