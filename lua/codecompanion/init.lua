@@ -256,9 +256,9 @@ M.setup = function(opts)
   -- Setup the pre-defined prompts
   local prompts = require("codecompanion.utils.prompts").new(M.config.action_prompts):setup()
   for name, prompt in pairs(prompts.prompts) do
-    if prompt.opts.shortcut then
+    if prompt.opts.slash_cmd then
       prompt.name = name
-      M.pre_defined_prompts[prompt.opts.shortcut] = prompt
+      M.pre_defined_prompts[prompt.opts.slash_cmd] = prompt
     end
   end
 

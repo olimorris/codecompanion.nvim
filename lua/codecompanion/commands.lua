@@ -26,21 +26,21 @@ return {
           codecompanion.inline(opts)
         end)
       else
-        -- if string.sub(opts.args, 1, 1) == "@" then
-        --   local prompt = string.sub(opts.args, 2)
-        --
-        --   if string.match(prompt, "^(%S+)") == "buffers" then
-        --     opts.args = clean_up_prompt(opts.args)
-        --     table.insert(opts, { send_open_buffers = true })
-        --   elseif string.match(prompt, "^(%S+)") == "buffer" then
-        --     opts.args = clean_up_prompt(opts.args)
-        --     table.insert(opts, { send_current_buffer = true })
-        --   end
-        --
-        --   if codecompanion.pre_defined_prompts[prompt] then
-        --     return codecompanion.run_pre_defined_prompts(prompt, opts)
-        --   end
-        -- end
+        if string.sub(opts.args, 1, 1) == "/" then
+          local prompt = string.sub(opts.args, 2)
+          --
+          --   if string.match(prompt, "^(%S+)") == "buffers" then
+          --     opts.args = clean_up_prompt(opts.args)
+          --     table.insert(opts, { send_open_buffers = true })
+          --   elseif string.match(prompt, "^(%S+)") == "buffer" then
+          --     opts.args = clean_up_prompt(opts.args)
+          --     table.insert(opts, { send_current_buffer = true })
+          --   end
+          --
+          if codecompanion.pre_defined_prompts[prompt] then
+            return codecompanion.run_pre_defined_prompts(prompt, opts)
+          end
+        end
 
         codecompanion.inline(opts)
       end

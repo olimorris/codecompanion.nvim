@@ -29,7 +29,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 - :speech_balloon: A Copilot Chat experience in Neovim
 - :electric_plug: Support for OpenAI, Anthropic and Ollama
 - :rocket: Inline code creation and refactoring
-- :robot: Agents and Workflows to improve LLM output
+- :robot: Variables, Agents and Workflows to improve LLM output
 - :sparkles: Built in prompts for LSP errors and code advice
 - :building_construction: Create your own custom prompts for Neovim
 - :floppy_disk: Save and restore your chats
@@ -105,22 +105,22 @@ require("codecompanion").setup({
   strategies = {
     chat = {
       adapter = "openai",
-      -- Helpers which can be referenced in the chat buffer with the "@" symbol e.g. "@buffer"
-      helpers = {
+      -- Variables which can be referenced in the chat buffer with the "#" symbol e.g. "#buffer"
+      variables = {
         ["buffer"] = {
-          callback = "helpers.chat.buffer",
-          category = "buffer",
+          callback = "helpers.variables.buffer",
+          contains_code = true,
           description = "Share the current buffer with the LLM",
         },
         ["buffers"] = {
-          callback = "helpers.chat.buffers",
-          category = "buffer",
-          description = "Share all loaded buffers (matching the filetype) with the LLM",
+          callback = "helpers.variables.buffers",
+          contains_code = true,
+          description = "Share all current open buffers with the LLM",
         },
-        ["bufferq"] = {
-          callback = "helpers.chat.bufferq",
-          category = "buffer",
-          description = "Share the content of the buffers from the quickfix list",
+        ["editor"] = {
+          callback = "helpers.variables.editor",
+          contains_code = true,
+          description = "Share the buffers and lines that you see in the editor",
         },
       },
       keymaps = {
@@ -259,7 +259,7 @@ require("codecompanion").setup({
         default_prompt = true,
         mapping = "<LocalLeader>ca",
         modes = { "v" },
-        shortcut = "advisor",
+        slash_cmd = "advisor",
         auto_submit = true,
         user_prompt = true,
         stop_context_insertion = true,
@@ -292,7 +292,7 @@ require("codecompanion").setup({
         default_prompt = true,
         mapping = "<LocalLeader>cl",
         modes = { "v" },
-        shortcut = "lsp",
+        slash_cmd = "lsp",
         auto_submit = true,
         user_prompt = false, -- Prompt the user for their own input
         stop_context_insertion = true,
@@ -354,7 +354,7 @@ require("codecompanion").setup({
         index = 5,
         default_prompt = true,
         mapping = "<LocalLeader>cm",
-        shortcut = "commit",
+        slash_cmd = "commit",
         auto_submit = true,
       },
       prompts = {
@@ -477,7 +477,7 @@ require("codecompanion").setup({
 ```
 
 > [!TIP]
-> To create your own adapter please refer to the [ADAPTERS](ADAPTERS.md) guide.
+> To create your own adapter please refer to the [ADAPTERS](docs/ADAPTERS.md) guide.
 
 **Configuring environment variables**
 
@@ -566,7 +566,7 @@ The plugin sets the following highlight groups during setup:
 
 To start interacting with the plugin you can run `:CodeCompanion <your prompt>` from the command line. You can also make a visual selection in Neovim and run `:'<,'>CodeCompanion <your prompt>` to send it as context. A command such as `:'<,'>CodeCompanion what does this code do?` will prompt the LLM the respond in a chat buffer allowing you to ask any follow up questions. Whereas a command such as `:CodeCompanion can you create a function that outputs the current date and time` would result in the output being placed at the cursor's position in the buffer.
 
-In the video, you'll notice that we're triggering a pre-defined LSP warnings prompt by running `:'<,'>:CodeCompanion @lsp`. You can find more on this in the [default prompts](#default-prompts) section.
+In the video, you'll notice that we're triggering a pre-defined LSP warnings prompt by running `:'<,'>:CodeCompanion /lsp`. You can find more on this in the [default prompts](#default-prompts) section.
 
 **Chat Buffer**
 
@@ -580,9 +580,9 @@ The chat buffer is where you'll likely spend most of your time when interacting 
 
 When in the chat buffer you can include variables in your message such as:
 
-- `#buffer` - The contents of the buffer you were last in before opening up a chat buffer
-- `#buffers` - The contents of all loaded buffers that match the filetype of the buffer you were last in
-- `#editor` - The code in the editor's viewport (all visible buffers and lines)
+- `#buffer` - To share the contents of the current buffer
+- `#buffers` - To share the contents of all loaded buffers that match the filetype of the current buffer
+- `#editor` - To share the visible code from all buffers in the editor's viewport
 
 There are also many keymaps you can leverage in the chat buffer which are covered in the [chat buffer section](#the-chat-buffer) of this readme.
 
@@ -594,7 +594,7 @@ There are also many keymaps you can leverage in the chat buffer which are covere
 
 <!-- panvimdoc-ignore-end -->
 
-The `:CodeCompanionActions` command will open the _Action Palette_, giving you access to all of the functionality in the plugin. The _Prompts_ section is where your custom prompts and the pre-defined ones can be accessed. You'll notice that some prompts have a label in their description such as `@commit`. This enables you to trigger them from the command line by doing `:CodeCompanion @commit`. Some of these prompts also have keymaps assigned to them (which can be overwritten!) which offers an even easier route to triggering them.
+The `:CodeCompanionActions` command will open the _Action Palette_, giving you access to all of the functionality in the plugin. The _Prompts_ section is where your custom prompts and the pre-defined ones can be accessed. You'll notice that some prompts have a label in their description such as `/commit`. This enables you to trigger them from the command line by doing `:CodeCompanion /commit`. Some of these prompts also have keymaps assigned to them (which can be overwritten!) which offers an even easier route to triggering them.
 
 > [!NOTE]
 > Some actions will only be visible in the _Action Palette_ if you're in Visual mode.
@@ -605,7 +605,7 @@ Below is the full list of commands that are available in the plugin:
 
 - `CodeCompanionActions` - To open the _Action Palette_
 - `CodeCompanion` - Inline prompting of the plugin
-- `CodeCompanion <shortcut>` - Inline prompting of the plugin with a shortcut e.g. `@commit`
+- `CodeCompanion <slash_cmd>` - Inline prompting of the plugin with a slash command e.g. `/commit`
 - `CodeCompanionChat` - To open up a new chat buffer
 - `CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
 - `CodeCompanionToggle` - To toggle a chat buffer
@@ -630,7 +630,7 @@ vim.cmd([[cab cc CodeCompanion]])
 
 ### Customising the Action Palette
 
-A [RECIPES](RECIPES.md) guide has been created to show you how you can add your own prompts to the _Action Palette_.
+A [RECIPES](docs/RECIPES.md) guide has been created to show you how you can add your own prompts to the _Action Palette_.
 
 ### The Chat Buffer
 
@@ -667,7 +667,7 @@ From the Action Palette, the `Open Chats` action enables users to easily navigat
 > [!NOTE]
 > If `send_code = false` then this will take precedent and no buffers will be sent to the LLM
 
-Inline prompts can be triggered via the `CodeCompanion <your prompt>` command. As mentioned in the [Getting Started](#rocket-getting-started) guide, you can also leverage visual selections and prompt shortcuts like `'<,'>CodeCompanion @lsp`.
+Inline prompts can be triggered via the `CodeCompanion <your prompt>` command. As mentioned in the [Getting Started](#rocket-getting-started) guide, you can also leverage visual selections and slash commands like `'<,'>CodeCompanion /lsp`.
 
 One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed after the cursor's current position in the buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. The plugin will use the inline LLM you've specified to determine if the response should follow any of the placements below:
 
@@ -680,17 +680,17 @@ One of the challenges with inline editing is determining how the LLM's response 
 ### Default Prompts
 
 > [!NOTE]
-> Please see the [RECIPES](RECIPES.md) guide in order to add your own pre-defined prompts to the palette.
+> Please see the [RECIPES](docs/RECIPES.md) guide in order to add your own pre-defined prompts to the palette.
 
-The plugin comes with a number of default prompts and corresponding keymaps/shortcuts:
+The plugin comes with a number of default prompts and corresponding keymaps/commands:
 
 - **Custom Prompt** - For custom inline prompting of an LLM (`<LocalLeader>cc`)
 - **Senior Developer** - Chat with a senior developer for the given filetype (`<LocalLeader>ce`)
-- **Generate a Commit Message** - Use an LLM to write a commit message for you (`<LocalLeader>cm` / `@commit`)
-- **Code Advisor** - Get advice from an LLM on code you've selected (`<LocalLeader>ca` / `@advisor`)
-- **Explain LSP Diagnostics** - Use an LLM to explain LSP diagnostics for code you've selected (`<LocalLeader>cl` / `@lsp`)
+- **Generate a Commit Message** - Use an LLM to write a commit message for you (`<LocalLeader>cm` / `/commit`)
+- **Code Advisor** - Get advice from an LLM on code you've selected (`<LocalLeader>ca` / `/advisor`)
+- **Explain LSP Diagnostics** - Use an LLM to explain LSP diagnostics for code you've selected (`<LocalLeader>cl` / `/lsp`)
 
-Shortcuts can be accessed via the command line by typing `:CodeCompanion @commit`.
+Slash Commands can be accessed via the command line by typing `:CodeCompanion /commit`.
 
 ### Agents
 
@@ -720,7 +720,7 @@ Currently, there are two types of agent that are supported in the plugin:
 - _RAG (Retrieval-Augmented Generation)_ - A command-based agent that supplements the LLM with real-time information.
 - _Buffer Editor_ - A function-based agent that edits code by searching and replacing blocks directly within Neovim buffers. This agent showcases a new, more flexible approach to agent implementation, allowing for complex operations that interact closely with the editor.
 
-More information on how agents work and how you can create your own can be found in the [AGENTS](AGENTS.md) guide.
+More information on how agents work and how you can create your own can be found in the [AGENTS](docs/AGENTS.md) guide.
 
 ### Workflows
 
@@ -734,7 +734,7 @@ Currently, the plugin comes with the following workflows:
 - Adding a new feature
 - Refactoring code
 
-Of course you can add new workflows by following the [RECIPES](RECIPES.md) guide.
+Of course you can add new workflows by following the [RECIPES](docs/RECIPES.md) guide.
 
 ## :lollipop: Extras
 

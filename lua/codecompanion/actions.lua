@@ -94,8 +94,8 @@ M.static.actions = {
           if type(prompt.description) == "function" then
             description = prompt.description(context)
           end
-          if prompt.opts and prompt.opts.shortcut then
-            description = "(@" .. prompt.opts.shortcut .. ") " .. description
+          if prompt.opts and prompt.opts.slash_cmd then
+            description = "(/" .. prompt.opts.slash_cmd .. ") " .. description
           end
 
           table.insert(prompts, {

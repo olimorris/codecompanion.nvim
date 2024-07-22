@@ -167,7 +167,7 @@ return {
         default_prompt = true,
         mapping = "<LocalLeader>ca",
         modes = { "v" },
-        shortcut = "advisor",
+        slash_cmd = "advisor",
         auto_submit = true,
         user_prompt = true,
         stop_context_insertion = true,
@@ -200,7 +200,7 @@ return {
         default_prompt = true,
         mapping = "<LocalLeader>cl",
         modes = { "v" },
-        shortcut = "lsp",
+        slash_cmd = "lsp",
         auto_submit = true,
         user_prompt = false, -- Prompt the user for their own input
         stop_context_insertion = true,
@@ -265,7 +265,7 @@ return {
         index = 5,
         default_prompt = true,
         mapping = "<LocalLeader>cm",
-        shortcut = "commit",
+        slash_cmd = "commit",
         auto_submit = true,
       },
       prompts = {
