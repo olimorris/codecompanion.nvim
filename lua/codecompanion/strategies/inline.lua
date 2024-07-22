@@ -503,7 +503,7 @@ function Inline:diff_removed()
   local ns_id = api.nvim_create_namespace("codecompanion_diff_removed_")
   api.nvim_buf_clear_namespace(self.context.bufnr, ns_id, 0, -1)
 
-  local diff_hl_group = api.nvim_get_hl(0, { name = config.display.inline.diff.hl_group or "DiffDelete" })
+  local diff_hl_group = api.nvim_get_hl(0, { name = config.display.inline.diff.highlights.removed or "DiffDelete" })
 
   local virt_lines = {}
   local win_width = api.nvim_win_get_width(0)

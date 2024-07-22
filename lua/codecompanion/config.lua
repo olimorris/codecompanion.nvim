@@ -320,7 +320,7 @@ return {
       diff = {
         enabled = true,
         priority = 130,
-        hl_groups = {
+        highlights = {
           removed = "DiffDelete",
         },
       },
