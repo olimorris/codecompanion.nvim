@@ -1,3 +1,5 @@
+local log = require("codecompanion.utils.log")
+
 ---@class CodeCompanionCommandOpts:table
 ---@field desc string
 
@@ -27,18 +29,26 @@ return {
         end)
       else
         if string.sub(opts.args, 1, 1) == "/" then
-          local prompt = string.sub(opts.args, 2)
-          --
-          --   if string.match(prompt, "^(%S+)") == "buffers" then
-          --     opts.args = clean_up_prompt(opts.args)
-          --     table.insert(opts, { send_open_buffers = true })
-          --   elseif string.match(prompt, "^(%S+)") == "buffer" then
-          --     opts.args = clean_up_prompt(opts.args)
-          --     table.insert(opts, { send_current_buffer = true })
-          --   end
-          --
-          if codecompanion.pre_defined_prompts[prompt] then
-            return codecompanion.run_pre_defined_prompts(prompt, opts)
+          local user_prompt = nil
+          -- Remove the leading slash
+          local slash_cmd = string.sub(opts.args, 2)
+
+          local user_prompt_pos = string.find(slash_cmd, " ")
+
+          if user_prompt_pos then
+            -- Extract the user_promtp first
+            user_prompt = string.sub(slash_cmd, user_prompt_pos + 1)
+            slash_cmd = string.sub(slash_cmd, 1, user_prompt_pos - 1)
+
+            log:trace("Slash cmd: %s", slash_cmd)
+            log:trace("User prompt: %s", user_prompt)
+          end
+
+          if codecompanion.slash_cmds[slash_cmd] then
+            if user_prompt then
+              opts.user_prompt = user_prompt
+            end
+            return codecompanion.run_slash_cmds(slash_cmd, opts)
           end
         end
 

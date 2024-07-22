@@ -1,11 +1,13 @@
+local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils.context")
+
 local api = vim.api
 
 ---@class CodeCompanion
 local M = {}
 
-M.pre_defined_prompts = {}
+M.slash_cmds = {}
 M.config = require("codecompanion.config")
 
 ---Prompt the LLM from within the current buffer
@@ -36,9 +38,15 @@ end
 ---@param prompt table The prompt to resolve from the command
 ---@param args table The arguments that were passed to the command
 ---@return CodeCompanion.Strategies
-M.run_pre_defined_prompts = function(prompt, args)
+M.run_slash_cmds = function(prompt, args)
+  log:trace("Running slash_cmd")
   local context = util.get_context(api.nvim_get_current_buf(), args)
-  local item = M.pre_defined_prompts[prompt]
+  local item = M.slash_cmds[prompt]
+
+  if args.user_prompt then
+    log:trace("Adding custom user prompt via slash_cmd")
+    item.opts.user_prompt = args.user_prompt
+  end
 
   return require("codecompanion.strategies")
     .new({
@@ -258,7 +266,7 @@ M.setup = function(opts)
   for name, prompt in pairs(prompts.prompts) do
     if prompt.opts.slash_cmd then
       prompt.name = name
-      M.pre_defined_prompts[prompt.opts.slash_cmd] = prompt
+      M.slash_cmds[prompt.opts.slash_cmd] = prompt
     end
   end
 

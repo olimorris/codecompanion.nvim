@@ -192,11 +192,66 @@ return {
         },
       },
     },
+    ["Buffer selection"] = {
+      strategy = "inline",
+      description = "Send the current buffer to the LLM as part of an inline prompt",
+      opts = {
+        index = 4,
+        modes = { "v" },
+        default_prompt = true,
+        mapping = "<LocalLeader>cb",
+        slash_cmd = "buffer",
+        auto_submit = true,
+        user_prompt = true,
+        stop_context_insertion = true,
+      },
+      prompts = {
+        {
+          role = "system",
+          tag = "system_tag",
+          content = function(context)
+            return "I want you to act as a senior "
+              .. context.filetype
+              .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing."
+          end,
+        },
+        {
+          role = "user",
+          contains_code = true,
+          content = function(context)
+            local buf_utils = require("codecompanion.utils.buffers")
+
+            return "## buffers\n\nFor context, this is the whole of the buffer:\n\n```"
+              .. context.filetype
+              .. "\n"
+              .. buf_utils.get_content(context.bufnr)
+              .. "\n```\n\n"
+          end,
+        },
+        {
+          role = "user",
+          contains_code = true,
+          tag = "visual",
+          condition = function(context)
+            -- The inline strategy will automatically add this in visual mode
+            return context.is_visual == false
+          end,
+          content = function(context)
+            local selection = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
+            return "And this is the specific code that relates to my question:\n\n```"
+              .. context.filetype
+              .. "\n"
+              .. selection
+              .. "\n```\n\n"
+          end,
+        },
+      },
+    },
     ["Explain LSP Diagnostics"] = {
       strategy = "chat",
       description = "Use an LLM to explain any LSP diagnostics",
       opts = {
-        index = 4,
+        index = 5,
         default_prompt = true,
         mapping = "<LocalLeader>cl",
         modes = { "v" },
@@ -262,7 +317,7 @@ return {
       strategy = "chat",
       description = "Generate a commit message",
       opts = {
-        index = 5,
+        index = 6,
         default_prompt = true,
         mapping = "<LocalLeader>cm",
         slash_cmd = "commit",
