@@ -30,7 +30,7 @@ M.buffers = function(chat)
   return output
 end
 
----Return the selection
+---Return all of the visible lines in the editor's viewport
 ---@param chat CodeCompanion.Chat
 ---@return string
 M.editor = function(chat)
