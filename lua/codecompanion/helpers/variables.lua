@@ -46,6 +46,4 @@ M.editor = function(chat)
   return table.concat(formatted, "\n\n")
 end
 
-M.lsp = function(chat) end
-
 return M
