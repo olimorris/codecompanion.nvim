@@ -98,6 +98,10 @@ function Strategies:chat()
   end
 
   if self.selected.opts and self.selected.opts.user_prompt then
+    if type(self.selected.opts.user_prompt) == "string" then
+      return chat(self.selected.opts.user_prompt)
+    end
+
     vim.ui.input({ prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " Prompt" }, function(input)
       if not input then
         return

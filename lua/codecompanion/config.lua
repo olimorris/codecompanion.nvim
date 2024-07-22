@@ -167,7 +167,7 @@ return {
         default_prompt = true,
         mapping = "<LocalLeader>ca",
         modes = { "v" },
-        slash_cmd = "advisor",
+        slash_cmd = "advice",
         auto_submit = true,
         user_prompt = true,
         stop_context_insertion = true,
@@ -178,7 +178,7 @@ return {
           content = function(context)
             return "I want you to act as a senior "
               .. context.filetype
-              .. " developer. I will ask you specific questions and I want you to return concise explanations and codeblock examples."
+              .. " developer. I will ask you specific questions and I want you to return concise explanations and codeblock examples so I may understand."
           end,
         },
         {
@@ -257,7 +257,7 @@ return {
         modes = { "v" },
         slash_cmd = "lsp",
         auto_submit = true,
-        user_prompt = false, -- Prompt the user for their own input
+        user_prompt = false,
         stop_context_insertion = true,
       },
       prompts = {

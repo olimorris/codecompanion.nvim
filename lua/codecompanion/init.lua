@@ -43,7 +43,8 @@ M.run_slash_cmds = function(prompt, args)
   local context = util.get_context(api.nvim_get_current_buf(), args)
   local item = M.slash_cmds[prompt]
 
-  if args.user_prompt then
+  -- A user may add a prompt after calling the slash command
+  if item.opts.user_prompt and args.user_prompt then
     log:trace("Adding custom user prompt via slash_cmd")
     item.opts.user_prompt = args.user_prompt
   end
