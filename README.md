@@ -136,7 +136,7 @@ require("codecompanion").setup({
 ```
 
 > [!TIP]
-> To create your own adapter please refer to the [ADAPTERS](docs/ADAPTERS.md) guide.
+> To create your own adapter please refer to the [ADAPTERS](doc/ADAPTERS.md) guide.
 
 **Configuring environment variables**
 
@@ -299,7 +299,7 @@ vim.cmd([[cab cc CodeCompanion]])
 
 ### Customising the Action Palette
 
-A [RECIPES](docs/RECIPES.md) guide has been created to show you how you can add your own prompts to the _Action Palette_.
+A [RECIPES](doc/RECIPES.md) guide has been created to show you how you can add your own prompts to the _Action Palette_.
 
 ### The Chat Buffer
 
@@ -349,7 +349,7 @@ One of the challenges with inline editing is determining how the LLM's response 
 ### Default Prompts
 
 > [!NOTE]
-> Please see the [RECIPES](docs/RECIPES.md) guide in order to add your own pre-defined prompts to the palette.
+> Please see the [RECIPES](doc/RECIPES.md) guide in order to add your own pre-defined prompts to the palette.
 
 The plugin comes with a number of default prompts and corresponding keymaps/commands:
 
@@ -390,7 +390,7 @@ Currently, there are two types of agent that are supported in the plugin:
 - _RAG (Retrieval-Augmented Generation)_ - A command-based agent that supplements the LLM with real-time information.
 - _Buffer Editor_ - A function-based agent that edits code by searching and replacing blocks directly within Neovim buffers. This agent showcases a new, more flexible approach to agent implementation, allowing for complex operations that interact closely with the editor.
 
-More information on how agents work and how you can create your own can be found in the [AGENTS](docs/AGENTS.md) guide.
+More information on how agents work and how you can create your own can be found in the [AGENTS](doc/AGENTS.md) guide.
 
 ### Workflows
 
@@ -404,7 +404,7 @@ Currently, the plugin comes with the following workflows:
 - Adding a new feature
 - Refactoring code
 
-Of course you can add new workflows by following the [RECIPES](docs/RECIPES.md) guide.
+Of course you can add new workflows by following the [RECIPES](doc/RECIPES.md) guide.
 
 ## :lollipop: Extras
 
