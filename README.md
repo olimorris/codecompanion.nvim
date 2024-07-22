@@ -55,10 +55,11 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 
 ## :package: Installation
 
-Install the plugin with your package manager of choice:
+Install the plugin with your preferred package manager:
+
+**[Lazy.nvim](https://github.com/folke/lazy.nvim)**
 
 ```lua
--- Lazy.nvim
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
@@ -72,8 +73,11 @@ Install the plugin with your package manager of choice:
   },
   config = true
 }
+```
 
--- Packer.nvim
+**[Packer](https://github.com/wbthomason/packer.nvim)**
+
+```lua
 use({
   "olimorris/codecompanion.nvim",
   config = function()
@@ -395,6 +399,12 @@ require("codecompanion").setup({
           wrap = true,
         },
       },
+      highlights = {
+        tokens = "Comment",
+        virtual_text = "Comment",
+        virtual_text_agents = "Comment",
+        variables = "Identifier",
+      },
       intro_message = "Welcome to CodeCompanion ✨! Save the buffer to send a message...",
       show_settings = true,
       show_token_count = true,
@@ -403,7 +413,7 @@ require("codecompanion").setup({
       diff = {
         enabled = true,
         priority = 130,
-        hl_groups = {
+        highlights = {
           removed = "DiffDelete",
         },
       },
@@ -486,11 +496,13 @@ You can customise an adapter's configuration as follows:
 ```lua
 require("codecompanion").setup({
   adapters = {
-    anthropic = require("codecompanion.adapters").use("anthropic", {
-      env = {
-        api_key = "ANTHROPIC_API_KEY_1"
-      },
-    }),
+    anthropic = function()
+      return require("codecompanion.adapters").use("anthropic", {
+        env = {
+          api_key = "ANTHROPIC_API_KEY_1"
+        },
+      })
+    end,
   },
   strategies = {
     chat = {
@@ -507,11 +519,13 @@ Having API keys in plain text in your shell is not always safe. Thanks to [this 
 ```lua
 require("codecompanion").setup({
   adapters = {
-    openai = require("codecompanion.adapters").use("openai", {
-      env = {
-        api_key = "cmd:op read op://personal/OpenAI/credential --no-newline",
-      },
-    }),
+    openai = function()
+      return require("codecompanion.adapters").use("openai", {
+        env = {
+          api_key = "cmd:op read op://personal/OpenAI/credential --no-newline",
+        },
+      })
+    end,
     strategies = {
       chat = {
         adapter = "openai",
@@ -530,13 +544,15 @@ LLMs have many settings such as _model_, _temperature_ and _max_tokens_. In an a
 ```lua
 require("codecompanion").setup({
   adapters = {
-    anthropic = require("codecompanion.adapters").use("anthropic", {
-      schema = {
-        model = {
-          default = "claude-3-sonnet-20240229",
+    anthropic = function()
+      return require("codecompanion.adapters").use("anthropic", {
+        schema = {
+          model = {
+            default = "claude-3-sonnet-20240229",
+          },
         },
-      },
-    }),
+      })
+    end,
   },
 })
 ```
@@ -551,6 +567,10 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionTokens` - Virtual text in the chat buffer showing the token count
 - `CodeCompanionVirtualText` - All other virtual text in the chat buffer
 - `CodeCompanionVirtualTextAgents` - Virtual text in the chat buffer for when a agent is running
+- `CodeCompanionChatVariable` - Variables in the chat buffer
+
+> [!TIP]
+> You can change which highlight group these link to in your configuration.
 
 ## :rocket: Getting Started
 
