@@ -232,9 +232,9 @@ M.setup = function(opts)
     pattern = "codecompanion",
     group = group,
     callback = vim.schedule_wrap(function()
-      vim.cmd.syntax('match CodeCompanionChatVariable "#buffer"')
-      vim.cmd.syntax('match CodeCompanionChatVariable "#buffers"')
-      vim.cmd.syntax('match CodeCompanionChatVariable "#editor"')
+      for var, _ in pairs(M.config.strategies.chat.variables) do
+        vim.cmd.syntax('match CodeCompanionChatVariable "#' .. var .. '"')
+      end
     end),
   })
 
