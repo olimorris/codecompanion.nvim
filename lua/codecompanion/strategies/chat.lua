@@ -625,8 +625,6 @@ function Chat:submit()
     log:trace("Variable used in response: %s", self.variable_output)
   end
 
-  log:debug("Messages: %s", messages)
-
   vim.bo[bufnr].modified = false
   vim.bo[bufnr].modifiable = false
 
