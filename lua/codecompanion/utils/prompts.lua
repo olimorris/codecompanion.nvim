@@ -1,5 +1,5 @@
 local Strategy = require("codecompanion.strategies")
-local util = require("codecompanion.utils.util")
+local util = require("codecompanion.utils.context")
 local api = vim.api
 
 ---@param desc table
