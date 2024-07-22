@@ -1,7 +1,9 @@
 local Strategy = require("codecompanion.strategies")
-local util = require("codecompanion.utils.util")
+local util = require("codecompanion.utils.context")
 local api = vim.api
 
+---@param desc table
+---@return string|function|nil
 local function resolve_description(desc)
   if type(desc) == "string" then
     return desc
@@ -13,6 +15,7 @@ end
 
 ---@param config table
 ---@param mode string
+---@return nil
 local function map(config, mode)
   return api.nvim_set_keymap(mode, config.opts.mapping, "", {
     callback = function()
@@ -43,9 +46,10 @@ function Prompts.new(prompts)
   return self
 end
 
+---@return CodeCompanion.Prompts
 function Prompts:setup()
   --Loop through the prompts
-  for name, config in pairs(self.prompts) do
+  for _, config in pairs(self.prompts) do
     if config.opts and config.opts.mapping then
       if config.opts.modes and type(config.opts.modes) == "table" then
         for _, mode in ipairs(config.opts.modes) do

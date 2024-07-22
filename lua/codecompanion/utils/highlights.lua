@@ -1,7 +1,9 @@
+local api = vim.api
+
 local M = {}
 
 function M.combine(default, target)
-  local target_hl = vim.api.nvim_get_hl(0, { name = target })
+  local target_hl = api.nvim_get_hl(0, { name = target })
   local combined = "CodeCompanionInline" .. target
 
   local opts = {
@@ -14,7 +16,7 @@ function M.combine(default, target)
     strikethrough = target_hl.strikethrough,
   }
 
-  vim.api.nvim_set_hl(0, combined, opts)
+  api.nvim_set_hl(0, combined, opts)
 
   return combined
 end

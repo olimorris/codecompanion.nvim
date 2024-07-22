@@ -1,11 +1,13 @@
+local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
-local util = require("codecompanion.utils.util")
+local util = require("codecompanion.utils.context")
+
 local api = vim.api
 
 ---@class CodeCompanion
 local M = {}
 
-M.pre_defined_prompts = {}
+M.slash_cmds = {}
 M.config = require("codecompanion.config")
 
 ---Prompt the LLM from within the current buffer
@@ -36,9 +38,16 @@ end
 ---@param prompt table The prompt to resolve from the command
 ---@param args table The arguments that were passed to the command
 ---@return CodeCompanion.Strategies
-M.run_pre_defined_prompts = function(prompt, args)
-  local context = util.get_context(vim.api.nvim_get_current_buf(), args)
-  local item = M.pre_defined_prompts[prompt]
+M.run_slash_cmds = function(prompt, args)
+  log:trace("Running slash_cmd")
+  local context = util.get_context(api.nvim_get_current_buf(), args)
+  local item = M.slash_cmds[prompt]
+
+  -- A user may add a prompt after calling the slash command
+  if item.opts.user_prompt and args.user_prompt then
+    log:trace("Adding custom user prompt via slash_cmd")
+    item.opts.user_prompt = args.user_prompt
+  end
 
   return require("codecompanion.strategies")
     .new({
@@ -216,11 +225,27 @@ end
 ---@param opts nil|table
 ---@return nil
 M.setup = function(opts)
-  api.nvim_set_hl(0, "CodeCompanionTokens", { link = "Comment", default = true })
-  api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
-  api.nvim_set_hl(0, "CodeCompanionVirtualTextAgents", { link = "CodeCompanionVirtualText", default = true })
-
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
+
+  -- Set the highlight groups
+  local hg = M.config.display.chat.highlights
+  api.nvim_set_hl(0, "CodeCompanionTokens", { link = hg.tokens, default = true })
+  api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = hg.virtual_text, default = true })
+  api.nvim_set_hl(0, "CodeCompanionVirtualTextAgents", { link = hg.virtual_text_agents, default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = hg.variables, default = true })
+
+  -- Setup syntax highlighting for the chat buffer
+  local group = "codecompanion.syntax"
+  vim.api.nvim_create_augroup(group, { clear = true })
+  vim.api.nvim_create_autocmd("FileType", {
+    pattern = "codecompanion",
+    group = group,
+    callback = vim.schedule_wrap(function()
+      for var, _ in pairs(M.config.strategies.chat.variables) do
+        vim.cmd.syntax('match CodeCompanionChatVariable "#' .. var .. '"')
+      end
+    end),
+  })
 
   -- Handle custom adapter config
   if opts and opts.adapters then
@@ -238,16 +263,16 @@ M.setup = function(opts)
   end
 
   -- Setup the pre-defined prompts
-  local prompts = require("codecompanion.prompts").new(M.config.action_prompts):setup()
+  local prompts = require("codecompanion.utils.prompts").new(M.config.action_prompts):setup()
   for name, prompt in pairs(prompts.prompts) do
-    if prompt.opts.shortcut then
+    if prompt.opts.slash_cmd then
       prompt.name = name
-      M.pre_defined_prompts[prompt.opts.shortcut] = prompt
+      M.slash_cmds[prompt.opts.slash_cmd] = prompt
     end
   end
 
-  M.config.INFO_NS = vim.api.nvim_create_namespace("CodeCompanion-info")
-  M.config.ERROR_NS = vim.api.nvim_create_namespace("CodeCompanion-error")
+  M.config.INFO_NS = api.nvim_create_namespace("CodeCompanion-info")
+  M.config.ERROR_NS = api.nvim_create_namespace("CodeCompanion-error")
 
   local diagnostic_config = {
     underline = false,

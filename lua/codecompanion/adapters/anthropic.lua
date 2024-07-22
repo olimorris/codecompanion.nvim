@@ -196,10 +196,10 @@ return {
       mapping = "parameters",
       type = "number",
       optional = true,
-      default = 1024,
+      default = 4096,
       desc = "The maximum number of tokens to generate before stopping. This parameter only specifies the absolute maximum number of tokens to generate. Different models have different maximum values for this parameter.",
       validate = function(n)
-        return n > 0, "Must be greater than 0"
+        return n > 0 and n <= 8192, "Must be between 0 and 8192"
       end,
     },
     temperature = {

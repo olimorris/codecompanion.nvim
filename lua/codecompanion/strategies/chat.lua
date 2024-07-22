@@ -1,8 +1,9 @@
 local client = require("codecompanion.client")
 local config = require("codecompanion").config
 local keymaps = require("codecompanion.utils.keymaps")
-local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
+
+local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils.util")
 local yaml = require("codecompanion.utils.yaml")
@@ -13,7 +14,8 @@ local CONSTANTS = {
   NS_INTRO_MESSAGE = "CodeCompanion-intro_message",
   NS_VIRTUAL_TEXT = "CodeCompanion-virtual_text",
 
-  AUTOCMD_CHAT = "CodeCompanionChat",
+  AUGROUP = "codecompanion.chat",
+  AU_USER_EVENT = "CodeCompanionChat",
 
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
@@ -42,13 +44,15 @@ local agent_query = [[
 )
 ]]
 
----@param adapter? CodeCompanion.Adapter|string
+---@param adapter? CodeCompanion.Adapter|string|function
 ---@return CodeCompanion.Adapter
 local function resolve_adapter(adapter)
   adapter = adapter or config.adapters[config.strategies.chat.adapter]
 
   if type(adapter) == "string" then
     return require("codecompanion.adapters").use(adapter)
+  elseif type(adapter) == "function" then
+    return adapter()
   end
 
   return adapter
@@ -139,59 +143,6 @@ local function parse_messages(bufnr)
   return output
 end
 
----Parse the buffer for any keywords as defined in the config
----@param chat CodeCompanion.Chat
----@param messages table
----@return nil
-local function parse_helpers(chat, messages)
-  if not config.opts.send_code then
-    return
-  end
-
-  local chat_maps = require("codecompanion.helpers.chat")
-
-  ---@param rhs string|table|fun(self)
-  ---@return table|nil
-  local function resolve(rhs)
-    if type(rhs) == "string" and vim.startswith(rhs, "helpers.chat.") then
-      -- The last part of the string is the function to call
-      local splits = vim.split(rhs, ".", { plain = true })
-      return resolve(chat_maps[splits[#splits]])
-    else
-      return rhs(chat)
-    end
-  end
-
-  ---@param message string
-  ---@param helpers table
-  ---@return string|nil
-  local function find(message, helpers)
-    for helper, _ in pairs(helpers) do
-      if message:match("%f[%w@]" .. "@" .. helper .. "%f[%W]") then
-        return helper
-      end
-    end
-    return nil
-  end
-
-  -- resolve all messages
-  for i, message in pairs(messages) do
-    local helper = find(message.content, config.strategies.chat.helpers)
-    if helper then
-      local content = resolve(config.strategies.chat.helpers[helper].callback)
-
-      if content then
-        log:debug("Parsed helper in chat buffer")
-        log:trace("parse_helper content: %s", content)
-        chat.buffers = {
-          index = i,
-          content = content,
-        }
-      end
-    end
-  end
-end
-
 ---@class CodeCompanion.Chat
 ---@return CodeCompanion.AgentExecuteResult|nil
 local function parse_agents(chat)
@@ -271,6 +222,8 @@ local function set_welcome_message(chat)
   chat.intro_message = true
 end
 
+local registered_cmp = false
+
 ---@class CodeCompanion.Chat
 ---@field id integer
 ---@field adapter CodeCompanion.Adapter
@@ -280,10 +233,10 @@ end
 ---@field opts CodeCompanion.ChatArgs
 ---@field context table
 ---@field saved_chat? string
----@field buffers? nil|table
 ---@field tokens? nil|number
+---@field variables? CodeCompanion.Variables
+---@field variable_output? nil|table
 ---@field settings table
----@field type string
 local Chat = {}
 
 ---@class CodeCompanion.ChatArgs
@@ -294,7 +247,6 @@ local Chat = {}
 ---@field stop_context_insertion? boolean
 ---@field settings? table
 ---@field tokens? table
----@field type? string
 ---@field saved_chat? string
 ---@field status?string
 ---@field last_role? string
@@ -311,13 +263,13 @@ function Chat.new(args)
     opts = args,
     status = "",
     last_role = "user",
+    variables = require("codecompanion.strategies.chat.variables").new(),
+    variable_output = {},
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
       api.nvim_buf_set_option(bufnr, "buftype", "acwrite")
       api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
-      api.nvim_buf_set_option(bufnr, "syntax", "markdown")
-      vim.b[bufnr].codecompanion_type = "chat"
 
       return bufnr
     end,
@@ -459,7 +411,7 @@ end
 ---Set the autocmds for the chat buffer
 ---@return nil
 function Chat:set_autocmds()
-  local aug = api.nvim_create_augroup("CodeCompanion_" .. self.bufnr, {
+  local aug = api.nvim_create_augroup(CONSTANTS.AUGROUP .. self.bufnr, {
     clear = false,
   })
 
@@ -474,12 +426,15 @@ function Chat:set_autocmds()
     callback = function()
       local has_cmp, cmp = pcall(require, "cmp")
       if has_cmp then
-        require("cmp").register_source("codecompanion_helpers", require("cmp_codecompanion.helpers").new())
-        require("cmp").register_source("codecompanion_models", require("cmp_codecompanion.models").new())
+        if not registered_cmp then
+          registered_cmp = true
+          cmp.register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
+          cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new())
+        end
         cmp.setup.buffer({
           enabled = true,
           sources = {
-            { name = "codecompanion_helpers" },
+            { name = "codecompanion_variables" },
             { name = "codecompanion_models" },
           },
         })
@@ -498,7 +453,7 @@ function Chat:set_autocmds()
     })
 
     -- Validate the settings
-    vim.api.nvim_create_autocmd("InsertLeave", {
+    api.nvim_create_autocmd("InsertLeave", {
       group = aug,
       buffer = bufnr,
       desc = "Parse the settings in the CodeCompanion chat buffer for any errors",
@@ -559,7 +514,7 @@ function Chat:set_autocmds()
   api.nvim_create_autocmd("User", {
     desc = "Store the current chat buffer",
     group = aug,
-    pattern = CONSTANTS.AUTOCMD_CHAT,
+    pattern = CONSTANTS.AU_USER_EVENT,
     callback = function(request)
       if request.data.bufnr ~= bufnr or request.data.action ~= "hide_buffer" then
         return
@@ -641,7 +596,7 @@ function Chat:submit()
     return
   end
 
-  -- Add the adapter's chat prompt
+  -- Add the default system prompt
   if config.opts.system_prompt then
     table.insert(messages, 1, {
       role = "system",
@@ -649,13 +604,25 @@ function Chat:submit()
     })
   end
 
-  -- Add the contents of any buffers
-  parse_helpers(self, messages)
-  if self.buffers then
-    table.insert(messages, self.buffers.index, {
-      role = "user",
-      content = self.buffers.content,
-    })
+  -- Detect if the user has called any variables in their latest message
+  local vars = self.variables:parse(self, messages[#messages].content, #messages)
+  if vars then
+    -- For the message that includes the variable, remove it from the content
+    -- so we don't confuse the LLM. We don't need to remove the variable in
+    -- future replies as the LLM has already processed it.
+    messages[#messages].content = self.variables:replace(messages[#messages].content, vars)
+    table.insert(self.variable_output, vars)
+  end
+
+  -- Always add the variables to the same place in the message stack
+  if self.variable_output then
+    for _, var in ipairs(self.variable_output) do
+      table.insert(messages, var.index, {
+        role = "user",
+        content = var.content,
+      })
+    end
+    log:trace("Variable used in response: %s", self.variable_output)
   end
 
   vim.bo[bufnr].modified = false
@@ -670,8 +637,8 @@ function Chat:submit()
       return self:reset()
     end
 
-    -- Sometimes the token payload comes as part of the final response so we
-    -- need to check for the tokens before the client is terminated
+    -- With some adapters, the tokens come as part of the regular response so
+    -- we need to account for that here before the client is terminated
     if data then
       self:get_tokens(data)
     end
@@ -684,7 +651,7 @@ function Chat:submit()
       end
       api.nvim_exec_autocmds(
         "User",
-        { pattern = CONSTANTS.AUTOCMD_CHAT, data = { status = CONSTANTS.STATUS_FINISHED } }
+        { pattern = CONSTANTS.AU_USER_EVENT, data = { status = CONSTANTS.STATUS_FINISHED } }
       )
       return self:reset()
     end
@@ -740,7 +707,7 @@ function Chat:hide()
 
   api.nvim_exec_autocmds(
     "User",
-    { pattern = CONSTANTS.AUTOCMD_CHAT, data = { action = "hide_buffer", bufnr = self.bufnr } }
+    { pattern = CONSTANTS.AU_USER_EVENT, data = { action = "hide_buffer", bufnr = self.bufnr } }
   )
 end
 
@@ -903,8 +870,8 @@ function Chat:conceal(heading)
       local start_row, _, end_row, _ = node[1]:range()
 
       if start_row < end_row then
-        vim.api.nvim_buf_set_option(self.bufnr, "foldmethod", "manual")
-        vim.api.nvim_buf_call(self.bufnr, function()
+        api.nvim_buf_set_option(self.bufnr, "foldmethod", "manual")
+        api.nvim_buf_call(self.bufnr, function()
           vim.fn.setpos(".", { self.bufnr, start_row + 1, 0, 0 })
           vim.cmd("normal! zf" .. end_row .. "G")
         end)
@@ -928,7 +895,7 @@ end
 ---@return nil
 function Chat:complete(request, callback)
   local items = {}
-  local cursor = vim.api.nvim_win_get_cursor(0)
+  local cursor = api.nvim_win_get_cursor(0)
   local key_name, node = self:_get_settings_key({ pos = { cursor[1] - 1, 1 } })
   if not key_name or not node then
     callback({ items = items, isIncomplete = false })
@@ -953,7 +920,7 @@ end
 ---@return nil|CodeCompanion.Chat
 function Chat.buf_get_chat(bufnr)
   if not bufnr or bufnr == 0 then
-    bufnr = vim.api.nvim_get_current_buf()
+    bufnr = api.nvim_get_current_buf()
   end
   return chatmap[bufnr]
 end

@@ -9,23 +9,27 @@ return {
   strategies = {
     chat = {
       adapter = "openai",
-      -- Helpers which can be referenced in the chat buffer with the "@" symbol e.g. "@buffer"
-      helpers = {
+      variables = {
         ["buffer"] = {
-          callback = "helpers.chat.buffer",
-          category = "buffer",
+          callback = "helpers.variables.buffer",
+          contains_code = true,
           description = "Share the current buffer with the LLM",
         },
         ["buffers"] = {
-          callback = "helpers.chat.buffers",
-          category = "buffer",
-          description = "Share all loaded buffers (matching the filetype) with the LLM",
+          callback = "helpers.variables.buffers",
+          contains_code = true,
+          description = "Share all current open buffers with the LLM",
         },
-        -- ["bufferq"] = {
-        --   callback = "helpers.chat.bufferq",
-        --   category = "buffer",
-        --   description = "Share the content of the buffers from the quickfix list",
-        -- },
+        ["editor"] = {
+          callback = "helpers.variables.editor",
+          contains_code = true,
+          description = "Share the buffers and lines that you see in the editor",
+        },
+        ["lsp"] = {
+          callback = "helpers.variables.lsp",
+          contains_code = true,
+          description = "Share LSP information and code for the current buffer",
+        },
       },
       keymaps = {
         ["<C-s>"] = "keymaps.save",
@@ -141,7 +145,7 @@ return {
             return context.is_visual
           end,
           content = function(context)
-            local text = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
+            local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
           end,
@@ -163,7 +167,7 @@ return {
         default_prompt = true,
         mapping = "<LocalLeader>ca",
         modes = { "v" },
-        shortcut = "advisor",
+        slash_cmd = "advice",
         auto_submit = true,
         user_prompt = true,
         stop_context_insertion = true,
@@ -174,16 +178,71 @@ return {
           content = function(context)
             return "I want you to act as a senior "
               .. context.filetype
-              .. " developer. I will ask you specific questions and I want you to return concise explanations and codeblock examples."
+              .. " developer. I will ask you specific questions and I want you to return concise explanations and codeblock examples so I may understand."
           end,
         },
         {
           role = "user",
           contains_code = true,
           content = function(context)
-            local code = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
+            local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return "I have the following code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
+          end,
+        },
+      },
+    },
+    ["Buffer selection"] = {
+      strategy = "inline",
+      description = "Send the current buffer to the LLM as part of an inline prompt",
+      opts = {
+        index = 4,
+        modes = { "v" },
+        default_prompt = true,
+        mapping = "<LocalLeader>cb",
+        slash_cmd = "buffer",
+        auto_submit = true,
+        user_prompt = true,
+        stop_context_insertion = true,
+      },
+      prompts = {
+        {
+          role = "system",
+          tag = "system_tag",
+          content = function(context)
+            return "I want you to act as a senior "
+              .. context.filetype
+              .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing."
+          end,
+        },
+        {
+          role = "user",
+          contains_code = true,
+          content = function(context)
+            local buf_utils = require("codecompanion.utils.buffers")
+
+            return "## buffers\n\nFor context, this is the whole of the buffer:\n\n```"
+              .. context.filetype
+              .. "\n"
+              .. buf_utils.get_content(context.bufnr)
+              .. "\n```\n\n"
+          end,
+        },
+        {
+          role = "user",
+          contains_code = true,
+          tag = "visual",
+          condition = function(context)
+            -- The inline strategy will automatically add this in visual mode
+            return context.is_visual == false
+          end,
+          content = function(context)
+            local selection = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
+            return "And this is the specific code that relates to my question:\n\n```"
+              .. context.filetype
+              .. "\n"
+              .. selection
+              .. "\n```\n\n"
           end,
         },
       },
@@ -192,13 +251,13 @@ return {
       strategy = "chat",
       description = "Use an LLM to explain any LSP diagnostics",
       opts = {
-        index = 4,
+        index = 5,
         default_prompt = true,
         mapping = "<LocalLeader>cl",
         modes = { "v" },
-        shortcut = "lsp",
+        slash_cmd = "lsp",
         auto_submit = true,
-        user_prompt = false, -- Prompt the user for their own input
+        user_prompt = false,
         stop_context_insertion = true,
       },
       prompts = {
@@ -209,8 +268,11 @@ return {
         {
           role = "user",
           content = function(context)
-            local diagnostics =
-              require("codecompanion.helpers.lsp").get_diagnostics(context.start_line, context.end_line, context.bufnr)
+            local diagnostics = require("codecompanion.helpers.actions").get_diagnostics(
+              context.start_line,
+              context.end_line,
+              context.bufnr
+            )
 
             local concatenated_diagnostics = ""
             for i, diagnostic in ipairs(diagnostics) do
@@ -241,7 +303,7 @@ return {
               .. "```"
               .. context.filetype
               .. "\n"
-              .. require("codecompanion.helpers.code").get_code(
+              .. require("codecompanion.helpers.actions").get_code(
                 context.start_line,
                 context.end_line,
                 { show_line_numbers = true }
@@ -255,10 +317,10 @@ return {
       strategy = "chat",
       description = "Generate a commit message",
       opts = {
-        index = 5,
+        index = 6,
         default_prompt = true,
         mapping = "<LocalLeader>cm",
-        shortcut = "commit",
+        slash_cmd = "commit",
         auto_submit = true,
       },
       prompts = {
@@ -299,6 +361,12 @@ return {
           wrap = true,
         },
       },
+      highlights = {
+        tokens = "Comment",
+        virtual_text = "Comment",
+        virtual_text_agents = "Comment",
+        variables = "Identifier",
+      },
       intro_message = "Welcome to CodeCompanion ✨! Save the buffer to send a message...",
       show_settings = true,
       show_token_count = true,
@@ -307,7 +375,7 @@ return {
       diff = {
         enabled = true,
         priority = 130,
-        hl_groups = {
+        highlights = {
           removed = "DiffDelete",
         },
       },

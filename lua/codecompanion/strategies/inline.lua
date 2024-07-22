@@ -17,16 +17,12 @@ local function announce(status, opts)
   api.nvim_exec_autocmds("User", { pattern = "CodeCompanionInline", data = opts })
 end
 
+---@param prompt string
 ---@param filetype string
 ---@param lines table
 ---@return string
-local function code_block(filetype, lines)
-  return "For context, this is the code I will ask you to help me with:\n\n"
-    .. "```"
-    .. filetype
-    .. "\n"
-    .. table.concat(lines, "  ")
-    .. "\n```\n"
+local function code_block(prompt, filetype, lines)
+  return prompt .. ":\n\n" .. "```" .. filetype .. "\n" .. table.concat(lines, "  ") .. "\n```\n"
 end
 
 ---@param inline CodeCompanion.Inline
@@ -36,6 +32,12 @@ local build_prompt = function(inline, user_input)
   local output = {}
 
   for _, prompt in ipairs(inline.prompts) do
+    if prompt.condition then
+      if not prompt.condition(inline.context) then
+        goto continue
+      end
+    end
+
     if not prompt.contains_code or (prompt.contains_code and config.opts.send_code) then
       if type(prompt.content) == "function" then
         prompt.content = prompt.content(inline.context)
@@ -47,6 +49,8 @@ local build_prompt = function(inline, user_input)
         content = prompt.content,
       })
     end
+
+    ::continue::
   end
 
   -- Add the user prompt
@@ -58,40 +62,18 @@ local build_prompt = function(inline, user_input)
     })
   end
 
-  -- Send code as context
+  -- Send the visual selection
   if config.opts.send_code then
     if inline.context.is_visual then
       log:trace("Sending visual selection")
       table.insert(output, {
         role = "user",
         tag = "visual",
-        content = code_block(inline.context.filetype, inline.context.lines),
-      })
-    end
-    if inline.opts.send_open_buffers then
-      log:trace("Sending open buffers to the LLM")
-      local helpers = require("codecompanion.helpers.buffers")
-      local buffers = helpers.get_open_buffers(inline.context.filetype)
-
-      table.insert(output, {
-        role = "user",
-        tag = "buffers",
-        content = "## buffers\n\nI've included some additional context in the form of open buffers:\n\n"
-          .. helpers.format(buffers, inline.context.filetype)
-          .. "\n\n",
-      })
-    end
-    if inline.opts.send_current_buffer then
-      log:trace("Sending current buffer to the LLM")
-      local helpers = require("codecompanion.helpers.buffers")
-      local buffer = helpers.get_buffer_content(inline.context.bufnr)
-
-      table.insert(output, {
-        role = "user",
-        tag = "buffers",
-        content = "## buffers\n\nI've included some additional context in the form of a buffer:\n\n"
-          .. helpers.format(buffer, inline.context.filetype)
-          .. "\n\n",
+        content = code_block(
+          "For context, this is the code that I've selected in the buffer",
+          inline.context.filetype,
+          inline.context.lines
+        ),
       })
     end
   end
@@ -316,6 +298,10 @@ function Inline:start(opts)
   end
 
   if self.opts and self.opts.user_prompt then
+    if type(self.opts.user_prompt) == "string" then
+      return self:submit(self.opts.user_prompt)
+    end
+
     local title
     if self.context.buftype == "terminal" then
       title = "Terminal"
@@ -352,6 +338,8 @@ function Inline:submit(user_input)
 
   if type(self.adapter) == "string" then
     self.adapter = require("codecompanion.adapters").use(self.adapter)
+  elseif type(self.adapter) == "function" then
+    self.adapter = self.adapter()
   end
 
   log:trace("Inline adapter config: %s", self.adapter)
@@ -498,13 +486,13 @@ function Inline:diff_removed()
     return
   end
 
-  local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_removed_")
-  vim.api.nvim_buf_clear_namespace(self.context.bufnr, ns_id, 0, -1)
+  local ns_id = api.nvim_create_namespace("codecompanion_diff_removed_")
+  api.nvim_buf_clear_namespace(self.context.bufnr, ns_id, 0, -1)
 
-  local diff_hl_group = vim.api.nvim_get_hl(0, { name = config.display.inline.diff.hl_group or "DiffDelete" })
+  local diff_hl_group = api.nvim_get_hl(0, { name = config.display.inline.diff.highlights.removed or "DiffDelete" })
 
   local virt_lines = {}
-  local win_width = vim.api.nvim_win_get_width(0)
+  local win_width = api.nvim_win_get_width(0)
 
   for i, line in ipairs(self.context.lines) do
     local virt_text = {}
@@ -535,7 +523,7 @@ function Inline:diff_removed()
     table.insert(virt_lines, virt_text)
   end
 
-  vim.api.nvim_buf_set_extmark(self.context.bufnr, ns_id, self.context.start_line - 1, 0, {
+  api.nvim_buf_set_extmark(self.context.bufnr, ns_id, self.context.start_line - 1, 0, {
     virt_lines = virt_lines,
     virt_lines_above = true,
     priority = config.display.inline.diff.priority,
@@ -556,9 +544,9 @@ end
 --     self.diff.added_line = {}
 --   end
 --
---   local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_added")
+--   local ns_id = api.nvim_create_namespace("codecompanion_diff_added")
 --
---   vim.api.nvim_buf_set_extmark(self.context.bufnr, ns_id, line - 1, 0, {
+--   api.nvim_buf_set_extmark(self.context.bufnr, ns_id, line - 1, 0, {
 --     sign_text = config.display.inline.diff.sign_text,
 --     sign_hl_group = config.display.inline.diff.hl_groups.added,
 --     priority = config.display.inline.diff.priority,

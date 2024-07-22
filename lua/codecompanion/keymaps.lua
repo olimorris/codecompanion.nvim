@@ -1,5 +1,5 @@
 local config = require("codecompanion").config
-local ts = require("codecompanion.utils.ts")
+local ts = require("codecompanion.utils.treesitter")
 local api = vim.api
 
 local M = {}
