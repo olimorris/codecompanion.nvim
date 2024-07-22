@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 July 14
+*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 July 22
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -558,11 +558,6 @@ In the video, you’ll notice that we’re triggering a pre-defined LSP
 warnings prompt by running `:'<,'>:CodeCompanion @lsp`. You can find more on
 this in the |codecompanion-default-prompts| section.
 
-
-  [!NOTE] Any open and loaded buffers can be sent to the LLM as context with the
-  `@buffers` keyword, assuming they match the current filetype. For example:
-  `:'<,'>CodeCompanion @buffers <your prompt>`. The `@buffer` keyword is also
-  available for sending the current open buffer to the LLM.
 **Chat Buffer**
 
 The chat buffer is where you’ll likely spend most of your time when
@@ -571,11 +566,11 @@ interacting with the plugin. Running `:CodeCompanionChat` or
 directly with an LLM. As a convenience, you can use `:CodeCompanionToggle` to
 toggle the visibility of a chat buffer.
 
-When in the chat buffer, you can leverage helpers via the use of keywords,
-anywhere under the `user` heading:
+When in the chat buffer you can include variables in your message such as:
 
-- `@buffer` - To include the contents of the buffer you initiated the chat from
-- `@buffers` - To include the contents of all loaded buffers that match the current filetype
+- `#buffer` - The contents of the buffer you were last in before opening up a chat buffer
+- `#buffers` - The contents of all loaded buffers that match the filetype of the buffer you were last in
+- `#editor` - The code in the editor’s viewport (all visible buffers and lines)
 
 There are also many keymaps you can leverage in the chat buffer which are
 covered in the |codecompanion-chat-buffer-section| of this readme.

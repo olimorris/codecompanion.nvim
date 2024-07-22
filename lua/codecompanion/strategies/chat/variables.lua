@@ -61,9 +61,14 @@ function Variables:parse(chat, message, index)
   if not var then
     return
   end
-  log:debug("Variable found: %s", var)
 
   local found = self.vars[var]
+  log:debug("Variable found: %s", var)
+
+  if found.contains_code and config.opts.send_code == false then
+    log:debug("Sending of code disabled")
+    return
+  end
 
   return {
     var = var,

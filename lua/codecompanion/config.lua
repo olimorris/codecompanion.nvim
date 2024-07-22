@@ -9,19 +9,26 @@ return {
   strategies = {
     chat = {
       adapter = "openai",
-      -- Variables you can reference in your chats
       variables = {
         ["buffer"] = {
           callback = "helpers.variables.buffer",
+          contains_code = true,
           description = "Share the current buffer with the LLM",
         },
         ["buffers"] = {
           callback = "helpers.variables.buffers",
+          contains_code = true,
           description = "Share all current open buffers with the LLM",
         },
         ["editor"] = {
           callback = "helpers.variables.editor",
+          contains_code = true,
           description = "Share the buffers and lines that you see in the editor",
+        },
+        ["lsp"] = {
+          callback = "helpers.variables.lsp",
+          contains_code = true,
+          description = "Share LSP information and code for the current buffer",
         },
       },
       keymaps = {
