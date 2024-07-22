@@ -41,7 +41,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 
 <div align="center">
   <p>https://github.com/user-attachments/assets/575fc091-8188-4e39-9d04-a8d47c9e8c52</p>
-  <p>https://github.com/user-attachments/assets/cddd2ccd-f60d-4630-88fd-36a2e5a89783</p>
+  <p>https://github.com/user-attachments/assets/11be0a61-5b23-42c0-96f9-d22384809175</p>
 </div>
 
 <!-- panvimdoc-ignore-end -->
