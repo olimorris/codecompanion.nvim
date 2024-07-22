@@ -106,7 +106,7 @@ require("codecompanion").setup({
       opts = {
         mapping = "<LocalLeader>ce",
         modes = { "v" },
-        shortcut = "expert",
+        slash_cmd = "expert",
         auto_submit = true,
         stop_context_insertion = true,
         user_prompt = true,
@@ -143,14 +143,14 @@ At first glance there's a lot of new stuff in this. Let's break it down.
 opts = {
   mapping = "<LocalLeader>ce",
   modes = { "v" },
-  shortcut = "expert",
+  slash_cmd = "expert",
   auto_submit = true,
   stop_context_insertion = true,
   user_prompt = true,
 },
 ```
 
-In the `opts` table we're specifying that we only want this action to appear in the _Action Palette_ if we're in visual mode. We're also asking the chat strategy to automatically submit the prompts to the LLM via the `auto_submit = true` value. We're also telling the picker that we want to get the user's input before we action the response with `user_prompt = true`. With the `shortcut = "expert"` option, the user can run `:CodeCompanion @expert` from the cmdline in order to trigger this prompt. Finally, as we define a prompt to add any visually selected text to the chat buffer, we need to add the `stop_context_insertion = true` option to prevent the chat buffer from duplicating this. Remember that visually selcting text and opening a chat buffer will result in that selection from being adding as a codeblock.
+In the `opts` table we're specifying that we only want this action to appear in the _Action Palette_ if we're in visual mode. We're also asking the chat strategy to automatically submit the prompts to the LLM via the `auto_submit = true` value. We're also telling the picker that we want to get the user's input before we action the response with `user_prompt = true`. With the `slash_cmd = "expert"` option, the user can run `:CodeCompanion /expert` from the cmdline in order to trigger this prompt. Finally, as we define a prompt to add any visually selected text to the chat buffer, we need to add the `stop_context_insertion = true` option to prevent the chat buffer from duplicating this. Remember that visually selcting text and opening a chat buffer will result in that selection from being adding as a codeblock.
 
 ### Prompt options and context
 
