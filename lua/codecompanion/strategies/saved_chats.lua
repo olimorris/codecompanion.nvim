@@ -125,6 +125,12 @@ function SavedChat:load(opts)
   self.filename = opts.filename
   local content = vim.fn.json_decode(table.concat(vim.fn.readfile(opts.path), "\n"))
 
+  -- Check the adapter exists
+  if not config.adapters[content.adapter] then
+    log:error("[CodeCompanion.nvim] Adapter %s does not exist. Using the default instead.", content.adapter)
+    content.adapter = config.adapters[config.strategies.chat.adapter]
+  end
+
   local chat = Chat.new({
     saved_chat = self.filename,
     messages = content.messages,
