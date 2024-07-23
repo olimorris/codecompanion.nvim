@@ -24,6 +24,7 @@ end
 ---@param start_line integer
 ---@param end_line integer
 ---@param bufnr integer|nil
+---@return table
 function M.get_diagnostics(start_line, end_line, bufnr)
   if end_line == nil then
     end_line = start_line

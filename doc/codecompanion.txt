@@ -240,9 +240,10 @@ toggle the visibility of a chat buffer.
 
 When in the chat buffer you can include variables in your message such as:
 
-- `#buffer` - To share the contents of the current buffer
-- `#buffers` - To share the contents of all loaded buffers that match the filetype of the current buffer
-- `#editor` - To share the visible code from all buffers in the editor’s viewport
+- `#buffer` - Share the current buffer with the LLM
+- `#buffers` - Share all current open buffers with the LLM
+- `#editor` - Share the buffers and lines that you see in the editor’s viewport
+- `#lsp` - Share LSP information and code for the current buffer
 
 There are also many keymaps you can leverage in the chat buffer which are
 covered in the |codecompanion-chat-buffer-section| of this readme.
