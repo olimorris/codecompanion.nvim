@@ -263,7 +263,7 @@ M.setup = function(opts)
   end
 
   -- Setup the pre-defined prompts
-  local prompts = require("codecompanion.utils.prompts").new(M.config.action_prompts):setup()
+  local prompts = require("codecompanion.utils.prompts").new(M.config.default_prompts):setup()
   for name, prompt in pairs(prompts.prompts) do
     if prompt.opts.slash_cmd then
       prompt.name = name

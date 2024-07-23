@@ -82,7 +82,7 @@ return {
       },
     },
   },
-  action_prompts = {
+  default_prompts = {
     ["Custom Prompt"] = {
       strategy = "inline",
       description = "Send a custom prompt to the LLM",

@@ -69,7 +69,7 @@ M.static.actions = {
     strategy = " ",
     description = "Pre-defined prompts to help you code",
     condition = function()
-      return config.action_prompts and utils.count(config.action_prompts) > 0
+      return config.default_prompts and utils.count(config.default_prompts) > 0
     end,
     picker = {
       prompt = "Prompts",
@@ -77,7 +77,7 @@ M.static.actions = {
         local prompts = {}
 
         local sort_index = true
-        for name, prompt in pairs(config.action_prompts) do
+        for name, prompt in pairs(config.default_prompts) do
           if not config.opts.use_default_prompts and prompt.opts and prompt.opts.default_prompt then
             goto continue
           end
