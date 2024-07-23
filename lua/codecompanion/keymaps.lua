@@ -41,8 +41,7 @@ M.save_chat = {
     local saved_chat = require("codecompanion.strategies.saved_chats")
 
     if chat.saved_chat then
-      saved_chat = saved_chat.new({ filename = chat.saved_chat })
-      saved_chat:save(chat)
+      chat:save_chat()
 
       if config.opts.silence_notifications then
         return

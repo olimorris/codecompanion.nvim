@@ -7,6 +7,7 @@ return {
     openai = "openai",
   },
   strategies = {
+    -- CHAT STRATEGY ----------------------------------------------------------
     chat = {
       adapter = "openai",
       variables = {
@@ -43,6 +44,7 @@ return {
         ["["] = "keymaps.previous",
       },
     },
+    -- INLINE STRATEGY --------------------------------------------------------
     inline = {
       adapter = "openai",
       keymaps = {
@@ -57,6 +59,7 @@ return {
         end,
       },
     },
+    -- AGENT STRATEGY ---------------------------------------------------------
     agent = {
       adapter = "openai",
       agents = {
@@ -82,6 +85,7 @@ return {
       },
     },
   },
+  -- DEFAULT PROMPTS ----------------------------------------------------------
   default_prompts = {
     ["Custom Prompt"] = {
       strategy = "inline",
@@ -337,6 +341,7 @@ return {
       },
     },
   },
+  -- DISPLAY OPTIONS ----------------------------------------------------------
   display = {
     action_palette = {
       width = 95,
@@ -382,8 +387,10 @@ return {
       },
     },
   },
+  -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
     log_level = "ERROR",
+    auto_save_chats = true, -- If a chat has already been saved or loaded then autosave it after every prompt
     saved_chats_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats",
     send_code = true,
     silence_notifications = false,

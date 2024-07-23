@@ -492,6 +492,7 @@ function Chat:set_autocmds()
     buffer = bufnr,
     desc = "Submit the CodeCompanion chat buffer",
     callback = function()
+      self:save_chat()
       self:submit()
     end,
   })
@@ -646,6 +647,7 @@ function Chat:submit()
     if done then
       self:append({ role = "user", content = "" })
       self:display_tokens()
+      self:save_chat()
       if self.status ~= CONSTANTS.STATUS_ERROR then
         parse_agents(self)
       end
@@ -913,6 +915,19 @@ function Chat:complete(request, callback)
   end
 
   callback({ items = items, isIncomplete = false })
+end
+
+---Saves the chat buffer if it has been loaded
+function Chat:save_chat()
+  if not self.saved_chat or not config.opts.auto_save_chats then
+    return
+  end
+
+  local saved_chat = require("codecompanion.strategies.saved_chats")
+
+  saved_chat = saved_chat.new({ filename = self.saved_chat })
+  saved_chat:save(self)
+  log:trace("Chat saved")
 end
 
 ---Returns the chat object based on the buffer number
