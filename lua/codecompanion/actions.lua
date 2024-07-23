@@ -6,7 +6,7 @@ local M = {}
 M.static = {}
 
 local send_code = function(context)
-  local text = require("codecompanion.helpers.code").get_code(context.start_line, context.end_line)
+  local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
   return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
 end
