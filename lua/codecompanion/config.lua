@@ -23,7 +23,7 @@ return {
         ["editor"] = {
           callback = "helpers.variables.editor",
           contains_code = true,
-          description = "Share the buffers and lines that you see in the editor",
+          description = "Share the buffers and lines that you see in the editor's viewport",
         },
         ["lsp"] = {
           callback = "helpers.variables.lsp",
