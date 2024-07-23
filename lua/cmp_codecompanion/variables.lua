@@ -16,8 +16,7 @@ source.get_position_encoding_kind = function()
 end
 
 function source:get_keyword_pattern()
-  -- Match '#' followed by word characters
-  return [[\#\w*]]
+  return [[#]]
 end
 
 function source:complete(_, callback)
