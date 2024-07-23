@@ -228,14 +228,14 @@ The plugin sets the following highlight groups during setup:
 <!-- panvimdoc-ignore-start -->
 
 <div align="center">
-  <p>https://github.com/user-attachments/assets/c2ddf272-ae50-4500-9003-44d30e806b4e</p>
+  <p>https://github.com/user-attachments/assets/bf88836d-832d-4f69-a58e-371bbb8b9bd2</p>
 </div>
 
 <!-- panvimdoc-ignore-end -->
 
-To start interacting with the plugin you can run `:CodeCompanion <your prompt>` from the command line. You can also make a visual selection in Neovim and run `:'<,'>CodeCompanion <your prompt>` to send it as context. A command such as `:'<,'>CodeCompanion what does this code do?` will prompt the LLM the respond in a chat buffer allowing you to ask any follow up questions. Whereas a command such as `:CodeCompanion can you create a function that outputs the current date and time` would result in the output being placed at the cursor's position in the buffer.
+To start interacting with the plugin you can run `:CodeCompanion <your prompt>` from the command line. You can also make a visual selection in Neovim and run `:'<,'>CodeCompanion <your prompt>` to send it as context. The plugin will initially use an LLM to classify your prompt in order to determine where in Neovim to place the response. You can find more about the classificiations in the [inline prompting](#inline-prompting) section.
 
-In the video, you'll notice that we're triggering a pre-defined advice prompt by running `:'<,'>:CodeCompanion /advice`. You can find more on this in the [default prompts](#default-prompts) section.
+It's also possible to reference pre-defined prompts from the config using slash commands such as `:'<,'>:CodeCompanion /advice` and you can find more on this in the [default prompts](#default-prompts) section.
 
 **Chat Buffer**
 
@@ -305,6 +305,8 @@ A [RECIPES](doc/RECIPES.md) guide has been created to show you how you can add y
 
 The chat buffer is where you can converse with an LLM, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the LLM in the form of prompts. These prompts are segmented by H1 headers: `user`, `system` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with your LLM from within Neovim.
 
+As noted in the [Getting Started](#rocket-getting-started) section, there are a number of variables that you can make use of whilst in the chat buffer. Use `#` to bring up the completion menu to see the available options.
+
 **Keymaps**
 
 When in the chat buffer, there are number of keymaps available to you:
@@ -325,7 +327,7 @@ Chat buffers are not saved to disk by default, but can be by pressing `gs` in th
 
 **Settings**
 
-If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the adapter's model parameters which can be changed to tweak the response. You can find more detail about them by moving the cursor over them.
+If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the adapter's model parameters which can be changed to tweak the response from the LLM. You can find more detail by moving the cursor over them.
 
 **Open Chats**
 
@@ -334,11 +336,11 @@ From the Action Palette, the `Open Chats` action enables users to easily navigat
 ### Inline Prompting
 
 > [!NOTE]
-> If `send_code = false` then this will take precedent and no buffers will be sent to the LLM
+> If `send_code = false` then this will take precedent and no code will be sent to the LLM
 
-Inline prompts can be triggered via the `CodeCompanion <your prompt>` command. As mentioned in the [Getting Started](#rocket-getting-started) guide, you can also leverage visual selections and slash commands like `'<,'>CodeCompanion /lsp`.
+Inline prompts can be triggered via the `CodeCompanion <your prompt>` command. As mentioned in the [Getting Started](#rocket-getting-started) section, you can also leverage visual selections and slash commands like `'<,'>CodeCompanion /buffer what does this code do?`, where the slash command points to a [default prompt](#default-prompts) and any words after that act as a custom prompt to the LLM.
 
-One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed after the cursor's current position in the buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. The plugin will use the inline LLM you've specified to determine if the response should follow any of the placements below:
+One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed after the cursor's position in the current buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. The plugin will use the inline LLM you've specified in your config to determine if the response should follow any of the placements below:
 
 - _after_ - after the visual selection/cursor
 - _before_ - before the visual selection/cursor
@@ -349,18 +351,18 @@ One of the challenges with inline editing is determining how the LLM's response 
 ### Default Prompts
 
 > [!NOTE]
-> Please see the [RECIPES](doc/RECIPES.md) guide in order to add your own pre-defined prompts to the palette.
+> Please see the [RECIPES](doc/RECIPES.md) guide in order to add your own prompts to the action palette and as a slash command.
 
-The plugin comes with a number of default prompts and corresponding keymaps/commands:
+The plugin comes with a number of default prompts ([as per the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua)) which you can call via keymaps and/or slash commands:
 
-- **Custom Prompt** - For custom inline prompting of an LLM (`<LocalLeader>cc`)
-- **Senior Developer** - Chat with a senior developer for the given filetype (`<LocalLeader>ce`)
-- **Code Advisor** - Get advice from an LLM on code you've selected (`<LocalLeader>ca` / `/advice`)
+- **Custom Prompt** - For custom, inline prompting of an LLM (`<LocalLeader>cc`)
+- **Senior Developer** - Chat with a senior developer for the current buffer's filetype (`<LocalLeader>ce`)
+- **Code Advisor** - Get advice on code you've selected (`<LocalLeader>ca` / `/advice`)
 - **Buffer selection** - Send the current buffer to the LLM alongside a prompt (`<LocalLeader>cb` / `/buffer`)
 - **Explain LSP Diagnostics** - Use an LLM to explain LSP diagnostics for code you've selected (`<LocalLeader>cl` / `/lsp`)
 - **Generate a Commit Message** - Use an LLM to write a commit message for you (`<LocalLeader>cm` / `/commit`)
 
-Slash Commands can be accessed via the command line by typing `:CodeCompanion /commit`.
+Slash commands can be accessed via the command line, for example `:CodeCompanion /commit`.
 
 ### Agents
 
