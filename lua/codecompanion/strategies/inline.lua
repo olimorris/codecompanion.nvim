@@ -8,6 +8,29 @@ local ui = require("codecompanion.utils.ui")
 
 local api = vim.api
 
+local CONSTANTS = {
+  PLACEMENT_PROMPT = [[I would like you to assess a prompt which has been made from within the Neovim text editor. Based on this prompt, I require you to determine where the output from this prompt should be placed. I am calling this determination the "<method>". For example, the user may wish for the output to be placed:
+
+1) `after` the current cursor position
+2) `before` the current cursor position
+3) `replace` the current selection
+4) `new` in a new buffer/file
+5) `chat` in a buffer which the user can then interact with
+
+Here are some example prompts and their correct method classification to help you:
+
+- "Can you create a method/function that does XYZ" would be `after`
+- "Can you create XYZ method/function before the cursor" would be `before`
+- "Can you refactor/fix/amend this code?" would be `replace`
+- "Can you create a method/function for XYZ and put it in a new buffer?" would be `new`
+- "Can you write unit tests for this code?" would be `new`
+- "Why is Neovim so popular?" or "What does this code do?" would be `chat`
+
+As a final assessment, I'd like you to determine if any code that the user has provided to you within their prompt should be returned in your response. I am calling this determination the "<return>" evaluation and it should be a boolean value.
+
+Please respond to this prompt in the format "<method>|<return>" where "<method>" is a string and "<replace>" is a boolean value. For example `after|false` or `chat|false` or `replace|true`. Do not provide any addition text other than]],
+}
+
 ---@param status string
 ---@param opts? table
 local function announce(status, opts)
@@ -350,25 +373,7 @@ function Inline:submit(user_input)
     local action = {
       {
         role = "system",
-        content = [[I would like you to assess a prompt which has been made from within the Neovim text editor. Based on this prompt, I require you to determine where the output from this prompt should be placed. I am calling this determination the "<method>". For example, the user may wish for the output to be placed:
-
-1) `after` the current cursor position
-2) `before` the current cursor position
-3) `replace` the current selection
-4) `new` in a new buffer/file
-5) `chat` in a buffer which can be used to ask additional questions
-
-Here are some example prompts and their correct method classification to help you:
-
-* "Can you create a method/function that does XYZ" would be `after`
-* "Can you create XYZ method/function before the cursor" would be `before`
-* "Can you refactor/fix/amend this code?" would be `replace`
-* "Can you create a method/function for XYZ and put it in a new buffer?" would be `new`
-* "Why is Neovim so popular?" or "What does this code do?" would be `chat`
-
-As a final assessment, I'd like you to determine if any code that the user has provided to you within their prompt should be returned in your response. I am calling this determination the "<return>" evaluation and it should be a boolean value.
-
-Please respond to this prompt in the format "<method>|<return>" where "<method>" is a string and "<replace>" is a boolean value. For example `after|false` or `chat|false` or `replace|true`. Do not provide any addition text other than]],
+        content = CONSTANTS.PLACEMENT_PROMPT,
       },
       {
         role = "user",
