@@ -372,6 +372,7 @@ return {
       show_token_count = true,
     },
     inline = {
+      layout = "vertical", -- vertical|horizontal|buffer
       diff = {
         enabled = true,
         priority = 130,

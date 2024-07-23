@@ -173,49 +173,6 @@ local function get_cursor(winnr)
   return cursor_pos[1], cursor_pos[2]
 end
 
----Calculate the line and the column to place the output
----@param inline CodeCompanion.Inline
----@param placement string
----@return table
-local function calc_placement(inline, placement)
-  local pos = {}
-  pos = { line = inline.context.start_line, col = 0 }
-
-  if placement == "before" then
-    log:trace("Placing before selection")
-    api.nvim_buf_set_lines(
-      inline.context.bufnr,
-      inline.context.start_line - 1,
-      inline.context.start_line - 1,
-      false,
-      { "" }
-    )
-    inline.context.start_line = inline.context.start_line + 1
-    pos.line = inline.context.start_line - 1
-    pos.col = inline.context.start_col - 1
-  elseif placement == "after" then
-    log:trace("Placing after selection")
-    api.nvim_buf_set_lines(inline.context.bufnr, inline.context.end_line, inline.context.end_line, false, { "" })
-    pos.line = inline.context.end_line + 1
-    pos.col = 0
-  elseif placement == "replace" then
-    log:trace("Placing by overwriting selection")
-    inline:diff_removed()
-    overwrite_selection(inline.context)
-    pos.line, pos.col = get_cursor(inline.context.winnr)
-  elseif placement == "new" then
-    log:trace("Placing in a new buffer")
-    inline.context.bufnr = api.nvim_create_buf(true, false)
-    api.nvim_buf_set_option(inline.context.bufnr, "filetype", inline.context.filetype)
-    api.nvim_set_current_buf(inline.context.bufnr)
-
-    pos.line = 1
-    pos.col = 0
-  end
-
-  return pos
-end
-
 ---Some LLMs ignore the ask to just return text in the form of "placement|return"
 ---@param str string
 ---@return string
@@ -317,12 +274,12 @@ function Inline:start(opts)
     self.opts = opts[1]
   end
   if opts and opts.args then
-    return self:submit(opts.args)
+    return self:classify(opts.args)
   end
 
   if self.opts and self.opts.user_prompt then
     if type(self.opts.user_prompt) == "string" then
-      return self:submit(self.opts.user_prompt)
+      return self:classify(self.opts.user_prompt)
     end
 
     local title
@@ -337,10 +294,10 @@ function Inline:start(opts)
         return
       end
 
-      return self:submit(input)
+      return self:classify(input)
     end)
   else
-    return self:submit()
+    return self:classify()
   end
 end
 
@@ -352,8 +309,11 @@ function Inline:stop()
   end
 end
 
+---Initially send the prompt to the LLM to determine which type of action we
+---should take in our response. At this stage we do not ask the LLM to
+---generate any output, just provide a classification of the action
 ---@param user_input? string
-function Inline:submit(user_input)
+function Inline:classify(user_input)
   if not self.adapter then
     log:error("No adapter found for Inline strategies")
     return
@@ -381,9 +341,6 @@ function Inline:submit(user_input)
       },
     }
 
-    -- Assume the placement should be after the cursor
-    -- api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
-
     local placement = ""
     announce("started")
     client.new():stream(self.adapter:set_params(), action, function(err, data, done)
@@ -393,8 +350,7 @@ function Inline:submit(user_input)
 
       if done then
         log:debug("Placement: %s", placement)
-        self.stream(self, placement, prompt, {})
-        return
+        return self:submit(placement, prompt)
       end
 
       if data then
@@ -402,17 +358,15 @@ function Inline:submit(user_input)
       end
     end)
   else
-    self.stream(self, self.opts.placement, prompt, {})
-    return
+    return self:submit(self.opts.placement, prompt)
   end
 end
 
 ---Get the output for the inline prompt from the generative AI
 ---@param placement string
 ---@param prompt table
----@param output table
 ---@return nil
-function Inline:stream(placement, prompt, output)
+function Inline:submit(placement, prompt)
   -- Work out where to place the output from the inline prompt
   local parts = vim.split(extract_placement(placement), "|")
 
@@ -429,9 +383,11 @@ function Inline:stream(placement, prompt, output)
 
   log:trace("Prompt: %s", prompt)
 
-  local pos = calc_placement(self, action)
+  local pos = self:place(action)
+  local bufnr = pos.bufnr or self.context.bufnr
 
-  api.nvim_buf_set_keymap(self.context.bufnr, "n", "q", "", {
+  -- Add a keymap to cancel the request
+  api.nvim_buf_set_keymap(bufnr, "n", "q", "", {
     desc = "Stop the request",
     callback = function()
       log:trace("Cancelling the inline request")
@@ -447,28 +403,18 @@ function Inline:stream(placement, prompt, output)
     end
 
     if done then
-      api.nvim_buf_del_keymap(self.context.bufnr, "n", "q")
-      if self.context.buftype == "terminal" then
-        log:debug("Terminal output: %s", output)
-        api.nvim_put({ table.concat(output, "") }, "", false, true)
-      end
-      return
+      return api.nvim_buf_del_keymap(bufnr, "n", "q")
     end
 
     if data then
       log:trace("Inline data: %s", data)
       local content = self.adapter.args.callbacks.inline_output(data, self.context)
 
-      if self.context.buftype == "terminal" then
-        -- Don't stream to the terminal
-        table.insert(output, content)
-      else
-        if content then
-          local updated_pos = stream_text_to_buffer(pos, self.context.bufnr, content)
-          -- self:diff_added(updated_pos.line)
-          if self.opts and self.opts.placement == "new" then
-            ui.buf_scroll_to_end(self.context.bufnr)
-          end
+      if content then
+        stream_text_to_buffer(pos, bufnr, content)
+        -- self:diff_added(updated_pos.line)
+        if action == "new" then
+          ui.buf_scroll_to_end(bufnr)
         end
       end
     end
@@ -478,6 +424,62 @@ function Inline:stream(placement, prompt, output)
       announce("finished", { placement = action })
     end)
   end)
+end
+
+---Determine where to place the output from the LLM
+---@param placement string
+---@return table
+function Inline:place(placement)
+  local pos = {}
+  pos = { line = self.context.start_line, col = 0 }
+
+  if placement == "before" then
+    log:trace("Placing before selection")
+    api.nvim_buf_set_lines(self.context.bufnr, self.context.start_line - 1, self.context.start_line - 1, false, { "" })
+    self.context.start_line = self.context.start_line + 1
+    pos.line = self.context.start_line - 1
+    pos.col = self.context.start_col - 1
+  elseif placement == "after" then
+    log:trace("Placing after selection")
+    api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
+    pos.line = self.context.end_line + 1
+    pos.col = 0
+  elseif placement == "replace" then
+    log:trace("Placing by overwriting selection")
+    self:diff_removed()
+    overwrite_selection(self.context)
+    pos.line, pos.col = get_cursor(self.context.winnr)
+  elseif placement == "new" then
+    log:trace("Placing in a new buffer")
+    local bufnr = api.nvim_create_buf(true, false)
+    api.nvim_buf_set_option(bufnr, "filetype", self.context.filetype)
+
+    -- TODO: This is duplicated from the chat strategy
+    if config.display.inline.layout == "vertical" then
+      local cmd = "vsplit"
+      local window_width = config.display.chat.window.width
+      local width = window_width > 1 and window_width or math.floor(vim.o.columns * window_width)
+      if width ~= 0 then
+        cmd = width .. cmd
+      end
+      vim.cmd(cmd)
+    elseif config.display.inline.layout == "horizontal" then
+      local cmd = "split"
+      local window_height = config.display.chat.window.height
+      local height = window_height > 1 and window_height or math.floor(vim.o.lines * window_height)
+      if height ~= 0 then
+        cmd = height .. cmd
+      end
+      vim.cmd(cmd)
+    end
+
+    api.nvim_win_set_buf(api.nvim_get_current_win(), bufnr)
+    pos.line = 1
+    pos.col = 0
+    pos.bufnr = bufnr
+  end
+
+  return pos
 end
 
 ---Apply diff coloring to any replaced text
