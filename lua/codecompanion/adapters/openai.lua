@@ -44,7 +44,7 @@ end
 
 ---@class CodeCompanion.AdapterArgs
 return {
-  name = "OpenAI",
+  name = "openai",
   features = {
     text = true,
     tokens = true,

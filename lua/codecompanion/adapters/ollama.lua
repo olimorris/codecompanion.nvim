@@ -26,7 +26,7 @@ end
 
 ---@class CodeCompanion.AdapterArgs
 return {
-  name = "Ollama",
+  name = "ollama",
   features = {
     text = true,
     tokens = true,
