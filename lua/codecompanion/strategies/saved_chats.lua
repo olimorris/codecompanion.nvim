@@ -70,16 +70,14 @@ end
 function SavedChat:save(chat)
   local files = require("codecompanion.utils.files")
 
-  local settings, messages = chat:get_messages()
-
   local saved_chat = {
     meta = {
       dir = files.replace_home(self.cwd),
       tokens = chat.tokens or 0,
       updated_at = get_current_datetime(),
     },
-    settings = settings,
-    messages = messages,
+    adapter = chat.adapter.args.name,
+    messages = chat:get_messages(),
   }
 
   if not self.filename then
@@ -130,7 +128,7 @@ function SavedChat:load(opts)
   local chat = Chat.new({
     saved_chat = self.filename,
     messages = content.messages,
-    settings = content.settings,
+    adapter = content.adapter,
     context = context.get_context(api.nvim_get_current_buf()),
     tokens = content.meta.tokens,
   })

@@ -817,9 +817,9 @@ function Chat:reset()
 end
 
 ---Get the messages from the chat buffer
----@return table, table
+---@return table
 function Chat:get_messages()
-  return parse_settings(self.bufnr, self.adapter), parse_messages(self.bufnr)
+  return parse_messages(self.bufnr)
 end
 
 ---Determine if the chat buffer is visible
