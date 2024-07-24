@@ -3,6 +3,9 @@ local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 ---@class CodeCompanion.Agent
 return {
+  opts = {
+    hide_output = true,
+  },
   cmds = {
     { "curl", "${address}${query}" },
   },
@@ -15,9 +18,14 @@ return {
       },
     },
   },
-  opts = {
-    hide_output = true,
-  },
+  system_prompt = function(schema)
+    return "I am giving you access to the **RAG** agent which gives you the ability to search and read from the internet. To execute this agent, you need to return a markdown code block which follows the below schema:"
+      .. "\n\n```xml\n"
+      .. xml2lua.toXml(schema, "agent")
+      .. "\n```\n\n"
+      .. "You can see that the schema has two input parameters, type and query. For _type_, you can specify one of _search_ or _read_. Search will search the internet for the word or sentence you've specified in the _query_ input tag. Read will navigate to a specific page that you've specified in the _query_ input tag and read its contents."
+      .. "NOTE: If you don't conform to the schema, EXACTLY, then the agent will not run."
+  end,
   env = function(xml)
     local address
     local query = xml.parameters.inputs.query
@@ -35,25 +43,6 @@ return {
       query = query,
     }
   end,
-  prompts = {
-    {
-      role = "system",
-      content = function(schema)
-        return "I am giving you access to a real-time capabilities and external databases via the use of something I'm calling a RAG (retrieval augmented generation) agent."
-          .. "\n\nWith this agent, you can search and read from the internet. To execute this agent, you need to return a markdown code block which follows the below schema:"
-          .. "\n\n```xml\n"
-          .. xml2lua.toXml(schema, "agent")
-          .. "\n```\n\n"
-          .. "You only need to change the query and type values in the schema. Do not change the name. Please only execute one of the agents at a time. Review the output before deciding if you need to run another agent"
-      end,
-    },
-    {
-      role = "user",
-      content = function()
-        return "Using the rag agent, can you "
-      end,
-    },
-  },
   output_error_prompt = function(error)
     if type(error) == "table" then
       error = table.concat(error, "\n")

@@ -150,58 +150,6 @@ M.static.actions = {
     },
   },
   {
-    name = "Agents ...",
-    strategy = " ",
-    description = "Use the built-in agents to help you code",
-    condition = function()
-      local agents = config.strategies.agent.agents
-      local i = 0
-      for _, agent in pairs(agents) do
-        if agent.enabled then
-          i = i + 1
-        end
-      end
-      return i > 0
-    end,
-    picker = {
-      prompt = "Chat with an Agent",
-      items = function()
-        local agents = {}
-
-        for id, agent in pairs(config.strategies.agent.agents) do
-          if agent.enabled then
-            local t
-            if agent.location then
-              t = require(agent.location .. "." .. id)
-            else
-              t = require("codecompanion.agents." .. id)
-            end
-
-            -- Form the prompts
-            local prompts = {}
-            for _, prompt in ipairs(t.prompts) do
-              table.insert(prompts, {
-                role = prompt.role,
-                content = function()
-                  return type(prompt.content) == "function" and prompt.content(t.schema) or "\n \n"
-                end,
-              })
-            end
-
-            table.insert(agents, {
-              name = agent.name,
-              strategy = "agent",
-              description = agent.description or nil,
-              prompts = prompts,
-            })
-          end
-        end
-
-        return agents
-      end,
-    },
-  },
-  {
     name = "Workflows ...",
     strategy = " ",
     description = "Workflows to improve the performance of your LLM",

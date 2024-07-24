@@ -12,9 +12,9 @@ local M = {}
 
 ---@class CodeCompanion.Agent
 ---@field cmd table The commands to execute
----@field schema string The schema that the LLM must use in its response to execute a agent
+---@field schema table The schema that the LLM must use in its response to execute a agent
 ---@field opts? table The options for the agent
----@field prompts table The prompts to the LLM explaining the agent and the schema
+---@field system_prompt fun(schema: table): string The system prompt to the LLM explaining the agent and the schema
 ---@field env fun(xml: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
 ---@field pre_cmd fun(env: table, xml: table): table|nil Function to call before the cmd table is executed
 ---@field override_cmds fun(cmds: table): table Function to call to override the default cmds table

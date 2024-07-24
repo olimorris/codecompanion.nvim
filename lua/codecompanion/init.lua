@@ -232,6 +232,7 @@ M.setup = function(opts)
   api.nvim_set_hl(0, "CodeCompanionTokens", { link = hg.tokens, default = true })
   api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = hg.virtual_text, default = true })
   api.nvim_set_hl(0, "CodeCompanionVirtualTextAgents", { link = hg.virtual_text_agents, default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatAgent", { link = hg.agents, default = true })
   api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = hg.variables, default = true })
 
   -- Setup syntax highlighting for the chat buffer
@@ -243,6 +244,9 @@ M.setup = function(opts)
     callback = vim.schedule_wrap(function()
       for var, _ in pairs(M.config.strategies.chat.variables) do
         vim.cmd.syntax('match CodeCompanionChatVariable "#' .. var .. '"')
+      end
+      for var, _ in pairs(M.config.strategies.agent.agents) do
+        vim.cmd.syntax('match CodeCompanionChatAgent "@' .. var .. '"')
       end
     end),
   })

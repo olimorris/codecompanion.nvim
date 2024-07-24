@@ -235,19 +235,19 @@ The plugin sets the following highlight groups during setup:
 
 To start interacting with the plugin you can run `:CodeCompanion <your prompt>` from the command line. You can also make a visual selection in Neovim and run `:'<,'>CodeCompanion <your prompt>` to send it as context. The plugin will initially use an LLM to classify your prompt in order to determine where in Neovim to place the response. You can find more about the classificiations in the [inline prompting](#inline-prompting) section.
 
-It's also possible to reference pre-defined prompts from the config using slash commands such as `:'<,'>:CodeCompanion /advice` and you can find more on this in the [default prompts](#default-prompts) section.
+It's also possible to reference default prompts from the config using slash commands such as `:'<,'>:CodeCompanion /advice`. You can find more on this in the [default prompts](#default-prompts) section.
 
 **Chat Buffer**
 
 <!-- panvimdoc-ignore-start -->
 
-<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5349c177-2fb2-4c00-9c06-194767a9cf6e" alt="Chat buffer"></p>
+<p align="center"><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5349c177-2fb2-4c00-9c06-194767a9cf6e" alt="Chat buffer"></p>
 
 <!-- panvimdoc-ignore-end -->
 
 The chat buffer is where you'll likely spend most of your time when interacting with the plugin. Running `:CodeCompanionChat` or `:'<,'>CodeCompanionChat` will open up a chat buffer where you can converse directly with an LLM. As a convenience, you can use `:CodeCompanionToggle` to toggle the visibility of a chat buffer.
 
-When in the chat buffer you can include variables in your message such as:
+When in the chat buffer you have access to the following variables:
 
 - `#buffer` - Share the current buffer with the LLM
 - `#buffers` - Share all current open buffers with the LLM
@@ -256,15 +256,36 @@ When in the chat buffer you can include variables in your message such as:
 
 There are also many keymaps you can leverage in the chat buffer which are covered in the [chat buffer section](#the-chat-buffer) of this readme.
 
+**Agents**
+
+<!-- panvimdoc-ignore-start -->
+
+<div align="center">
+  <p>https://github.com/user-attachments/assets/8bc083c7-f4f1-4eab-b9fe-ab6c4c30ee91</p>
+</div>
+
+<!-- panvimdoc-ignore-end -->
+
+The plugin also supports LLMs acting as agents by the calling of external tools. In the video above, we're asking an LLM to execute the contents of the buffer via the _@code_runner_ tool, all from within a chat buffer.
+
+When in the chat buffer you have access to the following agents:
+
+- `@code_runner` - The LLM can trigger the running of any code from within a Docker container
+- `@rag` - The LLM can browse and search the internet for real-time information to supplement its response
+- `@buffer_editor` - The LLM can edit code in a Neovim buffer by searching and replacing blocks
+
+> [!IMPORTANT]
+> Agents are currently at an alpha stage right now and I'm using the term agent and tool interchangeably.
+
 **Action Palette**
 
 <!-- panvimdoc-ignore-start -->
 
-<p><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/efb7013e-6c73-48fe-bd79-cdc233dfdc61" alt="Action Palette"></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/23c2ba7c-d438-4132-b13f-11c51ce0a2c5" alt="Action Palette"></p>
 
 <!-- panvimdoc-ignore-end -->
 
-The `:CodeCompanionActions` command will open the _Action Palette_, giving you access to all of the functionality in the plugin. The _Prompts_ section is where your custom prompts and the pre-defined ones can be accessed. You'll notice that some prompts have a label in their description such as `/commit`. This enables you to trigger them from the command line by doing `:CodeCompanion /commit`. Some of these prompts also have keymaps assigned to them (which can be overwritten!) which offers an even easier route to triggering them.
+The `:CodeCompanionActions` command will open the _Action Palette_, giving you access to all of the functionality in the plugin. The _Prompts_ section is where the default prompts and your custom ones can be accessed from. You'll notice that some prompts have a slash command in their description such as `/commit`. This enables you to trigger them from the command line by doing `:CodeCompanion /commit`. Some of these prompts also have keymaps assigned to them (which can be overwritten!) which offers an even easier route to triggering them.
 
 > [!NOTE]
 > Some actions will only be visible in the _Action Palette_ if you're in Visual mode.
@@ -367,31 +388,9 @@ Slash commands can be accessed via the command line, for example `:CodeCompanion
 
 ### Agents
 
-<!-- panvimdoc-ignore-start -->
-
-<p>https://github.com/olimorris/codecompanion.nvim/assets/9512444/a19229b1-36b2-43b0-ad87-600da06b371e</p>
-
-<!-- panvimdoc-ignore-end -->
-
-> [!IMPORTANT]
-> Agents are currently at an alpha stage. I'm yet to properly battle test them so feedback is much appreciated.
-
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
-In this plugin, agents are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response for the plugin to parse, execute and feedback on. Agents can be leveraged by opening up the action palette and choosing the _Agents_ option. Or, agents can be added when in an existing chat buffer via the `gt` keymap.
-
-**Agent types**
-
-Currently, there are two types of agent that are supported in the plugin:
-
-- _Command_ -These agents execute a series of shell commands or external scripts.
-- _Function_ - These agents perform actions directly within Neovim, interacting closely with buffers and the editor environment.
-
-**Built-in Agents**
-
-- _Code Runner_ - A command-based agent that runs code generated by the LLM using Docker.
-- _RAG (Retrieval-Augmented Generation)_ - A command-based agent that supplements the LLM with real-time information.
-- _Buffer Editor_ - A function-based agent that edits code by searching and replacing blocks directly within Neovim buffers. This agent showcases a new, more flexible approach to agent implementation, allowing for complex operations that interact closely with the editor.
+In the plugin, agents are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response for the plugin to parse, execute and feedback on. Agents can be added as a participant in a chat buffer by using the `@` key.
 
 More information on how agents work and how you can create your own can be found in the [AGENTS](doc/AGENTS.md) guide.
 

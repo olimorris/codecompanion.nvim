@@ -1,17 +1,29 @@
 # Agents
 
-In CodeCompanion, agents offer pre-defined ways for LLMs to execute actions. This guide walks you through the implementation of agents, including the default _Code Runner_ agent and the new _Buffer Editor_ agent, to enable you to create your own.
+In CodeCompanion, agents offer pre-defined ways for LLMs to execute actions. Agents are added to chat buffers as participants such as with `@code_runner`.
+
+This guide walks you through the implementation of agents, including the default _Code Runner_ agent and the new _Buffer Editor_ agent, to enable you to create your own.
+
+## Agent Types
+
+CodeCompanion supports two types of agents:
+
+1. **Command-based Agents**: These agents, like the Code Runner, use the `cmd`, `env`, `pre_cmd`, and `override_cmds` fields to execute a series of commands external to Neovim.
+
+2. **Function-based Agents**: These agents, like the Buffer Editor, use the `execute` function to perform their actions directly within Neovim.
+
+The choice between these two types depends on the agent's purpose and how it interacts with the system.
 
 ## The Agent Interface
 
-Let's take a look at the interface of an agent as per the `init.lua` file:
+Let's take a look at the interface of an agent as per the [agents.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/agents.lua) file:
 
 ```lua
 ---@class CodeCompanion.Agent
 ---@field cmd table The commands to execute
----@field schema string The schema that the LLM must use in its response to execute a agent
+---@field schema table The schema that the LLM must use in its response to execute a agent
 ---@field opts? table The options for the agent
----@field prompts table The prompts to the LLM explaining the agent and the schema
+---@field system_prompt fun(schema: table): string The system prompt to the LLM explaining the agent and the schema
 ---@field env fun(xml: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
 ---@field pre_cmd fun(env: table, xml: table): table|nil Function to call before the cmd table is executed
 ---@field override_cmds fun(cmds: table): table Function to call to override the default cmds table
@@ -20,17 +32,7 @@ Let's take a look at the interface of an agent as per the `init.lua` file:
 ---@field execute fun(chat: CodeCompanion.Chat, inputs: table): CodeCompanion.AgentExecuteResult|nil Function to execute the agent (used by Buffer Editor)
 ```
 
-Note that the `execute` field has been added to the interface. This is specifically used by the Buffer Editor agent and represents a different approach to agent implementation.
-
-## Agent Implementation Types
-
-CodeCompanion now supports two types of agent implementations:
-
-1. **Command-based Agents**: These agents, like the Code Runner, use the `cmd`, `env`, `pre_cmd`, and `override_cmds` fields to execute a series of commands.
-
-2. **Function-based Agents**: These agents, like the Buffer Editor, use the `execute` function to perform their actions directly within Neovim.
-
-The choice between these two types depends on the agent's purpose and how it interacts with the system.
+Note that the `execute` field is specifically used by the function-based agent's and represents a different approach to agent implementation.
 
 ### Command-based Agents (e.g., Code Runner)
 
@@ -70,8 +72,8 @@ When creating a new agent, you need to decide which implementation type is more 
 Regardless of the implementation type, all agents need to provide:
 
 - A `schema` defining the structure of the LLM's response
-- `prompts` to instruct the LLM on how to use the agent
-- `output_error_prompt` and `output_prompt` functions to handle communication with the LLM
+- A `system_prompt` function to instruct the LLM on how to use the agent
+- Both `output_error_prompt` and `output_prompt` functions to handle communication with the LLM
 
 ## Config
 
@@ -97,28 +99,21 @@ schema = {
 
 If the LLM outputs a markdown XML block as per the schema, the plugin will parse it and duly execute the code.
 
-### Prompts
+### System Prompt
 
-In the plugin, agents are shared with the LLM via a system prompt. This gives the LLM knowledge of the agent and instructions (via the schema) on how to utilize it.
+In the plugin, LLMs are given knowledge about an agent via a system prompt. This gives the LLM knowledge of the agent alongside the instructions (via the schema) required to execute it.
 
-For the Code Runner agent, the prompts table is:
+For the Code Runner agent, the `system_prompt` table is:
 
 ````lua
-  prompts = {
-    {
-      role = "system",
-      content = function(schema)
-        return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return a markdown code block which follows the below schema:"
-          .. "\n\n```xml\n"
-          .. xml2lua.toXml(schema, "agent")
-          .. "\n```\n"
-      end,
-    },
-    {
-      role = "user",
-      content = "\n \n",
-    },
-  },
+system_prompt = function(schema)
+  return "I'm giving you access to the **Code Runner** agent which enables you to run any code that you've created. You can write code and using the agent, trigger its execution and immediately see the output. This is useful to see if the code worked as you intended. Of course, not every question I ask you will need the agent so bear that in mind.\n\nTo use the agent, you need to return an XML markdown code block (with backticks) which follows the below schema:"
+    .. "\n\n```xml\n"
+    .. xml2lua.toXml(schema, "agent")
+    .. "\n```\n\n"
+    .. "You can see that the schema has input parameters where you can specify the language (e.g. Python) and the code you'd like to run.\n\n"
+    .. "NOTE: If you don't conform to the schema, EXACTLY, then the agent will not run."
+end
 ````
 
 ### Env

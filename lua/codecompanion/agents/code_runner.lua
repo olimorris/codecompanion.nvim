@@ -25,23 +25,16 @@ return {
       },
     },
   },
-  prompts = {
-    {
-      role = "system",
-      content = function(schema)
-        return "You are an expert in writing and reviewing code. To aid you further, I'm giving you access to be able to execute code in a remote environment. This enables you to write code, trigger its execution and immediately see the output from your efforts. Of course, not every question I ask may need code to be executed so bear that in mind.\n\nTo execute code, you need to return an XML markdown code block (with backticks) which follows the below schema:"
-          .. "\n\n```xml\n"
-          .. xml2lua.toXml(schema, "agent")
-          .. "\n```\n"
-      end,
-    },
-    {
-      role = "user",
-      content = function()
-        return "Using the agent, "
-      end,
-    },
-  },
+  system_prompt = function(schema)
+    return "I'm giving you access to the **Code Runner** agent which enables you to run any code that you've created. You can write code and using the agent, trigger its execution and immediately see the output. This is useful to see if the code worked as you intended. Of course, not every question I ask you will need the agent so bear that in mind.\n\nTo use the agent, you need to return an XML markdown code block (with backticks) which follows the below schema:"
+      .. "\n\n```xml\n"
+      .. xml2lua.toXml(schema, "agent")
+      .. "\n```\n\n"
+      .. "You can see that the schema has input parameters where you can specify the language (e.g. Python) and the code you'd like to run.\n\n"
+      .. "NOTE: The agent will only parse the last schema that you respond with.\n\n"
+      .. "NOTE: If you don't conform to the schema, EXACTLY, then the agent will not run.\n\n"
+      .. "NOTE: Please respond concisely so I can understand and observe the code you're executing with the agent."
+  end,
   env = function(xml)
     local temp_input = vim.fn.tempname()
     local temp_dir = temp_input:match("(.*/)")

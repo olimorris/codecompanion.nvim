@@ -13,11 +13,8 @@ M.schema = {
   name = "buffer_editor",
 }
 
-M.prompts = {
-  {
-    role = "system",
-    content = function(schema)
-      return [[You are an expert in writing and reviewing code. Always use best practices when coding. If the user request is ambiguous, ask questions. Always reply to the user in the same language they are using.
+M.system_prompt = function(schema)
+  return [[You are an expert in writing and reviewing code. Always use best practices when coding. If the user request is ambiguous, ask questions. Always reply to the user in the same language they are using.
 
 Once you understand the request you MUST:
 1. Decide if you need to use block editor to edits any files that haven't been added to the chat. You can create new files without asking.  You can keep asking if you then decide you need to edit more files.
@@ -94,21 +91,7 @@ import "fmt"
 ```
 
 This example demonstrates how to add comments to the main.go and config.go files. Note how each SEARCH/REPLACE block starts with the file path, and how the SEARCH section exactly matches the existing code. Also, notice that the entire content is wrapped in a CDATA section to prevent XML parsing issues with special characters in the code.]]
-    end,
-  },
-  {
-    role = "user",
-    ---@param context CodeCompanion.Context
-    content = function(context)
-      return [[Here are the code files you need to focus on and edit, these codes are always in the most up-to-date state
-
-@buffers
-
-I need you
-]]
-    end,
-  },
-}
+end
 
 local function remove_line_numbers(lines)
   local function remove_line_number(line)
@@ -121,7 +104,7 @@ local function remove_line_numbers(lines)
     end)
   end
 
-  -- 分割字符串为行，处理每一行，然后重新组合
+  -- Split the string into lines, process each line, then recombine
   for i, line in ipairs(lines) do
     lines[i] = remove_line_number(line)
   end

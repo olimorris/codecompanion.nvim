@@ -145,7 +145,7 @@ end
 
 ---@class CodeCompanion.Chat
 ---@return CodeCompanion.AgentExecuteResult|nil
-local function parse_agents(chat)
+local function parse_agent_schema(chat)
   local assistant_parser = vim.treesitter.get_parser(chat.bufnr, "markdown")
   local assistant_query = vim.treesitter.query.parse(
     "markdown",
@@ -234,6 +234,8 @@ local registered_cmp = false
 ---@field context table
 ---@field saved_chat? string
 ---@field tokens? nil|number
+---@field agents? CodeCompanion.Agents
+---@field agent_participants? nil|table
 ---@field variables? CodeCompanion.Variables
 ---@field variable_output? nil|table
 ---@field settings table
@@ -263,6 +265,8 @@ function Chat.new(args)
     opts = args,
     status = "",
     last_role = "user",
+    agents = require("codecompanion.strategies.chat.agents").new(),
+    agent_participants = {},
     variables = require("codecompanion.strategies.chat.variables").new(),
     variable_output = {},
     create_buf = function()
@@ -428,14 +432,16 @@ function Chat:set_autocmds()
       if has_cmp then
         if not registered_cmp then
           registered_cmp = true
-          cmp.register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
+          cmp.register_source("codecompanion_agents", require("cmp_codecompanion.agents").new())
           cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new())
+          cmp.register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
         end
         cmp.setup.buffer({
           enabled = true,
           sources = {
-            { name = "codecompanion_variables" },
+            { name = "codecompanion_agents" },
             { name = "codecompanion_models" },
+            { name = "codecompanion_variables" },
           },
         })
       end
@@ -597,6 +603,26 @@ function Chat:submit()
     return
   end
 
+  -- Detect if any agents have been added as participants in the last message
+  local agents = self.agents:parse(messages[#messages].content)
+  if agents then
+    for agent, opts in pairs(agents) do
+      -- Remove the agent from the message content so we don't confuse the LLM
+      messages[#messages].content = self.agents:replace(messages[#messages].content, agent)
+      self.agent_participants[agent] = opts
+    end
+  end
+
+  -- Add the agent's system prompt
+  if util.count(self.agent_participants) > 0 then
+    for _, opts in pairs(self.agent_participants) do
+      table.insert(messages, 1, {
+        role = "system",
+        content = "\n\n" .. opts.system_prompt(opts.schema),
+      })
+    end
+  end
+
   -- Add the default system prompt
   if config.opts.system_prompt then
     table.insert(messages, 1, {
@@ -648,8 +674,8 @@ function Chat:submit()
       self:append({ role = "user", content = "" })
       self:display_tokens()
       self:save_chat()
-      if self.status ~= CONSTANTS.STATUS_ERROR then
-        parse_agents(self)
+      if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.agent_participants) > 0 then
+        parse_agent_schema(self)
       end
       api.nvim_exec_autocmds(
         "User",
