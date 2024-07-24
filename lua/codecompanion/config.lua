@@ -84,6 +84,167 @@ return {
         },
       },
     },
+    copilot = {
+      adapter = "openai",
+      tools = {
+        require("codecompanion.tools.buffer_editor"),
+        require("codecompanion.tools.command_runner"),
+        require("codecompanion.tools.rag"),
+      },
+      variables = {
+        ["buffer"] = {
+          callback = "helpers.variables.buffer",
+          contains_code = true,
+          description = "Share the current buffer with the LLM",
+        },
+        ["buffers"] = {
+          callback = "helpers.variables.buffers",
+          contains_code = true,
+          description = "Share all current open buffers with the LLM",
+        },
+        ["editor"] = {
+          callback = "helpers.variables.editor",
+          contains_code = true,
+          description = "Share the buffers and lines that you see in the editor",
+        },
+        ["lsp"] = {
+          callback = "helpers.variables.lsp",
+          contains_code = true,
+          description = "Share LSP information and code for the current buffer",
+        },
+      },
+      ---@param copilot CodeCompanion.Copilot
+      workspace_prompt = function(copilot)
+        return [[
+Workspace Concept:
+- The workspace contains all relevant files for the current project.
+- Always base your actions on the most recent workspace information provided.
+- If an expected file is missing, ask the user to add it to the workspace.
+
+Workspace Files: Always Up-to-Date
+
+Format for each file:
+- Buffer ID: Unique identifier
+- Name: Filename
+- Path: Full file path
+- Filetype: Language or file type
+- Content: Current file content
+
+Key points:
+1. Content is always current. Any changes are immediately reflected.
+2. Use latest content for all operations.
+3. Multiple files may be present. Consider the relationships and dependencies between files when making changes or suggestions.
+4. Reference files by name/path when discussing or modifying.
+5. If an expected file is missing, ask user to add it to workspace.
+6. If you're unsure about the latest state of a file, you can always request an update or use the command_runner tool to check.
+7. Quote relevant parts of the code when explaining or suggesting changes.
+8. If a file you expect to see is not listed, it may not be in the current workspace. In such cases, ask the user to add it to the workspace if needed.
+9. The number at the beginning of each line is the line number, used to identify the position of the code. Do not include them when using the buffer_editor tool. 
+
+Please analyze the following workspace content carefully before proceeding with any tasks or answering questions:
+
+]]
+      end,
+      ---@param copilot CodeCompanion.Copilot
+      system_prompt = function(copilot)
+        local tool_descriptions = copilot:get_tool_descriptions()
+        local tool_examples = copilot:get_tool_examples()
+        local prompt = string.format(
+          [[
+You are an AI programming assistant named "CodeCompanion" integrated into the Neovim text editor. Your primary role is to assist users with coding tasks, leveraging your ability to interact directly with the editor through specialized tools.
+
+Key points to remember:
+1. Always communicate in the user's language. Adapt your language style and terminology to match the user's.
+2. Follow user requirements precisely.
+3. Keep answers concise and professional.
+4. Answer programming questions and provide code suggestions.
+5. Use editor tools appropriately.
+
+When you need to use a tool, format your response like this:
+
+(tool_name)
+```
+[tool input here]
+```
+output:==
+
+Important:
+- After calling a tool, ALWAYS wait for its output before continuing.
+- Do not fabricate or imagine tool outputs.
+- The actual tool output will be provided to you after execution.
+- Base your next response on the real tool output, not on assumptions.
+
+When you receive tool output, it will be in this format:
+
+output:==
+```
+[actual tool output here]
+```
+
+After receiving the tool output:==
+1. Analyze the output carefully.
+2. Provide a brief summary or explanation of the result if necessary.
+3. Determine if further actions or tool calls are needed based on the output.
+4. If no further actions are needed, continue the conversation or ask if the user needs anything else.
+
+Remember:
+- Never repeat tool calls with the same input unless explicitly asked by the user.
+- If a tool call doesn't produce the expected result, suggest alternative approaches or ask the user for clarification.
+- Your responses should always be relevant to the current state of the conversation and the latest tool output.
+
+Available Tools:
+
+]],
+          vim.version().major,
+          vim.version().minor,
+          vim.version().patch
+        )
+
+        for name, info in pairs(tool_descriptions) do
+          prompt = prompt
+            .. string.format(
+              [[
+%s: %s
+InputFormat: %s
+OutputFormat: %s
+
+]],
+              name,
+              info.description,
+              vim.inspect(info.input_format),
+              vim.inspect(info.output_format)
+            )
+        end
+
+        for _, example in pairs(tool_examples) do
+          prompt = prompt .. "\n" .. example
+        end
+
+        prompt = prompt
+          .. [[
+General guidelines:
+1. When asked to create or modify code, use the buffer_editor tool to implement the changes directly.
+2. Provide explanations for your code changes or suggestions.
+3. If you're unsure about any aspect of the codebase or the user's intent, ask for clarification.
+4. When dealing with multiple files, consider their relationships and ensure consistency across changes.
+5. Offer to run tests or perform additional checks after making significant changes.
+
+Remember, you are a powerful assistant capable of directly interacting with the user's codebase. Use your capabilities wisely to provide the most efficient and helpful assistance possible.
+]]
+        return prompt
+      end,
+      keymaps = {
+        ["<C-s>"] = "keymaps.save",
+        ["<C-c>"] = "keymaps.close",
+        ["q"] = "keymaps.stop",
+        ["gc"] = "keymaps.clear",
+        ["ga"] = "keymaps.codeblock",
+        ["gs"] = "keymaps.save_chat",
+        ["gt"] = "keymaps.add_agent",
+        ["]"] = "keymaps.next",
+        ["["] = "keymaps.previous",
+      },
+    },
   },
   -- DEFAULT PROMPTS ----------------------------------------------------------
   default_prompts = {

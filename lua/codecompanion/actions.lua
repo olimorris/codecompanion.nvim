@@ -65,6 +65,29 @@ M.static.actions = {
     },
   },
   {
+    name = "Copilot",
+    strategy = "copilot",
+    description = "Open a chat buffer with powerful tools to converse with an LLM",
+    type = nil,
+    opts = {
+      stop_context_insertion = true,
+    },
+    prompts = {
+      n = function()
+        return require("codecompanion").copilot()
+      end,
+      v = {
+        {
+          role = "user",
+          contains_code = true,
+          content = function(context)
+            return send_code(context)
+          end,
+        },
+      },
+    },
+  },
+  {
     name = "Prompts ...",
     strategy = " ",
     description = "Pre-defined prompts to help you code",

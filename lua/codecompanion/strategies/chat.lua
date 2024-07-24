@@ -18,6 +18,7 @@ local CONSTANTS = {
   AU_USER_EVENT = "CodeCompanionChat",
 
   STATUS_ERROR = "error",
+  STATUS_RUNNING = "running",
   STATUS_SUCCESS = "success",
   STATUS_FINISHED = "finished",
 }
@@ -241,7 +242,7 @@ local Chat = {}
 
 ---@class CodeCompanion.ChatArgs
 ---@field context? table
----@field adapter? CodeCompanion.Adapter
+---@field adapter? CodeCompanion.Adapter|string
 ---@field messages? table
 ---@field auto_submit? boolean
 ---@field stop_context_insertion? boolean
@@ -252,6 +253,7 @@ local Chat = {}
 ---@field last_role? string
 
 ---@param args CodeCompanion.ChatArgs
+---@return CodeCompanion.Chat
 function Chat.new(args)
   local id = math.random(10000000)
 
@@ -493,7 +495,11 @@ function Chat:set_autocmds()
     desc = "Submit the CodeCompanion chat buffer",
     callback = function()
       self:save_chat()
-      self:submit()
+
+      --- prevent send twice or more req at same time
+      if self.status == "" then
+        self:submit()
+      end
     end,
   })
 

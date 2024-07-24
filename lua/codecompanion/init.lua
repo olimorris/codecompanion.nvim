@@ -303,4 +303,31 @@ M.setup = function(opts)
   vim.treesitter.language.register("markdown", "codecompanion")
 end
 
+M.copilot = function(args)
+  local adapter
+  local context = util.get_context(api.nvim_get_current_buf(), args)
+
+  if args and args.fargs then
+    adapter = M.config.adapters[args.fargs[1]]
+  end
+
+  local chat = require("codecompanion.strategies.copilot").new({
+    context = context,
+    adapter = adapter,
+    tools = M.config.strategies.copilot.tools,
+    messages = {
+      {
+        role = "user",
+        content = "#buffers\n\n",
+      },
+    },
+  })
+
+  if not chat then
+    return vim.notify("[CodeCompanion.nvim]\nNo chat strategy found", vim.log.levels.WARN)
+  end
+
+  ui.scroll_to_end(0)
+end
+
 return M

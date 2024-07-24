@@ -26,11 +26,19 @@ M.encode = function(data)
     local lines = {}
     if islist(data) then
       if vim.tbl_isempty(data) then
-        return "[]"
+        return "{}"
       else
-        for _, v in ipairs(data) do
-          table.insert(lines, string.format("- %s", M.encode(v)))
+        local value = "["
+        -- table.insert(lines, string.format("%s", M.encode(data)))
+        for i, v in ipairs(data) do
+          value = value .. string.format("'%s'", M.encode(v))
+          if i < #data then
+            value = value .. ", "
+          else
+            value = value .. "]"
+          end
         end
+        table.insert(lines, value)
       end
     else
       if vim.tbl_isempty(data) then
@@ -41,7 +49,7 @@ M.encode = function(data)
         end
       end
     end
-    return table.concat(lines, "\n")
+    return table.concat(lines, " ")
   else
     error(string.format("Cannot encode type '%s' to yaml", dt))
   end

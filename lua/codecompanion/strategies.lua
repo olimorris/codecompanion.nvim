@@ -114,6 +114,59 @@ function Strategies:chat()
   end
 end
 
+---@return nil|CodeCompanion.Chat
+function Strategies:copilot()
+  local messages
+  local mode = self.context.mode:lower()
+  local prompts = self.selected.prompts
+
+  if type(prompts[mode]) == "function" then
+    return prompts[mode]()
+  elseif type(prompts[mode]) == "table" then
+    messages = process_prompts(prompts[mode], self.context)
+  else
+    -- No mode specified
+    messages = process_prompts(prompts, self.context)
+  end
+
+  if not messages or #messages == 0 then
+    vim.notify("[CodeCompanion.nvim]\nThere are no messages to prompt the LLM", vim.log.levels.WARN)
+    return
+  end
+
+  local function copilot_chat(input)
+    if input then
+      table.insert(messages, {
+        role = "user",
+        content = input,
+      })
+    end
+
+    log:trace("Strategy: Copilot")
+    return require("codecompanion.strategies.copilot").new({
+      type = self.selected.type,
+      adapter = self.selected.adapter,
+      context = self.context,
+      messages = messages,
+      tools = config.strategies.copilot.tools,
+      auto_submit = (self.selected.opts and self.selected.opts.auto_submit) or false,
+      stop_context_insertion = (self.selected.opts and self.selected.opts.stop_context_insertion) or false,
+    })
+  end
+
+  if self.selected.opts and self.selected.opts.user_prompt then
+    vim.ui.input({ prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " Prompt" }, function(input)
+      if not input then
+        return
+      end
+
+      return copilot_chat(input)
+    end)
+  else
+    return copilot_chat()
+  end
+end
+
 ---@return nil|CodeCompanion.Inline
 function Strategies:inline()
   log:trace("Strategy: Inline")
