@@ -2,7 +2,7 @@ local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
 
 local _CONSTANTS = {
-  SUFFIX = "#",
+  PREFIX = "#",
 }
 
 ---@param message string
@@ -10,7 +10,7 @@ local _CONSTANTS = {
 ---@return string|nil
 local function find(message, vars)
   for var, _ in pairs(vars) do
-    if message:match("%f[%w" .. _CONSTANTS.SUFFIX .. "]" .. _CONSTANTS.SUFFIX .. var .. "%f[%W]") then
+    if message:match("%f[%w" .. _CONSTANTS.PREFIX .. "]" .. _CONSTANTS.PREFIX .. var .. "%f[%W]") then
       return var
     end
   end
@@ -83,7 +83,7 @@ end
 ---@param vars table
 ---@return string
 function Variables:replace(message, vars)
-  local var = _CONSTANTS.SUFFIX .. vars.var
+  local var = _CONSTANTS.PREFIX .. vars.var
   return vim.trim(message:gsub(var, ""))
 end
 
