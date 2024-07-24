@@ -392,10 +392,20 @@ return {
     log_level = "ERROR",
     auto_save_chats = true, -- If a chat has already been saved or loaded then autosave it after every prompt
     saved_chats_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats",
+
+    -- If this is false then any default prompt that is marked as containing code
+    -- will not be sent to the LLM. Please note that whilst I have made every
+    -- effort to ensure no code leakage, using this is at your own risk
     send_code = true,
+
     silence_notifications = false,
     use_default_actions = true,
     use_default_prompts = true,
+
+    -- This is the default prompt which is sent with every request in the chat
+    -- strategy. It is primarily based on the leaked GitHub Copilot prompt
+    -- but with some modifications. You can choose to remove this via
+    -- your own config but note that LLM results may not be as good
     system_prompt = string.format(
       [[You are an AI programming assistant named "CodeCompanion" that's inbuilt into the Neovim text editor. Follow the user's requirements carefully and to the letter. Keep your answers short and impersonal.
 
