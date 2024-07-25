@@ -39,7 +39,6 @@ return {
         ["gc"] = "keymaps.clear",
         ["ga"] = "keymaps.codeblock",
         ["gs"] = "keymaps.save_chat",
-        ["gt"] = "keymaps.add_agent",
         ["]"] = "keymaps.next",
         ["["] = "keymaps.previous",
       },
