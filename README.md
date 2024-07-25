@@ -249,7 +249,7 @@ The chat buffer is where you'll likely spend most of your time when interacting 
 
 When in the chat buffer you have access to the following variables:
 
-- `#buffer` - Share the current buffer with the LLM
+- `#buffer` - Share the current buffer's content with the LLM. You can also specify line numbers with `#buffer:8-20`
 - `#buffers` - Share all current open buffers with the LLM
 - `#editor` - Share the buffers and lines that you see in the editor's viewport
 - `#lsp` - Share LSP information and code for the current buffer

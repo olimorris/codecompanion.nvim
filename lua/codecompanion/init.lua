@@ -242,11 +242,14 @@ M.setup = function(opts)
     pattern = "codecompanion",
     group = group,
     callback = vim.schedule_wrap(function()
-      for var, _ in pairs(M.config.strategies.chat.variables) do
-        vim.cmd.syntax('match CodeCompanionChatVariable "#' .. var .. '"')
+      for name, var in pairs(M.config.strategies.chat.variables) do
+        vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '"')
+        if var.opts and var.opts.has_params then
+          vim.cmd.syntax('match CodeCompanionChatVariable ":\\d\\+-\\?\\d\\+"')
+        end
       end
-      for var, _ in pairs(M.config.strategies.agent.agents) do
-        vim.cmd.syntax('match CodeCompanionChatAgent "@' .. var .. '"')
+      for name, _ in pairs(M.config.strategies.agent.agents) do
+        vim.cmd.syntax('match CodeCompanionChatAgent "@' .. name .. '"')
       end
     end),
   })

@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 July 24
+*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 July 25
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -240,7 +240,7 @@ toggle the visibility of a chat buffer.
 
 When in the chat buffer you have access to the following variables:
 
-- `#buffer` - Share the current buffer with the LLM
+- `#buffer` - Share the current buffer with the LLM. You can also specify specific line numbers such as `#buffer:8-20`
 - `#buffers` - Share all current open buffers with the LLM
 - `#editor` - Share the buffers and lines that you see in the editor’s viewport
 - `#lsp` - Share LSP information and code for the current buffer

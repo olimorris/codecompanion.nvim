@@ -5,6 +5,7 @@ local _CONSTANTS = {
   PREFIX = "#",
 }
 
+---Check a message for a variable
 ---@param message string
 ---@param vars table
 ---@return string|nil
@@ -17,11 +18,28 @@ local function find(message, vars)
   return nil
 end
 
+---Check a message for any parameters that have been given to the variable
+---@param message string
+---@param var string
+---@return string|nil
+local function find_params(message, var)
+  local pattern = _CONSTANTS.PREFIX .. var .. ":([^%s]+)"
+
+  local params = message:match(pattern)
+  if params then
+    log:trace("Params found for variable: %s", params)
+    return params
+  end
+
+  return nil
+end
+
 ---@param chat CodeCompanion.Chat
----@param rhs string|table|fun(self)
+---@param callback table
+---@param params? string
 ---@return table|nil
-local function resolve(chat, rhs)
-  local splits = vim.split(rhs, ".", { plain = true })
+local function resolve(chat, callback, params)
+  local splits = vim.split(callback, ".", { plain = true })
   local path = table.concat(splits, ".", 1, #splits - 1)
   local func = splits[#splits]
 
@@ -30,11 +48,11 @@ local function resolve(chat, rhs)
   -- User is using a custom callback
   if not ok then
     log:trace("Calling variable: %s", path .. "." .. func)
-    return require(path)[func](chat)
+    return require(path)[func](chat, params)
   end
 
   log:trace("Calling variable: %s", path .. "." .. func)
-  return module[func](chat)
+  return module[func](chat, params)
 end
 
 ---@class CodeCompanion.Variables
@@ -65,7 +83,12 @@ function Variables:parse(chat, message, index)
   local found = self.vars[var]
   log:debug("Variable found: %s", var)
 
-  if found.contains_code and config.opts.send_code == false then
+  local params = nil
+  if found.opts and found.opts.has_params then
+    params = find_params(message, var)
+  end
+
+  if (found.opts and found.opts.contains_code) and config.opts.send_code == false then
     log:debug("Sending of code disabled")
     return
   end
@@ -74,7 +97,7 @@ function Variables:parse(chat, message, index)
     var = var,
     index = index,
     type = found.type,
-    content = resolve(chat, found.callback),
+    content = resolve(chat, found.callback, params),
   }
 end
 

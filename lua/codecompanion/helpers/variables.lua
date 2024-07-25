@@ -6,9 +6,24 @@ local M = {}
 
 ---Return the contents of the current buffer that the chat was initiated from
 ---@param chat CodeCompanion.Chat
+---@param params string
 ---@return string
-M.buffer = function(chat)
-  local output = buf_utils.format_by_id(chat.context.bufnr)
+M.buffer = function(chat, params)
+  local range
+  if params then
+    local start, finish = params:match("(%d+)-(%d+)")
+
+    if start and finish then
+      start = tonumber(start) - 1
+      finish = tonumber(finish)
+    end
+
+    if start <= finish then
+      range = { start, finish }
+    end
+  end
+
+  local output = buf_utils.format_by_id(chat.context.bufnr, range)
   log:trace("Buffer Variable:\n---\n%s", output)
 
   return output
@@ -16,8 +31,9 @@ end
 
 ---Return the open buffers that match the current filetype
 ---@param chat CodeCompanion.Chat
+---@param params string
 ---@return string
-M.buffers = function(chat)
+M.buffers = function(chat, params)
   local output = ""
 
   local buffers = buf_utils.get_open(chat.context.filetype)
@@ -33,8 +49,9 @@ end
 
 ---Return all of the visible lines in the editor's viewport
 ---@param chat CodeCompanion.Chat
+---@param params string
 ---@return string
-M.editor = function(chat)
+M.editor = function(chat, params)
   local buf_lines = buf_utils.get_visible_lines()
 
   -- Replace the line numbers with content
@@ -49,8 +66,9 @@ end
 
 ---Return all of the LSP information and code for the current buffer
 ---@param chat CodeCompanion.Chat
+---@param params string
 ---@return string
-M.lsp = function(chat)
+M.lsp = function(chat, params)
   local severity = {
     [1] = "ERROR",
     [2] = "WARNING",

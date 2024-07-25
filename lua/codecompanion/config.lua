@@ -13,18 +13,25 @@ return {
       variables = {
         ["buffer"] = {
           callback = "helpers.variables.buffer",
-          contains_code = true,
           description = "Share the current buffer with the LLM",
+          opts = {
+            contains_code = true,
+            has_params = true,
+          },
         },
         ["buffers"] = {
           callback = "helpers.variables.buffers",
-          contains_code = true,
           description = "Share all current open buffers with the LLM",
+          opts = {
+            contains_code = true,
+          },
         },
         ["editor"] = {
           callback = "helpers.variables.editor",
-          contains_code = true,
           description = "Share the buffers and lines that you see in the editor's viewport",
+          opts = {
+            contains_code = true,
+          },
         },
         ["lsp"] = {
           callback = "helpers.variables.lsp",
