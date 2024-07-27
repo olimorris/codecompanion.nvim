@@ -10,24 +10,24 @@ local api = vim.api
 
 local M = {}
 
----@class CodeCompanion.Agent
+---@class CodeCompanion.Tool
 ---@field cmd table The commands to execute
----@field schema table The schema that the LLM must use in its response to execute a agent
----@field opts? table The options for the agent
----@field system_prompt fun(schema: table): string The system prompt to the LLM explaining the agent and the schema
+---@field schema table The schema that the LLM must use in its response to execute a tool
+---@field opts? table The options for the tool
+---@field system_prompt fun(schema: table): string The system prompt to the LLM explaining the tool and the schema
 ---@field env fun(xml: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
 ---@field pre_cmd fun(env: table, xml: table): table|nil Function to call before the cmd table is executed
 ---@field override_cmds fun(cmds: table): table Function to call to override the default cmds table
 ---@field output_error_prompt fun(error: table): string The prompt to share with the LLM if an error is encountered
 ---@field output_prompt fun(output: table): string The prompt to share with the LLM if the cmd is successful
----@field execute fun(chat: CodeCompanion.Chat, inputs: table): CodeCompanion.AgentExecuteResult|nil Function to execute the agent (used by Buffer Editor)
+---@field execute fun(chat: CodeCompanion.Chat, inputs: table): CodeCompanion.ToolExecuteResult|nil Function to execute the tool (used by Buffer Editor)
 
----@class CodeCompanion.AgentExecuteResult
----@field success boolean Whether the agent was successful
+---@class CodeCompanion.ToolExecuteResult
+---@field success boolean Whether the tool was successful
 ---@field message string The message to display to the user
----@field modified_files? table<string, string> The files that were modified by the agent
+---@field modified_files? table<string, string> The files that were modified by the tool
 
----@class CodeCompanion.AgentExecuteInputs
+---@class CodeCompanion.ToolExecuteInputs
 
 ---Parse the Tree-sitter output into XML
 ---@param agents table
@@ -39,14 +39,14 @@ local function parse_xml(agents)
 
   log:trace("Parsed xml: %s", handler.root)
 
-  return handler.root.agent
+  return handler.root.tool
 end
 
----Set the autocmds for the agent
+---Set the autocmds for the tool
 ---@param chat CodeCompanion.Chat
----@param agent CodeCompanion.Agent
+---@param tool CodeCompanion.Tool
 ---@return nil
-local function set_autocmds(chat, agent)
+local function set_autocmds(chat, tool)
   local ns_id = api.nvim_create_namespace("CodeCompanionAgentVirtualText")
   local group = "CodeCompanionAgent_" .. chat.bufnr
 
@@ -61,9 +61,9 @@ local function set_autocmds(chat, agent)
         return
       end
 
-      log:trace("Agent finished event: %s", request)
+      log:trace("Tool finished event: %s", request)
       if request.data.status == "started" then
-        ui.set_virtual_text(chat.bufnr, ns_id, "Agent processing ...", { hl_group = "CodeCompanionVirtualTextAgents" })
+        ui.set_virtual_text(chat.bufnr, ns_id, "Tool processing ...", { hl_group = "CodeCompanionVirtualTextAgents" })
         return
       end
 
@@ -72,10 +72,10 @@ local function set_autocmds(chat, agent)
       if request.data.status == "error" then
         chat:add_message({
           role = "user",
-          content = agent.output_error_prompt(request.data.error),
+          content = tool.output_error_prompt(request.data.error),
         })
 
-        if config.strategies.agent.agents.opts.auto_submit_errors then
+        if config.strategies.agent.tools.opts.auto_submit_errors then
           chat:submit()
         end
       end
@@ -91,12 +91,12 @@ local function set_autocmds(chat, agent)
         end
         chat:add_message({
           role = "user",
-          content = agent.output_prompt(output),
+          content = tool.output_prompt(output),
         })
-        if agent.opts and agent.opts.hide_output then
-          chat:conceal("agent")
+        if tool.opts and tool.opts.hide_output then
+          chat:conceal("tool")
         end
-        if config.strategies.agent.agents.opts.auto_submit_success then
+        if config.strategies.agent.tools.opts.auto_submit_success then
           chat:submit()
         end
       end
@@ -106,29 +106,29 @@ local function set_autocmds(chat, agent)
   })
 end
 
-local function run_agent(chat, agent, xml)
-  set_autocmds(chat, agent)
+local function run_agent(chat, tool, xml)
+  set_autocmds(chat, tool)
 
-  if type(agent.execute) == "function" then
-    return agent.execute(chat, xml.parameters.inputs)
+  if type(tool.execute) == "function" then
+    return tool.execute(chat, xml.parameters.inputs)
   else
-    local env = type(agent.env) == "function" and agent.env(xml) or {}
-    local cmds = type(agent.override_cmds) == "function" and agent.override_cmds(vim.deepcopy(agent.cmds))
-      or vim.deepcopy(agent.cmds)
+    local env = type(tool.env) == "function" and tool.env(xml) or {}
+    local cmds = type(tool.override_cmds) == "function" and tool.override_cmds(vim.deepcopy(tool.cmds))
+      or vim.deepcopy(tool.cmds)
 
-    if type(agent.pre_cmd) == "function" then
-      agent.pre_cmd(env, xml)
+    if type(tool.pre_cmd) == "function" then
+      tool.pre_cmd(env, xml)
     end
 
     require("codecompanion.utils.util").replace_placeholders(cmds, env)
-    return require("codecompanion.agents.job_runner").init(cmds, chat)
+    return require("codecompanion.tools.job_runner").init(cmds, chat)
   end
 end
 
----Run the agent
+---Run the tool
 ---@param chat CodeCompanion.Chat
 ---@param ts table
----@return nil| CodeCompanion.AgentExecuteResult
+---@return nil| CodeCompanion.ToolExecuteResult
 function M.run(chat, ts)
   local ok, xml = pcall(parse_xml, ts)
   if not ok then
@@ -136,13 +136,14 @@ function M.run(chat, ts)
     return
   end
 
-  local ok, agent = pcall(require, "codecompanion.agents." .. xml.name)
+  -- FIX: This needs to work for a user's custom callback
+  local ok, tool = pcall(require, "codecompanion.tools." .. xml.name)
   if not ok then
-    log:error("Error loading agent: %s", agent)
+    log:error("Error loading tool: %s", tool)
     return
   end
 
-  return run_agent(chat, agent, xml)
+  return run_agent(chat, tool, xml)
 end
 
 return M

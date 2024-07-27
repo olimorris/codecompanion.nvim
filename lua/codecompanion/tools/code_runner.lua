@@ -1,7 +1,7 @@
 local log = require("codecompanion.utils.log")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
----@class CodeCompanion.Agent
+---@class CodeCompanion.Tool
 return {
   cmds = {
     { "docker", "pull", "${lang}" },
@@ -26,14 +26,14 @@ return {
     },
   },
   system_prompt = function(schema)
-    return "I'm giving you access to the **Code Runner** agent which enables you to run any code that you've created. You can write code and using the agent, trigger its execution and immediately see the output. This is useful to see if the code worked as you intended. Of course, not every question I ask you will need the agent so bear that in mind.\n\nTo use the agent, you need to return an XML markdown code block (with backticks) which follows the below schema:"
+    return "I'm giving you access to the **Code Runner** tool which enables you to run any code that you've created. You can write code and using the tool, trigger its execution and immediately see the output. This is useful to see if the code worked as you intended. Of course, not every question I ask you will need the tool so bear that in mind.\n\nTo use the tool, you need to return an XML markdown code block (with backticks) which follows the below schema:"
       .. "\n\n```xml\n"
-      .. xml2lua.toXml(schema, "agent")
+      .. xml2lua.toXml(schema, "tool")
       .. "\n```\n\n"
       .. "You can see that the schema has input parameters where you can specify the language (e.g. Python) and the code you'd like to run.\n\n"
-      .. "NOTE: The agent will only parse the last schema that you respond with.\n\n"
-      .. "NOTE: If you don't conform to the schema, EXACTLY, then the agent will not run.\n\n"
-      .. "NOTE: Please respond concisely so I can understand and observe the code you're executing with the agent."
+      .. "NOTE: The tool will only parse the last schema that you respond with.\n\n"
+      .. "NOTE: If you don't conform to the schema, EXACTLY, then the tool will not run.\n\n"
+      .. "NOTE: Please respond concisely so I can understand and observe the code you're executing with the tool."
   end,
   env = function(xml)
     local temp_input = vim.fn.tempname()
@@ -63,7 +63,7 @@ return {
     if type(error) == "table" then
       error = table.concat(error, "\n")
     end
-    return "After the agent completed, there was an error:"
+    return "After the tool completed, there was an error:"
       .. "\n\n```\n"
       .. error
       .. "\n```\n\n"
@@ -74,7 +74,7 @@ return {
       output = table.concat(output, "\n")
     end
 
-    return "After the agent completed the output was:"
+    return "After the tool completed the output was:"
       .. "\n\n```\n"
       .. output
       .. "\n```\n\n"

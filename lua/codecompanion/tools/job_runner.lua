@@ -37,14 +37,14 @@ local function run(cmds, chat, index)
 
   log:debug("Running cmd: %s", cmd)
 
-  chat.current_agent = Job:new({
+  chat.current_tool = Job:new({
     command = cmd[1],
     args = { unpack(cmd, 2) }, -- args start from index 2
     on_exit = function(_, exit_code)
       run(cmds, chat, index + 1)
 
       vim.schedule(function()
-        if _G.codecompanion_cancel_agent then
+        if _G.codecompanion_cancel_tool then
           return announce_end(chat.bufnr)
         end
 
@@ -80,7 +80,7 @@ function M.init(cmds, chat)
   status = "success"
   stderr = {}
   stdout = {}
-  _G.codecompanion_cancel_agent = false
+  _G.codecompanion_cancel_tool = false
 
   announce_start(chat.bufnr)
   return run(cmds, chat, 1)

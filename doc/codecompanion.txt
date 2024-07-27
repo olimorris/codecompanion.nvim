@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 July 25
+*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 July 27
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -240,7 +240,7 @@ toggle the visibility of a chat buffer.
 
 When in the chat buffer you have access to the following variables:
 
-- `#buffer` - Share the current buffer with the LLM. You can also specify specific line numbers such as `#buffer:8-20`
+- `#buffer` - Share the current buffer’s content with the LLM. You can also specify line numbers with `#buffer:8-20`
 - `#buffers` - Share all current open buffers with the LLM
 - `#editor` - Share the buffers and lines that you see in the editor’s viewport
 - `#lsp` - Share LSP information and code for the current buffer
@@ -248,13 +248,13 @@ When in the chat buffer you have access to the following variables:
 There are also many keymaps you can leverage in the chat buffer which are
 covered in the |codecompanion-chat-buffer-section| of this readme.
 
-**Agents**
+**Agents / Tools**
 
 The plugin also supports LLMs acting as agents by the calling of external
 tools. In the video above, we’re asking an LLM to execute the contents of the
 buffer via the _@code_runner_ tool, all from within a chat buffer.
 
-When in the chat buffer you have access to the following agents:
+When in the chat buffer you have access to the following tools:
 
 - `@code_runner` - The LLM can trigger the running of any code from within a Docker container
 - `@rag` - The LLM can browse and search the internet for real-time information to supplement its response
@@ -410,7 +410,7 @@ Slash commands can be accessed via the command line, for example
 `:CodeCompanion /commit`.
 
 
-AGENTS ~
+AGENTS / TOOLS ~
 
 As outlined by Andrew Ng in Agentic Design Patterns Part 3, Tool Use
 <https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use>,

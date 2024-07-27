@@ -256,7 +256,7 @@ When in the chat buffer you have access to the following variables:
 
 There are also many keymaps you can leverage in the chat buffer which are covered in the [chat buffer section](#the-chat-buffer) of this readme.
 
-**Agents**
+**Agents / Tools**
 
 <!-- panvimdoc-ignore-start -->
 
@@ -268,7 +268,7 @@ There are also many keymaps you can leverage in the chat buffer which are covere
 
 The plugin also supports LLMs acting as agents by the calling of external tools. In the video above, we're asking an LLM to execute the contents of the buffer via the _@code_runner_ tool, all from within a chat buffer.
 
-When in the chat buffer you have access to the following agents:
+When in the chat buffer you have access to the following tools:
 
 - `@code_runner` - The LLM can trigger the running of any code from within a Docker container
 - `@rag` - The LLM can browse and search the internet for real-time information to supplement its response
@@ -386,7 +386,7 @@ The plugin comes with a number of default prompts ([as per the config](https://g
 
 Slash commands can be accessed via the command line, for example `:CodeCompanion /commit`.
 
-### Agents
+### Agents / Tools
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 

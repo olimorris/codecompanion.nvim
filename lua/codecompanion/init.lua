@@ -248,7 +248,7 @@ M.setup = function(opts)
           vim.cmd.syntax('match CodeCompanionChatVariable ":\\d\\+-\\?\\d\\+"')
         end
       end
-      for name, _ in pairs(M.config.strategies.agent.agents) do
+      for name, _ in pairs(M.config.strategies.agent.tools) do
         vim.cmd.syntax('match CodeCompanionChatAgent "@' .. name .. '"')
       end
     end),

@@ -24,7 +24,7 @@ To aid you further, I'm giving you access to a block editor that can make change
 
 To use the block editor, you need to return an XML markdown code block (with backticks) which follows the below schema:
 ```xml
-]] .. xml2lua.toXml(schema, "agent") .. [[
+]] .. xml2lua.toXml(schema, "tool") .. [[
 
 ```
 The content parameter should contain one or more SEARCH/REPLACE blocks, wrapped in a CDATA section. Each block MUST have the following exact format:
@@ -53,10 +53,10 @@ IMPORTANT RULES:
 
 Be extremely careful and precise when creating these blocks. If the SEARCH section doesn't match exactly, the edit will fail.
 
-Here's an example of how to use the buffer_editor agent:
+Here's an example of how to use the buffer_editor tool:
 
 ```xml
-<agent>
+<tool>
   <name>buffer_editor</name>
   <parameters>
     <inputs>
@@ -87,7 +87,7 @@ import "fmt"
 ]] .. "]]>" .. [[</content>
     </inputs>
   </parameters>
-</agent>
+</tool>
 ```
 
 This example demonstrates how to add comments to the main.go and config.go files. Note how each SEARCH/REPLACE block starts with the file path, and how the SEARCH section exactly matches the existing code. Also, notice that the entire content is wrapped in a CDATA section to prevent XML parsing issues with special characters in the code.]]
@@ -250,7 +250,7 @@ end
 ---@param chat CodeCompanion.Chat The chat object containing buffer information.
 ---@param params table Parameters for the code modifications.
 --
----@return CodeCompanion.AgentExecuteResult
+---@return CodeCompanion.ToolExecuteResult
 function M.execute(chat, params)
   local bufnr = chat.bufnr
 
@@ -315,7 +315,7 @@ M.output_error_prompt = function(error)
 end
 
 M.output_prompt = function(output)
-  if config.strategies.agent.agents.opts.auto_submit_success then
+  if config.strategies.agent.tools.opts.auto_submit_success then
     return "The buffer editor completed successfully with the following output:\n\n"
       .. output
       .. "\nWhat do you want to do next?"

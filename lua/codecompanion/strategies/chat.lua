@@ -34,12 +34,12 @@ local chat_query = [[
 )
 ]]
 
-local agent_query = [[
+local tool_query = [[
 (
  (section
   (fenced_code_block
     (info_string) @lang
-    (code_fence_content) @agents
+    (code_fence_content) @tool
   ) (#match? @lang "xml"))
 )
 ]]
@@ -144,8 +144,8 @@ local function parse_messages(bufnr)
 end
 
 ---@class CodeCompanion.Chat
----@return CodeCompanion.AgentExecuteResult|nil
-local function parse_agent_schema(chat)
+---@return CodeCompanion.ToolExecuteResult|nil
+local function parse_tool_schema(chat)
   local assistant_parser = vim.treesitter.get_parser(chat.bufnr, "markdown")
   local assistant_query = vim.treesitter.query.parse(
     "markdown",
@@ -173,23 +173,23 @@ local function parse_agent_schema(chat)
 
   local parser = vim.treesitter.get_string_parser(response, "markdown")
   local tree = parser:parse()[1]
-  local query = vim.treesitter.query.parse("markdown", agent_query)
+  local query = vim.treesitter.query.parse("markdown", tool_query)
 
-  local agents = {}
+  local tools = {}
   for id, node in query:iter_captures(tree:root(), response, 0, -1) do
     local name = query.captures[id]
-    if name == "agents" then
-      local agent = vim.treesitter.get_node_text(node, response)
-      table.insert(agents, agent)
+    if name == "tool" then
+      local tool = vim.treesitter.get_node_text(node, response)
+      table.insert(tools, tool)
     end
   end
 
-  log:debug("Agents detected: %s", agents)
+  log:debug("Tool detected: %s", tools)
 
   --TODO: Parse XML to ensure the STag is <agent>
 
-  if agents and #agents > 0 then
-    return require("codecompanion.agents").run(chat, agents[#agents])
+  if tools and #tools > 0 then
+    return require("codecompanion.tools").run(chat, tools[#tools])
   end
 end
 
@@ -228,13 +228,13 @@ local registered_cmp = false
 ---@field id integer
 ---@field adapter CodeCompanion.Adapter
 ---@field current_request table
----@field current_agent table
+---@field current_tool table
 ---@field bufnr integer
 ---@field opts CodeCompanion.ChatArgs
 ---@field context table
 ---@field saved_chat? string
 ---@field tokens? nil|number
----@field agents? CodeCompanion.Agents
+---@field tools? CodeCompanion.Tools
 ---@field agent_participants? nil|table
 ---@field variables? CodeCompanion.Variables
 ---@field variable_output? nil|table
@@ -265,7 +265,7 @@ function Chat.new(args)
     opts = args,
     status = "",
     last_role = "user",
-    agents = require("codecompanion.strategies.chat.agents").new(),
+    tools = require("codecompanion.strategies.chat.tools").new(),
     agent_participants = {},
     variables = require("codecompanion.strategies.chat.variables").new(),
     variable_output = {},
@@ -432,14 +432,14 @@ function Chat:set_autocmds()
       if has_cmp then
         if not registered_cmp then
           registered_cmp = true
-          cmp.register_source("codecompanion_agents", require("cmp_codecompanion.agents").new())
+          cmp.register_source("codecompanion_tools", require("cmp_codecompanion.tools").new())
           cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new())
           cmp.register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
         end
         cmp.setup.buffer({
           enabled = true,
           sources = {
-            { name = "codecompanion_agents" },
+            { name = "codecompanion_tools" },
             { name = "codecompanion_models" },
             { name = "codecompanion_variables" },
           },
@@ -603,18 +603,22 @@ function Chat:submit()
     return
   end
 
-  -- Detect if any agents have been added as participants in the last message
-  local agents = self.agents:parse(messages[#messages].content)
-  if agents then
-    for agent, opts in pairs(agents) do
-      -- Remove the agent from the message content so we don't confuse the LLM
-      messages[#messages].content = self.agents:replace(messages[#messages].content, agent)
-      self.agent_participants[agent] = opts
+  -- Detect if any tools have been added as participants in the last message
+  local tools = self.tools:parse(messages[#messages].content)
+  if tools then
+    for tool, opts in pairs(tools) do
+      -- Remove the tool from the message content so we don't confuse the LLM
+      messages[#messages].content = self.tools:replace(messages[#messages].content, tool)
+      self.agent_participants[tool] = opts
     end
   end
 
-  -- Add the agent's system prompt
+  -- Add the agent system prompt
   if util.count(self.agent_participants) > 0 then
+    table.insert(messages, 1, {
+      role = "system",
+      content = config.strategies.agent.tools.opts.system_prompt,
+    })
     for _, opts in pairs(self.agent_participants) do
       table.insert(messages, 1, {
         role = "system",
@@ -675,7 +679,7 @@ function Chat:submit()
       self:display_tokens()
       self:save_chat()
       if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.agent_participants) > 0 then
-        parse_agent_schema(self)
+        parse_tool_schema(self)
       end
       api.nvim_exec_autocmds(
         "User",
@@ -704,11 +708,11 @@ end
 ---@return nil
 function Chat:stop()
   local job
-  if self.current_agent then
-    job = self.current_agent
-    self.current_agent = nil
+  if self.current_tool then
+    job = self.current_tool
+    self.current_tool = nil
 
-    _G.codecompanion_cancel_agent = true
+    _G.codecompanion_cancel_tool = true
     job:shutdown()
   end
   if self.current_request then

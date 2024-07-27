@@ -1,4 +1,4 @@
-local agents = require("codecompanion.strategies.chat.agents").new()
+local tools = require("codecompanion.strategies.chat.tools").new().tools
 local config = require("codecompanion").config
 
 local source = {}
@@ -21,7 +21,7 @@ end
 
 function source:complete(_, callback)
   local items = {}
-  for label, data in pairs(agents.agents) do
+  for label, data in pairs(tools) do
     if label ~= "opts" then
       table.insert(items, {
         label = "@" .. label,
