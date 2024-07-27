@@ -11,6 +11,7 @@ local yaml = require("codecompanion.utils.yaml")
 local api = vim.api
 
 local CONSTANTS = {
+  NS_HEADER = "CodeCompanion-headers",
   NS_INTRO_MESSAGE = "CodeCompanion-intro_message",
   NS_VIRTUAL_TEXT = "CodeCompanion-virtual_text",
 
@@ -25,7 +26,7 @@ local CONSTANTS = {
 local chat_query = [[
 (
   atx_heading
-  (atx_h1_marker)
+  (atx_h2_marker)
   heading_content: (_) @role
 )
 (
@@ -153,7 +154,7 @@ local function parse_tool_schema(chat)
 (
   (section
     (atx_heading) @heading
-    (#match? @heading "# assistant")
+    (#match? @heading "## assistant")
   ) @content
 )
   ]]
@@ -226,6 +227,7 @@ local registered_cmp = false
 
 ---@class CodeCompanion.Chat
 ---@field id integer -- The unique identifier for the chat
+---@field header_ns integer -- The namespace for the virtual text that appears in the header
 ---@field adapter CodeCompanion.Adapter -- The adapter to use for the chat
 ---@field current_request table -- The current request being executed
 ---@field current_tool table -- The current tool being executed
@@ -260,6 +262,7 @@ function Chat.new(args)
 
   local self = setmetatable({
     id = id,
+    header_ns = vim.api.nvim_create_namespace(CONSTANTS.NS_HEADER),
     context = args.context,
     saved_chat = args.saved_chat,
     tokens = args.tokens,
@@ -282,17 +285,15 @@ function Chat.new(args)
 
   self.bufnr = self.create_buf()
   chatmap[self.bufnr] = self
-  self:open()
 
   self.adapter = resolve_adapter(args.adapter)
   if not self.adapter then
     vim.notify("[CodeCompanion.nvim]\nNo adapter found", vim.log.levels.ERROR)
     return
   end
-
   self.settings = args.settings or schema.get_default(self.adapter.args.schema, args.settings)
 
-  self:render(args.messages or {}):set_autocmds()
+  self:open():render(args.messages):set_autocmds()
 
   if not args.messages or #args.messages == 0 then
     set_welcome_message(self)
@@ -356,10 +357,12 @@ function Chat:open()
   vim.bo[self.bufnr].textwidth = 0
   ui.buf_scroll_to_end(self.bufnr)
   keymaps.set(config.strategies.chat.keymaps, self.bufnr, self)
+
+  return self
 end
 
----Render the chat buffer
----@param messages table
+---Render the settings and any messages in the chat buffer
+---@param messages? table
 ---@return self
 function Chat:render(messages)
   local lines = {}
@@ -374,21 +377,23 @@ function Chat:render(messages)
   end
 
   -- Start with the user heading
-  if #messages == 0 then
-    table.insert(lines, "# user")
+  if not messages or #messages == 0 then
+    table.insert(lines, "## user")
     table.insert(lines, "")
     table.insert(lines, "")
   end
 
   -- Add any messages to the buffer
-  for i, message in ipairs(messages) do
-    if i > 1 then
+  if messages then
+    for i, message in ipairs(messages) do
+      if i > 1 then
+        table.insert(lines, "")
+      end
+      table.insert(lines, string.format("## %s", message.role))
       table.insert(lines, "")
-    end
-    table.insert(lines, string.format("# %s", message.role))
-    table.insert(lines, "")
-    for _, text in ipairs(vim.split(message.content, "\n", { plain = true, trimempty = true })) do
-      table.insert(lines, text)
+      for _, text in ipairs(vim.split(message.content, "\n", { plain = true, trimempty = true })) do
+        table.insert(lines, text)
+      end
     end
   end
 
@@ -405,6 +410,7 @@ function Chat:render(messages)
   local modifiable = vim.bo[self.bufnr].modifiable
   vim.bo[self.bufnr].modifiable = true
   api.nvim_buf_set_lines(self.bufnr, 0, -1, false, lines)
+  self:render_header()
   vim.bo[self.bufnr].modified = false
   vim.bo[self.bufnr].modifiable = modifiable
 
@@ -789,7 +795,7 @@ function Chat:append(data, opts)
     self.last_role = data.role
     table.insert(lines, "")
     table.insert(lines, "")
-    table.insert(lines, string.format("# %s", data.role))
+    table.insert(lines, string.format("## %s", data.role))
     table.insert(lines, "")
   end
 
@@ -810,6 +816,7 @@ function Chat:append(data, opts)
     local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
 
     api.nvim_buf_set_text(self.bufnr, last_line, last_column, last_line, last_column, lines)
+    self:render_header()
 
     vim.bo[self.bufnr].modified = false
     vim.bo[self.bufnr].modifiable = modifiable
@@ -877,6 +884,39 @@ function Chat:display_tokens()
   end
 end
 
+---Render the header portion of the chat buffer
+function Chat:render_header()
+  local separator = config.display.chat.separator
+  local lines = vim.api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
+
+  for l, line in ipairs(lines) do
+    if
+      line:match("## " .. config.display.chat.user_header .. "$")
+      or line:match("## " .. config.display.chat.llm_header .. "$")
+      or line:match("## system" .. "$")
+    then
+      local sep = vim.fn.strwidth(line) + 1
+
+      if config.display.chat.show_separator then
+        api.nvim_buf_set_extmark(self.bufnr, self.header_ns, l - 1, sep, {
+          virt_text_win_col = sep,
+          virt_text = { { string.rep(separator, vim.go.columns), "CodeCompanionChatSeparator" } },
+          priority = 100,
+          strict = false,
+        })
+      end
+
+      -- Set the highlight group for the header
+      api.nvim_buf_set_extmark(self.bufnr, self.header_ns, l - 1, 0, {
+        end_col = sep + 1,
+        hl_group = "CodeCompanionChatHeader",
+        priority = 100,
+        strict = false,
+      })
+    end
+  end
+end
+
 ---Conceal parts of the chat buffer enclosed by a H2 heading
 ---@param heading string
 ---@return self
@@ -889,7 +929,7 @@ function Chat:conceal(heading)
       [[
     ((section
       ((atx_heading) @heading)
-      (#eq? @heading "## %s")) @content)
+      (#eq? @heading "### %s")) @content)
   ]],
       heading
     )

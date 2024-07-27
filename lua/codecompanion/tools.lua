@@ -63,7 +63,7 @@ local function set_autocmds(chat, tool)
 
       log:trace("Tool finished event: %s", request)
       if request.data.status == "started" then
-        ui.set_virtual_text(chat.bufnr, ns_id, "Tool processing ...", { hl_group = "CodeCompanionVirtualTextAgents" })
+        ui.set_virtual_text(chat.bufnr, ns_id, "Tool processing ...", { hl_group = "CodeCompanionVirtualText" })
         return
       end
 

@@ -97,7 +97,7 @@ function M.display(tokens, bufnr)
   if last_heading_node then
     local _, _, end_row, _ = last_heading_node:range()
 
-    local virtual_text = { { " (" .. tokens .. " tokens)", "CodeCompanionTokens" } }
+    local virtual_text = { { " (" .. tokens .. " tokens) ", "CodeCompanionChatTokens" } }
 
     api.nvim_buf_set_extmark(bufnr, ns_id, end_row - 1, 0, {
       virt_text = virtual_text,

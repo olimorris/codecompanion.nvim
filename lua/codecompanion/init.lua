@@ -228,12 +228,12 @@ M.setup = function(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 
   -- Set the highlight groups
-  local hg = M.config.display.chat.highlights
-  api.nvim_set_hl(0, "CodeCompanionTokens", { link = hg.tokens, default = true })
-  api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = hg.virtual_text, default = true })
-  api.nvim_set_hl(0, "CodeCompanionVirtualTextAgents", { link = hg.virtual_text_agents, default = true })
-  api.nvim_set_hl(0, "CodeCompanionChatAgent", { link = hg.agents, default = true })
-  api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = hg.variables, default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatHeader", { link = "@markup.heading.2.markdown", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatSeparator", { link = "@punctuation.special.markdown", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatTokens", { link = "Comment", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatTool", { link = "Special", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
+  api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
 
   -- Setup syntax highlighting for the chat buffer
   local group = "codecompanion.syntax"
@@ -249,7 +249,7 @@ M.setup = function(opts)
         end
       end
       for name, _ in pairs(M.config.strategies.agent.tools) do
-        vim.cmd.syntax('match CodeCompanionChatAgent "@' .. name .. '"')
+        vim.cmd.syntax('match CodeCompanionChatTool "@' .. name .. '"')
       end
     end),
   })

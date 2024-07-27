@@ -375,15 +375,14 @@ Answer the user's questions with the tool's output.]],
           wrap = true,
         },
       },
-      highlights = {
-        agents = "Special",
-        tokens = "Comment",
-        variables = "Identifier",
-        virtual_text = "Comment",
-        virtual_text_agents = "Comment",
-      },
       intro_message = "Welcome to CodeCompanion ✨! Save the buffer to send a message...",
+
+      user_header = "user",
+      llm_header = "assistant",
+      separator = "─",
+
       show_settings = true,
+      show_separator = true,
       show_token_count = true,
     },
     inline = {

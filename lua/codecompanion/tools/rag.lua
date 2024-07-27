@@ -55,7 +55,7 @@ return {
     end
 
     return "After browsing the internet, this is what the rag tool found:"
-      .. "\n\n## tool"
+      .. "\n\n### tool"
       .. "\n\n```\n"
       .. rag.strip_markdown(output)
       .. "\n```\n"
