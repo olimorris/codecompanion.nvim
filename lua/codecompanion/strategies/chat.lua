@@ -199,7 +199,7 @@ local chatmap = {}
 ---@type table<CodeCompanion.Chat>
 _G.codecompanion_chats = {}
 
----@class chat CodeCompanion.Chat
+---@param chat CodeCompanion.Chat
 local function set_welcome_message(chat)
   if chat.intro_message then
     return
@@ -225,32 +225,33 @@ end
 local registered_cmp = false
 
 ---@class CodeCompanion.Chat
----@field id integer
----@field adapter CodeCompanion.Adapter
----@field current_request table
----@field current_tool table
----@field bufnr integer
+---@field id integer -- The unique identifier for the chat
+---@field adapter CodeCompanion.Adapter -- The adapter to use for the chat
+---@field current_request table -- The current request being executed
+---@field current_tool table -- The current tool being executed
+---@field bufnr integer -- The buffer number of the chat
 ---@field opts CodeCompanion.ChatArgs
----@field context table
----@field saved_chat? string
----@field tokens? nil|number
----@field tools? CodeCompanion.Tools
----@field agent_participants? nil|table
----@field variables? CodeCompanion.Variables
----@field variable_output? nil|table
+---@field context table -- The context of the buffer that the chat was initiated from
+---@field intro_message? boolean -- Whether the welcome message has been shown
+---@field saved_chat? string -- The name of the saved chat
+---@field tokens? nil|number -- The number of tokens in the chat
+---@field tools? CodeCompanion.Tools -- The tools available to the user
+---@field tools_in_use? nil|table -- The tools that are currently being used in the chat
+---@field variables? CodeCompanion.Variables -- The variables available to the user
+---@field variable_output? nil|table -- The output after the variables have been executed
 ---@field settings table
 local Chat = {}
 
----@class CodeCompanion.ChatArgs
+---@class CodeCompanion.ChatArgs -- Arguments that can be injected into the chat
 ---@field context? table
 ---@field adapter? CodeCompanion.Adapter
 ---@field messages? table
----@field auto_submit? boolean
----@field stop_context_insertion? boolean
+---@field auto_submit? boolean -- Automatically submit the chat when the chat buffer is created
+---@field stop_context_insertion? boolean -- Stop any visual selection from being automatically inserted into the chat buffer
 ---@field settings? table
 ---@field tokens? table
 ---@field saved_chat? string
----@field status?string
+---@field status? string
 ---@field last_role? string
 
 ---@param args CodeCompanion.ChatArgs
@@ -266,7 +267,7 @@ function Chat.new(args)
     status = "",
     last_role = "user",
     tools = require("codecompanion.strategies.chat.tools").new(),
-    agent_participants = {},
+    tools_in_use = {},
     variables = require("codecompanion.strategies.chat.variables").new(),
     variable_output = {},
     create_buf = function()
@@ -609,17 +610,17 @@ function Chat:submit()
     for tool, opts in pairs(tools) do
       -- Remove the tool from the message content so we don't confuse the LLM
       messages[#messages].content = self.tools:replace(messages[#messages].content, tool)
-      self.agent_participants[tool] = opts
+      self.tools_in_use[tool] = opts
     end
   end
 
   -- Add the agent system prompt
-  if util.count(self.agent_participants) > 0 then
+  if util.count(self.tools_in_use) > 0 then
     table.insert(messages, 1, {
       role = "system",
       content = config.strategies.agent.tools.opts.system_prompt,
     })
-    for _, opts in pairs(self.agent_participants) do
+    for _, opts in pairs(self.tools_in_use) do
       table.insert(messages, 1, {
         role = "system",
         content = "\n\n" .. opts.system_prompt(opts.schema),
@@ -678,7 +679,7 @@ function Chat:submit()
       self:append({ role = "user", content = "" })
       self:display_tokens()
       self:save_chat()
-      if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.agent_participants) > 0 then
+      if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.tools_in_use) > 0 then
         parse_tool_schema(self)
       end
       api.nvim_exec_autocmds(
