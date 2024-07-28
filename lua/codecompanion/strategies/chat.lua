@@ -456,7 +456,7 @@ function Chat:set_autocmds()
   })
 
   if config.display.chat.show_settings then
-    api.nvim_create_autocmd({ "CursorMoved" }, {
+    api.nvim_create_autocmd("CursorMoved", {
       group = aug,
       buffer = bufnr,
       desc = "Show settings information in the CodeCompanion chat buffer",
@@ -601,26 +601,20 @@ function Chat:on_cursor_moved()
   end
 end
 
----Submit the chat buffer's contents to the LLM
----@return nil
-function Chat:submit()
-  local bufnr = self.bufnr
-  local settings, messages = parse_settings(bufnr, self.adapter), parse_messages(bufnr)
-  if not messages or #messages == 0 or (not messages[#messages].content or messages[#messages].content == "") then
-    return
-  end
-
-  -- Detect if any tools have been added as participants in the last message
+---Preprocess messages to handle tools, variables, and other components
+---@param messages table
+---@return table
+function Chat:preprocess_messages(messages)
+  -- Process tools
   local tools = self.tools:parse(messages[#messages].content)
   if tools then
     for tool, opts in pairs(tools) do
-      -- Remove the tool from the message content so we don't confuse the LLM
       messages[#messages].content = self.tools:replace(messages[#messages].content, tool)
       self.tools_in_use[tool] = opts
     end
   end
 
-  -- Add the agent system prompt
+  -- Add the agent system prompt if tools are in use
   if util.count(self.tools_in_use) > 0 then
     table.insert(messages, 1, {
       role = "system",
@@ -634,25 +628,14 @@ function Chat:submit()
     end
   end
 
-  -- Add the default system prompt
-  if config.opts.system_prompt then
-    table.insert(messages, 1, {
-      role = "system",
-      content = config.opts.system_prompt,
-    })
-  end
-
-  -- Detect if the user has called any variables in their latest message
+  -- Process variables
   local vars = self.variables:parse(self, messages[#messages].content, #messages)
   if vars then
-    -- For the message that includes the variable, remove it from the content
-    -- so we don't confuse the LLM. We don't need to remove the variable in
-    -- future replies as the LLM has already processed it.
     messages[#messages].content = self.variables:replace(messages[#messages].content, vars)
     table.insert(self.variable_output, vars)
   end
 
-  -- Always add the variables to the same place in the message stack
+  -- Add variables to the message stack
   if self.variable_output then
     for _, var in ipairs(self.variable_output) do
       table.insert(messages, var.index, {
@@ -661,6 +644,30 @@ function Chat:submit()
       })
     end
     log:trace("Variable used in response: %s", self.variable_output)
+  end
+
+  -- TODO: Process slash commands here when implemented
+
+  return messages
+end
+
+---Submit the chat buffer's contents to the LLM
+---@return nil
+function Chat:submit()
+  local bufnr = self.bufnr
+  local settings, messages = parse_settings(bufnr, self.adapter), parse_messages(bufnr)
+  if not messages or #messages == 0 or (not messages[#messages].content or messages[#messages].content == "") then
+    return
+  end
+
+  messages = self:preprocess_messages(messages)
+
+  -- Add the default system prompt
+  if config.opts.system_prompt then
+    table.insert(messages, 1, {
+      role = "system",
+      content = config.opts.system_prompt,
+    })
   end
 
   vim.bo[bufnr].modified = false
