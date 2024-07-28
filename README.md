@@ -40,7 +40,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 ## :camera_flash: Screenshots
 
 <div align="center">
-  <p>https://github.com/user-attachments/assets/575fc091-8188-4e39-9d04-a8d47c9e8c52</p>
+  <p>https://github.com/user-attachments/assets/1375f623-c088-4bf0-a5d7-8d81eaa3a94b</p>
   <p>https://github.com/user-attachments/assets/8ae255ba-1f5c-470c-a252-f31d056297c3</p>
 </div>
 
@@ -254,7 +254,7 @@ Running `:'<,'>:CodeCompanion /fix` will trigger the plugin to start following t
 
 <!-- panvimdoc-ignore-start -->
 
-<p align="center"><img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/5349c177-2fb2-4c00-9c06-194767a9cf6e" alt="Chat buffer"></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/6097fa93-906c-4ed1-b1c4-8b52ad151f9f" alt="Chat buffer"></p>
 
 <!-- panvimdoc-ignore-end -->
 
