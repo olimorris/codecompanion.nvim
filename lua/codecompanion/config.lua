@@ -465,9 +465,9 @@ Use Markdown formatting and include the programming language name at the start o
       llm_header = "assistant",
       separator = "─",
 
-      show_settings = true,
       show_separator = true,
       show_token_count = true,
+      show_settings = false, -- Show LLM settings at the top of the chat buffer
     },
     inline = {
       layout = "vertical", -- vertical|horizontal|buffer
