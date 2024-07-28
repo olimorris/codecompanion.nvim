@@ -654,6 +654,11 @@ function Chat:preprocess_messages(messages)
 
   -- TODO: Process slash commands here when implemented
 
+  messages = self.adapter:replace_roles({
+    ["llm_header"] = llm_role,
+    ["user_header"] = user_role,
+  }, messages)
+
   return messages
 end
 
@@ -675,13 +680,6 @@ function Chat:submit()
       content = config.opts.system_prompt,
     })
   end
-
-  messages = self.adapter:replace_roles({
-    ["llm_header"] = llm_role,
-    ["user_header"] = user_role,
-  }, messages)
-
-  log:debug("Messages: %s", messages)
 
   vim.bo[bufnr].modified = false
   vim.bo[bufnr].modifiable = false
