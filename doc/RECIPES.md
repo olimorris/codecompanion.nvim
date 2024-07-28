@@ -18,7 +18,7 @@ require("codecompanion").setup({
           content = "You are an experienced developer with Lua and Neovim",
         },
         {
-          role = "user",
+          role = "user_header",
           content = "Can you explain why ..."
         }
       },
@@ -27,7 +27,7 @@ require("codecompanion").setup({
 })
 ```
 
-In this example, if you run `:CodeCompanionActions`, you should see "My New Prompt" in the bottom of the _Prompts_ section of the palette. Clicking on your new action will initiate the _chat_ strategy and set the value of the chat buffer based on the _role_ and _content_ that's been specified in the prompt.
+In this example, if you run `:CodeCompanionActions`, you should see "My New Prompt" in the bottom of the _Prompts_ section of the palette. Clicking on your new action will initiate the _chat_ strategy and set the value of the chat buffer based on the _role_ and _content_ that's been specified in the prompt. We've set the role to be `user_header` which will automatically map to the value that the user may have specified in their config.
 
 In the following sections, we'll explore how you can customise your prompts even more.
 
@@ -54,7 +54,7 @@ require("codecompanion").setup({
           content = "You are an expert HTML programmer",
         },
         {
-          role = "user",
+          role = "user_header",
           content = "Please generate some HTML boilerplate for me. Return the code only and no markdown codeblocks",
         },
       },
@@ -121,7 +121,7 @@ require("codecompanion").setup({
           end,
         },
         {
-          role = "user",
+          role = "user_header",
           contains_code = true,
           content = function(context)
             local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
@@ -167,7 +167,7 @@ prompts = {
     end,
   },
   {
-    role = "user",
+    role = "user_header",
     contains_code = true,
     content = function(context)
       local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
@@ -217,7 +217,7 @@ Lets now take a look at the second prompt:
 
 ```lua
 {
-  role = "user",
+  role = "user_header",
   contains_code = true,
   content = function(context)
     local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
@@ -238,7 +238,7 @@ It's also possible to conditionally set prompts via a `condition` function that 
 
 ```lua
 {
-  role = "user",
+  role = "user_header",
   ---
   condition = function(context)
     return context.is_visual

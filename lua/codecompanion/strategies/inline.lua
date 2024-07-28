@@ -11,13 +11,13 @@ local api = vim.api
 local CONSTANTS = {
   PLACEMENT_PROMPT = [[I would like you to assess a prompt which has been made from within the Neovim text editor. Based on this prompt, I require you to determine where the output from this prompt should be placed. I am calling this determination the "<method>". For example, the user may wish for the output to be placed:
 
-1) `after` the current cursor position
-2) `before` the current cursor position
-3) `replace` the current selection
-4) `new` in a new buffer/file
-5) `chat` in a buffer which the user can then interact with
+1. `after` the current cursor position
+2. `before` the current cursor position
+3. `replace` the current selection
+4. `new` in a new buffer/file
+5. `chat` in a buffer which the user can then interact with
 
-Here are some example prompts and their correct method classification to help you:
+Here are some example prompts and their correct method classification ("<method>") to help you:
 
 - "Can you create a method/function that does XYZ" would be `after`
 - "Can you create XYZ method/function before the cursor" would be `before`
@@ -27,9 +27,12 @@ Here are some example prompts and their correct method classification to help yo
 - "Why is Neovim so popular?" or "What does this code do?" would be `chat`
 
 As a final assessment, I'd like you to determine if any code that the user has provided to you within their prompt should be returned in your response. I am calling this determination the "<return>" evaluation and it should be a boolean value.
-
-Please respond to this prompt in the format "<method>|<return>" where "<method>" is a string and "<replace>" is a boolean value. For example `after|false` or `chat|false` or `replace|true`. Do not provide any addition text other than]],
+Please respond to this prompt in the format "<method>|<return>" where "<method>" is a string and "<replace>" is a boolean value. For example `after|false` or `chat|false` or `replace|true`. Do not provide any other content in your response.]],
+  CODE_ONLY_PROMPT = [[Respond with code only. Do not use any Markdown formatting for this particular answer and do not include any explanation or formatting. Code only.]],
 }
+
+local llm_role = config.display.chat.llm_header
+local user_role = config.display.chat.user_header
 
 ---@param status string
 ---@param opts? table
@@ -79,7 +82,7 @@ local build_prompt = function(inline, user_input)
   -- Add the user prompt
   if user_input then
     table.insert(output, {
-      role = "user",
+      role = user_role,
       tag = "user_prompt",
       content = user_input,
     })
@@ -90,7 +93,7 @@ local build_prompt = function(inline, user_input)
     if inline.context.is_visual then
       log:trace("Sending visual selection")
       table.insert(output, {
-        role = "user",
+        role = user_role,
         tag = "visual",
         content = code_block(
           "For context, this is the code that I've selected in the buffer",
@@ -103,7 +106,7 @@ local build_prompt = function(inline, user_input)
 
   local user_prompts = ""
   for _, prompt in ipairs(output) do
-    if prompt.role == "user" then
+    if prompt.role == user_role then
       user_prompts = user_prompts .. prompt.content
     end
   end
@@ -336,10 +339,15 @@ function Inline:classify(user_input)
         content = CONSTANTS.PLACEMENT_PROMPT,
       },
       {
-        role = "user",
+        role = user_role,
         content = 'The prompt to assess is: "' .. user_prompts,
       },
     }
+
+    action = self.adapter:replace_roles({
+      ["llm_header"] = llm_role,
+      ["user_header"] = user_role,
+    }, action)
 
     local placement = ""
     announce("started")
@@ -396,6 +404,17 @@ function Inline:submit(placement, prompt)
       end
     end,
   })
+
+  -- Remind the LLM to respond with code only
+  table.insert(prompt, {
+    role = "system",
+    content = CONSTANTS.CODE_ONLY_PROMPT,
+  })
+
+  prompt = self.adapter:replace_roles({
+    ["llm_header"] = llm_role,
+    ["user_header"] = user_role,
+  }, prompt)
 
   self.current_request = client.new():stream(self.adapter:set_params(), prompt, function(err, data, done)
     if err then

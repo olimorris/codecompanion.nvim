@@ -7,6 +7,10 @@ local output_tokens = 0
 ---@class CodeCompanion.AdapterArgs
 return {
   name = "anthropic",
+  roles = {
+    llm = "assistant",
+    user = "user",
+  },
   features = {
     tokens = true,
     text = true,

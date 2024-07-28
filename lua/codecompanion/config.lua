@@ -152,7 +152,7 @@ Answer the user's questions with the tool's output.]],
           end,
         },
         {
-          role = "user",
+          role = "user_header",
           contains_code = true,
           condition = function(context)
             return context.is_visual
@@ -164,7 +164,7 @@ Answer the user's questions with the tool's output.]],
           end,
         },
         {
-          role = "user",
+          role = "user_header",
           condition = function(context)
             return not context.is_visual
           end,
@@ -197,7 +197,7 @@ Answer the user's questions with the tool's output.]],
 5. Provide context on how the code fits into a larger application if applicable.]],
         },
         {
-          role = "user",
+          role = "user_header",
           contains_code = true,
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
@@ -236,7 +236,7 @@ Answer the user's questions with the tool's output.]],
 6. Provide the generated unit tests in a clear and organized manner without additional explanations or chat.]],
         },
         {
-          role = "user",
+          role = "user_header",
           contains_code = true,
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
@@ -279,7 +279,7 @@ Ensure the fixed code:
 Use Markdown formatting and include the programming language name at the start of the code block.]],
         },
         {
-          role = "user",
+          role = "user_header",
           contains_code = true,
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
@@ -313,7 +313,7 @@ Use Markdown formatting and include the programming language name at the start o
           end,
         },
         {
-          role = "user",
+          role = "user_header",
           contains_code = true,
           content = function(context)
             local buf_utils = require("codecompanion.utils.buffers")
@@ -326,7 +326,7 @@ Use Markdown formatting and include the programming language name at the start o
           end,
         },
         {
-          role = "user",
+          role = "user_header",
           contains_code = true,
           tag = "visual",
           condition = function(context)
@@ -346,7 +346,7 @@ Use Markdown formatting and include the programming language name at the start o
     },
     ["Explain LSP Diagnostics"] = {
       strategy = "chat",
-      description = "Explain the LSP diagnostics in the selected code",
+      description = "Explain the LSP diagnostics for the selected code",
       opts = {
         index = 7,
         default_prompt = true,
@@ -363,7 +363,7 @@ Use Markdown formatting and include the programming language name at the start o
           content = [[You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages. When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting.]],
         },
         {
-          role = "user",
+          role = "user_header",
           content = function(context)
             local diagnostics = require("codecompanion.helpers.actions").get_diagnostics(
               context.start_line,
@@ -393,7 +393,7 @@ Use Markdown formatting and include the programming language name at the start o
           end,
         },
         {
-          role = "user",
+          role = "user_header",
           contains_code = true,
           content = function(context)
             return "This is the code, for context:\n\n"
@@ -422,7 +422,7 @@ Use Markdown formatting and include the programming language name at the start o
       },
       prompts = {
         {
-          role = "user",
+          role = "user_header",
           contains_code = true,
           content = function()
             return "You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:"
@@ -461,13 +461,13 @@ Use Markdown formatting and include the programming language name at the start o
       },
       intro_message = "Welcome to CodeCompanion ✨! Save the buffer to send a message...",
 
-      user_header = "user",
-      llm_header = "assistant",
-      separator = "─",
+      llm_header = "CodeCompanion", -- The markdown header content for the LLM's responses
+      user_header = "Me", -- The markdown header for your questions
+      separator = "─", -- The separator between the different messages
 
-      show_separator = true,
-      show_token_count = true,
       show_settings = false, -- Show LLM settings at the top of the chat buffer
+      show_separator = true, -- Show a separator between LLM responses
+      show_token_count = true, -- Show the token count for each response
     },
     inline = {
       layout = "vertical", -- vertical|horizontal|buffer

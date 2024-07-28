@@ -9,6 +9,7 @@ Let's take a look at the interface of an adapter as per the `adapter.lua` file:
 ```lua
 ---@class CodeCompanion.Adapter
 ---@field name string The name of the adapter
+---@field roles table The mapping of roles in the config to the LLM's defined roles
 ---@field url string The URL of the generative AI service to connect to
 ---@field env? table Environment variables which can be referenced in the parameters
 ---@field headers table The headers to pass to the request
@@ -69,7 +70,7 @@ curl https://api.openai.com/v1/chat/completions \
 The chat buffer, which is structured like:
 
 ```markdown
-# user
+## Me
 
 Explain Ruby in two words
 ```

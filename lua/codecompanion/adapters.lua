@@ -7,6 +7,7 @@ local Adapter = {}
 
 ---@class CodeCompanion.AdapterArgs
 ---@field name string The name of the adapter
+---@field roles table The mapping of roles in the config to the LLM's defined roles
 ---@field features table The features that the adapter supports
 ---@field url string The URL of the generative AI service to connect to
 ---@field env? table Environment variables which can be referenced in the parameters
@@ -134,6 +135,27 @@ function Adapter:replace_header_vars()
   end
 
   return self
+end
+
+---Replace roles in the messages with the adapter's defined roles
+---@param roles table
+---@param messages table
+---@return table
+function Adapter:replace_roles(roles, messages)
+  local map = {
+    [roles.llm_header:lower()] = self.args.roles.llm,
+    [roles.user_header:lower()] = self.args.roles.user,
+  }
+
+  for _, message in ipairs(messages) do
+    if message.role then
+      message.role = message.role:lower()
+      -- If we can't find a mapping then just pass through the current role
+      message.role = map[message.role] or message.role
+    end
+  end
+
+  return messages
 end
 
 ---@param adapter table|string|function

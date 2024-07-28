@@ -43,8 +43,8 @@ end
 
 ---@param filename string
 ---@param bufnr number
----@param saved_chat table
-local function save(filename, bufnr, saved_chat)
+---@param chat_content table
+local function save(filename, bufnr, chat_content)
   local path = prefix .. filename .. suffix
 
   local match = path:match("(.*/)")
@@ -55,7 +55,7 @@ local function save(filename, bufnr, saved_chat)
   local file, err = io.open(path, "w")
   if file ~= nil then
     log:debug('Saved Chat: "%s.json" saved', filename)
-    file:write(vim.json.encode(saved_chat))
+    file:write(vim.json.encode(chat_content))
     file:close()
     api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChatSaved", data = { status = "finished" } })
   else
@@ -68,9 +68,14 @@ end
 
 ---@param chat CodeCompanion.Chat
 function SavedChat:save(chat)
+  local mapping = {
+    [config.display.chat.llm_header:lower()] = "llm_header",
+    [config.display.chat.user_header:lower()] = "user_header",
+  }
+
   local files = require("codecompanion.utils.files")
 
-  local saved_chat = {
+  local chat_content = {
     meta = {
       dir = files.replace_home(self.cwd),
       tokens = chat.tokens or 0,
@@ -80,12 +85,19 @@ function SavedChat:save(chat)
     messages = chat:get_messages(),
   }
 
+  -- Replace the roles with the user's headers
+  for _, message in ipairs(chat_content.messages) do
+    if message.role then
+      message.role = mapping[message.role:lower()] or message.role
+    end
+  end
+
   if not self.filename then
     log:debug("Saved Chat: No filename provided, skipping save")
     return
   end
 
-  return save(self.filename, chat.bufnr, saved_chat)
+  return save(self.filename, chat.bufnr, chat_content)
 end
 
 ---@param opts nil|table
@@ -129,6 +141,13 @@ function SavedChat:load(opts)
   if not config.adapters[content.adapter] then
     log:error("[CodeCompanion.nvim] Adapter %s does not exist. Using the default instead.", content.adapter)
     content.adapter = config.adapters[config.strategies.chat.adapter]
+  end
+
+  -- Replace the roles as per the config
+  for _, message in ipairs(content.messages) do
+    if message.role then
+      message.role = config.display.chat[message.role] or message.role
+    end
   end
 
   local chat = Chat.new({

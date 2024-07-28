@@ -45,6 +45,10 @@ end
 ---@class CodeCompanion.AdapterArgs
 return {
   name = "openai",
+  roles = {
+    llm = "assistant",
+    user = "user",
+  },
   features = {
     text = true,
     tokens = true,

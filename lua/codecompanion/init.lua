@@ -74,7 +74,7 @@ M.add = function(args)
   local content = table.concat(context.lines, "\n")
 
   chat:append({
-    role = "user",
+    role = M.config.display.chat.user_header,
     content = "Here is some code from "
       .. context.filename
       .. ":\n\n```"

@@ -55,7 +55,7 @@ M.static.actions = {
           end,
         },
         {
-          role = "user",
+          role = config.display.chat.user_header,
           contains_code = true,
           content = function(context)
             return send_code(context)
@@ -178,27 +178,27 @@ M.static.actions = {
                     return context.is_visual
                   end,
                   contains_code = true,
-                  role = "user",
+                  role = config.display.chat.user_header,
                   content = "Here is some relevant context: " .. send_code(context),
                   start = true,
                 },
                 {
-                  role = "user",
+                  role = config.display.chat.user_header,
                   content = "I want you to help me code a feature. Before we write any code let's outline how we'll architect and implement the feature with the context you already have. The feature I'd like to add is ",
                   start = true,
                 },
                 {
-                  role = "user",
+                  role = config.display.chat.user_header,
                   content = "Thanks. Now let's draft the code for the feature.",
                   auto_submit = true,
                 },
                 {
-                  role = "user",
+                  role = config.display.chat.user_header,
                   content = "Great. Now let's consider the code. I'd like you to check it carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it.",
                   auto_submit = true,
                 },
                 {
-                  role = "user",
+                  role = config.display.chat.user_header,
                   content = "Thanks. Now let's revise the code based on the feedback, without additional explanations.",
                   auto_submit = true,
                 },
@@ -227,27 +227,27 @@ M.static.actions = {
                     return context.is_visual
                   end,
                   contains_code = true,
-                  role = "user",
+                  role = config.display.chat.user_header,
                   content = "Here is some relevant context: " .. send_code(context),
                   start = true,
                 },
                 {
-                  role = "user",
+                  role = config.display.chat.user_header,
                   content = "I want you to help me with a refactor. Before we write any code let's outline how we'll architect and implement the code with the context you already have. What I'm looking to achieve is ",
                   start = true,
                 },
                 {
-                  role = "user",
+                  role = config.display.chat.user_header,
                   content = "Thanks. Now let's draft the code for the refactor.",
                   auto_submit = true,
                 },
                 {
-                  role = "user",
+                  role = config.display.chat.user_header,
                   content = "Great. Now let's consider the code. I'd like you to check it carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it.",
                   auto_submit = true,
                 },
                 {
-                  role = "user",
+                  role = config.display.chat.user_header,
                   content = "Thanks. Now let's revise the code based on the feedback, without additional explanations.",
                   auto_submit = true,
                 },

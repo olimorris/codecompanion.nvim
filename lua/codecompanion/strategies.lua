@@ -2,29 +2,34 @@ local config = require("codecompanion").config
 
 local log = require("codecompanion.utils.log")
 
+---@param strategy CodeCompanion.Strategies
 ---@param prompts table
----@param context table
-local function process_prompts(prompts, context)
+local function process_prompts(strategy, prompts)
   local messages = {}
+  local role_mapping = {
+    ["llm_header"] = config.display.chat.llm_header,
+    ["user_header"] = config.display.chat.user_header,
+  }
+
   for _, prompt in ipairs(prompts) do
     if prompt.condition then
-      if not prompt.condition(context) then
+      if not prompt.condition(strategy.context) then
         goto continue
       end
     end
 
     --TODO: These nested conditionals suck. Refactor soon
     if not prompt.contains_code or (prompt.contains_code and config.opts.send_code) then
-      if not prompt.condition or (prompt.condition and prompt.condition(context)) then
+      if not prompt.condition or (prompt.condition and prompt.condition(strategy.context)) then
         local content
         if type(prompt.content) == "function" then
-          content = prompt.content(context)
+          content = prompt.content(strategy.context)
         else
           content = prompt.content
         end
 
         table.insert(messages, {
-          role = prompt.role,
+          role = role_mapping[prompt.role] or prompt.role,
           content = content,
         })
       end
@@ -68,10 +73,10 @@ function Strategies:chat()
   if type(prompts[mode]) == "function" then
     return prompts[mode]()
   elseif type(prompts[mode]) == "table" then
-    messages = process_prompts(prompts[mode], self.context)
+    messages = process_prompts(self, prompts[mode])
   else
     -- No mode specified
-    messages = process_prompts(prompts, self.context)
+    messages = process_prompts(self, prompts)
   end
 
   if not messages or #messages == 0 then
@@ -82,7 +87,7 @@ function Strategies:chat()
   local function chat(input)
     if input then
       table.insert(messages, {
-        role = "user",
+        role = config.display.chat.user_header,
         content = input,
       })
     end

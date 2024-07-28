@@ -90,7 +90,7 @@ local function set_autocmds(chat, tool)
           output = request.data.error
         end
         chat:add_message({
-          role = "user",
+          role = config.display.chat.user_header,
           content = tool.output_prompt(output),
         })
         if tool.opts and tool.opts.hide_output then

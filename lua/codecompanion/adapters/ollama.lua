@@ -27,6 +27,10 @@ end
 ---@class CodeCompanion.AdapterArgs
 return {
   name = "ollama",
+  roles = {
+    llm = "assistant",
+    user = "user",
+  },
   features = {
     text = true,
     tokens = true,

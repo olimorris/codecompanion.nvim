@@ -23,6 +23,9 @@ local CONSTANTS = {
   STATUS_FINISHED = "finished",
 }
 
+local llm_role = config.display.chat.llm_header
+local user_role = config.display.chat.user_header
+
 local chat_query = [[
 (
   atx_heading
@@ -132,7 +135,7 @@ local function parse_messages(bufnr)
         message.content = text
       end
       if not message.role then
-        message.role = "user"
+        message.role = user_role
       end
     end
   end
@@ -150,14 +153,17 @@ local function parse_tool_schema(chat)
   local assistant_parser = vim.treesitter.get_parser(chat.bufnr, "markdown")
   local assistant_query = vim.treesitter.query.parse(
     "markdown",
-    [[
+    string.format(
+      [[
 (
   (section
     (atx_heading) @heading
-    (#match? @heading "## assistant")
+    (#match? @heading "## %s")
   ) @content
 )
-  ]]
+  ]],
+      llm_role
+    )
   )
   local assistant_tree = assistant_parser:parse()[1]
 
@@ -268,7 +274,7 @@ function Chat.new(args)
     tokens = args.tokens,
     opts = args,
     status = "",
-    last_role = "user",
+    last_role = user_role,
     tools = require("codecompanion.strategies.chat.tools").new(),
     tools_in_use = {},
     variables = require("codecompanion.strategies.chat.variables").new(),
@@ -378,7 +384,7 @@ function Chat:render(messages)
 
   -- Start with the user heading
   if not messages or #messages == 0 then
-    table.insert(lines, "## user")
+    table.insert(lines, "## " .. user_role)
     table.insert(lines, "")
     table.insert(lines, "")
   end
@@ -639,7 +645,7 @@ function Chat:preprocess_messages(messages)
   if self.variable_output then
     for _, var in ipairs(self.variable_output) do
       table.insert(messages, var.index, {
-        role = "user",
+        role = user_role,
         content = var.content,
       })
     end
@@ -670,6 +676,13 @@ function Chat:submit()
     })
   end
 
+  messages = self.adapter:replace_roles({
+    ["llm_header"] = llm_role,
+    ["user_header"] = user_role,
+  }, messages)
+
+  log:debug("Messages: %s", messages)
+
   vim.bo[bufnr].modified = false
   vim.bo[bufnr].modifiable = false
 
@@ -689,7 +702,7 @@ function Chat:submit()
     end
 
     if done then
-      self:append({ role = "user", content = "" })
+      self:append({ role = user_role, content = "" })
       self:display_tokens()
       self:save_chat()
       if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.tools_in_use) > 0 then
@@ -706,6 +719,9 @@ function Chat:submit()
       local result = self.adapter.args.callbacks.chat_output(data)
 
       if result and result.status == CONSTANTS.STATUS_SUCCESS then
+        if result.output.role then
+          result.output.role = llm_role
+        end
         self:append(result.output)
       elseif result and result.status == CONSTANTS.STATUS_ERROR then
         self.status = CONSTANTS.STATUS_ERROR
