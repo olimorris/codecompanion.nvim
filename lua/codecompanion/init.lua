@@ -269,7 +269,7 @@ M.setup = function(opts)
     end
   end
 
-  -- Setup the pre-defined prompts
+  -- Setup the slash commands
   local prompts = require("codecompanion.utils.prompts").new(M.config.default_prompts):setup()
   for name, prompt in pairs(prompts.prompts) do
     if prompt.opts.slash_cmd then
@@ -292,7 +292,6 @@ M.setup = function(opts)
   vim.diagnostic.config(diagnostic_config, M.config.INFO_NS)
   vim.diagnostic.config(diagnostic_config, M.config.ERROR_NS)
 
-  local log = require("codecompanion.utils.log")
   log.set_root(log.new({
     handlers = {
       {
