@@ -465,7 +465,7 @@ Use Markdown formatting and include the programming language name at the start o
       llm_header = "assistant",
       separator = "─",
 
-      show_settings = false,
+      show_settings = true,
       show_separator = true,
       show_token_count = true,
     },
