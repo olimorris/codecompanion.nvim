@@ -172,27 +172,29 @@ Answer the user's questions with the tool's output.]],
         },
       },
     },
-    ["Code Advisor"] = {
+    ["Explain"] = {
       strategy = "chat",
-      description = "Get advice on the code you've selected",
+      description = "Explain how code in a buffer works",
       opts = {
         index = 3,
         default_prompt = true,
-        mapping = "<LocalLeader>ca",
+        mapping = "<LocalLeader>ce",
         modes = { "v" },
-        slash_cmd = "advice",
+        slash_cmd = "explain",
         auto_submit = true,
-        user_prompt = true,
+        user_prompt = false,
         stop_context_insertion = true,
       },
       prompts = {
         {
           role = "system",
-          content = function(context)
-            return "I want you to act as a senior "
-              .. context.filetype
-              .. " developer. I will ask you specific questions and I want you to return concise explanations and codeblock examples so I may understand."
-          end,
+          content = [[When asked to explain code, follow these steps:
+
+1. Identify the programming language.
+2. Describe the purpose of the code and reference core concepts from the programming language.
+3. Explain each function or significant block of code, including parameters and return values.
+4. Highlight any specific functions or methods used and their roles.
+5. Provide context on how the code fits into a larger application if applicable.]],
         },
         {
           role = "user",
@@ -200,7 +202,89 @@ Answer the user's questions with the tool's output.]],
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
-            return "I have the following code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
+            return "Please explain this code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
+          end,
+        },
+      },
+    },
+    ["Unit Tests"] = {
+      strategy = "chat",
+      description = "Generate unit tests for the selected code",
+      opts = {
+        index = 4,
+        default_prompt = true,
+        mapping = "<LocalLeader>ct",
+        modes = { "v" },
+        slash_cmd = "tests",
+        auto_submit = true,
+        user_prompt = false,
+        stop_context_insertion = true,
+      },
+      prompts = {
+        {
+          role = "system",
+          content = [[When generating unit tests, follow these steps:
+
+1. Identify the programming language.
+2. Identify the purpose of the function or module to be tested.
+3. List the edge cases and typical use cases that should be covered in the tests and share the plan with the user.
+4. Generate unit tests using an appropriate testing framework for the identified programming language.
+5. Ensure the tests cover:
+      - Normal cases
+      - Edge cases
+      - Error handling (if applicable)
+6. Provide the generated unit tests in a clear and organized manner without additional explanations or chat.]],
+        },
+        {
+          role = "user",
+          contains_code = true,
+          content = function(context)
+            local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
+
+            return "Please generate unit tests for this code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
+          end,
+        },
+      },
+    },
+    ["Fix code"] = {
+      strategy = "chat",
+      description = "Fix the selected code",
+      opts = {
+        index = 5,
+        default_prompt = true,
+        mapping = "<LocalLeader>cf",
+        modes = { "v" },
+        slash_cmd = "fix",
+        auto_submit = true,
+        user_prompt = false,
+        stop_context_insertion = true,
+      },
+      prompts = {
+        {
+          role = "system",
+          content = [[When asked to fix code, follow these steps:
+
+1. **Identify the Issues**: Carefully read the provided code and identify any potential issues or improvements.
+2. **Plan the Fix**: Describe the plan for fixing the code in pseudocode, detailing each step.
+3. **Implement the Fix**: Write the corrected code in a single code block.
+4. **Explain the Fix**: Briefly explain what changes were made and why.
+
+Ensure the fixed code:
+
+- Includes necessary imports.
+- Handles potential errors.
+- Follows best practices for readability and maintainability.
+- Is formatted correctly.
+
+Use Markdown formatting and include the programming language name at the start of the code block.]],
+        },
+        {
+          role = "user",
+          contains_code = true,
+          content = function(context)
+            local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
+
+            return "Please fix the selected code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
           end,
         },
       },
@@ -209,7 +293,7 @@ Answer the user's questions with the tool's output.]],
       strategy = "inline",
       description = "Send the current buffer to the LLM as part of an inline prompt",
       opts = {
-        index = 4,
+        index = 6,
         modes = { "v" },
         default_prompt = true,
         mapping = "<LocalLeader>cb",
@@ -234,7 +318,7 @@ Answer the user's questions with the tool's output.]],
           content = function(context)
             local buf_utils = require("codecompanion.utils.buffers")
 
-            return "## buffers\n\nFor context, this is the whole of the buffer:\n\n```"
+            return "### buffers\n\nFor context, this is the whole of the buffer:\n\n```"
               .. context.filetype
               .. "\n"
               .. buf_utils.get_content(context.bufnr)
@@ -262,9 +346,9 @@ Answer the user's questions with the tool's output.]],
     },
     ["Explain LSP Diagnostics"] = {
       strategy = "chat",
-      description = "Use an LLM to explain any LSP diagnostics",
+      description = "Explain the LSP diagnostics in the selected code",
       opts = {
-        index = 5,
+        index = 7,
         default_prompt = true,
         mapping = "<LocalLeader>cl",
         modes = { "v" },
@@ -330,7 +414,7 @@ Answer the user's questions with the tool's output.]],
       strategy = "chat",
       description = "Generate a commit message",
       opts = {
-        index = 6,
+        index = 8,
         default_prompt = true,
         mapping = "<LocalLeader>cm",
         slash_cmd = "commit",
@@ -381,7 +465,7 @@ Answer the user's questions with the tool's output.]],
       llm_header = "assistant",
       separator = "─",
 
-      show_settings = true,
+      show_settings = false,
       show_separator = true,
       show_token_count = true,
     },
@@ -412,32 +496,36 @@ Answer the user's questions with the tool's output.]],
     use_default_prompts = true,
 
     -- This is the default prompt which is sent with every request in the chat
-    -- strategy. It is primarily based on the leaked GitHub Copilot prompt
+    -- strategy. It is primarily based on the GitHub Copilot Chat's prompt
     -- but with some modifications. You can choose to remove this via
     -- your own config but note that LLM results may not be as good
-    system_prompt = string.format(
-      [[You are an AI programming assistant named "CodeCompanion" that's inbuilt into the Neovim text editor. Follow the user's requirements carefully and to the letter. Keep your answers short and impersonal.
+    system_prompt = [[You are an Al programming assistant named "CodeCompanion".
+You are currently plugged in to the Neovim text editor on a user's machine.
 
-You can answer general programming questions and perform the following tasks:
-- Ask questions about the files in your current workspace
-- Explain how the selected code works
-- Generate unit tests for the selected code
-- Propose a fix for problems in the selected code
-- Scaffold code for a new feature
-- Ask questions about Neovim
-- Ask how to do something in the terminal
+Your tasks include:
+- Answering general programming questions.
+- Explaining how the code in a Neovim buffer works.
+- Reviewing the selected code in a Neovim buffer.
+- Generating unit tests for the selected code.
+- Proposing fixes for problems in the selected code.
+- Scaffolding code for a new workspace.
+- Finding relevant code to the user's query.
+- Proposing fixes for test failures.
+- Answering questions about Neovim.
+- Running tools.
 
-First, think step-by-step and describe your plan in pseudocode, written out in great detail. Then, output the code in a single code block. Minimize any other prose. Use Markdown formatting in your answers, and include the programming language name at the start of the Markdown code blocks. Avoid wrapping the whole response in triple backticks. The user works in a text editor called Neovim and the version is %d.%d.%d. Neovim has concepts for editors with open files, integrated unit test support, an output pane for running code, and an integrated terminal. The active document is the source code the user is looking at right now. You can only give one reply for each conversation turn.
+You must:
+- Follow the user's requirements carefully and to the letter.
+- Keep your answers short and impersonal.
+- Minimize other prose.
+- Use Markdown formatting in your answers.
+- Include the programming language name at the start of the Markdown code blocks.
+- Avoid wrapping the whole response in triple backticks.
 
-The user may also have access to agents that you can use to initiate actions on the user's machine. You will be informed if you have access. Some agents you may have access to are:
-- `Code Runner` - Giving you the ability to run any code that you've generated and receive the output
-- `RAG` - Giving you the ability to supplement your responses with real-time information and insight
-- `Buffer Editor` - Giving you the ability edit code by searching and replacing blocks within a Neovim buffer
-
-When informed by the user of an available agent, pay attention to the schema that the user provides in order to execute the agent.]],
-      vim.version().major,
-      vim.version().minor,
-      vim.version().patch
-    ),
+When given a task:
+1. Think step-by-step and describe your plan for what to build in pseudocode, written out in great detail.
+2. Output the code in a single code block.
+3. You should always generate short suggestions for the next user turns that are relevant to the conversation.
+4. You can only give one reply for each conversation turn.]],
   },
 }

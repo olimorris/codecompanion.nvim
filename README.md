@@ -237,7 +237,18 @@ The plugin sets the following highlight groups during setup:
 
 To start interacting with the plugin you can run `:CodeCompanion <your prompt>` from the command line. You can also make a visual selection in Neovim and run `:'<,'>CodeCompanion <your prompt>` to send it as context. The plugin will initially use an LLM to classify your prompt in order to determine where in Neovim to place the response. You can find more about the classificiations in the [inline prompting](#inline-prompting) section.
 
-It's also possible to reference default prompts from the config using slash commands such as `:'<,'>:CodeCompanion /advice`. You can find more on this in the [default prompts](#default-prompts) section.
+For convenience, you can also call [default prompts](#default-prompts) from the command line via slash commands:
+
+- `/explain` - Explain how selected code in a buffer works
+- `/tests` - Generate unit tests for selected code
+- `/fix` - Fix the selected code
+- `/buffer` - Send the current buffer to the LLM alongside a prompt
+- `/lsp` - Explain the LSP diagnostics for the selected code
+- `/commit` - Generate a commit message
+
+Running `:'<,'>:CodeCompanion /fix` will trigger the plugin to start following the fix prompt as defined in the ([config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua)).
+
+
 
 **Chat Buffer**
 
@@ -372,21 +383,16 @@ One of the challenges with inline editing is determining how the LLM's response 
 - _replace_ - replacing the visual selection
 - _chat_ - in a chat buffer
 
+There are also keymaps available to you after an inline edit has taken place:
+
+- `gc` - Clear the diff / accept the inline edit
+
 ### Default Prompts
 
 > [!NOTE]
-> Please see the [RECIPES](doc/RECIPES.md) guide in order to add your own prompts to the action palette and as a slash command.
+> Please see the [RECIPES](doc/RECIPES.md) guide in order to add your own prompts to the Action Palette and as a slash command.
 
-The plugin comes with a number of default prompts ([as per the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua)) which you can call via keymaps and/or slash commands:
-
-- **Custom Prompt** - For custom, inline prompting of an LLM (`<LocalLeader>cc`)
-- **Senior Developer** - Chat with a senior developer for the current buffer's filetype (`<LocalLeader>ce`)
-- **Code Advisor** - Get advice on code you've selected (`<LocalLeader>ca` / `/advice`)
-- **Buffer selection** - Send the current buffer to the LLM alongside a prompt (`<LocalLeader>cb` / `/buffer`)
-- **Explain LSP Diagnostics** - Use an LLM to explain LSP diagnostics for code you've selected (`<LocalLeader>cl` / `/lsp`)
-- **Generate a Commit Message** - Use an LLM to write a commit message for you (`<LocalLeader>cm` / `/commit`)
-
-Slash commands can be accessed via the command line, for example `:CodeCompanion /commit`.
+The plugin comes with a number of default prompts ([as per the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua)) which can be called via keymaps and/or slash commands. These prompts have been carefully curated to mimic those in [GitHub's Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide).
 
 ### Agents / Tools
 
