@@ -232,47 +232,47 @@ end
 local registered_cmp = false
 
 ---@class CodeCompanion.Chat
----@field id integer -- The unique identifier for the chat
----@field header_ns integer -- The namespace for the virtual text that appears in the header
----@field adapter CodeCompanion.Adapter -- The adapter to use for the chat
----@field current_request table -- The current request being executed
----@field current_tool table -- The current tool being executed
----@field bufnr integer -- The buffer number of the chat
----@field opts CodeCompanion.ChatArgs
----@field context table -- The context of the buffer that the chat was initiated from
----@field intro_message? boolean -- Whether the welcome message has been shown
----@field saved_chat? string -- The name of the saved chat
----@field tokens? nil|number -- The number of tokens in the chat
----@field tools? CodeCompanion.Tools -- The tools available to the user
----@field tools_in_use? nil|table -- The tools that are currently being used in the chat
----@field variables? CodeCompanion.Variables -- The variables available to the user
----@field variable_output? nil|table -- The output after the variables have been executed
+---@field opts CodeCompanion.ChatArgs Store all arguments in this table
+---@field id integer The unique identifier for the chat
+---@field header_ns integer The namespace for the virtual text that appears in the header
+---@field adapter CodeCompanion.Adapter The adapter to use for the chat
+---@field current_request table The current request being executed
+---@field current_tool table The current tool being executed
+---@field bufnr integer The buffer number of the chat
+---@field context table The context of the buffer that the chat was initiated from
+---@field intro_message? boolean Whether the welcome message has been shown
+---@field saved_chat? string The name of the saved chat
+---@field tokens? nil|number The number of tokens in the chat
+---@field tools? CodeCompanion.Tools The tools available to the user
+---@field tools_in_use? nil|table The tools that are currently being used in the chat
+---@field variables? CodeCompanion.Variables The variables available to the user
+---@field variable_output? nil|table The output after the variables have been executed
 ---@field settings table
 local Chat = {}
 
----@class CodeCompanion.ChatArgs -- Arguments that can be injected into the chat
----@field context? table
----@field adapter? CodeCompanion.Adapter
----@field messages? table
----@field auto_submit? boolean -- Automatically submit the chat when the chat buffer is created
----@field stop_context_insertion? boolean -- Stop any visual selection from being automatically inserted into the chat buffer
----@field settings? table
----@field tokens? table
----@field saved_chat? string
----@field status? string
----@field last_role? string
+---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
+---@field context? table Context of the buffer that the chat was initiated from
+---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
+---@field settings? table The settings that are used in the adapter of the chat buffer
+---@field messages? table The messages to display in the chat buffer
+---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
+---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
+---@field tokens? table Total tokens spent in the chat buffer so far
+---@field saved_chat? string Name of the saved chat the chat buffer is aligned to
+---@field status? string The status of any running jobs in the chat buffe
+---@field last_role? string The role of the last response in the chat buffer
 
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)
   local id = math.random(10000000)
 
   local self = setmetatable({
+    opts = args,
     id = id,
     header_ns = vim.api.nvim_create_namespace(CONSTANTS.NS_HEADER),
     context = args.context,
     saved_chat = args.saved_chat,
     tokens = args.tokens,
-    opts = args,
     status = "",
     last_role = user_role,
     tools = require("codecompanion.strategies.chat.tools").new(),
