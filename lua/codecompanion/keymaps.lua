@@ -12,6 +12,8 @@ local function clear_map(keys, bufnr)
   vim.keymap.del("n", keys, { buffer = bufnr })
 end
 
+-- CHAT MAPPINGS --------------------------------------------------------------
+
 M.save = {
   desc = "Save the chat buffer and trigger the API",
   callback = function()
@@ -63,11 +65,8 @@ M.save_chat = {
 
 M.clear = {
   desc = "Clear the current chat",
-  callback = function(args)
-    local ns_id = api.nvim_create_namespace("CodeCompanionTokens")
-    api.nvim_buf_clear_namespace(args.bufnr, ns_id, 0, -1)
-
-    api.nvim_buf_set_lines(args.bufnr, 0, -1, false, {})
+  callback = function(chat)
+    chat:clear()
   end,
 }
 

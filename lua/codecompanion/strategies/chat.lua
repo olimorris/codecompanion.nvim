@@ -1009,7 +1009,31 @@ function Chat:complete(request, callback)
   callback({ items = items, isIncomplete = false })
 end
 
+---Clear the chat buffer
+---@return nil
+function Chat:clear()
+  local function clear_ns(ns)
+    for _, name in ipairs(ns) do
+      local id = api.nvim_create_namespace(name)
+      api.nvim_buf_clear_namespace(self.bufnr, id, 0, -1)
+    end
+  end
+
+  local namespaces = {
+    CONSTANTS.NS_INTRO_MESSAGE,
+    CONSTANTS.NS_VIRTUAL_TEXT,
+    CONSTANTS.NS_HEADER,
+  }
+
+  self.tools_in_use = {}
+  self.variable_output = {}
+  self.tokens = nil
+  clear_ns(namespaces)
+  self:render()
+end
+
 ---Saves the chat buffer if it has been loaded
+---@return nil
 function Chat:save_chat()
   if not self.saved_chat or not config.opts.auto_save_chats then
     return
