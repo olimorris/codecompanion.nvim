@@ -907,7 +907,7 @@ end
 
 ---Render the header portion of the chat buffer
 function Chat:render_header()
-  local separator = config.display.chat.separator
+  local separator = config.display.chat.messages_separator
   local lines = vim.api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
 
   for l, line in ipairs(lines) do
