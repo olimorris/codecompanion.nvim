@@ -104,13 +104,30 @@ M.previous = {
   end,
 }
 
-M.clear_diff = {
-  desc = "Clear the inline diff extmarks",
+-- INLINE MAPPINGS ------------------------------------------------------------
+
+M.accept_change = {
+  desc = "Accept the change from the LLM",
   callback = function(inline)
     local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_removed_")
     api.nvim_buf_clear_namespace(inline.context.bufnr, ns_id, 0, -1)
 
-    clear_map(inline.mapping, inline.context.bufnr)
+    for map, _ in pairs(config.strategies.inline.keymaps) do
+      clear_map(map, inline.context.bufnr)
+    end
+  end,
+}
+
+M.reject_change = {
+  desc = "Reject the change from the LLM",
+  callback = function(inline)
+    local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_removed_")
+    api.nvim_buf_clear_namespace(inline.context.bufnr, ns_id, 0, -1)
+    vim.cmd("undo")
+
+    for map, _ in pairs(config.strategies.inline.keymaps) do
+      clear_map(map, inline.context.bufnr)
+    end
   end,
 }
 

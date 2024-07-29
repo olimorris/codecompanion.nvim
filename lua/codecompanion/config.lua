@@ -58,7 +58,8 @@ return {
     inline = {
       adapter = "openai",
       keymaps = {
-        ["gc"] = "keymaps.clear_diff",
+        ["ga"] = "keymaps.accept_change",
+        ["gr"] = "keymaps.reject_change",
       },
       prompts = {
         -- The prompt to send to the LLM when a user initiates the inline strategy and it needs to convert to a chat

@@ -422,6 +422,7 @@ function Inline:submit(placement, prompt)
         local content = self.adapter.args.callbacks.inline_output(data, self.context)
 
         if content then
+          vim.cmd.undojoin()
           stream_text_to_buffer(pos, bufnr, content)
           -- self:diff_added(updated_pos.line)
           if action == "new" then
