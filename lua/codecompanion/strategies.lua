@@ -1,44 +1,7 @@
 local config = require("codecompanion").config
+local util = require("codecompanion.utils.util")
 
 local log = require("codecompanion.utils.log")
-
----@param strategy CodeCompanion.Strategies
----@param prompts table
-local function process_prompts(strategy, prompts)
-  local messages = {}
-  local role_mapping = {
-    ["llm_header"] = config.display.chat.llm_header,
-    ["user_header"] = config.display.chat.user_header,
-  }
-
-  for _, prompt in ipairs(prompts) do
-    if prompt.condition then
-      if not prompt.condition(strategy.context) then
-        goto continue
-      end
-    end
-
-    --TODO: These nested conditionals suck. Refactor soon
-    if not prompt.contains_code or (prompt.contains_code and config.opts.send_code) then
-      if not prompt.condition or (prompt.condition and prompt.condition(strategy.context)) then
-        local content
-        if type(prompt.content) == "function" then
-          content = prompt.content(strategy.context)
-        else
-          content = prompt.content
-        end
-
-        table.insert(messages, {
-          role = role_mapping[prompt.role] or prompt.role,
-          content = content,
-        })
-      end
-    end
-    ::continue::
-  end
-
-  return messages
-end
 
 ---@class CodeCompanion.Strategies
 ---@field context table
@@ -60,6 +23,41 @@ function Strategies.new(args)
   }, { __index = Strategies })
 end
 
+---Evaluate a set of prompts based on conditionals and context
+---@param prompts table
+---@return table
+function Strategies:evaluate_prompts(prompts)
+  local messages = {}
+
+  for _, prompt in ipairs(prompts) do
+    if prompt.condition then
+      if not prompt.condition(self.context) then
+        goto continue
+      end
+    end
+
+    --TODO: These nested conditionals suck. Refactor soon
+    if not prompt.contains_code or (prompt.contains_code and config.opts.send_code) then
+      if not prompt.condition or (prompt.condition and prompt.condition(self.context)) then
+        local content
+        if type(prompt.content) == "function" then
+          content = prompt.content(self.context)
+        else
+          content = prompt.content
+        end
+
+        table.insert(messages, {
+          role = util.replace_placeholders(prompt.role, config.strategies.chat.roles) or prompt.role,
+          content = content,
+        })
+      end
+    end
+    ::continue::
+  end
+
+  return messages
+end
+
 function Strategies:start(strategy)
   return self[strategy](self)
 end
@@ -73,10 +71,10 @@ function Strategies:chat()
   if type(prompts[mode]) == "function" then
     return prompts[mode]()
   elseif type(prompts[mode]) == "table" then
-    messages = process_prompts(self, prompts[mode])
+    messages = self:evaluate_prompts(prompts[mode])
   else
     -- No mode specified
-    messages = process_prompts(self, prompts)
+    messages = self:evaluate_prompts(prompts)
   end
 
   if not messages or #messages == 0 then
@@ -87,7 +85,7 @@ function Strategies:chat()
   local function chat(input)
     if input then
       table.insert(messages, {
-        role = config.display.chat.user_header,
+        role = config.strategies.chat.roles.user,
         content = input,
       })
     end
@@ -133,7 +131,7 @@ end
 
 ---@return nil|CodeCompanion.Chat
 function Strategies:agent()
-  local messages = process_prompts(self.selected.prompts, self.context)
+  local messages = self:evaluate_prompts(self.selected.prompts)
 
   local adapter = config.adapters[config.strategies.agent.adapter]
 

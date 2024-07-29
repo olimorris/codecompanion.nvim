@@ -1,3 +1,5 @@
+local config = require("codecompanion").config
+
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.util")
 
@@ -138,19 +140,19 @@ function Adapter:replace_header_vars()
 end
 
 ---Replace roles in the messages with the adapter's defined roles
----@param roles table
 ---@param messages table
 ---@return table
-function Adapter:replace_roles(roles, messages)
+function Adapter:map_roles(messages)
+  local roles = config.strategies.chat.roles
   local map = {
-    [roles.llm_header:lower()] = self.args.roles.llm,
-    [roles.user_header:lower()] = self.args.roles.user,
+    [roles.llm:lower()] = self.args.roles.llm,
+    [roles.user:lower()] = self.args.roles.user,
   }
 
   for _, message in ipairs(messages) do
     if message.role then
       message.role = message.role:lower()
-      -- If we can't find a mapping then just pass through the current role
+      -- Pass through the role if it doesn't exist in the map
       message.role = map[message.role] or message.role
     end
   end

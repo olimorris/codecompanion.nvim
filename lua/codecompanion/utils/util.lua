@@ -42,18 +42,26 @@ M.set_dot_repeat = function(name)
   vim.go.operatorfunc = string.format("v:lua.require'codecompanion'.%s", name)
 end
 
----@param tbl table
+---Replace any placeholders (e.g. ${placeholder}) in a string or table
+---@param tbl table|string
 ---@param replacements table
----@return nil
+---@return nil|string
 function M.replace_placeholders(tbl, replacements)
-  for key, value in pairs(tbl) do
-    if type(value) == "table" then
-      M.replace_placeholders(value, replacements)
-    elseif type(value) == "string" then
-      for placeholder, replacement in pairs(replacements) do
-        value = value:gsub("%${" .. placeholder .. "}", replacement)
+  if type(tbl) == "string" then
+    for placeholder, replacement in pairs(replacements) do
+      tbl = tbl:gsub("%${" .. placeholder .. "}", replacement)
+    end
+    return tbl
+  else
+    for key, value in pairs(tbl) do
+      if type(value) == "table" then
+        M.replace_placeholders(value, replacements)
+      elseif type(value) == "string" then
+        for placeholder, replacement in pairs(replacements) do
+          value = value:gsub("%${" .. placeholder .. "}", replacement)
+        end
+        tbl[key] = value
       end
-      tbl[key] = value
     end
   end
 end

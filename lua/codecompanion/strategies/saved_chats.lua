@@ -69,8 +69,8 @@ end
 ---@param chat CodeCompanion.Chat
 function SavedChat:save(chat)
   local mapping = {
-    [config.display.chat.llm_header:lower()] = "llm_header",
-    [config.display.chat.user_header:lower()] = "user_header",
+    [config.strategies.chat.roles.llm:lower()] = "llm",
+    [config.strategies.chat.roles.user:lower()] = "user",
   }
 
   local files = require("codecompanion.utils.files")
@@ -146,7 +146,7 @@ function SavedChat:load(opts)
   -- Replace the roles as per the config
   for _, message in ipairs(content.messages) do
     if message.role then
-      message.role = config.display.chat[message.role] or message.role
+      message.role = config.strategies.chat.roles[message.role] or message.role
     end
   end
 

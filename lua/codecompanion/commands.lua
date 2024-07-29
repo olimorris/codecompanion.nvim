@@ -36,7 +36,7 @@ return {
           local user_prompt_pos = string.find(slash_cmd, " ")
 
           if user_prompt_pos then
-            -- Extract the user_promtp first
+            -- Extract the user_prompt first
             user_prompt = string.sub(slash_cmd, user_prompt_pos + 1)
             slash_cmd = string.sub(slash_cmd, 1, user_prompt_pos - 1)
 

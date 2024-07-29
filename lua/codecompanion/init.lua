@@ -43,6 +43,9 @@ M.run_slash_cmds = function(prompt, args)
   local context = util.get_context(api.nvim_get_current_buf(), args)
   local item = M.slash_cmds[prompt]
 
+  -- Ensure the correct roles exist in the prompt
+  require("codecompanion.utils.util").replace_placeholders(item, M.config.strategies.chat.roles)
+
   -- A user may add a prompt after calling the slash command
   if item.opts.user_prompt and args.user_prompt then
     log:trace("Adding custom user prompt via slash_cmd")
@@ -74,7 +77,7 @@ M.add = function(args)
   local content = table.concat(context.lines, "\n")
 
   chat:append({
-    role = M.config.display.chat.user_header,
+    role = M.config.strategies.chat.roles.user,
     content = "Here is some code from "
       .. context.filename
       .. ":\n\n```"

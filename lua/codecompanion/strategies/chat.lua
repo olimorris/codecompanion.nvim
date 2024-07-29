@@ -23,8 +23,8 @@ local CONSTANTS = {
   STATUS_FINISHED = "finished",
 }
 
-local llm_role = config.display.chat.llm_header
-local user_role = config.display.chat.user_header
+local llm_role = config.strategies.chat.roles.llm
+local user_role = config.strategies.chat.roles.user
 
 local chat_query = [[
 (
@@ -654,11 +654,6 @@ function Chat:preprocess_messages(messages)
 
   -- TODO: Process slash commands here when implemented
 
-  messages = self.adapter:replace_roles({
-    ["llm_header"] = llm_role,
-    ["user_header"] = user_role,
-  }, messages)
-
   return messages
 end
 
@@ -687,49 +682,54 @@ function Chat:submit()
   -- log:trace("----- For Adapter test creation -----\nMessages: %s\n ---------- // END ----------", messages)
   -- log:trace("Settings: %s", settings)
 
-  self.current_request = client.new():stream(self.adapter:set_params(settings), messages, function(err, data, done)
-    if err then
-      vim.notify("Error: " .. err, vim.log.levels.ERROR)
-      return self:reset()
-    end
-
-    -- With some adapters, the tokens come as part of the regular response so
-    -- we need to account for that here before the client is terminated
-    if data then
-      self:get_tokens(data)
-    end
-
-    if done then
-      self:append({ role = user_role, content = "" })
-      self:display_tokens()
-      self:save_chat()
-      if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.tools_in_use) > 0 then
-        parse_tool_schema(self)
+  self.current_request = client.new():stream(
+    self.adapter:set_params(settings),
+    self.adapter:map_roles(messages),
+    function(err, data, done)
+      if err then
+        vim.notify("Error: " .. err, vim.log.levels.ERROR)
+        return self:reset()
       end
-      api.nvim_exec_autocmds(
-        "User",
-        { pattern = CONSTANTS.AU_USER_EVENT, data = { status = CONSTANTS.STATUS_FINISHED } }
-      )
-      return self:reset()
-    end
 
-    if data then
-      local result = self.adapter.args.callbacks.chat_output(data)
+      -- With some adapters, the tokens come as part of the regular response so
+      -- we need to account for that here before the client is terminated
+      if data then
+        self:get_tokens(data)
+      end
 
-      if result and result.status == CONSTANTS.STATUS_SUCCESS then
-        if result.output.role then
-          result.output.role = llm_role
+      if done then
+        self:append({ role = user_role, content = "" })
+        self:display_tokens()
+        self:save_chat()
+        if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.tools_in_use) > 0 then
+          parse_tool_schema(self)
         end
-        self:append(result.output)
-      elseif result and result.status == CONSTANTS.STATUS_ERROR then
-        self.status = CONSTANTS.STATUS_ERROR
-        self:stop()
-        vim.notify("Error: " .. result.output, vim.log.levels.ERROR)
+        api.nvim_exec_autocmds(
+          "User",
+          { pattern = CONSTANTS.AU_USER_EVENT, data = { status = CONSTANTS.STATUS_FINISHED } }
+        )
+        return self:reset()
       end
+
+      if data then
+        local result = self.adapter.args.callbacks.chat_output(data)
+
+        if result and result.status == CONSTANTS.STATUS_SUCCESS then
+          if result.output.role then
+            result.output.role = llm_role
+          end
+          self:append(result.output)
+        elseif result and result.status == CONSTANTS.STATUS_ERROR then
+          self.status = CONSTANTS.STATUS_ERROR
+          self:stop()
+          vim.notify("Error: " .. result.output, vim.log.levels.ERROR)
+        end
+      end
+    end,
+    function()
+      self.current_request = nil
     end
-  end, function()
-    self.current_request = nil
-  end)
+  )
 end
 
 ---Stop streaming the response from the LLM
@@ -912,8 +912,8 @@ function Chat:render_header()
 
   for l, line in ipairs(lines) do
     if
-      line:match("## " .. config.display.chat.user_header .. "$")
-      or line:match("## " .. config.display.chat.llm_header .. "$")
+      line:match("## " .. user_role .. "$")
+      or line:match("## " .. llm_role .. "$")
       or line:match("## system" .. "$")
     then
       local sep = vim.fn.strwidth(line) + 1

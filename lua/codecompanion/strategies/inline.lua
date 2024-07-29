@@ -31,8 +31,8 @@ Please respond to this prompt in the format "<method>|<return>" where "<method>"
   CODE_ONLY_PROMPT = [[Respond with code only. Do not use any Markdown formatting for this particular answer and do not include any explanation or formatting. Code only.]],
 }
 
-local llm_role = config.display.chat.llm_header
-local user_role = config.display.chat.user_header
+local llm_role = config.strategies.chat.roles.llm
+local user_role = config.strategies.chat.roles.user
 
 ---@param status string
 ---@param opts? table
@@ -344,14 +344,9 @@ function Inline:classify(user_input)
       },
     }
 
-    action = self.adapter:replace_roles({
-      ["llm_header"] = llm_role,
-      ["user_header"] = user_role,
-    }, action)
-
     local placement = ""
     announce("started")
-    client.new():stream(self.adapter:set_params(), action, function(err, data, done)
+    client.new():stream(self.adapter:set_params(), self.adapter:map_roles(action), function(err, data, done)
       if err then
         return
       end
@@ -411,38 +406,35 @@ function Inline:submit(placement, prompt)
     content = CONSTANTS.CODE_ONLY_PROMPT,
   })
 
-  prompt = self.adapter:replace_roles({
-    ["llm_header"] = llm_role,
-    ["user_header"] = user_role,
-  }, prompt)
+  self.current_request = client
+    .new()
+    :stream(self.adapter:set_params(), self.adapter:map_roles(prompt), function(err, data, done)
+      if err then
+        return
+      end
 
-  self.current_request = client.new():stream(self.adapter:set_params(), prompt, function(err, data, done)
-    if err then
-      return
-    end
+      if done then
+        return api.nvim_buf_del_keymap(bufnr, "n", "q")
+      end
 
-    if done then
-      return api.nvim_buf_del_keymap(bufnr, "n", "q")
-    end
+      if data then
+        log:trace("Inline data: %s", data)
+        local content = self.adapter.args.callbacks.inline_output(data, self.context)
 
-    if data then
-      log:trace("Inline data: %s", data)
-      local content = self.adapter.args.callbacks.inline_output(data, self.context)
-
-      if content then
-        stream_text_to_buffer(pos, bufnr, content)
-        -- self:diff_added(updated_pos.line)
-        if action == "new" then
-          ui.buf_scroll_to_end(bufnr)
+        if content then
+          stream_text_to_buffer(pos, bufnr, content)
+          -- self:diff_added(updated_pos.line)
+          if action == "new" then
+            ui.buf_scroll_to_end(bufnr)
+          end
         end
       end
-    end
-  end, function()
-    self.current_request = nil
-    vim.schedule(function()
-      announce("finished", { placement = action })
+    end, function()
+      self.current_request = nil
+      vim.schedule(function()
+        announce("finished", { placement = action })
+      end)
     end)
-  end)
 end
 
 ---Determine where to place the output from the LLM
