@@ -33,10 +33,10 @@ M.libraries = {
   {
     name = "curl",
   },
-  {
-    name = "base64",
-    optional = true,
-  },
+  -- {
+  --   name = "base64",
+  --   optional = true,
+  -- },
 }
 
 M.adapters = {

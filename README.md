@@ -47,7 +47,6 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 - The `curl` library installed
 - Neovim 0.9.2 or greater
 - _(Optional)_ An API key for your chosen LLM
-- _(Optional)_ The `base64` library installed
 
 ## :package: Installation
 
