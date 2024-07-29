@@ -242,9 +242,9 @@ For convenience, you can also call [default prompts](#default-prompts) from the 
 - `/lsp` - Explain the LSP diagnostics for the selected code
 - `/commit` - Generate a commit message
 
-Running `:'<,'>:CodeCompanion /fix` will trigger the plugin to start following the fix prompt as defined in the ([config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua)).
+Running `:'<,'>CodeCompanion /fix` will trigger the plugin to start following the fix prompt as defined in the [config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua). Some of the slash commands can also take custom prompts. For example, running `:'<,'>CodeCompanion /buffer refactor this code` sends the whole buffer as context alongside a prompt to refactor the selected code.
 
-
+There are also keymaps available to accept or reject edits from the LLM in the [inline prompting](#inline-prompting) section.
 
 **Chat Buffer**
 
@@ -348,7 +348,6 @@ When in the chat buffer, there are number of keymaps available to you:
 - `gc` - Clear the buffer's contents
 - `ga` - Add a codeblock
 - `gs` - Save the chat to disk
-- `gt` - Add an agent to an existing chat
 - `[` - Move to the next header
 - `]` - Move to the previous header
 
@@ -381,7 +380,8 @@ One of the challenges with inline editing is determining how the LLM's response 
 
 There are also keymaps available to you after an inline edit has taken place:
 
-- `gc` - Clear the diff / accept the inline edit
+- `ga` - Accept an inline edit
+- `gr` - Reject an inline edit
 
 ### Default Prompts
 

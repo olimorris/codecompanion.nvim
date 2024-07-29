@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 July 28
+*codecompanion.txt*          For NVIM v0.9.2         Last change: 2024 July 29
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -238,9 +238,15 @@ command line via slash commands:
 - `/lsp` - Explain the LSP diagnostics for the selected code
 - `/commit` - Generate a commit message
 
-Running `:'<,'>:CodeCompanion /fix` will trigger the plugin to start following
-the fix prompt as defined in the (config
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>).
+Running `:'<,'>CodeCompanion /fix` will trigger the plugin to start following
+the fix prompt as defined in the config
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>.
+Some of the slash commands can also take custom prompts. For example, running
+`:'<,'>CodeCompanion /buffer refactor this code` sends the whole buffer as
+context alongside a prompt to refactor the selected code.
+
+There are also keymaps available to accept or reject edits from the LLM in the
+|codecompanion-inline-prompting| section.
 
 **Chat Buffer**
 
@@ -350,7 +356,6 @@ When in the chat buffer, there are number of keymaps available to you:
 - `gc` - Clear the buffer’s contents
 - `ga` - Add a codeblock
 - `gs` - Save the chat to disk
-- `gt` - Add an agent to an existing chat
 - `[` - Move to the next header
 - `]` - Move to the previous header
 
@@ -403,7 +408,8 @@ should follow any of the placements below:
 
 There are also keymaps available to you after an inline edit has taken place:
 
-- `gc` - Clear the diff / accept the inline edit
+- `ga` - Accept an inline edit
+- `gr` - Reject an inline edit
 
 
 DEFAULT PROMPTS ~
