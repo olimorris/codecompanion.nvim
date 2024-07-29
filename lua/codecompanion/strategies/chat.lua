@@ -15,8 +15,8 @@ local CONSTANTS = {
   NS_INTRO_MESSAGE = "CodeCompanion-intro_message",
   NS_VIRTUAL_TEXT = "CodeCompanion-virtual_text",
 
-  AUGROUP = "codecompanion.chat",
-  AU_USER_EVENT = "CodeCompanionChat",
+  AUTOCMD_GROUP = "codecompanion.chat",
+  AUTOCMD_USER_EVENT = "CodeCompanionChat",
 
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
@@ -428,7 +428,7 @@ end
 ---Set the autocmds for the chat buffer
 ---@return nil
 function Chat:set_autocmds()
-  local aug = api.nvim_create_augroup(CONSTANTS.AUGROUP .. self.bufnr, {
+  local aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. self.bufnr, {
     clear = false,
   })
 
@@ -534,7 +534,7 @@ function Chat:set_autocmds()
   api.nvim_create_autocmd("User", {
     desc = "Store the current chat buffer",
     group = aug,
-    pattern = CONSTANTS.AU_USER_EVENT,
+    pattern = CONSTANTS.AUTOCMD_USER_EVENT,
     callback = function(request)
       if request.data.bufnr ~= bufnr or request.data.action ~= "hide_buffer" then
         return
@@ -706,7 +706,7 @@ function Chat:submit()
         end
         api.nvim_exec_autocmds(
           "User",
-          { pattern = CONSTANTS.AU_USER_EVENT, data = { status = CONSTANTS.STATUS_FINISHED } }
+          { pattern = CONSTANTS.AUTOCMD_USER_EVENT, data = { status = CONSTANTS.STATUS_FINISHED } }
         )
         return self:reset()
       end
@@ -767,7 +767,7 @@ function Chat:hide()
 
   api.nvim_exec_autocmds(
     "User",
-    { pattern = CONSTANTS.AU_USER_EVENT, data = { action = "hide_buffer", bufnr = self.bufnr } }
+    { pattern = CONSTANTS.AUTOCMD_USER_EVENT, data = { action = "hide_buffer", bufnr = self.bufnr } }
   )
 end
 
