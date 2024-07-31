@@ -82,6 +82,7 @@ function SavedChat:save(chat)
     },
     adapter = chat.adapter.args.name,
     messages = chat:get_messages(),
+    hidden_msgs = chat.hidden_msgs,
   }
 
   -- Replace the roles with the user's headers
@@ -152,6 +153,7 @@ function SavedChat:load(opts)
   local chat = Chat.new({
     saved_chat = self.filename,
     messages = content.messages,
+    hidden_msgs = content.hidden_msgs,
     adapter = config.adapters[content.adapter],
     context = context.get_context(api.nvim_get_current_buf()),
     tokens = content.meta.tokens,

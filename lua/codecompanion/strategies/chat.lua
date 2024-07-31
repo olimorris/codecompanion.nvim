@@ -21,10 +21,9 @@ local CONSTANTS = {
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
   STATUS_FINISHED = "finished",
-}
 
-local llm_role = config.strategies.chat.roles.llm
-local user_role = config.strategies.chat.roles.user
+  SYSTEM_ROLE = "system",
+}
 
 local chat_query = [[
 (
@@ -34,7 +33,7 @@ local chat_query = [[
 )
 (
   section
-  [(paragraph) (fenced_code_block) (list)] @text
+  [(paragraph) (fenced_code_block) (list)] @content
 )
 ]]
 
@@ -47,6 +46,23 @@ local tool_query = [[
   ) (#match? @lang "xml"))
 )
 ]]
+
+local llm_role = config.strategies.chat.roles.llm
+local user_role = config.strategies.chat.roles.user
+
+---@param bufnr integer
+---@return nil
+local function lock_buf(bufnr)
+  vim.bo[bufnr].modified = false
+  vim.bo[bufnr].modifiable = false
+end
+
+---@param bufnr integer
+---@return nil
+local function unlock_buf(bufnr)
+  vim.bo[bufnr].modified = false
+  vim.bo[bufnr].modifiable = true
+end
 
 ---@param adapter? CodeCompanion.Adapter|string|function
 ---@return CodeCompanion.Adapter
@@ -127,12 +143,12 @@ local function parse_messages(bufnr)
         message = { role = "", content = "" }
       end
       message.role = vim.trim(vim.treesitter.get_node_text(match[captures.role], bufnr):lower())
-    elseif match[captures.text] then
-      local text = vim.trim(vim.treesitter.get_node_text(match[captures.text], bufnr))
+    elseif match[captures.content] then
+      local content = vim.trim(vim.treesitter.get_node_text(match[captures.content], bufnr))
       if message.content then
-        message.content = message.content .. "\n\n" .. text
+        message.content = message.content .. "\n\n" .. content
       else
-        message.content = text
+        message.content = content
       end
       if not message.role then
         message.role = user_role
@@ -236,6 +252,7 @@ local registered_cmp = false
 ---@field id integer The unique identifier for the chat
 ---@field header_ns integer The namespace for the virtual text that appears in the header
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
+---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field current_request table The current request being executed
 ---@field current_tool table The current tool being executed
 ---@field bufnr integer The buffer number of the chat
@@ -247,7 +264,7 @@ local registered_cmp = false
 ---@field tools_in_use? nil|table The tools that are currently being used in the chat
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field variable_output? nil|table The output after the variables have been executed
----@field settings table
+---@field hidden_msgs? table Place to store non-visible messages
 local Chat = {}
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
@@ -269,8 +286,8 @@ function Chat.new(args)
   local self = setmetatable({
     opts = args,
     id = id,
-    header_ns = vim.api.nvim_create_namespace(CONSTANTS.NS_HEADER),
     context = args.context,
+    header_ns = api.nvim_create_namespace(CONSTANTS.NS_HEADER),
     saved_chat = args.saved_chat,
     tokens = args.tokens,
     status = "",
@@ -279,6 +296,7 @@ function Chat.new(args)
     tools_in_use = {},
     variables = require("codecompanion.strategies.chat.variables").new(),
     variable_output = {},
+    hidden_msgs = {},
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
@@ -298,6 +316,17 @@ function Chat.new(args)
     return
   end
   self.settings = args.settings or schema.get_default(self.adapter.args.schema, args.settings)
+
+  log:debug("Adapter: %s", self.adapter)
+
+  -- Add the default system prompt
+  if config.opts.system_prompt then
+    table.insert(self.hidden_msgs, {
+      priority = 1,
+      role = CONSTANTS.SYSTEM_ROLE,
+      content = config.opts.system_prompt,
+    })
+  end
 
   self:open():render(args.messages):set_autocmds()
 
@@ -372,6 +401,48 @@ end
 ---@return self
 function Chat:render(messages)
   local lines = {}
+  local last_role = user_role
+
+  local function spacer()
+    table.insert(lines, "")
+  end
+
+  local function set_header(role)
+    table.insert(lines, string.format("## %s", role))
+    spacer()
+    spacer()
+  end
+
+  local function set_messages(msgs)
+    for i, msg in ipairs(msgs) do
+      -- Only write non-system prompts to the chat buffer
+      if msg.role ~= CONSTANTS.SYSTEM_ROLE or (msg.opts and msg.opts.visible == true) then
+        if i > 1 and last_role ~= msg.role then
+          spacer()
+        end
+
+        set_header(msg.role)
+        for _, text in ipairs(vim.split(msg.content, "\n", { plain = true, trimempty = true })) do
+          table.insert(lines, text)
+        end
+
+        last_role = msg.role
+      else
+        -- To make sure that we don't lose the order of the system prompts,
+        -- we use a priority system:
+        --     1. Reserved for the plugin's default system prompt.
+        --     2. Reserved for any prompts that support functionality in the chat buffer.
+        --     3. Reserved for any other system prompts.
+        table.insert(self.hidden_msgs, {
+          priority = msg.priority or 3,
+          role = CONSTANTS.SYSTEM_ROLE,
+          tag = msg.tag or nil,
+          content = msg.content,
+        })
+      end
+    end
+  end
+
   if config.display.chat.show_settings then
     lines = { "---" }
     local keys = schema.get_ordered_keys(self.adapter.args.schema)
@@ -379,33 +450,20 @@ function Chat:render(messages)
       table.insert(lines, string.format("%s: %s", key, yaml.encode(self.settings[key])))
     end
     table.insert(lines, "---")
-    table.insert(lines, "")
+    spacer()
   end
 
-  -- Start with the user heading
   if not messages or #messages == 0 then
-    table.insert(lines, "## " .. user_role)
-    table.insert(lines, "")
-    table.insert(lines, "")
+    set_header(user_role)
   end
 
-  -- Add any messages to the buffer
   if messages then
-    for i, message in ipairs(messages) do
-      if i > 1 then
-        table.insert(lines, "")
-      end
-      table.insert(lines, string.format("## %s", message.role))
-      table.insert(lines, "")
-      for _, text in ipairs(vim.split(message.content, "\n", { plain = true, trimempty = true })) do
-        table.insert(lines, text)
-      end
-    end
+    set_messages(messages)
   end
 
-  -- and if the user has visually selected some text, add that
+  -- If the user has visually selected some text, add that to the chat buffer
   if self.context and self.context.is_visual and not self.opts.stop_context_insertion then
-    table.insert(lines, "")
+    spacer()
     table.insert(lines, "```" .. self.context.filetype)
     for _, line in ipairs(self.context.lines) do
       table.insert(lines, line)
@@ -413,12 +471,9 @@ function Chat:render(messages)
     table.insert(lines, "```")
   end
 
-  local modifiable = vim.bo[self.bufnr].modifiable
-  vim.bo[self.bufnr].modifiable = true
+  unlock_buf(self.bufnr)
   api.nvim_buf_set_lines(self.bufnr, 0, -1, false, lines)
-  self:render_header()
-  vim.bo[self.bufnr].modified = false
-  vim.bo[self.bufnr].modifiable = modifiable
+  self:render_headers()
 
   ui.buf_scroll_to_end(self.bufnr)
 
@@ -611,26 +666,41 @@ end
 ---@param messages table
 ---@return table
 function Chat:preprocess_messages(messages)
-  -- Process tools
-  local tools = self.tools:parse(messages[#messages].content)
+  local latest_msg = messages[#messages]
+
+  local function msg_hidden(msg)
+    for _, hidden_msg in ipairs(self.hidden_msgs) do
+      if hidden_msg.content == msg then
+        return true
+      end
+    end
+    return false
+  end
+
+  local hide_msg = function(priority, content, role)
+    if not msg_hidden(content) then
+      table.insert(self.hidden_msgs, {
+        priority = priority,
+        role = role or CONSTANTS.SYSTEM_ROLE,
+        content = content,
+      })
+    end
+  end
+
+  -- Process multiple tools in a single message
+  local tools = self.tools:parse(latest_msg.content)
   if tools then
     for tool, opts in pairs(tools) do
-      messages[#messages].content = self.tools:replace(messages[#messages].content, tool)
+      latest_msg.content = self.tools:replace(latest_msg.content, tool)
       self.tools_in_use[tool] = opts
     end
   end
 
   -- Add the agent system prompt if tools are in use
   if util.count(self.tools_in_use) > 0 then
-    table.insert(messages, 1, {
-      role = "system",
-      content = config.strategies.agent.tools.opts.system_prompt,
-    })
+    hide_msg(2, config.strategies.agent.tools.opts.system_prompt, CONSTANTS.SYSTEM_ROLE)
     for _, opts in pairs(self.tools_in_use) do
-      table.insert(messages, 1, {
-        role = "system",
-        content = "\n\n" .. opts.system_prompt(opts.schema),
-      })
+      hide_msg(3, "\n\n" .. opts.system_prompt(opts.schema), CONSTANTS.SYSTEM_ROLE)
     end
   end
 
@@ -654,6 +724,17 @@ function Chat:preprocess_messages(messages)
 
   -- TODO: Process slash commands here when implemented
 
+  -- Insert the hidden messages back into the message stack in the correct order
+  table.sort(self.hidden_msgs, function(a, b)
+    return a.priority > b.priority
+  end)
+  for _, msg in ipairs(self.hidden_msgs) do
+    table.insert(messages, 1, {
+      role = msg.role,
+      content = msg.content,
+    })
+  end
+
   return messages
 end
 
@@ -667,17 +748,7 @@ function Chat:submit()
   end
 
   messages = self:preprocess_messages(messages)
-
-  -- Add the default system prompt
-  if config.opts.system_prompt then
-    table.insert(messages, 1, {
-      role = "system",
-      content = config.opts.system_prompt,
-    })
-  end
-
-  vim.bo[bufnr].modified = false
-  vim.bo[bufnr].modifiable = false
+  lock_buf(bufnr)
 
   -- log:trace("----- For Adapter test creation -----\nMessages: %s\n ---------- // END ----------", messages)
   -- log:trace("Settings: %s", settings)
@@ -811,6 +882,7 @@ end
 ---@param opts? table
 function Chat:append(data, opts)
   local lines = {}
+  local bufnr = self.bufnr
 
   if (data.role and data.role ~= self.last_role) or (opts and opts.force_role) then
     self.last_role = data.role
@@ -825,8 +897,7 @@ function Chat:append(data, opts)
       table.insert(lines, text)
     end
 
-    local modifiable = vim.bo[self.bufnr].modifiable
-    vim.bo[self.bufnr].modifiable = true
+    unlock_buf(bufnr)
 
     local last_line, last_column, line_count = self:last()
     if opts and opts.insert_at then
@@ -835,17 +906,15 @@ function Chat:append(data, opts)
     end
 
     local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
+    api.nvim_buf_set_text(bufnr, last_line, last_column, last_line, last_column, lines)
+    self:render_headers()
 
-    api.nvim_buf_set_text(self.bufnr, last_line, last_column, last_line, last_column, lines)
-    self:render_header()
-
-    vim.bo[self.bufnr].modified = false
-    vim.bo[self.bufnr].modifiable = modifiable
+    lock_buf(bufnr)
 
     if cursor_moved and self:active() then
-      ui.buf_scroll_to_end(self.bufnr)
+      ui.buf_scroll_to_end(bufnr)
     elseif not self:active() then
-      ui.buf_scroll_to_end(self.bufnr)
+      ui.buf_scroll_to_end(bufnr)
     end
   end
 end
@@ -871,8 +940,7 @@ function Chat:reset()
   local bufnr = self.bufnr
 
   self.status = ""
-  vim.bo[bufnr].modified = false
-  vim.bo[bufnr].modifiable = true
+  unlock_buf(bufnr)
 end
 
 ---Get the messages from the chat buffer
@@ -905,17 +973,14 @@ function Chat:display_tokens()
   end
 end
 
----Render the header portion of the chat buffer
-function Chat:render_header()
+---Render the headers in the chat buffer and apply extmarks and separators
+---@return nil
+function Chat:render_headers()
   local separator = config.display.chat.messages_separator
-  local lines = vim.api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
+  local lines = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
 
   for l, line in ipairs(lines) do
-    if
-      line:match("## " .. user_role .. "$")
-      or line:match("## " .. llm_role .. "$")
-      or line:match("## system" .. "$")
-    then
+    if line:match("## " .. user_role .. "$") or line:match("## " .. llm_role .. "$") then
       local sep = vim.fn.strwidth(line) + 1
 
       if config.display.chat.show_separator then
@@ -1027,6 +1092,7 @@ function Chat:clear()
 
   self.tools_in_use = {}
   self.variable_output = {}
+  self.hidden_msgs = {}
   self.tokens = nil
   clear_ns(namespaces)
   self:render()

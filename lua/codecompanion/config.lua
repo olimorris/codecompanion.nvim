@@ -173,7 +173,7 @@ Answer the user's questions with the tool's output.]],
           condition = function(context)
             return not context.is_visual
           end,
-          content = "\n \n",
+          content = "\n",
         },
       },
     },
