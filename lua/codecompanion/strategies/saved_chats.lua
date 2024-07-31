@@ -3,11 +3,15 @@ local config = require("codecompanion").config
 
 local context = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils.util")
 
 local api = vim.api
 local prefix = config.opts.saved_chats_dir .. "/"
 local suffix = ".json"
+
+local CONSTANTS = {
+  [config.strategies.chat.roles.llm:lower()] = "llm",
+  [config.strategies.chat.roles.user:lower()] = "user",
+}
 
 local function get_current_datetime()
   return os.date("%Y-%m-%d_%H:%M:%S")
@@ -68,11 +72,6 @@ end
 
 ---@param chat CodeCompanion.Chat
 function SavedChat:save(chat)
-  local mapping = {
-    [config.strategies.chat.roles.llm:lower()] = "llm",
-    [config.strategies.chat.roles.user:lower()] = "user",
-  }
-
   local files = require("codecompanion.utils.files")
 
   local chat_content = {
@@ -88,7 +87,7 @@ function SavedChat:save(chat)
   -- Replace the roles with the user's headers
   for _, message in ipairs(chat_content.messages) do
     if message.role then
-      message.role = mapping[message.role:lower()] or message.role
+      message.role = CONSTANTS[message.role:lower()] or message.role
     end
   end
 
@@ -153,7 +152,7 @@ function SavedChat:load(opts)
   local chat = Chat.new({
     saved_chat = self.filename,
     messages = content.messages,
-    adapter = content.adapter,
+    adapter = config.adapters[content.adapter],
     context = context.get_context(api.nvim_get_current_buf()),
     tokens = content.meta.tokens,
   })
