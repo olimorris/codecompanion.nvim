@@ -230,6 +230,10 @@ end
 M.setup = function(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 
+  if opts and opts.adapters then
+    require("codecompanion.utils.adapters").extend(M.config.adapters, opts.adapters)
+  end
+
   -- Set the highlight groups
   api.nvim_set_hl(0, "CodeCompanionChatHeader", { link = "@markup.heading.2.markdown", default = true })
   api.nvim_set_hl(0, "CodeCompanionChatSeparator", { link = "@punctuation.special.markdown", default = true })
@@ -256,21 +260,6 @@ M.setup = function(opts)
       end
     end),
   })
-
-  -- Handle custom adapter config
-  if opts and opts.adapters then
-    for name, adapter in pairs(opts.adapters) do
-      if M.config.adapters[name] then
-        if type(adapter) == "table" then
-          M.config.adapters[name] = adapter
-          if adapter.schema then
-            M.config.adapters[name].schema =
-              vim.tbl_deep_extend("force", M.config.adapters[name].schema, adapter.schema)
-          end
-        end
-      end
-    end
-  end
 
   -- Setup the slash commands
   local prompts = require("codecompanion.utils.prompts").new(M.config.default_prompts):setup()
