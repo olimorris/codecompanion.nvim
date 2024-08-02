@@ -262,7 +262,8 @@ When in the chat buffer you have access to the following variables:
 - `#editor` - Share the buffers and lines that you see in the editor's viewport
 - `#lsp` - Share LSP information and code for the current buffer
 
-There are also many keymaps you can leverage in the chat buffer which are covered in the [chat buffer section](#the-chat-buffer) of this readme.
+> [!NOTE]
+> When in the chat buffer, the `?` keymap brings up all of the available keymaps, variables and tools available to you.
 
 **Agents / Tools**
 
@@ -341,9 +342,10 @@ As noted in the [Getting Started](#rocket-getting-started) section, there are a 
 
 When in the chat buffer, there are number of keymaps available to you:
 
-- `<C-s>` - Save the buffer and trigger a response from the LLM
+- `?` - Bring up the help menu
+- `<CR>`|`<C-s>` - Send the buffer to the LLM
 - `<C-c>` - Close the buffer
-- `q` - Cancel the stream from the LLM
+- `q` - Cancel the request from the LLM
 - `gc` - Clear the buffer's contents
 - `ga` - Add a codeblock
 - `gs` - Save the chat to disk
