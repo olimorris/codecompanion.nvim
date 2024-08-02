@@ -12,7 +12,7 @@ local api = vim.api
 
 local CONSTANTS = {
   NS_HEADER = "CodeCompanion-headers",
-  NS_INTRO_MESSAGE = "CodeCompanion-intro_message",
+  NS_INTRO = "CodeCompanion-intro_message",
   NS_VIRTUAL_TEXT = "CodeCompanion-virtual_text",
 
   AUTOCMD_GROUP = "codecompanion.chat",
@@ -222,29 +222,6 @@ local chatmap = {}
 ---@type table<CodeCompanion.Chat>
 _G.codecompanion_chats = {}
 
----@param chat CodeCompanion.Chat
-local function set_welcome_message(chat)
-  if chat.intro_message then
-    return
-  end
-
-  local ns_id = api.nvim_create_namespace(CONSTANTS.NS_INTRO_MESSAGE)
-
-  local id = api.nvim_buf_set_extmark(chat.bufnr, ns_id, api.nvim_buf_line_count(chat.bufnr) - 1, 0, {
-    virt_text = { { config.display.chat.intro_message, "CodeCompanionVirtualText" } },
-    virt_text_pos = "eol",
-  })
-
-  api.nvim_create_autocmd("InsertEnter", {
-    buffer = chat.bufnr,
-    callback = function()
-      api.nvim_buf_del_extmark(chat.bufnr, ns_id, id)
-    end,
-  })
-
-  chat.intro_message = true
-end
-
 local registered_cmp = false
 
 ---@class CodeCompanion.Chat
@@ -310,12 +287,12 @@ function Chat.new(args)
   self.bufnr = self.create_buf()
   chatmap[self.bufnr] = self
 
-  self.adapter = resolve_adapter(args.adapter)
+  self.adapter = resolve_adapter(self.opts.adapter)
   if not self.adapter then
     vim.notify("[CodeCompanion.nvim]\nNo adapter found", vim.log.levels.ERROR)
     return
   end
-  self.settings = args.settings or schema.get_default(self.adapter.args.schema, args.settings)
+  self.settings = self.opts.settings or schema.get_default(self.adapter.args.schema, self.opts.settings)
 
   log:debug("Adapter: %s", self.adapter)
 
@@ -328,15 +305,12 @@ function Chat.new(args)
     })
   end
 
-  self:open():render(args.messages):set_autocmds()
+  self:open():render(self.opts.messages):set_extmarks():set_autocmds()
 
-  if not args.messages or #args.messages == 0 then
-    set_welcome_message(self)
-  end
-  if args.saved_chat then
+  if self.opts.saved_chat then
     self:display_tokens()
   end
-  if args.auto_submit then
+  if self.opts.auto_submit then
     self:submit()
   end
 
@@ -616,6 +590,29 @@ function Chat:set_autocmds()
       end
     end,
   })
+end
+
+---@return CodeCompanion.Chat|nil
+function Chat:set_extmarks()
+  if self.intro_message or (self.opts.messages and #self.opts.messages > 0) then
+    return
+  end
+
+  -- Welcome message
+  local ns_intro = api.nvim_create_namespace(CONSTANTS.NS_INTRO)
+  local id = api.nvim_buf_set_extmark(self.bufnr, ns_intro, api.nvim_buf_line_count(self.bufnr) - 1, 0, {
+    virt_text = { { config.display.chat.intro_message, "CodeCompanionVirtualText" } },
+    virt_text_pos = "eol",
+  })
+  api.nvim_create_autocmd("InsertEnter", {
+    buffer = self.bufnr,
+    callback = function()
+      api.nvim_buf_del_extmark(self.bufnr, ns_intro, id)
+    end,
+  })
+  self.intro_message = true
+
+  return self
 end
 
 ---Get the settings key at the current cursor position
@@ -1085,7 +1082,7 @@ function Chat:clear()
   end
 
   local namespaces = {
-    CONSTANTS.NS_INTRO_MESSAGE,
+    CONSTANTS.NS_INTRO,
     CONSTANTS.NS_VIRTUAL_TEXT,
     CONSTANTS.NS_HEADER,
   }
@@ -1093,9 +1090,10 @@ function Chat:clear()
   self.tools_in_use = {}
   self.variable_output = {}
   self.hidden_msgs = {}
+  self.opts.messages = nil
   self.tokens = nil
   clear_ns(namespaces)
-  self:render()
+  self:render():set_extmarks()
 end
 
 ---Saves the chat buffer if it has been loaded
