@@ -86,11 +86,38 @@ return {
           callback = "keymaps.clear",
           description = "Clear Chat",
         },
-        -- ["gc"] = "keymaps.clear",
-        -- ["ga"] = "keymaps.codeblock",
-        -- ["gs"] = "keymaps.save_chat",
-        -- ["]"] = "keymaps.next",
-        -- ["["] = "keymaps.previous",
+        codeblock = {
+          modes = {
+            n = "ga",
+          },
+          index = 5,
+          callback = "keymaps.codeblock",
+          description = "Insert Codeblock",
+        },
+        save = {
+          modes = {
+            n = "gs",
+          },
+          index = 6,
+          callback = "keymaps.save_chat",
+          description = "Save Chat",
+        },
+        next = {
+          modes = {
+            n = "]",
+          },
+          index = 7,
+          callback = "keymaps.next",
+          description = "Next Header",
+        },
+        previous = {
+          modes = {
+            n = "[",
+          },
+          index = 8,
+          callback = "keymaps.previous",
+          description = "Previous Header",
+        },
       },
     },
     -- INLINE STRATEGY --------------------------------------------------------

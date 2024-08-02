@@ -73,7 +73,7 @@ M.helpers = {
         end
         local output_str = table.concat(output, " ")
 
-        table.insert(lines, indent .. pad(map.description .. ":", max_length, 2) .. " " .. output_str)
+        table.insert(lines, indent .. pad("_" .. map.description .. "_", max_length, 4) .. " " .. output_str)
       end
     end
 
@@ -82,7 +82,7 @@ M.helpers = {
     table.insert(lines, "### Variables")
 
     for key, val in pairs(vars) do
-      table.insert(lines, indent .. pad("#" .. key, max_length, 2) .. " " .. val.description)
+      table.insert(lines, indent .. pad("#" .. key, max_length, 4) .. " " .. val.description)
     end
 
     -- Tools
@@ -91,7 +91,7 @@ M.helpers = {
 
     for key, val in pairs(tools) do
       if key ~= "opts" then
-        table.insert(lines, indent .. pad("@" .. key, max_length, 2) .. " " .. val.description)
+        table.insert(lines, indent .. pad("@" .. key, max_length, 4) .. " " .. val.description)
       end
     end
 
