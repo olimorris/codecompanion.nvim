@@ -1,5 +1,8 @@
 local config = require("codecompanion").config
+
 local ts = require("codecompanion.utils.treesitter")
+local ui = require("codecompanion.utils.ui")
+
 local api = vim.api
 
 local M = {}
@@ -13,27 +16,149 @@ local function clear_map(keys, bufnr)
 end
 
 -- CHAT MAPPINGS --------------------------------------------------------------
+M.helpers = {
+  callback = function()
+    local lines = {}
+    local indent = " "
+    local padding = " "
 
-M.save = {
-  desc = "Save the chat buffer and trigger the API",
+    local function max(col, tbl)
+      local max_length = 0
+      for key, val in pairs(tbl) do
+        if val.hide then
+          goto continue
+        end
+
+        local get_length = (col == "key") and key or val[col]
+
+        local length = #get_length
+        if length > max_length then
+          max_length = length
+        end
+
+        ::continue::
+      end
+      return max_length
+    end
+
+    local function pad(str, max_length, offset)
+      return str .. string.rep(" ", max_length - #str + (offset or 0))
+    end
+
+    -- Workout the column spacing
+    local keymaps = config.strategies.chat.keymaps
+    local keymaps_max = max("description", keymaps)
+
+    local vars = config.strategies.chat.variables
+    local vars_max = max("key", vars)
+
+    local tools = config.strategies.agent.tools
+    local tools_max = max("key", tools)
+
+    local max_length = math.max(keymaps_max, vars_max, tools_max)
+
+    -- Keymaps
+    table.insert(lines, "### Keymaps")
+
+    for _, map in pairs(keymaps) do
+      if not map.hide then
+        local modes = {
+          n = "Normal",
+          i = "Insert",
+        }
+
+        local output = {}
+        for mode, key in pairs(map.modes) do
+          table.insert(output, "`" .. key .. "` in " .. modes[mode] .. " mode")
+        end
+        local output_str = table.concat(output, " ")
+
+        table.insert(lines, indent .. pad(map.description .. ":", max_length, 2) .. " " .. output_str)
+      end
+    end
+
+    -- Variables
+    table.insert(lines, "")
+    table.insert(lines, "### Variables")
+
+    for key, val in pairs(vars) do
+      table.insert(lines, indent .. pad("#" .. key, max_length, 2) .. " " .. val.description)
+    end
+
+    -- Tools
+    table.insert(lines, "")
+    table.insert(lines, "### Tools")
+
+    for key, val in pairs(tools) do
+      if key ~= "opts" then
+        table.insert(lines, indent .. pad("@" .. key, max_length, 2) .. " " .. val.description)
+      end
+    end
+
+    -- Output them to a floating window
+    local window = config.display.chat.window
+    local width = window.width > 1 and window.width or 85
+    local height = window.height > 1 and window.height or 17
+
+    local bufnr = api.nvim_create_buf(false, true)
+    api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
+    local winnr = api.nvim_open_win(bufnr, true, {
+      relative = "cursor",
+      border = "single",
+      width = width,
+      height = height,
+      row = 10,
+      col = 0,
+      title = "Help",
+      title_pos = "center",
+    })
+
+    ui.set_win_options(winnr, {
+      cursorcolumn = false,
+      cursorline = false,
+      foldcolumn = "0",
+      linebreak = true,
+      list = false,
+      signcolumn = "no",
+      spell = false,
+      wrap = true,
+    })
+
+    api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+
+    local function close()
+      api.nvim_buf_delete(bufnr, { force = true })
+    end
+
+    -- Set keymaps to close the float
+    vim.keymap.set("n", "q", close, { buffer = bufnr })
+    vim.keymap.set("n", "<ESC>", close, { buffer = bufnr })
+  end,
+}
+
+M.send = {
   callback = function()
     vim.cmd("w")
   end,
 }
 
 M.close = {
-  desc = "Close the chat window",
   callback = function(chat)
     chat:close()
   end,
 }
 
 M.stop = {
-  desc = "Stop the current request",
   callback = function(chat)
     if chat.current_request then
       chat:stop()
     end
+  end,
+}
+
+M.clear = {
+  callback = function(chat)
+    chat:clear()
   end,
 }
 
@@ -60,13 +185,6 @@ M.save_chat = {
       saved_chat:save(chat)
       chat.saved_chat = filename
     end)
-  end,
-}
-
-M.clear = {
-  desc = "Clear the current chat",
-  callback = function(chat)
-    chat:clear()
   end,
 }
 

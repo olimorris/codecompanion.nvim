@@ -6,7 +6,7 @@ local plugin_maps = require("codecompanion.keymaps")
 local M = {}
 
 ---@param rhs string|table|fun()
----@return string|fun() rhs
+---@return string|fun(table) rhs
 ---@return table opts
 ---@return string|nil mode
 local function resolve(rhs)
@@ -33,23 +33,27 @@ end
 ---@param keymaps table<string, string|table|fun()>
 ---@param bufnr integer
 ---@param data? table
-M.set = function(keymaps, bufnr, data)
-  for k, v in pairs(keymaps) do
-    local rhs, opts, mode = resolve(v)
-    if rhs then
-      local callback
-      if type(rhs) == "function" then
-        callback = function()
-          if data then
-            data.mapping = k
-          end
-          rhs(data or {})
+function M.set(keymaps, bufnr, data)
+  for _, map in pairs(keymaps) do
+    local callback
+    local rhs = resolve(map.callback)
+
+    if type(rhs) == "function" then
+      callback = function()
+        if data then
+          rhs(data)
+        else
+          rhs()
         end
-      else
-        callback = rhs
       end
-      opts = vim.tbl_extend("keep", opts, { buffer = bufnr })
-      vim.keymap.set(mode or "", k, callback, opts)
+    else
+      callback = rhs
+    end
+
+    for mode, key in pairs(map.modes) do
+      if mode ~= "" then
+        vim.keymap.set(mode, key, callback, { buffer = bufnr })
+      end
     end
   end
 end
