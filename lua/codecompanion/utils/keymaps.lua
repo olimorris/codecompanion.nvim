@@ -52,7 +52,13 @@ function M.set(keymaps, bufnr, data)
 
     for mode, key in pairs(map.modes) do
       if mode ~= "" then
-        vim.keymap.set(mode, key, callback, { buffer = bufnr })
+        if type(key) == "table" then
+          for _, v in ipairs(key) do
+            vim.keymap.set(mode, v, callback, { buffer = bufnr })
+          end
+        else
+          vim.keymap.set(mode, key, callback, { buffer = bufnr })
+        end
       end
     end
   end

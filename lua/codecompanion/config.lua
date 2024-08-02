@@ -54,7 +54,7 @@ return {
         },
         send = {
           modes = {
-            n = "<CR>",
+            n = { "<CR>", "<C-s>" },
             i = "<C-s>",
           },
           index = 1,

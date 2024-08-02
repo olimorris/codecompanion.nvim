@@ -1,7 +1,6 @@
 local config = require("codecompanion").config
 
 local ts = require("codecompanion.utils.treesitter")
-local ui = require("codecompanion.utils.ui")
 
 local api = vim.api
 
@@ -69,9 +68,18 @@ M.helpers = {
 
         local output = {}
         for mode, key in pairs(map.modes) do
-          table.insert(output, "`" .. key .. "` in " .. modes[mode] .. " mode")
+          if type(key) == "table" then
+            local keys = {}
+            for _, v in ipairs(key) do
+              table.insert(keys, "`" .. v .. "`")
+            end
+            key = table.concat(key, "|")
+            table.insert(output, "`" .. key .. "` in " .. modes[mode] .. " mode")
+          else
+            table.insert(output, "`" .. key .. "` in " .. modes[mode] .. " mode")
+          end
         end
-        local output_str = table.concat(output, " ")
+        local output_str = table.concat(output, " and ")
 
         table.insert(lines, indent .. pad("_" .. map.description .. "_", max_length, 4) .. " " .. output_str)
       end
@@ -107,21 +115,11 @@ M.helpers = {
       border = "single",
       width = width,
       height = height,
+      style = "minimal",
       row = 10,
       col = 0,
       title = "Help",
       title_pos = "center",
-    })
-
-    ui.set_win_options(winnr, {
-      cursorcolumn = false,
-      cursorline = false,
-      foldcolumn = "0",
-      linebreak = true,
-      list = false,
-      signcolumn = "no",
-      spell = false,
-      wrap = true,
     })
 
     api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
