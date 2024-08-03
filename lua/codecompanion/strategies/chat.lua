@@ -595,7 +595,7 @@ end
 ---@return CodeCompanion.Chat|nil
 function Chat:set_extmarks()
   if self.intro_message or (self.opts.messages and #self.opts.messages > 0) then
-    return
+    return self
   end
 
   -- Welcome message
