@@ -188,11 +188,17 @@ LLMs have many settings such as _model_, _temperature_ and _max_tokens_. In an a
 ```lua
 require("codecompanion").setup({
   adapters = {
-    anthropic = function()
+    llama3 = function()
       return require("codecompanion.adapters").use("ollama", {
         schema = {
           model = {
             default = "llama3:latest",
+          },
+          num_ctx = {
+            default = 16384,
+          },
+          num_predict = {
+            default = -1,
           },
         },
       })
