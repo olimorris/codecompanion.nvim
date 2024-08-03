@@ -21,6 +21,7 @@ Let's take a look at the interface of an adapter as per the `adapter.lua` file:
 ---@field callbacks.form_messages fun()
 ---@field callbacks.is_complete fun()
 ---@field callbacks.chat_output fun()
+---@field callbacks.on_stdout fun()
 ---@field callbacks.inline_output fun()
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 ```

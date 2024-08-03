@@ -8,7 +8,7 @@ A prompt can be added via the `setup` function:
 
 ```lua
 require("codecompanion").setup({
-  prompts = {
+  default_prompts = {
     ["My New Prompt"] = {
       strategy = "chat",
       description = "Some cool custom prompt you can do",
@@ -41,7 +41,7 @@ Let's take a look at how we can achieve that:
 
 ```lua
 require("codecompanion").setup({
-  prompts = {
+  default_prompts = {
     ["Boilerplate HTML"] = {
       strategy = "inline",
       description = "Generate some boilerplate HTML",
@@ -99,7 +99,7 @@ Now let's look at how we can use an LLM to advise us on some code that we have v
 
 ```lua
 require("codecompanion").setup({
-  prompts = {
+  default_prompts = {
     ["Code Expert"] = {
       strategy = "chat",
       description = "Get some special advice from an LLM",
