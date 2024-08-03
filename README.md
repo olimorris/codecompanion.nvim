@@ -189,10 +189,10 @@ LLMs have many settings such as _model_, _temperature_ and _max_tokens_. In an a
 require("codecompanion").setup({
   adapters = {
     anthropic = function()
-      return require("codecompanion.adapters").use("anthropic", {
+      return require("codecompanion.adapters").use("ollama", {
         schema = {
           model = {
-            default = "claude-3-sonnet-20240229",
+            default = "llama3:latest",
           },
         },
       })

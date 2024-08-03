@@ -82,13 +82,16 @@ function Client:stream(adapter, payload, cb, after)
         return cb(nil, nil, true)
       end,
     })
-    :after(function()
+    :after(function(data)
       vim.schedule(function()
         announce("finished")
+        if after and type(after) == "function" then
+          after()
+        end
+        if type(adapter.args.callbacks.on_stdout) == "function" then
+          adapter.args.callbacks.on_stdout(data)
+        end
       end)
-      if after and type(after) == "function" then
-        after()
-      end
     end)
 
   if handler and handler.args then

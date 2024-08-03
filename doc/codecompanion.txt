@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 02
+*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 03
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -185,10 +185,10 @@ adapter, these sit within a schema table and can be configured during setup:
     require("codecompanion").setup({
       adapters = {
         anthropic = function()
-          return require("codecompanion.adapters").use("anthropic", {
+          return require("codecompanion.adapters").use("ollama", {
             schema = {
               model = {
-                default = "claude-3-sonnet-20240229",
+                default = "llama3:latest",
               },
             },
           })
