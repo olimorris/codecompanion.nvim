@@ -1,6 +1,6 @@
 name: Bug Report
 description: If you notice an aspect of the plugin isn't working as per the README, raise a bug report
-title: "[Bug]: "
+title: "[Bug]: TITLE DESCRIBING THE ISSUE"
 labels: ["bug"]
 assignees: olimorris
 
@@ -8,14 +8,15 @@ body:
     - type: markdown
       attributes:
         value: |
-          Thanks for taking the time to fill out this bug report! This form may seem onerous but it makes a resolution much quicker for you and I.
+          Thanks for taking the time to fill out this bug report! This form may seem onerous but it makes a resolution much quicker if I can recreate the exact problem you're facing.
     - type: markdown
       attributes:
         value: |
           ## Test with a `minimal.lua` file
-          I know the temptation is to skip this step but please don't.
+          > [!IMPORTANT]
+          > I know the temptation is to skip this step but please don't.
 
-          Firstly, test and run Neovim with the minimal config below. Be sure to add your CodeCompanion.nvim config, saving to a `minimal.lua` file and adding any additional plugins you may need:
+          Firstly, test and run Neovim with the minimal config below. Be sure to tweak it for your own config, saving to a `minimal.lua` file and adding any additional plugins you may need:
           ```lua
           local root = vim.fn.fnamemodify("./.repro", ":p")
 
@@ -84,7 +85,8 @@ body:
           ```sh
           nvim --clean -u minimal.lua
           ```
-          > **Note:** You may need to do this a couple of times for Treesitter to fully download and sync
+          > [!NOTE]
+          > You may need to do this a couple of times for Treesitter to fully download and sync
 
     - type: textarea
       id: codecompanion-config
