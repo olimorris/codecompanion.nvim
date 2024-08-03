@@ -52,11 +52,12 @@ body:
                 },
               },
               config = function()
+                -- Refer to: https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua
                 require("codecompanion").setup({
                   strategies = { -- Change the adapters as required
-                    chat = "openai",
-                    inline = "openai",
-                    tools = "openai",
+                    chat = { adapter = "openai" },
+                    inline = { adapter = "openai" },
+                    agent = { adapter = "openai" },
                   },
                   log_level = "TRACE",
                 })
