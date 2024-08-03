@@ -169,9 +169,9 @@ Answer the user's questions with the tool's output.]],
   default_prompts = {
     ["Custom Prompt"] = {
       strategy = "inline",
-      description = "Send a custom prompt to the LLM",
+      description = "Prompt the LLM from Neovim",
       opts = {
-        index = 1,
+        index = 3,
         default_prompt = true,
         mapping = "<LocalLeader>cc",
         user_prompt = true,
@@ -193,61 +193,11 @@ Answer the user's questions with the tool's output.]],
         },
       },
     },
-    ["Senior Developer"] = {
-      strategy = "chat",
-      name_f = function(context)
-        return "Senior " .. utils.capitalize(context.filetype) .. " Developer"
-      end,
-      description = function(context)
-        local filetype
-        if context and context.filetype then
-          filetype = utils.capitalize(context.filetype)
-        end
-        return "Chat with a senior " .. (filetype or "") .. " developer"
-      end,
-      opts = {
-        index = 2,
-        default_prompt = true,
-        modes = { "n", "v" },
-        mapping = "<LocalLeader>ce",
-        auto_submit = false,
-        stop_context_insertion = true,
-      },
-      prompts = {
-        {
-          role = "system",
-          content = function(context)
-            return "I want you to act as an expert and senior developer in the "
-              .. context.filetype
-              .. " language. I will ask you questions, perhaps giving you code examples, and I want you to advise me with explanations and code where neccessary."
-          end,
-        },
-        {
-          role = "${user}",
-          contains_code = true,
-          condition = function(context)
-            return context.is_visual
-          end,
-          content = function(context)
-            local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-
-            return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
-          end,
-        },
-        {
-          role = "${user}",
-          condition = function(context)
-            return not context.is_visual
-          end,
-          content = "\n",
-        },
-      },
-    },
     ["Explain"] = {
       strategy = "chat",
       description = "Explain how code in a buffer works",
       opts = {
-        index = 3,
+        index = 5,
         default_prompt = true,
         mapping = "<LocalLeader>ce",
         modes = { "v" },
@@ -282,7 +232,7 @@ Answer the user's questions with the tool's output.]],
       strategy = "chat",
       description = "Generate unit tests for the selected code",
       opts = {
-        index = 4,
+        index = 5,
         default_prompt = true,
         mapping = "<LocalLeader>ct",
         modes = { "v" },
@@ -364,7 +314,7 @@ Use Markdown formatting and include the programming language name at the start o
       strategy = "inline",
       description = "Send the current buffer to the LLM as part of an inline prompt",
       opts = {
-        index = 6,
+        index = 5,
         modes = { "v" },
         default_prompt = true,
         mapping = "<LocalLeader>cb",
@@ -419,7 +369,7 @@ Use Markdown formatting and include the programming language name at the start o
       strategy = "chat",
       description = "Explain the LSP diagnostics for the selected code",
       opts = {
-        index = 7,
+        index = 5,
         default_prompt = true,
         mapping = "<LocalLeader>cl",
         modes = { "v" },
@@ -485,7 +435,7 @@ Use Markdown formatting and include the programming language name at the start o
       strategy = "chat",
       description = "Generate a commit message",
       opts = {
-        index = 8,
+        index = 5,
         default_prompt = true,
         mapping = "<LocalLeader>cm",
         slash_cmd = "commit",

@@ -196,6 +196,14 @@ M.actions = function(args)
 
   if not next(_cached_actions) then
     if M.config.opts.use_default_actions then
+      actions.add_default_prompts(context)
+      table.sort(actions.static.actions, function(a, b)
+        if a.opts.index and b.opts.index then
+          return a.opts.index < b.opts.index
+        end
+        return false
+      end)
+
       for _, action in ipairs(actions.static.actions) do
         if action.opts and action.opts.enabled == false then
           goto continue

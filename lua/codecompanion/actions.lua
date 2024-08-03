@@ -41,6 +41,7 @@ M.static.actions = {
     description = "Open a chat buffer to converse with an LLM",
     type = nil,
     opts = {
+      index = 1,
       stop_context_insertion = true,
     },
     prompts = {
@@ -67,64 +68,13 @@ M.static.actions = {
     },
   },
   {
-    name = "Prompts ...",
-    strategy = " ",
-    description = "Pre-defined prompts to help you code",
-    condition = function()
-      return config.default_prompts and utils.count(config.default_prompts) > 0
-    end,
-    picker = {
-      prompt = "Prompts",
-      items = function(context)
-        local prompts = {}
-
-        local sort_index = true
-        for name, prompt in pairs(config.default_prompts) do
-          if not config.opts.use_default_prompts and prompt.opts and prompt.opts.default_prompt then
-            goto continue
-          end
-
-          if not prompt.opts or not prompt.opts.index then
-            sort_index = false
-          end
-
-          if type(prompt.name_f) == "function" then
-            name = prompt.name_f(context)
-          end
-
-          local description = prompt.description
-          if type(prompt.description) == "function" then
-            description = prompt.description(context)
-          end
-          if prompt.opts and prompt.opts.slash_cmd then
-            description = "(/" .. prompt.opts.slash_cmd .. ") " .. description
-          end
-
-          table.insert(prompts, {
-            name = name,
-            strategy = prompt.strategy,
-            description = description,
-            opts = prompt.opts,
-            prompts = prompt.prompts,
-          })
-
-          ::continue::
-        end
-
-        if sort_index then
-          table.sort(prompts, function(a, b)
-            return a.opts.index < b.opts.index
-          end)
-        end
-
-        return prompts
-      end,
-    },
-  },
-  {
     name = "Open chats ...",
     strategy = " ",
     description = "Your currently open chats",
+    opts = {
+      index = 2,
+      stop_context_insertion = true,
+    },
     condition = function()
       return _G.codecompanion_chats and utils.count(_G.codecompanion_chats) > 0
     end,
@@ -155,6 +105,9 @@ M.static.actions = {
     name = "Workflows ...",
     strategy = " ",
     description = "Workflows to improve the performance of your LLM",
+    opts = {
+      index = 9,
+    },
     picker = {
       prompt = "Select a workflow",
       items = {
@@ -263,6 +216,9 @@ M.static.actions = {
     name = "Load saved chats ...",
     strategy = " ",
     description = "Load your previously saved chats",
+    opts = {
+      index = 10,
+    },
     condition = function()
       local saved_chats = require("codecompanion.strategies.saved_chats")
       return saved_chats:has_chats()
@@ -295,5 +251,56 @@ M.static.actions = {
     },
   },
 }
+
+local prompts = {}
+
+--- Add default prompts to the actions
+M.add_default_prompts = function(context)
+  if config.default_prompts and utils.count(config.default_prompts) > 0 then
+    local sort_index = true
+
+    for name, prompt in pairs(config.default_prompts) do
+      if not config.opts.use_default_prompts and prompt.opts and prompt.opts.default_prompt then
+        goto continue
+      end
+
+      if not prompt.opts or not prompt.opts.index then
+        sort_index = false
+      end
+
+      if type(prompt.name_f) == "function" then
+        name = prompt.name_f(context)
+      end
+
+      local description = prompt.description
+      if type(prompt.description) == "function" then
+        description = prompt.description(context)
+      end
+      if prompt.opts and prompt.opts.slash_cmd then
+        description = "(/" .. prompt.opts.slash_cmd .. ") " .. description
+      end
+
+      table.insert(prompts, {
+        name = name,
+        strategy = prompt.strategy,
+        description = description,
+        opts = prompt.opts,
+        prompts = prompt.prompts,
+      })
+
+      ::continue::
+    end
+
+    if sort_index then
+      table.sort(prompts, function(a, b)
+        return a.opts.index < b.opts.index
+      end)
+    end
+
+    for _, prompt in ipairs(prompts) do
+      table.insert(M.static.actions, prompt)
+    end
+  end
+end
 
 return M
