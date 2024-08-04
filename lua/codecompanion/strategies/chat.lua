@@ -296,15 +296,6 @@ function Chat.new(args)
 
   log:debug("Adapter: %s", self.adapter)
 
-  -- Add the default system prompt
-  if config.opts.system_prompt then
-    table.insert(self.hidden_msgs, {
-      priority = 1,
-      role = CONSTANTS.SYSTEM_ROLE,
-      content = config.opts.system_prompt,
-    })
-  end
-
   self:open():render(self.opts.messages):set_extmarks():set_autocmds()
 
   if self.opts.saved_chat then
@@ -443,6 +434,15 @@ function Chat:render(messages)
       table.insert(lines, line)
     end
     table.insert(lines, "```")
+  end
+
+  -- Add the default system prompt
+  if config.opts.system_prompt then
+    table.insert(self.hidden_msgs, 1, {
+      priority = 1,
+      role = CONSTANTS.SYSTEM_ROLE,
+      content = config.opts.system_prompt,
+    })
   end
 
   unlock_buf(self.bufnr)
