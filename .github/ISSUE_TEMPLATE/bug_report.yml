@@ -81,7 +81,7 @@ body:
           end
           ```
 
-          Once you"ve updated for your config, run Neovim with this command:
+          Once you've updated for your config, run Neovim with this command:
           ```sh
           nvim --clean -u minimal.lua
           ```
