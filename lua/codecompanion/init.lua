@@ -198,7 +198,7 @@ M.actions = function(args)
     if M.config.opts.use_default_actions then
       actions.add_default_prompts(context)
       table.sort(actions.static.actions, function(a, b)
-        if a.opts.index and b.opts.index then
+        if (a.opts and a.opts.index) and (b.opts and b.opts.index) then
           return a.opts.index < b.opts.index
         end
         return false
@@ -272,7 +272,7 @@ M.setup = function(opts)
   -- Setup the slash commands
   local prompts = require("codecompanion.utils.prompts").new(M.config.default_prompts):setup()
   for name, prompt in pairs(prompts.prompts) do
-    if prompt.opts.slash_cmd then
+    if prompt.opts and prompt.opts.slash_cmd then
       prompt.name = name
       M.slash_cmds[prompt.opts.slash_cmd] = prompt
     end
