@@ -86,11 +86,19 @@ return {
           callback = "keymaps.clear",
           description = "Clear Chat",
         },
+        hide = {
+          modes = {
+            n = "gh",
+          },
+          index = 5,
+          callback = "keymaps.hide",
+          description = "Hide Chat",
+        },
         codeblock = {
           modes = {
             n = "ga",
           },
-          index = 5,
+          index = 6,
           callback = "keymaps.codeblock",
           description = "Insert Codeblock",
         },
@@ -98,24 +106,40 @@ return {
           modes = {
             n = "gs",
           },
-          index = 6,
+          index = 7,
           callback = "keymaps.save_chat",
           description = "Save Chat",
         },
-        next = {
+        next_chat = {
+          modes = {
+            n = "}",
+          },
+          index = 8,
+          callback = "keymaps.next_chat",
+          description = "Next Chat",
+        },
+        previous_chat = {
+          modes = {
+            n = "{",
+          },
+          index = 9,
+          callback = "keymaps.previous_chat",
+          description = "Previous Chat",
+        },
+        next_header = {
           modes = {
             n = "]",
           },
-          index = 7,
-          callback = "keymaps.next",
+          index = 10,
+          callback = "keymaps.next_header",
           description = "Next Header",
         },
-        previous = {
+        previous_header = {
           modes = {
             n = "[",
           },
-          index = 8,
-          callback = "keymaps.previous",
+          index = 11,
+          callback = "keymaps.previous_header",
           description = "Previous Header",
         },
       },

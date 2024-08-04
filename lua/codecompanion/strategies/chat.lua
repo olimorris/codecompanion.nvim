@@ -23,6 +23,8 @@ local CONSTANTS = {
   STATUS_FINISHED = "finished",
 
   SYSTEM_ROLE = "system",
+
+  BLANK_DESC = "[No messages]",
 }
 
 local chat_query = [[
@@ -216,11 +218,11 @@ local function parse_tool_schema(chat)
   end
 end
 
----@type table<integer, CodeCompanion.Chat>
+---@type table<CodeCompanion.Chat>
 local chatmap = {}
 
----@type table<CodeCompanion.Chat>
-_G.codecompanion_chats = {}
+---@type CodeCompanion.Chat|nil
+local last_chat = {}
 
 local registered_cmp = false
 
@@ -285,7 +287,12 @@ function Chat.new(args)
   }, { __index = Chat })
 
   self.bufnr = self.create_buf()
-  chatmap[self.bufnr] = self
+  table.insert(chatmap, {
+    name = "Chat " .. #chatmap + 1,
+    description = CONSTANTS.BLANK_DESC,
+    strategy = "chat",
+    chat = self,
+  })
 
   self.adapter = resolve_adapter(self.opts.adapter)
   if not self.adapter then
@@ -294,8 +301,9 @@ function Chat.new(args)
   end
   self.settings = self.opts.settings or schema.get_default(self.adapter.args.schema, self.opts.settings)
 
-  log:debug("Adapter: %s", self.adapter)
+  -- log:debug("Adapter: %s", self.adapter)
 
+  self.close_last_chat()
   self:open():render(self.opts.messages):set_extmarks():set_autocmds()
 
   if self.opts.saved_chat then
@@ -305,13 +313,13 @@ function Chat.new(args)
     self:submit()
   end
 
-  _G.codecompanion_last_chat_buffer = self
+  last_chat = self
   return self
 end
 
 ---Open/create the chat window
 function Chat:open()
-  if self:visible() then
+  if self:is_visible() then
     return
   end
 
@@ -357,6 +365,8 @@ function Chat:open()
   vim.bo[self.bufnr].textwidth = 0
   ui.buf_scroll_to_end(self.bufnr)
   keymaps.set(config.strategies.chat.keymaps, self.bufnr, self)
+
+  log:debug("Opening %s", self.bufnr)
 
   return self
 end
@@ -534,7 +544,6 @@ function Chat:set_autocmds()
     })
   end
 
-  -- Submit the chat
   api.nvim_create_autocmd("BufWriteCmd", {
     group = aug,
     buffer = bufnr,
@@ -545,53 +554,28 @@ function Chat:set_autocmds()
     end,
   })
 
-  -- Clear the virtual text when the user starts typing
-  if util.count(_G.codecompanion_chats) == 0 then
-    api.nvim_create_autocmd("InsertEnter", {
-      group = aug,
-      buffer = bufnr,
-      once = true,
-      desc = "Clear the virtual text in the CodeCompanion chat buffer",
-      callback = function()
-        local ns_id = api.nvim_create_namespace(CONSTANTS.NS_VIRTUAL_TEXT)
-        api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
-      end,
-    })
-  end
-
-  -- Handle toggling the buffer and chat window
-  api.nvim_create_autocmd("User", {
-    desc = "Store the current chat buffer",
+  api.nvim_create_autocmd("InsertEnter", {
     group = aug,
-    pattern = CONSTANTS.AUTOCMD_USER_EVENT,
-    callback = function(request)
-      if request.data.bufnr ~= bufnr or request.data.action ~= "hide_buffer" then
-        return
-      end
+    buffer = bufnr,
+    once = true,
+    desc = "Clear the virtual text in the CodeCompanion chat buffer",
+    callback = function()
+      local ns_id = api.nvim_create_namespace(CONSTANTS.NS_VIRTUAL_TEXT)
+      api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+    end,
+  })
 
-      _G.codecompanion_last_chat_buffer = self
-
-      --- Store a snapshot of the chat in the global table
-      if _G.codecompanion_chats[bufnr] == nil then
-        local description
-        local messages = parse_messages(bufnr)
-
-        if messages[1] and messages[1].content then
-          description = messages[1].content
-        else
-          description = "[No messages]"
-        end
-
-        _G.codecompanion_chats[bufnr] = {
-          name = "Chat " .. util.count(_G.codecompanion_chats) + 1,
-          description = description,
-          chat = self,
-        }
-      end
+  api.nvim_create_autocmd("BufEnter", {
+    group = aug,
+    buffer = bufnr,
+    desc = "Record the most recent chat",
+    callback = function()
+      last_chat = self
     end,
   })
 end
 
+---Set any extmarks in the chat buffer
 ---@return CodeCompanion.Chat|nil
 function Chat:set_extmarks()
   if self.intro_message or (self.opts.messages and #self.opts.messages > 0) then
@@ -613,6 +597,36 @@ function Chat:set_extmarks()
   self.intro_message = true
 
   return self
+end
+
+---Render the headers in the chat buffer and apply extmarks and separators
+---@return nil
+function Chat:render_headers()
+  local separator = config.display.chat.messages_separator
+  local lines = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
+
+  for l, line in ipairs(lines) do
+    if line:match("## " .. user_role .. "$") or line:match("## " .. llm_role .. "$") then
+      local sep = vim.fn.strwidth(line) + 1
+
+      if config.display.chat.show_separator then
+        api.nvim_buf_set_extmark(self.bufnr, self.header_ns, l - 1, sep, {
+          virt_text_win_col = sep,
+          virt_text = { { string.rep(separator, vim.go.columns), "CodeCompanionChatSeparator" } },
+          priority = 100,
+          strict = false,
+        })
+      end
+
+      -- Set the highlight group for the header
+      api.nvim_buf_set_extmark(self.bufnr, self.header_ns, l - 1, 0, {
+        end_col = sep + 1,
+        hl_group = "CodeCompanionChatHeader",
+        priority = 100,
+        strict = false,
+      })
+    end
+  end
 end
 
 ---Get the settings key at the current cursor position
@@ -818,13 +832,19 @@ function Chat:stop()
   end
 end
 
+---Determine if the current chat buffer is active
+---@return boolean
+function Chat:is_active()
+  return api.nvim_get_current_buf() == self.bufnr
+end
+
 ---Hide the chat buffer from view
 ---@return nil
 function Chat:hide()
   local layout = config.display.chat.window.layout
 
   if layout == "float" or layout == "vertical" or layout == "horizontal" then
-    if self:active() then
+    if self:is_active() then
       vim.cmd("hide")
     else
       api.nvim_win_hide(self.winnr)
@@ -833,10 +853,7 @@ function Chat:hide()
     vim.cmd("buffer " .. vim.fn.bufnr("#"))
   end
 
-  api.nvim_exec_autocmds(
-    "User",
-    { pattern = CONSTANTS.AUTOCMD_USER_EVENT, data = { action = "hide_buffer", bufnr = self.bufnr } }
-  )
+  log:debug("Hiding %s", self.bufnr)
 end
 
 ---Close the current chat buffer
@@ -846,12 +863,21 @@ function Chat:close()
     self:stop()
   end
 
-  if _G.codecompanion_last_chat_buffer and _G.codecompanion_last_chat_buffer.bufnr == self.bufnr then
-    _G.codecompanion_last_chat_buffer = nil
+  if last_chat and last_chat.bufnr == self.bufnr then
+    last_chat = nil
   end
 
-  _G.codecompanion_chats[self.bufnr] = nil
+  local index = util.find_key(chatmap, "bufnr", self.bufnr)
+  if index then
+    chatmap[index] = nil
+  end
   api.nvim_buf_delete(self.bufnr, { force = true })
+end
+
+---Determine if the chat buffer is visible
+---@return boolean
+function Chat:is_visible()
+  return self.winnr and api.nvim_win_is_valid(self.winnr) and api.nvim_win_get_buf(self.winnr) == self.bufnr
 end
 
 ---Get the last line, column and line count in the chat buffer
@@ -908,9 +934,9 @@ function Chat:append(data, opts)
 
     lock_buf(bufnr)
 
-    if cursor_moved and self:active() then
+    if cursor_moved and self:is_active() then
       ui.buf_scroll_to_end(bufnr)
-    elseif not self:active() then
+    elseif not self:is_active() then
       ui.buf_scroll_to_end(bufnr)
     end
   end
@@ -946,12 +972,6 @@ function Chat:get_messages()
   return parse_messages(self.bufnr)
 end
 
----Determine if the chat buffer is visible
----@return boolean
-function Chat:visible()
-  return self.winnr and api.nvim_win_is_valid(self.winnr) and api.nvim_win_get_buf(self.winnr) == self.bufnr
-end
-
 ---@param data table
 ---@return nil
 function Chat:get_tokens(data)
@@ -967,36 +987,6 @@ end
 function Chat:display_tokens()
   if config.display.chat.show_token_count and self.tokens then
     require("codecompanion.utils.tokens").display(self.tokens, self.bufnr)
-  end
-end
-
----Render the headers in the chat buffer and apply extmarks and separators
----@return nil
-function Chat:render_headers()
-  local separator = config.display.chat.messages_separator
-  local lines = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
-
-  for l, line in ipairs(lines) do
-    if line:match("## " .. user_role .. "$") or line:match("## " .. llm_role .. "$") then
-      local sep = vim.fn.strwidth(line) + 1
-
-      if config.display.chat.show_separator then
-        api.nvim_buf_set_extmark(self.bufnr, self.header_ns, l - 1, sep, {
-          virt_text_win_col = sep,
-          virt_text = { { string.rep(separator, vim.go.columns), "CodeCompanionChatSeparator" } },
-          priority = 100,
-          strict = false,
-        })
-      end
-
-      -- Set the highlight group for the header
-      api.nvim_buf_set_extmark(self.bufnr, self.header_ns, l - 1, 0, {
-        end_col = sep + 1,
-        hl_group = "CodeCompanionChatHeader",
-        priority = 100,
-        strict = false,
-      })
-    end
   end
 end
 
@@ -1037,12 +1027,6 @@ function Chat:conceal(heading)
   end
 
   return self
-end
-
----Determine if the current chat buffer is active
----@return boolean
-function Chat:active()
-  return api.nvim_get_current_buf() == self.bufnr
 end
 
 ---CodeCompanion models completion source
@@ -1110,14 +1094,33 @@ function Chat:save_chat()
   log:trace("Chat saved")
 end
 
----Returns the chat object based on the buffer number
+---Returns the chat object(s) based on the buffer number
 ---@param bufnr? integer
----@return nil|CodeCompanion.Chat
+---@return CodeCompanion.Chat|table
 function Chat.buf_get_chat(bufnr)
-  if not bufnr or bufnr == 0 then
+  if not bufnr then
+    return chatmap
+  end
+
+  if bufnr == 0 then
     bufnr = api.nvim_get_current_buf()
   end
-  return chatmap[bufnr]
+
+  return chatmap[util.find_key(chatmap, "bufnr", bufnr)].chat
+end
+
+---Returns the last chat that was visible
+---@return CodeCompanion.Chat|nil
+function Chat.last_chat()
+  return last_chat or nil
+end
+
+---Close the last chat buffer
+---@return nil
+function Chat.close_last_chat()
+  if last_chat and not util.is_empty(last_chat) and last_chat:is_visible() then
+    last_chat:hide()
+  end
 end
 
 return Chat

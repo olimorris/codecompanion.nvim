@@ -1,6 +1,7 @@
 local config = require("codecompanion").config
 
 local ts = require("codecompanion.utils.treesitter")
+local utils = require("codecompanion.utils.util")
 
 local api = vim.api
 
@@ -160,6 +161,12 @@ M.clear = {
   end,
 }
 
+M.hide = {
+  callback = function(chat)
+    chat:hide()
+  end,
+}
+
 M.save_chat = {
   desc = "Save the current chat",
   callback = function(chat)
@@ -206,14 +213,52 @@ M.codeblock = {
   end,
 }
 
-M.next = {
+M.next_chat = {
+  desc = "Move to the next chat",
+  callback = function(chat)
+    local chats = require("codecompanion").buf_get_chat()
+    if #chats == 1 then
+      return
+    end
+
+    local index = utils.find_key(chats, "bufnr", chat.bufnr)
+    local next = index + 1
+    if next > #chats then
+      next = 1
+    end
+
+    chats[index].chat:hide()
+    chats[next].chat:open()
+  end,
+}
+
+M.previous_chat = {
+  desc = "Move to the previous chat",
+  callback = function(chat)
+    local chats = require("codecompanion").buf_get_chat()
+    if #chats == 1 then
+      return
+    end
+
+    local index = utils.find_key(chats, "bufnr", chat.bufnr)
+    local previous = index - 1
+    if previous < 1 then
+      previous = #chats
+    end
+
+    chats[index].chat:hide()
+    chats[previous].chat:open()
+  end,
+}
+
+M.next_header = {
   desc = "Go to the next message",
   callback = function()
     ts.goto_heading("next", 1)
   end,
 }
 
-M.previous = {
+M.previous_header = {
   desc = "Go to the previous message",
   callback = function()
     ts.goto_heading("prev", 1)

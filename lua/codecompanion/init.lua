@@ -1,6 +1,6 @@
+local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
-local ui = require("codecompanion.utils.ui")
-local util = require("codecompanion.utils.context")
+local util = require("codecompanion.utils.util")
 
 local api = vim.api
 
@@ -14,7 +14,7 @@ M.config = require("codecompanion.config")
 ---@param args table
 ---@return nil|CodeCompanion.Inline
 M.inline = function(args)
-  local context = util.get_context(api.nvim_get_current_buf(), args)
+  local context = context_utils.get(api.nvim_get_current_buf(), args)
 
   return require("codecompanion.strategies.inline")
     .new({
@@ -40,11 +40,11 @@ end
 ---@return CodeCompanion.Strategies
 M.run_slash_cmds = function(prompt, args)
   log:trace("Running slash_cmd")
-  local context = util.get_context(api.nvim_get_current_buf(), args)
+  local context = context_utils.get(api.nvim_get_current_buf(), args)
   local item = M.slash_cmds[prompt]
 
   -- Ensure the correct roles exist in the prompt
-  require("codecompanion.utils.util").replace_placeholders(item, M.config.strategies.chat.roles)
+  util.replace_placeholders(item, M.config.strategies.chat.roles)
 
   -- A user may add a prompt after calling the slash command
   if item.opts.user_prompt and args.user_prompt then
@@ -64,7 +64,7 @@ end
 ---@param args table
 ---@return nil
 M.add = function(args)
-  local chat = _G.codecompanion_last_chat_buffer
+  local chat = M.last_chat()
 
   if not chat then
     return vim.notify("[CodeCompanion.nvim]\nNo chat buffer found", vim.log.levels.WARN)
@@ -73,7 +73,7 @@ M.add = function(args)
     return vim.notify("[CodeCompanion.nvim]\nSending of code to an LLM is currently disabled", vim.log.levels.WARN)
   end
 
-  local context = util.get_context(api.nvim_get_current_buf(), args)
+  local context = context_utils.get(api.nvim_get_current_buf(), args)
   local content = table.concat(context.lines, "\n")
 
   chat:append({
@@ -93,47 +93,53 @@ end
 ---@return nil
 M.chat = function(args)
   local adapter
-  local context = util.get_context(api.nvim_get_current_buf(), args)
+  local context = context_utils.get(api.nvim_get_current_buf(), args)
 
   if args and args.fargs then
     adapter = M.config.adapters[args.fargs[1]]
   end
 
-  local chat = require("codecompanion.strategies.chat").new({
+  return require("codecompanion.strategies.chat").new({
     context = context,
     adapter = adapter,
   })
-
-  if not chat then
-    return vim.notify("[CodeCompanion.nvim]\nNo chat strategy found", vim.log.levels.WARN)
-  end
-
-  ui.scroll_to_end(0)
 end
 
 ---Toggle the chat buffer
 ---@return nil
 M.toggle = function()
-  local chat = _G.codecompanion_last_chat_buffer
-  if not chat then
+  local chat = M.last_chat()
+
+  if not chat or util.is_empty(chat) then
     return M.chat()
   end
 
-  if chat:visible() then
+  if chat:is_visible() then
     return chat:hide()
   end
 
-  -- Update the context of the chat object
-  local context = util.get_context(api.nvim_get_current_buf())
-  chat.context = context
-
+  chat.context = context_utils.get(api.nvim_get_current_buf())
+  M.close_last_chat()
   chat:open()
 end
 
----@param bufnr nil|integer
----@return nil|CodeCompanion.Chat
+---Get a single chat buffer or return all of them
+---@param bufnr? integer
+---@return CodeCompanion.Chat|table
 M.buf_get_chat = function(bufnr)
   return require("codecompanion.strategies.chat").buf_get_chat(bufnr)
+end
+
+---Close the last chat buffer
+---@return nil
+M.close_last_chat = function()
+  return require("codecompanion.strategies.chat").close_last_chat()
+end
+
+---Get the last chat buffer
+---@return CodeCompanion.Chat|nil
+M.last_chat = function()
+  return require("codecompanion.strategies.chat").last_chat()
 end
 
 local _cached_actions = {}
@@ -142,7 +148,7 @@ local _cached_actions = {}
 ---@return nil
 M.actions = function(args)
   local actions = require("codecompanion.actions")
-  local context = util.get_context(api.nvim_get_current_buf(), args)
+  local context = context_utils.get(api.nvim_get_current_buf(), args)
 
   local function picker(items, opts, callback)
     opts = opts or {}
@@ -270,7 +276,7 @@ M.setup = function(opts)
   })
 
   -- Setup the slash commands
-  local prompts = require("codecompanion.utils.prompts").new(M.config.default_prompts):setup()
+  local prompts = require("codecompanion.prompts").new(M.config.default_prompts):setup()
   for name, prompt in pairs(prompts.prompts) do
     if prompt.opts and prompt.opts.slash_cmd then
       prompt.name = name

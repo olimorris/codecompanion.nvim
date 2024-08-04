@@ -355,6 +355,8 @@ When in the chat buffer, there are number of keymaps available to you:
 - `gc` - Clear the buffer's contents
 - `ga` - Add a codeblock
 - `gs` - Save the chat to disk
+- `}` - Move to the next chat
+- `{` - Move to the previous chat
 - `[` - Move to the next header
 - `]` - Move to the previous header
 
