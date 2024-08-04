@@ -36,7 +36,8 @@ end
 function M.set(keymaps, bufnr, data)
   for _, map in pairs(keymaps) do
     local callback
-    local rhs = resolve(map.callback)
+    local rhs, action_opts = resolve(map.callback)
+    local opts = { desc = map.description or action_opts.desc, buffer = bufnr }
 
     if type(rhs) == "function" then
       callback = function()
@@ -54,10 +55,10 @@ function M.set(keymaps, bufnr, data)
       if mode ~= "" then
         if type(key) == "table" then
           for _, v in ipairs(key) do
-            vim.keymap.set(mode, v, callback, { buffer = bufnr })
+            vim.keymap.set(mode, v, callback, opts)
           end
         else
-          vim.keymap.set(mode, key, callback, { buffer = bufnr })
+          vim.keymap.set(mode, key, callback, opts)
         end
       end
     end
