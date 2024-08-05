@@ -1,3 +1,6 @@
+local a = require("plenary.async")
+local uv = vim.loop
+
 local files = require("codecompanion.utils.files")
 
 ---@class CodeCompanion.LogHandler
@@ -64,18 +67,30 @@ local function create_file_handler(opts)
     stdpath = vim.fn.stdpath("cache")
   end
   local filepath = files.join(stdpath, opts.filename)
-  local logfile, openerr = io.open(filepath, "a+")
-  if not logfile then
-    local err_msg = string.format("Failed to open the CodeCompanion log file: %s", openerr)
-    vim.notify(err_msg, vim.log.levels.ERROR)
-    opts.handle = function() end
-  else
-    opts.handle = function(level, text)
-      logfile:write(text)
-      logfile:write("\n")
-      logfile:flush()
+
+  -- Use void to wrap an async function that doesn't return anything
+  local async_write = a.void(function(text)
+    local err, fd = a.uv.fs_open(filepath, "a", 438)
+    if err then
+      vim.notify(string.format("Failed to open log file: %s", err), vim.log.levels.ERROR)
+      return
     end
+
+    err, _ = a.uv.fs_write(fd, text .. "\n")
+    if err then
+      vim.notify(string.format("Failed to write to log file: %s", err), vim.log.levels.ERROR)
+    end
+
+    err = a.uv.fs_close(fd)
+    if err then
+      vim.notify(string.format("Failed to close log file: %s", err), vim.log.levels.ERROR)
+    end
+  end)
+
+  opts.handle = function(level, text)
+    async_write(text)
   end
+
   return LogHandler.new(opts)
 end
 
