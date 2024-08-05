@@ -249,7 +249,7 @@ local Inline = {}
 ---@param args CodeCompanion.InlineArgs
 ---@return CodeCompanion.Inline
 function Inline.new(args)
-  log:trace("Initiating Inline")
+  log:trace("Initiating Inline with args: %s", args)
 
   if args.opts and type(args.opts.pre_hook) == "function" then
     local bufnr = args.opts.pre_hook()
@@ -261,7 +261,7 @@ function Inline.new(args)
     end
   end
 
-  return setmetatable({
+  local instance = setmetatable({
     id = math.random(10000000),
     context = args.context,
     adapter = config.adapters[config.strategies.inline.adapter],
@@ -269,10 +269,15 @@ function Inline.new(args)
     diff = {},
     prompts = vim.deepcopy(args.prompts),
   }, { __index = Inline })
+
+  log:debug("Inline instance created with ID %d", instance.id)
+  return instance
 end
 
 ---@param opts? table
 function Inline:start(opts)
+  log:trace("Starting Inline with opts: %s", opts)
+
   if opts and opts[1] then
     self.opts = opts[1]
   end
@@ -294,9 +299,11 @@ function Inline:start(opts)
 
     vim.ui.input({ prompt = title .. " Prompt" }, function(input)
       if not input then
+        log:warn("No input provided")
         return
       end
 
+      log:info("User input received: %s", input)
       return self:classify(input)
     end)
   else
@@ -317,6 +324,8 @@ end
 ---generate any output, just provide a classification of the action
 ---@param user_input? string
 function Inline:classify(user_input)
+  log:info("Classifying user input: %s", user_input)
+
   if not self.adapter then
     log:error("No adapter found for Inline strategies")
     return
@@ -331,6 +340,7 @@ function Inline:classify(user_input)
   log:trace("Inline adapter config: %s", self.adapter)
 
   local prompt, user_prompts = build_prompt(self, user_input)
+  log:debug("Built prompt: %s", prompt)
 
   if not self.opts.placement then
     local action = {
@@ -345,18 +355,21 @@ function Inline:classify(user_input)
     }
 
     local placement = ""
+    log:info("Inline classification request started")
     announce("started")
     client.new():stream(self.adapter:set_params(), self.adapter:map_roles(action), function(err, data, done)
       if err then
+        log:error("Error during classification: %s", err)
         return
       end
 
       if done then
-        log:debug("Placement: %s", placement)
+        log:debug("Placement determined: %s", placement)
         return self:submit(placement, prompt)
       end
 
       if data then
+        log:trace("Received classification data: %s", data)
         placement = placement .. (self.adapter.args.callbacks.inline_output(data) or "")
       end
     end)
@@ -370,6 +383,8 @@ end
 ---@param prompt table
 ---@return nil
 function Inline:submit(placement, prompt)
+  log:info("Submitting prompt with placement: %s", placement)
+
   -- Work out where to place the output from the inline prompt
   local parts = vim.split(extract_placement(placement), "|")
 
@@ -381,12 +396,15 @@ function Inline:submit(placement, prompt)
   local action = parts[1]
 
   if action == "chat" then
+    log:info("Sending inline prompt to the chat buffer")
     return send_to_chat(self, prompt)
   end
 
   log:trace("Prompt: %s", prompt)
 
   local pos = self:place(action)
+  log:debug("Determined position for output: %s", pos)
+
   local bufnr = pos.bufnr or self.context.bufnr
 
   -- Add a keymap to cancel the request
@@ -406,19 +424,23 @@ function Inline:submit(placement, prompt)
     content = CONSTANTS.CODE_ONLY_PROMPT,
   })
 
+  log:info("Inline request started")
+
   self.current_request = client
     .new()
     :stream(self.adapter:set_params(), self.adapter:map_roles(prompt), function(err, data, done)
       if err then
+        log:error("Error during stream: %s", err)
         return
       end
 
       if done then
+        log:info("Inline request finished")
         return api.nvim_buf_del_keymap(bufnr, "n", "q")
       end
 
       if data then
-        log:trace("Inline data: %s", data)
+        log:trace("Inline data received: %s", data)
         local content = self.adapter.args.callbacks.inline_output(data, self.context)
 
         if content then
@@ -442,8 +464,9 @@ end
 ---@param placement string
 ---@return table
 function Inline:place(placement)
-  local pos = {}
-  pos = { line = self.context.start_line, col = 0 }
+  log:info("Placing output with method: %s", placement)
+
+  local pos = { line = self.context.start_line, col = 0 }
 
   if placement == "before" then
     log:trace("Placing before selection")

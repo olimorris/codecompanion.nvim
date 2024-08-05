@@ -90,7 +90,7 @@ function Strategies:chat()
       })
     end
 
-    log:trace("Strategy: Chat")
+    log:info("Strategy: Chat")
     return require("codecompanion.strategies.chat").new({
       adapter = self.selected.adapter,
       context = self.context,
@@ -119,7 +119,7 @@ end
 
 ---@return nil|CodeCompanion.Inline
 function Strategies:inline()
-  log:trace("Strategy: Inline")
+  log:info("Strategy: Inline")
   return require("codecompanion.strategies.inline")
     .new({
       context = self.context,

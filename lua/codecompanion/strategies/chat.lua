@@ -261,6 +261,7 @@ local Chat = {}
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)
   local id = math.random(10000000)
+  log:trace("Chat created with ID %d", id)
 
   local self = setmetatable({
     opts = args,
@@ -301,7 +302,7 @@ function Chat.new(args)
   end
   self.settings = self.opts.settings or schema.get_default(self.adapter.args.schema, self.opts.settings)
 
-  -- log:debug("Adapter: %s", self.adapter)
+  log:trace("Adapter: %s", self.adapter)
 
   self.close_last_chat()
   self:open():render(self.opts.messages):set_extmarks():set_autocmds()
@@ -366,6 +367,8 @@ function Chat:open()
   ui.buf_scroll_to_end(self.bufnr)
   keymaps.set(config.strategies.chat.keymaps, self.bufnr, self)
 
+  log:trace("Chat opened with ID %d", self.id)
+
   return self
 end
 
@@ -417,6 +420,7 @@ function Chat:render(messages)
   end
 
   if config.display.chat.show_settings then
+    log:trace("Showing chat settings")
     lines = { "---" }
     local keys = schema.get_ordered_keys(self.adapter.args.schema)
     for _, key in ipairs(keys) do
@@ -427,15 +431,18 @@ function Chat:render(messages)
   end
 
   if not messages or #messages == 0 then
+    log:trace("Setting the header for the chat buffer")
     set_header(user_role)
   end
 
   if messages then
+    log:trace("Setting the messages in the chat buffer")
     set_messages(messages)
   end
 
   -- If the user has visually selected some text, add that to the chat buffer
   if self.context and self.context.is_visual and not self.opts.stop_context_insertion then
+    log:trace("Adding visual selection to chat buffer")
     spacer()
     table.insert(lines, "```" .. self.context.filetype)
     for _, line in ipairs(self.context.lines) do
@@ -625,6 +632,7 @@ function Chat:render_headers()
       })
     end
   end
+  log:trace("Rendering headers in the chat buffer")
 end
 
 ---Get the settings key at the current cursor position
@@ -753,14 +761,20 @@ function Chat:submit()
   local bufnr = self.bufnr
   local settings, messages = parse_settings(bufnr, self.adapter), parse_messages(bufnr)
   if not messages or #messages == 0 or (not messages[#messages].content or messages[#messages].content == "") then
+    log:warn("No messages to submit")
     return
   end
 
   messages = self:preprocess_messages(messages)
   lock_buf(bufnr)
 
+  log:debug("Settings: %s", settings)
+  log:debug("Messages: %s", messages)
+
   -- log:trace("----- For Adapter test creation -----\nMessages: %s\n ---------- // END ----------", messages)
   -- log:trace("Settings: %s", settings)
+
+  log:info("Chat request started")
 
   self.current_request = client.new():stream(
     self.adapter:set_params(settings),
@@ -781,13 +795,17 @@ function Chat:submit()
         self:append({ role = user_role, content = "" })
         self:display_tokens()
         self:save_chat()
+
         if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.tools_in_use) > 0 then
           parse_tool_schema(self)
         end
+
         api.nvim_exec_autocmds(
           "User",
           { pattern = CONSTANTS.AUTOCMD_USER_EVENT, data = { status = CONSTANTS.STATUS_FINISHED } }
         )
+
+        log:info("Chat request completed")
         return self:reset()
       end
 
@@ -1024,6 +1042,7 @@ function Chat:conceal(heading)
     end
   end
 
+  log:trace("Concealing %s", heading)
   return self
 end
 
@@ -1075,6 +1094,8 @@ function Chat:clear()
   self.opts.messages = nil
   self.tokens = nil
   clear_ns(namespaces)
+
+  log:trace("Clearing chat buffer")
   self:render():set_extmarks()
 end
 
