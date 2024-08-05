@@ -129,29 +129,4 @@ function Strategies:inline()
     :start()
 end
 
----@return nil|CodeCompanion.Chat
-function Strategies:agent()
-  local messages = self:evaluate_prompts(self.selected.prompts)
-
-  local adapter = config.adapters[config.strategies.agent.adapter]
-
-  if type(adapter) == "string" then
-    adapter = require("codecompanion.adapters").use(adapter)
-  elseif type(adapter) == "function" then
-    adapter = adapter()
-  end
-
-  if not adapter then
-    return nil
-  end
-
-  log:trace("Strategy: Agent")
-  return require("codecompanion.strategies.chat").new({
-    adapter = adapter,
-    type = self.selected.type,
-    messages = messages,
-    context = self.context,
-  })
-end
-
 return Strategies

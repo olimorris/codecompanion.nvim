@@ -90,7 +90,7 @@ return {
           modes = {
             n = "ga",
           },
-          index = 5,
+          index = 6,
           callback = "keymaps.codeblock",
           description = "Insert Codeblock",
         },
@@ -98,24 +98,40 @@ return {
           modes = {
             n = "gs",
           },
-          index = 6,
+          index = 7,
           callback = "keymaps.save_chat",
           description = "Save Chat",
         },
-        next = {
+        next_chat = {
+          modes = {
+            n = "}",
+          },
+          index = 8,
+          callback = "keymaps.next_chat",
+          description = "Next Chat",
+        },
+        previous_chat = {
+          modes = {
+            n = "{",
+          },
+          index = 9,
+          callback = "keymaps.previous_chat",
+          description = "Previous Chat",
+        },
+        next_header = {
           modes = {
             n = "]",
           },
-          index = 7,
-          callback = "keymaps.next",
+          index = 10,
+          callback = "keymaps.next_header",
           description = "Next Header",
         },
-        previous = {
+        previous_header = {
           modes = {
             n = "[",
           },
-          index = 8,
-          callback = "keymaps.previous",
+          index = 11,
+          callback = "keymaps.previous_header",
           description = "Previous Header",
         },
       },
@@ -483,9 +499,9 @@ Use Markdown formatting and include the programming language name at the start o
       intro_message = "Welcome to CodeCompanion ✨! Press ? for help",
 
       messages_separator = "─", -- The separator between the different messages in the chat buffer
-      show_separator = true, -- Show a separator between LLM responses
-      show_settings = false, -- Show LLM settings at the top of the chat buffer
-      show_token_count = true, -- Show the token count for each response
+      show_separator = true, -- Show a separator between LLM responses?
+      show_settings = false, -- Show LLM settings at the top of the chat buffer?
+      show_token_count = true, -- Show the token count for each response?
     },
     inline = {
       layout = "vertical", -- vertical|horizontal|buffer
@@ -500,7 +516,7 @@ Use Markdown formatting and include the programming language name at the start o
   },
   -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
-    log_level = "ERROR",
+    log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
     auto_save_chats = true, -- If a chat has already been saved or loaded then autosave it after every prompt
     saved_chats_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats",
 

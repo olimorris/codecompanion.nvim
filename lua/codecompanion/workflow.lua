@@ -1,5 +1,6 @@
 local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
+
 local api = vim.api
 
 ---@class CodeCompanion.Workflow

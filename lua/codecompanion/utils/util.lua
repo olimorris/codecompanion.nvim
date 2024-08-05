@@ -20,6 +20,40 @@ M.count = function(table)
   return count
 end
 
+---Check if a table is empty
+---@param tbl? table
+---@return boolean
+M.is_empty = function(tbl)
+  if tbl == nil then
+    return true
+  end
+
+  return next(tbl) == nil
+end
+
+---Find a nested key in a table and return the index
+---@param tbl table
+---@param key any
+---@param val any
+---@return integer|nil
+function M.find_key(tbl, key, val)
+  for k, v in pairs(tbl) do
+    if type(v) == "table" then
+      if v[key] == val then
+        return k
+      else
+        local result = M.find_key(v, key, val)
+        if result then
+          return k
+        end
+      end
+    elseif k == key and v == val then
+      return k
+    end
+  end
+  return nil
+end
+
 ---@param table table
 ---@param value string
 ---@return boolean

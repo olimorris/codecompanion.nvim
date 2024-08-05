@@ -1,5 +1,5 @@
 local Strategy = require("codecompanion.strategies")
-local util = require("codecompanion.utils.context")
+local context_utils = require("codecompanion.utils.context")
 local api = vim.api
 
 ---@param desc table
@@ -19,7 +19,7 @@ end
 local function map(config, mode)
   return api.nvim_set_keymap(mode, config.opts.mapping, "", {
     callback = function()
-      local context = util.get_context(api.nvim_get_current_buf())
+      local context = context_utils.get(api.nvim_get_current_buf())
 
       return Strategy.new({
         context = context,

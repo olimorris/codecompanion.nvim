@@ -66,7 +66,7 @@ end
 ---@param bufnr? integer
 ---@param args? table
 ---@return table
-function M.get_context(bufnr, args)
+function M.get(bufnr, args)
   bufnr = bufnr or api.nvim_get_current_buf()
   local winnr = api.nvim_get_current_win()
   local mode = vim.fn.mode()

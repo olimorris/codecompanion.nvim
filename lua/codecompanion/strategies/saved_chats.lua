@@ -1,7 +1,7 @@
 local Chat = require("codecompanion.strategies.chat")
 local config = require("codecompanion").config
 
-local context = require("codecompanion.utils.context")
+local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
@@ -155,7 +155,7 @@ function SavedChat:load(opts)
     messages = content.messages,
     hidden_msgs = content.hidden_msgs,
     adapter = config.adapters[content.adapter],
-    context = context.get_context(api.nvim_get_current_buf()),
+    context = context_utils.get(api.nvim_get_current_buf()),
     tokens = content.meta.tokens,
   })
 

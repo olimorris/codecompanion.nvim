@@ -76,28 +76,27 @@ M.static.actions = {
       stop_context_insertion = true,
     },
     condition = function()
-      return _G.codecompanion_chats and utils.count(_G.codecompanion_chats) > 0
+      return #require("codecompanion").buf_get_chat() > 0
     end,
     picker = {
       prompt = "Select a chat",
       items = function()
-        local ui = require("codecompanion.utils.ui")
-        local chats = {}
+        local loaded_chats = require("codecompanion").buf_get_chat()
+        local open_chats = {}
 
-        for bufnr, chat in pairs(_G.codecompanion_chats) do
-          table.insert(chats, {
-            name = chat.name,
+        for _, data in ipairs(loaded_chats) do
+          table.insert(open_chats, {
+            name = data.name,
             strategy = "chat",
-            description = chat.description,
+            description = data.description,
             callback = function()
-              _G.codecompanion_chats[bufnr] = nil
-              chat.chat:open()
-              ui.buf_scroll_to_end(bufnr)
+              require("codecompanion").close_last_chat()
+              data.chat:open()
             end,
           })
         end
 
-        return chats
+        return open_chats
       end,
     },
   },
