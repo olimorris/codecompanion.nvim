@@ -161,12 +161,6 @@ M.clear = {
   end,
 }
 
-M.hide = {
-  callback = function(chat)
-    chat:hide()
-  end,
-}
-
 M.save_chat = {
   desc = "Save the current chat",
   callback = function(chat)

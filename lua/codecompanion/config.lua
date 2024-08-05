@@ -86,14 +86,6 @@ return {
           callback = "keymaps.clear",
           description = "Clear Chat",
         },
-        hide = {
-          modes = {
-            n = "gh",
-          },
-          index = 5,
-          callback = "keymaps.hide",
-          description = "Hide Chat",
-        },
         codeblock = {
           modes = {
             n = "ga",
