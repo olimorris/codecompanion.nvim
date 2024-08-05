@@ -161,6 +161,18 @@ return {
       end
     end,
 
+    ---Callback to catch any errors from the standard output
+    ---@param data table
+    ---@return nil
+    on_stdout = function(data)
+      local ok, json = pcall(vim.json.decode, data._stdout_results[1], { luanil = { object = true } })
+      if ok then
+        if json.error then
+          log:error("Error: %s", json.error.message)
+        end
+      end
+    end,
+
     ---Output the data from the API ready for inlining into the current buffer
     ---@param data table The streamed JSON data from the API, also formatted by the format_data callback
     ---@param context table Useful context about the buffer to inline to
