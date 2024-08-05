@@ -869,9 +869,11 @@ function Chat:close()
 
   local index = util.find_key(chatmap, "bufnr", self.bufnr)
   if index then
-    chatmap[index] = nil
+    table.remove(chatmap, index)
   end
+
   api.nvim_buf_delete(self.bufnr, { force = true })
+  self = nil
 end
 
 ---Determine if the chat buffer is visible
@@ -1105,7 +1107,6 @@ function Chat.buf_get_chat(bufnr)
   if bufnr == 0 then
     bufnr = api.nvim_get_current_buf()
   end
-
   return chatmap[util.find_key(chatmap, "bufnr", bufnr)].chat
 end
 

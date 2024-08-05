@@ -144,6 +144,12 @@ M.send = {
 M.close = {
   callback = function(chat)
     chat:close()
+
+    local chats = require("codecompanion").buf_get_chat()
+    if #chats == 0 then
+      return
+    end
+    chats[1].chat:open()
   end,
 }
 
