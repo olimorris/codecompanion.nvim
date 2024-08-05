@@ -366,8 +366,6 @@ function Chat:open()
   ui.buf_scroll_to_end(self.bufnr)
   keymaps.set(config.strategies.chat.keymaps, self.bufnr, self)
 
-  log:debug("Opening %s", self.bufnr)
-
   return self
 end
 
@@ -852,8 +850,6 @@ function Chat:hide()
   else
     vim.cmd("buffer " .. vim.fn.bufnr("#"))
   end
-
-  log:debug("Hiding %s", self.bufnr)
 end
 
 ---Close the current chat buffer
