@@ -766,7 +766,6 @@ function Chat:submit()
   end
 
   messages = self:preprocess_messages(messages)
-  lock_buf(bufnr)
 
   log:debug("Settings: %s", settings)
   log:debug("Messages: %s", messages)
@@ -774,6 +773,7 @@ function Chat:submit()
   -- log:trace("----- For Adapter test creation -----\nMessages: %s\n ---------- // END ----------", messages)
   -- log:trace("Settings: %s", settings)
 
+  lock_buf(bufnr)
   log:info("Chat request started")
 
   self.current_request = client.new():stream(
