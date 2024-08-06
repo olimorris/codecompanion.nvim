@@ -1,6 +1,4 @@
 local a = require("plenary.async")
-local uv = vim.loop
-
 local files = require("codecompanion.utils.files")
 
 ---@class CodeCompanion.LogHandler
