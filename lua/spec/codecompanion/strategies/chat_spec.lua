@@ -35,6 +35,11 @@ describe("Chat", function()
         return "baz"
       end,
     }
+    package.loaded["codecompanion.helpers.variables"] = {
+      buffer = function(chat, params)
+        return "foobar"
+      end,
+    }
 
     codecompanion.setup({
       strategies = {
@@ -101,6 +106,32 @@ describe("Chat", function()
       assert.are.same("bar", result[2].content)
       assert.are.same("system", result[3].role)
       assert.are.same("\n\nbaz", result[3].content)
+    end)
+
+    it("buffer variables are handled", function()
+      local messages = {
+        { role = "user", content = "#buffer what does this file do?" },
+      }
+
+      local result = Chat:preprocess_messages(messages)
+
+      assert.are.same("system", result[1].role)
+      assert.are.same("foo", result[1].content)
+      assert.are.same("foobar", result[2].content)
+    end)
+
+    it("buffer variables, if reused, are not stacked", function()
+      local msg_with_var = "#buffer what does this file do?"
+      local messages = {
+        { role = "user", content = msg_with_var },
+        { role = "assistant", content = "Looks like it prints foobar" },
+        { role = "user", content = "#buffer Okay. Now what does this file do?" },
+      }
+
+      local result = Chat:preprocess_messages(messages)
+
+      assert.are.same(msg_with_var, result[2].content)
+      assert.are.same("foobar", result[4].content)
     end)
   end)
 end)
