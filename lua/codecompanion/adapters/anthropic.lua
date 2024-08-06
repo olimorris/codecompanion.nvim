@@ -36,7 +36,7 @@ return {
     form_parameters = function(params, messages)
       -- As per: https://docs.anthropic.com/claude/docs/system-prompts
       -- Claude doesn't put the system prompt in the messages array, but in the parameters.system field
-      local sys_prompts = utils.get_system_prompts(messages)
+      local sys_prompts = utils.get_msg_index("system", messages)
 
       -- Merge system prompts together
       if sys_prompts and #sys_prompts > 0 then
@@ -53,7 +53,7 @@ return {
     ---@return table
     form_messages = function(messages)
       -- Remove any system prompts from the messages array
-      local sys_prompt = utils.get_system_prompts(messages)
+      local sys_prompt = utils.get_msg_index("system", messages)
       if sys_prompt and #sys_prompt > 0 then
         -- Sort the prompts in descending order so we can remove them from the table without shifting indexes
         table.sort(sys_prompt, function(a, b)

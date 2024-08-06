@@ -1,4 +1,5 @@
 local assert = require("luassert")
+local utils = require("codecompanion.utils.adapters")
 
 local test_adapter = {
   name = "TestAdapter",
@@ -88,5 +89,44 @@ describe("Adapter", function()
     }
 
     assert.are.same(expected, result.args.parameters)
+  end)
+
+  it("can consolidate consecutive messages", function()
+    local messages = {
+      { role = "system", content = "This is a system prompt" },
+      { role = "user", content = "Foo" },
+      { role = "user", content = "Bar" },
+    }
+
+    assert.are.same({
+      { role = "system", content = "This is a system prompt" },
+      { role = "user", content = "Foo Bar" },
+    }, utils.merge_messages(messages))
+  end)
+
+  it("can be used to remove groups of messages", function()
+    local messages = {
+      { role = "system", content = "This is a system prompt" },
+      { role = "system", content = "This is another system prompt" },
+      { role = "user", content = "Foo" },
+      { role = "user", content = "Bar" },
+    }
+
+    -- Taken directly from the Anthropic adapter
+    local sys_prompt = utils.get_msg_index("system", messages)
+    if sys_prompt and #sys_prompt > 0 then
+      -- Sort the prompts in descending order so we can remove them from the table without shifting indexes
+      table.sort(sys_prompt, function(a, b)
+        return a > b
+      end)
+      for _, prompt in ipairs(sys_prompt) do
+        table.remove(messages, prompt)
+      end
+    end
+
+    assert.are.same({
+      { role = "user", content = "Foo" },
+      { role = "user", content = "Bar" },
+    }, messages)
   end)
 end)

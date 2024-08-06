@@ -1,12 +1,13 @@
 local M = {}
 
----Get the indexes of all of the system prompts in the chat buffer
+---Get the indexes for messages with a specific role
+---@param role string
 ---@param messages table
 ---@return table|nil
-function M.get_system_prompts(messages)
+function M.get_msg_index(role, messages)
   local prompts = {}
   for i = 1, #messages do
-    if messages[i].role == "system" then
+    if messages[i].role == role then
       table.insert(prompts, i)
     end
   end
@@ -16,7 +17,7 @@ function M.get_system_prompts(messages)
   end
 end
 
----Takes multiple user messages and merges them into a single message
+---Takes consecutive messages from a given role and merges them into a single message
 ---@param messages table
 ---@return table
 function M.merge_messages(messages)
