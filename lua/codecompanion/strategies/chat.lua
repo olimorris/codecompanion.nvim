@@ -488,16 +488,14 @@ function Chat:set_autocmds()
       if has_cmp then
         if not registered_cmp then
           registered_cmp = true
-          cmp.register_source("codecompanion_tools", require("cmp_codecompanion.tools").new())
+          cmp.register_source("codecompanion_helpers", require("cmp_codecompanion.helpers").new())
           cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new())
-          cmp.register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
         end
         cmp.setup.buffer({
           enabled = true,
           sources = {
-            { name = "codecompanion_tools" },
+            { name = "codecompanion_helpers" },
             { name = "codecompanion_models" },
-            { name = "codecompanion_variables" },
           },
         })
       end
@@ -684,7 +682,8 @@ end
 function Chat:preprocess_messages(messages)
   local latest_msg = messages[#messages]
 
-  local function msg_hidden(msg)
+  -- Determine if we've already hidden a message
+  local function is_hidden(msg)
     for _, hidden_msg in ipairs(self.hidden_msgs) do
       if hidden_msg.content == msg then
         return true
@@ -693,8 +692,9 @@ function Chat:preprocess_messages(messages)
     return false
   end
 
+  -- Store hidden messages in their own table
   local hide_msg = function(priority, content, role)
-    if not msg_hidden(content) then
+    if not is_hidden(content) then
       table.insert(self.hidden_msgs, {
         priority = priority,
         role = role or CONSTANTS.SYSTEM_ROLE,
@@ -729,6 +729,7 @@ function Chat:preprocess_messages(messages)
 
   -- Add variables to the message stack
   if self.variable_output then
+    log:debug("Variables stored: %s", self.variable_output)
     for _, var in ipairs(self.variable_output) do
       table.insert(messages, var.index, {
         role = user_role,

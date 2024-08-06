@@ -1,5 +1,6 @@
-local tools = require("codecompanion.strategies.chat.tools").new().tools
 local config = require("codecompanion").config
+local tools = require("codecompanion.strategies.chat.tools").new().tools
+local variables = require("codecompanion.strategies.chat.variables").new().vars
 
 local source = {}
 
@@ -15,17 +16,31 @@ source.get_position_encoding_kind = function()
   return "utf-8"
 end
 
+function source:get_trigger_characters()
+  return { "@", "#" }
+end
+
 function source:get_keyword_pattern()
-  return [[@\w*]]
+  return [[\%(@\|#\|/\)\k*]]
 end
 
 function source:complete(_, callback)
   local items = {}
+  local kind = require("cmp").lsp.CompletionItemKind.Variable
+
+  for label, data in pairs(variables) do
+    table.insert(items, {
+      label = "#" .. label,
+      kind = kind,
+      detail = data.description,
+    })
+  end
+
   for label, data in pairs(tools) do
     if label ~= "opts" then
       table.insert(items, {
         label = "@" .. label,
-        kind = require("cmp").lsp.CompletionItemKind.Variable,
+        kind = kind,
         detail = data.description,
       })
     end
