@@ -98,11 +98,7 @@ function Adapter:replace_header_vars()
         local env_var_or_cmd = self.args.env[var]
 
         if not env_var_or_cmd then
-          log:error("Error: Could not find env var or command: %s", self.args.env[var])
-          return vim.notify(
-            string.format("[CodeCompanion.nvim]\nCould not find env var or command: %s", self.args.env[var]),
-            vim.log.levels.ERROR
-          )
+          return log:error("Error: Could not find env var or command: %s", self.args.env[var])
         end
 
         if utils.is_cmd_var(env_var_or_cmd) then
@@ -115,21 +111,13 @@ function Adapter:replace_header_vars()
             handle:close()
             return result:gsub("%s+$", "")
           else
-            log:error("Error: Could not execute command: %s", command)
-            return vim.notify(
-              string.format("[CodeCompanion.nvim]\nCould not execute command: %s", command),
-              vim.log.levels.ERROR
-            )
+            return log:error("Error: Could not execute command: %s", command)
           end
         end
 
         local env_var = os.getenv(env_var_or_cmd)
         if not env_var then
-          log:error("Error: Could not find env var: %s", self.args.env[var])
-          return vim.notify(
-            string.format("[CodeCompanion.nvim]\nCould not find env var: %s", self.args.env[var]),
-            vim.log.levels.ERROR
-          )
+          return log:error("Error: Could not find env var: %s", self.args.env[var])
         end
         return env_var
       end)

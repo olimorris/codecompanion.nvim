@@ -67,10 +67,10 @@ M.add = function(args)
   local chat = M.last_chat()
 
   if not chat then
-    return vim.notify("[CodeCompanion.nvim]\nNo chat buffer found", vim.log.levels.WARN)
+    return log:warn("No chat buffer found")
   end
   if not M.config.opts.send_code then
-    return vim.notify("[CodeCompanion.nvim]\nSending of code to an LLM is currently disabled", vim.log.levels.WARN)
+    return log:warn("Sending of code to an LLM has been disabled")
   end
 
   local context = context_utils.get(api.nvim_get_current_buf(), args)
@@ -229,10 +229,7 @@ M.actions = function(args)
   local items = actions.validate(_cached_actions, context)
 
   if items and #items == 0 then
-    return vim.notify(
-      "[CodeCompanion.nvim]\nNo actions set. Please create some in your config or turn on the defaults",
-      vim.log.levels.WARN
-    )
+    return log:warn("No actions set. Please create some in your config or turn on the defaults")
   end
 
   picker(items, { prompt = "CodeCompanion actions", columns = { "name", "strategy", "description" } }, selection)

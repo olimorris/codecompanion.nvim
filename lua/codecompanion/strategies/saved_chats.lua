@@ -63,8 +63,7 @@ local function save(filename, bufnr, chat_content)
     file:close()
     api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChatSaved", data = { status = "finished" } })
   else
-    log:debug("Saved chat could not be saved. Error: %s", err)
-    vim.notify("[CodeCompanion.nvim]\nCannot save chat: " .. err, vim.log.levels.ERROR)
+    return log:error("Error saving chat: %s", err)
   end
 
   rename_buffer(bufnr, filename)

@@ -78,7 +78,7 @@ function Strategies:chat()
   end
 
   if not messages or #messages == 0 then
-    vim.notify("[CodeCompanion.nvim]\nThere are no messages to prompt the LLM", vim.log.levels.WARN)
+    log:warn("No messages to submit")
     return
   end
 

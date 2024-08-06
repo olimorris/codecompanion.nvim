@@ -297,8 +297,7 @@ function Chat.new(args)
 
   self.adapter = resolve_adapter(self.opts.adapter)
   if not self.adapter then
-    vim.notify("[CodeCompanion.nvim]\nNo adapter found", vim.log.levels.ERROR)
-    return
+    return log:error("No adapter found")
   end
   self.settings = self.opts.settings or schema.get_default(self.adapter.args.schema, self.opts.settings)
 
@@ -781,7 +780,7 @@ function Chat:submit()
     self.adapter:map_roles(messages),
     function(err, data, done)
       if err then
-        vim.notify("Error: " .. err, vim.log.levels.ERROR)
+        log:error("Error: %s", err)
         return self:reset()
       end
 
@@ -820,7 +819,7 @@ function Chat:submit()
         elseif result and result.status == CONSTANTS.STATUS_ERROR then
           self.status = CONSTANTS.STATUS_ERROR
           self:stop()
-          vim.notify("Error: " .. result.output, vim.log.levels.ERROR)
+          log:error("Error: %s" .. result.output)
         end
       end
     end,
