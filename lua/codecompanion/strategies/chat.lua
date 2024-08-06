@@ -948,7 +948,9 @@ function Chat:append(data, opts)
     api.nvim_buf_set_text(bufnr, last_line, last_column, last_line, last_column, lines)
     self:render_headers()
 
-    lock_buf(bufnr)
+    if self.last_role ~= user_role then
+      lock_buf(bufnr)
+    end
 
     if cursor_moved and self:is_active() then
       ui.buf_scroll_to_end(bufnr)
