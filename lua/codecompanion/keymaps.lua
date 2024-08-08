@@ -277,10 +277,13 @@ M.change_adapter = {
 
     local list = {}
     for key, _ in pairs(adapters) do
-      table.insert(list, key)
+      if key ~= chat.adapter.args.name then
+        table.insert(list, key)
+      end
     end
 
     table.sort(list)
+    table.insert(list, 1, chat.adapter.args.name)
 
     local select_opts = {
       prompt = "Select Adapter",
