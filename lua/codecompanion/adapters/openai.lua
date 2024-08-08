@@ -1,47 +1,5 @@
 local log = require("codecompanion.utils.log")
 
-local cycles = 0
-local error_content = ""
-
-local function cycle_error(data)
-  cycles = cycles + 1
-  error_content = error_content .. data
-end
-local function reset_cycle()
-  cycles = 0
-  error_content = ""
-end
-
-local function handle_streamed_error(data)
-  log:debug("Couldn't parse JSON: %s", data)
-  log:trace("Error content so far: %s", error_content)
-
-  -- Try and parse the JSON again
-  local ok, json = pcall(vim.json.decode, error_content, { luanil = { object = true } })
-
-  if not ok then
-    if cycles > 10 then
-      return {
-        status = "error",
-        output = string.format("Error malformed json: %s", json),
-      }
-    end
-
-    return {
-      status = "pending",
-      output = nil,
-    }
-  end
-
-  if json.error.message then
-    reset_cycle()
-    return {
-      status = "error",
-      output = "OpenAI Adapter - " .. json.error.message,
-    }
-  end
-end
-
 ---@class CodeCompanion.AdapterArgs
 return {
   name = "openai",
@@ -129,29 +87,38 @@ return {
         local data_mod = data:sub(7)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
-        if not ok then
-          cycle_error(data)
-          return handle_streamed_error(data)
-        end
+        if ok then
+          if #json.choices > 0 then
+            local delta = json.choices[1].delta
 
-        if #json.choices > 0 then
-          local delta = json.choices[1].delta
-
-          if delta.content then
-            output.content = delta.content
-            output.role = delta.role or nil
+            if delta.content then
+              output.content = delta.content
+              output.role = delta.role or nil
+            end
           end
+
+          -- log:trace("----- For Adapter test creation -----\nOutput: %s\n ---------- // END ----------", output)
+
+          return {
+            status = "success",
+            output = output,
+          }
         end
-
-        -- log:trace("----- For Adapter test creation -----\nOutput: %s\n ---------- // END ----------", output)
-
-        return {
-          status = "success",
-          output = output,
-        }
       end
 
       return nil
+    end,
+
+    ---Callback to catch any errors from the standard output
+    ---@param data table
+    ---@return nil
+    on_stdout = function(data)
+      local ok, json = pcall(vim.json.decode, data._stdout_results[1], { luanil = { object = true } })
+      if ok then
+        if json.error then
+          log:error("Error: %s", json.error.message)
+        end
+      end
     end,
 
     ---Output the data from the API ready for inlining into the current buffer
@@ -163,18 +130,16 @@ return {
         data = data:sub(7)
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
-        if not ok then
-          return log:error("Error: Please see the log for more information")
-        end
+        if ok then
+          --- Some third-party OpenAI forwarding services may have a return package with an empty json.choices.
+          if #json.choices == 0 then
+            return
+          end
 
-        --- Some third-party OpenAI forwarding services may have a return package with an empty json.choices.
-        if #json.choices == 0 then
-          return
-        end
-
-        local content = json.choices[1].delta.content
-        if content then
-          return content
+          local content = json.choices[1].delta.content
+          if content then
+            return content
+          end
         end
       end
     end,
