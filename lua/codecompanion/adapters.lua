@@ -167,4 +167,18 @@ function Adapter.use(adapter, opts)
   return Adapter.new(adapter_config)
 end
 
+---@param adapter? CodeCompanion.Adapter|string|function
+---@return CodeCompanion.Adapter
+function Adapter.resolve(adapter)
+  adapter = adapter or config.adapters[config.strategies.chat.adapter]
+
+  if type(adapter) == "string" then
+    return Adapter.use(adapter)
+  elseif type(adapter) == "function" then
+    return adapter()
+  end
+
+  return adapter
+end
+
 return Adapter

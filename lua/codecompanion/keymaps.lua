@@ -1,5 +1,6 @@
 local config = require("codecompanion").config
 
+local log = require("codecompanion.utils.log")
 local ts = require("codecompanion.utils.treesitter")
 local utils = require("codecompanion.utils.util")
 
@@ -262,6 +263,44 @@ M.previous_header = {
   desc = "Go to the previous message",
   callback = function()
     ts.goto_heading("prev", 1)
+  end,
+}
+
+M.change_adapter = {
+  desc = "Change the adapter",
+  callback = function(chat)
+    if config.display.chat.show_settings then
+      return
+    end
+
+    local adapters = require("codecompanion").config.adapters
+
+    local list = {}
+    for key, _ in pairs(adapters) do
+      table.insert(list, key)
+    end
+
+    table.sort(list)
+
+    local select_opts = {
+      prompt = "Select Adapter",
+      kind = "codecompanion.nvim",
+      format_item = function(item)
+        if chat.adapter.args.name == item then
+          return "* " .. item
+        end
+        return "  " .. item
+      end,
+    }
+
+    vim.ui.select(list, select_opts, function(selected)
+      if not selected then
+        return
+      end
+
+      chat.adapter = require("codecompanion.adapters").resolve(adapters[selected])
+      chat:apply_settings()
+    end)
   end,
 }
 

@@ -1,3 +1,4 @@
+local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.client")
 local config = require("codecompanion").config
 local keymaps = require("codecompanion.utils.keymaps")
@@ -64,20 +65,6 @@ end
 local function unlock_buf(bufnr)
   vim.bo[bufnr].modified = false
   vim.bo[bufnr].modifiable = true
-end
-
----@param adapter? CodeCompanion.Adapter|string|function
----@return CodeCompanion.Adapter
-local function resolve_adapter(adapter)
-  adapter = adapter or config.adapters[config.strategies.chat.adapter]
-
-  if type(adapter) == "string" then
-    return require("codecompanion.adapters").use(adapter)
-  elseif type(adapter) == "function" then
-    return adapter()
-  end
-
-  return adapter
 end
 
 local _cached_settings = {}
@@ -295,11 +282,11 @@ function Chat.new(args)
     chat = self,
   })
 
-  self.adapter = resolve_adapter(self.opts.adapter)
+  self.adapter = adapters.resolve(self.opts.adapter)
   if not self.adapter then
     return log:error("No adapter found")
   end
-  self.settings = self.opts.settings or schema.get_default(self.adapter.args.schema, self.opts.settings)
+  self:apply_settings(self.opts.settings)
 
   log:trace("Adapter: %s", self.adapter)
 
@@ -314,6 +301,16 @@ function Chat.new(args)
   end
 
   last_chat = self
+  return self
+end
+
+---Apply custom settings to the chat buffer
+---@param settings table
+---@return self
+function Chat:apply_settings(settings)
+  _cached_settings = {}
+  self.settings = settings or schema.get_default(self.adapter.args.schema, self.opts.settings)
+
   return self
 end
 

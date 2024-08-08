@@ -134,6 +134,14 @@ return {
           callback = "keymaps.previous_header",
           description = "Previous Header",
         },
+        change_adapter = {
+          modes = {
+            n = "ga",
+          },
+          index = 12,
+          callback = "keymaps.change_adapter",
+          description = "Change adapter",
+        },
       },
     },
     -- INLINE STRATEGY --------------------------------------------------------
