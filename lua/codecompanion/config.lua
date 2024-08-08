@@ -80,7 +80,7 @@ return {
         },
         clear = {
           modes = {
-            n = "gc",
+            n = "gx",
           },
           index = 4,
           callback = "keymaps.clear",
@@ -88,7 +88,7 @@ return {
         },
         codeblock = {
           modes = {
-            n = "ga",
+            n = "gc",
           },
           index = 6,
           callback = "keymaps.codeblock",
