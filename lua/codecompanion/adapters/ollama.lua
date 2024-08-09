@@ -24,6 +24,28 @@ local function get_ollama_choices()
   return result
 end
 
+local function get_model_defaults(model)
+  local handle = io.popen("ollama show " .. model .. " --parameters")
+  local defaults = {}
+  local base_model = model:match("([^:]+)") or model -- Extract base model name
+
+  if handle then
+    for line in handle:lines() do
+      local key, value = line:match("(%S+)%s+(.*)")
+      if key and value then
+        if value == "true" or value == "false" then
+          defaults[key] = value == "true"
+        else
+          defaults[key] = tonumber(value) or value
+        end
+      end
+    end
+    handle:close()
+  end
+
+  return defaults, base_model
+end
+
 ---@class CodeCompanion.AdapterArgs
 return {
   name = "ollama",
@@ -105,8 +127,6 @@ return {
           output.content = message.content
           output.role = message.role or nil
         end
-
-        -- log:trace("----- For Adapter test creation -----\nOutput: %s\n ---------- // END ----------", output)
 
         return {
           status = "success",
@@ -301,4 +321,37 @@ return {
       end,
     },
   },
+  init = function(self)
+	-- Get model-specific defaults
+	local model = self.schema.model.default
+	local model_defaults = get_model_defaults(model)
+
+	-- Find the maximum order value currently in the schema
+	local max_order = 0
+	for _, param in pairs(self.schema) do
+	  if param.order and param.order > max_order then
+	    max_order = param.order
+	  end
+	end
+
+	-- Merge model-specific defaults
+	for key, value in pairs(model_defaults) do
+	  if self.schema[key] then
+	    -- Update existing parameter
+	    self.schema[key].default = value
+	  else
+	    -- Add new parameter to schema with order greater than the current max_order
+	    max_order = max_order + 1
+	    self.schema[key] = {
+	  	order = max_order, -- Increment the order to maintain sequence
+	  	mapping = "parameters.options",
+	  	type = type(value),
+	  	optional = true,
+	  	default = value,
+	  	desc = "Model-specific parameter for " .. model,
+	    }
+	  end
+	end
+	return self
+  end,
 }
