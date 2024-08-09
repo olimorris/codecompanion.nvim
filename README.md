@@ -190,6 +190,7 @@ require("codecompanion").setup({
   adapters = {
     llama3 = function()
       return require("codecompanion.adapters").use("ollama", {
+        name = "llama3", -- Ensure the model is differentiated from Ollama
         schema = {
           model = {
             default = "llama3:latest",

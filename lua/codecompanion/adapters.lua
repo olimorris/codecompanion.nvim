@@ -167,7 +167,8 @@ function Adapter.use(adapter, opts)
   return Adapter.new(adapter_config)
 end
 
----@param adapter? CodeCompanion.Adapter|string|function
+---Resolve an adapter from deep within the plugin...somewhere
+---@param adapter? string|function|CodeCompanion.Adapter
 ---@return CodeCompanion.Adapter
 function Adapter.resolve(adapter)
   adapter = adapter or config.adapters[config.strategies.chat.adapter]

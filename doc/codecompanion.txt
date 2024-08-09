@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 08
+*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 09
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -186,6 +186,7 @@ adapter, these sit within a schema table and can be configured during setup:
       adapters = {
         llama3 = function()
           return require("codecompanion.adapters").use("ollama", {
+            name = "llama3", -- Ensure the model is differentiated from Ollama
             schema = {
               model = {
                 default = "llama3:latest",
