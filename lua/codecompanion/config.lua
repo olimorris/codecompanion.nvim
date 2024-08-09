@@ -44,12 +44,12 @@ return {
         },
       },
       keymaps = {
-        helpers = {
+        options = {
           modes = {
             n = "?",
           },
-          callback = "keymaps.helpers",
-          description = "Helpers",
+          callback = "keymaps.options",
+          description = "Options",
           hide = true,
         },
         send = {
@@ -504,7 +504,7 @@ Use Markdown formatting and include the programming language name at the start o
           wrap = true,
         },
       },
-      intro_message = "Welcome to CodeCompanion ✨! Press ? for help",
+      intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
 
       messages_separator = "─", -- The separator between the different messages in the chat buffer
       show_separator = true, -- Show a separator between LLM responses?

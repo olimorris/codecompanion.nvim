@@ -17,7 +17,7 @@ local function clear_map(keys, bufnr)
 end
 
 -- CHAT MAPPINGS --------------------------------------------------------------
-M.helpers = {
+M.options = {
   callback = function()
     local lines = {}
     local indent = " "
