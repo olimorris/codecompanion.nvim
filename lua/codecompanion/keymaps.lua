@@ -17,11 +17,48 @@ local function clear_map(keys, bufnr)
 end
 
 -- CHAT MAPPINGS --------------------------------------------------------------
+local _cached_options = {}
 M.options = {
   callback = function()
+    local function open_float(lines)
+      local window = config.display.chat.window
+      local width = window.width > 1 and window.width or 85
+      local height = window.height > 1 and window.height or 17
+
+      local bufnr = api.nvim_create_buf(false, true)
+      api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
+      local winnr = api.nvim_open_win(bufnr, true, {
+        relative = "cursor",
+        border = "single",
+        width = width,
+        height = height,
+        style = "minimal",
+        row = 10,
+        col = 0,
+        title = "Options",
+        title_pos = "center",
+      })
+
+      api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+
+      vim.bo[bufnr].modified = false
+      vim.bo[bufnr].modifiable = false
+
+      local function close()
+        api.nvim_buf_delete(bufnr, { force = true })
+      end
+
+      -- Set keymaps to close the float
+      vim.keymap.set("n", "q", close, { buffer = bufnr })
+      vim.keymap.set("n", "<ESC>", close, { buffer = bufnr })
+    end
+
+    if next(_cached_options) ~= nil then
+      return open_float(_cached_options)
+    end
+
     local lines = {}
     local indent = " "
-    local padding = " "
 
     local function max(col, tbl)
       local max_length = 0
@@ -105,34 +142,8 @@ M.options = {
       end
     end
 
-    -- Output them to a floating window
-    local window = config.display.chat.window
-    local width = window.width > 1 and window.width or 85
-    local height = window.height > 1 and window.height or 17
-
-    local bufnr = api.nvim_create_buf(false, true)
-    api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
-    local winnr = api.nvim_open_win(bufnr, true, {
-      relative = "cursor",
-      border = "single",
-      width = width,
-      height = height,
-      style = "minimal",
-      row = 10,
-      col = 0,
-      title = "Help",
-      title_pos = "center",
-    })
-
-    api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-
-    local function close()
-      api.nvim_buf_delete(bufnr, { force = true })
-    end
-
-    -- Set keymaps to close the float
-    vim.keymap.set("n", "q", close, { buffer = bufnr })
-    vim.keymap.set("n", "<ESC>", close, { buffer = bufnr })
+    _cached_options = lines
+    open_float(lines)
   end,
 }
 
