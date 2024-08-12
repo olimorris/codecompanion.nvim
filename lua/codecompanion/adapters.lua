@@ -171,6 +171,7 @@ end
 ---@param adapter? string|function|CodeCompanion.Adapter
 ---@return CodeCompanion.Adapter
 function Adapter.resolve(adapter)
+  config = require("codecompanion").config
   adapter = adapter or config.adapters[config.strategies.chat.adapter]
 
   if type(adapter) == "string" then
