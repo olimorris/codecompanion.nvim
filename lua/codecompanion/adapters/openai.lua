@@ -153,6 +153,7 @@ return {
       default = "gpt-4o",
       choices = {
         "gpt-4o",
+        "gpt-4o-mini",
         "gpt-4-turbo-preview",
         "gpt-4",
         "gpt-3.5-turbo",
