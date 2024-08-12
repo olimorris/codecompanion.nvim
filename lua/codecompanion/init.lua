@@ -155,7 +155,7 @@ M.actions = function(args)
     opts.prompt = opts.prompt or "Select an option"
     opts.columns = opts.columns or { "name", "strategy", "description" }
 
-    require("codecompanion.utils.ui").selector(items, {
+    require("codecompanion.utils.ui").action_palette_selector(items, {
       prompt = opts.prompt,
       width = M.config.display.action_palette.width,
       height = M.config.display.action_palette.height,

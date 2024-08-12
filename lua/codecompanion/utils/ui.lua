@@ -147,7 +147,7 @@ end
 ---@param items table
 ---@param opts table
 ---@return nil|table
-function M.selector(items, opts)
+function M.action_palette_selector(items, opts)
   log:trace("Opening selector")
 
   local max_lengths = get_max_lengths(items, opts.format)
