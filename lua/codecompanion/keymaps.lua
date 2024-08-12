@@ -9,11 +9,15 @@ local api = vim.api
 local M = {}
 
 ---Clear a keymap from a specific buffer
----@param keys string
+---@param keymaps table
 ---@param bufnr? integer
-local function clear_map(keys, bufnr)
+local function clear_map(keymaps, bufnr)
   bufnr = bufnr or 0
-  vim.keymap.del("n", keys, { buffer = bufnr })
+  for _, map in pairs(keymaps) do
+    for _, key in pairs(map.modes) do
+      vim.keymap.del("n", key, { buffer = bufnr })
+    end
+  end
 end
 
 -- CHAT MAPPINGS --------------------------------------------------------------
@@ -350,9 +354,7 @@ M.accept_change = {
     local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_removed_")
     api.nvim_buf_clear_namespace(inline.context.bufnr, ns_id, 0, -1)
 
-    for map, _ in pairs(config.strategies.inline.keymaps) do
-      clear_map(map, inline.context.bufnr)
-    end
+    clear_map(config.strategies.inline.keymaps, inline.context.bufnr)
   end,
 }
 
@@ -363,9 +365,7 @@ M.reject_change = {
     api.nvim_buf_clear_namespace(inline.context.bufnr, ns_id, 0, -1)
     vim.cmd("undo")
 
-    for map, _ in pairs(config.strategies.inline.keymaps) do
-      clear_map(map, inline.context.bufnr)
-    end
+    clear_map(config.strategies.inline.keymaps, inline.context.bufnr)
   end,
 }
 
