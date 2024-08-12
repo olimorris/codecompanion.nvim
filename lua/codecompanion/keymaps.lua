@@ -284,36 +284,60 @@ M.change_adapter = {
       return
     end
 
-    local adapters = require("codecompanion").config.adapters
-
-    local list = {}
-    for key, _ in pairs(adapters) do
-      if key ~= chat.adapter.args.name then
-        table.insert(list, key)
-      end
+    local function select_opts(prompt, conditional)
+      return {
+        prompt = prompt,
+        kind = "codecompanion.nvim",
+        format_item = function(item)
+          if conditional == item then
+            return "* " .. item
+          end
+          return "  " .. item
+        end,
+      }
     end
 
+    local adapters = require("codecompanion").config.adapters
+    local current_adapter = chat.adapter.args.name
+
+    local list = {}
+    for adapter, _ in pairs(adapters) do
+      if adapter ~= current_adapter then
+        table.insert(list, adapter)
+      end
+    end
     table.sort(list)
-    table.insert(list, 1, chat.adapter.args.name)
+    table.insert(list, 1, current_adapter)
 
-    local select_opts = {
-      prompt = "Select Adapter",
-      kind = "codecompanion.nvim",
-      format_item = function(item)
-        if chat.adapter.args.name == item then
-          return "* " .. item
-        end
-        return "  " .. item
-      end,
-    }
-
-    vim.ui.select(list, select_opts, function(selected)
+    vim.ui.select(list, select_opts("Select Adapter", current_adapter), function(selected)
       if not selected then
         return
       end
 
-      chat.adapter = require("codecompanion.adapters").resolve(adapters[selected])
-      chat:apply_settings()
+      if current_adapter ~= selected then
+        chat.adapter = require("codecompanion.adapters").resolve(adapters[selected])
+        chat:apply_settings()
+      end
+
+      -- Select a model
+      local models = chat.adapter.args.schema.model.choices
+      local current_model = chat.adapter.args.schema.model.default
+
+      list = {}
+      for _, model in ipairs(models) do
+        if model ~= current_model then
+          table.insert(list, model)
+        end
+      end
+      table.sort(list)
+      table.insert(list, 1, current_model)
+
+      vim.ui.select(list, select_opts("Select Model", current_model), function(selected)
+        if not selected then
+          return
+        end
+        chat:apply_model(selected)
+      end)
     end)
   end,
 }

@@ -314,6 +314,19 @@ function Chat:apply_settings(settings)
   return self
 end
 
+---Set a model in the chat buffer
+---@param model string
+---@return self
+function Chat:apply_model(model)
+  if _cached_settings[self.bufnr] then
+    _cached_settings[self.bufnr].model = model
+  end
+
+  self.adapter.args.schema.model.default = model
+
+  return self
+end
+
 ---Open/create the chat window
 function Chat:open()
   if self:is_visible() then
