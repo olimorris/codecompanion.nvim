@@ -413,11 +413,11 @@ function Chat:render(messages)
 
         last_role = msg.role
       else
-        -- To make sure that we don't lose the order of the system prompts,
-        -- we use a priority system:
-        --     1. Reserved for the plugin's default system prompt.
-        --     2. Reserved for any prompts that support functionality in the chat buffer.
-        --     3. Reserved for any other system prompts.
+        -- To make sure that we don't lose the order of any ystem prompts, we
+        -- use a priority system:
+        --     1. Reserved for the plugin's default system prompt in the config
+        --     2. Reserved for prompts that come from variables or agents
+        --     3. Reserved for any other system prompts
         table.insert(self.hidden_msgs, {
           priority = msg.priority or 3,
           role = CONSTANTS.SYSTEM_ROLE,
