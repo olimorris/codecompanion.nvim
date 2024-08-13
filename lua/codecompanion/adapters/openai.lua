@@ -115,6 +115,7 @@ return {
     on_stdout = function(data)
       local ok, json = pcall(vim.json.decode, data._stdout_results[1], { luanil = { object = true } })
       if ok then
+        log:trace("stdout: %s", json)
         if json.error then
           log:error("Error: %s", json.error.message)
         end
