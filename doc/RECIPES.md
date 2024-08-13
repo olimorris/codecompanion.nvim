@@ -264,9 +264,40 @@ And to determine the visibility of actions in the palette itself:
 }
 ```
 
-## Gotchas
+## Other Configuration Options
 
-Please be mindful of how different LLMs function. A prompt that works perfectly in Anthropic may not function as well with Ollama and the specific model you've chosen. So please test!
+**Specifying an Adapter and Model**
+
+```lua
+["Your_New_Prompt"] = {
+  strategy = "chat",
+  description = "Your Special Prompt",
+  opts = {
+    adapter = {
+      name = "ollama",
+      model = "deepseek-coder:6.7b",
+    },
+  },
+  -- Your prompts here
+}
+```
+
+**Specifying a Placement for Inline Prompts**
+
+As outlined in the [README](README.md), an inline prompt can place its response in many different ways. To override this, you can specify a specific placement:
+
+```lua
+["Your_New_Prompt"] = {
+  strategy = "inline",
+  description = "Your Special Inline Prompt",
+  opts = {
+    placement = "new|false"
+  },
+  -- Your prompts here
+}
+```
+
+In this example, the LLM response will be placed in a new buffer and the user's code will not be returned back to them.
 
 ## Conclusion
 

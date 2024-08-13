@@ -28,7 +28,7 @@ Here are some example prompts and their correct method classification ("<method>
 
 As a final assessment, I'd like you to determine if any code that the user has provided to you within their prompt should be returned in your response. I am calling this determination the "<return>" evaluation and it should be a boolean value.
 Please respond to this prompt in the format "<method>|<return>" where "<method>" is a string and "<replace>" is a boolean value. For example `after|false` or `chat|false` or `replace|true`. Do not provide any other content in your response.]],
-  CODE_ONLY_PROMPT = [[Respond with code only. Do not use any Markdown formatting for this particular answer and do not include any explanation or formatting. Code only.]],
+  CODE_ONLY_PROMPT = [[Respond with code only. Do not use any Markdown code blocks, backticks or provide any explanations.]],
 }
 
 local llm_role = config.strategies.chat.roles.llm
@@ -264,7 +264,7 @@ function Inline.new(args)
   local instance = setmetatable({
     id = math.random(10000000),
     context = args.context,
-    adapter = config.adapters[config.strategies.inline.adapter],
+    adapter = args.adapter or config.adapters[config.strategies.inline.adapter],
     opts = args.opts or {},
     diff = {},
     prompts = vim.deepcopy(args.prompts),
@@ -284,6 +284,8 @@ function Inline:start(opts)
   if opts and opts.args then
     return self:classify(opts.args)
   end
+
+  log:debug("Adapter: %s", self.adapter)
 
   if self.opts and self.opts.user_prompt then
     if type(self.opts.user_prompt) == "string" then
@@ -324,11 +326,10 @@ end
 ---generate any output, just provide a classification of the action
 ---@param user_input? string
 function Inline:classify(user_input)
-  log:info("Classifying user input: %s", user_input)
+  log:info("User input: %s", user_input)
 
   if not self.adapter then
-    log:error("No adapter found for Inline strategies")
-    return
+    return log:error("No adapter found for Inline strategies")
   end
 
   if type(self.adapter) == "string" then
@@ -337,10 +338,9 @@ function Inline:classify(user_input)
     self.adapter = self.adapter()
   end
 
-  log:trace("Inline adapter config: %s", self.adapter)
-
-  local prompt, user_prompts = build_prompt(self, user_input)
-  log:debug("Built prompt: %s", prompt)
+  local prompts, user_prompts = build_prompt(self, user_input)
+  log:debug("Prompts: %s", prompts)
+  log:debug("User Prompt: %s", user_prompts)
 
   if not self.opts.placement then
     local action = {
@@ -350,7 +350,7 @@ function Inline:classify(user_input)
       },
       {
         role = user_role,
-        content = 'The prompt to assess is: "' .. user_prompts,
+        content = 'The prompt to assess is: "' .. user_prompts .. '"',
       },
     }
 
@@ -364,17 +364,15 @@ function Inline:classify(user_input)
       end
 
       if done then
-        log:debug("Placement determined: %s", placement)
-        return self:submit(placement, prompt)
+        return self:submit(placement, prompts)
       end
 
       if data then
-        log:trace("Received classification data: %s", data)
         placement = placement .. (self.adapter.args.callbacks.inline_output(data) or "")
       end
     end)
   else
-    return self:submit(self.opts.placement, prompt)
+    return self:submit(self.opts.placement, prompts)
   end
 end
 
@@ -383,14 +381,15 @@ end
 ---@param prompt table
 ---@return nil
 function Inline:submit(placement, prompt)
-  log:info("Submitting prompt with placement: %s", placement)
+  log:info("Placement: %s", placement)
 
   -- Work out where to place the output from the inline prompt
-  local parts = vim.split(extract_placement(placement), "|")
+  local ok, parts = pcall(function()
+    return vim.split(extract_placement(placement), "|")
+  end)
 
-  if #parts < 2 then
-    log:error("Could not determine where to place the output from the prompt")
-    return
+  if not ok or #parts < 2 then
+    return log:error("Could not determine where to place the output from the prompt")
   end
 
   local action = parts[1]
@@ -399,8 +398,6 @@ function Inline:submit(placement, prompt)
     log:info("Sending inline prompt to the chat buffer")
     return send_to_chat(self, prompt)
   end
-
-  log:trace("Prompt: %s", prompt)
 
   local pos = self:place(action)
   log:debug("Determined position for output: %s", pos)
@@ -440,7 +437,6 @@ function Inline:submit(placement, prompt)
       end
 
       if data then
-        log:trace("Inline data received: %s", data)
         local content = self.adapter.args.callbacks.inline_output(data, self.context)
 
         if content then
@@ -464,28 +460,22 @@ end
 ---@param placement string
 ---@return table
 function Inline:place(placement)
-  log:info("Placing output with method: %s", placement)
-
   local pos = { line = self.context.start_line, col = 0 }
 
   if placement == "before" then
-    log:trace("Placing before selection")
     api.nvim_buf_set_lines(self.context.bufnr, self.context.start_line - 1, self.context.start_line - 1, false, { "" })
     self.context.start_line = self.context.start_line + 1
     pos.line = self.context.start_line - 1
     pos.col = self.context.start_col - 1
   elseif placement == "after" then
-    log:trace("Placing after selection")
     api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
     pos.line = self.context.end_line + 1
     pos.col = 0
   elseif placement == "replace" then
-    log:trace("Placing by overwriting selection")
     self:diff_removed()
     overwrite_selection(self.context)
     pos.line, pos.col = get_cursor(self.context.winnr)
   elseif placement == "new" then
-    log:trace("Placing in a new buffer")
     local bufnr = api.nvim_create_buf(true, false)
     api.nvim_buf_set_option(bufnr, "filetype", self.context.filetype)
 

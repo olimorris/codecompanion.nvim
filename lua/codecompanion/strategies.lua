@@ -1,7 +1,21 @@
+local adapters = require("codecompanion.adapters")
 local config = require("codecompanion").config
 local util = require("codecompanion.utils.util")
 
 local log = require("codecompanion.utils.log")
+
+---A user may specify an adapter for the prompt
+---@param strategy CodeCompanion.Strategies
+---@param opts table
+---@return nil
+local function add_adapter(strategy, opts)
+  if opts.adapter and opts.adapter.name then
+    strategy.selected.adapter = adapters.resolve(config.adapters[opts.adapter.name])
+    if opts.adapter.model then
+      strategy.selected.adapter.args.schema.model.default = opts.adapter.model
+    end
+  end
+end
 
 ---@class CodeCompanion.Strategies
 ---@field context table
@@ -65,6 +79,8 @@ end
 ---@return nil|CodeCompanion.Chat
 function Strategies:chat()
   local messages
+
+  local opts = self.selected.opts
   local mode = self.context.mode:lower()
   local prompts = self.selected.prompts
 
@@ -95,35 +111,51 @@ function Strategies:chat()
       adapter = self.selected.adapter,
       context = self.context,
       messages = messages,
-      auto_submit = (self.selected.opts and self.selected.opts.auto_submit) or false,
-      stop_context_insertion = (self.selected.opts and self.selected.opts.stop_context_insertion) or false,
+      auto_submit = (opts and opts.auto_submit) or false,
+      stop_context_insertion = (opts and self.selected.opts.stop_context_insertion) or false,
     })
   end
 
-  if self.selected.opts and self.selected.opts.user_prompt then
-    if type(self.selected.opts.user_prompt) == "string" then
-      return chat(self.selected.opts.user_prompt)
-    end
+  if opts then
+    -- Add an adapter
+    add_adapter(self, opts)
 
-    vim.ui.input({ prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " Prompt" }, function(input)
-      if not input then
-        return
+    -- Prompt the user
+    if opts.user_prompt then
+      if type(opts.user_prompt) == "string" then
+        return chat(opts.user_prompt)
       end
 
-      return chat(input)
-    end)
-  else
-    return chat()
+      vim.ui.input({ prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " Prompt" }, function(input)
+        if not input then
+          return
+        end
+
+        return chat(input)
+      end)
+    else
+      return chat()
+    end
   end
+
+  return chat()
 end
 
----@return nil|CodeCompanion.Inline
+---@return CodeCompanion.Inline|nil
 function Strategies:inline()
   log:info("Strategy: Inline")
+
+  local opts = self.selected.opts
+
+  if opts then
+    add_adapter(self, opts)
+  end
+
   return require("codecompanion.strategies.inline")
     .new({
+      adapter = self.selected.adapter,
       context = self.context,
-      opts = self.selected.opts,
+      opts = opts,
       prompts = self.selected.prompts,
     })
     :start()
