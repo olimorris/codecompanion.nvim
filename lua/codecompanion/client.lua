@@ -63,13 +63,13 @@ function Client:stream(adapter, payload, cb, after)
       headers = headers,
       body = body,
       stream = self.opts.schedule(function(_, data)
-        if data then
-          log:trace("Chat data: %s", data)
+        if data and data ~= "" then
+          log:trace("Request data: %s", data)
         end
         -- log:trace("----- For Adapter test creation -----\nRequest: %s\n ---------- // END ----------", data)
 
         if adapter.args.callbacks.is_complete(data) then
-          log:trace("Chat completed")
+          log:trace("Request completed")
           return cb(nil, data, true)
         end
 
@@ -95,7 +95,7 @@ function Client:stream(adapter, payload, cb, after)
     end)
 
   if handler and handler.args then
-    log:debug("Stream Request: %s", handler.args)
+    log:debug("Request: %s", handler.args)
   end
   announce("started")
 
