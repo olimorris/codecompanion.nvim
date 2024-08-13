@@ -932,8 +932,10 @@ end
 function Chat:append(data, opts)
   local lines = {}
   local bufnr = self.bufnr
+  local new_response = false
 
   if (data.role and data.role ~= self.last_role) or (opts and opts.force_role) then
+    new_response = true
     self.last_role = data.role
     table.insert(lines, "")
     table.insert(lines, "")
@@ -956,7 +958,10 @@ function Chat:append(data, opts)
 
     local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
     api.nvim_buf_set_text(bufnr, last_line, last_column, last_line, last_column, lines)
-    self:render_headers()
+
+    if new_response then
+      self:render_headers()
+    end
 
     if self.last_role ~= user_role then
       lock_buf(bufnr)
