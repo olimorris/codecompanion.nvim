@@ -771,8 +771,7 @@ function Chat:submit()
   local bufnr = self.bufnr
   local settings, messages = parse_settings(bufnr, self.adapter), parse_messages(bufnr)
   if not messages or #messages == 0 or (not messages[#messages].content or messages[#messages].content == "") then
-    log:warn("No messages to submit")
-    return
+    return log:warn("No messages to submit")
   end
 
   messages = self:preprocess_messages(messages)
