@@ -1129,6 +1129,17 @@ function Chat:save_chat()
   log:trace("Chat saved")
 end
 
+function Chat:debug()
+  local bufnr = self.bufnr
+  local settings, messages = parse_settings(bufnr, self.adapter), parse_messages(bufnr)
+
+  if messages[#messages].content then
+    messages = self:preprocess_messages(messages)
+  end
+
+  return settings, messages
+end
+
 ---Returns the chat object(s) based on the buffer number
 ---@param bufnr? integer
 ---@return CodeCompanion.Chat|table

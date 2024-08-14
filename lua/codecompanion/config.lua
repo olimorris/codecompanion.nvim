@@ -142,6 +142,14 @@ return {
           callback = "keymaps.change_adapter",
           description = "Change adapter",
         },
+        debug = {
+          modes = {
+            n = "gd",
+          },
+          index = 13,
+          callback = "keymaps.debug",
+          description = "View debug info",
+        },
       },
     },
     -- INLINE STRATEGY --------------------------------------------------------
