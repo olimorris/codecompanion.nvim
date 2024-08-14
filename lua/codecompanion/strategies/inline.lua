@@ -90,7 +90,7 @@ local build_prompt = function(inline, user_input)
 
   -- Send the visual selection
   if config.opts.send_code then
-    if inline.context.is_visual then
+    if inline.context.is_visual and not inline.opts.stop_context_insertion then
       log:trace("Sending visual selection")
       table.insert(output, {
         role = user_role,
