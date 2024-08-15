@@ -1,3 +1,4 @@
+local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.client")
 local config = require("codecompanion").config
 
@@ -31,9 +32,9 @@ Please respond to this prompt in the format "<method>|<return>" where "<method>"
   CODE_ONLY_PROMPT = [[Respond with code only. Do not use any Markdown code blocks, backticks or provide any explanations.]],
 }
 
-local llm_role = config.strategies.chat.roles.llm
 local user_role = config.strategies.chat.roles.user
 
+---Announce the status of the inline prompt
 ---@param status string
 ---@param opts? table
 local function announce(status, opts)
@@ -43,6 +44,7 @@ local function announce(status, opts)
   api.nvim_exec_autocmds("User", { pattern = "CodeCompanionInline", data = opts })
 end
 
+---Format given lines into a code block alongside a prompt
 ---@param prompt string
 ---@param filetype string
 ---@param lines table
@@ -51,10 +53,13 @@ local function code_block(prompt, filetype, lines)
   return prompt .. ":\n\n" .. "```" .. filetype .. "\n" .. table.concat(lines, "  ") .. "\n```\n"
 end
 
+---When a defined prompt is sent alongside the user's input, we need to do some
+---additional processing such as evaluating conditions and determining if
+---the prompt contains code which can be sent to the LLM.
 ---@param inline CodeCompanion.Inline
 ---@param user_input? string
----@return table, string
-local build_prompt = function(inline, user_input)
+---@return table,string
+local function build_prompt(inline, user_input)
   local output = {}
 
   for _, prompt in ipairs(inline.prompts) do
@@ -114,7 +119,7 @@ local build_prompt = function(inline, user_input)
   return output, user_prompts
 end
 
----Stream the text to the buffer
+---Write the given text to the buffer
 ---@param pos table
 ---@param bufnr number
 ---@param text string
@@ -167,10 +172,9 @@ local function overwrite_selection(context)
   api.nvim_win_set_cursor(context.winnr, { context.start_line, context.start_col })
 end
 
----Ge the curret cursor position in the window
+---Get the current cursor position in the window
 ---@param winnr number
----@return number line
----@return number col
+---@return number,number line column
 local function get_cursor(winnr)
   local cursor_pos = api.nvim_win_get_cursor(winnr)
   return cursor_pos[1], cursor_pos[2]
@@ -183,14 +187,14 @@ local function extract_placement(str)
   return str:match("(%w+|%w+)")
 end
 
----A user's prompt may need to be converted into a chat
+---A user's inline prompt may need to be converted into a chat
 ---@param inline CodeCompanion.Inline
 ---@param prompt table
 ---@return CodeCompanion.Chat|nil
 local function send_to_chat(inline, prompt)
   -- If we're converting an inline prompt to a chat, we need to perform some
   -- additional steps. We need to remove any visual selections as the chat
-  -- buffer will account for this. We also need to swap the system prompt
+  -- buffer adds this itself. We also need to order the system prompt
   for i = #prompt, 1, -1 do
     if inline.context.is_visual and prompt[i].tag == "visual" then
       table.remove(prompt, i)
@@ -199,7 +203,7 @@ local function send_to_chat(inline, prompt)
     end
   end
 
-  -- Lastly, we need to re-arrange the table of prompts
+  -- Lastly, we need to re-arrange the prompts table
   table.sort(prompt, function(a, b)
     -- System prompts come first...
     if a.role == "system" then
@@ -247,7 +251,7 @@ local Inline = {}
 ---@field prompts table
 
 ---@param args CodeCompanion.InlineArgs
----@return CodeCompanion.Inline
+---@return CodeCompanion.Inline|nil
 function Inline.new(args)
   log:trace("Initiating Inline with args: %s", args)
 
@@ -261,7 +265,7 @@ function Inline.new(args)
     end
   end
 
-  local instance = setmetatable({
+  local self = setmetatable({
     id = math.random(10000000),
     context = args.context,
     adapter = args.adapter or config.adapters[config.strategies.inline.adapter],
@@ -270,8 +274,14 @@ function Inline.new(args)
     prompts = vim.deepcopy(args.prompts),
   }, { __index = Inline })
 
-  log:debug("Inline instance created with ID %d", instance.id)
-  return instance
+  self.adapter = adapters.resolve(self.adapter)
+  if not self.adapter then
+    return log:error("No adapter found")
+  end
+  log:trace("Adapter: %s", self.adapter)
+
+  log:debug("Inline instance created with ID %d", self.id)
+  return self
 end
 
 ---@param opts? table
@@ -284,8 +294,6 @@ function Inline:start(opts)
   if opts and opts.args then
     return self:classify(opts.args)
   end
-
-  log:debug("Adapter: %s", self.adapter)
 
   if self.opts and self.opts.user_prompt then
     if type(self.opts.user_prompt) == "string" then
@@ -321,22 +329,11 @@ function Inline:stop()
   end
 end
 
----Initially send the prompt to the LLM to determine which type of action we
----should take in our response. At this stage we do not ask the LLM to
----generate any output, just provide a classification of the action
+---Initially, we ask the LLM to classify the prompt, with the outcome being
+---a judgement on the placement of the response.
 ---@param user_input? string
 function Inline:classify(user_input)
   log:info("User input: %s", user_input)
-
-  if not self.adapter then
-    return log:error("No adapter found for Inline strategies")
-  end
-
-  if type(self.adapter) == "string" then
-    self.adapter = require("codecompanion.adapters").use(self.adapter)
-  elseif type(self.adapter) == "function" then
-    self.adapter = self.adapter()
-  end
 
   local prompts, user_prompts = build_prompt(self, user_input)
   log:debug("Prompts: %s", prompts)
@@ -359,11 +356,25 @@ function Inline:classify(user_input)
     announce("started")
     client.new():stream(self.adapter:set_params(), self.adapter:map_roles(action), function(err, data, done)
       if err then
-        log:error("Error during classification: %s", err)
-        return
+        return log:error("Error during inline classification: %s", err)
       end
 
       if done then
+        log:info("Placement: %s", placement)
+
+        -- Work out where to place the output from the inline prompt
+        local ok, parts = pcall(function()
+          return vim.split(extract_placement(placement), "|")
+        end)
+        if not ok or #parts < 2 then
+          return log:error("Could not determine where to place the output from the prompt")
+        end
+
+        placement = parts[1]
+        if placement == "chat" then
+          log:info("Sending inline prompt to the chat buffer")
+          return send_to_chat(self, prompts)
+        end
         return self:submit(placement, prompts)
       end
 
@@ -376,30 +387,12 @@ function Inline:classify(user_input)
   end
 end
 
----Get the output for the inline prompt from the generative AI
+---Submit the prompts to the LLM to process
 ---@param placement string
----@param prompt table
+---@param prompts table
 ---@return nil
-function Inline:submit(placement, prompt)
-  log:info("Placement: %s", placement)
-
-  -- Work out where to place the output from the inline prompt
-  local ok, parts = pcall(function()
-    return vim.split(extract_placement(placement), "|")
-  end)
-
-  if not ok or #parts < 2 then
-    return log:error("Could not determine where to place the output from the prompt")
-  end
-
-  local action = parts[1]
-
-  if action == "chat" then
-    log:info("Sending inline prompt to the chat buffer")
-    return send_to_chat(self, prompt)
-  end
-
-  local pos = self:place(action)
+function Inline:submit(placement, prompts)
+  local pos = self:place(placement)
   log:debug("Determined position for output: %s", pos)
 
   local bufnr = pos.bufnr or self.context.bufnr
@@ -416,7 +409,7 @@ function Inline:submit(placement, prompt)
   })
 
   -- Remind the LLM to respond with code only
-  table.insert(prompt, {
+  table.insert(prompts, {
     role = "system",
     content = CONSTANTS.CODE_ONLY_PROMPT,
   })
@@ -425,7 +418,7 @@ function Inline:submit(placement, prompt)
 
   self.current_request = client
     .new()
-    :stream(self.adapter:set_params(), self.adapter:map_roles(prompt), function(err, data, done)
+    :stream(self.adapter:set_params(), self.adapter:map_roles(prompts), function(err, data, done)
       if err then
         log:error("Error during stream: %s", err)
         return
@@ -443,7 +436,7 @@ function Inline:submit(placement, prompt)
           vim.cmd.undojoin()
           stream_text_to_buffer(pos, bufnr, content)
           -- self:diff_added(updated_pos.line)
-          if action == "new" then
+          if placement == "new" then
             ui.buf_scroll_to_end(bufnr)
           end
         end
@@ -451,14 +444,14 @@ function Inline:submit(placement, prompt)
     end, function()
       self.current_request = nil
       vim.schedule(function()
-        announce("finished", { placement = action })
+        announce("finished", { placement = placement })
       end)
     end)
 end
 
----Determine where to place the output from the LLM
+---With the placement determined, we can now place the output from the inline prompt
 ---@param placement string
----@return table
+---@return table Table consisting of line, column and buffer number
 function Inline:place(placement)
   local pos = { line = self.context.start_line, col = 0 }
 
