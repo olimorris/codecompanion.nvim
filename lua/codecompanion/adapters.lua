@@ -168,7 +168,7 @@ function Adapter.use(adapter, opts)
 end
 
 ---Resolve an adapter from deep within the plugin...somewhere
----@param adapter? string|function|CodeCompanion.Adapter
+---@param adapter? CodeCompanion.Adapter|string|function
 ---@return CodeCompanion.Adapter
 function Adapter.resolve(adapter)
   config = require("codecompanion").config
