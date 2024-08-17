@@ -322,6 +322,7 @@ function Inline:set_autocmds()
         return
       end
       self:submit_done()
+      api.nvim_del_augroup_by_id(aug)
     end,
   })
 end
