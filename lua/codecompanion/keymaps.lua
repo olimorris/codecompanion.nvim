@@ -334,7 +334,14 @@ M.change_adapter = {
 
       -- Select a model
       local models = chat.adapter.args.schema.model.choices
+      if type(models) == "function" then
+        models = models()
+      end
+
       local current_model = chat.adapter.args.schema.model.default
+      if type(current_model) == "function" then
+        current_model = current_model()
+      end
 
       list = {}
       for _, model in ipairs(models) do

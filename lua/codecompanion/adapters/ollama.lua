@@ -151,8 +151,12 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use.",
-      default = get_models({ last = true }),
-      choices = get_models(),
+      default = function()
+        return get_models({ last = true })
+      end,
+      choices = function()
+        return get_models()
+      end,
     },
     temperature = {
       order = 2,
