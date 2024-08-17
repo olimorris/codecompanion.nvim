@@ -1,4 +1,4 @@
-local adapter = require("codecompanion.adapters.openai")
+local adapter
 local assert = require("luassert")
 local helpers = require("spec.codecompanion.adapters.helpers")
 
@@ -32,8 +32,12 @@ local stream_response = {
 ------------------------------------------------------------------------ // END
 
 describe("OpenAI adapter", function()
+  before_each(function()
+    adapter = require("codecompanion.adapters").resolve("openai")
+  end)
+
   it("can form messages to be sent to the API", function()
-    assert.are.same({ messages = messages }, adapter.callbacks.form_messages(adapter, messages))
+    assert.are.same({ messages = messages }, adapter.args.callbacks.form_messages(adapter, messages))
   end)
 
   it("can output streamed data into a format for the chat buffer", function()

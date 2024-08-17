@@ -1,5 +1,4 @@
-local adapter = require("codecompanion.adapters.gemini")
-local adapters = require("codecompanion.adapters")
+local adapter
 
 local assert = require("luassert")
 local helpers = require("spec.codecompanion.adapters.helpers")
@@ -39,6 +38,10 @@ local stream_response = {
 ------------------------------------------------------------------------ // END
 
 describe("Gemini adapter", function()
+  before_each(function()
+    adapter = require("codecompanion.adapters").resolve("gemini")
+  end)
+
   it("can form messages to be sent to the API", function()
     local adapter = require("codecompanion.adapters").extend("gemini")
     local output = {

@@ -1,4 +1,4 @@
-local adapter = require("codecompanion.adapters.ollama")
+local adapter
 local assert = require("luassert")
 local helpers = require("spec.codecompanion.adapters.helpers")
 
@@ -63,8 +63,19 @@ local stream_response = {
 ------------------------------------------------------------------------ // END
 
 describe("Ollama adapter", function()
+  before_each(function()
+    adapter = require("codecompanion.adapters").extend("ollama", {
+      schema = {
+        model = {
+          default = "llama2",
+          choices = { "llama2" },
+        },
+      },
+    })
+  end)
+
   it("can form messages to be sent to the API", function()
-    assert.are.same({ messages = messages }, adapter.callbacks.form_messages(adapter, messages))
+    assert.are.same({ messages = messages }, adapter.args.callbacks.form_messages(adapter, messages))
   end)
 
   it("can output streamed data into a format for the chat buffer", function()
