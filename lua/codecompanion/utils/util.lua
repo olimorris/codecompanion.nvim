@@ -117,4 +117,20 @@ function M.replace_vars(msg, vars, mapping)
   return string.format(msg, unpack(replacements))
 end
 
+---Check if value starts with "cmd:"
+---@param value string
+---@return boolean
+function M.is_cmd_var(value)
+  return value:match("^cmd:")
+end
+
+---Safely join the current change with the previous change in the undo history.
+---@return nil
+function M.safe_undojoin()
+  local tree = vim.fn.undotree()
+  if tree.seq_cur == tree.seq_last then
+    vim.cmd.undojoin()
+  end
+end
+
 return M
