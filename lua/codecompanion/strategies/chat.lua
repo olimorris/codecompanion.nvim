@@ -582,7 +582,7 @@ function Chat:set_autocmds()
   api.nvim_create_autocmd("BufEnter", {
     group = aug,
     buffer = bufnr,
-    desc = "Record the most recent chat",
+    desc = "Log the most recent chat buffer",
     callback = function()
       last_chat = self
     end,
