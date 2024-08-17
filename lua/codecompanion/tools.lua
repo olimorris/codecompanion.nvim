@@ -71,7 +71,7 @@ local function set_autocmds(chat, tool)
 
       if request.data.status == "error" then
         chat:add_message({
-          role = "user",
+          role = config.strategies.chat.roles.user,
           content = tool.output_error_prompt(request.data.error),
         })
 
