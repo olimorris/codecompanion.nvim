@@ -1,6 +1,7 @@
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.client")
 local config = require("codecompanion").config
+local util = require("codecompanion.utils.util")
 
 local hl = require("codecompanion.utils.highlights")
 local keymaps = require("codecompanion.utils.keymaps")
@@ -476,7 +477,7 @@ function Inline:submit()
         local content = self.adapter.args.callbacks.inline_output(data, self.context)
 
         if content then
-          vim.cmd.undojoin()
+          util.safe_undojoin()
           stream_text_to_buffer(classified.pos, bufnr, content)
           -- self:diff_added(updated_pos.line)
           if classified.placement == "new" then
