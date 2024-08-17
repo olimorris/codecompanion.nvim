@@ -344,9 +344,7 @@ The `inline_output` callback also receives context from the buffer that initiate
 
 **`on_stdout`**
 
-Handling errors from a streaming endpoint can be challenging. It's recommended that any errors are managed in the `on_stdout` callback which is initiated when the response has completed.
-
-In the case of OpenAI, if there is an error, we'll see a response like:
+Handling errors from a streaming endpoint can be challenging. It's recommended that any errors are managed in the `on_stdout` callback which is initiated when the response has completed. In the case of OpenAI, if there is an error, we'll see a response like:
 
 ```sh
 data: {
@@ -359,7 +357,7 @@ data:     }
 data: }
 ```
 
-This is then handled with:
+This is challenging to parse as each line represents a chunk from the API. Instead, it's much easier to wait for the request to complete before trying to determine if an error occured. We can do this by leveraging the `on_stdout` callback:
 
 ```lua
 ---Callback to catch any errors from the standard output
@@ -378,7 +376,7 @@ on_stdout = function(data)
 end,
 ```
 
-The `log:error` call ensures that any errors are logged to the logfile as well as displayed to the user in Neovim.
+The `log:error` call ensures that any errors are logged to the logfile as well as displayed to the user in Neovim. It's also important to reference that the `chat_output` and `inline_output` callbacks need to be able to ignore any errors from the API and let the `on_stdout` handle them.
 
 ## Schema
 
