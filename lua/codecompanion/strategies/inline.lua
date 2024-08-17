@@ -31,7 +31,7 @@ Here are some example prompts and their correct method classification ("<method>
 
 As a final assessment, I'd like you to determine if any code that the user has provided to you within their prompt should be returned in your response. I am calling this determination the "<return>" evaluation and it should be a boolean value.
 Please respond to this prompt in the format "<method>|<return>" where "<method>" is a string and "<replace>" is a boolean value. For example `after|false` or `chat|false` or `replace|true`. Do not provide any other content in your response.]],
-  CODE_ONLY_PROMPT = [[Respond with code only. Do not use any Markdown code blocks, backticks or provide any explanations.]],
+  CODE_ONLY_PROMPT = [[Respond with code only. DO NOT format the code in Markdown code blocks, DO NOT use backticks AND DO NOT provide any explanations.]],
 }
 
 local user_role = config.strategies.chat.roles.user

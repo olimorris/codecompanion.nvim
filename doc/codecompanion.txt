@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 09
+*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 17
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -14,7 +14,7 @@ Table of Contents                            *codecompanion-table-of-contents*
 FEATURES                                              *codecompanion-features*
 
 - A Copilot Chat experience in Neovim
-- Support for OpenAI, Anthropic and Ollama
+- Support for Anthropic, Gemini, Ollama and OpenAI
 - Inline code creation and refactoring
 - Variables, Agents and Workflows to improve LLM output
 - Built in prompts for LSP errors and code advice
@@ -95,6 +95,7 @@ The plugin uses adapters to connect the plugins to LLMs. Currently the plugin
 supports:
 
 - Anthropic (`anthropic`) - Requires an API key
+- Gemini (`gemini`) - Requires an API key
 - Ollama (`ollama`)
 - OpenAI (`openai`) - Requires an API key
 
@@ -133,7 +134,7 @@ You can customise an adapter’s configuration as follows:
     require("codecompanion").setup({
       adapters = {
         anthropic = function()
-          return require("codecompanion.adapters").use("anthropic", {
+          return require("codecompanion.adapters").extend("anthropic", {
             env = {
               api_key = "ANTHROPIC_API_KEY_1"
             },
@@ -159,7 +160,7 @@ commands from within the configuration:
     require("codecompanion").setup({
       adapters = {
         openai = function()
-          return require("codecompanion.adapters").use("openai", {
+          return require("codecompanion.adapters").extend("openai", {
             env = {
               api_key = "cmd:op read op://personal/OpenAI/credential --no-newline",
             },
@@ -185,7 +186,7 @@ adapter, these sit within a schema table and can be configured during setup:
     require("codecompanion").setup({
       adapters = {
         llama3 = function()
-          return require("codecompanion.adapters").use("ollama", {
+          return require("codecompanion.adapters").extend("ollama", {
             name = "llama3", -- Ensure the model is differentiated from Ollama
             schema = {
               model = {
@@ -482,10 +483,9 @@ EXTRAS                                                  *codecompanion-extras*
 
 The plugin fires the following events during its lifecycle:
 
-- `CodeCompanionRequest` - Fired during the API request. Outputs `data.status` with a value of `started` or `finished`
+- `CodeCompanionRequestStarted` - Fired during the API request
+- `CodeCompanionRequestFinished` - Fired during the API request
 - `CodeCompanionChatSaved` - Fired after a chat has been saved to disk
-- `CodeCompanionChat` - Fired at various points during the chat buffer. Comes with the following attributes:
-    - `data.action = hide_buffer` - For when a chat buffer is hidden
 - `CodeCompanionInline` - Fired during the inline API request alongside `CodeCompanionRequest`. Outputs `data.status` with a value of `started` or `finished` and `data.placement` with the placement of the text from the LLM
 - `CodeCompanionAgent` - Fired when an agent is running. Outputs `data.status` with a value of `started` or `success`/`failure`
 
