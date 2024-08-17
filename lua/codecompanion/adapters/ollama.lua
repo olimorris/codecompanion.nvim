@@ -1,27 +1,33 @@
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.adapters")
 
-local function get_ollama_choices()
-  local handle = io.popen("ollama list")
-  local result = {}
+local curl = require("plenary.curl")
 
-  if handle then
-    for line in handle:lines() do
-      local first_word = line:match("%S+")
-      if first_word ~= nil and first_word ~= "NAME" then
-        table.insert(result, first_word) -- Insert the full name
-        if first_word:find(":latest$") then -- Check if it ends with :latest
-          local base_name = first_word:match("([^:]+)") -- Extract the base name
-          if base_name then
-            table.insert(result, base_name) -- Insert the base name
-          end
-        end
-      end
-    end
-
-    handle:close()
+---Get a list of available Ollama models
+---@params opts? table
+---@return table
+local function get_models(opts)
+  local response = curl.get("http://localhost:11434/v1/models", {
+    sync = true,
+  })
+  if not response then
+    return {}
   end
-  return result
+
+  local ok, json = pcall(vim.json.decode, response.body)
+  if not ok then
+    return {}
+  end
+
+  local models = {}
+  for _, model in ipairs(json.data) do
+    table.insert(models, model.id)
+  end
+
+  if opts and opts.last then
+    return models[1]
+  end
+  return models
 end
 
 ---@class CodeCompanion.AdapterArgs
@@ -145,8 +151,8 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use.",
-      default = "deepseek-coder:6.7b",
-      choices = get_ollama_choices(),
+      default = get_models({ last = true }),
+      choices = get_models(),
     },
     temperature = {
       order = 2,
