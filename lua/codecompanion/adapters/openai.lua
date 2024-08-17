@@ -47,17 +47,6 @@ return {
       return { messages = messages }
     end,
 
-    ---Has the streaming completed?
-    ---@param data string The streamed data from the API
-    ---@return boolean
-    is_complete = function(data)
-      if data then
-        data = data:sub(7)
-        return data == "[DONE]"
-      end
-      return false
-    end,
-
     ---Returns the number of tokens generated from the LLM
     ---@param data table The data from the LLM
     ---@return number|nil
@@ -66,14 +55,12 @@ return {
         local data_mod = data:sub(7)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
-        if not ok then
-          return
-        end
-
-        if json.usage then
-          local tokens = json.usage.total_tokens
-          log:trace("Tokens: %s", tokens)
-          return tokens
+        if ok then
+          if json.usage then
+            local tokens = json.usage.total_tokens
+            log:trace("Tokens: %s", tokens)
+            return tokens
+          end
         end
       end
     end,
@@ -106,23 +93,6 @@ return {
           }
         end
       end
-
-      return nil
-    end,
-
-    ---Callback to catch any errors from the standard output
-    ---@param data table
-    ---@return nil
-    on_stdout = function(data)
-      local stdout = table.concat(data._stdout_results)
-
-      local ok, json = pcall(vim.json.decode, stdout, { luanil = { object = true } })
-      if ok then
-        log:trace("stdout: %s", json)
-        if json.error then
-          log:error("Error: %s", json.error.message)
-        end
-      end
     end,
 
     ---Output the data from the API ready for inlining into the current buffer
@@ -144,6 +114,21 @@ return {
           if content then
             return content
           end
+        end
+      end
+    end,
+
+    ---Callback to catch any errors from the standard output
+    ---@param data table
+    ---@return nil
+    on_stdout = function(data)
+      local stdout = table.concat(data._stdout_results)
+
+      local ok, json = pcall(vim.json.decode, stdout, { luanil = { object = true } })
+      if ok then
+        log:trace("stdout: %s", json)
+        if json.error then
+          log:error("Error: %s", json.error.message)
         end
       end
     end,
