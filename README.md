@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-Currently supports: Anthropic, Ollama and OpenAI adapters
+Currently supports: Anthropic, Gemini, Ollama and OpenAI adapters
 </p>
 
 > [!IMPORTANT]
@@ -23,7 +23,7 @@ Currently supports: Anthropic, Ollama and OpenAI adapters
 ## :sparkles: Features
 
 - :speech_balloon: A Copilot Chat experience in Neovim
-- :electric_plug: Support for OpenAI, Anthropic and Ollama
+- :electric_plug: Support for Anthropic, Gemini, Ollama and OpenAI
 - :rocket: Inline code creation and refactoring
 - :robot: Variables, Agents and Workflows to improve LLM output
 - :sparkles: Built in prompts for LSP errors and code advice
@@ -107,6 +107,7 @@ require("codecompanion").setup({
 The plugin uses adapters to connect the plugins to LLMs. Currently the plugin supports:
 
 - Anthropic (`anthropic`) - Requires an API key
+- Gemini (`gemini`) - Requires an API key
 - Ollama (`ollama`)
 - OpenAI (`openai`) - Requires an API key
 

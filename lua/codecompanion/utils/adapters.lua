@@ -17,7 +17,37 @@ function M.get_msg_index(role, messages)
   end
 end
 
----Takes consecutive messages from a given role and merges them into a single message
+---Pluck messages from a table with a specific role
+---@param messages table
+---@param role string
+---@return table
+function M.pluck_messages(messages, role)
+  local output = {}
+
+  for _, message in ipairs(messages) do
+    if message.role == role then
+      table.insert(output, message)
+    end
+  end
+
+  return output
+end
+
+---Pop messages out of a table with a specific role
+---@param messages table
+---@param role string
+---@return table
+function M.pop_messages(messages, role)
+  for i = #messages, 1, -1 do
+    if messages[i].role == role then
+      table.remove(messages, i)
+    end
+  end
+
+  return messages
+end
+
+---Takes consecutive messages and merges them into a single message
 ---@param messages table
 ---@return table
 function M.merge_messages(messages)
