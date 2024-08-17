@@ -430,7 +430,12 @@ function Chat:render(messages)
     lines = { "---" }
     local keys = schema.get_ordered_keys(self.adapter.args.schema)
     for _, key in ipairs(keys) do
-      table.insert(lines, string.format("%s: %s", key, yaml.encode(self.settings[key])))
+      local setting = self.settings[key]
+      if type(setting) == "function" then
+        setting = setting()
+      end
+
+      table.insert(lines, string.format("%s: %s", key, yaml.encode(setting)))
     end
     table.insert(lines, "---")
     spacer()
@@ -1079,7 +1084,11 @@ function Chat:complete(request, callback)
 
   local key_schema = self.adapter.args.schema[key_name]
   if key_schema.type == "enum" then
-    for _, choice in ipairs(key_schema.choices) do
+    local choices = key_schema.choices
+    if type(choices) == "function" then
+      choices = choices()
+    end
+    for _, choice in ipairs(choices) do
       table.insert(items, {
         label = choice,
         kind = require("cmp").lsp.CompletionItemKind.Keyword,

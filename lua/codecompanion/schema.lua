@@ -34,9 +34,13 @@ local function validate_type(schema, value)
   if value == nil then
     return schema.optional
   elseif ptype == "enum" then
-    local valid = vim.tbl_contains(schema.choices, value)
+    local choices = schema.choices
+    if type(choices) == "function" then
+      choices = choices()
+    end
+    local valid = vim.tbl_contains(choices, value)
     if not valid then
-      return valid, string.format("must be one of %s", table.concat(schema.choices, ", "))
+      return valid, string.format("must be one of %s", table.concat(choices, ", "))
     else
       return valid
     end
