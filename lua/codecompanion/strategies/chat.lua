@@ -17,7 +17,6 @@ local CONSTANTS = {
   NS_VIRTUAL_TEXT = "CodeCompanion-virtual_text",
 
   AUTOCMD_GROUP = "codecompanion.chat",
-  AUTOCMD_USER_EVENT = "CodeCompanionChat",
 
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
@@ -287,8 +286,6 @@ function Chat.new(args)
     return log:error("No adapter found")
   end
   self:apply_settings(self.opts.settings)
-
-  log:trace("Adapter: %s", self.adapter)
 
   self.close_last_chat()
   self:open():render(self.opts.messages):set_extmarks():set_autocmds()
@@ -585,6 +582,19 @@ function Chat:set_autocmds()
       last_chat = self
     end,
   })
+
+  -- For when the request has completed
+  api.nvim_create_autocmd("User", {
+    group = aug,
+    desc = "Listen for chat completion",
+    pattern = "CodeCompanionRequestFinished",
+    callback = function(request)
+      if request.data.bufnr ~= self.bufnr then
+        return
+      end
+      self:done()
+    end,
+  })
 end
 
 ---Set any extmarks in the chat buffer
@@ -775,68 +785,59 @@ function Chat:submit()
   end
 
   messages = self:preprocess_messages(messages)
-
   log:debug("Settings: %s", settings)
   log:debug("Messages: %s", messages)
-
-  -- log:trace("----- For Adapter test creation -----\nMessages: %s\n ---------- // END ----------", messages)
-  -- log:trace("Settings: %s", settings)
+  settings = self.adapter:map_schema_to_params(settings)
+  messages = self.adapter:map_roles(messages)
 
   lock_buf(bufnr)
   log:info("Chat request started")
-
-  self.current_request = client.new():stream(
-    self.adapter:set_params(settings),
-    self.adapter:map_roles(messages),
-    function(err, data, done)
-      if err then
-        log:error("Error: %s", err)
-        return self:reset()
-      end
-
-      -- With some adapters, the tokens come as part of the regular response so
-      -- we need to account for that here before the client is terminated
-      if data then
-        self:get_tokens(data)
-      end
-
-      if done then
-        self:append({ role = user_role, content = "" })
-        self:display_tokens()
-        self:save_chat()
-
-        if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.tools_in_use) > 0 then
-          parse_tool_schema(self)
-        end
-
-        api.nvim_exec_autocmds(
-          "User",
-          { pattern = CONSTANTS.AUTOCMD_USER_EVENT, data = { status = CONSTANTS.STATUS_FINISHED } }
-        )
-
-        log:info("Chat request completed")
-        return self:reset()
-      end
-
-      if data then
-        local result = self.adapter.args.callbacks.chat_output(data)
-
-        if result and result.status == CONSTANTS.STATUS_SUCCESS then
-          if result.output.role then
-            result.output.role = llm_role
-          end
-          self:append(result.output)
-        elseif result and result.status == CONSTANTS.STATUS_ERROR then
-          self.status = CONSTANTS.STATUS_ERROR
-          self:stop()
-          log:error("Error: %s" .. result.output)
-        end
-      end
-    end,
-    function()
-      self.current_request = nil
+  self.current_request = client.new():stream(settings, messages, function(err, data)
+    if err then
+      log:error("Error: %s", err)
+      return self:reset()
     end
-  )
+
+    -- With some adapters, the tokens come as part of the regular response so
+    -- we need to account for that here before the client is terminated
+    if data then
+      self:get_tokens(data)
+    end
+
+    if data then
+      local result = self.adapter.args.callbacks.chat_output(data)
+
+      if result and result.status == CONSTANTS.STATUS_SUCCESS then
+        if result.output.role then
+          result.output.role = llm_role
+        end
+        self:append(result.output)
+      elseif result and result.status == CONSTANTS.STATUS_ERROR then
+        self.status = CONSTANTS.STATUS_ERROR
+        self:stop()
+        log:error("Error: %s" .. result.output)
+      end
+    end
+  end, function()
+    self.current_request = nil
+  end, {
+    bufnr = bufnr,
+  })
+end
+
+---Function to run once the chat submission is done
+---@return nil
+function Chat:done()
+  self:append({ role = user_role, content = "" })
+  self:display_tokens()
+  self:save_chat()
+
+  if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.tools_in_use) > 0 then
+    parse_tool_schema(self)
+  end
+
+  log:info("Chat request completed")
+  return self:reset()
 end
 
 ---Stop streaming the response from the LLM

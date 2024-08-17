@@ -60,17 +60,11 @@ local stream_response = {
   },
 }
 
-local done_response =
-  [[{"model":"llama2","created_at":"2024-03-06T18:35:15.921631Z","message":{"role":"assistant","content":""},"done":true,"total_duration":6035327208,"load_duration":5654490167,"prompt_eval_count":26,"prompt_eval_duration":173338000,"eval_count":8,"eval_duration":205986000}]]
 ------------------------------------------------------------------------ // END
 
 describe("Ollama adapter", function()
   it("can form messages to be sent to the API", function()
-    assert.are.same({ messages = messages }, adapter.callbacks.form_messages(messages))
-  end)
-
-  it("can check if the streaming is complete", function()
-    assert.is_true(adapter.callbacks.is_complete(done_response))
+    assert.are.same({ messages = messages }, adapter.callbacks.form_messages(adapter, messages))
   end)
 
   it("can output streamed data into a format for the chat buffer", function()

@@ -10,6 +10,8 @@ local ui = require("codecompanion.utils.ui")
 local api = vim.api
 
 local CONSTANTS = {
+  AUTOCMD_GROUP = "codecompanion.inline",
+
   PLACEMENT_PROMPT = [[I would like you to assess a prompt which has been made from within the Neovim text editor. Based on this prompt, I require you to determine where the output from this prompt should be placed. I am calling this determination the "<method>". For example, the user may wish for the output to be placed:
 
 1. `after` the current cursor position
@@ -33,6 +35,13 @@ Please respond to this prompt in the format "<method>|<return>" where "<method>"
 }
 
 local user_role = config.strategies.chat.roles.user
+
+-- When a promp has been classified, store the outcome to this table
+local classified = {
+  placement = "",
+  pos = {},
+  prompts = {},
+}
 
 ---Announce the status of the inline prompt
 ---@param status string
@@ -278,10 +287,43 @@ function Inline.new(args)
   if not self.adapter then
     return log:error("No adapter found")
   end
-  log:trace("Adapter: %s", self.adapter)
+
+  self:set_autocmds()
 
   log:debug("Inline instance created with ID %d", self.id)
   return self
+end
+
+---Set the autocmds for the inline prompt
+---@return nil
+function Inline:set_autocmds()
+  local aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. self.context.bufnr, {
+    clear = false,
+  })
+
+  api.nvim_create_autocmd("User", {
+    group = aug,
+    desc = "Listen for the classification to complete",
+    pattern = "CodeCompanionRequestFinishedInlineClassify",
+    callback = function(request)
+      if request.data.bufnr ~= self.context.bufnr then
+        return
+      end
+      self:classify_done()
+    end,
+  })
+
+  api.nvim_create_autocmd("User", {
+    group = aug,
+    desc = "Listen for the submission to complete",
+    pattern = "CodeCompanionRequestFinishedInlineSubmit",
+    callback = function(request)
+      if request.data.bufnr ~= self.context.bufnr then
+        return
+      end
+      self:submit_done()
+    end,
+  })
 end
 
 ---@param opts? table
@@ -335,8 +377,9 @@ end
 function Inline:classify(user_input)
   log:info("User input: %s", user_input)
 
-  local prompts, user_prompts = build_prompt(self, user_input)
-  log:debug("Prompts: %s", prompts)
+  local user_prompts
+  classified.prompts, user_prompts = build_prompt(self, user_input)
+  log:debug("Prompts: %s", classified.prompts)
   log:debug("User Prompt: %s", user_prompts)
 
   if not self.opts.placement then
@@ -351,51 +394,54 @@ function Inline:classify(user_input)
       },
     }
 
-    local placement = ""
     log:info("Inline classification request started")
     announce("started")
-    client.new():stream(self.adapter:set_params(), self.adapter:map_roles(action), function(err, data, done)
-      if err then
-        return log:error("Error during inline classification: %s", err)
-      end
-
-      if done then
-        log:info("Placement: %s", placement)
-
-        -- Work out where to place the output from the inline prompt
-        local ok, parts = pcall(function()
-          return vim.split(extract_placement(placement), "|")
-        end)
-        if not ok or #parts < 2 then
-          return log:error("Could not determine where to place the output from the prompt")
+    client
+      .new({ user_args = { event = "InlineClassify" } })
+      :stream(self.adapter:map_schema_to_params(), self.adapter:map_roles(action), function(err, data)
+        if err then
+          return log:error("Error during inline classification: %s", err)
         end
 
-        placement = parts[1]
-        if placement == "chat" then
-          log:info("Sending inline prompt to the chat buffer")
-          return send_to_chat(self, prompts)
+        if data then
+          classified.placement = classified.placement .. (self.adapter.args.callbacks.inline_output(data) or "")
         end
-        return self:submit(placement, prompts)
-      end
-
-      if data then
-        placement = placement .. (self.adapter.args.callbacks.inline_output(data) or "")
-      end
-    end)
+      end, nil, { bufnr = self.context.bufnr })
   else
-    return self:submit(self.opts.placement, prompts)
+    classified.placement = self.opts.placement
+    classified.prompts = classified.prompts
+    return self:submit()
   end
 end
 
----Submit the prompts to the LLM to process
----@param placement string
----@param prompts table
+---Function to call when the LLM has finished classifying the prompt
 ---@return nil
-function Inline:submit(placement, prompts)
-  local pos = self:place(placement)
-  log:debug("Determined position for output: %s", pos)
+function Inline:classify_done()
+  log:info("Placement: %s", classified.placement)
 
-  local bufnr = pos.bufnr or self.context.bufnr
+  -- Work out where to place the output from the inline prompt
+  local ok, parts = pcall(function()
+    return vim.split(extract_placement(classified.placement), "|")
+  end)
+  if not ok or #parts < 2 then
+    return log:error("Could not determine where to place the output from the prompt")
+  end
+
+  classified.placement = parts[1]
+  if classified.placement == "chat" then
+    log:info("Sending inline prompt to the chat buffer")
+    return send_to_chat(self, classified.prompts)
+  end
+  return self:submit()
+end
+
+---Submit the prompts to the LLM to process
+---@return nil
+function Inline:submit()
+  classified.pos = self:place(classified.placement)
+  log:debug("Determined position for output: %s", classified.pos)
+
+  local bufnr = classified.pos.bufnr or self.context.bufnr
 
   -- Add a keymap to cancel the request
   api.nvim_buf_set_keymap(bufnr, "n", "q", "", {
@@ -409,24 +455,20 @@ function Inline:submit(placement, prompts)
   })
 
   -- Remind the LLM to respond with code only
-  table.insert(prompts, {
+  table.insert(classified.prompts, {
     role = "system",
     content = CONSTANTS.CODE_ONLY_PROMPT,
   })
 
   log:info("Inline request started")
 
-  self.current_request = client
-    .new()
-    :stream(self.adapter:set_params(), self.adapter:map_roles(prompts), function(err, data, done)
+  self.current_request = client.new({ user_args = { event = "InlineSubmit" } }):stream(
+    self.adapter:map_schema_to_params(),
+    self.adapter:map_roles(classified.prompts),
+    function(err, data)
       if err then
         log:error("Error during stream: %s", err)
         return
-      end
-
-      if done then
-        log:info("Inline request finished")
-        return api.nvim_buf_del_keymap(bufnr, "n", "q")
       end
 
       if data then
@@ -434,19 +476,34 @@ function Inline:submit(placement, prompts)
 
         if content then
           vim.cmd.undojoin()
-          stream_text_to_buffer(pos, bufnr, content)
+          stream_text_to_buffer(classified.pos, bufnr, content)
           -- self:diff_added(updated_pos.line)
-          if placement == "new" then
+          if classified.placement == "new" then
             ui.buf_scroll_to_end(bufnr)
           end
         end
       end
-    end, function()
+    end,
+    function()
       self.current_request = nil
       vim.schedule(function()
-        announce("finished", { placement = placement })
+        announce("finished", { placement = classified.placement })
       end)
-    end)
+    end,
+    { bufnr = bufnr }
+  )
+end
+
+---Function to call when the LLM has finished processing the prompt
+---@return nil
+function Inline:submit_done()
+  log:info("Inline request finished")
+  local bufnr = classified.pos.bufnr or self.context.bufnr
+  api.nvim_buf_del_keymap(bufnr, "n", "q")
+
+  classified.pos = {}
+  classified.prompts = {}
+  classified.placement = ""
 end
 
 ---With the placement determined, we can now place the output from the inline prompt

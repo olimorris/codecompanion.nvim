@@ -61,10 +61,38 @@ local chat_buffer_settings = {
   user = nil,
 }
 
+local test_adapter2 = {
+  name = "TestAdapter2",
+  url = "https://api.oli.ai/v1/chat/${model}",
+  env = {
+    home = "HOME",
+    model = "schema.model.default",
+  },
+  parameters = {
+    stream = true,
+  },
+  headers = {
+    content_type = "application/json",
+    home = "${home}",
+  },
+  schema = {
+    model = {
+      order = 1,
+      type = "enum",
+      desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
+      default = "oli_model_v2",
+    },
+    temperature = {
+      default = "${home}",
+      mapping = "parameters.temperature",
+    },
+  },
+}
+
 describe("Adapter", function()
   it("can form parameters from a chat buffer's settings", function()
-    local adapter = require("codecompanion.adapters").use("openai")
-    local result = adapter:set_params(chat_buffer_settings)
+    local adapter = require("codecompanion.adapters").extend("openai")
+    local result = adapter:map_schema_to_params(chat_buffer_settings)
 
     -- Ignore this for now
     result.args.parameters.stream = nil
@@ -74,8 +102,8 @@ describe("Adapter", function()
   end)
 
   it("can nest parameters based on an adapter's schema", function()
-    local adapter = require("codecompanion.adapters").use(test_adapter)
-    local result = adapter:set_params(chat_buffer_settings)
+    local adapter = require("codecompanion.adapters").extend(test_adapter)
+    local result = adapter:map_schema_to_params(chat_buffer_settings)
 
     local expected = {
       stream = true,
@@ -89,6 +117,36 @@ describe("Adapter", function()
     }
 
     assert.are.same(expected, result.args.parameters)
+  end)
+
+  it("can form environment variables", function()
+    local adapter = require("codecompanion.adapters").extend(test_adapter2)
+    local result = adapter:get_env_vars()
+
+    assert.are.same(test_adapter2.schema.model.default, result.args.env_replaced.model)
+    assert.are.same(os.getenv("HOME"), result.args.env_replaced.home)
+  end)
+
+  it("can set environment variables in the adapter", function()
+    local adapter = require("codecompanion.adapters").extend(test_adapter2)
+    adapter:get_env_vars()
+
+    local url = adapter:set_env_vars(adapter.args.url)
+    assert.are.same("https://api.oli.ai/v1/chat/oli_model_v2", url)
+
+    local headers = adapter:set_env_vars(adapter.args.headers)
+    assert.are.same({
+      content_type = "application/json",
+      home = os.getenv("HOME"),
+    }, headers)
+  end)
+
+  it("will not set environment variables if it doesn't need to", function()
+    local adapter = require("codecompanion.adapters").extend(test_adapter2)
+    adapter:get_env_vars()
+
+    local params = adapter:set_env_vars(adapter.args.parameters)
+    assert.are.same(test_adapter2.parameters, params)
   end)
 
   it("can consolidate consecutive messages", function()

@@ -42,19 +42,13 @@ local stream_response = {
   },
 }
 
-local done_response = [[data: {"type":"message_stop"}]]
-
 local error_response =
   [[data: {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Claude API. Please go to Plans & Billing to upgrade or purchase credits."}}]]
 ------------------------------------------------------------------------ // END
 
 describe("Anthropic adapter", function()
   it("can form messages to be sent to the API", function()
-    assert.are.same({ messages = messages }, adapter.callbacks.form_messages(messages))
-  end)
-
-  it("can check if the streaming is complete", function()
-    assert.is_true(adapter.callbacks.is_complete(done_response))
+    assert.are.same({ messages = messages }, adapter.callbacks.form_messages(adapter, messages))
   end)
 
   it("can output streamed data into a format for the chat buffer", function()

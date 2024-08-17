@@ -40,9 +40,10 @@ return {
     end,
 
     ---Set the format of the role and content for the messages from the chat buffer
+    ---@param self CodeCompanion.Adapter
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
-    form_messages = function(messages)
+    form_messages = function(self, messages)
       return { messages = messages }
     end,
 
@@ -113,7 +114,9 @@ return {
     ---@param data table
     ---@return nil
     on_stdout = function(data)
-      local ok, json = pcall(vim.json.decode, data._stdout_results[1], { luanil = { object = true } })
+      local stdout = table.concat(data._stdout_results)
+
+      local ok, json = pcall(vim.json.decode, stdout, { luanil = { object = true } })
       if ok then
         log:trace("stdout: %s", json)
         if json.error then

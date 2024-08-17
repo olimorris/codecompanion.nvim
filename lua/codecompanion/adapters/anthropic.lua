@@ -49,9 +49,10 @@ return {
     end,
 
     ---Set the format of the role and content for the messages from the chat buffer
+    ---@param self CodeCompanion.Adapter
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
-    form_messages = function(messages)
+    form_messages = function(self, messages)
       -- Remove any system prompts from the messages array
       local sys_prompt = utils.get_msg_index("system", messages)
       if sys_prompt and #sys_prompt > 0 then
@@ -66,25 +67,6 @@ return {
 
       -- Combine consecutive user prompts into a single prompt
       return { messages = utils.merge_messages(messages) }
-    end,
-
-    ---Has the streaming completed?
-    ---@param data string The data from the format_data callback
-    ---@return boolean
-    is_complete = function(data)
-      if data then
-        data = data:sub(6)
-
-        local ok
-        ok, data = pcall(vim.fn.json_decode, data)
-        if ok and data.type then
-          return data.type == "message_stop"
-        end
-        if ok and data.delta.stop_reason then
-          return data.delta.stop_reason == "end_turn"
-        end
-      end
-      return false
     end,
 
     ---Returns the number of tokens generated from the LLM

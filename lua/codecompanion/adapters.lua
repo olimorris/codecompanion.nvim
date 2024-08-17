@@ -1,7 +1,90 @@
 local config = require("codecompanion").config
-
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.util")
+
+---Check if a variable starts with "cmd:"
+---@param var string
+---@return boolean
+local function is_cmd(var)
+  return var:match("^cmd:")
+end
+
+---Check if the variable is an environment variable
+---@param var string
+---@return boolean
+local function is_env_var(var)
+  local found_var = os.getenv(var)
+  if not found_var then
+    return false
+  end
+  return true
+end
+
+---Run the command in the environment variable
+---@param var string
+---@return string|nil
+local function run_cmd(var)
+  log:trace("Detected cmd in environment variable")
+  local cmd = var:sub(5)
+  local handle = io.popen(cmd, "r")
+  if handle then
+    local result = handle:read("*a")
+    log:trace("Executed cmd: %s", cmd)
+    handle:close()
+    return result:gsub("%s+$", "")
+  else
+    return log:error("Error: Could not execute cmd: %s", cmd)
+  end
+end
+
+---Get the environment variable
+---@param var string
+---@return string|nil
+local function get_env_var(var)
+  log:trace("Fetching environment variable: %s", var)
+  return os.getenv(var) or nil
+end
+
+---Get the schema value
+---@param adapter CodeCompanion.Adapter
+---@param var string
+---@return string|nil
+local function get_schema(adapter, var)
+  log:trace("Fetching variable from schema: %s", var)
+
+  local keys = {}
+  for key in var:gmatch("[^%.]+") do
+    table.insert(keys, key)
+  end
+
+  local node = adapter.args
+  for _, key in ipairs(keys) do
+    if type(node) ~= "table" then
+      return nil
+    end
+    node = node[key]
+    if node == nil then
+      return nil
+    end
+  end
+
+  if not node then
+    return log:error("Error: Could not find schema variable: %s", var)
+  end
+
+  return node
+end
+
+---Replace a variable with its value e.g. "${var}" -> "value"
+---@param adapter CodeCompanion.Adapter
+---@param str string
+---@return string
+local function replace_var(adapter, str)
+  local pattern = "${(.-)}"
+
+  return str:gsub(pattern, function(var)
+    return adapter.args.env_replaced[var]
+  end)
+end
 
 ---@class CodeCompanion.Adapter
 ---@field args CodeCompanion.AdapterArgs
@@ -13,6 +96,7 @@ local Adapter = {}
 ---@field features table The features that the adapter supports
 ---@field url string The URL of the generative AI service to connect to
 ---@field env? table Environment variables which can be referenced in the parameters
+---@field env_replaced? table Replacement of environment variables with their actual values
 ---@field headers table The headers to pass to the request
 ---@field parameters table The parameters to pass to the request
 ---@field chat_prompt string The system chat prompt to send to the LLM
@@ -34,7 +118,6 @@ function Adapter.new(args)
 end
 
 ---TODO: Refactor this to return self so we can chain it
-
 ---Get the default settings from the schema
 ---@return table
 function Adapter:get_default_settings()
@@ -49,10 +132,57 @@ function Adapter:get_default_settings()
   return settings
 end
 
+---Get the variables from the env key of the adapter
+---@return CodeCompanion.Adapter
+function Adapter:get_env_vars()
+  local env_vars = self.args.env or {}
+
+  if not env_vars then
+    return self
+  end
+
+  self.args.env_replaced = {}
+
+  for k, v in pairs(env_vars) do
+    if is_cmd(v) then
+      self.args.env_replaced[k] = run_cmd(v)
+    elseif is_env_var(v) then
+      self.args.env_replaced[k] = get_env_var(v)
+    elseif type(v) == "function" then
+      self.args.env_replaced[k] = v()
+    else
+      self.args.env_replaced[k] = get_schema(self, v)
+    end
+  end
+
+  return self
+end
+
+---Set env vars in a given object in the adapter
+---@param object string|table
+---@return string|table|nil
+function Adapter:set_env_vars(object)
+  local obj_copy = vim.deepcopy(object)
+
+  if type(obj_copy) == "string" then
+    return replace_var(self, obj_copy)
+  elseif type(obj_copy) == "table" then
+    local replaced = {}
+    for k, v in pairs(obj_copy) do
+      if type(v) == "string" then
+        replaced[k] = replace_var(self, v)
+      else
+        replaced[k] = v
+      end
+    end
+    return replaced
+  end
+end
+
 ---Set parameters based on the schema table's mappings
 ---@param settings? table
 ---@return CodeCompanion.Adapter
-function Adapter:set_params(settings)
+function Adapter:map_schema_to_params(settings)
   if not settings then
     settings = self:get_default_settings()
   end
@@ -89,44 +219,6 @@ function Adapter:set_params(settings)
   return self
 end
 
----Replace any variables in the header with env vars or cmd outputs
----@return CodeCompanion.Adapter
-function Adapter:replace_header_vars()
-  if self.args.headers then
-    for k, v in pairs(self.args.headers) do
-      self.args.headers[k] = v:gsub("${(.-)}", function(var)
-        local env_var_or_cmd = self.args.env[var]
-
-        if not env_var_or_cmd then
-          return log:error("Error: Could not find env var or command: %s", self.args.env[var])
-        end
-
-        if utils.is_cmd_var(env_var_or_cmd) then
-          log:trace("Detected cmd in environment variable")
-          local command = env_var_or_cmd:sub(5)
-          local handle = io.popen(command, "r")
-          if handle then
-            local result = handle:read("*a")
-            log:trace("Executed command: %s", command)
-            handle:close()
-            return result:gsub("%s+$", "")
-          else
-            return log:error("Error: Could not execute command: %s", command)
-          end
-        end
-
-        local env_var = os.getenv(env_var_or_cmd)
-        if not env_var then
-          return log:error("Error: Could not find env var: %s", self.args.env[var])
-        end
-        return env_var
-      end)
-    end
-  end
-
-  return self
-end
-
 ---Replace roles in the messages with the adapter's defined roles
 ---@param messages table
 ---@return table
@@ -148,6 +240,15 @@ function Adapter:map_roles(messages)
   return messages
 end
 
+---Extend an existing adapter
+---@param adapter table|string|function
+---@param opts? table
+---@return CodeCompanion.Adapter
+function Adapter.extend(adapter, opts)
+  return Adapter.use(adapter, opts)
+end
+
+---TODO: Deprecate this method
 ---@param adapter table|string|function
 ---@param opts? table
 ---@return CodeCompanion.Adapter

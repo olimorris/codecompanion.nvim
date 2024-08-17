@@ -47,22 +47,12 @@ return {
     end,
 
     ---Set the format of the role and content for the messages from the chat buffer
+    ---@param self CodeCompanion.Adapter
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
-    form_messages = function(messages)
+    form_messages = function(self, messages)
       messages = utils.merge_messages(messages)
       return { messages = messages }
-    end,
-
-    ---Has the streaming completed?
-    ---@param data table The data from the format_data callback
-    ---@return boolean
-    is_complete = function(data)
-      if data then
-        data = vim.fn.json_decode(data)
-        return data.done
-      end
-      return false
     end,
 
     ---Returns the number of tokens generated from the LLM

@@ -141,7 +141,7 @@ You can customise an adapter's configuration as follows:
 require("codecompanion").setup({
   adapters = {
     anthropic = function()
-      return require("codecompanion.adapters").use("anthropic", {
+      return require("codecompanion.adapters").extend("anthropic", {
         env = {
           api_key = "ANTHROPIC_API_KEY_1"
         },
@@ -164,7 +164,7 @@ Having API keys in plain text in your shell is not always safe. Thanks to [this 
 require("codecompanion").setup({
   adapters = {
     openai = function()
-      return require("codecompanion.adapters").use("openai", {
+      return require("codecompanion.adapters").extend("openai", {
         env = {
           api_key = "cmd:op read op://personal/OpenAI/credential --no-newline",
         },
@@ -189,7 +189,7 @@ LLMs have many settings such as _model_, _temperature_ and _max_tokens_. In an a
 require("codecompanion").setup({
   adapters = {
     llama3 = function()
-      return require("codecompanion.adapters").use("ollama", {
+      return require("codecompanion.adapters").extend("ollama", {
         name = "llama3", -- Ensure the model is differentiated from Ollama
         schema = {
           model = {
@@ -429,10 +429,9 @@ Of course you can add new workflows by following the [RECIPES](doc/RECIPES.md) g
 
 The plugin fires the following events during its lifecycle:
 
-- `CodeCompanionRequest` - Fired during the API request. Outputs `data.status` with a value of `started` or `finished`
+- `CodeCompanionRequestStarted` - Fired during the API request
+- `CodeCompanionRequestFinished` - Fired during the API request
 - `CodeCompanionChatSaved` - Fired after a chat has been saved to disk
-- `CodeCompanionChat` - Fired at various points during the chat buffer. Comes with the following attributes:
-  - `data.action = hide_buffer` - For when a chat buffer is hidden
 - `CodeCompanionInline` - Fired during the inline API request alongside `CodeCompanionRequest`. Outputs `data.status` with a value of `started` or `finished` and `data.placement` with the placement of the text from the LLM
 - `CodeCompanionAgent` - Fired when an agent is running. Outputs `data.status` with a value of `started` or `success`/`failure`
 

@@ -4,16 +4,17 @@ local schema = require("codecompanion.schema")
 
 local api = vim.api
 
----@param status string
-local function announce(status)
-  api.nvim_exec_autocmds("User", { pattern = "CodeCompanionRequest", data = { status = status } })
+---@param event string
+---@param opts? table
+local function fire(event, opts)
+  opts = opts or {}
+  api.nvim_exec_autocmds("User", { pattern = "CodeCompanion" .. event, data = opts })
 end
 
 ---@class CodeCompanion.Client
 ---@field static table
----@field secret_key string
----@field organization nil|string
 ---@field opts nil|table
+---@field user_args nil|table
 local Client = {}
 Client.static = {}
 
@@ -24,9 +25,8 @@ Client.static.opts = {
 }
 
 ---@class CodeCompanion.ClientArgs
----@field secret_key string
----@field organization nil|string
 ---@field opts nil|table
+---@field user_args nil|table
 
 ---@param args? CodeCompanion.ClientArgs
 ---@return CodeCompanion.Client
@@ -35,32 +35,36 @@ function Client.new(args)
 
   return setmetatable({
     opts = args.opts or schema.get_default(Client.static.opts, args.opts),
+    user_args = args.user_args or {},
   }, { __index = Client })
 end
 
 ---@param adapter CodeCompanion.Adapter
----@param payload table the payload to send to the API
+---@param payload table The messages payload to send to the LLM
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
 ---@param after? fun() Will be called after the request is finished
+---@param opts? table Options that can be passed to the request
 ---@return table The Plenary job
-function Client:stream(adapter, payload, cb, after)
+function Client:stream(adapter, payload, cb, after, opts)
+  opts = opts or {}
   cb = log:wrap_cb(cb, "Response error: %s")
 
-  --TODO: Check for any errors env variables
-  local headers = adapter:replace_header_vars().args.headers
+  adapter:get_env_vars()
   local body = self.opts.encode(
     vim.tbl_extend(
       "keep",
-      adapter.args.callbacks.form_parameters(vim.deepcopy(adapter.args.parameters), payload) or {},
-      adapter.args.callbacks.form_messages(payload)
+      adapter.args.callbacks.form_parameters(adapter:set_env_vars(adapter.args.parameters), payload) or {},
+      adapter.args.callbacks.form_messages(adapter, payload)
     )
   )
 
+  log:trace("Adapter: %s", adapter)
+
   local handler = self.opts
     .request({
-      url = adapter.args.url,
+      url = adapter:set_env_vars(adapter.args.url),
+      headers = adapter:set_env_vars(adapter.args.headers),
       raw = adapter.args.raw or { "--no-buffer" },
-      headers = headers,
       body = body,
       stream = self.opts.schedule(function(_, data)
         if data and data ~= "" then
@@ -68,28 +72,27 @@ function Client:stream(adapter, payload, cb, after)
         end
         -- log:trace("----- For Adapter test creation -----\nRequest: %s\n ---------- // END ----------", data)
 
-        if adapter.args.callbacks.is_complete(data) then
-          log:trace("Request completed")
-          return cb(nil, data, true)
-        end
-
         cb(nil, data)
       end),
       on_error = function(err, _, code)
         if code then
           log:error("Error: %s", err)
         end
-        return cb(nil, nil, true)
+        return cb(nil, nil)
       end,
     })
     :after(function(data)
       vim.schedule(function()
-        announce("finished")
         if after and type(after) == "function" then
           after()
         end
         if type(adapter.args.callbacks.on_stdout) == "function" then
           adapter.args.callbacks.on_stdout(data)
+        end
+
+        fire("RequestFinished", opts)
+        if self.user_args.event then
+          fire("RequestFinished" .. (self.user_args.event or ""), opts)
         end
       end)
     end)
@@ -97,7 +100,11 @@ function Client:stream(adapter, payload, cb, after)
   if handler and handler.args then
     log:debug("Request: %s", handler.args)
   end
-  announce("started")
+
+  fire("RequestStarted", opts)
+  if self.user_args.event then
+    fire("RequestStarted" .. (self.user_args.event or ""), opts)
+  end
 
   return handler
 end
