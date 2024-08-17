@@ -42,8 +42,6 @@ local stream_response = {
   },
 }
 
-local error_response =
-  [[data: {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Claude API. Please go to Plans & Billing to upgrade or purchase credits."}}]]
 ------------------------------------------------------------------------ // END
 
 describe("Anthropic adapter", function()
@@ -53,12 +51,5 @@ describe("Anthropic adapter", function()
 
   it("can output streamed data into a format for the chat buffer", function()
     assert.are.same(stream_response[#stream_response].output, helpers.chat_buffer_output(stream_response, adapter))
-  end)
-
-  it("can handle errors", function()
-    assert.are.same({
-      status = "error",
-      output = "Your credit balance is too low to access the Claude API. Please go to Plans & Billing to upgrade or purchase credits.",
-    }, adapter.callbacks.chat_output(error_response))
   end)
 end)

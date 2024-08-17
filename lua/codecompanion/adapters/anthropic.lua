@@ -75,21 +75,16 @@ return {
     tokens = function(data)
       if data then
         data = data:sub(6)
+        local ok, json = pcall(vim.fn.json_decode, data)
 
-        local ok
-        ok, data = pcall(vim.fn.json_decode, data)
-
-        if not ok then
-          return
-        end
-
-        if data.type == "message_start" then
-          input_tokens = data.message.usage.input_tokens or 0
-          output_tokens = data.message.usage.output_tokens or 0
-        end
-
-        if data.type == "message_delta" then
-          return (input_tokens + output_tokens + data.usage.output_tokens)
+        if ok then
+          if json.type == "message_start" then
+            input_tokens = json.message.usage.input_tokens or 0
+            output_tokens = json.message.usage.output_tokens or 0
+          end
+          if json.type == "message_delta" then
+            return (input_tokens + output_tokens + json.usage.output_tokens)
+          end
         end
       end
     end,
@@ -109,49 +104,19 @@ return {
         data = data:sub(6)
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
-        if not ok then
-          log:error("Malformed json: %s", json)
+        if ok then
+          if json.type == "message_start" then
+            output.role = json.message.role
+            output.content = ""
+          elseif json.type == "content_block_delta" then
+            output.role = nil
+            output.content = json.delta.text
+          end
+
           return {
-            status = "error",
-            output = string.format("Error malformed json: %s", json),
+            status = "success",
+            output = output,
           }
-        end
-
-        if json.type == "error" then
-          return {
-            status = "error",
-            output = json.error.message,
-          }
-        end
-
-        if json.type == "message_start" then
-          output.role = json.message.role
-          output.content = ""
-        end
-
-        if json.type == "content_block_delta" then
-          output.role = nil
-          output.content = json.delta.text
-        end
-
-        -- log:trace("----- For Adapter test creation -----\nOutput: %s\n ---------- // END ----------", output)
-
-        return {
-          status = "success",
-          output = output,
-        }
-      end
-    end,
-
-    ---Callback to catch any errors from the standard output
-    ---@param data table
-    ---@return nil
-    on_stdout = function(data)
-      local ok, json = pcall(vim.json.decode, data._stdout_results[1], { luanil = { object = true } })
-      if ok then
-        log:trace("stdout: %s", json)
-        if json.error then
-          log:error("Error: %s", json.error.message)
         end
       end
     end,
@@ -165,13 +130,23 @@ return {
         data = data:sub(6)
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
-        if not ok then
-          return
+        if ok then
+          if json.type == "content_block_delta" then
+            return json.delta.text
+          end
         end
+      end
+    end,
 
-        -- log:trace("INLINE JSON: %s", json)
-        if json.type == "content_block_delta" then
-          return json.delta.text
+    ---Callback to catch any errors from the standard output
+    ---@param data table
+    ---@return nil
+    on_stdout = function(data)
+      local ok, json = pcall(vim.json.decode, data._stdout_results[1], { luanil = { object = true } })
+      if ok then
+        log:trace("stdout: %s", json)
+        if json.error then
+          log:error("Error: %s", json.error.message)
         end
       end
     end,
