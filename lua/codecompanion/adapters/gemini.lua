@@ -69,13 +69,6 @@ return {
       }
     end,
 
-    ---Has the streaming completed?
-    ---@param data string The data from the format_data callback
-    ---@return boolean
-    is_complete = function(data)
-      -- log:trace("Data: %s", stuff)
-    end,
-
     ---Returns the number of tokens generated from the LLM
     ---@param data string The data from the LLM
     ---@return number|nil
