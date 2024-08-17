@@ -337,6 +337,9 @@ M.change_adapter = {
       if type(models) == "function" then
         models = models()
       end
+      if #models == 0 then
+        return
+      end
 
       local current_model = chat.adapter.args.schema.model.default
       if type(current_model) == "function" then

@@ -7,6 +7,13 @@ local curl = require("plenary.curl")
 ---@params opts? table
 ---@return table
 local function get_models(opts)
+  -- Check that Ollama is running
+  local ping = vim.fn.system('curl -s -o /dev/null -w "%{http_code}" http://localhost:11434')
+  if ping ~= "200" then
+    log:warn("Ollama is not running or cannot be found on localhost:11434")
+    return {}
+  end
+
   local response = curl.get("http://localhost:11434/v1/models", {
     sync = true,
   })
