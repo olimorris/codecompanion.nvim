@@ -124,8 +124,12 @@ function Adapter:get_default_settings()
   local settings = {}
 
   for key, value in pairs(self.args.schema) do
-    if value.default ~= nil then
-      settings[key] = value.default
+    local default = value.default
+    if default ~= nil then
+      if type(default) == "function" then
+        default = default()
+      end
+      settings[key] = default
     end
   end
 
