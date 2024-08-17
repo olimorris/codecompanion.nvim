@@ -79,7 +79,16 @@ return {
     ---Returns the number of tokens generated from the LLM
     ---@param data string The data from the LLM
     ---@return number|nil
-    tokens = function(data) end,
+    tokens = function(data)
+      if data and data ~= "" then
+        data = data:sub(6)
+        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
+
+        if ok then
+          return json.usageMetadata.totalTokenCount
+        end
+      end
+    end,
 
     ---Output the data from the API ready for insertion into the chat buffer
     ---@param data string The streamed JSON data from the API, also formatted by the format_data callback
