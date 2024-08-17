@@ -52,7 +52,7 @@ The key `api_key` represents the name of the variable which can be injected in t
 - A path to an item in the adapter's schema table
 
 > [!NOTE]
-> Environment variables can be injected into the `url`, `headers` and `parameters` fields of the adapter class
+> Environment variables can be injected into the `url`, `headers` and `parameters` fields of the adapter class at runtime
 
 **Commands**
 
@@ -349,17 +349,17 @@ Handling errors from a streaming endpoint can be challenging. It's recommended t
 In the case of OpenAI, if there is an error, we'll see a response like:
 
 ```sh
-Request data: {
-Request data:     "error": {
-Request data:         "message": "Incorrect API key provided: 1sk-F18b****************************************XdwS. You can find your API key at https://platform.openai.com/account/api-keys.",
-Request data:         "type": "invalid_request_error",
-Request data:         "param": null,
-Request data:         "code": "invalid_api_key"
-Request data:     }
-Request data: }
+data: {
+data:     "error": {
+data:         "message": "Incorrect API key provided: 1sk-F18b****************************************XdwS. You can find your API key at https://platform.openai.com/account/api-keys.",
+data:         "type": "invalid_request_error",
+data:         "param": null,
+data:         "code": "invalid_api_key"
+data:     }
+data: }
 ```
 
-This can then be handled like:
+This is then handled with:
 
 ```lua
 ---Callback to catch any errors from the standard output
