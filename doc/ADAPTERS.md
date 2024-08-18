@@ -247,7 +247,7 @@ callbacks = {
 }
 ```
 
-And then we can return the output:
+And then we can return the output in the following format:
 
 ```lua
 callbacks = {
@@ -277,12 +277,12 @@ callbacks = {
       if delta.content then
         output.content = delta.content
         output.role = delta.role or nil
-      end
 
-      return {
-        status = "success",
-        output = output,
-      }
+        return {
+          status = "success",
+          output = output,
+        }
+      end
     end
   end
 },

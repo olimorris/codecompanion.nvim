@@ -82,15 +82,13 @@ return {
             if delta.content then
               output.content = delta.content
               output.role = delta.role or nil
+
+              return {
+                status = "success",
+                output = output,
+              }
             end
           end
-
-          -- log:trace("----- For Adapter test creation -----\nOutput: %s\n ---------- // END ----------", output)
-
-          return {
-            status = "success",
-            output = output,
-          }
         end
       end
     end,
