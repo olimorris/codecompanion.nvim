@@ -795,6 +795,8 @@ function Chat:submit()
   settings = self.adapter:map_schema_to_params(settings)
   messages = self.adapter:map_roles(messages)
 
+  config.strategies.chat.callbacks.on_submit(self)
+
   lock_buf(bufnr)
   log:info("Chat request started")
   self.current_request = client.new():stream(settings, messages, function(err, data)
@@ -805,8 +807,8 @@ function Chat:submit()
 
     if data then
       self:get_tokens(data)
-      local result = self.adapter.args.callbacks.chat_output(data)
 
+      local result = self.adapter.args.callbacks.chat_output(data)
       if result and result.status == CONSTANTS.STATUS_SUCCESS then
         if result.output.role then
           result.output.role = llm_role
@@ -831,6 +833,8 @@ function Chat:done()
   if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.tools_in_use) > 0 then
     parse_tool_schema(self)
   end
+
+  config.strategies.chat.callbacks.on_complete(self)
 
   log:info("Chat request completed")
   return self:reset()

@@ -151,6 +151,10 @@ return {
           description = "View debug info",
         },
       },
+      callbacks = {
+        on_submit = function(chat) end, -- For when a request has been submited
+        on_complete = function(chat) end, -- For when a request has completed
+      },
     },
     -- INLINE STRATEGY --------------------------------------------------------
     inline = {

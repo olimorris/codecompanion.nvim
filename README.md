@@ -426,6 +426,24 @@ Of course you can add new workflows by following the [RECIPES](doc/RECIPES.md) g
 
 ## :lollipop: Extras
 
+**Callbacks**
+
+The plugin has a number of callbacks that can be set in your config and leveraged in the chat buffer:
+
+```lua
+strategies = {
+  chat = {
+    -- ...
+    callbacks = {
+        on_submit = function(chat) end, -- For when a request has been submited
+        on_complete = function(chat) end, -- For when a request has completed
+    },
+  }
+}
+```
+
+In each of the callbacks, the chat buffer class is made available via the `chat` parameter.
+
 **Hooks / User events**
 
 The plugin fires the following events during its lifecycle:
