@@ -534,9 +534,13 @@ local CodeCompanion = {
   },
   update = {
     "User",
-    pattern = "CodeCompanionRequest",
+    pattern = "CodeCompanionRequest*",
     callback = function(self, args)
-      self.processing = (args.data.status == "started")
+      if args.match == "CodeCompanionRequestStarted" then
+        self.processing = true
+      elseif args.match == "CodeCompanionRequestFinished" then
+        self.processing = false
+      end
       vim.cmd("redrawstatus")
     end,
   },
