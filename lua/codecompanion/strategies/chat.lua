@@ -803,13 +803,8 @@ function Chat:submit()
       return self:reset()
     end
 
-    -- With some adapters, the tokens come as part of the regular response so
-    -- we need to account for that here before the client is terminated
     if data then
       self:get_tokens(data)
-    end
-
-    if data then
       local result = self.adapter.args.callbacks.chat_output(data)
 
       if result and result.status == CONSTANTS.STATUS_SUCCESS then
@@ -817,10 +812,6 @@ function Chat:submit()
           result.output.role = llm_role
         end
         self:append(result.output)
-      elseif result and result.status == CONSTANTS.STATUS_ERROR then
-        self.status = CONSTANTS.STATUS_ERROR
-        self:stop()
-        log:error("Error: %s" .. result.output)
       end
     end
   end, function()
