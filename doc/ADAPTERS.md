@@ -212,15 +212,7 @@ We can then decode the JSON using native vim functions:
 callbacks = {
   chat_output = function(data)
     data = data:sub(7)
-
     local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
-
-    if not ok then
-      return {
-        status = "error",
-        output = string.format("Error malformed json: %s", json),
-      }
-    end
   end
 }
 ```
@@ -280,13 +272,6 @@ callbacks = {
       data = data:sub(7)
       local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
-      if not ok then
-        return {
-          status = "error",
-          output = string.format("Error malformed json: %s", json),
-        }
-      end
-
       local delta = json.choices[1].delta
 
       if delta.content then
@@ -294,15 +279,11 @@ callbacks = {
         output.role = delta.role or nil
       end
 
-      -- log:trace("----- For Adapter test creation -----\nOutput: %s\n ---------- // END ----------", output)
-
       return {
         status = "success",
         output = output,
       }
     end
-
-    return nil
   end
 },
 ```
@@ -344,7 +325,7 @@ The `inline_output` callback also receives context from the buffer that initiate
 
 **`on_stdout`**
 
-Handling errors from a streaming endpoint can be challenging. It's recommended that any errors are managed in the `on_stdout` callback which is initiated when the response has completed. In the case of OpenAI, if there is an error, we'll see a response like:
+Handling errors from a streaming endpoint can be challenging. It's recommended that any errors are managed in the `on_stdout` callback which is initiated when the response has completed. In the case of OpenAI, if there is an error, we'll see a response back from the API like:
 
 ```sh
 data: {
@@ -357,7 +338,7 @@ data:     }
 data: }
 ```
 
-This is challenging to parse as each line represents a chunk from the API. Instead, it's much easier to wait for the request to complete before trying to determine if an error occured. We can do this by leveraging the `on_stdout` callback:
+This would be challenging to parse! Thankfully we can leverage the `on_stdout` callback:
 
 ```lua
 ---Callback to catch any errors from the standard output
@@ -368,9 +349,8 @@ on_stdout = function(data)
 
   local ok, json = pcall(vim.json.decode, stdout, { luanil = { object = true } })
   if ok then
-    log:trace("stdout: %s", json)
     if json.error then
-      log:error("Error: %s", json.error.message)
+      return log:error("Error: %s", json.error.message)
     end
   end
 end,
