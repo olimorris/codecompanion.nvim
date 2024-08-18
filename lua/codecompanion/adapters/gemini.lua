@@ -93,7 +93,7 @@ return {
         data = data:sub(6)
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
-        if ok then
+        if ok and json.candidates[1].content then
           output.role = "llm"
           output.content = json.candidates[1].content.parts[1].text
 
