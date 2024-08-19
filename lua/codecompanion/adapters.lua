@@ -68,7 +68,7 @@ local function get_schema(adapter, var)
   end
 
   if not node then
-    return log:error("Error: Could not find schema variable: %s", var)
+    return
   end
 
   return node
@@ -127,7 +127,7 @@ function Adapter:get_default_settings()
     local default = value.default
     if default ~= nil then
       if type(default) == "function" then
-        default = default()
+        default = default(self)
       end
       settings[key] = default
     end
@@ -155,7 +155,12 @@ function Adapter:get_env_vars()
     elseif type(v) == "function" then
       self.args.env_replaced[k] = v()
     else
-      self.args.env_replaced[k] = get_schema(self, v)
+      local schema = get_schema(self, v)
+      if schema then
+        self.args.env_replaced[k] = schema
+      else
+        self.args.env_replaced[k] = v
+      end
     end
   end
 

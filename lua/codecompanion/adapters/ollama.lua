@@ -4,17 +4,20 @@ local utils = require("codecompanion.utils.adapters")
 local curl = require("plenary.curl")
 
 ---Get a list of available Ollama models
+---@params self CodeCompanion.Adapter
 ---@params opts? table
 ---@return table
-local function get_models(opts)
+local function get_models(self, opts)
+  local url = self.args.env.url
+
   -- Check that Ollama is running
-  local ping = vim.fn.system('curl -s -o /dev/null -w "%{http_code}" http://localhost:11434')
+  local ping = vim.fn.system('curl -s -o /dev/null -w "%{http_code}" ' .. url)
   if ping ~= "200" then
     log:warn("Ollama is not running or cannot be found on localhost:11434")
     return {}
   end
 
-  local response = curl.get("http://localhost:11434/v1/models", {
+  local response = curl.get(url .. "/v1/models", {
     sync = true,
   })
   if not response then
@@ -49,7 +52,10 @@ return {
     tokens = true,
     vision = false,
   },
-  url = "http://localhost:11434/api/chat",
+  url = "${url}/api/chat",
+  env = {
+    url = "http://localhost:11434",
+  },
   callbacks = {
     ---Set the parameters
     ---@param params table
@@ -158,11 +164,11 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use.",
-      default = function()
-        return get_models({ last = true })
+      default = function(self)
+        return get_models(self, { last = true })
       end,
-      choices = function()
-        return get_models()
+      choices = function(self)
+        return get_models(self)
       end,
     },
     temperature = {

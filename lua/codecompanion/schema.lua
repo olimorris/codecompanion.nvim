@@ -27,16 +27,21 @@ end
 
 ---@param schema CodeCompanion.SchemaParam
 ---@param value any
+---@param adapter? CodeCompanion.Adapter
 ---@return boolean
 ---@return nil|string
-local function validate_type(schema, value)
+local function validate_type(schema, value, adapter)
   local ptype = schema.type or "string"
   if value == nil then
     return schema.optional
   elseif ptype == "enum" then
     local choices = schema.choices
     if type(choices) == "function" then
-      choices = choices()
+      if adapter then
+        choices = choices(adapter)
+      else
+        choices = choices()
+      end
     end
     local valid = vim.tbl_contains(choices, value)
     if not valid then
@@ -70,10 +75,11 @@ end
 
 ---@param schema CodeCompanion.SchemaParam
 ---@param value any
+---@param adapter? CodeCompanion.Adapter
 ---@return boolean
 ---@return nil|string
-local function validate_field(schema, value)
-  local valid, err = validate_type(schema, value)
+local function validate_field(schema, value, adapter)
+  local valid, err = validate_type(schema, value, adapter)
   if not valid then
     return valid, err
   end
@@ -85,11 +91,12 @@ end
 
 ---@param schema CodeCompanion.SchemaParam
 ---@param values table
+---@param adapter? CodeCompanion.Adapter
 ---@return nil|table<string, string>
-M.validate = function(schema, values)
+M.validate = function(schema, values, adapter)
   local errors = {}
   for k, v in pairs(schema) do
-    local valid, err = validate_field(v, values[k])
+    local valid, err = validate_field(v, values[k], adapter)
     if not valid then
       errors[k] = err or string.format("Not a valid %s", v.type)
     end

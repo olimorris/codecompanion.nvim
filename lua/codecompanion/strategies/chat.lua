@@ -432,7 +432,7 @@ function Chat:render(messages)
     for _, key in ipairs(keys) do
       local setting = self.settings[key]
       if type(setting) == "function" then
-        setting = setting()
+        setting = setting(self.adapter)
       end
 
       table.insert(lines, string.format("%s: %s", key, yaml.encode(setting)))
@@ -532,7 +532,7 @@ function Chat:set_autocmds()
       callback = function()
         local settings = parse_settings(bufnr, self.adapter, [[((stream (_)) @block)]])
 
-        local errors = schema.validate(self.adapter.args.schema, settings)
+        local errors = schema.validate(self.adapter.args.schema, settings, self.adapter)
         local node = settings.__ts_node
 
         local items = {}
@@ -1081,7 +1081,7 @@ function Chat:complete(request, callback)
   if key_schema.type == "enum" then
     local choices = key_schema.choices
     if type(choices) == "function" then
-      choices = choices()
+      choices = choices(self.adapter)
     end
     for _, choice in ipairs(choices) do
       table.insert(items, {
