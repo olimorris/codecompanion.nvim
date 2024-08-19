@@ -50,6 +50,7 @@ The key `api_key` represents the name of the variable which can be injected in t
 - An environment variable from the user's system
 - A function to be executed at runtime
 - A path to an item in the adapter's schema table
+- A plain text value
 
 > [!NOTE]
 > Environment variables can be injected into the `url`, `headers` and `parameters` fields of the adapter class at runtime
