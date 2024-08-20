@@ -39,9 +39,9 @@ test: $(PLENARY_DIR) $(TREESITTER_DIR)
 	-c "PlenaryBustedDirectory lua/spec/codecompanion { minimal_init = 'scripts/minimal.vim' }"
 
 $(PLENARY_DIR):
-	git clone --depth=1 --branch v0.1.4 $(PLENARY_URL) $(PLENARY_DIR)
+	git clone --depth=1 $(PLENARY_URL) $(PLENARY_DIR)
 	@rm -rf $(PLENARY_DIR)/.git
 
 $(TREESITTER_DIR):
-	git clone --depth=1 --branch v0.9.1 $(TREESITTER_URL) $(TREESITTER_DIR)
+	git clone --depth=1 $(TREESITTER_URL) $(TREESITTER_DIR)
 	@rm -rf $(TREESITTER_DIR)/.git
