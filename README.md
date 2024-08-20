@@ -15,9 +15,6 @@
 Currently supports: Anthropic, Gemini, Ollama and OpenAI adapters
 </p>
 
-> [!IMPORTANT]
-> This plugin is provided as-is and is primarily developed for my own workflows. As such, I offer no guarantees of regular updates or support and I expect the plugin's API to change regularly. Bug fixes and feature enhancements will be implemented at my discretion, and only if they align with my personal use-cases. Feel free to fork the project and customize it to your needs, but please understand my involvement in further development will be intermittent. To be notified of breaking changes in the plugin, please subscribe to [this issue](https://github.com/olimorris/codecompanion.nvim/issues/9).
-
 <!-- panvimdoc-ignore-end -->
 
 ## :sparkles: Features
@@ -1207,12 +1204,11 @@ require('legendary').setup({
 
 ## :gift: Contributing
 
-I am open to contributions but they will be implemented at my discretion. Feel free to open up a discussion before embarking on a big PR and please make sure you've read the [CONTRIBUTING.md](CONTRIBUTING.md) guide.
+I am open to contributions but they will be implemented at my discretion. Feel free to open up a discussion before embarking on a PR and please make sure you've read the [CONTRIBUTING.md](CONTRIBUTING.md) guide.
 
 ## :clap: Acknowledgements
 
-- [Steven Arcangeli](https://github.com/stevearc) for his genius creation of the chat buffer and his feedback
+- [Steven Arcangeli](https://github.com/stevearc) for his genius creation of the chat buffer and his feedback early on
 - [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) for the LSP assistant action
-- [ChatGPT.nvim](https://github.com/jackMort/ChatGPT.nvim) for the calculation of tokens
 
 <!-- panvimdoc-ignore-end -->
