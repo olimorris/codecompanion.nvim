@@ -3,6 +3,7 @@ local config = require("codecompanion").config
 
 local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
+local util = require("codecompanion.utils.util")
 
 local api = vim.api
 local prefix = config.opts.saved_chats_dir .. "/"
@@ -61,7 +62,7 @@ local function save(filename, bufnr, chat_content)
     log:debug('Saved Chat: "%s.json" saved', filename)
     file:write(vim.json.encode(chat_content))
     file:close()
-    api.nvim_exec_autocmds("User", { pattern = "CodeCompanionChatSaved", data = { status = "finished" } })
+    util.fire("ChatSaved")
   else
     return log:error("Error saving chat: %s", err)
   end

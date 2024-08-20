@@ -6,6 +6,7 @@ local hl = require("codecompanion.utils.highlights")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
+local util = require("codecompanion.utils.util")
 
 local api = vim.api
 
@@ -42,16 +43,6 @@ local classified = {
   pos = {},
   prompts = {},
 }
-
----Announce the status of the inline prompt
----@param status string
----@param opts? table
-local function announce(status, opts)
-  opts = opts or {}
-  opts.status = status
-
-  api.nvim_exec_autocmds("User", { pattern = "CodeCompanionInline", data = opts })
-end
 
 ---Format given lines into a code block alongside a prompt
 ---@param prompt string
@@ -396,7 +387,7 @@ function Inline:classify(user_input)
     }
 
     log:info("Inline classification request started")
-    announce("started")
+    util.fire("InlineStarted")
     client
       .new({ user_args = { event = "InlineClassify" } })
       :stream(self.adapter:map_schema_to_params(), self.adapter:map_roles(action), function(err, data)
@@ -488,7 +479,7 @@ function Inline:submit()
     function()
       self.current_request = nil
       vim.schedule(function()
-        announce("finished", { placement = classified.placement })
+        util.fire("InlineFinished", { placement = classified.placement })
       end)
     end,
     { bufnr = bufnr }

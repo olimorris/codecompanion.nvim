@@ -1,15 +1,7 @@
 local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
-
-local api = vim.api
-
----@param event string
----@param opts? table
-local function fire(event, opts)
-  opts = opts or {}
-  api.nvim_exec_autocmds("User", { pattern = "CodeCompanion" .. event, data = opts })
-end
+local util = require("codecompanion.utils.util")
 
 ---@class CodeCompanion.Client
 ---@field static table
@@ -90,9 +82,9 @@ function Client:stream(adapter, payload, cb, after, opts)
           adapter.args.callbacks.on_stdout(data)
         end
 
-        fire("RequestFinished", opts)
+        util.fire("RequestFinished", opts)
         if self.user_args.event then
-          fire("RequestFinished" .. (self.user_args.event or ""), opts)
+          util.fire("RequestFinished" .. (self.user_args.event or ""), opts)
         end
       end)
     end)
@@ -101,9 +93,9 @@ function Client:stream(adapter, payload, cb, after, opts)
     log:debug("Request: %s", handler.args)
   end
 
-  fire("RequestStarted", opts)
+  util.fire("RequestStarted", opts)
   if self.user_args.event then
-    fire("RequestStarted" .. (self.user_args.event or ""), opts)
+    util.fire("RequestStarted" .. (self.user_args.event or ""), opts)
   end
 
   return handler

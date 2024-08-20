@@ -2,6 +2,14 @@ local api = vim.api
 
 local M = {}
 
+---Fire an event
+---@param event string
+---@param opts? table
+function M.fire(event, opts)
+  opts = opts or {}
+  api.nvim_exec_autocmds("User", { pattern = "CodeCompanion" .. event, data = opts })
+end
+
 ---Make the first letter uppercase
 ---@param str string
 ---@return string

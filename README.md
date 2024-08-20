@@ -825,6 +825,24 @@ require("codecompanion").setup({
 })
 ```
 
+**Changing the Default Adapter Model**
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    anthropic = function()
+      return require("codecompanion.adapters").extend("anthropic", {
+        schema = {
+          model = {
+            default = "claude-3-opus-20240229",
+          },
+        },
+      })
+    end,
+  },
+})
+```
+
 ### :art: Highlight Groups
 
 The plugin sets the following highlight groups during setup:
@@ -1057,15 +1075,21 @@ strategies = {
 
 In each of the callbacks, the chat buffer class is made available via the `chat` parameter.
 
-**Hooks / User events**
+**Events/Hooks**
 
-The plugin fires the following events during its lifecycle:
+The plugin fires many events during its lifecycle:
 
-- `CodeCompanionRequestStarted` - Fired during the API request
-- `CodeCompanionRequestFinished` - Fired during the API request
 - `CodeCompanionChatSaved` - Fired after a chat has been saved to disk
-- `CodeCompanionInline` - Fired during the inline API request alongside `CodeCompanionRequest`. Outputs `data.status` with a value of `started` or `finished` and `data.placement` with the placement of the text from the LLM
-- `CodeCompanionAgent` - Fired when an agent is running. Outputs `data.status` with a value of `started` or `success`/`failure`
+- `CodeCompanionChatClosed` - Fired after a chat has been closed
+- `CodeCompanionAgentStarted` - Fired when an agent has started using a tool
+- `CodeCompanionAgentFinished` - Fired when an agent has finished using a tool
+- `CodeCompanionInlineStarted` - Fired at the start of the Inline strategy
+- `CodeCompanionInlineFinished` - Fired at the end of the Inline strategy
+- `CodeCompanionRequestStarted` - Fired at the start of any API request
+- `CodeCompanionRequestFinished` - Fired at the end of any API request
+
+> [!TIP]
+> Some events are sent with a data payload which can be leveraged. Please search the codebase for more information.
 
 Events can be hooked into as follows:
 
@@ -1073,12 +1097,12 @@ Events can be hooked into as follows:
 local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
 
 vim.api.nvim_create_autocmd({ "User" }, {
-  pattern = "CodeCompanionInline",
+  pattern = "CodeCompanionInline*",
   group = group,
-  callback = function(args)
-    if args.data.status == "finished" then
+  callback = function(request)
+    if request.match == "CodeCompanionInlineFinished" then
       -- Format the buffer after the inline request has completed
-      require("conform").format({ bufnr = args.buf })
+      require("conform").format({ bufnr = request.buf })
     end
   end,
 })

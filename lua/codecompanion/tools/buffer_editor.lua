@@ -1,5 +1,6 @@
-local log = require("codecompanion.utils.log")
 local config = require("codecompanion").config
+local log = require("codecompanion.utils.log")
+local util = require("codecompanion.utils.util")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local M = {}
@@ -249,16 +250,11 @@ end
 --
 ---@param chat CodeCompanion.Chat The chat object containing buffer information.
 ---@param params table Parameters for the code modifications.
---
 ---@return CodeCompanion.ToolExecuteResult
 function M.execute(chat, params)
   local bufnr = chat.bufnr
 
-  -- Announce start
-  vim.api.nvim_exec_autocmds("User", {
-    pattern = "CodeCompanionAgent",
-    data = { bufnr = bufnr, status = "started" },
-  })
+  util.fire("AgentStarted", { bufnr = bufnr })
 
   -- Perform edits
   local results, modified_files, rollback_points = perform_edits(params)
@@ -295,15 +291,11 @@ function M.execute(chat, params)
     details = results,
   }
 
-  -- Announce end
-  vim.api.nvim_exec_autocmds("User", {
-    pattern = "CodeCompanionAgent",
-    data = {
-      bufnr = bufnr,
-      status = overall_success and "success" or "error",
-      error = not overall_success and result.message or nil,
-      output = overall_success and result.message or nil,
-    },
+  util.fire("AgentFinished", {
+    bufnr = bufnr,
+    status = overall_success and "success" or "error",
+    error = not overall_success and result.message or nil,
+    output = overall_success and result.message or nil,
   })
 
   return result

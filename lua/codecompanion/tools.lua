@@ -1,7 +1,6 @@
 local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
-local utils = require("codecompanion.utils.util")
 
 local TreeHandler = require("codecompanion.utils.xml.xmlhandler.tree")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
@@ -55,16 +54,15 @@ local function set_autocmds(chat, tool)
   return api.nvim_create_autocmd("User", {
     desc = "Handle responses from any agents",
     group = group,
-    pattern = "CodeCompanionAgent",
+    pattern = "CodeCompanionAgent*",
     callback = function(request)
       if request.data.bufnr ~= chat.bufnr then
         return
       end
 
       log:trace("Tool finished event: %s", request)
-      if request.data.status == "started" then
-        ui.set_virtual_text(chat.bufnr, ns_id, "Tool processing ...", { hl_group = "CodeCompanionVirtualText" })
-        return
+      if request.match == "CodeCompanionAgentStarted" then
+        return ui.set_virtual_text(chat.bufnr, ns_id, "Tool processing ...", { hl_group = "CodeCompanionVirtualText" })
       end
 
       api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)

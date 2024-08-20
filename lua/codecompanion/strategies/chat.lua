@@ -898,6 +898,7 @@ function Chat:close()
 
   api.nvim_buf_delete(self.bufnr, { force = true })
   api.nvim_del_augroup_by_name(CONSTANTS.AUTOCMD_GROUP .. self.bufnr)
+  util.fire("ChatClosed", { bufnr = self.bufnr, chat = self })
   self = nil
 end
 
