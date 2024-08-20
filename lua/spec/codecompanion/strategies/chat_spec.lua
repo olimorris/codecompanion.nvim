@@ -13,7 +13,7 @@ local adapter = {
   parameters = {
     stream = true,
   },
-  callbacks = {
+  handlers = {
     form_parameters = function()
       return {}
     end,

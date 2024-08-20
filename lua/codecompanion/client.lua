@@ -45,8 +45,8 @@ function Client:stream(adapter, payload, cb, after, opts)
   local body = self.opts.encode(
     vim.tbl_extend(
       "keep",
-      adapter.args.callbacks.form_parameters(adapter:set_env_vars(adapter.args.parameters), payload) or {},
-      adapter.args.callbacks.form_messages(adapter, payload)
+      adapter.args.handlers.form_parameters(adapter:set_env_vars(adapter.args.parameters), payload) or {},
+      adapter.args.handlers.form_messages(adapter, payload)
     )
   )
 
@@ -78,8 +78,8 @@ function Client:stream(adapter, payload, cb, after, opts)
         if after and type(after) == "function" then
           after()
         end
-        if type(adapter.args.callbacks.on_stdout) == "function" then
-          adapter.args.callbacks.on_stdout(data)
+        if type(adapter.args.handlers.on_stdout) == "function" then
+          adapter.args.handlers.on_stdout(data)
         end
 
         util.fire("RequestFinished", opts)

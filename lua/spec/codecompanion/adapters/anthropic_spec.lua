@@ -50,7 +50,7 @@ describe("Anthropic adapter", function()
   end)
 
   it("can form messages to be sent to the API", function()
-    assert.are.same({ messages = messages }, adapter.args.callbacks.form_messages(adapter, messages))
+    assert.are.same({ messages = messages }, adapter.args.handlers.form_messages(adapter, messages))
   end)
 
   it("can output streamed data into a format for the chat buffer", function()

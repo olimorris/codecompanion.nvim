@@ -56,7 +56,7 @@ return {
   env = {
     url = "http://localhost:11434",
   },
-  callbacks = {
+  handlers = {
     ---Set the parameters
     ---@param params table
     ---@param messages table
@@ -142,7 +142,7 @@ return {
     end,
 
     ---Output the data from the API ready for inlining into the current buffer
-    ---@param data table The streamed JSON data from the API, also formatted by the format_data callback
+    ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
     ---@param context table Useful context about the buffer to inline to
     ---@return table|nil
     inline_output = function(data, context)

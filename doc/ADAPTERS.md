@@ -1,6 +1,6 @@
 # Adapters
 
-In CodeCompanion, adapters are interfaces that act as a bridge between the plugin's functionality and a generative AI service. All adapters must follow the same strict implementation which is discussed below.
+In CodeCompanion, adapters are interfaces that act as a bridge between the plugin's functionality and an LLM. All adapters must follow the same strict implementation which is discussed below.
 
 This guide is intended to serve as a reference for anyone who wishes to contribute an adapter to the plugin or understand the inner workings of existing adapters.
 
@@ -12,24 +12,24 @@ Let's take a look at the interface of an adapter as per the `adapter.lua` file:
 ---@class CodeCompanion.Adapter
 ---@field name string The name of the adapter
 ---@field roles table The mapping of roles in the config to the LLM's defined roles
----@field url string The URL of the generative AI service to connect to
+---@field url string The URL of the LLM to connect to
 ---@field env? table Environment variables which can be referenced in the parameters
 ---@field env_replaced? table Replacement of environment variables with their actual values
 ---@field headers table The headers to pass to the request
 ---@field parameters table The parameters to pass to the request
 ---@field raw? table Any additional curl arguments to pass to the request
 ---@field opts? table Additional options for the adapter
----@field callbacks table Functions which link the output from the request to CodeCompanion
----@field callbacks.form_parameters fun()
----@field callbacks.form_messages fun()
----@field callbacks.is_complete fun()
----@field callbacks.chat_output fun()
----@field callbacks.on_stdout fun()
----@field callbacks.inline_output fun()
----@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
+---@field handlers table Functions which link the output from the request to CodeCompanion
+---@field handlers.form_parameters fun()
+---@field handlers.form_messages fun()
+---@field handlers.is_complete fun()
+---@field handlers.chat_output fun()
+---@field handlers.on_stdout fun()
+---@field handlers.inline_output fun()
+---@field schema table Set of parameters for the LLM that the user can customise in the chat buffer
 ```
 
-Everything up to the callbacks should be self-explanatory. We're simply providing details of the generative AI's API to the curl library and executing the request. The real intelligence of the adapter comes from the callbacks table which is a set of functions which bridge the functionality of the plugin to the generative AI service.
+Everything up to the handlers should be self-explanatory. We're simply providing details of the LLM's API to the curl library and executing the request. The real intelligence of the adapter comes from the handlers table which is a set of functions which bridge the functionality of the plugin to the LLM.
 
 ## Environment Variables
 
@@ -101,12 +101,12 @@ env = {
 
 In this example, we're getting the value of a user's chosen model from the schema table on the adapter.
 
-## Callbacks aka The Bridge
+## Handlers
 
-Currently, the callbacks table requires 5 functions to be implemented:
+Currently, the handlers table requires four functions to be implemented:
 
 - `form_parameters` - A function which can be used to set the parameters of the request
-- `form_messages` - _Most_ generative AI services have a `messages` array in the body of the request which contains the conversation. This function can be used to format and structure that array
+- `form_messages` - _Most_ LLMs have a `messages` array in the body of the request which contains the conversation. This function can be used to format and structure that array
 - `chat_output` - A function to format the output of the request into a Lua table that plugin can parse for the chat buffer
 - `inline_output` - A function to format the output of the request into a Lua table that plugin can parse, inline, to the current buffer
 
@@ -159,10 +159,10 @@ results in the following output:
 
 **`form_messages`**
 
-The chat buffer's output is passed to the callback in for the form of the `messages` parameter. So we can just output this as part of a messages table:
+The chat buffer's output is passed to this handler in for the form of the `messages` parameter. So we can just output this as part of a messages table:
 
 ```lua
-callbacks = {
+handlers = {
   form_messages = function(self, messages)
     return { messages = messages }
   end,
@@ -190,14 +190,14 @@ data: [DONE]
 ```
 
 > [!IMPORTANT]
-> Note that the `chat_output` callback requires a table containing `status` and `output` to be returned.
+> Note that the `chat_output` handler requires a table containing `status` and `output` to be returned.
 
 Remember that we're streaming from the API so the request comes through in batches. Thankfully the client implementation handles this and we just have to handle formatting the output into the chat buffer.
 
 The first thing to note with streaming endpoints is that they don't return valid JSON. In this case, the output is prefixed with `data: `. So let's remove it:
 
 ```lua
-callbacks = {
+handlers = {
   chat_output = function(data)
     data = data:sub(7)
   end
@@ -205,12 +205,12 @@ callbacks = {
 ```
 
 > [!IMPORTANT]
-> The data passed to the `chat_output` callback is the response from OpenAI
+> The data passed to the `chat_output` handler is the response from OpenAI
 
 We can then decode the JSON using native vim functions:
 
 ```lua
-callbacks = {
+handlers = {
   chat_output = function(data)
     data = data:sub(7)
     local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
@@ -223,7 +223,7 @@ We want to include any nil values so we pass in `luanil = { object = true }`.
 Examining the output of the API, we see that the streamed data is stored in a `choices[1].delta` table. That's easy to pickup:
 
 ```lua
-callbacks = {
+handlers = {
   chat_output = function(data)
     ---
     local delta = json.choices[1].delta
@@ -234,7 +234,7 @@ callbacks = {
 and we can then access the new streamed data that we want to write into the chat buffer, with:
 
 ```lua
-callbacks = {
+handlers = {
   chat_output = function(data)
     local output = {}
     ---
@@ -251,7 +251,7 @@ callbacks = {
 And then we can return the output in the following format:
 
 ```lua
-callbacks = {
+handlers = {
   chat_output = function(data)
     --
     return {
@@ -265,7 +265,7 @@ callbacks = {
 Now if we put it all together, and put some checks in place to make sure that we have data in our response:
 
 ```lua
-callbacks = {
+handlers = {
   chat_output = function(data)
     local output = {}
 
@@ -294,7 +294,7 @@ callbacks = {
 For the purposes of the OpenAI adapter, no additional parameters need to be created. So we just pass this through:
 
 ```lua
-callbacks = {
+handlers = {
   form_parameters = function(params, messages)
     return params
   end,
@@ -303,13 +303,13 @@ callbacks = {
 
 **`inline_output`**
 
-From a design perspective, the inline strategy is very similar to the chat strategy. With the `inline_output` callback we simply return the content we wish to be streamed into the buffer.
+From a design perspective, the inline strategy is very similar to the chat strategy. With the `inline_output` handler we simply return the content we wish to be streamed into the buffer.
 
 In the case of OpenAI, once we've checked the data we have back from the LLM and parsed it as JSON, we simply need to:
 
 ```lua
 ---Output the data from the API ready for inlining into the current buffer
----@param data table The streamed JSON data from the API, also formatted by the format_data callback
+---@param data table The streamed JSON data from the API, also formatted by the format_data handler
 ---@param context table Useful context about the buffer to inline to
 ---@return string|table|nil
 inline_output = function(data, context)
@@ -322,11 +322,11 @@ inline_output = function(data, context)
 end,
 ```
 
-The `inline_output` callback also receives context from the buffer that initiated the request.
+The `inline_output` handler also receives context from the buffer that initiated the request.
 
 **`on_stdout`**
 
-Handling errors from a streaming endpoint can be challenging. It's recommended that any errors are managed in the `on_stdout` callback which is initiated when the response has completed. In the case of OpenAI, if there is an error, we'll see a response back from the API like:
+Handling errors from a streaming endpoint can be challenging. It's recommended that any errors are managed in the `on_stdout` handler which is initiated when the response has completed. In the case of OpenAI, if there is an error, we'll see a response back from the API like:
 
 ```sh
 data: {
@@ -339,10 +339,10 @@ data:     }
 data: }
 ```
 
-This would be challenging to parse! Thankfully we can leverage the `on_stdout` callback:
+This would be challenging to parse! Thankfully we can leverage the `on_stdout` handler:
 
 ```lua
----Callback to catch any errors from the standard output
+---Function to catch any errors from the standard output
 ---@param data table
 ---@return nil
 on_stdout = function(data)
@@ -357,11 +357,11 @@ on_stdout = function(data)
 end,
 ```
 
-The `log:error` call ensures that any errors are logged to the logfile as well as displayed to the user in Neovim. It's also important to reference that the `chat_output` and `inline_output` callbacks need to be able to ignore any errors from the API and let the `on_stdout` handle them.
+The `log:error` call ensures that any errors are logged to the logfile as well as displayed to the user in Neovim. It's also important to reference that the `chat_output` and `inline_output` handlers need to be able to ignore any errors from the API and let the `on_stdout` handle them.
 
 ## Schema
 
-The schema table describes the settings/parameters for the Generative AI service. If the user has `display.chat.show_settings = true` then this table will be exposed at the top of the chat buffer.
+The schema table describes the settings/parameters for the LLM. If the user has `display.chat.show_settings = true` then this table will be exposed at the top of the chat buffer.
 
 We'll explore some of the options in the OpenAI adapter's schema table:
 
@@ -406,4 +406,4 @@ You'll see we've specified a function call for the `validate` key. We're simply 
 
 ## Summary
 
-This guide provided an overview for how the plugin uses adapters to connect to a variety of different Generative AI services.
+This guide provided an overview for how the plugin uses adapters to connect to a variety of different LLMs.

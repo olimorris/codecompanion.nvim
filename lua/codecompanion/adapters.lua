@@ -102,13 +102,13 @@ local Adapter = {}
 ---@field chat_prompt string The system chat prompt to send to the LLM
 ---@field raw? table Any additional curl arguments to pass to the request
 ---@field opts? table Additional options for the adapter
----@field callbacks table Functions which link the output from the request to CodeCompanion
----@field callbacks.form_parameters fun(params: table, messages: table): table
----@field callbacks.form_messages fun(messages: table): table
----@field callbacks.is_complete fun(data: table): boolean
----@field callbacks.tokens? fun(data: table): number|nil
----@field callbacks.chat_output fun(data: table): table|nil
----@field callbacks.inline_output fun(data: table, context: table): table|nil
+---@field handlers table Functions which link the output from the request to CodeCompanion
+---@field handlers.form_parameters fun(params: table, messages: table): table
+---@field handlers.form_messages fun(messages: table): table
+---@field handlers.is_complete fun(data: table): boolean
+---@field handlers.tokens? fun(data: table): number|nil
+---@field handlers.chat_output fun(data: table): table|nil
+---@field handlers.inline_output fun(data: table, context: table): table|nil
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 
 ---@param args CodeCompanion.AdapterArgs

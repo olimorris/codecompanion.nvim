@@ -24,7 +24,7 @@ return {
   headers = {
     ["Content-Type"] = "application/json",
   },
-  callbacks = {
+  handlers = {
     ---Set the parameters
     ---@param params table
     ---@param messages table
@@ -84,7 +84,7 @@ return {
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
-    ---@param data string The streamed JSON data from the API, also formatted by the format_data callback
+    ---@param data string The streamed JSON data from the API, also formatted by the format_data handler
     ---@return table|nil
     chat_output = function(data)
       local output = {}
@@ -106,7 +106,7 @@ return {
     end,
 
     ---Output the data from the API ready for inlining into the current buffer
-    ---@param data table The streamed JSON data from the API, also formatted by the format_data callback
+    ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
     ---@param context table Useful context about the buffer to inline to
     ---@return table|nil
     inline_output = function(data, context)
@@ -122,7 +122,7 @@ return {
       end
     end,
 
-    ---Callback to catch any errors from the standard output
+    ---Function to catch any errors from the standard output
     ---@param data table
     ---@return nil
     on_stdout = function(data)

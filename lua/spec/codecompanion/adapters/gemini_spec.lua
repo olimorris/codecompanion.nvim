@@ -62,7 +62,7 @@ describe("Gemini adapter", function()
       },
     }
 
-    assert.are.same(output, adapter.args.callbacks.form_messages(adapter, messages))
+    assert.are.same(output, adapter.args.handlers.form_messages(adapter, messages))
   end)
 
   it("can output streamed data into a format for the chat buffer", function()

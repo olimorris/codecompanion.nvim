@@ -396,7 +396,7 @@ function Inline:classify(user_input)
         end
 
         if data then
-          classified.placement = classified.placement .. (self.adapter.args.callbacks.inline_output(data) or "")
+          classified.placement = classified.placement .. (self.adapter.args.handlers.inline_output(data) or "")
         end
       end, nil, { bufnr = self.context.bufnr })
   else
@@ -464,7 +464,7 @@ function Inline:submit()
       end
 
       if data then
-        local content = self.adapter.args.callbacks.inline_output(data, self.context)
+        local content = self.adapter.args.handlers.inline_output(data, self.context)
 
         if content then
           vim.cmd.undojoin()
