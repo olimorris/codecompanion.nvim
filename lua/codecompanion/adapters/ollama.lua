@@ -58,10 +58,11 @@ return {
   },
   handlers = {
     ---Set the parameters
+    ---@param self CodeCompanion.Adapter
     ---@param params table
     ---@param messages table
     ---@return table
-    form_parameters = function(params, messages)
+    form_parameters = function(self, params, messages)
       return params
     end,
 
@@ -126,21 +127,6 @@ return {
       return nil
     end,
 
-    ---Function to call when the stream ends and there is standard output
-    ---Ollama will return a code 0 if no model is found which we need
-    ---to handle and then alert the user to.
-    ---@param data table
-    ---@return nil
-    on_stdout = function(data)
-      local ok, json = pcall(vim.json.decode, data._stdout_results[1], { luanil = { object = true } })
-      if ok then
-        log:trace("stdout: %s", json)
-        if json.error then
-          log:error("Error: %s", json.error)
-        end
-      end
-    end,
-
     ---Output the data from the API ready for inlining into the current buffer
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
     ---@param context table Useful context about the buffer to inline to
@@ -155,6 +141,22 @@ return {
         end
 
         return json.message.content
+      end
+    end,
+
+    ---Function to call when the stream ends and there is standard output
+    ---Ollama will return a code 0 if no model is found which we need
+    ---to handle and then alert the user to.
+    ---@param self CodeCompanion.Adapter
+    ---@param data table
+    ---@return nil
+    on_stdout = function(self, data)
+      local ok, json = pcall(vim.json.decode, data._stdout_results[1], { luanil = { object = true } })
+      if ok then
+        log:trace("stdout: %s", json)
+        if json.error then
+          log:error("Error: %s", json.error)
+        end
       end
     end,
   },

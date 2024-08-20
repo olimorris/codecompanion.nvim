@@ -26,10 +26,11 @@ return {
   },
   handlers = {
     ---Set the parameters
+    ---@param self CodeCompanion.Adapter
     ---@param params table
     ---@param messages table
     ---@return table
-    form_parameters = function(params, messages)
+    form_parameters = function(self, params, messages)
       return params
     end,
 
@@ -123,9 +124,10 @@ return {
     end,
 
     ---Function to catch any errors from the standard output
+    ---@param self CodeCompanion.Adapter
     ---@param data table
     ---@return nil
-    on_stdout = function(data)
+    on_stdout = function(self, data)
       local stdout = table.concat(data._stdout_results)
 
       local ok, json = pcall(vim.json.decode, stdout, { luanil = { object = true } })

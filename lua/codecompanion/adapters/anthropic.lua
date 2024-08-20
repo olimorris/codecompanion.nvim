@@ -30,10 +30,11 @@ return {
   },
   handlers = {
     ---Set the parameters
+    ---@param self CodeCompanion.Adapter
     ---@param params table
     ---@param messages table
     ---@return table
-    form_parameters = function(params, messages)
+    form_parameters = function(self, params, messages)
       -- As per: https://docs.anthropic.com/claude/docs/system-prompts
       -- Claude doesn't put the system prompt in the messages array, but in the parameters.system field
       local sys_prompts = utils.get_msg_index("system", messages)
@@ -139,9 +140,10 @@ return {
     end,
 
     ---Function to catch any errors from the standard output
+    ---@param self CodeCompanion.Adapter
     ---@param data table
     ---@return nil
-    on_stdout = function(data)
+    on_stdout = function(self, data)
       local ok, json = pcall(vim.json.decode, data._stdout_results[1], { luanil = { object = true } })
       if ok then
         log:trace("stdout: %s", json)
