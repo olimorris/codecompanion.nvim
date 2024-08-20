@@ -42,6 +42,11 @@ function Client:stream(adapter, payload, cb, after, opts)
   cb = log:wrap_cb(cb, "Response error: %s")
 
   adapter:get_env_vars()
+
+  if adapter.args.handlers.setup then
+    adapter.args.handlers.setup(adapter)
+  end
+
   local body = self.opts.encode(
     vim.tbl_extend(
       "keep",
@@ -78,10 +83,12 @@ function Client:stream(adapter, payload, cb, after, opts)
         if after and type(after) == "function" then
           after()
         end
-        if type(adapter.args.handlers.on_stdout) == "function" then
+        if adapter.args.handlers.on_stdout then
           adapter.args.handlers.on_stdout(adapter, data)
         end
-
+        if adapter.args.handlers.teardown then
+          adapter.args.handlers.teardown(adapter)
+        end
         util.fire("RequestFinished", opts)
         if self.user_args.event then
           util.fire("RequestFinished" .. (self.user_args.event or ""), opts)

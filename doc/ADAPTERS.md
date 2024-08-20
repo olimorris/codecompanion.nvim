@@ -103,12 +103,19 @@ In this example, we're getting the value of a user's chosen model from the schem
 
 ## Handlers
 
-Currently, the handlers table requires four functions to be implemented:
+Currently, the handlers table requires five functions to be implemented:
 
 - `form_parameters` - A function which can be used to set the parameters of the request
 - `form_messages` - _Most_ LLMs have a `messages` array in the body of the request which contains the conversation. This function can be used to format and structure that array
 - `chat_output` - A function to format the output of the request into a Lua table that plugin can parse for the chat buffer
 - `inline_output` - A function to format the output of the request into a Lua table that plugin can parse, inline, to the current buffer
+- `on_stdout` - A function which is used to handle any errors returned from the LLM
+
+There are three optional handlers which you can make use of:
+
+- `tokens` - A function to determine the amount of tokens consumed in the request(s)
+- `setup` - The function which is called before anything else
+- `teardown` - A function which is called last and after the request has completed
 
 ### An Example: The OpenAI Adapter
 
