@@ -539,6 +539,7 @@ Use Markdown formatting and include the programming language name at the start o
       show_token_count = true, -- Show the token count for each response?
     },
     inline = {
+      -- If the inline prompt creates a new buffer, how should we display this?
       layout = "vertical", -- vertical|horizontal|buffer
       diff = {
         enabled = true,
@@ -561,8 +562,8 @@ Use Markdown formatting and include the programming language name at the start o
     send_code = true,
 
     silence_notifications = false,
-    use_default_actions = true,
-    use_default_prompts = true,
+    use_default_actions = true, -- Show the default actions in the action palette?
+    use_default_prompts = true, -- Show the default prompts in the action palette?
 
     -- This is the default prompt which is sent with every request in the chat
     -- strategy. It is primarily based on the GitHub Copilot Chat's prompt

@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 20
+*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 21
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -662,8 +662,8 @@ Click to see the default configuration ~
         send_code = true,
     
         silence_notifications = false,
-        use_default_actions = true,
-        use_default_prompts = true,
+        use_default_actions = true, -- Show the default actions in the action palette?
+        use_default_prompts = true, -- Show the default prompts in the action palette?
     
         -- This is the default prompt which is sent with every request in the chat
         -- strategy. It is primarily based on the GitHub Copilot Chat's prompt
