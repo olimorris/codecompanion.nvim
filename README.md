@@ -1138,10 +1138,14 @@ function M:init(options)
   local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
 
   vim.api.nvim_create_autocmd({ "User" }, {
-    pattern = "CodeCompanionRequest",
+    pattern = "CodeCompanionRequest*",
     group = group,
     callback = function(request)
-      self.processing = (request.data.status == "started")
+      if request.match == "CodeCompanionRequestStarted" then
+        self.processing = true
+      elseif request.match == "CodeCompanionRequestFinished" then
+        self.processing = false
+      end
     end,
   })
 end
