@@ -335,7 +335,7 @@ M.change_adapter = {
       -- Select a model
       local models = chat.adapter.args.schema.model.choices
       if type(models) == "function" then
-        models = models()
+        models = models(chat.adapter)
       end
       if #models == 0 then
         return
@@ -343,7 +343,7 @@ M.change_adapter = {
 
       local current_model = chat.adapter.args.schema.model.default
       if type(current_model) == "function" then
-        current_model = current_model()
+        current_model = current_model(chat.adapter)
       end
 
       list = {}
