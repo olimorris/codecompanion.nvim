@@ -52,17 +52,17 @@ body:
                   opts = {},
                 },
               },
-              config = function()
+              opts = {
                 -- Refer to: https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua
-                require("codecompanion").setup({
-                  strategies = { -- Change the adapters as required
-                    chat = { adapter = "openai" },
-                    inline = { adapter = "openai" },
-                    agent = { adapter = "openai" },
-                  },
+                strategies = { -- Change the adapters as required
+                  chat = { adapter = "openai" },
+                  inline = { adapter = "openai" },
+                  agent = { adapter = "openai" },
+                },
+                opts = {
                   log_level = "TRACE",
-                })
-              end,
+                },
+              },
             }
           }
 
@@ -74,8 +74,7 @@ body:
           local ok, treesitter = pcall(require, "nvim-treesitter.configs")
           if ok then
             treesitter.setup({
-              ensure_installed = "all",
-              ignore_install = { "phpdoc" }, -- list of parser which cause issues or crashes
+              ensure_installed = { "lua", "markdown", "markdown_inline" },
               highlight = { enable = true },
             })
           end
@@ -92,7 +91,7 @@ body:
       id: codecompanion-config
       attributes:
         label: Your `minimal.lua` config
-        description: Please paste your minimal.lua config here
+        description: Please paste the minimal.lua file you've created here. Please ensure you're able to recreate the issue with this file
         placeholder: |
           ```lua
           -- Your minimal.lua config here
@@ -145,7 +144,7 @@ body:
       id: reproduce
       attributes:
         label: Reproduce the bug
-        description: Please include the steps to reproduce the bug
+        description: Please include the steps so I can try and reproduce the bug
         placeholder: |
           Steps to reproduce:
           1.
@@ -163,7 +162,7 @@ body:
         options:
           - label: I have made sure this issue exists in the latest version of the plugin
             required: true
-          - label: I have tested with the `minimal.lua` config file above and still get the issue
+          - label: I have tested with the `minimal.lua` file from above and have shared this
             required: true
           - label: I have shared the contents of the log file
             required: true
