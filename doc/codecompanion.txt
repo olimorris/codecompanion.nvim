@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 21
+*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 22
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -10,6 +10,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Getting Started                            |codecompanion-getting-started|
   - Advanced Usage                              |codecompanion-advanced-usage|
   - Extras                                              |codecompanion-extras|
+  - Troubleshooting                            |codecompanion-troubleshooting|
 
 FEATURES                                              *codecompanion-features*
 
@@ -1266,6 +1267,31 @@ your config:
       },
     })
 <
+
+
+TROUBLESHOOTING                                *codecompanion-troubleshooting*
+
+Before raising an issue
+<https://github.com/olimorris/codecompanion.nvim/issues>, there are a number of
+steps you can take to troubleshoot a problem:
+
+**Checkhealth**
+
+Run `:checkhealth codecompanion` and check all dependencies are installed
+correctly. Also take note of the log file path.
+
+**Turn on logging**
+
+Update your config and turn debug logging on:
+
+>lua
+    opts = {
+      log_level = "DEBUG", -- or "TRACE"
+    }
+<
+
+and inspect the log file as per the location from the checkhealth command
+(usually `~/.local/state/nvim/codecompanion.log`).
 
 ==============================================================================
 1. Links                                                 *codecompanion-links*
