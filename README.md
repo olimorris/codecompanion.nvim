@@ -1204,6 +1204,26 @@ require('legendary').setup({
 })
 ```
 
+## :toolbox: Troubleshooting
+
+Before raising an [issue](https://github.com/olimorris/codecompanion.nvim/issues), there are a number of steps you can take to troubleshoot a problem:
+
+**Checkhealth**
+
+Run `:checkhealth codecompanion` and check all dependencies are installed correctly. Also take note of the log file path.
+
+**Turn on logging**
+
+Update your config and turn debug logging on:
+
+```lua
+opts = {
+  log_level = "DEBUG", -- or "TRACE"
+}
+```
+
+and inspect the log file as per the location from the checkhealth command (usually `~/.local/state/nvim/codecompanion.log`).
+
 <!-- panvimdoc-ignore-start -->
 
 ## :gift: Contributing
