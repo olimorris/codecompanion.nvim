@@ -273,13 +273,19 @@ M.setup = function(opts)
   })
 
   -- Setup the slash commands
-  if M.config.opts.use_default_prompts then
-    local prompts = require("codecompanion.prompts").new(M.config.default_prompts):setup()
-    for name, prompt in pairs(prompts.prompts) do
-      if prompt.opts and prompt.opts.slash_cmd then
+  local prompts = require("codecompanion.prompts").new(M.config.default_prompts):setup()
+  for name, prompt in pairs(prompts.prompts) do
+    if prompt.opts then
+      if not M.config.opts.use_default_prompts and prompt.opts.default_prompt then
+        goto continue
+      end
+
+      if prompt.opts.slash_cmd then
         prompt.name = name
         M.slash_cmds[prompt.opts.slash_cmd] = prompt
       end
+
+      ::continue::
     end
   end
 
