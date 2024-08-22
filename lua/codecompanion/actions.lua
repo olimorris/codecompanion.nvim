@@ -105,7 +105,7 @@ M.static.actions = {
     strategy = " ",
     description = "Workflows to improve the performance of your LLM",
     opts = {
-      index = 9,
+      index = 10,
     },
     picker = {
       prompt = "Select a workflow",
@@ -216,7 +216,7 @@ M.static.actions = {
     strategy = " ",
     description = "Load your previously saved chats",
     opts = {
-      index = 10,
+      index = 11,
     },
     condition = function()
       local saved_chats = require("codecompanion.strategies.saved_chats")
