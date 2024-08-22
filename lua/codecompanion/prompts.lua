@@ -49,8 +49,12 @@ end
 ---@return CodeCompanion.Prompts
 function Prompts:setup()
   --Loop through the prompts
+  local global_config = require("codecompanion").config
   for _, config in pairs(self.prompts) do
     if config.opts and config.opts.mapping then
+      if global_config.opts.use_default_prompts or not config.opts.default_prompt then
+        goto continue
+      end
       if config.opts.modes and type(config.opts.modes) == "table" then
         for _, mode in ipairs(config.opts.modes) do
           map(config, mode)
@@ -59,6 +63,7 @@ function Prompts:setup()
         map(config, "n")
       end
     end
+    ::continue::
   end
 
   return self
