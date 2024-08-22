@@ -1,3 +1,5 @@
+local config = require("codecompanion").config
+
 local Strategy = require("codecompanion.strategies")
 local context_utils = require("codecompanion.utils.context")
 local api = vim.api
@@ -49,18 +51,17 @@ end
 ---@return CodeCompanion.Prompts
 function Prompts:setup()
   --Loop through the prompts
-  local global_config = require("codecompanion").config
-  for _, config in pairs(self.prompts) do
-    if config.opts and config.opts.mapping then
-      if global_config.opts.use_default_prompts or not config.opts.default_prompt then
+  for _, prompt in pairs(self.prompts) do
+    if prompt.opts and prompt.opts.mapping then
+      if not config.opts.use_default_prompts and prompt.opts.default_prompt then
         goto continue
       end
-      if config.opts.modes and type(config.opts.modes) == "table" then
-        for _, mode in ipairs(config.opts.modes) do
-          map(config, mode)
+      if prompt.opts.modes and type(prompt.opts.modes) == "table" then
+        for _, mode in ipairs(prompt.opts.modes) do
+          map(prompt, mode)
         end
       else
-        map(config, "n")
+        map(prompt, "n")
       end
     end
     ::continue::
