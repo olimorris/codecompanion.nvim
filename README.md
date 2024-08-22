@@ -98,6 +98,8 @@ The plugin also utilises objects called Strategies. These are the different ways
 
 The plugin allows you to specify adapters for each strategy and also for each [default prompt](#default-prompts).
 
+<!-- panvimdoc-ignore-start -->
+
 ### :hammer_and_wrench: Defaults
 
 > [!NOTE]
@@ -355,7 +357,7 @@ Answer the user's questions with the tool's output.]],
       strategy = "chat",
       description = "Explain how code in a buffer works",
       opts = {
-        index = 5,
+        index = 4,
         default_prompt = true,
         mapping = "<LocalLeader>ce",
         modes = { "v" },
@@ -429,7 +431,7 @@ Answer the user's questions with the tool's output.]],
       strategy = "chat",
       description = "Fix the selected code",
       opts = {
-        index = 5,
+        index = 6,
         default_prompt = true,
         mapping = "<LocalLeader>cf",
         modes = { "v" },
@@ -472,7 +474,7 @@ Use Markdown formatting and include the programming language name at the start o
       strategy = "inline",
       description = "Send the current buffer to the LLM as part of an inline prompt",
       opts = {
-        index = 5,
+        index = 7,
         modes = { "v" },
         default_prompt = true,
         mapping = "<LocalLeader>cb",
@@ -527,7 +529,7 @@ Use Markdown formatting and include the programming language name at the start o
       strategy = "chat",
       description = "Explain the LSP diagnostics for the selected code",
       opts = {
-        index = 5,
+        index = 8,
         default_prompt = true,
         mapping = "<LocalLeader>cl",
         modes = { "v" },
@@ -593,7 +595,7 @@ Use Markdown formatting and include the programming language name at the start o
       strategy = "chat",
       description = "Generate a commit message",
       opts = {
-        index = 5,
+        index = 9,
         default_prompt = true,
         mapping = "<LocalLeader>cm",
         slash_cmd = "commit",
@@ -646,6 +648,7 @@ Use Markdown formatting and include the programming language name at the start o
       show_token_count = true, -- Show the token count for each response?
     },
     inline = {
+      -- If the inline prompt creates a new buffer, how should we display this?
       layout = "vertical", -- vertical|horizontal|buffer
       diff = {
         enabled = true,
@@ -706,10 +709,12 @@ When given a task:
 3. You should always generate short suggestions for the next user turns that are relevant to the conversation.
 4. You can only give one reply for each conversation turn.]],
   },
-})
+}
 ```
 
 </details>
+
+<!-- panvimdoc-ignore-end -->
 
 ### :electric_plug: Adapters
 
@@ -821,7 +826,7 @@ require("codecompanion").setup({
 })
 ```
 
-**Changing the Default Adapter Model**
+**Changing the Default Model**
 
 ```lua
 require("codecompanion").setup({
