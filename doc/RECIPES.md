@@ -251,12 +251,11 @@ And to determine the visibility of actions in the palette itself:
 
 ```lua
 {
-  name = "Load saved chats ...",
-  strategy = "saved_chats",
-  description = "Load your previously saved chats",
+  name = "Open chats ...",
+  strategy = " ",
+  description = "Your currently open chats",
   condition = function()
-    local saved_chats = require("codecompanion.strategies.saved_chats")
-    return saved_chats:has_chats()
+    return #require("codecompanion").buf_get_chat() > 0
   end,
   picker = {
     ---

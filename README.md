@@ -204,14 +204,6 @@ require("codecompanion").setup({
           callback = "keymaps.codeblock",
           description = "Insert Codeblock",
         },
-        save = {
-          modes = {
-            n = "gs",
-          },
-          index = 7,
-          callback = "keymaps.save_chat",
-          description = "Save Chat",
-        },
         next_chat = {
           modes = {
             n = "}",
@@ -662,8 +654,6 @@ Use Markdown formatting and include the programming language name at the start o
   -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
     log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
-    auto_save_chats = true, -- If a chat has already been saved or loaded then autosave it after every prompt
-    saved_chats_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats",
 
     -- If this is false then any default prompt that is marked as containing code
     -- will not be sent to the LLM. Please note that whilst I have made every
@@ -989,15 +979,10 @@ When in the chat buffer, there are number of keymaps available to you:
 - `ga` - Change the adapter
 - `gx` - Clear the buffer's contents
 - `gx` - Add a codeblock
-- `gs` - Save the chat to disk
 - `}` - Move to the next chat
 - `{` - Move to the previous chat
 - `[` - Move to the next header
 - `]` - Move to the previous header
-
-**Saved Chats**
-
-Chat buffers are not saved to disk by default, but can be by pressing `gs` in the buffer. Saved chats can then be restored via the Action Palette and the _Load saved chats_ action.
 
 **Settings**
 
@@ -1073,7 +1058,6 @@ In each of the callbacks, the chat buffer class is made available via the `chat`
 
 The plugin fires many events during its lifecycle:
 
-- `CodeCompanionChatSaved` - Fired after a chat has been saved to disk
 - `CodeCompanionChatClosed` - Fired after a chat has been closed
 - `CodeCompanionAgentStarted` - Fired when an agent has started using a tool
 - `CodeCompanionAgentFinished` - Fired when an agent has finished using a tool

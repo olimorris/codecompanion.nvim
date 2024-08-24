@@ -192,32 +192,6 @@ M.clear = {
   end,
 }
 
-M.save_chat = {
-  desc = "Save the current chat",
-  callback = function(chat)
-    local saved_chat = require("codecompanion.strategies.saved_chats")
-
-    if chat.saved_chat then
-      chat:save_chat()
-
-      if config.opts.silence_notifications then
-        return
-      end
-
-      return vim.notify("[CodeCompanion.nvim]\nChat has been saved", vim.log.levels.INFO)
-    end
-
-    vim.ui.input({ prompt = "Chat Name" }, function(filename)
-      if not filename then
-        return
-      end
-      saved_chat = saved_chat.new({ filename = filename })
-      saved_chat:save(chat)
-      chat.saved_chat = filename
-    end)
-  end,
-}
-
 M.codeblock = {
   desc = "Insert a codeblock",
   callback = function(chat)

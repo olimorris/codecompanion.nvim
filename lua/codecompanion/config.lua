@@ -95,14 +95,6 @@ return {
           callback = "keymaps.codeblock",
           description = "Insert Codeblock",
         },
-        save = {
-          modes = {
-            n = "gs",
-          },
-          index = 7,
-          callback = "keymaps.save_chat",
-          description = "Save Chat",
-        },
         next_chat = {
           modes = {
             n = "}",
@@ -553,8 +545,6 @@ Use Markdown formatting and include the programming language name at the start o
   -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
     log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
-    auto_save_chats = true, -- If a chat has already been saved or loaded then autosave it after every prompt
-    saved_chats_dir = vim.fn.stdpath("data") .. "/codecompanion/saved_chats",
 
     -- If this is false then any default prompt that is marked as containing code
     -- will not be sent to the LLM. Please note that whilst I have made every

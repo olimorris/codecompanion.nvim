@@ -211,44 +211,6 @@ M.static.actions = {
       },
     },
   },
-  {
-    name = "Load saved chats ...",
-    strategy = " ",
-    description = "Load your previously saved chats",
-    opts = {
-      index = 11,
-    },
-    condition = function()
-      local saved_chats = require("codecompanion.strategies.saved_chats")
-      return saved_chats:has_chats()
-    end,
-    picker = {
-      prompt = "Load chats",
-      items = function()
-        local saved_chats = require("codecompanion.strategies.saved_chats")
-        local items = saved_chats:list({ sort = true })
-
-        local chats = {}
-
-        for _, chat in pairs(items) do
-          table.insert(chats, {
-            name = chat.tokens,
-            strategy = chat.filename,
-            description = chat.dir,
-            callback = function()
-              return saved_chats
-                .new({
-                  filename = chat.filename,
-                })
-                :load(chat)
-            end,
-          })
-        end
-
-        return chats
-      end,
-    },
-  },
 }
 
 local prompts = {}
