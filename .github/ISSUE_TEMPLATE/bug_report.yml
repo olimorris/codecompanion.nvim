@@ -8,15 +8,22 @@ body:
     - type: markdown
       attributes:
         value: |
-          Thanks for taking the time to fill out this bug report! This form may seem onerous but it makes a resolution much quicker if I can recreate the exact problem you're facing.
+          ## Before Reporting
+          Please do the following steps before reporting an issue.
+
+          - Update the plugin to the latest version
+          - Read and follow the steps in the [troubleshooting](https://github.com/olimorris/codecompanion.nvim#toolbox-troubleshooting) section
+
     - type: markdown
       attributes:
         value: |
           ## Test with a `minimal.lua` file
           > [!IMPORTANT]
-          > I know the temptation is to skip this step but please don't.
+          > Please do not skip this step. For most users, issues occur because of their Neovim configuration. This step enables me to recreate the issue you're facing.
 
-          Firstly, test and run Neovim with the minimal config below. Be sure to tweak it for your own config, saving to a `minimal.lua` file and adding any additional plugins you may need:
+          - Firstly, use the minimal config below as a template
+          - Save the a `minimal.lua` file and add any additional plugins/configuration you may need:
+
           ```lua
           local root = vim.fn.fnamemodify("./.repro", ":p")
 
@@ -70,7 +77,7 @@ body:
             root = root .. "/plugins",
           })
 
-          -- setup treesitter
+          -- setup Tree-sitter
           local ok, treesitter = pcall(require, "nvim-treesitter.configs")
           if ok then
             treesitter.setup({
@@ -80,12 +87,21 @@ body:
           end
           ```
 
-          Once you've updated for your config, run Neovim with this command:
+          - Once you've updated for your config, run Neovim with the minimal config:
+
           ```sh
           nvim --clean -u minimal.lua
           ```
+
           > [!NOTE]
           > You may need to do this a couple of times for Treesitter to fully download and sync
+
+          - Confirm you can recreate the issue with the minimal config
+
+    - type: markdown
+      attributes:
+        value: |
+          ## Outputs
 
     - type: textarea
       id: codecompanion-config
