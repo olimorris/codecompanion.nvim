@@ -61,7 +61,7 @@ function Strategies:evaluate_prompts(prompts)
         end
 
         table.insert(messages, {
-          role = util.replace_placeholders(prompt.role, config.strategies.chat.roles) or prompt.role,
+          role = prompt.role,
           content = content,
         })
       end

@@ -39,8 +39,6 @@ Please respond to this prompt in the format "<method>|<return>" where "<method>"
   SYSTEM_ROLE = "system",
 }
 
-local user_role = config.strategies.chat.roles.user
-
 -- When a promp has been classified, store the outcome to this table
 local classified = {
   placement = "",
@@ -378,7 +376,7 @@ function Inline:classify(user_input)
         content = CONSTANTS.PLACEMENT_PROMPT,
       },
       {
-        role = user_role,
+        role = CONSTANTS.USER_ROLE,
         content = 'The prompt to assess is: "' .. user_prompts .. '"',
       },
     }
