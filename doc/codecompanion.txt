@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 22
+*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 24
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -355,10 +355,16 @@ For an optimum workflow, I recommend the following options:
 ADVANCED USAGE                                  *codecompanion-advanced-usage*
 
 
-CUSTOMISING THE ACTION PALETTE ~
+DEFAULT PROMPTS ~
 
-A RECIPES <doc/RECIPES.md> guide has been created to show you how you can add
-your own prompts to the _Action Palette_.
+The plugin comes with a number of default prompts (as per the config
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>)
+which can be called via keymaps and/or slash commands. These prompts have been
+carefully curated to mimic those in GitHub’s Copilot Chat
+<https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide>.
+Of course, you can create your own prompts and add them to the Action Palette
+and as slash commands. Please see the RECIPES <doc/RECIPES.md> guide for more
+information.
 
 
 THE CHAT BUFFER ~
@@ -443,18 +449,6 @@ There are also keymaps available to you after an inline edit has taken place:
 
 - `ga` - Accept an inline edit
 - `gr` - Reject an inline edit
-
-
-DEFAULT PROMPTS ~
-
-
-  [!NOTE] Please see the RECIPES <doc/RECIPES.md> guide in order to add your own
-  prompts to the Action Palette and as a slash command.
-The plugin comes with a number of default prompts (as per the config
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>)
-which can be called via keymaps and/or slash commands. These prompts have been
-carefully curated to mimic those in GitHub’s Copilot Chat
-<https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide>.
 
 
 AGENTS / TOOLS ~

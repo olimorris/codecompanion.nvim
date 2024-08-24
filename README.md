@@ -96,7 +96,7 @@ The plugin uses adapters to connect to LLMs. Out of the box, the plugin supports
 
 The plugin also utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ and _agent_ strategies harness a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
 
-The plugin allows you to specify adapters for each strategy and also for each [default prompt](#default-prompts).
+The plugin allows you to specify adapters for each strategy and also for each [default prompt](#clipboard-default-prompts).
 
 <!-- panvimdoc-ignore-start -->
 
@@ -870,9 +870,9 @@ The plugin sets the following highlight groups during setup:
 
 <!-- panvimdoc-ignore-end -->
 
-To start interacting with the plugin you can run `:CodeCompanion <your prompt>` from the command line. You can also make a visual selection in Neovim and run `:'<,'>CodeCompanion <your prompt>` to send it as context. The plugin will initially use an LLM to classify your prompt in order to determine where in Neovim to place the response. You can find more about the classificiations in the [inline prompting](#inline-prompting) section.
+To start interacting with the plugin you can run `:CodeCompanion <your prompt>` from the command line. You can also make a visual selection in Neovim and run `:'<,'>CodeCompanion <your prompt>` to send it as context. The plugin will initially use an LLM to classify your prompt in order to determine where in Neovim to place the response. You can find more about the classificiations in the [inline prompting](#pencil2-inline-prompting) section.
 
-For convenience, you can also call [default prompts](#default-prompts) from the command line via slash commands:
+For convenience, you can also call [default prompts](#clipboard-default-prompts) from the command line via slash commands:
 
 - `/explain` - Explain how selected code in a buffer works
 - `/tests` - Generate unit tests for selected code
@@ -883,7 +883,7 @@ For convenience, you can also call [default prompts](#default-prompts) from the 
 
 Running `:'<,'>CodeCompanion /fix` will trigger the plugin to start following the fix prompt as defined in the [config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua). Some of the slash commands can also take custom prompts. For example, running `:'<,'>CodeCompanion /buffer refactor this code` sends the whole buffer as context alongside a prompt to refactor the selected code.
 
-There are also keymaps available to accept or reject edits from the LLM in the [inline prompting](#inline-prompting) section.
+There are also keymaps available to accept or reject edits from the LLM in the [inline prompting](#pencil2-inline-prompting) section.
 
 **Chat Buffer**
 
@@ -968,11 +968,11 @@ vim.cmd([[cab cc CodeCompanion]])
 
 ## :bulb: Advanced Usage
 
-### Customising the Action Palette
+### :clipboard: Default Prompts
 
-A [RECIPES](doc/RECIPES.md) guide has been created to show you how you can add your own prompts to the _Action Palette_.
+The plugin comes with a number of default prompts ([as per the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua)) which can be called via keymaps and/or slash commands. These prompts have been carefully curated to mimic those in [GitHub's Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide). Of course, you can create your own prompts and add them to the Action Palette and as slash commands. Please see the [RECIPES](doc/RECIPES.md) guide for more information.
 
-### The Chat Buffer
+### :speech_balloon: The Chat Buffer
 
 The chat buffer is where you can converse with an LLM, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the LLM in the form of prompts. These prompts are segmented by H1 headers: `user`, `system` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with your LLM from within Neovim.
 
@@ -1007,12 +1007,12 @@ If `display.chat.show_settings` is set to `true`, at the very top of the chat bu
 
 From the Action Palette, the `Open Chats` action enables users to easily navigate between their open chat buffers. A chat buffer can be deleted (and removed from memory) by pressing `<C-c>`.
 
-### Inline Prompting
+### :pencil2: Inline Prompting
 
 > [!NOTE]
 > If `send_code = false` then this will take precedent and no code will be sent to the LLM
 
-Inline prompts can be triggered via the `CodeCompanion <your prompt>` command. As mentioned in the [Getting Started](#rocket-getting-started) section, you can also leverage visual selections and slash commands like `'<,'>CodeCompanion /buffer what does this code do?`, where the slash command points to a [default prompt](#default-prompts) and any words after that act as a custom prompt to the LLM.
+Inline prompts can be triggered via the `CodeCompanion <your prompt>` command. As mentioned in the [Getting Started](#rocket-getting-started) section, you can also leverage visual selections and slash commands like `'<,'>CodeCompanion /buffer what does this code do?`, where the slash command points to a [default prompt](#clipboard-default-prompts) and any words after that act as a custom prompt to the LLM.
 
 One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed after the cursor's position in the current buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. The plugin will use the inline LLM you've specified in your config to determine if the response should follow any of the placements below:
 
@@ -1027,14 +1027,7 @@ There are also keymaps available to you after an inline edit has taken place:
 - `ga` - Accept an inline edit
 - `gr` - Reject an inline edit
 
-### Default Prompts
-
-> [!NOTE]
-> Please see the [RECIPES](doc/RECIPES.md) guide in order to add your own prompts to the Action Palette and as a slash command.
-
-The plugin comes with a number of default prompts ([as per the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua)) which can be called via keymaps and/or slash commands. These prompts have been carefully curated to mimic those in [GitHub's Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide).
-
-### Agents / Tools
+### :robot: Agents / Tools
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
@@ -1042,7 +1035,7 @@ In the plugin, agents are simply context that's given to an LLM via a `system` p
 
 More information on how agents work and how you can create your own can be found in the [AGENTS](doc/AGENTS.md) guide.
 
-### Workflows
+### :world_map: Workflows
 
 > [!WARNING]
 > Workflows may result in the significant consumption of tokens if you're using an external LLM.
