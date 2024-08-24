@@ -4,6 +4,7 @@ local config = require("codecompanion").config
 local keymaps = require("codecompanion.utils.keymaps")
 local schema = require("codecompanion.schema")
 
+local hash = require("codecompanion.utils.hash")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils.util")
@@ -22,32 +23,12 @@ local CONSTANTS = {
   STATUS_SUCCESS = "success",
   STATUS_FINISHED = "finished",
 
+  USER_ROLE = "user",
+  LLM_ROLE = "llm",
   SYSTEM_ROLE = "system",
 
   BLANK_DESC = "[No messages]",
 }
-
-local chat_query = [[
-(
-  atx_heading
-  (atx_h2_marker)
-  heading_content: (_) @role
-)
-(
-  section
-  [(paragraph) (fenced_code_block) (list)] @content
-)
-]]
-
-local tool_query = [[
-(
- (section
-  (fenced_code_block
-    (info_string) @lang
-    (code_fence_content) @tool
-  ) (#match? @lang "xml"))
-)
-]]
 
 local llm_role = config.strategies.chat.roles.llm
 local user_role = config.strategies.chat.roles.user
@@ -66,12 +47,21 @@ local function unlock_buf(bufnr)
   vim.bo[bufnr].modifiable = true
 end
 
+---Make an id from a string or table
+---@param val string|table
+---@return number
+local function make_id(val)
+  return hash.hash(val)
+end
+
 local _cached_settings = {}
+
+---Parse the chat buffer for settings
 ---@param bufnr integer
 ---@param adapter? CodeCompanion.Adapter
 ---@param ts_query? string
 ---@return table
-local function parse_settings(bufnr, adapter, ts_query)
+local function buf_parse_settings(bufnr, adapter, ts_query)
   if _cached_settings[bufnr] then
     return _cached_settings[bufnr]
   end
@@ -109,13 +99,61 @@ local function parse_settings(bufnr, adapter, ts_query)
   return settings
 end
 
+---Parse the chat buffer for the last message
+---@param bufnr integer
+---@return table{content: string}
+local function buf_parse_message(bufnr)
+  local parser = vim.treesitter.get_parser(bufnr, "markdown")
+  local query = vim.treesitter.query.parse(
+    "markdown",
+    [[
+(section
+  (atx_heading
+    (atx_h2_marker))
+  ((_) @content)+) @response
+]]
+  )
+  local root = parser:parse()[1]:root()
+
+  local last_section = nil
+  local contents = {}
+
+  for id, node in query:iter_captures(root, bufnr) do
+    if query.captures[id] == "response" then
+      last_section = node
+      contents = {}
+    elseif query.captures[id] == "content" and last_section then
+      table.insert(contents, vim.treesitter.get_node_text(node, bufnr))
+    end
+  end
+
+  if #contents > 0 then
+    return { content = vim.trim(table.concat(contents, "\n")) }
+  end
+
+  return {}
+end
+
+---Parse the chat buffer for all messages
 ---@param bufnr integer
 ---@return table
-local function parse_messages(bufnr)
+local function buf_parse_messages(bufnr)
   local output = {}
 
   local parser = vim.treesitter.get_parser(bufnr, "markdown")
-  local query = vim.treesitter.query.parse("markdown", chat_query)
+  local query = vim.treesitter.query.parse(
+    "markdown",
+    [[(
+  atx_heading
+  (atx_h2_marker)
+  heading_content: (_) @role
+)
+(
+  section
+  [(paragraph) (fenced_code_block) (list)] @content
+)
+]]
+  )
   local root = parser:parse()[1]:root()
 
   local captures = {}
@@ -139,7 +177,7 @@ local function parse_messages(bufnr)
         message.content = content
       end
       if not message.role then
-        message.role = user_role
+        message.role = CONSTANTS.USER_ROLE
       end
     end
   end
@@ -153,7 +191,7 @@ end
 
 ---@class CodeCompanion.Chat
 ---@return CodeCompanion.ToolExecuteResult|nil
-local function parse_tool_schema(chat)
+local function buf_parse_tools(chat)
   local assistant_parser = vim.treesitter.get_parser(chat.bufnr, "markdown")
   local assistant_query = vim.treesitter.query.parse(
     "markdown",
@@ -184,7 +222,17 @@ local function parse_tool_schema(chat)
 
   local parser = vim.treesitter.get_string_parser(response, "markdown")
   local tree = parser:parse()[1]
-  local query = vim.treesitter.query.parse("markdown", tool_query)
+  local query = vim.treesitter.query.parse(
+    "markdown",
+    [[(
+ (section
+  (fenced_code_block
+    (info_string) @lang
+    (code_fence_content) @tool
+  ) (#match? @lang "xml"))
+)
+]]
+  )
 
   local tools = {}
   for id, node in query:iter_captures(tree:root(), response, 0, -1) do
@@ -214,22 +262,20 @@ local registered_cmp = false
 
 ---@class CodeCompanion.Chat
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
----@field id integer The unique identifier for the chat
----@field header_ns integer The namespace for the virtual text that appears in the header
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
----@field settings? table The settings that are used in the adapter of the chat buffer
----@field current_request table The current request being executed
----@field current_tool table The current tool being executed
 ---@field bufnr integer The buffer number of the chat
 ---@field context table The context of the buffer that the chat was initiated from
+---@field current_request table The current request being executed
+---@field current_tool table The current tool being executed
+---@field header_ns integer The namespace for the virtual text that appears in the header
+---@field id integer The unique identifier for the chat
 ---@field intro_message? boolean Whether the welcome message has been shown
----@field saved_chat? string The name of the saved chat
+---@field messages? table The table containing the messages in the chat buffer
+---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field tokens? nil|number The number of tokens in the chat
 ---@field tools? CodeCompanion.Tools The tools available to the user
 ---@field tools_in_use? nil|table The tools that are currently being used in the chat
 ---@field variables? CodeCompanion.Variables The variables available to the user
----@field variable_output? nil|table The output after the variables have been executed
----@field hidden_msgs? table Place to store non-visible messages
 local Chat = {}
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
@@ -240,7 +286,6 @@ local Chat = {}
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
 ---@field tokens? table Total tokens spent in the chat buffer so far
----@field saved_chat? string Name of the saved chat the chat buffer is aligned to
 ---@field status? string The status of any running jobs in the chat buffe
 ---@field last_role? string The role of the last response in the chat buffer
 
@@ -251,18 +296,16 @@ function Chat.new(args)
 
   local self = setmetatable({
     opts = args,
-    id = id,
     context = args.context,
     header_ns = api.nvim_create_namespace(CONSTANTS.NS_HEADER),
-    saved_chat = args.saved_chat,
-    tokens = args.tokens,
+    id = id,
+    last_role = args.last_role,
+    messages = args.messages or {},
     status = "",
-    last_role = user_role,
+    tokens = args.tokens,
     tools = require("codecompanion.strategies.chat.tools").new(),
     tools_in_use = {},
     variables = require("codecompanion.strategies.chat.variables").new(),
-    variable_output = {},
-    hidden_msgs = {},
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
@@ -288,11 +331,8 @@ function Chat.new(args)
   self:apply_settings(self.opts.settings)
 
   self.close_last_chat()
-  self:open():render(self.opts.messages):set_extmarks():set_autocmds()
+  self:open():render(self.messages):set_extmarks():set_autocmds()
 
-  if self.opts.saved_chat then
-    self:display_tokens()
-  end
   if self.opts.auto_submit then
     self:submit()
   end
@@ -383,7 +423,7 @@ end
 ---@return self
 function Chat:render(messages)
   local lines = {}
-  local last_role = user_role
+  local last_role = CONSTANTS.USER_ROLE
 
   local function spacer()
     table.insert(lines, "")
@@ -397,30 +437,28 @@ function Chat:render(messages)
 
   local function set_messages(msgs)
     for i, msg in ipairs(msgs) do
-      -- Only write non-system prompts to the chat buffer
-      if msg.role ~= CONSTANTS.SYSTEM_ROLE or (msg.opts and msg.opts.visible == true) then
+      if msg.role ~= CONSTANTS.SYSTEM_ROLE then
+        if msg.opts and msg.opts.visible == false then
+          goto continue
+        end
+
         if i > 1 and last_role ~= msg.role then
           spacer()
         end
+        if msg.role == CONSTANTS.USER_ROLE then
+          set_header(user_role)
+        end
+        if msg.role == CONSTANTS.LLM_ROLE then
+          set_header(llm_role)
+        end
 
-        set_header(msg.role)
         for _, text in ipairs(vim.split(msg.content, "\n", { plain = true, trimempty = true })) do
           table.insert(lines, text)
         end
 
         last_role = msg.role
-      else
-        -- To make sure that we don't lose the order of any ystem prompts, we
-        -- use a priority system:
-        --     1. Reserved for the plugin's default system prompt in the config
-        --     2. Reserved for prompts that come from variables or agents
-        --     3. Reserved for any other system prompts
-        table.insert(self.hidden_msgs, {
-          priority = msg.priority or 3,
-          role = CONSTANTS.SYSTEM_ROLE,
-          tag = msg.tag or nil,
-          content = msg.content,
-        })
+
+        ::continue::
       end
     end
   end
@@ -464,11 +502,13 @@ function Chat:render(messages)
 
   -- Add the default system prompt
   if config.opts.system_prompt then
-    table.insert(self.hidden_msgs, 1, {
-      priority = 1,
+    local system_prompt = {
       role = CONSTANTS.SYSTEM_ROLE,
       content = config.opts.system_prompt,
-    })
+    }
+    system_prompt.id = make_id(system_prompt)
+    system_prompt.opts = { visible = false }
+    table.insert(self.messages, 1, system_prompt)
   end
 
   unlock_buf(self.bufnr)
@@ -530,7 +570,7 @@ function Chat:set_autocmds()
       buffer = bufnr,
       desc = "Parse the settings in the CodeCompanion chat buffer for any errors",
       callback = function()
-        local settings = parse_settings(bufnr, self.adapter, [[((stream (_)) @block)]])
+        local settings = buf_parse_settings(bufnr, self.adapter, [[((stream (_)) @block)]])
 
         local errors = schema.validate(self.adapter.args.schema, settings, self.adapter)
         local node = settings.__ts_node
@@ -563,7 +603,6 @@ function Chat:set_autocmds()
     buffer = bufnr,
     desc = "Submit the CodeCompanion chat buffer",
     callback = function()
-      self:save_chat()
       self:submit()
     end,
   })
@@ -701,105 +740,110 @@ function Chat:on_cursor_moved()
   end
 end
 
----Preprocess messages to handle tools, variables, and other components
----@param messages table
----@return table
-function Chat:preprocess_messages(messages)
-  local latest_msg = messages[#messages]
-
-  -- Determine if we've already hidden a message
-  local function is_hidden(msg)
-    for _, hidden_msg in ipairs(self.hidden_msgs) do
-      if hidden_msg.content == msg then
-        return true
-      end
-    end
-    return false
+---Parse the last message for any tools
+---@param message table|string
+---@return CodeCompanion.Chat
+function Chat:parse_msg_for_tools(message)
+  if type(message) == "string" then
+    message = { content = message }
   end
 
-  -- Store hidden messages in their own table
-  local hide_msg = function(priority, content, role)
-    if not is_hidden(content) then
-      table.insert(self.hidden_msgs, {
-        priority = priority,
-        role = role or CONSTANTS.SYSTEM_ROLE,
-        content = content,
-      })
-    end
-  end
-
-  -- Process multiple tools in a single message
-  local tools = self.tools:parse(latest_msg.content)
+  local tools = self.tools:parse(message.content)
   if tools then
     for tool, opts in pairs(tools) do
-      latest_msg.content = self.tools:replace(latest_msg.content, tool)
+      message.content = self.tools:replace(message.content, tool)
+      message.id = make_id({ role = message.role, content = message.content })
       self.tools_in_use[tool] = opts
     end
   end
 
   -- Add the agent system prompt if tools are in use
   if util.count(self.tools_in_use) > 0 then
-    hide_msg(2, config.strategies.agent.tools.opts.system_prompt, CONSTANTS.SYSTEM_ROLE)
+    self:add_message(
+      config.strategies.agent.tools.opts.system_prompt,
+      CONSTANTS.SYSTEM_ROLE,
+      { visible = false, tag = "tool" }
+    )
     for _, opts in pairs(self.tools_in_use) do
-      hide_msg(3, "\n\n" .. opts.system_prompt(opts.schema), CONSTANTS.SYSTEM_ROLE)
+      self:add_message(
+        "\n\n" .. opts.system_prompt(opts.schema),
+        CONSTANTS.SYSTEM_ROLE,
+        { visible = false, tag = "tool" }
+      )
     end
   end
 
-  -- Process variables
-  local vars = self.variables:parse(self, messages[#messages].content, #messages)
+  return self
+end
+
+---Parse the last message for any variables
+---@param message table|string
+---@return CodeCompanion.Chat
+function Chat:parse_msg_for_vars(message)
+  if type(message) == "string" then
+    message = { content = message }
+  end
+
+  local vars = self.variables:parse(self, message.content)
   if vars then
-    messages[#messages].content = self.variables:replace(messages[#messages].content, vars)
-    table.insert(self.variable_output, vars)
+    message.content = self.variables:replace(message.content, vars)
+    message.id = make_id({ role = message.role, content = message.content })
+    self:add_message(vars, CONSTANTS.USER_ROLE, { visible = false, tag = "variable" })
   end
 
-  -- Add variables to the message stack
-  if self.variable_output then
-    log:debug("Variables stored: %s", self.variable_output)
-    for _, var in ipairs(self.variable_output) do
-      table.insert(messages, var.index, {
-        role = user_role,
-        content = var.content,
-      })
-    end
-    log:trace("Variable used in response: %s", self.variable_output)
+  return self
+end
+
+---Set the messages on the chat class
+---@param message table|string The message from the chat buffer
+---@param role string The role of the person who sent the message
+---@param opts? table Options for the message
+---@return CodeCompanion.Chat
+function Chat:add_message(message, role, opts)
+  opts = opts or { visible = true }
+  if opts.visible == nil then
+    opts.visible = true
   end
 
-  -- TODO: Process slash commands here when implemented
-
-  -- Insert the hidden messages back into the message stack in the correct order
-  table.sort(self.hidden_msgs, function(a, b)
-    return a.priority > b.priority
-  end)
-  for _, msg in ipairs(self.hidden_msgs) do
-    table.insert(messages, 1, {
-      role = msg.role,
-      content = msg.content,
-    })
+  if type(message) == "string" then
+    message = { content = message }
   end
 
-  return messages
+  message = {
+    role = role,
+    content = message.content,
+  }
+  message.id = make_id(message)
+  message.opts = opts
+  table.insert(self.messages, message)
+
+  return self
 end
 
 ---Submit the chat buffer's contents to the LLM
 ---@return nil
 function Chat:submit()
   local bufnr = self.bufnr
-  local settings, messages = parse_settings(bufnr, self.adapter), parse_messages(bufnr)
-  if not messages or #messages == 0 or (not messages[#messages].content or messages[#messages].content == "") then
+  local message = buf_parse_message(bufnr)
+  if util.count(message) == 0 then
     return log:warn("No messages to submit")
   end
+  self:add_message(message, CONSTANTS.USER_ROLE)
 
-  messages = self:preprocess_messages(messages)
-  log:debug("Settings: %s", settings)
-  log:debug("Messages: %s", messages)
+  message = self.messages[#self.messages]
+  self:parse_msg_for_vars(message):parse_msg_for_tools(message)
+
+  local settings = buf_parse_settings(bufnr, self.adapter)
   settings = self.adapter:map_schema_to_params(settings)
-  messages = self.adapter:map_roles(messages)
 
   config.strategies.chat.callbacks.on_submit(self)
 
+  log:debug("Settings:\n%s", settings)
+  log:debug("Messages:\n%s", self.messages)
+
   lock_buf(bufnr)
   log:info("Chat request started")
-  self.current_request = client.new():stream(settings, messages, function(err, data)
+  self.current_request = client.new():stream(settings, self.messages, function(err, data)
     if err then
       log:error("Error: %s", err)
       return self:reset()
@@ -811,9 +855,9 @@ function Chat:submit()
       local result = self.adapter.args.handlers.chat_output(data)
       if result and result.status == CONSTANTS.STATUS_SUCCESS then
         if result.output.role then
-          result.output.role = llm_role
+          result.output.role = CONSTANTS.LLM_ROLE
         end
-        self:append(result.output)
+        self:append_to_buf(result.output)
       end
     end
   end, function()
@@ -823,15 +867,16 @@ function Chat:submit()
   })
 end
 
----Function to run once the chat submission is done
+---After the response from the LLM is received...
 ---@return nil
 function Chat:done()
-  self:append({ role = user_role, content = "" })
-  self:display_tokens()
-  self:save_chat()
+  self:add_message(buf_parse_message(self.bufnr), CONSTANTS.LLM_ROLE)
 
-  if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.tools_in_use) > 0 then
-    parse_tool_schema(self)
+  self:append_to_buf({ role = CONSTANTS.USER_ROLE, content = "" })
+  self:display_tokens()
+
+  if self.status ~= CONSTANTS.STATUS_ERROR then
+    buf_parse_tools(self)
   end
 
   config.strategies.chat.callbacks.on_complete(self)
@@ -931,7 +976,7 @@ end
 ---Append a message to the chat buffer
 ---@param data table
 ---@param opts? table
-function Chat:append(data, opts)
+function Chat:append_to_buf(data, opts)
   local lines = {}
   local bufnr = self.bufnr
   local new_response = false
@@ -941,7 +986,7 @@ function Chat:append(data, opts)
     self.last_role = data.role
     table.insert(lines, "")
     table.insert(lines, "")
-    table.insert(lines, string.format("## %s", data.role))
+    table.insert(lines, string.format("## %s", config.strategies.chat.roles[data.role]))
     table.insert(lines, "")
   end
 
@@ -965,7 +1010,7 @@ function Chat:append(data, opts)
       self:render_headers()
     end
 
-    if self.last_role ~= user_role then
+    if self.last_role ~= CONSTANTS.USER_ROLE then
       lock_buf(bufnr)
     end
 
@@ -977,34 +1022,17 @@ function Chat:append(data, opts)
   end
 end
 
----Wrapper for appending a message to the chat buffer
----@param data table
----@param opts? table
----@return nil
-function Chat:add_message(data, opts)
-  self:append({ role = data.role, content = data.content }, opts)
-
-  if opts and opts.notify then
-    api.nvim_echo({
-      { "[CodeCompanion.nvim]\n", "Normal" },
-      { opts.notify, "MoreMsg" },
-    }, true, {})
-  end
-end
-
 ---When a request has finished, reset the chat buffer
 ---@return nil
 function Chat:reset()
-  local bufnr = self.bufnr
-
   self.status = ""
-  unlock_buf(bufnr)
+  unlock_buf(self.bufnr)
 end
 
 ---Get the messages from the chat buffer
 ---@return table
 function Chat:get_messages()
-  return parse_messages(self.bufnr)
+  return self.messages
 end
 
 ---@param data table
@@ -1111,9 +1139,6 @@ function Chat:clear()
     CONSTANTS.NS_HEADER,
   }
 
-  self.tools_in_use = {}
-  self.variable_output = {}
-  self.hidden_msgs = {}
   self.opts.messages = nil
   self.tokens = nil
   clear_ns(namespaces)
@@ -1122,26 +1147,12 @@ function Chat:clear()
   self:render():set_extmarks()
 end
 
----Saves the chat buffer if it has been loaded
----@return nil
-function Chat:save_chat()
-  if not self.saved_chat or not config.opts.auto_save_chats then
-    return
-  end
-
-  local saved_chat = require("codecompanion.strategies.saved_chats")
-
-  saved_chat = saved_chat.new({ filename = self.saved_chat })
-  saved_chat:save(self)
-  log:trace("Chat saved")
-end
-
 function Chat:debug()
   local bufnr = self.bufnr
-  local settings, messages = parse_settings(bufnr, self.adapter), parse_messages(bufnr)
+  local settings, messages = buf_parse_settings(bufnr, self.adapter), buf_parse_messages(bufnr)
 
-  if messages[#messages].content then
-    messages = self:preprocess_messages(messages)
+  if not messages[#messages].content then
+    return
   end
 
   return settings, messages

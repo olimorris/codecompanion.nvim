@@ -101,7 +101,7 @@ function Strategies:chat()
   local function chat(input)
     if input then
       table.insert(messages, {
-        role = config.strategies.chat.roles.user,
+        role = "user",
         content = input,
       })
     end

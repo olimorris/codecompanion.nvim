@@ -72,9 +72,8 @@ end
 ---Parse a message to detect if it references any variables
 ---@param chat CodeCompanion.Chat
 ---@param message string
----@param index number
 ---@return table|nil
-function Variables:parse(chat, message, index)
+function Variables:parse(chat, message)
   local var = find(message, self.vars)
   if not var then
     return
@@ -95,7 +94,6 @@ function Variables:parse(chat, message, index)
 
   return {
     var = var,
-    index = index,
     type = found.type,
     content = resolve(chat, found.callback, params),
   }

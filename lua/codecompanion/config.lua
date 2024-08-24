@@ -222,7 +222,6 @@ Answer the user's questions with the tool's output.]],
       prompts = {
         {
           role = "system",
-          tag = "system_tag",
           content = function(context)
             if context.buftype == "terminal" then
               return "I want you to act as an expert in writing terminal commands that will work for my current shell "
@@ -233,6 +232,10 @@ Answer the user's questions with the tool's output.]],
               .. context.filetype
               .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing"
           end,
+          opts = {
+            visible = false,
+            tag = "system_tag",
+          },
         },
       },
     },
@@ -260,8 +263,11 @@ Answer the user's questions with the tool's output.]],
 4. Highlight any specific functions or methods used and their roles.
 5. Provide context on how the code fits into a larger application if applicable.]],
         },
+        opts = {
+          visible = false,
+        },
         {
-          role = "${user}",
+          role = "user",
           contains_code = true,
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
@@ -298,9 +304,12 @@ Answer the user's questions with the tool's output.]],
       - Edge cases
       - Error handling (if applicable)
 6. Provide the generated unit tests in a clear and organized manner without additional explanations or chat.]],
+          opts = {
+            visible = false,
+          },
         },
         {
-          role = "${user}",
+          role = "user",
           contains_code = true,
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
@@ -341,9 +350,12 @@ Ensure the fixed code:
 - Is formatted correctly.
 
 Use Markdown formatting and include the programming language name at the start of the code block.]],
+          opts = {
+            visible = false,
+          },
         },
         {
-          role = "${user}",
+          role = "user",
           contains_code = true,
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
@@ -369,15 +381,18 @@ Use Markdown formatting and include the programming language name at the start o
       prompts = {
         {
           role = "system",
-          tag = "system_tag",
           content = function(context)
             return "I want you to act as a senior "
               .. context.filetype
               .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing."
           end,
+          opts = {
+            visible = false,
+            tag = "system_tag",
+          },
         },
         {
-          role = "${user}",
+          role = "user",
           contains_code = true,
           content = function(context)
             local buf_utils = require("codecompanion.utils.buffers")
@@ -388,15 +403,13 @@ Use Markdown formatting and include the programming language name at the start o
               .. buf_utils.get_content(context.bufnr)
               .. "\n```\n\n"
           end,
+          opts = {
+            visible = false,
+          },
         },
         {
-          role = "${user}",
+          role = "user",
           contains_code = true,
-          tag = "visual",
-          condition = function(context)
-            -- The inline strategy will automatically add this in visual mode
-            return context.is_visual == false
-          end,
           content = function(context)
             local selection = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
             return "And this is the specific code that relates to my question:\n\n```"
@@ -405,6 +418,10 @@ Use Markdown formatting and include the programming language name at the start o
               .. selection
               .. "\n```\n\n"
           end,
+          opts = {
+            visible = true,
+            tag = "visual",
+          },
         },
       },
     },
@@ -425,9 +442,12 @@ Use Markdown formatting and include the programming language name at the start o
         {
           role = "system",
           content = [[You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages. When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting.]],
+          opts = {
+            visible = false,
+          },
         },
         {
-          role = "${user}",
+          role = "user",
           content = function(context)
             local diagnostics = require("codecompanion.helpers.actions").get_diagnostics(
               context.start_line,
@@ -457,7 +477,7 @@ Use Markdown formatting and include the programming language name at the start o
           end,
         },
         {
-          role = "${user}",
+          role = "user",
           contains_code = true,
           content = function(context)
             return "This is the code, for context:\n\n"
@@ -486,7 +506,7 @@ Use Markdown formatting and include the programming language name at the start o
       },
       prompts = {
         {
-          role = "${user}",
+          role = "user",
           contains_code = true,
           content = function()
             return "You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:"

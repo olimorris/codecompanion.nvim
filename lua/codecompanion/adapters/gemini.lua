@@ -43,18 +43,22 @@ return {
       local system = utils.pluck_messages(vim.deepcopy(messages), "system")
       for _, msg in ipairs(system) do
         msg.text = msg.content
+
+        -- Remove unnecessary fields
         msg.tag = nil
         msg.content = nil
         msg.role = nil
+        msg.id = nil
+        msg.opts = nil
       end
       local sys_prompts = {
         role = self.args.roles.user,
         parts = system,
       }
 
-      -- Format messages (remove all system prompts
+      -- Format messages (remove all system prompts)
       local output = {}
-      local user = utils.pop_messages(messages, "system")
+      local user = utils.pop_messages(vim.deepcopy(messages), "system")
       for _, msg in ipairs(user) do
         table.insert(output, {
           role = self.args.roles.user,

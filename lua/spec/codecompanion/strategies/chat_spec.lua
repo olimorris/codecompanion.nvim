@@ -7,6 +7,10 @@ local Chat
 local adapter = {
   name = "TestAdapter",
   url = "https://api.openai.com/v1/chat/completions",
+  roles = {
+    llm = "assistant",
+    user = "user",
+  },
   headers = {
     content_type = "application/json",
   },
@@ -74,64 +78,39 @@ describe("Chat", function()
     })
   end)
 
-  describe(":preprocess_messages", function()
+  describe("messages", function()
     it("system prompt is added first", function()
-      local messages = {
-        { role = "user", content = "Hello" },
-        { role = "assistant", content = "Hi there!" },
-      }
-
-      local result = Chat:preprocess_messages(messages)
-
-      assert.are.same(3, #result) -- 2 original messages + 1 system prompt
-      assert.are.same("system", result[1].role)
-      assert.are.same("foo", result[1].content)
-      assert.are.same("user", result[2].role)
-      assert.are.same("Hello", result[2].content)
-      assert.are.same("assistant", result[3].role)
-      assert.are.same("Hi there!", result[3].content)
+      assert.are.same("system", Chat.messages[1].role)
+      assert.are.same("foo", Chat.messages[1].content)
     end)
 
     it("agent system prompts are added next", function()
-      local messages = {
-        { role = "user", content = "@code_runner can you run some code for me?" },
-      }
+      table.insert(Chat.messages, { role = "user", content = "@code_runner can you run some code for me?" })
 
-      local result = Chat:preprocess_messages(messages)
+      Chat:parse_msg_for_tools(Chat.messages[#Chat.messages])
+
+      local result = Chat.messages
 
       assert.are.same(4, #result)
       assert.are.same("system", result[1].role)
       assert.are.same("foo", result[1].content)
-      assert.are.same("system", result[2].role)
-      assert.are.same("bar", result[2].content)
+      assert.are.same("user", result[2].role)
+      assert.are.same("can you run some code for me?", result[2].content)
       assert.are.same("system", result[3].role)
-      assert.are.same("\n\nbaz", result[3].content)
+      assert.are.same("bar", result[3].content)
+      assert.are.same("system", result[4].role)
+      assert.are.same("\n\nbaz", result[4].content)
     end)
 
     it("buffer variables are handled", function()
-      local messages = {
-        { role = "user", content = "#buffer what does this file do?" },
-      }
+      table.insert(Chat.messages, { role = "user", content = "#buffer what does this file do?" })
+      Chat:parse_msg_for_vars(Chat.messages[#Chat.messages])
 
-      local result = Chat:preprocess_messages(messages)
-
-      assert.are.same("system", result[1].role)
-      assert.are.same("foo", result[1].content)
-      assert.are.same("foobar", result[2].content)
-    end)
-
-    it("buffer variables, if reused, are not stacked", function()
-      local msg_with_var = "#buffer what does this file do?"
-      local messages = {
-        { role = "user", content = msg_with_var },
-        { role = "assistant", content = "Looks like it prints foobar" },
-        { role = "user", content = "#buffer Okay. Now what does this file do?" },
-      }
-
-      local result = Chat:preprocess_messages(messages)
-
-      assert.are.same(msg_with_var, result[2].content)
-      assert.are.same("foobar", result[4].content)
+      -- Variable is inserted as its own new message at the end
+      local message = Chat.messages[#Chat.messages]
+      assert.are.same("foobar", message.content)
+      assert.are.same(false, message.opts.visible)
+      assert.are.same("variable", message.opts.tag)
     end)
   end)
 end)

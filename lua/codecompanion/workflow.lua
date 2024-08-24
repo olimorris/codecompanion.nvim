@@ -54,7 +54,7 @@ function Workflow:workflow(prompts)
     end
 
     local prompt = workflow_prompts[1]
-    chat:add_message(prompt)
+    chat:append_to_buf(prompt)
 
     if prompt.auto_submit then
       chat:submit()

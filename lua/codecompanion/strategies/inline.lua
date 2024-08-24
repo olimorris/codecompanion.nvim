@@ -33,6 +33,10 @@ Here are some example prompts and their correct method classification ("<method>
 As a final assessment, I'd like you to determine if any code that the user has provided to you within their prompt should be returned in your response. I am calling this determination the "<return>" evaluation and it should be a boolean value.
 Please respond to this prompt in the format "<method>|<return>" where "<method>" is a string and "<replace>" is a boolean value. For example `after|false` or `chat|false` or `replace|true`. Do not provide any other content in your response.]],
   CODE_ONLY_PROMPT = [[Respond with code only. DO NOT format the code in Markdown code blocks, DO NOT use backticks AND DO NOT provide any explanations.]],
+
+  USER_ROLE = "user",
+  LLM_ROLE = "llm",
+  SYSTEM_ROLE = "system",
 }
 
 local user_role = config.strategies.chat.roles.user
@@ -76,8 +80,10 @@ local function build_prompt(inline, user_input)
 
       table.insert(output, {
         role = prompt.role,
-        tag = prompt.tag,
         content = prompt.content,
+        opts = {
+          tag = prompt.tag,
+        },
       })
     end
 
@@ -87,9 +93,12 @@ local function build_prompt(inline, user_input)
   -- Add the user prompt
   if user_input then
     table.insert(output, {
-      role = user_role,
-      tag = "user_prompt",
+      role = CONSTANTS.USER_ROLE,
       content = user_input,
+      opts = {
+        tag = "user_prompt",
+        visible = true,
+      },
     })
   end
 
@@ -98,20 +107,22 @@ local function build_prompt(inline, user_input)
     if inline.context.is_visual and not inline.opts.stop_context_insertion then
       log:trace("Sending visual selection")
       table.insert(output, {
-        role = user_role,
-        tag = "visual",
+        role = CONSTANTS.USER_ROLE,
         content = code_block(
           "For context, this is the code that I've selected in the buffer",
           inline.context.filetype,
           inline.context.lines
         ),
+        opts = {
+          tag = "visual",
+        },
       })
     end
   end
 
   local user_prompts = ""
   for _, prompt in ipairs(output) do
-    if prompt.role == user_role then
+    if prompt.role == CONSTANTS.USER_ROLE then
       user_prompts = user_prompts .. prompt.content
     end
   end
@@ -196,32 +207,13 @@ local function send_to_chat(inline, prompt)
   -- additional steps. We need to remove any visual selections as the chat
   -- buffer adds this itself. We also need to order the system prompt
   for i = #prompt, 1, -1 do
-    if inline.context.is_visual and prompt[i].tag == "visual" then
+    if inline.context.is_visual and (prompt[i].opts and prompt[i].opts.tag == "visual") then
       table.remove(prompt, i)
-    elseif prompt[i].tag == "system_tag" then
+    elseif prompt[i].opts and prompt[i].opts.tag == "system_tag" then
       prompt[i].content = config.strategies.inline.prompts.inline_to_chat(inline.context)
+      prompt[i].opts.visible = false
     end
   end
-
-  -- Lastly, we need to re-arrange the prompts table
-  table.sort(prompt, function(a, b)
-    -- System prompts come first...
-    if a.role == "system" then
-      return true
-    end
-    if b.role == "system" then
-      return false
-    end
-    -- ...and user prompts last
-    if a.tag == "user_prompt" then
-      return false
-    end
-    if b.tag == "user_prompt" then
-      return true
-    end
-
-    return false
-  end)
 
   return require("codecompanion.strategies.chat")
     .new({
@@ -322,6 +314,11 @@ end
 function Inline:start(opts)
   log:trace("Starting Inline with opts: %s", opts)
 
+  -- Any prompt that's been classified, prior to submission, is stored in the classified table
+  classified.pos = {}
+  classified.prompts = {}
+  classified.placement = ""
+
   if opts and opts[1] then
     self.opts = opts[1]
   end
@@ -377,7 +374,7 @@ function Inline:classify(user_input)
   if not self.opts.placement then
     local action = {
       {
-        role = "system",
+        role = CONSTANTS.SYSTEM_ROLE,
         content = CONSTANTS.PLACEMENT_PROMPT,
       },
       {
@@ -448,7 +445,7 @@ function Inline:submit()
 
   -- Remind the LLM to respond with code only
   table.insert(classified.prompts, {
-    role = "system",
+    role = CONSTANTS.SYSTEM_ROLE,
     content = CONSTANTS.CODE_ONLY_PROMPT,
   })
 
@@ -492,10 +489,6 @@ function Inline:submit_done()
   log:info("Inline request finished")
   local bufnr = classified.pos.bufnr or self.context.bufnr
   api.nvim_buf_del_keymap(bufnr, "n", "q")
-
-  classified.pos = {}
-  classified.prompts = {}
-  classified.placement = ""
 end
 
 ---With the placement determined, we can now place the output from the inline prompt

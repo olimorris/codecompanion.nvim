@@ -55,7 +55,7 @@ function Client:stream(adapter, payload, cb, after, opts)
     )
   )
 
-  log:trace("Adapter: %s", adapter)
+  log:trace("Updated Adapter:\n%s", adapter)
 
   local handler = self.opts
     .request({
@@ -65,7 +65,7 @@ function Client:stream(adapter, payload, cb, after, opts)
       body = body,
       stream = self.opts.schedule(function(_, data)
         if data and data ~= "" then
-          log:trace("Request data: %s", data)
+          log:trace("Request data:\n%s", data)
         end
         -- log:trace("----- For Adapter test creation -----\nRequest: %s\n ---------- // END ----------", data)
 
@@ -97,7 +97,7 @@ function Client:stream(adapter, payload, cb, after, opts)
     end)
 
   if handler and handler.args then
-    log:debug("Request: %s", handler.args)
+    log:debug("Request:\n%s", handler.args)
   end
 
   util.fire("RequestStarted", opts)

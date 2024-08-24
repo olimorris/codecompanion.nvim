@@ -68,7 +68,7 @@ local function set_autocmds(chat, tool)
       api.nvim_buf_clear_namespace(chat.bufnr, ns_id, 0, -1)
 
       if request.data.status == "error" then
-        chat:add_message({
+        chat:append_to_buf({
           role = config.strategies.chat.roles.user,
           content = tool.output_error_prompt(request.data.error),
         })
@@ -87,7 +87,7 @@ local function set_autocmds(chat, tool)
         else
           output = request.data.error
         end
-        chat:add_message({
+        chat:append_to_buf({
           role = config.strategies.chat.roles.user,
           content = tool.output_prompt(output),
         })
