@@ -750,21 +750,21 @@ function Chat:parse_msg_for_tools(message)
       message.id = make_id({ role = message.role, content = message.content })
       self.tools_in_use[tool] = opts
     end
-  end
 
-  -- Add the agent system prompt if tools are in use
-  if util.count(self.tools_in_use) > 0 then
-    self:add_message(
-      config.strategies.agent.tools.opts.system_prompt,
-      CONSTANTS.SYSTEM_ROLE,
-      { visible = false, tag = "tool" }
-    )
-    for _, opts in pairs(self.tools_in_use) do
+    -- Add the agent system prompt if tools are in use
+    if util.count(self.tools_in_use) > 0 then
       self:add_message(
-        "\n\n" .. opts.system_prompt(opts.schema),
+        config.strategies.agent.tools.opts.system_prompt,
         CONSTANTS.SYSTEM_ROLE,
         { visible = false, tag = "tool" }
       )
+      for _, opts in pairs(self.tools_in_use) do
+        self:add_message(
+          "\n\n" .. opts.system_prompt(opts.schema),
+          CONSTANTS.SYSTEM_ROLE,
+          { visible = false, tag = "tool" }
+        )
+      end
     end
   end
 
@@ -872,7 +872,7 @@ function Chat:done()
   self:append_to_buf({ role = CONSTANTS.USER_ROLE, content = "" })
   self:display_tokens()
 
-  if self.status ~= CONSTANTS.STATUS_ERROR then
+  if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.tools_in_use) > 0 then
     buf_parse_tools(self)
   end
 
