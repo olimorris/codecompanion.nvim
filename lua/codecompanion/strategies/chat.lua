@@ -1148,14 +1148,11 @@ function Chat:clear()
 end
 
 function Chat:debug()
-  local bufnr = self.bufnr
-  local settings, messages = buf_parse_settings(bufnr, self.adapter), buf_parse_messages(bufnr)
-
-  if not messages[#messages].content then
+  if util.count(self.messages) == 0 then
     return
   end
 
-  return settings, messages
+  return buf_parse_settings(self.bufnr, self.adapter), self.messages
 end
 
 ---Returns the chat object(s) based on the buffer number
