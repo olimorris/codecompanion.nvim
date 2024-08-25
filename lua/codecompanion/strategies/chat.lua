@@ -843,7 +843,7 @@ function Chat:submit()
 
   lock_buf(bufnr)
   log:info("Chat request started")
-  self.current_request = client.new():stream(settings, self.adapter:map_roles(self.messages), function(err, data)
+  self.current_request = client.new():stream(settings, self.adapter:map_roles(vim.deepcopy(self.messages)), function(err, data)
     if err then
       log:error("Error: %s", err)
       return self:reset()
