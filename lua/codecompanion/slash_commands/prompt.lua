@@ -10,7 +10,6 @@ function PromptCommand:init(opts)
   self.name = "prompt"
   self.description = "Insert a predefined prompt"
   self.prompts = config.slash_commands.prompts
-  vim.notify(vim.inspect(opts.prompts))
 end
 
 --- Complete file paths for the command.
