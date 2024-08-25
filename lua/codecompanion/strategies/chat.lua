@@ -437,11 +437,7 @@ function Chat:render(messages)
 
   local function set_messages(msgs)
     for i, msg in ipairs(msgs) do
-      if msg.role ~= CONSTANTS.SYSTEM_ROLE then
-        if msg.opts and msg.opts.visible == false then
-          goto continue
-        end
-
+      if msg.role ~= CONSTANTS.SYSTEM_ROLE or (msg.opts and msg.opts.visible ~= false) then
         if i > 1 and last_role ~= msg.role then
           spacer()
         end
@@ -457,8 +453,6 @@ function Chat:render(messages)
         end
 
         last_role = msg.role
-
-        ::continue::
       end
     end
   end
@@ -1147,6 +1141,7 @@ function Chat:clear()
   self:render():set_extmarks()
 end
 
+---Display the chat buffer's settings and messages
 function Chat:debug()
   if util.count(self.messages) == 0 then
     return
