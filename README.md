@@ -18,7 +18,7 @@ Currently supports: Anthropic, Gemini, Ollama and OpenAI adapters
 
 Thank you to the following people:
 
-<!-- sponsors --><!-- sponsors -->
+<!-- sponsors --><a href="https://github.com/mtmr0x"><img src="https://github.com/mtmr0x.png" width="60px" alt="Matheus Marsiglio" /></a><!-- sponsors -->
 
 <!-- panvimdoc-ignore-end -->
 
