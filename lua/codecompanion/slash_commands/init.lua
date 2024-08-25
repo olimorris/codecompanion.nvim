@@ -26,7 +26,6 @@ local ui = require("codecompanion.utils.ui")
 --- specific commands with additional functionalities.
 ---@field public name string The name of the command.
 ---@field public description string A brief description of the command.
----@field public chat CodeCompanion.Chat The chat context in which the command is executed.
 local BaseSlashCommand = {}
 BaseSlashCommand.__index = BaseSlashCommand
 
@@ -50,6 +49,16 @@ function BaseSlashCommand.new(opts)
   return self
 end
 
+--- Retrieves the current chat buffer context.
+---
+--- This function calls the `buf_get_chat` utility to obtain
+--- the chat buffer associated with the current command.
+---
+--- @return CodeCompanion.Chat The chat context, typically containing buffer-specific information.
+function BaseSlashCommand.get_chat()
+  return require("codecompanion").buf_get_chat(0)
+end
+
 --- Initializes the BaseSlashCommand instance with the provided options.
 ---
 --- This function sets up the command's name, description, execution function,
@@ -64,7 +73,6 @@ function BaseSlashCommand:init(opts)
   opts = opts or {}
   self.name = opts.name
   self.description = opts.description
-  self.chat = opts.chat
 end
 
 --- Extends the BaseSlashCommand to create a new child command class.
@@ -96,7 +104,11 @@ end
 ---@param callback fun(completion_item: CodeCompanion.SlashCommandCompletionItem|nil)
 ---@diagnostic disable-next-line: unused-local
 function BaseSlashCommand:execute(completion_item, callback)
-  local chat = self.chat
+  local chat = self.get_chat()
+  if not chat then
+    return callback()
+  end
+
   local doc = type(completion_item.documentation) == "table" and completion_item.documentation.value
     or string.format("%s", completion_item.documentation)
 
@@ -138,14 +150,11 @@ end
 --- to register new commands, execute commands, and provide command completions.
 --- It serves as a central hub for handling all slash commands within the system.
 ---@field public commands CodeCompanion.BaseSlashCommand[] A table mapping command names to their respective BaseSlashCommand instances.
----@field public chat CodeCompanion.Chat The chat context in which the commands are executed.
 local SlashCommandManager = {}
 
----@param chat CodeCompanion.Chat The chat context in which the command is executed.
-function SlashCommandManager.new(chat)
+function SlashCommandManager.new()
   local self = setmetatable({}, { __index = SlashCommandManager })
   self.commands = {}
-  self.chat = chat
   return self
 end
 

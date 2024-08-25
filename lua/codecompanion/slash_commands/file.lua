@@ -61,7 +61,12 @@ end
 --- Insert the contents of a file into the chat buffer.
 --- @param file Path The file to insert.
 function FileCommand:_insert_file_content(file)
-  local chat = self.chat
+  local chat = self.get_chat()
+  if not chat then
+    return callback()
+  end
+
+  local bufnr = chat.focus_bufnr
   async.run(function()
     if not file:exists() then
       vim.schedule(function()
@@ -110,7 +115,12 @@ end
 --- @param dir Path The directory to insert.
 --- @param depth? number The current depth of recursion.
 function FileCommand:_insert_directory_content(dir, depth)
-  local chat = self.chat
+  local chat = self.get_chat()
+  if not chat then
+    return callback()
+  end
+
+  local bufnr = chat.focus_bufnr
   depth = depth or 0
   if depth > self.config.max_depth then
     return

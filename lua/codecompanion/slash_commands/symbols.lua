@@ -127,7 +127,12 @@ local important_symbol_kinds = {
 --- @param callback fun(response: CodeCompanion.SlashCommandCompletionResponse|nil)
 ---@diagnostic disable-next-line: unused-local
 function SymbolsCommand:complete(params, callback)
-  local bufnr = self.chat.focus_bufnr
+  local chat = self.get_chat()
+  if not chat then
+    return callback()
+  end
+
+  local bufnr = chat.focus_bufnr
   local filepath = vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":.")
 
   vim.lsp.buf_request(
@@ -188,13 +193,18 @@ end
 ---@param completion_item CodeCompanion.SlashCommandCompletionItem
 ---@param callback fun(completion_item: CodeCompanion.SlashCommandCompletionItem|nil)
 function SymbolsCommand:resolve(completion_item, callback)
+  local chat = self.get_chat()
+  if not chat then
+    return callback()
+  end
+
   local symbol = completion_item.slash_command_args.symbol
   local filepath = completion_item.slash_command_args.filepath
   local range = completion_item.slash_command_args.range
   local kind_name = vim.lsp.protocol.SymbolKind[symbol.kind] or "Unknown"
 
   if range then
-    local bufnr = self.chat.focus_bufnr
+    local bufnr = chat.focus_bufnr
 
     local start_line = range.start.line
     local end_line = range["end"].line

@@ -37,7 +37,12 @@ end
 --- @param callback fun(response: CodeCompanion.SlashCommandCompletionResponse|nil)
 ---@diagnostic disable-next-line: unused-local
 function DiagnosticsCommand:complete(params, callback)
-  local bufnr = self.chat.focus_bufnr
+  local chat = self.get_chat()
+  if not chat then
+    return callback()
+  end
+
+  local bufnr = chat.focus_bufnr
   local filepath = vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":.")
   local diagnostics = vim.diagnostic.get(bufnr)
   local formatted_diagnostics = {}
