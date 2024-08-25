@@ -1139,7 +1139,7 @@ function Chat:clear()
     CONSTANTS.NS_HEADER,
   }
 
-  self.opts.messages = nil
+  self.messages = nil
   self.tokens = nil
   clear_ns(namespaces)
 
