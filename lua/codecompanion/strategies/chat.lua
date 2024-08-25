@@ -837,28 +837,30 @@ function Chat:submit()
 
   lock_buf(bufnr)
   log:info("Chat request started")
-  self.current_request = client.new():stream(settings, self.adapter:map_roles(vim.deepcopy(self.messages)), function(err, data)
-    if err then
-      log:error("Error: %s", err)
-      return self:reset()
-    end
-
-    if data then
-      self:get_tokens(data)
-
-      local result = self.adapter.args.handlers.chat_output(data)
-      if result and result.status == CONSTANTS.STATUS_SUCCESS then
-        if result.output.role then
-          result.output.role = CONSTANTS.LLM_ROLE
-        end
-        self:append_to_buf(result.output)
+  self.current_request = client
+    .new()
+    :stream(settings, self.adapter:map_roles(vim.deepcopy(self.messages)), function(err, data)
+      if err then
+        log:error("Error: %s", err)
+        return self:reset()
       end
-    end
-  end, function()
-    self.current_request = nil
-  end, {
-    bufnr = bufnr,
-  })
+
+      if data then
+        self:get_tokens(data)
+
+        local result = self.adapter.args.handlers.chat_output(data)
+        if result and result.status == CONSTANTS.STATUS_SUCCESS then
+          if result.output.role then
+            result.output.role = CONSTANTS.LLM_ROLE
+          end
+          self:append_to_buf(result.output)
+        end
+      end
+    end, function()
+      self.current_request = nil
+    end, {
+      bufnr = bufnr,
+    })
 end
 
 ---After the response from the LLM is received...
