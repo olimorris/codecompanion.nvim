@@ -1061,6 +1061,7 @@ In each of the callbacks, the chat buffer class is made available via the `chat`
 The plugin fires many events during its lifecycle:
 
 - `CodeCompanionChatClosed` - Fired after a chat has been closed
+- `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionAgentStarted` - Fired when an agent has started using a tool
 - `CodeCompanionAgentFinished` - Fired when an agent has finished using a tool
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline strategy

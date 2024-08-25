@@ -328,6 +328,7 @@ function Chat.new(args)
   if not self.adapter then
     return log:error("No adapter found")
   end
+  util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = self.adapter.args })
   self:apply_settings(self.opts.settings)
 
   self.close_last_chat()
@@ -940,6 +941,7 @@ function Chat:close()
   api.nvim_buf_delete(self.bufnr, { force = true })
   api.nvim_del_augroup_by_name(CONSTANTS.AUTOCMD_GROUP .. self.bufnr)
   util.fire("ChatClosed", { bufnr = self.bufnr, chat = self })
+  util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = nil })
   self = nil
 end
 
