@@ -22,12 +22,15 @@ M.inline = function(args)
       prompts = {
         {
           role = "system",
-          tag = "system_tag",
           content = function()
             return "I want you to act as a senior "
               .. context.filetype
               .. " developer. I will ask you specific questions and I want you to return raw code only. No markdown codeblocks with backticks and no explanations. If you can't respond with code, respond with nothing."
           end,
+          opts = {
+            visible = false,
+            tag = "system_tag",
+          },
         },
       },
     })

@@ -79,9 +79,7 @@ local function build_prompt(inline, user_input)
       table.insert(output, {
         role = prompt.role,
         content = prompt.content,
-        opts = {
-          tag = prompt.tag,
-        },
+        opts = prompt.opts or {},
       })
     end
 
@@ -113,6 +111,7 @@ local function build_prompt(inline, user_input)
         ),
         opts = {
           tag = "visual",
+          visible = true,
         },
       })
     end
