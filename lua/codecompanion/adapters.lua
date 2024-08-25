@@ -234,17 +234,9 @@ end
 ---@param messages table
 ---@return table
 function Adapter:map_roles(messages)
-  local roles = config.strategies.chat.roles
-  local map = {
-    [roles.llm:lower()] = self.args.roles.llm,
-    [roles.user:lower()] = self.args.roles.user,
-  }
-
   for _, message in ipairs(messages) do
     if message.role then
-      message.role = message.role:lower()
-      -- Pass through the role if it doesn't exist in the map
-      message.role = map[message.role] or message.role
+      message.role = self.args.roles[message.role:lower()] or message.role
     end
   end
 
