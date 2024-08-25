@@ -14,6 +14,12 @@
 Currently supports: Anthropic, Gemini, Ollama and OpenAI adapters
 </p>
 
+## :heart_hands: Sponsors
+
+Thank you to the following people:
+
+<!-- sponsors --><!-- sponsors -->
+
 <!-- panvimdoc-ignore-end -->
 
 ## :sparkles: Features
