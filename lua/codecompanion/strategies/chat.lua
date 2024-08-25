@@ -308,7 +308,7 @@ function Chat.new(args)
     context = args.context,
     header_ns = api.nvim_create_namespace(CONSTANTS.NS_HEADER),
     id = id,
-    last_role = args.last_role,
+    last_role = args.last_role or CONSTANTS.USER_ROLE,
     messages = args.messages or {},
     status = "",
     tokens = args.tokens,

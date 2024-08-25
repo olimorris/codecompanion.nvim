@@ -101,7 +101,7 @@ function BaseSlashCommand:execute(completion_item, callback)
     or string.format("%s", completion_item.documentation)
 
   local start_line = api.nvim_buf_line_count(chat.bufnr)
-  chat:append({ content = doc })
+  chat:append_to_buf({ content = doc })
   local end_line = api.nvim_buf_line_count(chat.bufnr)
 
   ---@diagnostic disable-next-line: deprecated

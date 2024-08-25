@@ -89,7 +89,7 @@ function FileCommand:_insert_file_content(file)
       local filetype = vim.fn.fnamemodify(file:absolute(), ":e")
       local formatted_content = string.format("```%s %s\n%s\n```", filetype, file:absolute(), content)
       local start_line = vim.api.nvim_buf_line_count(chat.bufnr)
-      chat:append({ content = formatted_content })
+      chat:append_to_buf({ content = formatted_content })
       local end_line = vim.api.nvim_buf_line_count(chat.bufnr)
 
       -- Create fold
@@ -137,7 +137,7 @@ function FileCommand:_insert_directory_content(dir, depth)
 
     vim.schedule(function()
       local start_line = vim.api.nvim_buf_line_count(chat.bufnr)
-      chat:append({ content = content })
+      chat:append_to_buf({ content = content })
       local end_line = vim.api.nvim_buf_line_count(chat.bufnr)
 
       if depth == 0 then

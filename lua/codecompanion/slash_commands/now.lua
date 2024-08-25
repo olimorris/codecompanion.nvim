@@ -19,7 +19,7 @@ end
 function NowCommand:execute(completion_item, callback)
   local datetime = os.date("%a, %d %b %Y %H:%M:%S %z")
   local formatted_content = string.format("Current date and time: %s", datetime)
-  self.chat:append({ content = formatted_content })
+  self.chat:append_to_buf({ content = formatted_content })
   ui.buf_scroll_to_end(self.chat.bufnr)
 
   return callback()
