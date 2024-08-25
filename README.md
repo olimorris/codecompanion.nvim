@@ -964,7 +964,9 @@ The plugin comes with a number of default prompts ([as per the config](https://g
 
 ### :speech_balloon: The Chat Buffer
 
-The chat buffer is where you can converse with an LLM, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the LLM in the form of prompts. These prompts are segmented by H1 headers: `user`, `system` and `assistant`. When a response is received, it is then streamed back into the buffer. The result is that you experience the feel of conversing with your LLM from within Neovim.
+The chat buffer is where you converse with an LLM, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the LLM in the form of prompts. When a response is received, it is then streamed back into the buffer.
+
+The chat buffer has been designed to be turn based, whereby the user sends a message and the LLM replies. Messages are segmented by H2 headers. Once a message has been sent, it cannot be edited.
 
 As noted in the [Getting Started](#rocket-getting-started) section, there are a number of variables that you can make use of whilst in the chat buffer. Use `#` to bring up the completion menu to see the available options.
 
@@ -972,7 +974,7 @@ As noted in the [Getting Started](#rocket-getting-started) section, there are a 
 
 When in the chat buffer, there are number of keymaps available to you:
 
-- `?` - Bring up the help menu
+- `?` - Bring up the options menu
 - `<CR>`|`<C-s>` - Send the buffer to the LLM
 - `<C-c>` - Close the buffer
 - `q` - Cancel the request from the LLM
