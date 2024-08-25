@@ -1,3 +1,5 @@
+local SlashCommandManager = require("codecompanion.slash_commands").SlashCommandManager
+local has_cmp, cmp = pcall(require, "cmp")
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.client")
 local config = require("codecompanion").config
@@ -32,6 +34,8 @@ local CONSTANTS = {
 
 local llm_role = config.strategies.chat.roles.llm
 local user_role = config.strategies.chat.roles.user
+
+local last_active_buffer = nil
 
 ---@param bufnr integer
 ---@return nil
@@ -256,7 +260,7 @@ end
 local chatmap = {}
 
 ---@type CodeCompanion.Chat|nil
-local last_chat = {}
+local last_chat = nil
 
 local registered_cmp = false
 
@@ -276,6 +280,11 @@ local registered_cmp = false
 ---@field tools? CodeCompanion.Tools The tools available to the user
 ---@field tools_in_use? nil|table The tools that are currently being used in the chat
 ---@field variables? CodeCompanion.Variables The variables available to the user
+---@field variable_output? nil|table The output after the variables have been executed
+---@field hidden_msgs? table Place to store non-visible messages
+---@field namespace? integer The
+---@field slash_command_manager CodeCompanion.SlashCommandManager The manager for slash commands
+---@field focus_bufnr integer The buffer which was focused before the chat buffer was opened or entered
 local Chat = {}
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
@@ -306,6 +315,9 @@ function Chat.new(args)
     tools = require("codecompanion.strategies.chat.tools").new(),
     tools_in_use = {},
     variables = require("codecompanion.strategies.chat.variables").new(),
+    variable_output = {},
+    hidden_msgs = {},
+    focus_bufnr = args.context and args.context.bufnr or nil,
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
@@ -337,6 +349,8 @@ function Chat.new(args)
     self:submit()
   end
 
+  self:setup_slash_commands()
+
   last_chat = self
   return self
 end
@@ -349,6 +363,23 @@ function Chat:apply_settings(settings)
   self.settings = settings or schema.get_default(self.adapter.args.schema, self.opts.settings)
 
   return self
+end
+
+function Chat:setup_slash_commands()
+  local manager = SlashCommandManager.new(self)
+  local ns_id = api.nvim_create_namespace("codecompanion_folds")
+  self.namespace = ns_id
+
+  -- Register built-in slash commands
+  manager:register(require("codecompanion.slash_commands.file")({ chat = self }))
+  manager:register(require("codecompanion.slash_commands.terminal")({ chat = self }))
+  manager:register(require("codecompanion.slash_commands.tab")({ chat = self }))
+  manager:register(require("codecompanion.slash_commands.symbols")({ chat = self }))
+  manager:register(require("codecompanion.slash_commands.diagnostics")({ chat = self }))
+  manager:register(require("codecompanion.slash_commands.now")({ chat = self }))
+  manager:register(require("codecompanion.slash_commands.prompt")({ chat = self }))
+
+  self.slash_command_manager = manager
 end
 
 ---Set a model in the chat buffer
@@ -536,18 +567,19 @@ function Chat:set_autocmds()
     once = true,
     desc = "Setup the completion of helpers in the chat buffer",
     callback = function()
-      local has_cmp, cmp = pcall(require, "cmp")
       if has_cmp then
         if not registered_cmp then
           registered_cmp = true
           cmp.register_source("codecompanion_helpers", require("cmp_codecompanion.helpers").new())
           cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new())
+          cmp.register_source("codecompanion_slash", require("cmp_codecompanion.slash_command").new())
         end
         cmp.setup.buffer({
           enabled = true,
           sources = {
             { name = "codecompanion_helpers" },
             { name = "codecompanion_models" },
+            { name = "codecompanion_slash", keyword_length = 1 },
           },
         })
       end
@@ -637,6 +669,18 @@ function Chat:set_autocmds()
         return
       end
       self:done()
+    end,
+  })
+
+  -- Record the focus buffer when entering the chat buffer
+  api.nvim_create_autocmd("BufLeave", {
+    group = aug,
+    pattern = "*",
+    desc = "Record the last active buffer when leaving any buffer",
+    callback = function(ev)
+      if ev.buf ~= bufnr and api.nvim_buf_is_loaded(ev.buf) then
+        self.focus_bufnr = ev.buf
+      end
     end,
   })
 end
@@ -818,6 +862,18 @@ function Chat:add_message(message, role, opts)
   table.insert(self.messages, message)
 
   return self
+end
+
+function Chat:messages()
+  local messages = parse_messages(self.bufnr)
+  if not messages or #messages == 0 then
+    return nil
+  end
+
+  messages = self:preprocess_messages(messages)
+  messages = self.adapter:map_roles(messages)
+  log:info("Messages: %s", messages)
+  return messages
 end
 
 ---Submit the chat buffer's contents to the LLM

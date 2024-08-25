@@ -64,6 +64,35 @@ end
 local function build_prompt(inline, user_input)
   local output = {}
 
+  if inline.opts.append_last_chat then
+    local last_chat = require("codecompanion.strategies.chat").last_chat()
+    if last_chat and last_chat ~= {} then
+      local messages = last_chat:messages()
+
+      if messages then
+        for index, message in ipairs(messages) do
+          -- Skip the last message if it's a user message and it's empty
+          if index == #messages and message.role == "user" and message.content == "" then
+            goto continue
+          end
+
+          -- Because the chat system will interfere with the user-provided inline system
+          if message.role == "system" then
+            goto continue
+          end
+
+          table.insert(output, {
+            role = message.role,
+            tag = message.tag,
+            content = message.content,
+          })
+
+          ::continue::
+        end
+      end
+    end
+  end
+
   for _, prompt in ipairs(inline.prompts) do
     if prompt.condition then
       if not prompt.condition(inline.context) then
@@ -87,7 +116,7 @@ local function build_prompt(inline, user_input)
   end
 
   -- Add the user prompt
-  if user_input then
+  if user_input and inline.opts.append_user_prompt then
     table.insert(output, {
       role = CONSTANTS.USER_ROLE,
       content = user_input,
@@ -342,6 +371,7 @@ function Inline:start(opts)
       end
 
       log:info("User input received: %s", input)
+      self.context.user_input = input
       return self:classify(input)
     end)
   else

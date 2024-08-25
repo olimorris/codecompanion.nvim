@@ -562,6 +562,11 @@ Use Markdown formatting and include the programming language name at the start o
       },
     },
   },
+  slash_commands = {
+    prompts = {
+      ["example_prompt"] = "This is an example prompt.",
+    },
+  },
   -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
     log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
