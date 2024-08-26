@@ -19,8 +19,15 @@ end
 function PromptCommand:complete(params, callback)
   ---@type CodeCompanion.SlashCommandCompletionItem
   local items = {}
+  ---@type CodeCompanion.Chat
+  local chat = self.get_chat()
 
-  for name, content in pairs(self.prompts) do
+  for name, prompt in pairs(self.prompts) do
+    local content = prompt
+    if type(content) == "function" then
+      content = prompt(chat.context)
+    end
+
     table.insert(items, {
       label = name,
       kind = require("cmp").lsp.CompletionItemKind.Text,

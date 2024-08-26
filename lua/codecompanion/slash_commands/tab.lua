@@ -8,6 +8,8 @@ local TabCommand = BaseSlashCommand:extend()
 function TabCommand:init(opts)
   opts = opts or {}
   BaseSlashCommand.init(self, opts)
+  self.name = "tab"
+  self.description = "Insert a open buffer"
 end
 
 --- Complete file paths for the command.
@@ -40,7 +42,7 @@ function TabCommand:complete(params, callback)
     end
   end
 
-  return items
+  return callback({ items = items, isIncomplete = false })
 end
 
 ---Resolve completion item (optional). This is called right before the completion is about to be displayed.
@@ -50,13 +52,19 @@ end
 function TabCommand:resolve(completion_item, callback)
   local bufnr = completion_item.slash_command_args.bufnr
   local full_path = api.nvim_buf_get_name(bufnr)
+  local file_type = fn.fnamemodify(full_path, ":e")
   local cwd_relative_path = fn.fnamemodify(full_path, ":.")
-  local lines = api.nvim_buf_get_lines(bufnr, 0, 1, false)
+  local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
 
   local item = {
     label = full_path,
     kind = require("cmp").lsp.CompletionItemKind.File,
-    documentation = string.format("```%s\n%s\n```", cwd_relative_path, table.concat(lines, "\n")),
+    documentation = string.format(
+      "Content of %s\n```%s\n %s\n```",
+      file_type,
+      cwd_relative_path,
+      table.concat(lines, "\n")
+    ),
   }
 
   return callback(item)

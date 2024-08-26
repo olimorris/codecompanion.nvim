@@ -67,7 +67,7 @@ local function build_prompt(inline, user_input)
   if inline.opts.append_last_chat then
     local last_chat = require("codecompanion.strategies.chat").last_chat()
     if last_chat and last_chat ~= {} then
-      local messages = last_chat:messages()
+      local messages = last_chat.messages
 
       if messages then
         for index, message in ipairs(messages) do

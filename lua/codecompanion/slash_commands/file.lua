@@ -263,7 +263,8 @@ function FileCommand:resolve(completion_item, callback)
         completion_item.documentation = {
           kind = cmp.lsp.MarkupKind.Markdown,
           value = string.format(
-            "```%s\n%s\n```",
+            "Content of %s\n```%s\n%s\n```",
+            completion_item.slash_command_args,
             vim.fn.fnamemodify(completion_item.slash_command_args, ":e"),
             table.concat(content, "\n")
           ),
