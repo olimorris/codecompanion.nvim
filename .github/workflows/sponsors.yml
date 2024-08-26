@@ -1,9 +1,9 @@
-name: Generate Sponsors README
+name: Update Sponsors in the README
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: 30 15 * * 0-6
+    - cron: 0 21 * * 0-6
 
 jobs:
   deploy:
@@ -23,6 +23,6 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           commit-message: "docs: update sponsors in README.md"
-          title: "README.md: Update Sponsors"
+          title: "Update Sponsors in README"
           labels: "ignore-for-release"
           delete-branch: true
