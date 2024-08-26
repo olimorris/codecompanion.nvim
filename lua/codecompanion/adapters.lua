@@ -1,4 +1,6 @@
 local config = require("codecompanion").config
+
+local dep = require("codecompanion.utils.deprecate")
 local log = require("codecompanion.utils.log")
 
 ---Check if a variable starts with "cmd:"
@@ -248,7 +250,19 @@ end
 ---@param opts? table
 ---@return CodeCompanion.Adapter
 function Adapter.extend(adapter, opts)
-  return Adapter.use(adapter, opts)
+  local adapter_config
+
+  if type(adapter) == "string" then
+    adapter_config = require("codecompanion.adapters." .. adapter)
+  elseif type(adapter) == "function" then
+    adapter_config = adapter()
+  else
+    adapter_config = adapter
+  end
+
+  adapter_config = vim.tbl_deep_extend("force", {}, vim.deepcopy(adapter_config), opts or {})
+
+  return Adapter.new(adapter_config)
 end
 
 ---TODO: Deprecate this method
@@ -256,6 +270,15 @@ end
 ---@param opts? table
 ---@return CodeCompanion.Adapter
 function Adapter.use(adapter, opts)
+  dep.write(
+    "  ",
+    { "adapter.use", "WarningMsg" },
+    " has now been directly replaced by ",
+    { "adapter.extend", "WarningMsg" },
+    " in the adapter's section of your config",
+    "\nIt will be removed in coming weeks."
+  )
+
   local adapter_config
 
   if type(adapter) == "string" then
