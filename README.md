@@ -18,7 +18,9 @@ Currently supports: Anthropic, Gemini, Ollama and OpenAI adapters
 
 Thank you to the following people:
 
-<!-- sponsors --><a href="https://github.com/mtmr0x"><img src="https://github.com/mtmr0x.png" width="60px" alt="Matheus Marsiglio" /></a><!-- sponsors -->
+<p align="center">
+<!-- coffee --><a href="https://github.com/ivo-toby"><img src="https://github.com/ivo-toby.png" width="60px" alt="Ivo Toby" /></a><a href="https://github.com/KTSCode"><img src="https://github.com/KTSCode.png" width="60px" alt="KTS Code" /></a><!-- coffee --><!-- sponsors --><a href="https://github.com/mtmr0x"><img src="https://github.com/mtmr0x.png" width="60px" alt="Matheus Marsiglio" /></a><!-- sponsors -->
+</p>
 
 <!-- panvimdoc-ignore-end -->
 
