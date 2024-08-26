@@ -27,8 +27,10 @@ jobs:
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
+
       - run: date +%F > todays-date
-      - name: Restore from todays cache
+
+      - name: Restore from todays cache 📂
         uses: actions/cache@v4
         with:
           path: _neovim
