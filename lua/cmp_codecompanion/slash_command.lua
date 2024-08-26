@@ -74,7 +74,7 @@ function source:execute(completion_item, callback)
 
   local cmd = chat.slash_command_manager:get(completion_item.slash_command_name)
 
-  if cmd and completion_item then
+  if cmd then
     -- remove current line
     vim.api.nvim_set_current_line("")
 
