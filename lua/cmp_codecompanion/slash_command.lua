@@ -27,6 +27,10 @@ function source:complete(params, callback)
     return callback()
   end
 
+  if not input:match("^/") then
+    return callback()
+  end
+
   local command = input:match("/(%w+)")
   local cmd = chat.slash_command_manager:get(command)
 
