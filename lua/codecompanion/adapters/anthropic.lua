@@ -53,12 +53,10 @@ return {
       end
 
       -- Ensuring that they're removed from the messages table
-      local output = {}
-      for _, message in ipairs(utils.pop_messages(messages, "system")) do
-        table.insert(output, { role = message.role, content = message.content })
-      end
+      -- And ensuring that consecutive messages of the same role are merged
+      messages = utils.merge_messages(utils.pop_messages(messages, "system"))
 
-      return { system = system, messages = output }
+      return { system = system, messages = messages }
     end,
 
     ---Returns the number of tokens generated from the LLM
