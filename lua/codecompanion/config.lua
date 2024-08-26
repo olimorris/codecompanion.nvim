@@ -584,7 +584,7 @@ Use Markdown formatting and include the programming language name at the start o
     -- strategy. It is primarily based on the GitHub Copilot Chat's prompt
     -- but with some modifications. You can choose to remove this via
     -- your own config but note that LLM results may not be as good
-    system_prompt = [[You are an Al programming assistant named "CodeCompanion".
+    system_prompt = [[You are an AI programming assistant named "CodeCompanion".
 You are currently plugged in to the Neovim text editor on a user's machine.
 
 Your tasks include:

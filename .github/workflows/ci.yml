@@ -25,15 +25,18 @@ jobs:
             url: https://github.com/neovim/neovim/releases/download/v0.9.2/nvim-linux64.tar.gz
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
       - run: date +%F > todays-date
-      - name: Restore from todays cache
+
+      - name: Restore from todays cache 📂
         uses: actions/cache@v4
         with:
           path: _neovim
           key: ${{ runner.os }}-${{ matrix.url }}-${{ hashFiles('todays-date') }}
 
-      - name: Prepare
+      - name: Prepare 🏗️
         run: |
           test -d _neovim || {
             mkdir -p _neovim
@@ -43,7 +46,7 @@ jobs:
           git clone --depth 1 https://github.com/nvim-lua/plenary.nvim ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
           ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
 
-      - name: Run tests
+      - name: Run tests 🧪
         run: |
           export PATH="${PWD}/_neovim/bin:${PATH}"
           export VIM="${PWD}/_neovim/share/nvim/runtime"
@@ -59,7 +62,8 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: googleapis/release-please-action@v4
+      - name: Release 📦
+        uses: googleapis/release-please-action@v4
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           release-type: simple

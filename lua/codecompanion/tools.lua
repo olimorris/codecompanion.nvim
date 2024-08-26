@@ -88,7 +88,7 @@ local function set_autocmds(chat, tool)
           output = request.data.error
         end
         chat:append_to_buf({
-          role = config.strategies.chat.roles.user,
+          role = "user",
           content = tool.output_prompt(output),
         })
         if tool.opts and tool.opts.hide_output then

@@ -1,4 +1,5 @@
 local log = require("codecompanion.utils.log")
+local tokens = require("codecompanion.utils.tokens")
 local utils = require("codecompanion.utils.adapters")
 
 local input_tokens = 0
@@ -21,12 +22,16 @@ return {
     api_key = "ANTHROPIC_API_KEY",
   },
   headers = {
-    ["anthropic-version"] = "2023-06-01",
     ["content-type"] = "application/json",
     ["x-api-key"] = "${api_key}",
+    ["anthropic-version"] = "2023-06-01",
+    ["anthropic-beta"] = "prompt-caching-2024-07-31",
   },
   parameters = {
     stream = true,
+  },
+  opts = {
+    cache_over = 300, -- Cache any message which has this many tokens or more
   },
   handlers = {
     ---Set the parameters
@@ -35,17 +40,6 @@ return {
     ---@param messages table
     ---@return table
     form_parameters = function(self, params, messages)
-      -- As per: https://docs.anthropic.com/claude/docs/system-prompts
-      -- Claude doesn't put the system prompt in the messages array, but in the parameters.system field
-      local sys_prompts = utils.get_msg_index("system", messages)
-
-      -- Merge system prompts together
-      if sys_prompts and #sys_prompts > 0 then
-        for _, prompt in ipairs(sys_prompts) do
-          params.system = (params.system or "") .. messages[prompt].content
-        end
-      end
-
       return params
     end,
 
@@ -54,20 +48,40 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
-      -- Remove any system prompts from the messages array
-      local sys_prompt = utils.get_msg_index("system", messages)
-      if sys_prompt and #sys_prompt > 0 then
-        -- Sort the prompts in descending order so we can remove them from the table without shifting indexes
-        table.sort(sys_prompt, function(a, b)
-          return a > b
-        end)
-        for _, prompt in ipairs(sys_prompt) do
-          table.remove(messages, prompt)
+      -- Put system prompts into their own table...
+      local system = {}
+      for _, prompt in ipairs(utils.pluck_messages(messages, "system")) do
+        table.insert(system, {
+          type = "text",
+          text = prompt.content,
+          -- Cache system prompts
+          cache_control = { type = "ephemeral" },
+        })
+      end
+      if next(system) == nil then
+        system = nil
+      end
+
+      -- ...ensuring that they're removed from the messages table
+      utils.pop_messages(messages, "system")
+      -- And ensuring that consecutive messages of the same role are merged
+      messages = utils.merge_messages(messages)
+
+      -- As per: https://github.com/anthropics/anthropic-cookbook/blob/main/misc/prompt_caching.ipynb
+      -- Claude now supports caching. We cache any message that exceeds the opts.cache_over number
+      for _, message in ipairs(messages) do
+        if message.role == "user" and tokens.calculate(message.content) >= self.args.opts.cache_over then
+          message.content = {
+            {
+              type = "text",
+              text = message.content,
+              cache_control = { type = "ephemeral" },
+            },
+          }
         end
       end
 
-      -- Combine consecutive user prompts into a single prompt
-      return { messages = utils.merge_messages(messages) }
+      return { system = system, messages = messages }
     end,
 
     ---Returns the number of tokens generated from the LLM

@@ -308,7 +308,7 @@ function Chat.new(args)
     context = args.context,
     header_ns = api.nvim_create_namespace(CONSTANTS.NS_HEADER),
     id = id,
-    last_role = args.last_role or CONSTANTS.USER_ROLE,
+    last_role = args.last_role or "user",
     messages = args.messages or {},
     status = "",
     tokens = args.tokens,
@@ -340,6 +340,7 @@ function Chat.new(args)
   if not self.adapter then
     return log:error("No adapter found")
   end
+  util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = self.adapter.args })
   self:apply_settings(self.opts.settings)
 
   self.close_last_chat()
@@ -468,11 +469,7 @@ function Chat:render(messages)
 
   local function set_messages(msgs)
     for i, msg in ipairs(msgs) do
-      if msg.role ~= CONSTANTS.SYSTEM_ROLE then
-        if msg.opts and msg.opts.visible == false then
-          goto continue
-        end
-
+      if msg.role ~= CONSTANTS.SYSTEM_ROLE or (msg.opts and msg.opts.visible ~= false) then
         if i > 1 and last_role ~= msg.role then
           spacer()
         end
@@ -488,8 +485,6 @@ function Chat:render(messages)
         end
 
         last_role = msg.role
-
-        ::continue::
       end
     end
   end
@@ -799,21 +794,21 @@ function Chat:parse_msg_for_tools(message)
       message.id = make_id({ role = message.role, content = message.content })
       self.tools_in_use[tool] = opts
     end
-  end
 
-  -- Add the agent system prompt if tools are in use
-  if util.count(self.tools_in_use) > 0 then
-    self:add_message(
-      config.strategies.agent.tools.opts.system_prompt,
-      CONSTANTS.SYSTEM_ROLE,
-      { visible = false, tag = "tool" }
-    )
-    for _, opts in pairs(self.tools_in_use) do
+    -- Add the agent system prompt if tools are in use
+    if util.count(self.tools_in_use) > 0 then
       self:add_message(
-        "\n\n" .. opts.system_prompt(opts.schema),
+        config.strategies.agent.tools.opts.system_prompt,
         CONSTANTS.SYSTEM_ROLE,
         { visible = false, tag = "tool" }
       )
+      for _, opts in pairs(self.tools_in_use) do
+        self:add_message(
+          "\n\n" .. opts.system_prompt(opts.schema),
+          CONSTANTS.SYSTEM_ROLE,
+          { visible = false, tag = "tool" }
+        )
+      end
     end
   end
 
@@ -899,28 +894,30 @@ function Chat:submit()
 
   lock_buf(bufnr)
   log:info("Chat request started")
-  self.current_request = client.new():stream(settings, self.adapter:map_roles(vim.deepcopy(self.messages)), function(err, data)
-    if err then
-      log:error("Error: %s", err)
-      return self:reset()
-    end
-
-    if data then
-      self:get_tokens(data)
-
-      local result = self.adapter.args.handlers.chat_output(data)
-      if result and result.status == CONSTANTS.STATUS_SUCCESS then
-        if result.output.role then
-          result.output.role = CONSTANTS.LLM_ROLE
-        end
-        self:append_to_buf(result.output)
+  self.current_request = client
+    .new()
+    :stream(settings, self.adapter:map_roles(vim.deepcopy(self.messages)), function(err, data)
+      if err then
+        log:error("Error: %s", err)
+        return self:reset()
       end
-    end
-  end, function()
-    self.current_request = nil
-  end, {
-    bufnr = bufnr,
-  })
+
+      if data then
+        self:get_tokens(data)
+
+        local result = self.adapter.args.handlers.chat_output(data)
+        if result and result.status == CONSTANTS.STATUS_SUCCESS then
+          if result.output.role then
+            result.output.role = CONSTANTS.LLM_ROLE
+          end
+          self:append_to_buf(result.output)
+        end
+      end
+    end, function()
+      self.current_request = nil
+    end, {
+      bufnr = bufnr,
+    })
 end
 
 ---After the response from the LLM is received...
@@ -931,7 +928,7 @@ function Chat:done()
   self:append_to_buf({ role = CONSTANTS.USER_ROLE, content = "" })
   self:display_tokens()
 
-  if self.status ~= CONSTANTS.STATUS_ERROR then
+  if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.tools_in_use) > 0 then
     buf_parse_tools(self)
   end
 
@@ -1000,6 +997,7 @@ function Chat:close()
   api.nvim_buf_delete(self.bufnr, { force = true })
   api.nvim_del_augroup_by_name(CONSTANTS.AUTOCMD_GROUP .. self.bufnr)
   util.fire("ChatClosed", { bufnr = self.bufnr, chat = self })
+  util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = nil })
   self = nil
 end
 
@@ -1195,7 +1193,7 @@ function Chat:clear()
     CONSTANTS.NS_HEADER,
   }
 
-  self.messages = nil
+  self.messages = {}
   self.tokens = nil
   clear_ns(namespaces)
 
@@ -1203,6 +1201,7 @@ function Chat:clear()
   self:render():set_extmarks()
 end
 
+---Display the chat buffer's settings and messages
 function Chat:debug()
   if util.count(self.messages) == 0 then
     return

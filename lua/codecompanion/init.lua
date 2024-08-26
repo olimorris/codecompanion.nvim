@@ -77,7 +77,7 @@ M.add = function(args)
   local content = table.concat(context.lines, "\n")
 
   chat:append_to_buf({
-    role = M.config.strategies.chat.roles.user,
+    role = "user",
     content = "Here is some code from "
       .. context.filename
       .. ":\n\n```"

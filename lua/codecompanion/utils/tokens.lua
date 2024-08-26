@@ -6,7 +6,7 @@ local M = {}
 ---Calculate the number of tokens in a message
 ---@param message string The text to calculate the number of tokens for
 ---@return number The number of tokens in the message
-local function calculate_tokens(message)
+function M.calculate(message)
   local tokens = 0
 
   local current_token = ""
@@ -39,7 +39,7 @@ function M.get_tokens(messages)
   local tokens = 0
 
   for _, message in ipairs(messages) do
-    tokens = tokens + calculate_tokens(message.content)
+    tokens = tokens + M.calculate(message.content)
   end
 
   return tokens
