@@ -70,7 +70,7 @@ return {
       -- As per: https://github.com/anthropics/anthropic-cookbook/blob/main/misc/prompt_caching.ipynb
       -- Claude now supports caching. We cache any message that exceeds the opts.cache_over number
       for _, message in ipairs(messages) do
-        if message.role == "user" and tokens.calculate(message.content) >= self.args.opts.cache_over then
+        if message.role == self.args.roles.user and tokens.calculate(message.content) >= self.args.opts.cache_over then
           message.content = {
             {
               type = "text",
