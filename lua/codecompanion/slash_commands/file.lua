@@ -2,7 +2,6 @@ local BaseSlashCommand = require("codecompanion.slash_commands").BaseSlashComman
 local Job = require("plenary.job")
 local Path = require("plenary.path")
 local async = require("plenary.async")
-local cmp = require("cmp")
 local scan = require("plenary.scandir")
 
 --- FileCommand class for inserting file or directory contents into the chat.
@@ -222,7 +221,7 @@ function FileCommand:_create_completion_item(file, base_path)
   ---@type CodeCompanion.SlashCommandCompletionItem
   local item = {
     label = relative_path,
-    kind = is_dir and cmp.lsp.CompletionItemKind.Folder or cmp.lsp.CompletionItemKind.File,
+    kind = is_dir and require("cmp").lsp.CompletionItemKind.Folder or require("cmp").lsp.CompletionItemKind.File,
     slash_command_name = self.name,
     slash_command_args = file,
   }
@@ -261,7 +260,7 @@ function FileCommand:resolve(completion_item, callback)
 
         local content = j:result()
         completion_item.documentation = {
-          kind = cmp.lsp.MarkupKind.Markdown,
+          kind = require("cmp").lsp.MarkupKind.Markdown,
           value = string.format(
             "Content of %s\n```%s\n%s\n```",
             completion_item.slash_command_args,

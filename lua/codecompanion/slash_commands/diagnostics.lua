@@ -1,8 +1,6 @@
 local BaseSlashCommand = require("codecompanion.slash_commands").BaseSlashCommand
-local ui = require("codecompanion.utils.ui")
 local api = vim.api
 local fn = vim.fn
-local cmp = require("cmp")
 
 --- DiagnosticsCommand class for inserting diagnostic information with context.
 --- @class CodeCompanion.DiagnosticsCommand : CodeCompanion.BaseSlashCommand
@@ -59,10 +57,10 @@ function DiagnosticsCommand:complete(params, callback)
     ---@type CodeCompanion.SlashCommandCompletionItem
     local item = {
       label = diagnostic_info,
-      kind = cmp.lsp.CompletionItemKind.Text,
+      kind = require("cmp").lsp.CompletionItemKind.Text,
       slash_command_name = self.name,
       documentation = {
-        kind = cmp.lsp.MarkupKind.Markdown,
+        kind = require("cmp").lsp.MarkupKind.Markdown,
         value = string.format("```diagnostics %s\n%s\nContext:\n%s\n```", filepath, diagnostic_info, context_info),
       },
     }
@@ -74,10 +72,10 @@ function DiagnosticsCommand:complete(params, callback)
   if #diagnostics > 0 then
     table.insert(items, 1, {
       label = "All diagnostics",
-      kind = cmp.lsp.CompletionItemKind.Text,
+      kind = require("cmp").lsp.CompletionItemKind.Text,
       slash_command_name = self.name,
       documentation = {
-        kind = cmp.lsp.MarkupKind.Markdown,
+        kind = require("cmp").lsp.MarkupKind.Markdown,
         value = string.format("```diagnostics %s\n%s\n```", filepath, table.concat(formatted_diagnostics, "\n\n")),
       },
     })

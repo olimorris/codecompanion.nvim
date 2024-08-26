@@ -1,9 +1,7 @@
 ---@diagnostic disable: undefined-field
 local BaseSlashCommand = require("codecompanion.slash_commands").BaseSlashCommand
 local api = vim.api
-local cmp = require("cmp")
 local log = require("codecompanion.utils.log")
-local ui = require("codecompanion.utils.ui")
 
 local SymbolsCommand = BaseSlashCommand:extend()
 
@@ -157,7 +155,7 @@ function SymbolsCommand:complete(params, callback)
           local kind_name = vim.lsp.protocol.SymbolKind[symbol.kind] or "Unknown"
           local item = {
             label = full_name,
-            kind = cmp.lsp.CompletionItemKind[kind_name] or cmp.lsp.CompletionItemKind.Text,
+            kind = require("cmp").lsp.CompletionItemKind[kind_name] or require("cmp").lsp.CompletionItemKind.Text,
             slash_command_name = self.name,
             slash_command_args = {
               symbol = symbol,
