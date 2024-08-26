@@ -1,4 +1,5 @@
 local log = require("codecompanion.utils.log")
+local tokens = require("codecompanion.utils.tokens")
 local utils = require("codecompanion.utils.adapters")
 
 local input_tokens = 0
@@ -24,9 +25,13 @@ return {
     ["content-type"] = "application/json",
     ["x-api-key"] = "${api_key}",
     ["anthropic-version"] = "2023-06-01",
+    ["anthropic-beta"] = "prompt-caching-2024-07-31",
   },
   parameters = {
     stream = true,
+  },
+  opts = {
+    cache_over = 300, -- Cache any message which has this many tokens or more
   },
   handlers = {
     ---Set the parameters
@@ -43,18 +48,38 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
-      -- Isolate the system prompts...
+      -- Put system prompts into their own table...
       local system = {}
       for _, prompt in ipairs(utils.pluck_messages(messages, "system")) do
-        table.insert(system, { type = "text", text = prompt.content })
+        table.insert(system, {
+          type = "text",
+          text = prompt.content,
+          -- Cache system prompts
+          cache_control = { type = "ephemeral" },
+        })
       end
       if next(system) == nil then
         system = nil
       end
 
-      -- Ensuring that they're removed from the messages table
+      -- ...ensuring that they're removed from the messages table
+      utils.pop_messages(messages, "system")
       -- And ensuring that consecutive messages of the same role are merged
-      messages = utils.merge_messages(utils.pop_messages(messages, "system"))
+      messages = utils.merge_messages(messages)
+
+      -- As per: https://github.com/anthropics/anthropic-cookbook/blob/main/misc/prompt_caching.ipynb
+      -- Claude now supports caching. We cache any message that exceeds the opts.cache_over number
+      for _, message in ipairs(messages) do
+        if message.role == "user" and tokens.calculate(message.content) >= self.args.opts.cache_over then
+          message.content = {
+            {
+              type = "text",
+              text = message.content,
+              cache_control = { type = "ephemeral" },
+            },
+          }
+        end
+      end
 
       return { system = system, messages = messages }
     end,
