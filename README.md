@@ -97,7 +97,7 @@ Before configuring the plugin, it's important to understand how it's structured.
 
 The plugin uses adapters to connect to LLMs. Out of the box, the plugin supports:
 
-- Anthropic (`anthropic`) - Requires an API key
+- Anthropic (`anthropic`) - Requires an API key and supports [prompt caching](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching)
 - Gemini (`gemini`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
@@ -716,7 +716,7 @@ When given a task:
 
 ### :electric_plug: Adapters
 
-Please refer to your [chosen adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters) to understand it's configuration. You will need to set an API key for non-locally hosted LLMs.
+Please refer to your [chosen adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters) to understand its configuration. You will need to set an API key for non-locally hosted LLMs.
 
 > [!TIP]
 > To create your own adapter or better understand how they work, please refer to the [ADAPTERS](doc/ADAPTERS.md) guide.
@@ -939,15 +939,16 @@ The `:CodeCompanionActions` command will open the _Action Palette_, giving you a
 
 **List of commands**
 
-Below is the full list of commands that are available in the plugin:
+Below is a list of commands that are available in the plugin:
 
-- `CodeCompanionActions` - To open the _Action Palette_
-- `CodeCompanion` - Inline prompting of the plugin
-- `CodeCompanion <slash_cmd>` - Inline prompting of the plugin with a slash command e.g. `/commit`
-- `CodeCompanionChat` - To open up a new chat buffer
-- `CodeCompanionChat <adapter>` - To open up a new chat buffer with a specific adapter
-- `CodeCompanionToggle` - To toggle a chat buffer
-- `CodeCompanionAdd` - To add visually selected chat to the current chat buffer
+- `CodeCompanion` - Inline prompt an LLM
+- `CodeCompanion <your prompt>` - Can also inline prompt an LLM like this
+- `CodeCompanion /<slash_cmd>` - Inline prompt an LLM with a slash command e.g. `/commit`
+- `CodeCompanionChat` - Open up a chat buffer to converse with your LLM
+- `CodeCompanionChat <adapter>` - Open up a chat buffer with a specific adapter
+- `CodeCompanionToggle` - Toggle a chat buffer
+- `CodeCompanionActions` - Open the _Action Palette_
+- `CodeCompanionAdd` - Add visually selected chat to the current chat buffer
 
 **Suggested workflow**
 
