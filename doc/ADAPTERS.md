@@ -37,6 +37,7 @@ When building an adapter, you'll need to inject variables into different parts o
 Let's take a look at the `env` table from the Google Gemini adapter that comes with the plugin:
 
 ```lua
+url = "https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${api_key}",
 env = {
   api_key = "GEMINI_API_KEY",
   model = "schema.model.default",
@@ -121,7 +122,7 @@ Let's take a look at a real world example of how we've implemented the OpenAI ad
 > [!TIP]
 > All of the adapters in the plugin come with their own tests. These serve as a great reference to understand how they're working with the output of the API
 
-### API Output
+### OpenAI's API Output
 
 If we reference the OpenAI [documentation](https://platform.openai.com/docs/guides/text-generation/chat-completions-api) we can see that they require the messages to be in an array which consists of `role` and `content`:
 
@@ -140,7 +141,7 @@ curl https://api.openai.com/v1/chat/completions \
   }'
 ```
 
-**Chat Buffer Output**
+### Chat Buffer Output
 
 The chat buffer, which is structured like:
 
