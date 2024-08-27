@@ -161,6 +161,14 @@ function Inline.new(args)
     end
   end
 
+  if not args.chat_context then
+    local last_chat = require("codecompanion").last_chat()
+    if util.count(last_chat) > 0 then
+      log:debug("Using last chat context: %s", last_chat)
+      args.chat_context = last_chat:get_messages()
+    end
+  end
+
   local self = setmetatable({
     id = math.random(10000000),
     adapter = args.adapter or config.adapters[config.strategies.inline.adapter],
@@ -358,6 +366,19 @@ function Inline:submit()
       visible = false,
     },
   })
+
+  -- Add the context from the chat buffer
+  if util.count(self.chat_context) > 0 and self.classification.placement == "add" then
+    local messages = msg_utils.pluck_messages(self.chat_context, CONSTANTS.LLM_ROLE)
+
+    if #messages > 0 then
+      table.insert(self.classification.prompts, {
+        role = CONSTANTS.USER_ROLE,
+        content = "Here is the chat history from a conversation we had earlier. To answer my question, you _may_ need to use it:\n\n"
+          .. messages[#messages].content,
+      })
+    end
+  end
 
   log:debug("Prompts to submit: %s", self.classification.prompts)
   log:info("Inline request started")
