@@ -393,11 +393,7 @@ Use Markdown formatting and include the programming language name at the start o
           content = function(context)
             local buf_utils = require("codecompanion.utils.buffers")
 
-            return "### buffers\n\nFor context, this is the whole of the buffer:\n\n```"
-              .. context.filetype
-              .. "\n"
-              .. buf_utils.get_content(context.bufnr)
-              .. "\n```\n\n"
+            return " \n\n```" .. context.filetype .. "\n" .. buf_utils.get_content(context.bufnr) .. "\n```\n\n"
           end,
           opts = {
             visible = false,
@@ -406,9 +402,12 @@ Use Markdown formatting and include the programming language name at the start o
         {
           role = "user",
           contains_code = true,
+          condition = function(context)
+            return context.is_visual
+          end,
           content = function(context)
             local selection = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-            return "And this is the specific code that relates to my question:\n\n```"
+            return "And this is some that relates to my question:\n\n```"
               .. context.filetype
               .. "\n"
               .. selection

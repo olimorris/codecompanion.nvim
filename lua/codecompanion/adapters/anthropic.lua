@@ -141,6 +141,10 @@ return {
     ---@param context table Useful context about the buffer to inline to
     ---@return table|nil
     inline_output = function(data, context)
+      if type(data) == "string" and string.sub(data, 1, 6) == "event:" then
+        return
+      end
+
       if data and data ~= "" then
         data = data:sub(6)
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })

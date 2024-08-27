@@ -1022,10 +1022,9 @@ Inline prompts can be triggered via the `CodeCompanion <your prompt>` command. A
 
 One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed after the cursor's position in the current buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. The plugin will use the inline LLM you've specified in your config to determine if the response should follow any of the placements below:
 
-- _after_ - after the visual selection/cursor
-- _before_ - before the visual selection/cursor
-- _new_ - in a new buffer
 - _replace_ - replacing the visual selection
+- _add_ - after the visual selection or the cursor
+- _new_ - in a new buffer
 - _chat_ - in a chat buffer
 
 There are also keymaps available to you after an inline edit has taken place:

@@ -5,6 +5,7 @@ local config = require("codecompanion").config
 local hl = require("codecompanion.utils.highlights")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
+local msg_utils = require("codecompanion.utils.messages")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils.util")
 
@@ -15,35 +16,25 @@ local CONSTANTS = {
 
   PLACEMENT_PROMPT = [[I would like you to assess a prompt which has been made from within the Neovim text editor. Based on this prompt, I require you to determine where the output from this prompt should be placed. I am calling this determination the "<method>". For example, the user may wish for the output to be placed:
 
-1. `after` the current cursor position
-2. `before` the current cursor position
-3. `replace` the current selection
-4. `new` in a new buffer/file
-5. `chat` in a buffer which the user can then interact with
+1. `replace` the current selection
+2. `add` after the current cursor position
+3. `new` in a new buffer/file
+4. `chat` in a buffer which the user can then interact with
 
 Here are some example prompts and their correct method classification ("<method>") to help you:
 
-- "Can you create a method/function that does XYZ" would be `after`
-- "Can you create XYZ method/function before the cursor" would be `before`
 - "Can you refactor/fix/amend this code?" would be `replace`
+- "Can you create a method/function that does XYZ" would be `add`
 - "Can you create a method/function for XYZ and put it in a new buffer?" would be `new`
-- "Can you write unit tests for this code?" would be `new`
-- "Why is Neovim so popular?" or "What does this code do?" would be `chat`
+- "Can you write unit tests for this code?" would be `new` as commonly tests are written in a new file
+- "Why is Neovim so popular?" or "What does this code do?" would be `chat` as it requires a conversation and doesn't immediately result in pure code
 
-As a final assessment, I'd like you to determine if any code that the user has provided to you within their prompt should be returned in your response. I am calling this determination the "<return>" evaluation and it should be a boolean value.
-Please respond to this prompt in the format "<method>|<return>" where "<method>" is a string and "<replace>" is a boolean value. For example `after|false` or `chat|false` or `replace|true`. Do not provide any other content in your response.]],
+Please respond to this prompt in the format "<method>". For example replace would be `<replace>` and add would be `<add>`. Do not provide any other content in your response.]],
   CODE_ONLY_PROMPT = [[Respond with code only. DO NOT format the code in Markdown code blocks, DO NOT use backticks AND DO NOT provide any explanations.]],
 
   USER_ROLE = "user",
   LLM_ROLE = "llm",
   SYSTEM_ROLE = "system",
-}
-
--- When a promp has been classified, store the outcome to this table
-local classified = {
-  placement = "",
-  pos = {},
-  prompts = {},
 }
 
 ---Format given lines into a code block alongside a prompt
@@ -53,78 +44,6 @@ local classified = {
 ---@return string
 local function code_block(prompt, filetype, lines)
   return prompt .. ":\n\n" .. "```" .. filetype .. "\n" .. table.concat(lines, "  ") .. "\n```\n"
-end
-
----When a defined prompt is sent alongside the user's input, we need to do some
----additional processing such as evaluating conditions and determining if
----the prompt contains code which can be sent to the LLM.
----@param inline CodeCompanion.Inline
----@param user_input? string
----@return table,string
-local function build_prompt(inline, user_input)
-  local output = {}
-
-  for _, prompt in ipairs(inline.prompts) do
-    if prompt.condition then
-      if not prompt.condition(inline.context) then
-        goto continue
-      end
-    end
-
-    if not prompt.contains_code or (prompt.contains_code and config.opts.send_code) then
-      if type(prompt.content) == "function" then
-        prompt.content = prompt.content(inline.context)
-      end
-
-      table.insert(output, {
-        role = prompt.role,
-        content = prompt.content,
-        opts = prompt.opts or {},
-      })
-    end
-
-    ::continue::
-  end
-
-  -- Add the user prompt
-  if user_input then
-    table.insert(output, {
-      role = CONSTANTS.USER_ROLE,
-      content = user_input,
-      opts = {
-        tag = "user_prompt",
-        visible = true,
-      },
-    })
-  end
-
-  -- Send the visual selection
-  if config.opts.send_code then
-    if inline.context.is_visual and not inline.opts.stop_context_insertion then
-      log:trace("Sending visual selection")
-      table.insert(output, {
-        role = CONSTANTS.USER_ROLE,
-        content = code_block(
-          "For context, this is the code that I've selected in the buffer",
-          inline.context.filetype,
-          inline.context.lines
-        ),
-        opts = {
-          tag = "visual",
-          visible = true,
-        },
-      })
-    end
-  end
-
-  local user_prompts = ""
-  for _, prompt in ipairs(output) do
-    if prompt.role == CONSTANTS.USER_ROLE then
-      user_prompts = user_prompts .. prompt.content
-    end
-  end
-
-  return output, user_prompts
 end
 
 ---Write the given text to the buffer
@@ -180,21 +99,6 @@ local function overwrite_selection(context)
   api.nvim_win_set_cursor(context.winnr, { context.start_line, context.start_col })
 end
 
----Get the current cursor position in the window
----@param winnr number
----@return number,number line column
-local function get_cursor(winnr)
-  local cursor_pos = api.nvim_win_get_cursor(winnr)
-  return cursor_pos[1], cursor_pos[2]
-end
-
----Some LLMs ignore the ask to just return text in the form of "placement|return"
----@param str string
----@return string
-local function extract_placement(str)
-  return str:match("(%w+|%w+)")
-end
-
 ---A user's inline prompt may need to be converted into a chat
 ---@param inline CodeCompanion.Inline
 ---@param prompt table
@@ -224,19 +128,21 @@ end
 
 ---@class CodeCompanion.Inline
 ---@field id integer
----@field context table
 ---@field adapter CodeCompanion.Adapter
+---@field classification table
+---@field context table
 ---@field current_request table
----@field opts table
 ---@field diff table
+---@field opts table
 ---@field prompts table
 local Inline = {}
 
 ---@class CodeCompanion.InlineArgs
----@field context table
 ---@field adapter? CodeCompanion.Adapter
+---@field chat_context? table Messages from a chat buffer
+---@field context table
 ---@field opts? table
----@field pre_hook? fun():number -- Assuming pre_hook returns a number for example
+---@field pre_hook? fun():number Function to run before the inline prompt is started
 ---@field prompts table
 
 ---@param args CodeCompanion.InlineArgs
@@ -256,10 +162,16 @@ function Inline.new(args)
 
   local self = setmetatable({
     id = math.random(10000000),
-    context = args.context,
     adapter = args.adapter or config.adapters[config.strategies.inline.adapter],
-    opts = args.opts or {},
+    classification = {
+      placement = "",
+      pos = {},
+      prompts = {},
+    },
+    chat_context = args.chat_context or {},
+    context = args.context,
     diff = {},
+    opts = args.opts or {},
     prompts = vim.deepcopy(args.prompts),
   }, { __index = Inline })
 
@@ -307,14 +219,10 @@ function Inline:set_autocmds()
   })
 end
 
+---Start the classification of the user's prompt
 ---@param opts? table
 function Inline:start(opts)
   log:trace("Starting Inline with opts: %s", opts)
-
-  -- Any prompt that's been classified, prior to submission, is stored in the classified table
-  classified.pos = {}
-  classified.prompts = {}
-  classified.placement = ""
 
   if opts and opts[1] then
     self.opts = opts[1]
@@ -350,6 +258,7 @@ function Inline:start(opts)
 end
 
 ---Stop the current request
+---@return nil
 function Inline:stop()
   if self.current_request then
     self.current_request:shutdown()
@@ -361,41 +270,52 @@ end
 ---a judgement on the placement of the response.
 ---@param user_input? string
 function Inline:classify(user_input)
-  log:info("User input: %s", user_input)
+  self.classification.prompts = self:form_prompt()
 
-  local user_prompts
-  classified.prompts, user_prompts = build_prompt(self, user_input)
-  log:debug("Prompts: %s", classified.prompts)
-  log:debug("User Prompt: %s", user_prompts)
+  if user_input then
+    table.insert(self.classification.prompts, #self.classification.prompts - 1, {
+      role = CONSTANTS.USER_ROLE,
+      content = user_input,
+      opts = {
+        tag = "user_prompt",
+        visible = true,
+      },
+    })
+  end
+
+  local prompt = msg_utils.merge_messages(msg_utils.pluck_messages(vim.deepcopy(self.classification.prompts), "user"))
+  log:debug("Prompt to classify: %s", prompt)
 
   if not self.opts.placement then
-    local action = {
-      {
-        role = CONSTANTS.SYSTEM_ROLE,
-        content = CONSTANTS.PLACEMENT_PROMPT,
-      },
-      {
-        role = CONSTANTS.USER_ROLE,
-        content = 'The prompt to assess is: "' .. user_prompts .. '"',
-      },
-    }
-
     log:info("Inline classification request started")
     util.fire("InlineStarted")
-    client
-      .new({ user_args = { event = "InlineClassify" } })
-      :stream(self.adapter:map_schema_to_params(), self.adapter:map_roles(action), function(err, data)
+    client.new({ user_args = { event = "InlineClassify" } }):stream(
+      self.adapter:map_schema_to_params(),
+      self.adapter:map_roles({
+        {
+          role = CONSTANTS.SYSTEM_ROLE,
+          content = CONSTANTS.PLACEMENT_PROMPT,
+        },
+        {
+          role = CONSTANTS.USER_ROLE,
+          content = 'The prompt to assess is: "' .. prompt[1].content .. '"',
+        },
+      }),
+      function(err, data)
         if err then
           return log:error("Error during inline classification: %s", err)
         end
 
         if data then
-          classified.placement = classified.placement .. (self.adapter.args.handlers.inline_output(data) or "")
+          self.classification.placement = self.classification.placement
+            .. (self.adapter.args.handlers.inline_output(data) or "")
         end
-      end, nil, { bufnr = self.context.bufnr })
+      end,
+      nil,
+      { bufnr = self.context.bufnr }
+    )
   else
-    classified.placement = self.opts.placement
-    classified.prompts = classified.prompts
+    self.classification.placement = self.opts.placement
     return self:submit()
   end
 end
@@ -403,20 +323,19 @@ end
 ---Function to call when the LLM has finished classifying the prompt
 ---@return nil
 function Inline:classify_done()
-  log:info("Placement: %s", classified.placement)
+  log:info('Placement: "%s"', self.classification.placement)
 
-  -- Work out where to place the output from the inline prompt
   local ok, parts = pcall(function()
-    return vim.split(extract_placement(classified.placement), "|")
+    return self.classification.placement:match("<(.-)>")
   end)
-  if not ok or #parts < 2 then
+  if not ok then
     return log:error("Could not determine where to place the output from the prompt")
   end
 
-  classified.placement = parts[1]
-  if classified.placement == "chat" then
+  self.classification.placement = parts
+  if self.classification.placement == "chat" then
     log:info("Sending inline prompt to the chat buffer")
-    return send_to_chat(self, classified.prompts)
+    return send_to_chat(self, self.classification.prompts)
   end
   return self:submit()
 end
@@ -424,10 +343,10 @@ end
 ---Submit the prompts to the LLM to process
 ---@return nil
 function Inline:submit()
-  classified.pos = self:place(classified.placement)
-  log:debug("Determined position for output: %s", classified.pos)
+  self.classification.pos = self:place(self.classification.placement)
+  log:debug("Determined position for output: %s", self.classification.pos)
 
-  local bufnr = classified.pos.bufnr or self.context.bufnr
+  local bufnr = self.classification.pos.bufnr or self.context.bufnr
 
   -- Add a keymap to cancel the request
   api.nvim_buf_set_keymap(bufnr, "n", "q", "", {
@@ -440,8 +359,9 @@ function Inline:submit()
     end,
   })
 
+  log:debug("Prompts to submit: %s", self.classification.prompts)
   -- Remind the LLM to respond with code only
-  table.insert(classified.prompts, {
+  table.insert(self.classification.prompts, {
     role = CONSTANTS.SYSTEM_ROLE,
     content = CONSTANTS.CODE_ONLY_PROMPT,
   })
@@ -450,7 +370,7 @@ function Inline:submit()
 
   self.current_request = client.new({ user_args = { event = "InlineSubmit" } }):stream(
     self.adapter:map_schema_to_params(),
-    self.adapter:map_roles(classified.prompts),
+    self.adapter:map_roles(self.classification.prompts),
     function(err, data)
       if err then
         log:error("Error during stream: %s", err)
@@ -462,9 +382,8 @@ function Inline:submit()
 
         if content then
           vim.cmd.undojoin()
-          stream_text_to_buffer(classified.pos, bufnr, content)
-          -- self:diff_added(updated_pos.line)
-          if classified.placement == "new" then
+          stream_text_to_buffer(self.classification.pos, bufnr, content)
+          if self.classification.placement == "new" then
             ui.buf_scroll_to_end(bufnr)
           end
         end
@@ -473,7 +392,7 @@ function Inline:submit()
     function()
       self.current_request = nil
       vim.schedule(function()
-        util.fire("InlineFinished", { placement = classified.placement })
+        util.fire("InlineFinished", { placement = self.classification.placement })
       end)
     end,
     { bufnr = bufnr }
@@ -484,7 +403,7 @@ end
 ---@return nil
 function Inline:submit_done()
   log:info("Inline request finished")
-  local bufnr = classified.pos.bufnr or self.context.bufnr
+  local bufnr = self.classification.pos.bufnr or self.context.bufnr
   api.nvim_buf_del_keymap(bufnr, "n", "q")
 end
 
@@ -494,19 +413,14 @@ end
 function Inline:place(placement)
   local pos = { line = self.context.start_line, col = 0 }
 
-  if placement == "before" then
-    api.nvim_buf_set_lines(self.context.bufnr, self.context.start_line - 1, self.context.start_line - 1, false, { "" })
-    self.context.start_line = self.context.start_line + 1
-    pos.line = self.context.start_line - 1
-    pos.col = self.context.start_col - 1
-  elseif placement == "after" then
+  if placement == "replace" then
+    self:diff_removed()
+    overwrite_selection(self.context)
+    pos.line, pos.col = api.nvim_win_get_cursor(self.context.winnr)
+  elseif placement == "add" then
     api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
     pos.line = self.context.end_line + 1
     pos.col = 0
-  elseif placement == "replace" then
-    self:diff_removed()
-    overwrite_selection(self.context)
-    pos.line, pos.col = get_cursor(self.context.winnr)
   elseif placement == "new" then
     local bufnr = api.nvim_create_buf(true, false)
     api.nvim_buf_set_option(bufnr, "filetype", self.context.filetype)
@@ -537,6 +451,57 @@ function Inline:place(placement)
   end
 
   return pos
+end
+
+---When a defined prompt is sent alongside the user's input, we need to do some
+---additional processing such as evaluating conditions and determining if
+---the prompt contains code which can be sent to the LLM.
+---@return table
+function Inline:form_prompt()
+  local output = {}
+
+  for _, prompt in ipairs(self.prompts) do
+    if prompt.condition then
+      if not prompt.condition(self.context) then
+        goto continue
+      end
+    end
+
+    if not prompt.contains_code or (prompt.contains_code and config.opts.send_code) then
+      if type(prompt.content) == "function" then
+        prompt.content = prompt.content(self.context)
+      end
+
+      table.insert(output, {
+        role = prompt.role,
+        content = prompt.content,
+        opts = prompt.opts or {},
+      })
+    end
+
+    ::continue::
+  end
+
+  -- Add any visual selection to the prompt
+  if config.opts.send_code then
+    if self.context.is_visual and not self.opts.stop_context_insertion then
+      log:trace("Sending visual selection")
+      table.insert(output, {
+        role = CONSTANTS.USER_ROLE,
+        content = code_block(
+          "For context, this is the code that I've selected in the buffer",
+          self.context.filetype,
+          self.context.lines
+        ),
+        opts = {
+          tag = "visual",
+          visible = true,
+        },
+      })
+    end
+  end
+
+  return output
 end
 
 ---Apply diff coloring to any replaced text
@@ -596,27 +561,5 @@ function Inline:diff_removed()
   keymaps.set(config.strategies.inline.keymaps, self.context.bufnr, self)
   self.diff.removed_id = self.id
 end
-
----Apply diff coloring to any added text
----@return nil
--- function Inline:diff_added(line)
---   if config.display.inline.diff.enabled == false then
---     return
---   end
---
---   if not self.diff.added_line then
---     self.diff.added_line = {}
---   end
---
---   local ns_id = api.nvim_create_namespace("codecompanion_diff_added")
---
---   api.nvim_buf_set_extmark(self.context.bufnr, ns_id, line - 1, 0, {
---     sign_text = config.display.inline.diff.sign_text,
---     sign_hl_group = config.display.inline.diff.hl_groups.added,
---     priority = config.display.inline.diff.priority,
---   })
---
---   self.diff.added_line[line] = true
--- end
 
 return Inline
