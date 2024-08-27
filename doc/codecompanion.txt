@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 26
+*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 27
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -68,6 +68,24 @@ Install the plugin with your preferred package manager:
         "stevearc/dressing.nvim" -- Optional: Improves the default Neovim UI
       }
     })
+<
+
+**vim-plug**
+
+>vim
+    call plug#begin()
+    
+    Plug "nvim-lua/plenary.nvim"
+    Plug "nvim-treesitter/nvim-treesitter"
+    Plug "nvim-telescope/telescope.nvim" " Optional
+    Plug "stevearc/dressing.nvim" " Optional: Improves the default Neovim UI
+    Plug "olimorris/codecompanion.nvim"
+    
+    call plug#end()
+    
+    lua << EOF
+      require("codecompanion").setup()
+    EOF
 <
 
 

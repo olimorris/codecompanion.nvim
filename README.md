@@ -91,6 +91,24 @@ use({
 })
 ```
 
+**[vim-plug](https://github.com/junegunn/vim-plug)**
+
+```vim
+call plug#begin()
+
+Plug "nvim-lua/plenary.nvim"
+Plug "nvim-treesitter/nvim-treesitter"
+Plug "nvim-telescope/telescope.nvim" " Optional
+Plug "stevearc/dressing.nvim" " Optional: Improves the default Neovim UI
+Plug "olimorris/codecompanion.nvim"
+
+call plug#end()
+
+lua << EOF
+  require("codecompanion").setup()
+EOF
+```
+
 ## :gear: Configuration
 
 Before configuring the plugin, it's important to understand how it's structured.
