@@ -129,6 +129,7 @@ end
 ---@class CodeCompanion.Inline
 ---@field id integer
 ---@field adapter CodeCompanion.Adapter
+---@field chat_context? table Messages from a chat buffer
 ---@field classification table
 ---@field context table
 ---@field current_request table
@@ -273,9 +274,9 @@ function Inline:classify(user_input)
   self.classification.prompts = self:form_prompt()
 
   if user_input then
-    table.insert(self.classification.prompts, #self.classification.prompts - 1, {
+    table.insert(self.classification.prompts, {
       role = CONSTANTS.USER_ROLE,
-      content = user_input,
+      content = "<question>" .. user_input .. "</question>",
       opts = {
         tag = "user_prompt",
         visible = true,
@@ -328,7 +329,7 @@ function Inline:classify_done()
   local ok, parts = pcall(function()
     return self.classification.placement:match("<(.-)>")
   end)
-  if not ok then
+  if not ok or parts == "error" then
     return log:error("Could not determine where to place the output from the prompt")
   end
 
@@ -348,6 +349,19 @@ function Inline:submit()
 
   local bufnr = self.classification.pos.bufnr or self.context.bufnr
 
+  -- Remind the LLM to respond with code only
+  table.insert(self.classification.prompts, {
+    role = CONSTANTS.SYSTEM_ROLE,
+    content = CONSTANTS.CODE_ONLY_PROMPT,
+    opts = {
+      tag = "system_tag",
+      visible = false,
+    },
+  })
+
+  log:debug("Prompts to submit: %s", self.classification.prompts)
+  log:info("Inline request started")
+
   -- Add a keymap to cancel the request
   api.nvim_buf_set_keymap(bufnr, "n", "q", "", {
     desc = "Stop the request",
@@ -358,15 +372,6 @@ function Inline:submit()
       end
     end,
   })
-
-  log:debug("Prompts to submit: %s", self.classification.prompts)
-  -- Remind the LLM to respond with code only
-  table.insert(self.classification.prompts, {
-    role = CONSTANTS.SYSTEM_ROLE,
-    content = CONSTANTS.CODE_ONLY_PROMPT,
-  })
-
-  log:info("Inline request started")
 
   self.current_request = client.new({ user_args = { event = "InlineSubmit" } }):stream(
     self.adapter:map_schema_to_params(),
