@@ -5,7 +5,7 @@ local codecompanion = require("codecompanion")
 codecompanion.setup({
   adapters = {
     test_adapter = function()
-      return require("codecompanion.adapters").use("openai", {
+      return require("codecompanion.adapters").extend("openai", {
         name = "test_adapter",
         schema = {
           model = {

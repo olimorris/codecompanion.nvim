@@ -279,10 +279,6 @@ require("codecompanion").setup({
           description = "View debug info",
         },
       },
-      callbacks = {
-        on_submit = function(chat) end, -- For when a request has been submited
-        on_complete = function(chat) end, -- For when a request has completed
-      },
     },
     -- INLINE STRATEGY --------------------------------------------------------
     inline = {
@@ -686,7 +682,6 @@ Use Markdown formatting and include the programming language name at the start o
     -- effort to ensure no code leakage, using this is at your own risk
     send_code = true,
 
-    silence_notifications = false,
     use_default_actions = true, -- Show the default actions in the action palette?
     use_default_prompts = true, -- Show the default prompts in the action palette?
 

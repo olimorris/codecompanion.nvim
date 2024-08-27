@@ -271,6 +271,7 @@ end
 ---@return CodeCompanion.Adapter
 function Adapter.use(adapter, opts)
   dep.write(
+    "adapter.use",
     "  ",
     { "adapter.use", "WarningMsg" },
     " has now been directly replaced by ",
@@ -302,7 +303,7 @@ function Adapter.resolve(adapter)
   adapter = adapter or config.adapters[config.strategies.chat.adapter]
 
   if type(adapter) == "string" then
-    return Adapter.use(adapter)
+    return Adapter.extend(adapter)
   elseif type(adapter) == "function" then
     return adapter()
   end

@@ -74,7 +74,7 @@ describe("Chat", function()
 
     Chat = require("codecompanion.strategies.chat").new({
       context = { bufnr = 1, filetype = "lua" },
-      adapter = require("codecompanion.adapters").use(adapter),
+      adapter = require("codecompanion.adapters").extend(adapter),
     })
   end)
 

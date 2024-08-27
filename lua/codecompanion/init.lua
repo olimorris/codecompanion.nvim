@@ -1,4 +1,5 @@
 local context_utils = require("codecompanion.utils.context")
+local dep = require("codecompanion.utils.deprecate")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils.util")
 
@@ -239,6 +240,22 @@ end
 ---@param opts nil|table
 ---@return nil
 M.setup = function(opts)
+  if
+    opts
+    and opts.strategies.chat.callbacks
+    and (opts.strategies.chat.callbacks.on_submit or opts.strategies.chat.callbacks.on_complete)
+  then
+    dep.write(
+      "config_callbacks",
+      "  ",
+      { "on_submit", "WarningMsg" },
+      " and ",
+      { "on_complete", "WarningMsg" },
+      " callbacks have now been deprecated.",
+      "\nThey will be removed in the coming weeks."
+    )
+  end
+
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 
   if opts and opts.adapters then

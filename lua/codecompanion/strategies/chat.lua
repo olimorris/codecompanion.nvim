@@ -831,7 +831,10 @@ function Chat:submit()
   local settings = buf_parse_settings(bufnr, self.adapter)
   settings = self.adapter:map_schema_to_params(settings)
 
-  config.strategies.chat.callbacks.on_submit(self)
+  --TODO: Remove this soon
+  if config.strategies.chat.callbacks and config.strategies.chat.callbacks.on_complete then
+    config.strategies.chat.callbacks.on_submit(self)
+  end
 
   log:debug("Settings:\n%s", settings)
   log:debug("Messages:\n%s", self.messages)
@@ -876,7 +879,10 @@ function Chat:done()
     buf_parse_tools(self)
   end
 
-  config.strategies.chat.callbacks.on_complete(self)
+  --TODO: Remove this soon
+  if config.strategies.chat.callbacks and config.strategies.chat.callbacks.on_complete then
+    config.strategies.chat.callbacks.on_complete(self)
+  end
 
   log:info("Chat request completed")
   return self:reset()
