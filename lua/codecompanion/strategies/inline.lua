@@ -29,7 +29,7 @@ Here are some example prompts and their correct method classification ("<method>
 - "Can you write unit tests for this code?" would be `new` as commonly tests are written in a new file
 - "Why is Neovim so popular?" or "What does this code do?" would be `chat` as it requires a conversation and doesn't immediately result in pure code
 
-Please respond to this prompt in the format "<method>". For example replace would be `<replace>` and add would be `<add>`. Do not provide any other content in your response.]],
+Please respond to this prompt in the format "<method>", placing the classifiction in a tag. For example "replace" would be `<replace>`, "add" would be `<add>`, "new" would be `<new>` and "chat" would be `<chat>`. If you can't classify the message, reply with `<error>`. Do not provide any other content in your response or you'll break the plugin this is being called from.]],
   CODE_ONLY_PROMPT = [[Respond with code only. DO NOT format the code in Markdown code blocks, DO NOT use backticks AND DO NOT provide any explanations.]],
 
   USER_ROLE = "user",
