@@ -866,9 +866,6 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatVariable` - Variables in the chat buffer
 - `CodeCompanionVirtualText` - All other virtual text in the plugin
 
-> [!TIP]
-> You can change which highlight group these link to in your configuration.
-
 ## :rocket: Getting Started
 
 **Inline Prompting**

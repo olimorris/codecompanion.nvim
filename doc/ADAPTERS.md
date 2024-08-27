@@ -22,10 +22,9 @@ Let's take a look at the interface of an adapter as per the `adapter.lua` file:
 ---@field handlers table Functions which link the output from the request to CodeCompanion
 ---@field handlers.form_parameters fun()
 ---@field handlers.form_messages fun()
----@field handlers.is_complete fun()
 ---@field handlers.chat_output fun()
----@field handlers.on_stdout fun()
 ---@field handlers.inline_output fun()
+---@field handlers.on_stdout fun()
 ---@field schema table Set of parameters for the LLM that the user can customise in the chat buffer
 ```
 
@@ -117,14 +116,12 @@ There are three optional handlers which you can make use of:
 - `setup` - The function which is called before anything else
 - `teardown` - A function which is called last and after the request has completed
 
-### An Example: The OpenAI Adapter
+Let's take a look at a real world example of how we've implemented the OpenAI adapter.
 
 > [!TIP]
 > All of the adapters in the plugin come with their own tests. These serve as a great reference to understand how they're working with the output of the API
 
-Let's take a look at a real world example of how we've implemented the OpenAI adapter.
-
-**API Output**
+### API Output
 
 If we reference the OpenAI [documentation](https://platform.openai.com/docs/guides/text-generation/chat-completions-api) we can see that they require the messages to be in an array which consists of `role` and `content`:
 
@@ -164,7 +161,7 @@ results in the following output:
 }
 ```
 
-**`form_messages`**
+### `form_messages`
 
 The chat buffer's output is passed to this handler in for the form of the `messages` parameter. So we can just output this as part of a messages table:
 
@@ -176,7 +173,7 @@ handlers = {
 }
 ```
 
-**`chat_output`**
+### `chat_output`
 
 Now let's look at how we format the output from OpenAI. Running that request results in:
 
@@ -296,7 +293,7 @@ handlers = {
 },
 ```
 
-**`form_parameters`**
+### `form_parameters`
 
 For the purposes of the OpenAI adapter, no additional parameters need to be created. So we just pass this through:
 
@@ -308,7 +305,7 @@ handlers = {
 }
 ```
 
-**`inline_output`**
+### `inline_output`
 
 From a design perspective, the inline strategy is very similar to the chat strategy. With the `inline_output` handler we simply return the content we wish to be streamed into the buffer.
 
@@ -331,7 +328,7 @@ end,
 
 The `inline_output` handler also receives context from the buffer that initiated the request.
 
-**`on_stdout`**
+### `on_stdout`
 
 Handling errors from a streaming endpoint can be challenging. It's recommended that any errors are managed in the `on_stdout` handler which is initiated when the response has completed. In the case of OpenAI, if there is an error, we'll see a response back from the API like:
 
