@@ -2,7 +2,7 @@
 ---https://github.com/google-gemini/cookbook/blob/main/quickstarts/rest/Streaming_REST.ipynb
 
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.adapters")
+local utils = require("codecompanion.utils.messages")
 
 ---@class CodeCompanion.AdapterArgs
 return {

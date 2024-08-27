@@ -1,5 +1,5 @@
 local assert = require("luassert")
-local utils = require("codecompanion.utils.adapters")
+local utils = require("codecompanion.utils.messages")
 
 local test_adapter = {
   name = "TestAdapter",

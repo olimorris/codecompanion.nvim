@@ -1,6 +1,6 @@
 local log = require("codecompanion.utils.log")
 local tokens = require("codecompanion.utils.tokens")
-local utils = require("codecompanion.utils.adapters")
+local utils = require("codecompanion.utils.messages")
 
 local input_tokens = 0
 local output_tokens = 0

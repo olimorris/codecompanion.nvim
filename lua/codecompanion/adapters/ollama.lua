@@ -1,5 +1,5 @@
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.adapters")
+local utils = require("codecompanion.utils.messages")
 
 local curl = require("plenary.curl")
 
