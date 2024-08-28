@@ -242,6 +242,8 @@ end
 M.setup = function(opts)
   if
     opts
+    and opts.strategies
+    and opts.strategies.chat
     and opts.strategies.chat.callbacks
     and (opts.strategies.chat.callbacks.on_submit or opts.strategies.chat.callbacks.on_complete)
   then
