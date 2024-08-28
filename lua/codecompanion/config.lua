@@ -63,12 +63,20 @@ return {
           callback = "keymaps.send",
           description = "Send",
         },
+        regenerate = {
+          modes = {
+            n = "gr",
+          },
+          index = 2,
+          callback = "keymaps.regenerate",
+          description = "Regenerate the last response",
+        },
         close = {
           modes = {
             n = "<C-c>",
             i = "<C-c>",
           },
-          index = 2,
+          index = 3,
           callback = "keymaps.close",
           description = "Close Chat",
         },
@@ -76,7 +84,7 @@ return {
           modes = {
             n = "q",
           },
-          index = 3,
+          index = 4,
           callback = "keymaps.stop",
           description = "Stop Request",
         },
@@ -84,7 +92,7 @@ return {
           modes = {
             n = "gx",
           },
-          index = 4,
+          index = 5,
           callback = "keymaps.clear",
           description = "Clear Chat",
         },
@@ -100,7 +108,7 @@ return {
           modes = {
             n = "}",
           },
-          index = 8,
+          index = 7,
           callback = "keymaps.next_chat",
           description = "Next Chat",
         },
@@ -108,7 +116,7 @@ return {
           modes = {
             n = "{",
           },
-          index = 9,
+          index = 8,
           callback = "keymaps.previous_chat",
           description = "Previous Chat",
         },
@@ -116,7 +124,7 @@ return {
           modes = {
             n = "]",
           },
-          index = 10,
+          index = 9,
           callback = "keymaps.next_header",
           description = "Next Header",
         },
@@ -124,7 +132,7 @@ return {
           modes = {
             n = "[",
           },
-          index = 11,
+          index = 10,
           callback = "keymaps.previous_header",
           description = "Previous Header",
         },
@@ -132,7 +140,7 @@ return {
           modes = {
             n = "ga",
           },
-          index = 12,
+          index = 11,
           callback = "keymaps.change_adapter",
           description = "Change adapter",
         },
@@ -140,7 +148,7 @@ return {
           modes = {
             n = "gd",
           },
-          index = 13,
+          index = 12,
           callback = "keymaps.debug",
           description = "View debug info",
         },

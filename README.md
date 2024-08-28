@@ -1008,6 +1008,7 @@ When in the chat buffer, there are number of keymaps available to you:
 - `<CR>`|`<C-s>` - Send the buffer to the LLM
 - `<C-c>` - Close the buffer
 - `q` - Cancel the request from the LLM
+- `gr` - Regenerate the last response from the LLM
 - `ga` - Change the adapter
 - `gx` - Clear the buffer's contents
 - `gx` - Add a codeblock

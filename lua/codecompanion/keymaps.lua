@@ -166,6 +166,12 @@ M.send = {
   end,
 }
 
+M.regenerate = {
+  callback = function(chat)
+    chat:regenerate()
+  end,
+}
+
 M.close = {
   callback = function(chat)
     chat:close()

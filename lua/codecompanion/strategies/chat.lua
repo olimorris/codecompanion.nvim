@@ -820,14 +820,23 @@ function Chat:add_message(message, role, opts)
 end
 
 ---Submit the chat buffer's contents to the LLM
+---@param opts? table
 ---@return nil
-function Chat:submit()
+function Chat:submit(opts)
+  opts = opts or {}
+
   local bufnr = self.bufnr
+
   local message = buf_parse_message(bufnr)
   if util.count(message) == 0 then
     return log:warn("No messages to submit")
   end
-  self:add_message(message, CONSTANTS.USER_ROLE)
+
+  --- If we're regenerating the response, we don't want to add the user's last
+  --- message from the buffer as it sends unneccessary context to the LLM
+  if not opts.regenerate then
+    self:add_message(message, CONSTANTS.USER_ROLE)
+  end
 
   message = self.messages[#self.messages]
   self:parse_msg_for_vars(message):parse_msg_for_tools(message)
@@ -890,6 +899,16 @@ function Chat:done()
 
   log:info("Chat request completed")
   return self:reset()
+end
+
+---Regenerate the response from the LLM
+---@return nil
+function Chat:regenerate()
+  if self.messages[#self.messages].role == CONSTANTS.LLM_ROLE then
+    table.remove(self.messages, #self.messages)
+    self:append_to_buf({ role = CONSTANTS.USER_ROLE, content = "_Regenerating response..._" })
+    self:submit({ regenerate = true })
+  end
 end
 
 ---Stop streaming the response from the LLM
