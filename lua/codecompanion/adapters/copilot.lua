@@ -9,8 +9,9 @@ local path = require("plenary.path")
 ---@type string|nil
 local _github_token
 
----@return string | nil
-local function find_config_path()
+---Get the path to the user's config directory
+---@return string|nil
+local function get_config_path()
   local config = vim.fn.expand("$XDG_CONFIG_HOME")
   if config and vim.fn.isdirectory(config) > 0 then
     return config
@@ -27,8 +28,9 @@ local function find_config_path()
   end
 end
 
+---Get the GitHub Copilot token
 ---@return string|nil
-local function get_cached_token()
+local function get_token()
   if _github_token then
     return _github_token
   end
@@ -41,7 +43,7 @@ local function get_cached_token()
   end
 
   -- loading token from the file
-  local config_path = find_config_path()
+  local config_path = get_config_path()
   if not config_path then
     return nil
   end
@@ -89,8 +91,9 @@ return {
   },
   url = "https://api.githubcopilot.com/chat/completions",
   env = {
+    ---@return string|nil
     api_key = function()
-      return get_cached_token()
+      return _github_token
     end,
   },
   raw = {
@@ -108,9 +111,10 @@ return {
   },
   handlers = {
     ---Check for a token before starting the request
+    ---@param self CodeCompanion.AdapterArgs
     ---@return boolean
     setup = function(self)
-      _github_token = get_cached_token()
+      _github_token = get_token()
       if not _github_token then
         log:error("No GitHub Copilot token found. Please refer to https://github.com/github/copilot.vim")
         return false
