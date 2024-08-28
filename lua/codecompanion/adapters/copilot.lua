@@ -7,7 +7,7 @@ local path = require("plenary.path")
 
 ---The GitHub Copilot token
 ---@type string|nil
-local _github_token = ""
+local _github_token
 
 ---@return string | nil
 local function find_config_path()
@@ -29,7 +29,7 @@ end
 
 ---@return string|nil
 local function get_cached_token()
-  if _github_token ~= "" then
+  if _github_token then
     return _github_token
   end
 
