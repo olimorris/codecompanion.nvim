@@ -447,7 +447,9 @@ function Inline:place(placement)
   if placement == "replace" then
     self:diff_removed()
     overwrite_selection(self.context)
-    pos.line, pos.col = api.nvim_win_get_cursor(self.context.winnr)
+    local cursor_pos = api.nvim_win_get_cursor(self.context.winnr)
+    pos.line = cursor_pos[1]
+    pos.col = cursor_pos[2]
   elseif placement == "add" then
     api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
     pos.line = self.context.end_line + 1
