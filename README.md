@@ -27,7 +27,7 @@ Thank you to the following people:
 ## :sparkles: Features
 
 - :speech_balloon: A Copilot Chat experience in Neovim
-- :electric_plug: Support for Anthropic, Gemini, Ollama and OpenAI
+- :electric_plug: Support for Anthropic, Copilot, Gemini, Ollama and OpenAI
 - :rocket: Inline code creation and refactoring
 - :robot: Variables, Agents and Workflows to improve LLM output
 - :sparkles: Built in prompts for LSP errors and code advice

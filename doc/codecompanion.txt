@@ -15,7 +15,7 @@ Table of Contents                            *codecompanion-table-of-contents*
 FEATURES                                              *codecompanion-features*
 
 - A Copilot Chat experience in Neovim
-- Support for Anthropic, Gemini, Ollama and OpenAI
+- Support for Anthropic, Copilot, Gemini, Ollama and OpenAI
 - Inline code creation and refactoring
 - Variables, Agents and Workflows to improve LLM output
 - Built in prompts for LSP errors and code advice
