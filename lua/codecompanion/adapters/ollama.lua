@@ -10,22 +10,27 @@ local curl = require("plenary.curl")
 local function get_models(self, opts)
   local url = self.args.env.url
 
-  -- Check that Ollama is running
-  local ping = vim.fn.system('curl -s -o /dev/null -w "%{http_code}" ' .. url)
-  if ping ~= "200" then
-    log:warn("Ollama is not running or cannot be found on localhost:11434")
-    return {}
+  local headers = {
+    ["content-type"] = "application/json",
+  }
+  if self.args.env.api_key then
+    headers["Authorization"] = "Bearer " .. self.args.env.api_key
   end
 
-  local response = curl.get(url .. "/v1/models", {
-    sync = true,
-  })
-  if not response then
+  local ok, response = pcall(function()
+    return curl.get(url .. "/v1/models", {
+      sync = true,
+      headers = headers,
+    })
+  end)
+  if not ok or not response then
+    log:error("Could not get the Ollama models from " .. url .. "/v1/models")
     return {}
   end
 
   local ok, json = pcall(vim.json.decode, response.body)
   if not ok then
+    log:error("Could not parse the response from " .. url .. "/v1/models")
     return {}
   end
 
@@ -189,7 +194,7 @@ return {
       mapping = "parameters.options",
       type = "number",
       optional = true,
-      default = 2048,
+      default = 16384,
       desc = "The maximum number of tokens that the language model can consider at once. This determines the size of the input context window, allowing the model to take into account longer text passages for generating responses. Adjusting this value can affect the model's performance and memory usage.",
       validate = function(n)
         return n > 0, "Must be a positive number"
