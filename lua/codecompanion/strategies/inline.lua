@@ -132,7 +132,7 @@ end
 ---@field chat_context? table Messages from a chat buffer
 ---@field classification table
 ---@field context table
----@field current_request table
+---@field current_request? table
 ---@field diff table
 ---@field opts table
 ---@field prompts table
@@ -164,7 +164,6 @@ function Inline.new(args)
   if not args.chat_context then
     local last_chat = require("codecompanion").last_chat()
     if util.count(last_chat) > 0 then
-      log:debug("Using last chat context: %s", last_chat)
       args.chat_context = last_chat:get_messages()
     end
   end
@@ -376,6 +375,10 @@ function Inline:submit()
         role = CONSTANTS.USER_ROLE,
         content = "Here is the chat history from a conversation we had earlier. To answer my question, you _may_ need to use it:\n\n"
           .. messages[#messages].content,
+        opts = {
+          tag = "chat_context",
+          visible = false,
+        },
       })
     end
   end
