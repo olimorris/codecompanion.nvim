@@ -795,7 +795,7 @@ In this example, we're using the 1Password CLI to read an OpenAI credential.
 
 **Using Ollama Remotely**
 
-To use Ollama remotely, simply change the URL in the `env` table:
+To use Ollama remotely, simply change the URL in the `env` table and set an API key:
 
 ```lua
 require("codecompanion").setup({
@@ -804,6 +804,14 @@ require("codecompanion").setup({
       return require("codecompanion.adapters").extend("ollama", {
         env = {
           url = "https://my_ollama_url",
+          api_key = "OLLAMA_API_KEY",
+        },
+        headers = {
+          ["Content-Type"] = "application/json",
+          ["Authorization"] = "Bearer ${api_key}",
+        },
+        parameters = {
+          sync = true,
         },
       })
     end,
