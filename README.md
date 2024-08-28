@@ -27,12 +27,11 @@ Thank you to the following people:
 ## :sparkles: Features
 
 - :speech_balloon: A Copilot Chat experience in Neovim
-- :electric_plug: Support for Anthropic, Copilot, Gemini, Ollama and OpenAI
-- :rocket: Inline code creation and refactoring
+- :electric_plug: Support for Anthropic, Copilot, Gemini, Ollama and OpenAI LLMs
+- :rocket: Inline transformations, code creation and refactoring
 - :robot: Variables, Agents and Workflows to improve LLM output
 - :sparkles: Built in prompts for LSP errors and code advice
-- :building_construction: Create your own custom prompts for Neovim
-- :floppy_disk: Save and restore your chats
+- :building_construction: Ability to create your own custom prompts
 - :muscle: Async execution for improved performance
 
 <!-- panvimdoc-ignore-start -->
@@ -738,7 +737,7 @@ Please refer to your [chosen adapter](https://github.com/olimorris/codecompanion
 
 **Changing the Default Adapter**
 
-To specify a different adapter to the default, `openai`, simply change the `strategies.*` table:
+To specify a different adapter to the default (`openai`), simply change the `strategies.*` table:
 
 ```lua
 require("codecompanion").setup({
@@ -804,7 +803,7 @@ require("codecompanion").setup({
     ollama = function()
       return require("codecompanion.adapters").extend("ollama", {
         env = {
-          url = "https://my_ollama_url".
+          url = "https://my_ollama_url",
         },
       })
     end,
@@ -821,7 +820,7 @@ require("codecompanion").setup({
   adapters = {
     llama3 = function()
       return require("codecompanion.adapters").extend("ollama", {
-        name = "llama3", -- Ensure the model is differentiated from Ollama
+        name = "llama3", -- Ensure this adapter is differentiated from Ollama
         schema = {
           model = {
             default = "llama3:latest",
@@ -839,7 +838,7 @@ require("codecompanion").setup({
 })
 ```
 
-**Changing the Default Model**
+**Changing an Adapter's Default Model**
 
 ```lua
 require("codecompanion").setup({
@@ -880,7 +879,9 @@ The plugin sets the following highlight groups during setup:
 
 <!-- panvimdoc-ignore-end -->
 
-To start interacting with the plugin you can run `:CodeCompanion <your prompt>` from the command line. You can also make a visual selection in Neovim and run `:'<,'>CodeCompanion <your prompt>` to send it as context. The plugin will initially use an LLM to classify your prompt in order to determine where in Neovim to place the response. You can find more about the classificiations in the [inline prompting](#pencil2-inline-prompting) section.
+To start interacting with the plugin you can run `:CodeCompanion <your prompt>` from the command line. You can also make a visual selection in Neovim and run `:'<,'>CodeCompanion <your prompt>` to send it as context. The plugin will initially use an LLM to classify your prompt in order to determine where in Neovim to place the response. You can find more about the classificiations in the [inline prompting](#pencil2-inline-prompting) section below.
+
+[Inline transformations](https://github.com/olimorris/codecompanion.nvim/discussions/130) enable you to use the context from a chat buffer in an inline prompt. A prompt such as `:CodeCompanion add the new function here` can leverage the code that the LLM has created in its last response and write it into the current buffer.
 
 For convenience, you can also call [default prompts](#clipboard-default-prompts) from the command line via slash commands:
 
@@ -1009,23 +1010,23 @@ When in the chat buffer, there are number of keymaps available to you:
 
 **Settings**
 
-If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the adapter's model parameters which can be changed to tweak the response from the LLM. You can find more detail by moving the cursor over them.
+If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the adapter's parameters which can be changed to tweak the response from the LLM. You can find more detail by moving the cursor over them.
 
 **Open Chats**
 
-From the Action Palette, the `Open Chats` action enables users to easily navigate between their open chat buffers. A chat buffer can be deleted (and removed from memory) by pressing `<C-c>`.
+From the Action Palette, the `Open Chats` action enables users to easily navigate between chat buffers. There are also keymaps available in the chat buffer which enable easier navigation.
 
 ### :pencil2: Inline Prompting
 
 > [!NOTE]
 > If `send_code = false` then this will take precedent and no code will be sent to the LLM
 
-Inline prompts can be triggered via the `CodeCompanion <your prompt>` command. As mentioned in the [Getting Started](#rocket-getting-started) section, you can also leverage visual selections and slash commands like `'<,'>CodeCompanion /buffer what does this code do?`, where the slash command points to a [default prompt](#clipboard-default-prompts) and any words after that act as a custom prompt to the LLM.
+Inline prompts can be triggered via the `CodeCompanion <your prompt>` command. As mentioned in the [Getting Started](#rocket-getting-started) section, you can also leverage chat buffer context, visual selections and slash commands like `'<,'>CodeCompanion /buffer what does this code do?`, where the slash command points to a [default prompt](#clipboard-default-prompts) and any words after that act as a custom prompt to the LLM.
 
-One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed after the cursor's position in the current buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to overwrite a visual selection. The plugin will use the inline LLM you've specified in your config to determine if the response should follow any of the placements below:
+One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed at the cursor's position in the current buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to _replace_ a visual selection. The plugin will use the inline LLM you've specified in your config to determine if the response should follow any of the placements below:
 
 - _replace_ - replacing the visual selection
-- _add_ - after the visual selection or the cursor
+- _add_ - after the visual selection or at the cursor position
 - _new_ - in a new buffer
 - _chat_ - in a chat buffer
 
@@ -1057,24 +1058,6 @@ Currently, the plugin comes with the following workflows:
 Of course you can add new workflows by following the [RECIPES](doc/RECIPES.md) guide.
 
 ## :lollipop: Extras
-
-**Callbacks**
-
-The plugin has a number of callbacks that can be set in your config and leveraged in the chat buffer:
-
-```lua
-strategies = {
-  chat = {
-    -- ...
-    callbacks = {
-        on_submit = function(chat) end, -- For when a request has been submited
-        on_complete = function(chat) end, -- For when a request has completed
-    },
-  }
-}
-```
-
-In each of the callbacks, the chat buffer class is made available via the `chat` parameter.
 
 **Events/Hooks**
 

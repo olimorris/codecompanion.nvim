@@ -1,6 +1,6 @@
 # Adapters
 
-In CodeCompanion, adapters are interfaces that act as a bridge between the plugin's functionality and an LLM. All adapters must follow the same strict implementation which is discussed below.
+In CodeCompanion, adapters are interfaces that act as a bridge between the plugin's functionality and an LLM. All adapters must follow the interface, below.
 
 This guide is intended to serve as a reference for anyone who wishes to contribute an adapter to the plugin or understand the inner workings of existing adapters.
 
@@ -371,7 +371,7 @@ The `log:error` call ensures that any errors are logged to the logfile as well a
 
 There are two optional handlers that you can make use of: `setup` and `teardown`.
 
-The `setup` handler will execute before the request is sent to the LLM's endpoint and before the environment variables have been set. This is leveraged in the Copilot adapter to refresh the token before it's resolved as part of the enviroment variables table. The `setup` handler **must** return a boolean value so the `client.lua` file can determine whether to proceed with the request.
+The `setup` handler will execute before the request is sent to the LLM's endpoint and before the environment variables have been set. This is leveraged in the Copilot adapter to obtain the token before it's resolved as part of the environment variables table. The `setup` handler **must** return a boolean value so the `client.lua` file can determine whether to proceed with the request.
 
 The `teardown` handler will execute once the request has completed and after `on_stdout`.
 
@@ -419,7 +419,3 @@ temperature = {
 ```
 
 You'll see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2. Again, we'll use virtual text and LSP warnings to alert the user if they've strayed from these constraints.
-
-## Summary
-
-This guide provided an overview for how the plugin uses adapters to connect to a variety of different LLMs.
