@@ -265,7 +265,7 @@ local registered_cmp = false
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
 ---@field bufnr integer The buffer number of the chat
 ---@field context table The context of the buffer that the chat was initiated from
----@field current_request table The current request being executed
+---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
 ---@field header_ns integer The namespace for the virtual text that appears in the header
 ---@field id integer The unique identifier for the chat
@@ -332,7 +332,7 @@ function Chat.new(args)
   self:apply_settings(self.opts.settings)
 
   self.close_last_chat()
-  self:open():render(self.messages):set_extmarks():set_autocmds()
+  self:open():render(self.messages):set_system_message():set_extmarks():set_autocmds()
 
   if self.opts.auto_submit then
     self:submit()
@@ -493,17 +493,6 @@ function Chat:render(messages)
       table.insert(lines, line)
     end
     table.insert(lines, "```")
-  end
-
-  -- Add the default system prompt
-  if config.opts.system_prompt then
-    local system_prompt = {
-      role = CONSTANTS.SYSTEM_ROLE,
-      content = config.opts.system_prompt,
-    }
-    system_prompt.id = make_id(system_prompt)
-    system_prompt.opts = { visible = false }
-    table.insert(self.messages, 1, system_prompt)
   end
 
   unlock_buf(self.bufnr)
@@ -689,6 +678,21 @@ function Chat:render_headers()
     end
   end
   log:trace("Rendering headers in the chat buffer")
+end
+
+---Set the system prompt in the chat buffer
+---@return CodeCompanion.Chat
+function Chat:set_system_message()
+  if config.opts.system_prompt then
+    local system_prompt = {
+      role = CONSTANTS.SYSTEM_ROLE,
+      content = config.opts.system_prompt,
+    }
+    system_prompt.id = make_id(system_prompt)
+    system_prompt.opts = { visible = false }
+    table.insert(self.messages, 1, system_prompt)
+  end
+  return self
 end
 
 ---Get the settings key at the current cursor position
@@ -902,7 +906,9 @@ function Chat:stop()
   if self.current_request then
     job = self.current_request
     self.current_request = nil
-    job:shutdown()
+    if job then
+      job:shutdown()
+    end
   end
 end
 
