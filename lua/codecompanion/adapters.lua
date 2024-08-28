@@ -152,9 +152,9 @@ function Adapter:get_env_vars()
   self.args.env_replaced = {}
 
   for k, v in pairs(env_vars) do
-    if is_cmd(v) then
+    if type(v) == "string" and is_cmd(v) then
       self.args.env_replaced[k] = run_cmd(v)
-    elseif is_env_var(v) then
+    elseif type(v) == "string" and is_env_var(v) then
       self.args.env_replaced[k] = get_env_var(v)
     elseif type(v) == "function" then
       self.args.env_replaced[k] = v()
