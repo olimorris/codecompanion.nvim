@@ -105,14 +105,14 @@ local Adapter = {}
 ---@field raw? table Any additional curl arguments to pass to the request
 ---@field opts? table Additional options for the adapter
 ---@field handlers table Functions which link the output from the request to CodeCompanion
+---@field handlers.setup? fun(self: CodeCompanion.Adapter): boolean
 ---@field handlers.form_parameters fun(self: CodeCompanion.Adapter, params: table, messages: table): table
 ---@field handlers.form_messages fun(self: CodeCompanion.Adapter, messages: table): table
 ---@field handlers.tokens? fun(data: table): number|nil
 ---@field handlers.chat_output fun(data: table): table|nil
 ---@field handlers.inline_output fun(self: CodeCompanion.Adapter, data: table, context: table): table|nil
 ---@field handlers.on_stdout fun(self: CodeCompanion.Adapter, data: table): table|nil
----@field handlers.setup? fun(self: CodeCompanion.Adapter): table|nil
----@field handlers.teardown? fun(self: CodeCompanion.Adapter): table|nil
+---@field handlers.teardown? fun(self: CodeCompanion.Adapter): any
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 
 ---@param args CodeCompanion.AdapterArgs

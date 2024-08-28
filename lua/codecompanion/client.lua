@@ -36,16 +36,19 @@ end
 ---@param cb fun(err: nil|string, chunk: nil|table, done: nil|boolean) Will be called multiple times until done is true
 ---@param after? fun() Will be called after the request is finished
 ---@param opts? table Options that can be passed to the request
----@return table The Plenary job
+---@return table|nil The Plenary job
 function Client:stream(adapter, payload, cb, after, opts)
   opts = opts or {}
   cb = log:wrap_cb(cb, "Response error: %s")
 
-  adapter:get_env_vars()
-
   if adapter.args.handlers.setup then
-    adapter.args.handlers.setup(adapter)
+    local ok = adapter.args.handlers.setup(adapter)
+    if not ok then
+      return
+    end
   end
+
+  adapter:get_env_vars()
 
   local body = self.opts.encode(
     vim.tbl_extend(

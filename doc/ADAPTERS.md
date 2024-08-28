@@ -20,11 +20,13 @@ Let's take a look at the interface of an adapter as per the `adapter.lua` file:
 ---@field raw? table Any additional curl arguments to pass to the request
 ---@field opts? table Additional options for the adapter
 ---@field handlers table Functions which link the output from the request to CodeCompanion
+---@field handlers.setup? fun()
 ---@field handlers.form_parameters fun()
 ---@field handlers.form_messages fun()
 ---@field handlers.chat_output fun()
 ---@field handlers.inline_output fun()
 ---@field handlers.on_stdout fun()
+---@field handlers.teardown? fun()
 ---@field schema table Set of parameters for the LLM that the user can customise in the chat buffer
 ```
 
@@ -364,6 +366,14 @@ end,
 ```
 
 The `log:error` call ensures that any errors are logged to the logfile as well as displayed to the user in Neovim. It's also important to reference that the `chat_output` and `inline_output` handlers need to be able to ignore any errors from the API and let the `on_stdout` handle them.
+
+### `setup` and `teardown`
+
+There are two optional handlers that you can make use of: `setup` and `teardown`.
+
+The `setup` handler will execute before the request is sent to the LLM's endpoint and before the environment variables have been set. This is leveraged in the Copilot adapter to refresh the token before it's resolved as part of the enviroment variables table. The `setup` handler **must** return a boolean value so the `client.lua` file can determine whether to proceed with the request.
+
+The `teardown` handler will execute once the request has completed and after `on_stdout`.
 
 ## Schema
 
