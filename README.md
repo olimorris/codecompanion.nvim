@@ -14,7 +14,7 @@
 Currently supports: Anthropic, Copilot, Gemini, Ollama and OpenAI adapters
 </p>
 
-## :heart_hands: Sponsors
+## :purple_heart: Sponsors
 
 Thank you to the following people:
 
@@ -900,9 +900,9 @@ For convenience, you can also call [default prompts](#clipboard-default-prompts)
 - `/lsp` - Explain the LSP diagnostics for the selected code
 - `/commit` - Generate a commit message
 
-Running `:'<,'>CodeCompanion /fix` will trigger the plugin to start following the fix prompt as defined in the [config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua). Some of the slash commands can also take custom prompts. For example, running `:'<,'>CodeCompanion /buffer refactor this code` sends the whole buffer as context alongside a prompt to refactor the selected code.
+Running `:'<,'>CodeCompanion /fix` will trigger the plugin to start following the fix prompt as defined in the [config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua). Some of the slash commands can also take custom prompts. For example, running `:'<,'>CodeCompanion /buffer refactor this code` sends the whole buffer as context alongside a prompt to refactor the selected code. If you prompt the LLM with something like `:CodeCompanion why are Lua and Neovim the perfect combination?` then the prompt will be sent to the chat buffer instead.
 
-There are also keymaps available to accept or reject edits from the LLM in the [inline prompting](#pencil2-inline-prompting) section.
+There are keymaps available to accept or reject edits from the LLM in the [inline prompting](#pencil2-inline-prompting) section.
 
 **Chat Buffer**
 
@@ -922,7 +922,7 @@ When in the chat buffer you have access to the following variables:
 - `#lsp` - Share LSP information and code for the current buffer
 
 > [!NOTE]
-> When in the chat buffer, the `?` keymap brings up all of the available keymaps, variables and tools available to you.
+> When in the chat buffer, the `?` keymap brings up all of the available options.
 
 **Agents / Tools**
 
@@ -943,7 +943,7 @@ When in the chat buffer you have access to the following tools:
 - `@buffer_editor` - The LLM can edit code in a Neovim buffer by searching and replacing blocks
 
 > [!IMPORTANT]
-> Agents are currently at an alpha stage right now and I'm using the term agent and tool interchangeably.
+> Agents are currently at an alpha stage.
 
 **Action Palette**
 
