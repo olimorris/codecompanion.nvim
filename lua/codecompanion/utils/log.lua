@@ -66,27 +66,44 @@ local function create_file_handler(opts)
   end
   local filepath = files.join(stdpath, opts.filename)
 
-  -- Use void to wrap an async function that doesn't return anything
-  local async_write = a.void(function(text)
-    local err, fd = a.uv.fs_open(filepath, "a", 438)
-    if err then
-      vim.notify(string.format("Failed to open log file: %s", err), vim.log.levels.ERROR)
+  local write_queue = {}
+  local is_writing = false
+
+  local function process_queue()
+    if is_writing or #write_queue == 0 then
       return
     end
+    is_writing = true
 
-    err, _ = a.uv.fs_write(fd, text .. "\n")
-    if err then
-      vim.notify(string.format("Failed to write to log file: %s", err), vim.log.levels.ERROR)
-    end
+    local text = table.concat(write_queue)
+    write_queue = {}
 
-    err = a.uv.fs_close(fd)
-    if err then
-      vim.notify(string.format("Failed to close log file: %s", err), vim.log.levels.ERROR)
-    end
-  end)
+    a.run(function()
+      local err, fd = a.uv.fs_open(filepath, "a", 438)
+      if err then
+        vim.notify(string.format("Failed to open log file: %s", err), vim.log.levels.ERROR)
+        is_writing = false
+        return
+      end
+
+      err, _ = a.uv.fs_write(fd, text)
+      if err then
+        vim.notify(string.format("Failed to write to log file: %s", err), vim.log.levels.ERROR)
+      end
+
+      err = a.uv.fs_close(fd)
+      if err then
+        vim.notify(string.format("Failed to close log file: %s", err), vim.log.levels.ERROR)
+      end
+
+      is_writing = false
+      vim.schedule(process_queue)
+    end)
+  end
 
   opts.handle = function(level, text)
-    async_write(text)
+    table.insert(write_queue, text .. "\n")
+    vim.schedule(process_queue)
   end
 
   return LogHandler.new(opts)
