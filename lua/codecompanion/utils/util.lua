@@ -17,14 +17,13 @@ M.capitalize = function(str)
   return (str:gsub("^%l", string.upper))
 end
 
----@param table table
+---@param tbl table
 ---@return integer
-M.count = function(table)
+M.count = function(tbl)
   local count = 0
-  for _ in pairs(table) do
+  for _ in pairs(tbl) do
     count = count + 1
   end
-
   return count
 end
 
