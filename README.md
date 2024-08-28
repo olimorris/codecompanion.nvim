@@ -738,16 +738,16 @@ Please refer to your [chosen adapter](https://github.com/olimorris/codecompanion
 
 **Changing the Default Adapter**
 
-To specify a different adapter to the defaults, simply change the `strategies.*` table:
+To specify a different adapter to the default, `openai`, simply change the `strategies.*` table:
 
 ```lua
 require("codecompanion").setup({
   strategies = {
     chat = {
-      adapter = "ollama",
+      adapter = "anthropic",
     },
     inline = {
-      adapter = "ollama",
+      adapter = "copilot",
     },
     agent = {
       adapter = "anthropic",
@@ -764,7 +764,7 @@ require("codecompanion").setup({
     anthropic = function()
       return require("codecompanion.adapters").extend("anthropic", {
         env = {
-          api_key = "ANTHROPIC_API_KEY_1"
+          api_key = "MY_OTHER_ANTHROPIC_KEY"
         },
       })
     end,
