@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 27
+*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 28
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -98,6 +98,7 @@ The plugin uses adapters to connect to LLMs. Out of the box, the plugin
 supports:
 
 - Anthropic (`anthropic`) - Requires an API key and supports prompt caching <https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching>
+- Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in Copilot.vim <https://github.com/github/copilot.vim>
 - Gemini (`gemini`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key

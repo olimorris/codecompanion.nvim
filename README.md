@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-Currently supports: Anthropic, Gemini, Ollama and OpenAI adapters
+Currently supports: Anthropic, Copilot, Gemini, Ollama and OpenAI adapters
 </p>
 
 ## :heart_hands: Sponsors
@@ -116,6 +116,7 @@ Before configuring the plugin, it's important to understand how it's structured.
 The plugin uses adapters to connect to LLMs. Out of the box, the plugin supports:
 
 - Anthropic (`anthropic`) - Requires an API key and supports [prompt caching](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching)
+- Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in [Copilot.vim](https://github.com/github/copilot.vim)
 - Gemini (`gemini`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
@@ -138,6 +139,7 @@ The plugin allows you to specify adapters for each strategy and also for each [d
 require("codecompanion").setup({
   adapters = {
     anthropic = "anthropic",
+    copilot = "copilot",
     gemini = "gemini",
     ollama = "ollama",
     openai = "openai",

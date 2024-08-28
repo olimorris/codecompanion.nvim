@@ -3,6 +3,7 @@ local utils = require("codecompanion.utils.util")
 return {
   adapters = {
     anthropic = "anthropic",
+    copilot = "copilot",
     gemini = "gemini",
     ollama = "ollama",
     openai = "openai",
