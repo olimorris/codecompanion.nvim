@@ -367,7 +367,7 @@ function Inline:submit()
   })
 
   -- Add the context from the chat buffer
-  if util.count(self.chat_context) > 0 and self.classification.placement == "add" then
+  if util.count(self.chat_context) > 0 then
     local messages = msg_utils.pluck_messages(self.chat_context, CONSTANTS.LLM_ROLE)
 
     if #messages > 0 then
