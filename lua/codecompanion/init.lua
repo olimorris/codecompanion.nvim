@@ -111,7 +111,7 @@ end
 M.toggle = function()
   local chat = M.last_chat()
 
-  if not chat or util.is_empty(chat) then
+  if not chat then
     return M.chat()
   end
 

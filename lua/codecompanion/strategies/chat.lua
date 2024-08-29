@@ -1202,7 +1202,10 @@ end
 ---Returns the last chat that was visible
 ---@return CodeCompanion.Chat|nil
 function Chat.last_chat()
-  return last_chat or nil
+  if util.is_empty(last_chat) then
+    return nil
+  end
+  return last_chat
 end
 
 ---Close the last chat buffer
