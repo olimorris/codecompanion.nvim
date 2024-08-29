@@ -1,3 +1,5 @@
+local config = require("codecompanion").config
+
 local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
@@ -64,6 +66,8 @@ function Client:stream(adapter, payload, cb, after, opts)
     .request({
       url = adapter:set_env_vars(adapter.args.url),
       headers = adapter:set_env_vars(adapter.args.headers),
+      insecure = config.adapters.opts.allow_insecure,
+      proxy = config.adapters.opts.proxy,
       raw = adapter.args.raw or { "--no-buffer" },
       body = body,
       stream = self.opts.schedule(function(_, data)

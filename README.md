@@ -142,6 +142,10 @@ require("codecompanion").setup({
     gemini = "gemini",
     ollama = "ollama",
     openai = "openai",
+    opts = {
+    allow_insecure = false, -- Allow insecure connections?
+      proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
+    },
   },
   strategies = {
     -- CHAT STRATEGY ----------------------------------------------------------
@@ -819,6 +823,24 @@ require("codecompanion").setup({
 })
 ```
 
+**Changing an Adapter's Default Model**
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    anthropic = function()
+      return require("codecompanion.adapters").extend("anthropic", {
+        schema = {
+          model = {
+            default = "claude-3-opus-20240229",
+          },
+        },
+      })
+    end,
+  },
+})
+```
+
 **Configuring Adapter Settings**
 
 LLMs have many settings such as _model_, _temperature_ and _max_tokens_. In an adapter, these sit within a schema table and can be configured during setup:
@@ -846,20 +868,14 @@ require("codecompanion").setup({
 })
 ```
 
-**Changing an Adapter's Default Model**
+**Connecting via a Proxy**
 
 ```lua
 require("codecompanion").setup({
   adapters = {
-    anthropic = function()
-      return require("codecompanion.adapters").extend("anthropic", {
-        schema = {
-          model = {
-            default = "claude-3-opus-20240229",
-          },
-        },
-      })
-    end,
+    opts = {
+      proxy = "socks5://127.0.0.1:9999"
+    }
   },
 })
 ```

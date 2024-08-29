@@ -295,7 +295,7 @@ M.change_adapter = {
 
     local list = {}
     for adapter, _ in pairs(adapters) do
-      if adapter ~= current_adapter then
+      if adapter ~= current_adapter and adapter ~= "opts" then
         table.insert(list, adapter)
       end
     end

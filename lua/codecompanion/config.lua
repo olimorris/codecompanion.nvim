@@ -7,6 +7,10 @@ return {
     gemini = "gemini",
     ollama = "ollama",
     openai = "openai",
+    opts = {
+      allow_insecure = false, -- Allow insecure connections?
+      proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
+    },
   },
   strategies = {
     -- CHAT STRATEGY ----------------------------------------------------------
@@ -559,6 +563,7 @@ Use Markdown formatting and include the programming language name at the start o
       layout = "vertical", -- vertical|horizontal|buffer
       diff = {
         enabled = true,
+        opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
         priority = 130,
         highlights = {
           removed = "DiffDelete",
