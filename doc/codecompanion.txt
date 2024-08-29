@@ -263,6 +263,7 @@ adapter, these sit within a schema table and can be configured during setup:
     require("codecompanion").setup({
       adapters = {
         opts = {
+          --allow_insecure = true,
           proxy = "socks5://127.0.0.1:9999"
         }
       },

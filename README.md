@@ -143,7 +143,7 @@ require("codecompanion").setup({
     ollama = "ollama",
     openai = "openai",
     opts = {
-    allow_insecure = false, -- Allow insecure connections?
+      allow_insecure = false, -- Allow insecure connections?
       proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
     },
   },
@@ -874,6 +874,7 @@ require("codecompanion").setup({
 require("codecompanion").setup({
   adapters = {
     opts = {
+      --allow_insecure = true,
       proxy = "socks5://127.0.0.1:9999"
     }
   },
