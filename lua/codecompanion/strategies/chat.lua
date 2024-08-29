@@ -1173,7 +1173,7 @@ function Chat:clear()
   clear_ns(namespaces)
 
   log:trace("Clearing chat buffer")
-  self:render():set_extmarks()
+  self:render():set_system_message():set_extmarks()
 end
 
 ---Display the chat buffer's settings and messages
