@@ -178,19 +178,17 @@ function FileCommand:complete(params, callback)
     dir = self:_parse_input(Path:new(input):absolute())
   end
 
+  local args = {
+    "--files",
+    "--hidden",
+    "-g",
+    "!.git",
+    dir:absolute(),
+  }
+
   Job:new({
-    command = "fd",
-    args = {
-      "--max-depth",
-      max_depth,
-      self.config.show_hidden_files and "--hidden" or "",
-      "--type",
-      "d",
-      "--type",
-      "f",
-      ".",
-      dir:absolute(),
-    },
+    command = "rg",
+    args = args,
     on_exit = vim.schedule_wrap(function(j, return_val)
       if return_val ~= 0 then
         callback()
