@@ -1,3 +1,5 @@
+local config = require("codecompanion").config
+
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.messages")
 
@@ -21,6 +23,8 @@ local function get_models(self, opts)
     return curl.get(url .. "/v1/models", {
       sync = true,
       headers = headers,
+      insecure = config.adapters.opts.allow_insecure,
+      proxy = config.adapters.opts.proxy,
     })
   end)
   if not ok or not response then
