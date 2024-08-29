@@ -27,8 +27,8 @@ local function get_models(self, opts)
       proxy = config.adapters.opts.proxy,
     })
   end)
-  if not ok or not response then
-    log:error("Could not get the Ollama models from " .. url .. "/v1/models")
+  if not ok then
+    log:error("Could not get the Ollama models from " .. url .. "/v1/models.\nError: %s", response)
     return {}
   end
 
