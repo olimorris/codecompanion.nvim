@@ -1,32 +1,9 @@
----Partly referenced from the awesome Avante.nvim plugin by yetone
----https://github.com/yetone/avante.nvim/blob/main/lua/avante/providers/copilot.lua
-
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
-local path = require("plenary.path")
 
 ---The GitHub Copilot token
 ---@type string|nil
 local _github_token
-
----Get the path to the user's config directory
----@return string|nil
-local function get_config_path()
-  local config = vim.fn.expand("$XDG_CONFIG_HOME")
-  if config and vim.fn.isdirectory(config) > 0 then
-    return config
-  elseif vim.fn.has("win32") > 0 then
-    config = vim.fn.expand("~/AppData/Local")
-    if vim.fn.isdirectory(config) > 0 then
-      return config
-    end
-  else
-    config = vim.fn.expand("~/.config")
-    if vim.fn.isdirectory(config) > 0 then
-      return config
-    end
-  end
-end
 
 ---Get the GitHub Copilot token
 ---@return string|nil
@@ -35,46 +12,35 @@ local function get_token()
     return _github_token
   end
 
-  -- loading token from the environment only in GitHub Codespaces
-  local token = os.getenv("GITHUB_TOKEN")
-  local codespaces = os.getenv("CODESPACES")
-  if token and codespaces then
-    return token
-  end
-
-  -- loading token from the file
-  local config_path = get_config_path()
-  if not config_path then
-    return nil
-  end
-
-  -- token can be sometimes in apps.json sometimes in hosts.json
-  local file_paths = {
-    config_path .. "/github-copilot/hosts.json",
-    config_path .. "/github-copilot/apps.json",
+  local token_files = {
+    "~/.config/github-copilot/hosts.json",
+    "~/.config/github-copilot/apps.json",
   }
 
-  local fp = path:new(vim
-    .iter(file_paths)
-    :filter(function(f)
-      return vim.fn.filereadable(f) == 1
-    end)
-    :next())
+  for _, file in ipairs(token_files) do
+    local path = vim.fn.expand(file)
 
-  ---@type table<string, any>
-  local creds = vim.json.decode(fp:read() or {})
-  ---@type table<"token", string>
-  local value = vim
-    .iter(creds)
-    :filter(function(k, _)
-      return k:find("github.com")
-    end)
-    :fold({}, function(acc, _, v)
-      acc.token = v.oauth_token
-      return acc
-    end)
+    if vim.fn.filereadable(path) == 1 then
+      local f = io.open(path, "r")
+      if not f then
+        return log:error("Could not open file: %s", path)
+      end
 
-  return value.token or nil
+      local content = f:read("*all")
+      f:close()
+
+      local ok, data = pcall(vim.fn.json_decode, content)
+      if not ok then
+        return log:error("Could not decode JSON from file: %s", path)
+      end
+
+      if data and data["github.com"]["oauth_token"] then
+        return data["github.com"]["oauth_token"]
+      end
+    end
+  end
+
+  return nil
 end
 
 ---@class CodeCompanion.AdapterArgs
