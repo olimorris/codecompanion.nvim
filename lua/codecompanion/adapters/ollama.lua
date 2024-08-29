@@ -10,13 +10,20 @@ local curl = require("plenary.curl")
 ---@params opts? table
 ---@return table
 local function get_models(self, opts)
-  local url = self.args.env.url
+  local adapter = require("codecompanion.adapters").resolve(self)
+  if not adapter then
+    log:error("Could not resolve Ollama adapter in the `get_models` function")
+    return {}
+  end
+
+  adapter:get_env_vars()
+  local url = adapter.args.env_replaced.url
 
   local headers = {
     ["content-type"] = "application/json",
   }
-  if self.args.env.api_key then
-    headers["Authorization"] = "Bearer " .. self.args.env.api_key
+  if adapter.args.env_replaced.api_key then
+    headers["Authorization"] = "Bearer " .. adapter.args.env_replaced.api_key
   end
 
   local ok, response = pcall(function()
