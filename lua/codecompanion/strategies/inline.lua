@@ -95,7 +95,7 @@ end
 
 ---@class CodeCompanion.Inline
 ---@field id integer
----@field aug string The augroup name
+---@field aug number The ID for the autocmd group
 ---@field adapter CodeCompanion.Adapter
 ---@field chat_context? table Messages from a chat buffer
 ---@field classification table
@@ -413,6 +413,7 @@ function Inline:submit_done()
   log:info("Inline request finished")
   local bufnr = self.classification.pos.bufnr
   api.nvim_buf_del_keymap(bufnr, "n", "q")
+  api.nvim_clear_autocmds({ group = self.aug })
 end
 
 ---When a defined prompt is sent alongside the user's input, we need to do some

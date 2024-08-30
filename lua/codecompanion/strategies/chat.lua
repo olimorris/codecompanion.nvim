@@ -265,6 +265,7 @@ local registered_cmp = false
 ---@class CodeCompanion.Chat
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
+---@field aug number The ID for the autocmd group
 ---@field bufnr integer The buffer number of the chat
 ---@field context table The context of the buffer that the chat was initiated from
 ---@field current_request table|nil The current request being executed
@@ -298,6 +299,9 @@ function Chat.new(args)
 
   local self = setmetatable({
     opts = args,
+    aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. id, {
+      clear = false,
+    }),
     context = args.context,
     header_ns = api.nvim_create_namespace(CONSTANTS.NS_HEADER),
     id = id,
@@ -509,15 +513,11 @@ end
 ---Set the autocmds for the chat buffer
 ---@return nil
 function Chat:set_autocmds()
-  local aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. self.bufnr, {
-    clear = false,
-  })
-
   local bufnr = self.bufnr
 
   -- Setup completion
   api.nvim_create_autocmd("InsertEnter", {
-    group = aug,
+    group = self.aug,
     buffer = bufnr,
     once = true,
     desc = "Setup the completion of helpers in the chat buffer",
@@ -542,7 +542,7 @@ function Chat:set_autocmds()
 
   if config.display.chat.show_settings then
     api.nvim_create_autocmd("CursorMoved", {
-      group = aug,
+      group = self.aug,
       buffer = bufnr,
       desc = "Show settings information in the CodeCompanion chat buffer",
       callback = function()
@@ -552,7 +552,7 @@ function Chat:set_autocmds()
 
     -- Validate the settings
     api.nvim_create_autocmd("InsertLeave", {
-      group = aug,
+      group = self.aug,
       buffer = bufnr,
       desc = "Parse the settings in the CodeCompanion chat buffer for any errors",
       callback = function()
@@ -585,7 +585,7 @@ function Chat:set_autocmds()
   end
 
   api.nvim_create_autocmd("BufWriteCmd", {
-    group = aug,
+    group = self.aug,
     buffer = bufnr,
     desc = "Submit the CodeCompanion chat buffer",
     callback = function()
@@ -594,7 +594,7 @@ function Chat:set_autocmds()
   })
 
   api.nvim_create_autocmd("InsertEnter", {
-    group = aug,
+    group = self.aug,
     buffer = bufnr,
     once = true,
     desc = "Clear the virtual text in the CodeCompanion chat buffer",
@@ -605,7 +605,7 @@ function Chat:set_autocmds()
   })
 
   api.nvim_create_autocmd("BufEnter", {
-    group = aug,
+    group = self.aug,
     buffer = bufnr,
     desc = "Log the most recent chat buffer",
     callback = function()
@@ -615,7 +615,7 @@ function Chat:set_autocmds()
 
   -- For when the request has completed
   api.nvim_create_autocmd("User", {
-    group = aug,
+    group = self.aug,
     desc = "Listen for chat completion",
     pattern = "CodeCompanionRequestFinished",
     callback = function(request)
@@ -972,7 +972,7 @@ function Chat:close()
   end
 
   api.nvim_buf_delete(self.bufnr, { force = true })
-  api.nvim_del_augroup_by_name(CONSTANTS.AUTOCMD_GROUP .. self.bufnr)
+  api.nvim_clear_autocmds({ group = self.aug })
   util.fire("ChatClosed", { bufnr = self.bufnr, chat = self })
   util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = nil })
   self = nil
