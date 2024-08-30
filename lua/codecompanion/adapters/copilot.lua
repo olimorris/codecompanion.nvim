@@ -1,7 +1,6 @@
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 
----The GitHub Copilot token
 ---@type string|nil
 local _github_token
 
