@@ -161,8 +161,8 @@ M.options = {
 }
 
 M.send = {
-  callback = function()
-    vim.cmd("w")
+  callback = function(chat)
+    chat:submit()
   end,
 }
 

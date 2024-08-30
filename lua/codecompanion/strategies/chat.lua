@@ -309,7 +309,6 @@ function Chat.new(args)
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
-      api.nvim_buf_set_option(bufnr, "buftype", "acwrite")
       api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
 
       return bufnr
@@ -581,15 +580,6 @@ function Chat:set_autocmds()
       end,
     })
   end
-
-  api.nvim_create_autocmd("BufWriteCmd", {
-    group = aug,
-    buffer = bufnr,
-    desc = "Submit the CodeCompanion chat buffer",
-    callback = function()
-      self:submit()
-    end,
-  })
 
   api.nvim_create_autocmd("InsertEnter", {
     group = aug,
