@@ -2,7 +2,6 @@ local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.client")
 local config = require("codecompanion").config
 
-local hl = require("codecompanion.utils.highlights")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local msg_utils = require("codecompanion.utils.messages")
@@ -46,40 +45,6 @@ Please respond to this prompt in the format "<method>", placing the classifictio
 ---@return string
 local function code_block(prompt, filetype, lines)
   return prompt .. ":\n\n" .. "```" .. filetype .. "\n" .. table.concat(lines, "  ") .. "\n```\n"
-end
-
----Write the given text to the buffer
----@param pos table
----@param bufnr number
----@param text string
----@return table
-local function stream_text_to_buffer(pos, bufnr, text)
-  local line = pos.line - 1
-  local col = pos.col
-
-  local index = 1
-  while index <= #text do
-    local newline = text:find("\n", index) or (#text + 1)
-    local substring = text:sub(index, newline - 1)
-
-    if #substring > 0 then
-      api.nvim_buf_set_text(bufnr, line, col, line, col, { substring })
-      col = col + #substring
-    end
-
-    if newline <= #text then
-      api.nvim_buf_set_lines(bufnr, line + 1, line + 1, false, { "" })
-      line = line + 1
-      col = 0
-    end
-
-    index = newline + 1
-  end
-
-  pos.line = line + 1
-  pos.col = col
-
-  return pos
 end
 
 ---Overwrite the given selection in the buffer with an empty string
@@ -130,12 +95,13 @@ end
 
 ---@class CodeCompanion.Inline
 ---@field id integer
+---@field aug string The augroup name
 ---@field adapter CodeCompanion.Adapter
 ---@field chat_context? table Messages from a chat buffer
 ---@field classification table
 ---@field context table
 ---@field current_request? table
----@field diff table
+---@field diff? table
 ---@field opts table
 ---@field prompts table
 local Inline = {}
@@ -144,6 +110,7 @@ local Inline = {}
 ---@field adapter? CodeCompanion.Adapter
 ---@field chat_context? table Messages from a chat buffer
 ---@field context table
+---@field diff? table
 ---@field opts? table
 ---@field pre_hook? fun():number Function to run before the inline prompt is started
 ---@field prompts table
@@ -165,22 +132,27 @@ function Inline.new(args)
 
   if not args.chat_context then
     local last_chat = require("codecompanion").last_chat()
-    if util.count(last_chat) > 0 then
+    if last_chat then
       args.chat_context = last_chat:get_messages()
     end
   end
 
+  local id = math.random(10000000)
+
   local self = setmetatable({
-    id = math.random(10000000),
+    id = id,
+    aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. id, {
+      clear = false,
+    }),
     adapter = args.adapter or config.adapters[config.strategies.inline.adapter],
+    chat_context = args.chat_context or {},
     classification = {
       placement = "",
       pos = {},
       prompts = {},
     },
-    chat_context = args.chat_context or {},
     context = args.context,
-    diff = {},
+    diff = args.diff or {},
     opts = args.opts or {},
     prompts = vim.deepcopy(args.prompts),
   }, { __index = Inline })
@@ -190,21 +162,15 @@ function Inline.new(args)
     return log:error("No adapter found")
   end
 
-  self:set_autocmds()
-
   log:debug("Inline instance created with ID %d", self.id)
   return self
 end
 
 ---Set the autocmds for the inline prompt
 ---@return nil
-function Inline:set_autocmds()
-  local aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. self.context.bufnr, {
-    clear = false,
-  })
-
+function Inline:autocmd_classify()
   api.nvim_create_autocmd("User", {
-    group = aug,
+    group = self.aug,
     desc = "Listen for the classification to complete",
     pattern = "CodeCompanionRequestFinishedInlineClassify",
     callback = function(request)
@@ -214,17 +180,19 @@ function Inline:set_autocmds()
       self:classify_done()
     end,
   })
+end
 
+function Inline:autocmd_submit()
   api.nvim_create_autocmd("User", {
-    group = aug,
+    group = self.aug,
     desc = "Listen for the submission to complete",
     pattern = "CodeCompanionRequestFinishedInlineSubmit",
     callback = function(request)
-      if request.data.bufnr ~= self.context.bufnr then
+      if request.data.bufnr ~= self.classification.pos.bufnr then
         return
       end
       self:submit_done()
-      api.nvim_del_augroup_by_id(aug)
+      api.nvim_del_augroup_by_id(self.aug)
     end,
   })
 end
@@ -299,6 +267,8 @@ function Inline:classify(user_input)
   if not self.opts.placement then
     log:info("Inline classification request started")
     util.fire("InlineStarted")
+
+    self:autocmd_classify()
     client.new({ user_args = { event = "InlineClassify" } }):stream(
       self.adapter:map_schema_to_params(),
       self.adapter:map_roles({
@@ -353,10 +323,10 @@ end
 ---Submit the prompts to the LLM to process
 ---@return nil
 function Inline:submit()
-  self.classification.pos = self:place(self.classification.placement)
+  self:place(self.classification.placement)
   log:debug("Determined position for output: %s", self.classification.pos)
 
-  local bufnr = self.classification.pos.bufnr or self.context.bufnr
+  local bufnr = self.classification.pos.bufnr
 
   -- Remind the LLM to respond with code only
   table.insert(self.classification.prompts, {
@@ -385,7 +355,7 @@ function Inline:submit()
     end
   end
 
-  log:debug("Prompts to submit: %s", self.classification.prompts)
+  -- log:debug("Prompts to submit: %s", self.classification.prompts)
   log:info("Inline request started")
 
   -- Add a keymap to cancel the request
@@ -399,6 +369,12 @@ function Inline:submit()
     end,
   })
 
+  if self.classification.placement == "replace" or self.classification.placement == "add" then
+    self:start_diff()
+    keymaps.set(config.strategies.inline.keymaps, bufnr, self)
+  end
+
+  self:autocmd_submit()
   self.current_request = client.new({ user_args = { event = "InlineSubmit" } }):stream(
     self.adapter:map_schema_to_params(),
     self.adapter:map_roles(self.classification.prompts),
@@ -412,11 +388,12 @@ function Inline:submit()
         local content = self.adapter.args.handlers.inline_output(data, self.context)
 
         if content then
-          vim.cmd.undojoin()
-          stream_text_to_buffer(self.classification.pos, bufnr, content)
-          if self.classification.placement == "new" then
-            ui.buf_scroll_to_end(bufnr)
-          end
+          vim.schedule(function()
+            self:append_to_buf(content)
+            if self.classification.placement == "new" and api.nvim_get_current_buf() == bufnr then
+              ui.buf_scroll_to_end(bufnr)
+            end
+          end)
         end
       end
     end,
@@ -434,56 +411,8 @@ end
 ---@return nil
 function Inline:submit_done()
   log:info("Inline request finished")
-  local bufnr = self.classification.pos.bufnr or self.context.bufnr
+  local bufnr = self.classification.pos.bufnr
   api.nvim_buf_del_keymap(bufnr, "n", "q")
-end
-
----With the placement determined, we can now place the output from the inline prompt
----@param placement string
----@return table Table consisting of line, column and buffer number
-function Inline:place(placement)
-  local pos = { line = self.context.start_line, col = 0 }
-
-  if placement == "replace" then
-    self:diff_removed()
-    overwrite_selection(self.context)
-    local cursor_pos = api.nvim_win_get_cursor(self.context.winnr)
-    pos.line = cursor_pos[1]
-    pos.col = cursor_pos[2]
-  elseif placement == "add" then
-    api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
-    pos.line = self.context.end_line + 1
-    pos.col = 0
-  elseif placement == "new" then
-    local bufnr = api.nvim_create_buf(true, false)
-    api.nvim_buf_set_option(bufnr, "filetype", self.context.filetype)
-
-    -- TODO: This is duplicated from the chat strategy
-    if config.display.inline.layout == "vertical" then
-      local cmd = "vsplit"
-      local window_width = config.display.chat.window.width
-      local width = window_width > 1 and window_width or math.floor(vim.o.columns * window_width)
-      if width ~= 0 then
-        cmd = width .. cmd
-      end
-      vim.cmd(cmd)
-    elseif config.display.inline.layout == "horizontal" then
-      local cmd = "split"
-      local window_height = config.display.chat.window.height
-      local height = window_height > 1 and window_height or math.floor(vim.o.lines * window_height)
-      if height ~= 0 then
-        cmd = height .. cmd
-      end
-      vim.cmd(cmd)
-    end
-
-    api.nvim_win_set_buf(api.nvim_get_current_win(), bufnr)
-    pos.line = 1
-    pos.col = 0
-    pos.bufnr = bufnr
-  end
-
-  return pos
 end
 
 ---When a defined prompt is sent alongside the user's input, we need to do some
@@ -537,62 +466,155 @@ function Inline:form_prompt()
   return output
 end
 
+---With the placement determined, we can now place the output from the inline prompt
+---@param placement string
+---@return CodeCompanion.Inline
+function Inline:place(placement)
+  local pos = { line = self.context.start_line, col = 0, bufnr = 0 }
+
+  if placement == "replace" then
+    self.diff.lines = api.nvim_buf_get_lines(self.context.bufnr, 0, -1, true)
+    overwrite_selection(self.context)
+    local cursor_pos = api.nvim_win_get_cursor(self.context.winnr)
+    pos.line = cursor_pos[1]
+    pos.col = cursor_pos[2]
+    pos.bufnr = self.context.bufnr
+  elseif placement == "add" then
+    self.diff.lines = api.nvim_buf_get_lines(self.context.bufnr, 0, -1, true)
+    api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
+    pos.line = self.context.end_line + 1
+    pos.col = 0
+    pos.bufnr = self.context.bufnr
+  elseif placement == "new" then
+    local bufnr = api.nvim_create_buf(true, false)
+    api.nvim_buf_set_option(bufnr, "filetype", self.context.filetype)
+
+    -- TODO: This is duplicated from the chat strategy
+    if config.display.inline.layout == "vertical" then
+      local cmd = "vsplit"
+      local window_width = config.display.chat.window.width
+      local width = window_width > 1 and window_width or math.floor(vim.o.columns * window_width)
+      if width ~= 0 then
+        cmd = width .. cmd
+      end
+      vim.cmd(cmd)
+    elseif config.display.inline.layout == "horizontal" then
+      local cmd = "split"
+      local window_height = config.display.chat.window.height
+      local height = window_height > 1 and window_height or math.floor(vim.o.lines * window_height)
+      if height ~= 0 then
+        cmd = height .. cmd
+      end
+      vim.cmd(cmd)
+    end
+
+    api.nvim_win_set_buf(api.nvim_get_current_win(), bufnr)
+    pos.line = 1
+    pos.col = 0
+    pos.bufnr = bufnr
+  end
+
+  self.classification.pos = {
+    line = pos.line,
+    col = pos.col,
+    bufnr = pos.bufnr,
+  }
+
+  return self
+end
+
+---Write the given text to the buffer
+---@param content string
+---@return nil
+function Inline:append_to_buf(content)
+  local line = self.classification.pos.line - 1
+  local col = self.classification.pos.col
+  local bufnr = self.classification.pos.bufnr
+
+  local index = 1
+  while index <= #content do
+    local newline = content:find("\n", index) or (#content + 1)
+    local substring = content:sub(index, newline - 1)
+
+    if #substring > 0 then
+      api.nvim_buf_set_text(bufnr, line, col, line, col, { substring })
+      col = col + #substring
+    end
+
+    if newline <= #content then
+      api.nvim_buf_set_lines(bufnr, line + 1, line + 1, false, { "" })
+      line = line + 1
+      col = 0
+    end
+
+    index = newline + 1
+  end
+
+  self.classification.pos.line = line + 1
+  self.classification.pos.col = col
+end
+
 ---Apply diff coloring to any replaced text
 ---@return nil
-function Inline:diff_removed()
-  if
-    config.display.inline.diff.enabled == false
-    or self.diff.removed_id == self.id
-    or (#self.context.lines == 0 or not self.context.lines)
-  then
+function Inline:start_diff()
+  if config.display.inline.diff.enabled == false then
     return
   end
 
-  local ns_id = api.nvim_create_namespace("codecompanion_diff_removed_")
-  api.nvim_buf_clear_namespace(self.context.bufnr, ns_id, 0, -1)
+  -- Taken from the awesome:
+  -- https://github.com/S1M0N38/dante.nvim
 
-  local diff_hl_group = api.nvim_get_hl(0, { name = config.display.inline.diff.highlights.removed or "DiffDelete" })
+  -- Get current window properties
+  local wrap = vim.wo.wrap
+  local linebreak = vim.wo.linebreak
+  local breakindent = vim.wo.breakindent
+  vim.cmd("set diffopt=" .. table.concat(config.display.inline.diff.opts, ","))
 
-  local virt_lines = {}
-  local win_width = api.nvim_win_get_width(0)
-
-  for i, line in ipairs(self.context.lines) do
-    local virt_text = {}
-
-    local start_col = self.context.start_col
-    local row = self.context.start_line + i - 1
-
-    -- Set the highlights for each character on the line
-    local highlights = {}
-    for col = start_col, #line do
-      local char = line:sub(col, col)
-      local current = hl.get_hl_group(self.context.bufnr, row, col)
-
-      if not highlights[current] then
-        highlights[current] = hl.combine(diff_hl_group, current)
-      end
-
-      table.insert(virt_text, { char, highlights[current] })
-    end
-
-    -- Calculate remaining width and add right padding
-    local current_width = vim.fn.strdisplaywidth(line:sub(start_col))
-    local remaining_width = win_width - current_width
-    if remaining_width > 0 then
-      table.insert(virt_text, { string.rep(" ", remaining_width), hl.combine(diff_hl_group, "Normal") })
-    end
-
-    table.insert(virt_lines, virt_text)
+  -- Close the chat buffer
+  local last_chat = require("codecompanion").last_chat()
+  if last_chat and last_chat:is_visible() and config.display.inline.diff.close_chat_at > vim.o.columns then
+    last_chat:hide()
   end
 
-  api.nvim_buf_set_extmark(self.context.bufnr, ns_id, self.context.start_line - 1, 0, {
-    virt_lines = virt_lines,
-    virt_lines_above = true,
-    priority = config.display.inline.diff.priority,
-  })
+  -- Create the diff buffer
+  if config.display.inline.diff.layout == "vertical" then
+    vim.cmd("vsplit")
+  else
+    vim.cmd("split")
+  end
+  self.diff.winnr = api.nvim_get_current_win()
+  self.diff.bufnr = api.nvim_create_buf(false, true)
+  api.nvim_win_set_buf(self.diff.winnr, self.diff.bufnr)
+  api.nvim_set_option_value("filetype", self.context.filetype, { buf = self.diff.bufnr })
+  api.nvim_set_option_value("wrap", wrap, { win = self.diff.winnr })
+  api.nvim_set_option_value("linebreak", linebreak, { win = self.diff.winnr })
+  api.nvim_set_option_value("breakindent", breakindent, { win = self.diff.winnr })
 
-  keymaps.set(config.strategies.inline.keymaps, self.context.bufnr, self)
-  self.diff.removed_id = self.id
+  -- Set the diff buffer to the contents, prior to any modifications
+  api.nvim_buf_set_lines(self.diff.bufnr, 0, 0, true, self.diff.lines)
+  api.nvim_win_set_cursor(self.diff.winnr, { self.context.cursor_pos[1], self.context.cursor_pos[2] })
+
+  -- Begin diffing
+  api.nvim_set_current_win(self.diff.winnr)
+  vim.cmd("diffthis")
+  api.nvim_set_current_win(self.context.winnr)
+  vim.cmd("diffthis")
+end
+
+---Accept the changes in the diff
+---@return nil
+function Inline:accept()
+  api.nvim_win_close(self.diff.winnr, false)
+  self.diff = {}
+end
+
+---Reject the changes in the diff
+---@return nil
+function Inline:reject()
+  vim.cmd("diffoff")
+  api.nvim_win_close(self.diff.winnr, false)
+  api.nvim_buf_set_lines(self.context.bufnr, 0, -1, true, self.diff.lines)
+  self.diff = {}
 end
 
 return Inline

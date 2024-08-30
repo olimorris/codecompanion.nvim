@@ -389,9 +389,7 @@ M.debug = {
 M.accept_change = {
   desc = "Accept the change from the LLM",
   callback = function(inline)
-    local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_removed_")
-    api.nvim_buf_clear_namespace(inline.context.bufnr, ns_id, 0, -1)
-
+    inline:accept()
     clear_map(config.strategies.inline.keymaps, inline.context.bufnr)
   end,
 }
@@ -399,10 +397,7 @@ M.accept_change = {
 M.reject_change = {
   desc = "Reject the change from the LLM",
   callback = function(inline)
-    local ns_id = vim.api.nvim_create_namespace("codecompanion_diff_removed_")
-    api.nvim_buf_clear_namespace(inline.context.bufnr, ns_id, 0, -1)
-    vim.cmd("undo")
-
+    inline:reject()
     clear_map(config.strategies.inline.keymaps, inline.context.bufnr)
   end,
 }

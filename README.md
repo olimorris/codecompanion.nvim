@@ -14,6 +14,10 @@
 Currently supports: Anthropic, Copilot, Gemini, Ollama and OpenAI adapters
 </p>
 
+<p align="center">
+New features are always announced <a href="https://github.com/olimorris/codecompanion.nvim/discussions/categories/announcements">here</a>
+</p>
+
 ## :purple_heart: Sponsors
 
 Thank you to the following people:
@@ -671,10 +675,9 @@ Use Markdown formatting and include the programming language name at the start o
       layout = "vertical", -- vertical|horizontal|buffer
       diff = {
         enabled = true,
-        priority = 130,
-        highlights = {
-          removed = "DiffDelete",
-        },
+        close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
+        layout = "vertical", -- vertical|horizontal
+        opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
       },
     },
   },
@@ -1049,14 +1052,14 @@ From the Action Palette, the `Open Chats` action enables users to easily navigat
 
 Inline prompts can be triggered via the `CodeCompanion <your prompt>` command. As mentioned in the [Getting Started](#rocket-getting-started) section, you can also leverage chat buffer context, visual selections and slash commands like `'<,'>CodeCompanion /buffer what does this code do?`, where the slash command points to a [default prompt](#clipboard-default-prompts) and any words after that act as a custom prompt to the LLM.
 
-One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed at the cursor's position in the current buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to _replace_ a visual selection. The plugin will use the inline LLM you've specified in your config to determine if the response should follow any of the placements below:
+One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed at the cursor's position in the current buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to _replace_ a visual selection. The plugin will use the inline LLM you've specified in your config to determine if the response should...
 
-- _replace_ - replacing the visual selection
-- _add_ - after the visual selection or at the cursor position
-- _new_ - in a new buffer
-- _chat_ - in a chat buffer
+- _replace_ - replace a visual selection you've made
+- _add_ - be added in the current buffer at the cursor position
+- _new_ - be placed in a new buffer
+- _chat_ - be placed in a chat buffer
 
-There are also keymaps available to you after an inline edit has taken place:
+By default, inline prompting will trigger the diff feature, showing differences between the original buffer and the changes from the LLM. This can be turned off in your config. You an also choose to accept or reject the LLM's suggestions with:
 
 - `ga` - Accept an inline edit
 - `gr` - Reject an inline edit
@@ -1246,6 +1249,7 @@ I am open to contributions but they will be implemented at my discretion. Feel f
 ## :clap: Acknowledgements
 
 - [Steven Arcangeli](https://github.com/stevearc) for his genius creation of the chat buffer and his feedback early on
+- [Dante.nvim](https://github.com/S1M0N38/dante.nvim) for the beautifully simple diff implementation
 - [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) for the LSP assistant action
 
 <!-- panvimdoc-ignore-end -->

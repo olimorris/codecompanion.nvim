@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 29
+*codecompanion.txt*         For NVIM v0.9.2        Last change: 2024 August 30
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -477,14 +477,17 @@ response to be placed at the cursor’s position in the current buffer.
 However, if you asked the LLM to _“refactor this function”_ then you’d
 expect the response to _replace_ a visual selection. The plugin will use the
 inline LLM you’ve specified in your config to determine if the response
-should follow any of the placements below:
+should…
 
-- _replace_ - replacing the visual selection
-- _add_ - after the visual selection or at the cursor position
-- _new_ - in a new buffer
-- _chat_ - in a chat buffer
+- _replace_ - replace a visual selection you’ve made
+- _add_ - be added in the current buffer at the cursor position
+- _new_ - be placed in a new buffer
+- _chat_ - be placed in a chat buffer
 
-There are also keymaps available to you after an inline edit has taken place:
+By default, inline prompting will trigger the diff feature, showing differences
+between the original buffer and the changes from the LLM. This can be turned
+off in your config. You an also choose to accept or reject the LLM’s
+suggestions with:
 
 - `ga` - Accept an inline edit
 - `gr` - Reject an inline edit
