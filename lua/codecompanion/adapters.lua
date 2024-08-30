@@ -58,7 +58,7 @@ local function get_schema(adapter, var)
     table.insert(keys, key)
   end
 
-  local node = adapter.args
+  local node = adapter
   for _, key in ipairs(keys) do
     if type(node) ~= "table" then
       return nil
@@ -84,15 +84,15 @@ local function replace_var(adapter, str)
   local pattern = "${(.-)}"
 
   return str:gsub(pattern, function(var)
-    return adapter.args.env_replaced[var]
+    return adapter.env_replaced[var]
   end)
 end
 
 ---@class CodeCompanion.Adapter
----@field args CodeCompanion.AdapterArgs
+---@field args CodeCompanion.Adapter
 local Adapter = {}
 
----@class CodeCompanion.AdapterArgs
+---@class CodeCompanion.Adapter
 ---@field name string The name of the adapter
 ---@field roles table The mapping of roles in the config to the LLM's defined roles
 ---@field features table The features that the adapter supports
@@ -115,10 +115,10 @@ local Adapter = {}
 ---@field handlers.teardown? fun(self: CodeCompanion.Adapter): any
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 
----@param args CodeCompanion.AdapterArgs
+---@param args CodeCompanion.Adapter
 ---@return CodeCompanion.Adapter
 function Adapter.new(args)
-  return setmetatable({ args = args }, { __index = Adapter })
+  return setmetatable(args, { __index = Adapter })
 end
 
 ---TODO: Refactor this to return self so we can chain it
@@ -127,7 +127,7 @@ end
 function Adapter:get_default_settings()
   local settings = {}
 
-  for key, value in pairs(self.args.schema) do
+  for key, value in pairs(self.schema) do
     local default = value.default
     if default ~= nil then
       if type(default) == "function" then
@@ -143,27 +143,27 @@ end
 ---Get the variables from the env key of the adapter
 ---@return CodeCompanion.Adapter
 function Adapter:get_env_vars()
-  local env_vars = self.args.env or {}
+  local env_vars = self.env or {}
 
   if not env_vars then
     return self
   end
 
-  self.args.env_replaced = {}
+  self.env_replaced = {}
 
   for k, v in pairs(env_vars) do
     if type(v) == "string" and is_cmd(v) then
-      self.args.env_replaced[k] = run_cmd(v)
+      self.env_replaced[k] = run_cmd(v)
     elseif type(v) == "string" and is_env_var(v) then
-      self.args.env_replaced[k] = get_env_var(v)
+      self.env_replaced[k] = get_env_var(v)
     elseif type(v) == "function" then
-      self.args.env_replaced[k] = v()
+      self.env_replaced[k] = v()
     else
       local schema = get_schema(self, v)
       if schema then
-        self.args.env_replaced[k] = schema
+        self.env_replaced[k] = schema
       else
-        self.args.env_replaced[k] = v
+        self.env_replaced[k] = v
       end
     end
   end
@@ -201,14 +201,14 @@ function Adapter:map_schema_to_params(settings)
   end
 
   for k, v in pairs(settings) do
-    local mapping = self.args.schema[k] and self.args.schema[k].mapping
+    local mapping = self.schema[k] and self.schema[k].mapping
     if mapping then
       local segments = {}
       for segment in string.gmatch(mapping, "[^.]+") do
         table.insert(segments, segment)
       end
 
-      local current = self.args
+      local current = self
       for i = 1, #segments - 1 do
         if not current[segments[i]] then
           current[segments[i]] = {}
@@ -238,7 +238,7 @@ end
 function Adapter:map_roles(messages)
   for _, message in ipairs(messages) do
     if message.role then
-      message.role = self.args.roles[message.role:lower()] or message.role
+      message.role = self.roles[message.role:lower()] or message.role
     end
   end
 

@@ -72,38 +72,7 @@ describe("Strategies", function()
     assert.stub(chat_mock.new).was_called()
     local call_args = chat_mock.new.calls[1].vals[1]
 
-    assert.equals("test_adapter", call_args.adapter.args.name)
-    assert.equals("custom_model", call_args.adapter.args.schema.model.default)
+    assert.equals("test_adapter", call_args.adapter.name)
+    assert.equals("custom_model", call_args.adapter.schema.model.default)
   end)
-
-  -- it("should call inline strategy with a specific adapter", function()
-  --   local context = { mode = "n" }
-  --   local selected = {
-  --     strategy = "inline",
-  --     opts = {
-  --       user_prompt = false,
-  --       adapter = {
-  --         name = "test_adapter",
-  --         model = "custom_model",
-  --       },
-  --     },
-  --     prompts = {
-  --       {
-  --         role = "user",
-  --         content = "test content",
-  --       },
-  --     },
-  --   }
-  --
-  --   local strategy_instance = strategies.new({ context = context, selected = selected })
-  --   strategy_instance:start("inline")
-  --
-  --   local call = inline_mock.start.calls[1]
-  --   local strategy = call.vals[1]
-  --
-  --   assert.is_not_nil(strategy.adapter, "Adapter should not be nil")
-  --   assert.is_not_nil(strategy.adapter.args, "Adapter args should not be nil")
-  --   assert.equals("test_adapter", strategy.adapter.args.name)
-  --   assert.equals("custom_model", strategy.adapter.args.schema.model.default)
-  -- end)
 end)

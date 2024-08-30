@@ -52,7 +52,7 @@ return {
         msg.opts = nil
       end
       local sys_prompts = {
-        role = self.args.roles.user,
+        role = self.roles.user,
         parts = system,
       }
 
@@ -61,7 +61,7 @@ return {
       local user = utils.pop_messages(vim.deepcopy(messages), "system")
       for _, msg in ipairs(user) do
         table.insert(output, {
-          role = self.args.roles.user,
+          role = self.roles.user,
           parts = {
             { text = msg.content },
           },

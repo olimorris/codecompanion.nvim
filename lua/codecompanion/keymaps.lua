@@ -291,7 +291,7 @@ M.change_adapter = {
     end
 
     local adapters = require("codecompanion").config.adapters
-    local current_adapter = chat.adapter.args.name
+    local current_adapter = chat.adapter.name
 
     local list = {}
     for adapter, _ in pairs(adapters) do
@@ -309,12 +309,12 @@ M.change_adapter = {
 
       if current_adapter ~= selected then
         chat.adapter = require("codecompanion.adapters").resolve(adapters[selected])
-        utils.fire("ChatAdapter", { bufnr = chat.bufnr, adapter = chat.adapter.args })
+        utils.fire("ChatAdapter", { bufnr = chat.bufnr, adapter = chat.adapter })
         chat:apply_settings()
       end
 
       -- Select a model
-      local models = chat.adapter.args.schema.model.choices
+      local models = chat.adapter.schema.model.choices
       if type(models) == "function" then
         models = models(chat.adapter)
       end
@@ -322,7 +322,7 @@ M.change_adapter = {
         return
       end
 
-      local current_model = chat.adapter.args.schema.model.default
+      local current_model = chat.adapter.schema.model.default
       if type(current_model) == "function" then
         current_model = current_model(chat.adapter)
       end
@@ -353,7 +353,7 @@ M.debug = {
     local lines = {}
 
     table.insert(lines, "--Settings")
-    table.insert(lines, 'adapter = "' .. chat.adapter.args.name .. '"')
+    table.insert(lines, 'adapter = "' .. chat.adapter.name .. '"')
 
     for key, val in pairs(settings) do
       if type(val) == "number" or type(val) == "boolean" then

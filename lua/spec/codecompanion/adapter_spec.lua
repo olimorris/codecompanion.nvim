@@ -95,10 +95,10 @@ describe("Adapter", function()
     local result = adapter:map_schema_to_params(chat_buffer_settings)
 
     -- Ignore this for now
-    result.args.parameters.stream = nil
-    result.args.parameters.stream_options = nil
+    result.parameters.stream = nil
+    result.parameters.stream_options = nil
 
-    assert.are.same(chat_buffer_settings, result.args.parameters)
+    assert.are.same(chat_buffer_settings, result.parameters)
   end)
 
   it("can nest parameters based on an adapter's schema", function()
@@ -116,25 +116,25 @@ describe("Adapter", function()
       },
     }
 
-    assert.are.same(expected, result.args.parameters)
+    assert.are.same(expected, result.parameters)
   end)
 
   it("can form environment variables", function()
     local adapter = require("codecompanion.adapters").extend(test_adapter2)
     local result = adapter:get_env_vars()
 
-    assert.are.same(test_adapter2.schema.model.default, result.args.env_replaced.model)
-    assert.are.same(os.getenv("HOME"), result.args.env_replaced.home)
+    assert.are.same(test_adapter2.schema.model.default, result.env_replaced.model)
+    assert.are.same(os.getenv("HOME"), result.env_replaced.home)
   end)
 
   it("can set environment variables in the adapter", function()
     local adapter = require("codecompanion.adapters").extend(test_adapter2)
     adapter:get_env_vars()
 
-    local url = adapter:set_env_vars(adapter.args.url)
+    local url = adapter:set_env_vars(adapter.url)
     assert.are.same("https://api.oli.ai/v1/chat/oli_model_v2", url)
 
-    local headers = adapter:set_env_vars(adapter.args.headers)
+    local headers = adapter:set_env_vars(adapter.headers)
     assert.are.same({
       content_type = "application/json",
       home = os.getenv("HOME"),
@@ -145,7 +145,7 @@ describe("Adapter", function()
     local adapter = require("codecompanion.adapters").extend(test_adapter2)
     adapter:get_env_vars()
 
-    local params = adapter:set_env_vars(adapter.args.parameters)
+    local params = adapter:set_env_vars(adapter.parameters)
     assert.are.same(test_adapter2.parameters, params)
   end)
 

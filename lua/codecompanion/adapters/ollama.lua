@@ -17,13 +17,13 @@ local function get_models(self, opts)
   end
 
   adapter:get_env_vars()
-  local url = adapter.args.env_replaced.url
+  local url = adapter.env_replaced.url
 
   local headers = {
     ["content-type"] = "application/json",
   }
-  if adapter.args.env_replaced.api_key then
-    headers["Authorization"] = "Bearer " .. adapter.args.env_replaced.api_key
+  if adapter.env_replaced.api_key then
+    headers["Authorization"] = "Bearer " .. adapter.env_replaced.api_key
   end
 
   local ok, response = pcall(function()

@@ -252,9 +252,11 @@ local function buf_parse_tools(chat)
   end
 end
 
+---Used to store all of the open chat buffers
 ---@type table<CodeCompanion.Chat>
 local chatmap = {}
 
+---Used to record the last chat buffer that was opened
 ---@type CodeCompanion.Chat|nil
 local last_chat = {}
 
@@ -328,7 +330,7 @@ function Chat.new(args)
   if not self.adapter then
     return log:error("No adapter found")
   end
-  util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = self.adapter.args })
+  util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = self.adapter })
   self:apply_settings(self.opts.settings)
 
   self.close_last_chat()
@@ -347,7 +349,7 @@ end
 ---@return self
 function Chat:apply_settings(settings)
   _cached_settings = {}
-  self.settings = settings or schema.get_default(self.adapter.args.schema, self.opts.settings)
+  self.settings = settings or schema.get_default(self.adapter.schema, self.opts.settings)
 
   return self
 end
@@ -360,7 +362,7 @@ function Chat:apply_model(model)
     _cached_settings[self.bufnr].model = model
   end
 
-  self.adapter.args.schema.model.default = model
+  self.adapter.schema.model.default = model
 
   return self
 end
@@ -461,7 +463,7 @@ function Chat:render(messages)
   if config.display.chat.show_settings then
     log:trace("Showing chat settings")
     lines = { "---" }
-    local keys = schema.get_ordered_keys(self.adapter.args.schema)
+    local keys = schema.get_ordered_keys(self.adapter.schema)
     for _, key in ipairs(keys) do
       local setting = self.settings[key]
       if type(setting) == "function" then
@@ -556,7 +558,7 @@ function Chat:set_autocmds()
       callback = function()
         local settings = buf_parse_settings(bufnr, self.adapter, [[((stream (_)) @block)]])
 
-        local errors = schema.validate(self.adapter.args.schema, settings, self.adapter)
+        local errors = schema.validate(self.adapter.schema, settings, self.adapter)
         local node = settings.__ts_node
 
         local items = {}
@@ -724,7 +726,7 @@ function Chat:on_cursor_moved()
     return
   end
 
-  local key_schema = self.adapter.args.schema[key_name]
+  local key_schema = self.adapter.schema[key_name]
   if key_schema and key_schema.desc then
     local lnum, col, end_lnum, end_col = node:range()
     local diagnostic = {
@@ -865,7 +867,7 @@ function Chat:submit(opts)
       if data then
         self:get_tokens(data)
 
-        local result = self.adapter.args.handlers.chat_output(data)
+        local result = self.adapter.handlers.chat_output(data)
         if result and result.status == CONSTANTS.STATUS_SUCCESS then
           if result.output.role then
             result.output.role = CONSTANTS.LLM_ROLE
@@ -1067,8 +1069,8 @@ end
 ---@param data table
 ---@return nil
 function Chat:get_tokens(data)
-  if self.adapter.args.features.tokens then
-    local tokens = self.adapter.args.handlers.tokens(data)
+  if self.adapter.features.tokens then
+    local tokens = self.adapter.handlers.tokens(data)
     if tokens then
       self.tokens = tokens
     end
@@ -1135,7 +1137,7 @@ function Chat:complete(request, callback)
     return
   end
 
-  local key_schema = self.adapter.args.schema[key_name]
+  local key_schema = self.adapter.schema[key_name]
   if key_schema.type == "enum" then
     local choices = key_schema.choices
     if type(choices) == "function" then

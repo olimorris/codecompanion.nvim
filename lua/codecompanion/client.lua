@@ -43,8 +43,8 @@ function Client:stream(adapter, payload, cb, after, opts)
   opts = opts or {}
   cb = log:wrap_cb(cb, "Response error: %s")
 
-  if adapter.args.handlers.setup then
-    local ok = adapter.args.handlers.setup(adapter)
+  if adapter.handlers.setup then
+    local ok = adapter.handlers.setup(adapter)
     if not ok then
       return
     end
@@ -55,8 +55,8 @@ function Client:stream(adapter, payload, cb, after, opts)
   local body = self.opts.encode(
     vim.tbl_extend(
       "keep",
-      adapter.args.handlers.form_parameters(adapter, adapter:set_env_vars(adapter.args.parameters), payload) or {},
-      adapter.args.handlers.form_messages(adapter, payload)
+      adapter.handlers.form_parameters(adapter, adapter:set_env_vars(adapter.parameters), payload) or {},
+      adapter.handlers.form_messages(adapter, payload)
     )
   )
 
@@ -64,11 +64,11 @@ function Client:stream(adapter, payload, cb, after, opts)
 
   local handler = self.opts
     .request({
-      url = adapter:set_env_vars(adapter.args.url),
-      headers = adapter:set_env_vars(adapter.args.headers),
+      url = adapter:set_env_vars(adapter.url),
+      headers = adapter:set_env_vars(adapter.headers),
       insecure = config.adapters.opts.allow_insecure,
       proxy = config.adapters.opts.proxy,
-      raw = adapter.args.raw or { "--no-buffer" },
+      raw = adapter.raw or { "--no-buffer" },
       body = body,
       stream = self.opts.schedule(function(_, data)
         if data and data ~= "" then
@@ -90,11 +90,11 @@ function Client:stream(adapter, payload, cb, after, opts)
         if after and type(after) == "function" then
           after()
         end
-        if adapter.args.handlers.on_stdout then
-          adapter.args.handlers.on_stdout(adapter, data)
+        if adapter.handlers.on_stdout then
+          adapter.handlers.on_stdout(adapter, data)
         end
-        if adapter.args.handlers.teardown then
-          adapter.args.handlers.teardown(adapter)
+        if adapter.handlers.teardown then
+          adapter.handlers.teardown(adapter)
         end
         util.fire("RequestFinished", opts)
         if self.user_args.event then
