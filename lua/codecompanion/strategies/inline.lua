@@ -66,33 +66,6 @@ local function overwrite_selection(context)
   api.nvim_win_set_cursor(context.winnr, { context.start_line, context.start_col })
 end
 
----A user's inline prompt may need to be converted into a chat
----@param inline CodeCompanion.Inline
----@param prompt table
----@return CodeCompanion.Chat|nil
-local function send_to_chat(inline, prompt)
-  -- If we're converting an inline prompt to a chat, we need to perform some
-  -- additional steps. We need to remove any visual selections as the chat
-  -- buffer adds this itself. We also need to order the system prompt
-  for i = #prompt, 1, -1 do
-    if inline.context.is_visual and (prompt[i].opts and prompt[i].opts.tag == "visual") then
-      table.remove(prompt, i)
-    elseif prompt[i].opts and prompt[i].opts.tag == "system_tag" then
-      prompt[i].content = config.strategies.inline.prompts.inline_to_chat(inline.context)
-      prompt[i].opts.visible = false
-    end
-  end
-
-  return require("codecompanion.strategies.chat")
-    .new({
-      context = inline.context,
-      adapter = inline.adapter,
-      messages = prompt,
-      auto_submit = true,
-    })
-    :conceal("buffers")
-end
-
 ---@class CodeCompanion.Inline
 ---@field id integer
 ---@field aug number The ID for the autocmd group
@@ -315,8 +288,9 @@ function Inline:classify_done()
   self.classification.placement = parts
   if self.classification.placement == "chat" then
     log:info("Sending inline prompt to the chat buffer")
-    return send_to_chat(self, self.classification.prompts)
+    return self:send_to_chat()
   end
+
   return self:submit()
 end
 
@@ -522,6 +496,34 @@ function Inline:place(placement)
   }
 
   return self
+end
+
+---A user's inline prompt may need to be converted into a chat
+---@return CodeCompanion.Chat
+function Inline:send_to_chat()
+  local prompt = self.classification.prompts
+
+  for i = #prompt, 1, -1 do
+    -- Remove all of the system prompts
+    if prompt[i].opts and prompt[i].opts.tag == "system_tag" then
+      table.remove(prompt, i)
+    end
+    -- Remove any visual selections as the chat buffer adds these from the context
+    if self.context.is_visual and (prompt[i].opts and prompt[i].opts.tag == "visual") then
+      table.remove(prompt, i)
+    end
+  end
+
+  api.nvim_clear_autocmds({ group = self.aug })
+
+  return require("codecompanion.strategies.chat")
+    .new({
+      context = self.context,
+      adapter = self.adapter,
+      messages = prompt,
+      auto_submit = true,
+    })
+    :conceal("buffers")
 end
 
 ---Write the given text to the buffer
