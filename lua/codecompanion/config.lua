@@ -126,7 +126,7 @@ return {
         },
         next_header = {
           modes = {
-            n = "]",
+            n = "]]",
           },
           index = 9,
           callback = "keymaps.next_header",
@@ -134,7 +134,7 @@ return {
         },
         previous_header = {
           modes = {
-            n = "[",
+            n = "[[",
           },
           index = 10,
           callback = "keymaps.previous_header",

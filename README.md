@@ -257,7 +257,7 @@ require("codecompanion").setup({
         },
         next_header = {
           modes = {
-            n = "]",
+            n = "]]",
           },
           index = 10,
           callback = "keymaps.next_header",
@@ -265,7 +265,7 @@ require("codecompanion").setup({
         },
         previous_header = {
           modes = {
-            n = "[",
+            n = "[[",
           },
           index = 11,
           callback = "keymaps.previous_header",
