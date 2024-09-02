@@ -165,7 +165,7 @@ function Inline.new(args)
 
   if not args.chat_context then
     local last_chat = require("codecompanion").last_chat()
-    if util.count(last_chat) > 0 then
+    if last_chat ~= nil and util.count(last_chat) > 0 then
       args.chat_context = last_chat:get_messages()
     end
   end
