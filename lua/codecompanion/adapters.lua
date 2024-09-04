@@ -265,36 +265,6 @@ function Adapter.extend(adapter, opts)
   return Adapter.new(adapter_config)
 end
 
----TODO: Deprecate this method
----@param adapter table|string|function
----@param opts? table
----@return CodeCompanion.Adapter
-function Adapter.use(adapter, opts)
-  dep.write(
-    "adapter.use",
-    "  ",
-    { "adapter.use", "WarningMsg" },
-    " has now been directly replaced by ",
-    { "adapter.extend", "WarningMsg" },
-    " in the adapter's section of your config",
-    "\nIt will be removed in coming weeks."
-  )
-
-  local adapter_config
-
-  if type(adapter) == "string" then
-    adapter_config = require("codecompanion.adapters." .. adapter)
-  elseif type(adapter) == "function" then
-    adapter_config = adapter()
-  else
-    adapter_config = adapter
-  end
-
-  adapter_config = vim.tbl_deep_extend("force", {}, vim.deepcopy(adapter_config), opts or {})
-
-  return Adapter.new(adapter_config)
-end
-
 ---Resolve an adapter from deep within the plugin...somewhere
 ---@param adapter? CodeCompanion.Adapter|string|function
 ---@return CodeCompanion.Adapter
