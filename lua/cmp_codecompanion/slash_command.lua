@@ -53,7 +53,7 @@ function source:complete(params, callback)
         -- Because when executing source:execute, the corresponding command needs to be obtained through slash_command_name
         -- For the 'now' and 'terminal' commands, since they are executed directly, slash_command_name needs to be set
         -- Ensure that the corresponding command:execute is called
-        slash_command_name = (name == "now" or name == "terminal") and name or nil,
+        slash_command_name = (name == "now") and name or nil,
       }
 
       table.insert(items, item)

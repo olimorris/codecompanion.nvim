@@ -25,12 +25,13 @@ function TabCommand:complete(params, callback)
     if api.nvim_buf_is_loaded(buf) then
       local name = api.nvim_buf_get_name(buf)
       ---@diagnostic disable-next-line: undefined-field
-      if name == "" or name:match("*[CodeCompanion]*") then
+      -- if name contain CodeCompanion continue
+      if name:find("CodeCompanion") or name:find("term") then
         goto continue
       end
 
       table.insert(items, {
-        label = name,
+        label = vim.fn.fnamemodify(name, ":t"),
         kind = require("cmp").lsp.CompletionItemKind.File,
         slash_command_name = self.name,
         slash_command_args = {
