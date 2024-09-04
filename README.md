@@ -67,7 +67,8 @@ Install the plugin with your preferred package manager:
   dependencies = {
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
-    "nvim-telescope/telescope.nvim", -- Optional
+    "hrsh7th/nvim-cmp", -- Optional: For activating slash commands and variables in the chat buffer
+    "nvim-telescope/telescope.nvim", -- Optional: For working with files with slash commands
     {
       "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
       opts = {},
@@ -88,7 +89,8 @@ use({
   requires = {
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
-    "nvim-telescope/telescope.nvim", -- Optional
+    "hrsh7th/nvim-cmp", -- Optional: For activating slash commands and variables in the chat buffer
+    "nvim-telescope/telescope.nvim", -- Optional: For working with files with slash commands
     "stevearc/dressing.nvim" -- Optional: Improves the default Neovim UI
   }
 })
@@ -101,7 +103,8 @@ call plug#begin()
 
 Plug "nvim-lua/plenary.nvim"
 Plug "nvim-treesitter/nvim-treesitter"
-Plug "nvim-telescope/telescope.nvim" " Optional
+Plug "hrsh7th/nvim-cmp", " Optional: For activating slash commands and variables in the chat buffer
+Plug "nvim-telescope/telescope.nvim", " Optional: For working with files with slash commands
 Plug "stevearc/dressing.nvim" " Optional: Improves the default Neovim UI
 Plug "olimorris/codecompanion.nvim"
 
@@ -110,6 +113,128 @@ call plug#end()
 lua << EOF
   require("codecompanion").setup()
 EOF
+```
+
+## :rocket: Quickstart
+
+> [!IMPORTANT]
+> Okay, okay...it's not quite a quickstart as you'll need to configure your [adapter](#gear-configuration) first
+
+**Inline Prompting**
+
+<!-- panvimdoc-ignore-start -->
+
+<div align="center">
+  <p>https://github.com/user-attachments/assets/bf88836d-832d-4f69-a58e-371bbb8b9bd2</p>
+</div>
+
+<!-- panvimdoc-ignore-end -->
+
+The plugin has been designed so you only need to remember one command, `:CodeCompanion`. Running `:CodeCompanion <your prompt>`, the plugin will determine where to place your output (in a buffer or opening a chat buffer) before responding to your prompt. You can even make a visual selection before invoking the command to provide additional context to the LLM. You can find more about [inline prompting](#pencil2-inline-prompting) in the section below.
+
+[Inline transformations](https://github.com/olimorris/codecompanion.nvim/discussions/130) enable you to use the context from a chat buffer in an inline prompt. A prompt such as `:CodeCompanion add the new function here` can leverage the code that the LLM has created in its last response in the chat buffer and write it at the cursor position.
+
+For convenience, you can also call [default prompts](#clipboard-default-prompts) from the command line:
+
+- `/explain` - Explain how selected code in a buffer works
+- `/tests` - Generate unit tests for selected code
+- `/fix` - Fix the selected code
+- `/buffer` - Send the current buffer to the LLM alongside a prompt
+- `/lsp` - Explain the LSP diagnostics for the selected code
+- `/commit` - Generate a commit message
+
+Running `:'<,'>CodeCompanion /fix` will trigger the plugin to start following the fix prompt as defined in the [config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua). Some of the slash commands can also take custom prompts. For example, running `:'<,'>CodeCompanion /buffer refactor this code` sends the whole buffer as context alongside a prompt to refactor the selected code. If you prompt the LLM with something like `:CodeCompanion why are Lua and Neovim the perfect combination?` then the prompt will be sent to the chat buffer instead.
+
+Finally, there are keymaps available to accept or reject edits from the LLM in the [inline prompting](#pencil2-inline-prompting) section.
+
+**Chat Buffer**
+
+<!-- panvimdoc-ignore-start -->
+
+<p align="center"><img src="https://github.com/user-attachments/assets/6097fa93-906c-4ed1-b1c4-8b52ad151f9f" alt="Chat buffer"></p>
+
+<!-- panvimdoc-ignore-end -->
+
+The chat buffer is where you interact with LLMs from within Neovim. Running `:CodeCompanionChat` or `:'<,'>CodeCompanionChat` will open one. As a convenience, you can use `:CodeCompanionToggle` to toggle the visibility of a chat buffer. Simply type prompt and press `<CR>` to send to the LLM.
+
+When in the chat buffer you have access to a variety of data which can be sent to the LLM as context. Variables, accessed via `#`, house data which relates to the present state of Neovim:
+
+- `#buffer` - Share the current buffer's content with the LLM. You can also specify line numbers with `#buffer:8-20`
+- `#editor` - Share the buffers and lines that you see in the editor's viewport
+- `#lsp` - Share LSP information and code for the current buffer
+
+Slash commands, accessed via `/`, can be triggered to run commands to add data into the chat buffer:
+
+- `/buffer` - Select a loaded buffer to add its content to the chat buffer
+- `/file` - Select a file from your working directory to add its content to the chat buffer
+
+Both variables and slash commands can be extended in your config.
+
+> [!TIP]
+> When in the chat buffer, the `?` keymap brings up all of these available options.
+
+**Agents / Tools**
+
+<!-- panvimdoc-ignore-start -->
+
+<div align="center">
+  <p>https://github.com/user-attachments/assets/8bc083c7-f4f1-4eab-b9fe-ab6c4c30ee91</p>
+</div>
+
+<!-- panvimdoc-ignore-end -->
+
+In the chat buffer, you can turn LLMs into agents via the use of tools. In the video above, we're asking an LLM to execute the contents of the buffer via the _@code_runner_ tool.
+
+When in the chat buffer you have access to the following tools:
+
+- `@code_runner` - The LLM can trigger the running of any code from within a Docker container
+- `@rag` - The LLM can browse and search the internet for real-time information to supplement its response
+- `@buffer_editor` - The LLM can edit code in a Neovim buffer by searching and replacing blocks
+
+> [!IMPORTANT]
+> Agents are still at an alpha stage.
+
+**Action Palette**
+
+<!-- panvimdoc-ignore-start -->
+
+<p align="center"><img src="https://github.com/user-attachments/assets/23c2ba7c-d438-4132-b13f-11c51ce0a2c5" alt="Action Palette"></p>
+
+<!-- panvimdoc-ignore-end -->
+
+The `:CodeCompanionActions` command will open the _Action Palette_, giving you access to all of the functionality in the plugin. The _Prompts_ section is where the default prompts and your custom ones can be accessed from.
+
+You'll notice that some prompts have a slash command in their description such as `/commit`. This is a shortcut which allows you to trigger them from the command line by doing `:CodeCompanion /commit`. Some of these prompts also have keymaps assigned to them (which can be overwritten!) which offers an even easier route to triggering them.
+
+> [!NOTE]
+> Some actions will only be visible in the _Action Palette_ if you're in Visual mode.
+
+**List of commands**
+
+Below is a list of all of the commands that are available in the plugin:
+
+- `CodeCompanion` - Inline prompt an LLM
+- `CodeCompanion <your prompt>` - Can also inline prompt an LLM like this
+- `CodeCompanion /<slash_cmd>` - Inline prompt an LLM with a slash command e.g. `/commit`
+- `CodeCompanionChat` - Open up a chat buffer to converse with your LLM
+- `CodeCompanionChat <adapter>` - Open up a chat buffer with a specific adapter
+- `CodeCompanionToggle` - Toggle a chat buffer
+- `CodeCompanionActions` - Open the _Action Palette_
+- `CodeCompanionAdd` - Add visually selected chat to the current chat buffer
+
+**Suggested workflow**
+
+For an optimum workflow, I recommend the following options:
+
+```lua
+vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "ga", "<cmd>CodeCompanionAdd<cr>", { noremap = true, silent = true })
+
+-- Expand 'cc' into 'CodeCompanion' in the command line
+vim.cmd([[cab cc CodeCompanion]])
 ```
 
 ## :gear: Configuration
@@ -168,24 +293,38 @@ require("codecompanion").setup({
             has_params = true,
           },
         },
-        ["buffers"] = {
-          callback = "helpers.variables.buffers",
-          description = "Share all current open buffers with the LLM",
-          opts = {
-            contains_code = true,
-          },
-        },
         ["editor"] = {
           callback = "helpers.variables.editor",
-          description = "Share the code that you see in Neovim",
+          description = "Share the code that you see in Neovim with the LLM",
           opts = {
             contains_code = true,
           },
         },
         ["lsp"] = {
           callback = "helpers.variables.lsp",
-          contains_code = true,
           description = "Share LSP information and code for the current buffer",
+          opts = {
+            contains_code = true,
+          },
+        },
+      },
+      slash_commands = {
+        ["buffer"] = {
+          callback = "helpers.slash_commands.buffer",
+          description = "Share a loaded buffer's contents with the LLM",
+          opts = {
+            contains_code = true,
+            provider = "default", -- default|telescope
+          },
+        },
+        ["file"] = {
+          callback = "helpers.slash_commands.file",
+          description = "Share a file's contents with the LLM",
+          opts = {
+            contains_code = true,
+            max_lines = 1000,
+            provider = "telescope", -- telescope
+          },
         },
       },
       keymaps = {
@@ -206,12 +345,20 @@ require("codecompanion").setup({
           callback = "keymaps.send",
           description = "Send",
         },
+        regenerate = {
+          modes = {
+            n = "gr",
+          },
+          index = 2,
+          callback = "keymaps.regenerate",
+          description = "Regenerate the last response",
+        },
         close = {
           modes = {
             n = "<C-c>",
             i = "<C-c>",
           },
-          index = 2,
+          index = 3,
           callback = "keymaps.close",
           description = "Close Chat",
         },
@@ -219,7 +366,7 @@ require("codecompanion").setup({
           modes = {
             n = "q",
           },
-          index = 3,
+          index = 4,
           callback = "keymaps.stop",
           description = "Stop Request",
         },
@@ -227,7 +374,7 @@ require("codecompanion").setup({
           modes = {
             n = "gx",
           },
-          index = 4,
+          index = 5,
           callback = "keymaps.clear",
           description = "Clear Chat",
         },
@@ -243,7 +390,7 @@ require("codecompanion").setup({
           modes = {
             n = "}",
           },
-          index = 8,
+          index = 7,
           callback = "keymaps.next_chat",
           description = "Next Chat",
         },
@@ -251,7 +398,7 @@ require("codecompanion").setup({
           modes = {
             n = "{",
           },
-          index = 9,
+          index = 8,
           callback = "keymaps.previous_chat",
           description = "Previous Chat",
         },
@@ -259,7 +406,7 @@ require("codecompanion").setup({
           modes = {
             n = "]]",
           },
-          index = 10,
+          index = 9,
           callback = "keymaps.next_header",
           description = "Next Header",
         },
@@ -267,7 +414,7 @@ require("codecompanion").setup({
           modes = {
             n = "[[",
           },
-          index = 11,
+          index = 10,
           callback = "keymaps.previous_header",
           description = "Previous Header",
         },
@@ -275,9 +422,17 @@ require("codecompanion").setup({
           modes = {
             n = "ga",
           },
-          index = 12,
+          index = 11,
           callback = "keymaps.change_adapter",
           description = "Change adapter",
+        },
+        fold_code = {
+          modes = {
+            n = "gf",
+          },
+          index = 12,
+          callback = "keymaps.fold_code",
+          description = "Fold code",
         },
         debug = {
           modes = {
@@ -362,7 +517,6 @@ Answer the user's questions with the tool's output.]],
       prompts = {
         {
           role = "system",
-          tag = "system_tag",
           content = function(context)
             if context.buftype == "terminal" then
               return "I want you to act as an expert in writing terminal commands that will work for my current shell "
@@ -373,6 +527,10 @@ Answer the user's questions with the tool's output.]],
               .. context.filetype
               .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing"
           end,
+          opts = {
+            visible = false,
+            tag = "system_tag",
+          },
         },
       },
     },
@@ -399,15 +557,20 @@ Answer the user's questions with the tool's output.]],
 3. Explain each function or significant block of code, including parameters and return values.
 4. Highlight any specific functions or methods used and their roles.
 5. Provide context on how the code fits into a larger application if applicable.]],
+          opts = {
+            visible = false,
+          },
         },
         {
-          role = "${user}",
-          contains_code = true,
+          role = "user",
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return "Please explain this code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
           end,
+          opts = {
+            contains_code = true,
+          },
         },
       },
     },
@@ -438,15 +601,20 @@ Answer the user's questions with the tool's output.]],
       - Edge cases
       - Error handling (if applicable)
 6. Provide the generated unit tests in a clear and organized manner without additional explanations or chat.]],
+          opts = {
+            visible = false,
+          },
         },
         {
-          role = "${user}",
-          contains_code = true,
+          role = "user",
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return "Please generate unit tests for this code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
           end,
+          opts = {
+            contains_code = true,
+          },
         },
       },
     },
@@ -481,15 +649,20 @@ Ensure the fixed code:
 - Is formatted correctly.
 
 Use Markdown formatting and include the programming language name at the start of the code block.]],
+          opts = {
+            visible = false,
+          },
         },
         {
-          role = "${user}",
-          contains_code = true,
+          role = "user",
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return "Please fix the selected code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
           end,
+          opts = {
+            contains_code = true,
+          },
         },
       },
     },
@@ -509,42 +682,46 @@ Use Markdown formatting and include the programming language name at the start o
       prompts = {
         {
           role = "system",
-          tag = "system_tag",
           content = function(context)
             return "I want you to act as a senior "
               .. context.filetype
               .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing."
           end,
+          opts = {
+            visible = false,
+            tag = "system_tag",
+          },
         },
         {
-          role = "${user}",
-          contains_code = true,
+          role = "user",
           content = function(context)
             local buf_utils = require("codecompanion.utils.buffers")
 
-            return "### buffers\n\nFor context, this is the whole of the buffer:\n\n```"
-              .. context.filetype
-              .. "\n"
-              .. buf_utils.get_content(context.bufnr)
-              .. "\n```\n\n"
+            return " \n\n```" .. context.filetype .. "\n" .. buf_utils.get_content(context.bufnr) .. "\n```\n\n"
           end,
+          opts = {
+            contains_code = true,
+            visible = false,
+          },
         },
         {
-          role = "${user}",
-          contains_code = true,
-          tag = "visual",
+          role = "user",
           condition = function(context)
-            -- The inline strategy will automatically add this in visual mode
-            return context.is_visual == false
+            return context.is_visual
           end,
           content = function(context)
             local selection = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-            return "And this is the specific code that relates to my question:\n\n```"
+            return "And this is some that relates to my question:\n\n```"
               .. context.filetype
               .. "\n"
               .. selection
               .. "\n```\n\n"
           end,
+          opts = {
+            contains_code = true,
+            visible = true,
+            tag = "visual",
+          },
         },
       },
     },
@@ -565,9 +742,12 @@ Use Markdown formatting and include the programming language name at the start o
         {
           role = "system",
           content = [[You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages. When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting.]],
+          opts = {
+            visible = false,
+          },
         },
         {
-          role = "${user}",
+          role = "user",
           content = function(context)
             local diagnostics = require("codecompanion.helpers.actions").get_diagnostics(
               context.start_line,
@@ -597,8 +777,7 @@ Use Markdown formatting and include the programming language name at the start o
           end,
         },
         {
-          role = "${user}",
-          contains_code = true,
+          role = "user",
           content = function(context)
             return "This is the code, for context:\n\n"
               .. "```"
@@ -611,6 +790,9 @@ Use Markdown formatting and include the programming language name at the start o
               )
               .. "\n```\n\n"
           end,
+          opts = {
+            contains_code = true,
+          },
         },
       },
     },
@@ -626,14 +808,16 @@ Use Markdown formatting and include the programming language name at the start o
       },
       prompts = {
         {
-          role = "${user}",
-          contains_code = true,
+          role = "user",
           content = function()
             return "You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:"
               .. "\n\n```\n"
               .. vim.fn.system("git diff")
               .. "\n```"
           end,
+          opts = {
+            contains_code = true,
+          },
         },
       },
     },
@@ -665,8 +849,7 @@ Use Markdown formatting and include the programming language name at the start o
       },
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
 
-      messages_separator = "─", -- The separator between the different messages in the chat buffer
-      show_separator = true, -- Show a separator between LLM responses?
+      separator = "───", -- The separator between the different messages in the chat buffer
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_token_count = true, -- Show the token count for each response?
     },
@@ -697,7 +880,7 @@ Use Markdown formatting and include the programming language name at the start o
     -- strategy. It is primarily based on the GitHub Copilot Chat's prompt
     -- but with some modifications. You can choose to remove this via
     -- your own config but note that LLM results may not be as good
-    system_prompt = [[You are an Al programming assistant named "CodeCompanion".
+    system_prompt = [[You are an AI programming assistant named "CodeCompanion".
 You are currently plugged in to the Neovim text editor on a user's machine.
 
 Your tasks include:
@@ -728,7 +911,7 @@ When given a task:
 3. You should always generate short suggestions for the next user turns that are relevant to the conversation.
 4. You can only give one reply for each conversation turn.]],
   },
-}
+})
 ```
 
 </details>
@@ -782,7 +965,7 @@ In the example above, we're using the base of the Anthropic adapter but changing
 
 **Setting an API Key Using a Command**
 
-Having API keys in plain text in your shell is not always safe. Thanks to [this PR](https://github.com/olimorris/codecompanion.nvim/pull/24), you can run commands from within your config:
+Having API keys in plain text in your shell is not always safe. Thanks to [this PR](https://github.com/olimorris/codecompanion.nvim/pull/24), you can run commands from within your config.  In the example below, we're using the 1Password CLI to read an OpenAI credential.
 
 ```lua
 require("codecompanion").setup({
@@ -797,8 +980,6 @@ require("codecompanion").setup({
   },
 })
 ```
-
-In this example, we're using the 1Password CLI to read an OpenAI credential.
 
 **Using Ollama Remotely**
 
@@ -822,6 +1003,19 @@ require("codecompanion").setup({
         },
       })
     end,
+  },
+})
+```
+
+**Connecting via a Proxy**
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    opts = {
+      allow_insecure = true, -- Use if required
+      proxy = "socks5://127.0.0.1:9999"
+    }
   },
 })
 ```
@@ -871,154 +1065,17 @@ require("codecompanion").setup({
 })
 ```
 
-**Connecting via a Proxy**
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    opts = {
-      --allow_insecure = true,
-      proxy = "socks5://127.0.0.1:9999"
-    }
-  },
-})
-```
-
-### :art: Highlight Groups
-
-The plugin sets the following highlight groups during setup:
-
-- `CodeCompanionChatHeader` - The headers in the chat buffer
-- `CodeCompanionChatSeparator` - Separator between headings in the chat buffer
-- `CodeCompanionChatTokens` - Virtual text in the chat buffer showing the token count
-- `CodeCompanionChatTool` - Tools in the chat buffer
-- `CodeCompanionChatVariable` - Variables in the chat buffer
-- `CodeCompanionVirtualText` - All other virtual text in the plugin
-
-## :rocket: Getting Started
-
-**Inline Prompting**
-
-<!-- panvimdoc-ignore-start -->
-
-<div align="center">
-  <p>https://github.com/user-attachments/assets/bf88836d-832d-4f69-a58e-371bbb8b9bd2</p>
-</div>
-
-<!-- panvimdoc-ignore-end -->
-
-To start interacting with the plugin you can run `:CodeCompanion <your prompt>` from the command line. You can also make a visual selection in Neovim and run `:'<,'>CodeCompanion <your prompt>` to send it as context. The plugin will initially use an LLM to classify your prompt in order to determine where in Neovim to place the response. You can find more about the classificiations in the [inline prompting](#pencil2-inline-prompting) section below.
-
-[Inline transformations](https://github.com/olimorris/codecompanion.nvim/discussions/130) enable you to use the context from a chat buffer in an inline prompt. A prompt such as `:CodeCompanion add the new function here` can leverage the code that the LLM has created in its last response and write it into the current buffer.
-
-For convenience, you can also call [default prompts](#clipboard-default-prompts) from the command line via slash commands:
-
-- `/explain` - Explain how selected code in a buffer works
-- `/tests` - Generate unit tests for selected code
-- `/fix` - Fix the selected code
-- `/buffer` - Send the current buffer to the LLM alongside a prompt
-- `/lsp` - Explain the LSP diagnostics for the selected code
-- `/commit` - Generate a commit message
-
-Running `:'<,'>CodeCompanion /fix` will trigger the plugin to start following the fix prompt as defined in the [config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua). Some of the slash commands can also take custom prompts. For example, running `:'<,'>CodeCompanion /buffer refactor this code` sends the whole buffer as context alongside a prompt to refactor the selected code. If you prompt the LLM with something like `:CodeCompanion why are Lua and Neovim the perfect combination?` then the prompt will be sent to the chat buffer instead.
-
-There are keymaps available to accept or reject edits from the LLM in the [inline prompting](#pencil2-inline-prompting) section.
-
-**Chat Buffer**
-
-<!-- panvimdoc-ignore-start -->
-
-<p align="center"><img src="https://github.com/user-attachments/assets/6097fa93-906c-4ed1-b1c4-8b52ad151f9f" alt="Chat buffer"></p>
-
-<!-- panvimdoc-ignore-end -->
-
-The chat buffer is where you'll likely spend most of your time when interacting with the plugin. Running `:CodeCompanionChat` or `:'<,'>CodeCompanionChat` will open up a chat buffer where you can converse directly with an LLM. As a convenience, you can use `:CodeCompanionToggle` to toggle the visibility of a chat buffer.
-
-When in the chat buffer you have access to the following variables:
-
-- `#buffer` - Share the current buffer's content with the LLM. You can also specify line numbers with `#buffer:8-20`
-- `#buffers` - Share all current open buffers with the LLM
-- `#editor` - Share the buffers and lines that you see in the editor's viewport
-- `#lsp` - Share LSP information and code for the current buffer
-
-> [!NOTE]
-> When in the chat buffer, the `?` keymap brings up all of the available options.
-
-**Agents / Tools**
-
-<!-- panvimdoc-ignore-start -->
-
-<div align="center">
-  <p>https://github.com/user-attachments/assets/8bc083c7-f4f1-4eab-b9fe-ab6c4c30ee91</p>
-</div>
-
-<!-- panvimdoc-ignore-end -->
-
-The plugin also supports LLMs acting as agents by the calling of external tools. In the video above, we're asking an LLM to execute the contents of the buffer via the _@code_runner_ tool, all from within a chat buffer.
-
-When in the chat buffer you have access to the following tools:
-
-- `@code_runner` - The LLM can trigger the running of any code from within a Docker container
-- `@rag` - The LLM can browse and search the internet for real-time information to supplement its response
-- `@buffer_editor` - The LLM can edit code in a Neovim buffer by searching and replacing blocks
-
-> [!IMPORTANT]
-> Agents are currently at an alpha stage.
-
-**Action Palette**
-
-<!-- panvimdoc-ignore-start -->
-
-<p align="center"><img src="https://github.com/user-attachments/assets/23c2ba7c-d438-4132-b13f-11c51ce0a2c5" alt="Action Palette"></p>
-
-<!-- panvimdoc-ignore-end -->
-
-The `:CodeCompanionActions` command will open the _Action Palette_, giving you access to all of the functionality in the plugin. The _Prompts_ section is where the default prompts and your custom ones can be accessed from. You'll notice that some prompts have a slash command in their description such as `/commit`. This enables you to trigger them from the command line by doing `:CodeCompanion /commit`. Some of these prompts also have keymaps assigned to them (which can be overwritten!) which offers an even easier route to triggering them.
-
-> [!NOTE]
-> Some actions will only be visible in the _Action Palette_ if you're in Visual mode.
-
-**List of commands**
-
-Below is a list of commands that are available in the plugin:
-
-- `CodeCompanion` - Inline prompt an LLM
-- `CodeCompanion <your prompt>` - Can also inline prompt an LLM like this
-- `CodeCompanion /<slash_cmd>` - Inline prompt an LLM with a slash command e.g. `/commit`
-- `CodeCompanionChat` - Open up a chat buffer to converse with your LLM
-- `CodeCompanionChat <adapter>` - Open up a chat buffer with a specific adapter
-- `CodeCompanionToggle` - Toggle a chat buffer
-- `CodeCompanionActions` - Open the _Action Palette_
-- `CodeCompanionAdd` - Add visually selected chat to the current chat buffer
-
-**Suggested workflow**
-
-For an optimum workflow, I recommend the following options:
-
-```lua
-vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "ga", "<cmd>CodeCompanionAdd<cr>", { noremap = true, silent = true })
-
--- Expand 'cc' into 'CodeCompanion' in the command line
-vim.cmd([[cab cc CodeCompanion]])
-```
-
 ## :bulb: Advanced Usage
 
 ### :clipboard: Default Prompts
 
-The plugin comes with a number of default prompts ([as per the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua)) which can be called via keymaps and/or slash commands. These prompts have been carefully curated to mimic those in [GitHub's Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide). Of course, you can create your own prompts and add them to the Action Palette and as slash commands. Please see the [RECIPES](doc/RECIPES.md) guide for more information.
+The plugin comes with a number of default prompts, ([as per the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua)), which can be called via keymaps and/or slash commands. These prompts have been carefully curated to mimic those in [GitHub's Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide). Of course, you can create your own prompts and add them to the Action Palette and as slash commands. Please see the [RECIPES](doc/RECIPES.md) guide for more information.
 
 ### :speech_balloon: The Chat Buffer
 
-The chat buffer is where you converse with an LLM, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the buffer is written (or "saved"), autocmds trigger the sending of its content to the LLM in the form of prompts. When a response is received, it is then streamed back into the buffer.
+The chat buffer is where you converse with an LLM, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the send keymap is pressed, the buffer's content is sent to the LLM in the form of prompts. When a response is received, it is then streamed directly into the buffer. The chat buffer has been designed to be turn based, whereby the user sends a message and the LLM replies. Messages are segmented by H2 headers. Once a message has been sent, it cannot be edited.
 
-The chat buffer has been designed to be turn based, whereby the user sends a message and the LLM replies. Messages are segmented by H2 headers. Once a message has been sent, it cannot be edited.
-
-As noted in the [Getting Started](#rocket-getting-started) section, there are a number of variables that you can make use of whilst in the chat buffer. Use `#` to bring up the completion menu to see the available options.
+As noted in the [Quickstart](#rocket-quickstart) guide, you can leverage variables, slash commands and tools to send additional context to the LLM.
 
 **Keymaps**
 
@@ -1032,6 +1089,7 @@ When in the chat buffer, there are number of keymaps available to you:
 - `ga` - Change the adapter
 - `gx` - Clear the buffer's contents
 - `gx` - Add a codeblock
+- `gf` - To refresh the code folds in the buffer
 - `}` - Move to the next chat
 - `{` - Move to the previous chat
 - `[` - Move to the next header
@@ -1048,7 +1106,7 @@ From the Action Palette, the `Open Chats` action enables users to easily navigat
 ### :pencil2: Inline Prompting
 
 > [!NOTE]
-> If `send_code = false` then this will take precedent and no code will be sent to the LLM
+> If `send_code = false` in the config then this will take precedent and no code will be sent to the LLM
 
 Inline prompts can be triggered via the `CodeCompanion <your prompt>` command. As mentioned in the [Getting Started](#rocket-getting-started) section, you can also leverage chat buffer context, visual selections and slash commands like `'<,'>CodeCompanion /buffer what does this code do?`, where the slash command points to a [default prompt](#clipboard-default-prompts) and any words after that act as a custom prompt to the LLM.
 
@@ -1087,6 +1145,17 @@ Currently, the plugin comes with the following workflows:
 Of course you can add new workflows by following the [RECIPES](doc/RECIPES.md) guide.
 
 ## :lollipop: Extras
+
+**Highlight Groups**
+
+The plugin sets the following highlight groups during setup:
+
+- `CodeCompanionChatHeader` - The headers in the chat buffer
+- `CodeCompanionChatSeparator` - Separator between headings in the chat buffer
+- `CodeCompanionChatTokens` - Virtual text in the chat buffer showing the token count
+- `CodeCompanionChatTool` - Tools in the chat buffer
+- `CodeCompanionChatVariable` - Variables in the chat buffer
+- `CodeCompanionVirtualText` - All other virtual text in the plugin
 
 **Events/Hooks**
 

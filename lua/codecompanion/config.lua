@@ -1,5 +1,3 @@
-local utils = require("codecompanion.utils.util")
-
 return {
   adapters = {
     anthropic = "anthropic",
@@ -31,7 +29,7 @@ return {
         },
         ["editor"] = {
           callback = "helpers.variables.editor",
-          description = "Share the code that you see in Neovim",
+          description = "Share the code that you see in Neovim with the LLM",
           opts = {
             contains_code = true,
           },
@@ -41,6 +39,25 @@ return {
           description = "Share LSP information and code for the current buffer",
           opts = {
             contains_code = true,
+          },
+        },
+      },
+      slash_commands = {
+        ["buffer"] = {
+          callback = "helpers.slash_commands.buffer",
+          description = "Share a loaded buffer's contents with the LLM",
+          opts = {
+            contains_code = true,
+            provider = "default", -- default|telescope
+          },
+        },
+        ["file"] = {
+          callback = "helpers.slash_commands.file",
+          description = "Share a file's contents with the LLM",
+          opts = {
+            contains_code = true,
+            max_lines = 1000,
+            provider = "telescope", -- telescope
           },
         },
       },
@@ -143,11 +160,19 @@ return {
           callback = "keymaps.change_adapter",
           description = "Change adapter",
         },
+        fold_code = {
+          modes = {
+            n = "gf",
+          },
+          index = 12,
+          callback = "keymaps.fold_code",
+          description = "Fold code",
+        },
         debug = {
           modes = {
             n = "gd",
           },
-          index = 12,
+          index = 13,
           callback = "keymaps.debug",
           description = "View debug info",
         },
@@ -266,9 +291,9 @@ Answer the user's questions with the tool's output.]],
 3. Explain each function or significant block of code, including parameters and return values.
 4. Highlight any specific functions or methods used and their roles.
 5. Provide context on how the code fits into a larger application if applicable.]],
-        },
-        opts = {
-          visible = false,
+          opts = {
+            visible = false,
+          },
         },
         {
           role = "user",

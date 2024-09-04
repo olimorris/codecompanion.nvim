@@ -34,11 +34,16 @@ end
 ---@param bufnr number
 ---@return table
 function M.get_info(bufnr)
+  local bufname = api.nvim_buf_get_name(bufnr)
+  local relative_path = vim.fn.fnamemodify(bufname, ":.")
+
   return {
-    id = bufnr,
-    name = vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":t"),
-    path = api.nvim_buf_get_name(bufnr),
+    bufnr = bufnr,
     filetype = api.nvim_buf_get_option(bufnr, "filetype"),
+    id = bufnr,
+    name = vim.fn.fnamemodify(bufname, ":t"),
+    path = bufname,
+    relative_path = relative_path,
   }
 end
 
@@ -108,12 +113,28 @@ Content:
   )
 end
 
----Format a buffer with only the buffer ID
+---Format a buffer's contents with line numbers included, for use in a markdown file
 ---@param bufnr number
 ---@param range? table
 ---@return string
-function M.format_by_id(bufnr, range)
+function M.format_with_line_numbers(bufnr, range)
   return format(M.get_info(bufnr), M.get_content(bufnr, range))
+end
+
+---Format a buffer's contents for use in a markdown file
+---@param bufnr number
+---@param range? table
+---@return string
+function M.format(bufnr, range)
+  local buffer = M.get_info(bufnr)
+
+  return string.format(
+    [[```%s
+%s
+```]],
+    buffer.filetype,
+    M.get_content(bufnr, range)
+  )
 end
 
 return M

@@ -1,4 +1,3 @@
-local actions = require("codecompanion.helpers.actions")
 local buf_utils = require("codecompanion.utils.buffers")
 local log = require("codecompanion.utils.log")
 
@@ -23,7 +22,7 @@ M.buffer = function(chat, params)
     end
   end
 
-  local output = buf_utils.format_by_id(chat.context.bufnr, range)
+  local output = buf_utils.format_with_line_numbers(chat.context.bufnr, range)
   log:trace("Buffer Variable:\n---\n%s", output)
 
   return output
@@ -40,7 +39,7 @@ M.editor = function(chat, params)
   local formatted = {}
   for bufnr, range in pairs(buf_lines) do
     range = range[1]
-    table.insert(formatted, buf_utils.format_by_id(bufnr, range))
+    table.insert(formatted, buf_utils.format_with_line_numbers(bufnr, range))
   end
 
   return table.concat(formatted, "\n\n")

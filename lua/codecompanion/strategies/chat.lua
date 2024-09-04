@@ -21,7 +21,6 @@ local CONSTANTS = {
 
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
-  STATUS_FINISHED = "finished",
 
   USER_ROLE = "user",
   LLM_ROLE = "llm",
@@ -128,7 +127,9 @@ local function buf_parse_message(bufnr)
   end
 
   if #contents > 0 then
-    return { content = vim.trim(table.concat(contents, "\n")) }
+    -- We need a double linebreak to prevent the text from being joined to a
+    -- block quote which we use to denote a slash command.
+    return { content = vim.trim(table.concat(contents, "\n\n")) }
   end
 
   return {}
@@ -270,6 +271,7 @@ local registered_cmp = false
 ---@field context table The context of the buffer that the chat was initiated from
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
+---@field has_folded_code boolean Has the code been folded?
 ---@field header_ns integer The namespace for the virtual text that appears in the header
 ---@field id integer The unique identifier for the chat
 ---@field intro_message? boolean Whether the welcome message has been shown
@@ -299,10 +301,8 @@ function Chat.new(args)
 
   local self = setmetatable({
     opts = args,
-    aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. id, {
-      clear = false,
-    }),
     context = args.context,
+    has_folded_code = false,
     header_ns = api.nvim_create_namespace(CONSTANTS.NS_HEADER),
     id = id,
     last_role = args.last_role or "user",
@@ -316,12 +316,17 @@ function Chat.new(args)
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
       api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
+      api.nvim_buf_set_option(bufnr, "buflisted", false)
 
       return bufnr
     end,
   }, { __index = Chat })
 
   self.bufnr = self.create_buf()
+  self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, {
+    clear = false,
+  })
+
   table.insert(chatmap, {
     name = "Chat " .. #chatmap + 1,
     description = CONSTANTS.BLANK_DESC,
@@ -371,6 +376,7 @@ function Chat:apply_model(model)
 end
 
 ---Open/create the chat window
+---@return CodeCompanion.Chat|nil
 function Chat:open()
   if self:is_visible() then
     return
@@ -416,7 +422,7 @@ function Chat:open()
 
   ui.set_win_options(self.winnr, window.opts)
   vim.bo[self.bufnr].textwidth = 0
-  ui.buf_scroll_to_end(self.bufnr)
+  self:follow()
   keymaps.set(config.strategies.chat.keymaps, self.bufnr, self)
 
   log:trace("Chat opened with ID %d", self.id)
@@ -436,7 +442,7 @@ function Chat:render(messages)
   end
 
   local function set_header(role)
-    table.insert(lines, string.format("## %s", role))
+    table.insert(lines, string.format("## %s %s", role, config.display.chat.separator))
     spacer()
     spacer()
   end
@@ -504,7 +510,7 @@ function Chat:render(messages)
   api.nvim_buf_set_lines(self.bufnr, 0, -1, false, lines)
   self:render_headers()
 
-  ui.buf_scroll_to_end(self.bufnr)
+  self:follow()
 
   return self
 end
@@ -525,14 +531,16 @@ function Chat:set_autocmds()
       if has_cmp then
         if not registered_cmp then
           registered_cmp = true
-          cmp.register_source("codecompanion_helpers", require("cmp_codecompanion.helpers").new())
           cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new())
+          cmp.register_source("codecompanion_helpers", require("cmp_codecompanion.helpers").new())
+          cmp.register_source("codecompanion_slash_commands", require("cmp_codecompanion.slash_commands").new())
         end
         cmp.setup.buffer({
           enabled = true,
           sources = {
-            { name = "codecompanion_helpers" },
             { name = "codecompanion_models" },
+            { name = "codecompanion_helpers" },
+            { name = "codecompanion_slash_commands" },
           },
         })
       end
@@ -641,31 +649,25 @@ function Chat:set_extmarks()
   return self
 end
 
----Render the headers in the chat buffer and apply extmarks and separators
+---Render the headers in the chat buffer and apply extmarks
 ---@return nil
 function Chat:render_headers()
-  local separator = config.display.chat.messages_separator
+  local separator = config.display.chat.separator
   local lines = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
 
-  for l, line in ipairs(lines) do
-    if line:match("## " .. user_role .. "$") or line:match("## " .. llm_role .. "$") then
-      local sep = vim.fn.strwidth(line) + 1
+  for line, content in ipairs(lines) do
+    if content:match("^## " .. user_role) or content:match("^## " .. llm_role) then
+      local col = vim.fn.strwidth(content) - vim.fn.strwidth(separator)
 
-      if config.display.chat.show_separator then
-        api.nvim_buf_set_extmark(self.bufnr, self.header_ns, l - 1, sep, {
-          virt_text_win_col = sep,
-          virt_text = { { string.rep(separator, vim.go.columns), "CodeCompanionChatSeparator" } },
-          priority = 100,
-          strict = false,
-        })
-      end
+      api.nvim_buf_set_extmark(self.bufnr, self.header_ns, line - 1, col, {
+        virt_text_win_col = col,
+        virt_text = { { string.rep(separator, vim.go.columns), "CodeCompanionChatSeparator" } },
+      })
 
       -- Set the highlight group for the header
-      api.nvim_buf_set_extmark(self.bufnr, self.header_ns, l - 1, 0, {
-        end_col = sep + 1,
+      api.nvim_buf_set_extmark(self.bufnr, self.header_ns, line - 1, 0, {
+        end_col = col + 1,
         hl_group = "CodeCompanionChatHeader",
-        priority = 100,
-        strict = false,
       })
     end
   end
@@ -785,7 +787,7 @@ function Chat:parse_msg_for_vars(message)
   return self
 end
 
----Set the messages on the chat class
+---Add a message to the chat class
 ---@param message table|string The message from the chat buffer
 ---@param role string The role of the person who sent the message
 ---@param opts? table Options for the message
@@ -825,7 +827,7 @@ function Chat:submit(opts)
   end
 
   --- If we're regenerating the response, we don't want to add the user's last
-  --- message from the buffer as it sends unneccessary context to the LLM
+  --- message from the buffer as it sends unnecessary context to the LLM
   if not opts.regenerate then
     self:add_message(message, CONSTANTS.USER_ROLE)
   end
@@ -997,7 +999,10 @@ function Chat:append_to_buf(data, opts)
     self.last_role = data.role
     table.insert(lines, "")
     table.insert(lines, "")
-    table.insert(lines, string.format("## %s", config.strategies.chat.roles[data.role]))
+    table.insert(
+      lines,
+      string.format("## %s %s", config.strategies.chat.roles[data.role], config.display.chat.separator)
+    )
     table.insert(lines, "")
   end
 
@@ -1026,11 +1031,26 @@ function Chat:append_to_buf(data, opts)
     end
 
     if cursor_moved and self:is_active() then
-      ui.buf_scroll_to_end(bufnr)
+      self:follow()
     elseif not self:is_active() then
-      ui.buf_scroll_to_end(bufnr)
+      self:follow()
     end
   end
+end
+
+---Follow the cursor in the chat buffer
+---@return nil
+function Chat:follow()
+  if not self:is_visible() then
+    return
+  end
+
+  local last_line, last_column, line_count = self:last()
+  if line_count == 0 then
+    return
+  end
+
+  vim.api.nvim_win_set_cursor(self.winnr, { last_line + 1, last_column })
 end
 
 ---When a request has finished, reset the chat buffer
@@ -1095,12 +1115,73 @@ function Chat:conceal(heading)
           vim.fn.setpos(".", { self.bufnr, start_row + 1, 0, 0 })
           vim.cmd("normal! zf" .. end_row .. "G")
         end)
-        ui.buf_scroll_to_end(self.bufnr)
+        self:follow()
       end
     end
   end
 
   log:trace("Concealing %s", heading)
+  return self
+end
+
+---Fold code under the user's heading in the chat buffer
+---@return self
+function Chat:fold_code()
+  -- NOTE: Folding is super brittle in Neovim
+  if not self.has_folded_code then
+    api.nvim_create_autocmd("InsertLeave", {
+      group = self.aug,
+      buffer = self.bufnr,
+      desc = "Always fold code when a slash command is used",
+      callback = function()
+        self:fold_code()
+      end,
+    })
+    self.has_folded_code = true
+  end
+
+  local query = vim.treesitter.query.parse(
+    "markdown",
+    [[
+(section
+(
+ (atx_heading
+  (atx_h2_marker)
+  heading_content: (_) @role
+)
+([
+  (fenced_code_block)
+  (indented_code_block)
+] @code (#trim! @code))
+))
+]]
+  )
+
+  local parser = vim.treesitter.get_parser(self.bufnr, "markdown")
+  local tree = parser:parse()[1]
+  local root = tree:root()
+
+  local captures = {}
+  for k, v in pairs(query.captures) do
+    captures[v] = k
+  end
+
+  api.nvim_buf_set_option(self.bufnr, "foldmethod", "manual")
+
+  local role
+  for _, match in query:iter_matches(root, self.bufnr) do
+    if match[captures.role] then
+      role = vim.trim(vim.treesitter.get_node_text(match[captures.role], self.bufnr):lower())
+      if role:match(user_role) and match[captures.code] then
+        local node = match[captures.code]
+        local start_row, _, end_row, _ = node:range()
+        if start_row < end_row then
+          vim.cmd(string.format("%d,%dfold", start_row, end_row))
+        end
+      end
+    end
+  end
+
   return self
 end
 
@@ -1145,9 +1226,9 @@ function Chat:clear()
   end
 
   local namespaces = {
+    CONSTANTS.NS_HEADER,
     CONSTANTS.NS_INTRO,
     CONSTANTS.NS_VIRTUAL_TEXT,
-    CONSTANTS.NS_HEADER,
   }
 
   self.messages = {}
