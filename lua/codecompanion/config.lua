@@ -38,8 +38,10 @@ return {
         },
         ["lsp"] = {
           callback = "helpers.variables.lsp",
-          contains_code = true,
           description = "Share LSP information and code for the current buffer",
+          opts = {
+            contains_code = true,
+          },
         },
       },
       keymaps = {
