@@ -7,7 +7,6 @@ local uv = vim.loop
 CONSTANTS = {
   NAME = "File",
   PROMPT = "Select a file",
-  DISPLAY = "path",
 }
 
 ---Output from the slash command in the chat buffer
@@ -34,7 +33,7 @@ local function output(SlashCommand, selected)
   uv.fs_close(fd)
 
   local Chat = SlashCommand.Chat
-  Chat:append_to_buf({ content = "[!" .. CONSTANTS.NAME .. ": `" .. selected[CONSTANTS.DISPLAY] .. "`]\n" })
+  Chat:append_to_buf({ content = "[!" .. CONSTANTS.NAME .. ": `" .. selected[1] .. "`]\n" })
   Chat:append_to_buf({ content = "```" .. ft .. "\n" .. content .. "```" })
   Chat:fold_code()
 end
