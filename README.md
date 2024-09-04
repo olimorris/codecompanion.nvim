@@ -33,7 +33,7 @@ Thank you to the following people:
 - :speech_balloon: A Copilot Chat experience in Neovim
 - :electric_plug: Support for Anthropic, Copilot, Gemini, Ollama and OpenAI LLMs
 - :rocket: Inline transformations, code creation and refactoring
-- :robot: Variables, Agents and Workflows to improve LLM output
+- :robot: Variables, Slash Commands, Agents and Workflows to improve LLM output
 - :sparkles: Built in prompts for LSP errors and code advice
 - :building_construction: Ability to create your own custom prompts
 - :muscle: Async execution for improved performance
