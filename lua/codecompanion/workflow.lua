@@ -24,7 +24,7 @@ function Workflow:workflow(prompts)
   local workflow_prompts = {}
 
   for _, prompt in ipairs(prompts) do
-    if prompt.start then
+    if prompt.opts and prompt.opts.start then
       if
         (type(prompt.condition) == "function" and not prompt.condition())
         or (prompt.opts and prompt.opts.contains_code and not config.opts.send_code)
@@ -40,7 +40,9 @@ function Workflow:workflow(prompts)
       table.insert(workflow_prompts, {
         role = prompt.role,
         content = prompt.content,
-        auto_submit = prompt.auto_submit,
+        opts = {
+          auto_submit = prompt.opts and prompt.opts.auto_submit,
+        },
       })
     end
     ::continue::
@@ -56,7 +58,7 @@ function Workflow:workflow(prompts)
     local prompt = workflow_prompts[1]
     chat:append_to_buf(prompt)
 
-    if prompt.auto_submit then
+    if prompt.opts and prompt.opts.auto_submit then
       chat:submit()
     end
 

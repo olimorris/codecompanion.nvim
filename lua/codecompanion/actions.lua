@@ -125,7 +125,9 @@ M.static.actions = {
                   content = "You carefully provide accurate, factual, thoughtful, nuanced answers, and are brilliant at reasoning. If you think there might not be a correct answer, you say so. Always spend a few sentences explaining background context, assumptions, and step-by-step thinking BEFORE you try to answer a question. Don't be verbose in your answers, but do provide details and examples where it might help the explanation. You are an expert software engineer for the "
                     .. context.filetype
                     .. " language.",
-                  start = true,
+                  opts = {
+                    start = true,
+                  },
                 },
                 {
                   condition = function()
@@ -133,30 +135,38 @@ M.static.actions = {
                   end,
                   role = "user",
                   content = "Here is some relevant context: " .. send_code(context),
-                  start = true,
                   opts = {
                     contains_code = true,
+                    start = true,
                   },
                 },
                 {
                   role = "user",
                   content = "I want you to help me code a feature. Before we write any code let's outline how we'll architect and implement the feature with the context you already have. The feature I'd like to add is ",
-                  start = true,
+                  opts = {
+                    start = true,
+                  },
                 },
                 {
                   role = "user",
                   content = "Thanks. Now let's draft the code for the feature.",
-                  auto_submit = true,
+                  opts = {
+                    auto_submit = true,
+                  },
                 },
                 {
                   role = "user",
                   content = "Great. Now let's consider the code. I'd like you to check it carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it.",
-                  auto_submit = true,
+                  opts = {
+                    auto_submit = true,
+                  },
                 },
                 {
                   role = "user",
                   content = "Thanks. Now let's revise the code based on the feedback, without additional explanations.",
-                  auto_submit = true,
+                  opts = {
+                    auto_submit = true,
+                  },
                 },
               })
           end,
@@ -176,7 +186,9 @@ M.static.actions = {
                   content = "You carefully provide accurate, factual, thoughtful, nuanced answers, and are brilliant at reasoning. If you think there might not be a correct answer, you say so. Always spend a few sentences explaining background context, assumptions, and step-by-step thinking BEFORE you try to answer a question. Don't be verbose in your answers, but do provide details and examples where it might help the explanation. You are an expert software engineer for the "
                     .. context.filetype
                     .. " language.",
-                  start = true,
+                  opts = {
+                    start = true,
+                  },
                 },
                 {
                   condition = function()
@@ -184,30 +196,38 @@ M.static.actions = {
                   end,
                   role = "user",
                   content = "Here is some relevant context: " .. send_code(context),
-                  start = true,
                   opts = {
                     contains_code = true,
+                    start = true,
                   },
                 },
                 {
                   role = "user",
                   content = "I want you to help me with a refactor. Before we write any code let's outline how we'll architect and implement the code with the context you already have. What I'm looking to achieve is ",
-                  start = true,
+                  opts = {
+                    start = true,
+                  },
                 },
                 {
                   role = "user",
                   content = "Thanks. Now let's draft the code for the refactor.",
-                  auto_submit = true,
+                  opts = {
+                    auto_submit = true,
+                  },
                 },
                 {
                   role = "user",
                   content = "Great. Now let's consider the code. I'd like you to check it carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it.",
-                  auto_submit = true,
+                  opts = {
+                    auto_submit = true,
+                  },
                 },
                 {
                   role = "user",
                   content = "Thanks. Now let's revise the code based on the feedback, without additional explanations.",
-                  auto_submit = true,
+                  opts = {
+                    auto_submit = true,
+                  },
                 },
               })
           end,
