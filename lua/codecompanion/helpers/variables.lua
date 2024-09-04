@@ -29,24 +29,6 @@ M.buffer = function(chat, params)
   return output
 end
 
----Return the open buffers that match the current filetype
----@param chat CodeCompanion.Chat
----@param params string
----@return string
-M.buffers = function(chat, params)
-  local output = ""
-
-  local buffers = buf_utils.get_open(chat.context.filetype)
-
-  for _, buffer in ipairs(buffers) do
-    output = output .. "\n\n" .. buf_utils.format_by_id(buffer.id)
-  end
-
-  log:trace("Buffers Variable:\n---\n%s", output)
-
-  return output
-end
-
 ---Return all of the visible lines in the editor's viewport
 ---@param chat CodeCompanion.Chat
 ---@param params string

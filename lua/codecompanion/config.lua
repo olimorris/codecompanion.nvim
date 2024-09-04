@@ -29,13 +29,6 @@ return {
             has_params = true,
           },
         },
-        ["buffers"] = {
-          callback = "helpers.variables.buffers",
-          description = "Share all current open buffers with the LLM",
-          opts = {
-            contains_code = true,
-          },
-        },
         ["editor"] = {
           callback = "helpers.variables.editor",
           description = "Share the code that you see in Neovim",
