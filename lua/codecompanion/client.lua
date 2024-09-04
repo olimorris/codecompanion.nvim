@@ -60,8 +60,6 @@ function Client:stream(adapter, payload, cb, after, opts)
     )
   )
 
-  log:trace("Updated Adapter:\n%s", adapter)
-
   local handler = self.opts
     .request({
       url = adapter:set_env_vars(adapter.url),

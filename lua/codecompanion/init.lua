@@ -1,7 +1,6 @@
 local context_utils = require("codecompanion.utils.context")
 local dep = require("codecompanion.utils.deprecate")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils.util")
 
 local api = vim.api
 
@@ -274,8 +273,8 @@ M.setup = function(opts)
 
   -- Setup syntax highlighting for the chat buffer
   local group = "codecompanion.syntax"
-  vim.api.nvim_create_augroup(group, { clear = true })
-  vim.api.nvim_create_autocmd("FileType", {
+  api.nvim_create_augroup(group, { clear = true })
+  api.nvim_create_autocmd("FileType", {
     pattern = "codecompanion",
     group = group,
     callback = vim.schedule_wrap(function()

@@ -27,8 +27,8 @@ config.strategies = {
 }
 
 describe("Variables", function()
-  local vars
   local chat
+  local vars
 
   before_each(function()
     codecompanion.setup()

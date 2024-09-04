@@ -128,20 +128,20 @@ body:
         required: false
 
     - type: textarea
-      id: health
-      attributes:
-        label: Health check output
-        description: Please paste the output from `:checkhealth codecompanion`
-      validations:
-        required: true
-
-    - type: textarea
       id: logs
       attributes:
         label: Log output
         description: Please paste the relevant output from the log located in `.repro/state/nvim/codecompanion/codecompanion.log`. **Please ensure you don't send over any credentials or API keys**
       validations:
         required: true
+
+    - type: textarea
+      id: health
+      attributes:
+        label: Health check output
+        description: Please paste the output from `:checkhealth codecompanion`
+      validations:
+        required: false
 
     - type: textarea
       id: bug
