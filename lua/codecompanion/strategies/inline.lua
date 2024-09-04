@@ -404,7 +404,7 @@ function Inline:form_prompt()
       end
     end
 
-    if not prompt.contains_code or (prompt.contains_code and config.opts.send_code) then
+    if prompt.opts and not prompt.opts.contains_code or (prompt.opts.contains_code and config.opts.send_code) then
       if type(prompt.content) == "function" then
         prompt.content = prompt.content(self.context)
       end

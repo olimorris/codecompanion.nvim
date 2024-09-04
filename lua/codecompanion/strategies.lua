@@ -50,7 +50,10 @@ function Strategies:evaluate_prompts(prompts)
     end
 
     --TODO: These nested conditionals suck. Refactor soon
-    if not prompt.contains_code or (prompt.contains_code and config.opts.send_code) then
+    if
+      prompt.opts and not prompt.opts.contains_code
+      or (prompt.opts and prompt.opts.contains_code and config.opts.send_code)
+    then
       if not prompt.condition or (prompt.condition and prompt.condition(self.context)) then
         local content
         if type(prompt.content) == "function" then

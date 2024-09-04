@@ -122,12 +122,14 @@ require("codecompanion").setup({
         },
         {
           role = "user",
-          contains_code = true,
           content = function(context)
             local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
           end,
+          opts = {
+            contains_code = true,
+          }
         },
       },
     },
@@ -168,12 +170,14 @@ prompts = {
   },
   {
     role = "user",
-    contains_code = true,
     content = function(context)
       local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
       return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
     end,
+    opts = {
+      contains_code = true,
+    }
   },
 },
 ```
@@ -218,12 +222,14 @@ Lets now take a look at the second prompt:
 ```lua
 {
   role = "user",
-  contains_code = true,
   content = function(context)
     local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
     return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
   end,
+  opts = {
+    contains_code = true,
+  }
 },
 ```
 

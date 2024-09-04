@@ -57,10 +57,12 @@ M.static.actions = {
         },
         {
           role = "user",
-          contains_code = true,
           content = function(context)
             return send_code(context)
           end,
+          opts = {
+            contains_code = true,
+          },
         },
       },
     },
@@ -129,10 +131,12 @@ M.static.actions = {
                   condition = function()
                     return context.is_visual
                   end,
-                  contains_code = true,
                   role = "user",
                   content = "Here is some relevant context: " .. send_code(context),
                   start = true,
+                  opts = {
+                    contains_code = true,
+                  },
                 },
                 {
                   role = "user",
@@ -178,10 +182,12 @@ M.static.actions = {
                   condition = function()
                     return context.is_visual
                   end,
-                  contains_code = true,
                   role = "user",
                   content = "Here is some relevant context: " .. send_code(context),
                   start = true,
+                  opts = {
+                    contains_code = true,
+                  },
                 },
                 {
                   role = "user",

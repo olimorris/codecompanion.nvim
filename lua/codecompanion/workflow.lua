@@ -27,7 +27,7 @@ function Workflow:workflow(prompts)
     if prompt.start then
       if
         (type(prompt.condition) == "function" and not prompt.condition())
-        or (prompt.contains_code and not config.opts.send_code)
+        or (prompt.opts and prompt.opts.contains_code and not config.opts.send_code)
       then
         goto continue
       end

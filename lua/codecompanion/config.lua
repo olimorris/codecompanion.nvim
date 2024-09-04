@@ -272,12 +272,14 @@ Answer the user's questions with the tool's output.]],
         },
         {
           role = "user",
-          contains_code = true,
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return "Please explain this code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
           end,
+          opts = {
+            contains_code = true,
+          },
         },
       },
     },
@@ -314,12 +316,14 @@ Answer the user's questions with the tool's output.]],
         },
         {
           role = "user",
-          contains_code = true,
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return "Please generate unit tests for this code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
           end,
+          opts = {
+            contains_code = true,
+          },
         },
       },
     },
@@ -360,12 +364,14 @@ Use Markdown formatting and include the programming language name at the start o
         },
         {
           role = "user",
-          contains_code = true,
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return "Please fix the selected code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
           end,
+          opts = {
+            contains_code = true,
+          },
         },
       },
     },
@@ -397,19 +403,18 @@ Use Markdown formatting and include the programming language name at the start o
         },
         {
           role = "user",
-          contains_code = true,
           content = function(context)
             local buf_utils = require("codecompanion.utils.buffers")
 
             return " \n\n```" .. context.filetype .. "\n" .. buf_utils.get_content(context.bufnr) .. "\n```\n\n"
           end,
           opts = {
+            contains_code = true,
             visible = false,
           },
         },
         {
           role = "user",
-          contains_code = true,
           condition = function(context)
             return context.is_visual
           end,
@@ -422,6 +427,7 @@ Use Markdown formatting and include the programming language name at the start o
               .. "\n```\n\n"
           end,
           opts = {
+            contains_code = true,
             visible = true,
             tag = "visual",
           },
@@ -481,7 +487,6 @@ Use Markdown formatting and include the programming language name at the start o
         },
         {
           role = "user",
-          contains_code = true,
           content = function(context)
             return "This is the code, for context:\n\n"
               .. "```"
@@ -494,6 +499,9 @@ Use Markdown formatting and include the programming language name at the start o
               )
               .. "\n```\n\n"
           end,
+          opts = {
+            contains_code = true,
+          },
         },
       },
     },
@@ -510,13 +518,15 @@ Use Markdown formatting and include the programming language name at the start o
       prompts = {
         {
           role = "user",
-          contains_code = true,
           content = function()
             return "You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:"
               .. "\n\n```\n"
               .. vim.fn.system("git diff")
               .. "\n```"
           end,
+          opts = {
+            contains_code = true,
+          },
         },
       },
     },
