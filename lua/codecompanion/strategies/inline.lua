@@ -114,7 +114,7 @@ function Inline.new(args)
 
   local self = setmetatable({
     id = id,
-    aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. id, {
+    aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. id, {
       clear = false,
     }),
     adapter = args.adapter or config.adapters[config.strategies.inline.adapter],
