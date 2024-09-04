@@ -548,8 +548,7 @@ Use Markdown formatting and include the programming language name at the start o
       },
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
 
-      messages_separator = "─", -- The separator between the different messages in the chat buffer
-      show_separator = true, -- Show a separator between LLM responses?
+      separator = "───", -- The separator between the different messages in the chat buffer
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_token_count = true, -- Show the token count for each response?
     },
