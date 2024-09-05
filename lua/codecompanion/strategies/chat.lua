@@ -315,8 +315,7 @@ function Chat.new(args)
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
-      api.nvim_buf_set_option(bufnr, "filetype", "codecompanion")
-      api.nvim_buf_set_option(bufnr, "buflisted", false)
+      vim.bo[bufnr].filetype = "codecompanion"
 
       return bufnr
     end,
