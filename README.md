@@ -323,7 +323,7 @@ require("codecompanion").setup({
           opts = {
             contains_code = true,
             max_lines = 1000,
-            provider = "telescope", -- telescope
+            provider = "telescope", -- telescope | or: mini_pick
           },
         },
       },
