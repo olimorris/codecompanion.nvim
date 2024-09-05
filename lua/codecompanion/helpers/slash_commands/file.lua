@@ -116,18 +116,7 @@ function SlashCommandFile:execute()
     end
     provider(self)
   else
-    -- Try Telescope first, then fall back to mini.pick
-    local telescope_ok, _ = pcall(require, "telescope.builtin")
-    if telescope_ok then
-      Providers.telescope(self)
-    else
-      local mini_pick_ok, _ = pcall(require, "mini.pick")
-      if mini_pick_ok then
-        Providers.mini_pick(self)
-      else
-        return log:error("Neither Telescope nor mini.pick is installed")
-      end
-    end
+    Providers.telescope(self)
   end
 end
 
