@@ -53,7 +53,7 @@ end
 function TabCommand:resolve(completion_item, callback)
   local bufnr = completion_item.slash_command_args.bufnr
   local full_path = api.nvim_buf_get_name(bufnr)
-  local file_type = fn.fnamemodify(full_path, ":e")
+  local file_type = fn.fnamemodify(full_path, ":t")
   local cwd_relative_path = fn.fnamemodify(full_path, ":.")
   local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
 
