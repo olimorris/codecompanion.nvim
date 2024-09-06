@@ -46,13 +46,13 @@ function M.get_tokens(messages)
 end
 
 ---Display the number of tokens in the current buffer
----@param tokens number
+---@param token_str string
+---@param ns_id number
 ---@param bufnr? number
 ---@return nil
-function M.display(tokens, bufnr)
+function M.display(token_str, ns_id, bufnr)
   bufnr = bufnr or api.nvim_get_current_buf()
 
-  local ns_id = api.nvim_create_namespace("CodeCompanionTokens")
   api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
 
   local parser = vim.treesitter.get_parser(bufnr, "markdown", {})
@@ -69,11 +69,12 @@ function M.display(tokens, bufnr)
   if last_heading_node then
     local _, _, end_row, _ = last_heading_node:range()
 
-    local virtual_text = { { " (" .. tokens .. " tokens) ", "CodeCompanionChatTokens" } }
+    local virtual_text = { { token_str, "CodeCompanionChatTokens" } }
 
     api.nvim_buf_set_extmark(bufnr, ns_id, end_row - 1, 0, {
       virt_text = virtual_text,
-      virt_text_pos = "eol", -- 'overlay' or 'right_align' or 'eol'
+      virt_text_pos = "eol",
+      priority = 110,
     })
   end
 end

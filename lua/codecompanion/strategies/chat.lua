@@ -15,6 +15,7 @@ local api = vim.api
 local CONSTANTS = {
   NS_HEADER = "CodeCompanion-headers",
   NS_INTRO = "CodeCompanion-intro_message",
+  NS_TOKENS = "CodeCompanion-tokens",
   NS_VIRTUAL_TEXT = "CodeCompanion-virtual_text",
 
   AUTOCMD_GROUP = "codecompanion.chat",
@@ -606,6 +607,7 @@ function Chat:render_headers()
       api.nvim_buf_set_extmark(self.bufnr, self.header_ns, line - 1, col, {
         virt_text_win_col = col,
         virt_text = { { string.rep(separator, vim.go.columns), "CodeCompanionChatSeparator" } },
+        priority = 100,
       })
 
       -- Set the highlight group for the header
@@ -1010,6 +1012,7 @@ function Chat:get_messages()
   return self.messages
 end
 
+---Get the tokens from the adapter
 ---@param data table
 ---@return nil
 function Chat:get_tokens(data)
@@ -1022,9 +1025,15 @@ function Chat:get_tokens(data)
 end
 
 ---Display the tokens in the chat buffer
+---@return nil
 function Chat:display_tokens()
   if config.display.chat.show_token_count and self.tokens then
-    require("codecompanion.utils.tokens").display(self.tokens, self.bufnr)
+    local to_display = config.display.chat.token_count
+    if type(to_display) == "function" then
+      local ns_id = api.nvim_create_namespace(CONSTANTS.NS_TOKENS)
+      to_display = to_display(self.tokens, self.adapter)
+      require("codecompanion.utils.tokens").display(to_display, ns_id, self.bufnr)
+    end
   end
 end
 
@@ -1172,6 +1181,7 @@ function Chat:clear()
   local namespaces = {
     CONSTANTS.NS_HEADER,
     CONSTANTS.NS_INTRO,
+    CONSTANTS.NS_TOKENS,
     CONSTANTS.NS_VIRTUAL_TEXT,
   }
 
