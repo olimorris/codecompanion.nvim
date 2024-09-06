@@ -1,7 +1,7 @@
 <!-- panvimdoc-ignore-start -->
 
 <p align="center">
-<img src="https://github.com/olimorris/codecompanion.nvim/assets/9512444/e54f98b6-8bfd-465a-85b6-73ab6bb274fa" alt="CodeCompanion.nvim" />
+<img src="https://github.com/user-attachments/assets/36f29334-3bae-47dc-868f-12ed6ff305e2" alt="CodeCompanion.nvim" />
 </p>
 
 <p align="center">
@@ -11,10 +11,7 @@
 </p>
 
 <p align="center">
-Currently supports: Anthropic, Copilot, Gemini, Ollama and OpenAI adapters
-</p>
-
-<p align="center">
+Currently supports: Anthropic, Copilot, Gemini, Ollama and OpenAI adapters<br><br>
 New features are always announced <a href="https://github.com/olimorris/codecompanion.nvim/discussions/categories/announcements">here</a>
 </p>
 
@@ -30,21 +27,20 @@ Thank you to the following people:
 
 ## :sparkles: Features
 
-- :speech_balloon: A Copilot Chat experience in Neovim
+- :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
 - :electric_plug: Support for Anthropic, Copilot, Gemini, Ollama and OpenAI LLMs
 - :rocket: Inline transformations, code creation and refactoring
-- :robot: Variables, Slash Commands, Agents and Workflows to improve LLM output
-- :sparkles: Built in prompts for LSP errors and code advice
-- :building_construction: Ability to create your own custom prompts
-- :muscle: Async execution for improved performance
+- :robot: Variables, slash commands, agents and workflows to improve LLM output
+- :sparkles: Built in prompts for common tasks like advice on LSP errors and code explanations
+- :building_construction: Ability to create your own custom prompts, variables and slash commands
+- :muscle: Async execution for fast performance
 
 <!-- panvimdoc-ignore-start -->
 
 ## :camera_flash: Screenshots
 
 <div align="center">
-  <p>https://github.com/user-attachments/assets/1375f623-c088-4bf0-a5d7-8d81eaa3a94b</p>
-  <p>https://github.com/user-attachments/assets/8ae255ba-1f5c-470c-a252-f31d056297c3</p>
+  <p>https://github.com/user-attachments/assets/17462e02-07c7-44fc-b208-9b68ccbadcf2</p>
 </div>
 
 <!-- panvimdoc-ignore-end -->
@@ -117,114 +113,99 @@ EOF
 
 ## :rocket: Quickstart
 
-> [!IMPORTANT]
-> Okay, okay...it's not quite a quickstart as you'll need to configure your [adapter](#gear-configuration) first
-
-**Inline Prompting**
-
-<!-- panvimdoc-ignore-start -->
-
-<div align="center">
-  <p>https://github.com/user-attachments/assets/bf88836d-832d-4f69-a58e-371bbb8b9bd2</p>
-</div>
-
-<!-- panvimdoc-ignore-end -->
-
-The plugin has been designed so you only need to remember one command, `:CodeCompanion`. Running `:CodeCompanion <your prompt>`, the plugin will determine where to place your output (in a buffer or opening a chat buffer) before responding to your prompt. You can even make a visual selection before invoking the command to provide additional context to the LLM. You can find more about [inline prompting](#pencil2-inline-prompting) in the section below.
-
-[Inline transformations](https://github.com/olimorris/codecompanion.nvim/discussions/130) enable you to use the context from a chat buffer in an inline prompt. A prompt such as `:CodeCompanion add the new function here` can leverage the code that the LLM has created in its last response in the chat buffer and write it at the cursor position.
-
-For convenience, you can also call [default prompts](#clipboard-default-prompts) from the command line:
-
-- `/explain` - Explain how selected code in a buffer works
-- `/tests` - Generate unit tests for selected code
-- `/fix` - Fix the selected code
-- `/buffer` - Send the current buffer to the LLM alongside a prompt
-- `/lsp` - Explain the LSP diagnostics for the selected code
-- `/commit` - Generate a commit message
-
-Running `:'<,'>CodeCompanion /fix` will trigger the plugin to start following the fix prompt as defined in the [config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua). Some of the slash commands can also take custom prompts. For example, running `:'<,'>CodeCompanion /buffer refactor this code` sends the whole buffer as context alongside a prompt to refactor the selected code. If you prompt the LLM with something like `:CodeCompanion why are Lua and Neovim the perfect combination?` then the prompt will be sent to the chat buffer instead.
-
-Finally, there are keymaps available to accept or reject edits from the LLM in the [inline prompting](#pencil2-inline-prompting) section.
+> [!NOTE]
+> Okay, okay...it's not quite a quickstart as you'll need to configure an [adapter](#gear-configuration) first.
 
 **Chat Buffer**
 
 <!-- panvimdoc-ignore-start -->
 
-<p align="center"><img src="https://github.com/user-attachments/assets/6097fa93-906c-4ed1-b1c4-8b52ad151f9f" alt="Chat buffer"></p>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/53f1b204-bda3-4286-81c4-ba7f353fc1d0" alt="Chat buffer">
+</p>
 
 <!-- panvimdoc-ignore-end -->
 
-The chat buffer is where you interact with LLMs from within Neovim. Running `:CodeCompanionChat` or `:'<,'>CodeCompanionChat` will open one. As a convenience, you can use `:CodeCompanionToggle` to toggle the visibility of a chat buffer. Simply type prompt and press `<CR>` to send to the LLM.
+Run `:CodeCompanionChat` to open the chat buffer. Type your prompt and press `<CR>`. Toggle the chat buffer with `:CodeCompanionToggle`.
 
-When in the chat buffer you have access to a variety of data which can be sent to the LLM as context. Variables, accessed via `#`, house data which relates to the present state of Neovim:
+You can add context from your code base by using _variables_ and _slash commands_ in the chat buffer.
 
-- `#buffer` - Share the current buffer's content with the LLM. You can also specify line numbers with `#buffer:8-20`
-- `#editor` - Share the buffers and lines that you see in the editor's viewport
+_Variables_, accessed via `#`, contain data about the present state of Neovim:
+
+- `#buffer` - Share the current buffer's code. You can also specify line numbers with `#buffer:8-20`
+- `#editor` - Share the buffers and lines that you see in the Neovim viewport
 - `#lsp` - Share LSP information and code for the current buffer
 
-Slash commands, accessed via `/`, can be triggered to run commands to add data into the chat buffer:
+_Slash commands_, accessed via `/`, run commands to add code to the chat buffer:
 
-- `/buffer` - Select a loaded buffer to add its content to the chat buffer
-- `/file` - Select a file from your working directory to add its content to the chat buffer
+- `/buffer` - Share a specific buffer
+- `/file` - Share a file from your repo
 
-Both variables and slash commands can be extended in your config.
+_Tools_, accessed via `@`, allow the LLM to function as an agent and carry out actions:
+
+- `@buffer_editor` - The LLM will edit code in a Neovim buffer by searching and replacing blocks
+- `@code_runner` - The LLM will run code for you in a Docker container
+- `@rag` - The LLM will browse and search the internet for real-time information to supplement its response
 
 > [!TIP]
-> When in the chat buffer, the `?` keymap brings up all of these available options.
+> Press `?` in the chat buffer to reveal the keymaps and optons that are available to you.
 
-**Agents / Tools**
+**Inline Assistant**
 
 <!-- panvimdoc-ignore-start -->
 
-<div align="center">
-  <p>https://github.com/user-attachments/assets/8bc083c7-f4f1-4eab-b9fe-ab6c4c30ee91</p>
-</div>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/04741fbb-1279-413a-a1e9-86d84fac869b" alt="Inline Assistant">
+</p>
 
 <!-- panvimdoc-ignore-end -->
 
-In the chat buffer, you can turn LLMs into agents via the use of tools. In the video above, we're asking an LLM to execute the contents of the buffer via the _@code_runner_ tool.
+Run `:CodeCompanion <your prompt>` to call the inline assistant. The assistant will evaluate the prompt and either write some code (in the current buffer) or open a chat buffer. You can also make a visual selection and call the assistant.
 
-When in the chat buffer you have access to the following tools:
+The assistant has knowledge of your last conversation from a chat buffer. A prompt such as `:CodeCompanion add the new function here` will see the assistant add a code block directly into the current buffer.
 
-- `@code_runner` - The LLM can trigger the running of any code from within a Docker container
-- `@rag` - The LLM can browse and search the internet for real-time information to supplement its response
-- `@buffer_editor` - The LLM can edit code in a Neovim buffer by searching and replacing blocks
+For convenience, you can call [default prompts](#clipboard-default-prompts) via the assistant such as `:'<,'>CodeCompanion /buffer what does this file do?`. The available default prompts are:
 
-> [!IMPORTANT]
-> Agents are still at an alpha stage.
+- `/buffer` - Send the current buffer to the LLM alongside a prompt
+- `/commit` - Generate a commit message
+- `/explain` - Explain how selected code in a buffer works
+- `/fix` - Fix the selected code
+- `/lsp` - Explain the LSP diagnostics for the selected code
+- `/tests` - Generate unit tests for selected code
+
+There are keymaps available to accept or reject edits from the LLM in the [inline assistant](#pencil2-inline-assistant) section.
 
 **Action Palette**
 
 <!-- panvimdoc-ignore-start -->
 
-<p align="center"><img src="https://github.com/user-attachments/assets/23c2ba7c-d438-4132-b13f-11c51ce0a2c5" alt="Action Palette"></p>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/0d427d6d-aa5f-405c-ba14-583830251740" alt="Action Palette">
+</p>
 
 <!-- panvimdoc-ignore-end -->
 
-The `:CodeCompanionActions` command will open the _Action Palette_, giving you access to all of the functionality in the plugin. The _Prompts_ section is where the default prompts and your custom ones can be accessed from.
-
-You'll notice that some prompts have a slash command in their description such as `/commit`. This is a shortcut which allows you to trigger them from the command line by doing `:CodeCompanion /commit`. Some of these prompts also have keymaps assigned to them (which can be overwritten!) which offers an even easier route to triggering them.
+Run `:CodeCompanionActions` to open the action palette, which gives you access to all of the functionality in the plugin. This is where core actions and the [default prompts](#clipboard-default-prompts) are listed.
 
 > [!NOTE]
-> Some actions will only be visible in the _Action Palette_ if you're in Visual mode.
+> Some actions will only be visible in if you're in _Visual mode_.
 
 **List of commands**
 
-Below is a list of all of the commands that are available in the plugin:
+Below is a list of all commands in the plugin:
 
-- `CodeCompanion` - Inline prompt an LLM
-- `CodeCompanion <your prompt>` - Can also inline prompt an LLM like this
-- `CodeCompanion /<slash_cmd>` - Inline prompt an LLM with a slash command e.g. `/commit`
-- `CodeCompanionChat` - Open up a chat buffer to converse with your LLM
-- `CodeCompanionChat <adapter>` - Open up a chat buffer with a specific adapter
+- `CodeCompanion` - Open the inline assistant
+- `CodeCompanion <your prompt>` - Prompt the inline assistant
+- `CodeCompanion /<slash_cmd>` - Prompt the inline assistant with a slash command e.g. `/commit`
+- `CodeCompanionChat` - Open a chat buffer
+- `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
 - `CodeCompanionToggle` - Toggle a chat buffer
 - `CodeCompanionActions` - Open the _Action Palette_
 - `CodeCompanionAdd` - Add visually selected chat to the current chat buffer
 
 **Suggested workflow**
 
-For an optimum workflow, I recommend the following options:
+For an optimum workflow, I recommend the following keymaps:
 
 ```lua
 vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
@@ -668,7 +649,7 @@ Use Markdown formatting and include the programming language name at the start o
     },
     ["Buffer selection"] = {
       strategy = "inline",
-      description = "Send the current buffer to the LLM as part of an inline prompt",
+      description = "Send the current buffer to the LLM as part of an inline assistant prompt",
       opts = {
         index = 7,
         modes = { "v" },
@@ -854,7 +835,7 @@ Use Markdown formatting and include the programming language name at the start o
       show_token_count = true, -- Show the token count for each response?
     },
     inline = {
-      -- If the inline prompt creates a new buffer, how should we display this?
+      -- If the inline assistant creates a new buffer, how should we display this?
       layout = "vertical", -- vertical|horizontal|buffer
       diff = {
         enabled = true,
@@ -1069,13 +1050,13 @@ require("codecompanion").setup({
 
 ### :clipboard: Default Prompts
 
-The plugin comes with a number of default prompts, ([as per the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua)), which can be called via keymaps and/or slash commands. These prompts have been carefully curated to mimic those in [GitHub's Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide). Of course, you can create your own prompts and add them to the Action Palette and as slash commands. Please see the [RECIPES](doc/RECIPES.md) guide for more information.
+The plugin comes with a number of default prompts. As per [the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua), these can be called via keymaps or slash commands (via the inline assistant). These prompts have been carefully curated to mimic those in [GitHub's Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide). Of course, you can create your own prompts and add them to the Action Palette. Please see the [RECIPES](doc/RECIPES.md) guide for more information.
 
 ### :speech_balloon: The Chat Buffer
 
-The chat buffer is where you converse with an LLM, directly from Neovim. It behaves as a regular markdown buffer with some clever additions. When the send keymap is pressed, the buffer's content is sent to the LLM in the form of prompts. When a response is received, it is then streamed directly into the buffer. The chat buffer has been designed to be turn based, whereby the user sends a message and the LLM replies. Messages are segmented by H2 headers. Once a message has been sent, it cannot be edited.
+The chat buffer is where you converse with an LLM from within Neovim. The chat buffer has been designed to be turn based, whereby you send a message and the LLM replies. Messages are segmented by H2 headers and once a message has been sent, it cannot be edited. You can also have multiple chat buffers open at the same.
 
-As noted in the [Quickstart](#rocket-quickstart) guide, you can leverage variables, slash commands and tools to send additional context to the LLM.
+The look and feel of the chat buffer can be customised as per the `display.chat` table in the [config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua). You can also add additional _Variables_ and _Slash Commands_ which can then be referenced in the chat buffer.
 
 **Keymaps**
 
@@ -1092,23 +1073,17 @@ When in the chat buffer, there are number of keymaps available to you:
 - `gf` - To refresh the code folds in the buffer
 - `}` - Move to the next chat
 - `{` - Move to the previous chat
-- `[` - Move to the next header
-- `]` - Move to the previous header
+- `]]` - Move to the next header
+- `[[` - Move to the previous header
 
 **Settings**
 
-If `display.chat.show_settings` is set to `true`, at the very top of the chat buffer will be the adapter's parameters which can be changed to tweak the response from the LLM. You can find more detail by moving the cursor over them.
+You can display your selected adapter's schema at the top of the buffer, if `display.chat.show_settings` is set to `true`. This allows you to vary the response from the LLM.
 
-**Open Chats**
-
-From the Action Palette, the `Open Chats` action enables users to easily navigate between chat buffers. There are also keymaps available in the chat buffer which enable easier navigation.
-
-### :pencil2: Inline Prompting
+### :pencil2: Inline Assistant
 
 > [!NOTE]
 > If `send_code = false` in the config then this will take precedent and no code will be sent to the LLM
-
-Inline prompts can be triggered via the `CodeCompanion <your prompt>` command. As mentioned in the [Getting Started](#rocket-getting-started) section, you can also leverage chat buffer context, visual selections and slash commands like `'<,'>CodeCompanion /buffer what does this code do?`, where the slash command points to a [default prompt](#clipboard-default-prompts) and any words after that act as a custom prompt to the LLM.
 
 One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed at the cursor's position in the current buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to _replace_ a visual selection. The plugin will use the inline LLM you've specified in your config to determine if the response should...
 
@@ -1117,12 +1092,20 @@ One of the challenges with inline editing is determining how the LLM's response 
 - _new_ - be placed in a new buffer
 - _chat_ - be placed in a chat buffer
 
-By default, inline prompting will trigger the diff feature, showing differences between the original buffer and the changes from the LLM. This can be turned off in your config. You an also choose to accept or reject the LLM's suggestions with:
+By default, an inline assistant prompt will trigger the diff feature, showing differences between the original buffer and the changes from the LLM. This can be turned off in your config via the `display.inline.diff` table. You can also choose to accept or reject the LLM's suggestions with the following keymaps:
 
 - `ga` - Accept an inline edit
 - `gr` - Reject an inline edit
 
 ### :robot: Agents / Tools
+
+<!-- panvimdoc-ignore-start -->
+
+<div align="center">
+  <p>https://github.com/user-attachments/assets/8bc083c7-f4f1-4eab-b9fe-ab6c4c30ee91</p>
+</div>
+
+<!-- panvimdoc-ignore-end -->
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
@@ -1171,7 +1154,7 @@ The plugin fires many events during its lifecycle:
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
 
 > [!TIP]
-> Some events are sent with a data payload which can be leveraged. Please search the codebase for more information.
+> Some events are sent with a data payload which can be leveraged.
 
 Events can be hooked into as follows:
 
@@ -1307,13 +1290,13 @@ opts = {
 }
 ```
 
-and inspect the log file as per the location from the checkhealth command (usually `~/.local/state/nvim/codecompanion.log`).
+and inspect the log file as per the location from the checkhealth command.
 
 <!-- panvimdoc-ignore-start -->
 
 ## :gift: Contributing
 
-I am open to contributions but they will be implemented at my discretion. Feel free to open up a discussion before embarking on a PR and please make sure you've read the [CONTRIBUTING.md](CONTRIBUTING.md) guide.
+I am open to contributions but they will be implemented at my discretion. Feel free to open up a discussion before embarking on a PR and please read the [CONTRIBUTING.md](CONTRIBUTING.md) guide.
 
 ## :clap: Acknowledgements
 
