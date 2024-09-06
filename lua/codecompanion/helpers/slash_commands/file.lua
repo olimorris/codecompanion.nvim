@@ -59,6 +59,27 @@ local Providers = {
       end,
     })
   end,
+
+  ---The mini.pick provider
+  ---@param SlashCommand CodeCompanion.SlashCommandFile
+  ---@return nil
+  mini_pick = function(SlashCommand)
+    local ok, mini_pick = pcall(require, "mini.pick")
+    if not ok then
+      return log:error("mini.pick is not installed")
+    end
+    local selected = mini_pick.builtin.files({}, {
+      source = {
+        name = CONSTANTS.PROMPT,
+        choose = function(path)
+          output(SlashCommand, { path = path, [1] = path })
+        end,
+      },
+    })
+    if not selected then
+      log:info("No file selected")
+    end
+  end,
 }
 
 ---@class CodeCompanion.SlashCommandFile
