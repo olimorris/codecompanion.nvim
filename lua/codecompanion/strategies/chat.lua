@@ -387,7 +387,6 @@ function Chat:render()
   local function set_header(role)
     table.insert(lines, string.format("## %s %s", role, config.display.chat.separator))
     spacer()
-    spacer()
   end
 
   local function add_messages_to_buf(msgs)
@@ -431,6 +430,7 @@ function Chat:render()
   if util.is_empty(self.messages) then
     log:trace("Setting the header for the chat buffer")
     set_header(user_role)
+    spacer()
   else
     log:trace("Setting the messages in the chat buffer")
     add_messages_to_buf(self.messages)
