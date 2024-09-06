@@ -73,7 +73,7 @@ local Providers = {
       source = {
         name = CONSTANTS.PROMPT,
         choose = function(path)
-          output(SlashCommand, { path = path, [1] = path })
+          output(SlashCommand, { path = path, relative_path = vim.fn.fnamemodify(path, ":~:.") })
         end,
       },
     })
