@@ -45,34 +45,6 @@ function M.get_tokens(messages)
   return tokens
 end
 
-local function get_messages(bufnr)
-  bufnr = bufnr or api.nvim_get_current_buf()
-
-  local query_str = [[
-    (section) @section
-  ]]
-
-  local parser = vim.treesitter.get_parser(bufnr, "markdown", {})
-  local tree = parser:parse()[1] -- Assuming there's only one syntax tree
-  local query = vim.treesitter.query.parse("markdown", query_str)
-
-  local messages = {}
-  for pattern, match in query:iter_matches(tree:root(), bufnr) do
-    if query.captures[pattern] == "section" then
-      local section_node = match[pattern]
-      local section_start_row, _, section_end_row, _ = section_node:range()
-      local lines = api.nvim_buf_get_lines(bufnr, section_start_row, section_end_row + 1, false)
-      for id, _ in ipairs(match) do
-        if query.captures[id] ~= "heading" then
-          table.insert(messages, lines)
-        end
-      end
-    end
-  end
-
-  return messages
-end
-
 ---Display the number of tokens in the current buffer
 ---@param tokens number
 ---@param bufnr? number
