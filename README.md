@@ -155,7 +155,7 @@ _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out a
 <!-- panvimdoc-ignore-start -->
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/04741fbb-1279-413a-a1e9-86d84fac869b" alt="Inline Assistant">
+  <img src="https://github.com/user-attachments/assets/1890a33a-bcda-4c6b-a1c4-849f2eaf97ef" alt="Inline Assistant">
 </p>
 
 <!-- panvimdoc-ignore-end -->
