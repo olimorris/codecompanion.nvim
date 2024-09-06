@@ -304,7 +304,7 @@ require("codecompanion").setup({
           opts = {
             contains_code = true,
             max_lines = 1000,
-            provider = "telescope", -- telescope | or: mini_pick
+            provider = "telescope", -- telescope|mini_pick
           },
         },
       },
@@ -649,7 +649,7 @@ Use Markdown formatting and include the programming language name at the start o
     },
     ["Buffer selection"] = {
       strategy = "inline",
-      description = "Send the current buffer to the LLM as part of an inline assistant prompt",
+      description = "Send the current buffer to the LLM as part of an inline prompt",
       opts = {
         index = 7,
         modes = { "v" },
@@ -830,12 +830,19 @@ Use Markdown formatting and include the programming language name at the start o
       },
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
 
-      separator = "───", -- The separator between the different messages in the chat buffer
+      separator = "─", -- The separator between the different messages in the chat buffer
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
+
       show_token_count = true, -- Show the token count for each response?
+
+      ---@param tokens number
+      ---@param adapter CodeCompanion.Adapter
+      token_count = function(tokens, adapter) -- The function to display the token count
+        return " (" .. tokens .. " tokens)"
+      end,
     },
     inline = {
-      -- If the inline assistant creates a new buffer, how should we display this?
+      -- If the inline prompt creates a new buffer, how should we display this?
       layout = "vertical", -- vertical|horizontal|buffer
       diff = {
         enabled = true,
