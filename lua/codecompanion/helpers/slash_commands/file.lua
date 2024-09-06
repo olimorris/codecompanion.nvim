@@ -25,7 +25,8 @@ local function output(SlashCommand, selected)
   end
 
   local Chat = SlashCommand.Chat
-  Chat:append_to_buf({ content = "[!" .. CONSTANTS.NAME .. ": `" .. selected.relative_path .. "`]\n" })
+  local relative_path = selected.relative_path or selected[1] or selected.path
+  Chat:append_to_buf({ content = "[!" .. CONSTANTS.NAME .. ": `" .. relative_path .. "`]\n" })
   Chat:append_to_buf({ content = "```" .. ft .. "\n" .. content .. "```" })
   Chat:fold_code()
 end
