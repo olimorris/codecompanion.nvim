@@ -1,3 +1,5 @@
+local uv = vim.loop
+
 local M = {}
 
 ---@type boolean
@@ -20,14 +22,30 @@ M.join = function(...)
   return joined
 end
 
+---Read the contents of a file
 ---@param path string
-M.replace_home = function(path)
-  local home = os.getenv("HOME") -- Get the value of the HOME environment variable
-  if home then
-    home = home:gsub("[%(%)%.%%%+%-%*%?%[%]%^%$]", "%%%1")
-    path = path:gsub("^" .. home, "~")
+---@return string
+M.read = function(path)
+  local fd = uv.fs_open(path, "r", 438)
+  if not fd then
+    return ""
   end
-  return path
+  local stat = uv.fs_fstat(fd)
+  local content = uv.fs_read(fd, stat.size, 0)
+  uv.fs_close(fd)
+
+  return content
+end
+
+---Get the filetype of a file
+---@param path string
+---@return string
+M.get_filetype = function(path)
+  local ft = vim.filetype.match({ filename = path })
+  if not ft then
+    ft = ""
+  end
+  return ft
 end
 
 return M
