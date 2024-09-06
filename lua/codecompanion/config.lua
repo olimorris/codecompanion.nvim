@@ -57,7 +57,7 @@ return {
           opts = {
             contains_code = true,
             max_lines = 1000,
-            provider = "telescope", -- telescope
+            provider = "telescope", -- telescope|mini_pick
           },
         },
       },
@@ -587,6 +587,9 @@ Use Markdown formatting and include the programming language name at the start o
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
 
       show_token_count = true, -- Show the token count for each response?
+
+      ---@param tokens number
+      ---@param adapter CodeCompanion.Adapter
       token_count = function(tokens, adapter) -- The function to display the token count
         return " (" .. tokens .. " tokens)"
       end,
