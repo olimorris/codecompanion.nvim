@@ -251,7 +251,7 @@ function Chat.new(args)
     has_folded_code = false,
     header_ns = api.nvim_create_namespace(CONSTANTS.NS_HEADER),
     id = id,
-    last_role = args.last_role or "user",
+    last_role = args.last_role or CONSTANTS.USER_ROLE,
     messages = args.messages or {},
     status = "",
     tokens = args.tokens,
@@ -287,7 +287,7 @@ function Chat.new(args)
   self:apply_settings(self.opts.settings)
 
   self.close_last_chat()
-  self:open():render(self.messages):set_system_message():set_extmarks():set_autocmds()
+  self:open():render():set_system_message():set_extmarks():set_autocmds()
 
   if self.opts.auto_submit then
     self:submit()
@@ -376,11 +376,9 @@ function Chat:open()
 end
 
 ---Render the settings and any messages in the chat buffer
----@param messages? table
 ---@return self
-function Chat:render(messages)
+function Chat:render()
   local lines = {}
-  local last_role = CONSTANTS.USER_ROLE
 
   local function spacer()
     table.insert(lines, "")
@@ -392,10 +390,10 @@ function Chat:render(messages)
     spacer()
   end
 
-  local function set_messages(msgs)
+  local function add_messages_to_buf(msgs)
     for i, msg in ipairs(msgs) do
       if msg.role ~= CONSTANTS.SYSTEM_ROLE or (msg.opts and msg.opts.visible ~= false) then
-        if i > 1 and last_role ~= msg.role then
+        if i > 1 and self.last_role ~= msg.role then
           spacer()
         end
         if msg.role == CONSTANTS.USER_ROLE then
@@ -409,7 +407,7 @@ function Chat:render(messages)
           table.insert(lines, text)
         end
 
-        last_role = msg.role
+        self.last_role = msg.role
       end
     end
   end
@@ -430,14 +428,15 @@ function Chat:render(messages)
     spacer()
   end
 
-  if not messages or #messages == 0 then
+  if util.is_empty(self.messages) then
     log:trace("Setting the header for the chat buffer")
     set_header(user_role)
-  end
-
-  if messages then
+  else
     log:trace("Setting the messages in the chat buffer")
-    set_messages(messages)
+    add_messages_to_buf(self.messages)
+
+    -- We've added the messages so can clear the table to avoid duplication
+    self.messages = {}
   end
 
   -- If the user has visually selected some text, add that to the chat buffer
