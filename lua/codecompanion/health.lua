@@ -18,13 +18,13 @@ M.plugins = {
     plugin_name = "nvim-treesitter",
   },
   {
-    name = "telescope.nvim",
-    plugin_name = "telescope",
+    name = "nvim-cmp",
+    plugin_name = "cmp",
     optional = true,
   },
   {
-    name = "nvim-cmp",
-    plugin_name = "cmp",
+    name = "telescope.nvim",
+    plugin_name = "telescope",
     optional = true,
   },
   {
@@ -37,6 +37,9 @@ M.plugins = {
 M.parsers = {
   {
     name = "markdown",
+  },
+  {
+    name = "yaml",
   },
 }
 
@@ -78,10 +81,10 @@ function M.check()
     error("codecompanion.nvim requires Neovim 0.9.2+")
   end
 
-  start("codecompanion.nvim report")
-
   local log = require("codecompanion.utils.log")
   info(fmt("Log file: %s", log.get_logfile()))
+
+  start("Plugins:")
 
   for _, plugin in ipairs(M.plugins) do
     if plugin_available(plugin.plugin_name) then
@@ -95,17 +98,21 @@ function M.check()
     end
   end
 
+  start("Tree-sitter parsers:")
+
   for _, parser in ipairs(M.parsers) do
     if parser_available(parser.name) then
-      ok(fmt("Tree-sitter %s parser installed", parser.name))
+      ok(fmt("%s parser installed", parser.name))
     else
       if parser.optional then
-        warn(fmt("Tree-sitter %s parser not found", parser.name))
+        warn(fmt("%s parser not found", parser.name))
       else
-        error(fmt("Tree-sitter %s parser not found", parser.name))
+        error(fmt("%s parser not found", parser.name))
       end
     end
   end
+
+  start("Libraries:")
 
   for _, library in ipairs(M.libraries) do
     if lib_available(library.name) then
