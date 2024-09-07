@@ -131,6 +131,9 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       default = "gpt-4o-2024-05-13",
+      choices = {
+        "gpt-4o-2024-05-13",
+      },
     },
     temperature = {
       order = 2,
