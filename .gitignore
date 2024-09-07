@@ -44,6 +44,7 @@ luac.out
 
 .direnv/
 .testenv/
+.repro/
 misc/
 todo.md
 media/
