@@ -1131,7 +1131,7 @@ function Chat:fold_code()
   for _, match in query:iter_matches(root, self.bufnr) do
     if match[captures.role] then
       role = vim.trim(vim.treesitter.get_node_text(match[captures.role], self.bufnr):lower())
-      if role:match(user_role) and match[captures.code] then
+      if role:match(user_role:lower()) and match[captures.code] then
         local node = match[captures.code]
         local start_row, _, end_row, _ = node:range()
         if start_row < end_row then
