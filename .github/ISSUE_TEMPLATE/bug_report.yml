@@ -32,6 +32,9 @@ body:
             vim.env[("XDG_%s_HOME"):format(name:upper())] = root .. "/" .. name
           end
 
+          -- set config path to enable the copilot adapter to work
+          vim.env["CC_CONFIG_PATH"] = vim.fn.expand("~/.config")
+
           -- bootstrap lazy
           local lazypath = root .. "/plugins/lazy.nvim"
           if not vim.loop.fs_stat(lazypath) then
