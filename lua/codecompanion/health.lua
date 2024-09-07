@@ -23,9 +23,20 @@ M.plugins = {
     optional = true,
   },
   {
+    name = "nvim-cmp",
+    plugin_name = "cmp",
+    optional = true,
+  },
+  {
     name = "dressing.nvim",
     plugin_name = "dressing",
     optional = true,
+  },
+}
+
+M.parsers = {
+  {
+    name = "markdown",
   },
 }
 
@@ -57,11 +68,9 @@ local function lib_available(lib)
   return false
 end
 
-local function env_available(env)
-  if os.getenv(env) ~= nil then
-    return true
-  end
-  return false
+local function parser_available(filetype)
+  local result, parser = pcall(vim.treesitter.get_parser, 0, filetype)
+  return result and parser ~= nil
 end
 
 function M.check()
@@ -82,6 +91,18 @@ function M.check()
         warn(fmt("%s not found", plugin.name))
       else
         error(fmt("%s not found", plugin.name))
+      end
+    end
+  end
+
+  for _, parser in ipairs(M.parsers) do
+    if parser_available(parser.name) then
+      ok(fmt("Tree-sitter %s parser installed", parser.name))
+    else
+      if parser.optional then
+        warn(fmt("Tree-sitter %s parser not found", parser.name))
+      else
+        error(fmt("Tree-sitter %s parser not found", parser.name))
       end
     end
   end
