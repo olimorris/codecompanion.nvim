@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.5](https://github.com/olimorris/codecompanion.nvim/compare/v2.2.4...v2.2.5) (2024-09-07)
+
+
+### Bug Fixes
+
+* **copilot:** [#176](https://github.com/olimorris/codecompanion.nvim/issues/176) InsertLeave error with nil choices ([05bf031](https://github.com/olimorris/codecompanion.nvim/commit/05bf0311ef1e49ccb705ff5ce6b80ea591241932))
+
 ## [2.2.4](https://github.com/olimorris/codecompanion.nvim/compare/v2.2.3...v2.2.4) (2024-09-07)
 
 
