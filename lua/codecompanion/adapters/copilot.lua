@@ -14,8 +14,8 @@ local function get_token()
   local config_dir
   if vim.fn.has("win32") == 1 then
     config_dir = vim.fn.expand("~/AppData/Local")
-  elseif os.getenv("CC_CONFIG_PATH") then
-    config_dir = os.getenv("CC_CONFIG_PATH")
+  elseif os.getenv("CODECOMPANION_TOKEN_PATH") then
+    config_dir = os.getenv("CODECOMPANION_TOKEN_PATH")
   else
     local xdg_config = vim.fn.expand("$XDG_CONFIG_HOME")
     config_dir = (xdg_config and vim.fn.isdirectory(xdg_config) > 0) and xdg_config or vim.fn.expand("~/.config")

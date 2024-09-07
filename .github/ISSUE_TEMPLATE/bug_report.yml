@@ -33,7 +33,7 @@ body:
           end
 
           -- set config path to enable the copilot adapter to work
-          vim.env["CC_CONFIG_PATH"] = vim.fn.expand("~/.config")
+          vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand("~/.config")
 
           -- bootstrap lazy
           local lazypath = root .. "/plugins/lazy.nvim"
