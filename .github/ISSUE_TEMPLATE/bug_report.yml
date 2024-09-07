@@ -78,12 +78,26 @@ body:
             root = root .. "/plugins",
           })
 
-          -- setup Tree-sitter
+          -- Setup Tree-sitter
           local ok, treesitter = pcall(require, "nvim-treesitter.configs")
           if ok then
             treesitter.setup({
               ensure_installed = { "lua", "markdown", "markdown_inline", "yaml" },
               highlight = { enable = true },
+            })
+          end
+
+          -- Setup completion
+          local ok, cmp = pcall(require, "cmp")
+          if ok then
+            cmp.setup({
+              mapping = cmp.mapping.preset.insert({
+                ["<C-b>"] = cmp.mapping.scroll_docs(-4),
+                ["<C-f>"] = cmp.mapping.scroll_docs(4),
+                ["<C-Space>"] = cmp.mapping.complete(),
+                ["<C-e>"] = cmp.mapping.abort(),
+                ["<CR>"] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+              }),
             })
           end
           ```
