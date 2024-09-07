@@ -1,3 +1,5 @@
+local config = require("codecompanion").config
+
 local source = {}
 
 function source.new()
@@ -5,7 +7,7 @@ function source.new()
 end
 
 function source:is_available()
-  return vim.bo.filetype == "codecompanion"
+  return vim.bo.filetype == "codecompanion" and config.display.chat.show_settings
 end
 
 source.get_position_encoding_kind = function()
