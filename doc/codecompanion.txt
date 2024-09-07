@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.9.2       Last change: 2024 September 06
+*codecompanion.txt*       For NVIM v0.9.2       Last change: 2024 September 07
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -42,7 +42,7 @@ Install the plugin with your preferred package manager:
       dependencies = {
         "nvim-lua/plenary.nvim",
         "nvim-treesitter/nvim-treesitter",
-        "hrsh7th/nvim-cmp", -- Optional: For activating slash commands and variables in the chat buffer
+        "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
         "nvim-telescope/telescope.nvim", -- Optional: For working with files with slash commands
         {
           "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
@@ -64,7 +64,7 @@ Install the plugin with your preferred package manager:
       requires = {
         "nvim-lua/plenary.nvim",
         "nvim-treesitter/nvim-treesitter",
-        "hrsh7th/nvim-cmp", -- Optional: For activating slash commands and variables in the chat buffer
+        "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
         "nvim-telescope/telescope.nvim", -- Optional: For working with files with slash commands
         "stevearc/dressing.nvim" -- Optional: Improves the default Neovim UI
       }
@@ -78,7 +78,7 @@ Install the plugin with your preferred package manager:
     
     Plug "nvim-lua/plenary.nvim"
     Plug "nvim-treesitter/nvim-treesitter"
-    Plug "hrsh7th/nvim-cmp", " Optional: For activating slash commands and variables in the chat buffer
+    Plug "hrsh7th/nvim-cmp", " Optional: For using slash commands and variables in the chat buffer
     Plug "nvim-telescope/telescope.nvim", " Optional: For working with files with slash commands
     Plug "stevearc/dressing.nvim" " Optional: Improves the default Neovim UI
     Plug "olimorris/codecompanion.nvim"

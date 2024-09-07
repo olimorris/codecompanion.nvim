@@ -63,7 +63,7 @@ Install the plugin with your preferred package manager:
   dependencies = {
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
-    "hrsh7th/nvim-cmp", -- Optional: For activating slash commands and variables in the chat buffer
+    "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
     "nvim-telescope/telescope.nvim", -- Optional: For working with files with slash commands
     {
       "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
@@ -85,7 +85,7 @@ use({
   requires = {
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
-    "hrsh7th/nvim-cmp", -- Optional: For activating slash commands and variables in the chat buffer
+    "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
     "nvim-telescope/telescope.nvim", -- Optional: For working with files with slash commands
     "stevearc/dressing.nvim" -- Optional: Improves the default Neovim UI
   }
@@ -99,7 +99,7 @@ call plug#begin()
 
 Plug "nvim-lua/plenary.nvim"
 Plug "nvim-treesitter/nvim-treesitter"
-Plug "hrsh7th/nvim-cmp", " Optional: For activating slash commands and variables in the chat buffer
+Plug "hrsh7th/nvim-cmp", " Optional: For using slash commands and variables in the chat buffer
 Plug "nvim-telescope/telescope.nvim", " Optional: For working with files with slash commands
 Plug "stevearc/dressing.nvim" " Optional: Improves the default Neovim UI
 Plug "olimorris/codecompanion.nvim"
