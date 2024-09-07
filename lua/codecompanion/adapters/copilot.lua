@@ -14,10 +14,14 @@ local function get_token()
   local config_dir
   if vim.fn.has("win32") == 1 then
     config_dir = vim.fn.expand("~/AppData/Local")
+  elseif os.getenv("CC_CONFIG_PATH") then
+    config_dir = os.getenv("CC_CONFIG_PATH")
   else
     local xdg_config = vim.fn.expand("$XDG_CONFIG_HOME")
     config_dir = (xdg_config and vim.fn.isdirectory(xdg_config) > 0) and xdg_config or vim.fn.expand("~/.config")
   end
+
+  log:debug("Copilot config dir: %s", config_dir)
 
   local token_files = {
     "/github-copilot/hosts.json",
@@ -27,27 +31,29 @@ local function get_token()
   for _, file in ipairs(token_files) do
     local path = vim.fn.expand(config_dir .. file)
 
-    if vim.fn.filereadable(path) == 1 then
-      local f = io.open(path, "r")
-      if not f then
-        return log:error("Could not open file: %s", path)
-      end
+    if vim.fn.filereadable(path) ~= 1 then
+      log:debug("File not found: %s", path)
+    end
 
-      local content = f:read("*all")
-      f:close()
+    local f = io.open(path, "r")
+    if not f then
+      return log:error("Could not open file: %s", path)
+    end
 
-      local ok, data = pcall(vim.fn.json_decode, content)
-      if not ok then
-        return log:error("Could not decode JSON from file: %s", path)
-      end
+    local content = f:read("*all")
+    f:close()
 
-      if data["github.com"] then
-        return data["github.com"].oauth_token
-      else
-        for key, value in pairs(data) do
-          if key:match("^github.com:") then
-            return value.oauth_token
-          end
+    local ok, data = pcall(vim.fn.json_decode, content)
+    if not ok then
+      return log:error("Could not decode JSON from file: %s", path)
+    end
+
+    if data["github.com"] then
+      return data["github.com"].oauth_token
+    else
+      for key, value in pairs(data) do
+        if key:match("^github.com:") then
+          return value.oauth_token
         end
       end
     end
