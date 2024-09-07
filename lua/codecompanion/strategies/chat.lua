@@ -389,16 +389,20 @@ function Chat:render()
     spacer()
   end
 
+  -- Prevent duplicate headers
+  local last_set_role
+
   local function add_messages_to_buf(msgs)
     for i, msg in ipairs(msgs) do
       if msg.role ~= CONSTANTS.SYSTEM_ROLE or (msg.opts and msg.opts.visible ~= false) then
         if i > 1 and self.last_role ~= msg.role then
           spacer()
         end
-        if msg.role == CONSTANTS.USER_ROLE then
+
+        if msg.role == CONSTANTS.USER_ROLE and last_set_role ~= CONSTANTS.USER_ROLE then
           set_header(user_role)
         end
-        if msg.role == CONSTANTS.LLM_ROLE then
+        if msg.role == CONSTANTS.LLM_ROLE and last_set_role ~= CONSTANTS.LLM_ROLE then
           set_header(llm_role)
         end
 
@@ -406,7 +410,13 @@ function Chat:render()
           table.insert(lines, text)
         end
 
+        last_set_role = msg.role
         self.last_role = msg.role
+
+        -- The Chat:Submit method will parse the last message and it to the messages table
+        if i == #msgs then
+          table.remove(msgs, i)
+        end
       end
     end
   end
@@ -434,9 +444,6 @@ function Chat:render()
   else
     log:trace("Setting the messages in the chat buffer")
     add_messages_to_buf(self.messages)
-
-    -- We've added the messages so can clear the table to avoid duplication
-    self.messages = {}
   end
 
   -- If the user has visually selected some text, add that to the chat buffer

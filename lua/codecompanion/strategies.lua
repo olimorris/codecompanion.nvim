@@ -43,39 +43,38 @@ function Strategies:evaluate_prompts(prompts)
   local messages = {}
 
   for _, prompt in ipairs(prompts) do
-    if prompt.condition then
-      if not prompt.condition(self.context) then
-        goto continue
-      end
+    if prompt.opts and prompt.opts.contains_code and not config.opts.send_code then
+      goto continue
+    end
+    if prompt.condition and not prompt.condition(self.context) then
+      goto continue
     end
 
-    --TODO: These nested conditionals suck. Refactor soon
-    if not prompt.opts or (prompt.opts and prompt.opts.contains_code and config.opts.send_code) then
-      if not prompt.condition or (prompt.condition and prompt.condition(self.context)) then
-        local content
-        if type(prompt.content) == "function" then
-          content = prompt.content(self.context)
-        else
-          content = prompt.content
-        end
-
-        table.insert(messages, {
-          role = prompt.role,
-          content = content,
-        })
-      end
+    local content
+    if type(prompt.content) == "function" then
+      content = prompt.content(self.context)
+    else
+      content = prompt.content
     end
+
+    table.insert(messages, {
+      role = prompt.role,
+      content = content,
+      opts = prompt.opts or {},
+    })
+
     ::continue::
   end
 
   return messages
 end
 
+---@return CodeCompanion.Chat|nil
 function Strategies:start(strategy)
   return self[strategy](self)
 end
 
----@return nil|CodeCompanion.Chat
+---@return CodeCompanion.Chat|nil
 function Strategies:chat()
   local messages
 
