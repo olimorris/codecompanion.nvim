@@ -53,6 +53,7 @@ body:
               dependencies = {
                 { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate"},
                 "nvim-lua/plenary.nvim",
+                "hrsh7th/nvim-cmp",
                 "nvim-telescope/telescope.nvim",
                 {
                   "stevearc/dressing.nvim",
@@ -81,7 +82,7 @@ body:
           local ok, treesitter = pcall(require, "nvim-treesitter.configs")
           if ok then
             treesitter.setup({
-              ensure_installed = { "lua", "markdown", "markdown_inline" },
+              ensure_installed = { "lua", "markdown", "markdown_inline", "yaml" },
               highlight = { enable = true },
             })
           end
