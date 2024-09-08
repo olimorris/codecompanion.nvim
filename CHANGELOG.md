@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v2.2.5...v2.3.0) (2024-09-08)
+
+
+### Features
+
+* add `fzf_lua` for slash commands ([895fbf9](https://github.com/olimorris/codecompanion.nvim/commit/895fbf9587db87c9722eb9d4cc3fdd512bfbd6b2))
+
 ## [2.2.5](https://github.com/olimorris/codecompanion.nvim/compare/v2.2.4...v2.2.5) (2024-09-07)
 
 
