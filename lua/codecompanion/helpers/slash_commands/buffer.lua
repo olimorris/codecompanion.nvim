@@ -1,7 +1,7 @@
 local config = require("codecompanion").config
 
 local buf = require("codecompanion.utils.buffers")
-local file = require("codecompanion.utils.files")
+local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
@@ -24,11 +24,11 @@ local function output(SlashCommand, selected)
   -- If the buffer is not loaded, then read the file
   local content
   if not api.nvim_buf_is_loaded(selected.bufnr) then
-    content = file.read(selected.path)
+    content = file_utils.read(selected.path)
     if content == "" then
       return log:warn("Could not read the file: %s", selected.path)
     end
-    content = "```" .. file.get_filetype(selected.path) .. "\n" .. content .. "\n```"
+    content = "```" .. file_utils.get_filetype(selected.path) .. "\n" .. content .. "\n```"
   else
     content = buf.format(selected.bufnr)
   end
@@ -88,6 +88,32 @@ local Providers = {
 
         return true
       end,
+    })
+  end,
+
+  ---The fzf-lua provider
+  ---@param SlashCommand CodeCompanion.SlashCommandBuffer
+  ---@return nil
+  fzf_lua = function(SlashCommand)
+    local ok, fzf_lua = pcall(require, "fzf-lua")
+    if not ok then
+      return log:error("fzf-lua is not installed")
+    end
+
+    fzf_lua.buffers({
+      prompt = CONSTANTS.PROMPT,
+      actions = {
+        ["default"] = function(selected, o)
+          if selected then
+            local file = fzf_lua.path.entry_to_file(selected[1], o)
+            output(SlashCommand, {
+              bufnr = file.bufnr,
+              name = file.path,
+              path = file.bufname,
+            })
+          end
+        end,
+      },
     })
   end,
 }

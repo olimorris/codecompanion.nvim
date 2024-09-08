@@ -48,7 +48,7 @@ return {
           description = "Share a loaded buffer's contents with the LLM",
           opts = {
             contains_code = true,
-            provider = "default", -- default|telescope
+            provider = "default", -- default|telescope|fzf_lua
           },
         },
         ["file"] = {
@@ -57,7 +57,7 @@ return {
           opts = {
             contains_code = true,
             max_lines = 1000,
-            provider = "telescope", -- telescope|mini_pick
+            provider = "telescope", -- telescope|mini_pick|fzf_lua
           },
         },
       },

@@ -295,7 +295,7 @@ require("codecompanion").setup({
           description = "Share a loaded buffer's contents with the LLM",
           opts = {
             contains_code = true,
-            provider = "default", -- default|telescope
+            provider = "default", -- default|telescope|fzf_lua
           },
         },
         ["file"] = {
@@ -304,7 +304,7 @@ require("codecompanion").setup({
           opts = {
             contains_code = true,
             max_lines = 1000,
-            provider = "telescope", -- telescope|mini_pick
+            provider = "telescope", -- telescope|mini_pick|fzf_lua
           },
         },
       },
@@ -1086,6 +1086,15 @@ When in the chat buffer, there are number of keymaps available to you:
 **Settings**
 
 You can display your selected adapter's schema at the top of the buffer, if `display.chat.show_settings` is set to `true`. This allows you to vary the response from the LLM.
+
+**Slash Commands**
+
+Slash Commands allow you to easily share additional context with your LLM from the chat buffer. There are a number of providers you can use to accomplish this:
+
+- `/buffer` - Has a `default` provider (which leverages `vim.ui.select`), `telescope` and `fzf_lua`
+- `/files` - Has `telescope`, `mini_pick` and `fzf_lua`
+
+Please refer to [the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) to see how to change the default provider.
 
 ### :pencil2: Inline Assistant
 

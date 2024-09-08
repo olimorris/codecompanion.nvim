@@ -1,6 +1,6 @@
 local config = require("codecompanion").config
 
-local file = require("codecompanion.utils.files")
+local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 
 CONSTANTS = {
@@ -17,8 +17,8 @@ local function output(SlashCommand, selected)
     return log:warn("Sending of code has been disabled")
   end
 
-  local ft = file.get_filetype(selected.path)
-  local content = file.read(selected.path)
+  local ft = file_utils.get_filetype(selected.path)
+  local content = file_utils.read(selected.path)
 
   if content == "" then
     return log:warn("Could not read the file: %s", selected.path)
@@ -80,6 +80,30 @@ local Providers = {
     if not selected then
       log:info("No file selected")
     end
+  end,
+
+  ---The fzf-lua provider
+  ---@param SlashCommand CodeCompanion.SlashCommandFile
+  ---@return nil
+  fzf_lua = function(SlashCommand)
+    local ok, fzf_lua = pcall(require, "fzf-lua")
+    if not ok then
+      return log:error("fzf-lua is not installed")
+    end
+
+    fzf_lua.files({
+      prompt = CONSTANTS.PROMPT,
+      actions = {
+        ["default"] = function(selected, o)
+          if not selected or #selected == 0 then
+            return
+          end
+          local file = fzf_lua.path.entry_to_file(selected[1], o)
+          local selection = { relative_path = file.stripped, path = file.path }
+          output(SlashCommand, selection)
+        end,
+      },
+    })
   end,
 }
 

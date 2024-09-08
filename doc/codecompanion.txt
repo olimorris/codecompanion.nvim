@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.9.2       Last change: 2024 September 07
+*codecompanion.txt*       For NVIM v0.9.2       Last change: 2024 September 08
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -422,6 +422,19 @@ When in the chat buffer, there are number of keymaps available to you:
 You can display your selected adapter’s schema at the top of the buffer, if
 `display.chat.show_settings` is set to `true`. This allows you to vary the
 response from the LLM.
+
+**Slash Commands**
+
+Slash Commands allow you to easily share additional context with your LLM from
+the chat buffer. There are a number of providers you can use to accomplish
+this:
+
+- `/buffer` - Has a `default` provider (which leverages `vim.ui.select`), `telescope` and `fzf_lua`
+- `/files` - Has `telescope`, `mini_pick` and `fzf_lua`
+
+Please refer to the config
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>
+to see how to change the default provider.
 
 
 INLINE ASSISTANT ~
