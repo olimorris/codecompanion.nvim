@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v2.3.1...v2.4.0) (2024-09-09)
+
+
+### Features
+
+* add mini_pick option for buffer slash command ([5bb3e16](https://github.com/olimorris/codecompanion.nvim/commit/5bb3e163b58cfce528a36b2c31d80b5e85a121df))
+
+
+### Bug Fixes
+
+* default configs ([6262ad5](https://github.com/olimorris/codecompanion.nvim/commit/6262ad578a17587ffb41f017994436ea50a6ab07))
+* mini_pick file slash command ([345c094](https://github.com/olimorris/codecompanion.nvim/commit/345c094983f3e1222a48f90913c9e0f87320647f))
+
 ## [2.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v2.3.0...v2.3.1) (2024-09-09)
 
 
