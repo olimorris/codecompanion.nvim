@@ -31,6 +31,7 @@ return {
     stream = true,
   },
   opts = {
+    cache_breakpoints = 4, -- Cache up to this many messages
     cache_over = 300, -- Cache any message which has this many tokens or more
   },
   handlers = {
@@ -54,8 +55,6 @@ return {
         table.insert(system, {
           type = "text",
           text = prompt.content,
-          -- Cache system prompts
-          cache_control = { type = "ephemeral" },
         })
       end
       if next(system) == nil then
@@ -67,10 +66,21 @@ return {
       -- And ensuring that consecutive messages of the same role are merged
       messages = utils.merge_messages(messages)
 
-      -- As per: https://github.com/anthropics/anthropic-cookbook/blob/main/misc/prompt_caching.ipynb
-      -- Claude now supports caching. We cache any message that exceeds the opts.cache_over number
-      for _, message in ipairs(messages) do
-        if message.role == self.roles.user and tokens.calculate(message.content) >= self.opts.cache_over then
+      local breakpoints_used = 0
+
+      -- As per: https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
+      -- Anthropic now supports caching. We cache any message that exceeds the
+      -- opts.cache_over number up to the limit of the opts.cache_breakpoints
+      -- which is currently set at 4 (by Anthropic themselves). Cache user
+      -- messages first in ascending order as these will likely contain
+      -- files and/or buffers and hence be the subject of questions.
+      for i = #messages, 1, -1 do
+        local message = messages[i]
+        if
+          message.role == self.roles.user
+          and tokens.calculate(message.content) >= self.opts.cache_over
+          and breakpoints_used < self.opts.cache_breakpoints
+        then
           message.content = {
             {
               type = "text",
@@ -78,6 +88,17 @@ return {
               cache_control = { type = "ephemeral" },
             },
           }
+          breakpoints_used = breakpoints_used + 1
+        end
+      end
+
+      -- If we have any spare breakpoints, we cache the system prompts
+      if (system and next(system) ~= nil) and breakpoints_used < self.opts.cache_breakpoints then
+        for _, prompt in ipairs(system) do
+          if breakpoints_used < self.opts.cache_breakpoints then
+            prompt.cache_control = { type = "ephemeral" }
+            breakpoints_used = breakpoints_used + 1
+          end
         end
       end
 
