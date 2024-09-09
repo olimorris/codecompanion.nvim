@@ -237,8 +237,8 @@ Answer the user's questions with the tool's output.]],
       },
     },
   },
-  -- DEFAULT PROMPTS ----------------------------------------------------------
-  default_prompts = {
+  -- PRE-DEFINED PROMPTS ------------------------------------------------------
+  pre_defined_prompts = {
     ["Custom Prompt"] = {
       strategy = "inline",
       description = "Prompt the LLM from Neovim",
@@ -615,7 +615,7 @@ Use Markdown formatting and include the programming language name at the start o
     send_code = true,
 
     use_default_actions = true, -- Show the default actions in the action palette?
-    use_default_prompts = true, -- Show the default prompts in the action palette?
+    use_default_pre_defined_prompts = true, -- Show the default pre-defined prompts in the action palette?
 
     -- This is the default prompt which is sent with every request in the chat
     -- strategy. It is primarily based on the GitHub Copilot Chat's prompt

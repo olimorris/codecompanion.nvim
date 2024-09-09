@@ -47,7 +47,7 @@ Thank you to the following people:
 
 ## :zap: Requirements
 
-- The `curl` library installed
+- The `curl` library
 - Neovim 0.9.2 or greater
 - _(Optional)_ An API key for your chosen LLM
 
@@ -111,7 +111,7 @@ lua << EOF
 EOF
 ```
 
-[Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is a suggested inclusion in order to leverage Slash Commands. However other providers are available and please refer to the [Chat Buffer](#speech_balloon-code-buffer) section.
+[Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is a suggested inclusion in order to leverage Slash Commands. However other providers are available. Please refer to the [Chat Buffer](#speech_balloon-code-buffer) section for more information.
 
 ## :rocket: Quickstart
 
@@ -130,18 +130,18 @@ EOF
 
 Run `:CodeCompanionChat` to open the chat buffer. Type your prompt and press `<CR>`. Toggle the chat buffer with `:CodeCompanionToggle`.
 
-You can add context from your code base by using _variables_ and _slash commands_ in the chat buffer.
+You can add context from your code base by using _Variables_ and _Slash Commands_ in the chat buffer.
 
 _Variables_, accessed via `#`, contain data about the present state of Neovim:
 
-- `#buffer` - Share the current buffer's code. You can also specify line numbers with `#buffer:8-20`
-- `#editor` - Share the buffers and lines that you see in the Neovim viewport
-- `#lsp` - Share LSP information and code for the current buffer
+- `#buffer` - Shares the current buffer's code. You can also specify line numbers with `#buffer:8-20`
+- `#editor` - Shares the buffers and lines that you see in the Neovim viewport
+- `#lsp` - Shares LSP information and code for the current buffer
 
 _Slash commands_, accessed via `/`, run commands to add code to the chat buffer:
 
 - `/buffer` - Share a specific buffer
-- `/file` - Share a file from your repo
+- `/file` - Share a specific file from your repo
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out actions:
 
@@ -150,7 +150,7 @@ _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out a
 - `@rag` - The LLM will browse and search the internet for real-time information to supplement its response
 
 > [!TIP]
-> Press `?` in the chat buffer to reveal the keymaps and optons that are available to you.
+> Press `?` in the chat buffer to reveal the keymaps and options that are available.
 
 **Inline Assistant**
 
@@ -162,11 +162,11 @@ _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out a
 
 <!-- panvimdoc-ignore-end -->
 
-Run `:CodeCompanion <your prompt>` to call the inline assistant. The assistant will evaluate the prompt and either write some code (in the current buffer) or open a chat buffer. You can also make a visual selection and call the assistant.
+Run `:CodeCompanion <your prompt>` to call the inline assistant. The assistant will evaluate the prompt and either write code or open a chat buffer. You can also make a visual selection and call the assistant.
 
 The assistant has knowledge of your last conversation from a chat buffer. A prompt such as `:CodeCompanion add the new function here` will see the assistant add a code block directly into the current buffer.
 
-For convenience, you can call [default prompts](#clipboard-default-prompts) via the assistant such as `:'<,'>CodeCompanion /buffer what does this file do?`. The available default prompts are:
+For convenience, you can call [pre-defined prompts](#clipboard-pre-defined-prompts) via the assistant such as `:'<,'>CodeCompanion /buffer what does this file do?`. The pre-defined prompts, by default, are:
 
 - `/buffer` - Send the current buffer to the LLM alongside a prompt
 - `/commit` - Generate a commit message
@@ -187,10 +187,10 @@ There are keymaps available to accept or reject edits from the LLM in the [inlin
 
 <!-- panvimdoc-ignore-end -->
 
-Run `:CodeCompanionActions` to open the action palette, which gives you access to all of the functionality in the plugin. This is where core actions and the [default prompts](#clipboard-default-prompts) are listed.
+Run `:CodeCompanionActions` to open the action palette, which gives you access to all of the functionality in the plugin. This is where core actions and the [pre-defined prompts](#clipboard-pre-defined-prompts) are listed.
 
 > [!NOTE]
-> Some actions will only be visible in if you're in _Visual mode_.
+> Some actions and prompts will only be visible in if you're in _Visual mode_.
 
 **List of commands**
 
@@ -234,7 +234,7 @@ The plugin uses adapters to connect to LLMs. Out of the box, the plugin supports
 
 The plugin also utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ and _agent_ strategies harness a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
 
-The plugin allows you to specify adapters for each strategy and also for each [default prompt](#clipboard-default-prompts).
+The plugin allows you to specify adapters for each strategy and also for each [pre-defined prompt](#clipboard-pre-defined-prompts).
 
 <!-- panvimdoc-ignore-start -->
 
@@ -486,8 +486,8 @@ Answer the user's questions with the tool's output.]],
       },
     },
   },
-  -- DEFAULT PROMPTS ----------------------------------------------------------
-  default_prompts = {
+  -- PRE-DEFINED PROMPTS ------------------------------------------------------
+  pre_defined_prompts = {
     ["Custom Prompt"] = {
       strategy = "inline",
       description = "Prompt the LLM from Neovim",
@@ -864,7 +864,7 @@ Use Markdown formatting and include the programming language name at the start o
     send_code = true,
 
     use_default_actions = true, -- Show the default actions in the action palette?
-    use_default_prompts = true, -- Show the default prompts in the action palette?
+    use_default_pre_defined_prompts = true, -- Show the default pre-defined prompts in the action palette?
 
     -- This is the default prompt which is sent with every request in the chat
     -- strategy. It is primarily based on the GitHub Copilot Chat's prompt
@@ -1057,9 +1057,9 @@ require("codecompanion").setup({
 
 ## :bulb: Advanced Usage
 
-### :clipboard: Default Prompts
+### :clipboard: Pre-Defined Prompts
 
-The plugin comes with a number of default prompts. As per [the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua), these can be called via keymaps or slash commands (via the inline assistant). These prompts have been carefully curated to mimic those in [GitHub's Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide). Of course, you can create your own prompts and add them to the Action Palette. Please see the [RECIPES](doc/RECIPES.md) guide for more information.
+The plugin comes with a number of pre-defined prompts. As per [the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua), these can be called via keymaps or slash commands (via the inline assistant). These prompts have been carefully curated to mimic those in [GitHub's Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide). Of course, you can create your own prompts and add them to the Action Palette. Please see the [RECIPES](doc/RECIPES.md) guide for more information.
 
 ### :speech_balloon: The Chat Buffer
 

@@ -202,7 +202,7 @@ M.actions = function(args)
 
   if not next(_cached_actions) then
     if M.config.opts.use_default_actions then
-      actions.add_default_prompts(context)
+      actions.add_default_pre_defined_prompts(context)
       table.sort(actions.static.actions, function(a, b)
         if (a.opts and a.opts.index) and (b.opts and b.opts.index) then
           return a.opts.index < b.opts.index
@@ -239,22 +239,16 @@ end
 ---@param opts nil|table
 ---@return nil
 M.setup = function(opts)
-  if
-    opts
-    and opts.strategies
-    and opts.strategies.chat
-    and opts.strategies.chat.callbacks
-    and (opts.strategies.chat.callbacks.on_submit or opts.strategies.chat.callbacks.on_complete)
-  then
+  if opts and opts.default_prompts then
     dep.write(
-      "config_callbacks",
-      "  ",
-      { "on_submit", "WarningMsg" },
-      " and ",
-      { "on_complete", "WarningMsg" },
-      " callbacks have now been deprecated.",
+      "The ",
+      { "`default_prompts`", "WarningMsg" },
+      " have been renamed to ",
+      { "`pre_defined_prompts`", "WarningMsg" },
       "\nThey will be removed in the coming weeks."
     )
+    opts.pre_defined_prompts = opts.default_prompts
+    opts.opts.use_default_pre_defined_prompts = opts.opts.use_default_prompts
   end
 
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
@@ -291,10 +285,10 @@ M.setup = function(opts)
   })
 
   -- Setup the slash commands
-  local prompts = require("codecompanion.prompts").new(M.config.default_prompts):setup()
+  local prompts = require("codecompanion.prompts").new(M.config.pre_defined_prompts):setup()
   for name, prompt in pairs(prompts.prompts) do
     if prompt.opts then
-      if not M.config.opts.use_default_prompts and prompt.opts.default_prompt then
+      if not M.config.opts.use_default_pre_defined_prompts and prompt.opts.default_prompt then
         goto continue
       end
 

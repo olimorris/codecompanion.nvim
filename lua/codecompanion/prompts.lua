@@ -53,7 +53,7 @@ function Prompts:setup()
   --Loop through the prompts
   for _, prompt in pairs(self.prompts) do
     if prompt.opts and prompt.opts.mapping then
-      if not config.opts.use_default_prompts and prompt.opts.default_prompt then
+      if not config.opts.use_default_pre_defined_prompts and prompt.opts.pre_defined_prompt then
         goto continue
       end
       if prompt.opts.modes and type(prompt.opts.modes) == "table" then
