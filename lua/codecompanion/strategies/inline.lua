@@ -398,23 +398,22 @@ function Inline:form_prompt()
   local output = {}
 
   for _, prompt in ipairs(self.prompts) do
-    if prompt.condition then
-      if not prompt.condition(self.context) then
-        goto continue
-      end
+    if prompt.opts and prompt.opts.contains_code and not config.opts.send_code then
+      goto continue
+    end
+    if prompt.condition and not prompt.condition(self.context) then
+      goto continue
     end
 
-    if prompt.opts and not prompt.opts.contains_code or (prompt.opts.contains_code and config.opts.send_code) then
-      if type(prompt.content) == "function" then
-        prompt.content = prompt.content(self.context)
-      end
-
-      table.insert(output, {
-        role = prompt.role,
-        content = prompt.content,
-        opts = prompt.opts or {},
-      })
+    if type(prompt.content) == "function" then
+      prompt.content = prompt.content(self.context)
     end
+
+    table.insert(output, {
+      role = prompt.role,
+      content = prompt.content,
+      opts = prompt.opts or {},
+    })
 
     ::continue::
   end
