@@ -64,11 +64,11 @@ Install the plugin with your preferred package manager:
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
     "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
-    "nvim-telescope/telescope.nvim", -- Optional: For working with files with slash commands
     {
       "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
       opts = {},
     },
+    "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
   },
   config = true
 }
@@ -86,8 +86,8 @@ use({
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
     "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
-    "nvim-telescope/telescope.nvim", -- Optional: For working with files with slash commands
     "stevearc/dressing.nvim" -- Optional: Improves the default Neovim UI
+    "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
   }
 })
 ```
@@ -100,8 +100,8 @@ call plug#begin()
 Plug "nvim-lua/plenary.nvim"
 Plug "nvim-treesitter/nvim-treesitter"
 Plug "hrsh7th/nvim-cmp", " Optional: For using slash commands and variables in the chat buffer
-Plug "nvim-telescope/telescope.nvim", " Optional: For working with files with slash commands
 Plug "stevearc/dressing.nvim" " Optional: Improves the default Neovim UI
+Plug "nvim-telescope/telescope.nvim", " Optional: For using slash commands
 Plug "olimorris/codecompanion.nvim"
 
 call plug#end()
@@ -110,6 +110,8 @@ lua << EOF
   require("codecompanion").setup()
 EOF
 ```
+
+[Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is a suggested inclusion in order to leverage Slash Commands. However other providers are available and please refer to the [Chat Buffer](#speech_balloon-code-buffer) section.
 
 ## :rocket: Quickstart
 
@@ -295,7 +297,7 @@ require("codecompanion").setup({
           description = "Share a loaded buffer's contents with the LLM",
           opts = {
             contains_code = true,
-            provider = "default", -- default|telescope|fzf_lua
+            provider = "default", -- default|telescope|mini_pick|fzf_lua
           },
         },
         ["file"] = {

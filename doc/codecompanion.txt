@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.9.2       Last change: 2024 September 08
+*codecompanion.txt*       For NVIM v0.9.2       Last change: 2024 September 09
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -43,11 +43,11 @@ Install the plugin with your preferred package manager:
         "nvim-lua/plenary.nvim",
         "nvim-treesitter/nvim-treesitter",
         "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
-        "nvim-telescope/telescope.nvim", -- Optional: For working with files with slash commands
         {
           "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
           opts = {},
         },
+        "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
       },
       config = true
     }
@@ -65,8 +65,8 @@ Install the plugin with your preferred package manager:
         "nvim-lua/plenary.nvim",
         "nvim-treesitter/nvim-treesitter",
         "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
-        "nvim-telescope/telescope.nvim", -- Optional: For working with files with slash commands
         "stevearc/dressing.nvim" -- Optional: Improves the default Neovim UI
+        "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
       }
     })
 <
@@ -79,8 +79,8 @@ Install the plugin with your preferred package manager:
     Plug "nvim-lua/plenary.nvim"
     Plug "nvim-treesitter/nvim-treesitter"
     Plug "hrsh7th/nvim-cmp", " Optional: For using slash commands and variables in the chat buffer
-    Plug "nvim-telescope/telescope.nvim", " Optional: For working with files with slash commands
     Plug "stevearc/dressing.nvim" " Optional: Improves the default Neovim UI
+    Plug "nvim-telescope/telescope.nvim", " Optional: For using slash commands
     Plug "olimorris/codecompanion.nvim"
     
     call plug#end()
@@ -89,6 +89,11 @@ Install the plugin with your preferred package manager:
       require("codecompanion").setup()
     EOF
 <
+
+Telescope.nvim <https://github.com/nvim-telescope/telescope.nvim> is a
+suggested inclusion in order to leverage Slash Commands. However other
+providers are available and please refer to the |codecompanion-chat-buffer|
+section.
 
 
 QUICKSTART                                          *codecompanion-quickstart*

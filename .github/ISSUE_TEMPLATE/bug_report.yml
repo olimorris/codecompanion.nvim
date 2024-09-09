@@ -57,11 +57,11 @@ body:
                 { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate"},
                 "nvim-lua/plenary.nvim",
                 "hrsh7th/nvim-cmp",
-                "nvim-telescope/telescope.nvim",
                 {
                   "stevearc/dressing.nvim",
                   opts = {},
                 },
+                "nvim-telescope/telescope.nvim",
               },
               opts = {
                 -- Refer to: https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua
