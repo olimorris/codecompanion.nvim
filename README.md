@@ -111,7 +111,7 @@ lua << EOF
 EOF
 ```
 
-[Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is a suggested inclusion in order to leverage Slash Commands. However other providers are available. Please refer to the [Chat Buffer](#speech_balloon-code-buffer) section for more information.
+[Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is a suggested inclusion in order to leverage Slash Commands. However other providers are available. Please refer to the [Chat Buffer](#speech_balloon-the-chat-buffer) section for more information.
 
 ## :rocket: Quickstart
 
@@ -138,10 +138,12 @@ _Variables_, accessed via `#`, contain data about the present state of Neovim:
 - `#editor` - Shares the buffers and lines that you see in the Neovim viewport
 - `#lsp` - Shares LSP information and code for the current buffer
 
-_Slash commands_, accessed via `/`, run commands to add code to the chat buffer:
+_Slash commands_, accessed via `/`, run commands to insert additional context into the chat buffer:
 
-- `/buffer` - Share a specific buffer
-- `/file` - Share a specific file from your repo
+- `/buffer` - Insert open buffers
+- `/file` - Insert a file
+- `/now` - Insert the current date and time
+- `/symbols` - Insert symbols for the active buffer
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out actions:
 
@@ -294,7 +296,7 @@ require("codecompanion").setup({
       slash_commands = {
         ["buffer"] = {
           callback = "helpers.slash_commands.buffer",
-          description = "Share a loaded buffer's contents with the LLM",
+          description = "Insert open buffers",
           opts = {
             contains_code = true,
             provider = "default", -- default|telescope|mini_pick|fzf_lua
@@ -302,11 +304,25 @@ require("codecompanion").setup({
         },
         ["file"] = {
           callback = "helpers.slash_commands.file",
-          description = "Share a file's contents with the LLM",
+          description = "Insert a file",
           opts = {
             contains_code = true,
             max_lines = 1000,
             provider = "telescope", -- telescope|mini_pick|fzf_lua
+          },
+        },
+        ["now"] = {
+          callback = "helpers.slash_commands.now",
+          description = "Insert the current date and time",
+          opts = {
+            contains = false,
+          },
+        },
+        ["symbols"] = {
+          callback = "helpers.slash_commands.symbols",
+          description = "Insert symbols for the active buffer",
+          opts = {
+            contains = true,
           },
         },
       },
@@ -1091,7 +1107,7 @@ You can display your selected adapter's schema at the top of the buffer, if `dis
 
 **Slash Commands**
 
-Slash Commands allow you to easily share additional context with your LLM from the chat buffer. There are a number of providers you can use to accomplish this:
+Slash Commands allow you to easily share additional context with your LLM from the chat buffer. Some of the Slash Commands allow to choose the underlying provider:
 
 - `/buffer` - Has a `default` provider (which leverages `vim.ui.select`), `telescope` and `fzf_lua`
 - `/files` - Has `telescope`, `mini_pick` and `fzf_lua`
@@ -1323,5 +1339,7 @@ I am open to contributions but they will be implemented at my discretion. Feel f
 - [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) for the LSP assistant action
 - [CopilotChat.nvim](https://github.com/CopilotC-Nvim/CopilotChat.nvim) for the rendering and usability of the chat
 buffer
+- [Aerial.nvim](https://github.com/stevearc/aerial.nvim) for the Tree-sitter parsing which as inspired the symbols Slash
+Command
 
 <!-- panvimdoc-ignore-end -->

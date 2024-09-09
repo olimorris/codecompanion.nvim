@@ -45,7 +45,7 @@ return {
       slash_commands = {
         ["buffer"] = {
           callback = "helpers.slash_commands.buffer",
-          description = "Share a loaded buffer's contents with the LLM",
+          description = "Insert open buffers",
           opts = {
             contains_code = true,
             provider = "default", -- default|telescope|mini_pick|fzf_lua
@@ -53,11 +53,25 @@ return {
         },
         ["file"] = {
           callback = "helpers.slash_commands.file",
-          description = "Share a file's contents with the LLM",
+          description = "Insert a file",
           opts = {
             contains_code = true,
             max_lines = 1000,
             provider = "telescope", -- telescope|mini_pick|fzf_lua
+          },
+        },
+        ["now"] = {
+          callback = "helpers.slash_commands.now",
+          description = "Insert the current date and time",
+          opts = {
+            contains = false,
+          },
+        },
+        ["symbols"] = {
+          callback = "helpers.slash_commands.symbols",
+          description = "Insert symbols for the active buffer",
+          opts = {
+            contains = true,
           },
         },
       },

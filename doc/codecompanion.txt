@@ -115,11 +115,13 @@ _Variables_, accessed via `#`, contain data about the present state of Neovim:
 - `#editor` - Shares the buffers and lines that you see in the Neovim viewport
 - `#lsp` - Shares LSP information and code for the current buffer
 
-_Slash commands_, accessed via `/`, run commands to add code to the chat
-buffer:
+_Slash commands_, accessed via `/`, run commands to insert additional context
+into the chat buffer:
 
-- `/buffer` - Share a specific buffer
-- `/file` - Share a specific file from your repo
+- `/buffer` - Insert open buffers
+- `/file` - Insert a file
+- `/now` - Insert the current date and time
+- `/symbols` - Insert symbols for the active buffer
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out
 actions:
@@ -431,8 +433,8 @@ response from the LLM.
 **Slash Commands**
 
 Slash Commands allow you to easily share additional context with your LLM from
-the chat buffer. There are a number of providers you can use to accomplish
-this:
+the chat buffer. Some of the Slash Commands allow to choose the underlying
+provider:
 
 - `/buffer` - Has a `default` provider (which leverages `vim.ui.select`), `telescope` and `fzf_lua`
 - `/files` - Has `telescope`, `mini_pick` and `fzf_lua`
