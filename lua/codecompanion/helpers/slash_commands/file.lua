@@ -73,12 +73,13 @@ local Providers = {
       source = {
         name = CONSTANTS.PROMPT,
         choose = function(path)
+          vim.api.nvim_win_close(0, false)
           output(SlashCommand, { path = path, relative_path = vim.fn.fnamemodify(path, ":~:.") })
         end,
       },
     })
     if not selected then
-      log:info("No file selected")
+      return
     end
   end,
 
