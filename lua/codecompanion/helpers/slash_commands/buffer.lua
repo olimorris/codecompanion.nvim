@@ -91,6 +91,29 @@ local Providers = {
     })
   end,
 
+  mini_pick = function(SlashCommand)
+    local ok, mini_pick = pcall(require, "mini.pick")
+    if not ok then
+      return log:error("mini.pick is not installed")
+    end
+
+    local picker = mini_pick.builtin.buffers({ include_current = false }, {
+      source = {
+        name = CONSTANTS.PROMPT,
+        choose = function(selection)
+          if selection then
+            api.nvim_win_close(0, false)
+            output(SlashCommand, {
+              bufnr = selection.bufnr,
+              name = selection.text,
+              path = selection.text,
+            })
+          end
+        end,
+      },
+    })
+  end,
+
   ---The fzf-lua provider
   ---@param SlashCommand CodeCompanion.SlashCommandBuffer
   ---@return nil
