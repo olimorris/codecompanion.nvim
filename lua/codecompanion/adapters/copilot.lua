@@ -121,6 +121,7 @@ return {
       return openai.handlers.inline_output(data, context)
     end,
     on_stdout = function(self, data)
+      log:debug("Copilot stdout: %s", data._stdout_results)
       return openai.handlers.on_stdout(self, data)
     end,
   },
