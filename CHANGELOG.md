@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v2.3.0...v2.3.1) (2024-09-09)
+
+
+### Bug Fixes
+
+* **anthropic:** respect breakpoints used ([acfbaed](https://github.com/olimorris/codecompanion.nvim/commit/acfbaed735a82a95ebbfb96b2d25b358295d0d02))
+
 ## [2.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v2.2.5...v2.3.0) (2024-09-08)
 
 
