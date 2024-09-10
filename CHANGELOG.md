@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v2.6.0...v2.6.1) (2024-09-10)
+
+
+### Bug Fixes
+
+* **chat:** folds ([d83d497](https://github.com/olimorris/codecompanion.nvim/commit/d83d497500f38c31b564a6b1b723c34f1a761ea1))
+
 ## [2.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v2.5.5...v2.6.0) (2024-09-10)
 
 
