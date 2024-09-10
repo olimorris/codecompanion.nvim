@@ -123,7 +123,7 @@ EOF
 <!-- panvimdoc-ignore-start -->
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/53f1b204-bda3-4286-81c4-ba7f353fc1d0" alt="Chat buffer">
+  <img src="https://github.com/user-attachments/assets/6ac075e2-f97e-473a-807c-ea3e9fd1e3e5" alt="Chat buffer">
 </p>
 
 <!-- panvimdoc-ignore-end -->
@@ -159,7 +159,7 @@ _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out a
 <!-- panvimdoc-ignore-start -->
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/1890a33a-bcda-4c6b-a1c4-849f2eaf97ef" alt="Inline Assistant">
+  <img src="https://github.com/user-attachments/assets/ee058f03-05c1-4fc3-b0b8-31fc46928ba7" alt="Inline Assistant">
 </p>
 
 <!-- panvimdoc-ignore-end -->
