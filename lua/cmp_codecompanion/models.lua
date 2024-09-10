@@ -1,13 +1,16 @@
-local config = require("codecompanion").config
-
 local source = {}
 
-function source.new()
-  return setmetatable({}, { __index = source })
+---@param chat CodeCompanion.Chat
+---@param config table
+function source.new(chat, config)
+  return setmetatable({
+    chat = chat,
+    config = config,
+  }, { __index = source })
 end
 
 function source:is_available()
-  return vim.bo.filetype == "codecompanion" and config.display.chat.show_settings
+  return vim.bo.filetype == "codecompanion" and self.config.display.chat.show_settings
 end
 
 source.get_position_encoding_kind = function()
@@ -19,12 +22,7 @@ function source:get_keyword_pattern()
 end
 
 function source:complete(request, callback)
-  local chat = require("codecompanion").buf_get_chat(0)
-  if chat then
-    chat:complete(request, callback)
-  else
-    callback({ items = {}, isIncomplete = false })
-  end
+  self.chat:complete(request, callback)
 end
 
 return source

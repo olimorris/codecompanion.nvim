@@ -474,16 +474,15 @@ function Chat:set_autocmds()
   api.nvim_create_autocmd("InsertEnter", {
     group = self.aug,
     buffer = bufnr,
-    once = true,
     desc = "Setup the completion of helpers in the chat buffer",
     callback = function()
       local has_cmp, cmp = pcall(require, "cmp")
       if has_cmp then
         if not registered_cmp then
           registered_cmp = true
-          cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new())
+          cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new(self, config))
           cmp.register_source("codecompanion_helpers", require("cmp_codecompanion.helpers").new())
-          cmp.register_source("codecompanion_slash_commands", require("cmp_codecompanion.slash_commands").new())
+          cmp.register_source("codecompanion_slash_commands", require("cmp_codecompanion.slash_commands").new(self))
         end
         cmp.setup.buffer({
           enabled = true,

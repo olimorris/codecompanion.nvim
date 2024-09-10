@@ -1,4 +1,3 @@
-local config = require("codecompanion").config
 local tools = require("codecompanion.strategies.chat.tools").new().tools
 local variables = require("codecompanion.strategies.chat.variables").new().vars
 

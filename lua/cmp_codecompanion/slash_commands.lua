@@ -3,8 +3,11 @@ local SlashCommands = require("codecompanion.strategies.chat.slash_commands")
 
 local source = {}
 
-function source.new()
-  return setmetatable({}, { __index = source })
+---@param chat CodeCompanion.Chat
+function source.new(chat)
+  return setmetatable({
+    chat = chat,
+  }, { __index = source })
 end
 
 function source:is_available()
@@ -23,15 +26,13 @@ function source:complete(params, callback)
   local items = {}
   local kind = require("cmp").lsp.CompletionItemKind.Function
 
-  local chat = require("codecompanion").buf_get_chat(params.context.bufnr)
-
   for name, data in pairs(config.strategies.chat.slash_commands) do
     if name ~= "opts" then
       table.insert(items, {
         label = "/" .. name,
         kind = kind,
         detail = data.description,
-        Chat = chat,
+        Chat = self.chat,
         config = data,
         context = {
           bufnr = params.context.bufnr,
