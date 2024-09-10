@@ -64,14 +64,14 @@ return {
           callback = "helpers.slash_commands.now",
           description = "Insert the current date and time",
           opts = {
-            contains = false,
+            contains_code = false,
           },
         },
         ["symbols"] = {
           callback = "helpers.slash_commands.symbols",
           description = "Insert symbols for the active buffer",
           opts = {
-            contains = true,
+            contains_code = true,
           },
         },
       },
