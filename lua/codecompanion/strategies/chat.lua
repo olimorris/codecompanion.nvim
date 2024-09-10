@@ -11,7 +11,6 @@ local util = require("codecompanion.utils.util")
 local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
-local set_option = api.nvim_set_option_value or api.nvim_buf_set_option
 
 local CONSTANTS = {
   NS_HEADER = "CodeCompanion-headers",
@@ -288,7 +287,7 @@ function Chat.new(args)
   self:apply_settings(self.opts.settings)
 
   self.close_last_chat()
-  self:open():render():set_system_message():set_extmarks():set_autocmds()
+  self:open():render():set_system_prompt():set_extmarks():set_autocmds()
 
   if self.opts.auto_submit then
     self:submit()
@@ -450,7 +449,6 @@ function Chat:render()
   -- If the user has visually selected some text, add that to the chat buffer
   if self.context and self.context.is_visual and not self.opts.stop_context_insertion then
     log:trace("Adding visual selection to chat buffer")
-    spacer()
     table.insert(lines, "```" .. self.context.filetype)
     for _, line in ipairs(self.context.lines) do
       table.insert(lines, line)
@@ -629,11 +627,16 @@ end
 
 ---Set the system prompt in the chat buffer
 ---@return CodeCompanion.Chat
-function Chat:set_system_message()
-  if config.opts.system_prompt then
+function Chat:set_system_prompt()
+  local prompt = config.opts.system_prompt
+  if prompt then
+    if type(prompt) == "function" then
+      prompt = prompt(self.adapter)
+    end
+
     local system_prompt = {
       role = CONSTANTS.SYSTEM_ROLE,
-      content = config.opts.system_prompt,
+      content = prompt,
     }
     system_prompt.id = make_id(system_prompt)
     system_prompt.opts = { visible = false }
@@ -1070,7 +1073,7 @@ function Chat:conceal(heading)
       local start_row, _, end_row, _ = node[1]:range()
 
       if start_row < end_row then
-        set_option(self.bufnr, "foldmethod", "manual")
+        util.set_option(self.bufnr, "foldmethod", "manual")
         api.nvim_buf_call(self.bufnr, function()
           vim.fn.setpos(".", { self.bufnr, start_row + 1, 0, 0 })
           vim.cmd("normal! zf" .. end_row .. "G")
@@ -1126,7 +1129,7 @@ function Chat:fold_code()
     captures[v] = k
   end
 
-  set_option(self.bufnr, "foldmethod", "manual")
+  util.set_option(self.bufnr, "foldmethod", "manual")
 
   local role
   for _, match in query:iter_matches(root, self.bufnr) do
@@ -1197,7 +1200,7 @@ function Chat:clear()
   clear_ns(namespaces)
 
   log:trace("Clearing chat buffer")
-  self:render():set_system_message():set_extmarks()
+  self:render():set_system_prompt():set_extmarks()
 end
 
 ---Display the chat buffer's settings and messages
