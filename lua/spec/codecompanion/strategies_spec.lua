@@ -76,3 +76,49 @@ describe("Strategies", function()
     assert.equals("custom_model", call_args.adapter.schema.model.default)
   end)
 end)
+
+describe("Chat Strategy", function()
+  it("messages should be populated when selected with a pre-defined prompt", function()
+    local item = {
+      name = "Explain",
+      description = "(/explain) Explain how code in a buffer works",
+      strategy = "chat",
+      opts = {
+        auto_submit = true,
+        default_prompt = true,
+        stop_context_insertion = true,
+        user_prompt = false,
+      },
+      prompts = {
+        {
+          role = "system",
+          content = "My system prompt",
+          opts = {
+            visible = false,
+          },
+        },
+        {
+          role = "user",
+          content = "My user prompt",
+          opts = {
+            contains_code = true,
+          },
+        },
+      },
+    }
+    local Strategy = require("codecompanion.strategies")
+      .new({
+        context = { bufnr = 1, filetype = "lua", mode = "n" },
+        selected = item,
+      })
+      :start(item.strategy)
+
+    local messages = Strategy:get_messages()
+
+    assert.equals("system", messages[#messages - 1].role)
+    assert.equals("My system prompt", messages[#messages - 1].content)
+
+    assert.equals("user", messages[#messages].role)
+    assert.equals("My user prompt", messages[#messages].content)
+  end)
+end)
