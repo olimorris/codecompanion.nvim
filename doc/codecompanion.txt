@@ -219,6 +219,34 @@ The plugin allows you to specify adapters for each strategy and also for each
 |codecompanion-pre-defined-prompt|.
 
 
+COMMON CHANGES TO THE DEFAULTS ~
+
+**Changing the System Prompt**
+
+The default system prompt has been carefully curated to deliver responses which
+are similar to GitHub Copilot Chat. That is, terse, professional and with
+expertise in development. However, if you’d like to change the default system
+prompt, you can change the `opts.system_prompt` key in the config. You can also
+set it as a function which can receive the current chat buffer’s adapter as a
+parameter, giving you the option of setting system prompts that are model
+specific:
+
+>lua
+    require("codecompanion").setup({
+      opts = {
+        ---@param adapter CodeCompanion.Adapter
+        ---@return string
+        system_prompt = function(adapter)
+          if adapter.schema.model.default == "llama3.1:latest " then
+            return "My custom system prompt"
+          end
+          return "My default system prompt"
+        end
+      }
+    })
+<
+
+
 ADAPTERS ~
 
 Please refer to your chosen adapter

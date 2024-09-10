@@ -312,6 +312,14 @@ M.change_adapter = {
         chat:apply_settings()
       end
 
+      -- Update the system prompt
+      local system_prompt = config.opts.system_prompt
+      if type(system_prompt) == "function" then
+        if chat.messages[1].role == "system" then
+          chat.messages[1].content = system_prompt(chat.adapter)
+        end
+      end
+
       -- Select a model
       local models = chat.adapter.schema.model.choices
       if type(models) == "function" then

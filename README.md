@@ -924,6 +924,27 @@ When given a task:
 
 <!-- panvimdoc-ignore-end -->
 
+### :building_construction: Common Changes to the Defaults
+
+**Changing the System Prompt**
+
+The default system prompt has been carefully curated to deliver responses which are similar to GitHub Copilot Chat. That is, terse, professional and with expertise in coding. However, if you'd like to change the default system prompt, you can change the `opts.system_prompt` table in the config. You can also set it as a function which can receive the current chat buffer's adapter as a parameter, giving you the option of setting system prompts that are model specific:
+
+```lua
+require("codecompanion").setup({
+  opts = {
+    ---@param adapter CodeCompanion.Adapter
+    ---@return string
+    system_prompt = function(adapter)
+      if adapter.schema.model.default == "llama3.1:latest " then
+        return "My custom system prompt"
+      end
+      return "My default system prompt"
+    end
+  }
+})
+```
+
 ### :electric_plug: Adapters
 
 Please refer to your [chosen adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters) to understand its configuration. You will need to set an API key for non-locally hosted LLMs.
