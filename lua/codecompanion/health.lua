@@ -82,6 +82,7 @@ function M.check()
   end
 
   local log = require("codecompanion.utils.log")
+  info(fmt("Neovim version: %s.%s.%s", vim.version().major, vim.version().minor, vim.version().patch))
   info(fmt("Log file: %s", log.get_logfile()))
 
   start("Plugins:")
