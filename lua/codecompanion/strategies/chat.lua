@@ -1129,7 +1129,7 @@ function Chat:fold_code()
     captures[v] = k
   end
 
-  util.set_option(self.bufnr, "foldmethod", "manual")
+  vim.o.foldmethod = "manual"
 
   local role
   for _, match in query:iter_matches(root, self.bufnr) do
