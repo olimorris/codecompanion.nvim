@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.2](https://github.com/olimorris/codecompanion.nvim/compare/v2.5.1...v2.5.2) (2024-09-10)
+
+
+### Bug Fixes
+
+* **copilot:** [#189](https://github.com/olimorris/codecompanion.nvim/issues/189) "bad request: unknown integration" ([372607d](https://github.com/olimorris/codecompanion.nvim/commit/372607d1109cc93c4d499330ed3ae98f93202c48))
+
 ## [2.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v2.5.0...v2.5.1) (2024-09-10)
 
 
