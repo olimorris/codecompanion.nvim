@@ -160,7 +160,12 @@ function SlashCommandSymbols:execute()
     local content = table.concat(symbols, "\n")
     Chat:append_to_buf({ content = "[!Symbols]\n" })
     Chat:append_to_buf({
-      content = string.format("```txt\nSymbols for file: %s\n%s\n```", Chat.context.filename, content),
+      content = string.format(
+        "```txt\nFilename: %s\nFiletype: %s\n<symbols>\n%s\n</symbols>\n```\n",
+        Chat.context.filename,
+        Chat.context.filetype,
+        content
+      ),
     })
     Chat:fold_code()
   end
