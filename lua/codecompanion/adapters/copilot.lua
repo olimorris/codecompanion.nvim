@@ -2,11 +2,12 @@ local curl = require("plenary.curl")
 
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
+local util = require("codecompanion.utils.util")
 
 ---@type string|nil
 local _oauth_token
 
----@type string|nil
+---@type table|nil
 local _github_token
 
 ---Get the Copilot OAuth token from local storage
@@ -26,7 +27,7 @@ local function get_oauth_token()
     config_dir = (xdg_config and vim.fn.isdirectory(xdg_config) > 0) and xdg_config or vim.fn.expand("~/.config")
   end
 
-  log:debug("Copilot config dir: %s", config_dir)
+  log:debug("Fetching Copilot Oauth token from: %s", config_dir)
 
   local token_files = {
     "/github-copilot/hosts.json",
@@ -68,11 +69,14 @@ local function get_oauth_token()
 end
 
 ---Authorize the GitHub OAuth token
----@return string|nil
+---@return table|nil
 local function authorize_token()
-  if _github_token then
+  if _github_token and _github_token.expires_at > os.time() then
+    log:debug("Reusing GitHub Copilot token")
     return _github_token
   end
+
+  log:debug("Authorizing GitHub Copilot token")
 
   local request = curl.get("https://api.github.com/copilot_internal/v2/token", {
     headers = {
@@ -84,7 +88,7 @@ local function authorize_token()
     end,
   })
 
-  _github_token = vim.fn.json_decode(request.body).token
+  _github_token = vim.fn.json_decode(request.body)
   return _github_token
 end
 
@@ -104,7 +108,7 @@ return {
   env = {
     ---@return string|nil
     api_key = function()
-      return _github_token
+      return authorize_token().token
     end,
   },
   raw = {
@@ -132,7 +136,7 @@ return {
       end
 
       _github_token = authorize_token()
-      if not _github_token then
+      if not _github_token or util.count(_github_token) == 0 then
         log:error("Could not authorize your GitHub Copilot token.")
         return false
       end
