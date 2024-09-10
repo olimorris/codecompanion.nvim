@@ -69,18 +69,16 @@ local Providers = {
     if not ok then
       return log:error("mini.pick is not installed")
     end
-    local selected = mini_pick.builtin.files({}, {
+    mini_pick.builtin.files({}, {
       source = {
         name = CONSTANTS.PROMPT,
         choose = function(path)
-          vim.api.nvim_win_close(0, false)
-          output(SlashCommand, { path = path, relative_path = vim.fn.fnamemodify(path, ":~:.") })
+          local _, _ = pcall(function()
+            output(SlashCommand, { path = path })
+          end)
         end,
       },
     })
-    if not selected then
-      return
-    end
   end,
 
   ---The fzf-lua provider
