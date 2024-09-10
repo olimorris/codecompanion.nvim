@@ -6,6 +6,7 @@ local ui = require("codecompanion.utils.ui")
 local utils = require("codecompanion.utils.util")
 
 local api = vim.api
+local set_option = api.nvim_set_option_value or api.nvim_buf_set_option
 
 local M = {}
 
@@ -32,7 +33,7 @@ local function open_float(lines, opts)
   local height = window.height > 1 and window.height or opts.height or 17
 
   local bufnr = api.nvim_create_buf(false, true)
-  api.nvim_buf_set_option(bufnr, "filetype", opts.filetype or "codecompanion")
+  set_option(bufnr, "filetype", opts.filetype or "codecompanion")
   local winnr = api.nvim_open_win(bufnr, true, {
     relative = opts.relative or "cursor",
     border = "single",

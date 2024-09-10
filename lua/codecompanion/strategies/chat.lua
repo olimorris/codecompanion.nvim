@@ -11,6 +11,7 @@ local util = require("codecompanion.utils.util")
 local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
+local set_option = api.nvim_set_option_value or api.nvim_buf_set_option
 
 local CONSTANTS = {
   NS_HEADER = "CodeCompanion-headers",
@@ -230,15 +231,15 @@ local registered_cmp = false
 local Chat = {}
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
----@field context? table Context of the buffer that the chat was initiated from
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
----@field settings? table The settings that are used in the adapter of the chat buffer
----@field messages? table The messages to display in the chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
+---@field context? table Context of the buffer that the chat was initiated from
+---@field last_role? string The role of the last response in the chat buffer
+---@field messages? table The messages to display in the chat buffer
+---@field settings? table The settings that are used in the adapter of the chat buffer
+---@field status? string The status of any running jobs in the chat buffe
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
 ---@field tokens? table Total tokens spent in the chat buffer so far
----@field status? string The status of any running jobs in the chat buffe
----@field last_role? string The role of the last response in the chat buffer
 
 ---@param args CodeCompanion.ChatArgs
 function Chat.new(args)
@@ -1069,7 +1070,7 @@ function Chat:conceal(heading)
       local start_row, _, end_row, _ = node[1]:range()
 
       if start_row < end_row then
-        api.nvim_buf_set_option(self.bufnr, "foldmethod", "manual")
+        set_option(self.bufnr, "foldmethod", "manual")
         api.nvim_buf_call(self.bufnr, function()
           vim.fn.setpos(".", { self.bufnr, start_row + 1, 0, 0 })
           vim.cmd("normal! zf" .. end_row .. "G")
@@ -1125,7 +1126,7 @@ function Chat:fold_code()
     captures[v] = k
   end
 
-  api.nvim_buf_set_option(self.bufnr, "foldmethod", "manual")
+  set_option(self.bufnr, "foldmethod", "manual")
 
   local role
   for _, match in query:iter_matches(root, self.bufnr) do
