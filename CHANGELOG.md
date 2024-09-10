@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.3](https://github.com/olimorris/codecompanion.nvim/compare/v2.5.2...v2.5.3) (2024-09-10)
+
+
+### Bug Fixes
+
+* **copilot:** refreshes token if it expires ([082986d](https://github.com/olimorris/codecompanion.nvim/commit/082986d53e5acbbb6c9c51d3d98e3448af65189f))
+
 ## [2.5.2](https://github.com/olimorris/codecompanion.nvim/compare/v2.5.1...v2.5.2) (2024-09-10)
 
 
