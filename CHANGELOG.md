@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v2.5.0...v2.5.1) (2024-09-10)
+
+
+### Bug Fixes
+
+* properly closing Mini.pick after choosing file/buffer ([#188](https://github.com/olimorris/codecompanion.nvim/issues/188)) ([6ae1de8](https://github.com/olimorris/codecompanion.nvim/commit/6ae1de8e71bd71d9ad96cf9c9ff9dfd78a5aaa1f))
+
 ## [2.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v2.4.1...v2.5.0) (2024-09-09)
 
 
