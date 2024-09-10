@@ -150,6 +150,10 @@ body:
       attributes:
         label: Log output
         description: Please paste the relevant output from the log located in `.repro/state/nvim/codecompanion/codecompanion.log`. **Please ensure you don't send over any credentials or API keys**
+        placeholder: |
+          ```txt
+          -- Paste log here
+          ```
       validations:
         required: true
 
@@ -158,6 +162,10 @@ body:
       attributes:
         label: Health check output
         description: Please paste the output from `:checkhealth codecompanion`
+        placeholder: |
+          ```txt
+          -- Paste health check here
+          ```
       validations:
         required: false
 
