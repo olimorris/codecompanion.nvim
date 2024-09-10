@@ -1,14 +1,19 @@
+local curl = require("plenary.curl")
+
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 
 ---@type string|nil
+local _oauth_token
+
+---@type string|nil
 local _github_token
 
----Get the GitHub Copilot token
+---Get the Copilot OAuth token from local storage
 ---@return string|nil
-local function get_token()
-  if _github_token then
-    return _github_token
+local function get_oauth_token()
+  if _oauth_token then
+    return _oauth_token
   end
 
   local config_dir
@@ -62,6 +67,27 @@ local function get_token()
   return nil
 end
 
+---Authorize the GitHub OAuth token
+---@return string|nil
+local function authorize_token()
+  if _github_token then
+    return _github_token
+  end
+
+  local request = curl.get("https://api.github.com/copilot_internal/v2/token", {
+    headers = {
+      Authorization = "Bearer " .. _oauth_token,
+      ["Accept"] = "application/json",
+    },
+    on_error = function(err)
+      log:error("GitHub Copilot token request error: %s", err)
+    end,
+  })
+
+  _github_token = vim.fn.json_decode(request.body).token
+  return _github_token
+end
+
 ---@class CodeCompanion.AdapterArgs
 return {
   name = "copilot",
@@ -99,11 +125,18 @@ return {
     ---@param self CodeCompanion.AdapterArgs
     ---@return boolean
     setup = function(self)
-      _github_token = get_token()
-      if not _github_token then
+      _oauth_token = get_oauth_token()
+      if not _oauth_token then
         log:error("No GitHub Copilot token found. Please refer to https://github.com/github/copilot.vim")
         return false
       end
+
+      _github_token = authorize_token()
+      if not _github_token then
+        log:error("Could not authorize your GitHub Copilot token.")
+        return false
+      end
+
       return true
     end,
 
