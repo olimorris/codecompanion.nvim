@@ -41,7 +41,7 @@ end
 ---@param prompt table The prompt to resolve from the command
 ---@param args table The arguments that were passed to the command
 ---@return CodeCompanion.Strategies
-M.run_slash_cmds = function(prompt, args)
+M.run_inline_slash_cmds = function(prompt, args)
   log:trace("Running slash_cmd")
   local context = context_utils.get(api.nvim_get_current_buf(), args)
   local item = M.slash_cmds[prompt]

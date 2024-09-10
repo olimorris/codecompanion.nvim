@@ -445,7 +445,7 @@ Use Markdown formatting and include the programming language name at the start o
           content = function(context)
             local buf_utils = require("codecompanion.utils.buffers")
 
-            return " \n\n```" .. context.filetype .. "\n" .. buf_utils.get_content(context.bufnr) .. "\n```\n\n"
+            return "```" .. context.filetype .. "\n" .. buf_utils.get_content(context.bufnr) .. "\n```\n\n"
           end,
           opts = {
             contains_code = true,

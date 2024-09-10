@@ -48,7 +48,7 @@ return {
             if user_prompt then
               opts.user_prompt = user_prompt
             end
-            return codecompanion.run_slash_cmds(slash_cmd, opts)
+            return codecompanion.run_inline_slash_cmds(slash_cmd, opts)
           end
         end
 
