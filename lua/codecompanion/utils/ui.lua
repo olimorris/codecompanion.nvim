@@ -1,7 +1,7 @@
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils.util")
 
 local api = vim.api
+local set_option = api.nvim_set_option_value or api.nvim_buf_set_option
 
 local M = {}
 
@@ -207,7 +207,7 @@ end
 ---@return nil
 function M.set_buf_options(bufnr, opts)
   for k, v in pairs(opts) do
-    util.set_option(bufnr, k, v)
+    set_option(bufnr, k, v)
   end
 end
 
