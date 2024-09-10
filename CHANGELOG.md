@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.5](https://github.com/olimorris/codecompanion.nvim/compare/v2.5.4...v2.5.5) (2024-09-10)
+
+
+### Bug Fixes
+
+* [#194](https://github.com/olimorris/codecompanion.nvim/issues/194) actually fix it this time ([bf6c1db](https://github.com/olimorris/codecompanion.nvim/commit/bf6c1db575f5f88016f0c3ce48952965b1b68800))
+
 ## [2.5.4](https://github.com/olimorris/codecompanion.nvim/compare/v2.5.3...v2.5.4) (2024-09-10)
 
 
