@@ -9,7 +9,6 @@ local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils.util")
 
 local api = vim.api
-local set_option = api.nvim_set_option_value or api.nvim_buf_set_option
 
 local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.inline",
@@ -462,7 +461,7 @@ function Inline:place(placement)
     pos.bufnr = self.context.bufnr
   elseif placement == "new" then
     local bufnr = api.nvim_create_buf(true, false)
-    set_option(bufnr, "filetype", self.context.filetype)
+    util.set_option(bufnr, "filetype", self.context.filetype)
 
     -- TODO: This is duplicated from the chat strategy
     if config.display.inline.layout == "vertical" then

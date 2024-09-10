@@ -1,12 +1,10 @@
 local config = require("codecompanion").config
 
-local log = require("codecompanion.utils.log")
 local ts = require("codecompanion.utils.treesitter")
 local ui = require("codecompanion.utils.ui")
-local utils = require("codecompanion.utils.util")
+local util = require("codecompanion.utils.util")
 
 local api = vim.api
-local set_option = api.nvim_set_option_value or api.nvim_buf_set_option
 
 local M = {}
 
@@ -33,7 +31,7 @@ local function open_float(lines, opts)
   local height = window.height > 1 and window.height or opts.height or 17
 
   local bufnr = api.nvim_create_buf(false, true)
-  set_option(bufnr, "filetype", opts.filetype or "codecompanion")
+  util.set_option(bufnr, "filetype", opts.filetype or "codecompanion")
   local winnr = api.nvim_open_win(bufnr, true, {
     relative = opts.relative or "cursor",
     border = "single",
@@ -227,7 +225,7 @@ M.next_chat = {
       return
     end
 
-    local index = utils.find_key(chats, "bufnr", chat.bufnr)
+    local index = util.find_key(chats, "bufnr", chat.bufnr)
     local next = index + 1
     if next > #chats then
       next = 1
@@ -246,7 +244,7 @@ M.previous_chat = {
       return
     end
 
-    local index = utils.find_key(chats, "bufnr", chat.bufnr)
+    local index = util.find_key(chats, "bufnr", chat.bufnr)
     local previous = index - 1
     if previous < 1 then
       previous = #chats
@@ -310,7 +308,7 @@ M.change_adapter = {
 
       if current_adapter ~= selected then
         chat.adapter = require("codecompanion.adapters").resolve(adapters[selected])
-        utils.fire("ChatAdapter", { bufnr = chat.bufnr, adapter = chat.adapter })
+        util.fire("ChatAdapter", { bufnr = chat.bufnr, adapter = chat.adapter })
         chat:apply_settings()
       end
 
