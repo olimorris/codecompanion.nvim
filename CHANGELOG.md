@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v2.5.5...v2.6.0) (2024-09-10)
+
+
+### Features
+
+* :sparkles: customisable system prompts ([96e5405](https://github.com/olimorris/codecompanion.nvim/commit/96e54058cfee38f2618c5adc116b8edaad70b04c))
+
 ## [2.5.5](https://github.com/olimorris/codecompanion.nvim/compare/v2.5.4...v2.5.5) (2024-09-10)
 
 
