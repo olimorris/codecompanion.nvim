@@ -101,13 +101,16 @@ local Providers = {
       source = {
         name = CONSTANTS.PROMPT,
         choose = function(selection)
-          local _, _ = pcall(function()
+          local success, _ = pcall(function()
             output(SlashCommand, {
               bufnr = selection.bufnr,
               name = selection.text,
               path = selection.text,
             })
           end)
+          if success then
+            return nil
+          end
         end,
       },
     })
