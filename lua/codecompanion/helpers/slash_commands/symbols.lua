@@ -117,6 +117,13 @@ function SlashCommandSymbols:execute()
     )
   end
 
+  local kinds = {
+    "Module",
+    "Class",
+    "Method",
+    "Function",
+  }
+
   local symbols = {}
   for _, matches, metadata in query:iter_matches(tree:root(), bufnr) do
     local match = vim.tbl_extend("force", {}, metadata)
@@ -139,18 +146,10 @@ function SlashCommandSymbols:execute()
     local kind = match.kind
 
     if kind then
-      -- I know this seems repetitive but it ensures we get the order correct in the output
-      if kind == "Module" then
-        get_ts_node(symbols, "module", name_match)
-      end
-      if kind == "Class" then
-        get_ts_node(symbols, "class", name_match)
-      end
-      if kind == "Method" then
-        get_ts_node(symbols, "method", name_match)
-      end
-      if kind == "Function" then
-        get_ts_node(symbols, "function", name_match)
+      for _, k in ipairs(kinds) do
+        if kind == k then
+          get_ts_node(symbols, k:lower(), name_match)
+        end
       end
     end
 
