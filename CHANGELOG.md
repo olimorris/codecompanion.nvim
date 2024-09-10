@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.5.4](https://github.com/olimorris/codecompanion.nvim/compare/v2.5.3...v2.5.4) (2024-09-10)
+
+
+### Bug Fixes
+
+* [#194](https://github.com/olimorris/codecompanion.nvim/issues/194) update for deprecations ([d0fe55f](https://github.com/olimorris/codecompanion.nvim/commit/d0fe55fcb532fa5ae104b4b0413e497199d6d98f))
+* **config:** `contains_code` in slash commands ([cd5afb9](https://github.com/olimorris/codecompanion.nvim/commit/cd5afb956a7b2c5e535ab01131d6527f222d90b9))
+
 ## [2.5.3](https://github.com/olimorris/codecompanion.nvim/compare/v2.5.2...v2.5.3) (2024-09-10)
 
 
