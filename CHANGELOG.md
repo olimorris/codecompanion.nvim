@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.6](https://github.com/olimorris/codecompanion.nvim/compare/v2.6.5...v2.6.6) (2024-09-11)
+
+
+### Bug Fixes
+
+* **chat:** [#190](https://github.com/olimorris/codecompanion.nvim/issues/190) folding slash commands in nightly ([8276e79](https://github.com/olimorris/codecompanion.nvim/commit/8276e797fe56c7a92bb599db051bb2f85f6cd17d))
+
 ## [2.6.5](https://github.com/olimorris/codecompanion.nvim/compare/v2.6.4...v2.6.5) (2024-09-11)
 
 
