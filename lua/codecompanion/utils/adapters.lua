@@ -10,7 +10,7 @@ function M.extend(base_tbl, new_tbl)
       if type(adapter) == "table" then
         base_tbl[name] = adapter
         if adapter.schema then
-          base_tbl[name].schema = vim.tbl_deep_extend("force", base_tbl.adapters[name].schema, adapter.schema)
+          base_tbl[name].schema = vim.tbl_deep_extend("force", base_tbl[name].schema, adapter.schema)
         end
       end
     end
