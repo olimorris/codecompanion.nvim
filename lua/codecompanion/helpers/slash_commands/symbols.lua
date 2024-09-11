@@ -2,7 +2,9 @@ local config = require("codecompanion").config
 
 local log = require("codecompanion.utils.log")
 
----Queries can probably be solely taken from the amazing Aerial.nvim plugin:
+---The Tree-sitter queries below are used to extract symbols from the buffer
+---where the chat was initiated from. If you'd like to add more support
+---for filetypes, leverage the queries from Aerial.nvim by Stevearc:
 ---https://github.com/stevearc/aerial.nvim/blob/master/queries/python/aerial.scm
 local Queries = {
   lua = [[
@@ -117,13 +119,6 @@ function SlashCommandSymbols:execute()
     )
   end
 
-  local kinds = {
-    "Module",
-    "Class",
-    "Method",
-    "Function",
-  }
-
   local symbols = {}
   for _, matches, metadata in query:iter_matches(tree:root(), bufnr) do
     local match = vim.tbl_extend("force", {}, metadata)
@@ -145,6 +140,13 @@ function SlashCommandSymbols:execute()
     local name_match = match.name or {}
     local kind = match.kind
 
+    local kinds = {
+      "Module",
+      "Class",
+      "Method",
+      "Function",
+    }
+
     if kind then
       for _, k in ipairs(kinds) do
         if kind == k then
@@ -156,19 +158,22 @@ function SlashCommandSymbols:execute()
     ::continue::
   end
 
-  if #symbols ~= 0 then
-    local content = table.concat(symbols, "\n")
-    Chat:append_to_buf({ content = "[!Symbols]\n" })
-    Chat:append_to_buf({
-      content = string.format(
-        "```txt\nFilename: %s\nFiletype: %s\n<symbols>\n%s\n</symbols>\n```\n",
-        Chat.context.filename,
-        Chat.context.filetype,
-        content
-      ),
-    })
-    Chat:fold_code()
+  if #symbols == 0 then
+    log:info("No symbols found in the buffer")
+    return vim.notify("No symbols found in the buffer", "info", { title = "CodeCompanion" })
   end
+
+  local content = table.concat(symbols, "\n")
+  Chat:append_to_buf({ content = "[!Symbols]\n" })
+  Chat:append_to_buf({
+    content = string.format(
+      "```txt\nFilename: %s\nFiletype: %s\n<symbols>\n%s\n</symbols>\n```\n",
+      Chat.context.filename,
+      Chat.context.filetype,
+      content
+    ),
+  })
+  Chat:fold_code()
 end
 
 return SlashCommandSymbols
