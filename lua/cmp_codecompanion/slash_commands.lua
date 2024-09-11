@@ -55,7 +55,7 @@ end
 function source:execute(item, callback)
   vim.api.nvim_set_current_line("")
   if callback then
-	  callback()
+    callback()
   end
   return SlashCommands:execute(item)
 end
