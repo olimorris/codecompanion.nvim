@@ -57,6 +57,7 @@ function source:execute(item, callback)
   SlashCommands:execute(item)
 
   callback(item)
+  vim.bo[item.context.bufnr].buflisted = false
 end
 
 return source
