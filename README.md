@@ -116,7 +116,7 @@ EOF
 ## :rocket: Quickstart
 
 > [!NOTE]
-> Okay, okay...it's not quite a quickstart as you'll need to configure an [adapter](#gear-configuration) first.
+> Okay, okay...it's not quite a quickstart as you'll need to configure an [adapter](#electric_plug-adapters) first.
 
 **Chat Buffer**
 
@@ -238,12 +238,13 @@ The plugin also utilises objects called Strategies. These are the different ways
 
 The plugin allows you to specify adapters for each strategy and also for each [pre-defined prompt](#clipboard-pre-defined-prompts).
 
-<!-- panvimdoc-ignore-start -->
 
 ### :hammer_and_wrench: Defaults
 
 > [!NOTE]
 > You only need to the call the `setup` function if you wish to change any of the config defaults.
+
+<!-- panvimdoc-ignore-start -->
 
 <details>
   <summary>Click to see the default configuration</summary>
@@ -924,8 +925,6 @@ When given a task:
 
 <!-- panvimdoc-ignore-end -->
 
-### :building_construction: Common Changes to the Defaults
-
 **Changing the System Prompt**
 
 The default system prompt has been carefully curated to deliver responses which are similar to GitHub Copilot Chat. That is, terse, professional and with expertise in coding. However, if you'd like to change the default system prompt, you can change the `opts.system_prompt` table in the config. You can also set it as a function which can receive the current chat buffer's adapter as a parameter, giving you the option of setting system prompts that are model specific:
@@ -992,7 +991,7 @@ In the example above, we're using the base of the Anthropic adapter but changing
 
 **Setting an API Key Using a Command**
 
-Having API keys in plain text in your shell is not always safe. Thanks to [this PR](https://github.com/olimorris/codecompanion.nvim/pull/24), you can run commands from within your config.  In the example below, we're using the 1Password CLI to read an OpenAI credential.
+Having API keys in plain text in your shell is not always safe. Thanks to [this PR](https://github.com/olimorris/codecompanion.nvim/pull/24), you can run commands from within your config by prefixing them with `cmd:`. In the example below, we're using the 1Password CLI to read an OpenAI credential.
 
 ```lua
 require("codecompanion").setup({
@@ -1010,7 +1009,7 @@ require("codecompanion").setup({
 
 **Using Ollama Remotely**
 
-To use Ollama remotely, simply change the URL in the `env` table and set an API key:
+To use Ollama remotely, change the URL in the `env` table, set an API key and pass it via an "Authorization" header:
 
 ```lua
 require("codecompanion").setup({
@@ -1036,6 +1035,8 @@ require("codecompanion").setup({
 
 **Connecting via a Proxy**
 
+You can also connect via a Proxy:
+
 ```lua
 require("codecompanion").setup({
   adapters = {
@@ -1048,6 +1049,8 @@ require("codecompanion").setup({
 ```
 
 **Changing an Adapter's Default Model**
+
+A common ask is to change an adapter's default model. This can be done by altering the `schema.model.default` table:
 
 ```lua
 require("codecompanion").setup({
@@ -1074,7 +1077,7 @@ require("codecompanion").setup({
   adapters = {
     llama3 = function()
       return require("codecompanion.adapters").extend("ollama", {
-        name = "llama3", -- Ensure this adapter is differentiated from Ollama
+        name = "llama3", -- Give this adapter a different name to differentiate it from the default ollama adapter
         schema = {
           model = {
             default = "llama3:latest",
@@ -1108,7 +1111,7 @@ The look and feel of the chat buffer can be customised as per the `display.chat`
 
 When in the chat buffer, there are number of keymaps available to you:
 
-- `?` - Bring up the options menu
+- `?` - Bring up the menu that lists the keymaps and commands
 - `<CR>`|`<C-s>` - Send the buffer to the LLM
 - `<C-c>` - Close the buffer
 - `q` - Cancel the request from the LLM
@@ -1128,17 +1131,17 @@ You can display your selected adapter's schema at the top of the buffer, if `dis
 
 **Slash Commands**
 
-Slash Commands allow you to easily share additional context with your LLM from the chat buffer. Some of the Slash Commands allow to choose the underlying provider:
+As outlined in the [Quickstart](#rocket-quickstart) section, Slash Commands allow you to easily share additional context with your LLM from the chat buffer. Some of the Slash Commands allow to change the default provider:
 
-- `/buffer` - Has a `default` provider (which leverages `vim.ui.select`), `telescope` and `fzf_lua`
-- `/files` - Has `telescope`, `mini_pick` and `fzf_lua`
+- `/buffer` - Has a `default` provider (which leverages `vim.ui.select`) alongside `telescope` and `fzf_lua` providers
+- `/files` - Has `telescope`, `mini_pick` and `fzf_lua` providers
 
 Please refer to [the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) to see how to change the default provider.
 
 ### :pencil2: Inline Assistant
 
 > [!NOTE]
-> If `send_code = false` in the config then this will take precedent and no code will be sent to the LLM
+> If you've set `opts.send_code = false` in your config then the plugin will endeavour to ensure no code is sent to the LLM.
 
 One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed at the cursor's position in the current buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to _replace_ a visual selection. The plugin will use the inline LLM you've specified in your config to determine if the response should...
 
