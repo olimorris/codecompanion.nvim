@@ -120,7 +120,7 @@ function SlashCommandSymbols:execute()
   end
 
   local symbols = {}
-  for _, matches, metadata in query:iter_matches(tree:root(), bufnr) do
+  for _, matches, metadata in query:iter_matches(tree:root(), bufnr, 0, -1, { all = false }) do
     local match = vim.tbl_extend("force", {}, metadata)
     for id, node in pairs(matches) do
       match = vim.tbl_extend("keep", match, {

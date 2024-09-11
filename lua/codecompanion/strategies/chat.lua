@@ -1122,22 +1122,24 @@ function Chat:fold_code()
 
   local parser = vim.treesitter.get_parser(self.bufnr, "markdown")
   local tree = parser:parse()[1]
-  local root = tree:root()
-
-  local captures = {}
-  for k, v in pairs(query.captures) do
-    captures[v] = k
-  end
 
   vim.o.foldmethod = "manual"
 
   local role
-  for _, match in query:iter_matches(root, self.bufnr) do
-    if match[captures.role] then
-      role = vim.trim(vim.treesitter.get_node_text(match[captures.role], self.bufnr))
-      if role:match(user_role) and match[captures.code] then
-        local node = match[captures.code]
-        local start_row, _, end_row, _ = node:range()
+  for _, matches in query:iter_matches(tree:root(), self.bufnr, 0, -1, { all = false }) do
+    local match = {}
+    for id, node in pairs(matches) do
+      match = vim.tbl_extend("keep", match, {
+        [query.captures[id]] = {
+          node = node,
+        },
+      })
+    end
+
+    if match.role then
+      role = vim.trim(vim.treesitter.get_node_text(match.role.node, self.bufnr))
+      if role:match(user_role) and match.code then
+        local start_row, _, end_row, _ = match.code.node:range()
         if start_row < end_row then
           vim.cmd(string.format("%d,%dfold", start_row, end_row))
         end
