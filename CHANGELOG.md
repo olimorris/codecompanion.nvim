@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.4](https://github.com/olimorris/codecompanion.nvim/compare/v2.6.3...v2.6.4) (2024-09-11)
+
+
+### Bug Fixes
+
+* **chat:** syntax highlighting ([1ee1b86](https://github.com/olimorris/codecompanion.nvim/commit/1ee1b86d6f8da8e49c46a4935cabfc55f314cd6a))
+
 ## [2.6.3](https://github.com/olimorris/codecompanion.nvim/compare/v2.6.2...v2.6.3) (2024-09-11)
 
 
