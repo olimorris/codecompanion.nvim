@@ -275,7 +275,7 @@ M.setup = function(opts)
       for name, var in pairs(M.config.strategies.chat.variables) do
         vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '"')
         if var.opts and var.opts.has_params then
-          vim.cmd.syntax('match CodeCompanionChatVariable ":\\d\\+-\\?\\d\\+"')
+          vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. ':\\d\\+-\\?\\d\\+"')
         end
       end
       for name, _ in pairs(M.config.strategies.agent.tools) do
