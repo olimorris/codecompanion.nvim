@@ -3,11 +3,8 @@ local SlashCommands = require("codecompanion.strategies.chat.slash_commands")
 
 local source = {}
 
----@param chat CodeCompanion.Chat
-function source.new(chat)
-  return setmetatable({
-    chat = chat,
-  }, { __index = source })
+function source.new()
+  return setmetatable({}, { __index = source })
 end
 
 function source:is_available()
@@ -32,7 +29,6 @@ function source:complete(params, callback)
         label = "/" .. name,
         kind = kind,
         detail = data.description,
-        Chat = self.chat,
         config = data,
         context = {
           bufnr = params.context.bufnr,
@@ -54,6 +50,8 @@ end
 ---@return nil
 function source:execute(item, callback)
   vim.api.nvim_set_current_line("")
+
+  item.Chat = require("codecompanion").buf_get_chat(item.context.bufnr)
   SlashCommands:execute(item)
 
   callback(item)
