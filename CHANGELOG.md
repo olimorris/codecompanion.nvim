@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.2](https://github.com/olimorris/codecompanion.nvim/compare/v2.6.1...v2.6.2) (2024-09-11)
+
+
+### Bug Fixes
+
+* **adapters:** extend adapters ([#202](https://github.com/olimorris/codecompanion.nvim/issues/202)) ([e3cf855](https://github.com/olimorris/codecompanion.nvim/commit/e3cf8558337a1b83665aee2287490d1ba8b7134c))
+
 ## [2.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v2.6.0...v2.6.1) (2024-09-10)
 
 
