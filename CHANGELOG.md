@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.3](https://github.com/olimorris/codecompanion.nvim/compare/v2.6.2...v2.6.3) (2024-09-11)
+
+
+### Bug Fixes
+
+* [#197](https://github.com/olimorris/codecompanion.nvim/issues/197) autocomplete for slash-command ([#200](https://github.com/olimorris/codecompanion.nvim/issues/200)) ([491f5f2](https://github.com/olimorris/codecompanion.nvim/commit/491f5f2a47c8d555f6d31b1e6e5030172a336d58))
+
 ## [2.6.2](https://github.com/olimorris/codecompanion.nvim/compare/v2.6.1...v2.6.2) (2024-09-11)
 
 
