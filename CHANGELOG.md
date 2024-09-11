@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.6.5](https://github.com/olimorris/codecompanion.nvim/compare/v2.6.4...v2.6.5) (2024-09-11)
+
+
+### Bug Fixes
+
+* **cmp:** chat buffer is no longer listed ([1e1fd7b](https://github.com/olimorris/codecompanion.nvim/commit/1e1fd7b1559c02cffddb842b511b80be30cf6e3f))
+* **cmp:** slash commands works across all chat buffers ([5ce2af1](https://github.com/olimorris/codecompanion.nvim/commit/5ce2af1cd4a5da1bf91d6ead400f281845c2b986))
+
 ## [2.6.4](https://github.com/olimorris/codecompanion.nvim/compare/v2.6.3...v2.6.4) (2024-09-11)
 
 
