@@ -1,10 +1,8 @@
 local source = {}
 
----@param chat CodeCompanion.Chat
 ---@param config table
-function source.new(chat, config)
+function source.new(config)
   return setmetatable({
-    chat = chat,
     config = config,
   }, { __index = source })
 end

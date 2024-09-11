@@ -482,8 +482,8 @@ function Chat:set_autocmds()
         if not registered_cmp then
           registered_cmp = true
           cmp.register_source("codecompanion_slash_commands", require("cmp_codecompanion.slash_commands").new())
-          cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new(self, config))
           cmp.register_source("codecompanion_helpers", require("cmp_codecompanion.helpers").new())
+          cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new(config))
         end
         cmp.setup.buffer({
           enabled = true,
