@@ -556,67 +556,88 @@ function Inline:append_to_buf(content)
   self.classification.pos.col = col
 end
 
+if config.display.inline.diff.use_mini_diff then
+  local miniDiff = require("codecompanion.strategies.inline.miniDiff")
+  miniDiff.setup()
+end
+
 ---Apply diff coloring to any replaced text
 ---@return nil
 function Inline:start_diff()
   if config.display.inline.diff.enabled == false then
     return
   end
-
-  -- Taken from the awesome:
-  -- https://github.com/S1M0N38/dante.nvim
-
-  -- Get current window properties
-  local wrap = vim.wo.wrap
-  local linebreak = vim.wo.linebreak
-  local breakindent = vim.wo.breakindent
-  vim.cmd("set diffopt=" .. table.concat(config.display.inline.diff.opts, ","))
-
-  -- Close the chat buffer
-  local last_chat = require("codecompanion").last_chat()
-  if last_chat and last_chat:is_visible() and config.display.inline.diff.close_chat_at > vim.o.columns then
-    last_chat:hide()
-  end
-
-  -- Create the diff buffer
-  if config.display.inline.diff.layout == "vertical" then
-    vim.cmd("vsplit")
+  if config.display.inline.diff.use_mini_diff then
+    local miniDiff = require("codecompanion.strategies.inline.miniDiff")
+    miniDiff.start_diff(self.context.bufnr)
   else
-    vim.cmd("split")
+    -- Taken from the awesome:
+    -- https://github.com/S1M0N38/dante.nvim
+
+    -- Get current window properties
+    local wrap = vim.wo.wrap
+    local linebreak = vim.wo.linebreak
+    local breakindent = vim.wo.breakindent
+    vim.cmd("set diffopt=" .. table.concat(config.display.inline.diff.opts, ","))
+
+    -- Close the chat buffer
+    local last_chat = require("codecompanion").last_chat()
+    if last_chat and last_chat:is_visible() and config.display.inline.diff.close_chat_at > vim.o.columns then
+      last_chat:hide()
+    end
+
+    -- Create the diff buffer
+    if config.display.inline.diff.layout == "vertical" then
+      vim.cmd("vsplit")
+    else
+      vim.cmd("split")
+    end
+    self.diff.winnr = api.nvim_get_current_win()
+    self.diff.bufnr = api.nvim_create_buf(false, true)
+    api.nvim_win_set_buf(self.diff.winnr, self.diff.bufnr)
+    api.nvim_set_option_value("filetype", self.context.filetype, { buf = self.diff.bufnr })
+    api.nvim_set_option_value("wrap", wrap, { win = self.diff.winnr })
+    api.nvim_set_option_value("linebreak", linebreak, { win = self.diff.winnr })
+    api.nvim_set_option_value("breakindent", breakindent, { win = self.diff.winnr })
+
+    -- Set the diff buffer to the contents, prior to any modifications
+    api.nvim_buf_set_lines(self.diff.bufnr, 0, 0, true, self.diff.lines)
+    api.nvim_win_set_cursor(self.diff.winnr, { self.context.cursor_pos[1], self.context.cursor_pos[2] })
+
+    -- Begin diffing
+    api.nvim_set_current_win(self.diff.winnr)
+    vim.cmd("diffthis")
+    api.nvim_set_current_win(self.context.winnr)
+    vim.cmd("diffthis")
   end
-  self.diff.winnr = api.nvim_get_current_win()
-  self.diff.bufnr = api.nvim_create_buf(false, true)
-  api.nvim_win_set_buf(self.diff.winnr, self.diff.bufnr)
-  api.nvim_set_option_value("filetype", self.context.filetype, { buf = self.diff.bufnr })
-  api.nvim_set_option_value("wrap", wrap, { win = self.diff.winnr })
-  api.nvim_set_option_value("linebreak", linebreak, { win = self.diff.winnr })
-  api.nvim_set_option_value("breakindent", breakindent, { win = self.diff.winnr })
-
-  -- Set the diff buffer to the contents, prior to any modifications
-  api.nvim_buf_set_lines(self.diff.bufnr, 0, 0, true, self.diff.lines)
-  api.nvim_win_set_cursor(self.diff.winnr, { self.context.cursor_pos[1], self.context.cursor_pos[2] })
-
-  -- Begin diffing
-  api.nvim_set_current_win(self.diff.winnr)
-  vim.cmd("diffthis")
-  api.nvim_set_current_win(self.context.winnr)
-  vim.cmd("diffthis")
 end
 
 ---Accept the changes in the diff
 ---@return nil
 function Inline:accept()
-  api.nvim_win_close(self.diff.winnr, false)
-  self.diff = {}
+  if config.display.inline.diff.use_mini_diff then
+    local miniDiff = require("codecompanion.strategies.inline.miniDiff")
+    miniDiff.accept(self.context.bufnr)
+  else
+    -- Original accept mechanism
+    api.nvim_win_close(self.diff.winnr, false)
+    self.diff = {}
+  end
 end
 
 ---Reject the changes in the diff
 ---@return nil
 function Inline:reject()
-  vim.cmd("diffoff")
-  api.nvim_win_close(self.diff.winnr, false)
-  api.nvim_buf_set_lines(self.context.bufnr, 0, -1, true, self.diff.lines)
-  self.diff = {}
+  if config.display.inline.diff.use_mini_diff then
+    local miniDiff = require("codecompanion.strategies.inline.miniDiff")
+    miniDiff.reject(self.context.bufnr)
+  else
+    -- Original reject mechanism
+    vim.cmd("diffoff")
+    api.nvim_win_close(self.diff.winnr, false)
+    api.nvim_buf_set_lines(self.context.bufnr, 0, -1, true, self.diff.lines)
+    self.diff = {}
+  end
 end
 
 return Inline
