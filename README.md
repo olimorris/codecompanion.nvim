@@ -144,6 +144,7 @@ _Slash commands_, accessed via `/`, run commands to insert additional context in
 - `/file` - Insert a file
 - `/now` - Insert the current date and time
 - `/symbols` - Insert symbols for the active buffer
+- `/help` - Insert content from help tags
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out actions:
 
@@ -322,6 +323,13 @@ require("codecompanion").setup({
         ["symbols"] = {
           callback = "helpers.slash_commands.symbols",
           description = "Insert symbols for the active buffer",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["help"] = {
+          callback = "helpers.slash_commands.help",
+          description = "Insert content from help tags",
           opts = {
             contains_code = true,
           },
