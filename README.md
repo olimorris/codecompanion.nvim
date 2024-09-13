@@ -28,11 +28,11 @@ Thank you to the following people:
 ## :sparkles: Features
 
 - :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
-- :electric_plug: Support for Anthropic, Copilot, Gemini, Ollama and OpenAI LLMs
+- :electric_plug: Support for Anthropic, Copilot, Gemini, Ollama and OpenAI LLMs (or bring your own!)
 - :rocket: Inline transformations, code creation and refactoring
-- :robot: Variables, slash commands, agents and workflows to improve LLM output
+- :robot: Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
 - :sparkles: Built in prompts for common tasks like advice on LSP errors and code explanations
-- :building_construction: Ability to create your own custom prompts, variables and slash commands
+- :building_construction: Ability to create your own custom prompts, Variables and Slash Commands
 - :muscle: Async execution for fast performance
 
 <!-- panvimdoc-ignore-start -->
@@ -193,7 +193,7 @@ There are keymaps available to accept or reject edits from the LLM in the [inlin
 Run `:CodeCompanionActions` to open the action palette, which gives you access to all of the functionality in the plugin. This is where core actions and the [pre-defined prompts](#clipboard-pre-defined-prompts) are listed.
 
 > [!NOTE]
-> Some actions and prompts will only be visible in if you're in _Visual mode_.
+> Some actions and prompts will only be visible if you're in _Visual mode_.
 
 **List of commands**
 
@@ -935,7 +935,7 @@ When given a task:
 
 **Changing the System Prompt**
 
-The default system prompt has been carefully curated to deliver responses which are similar to GitHub Copilot Chat. That is, terse, professional and with expertise in coding. However, if you'd like to change the default system prompt, you can change the `opts.system_prompt` table in the config. You can also set it as a function which can receive the current chat buffer's adapter as a parameter, giving you the option of setting system prompts that are model specific:
+The default system prompt has been carefully curated to deliver responses which are similar to GitHub Copilot Chat, no matter which LLM you use. That is, you'll receive responses which are terse, professional and with expertise in coding. However, you can modify the `opts.system_prompt` table in the config to suit your needs. You can also set it as a function which can receive the current chat buffer's adapter as a parameter, giving you the option of setting system prompts that are LLM or model specific:
 
 ```lua
 require("codecompanion").setup({
@@ -943,7 +943,7 @@ require("codecompanion").setup({
     ---@param adapter CodeCompanion.Adapter
     ---@return string
     system_prompt = function(adapter)
-      if adapter.schema.model.default == "llama3.1:latest " then
+      if adapter.schema.model.default == "llama3.1:latest" then
         return "My custom system prompt"
       end
       return "My default system prompt"
