@@ -864,6 +864,8 @@ Use Markdown formatting and include the programming language name at the start o
       layout = "vertical", -- vertical|horizontal|buffer
       diff = {
         enabled = true,
+        -- mini_diff is using inline diff in the same buffer but requires the plugin to be installed: https://github.com/echasnovski/mini.diff
+        diff_method = "default", -- default|mini_diff 
         close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
         layout = "vertical", -- vertical|horizontal
         opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
@@ -1325,6 +1327,27 @@ require('legendary').setup({
     codecompanion = true,
   },
 })
+```
+
+**Mini.Diff**
+
+if you're using [mini.diff](https://github.com/echasnovski/mini.diff) you can put an icon in the statusline to indicate which diff is used currently, git or llm changes:
+
+```lua
+local function getDiffSource()
+  local buf_id, diff_source, diffIcon
+  buf_id = vim.api.nvim_get_current_buf()
+  diff_source = vim.b[buf_id].diffCompGit
+  if not diff_source then
+    return ""
+  end
+  if diff_source == "git" then
+    diffIcon = "󰊤 "
+  elseif diff_source == "llm" then
+    diffIcon = " "
+  end
+  return string.format("%%#StatusLineLSP#%s", diffIcon)
+end
 ```
 
 ## :toolbox: Troubleshooting
