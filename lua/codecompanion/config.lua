@@ -620,6 +620,7 @@ Use Markdown formatting and include the programming language name at the start o
       layout = "vertical", -- vertical|horizontal|buffer
       diff = {
         enabled = true,
+        diff_method = "default", -- default|mini_diff
         close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
         layout = "vertical", -- vertical|horizontal
         opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
