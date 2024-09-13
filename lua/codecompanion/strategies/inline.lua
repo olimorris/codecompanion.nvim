@@ -4,6 +4,7 @@ local config = require("codecompanion").config
 
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
+local miniDiff = require("codecompanion.strategies.inline.miniDiff")
 local msg_utils = require("codecompanion.utils.messages")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils.util")
@@ -173,6 +174,13 @@ end
 ---Start the classification of the user's prompt
 ---@param opts? table
 function Inline:start(opts)
+  -- NOTE: we need to add this here to intiate the mini.diff early to be
+  -- working properly
+  if config.display.inline.diff.use_mini_diff then
+    log:trace("CodeCompanion: Using mini diff for inline display")
+    require("codecompanion.strategies.inline.miniDiff").setup()
+  end
+
   log:trace("Starting Inline with opts: %s", opts)
 
   if opts and opts[1] then
@@ -556,11 +564,6 @@ function Inline:append_to_buf(content)
   self.classification.pos.col = col
 end
 
-if config.display.inline.diff.use_mini_diff then
-  local miniDiff = require("codecompanion.strategies.inline.miniDiff")
-  miniDiff.setup()
-end
-
 ---Apply diff coloring to any replaced text
 ---@return nil
 function Inline:start_diff()
@@ -568,8 +571,7 @@ function Inline:start_diff()
     return
   end
   if config.display.inline.diff.use_mini_diff then
-    local miniDiff = require("codecompanion.strategies.inline.miniDiff")
-    miniDiff.start_diff(self.context.bufnr)
+    return -- no need to do anything here, since it's handled in miniDiff.lua
   else
     -- Taken from the awesome:
     -- https://github.com/S1M0N38/dante.nvim
@@ -616,10 +618,8 @@ end
 ---@return nil
 function Inline:accept()
   if config.display.inline.diff.use_mini_diff then
-    local miniDiff = require("codecompanion.strategies.inline.miniDiff")
     miniDiff.accept(self.context.bufnr)
   else
-    -- Original accept mechanism
     api.nvim_win_close(self.diff.winnr, false)
     self.diff = {}
   end
@@ -629,10 +629,8 @@ end
 ---@return nil
 function Inline:reject()
   if config.display.inline.diff.use_mini_diff then
-    local miniDiff = require("codecompanion.strategies.inline.miniDiff")
     miniDiff.reject(self.context.bufnr)
   else
-    -- Original reject mechanism
     vim.cmd("diffoff")
     api.nvim_win_close(self.diff.winnr, false)
     api.nvim_buf_set_lines(self.context.bufnr, 0, -1, true, self.diff.lines)
