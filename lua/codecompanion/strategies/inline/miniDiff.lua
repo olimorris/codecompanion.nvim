@@ -11,6 +11,7 @@ if not ok then
   return log:error("Failed to load mini.diff: ", vim.log.levels.WARN)
 end
 local git_source = MiniDiff.gen_source.git()
+local REVERT_DELAY = 5 * 60 * 1000 -- 5 minutes
 
 ---@param buf_id number
 ---@return boolean Whether
@@ -118,7 +119,6 @@ end
 ---@param config? table
 function M.setup(config)
   config = config or {}
-  local revert_delay = config.revert_delay or 5 * 60 * 1000 -- Default: 5 minutes
   -- MiniDiff.setup({ source = git_source })
 
   vim.api.nvim_create_autocmd("User", {
@@ -136,7 +136,7 @@ function M.setup(config)
         pcall(MiniDiff.set_ref_text, buf_id, original_buffer_content[buf_id] or {})
         -- original_buffer_content[buf_id] = current_content
         log:trace("original_buffer_content assinged " .. "step 2")
-        M.schedule_revert_to_git(buf_id, revert_delay)
+        M.schedule_revert_to_git(buf_id, REVERT_DELAY)
         MiniDiff.toggle_overlay()
       end
     end,

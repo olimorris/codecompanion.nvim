@@ -176,7 +176,7 @@ end
 function Inline:start(opts)
   -- NOTE: we need to add this here to intiate the mini.diff early to be
   -- working properly
-  if config.display.inline.diff.use_mini_diff then
+  if config.display.inline.diff.diff_method == "mini_diff" then
     log:trace("CodeCompanion: Using mini diff for inline display")
     require("codecompanion.strategies.inline.miniDiff").setup()
   end
@@ -570,7 +570,7 @@ function Inline:start_diff()
   if config.display.inline.diff.enabled == false then
     return
   end
-  if config.display.inline.diff.use_mini_diff then
+  if config.display.inline.diff.diff_method == "mini_diff" then
     return -- no need to do anything here, since it's handled in miniDiff.lua
   else
     -- Taken from the awesome:
@@ -617,7 +617,7 @@ end
 ---Accept the changes in the diff
 ---@return nil
 function Inline:accept()
-  if config.display.inline.diff.use_mini_diff then
+  if config.display.inline.diff.diff_method == "mini_diff" then
     miniDiff.accept(self.context.bufnr)
   else
     api.nvim_win_close(self.diff.winnr, false)
@@ -628,7 +628,7 @@ end
 ---Reject the changes in the diff
 ---@return nil
 function Inline:reject()
-  if config.display.inline.diff.use_mini_diff then
+  if config.display.inline.diff.diff_method == "mini_diff" then
     miniDiff.reject(self.context.bufnr)
   else
     vim.cmd("diffoff")
