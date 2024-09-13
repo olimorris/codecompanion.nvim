@@ -5,7 +5,13 @@ local M = {}
 local original_buffer_content = {} -- Store the original buffer content
 local codecompanion_buffers = {} -- Store which buffers are using CodeCompanion source
 local revert_timers = {} -- Store timers for reverting to Git source
-local MiniDiff = require("mini.diff")
+local MiniDiff
+local ok, err = pcall(function()
+  MiniDiff = require("mini.diff")
+end)
+if not ok then
+  vim.notify("Failed to load mini.diff: " .. err, vim.log.levels.WARN)
+end
 local git_source = MiniDiff.gen_source.git()
 local log = require("codecompanion.utils.log")
 
