@@ -2,11 +2,58 @@ local config = require("codecompanion").config
 
 local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
+local tokens_utils = require("codecompanion.utils.tokens")
+local ts = vim.treesitter
 
 CONSTANTS = {
   NAME = "Help",
   PROMPT = "Select a help tag",
+  MAX_TOKENS = 2048,
+  MAX_LINES = 128,
+  --NOTE: On averege vimdoc line are 10-11 tokens long
 }
+
+---Find the tag row
+---@param tag string The tag to find
+---@param content string The content of the file
+---@return integer The row of the tag
+local function get_tag_row(tag, content)
+  local ft = "vimdoc"
+  local parser = vim.treesitter.get_string_parser(content, "vimdoc")
+  local root = parser:parse()[1]:root()
+  local query = ts.query.parse(ft, '((tag) @tag (#eq? @tag "*' .. tag .. '*"))')
+  for _, node, _ in query:iter_captures(root, content) do
+    local tag_row = node:range()
+    return tag_row
+  end
+end
+
+---Trim the content around the tag
+---@param content string The content of the file
+---@param tag string The tag to find
+---@return string The trimmed content
+local function trim_content(content, tag)
+  local lines = vim.split(content, "\n")
+  local tag_row = get_tag_row(tag, content)
+
+  local start_, end_
+  if tag_row - CONSTANTS.MAX_LINES / 2 < 1 then
+    start_ = 1
+    end_ = CONSTANTS.MAX_LINES
+  elseif tag_row + CONSTANTS.MAX_LINES / 2 > #lines then
+    start_ = #lines - CONSTANTS.MAX_LINES
+    end_ = #lines
+  else
+    start_ = tag_row - CONSTANTS.MAX_LINES / 2
+    end_ = tag_row + CONSTANTS.MAX_LINES / 2
+  end
+
+  content = table.concat(vim.list_slice(lines, start_, end_), "\n")
+  local tokens = tokens_utils.calculate(content)
+
+  assert(tokens < CONSTANTS.MAX_TOKENS, "The number of tokens exceeds the limit: " .. tokens)
+  return content
+end
 
 ---Output from the slash command in the chat buffer
 ---@param SlashCommand CodeCompanion.SlashCommandHelp
@@ -17,16 +64,24 @@ local function output(SlashCommand, selected)
     return log:warn("Sending of code has been disabled")
   end
 
-  local ft = "help"
+  local ft = "vimdoc"
   local content = file_utils.read(selected.path)
 
   if content == "" then
     return log:warn("Could not read the file: %s", selected.path)
   end
 
+  local tokens = tokens_utils.calculate(content)
+
+  -- Add the whole help file
+  if tokens > CONSTANTS.MAX_TOKENS then
+    content = trim_content(content, selected.tag)
+    content = "...\n" .. content .. "\n..."
+  end
+
   local Chat = SlashCommand.Chat
   Chat:append_to_buf({ content = "[!" .. CONSTANTS.NAME .. ": `" .. selected.tag .. "`]\n" })
-  Chat:append_to_buf({ content = "```" .. ft .. "\n" .. content .. "```" })
+  Chat:append_to_buf({ content = "```" .. ft .. "\n" .. content .. "\n```" })
   Chat:fold_code()
 end
 
