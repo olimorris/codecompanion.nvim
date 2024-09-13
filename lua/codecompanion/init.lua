@@ -239,18 +239,6 @@ end
 ---@param opts nil|table
 ---@return nil
 M.setup = function(opts)
-  if opts and opts.default_prompts then
-    dep.write(
-      "The ",
-      { "`default_prompts`", "WarningMsg" },
-      " have been renamed to ",
-      { "`pre_defined_prompts`", "WarningMsg" },
-      "\nThey will be removed in the coming weeks."
-    )
-    opts.pre_defined_prompts = opts.default_prompts
-    opts.opts.use_default_pre_defined_prompts = opts.opts.use_default_prompts
-  end
-
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 
   if opts and opts.adapters then

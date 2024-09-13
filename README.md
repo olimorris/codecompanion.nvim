@@ -147,8 +147,8 @@ _Slash commands_, accessed via `/`, run commands to insert additional context in
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out actions:
 
-- `@buffer_editor` - The LLM will edit code in a Neovim buffer by searching and replacing blocks
 - `@code_runner` - The LLM will run code for you in a Docker container
+- `@editor` - The LLM will edit code in a Neovim buffer
 - `@rag` - The LLM will browse and search the internet for real-time information to supplement its response
 
 > [!TIP]
@@ -1167,7 +1167,7 @@ By default, an inline assistant prompt will trigger the diff feature, showing di
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
-In the plugin, agents are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response for the plugin to parse, execute and feedback on. Agents can be added as a participant in a chat buffer by using the `@` key.
+In the plugin, agents are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response for the plugin to parse, execute and feedback on. Agents can be added as a participant to the chat buffer by using the `@` key.
 
 More information on how agents work and how you can create your own can be found in the [AGENTS](doc/AGENTS.md) guide.
 
@@ -1202,6 +1202,7 @@ The plugin sets the following highlight groups during setup:
 
 The plugin fires many events during its lifecycle:
 
+- `CodeCompanionToolAdded` - Fired when a tool has been added to a chat buffer
 - `CodeCompanionChatClosed` - Fired after a chat has been closed
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionAgentStarted` - Fired when an agent has started using a tool
