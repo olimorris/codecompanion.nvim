@@ -36,23 +36,29 @@ local function trim_content(content, tag)
   local lines = vim.split(content, "\n")
   local tag_row = get_tag_row(tag, content)
 
+  local prefix = ""
+  local suffix = ""
   local start_, end_
   if tag_row - CONSTANTS.MAX_LINES / 2 < 1 then
     start_ = 1
     end_ = CONSTANTS.MAX_LINES
+    suffix = "\n..."
   elseif tag_row + CONSTANTS.MAX_LINES / 2 > #lines then
     start_ = #lines - CONSTANTS.MAX_LINES
     end_ = #lines
+    prefix = "...\n"
   else
     start_ = tag_row - CONSTANTS.MAX_LINES / 2
     end_ = tag_row + CONSTANTS.MAX_LINES / 2
+    prefix = "...\n"
+    suffix = "\n..."
   end
 
   content = table.concat(vim.list_slice(lines, start_, end_), "\n")
   local tokens = tokens_utils.calculate(content)
-
   assert(tokens < CONSTANTS.MAX_TOKENS, "The number of tokens exceeds the limit: " .. tokens)
-  return content
+
+  return prefix .. content .. suffix
 end
 
 ---Output from the slash command in the chat buffer
@@ -76,7 +82,6 @@ local function output(SlashCommand, selected)
   -- Add the whole help file
   if tokens > CONSTANTS.MAX_TOKENS then
     content = trim_content(content, selected.tag)
-    content = "...\n" .. content .. "\n..."
   end
 
   local Chat = SlashCommand.Chat
