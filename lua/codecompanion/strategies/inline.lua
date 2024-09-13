@@ -4,7 +4,7 @@ local config = require("codecompanion").config
 
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
-local miniDiff = require("codecompanion.strategies.inline.miniDiff")
+local mini_diff = require("codecompanion.strategies.inline.mini_diff")
 local msg_utils = require("codecompanion.utils.messages")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils.util")
@@ -178,7 +178,7 @@ function Inline:start(opts)
   -- working properly
   if config.display.inline.diff.diff_method == "mini_diff" then
     log:trace("CodeCompanion: Using mini diff for inline display")
-    require("codecompanion.strategies.inline.miniDiff").setup()
+    require("codecompanion.strategies.inline.mini_diff").setup()
   end
 
   log:trace("Starting Inline with opts: %s", opts)
@@ -571,7 +571,7 @@ function Inline:start_diff()
     return
   end
   if config.display.inline.diff.diff_method == "mini_diff" then
-    return -- no need to do anything here, since it's handled in miniDiff.lua
+    return -- no need to do anything here, since it's handled in mini_diff.lua
   else
     -- Taken from the awesome:
     -- https://github.com/S1M0N38/dante.nvim
@@ -618,7 +618,7 @@ end
 ---@return nil
 function Inline:accept()
   if config.display.inline.diff.diff_method == "mini_diff" then
-    miniDiff.accept(self.context.bufnr)
+    mini_diff.accept(self.context.bufnr)
   else
     api.nvim_win_close(self.diff.winnr, false)
     self.diff = {}
@@ -629,7 +629,7 @@ end
 ---@return nil
 function Inline:reject()
   if config.display.inline.diff.diff_method == "mini_diff" then
-    miniDiff.reject(self.context.bufnr)
+    mini_diff.reject(self.context.bufnr)
   else
     vim.cmd("diffoff")
     api.nvim_win_close(self.diff.winnr, false)
