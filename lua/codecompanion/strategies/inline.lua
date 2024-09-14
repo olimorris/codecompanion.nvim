@@ -4,12 +4,13 @@ local config = require("codecompanion").config
 
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
-local mini_diff = require("codecompanion.strategies.inline.mini_diff")
 local msg_utils = require("codecompanion.utils.messages")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils.util")
 
 local api = vim.api
+
+local diff_provider
 
 local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.inline",
@@ -174,13 +175,6 @@ end
 ---Start the classification of the user's prompt
 ---@param opts? table
 function Inline:start(opts)
-  -- NOTE: we need to add this here to intiate the mini.diff early to be
-  -- working properly
-  if config.display.inline.diff.diff_method == "mini_diff" then
-    log:trace("CodeCompanion: Using mini diff for inline display")
-    require("codecompanion.strategies.inline.mini_diff").setup()
-  end
-
   log:trace("Starting Inline with opts: %s", opts)
 
   if opts and opts[1] then
@@ -564,78 +558,41 @@ function Inline:append_to_buf(content)
   self.classification.pos.col = col
 end
 
----Apply diff coloring to any replaced text
+---Start the diff process
 ---@return nil
 function Inline:start_diff()
   if config.display.inline.diff.enabled == false then
     return
   end
-  if config.display.inline.diff.diff_method == "mini_diff" then
-    return -- no need to do anything here, since it's handled in mini_diff.lua
-  else
-    -- Taken from the awesome:
-    -- https://github.com/S1M0N38/dante.nvim
 
-    -- Get current window properties
-    local wrap = vim.wo.wrap
-    local linebreak = vim.wo.linebreak
-    local breakindent = vim.wo.breakindent
-    vim.cmd("set diffopt=" .. table.concat(config.display.inline.diff.opts, ","))
-
-    -- Close the chat buffer
-    local last_chat = require("codecompanion").last_chat()
-    if last_chat and last_chat:is_visible() and config.display.inline.diff.close_chat_at > vim.o.columns then
-      last_chat:hide()
-    end
-
-    -- Create the diff buffer
-    if config.display.inline.diff.layout == "vertical" then
-      vim.cmd("vsplit")
-    else
-      vim.cmd("split")
-    end
-    self.diff.winnr = api.nvim_get_current_win()
-    self.diff.bufnr = api.nvim_create_buf(false, true)
-    api.nvim_win_set_buf(self.diff.winnr, self.diff.bufnr)
-    api.nvim_set_option_value("filetype", self.context.filetype, { buf = self.diff.bufnr })
-    api.nvim_set_option_value("wrap", wrap, { win = self.diff.winnr })
-    api.nvim_set_option_value("linebreak", linebreak, { win = self.diff.winnr })
-    api.nvim_set_option_value("breakindent", breakindent, { win = self.diff.winnr })
-
-    -- Set the diff buffer to the contents, prior to any modifications
-    api.nvim_buf_set_lines(self.diff.bufnr, 0, 0, true, self.diff.lines)
-    api.nvim_win_set_cursor(self.diff.winnr, { self.context.cursor_pos[1], self.context.cursor_pos[2] })
-
-    -- Begin diffing
-    api.nvim_set_current_win(self.diff.winnr)
-    vim.cmd("diffthis")
-    api.nvim_set_current_win(self.context.winnr)
-    vim.cmd("diffthis")
+  local ok
+  local provider = config.display.inline.diff.provider
+  ok, diff_provider = pcall(require, "codecompanion.helpers.diff." .. provider)
+  if not ok then
+    return log:error("Diff provider not found: %s", provider)
   end
+
+  diff_provider.setup({
+    bufnr = self.context.bufnr,
+    cursor_pos = self.context.cursor_pos,
+    filetype = self.context.filetype,
+    lines = self.diff.lines,
+    winnr = self.context.winnr,
+  })
 end
 
----Accept the changes in the diff
+---Accept the changes from the LLM
 ---@return nil
 function Inline:accept()
-  if config.display.inline.diff.diff_method == "mini_diff" then
-    mini_diff.accept(self.context.bufnr)
-  else
-    api.nvim_win_close(self.diff.winnr, false)
-    self.diff = {}
-  end
+  diff_provider.accept()
+  self.diff = {}
 end
 
----Reject the changes in the diff
+---Reject the changes from the LLM
 ---@return nil
 function Inline:reject()
-  if config.display.inline.diff.diff_method == "mini_diff" then
-    mini_diff.reject(self.context.bufnr)
-  else
-    vim.cmd("diffoff")
-    api.nvim_win_close(self.diff.winnr, false)
-    api.nvim_buf_set_lines(self.context.bufnr, 0, -1, true, self.diff.lines)
-    self.diff = {}
-  end
+  diff_provider.reject()
+  self.diff = {}
 end
 
 return Inline
