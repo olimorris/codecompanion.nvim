@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v2.6.6...v2.7.0) (2024-09-13)
+
+
+### Features
+
+* add mini.diff as option for inline diffs ([#210](https://github.com/olimorris/codecompanion.nvim/issues/210)) ([a33d4ae](https://github.com/olimorris/codecompanion.nvim/commit/a33d4aefbf3d4cc21c23dcbcfc27b61fb6b26245))
+
 ## [2.6.6](https://github.com/olimorris/codecompanion.nvim/compare/v2.6.5...v2.6.6) (2024-09-11)
 
 
