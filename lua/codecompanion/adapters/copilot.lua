@@ -136,10 +136,6 @@ return {
       _oauth_token = get_github_token()
       if not _oauth_token then
         log:error("No GitHub Copilot token found. Please refer to https://github.com/github/copilot.vim")
-        vim.notify(
-          "No GitHub Copilot token found. Please refer to https://github.com/github/copilot.vim",
-          vim.log.levels.ERROR
-        )
         return false
       end
 
