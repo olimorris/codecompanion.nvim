@@ -38,6 +38,10 @@ end
 --- the token from configuration files located in the user's configuration path.
 ---@return string|nil
 local function get_github_token()
+  if _oauth_token then
+    return _oauth_token
+  end
+
   local token = os.getenv("GITHUB_TOKEN")
   local codespaces = os.getenv("CODESPACES")
   if token and codespaces then
