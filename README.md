@@ -20,7 +20,7 @@ New features are always announced <a href="https://github.com/olimorris/codecomp
 Thank you to the following people:
 
 <p align="center">
-<!-- coffee --><a href="https://github.com/bassamsdata"><img src="https://github.com/bassamsdata.png" width="60px" alt="Bassam Data" /></a><a href="https://github.com/ivo-toby"><img src="https://github.com/ivo-toby.png" width="60px" alt="Ivo Toby" /></a><a href="https://github.com/KTSCode"><img src="https://github.com/KTSCode.png" width="60px" alt="KTS Code" /></a><!-- coffee --><!-- sponsors --><a href="https://github.com/mtmr0x"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;5414299?u&#x3D;b60f401c665a5aecd45bf4a5c79f7fced0e85b6d&amp;v&#x3D;4" width="60px" alt="Matheus Marsiglio" /></a><a href="https://github.com/unicell"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;35352?u&#x3D;1de708f9084ea3ea710294a38694414af4c6ed53&amp;v&#x3D;4" width="60px" alt="Qiu Yu" /></a><a href="https://github.com/zhming0"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;1054703?u&#x3D;b173a2c1afc61fa25d9343704659630406e3dea7&amp;v&#x3D;4" width="60px" alt="Zhiming Guo" /></a><!-- sponsors -->
+<!-- coffee --><a href="https://x.com/luxus"><img src="https://pbs.twimg.com/profile_images/744754093495844864/GwnEJygG_400x400.jpg" width="60px" alt="Luxus" /></a><a href="https://github.com/bassamsdata"><img src="https://github.com/bassamsdata.png" width="60px" alt="Bassam Data" /></a><a href="https://github.com/ivo-toby"><img src="https://github.com/ivo-toby.png" width="60px" alt="Ivo Toby" /></a><a href="https://github.com/KTSCode"><img src="https://github.com/KTSCode.png" width="60px" alt="KTS Code" /></a><!-- coffee --><!-- sponsors --><a href="https://github.com/mtmr0x"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;5414299?u&#x3D;b60f401c665a5aecd45bf4a5c79f7fced0e85b6d&amp;v&#x3D;4" width="60px" alt="Matheus Marsiglio" /></a><a href="https://github.com/unicell"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;35352?u&#x3D;1de708f9084ea3ea710294a38694414af4c6ed53&amp;v&#x3D;4" width="60px" alt="Qiu Yu" /></a><a href="https://github.com/zhming0"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;1054703?u&#x3D;b173a2c1afc61fa25d9343704659630406e3dea7&amp;v&#x3D;4" width="60px" alt="Zhiming Guo" /></a><a href="https://github.com/koskeller"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;30801340?u&#x3D;b89bc8fe35246370a30bbe59719c3b32459f4129&amp;v&#x3D;4" width="60px" alt="Konstantin Keller" /></a><!-- sponsors -->
 </p>
 
 <!-- panvimdoc-ignore-end -->
@@ -865,6 +865,8 @@ Use Markdown formatting and include the programming language name at the start o
       layout = "vertical", -- vertical|horizontal|buffer
       diff = {
         enabled = true,
+        -- mini_diff is using inline diff in the same buffer but requires the plugin to be installed: https://github.com/echasnovski/mini.diff
+        diff_method = "default", -- default|mini_diff 
         close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
         layout = "vertical", -- vertical|horizontal
         opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
@@ -1329,6 +1331,27 @@ require('legendary').setup({
     codecompanion = true,
   },
 })
+```
+
+**Mini.Diff**
+
+if you're using [mini.diff](https://github.com/echasnovski/mini.diff) you can put an icon in the statusline to indicate which diff is used currently, git or llm changes:
+
+```lua
+local function getDiffSource()
+  local buf_id, diff_source, diffIcon
+  buf_id = vim.api.nvim_get_current_buf()
+  diff_source = vim.b[buf_id].diffCompGit
+  if not diff_source then
+    return ""
+  end
+  if diff_source == "git" then
+    diffIcon = "󰊤 "
+  elseif diff_source == "llm" then
+    diffIcon = " "
+  end
+  return string.format("%%#StatusLineLSP#%s", diffIcon)
+end
 ```
 
 ## :toolbox: Troubleshooting
