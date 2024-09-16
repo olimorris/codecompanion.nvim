@@ -25,47 +25,32 @@ body:
           - Save the a `minimal.lua` file and add any additional plugins/configuration you may need:
 
           ```lua
-          local root = vim.fn.fnamemodify("./.repro", ":p")
+          ---@diagnostic disable: missing-fields
 
-          -- set stdpaths to use .repro
-          for _, name in ipairs({ "config", "data", "state", "cache" }) do
-            vim.env[("XDG_%s_HOME"):format(name:upper())] = root .. "/" .. name
-          end
-
-          -- set config path to enable the copilot adapter to work
+          --NOTE: Set config path to enable the copilot adapter to work.
+          --It will search the follwoing paths for the for copilot token:
+          --  - "$CODECOMPANION_TOKEN_PATH/github-copilot/hosts.json"
+          --  - "$CODECOMPANION_TOKEN_PATH/github-copilot/apps.json"
           vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand("~/.config")
 
-          -- bootstrap lazy
-          local lazypath = root .. "/plugins/lazy.nvim"
-          if not vim.loop.fs_stat(lazypath) then
-            vim.fn.system({
-              "git",
-              "clone",
-              "--filter=blob:none",
-              "--single-branch",
-              "https://github.com/folke/lazy.nvim.git",
-              lazypath,
-            })
-          end
-          vim.opt.runtimepath:prepend(lazypath)
+          vim.env.LAZY_STDPATH = ".repro"
+          load(vim.fn.system("curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua"))()
 
           -- Your CodeCompanion setup
           local plugins = {
             {
               "olimorris/codecompanion.nvim",
               dependencies = {
-                { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate"},
-                "nvim-lua/plenary.nvim",
-                "hrsh7th/nvim-cmp",
-                {
-                  "stevearc/dressing.nvim",
-                  opts = {},
-                },
-                "nvim-telescope/telescope.nvim",
+                { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
+                { "nvim-lua/plenary.nvim" },
+                { "hrsh7th/nvim-cmp" },
+                { "stevearc/dressing.nvim", opts = {} },
+                { "nvim-telescope/telescope.nvim" },
               },
               opts = {
-                -- Refer to: https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua
-                strategies = { -- Change the adapters as required
+                --Refer to: https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua
+                strategies = {
+                  --NOTE: Change the adapter as required
                   chat = { adapter = "openai" },
                   inline = { adapter = "openai" },
                   agent = { adapter = "openai" },
@@ -74,16 +59,14 @@ body:
                   log_level = "DEBUG",
                 },
               },
-            }
+            },
           }
 
-          require("lazy").setup(plugins, {
-            root = root .. "/plugins",
-          })
+          require("lazy.minit").repro({ spec = plugins })
 
           -- Setup Tree-sitter
-          local ok, treesitter = pcall(require, "nvim-treesitter.configs")
-          if ok then
+          local ts_status, treesitter = pcall(require, "nvim-treesitter.configs")
+          if ts_status then
             treesitter.setup({
               ensure_installed = { "lua", "markdown", "markdown_inline", "yaml" },
               highlight = { enable = true },
@@ -91,15 +74,16 @@ body:
           end
 
           -- Setup completion
-          local ok, cmp = pcall(require, "cmp")
-          if ok then
+          local cmp_status, cmp = pcall(require, "cmp")
+          if cmp_status then
             cmp.setup({
               mapping = cmp.mapping.preset.insert({
                 ["<C-b>"] = cmp.mapping.scroll_docs(-4),
                 ["<C-f>"] = cmp.mapping.scroll_docs(4),
                 ["<C-Space>"] = cmp.mapping.complete(),
                 ["<C-e>"] = cmp.mapping.abort(),
-                ["<CR>"] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+                ["<CR>"] = cmp.mapping.confirm({ select = true }),
+                -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
               }),
             })
           end
@@ -173,7 +157,7 @@ body:
       id: bug
       attributes:
         label: Describe the bug
-        description: Please describe the bug and include any screenshots
+        description: Please describe the bug and include any screenshots/screencasts
         placeholder: |
           What I expect to happen:
 
