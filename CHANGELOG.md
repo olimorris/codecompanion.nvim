@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v3.0.0...v3.0.1) (2024-09-16)
+
+
+### Bug Fixes
+
+* duplicate tags in help ([#226](https://github.com/olimorris/codecompanion.nvim/issues/226)) ([34049a8](https://github.com/olimorris/codecompanion.nvim/commit/34049a8f248ca91e86ce9e8ae6aef498439e8c88))
+
 ## [3.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v2.7.0...v3.0.0) (2024-09-16)
 
 
