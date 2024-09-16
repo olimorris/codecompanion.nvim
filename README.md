@@ -866,7 +866,7 @@ Use Markdown formatting and include the programming language name at the start o
       diff = {
         enabled = true,
         -- mini_diff is using inline diff in the same buffer but requires the plugin to be installed: https://github.com/echasnovski/mini.diff
-        diff_method = "default", -- default|mini_diff 
+        diff_method = "default", -- default|mini_diff
         close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
         layout = "vertical", -- vertical|horizontal
         opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
@@ -1171,7 +1171,7 @@ As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://w
 
 In the plugin, agents are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response for the plugin to parse, execute and feedback on. Agents can be added as a participant to the chat buffer by using the `@` key.
 
-More information on how agents work and how you can create your own can be found in the [AGENTS](doc/AGENTS.md) guide.
+More information on how agents work and how you can create your own can be found in the [TOOLS](doc/TOOLS.md) guide.
 
 ### :world_map: Workflows
 

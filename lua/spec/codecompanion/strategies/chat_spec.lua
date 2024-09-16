@@ -84,24 +84,6 @@ describe("Chat", function()
       assert.are.same("foo", Chat.messages[1].content)
     end)
 
-    it("agent system prompts are added next", function()
-      table.insert(Chat.messages, { role = "user", content = "@code_runner can you run some code for me?" })
-
-      Chat:parse_msg_for_tools(Chat.messages[#Chat.messages])
-
-      local result = Chat.messages
-
-      assert.are.same(4, #result)
-      assert.are.same("system", result[1].role)
-      assert.are.same("foo", result[1].content)
-      assert.are.same("user", result[2].role)
-      assert.are.same("can you run some code for me?", result[2].content)
-      assert.are.same("system", result[3].role)
-      assert.are.same("bar", result[3].content)
-      assert.are.same("system", result[4].role)
-      assert.are.same("\n\nbaz", result[4].content)
-    end)
-
     it("buffer variables are handled", function()
       table.insert(Chat.messages, { role = "user", content = "#buffer what does this file do?" })
       Chat:parse_msg_for_vars(Chat.messages[#Chat.messages])

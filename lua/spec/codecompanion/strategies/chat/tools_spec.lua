@@ -6,6 +6,11 @@ local config = require("codecompanion").config
 
 -- Mock dependencies
 config.strategies = {
+  chat = {
+    variables = {
+      ["blank"] = {},
+    },
+  },
   agent = {
     tools = {
       ["foo"] = {
@@ -20,51 +25,64 @@ config.strategies = {
         callback = "utils.bar_again",
         description = "Some bar_again function",
       },
+      opts = {
+        system_prompt = [[My tool system prompt]],
+      },
     },
   },
 }
 
 describe("Tools", function()
-  local tools
   local chat
+  local tools
 
   before_each(function()
-    codecompanion.setup()
-    tools = Tools.new()
+    codecompanion.setup(config)
 
-    package.loaded["codecompanion.utils.foo"] = "foo"
-    package.loaded["codecompanion.utils.bar"] = "bar"
-    package.loaded["codecompanion.utils.bar_again"] = "bar_again"
+    chat = Chat.new({ adapter = "openai", context = { bufnr = 0 } })
+    tools = Tools.new({ bufnr = 0 })
+
+    package.loaded["codecompanion.utils.foo"] = {
+      system_prompt = function()
+        return "foo"
+      end,
+    }
+    package.loaded["codecompanion.utils.bar"] = {
+      cmds = {
+        function()
+          return "bar"
+        end,
+      },
+      system_prompt = function()
+        return "bar"
+      end,
+    }
+    package.loaded["codecompanion.utils.bar_again"] = {
+      system_prompt = function()
+        return "baz"
+      end,
+    }
   end)
 
   describe(":parse", function()
-    it("should parse a message with an agent", function()
-      local result = tools:parse("@foo let's do some stuff")
-      assert.is_not_nil(result)
-      assert.equals("foo", result.foo)
-    end)
+    it("should parse a message with a tool", function()
+      table.insert(chat.messages, {
+        role = "user",
+        content = "@foo do some stuff",
+      })
+      local result = tools:parse(chat, chat.messages[#chat.messages])
+      local messages = result.messages
 
-    it("should return nil if no agent is found", function()
-      local result = tools:parse("no agent here")
-      assert.is_nil(result)
+      assert.equals("My tool system prompt", messages[#messages - 1].content)
+      assert.equals("foo", messages[#messages].content)
     end)
   end)
 
   describe(":replace", function()
-    it("should replace the agent in the message", function()
-      local message = "@foo replace this agent"
+    it("should replace the tool in the message", function()
+      local message = "@foo replace this tool"
       local result = tools:replace(message, "foo")
-      assert.equals("replace this agent", result)
+      assert.equals("replace this tool", result)
     end)
-  end)
-
-  it("should resolve a built-in callback", function()
-    local result = tools:parse("@bar what is happening?")
-    assert.equals("bar", result.bar)
-  end)
-
-  it("should resolve a built-in callback which is similar to another", function()
-    local result = tools:parse("@bar_again what is happening?")
-    assert.equals("bar_again", result.bar_again)
   end)
 end)

@@ -524,6 +524,7 @@ function Inline:send_to_chat()
       messages = prompt,
       auto_submit = true,
     })
+    :fold_heading("buffers")
 end
 
 ---Write the given text to the buffer

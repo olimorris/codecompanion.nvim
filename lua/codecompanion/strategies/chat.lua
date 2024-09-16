@@ -181,21 +181,21 @@ local function buf_parse_tools(chat)
 ]]
   )
 
-  local tools = {}
+  local found_tools = {}
   for id, node in query:iter_captures(tree:root(), response, 0, -1) do
     local name = query.captures[id]
     if name == "tool" then
       local tool = vim.treesitter.get_node_text(node, response)
-      table.insert(tools, tool)
+      table.insert(found_tools, tool)
     end
   end
 
-  log:debug("Tool detected: %s", tools)
+  log:debug("Tool detected: %s", found_tools)
 
   --TODO: Parse XML to ensure the STag is <agent>
 
-  if tools and #tools > 0 then
-    return require("codecompanion.tools").run(chat, tools[#tools])
+  if #found_tools > 0 then
+    return chat.tools:setup(chat, found_tools[#found_tools])
   end
 end
 
@@ -255,7 +255,6 @@ function Chat.new(args)
     messages = args.messages or {},
     status = "",
     tokens = args.tokens,
-    tools = require("codecompanion.strategies.chat.tools").new(),
     tools_in_use = {},
     variables = require("codecompanion.strategies.chat.variables").new(),
     create_buf = function()
@@ -271,6 +270,9 @@ function Chat.new(args)
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, {
     clear = false,
   })
+
+  self.tools =
+    require("codecompanion.strategies.chat.tools").new({ id = self.id, bufnr = self.bufnr, messages = self.messages })
 
   table.insert(chatmap, {
     name = "Chat " .. #chatmap + 1,
@@ -368,7 +370,10 @@ function Chat:open()
   ui.set_win_options(self.winnr, window.opts)
   vim.bo[self.bufnr].textwidth = 0
   self:follow()
-  keymaps.set(config.strategies.chat.keymaps, self.bufnr, self)
+
+  if config.strategies.chat.keymaps then
+    keymaps.set(config.strategies.chat.keymaps, self.bufnr, self)
+  end
 
   log:trace("Chat opened with ID %d", self.id)
 
@@ -481,16 +486,18 @@ function Chat:set_autocmds()
       if has_cmp then
         if not registered_cmp then
           registered_cmp = true
+          cmp.register_source("codecompanion_tools", require("cmp_codecompanion.tools").new(config))
+          cmp.register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
           cmp.register_source("codecompanion_slash_commands", require("cmp_codecompanion.slash_commands").new())
-          cmp.register_source("codecompanion_helpers", require("cmp_codecompanion.helpers").new())
           cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new(config))
         end
         cmp.setup.buffer({
           enabled = true,
           sources = {
-            { name = "codecompanion_models" },
-            { name = "codecompanion_helpers" },
+            { name = "codecompanion_tools" },
+            { name = "codecompanion_variables" },
             { name = "codecompanion_slash_commands" },
+            { name = "codecompanion_models" },
           },
         })
       end
@@ -689,82 +696,73 @@ function Chat:on_cursor_moved()
   end
 end
 
----Parse the last message for any tools
----@param message table|string
----@return CodeCompanion.Chat
-function Chat:parse_msg_for_tools(message)
-  if type(message) == "string" then
-    message = { content = message }
-  end
-
-  local tools = self.tools:parse(message.content)
-  if tools then
-    for tool, opts in pairs(tools) do
-      message.content = self.tools:replace(message.content, tool)
-      message.id = make_id({ role = message.role, content = message.content })
-      self.tools_in_use[tool] = opts
-    end
-
-    -- Add the agent system prompt if tools are in use
-    if util.count(self.tools_in_use) > 0 then
-      self:add_message(
-        config.strategies.agent.tools.opts.system_prompt,
-        CONSTANTS.SYSTEM_ROLE,
-        { visible = false, tag = "tool" }
-      )
-      for _, opts in pairs(self.tools_in_use) do
-        self:add_message(
-          "\n\n" .. opts.system_prompt(opts.schema),
-          CONSTANTS.SYSTEM_ROLE,
-          { visible = false, tag = "tool" }
-        )
-      end
-    end
-  end
-
-  return self
-end
-
 ---Parse the last message for any variables
 ---@param message table|string
 ---@return CodeCompanion.Chat
 function Chat:parse_msg_for_vars(message)
-  if type(message) == "string" then
-    message = { content = message }
-  end
-
   local vars = self.variables:parse(self, message.content)
+
   if vars then
     message.content = self.variables:replace(message.content, vars)
     message.id = make_id({ role = message.role, content = message.content })
-    self:add_message(vars, CONSTANTS.USER_ROLE, { visible = false, tag = "variable" })
+    self:add_message({ role = CONSTANTS.USER_ROLE, content = vars.content }, { visible = false, tag = "variable" })
   end
 
   return self
 end
 
----Add a message to the chat class
----@param message table|string The message from the chat buffer
----@param role string The role of the person who sent the message
+---Add the given tool to the chat buffer
+---@param tool table The tool from the config
+---@return CodeCompanion.Chat
+function Chat:add_tool(tool)
+  if self.tools_in_use[tool] then
+    return self
+  end
+
+  -- Add the agent system prompt first
+  if not self:has_tools() then
+    self:add_message({
+      role = CONSTANTS.SYSTEM_ROLE,
+      content = config.strategies.agent.tools.opts.system_prompt,
+    }, { visible = false, tag = "tool" })
+  end
+
+  self.tools_in_use[tool] = true
+
+  local resolved = self.tools.resolve(tool)
+  if resolved then
+    self:add_message(
+      { role = CONSTANTS.SYSTEM_ROLE, content = resolved.system_prompt(resolved.schema) },
+      { visible = false, tag = "tool" }
+    )
+  end
+
+  util.fire("ChatToolAdded", { bufnr = self.bufnr, tool = tool })
+
+  return self
+end
+
+---Add a message to the message table
+---@param data table {role: string, content: string}
 ---@param opts? table Options for the message
 ---@return CodeCompanion.Chat
-function Chat:add_message(message, role, opts)
+function Chat:add_message(data, opts)
   opts = opts or { visible = true }
   if opts.visible == nil then
     opts.visible = true
   end
 
-  if type(message) == "string" then
-    message = { content = message }
-  end
-
-  message = {
-    role = role,
-    content = message.content,
+  local message = {
+    role = data.role,
+    content = data.content,
   }
   message.id = make_id(message)
   message.opts = opts
-  table.insert(self.messages, message)
+  if opts.index then
+    table.insert(self.messages, opts.index, message)
+  else
+    table.insert(self.messages, message)
+  end
 
   return self
 end
@@ -785,11 +783,15 @@ function Chat:submit(opts)
   --- If we're regenerating the response, we don't want to add the user's last
   --- message from the buffer as it sends unnecessary context to the LLM
   if not opts.regenerate then
-    self:add_message(message, CONSTANTS.USER_ROLE)
+    self:add_message({ role = CONSTANTS.USER_ROLE, content = message.content })
   end
 
   message = self.messages[#self.messages]
-  self:parse_msg_for_vars(message):parse_msg_for_tools(message)
+  self.tools:parse(self, message):parse_msg_for_vars(message)
+
+  if self:has_tools() then
+    message.content = self.tools:replace(message.content)
+  end
 
   local settings = buf_parse_settings(bufnr, self.adapter)
   settings = self.adapter:map_schema_to_params(settings)
@@ -803,6 +805,7 @@ function Chat:submit(opts)
     .new()
     :stream(settings, self.adapter:map_roles(vim.deepcopy(self.messages)), function(err, data)
       if err then
+        self.status = CONSTANTS.STATUS_ERROR
         log:error("Error: %s", err)
         return self:reset()
       end
@@ -815,6 +818,7 @@ function Chat:submit(opts)
           if result.output.role then
             result.output.role = CONSTANTS.LLM_ROLE
           end
+          self.status = CONSTANTS.STATUS_SUCCESS
           self:append_to_buf(result.output)
         end
       end
@@ -828,12 +832,12 @@ end
 ---After the response from the LLM is received...
 ---@return nil
 function Chat:done()
-  self:add_message(buf_parse_message(self.bufnr), CONSTANTS.LLM_ROLE)
+  self:add_message({ role = CONSTANTS.LLM_ROLE, content = buf_parse_message(self.bufnr).content })
 
   self:append_to_buf({ role = CONSTANTS.USER_ROLE, content = "" })
   self:display_tokens()
 
-  if self.status ~= CONSTANTS.STATUS_ERROR and util.count(self.tools_in_use) > 0 then
+  if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
     buf_parse_tools(self)
   end
 
@@ -911,7 +915,7 @@ function Chat:close()
 
   api.nvim_buf_delete(self.bufnr, { force = true })
   api.nvim_clear_autocmds({ group = self.aug })
-  util.fire("ChatClosed", { bufnr = self.bufnr, chat = self })
+  util.fire("ChatClosed", { bufnr = self.bufnr })
   util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = nil })
   self = nil
 end
@@ -994,6 +998,12 @@ function Chat:append_to_buf(data, opts)
   end
 end
 
+---Determine if the chat buffer has any tools in use
+---@return true
+function Chat:has_tools()
+  return util.count(self.tools_in_use) > 0
+end
+
 ---Follow the cursor in the chat buffer
 ---@return nil
 function Chat:follow()
@@ -1047,10 +1057,10 @@ function Chat:display_tokens()
   end
 end
 
----Conceal parts of the chat buffer enclosed by a H2 heading
+---Fold parts of the chat buffer enclosed by a H3 heading
 ---@param heading string
 ---@return self
-function Chat:conceal(heading)
+function Chat:fold_heading(heading)
   local parser = vim.treesitter.get_parser(self.bufnr, "markdown")
 
   local query = vim.treesitter.query.parse(
@@ -1073,7 +1083,7 @@ function Chat:conceal(heading)
       local start_row, _, end_row, _ = node[1]:range()
 
       if start_row < end_row then
-        util.set_option(self.bufnr, "foldmethod", "manual")
+        vim.wo.foldmethod = "manual"
         api.nvim_buf_call(self.bufnr, function()
           vim.fn.setpos(".", { self.bufnr, start_row + 1, 0, 0 })
           vim.cmd("normal! zf" .. end_row .. "G")
@@ -1083,7 +1093,7 @@ function Chat:conceal(heading)
     end
   end
 
-  log:trace("Concealing %s", heading)
+  log:trace("Folding H3 header %s", heading)
   return self
 end
 
@@ -1126,7 +1136,7 @@ function Chat:fold_code()
   vim.o.foldmethod = "manual"
 
   local role
-  for _, matches in query:iter_matches(tree:root(), self.bufnr, 0, -1, { all = false }) do
+  for _, matches in query:iter_matches(tree:root(), self.bufnr, nil, nil, { all = false }) do
     local match = {}
     for id, node in pairs(matches) do
       match = vim.tbl_extend("keep", match, {
@@ -1141,7 +1151,9 @@ function Chat:fold_code()
       if role:match(user_role) and match.code then
         local start_row, _, end_row, _ = match.code.node:range()
         if start_row < end_row then
-          vim.cmd(string.format("%d,%dfold", start_row, end_row))
+          api.nvim_buf_call(self.bufnr, function()
+            vim.cmd(string.format("%d,%dfold", start_row, end_row))
+          end)
         end
       end
     end
@@ -1198,6 +1210,7 @@ function Chat:clear()
   }
 
   self.messages = {}
+  self.tools_in_use = {}
   self.tokens = nil
   clear_ns(namespaces)
 
