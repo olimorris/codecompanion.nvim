@@ -1,12 +1,12 @@
-*codecompanion.txt*       For NVIM v0.9.2       Last change: 2024 September 16
+*codecompanion-tools.txt*    For NVIM v0.9.2    Last change: 2024 September 16
 
 ==============================================================================
-Table of Contents                            *codecompanion-table-of-contents*
+Table of Contents                      *codecompanion-tools-table-of-contents*
 
 1. Tools                                                 |codecompanion-tools|
-  - Introduction                                  |codecompanion-introduction|
-  - Tool Types                                      |codecompanion-tool-types|
-  - The Interface                                |codecompanion-the-interface|
+  - Introduction                            |codecompanion-tools-introduction|
+  - Tool Types                                |codecompanion-tools-tool-types|
+  - The Interface                          |codecompanion-tools-the-interface|
 
 ==============================================================================
 1. Tools                                                 *codecompanion-tools*
@@ -16,7 +16,7 @@ act as an Agent. Tools are added to chat buffers as participants. This guide
 walks you through the implementation of tools, enabling you to create your own.
 
 
-INTRODUCTION                                      *codecompanion-introduction*
+INTRODUCTION                                *codecompanion-tools-introduction*
 
 In the plugin, tools work by sharing a system prompt with an LLM. This
 instructs them how to produce an XML markdown code block which can, in turn, be
@@ -28,7 +28,7 @@ tools is orchestrated by the `CodeCompanion.Chat` class which parses an LLM’s
 response and looks to identify the XML code block.
 
 
-TOOL TYPES                                          *codecompanion-tool-types*
+TOOL TYPES                                    *codecompanion-tools-tool-types*
 
 There are two types of tools within the plugin:
 
@@ -43,7 +43,7 @@ directly in Neovim within the main process.
 
 
 
-THE INTERFACE                                    *codecompanion-the-interface*
+THE INTERFACE                              *codecompanion-tools-the-interface*
 
 Tools must implement the following interface:
 
