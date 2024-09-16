@@ -871,19 +871,19 @@ Use Markdown formatting and include the programming language name at the start o
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?
       layout = "vertical", -- vertical|horizontal|buffer
-      diff = {
-        enabled = true,
-        -- mini_diff is using inline diff in the same buffer but requires the plugin to be installed: https://github.com/echasnovski/mini.diff
-        diff_method = "default", -- default|mini_diff
-        close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-        layout = "vertical", -- vertical|horizontal
-        opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
-      },
     },
   },
   -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
     log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
+
+    diff = {
+      enabled = true,
+      close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
+      layout = "vertical", -- vertical|horizontal
+      opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
+      provider = "default", -- default
+    },
 
     -- If this is false then any default prompt that is marked as containing code
     -- will not be sent to the LLM. Please note that whilst I have made every

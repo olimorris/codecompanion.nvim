@@ -561,11 +561,11 @@ end
 ---Start the diff process
 ---@return nil
 function Inline:start_diff()
-  if config.display.inline.diff.enabled == false then
+  if config.opts.diff.enabled == false then
     return
   end
 
-  local provider = config.display.inline.diff.provider
+  local provider = config.opts.diff.provider
   local ok, diff = pcall(require, "codecompanion.helpers.diff." .. provider)
   if not ok then
     return log:error("Diff provider not found: %s", provider)
