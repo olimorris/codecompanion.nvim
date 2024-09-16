@@ -171,6 +171,9 @@ function Tools:setup(chat, xml)
       role = CONSTANTS.USER_ROLE,
       content = "I've shared the error message with you",
     })
+    if self.tools.opts.auto_submit_errors then
+      self.chat:submit()
+    end
 
     self:reset()
     return log:error("Error parsing XML schema: %s", schema)
