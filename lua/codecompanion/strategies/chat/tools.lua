@@ -162,7 +162,10 @@ function Tools:setup(chat, xml)
   if not ok then
     self.chat:add_message({
       role = CONSTANTS.USER_ROLE,
-      content = string.format("I'm sorry, your XML schema couldn't be processed. This is the error message %s", schema),
+      content = string.format(
+        "I'm sorry, your XML schema couldn't be processed. This is the error message:\n\n%s",
+        schema
+      ),
     }, { visible = false })
     self.chat:append_to_buf({
       role = CONSTANTS.USER_ROLE,
@@ -175,12 +178,10 @@ function Tools:setup(chat, xml)
 
   -- Load the tool
 
-  ---@type CodeCompanion.Tool
-  local tool
-  ok, tool = pcall(require, "codecompanion.helpers.tools." .. schema.name)
-  if not ok then
-    --TODO: Allow users to build their own tools
-    return log:error("Error loading tool: %s", schema.name)
+  ---@type CodeCompanion.Tool|nil
+  local tool = Tools.resolve(self.tools[schema.name])
+  if not tool then
+    return
   end
 
   self.tool = vim.deepcopy(tool)
@@ -372,11 +373,14 @@ end
 ---@return CodeCompanion.Tool|nil
 function Tools.resolve(tool)
   local callback = tool.callback
-  local ok, module = pcall(require, "codecompanion." .. callback)
 
-  --TODO: Allow users to build their own tools
+  local ok, module = pcall(require, "codecompanion." .. callback)
   if not ok then
-    return log:error("Could not resolve tool: %s", module)
+    --Try loading the tool from the user's config
+    ok, module = pcall(require, callback)
+  end
+  if not ok then
+    return log:error("Could not resolve tool: %s", callback)
   end
 
   log:trace("Calling tool: %s", callback)
