@@ -148,9 +148,9 @@ function Tools:set_autocmds()
   })
 end
 
----Run a tool that's been extracted from the last message
+---Setup the tool in the chat buffer based on the LLM's response
 ---@param chat CodeCompanion.Chat
----@param xml string The XML schema from the LLM's message
+---@param xml string The XML schema from the LLM's response
 ---@return nil
 function Tools:setup(chat, xml)
   self.chat = chat
@@ -232,7 +232,7 @@ function Tools:parse(chat, message)
   return chat
 end
 
----Run the job
+---Run the tool
 ---@return nil
 function Tools:run()
   status = "success"
@@ -337,6 +337,8 @@ function Tools:reset()
   self.chat = {}
 end
 
+---Fold any XML code blocks in the buffer
+---@return nil
 function Tools:fold_xml()
   local query = vim.treesitter.query.parse(
     "markdown",
@@ -368,7 +370,7 @@ function Tools:fold_xml()
   end
 end
 
----Resolve a tool
+---Resolve a tool from the config
 ---@param tool table The tool from the config
 ---@return CodeCompanion.Tool|nil
 function Tools.resolve(tool)
