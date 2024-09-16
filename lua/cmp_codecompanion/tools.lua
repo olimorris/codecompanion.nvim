@@ -46,16 +46,4 @@ function source:complete(params, callback)
   })
 end
 
----Execute selected item
----@param item table The selected item from the completion menu
----@param callback function
----@return nil
-function source:execute(item, callback)
-  local Chat = require("codecompanion").buf_get_chat(item.context.bufnr)
-  Chat:add_tool(item)
-
-  callback(item)
-  vim.bo[item.context.bufnr].buflisted = false
-end
-
 return source
