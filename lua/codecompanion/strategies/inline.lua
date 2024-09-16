@@ -10,8 +10,6 @@ local util = require("codecompanion.utils.util")
 
 local api = vim.api
 
-local diff_provider
-
 local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.inline",
 
@@ -84,8 +82,9 @@ local Inline = {}
 ---@class CodeCompanion.InlineArgs
 ---@field adapter? CodeCompanion.Adapter
 ---@field chat_context? table Messages from a chat buffer
----@field context table
----@field diff? table
+---@field context table The context of the buffer the inline prompt was initiated from
+---@field diff? table The diff provider
+---@field lines? table The lines in the buffer before the inline changes
 ---@field opts? table
 ---@field pre_hook? fun():number Function to run before the inline prompt is started
 ---@field prompts table
@@ -128,6 +127,7 @@ function Inline.new(args)
     },
     context = args.context,
     diff = args.diff or {},
+    lines = {},
     opts = args.opts or {},
     prompts = vim.deepcopy(args.prompts),
   }, { __index = Inline })
@@ -449,14 +449,14 @@ function Inline:place(placement)
   local pos = { line = self.context.start_line, col = 0, bufnr = 0 }
 
   if placement == "replace" then
-    self.diff.lines = api.nvim_buf_get_lines(self.context.bufnr, 0, -1, true)
+    self.lines = api.nvim_buf_get_lines(self.context.bufnr, 0, -1, true)
     overwrite_selection(self.context)
     local cursor_pos = api.nvim_win_get_cursor(self.context.winnr)
     pos.line = cursor_pos[1]
     pos.col = cursor_pos[2]
     pos.bufnr = self.context.bufnr
   elseif placement == "add" then
-    self.diff.lines = api.nvim_buf_get_lines(self.context.bufnr, 0, -1, true)
+    self.lines = api.nvim_buf_get_lines(self.context.bufnr, 0, -1, true)
     api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
     pos.line = self.context.end_line + 1
     pos.col = 0
@@ -524,7 +524,6 @@ function Inline:send_to_chat()
       messages = prompt,
       auto_submit = true,
     })
-    :conceal("buffers")
 end
 
 ---Write the given text to the buffer
@@ -565,34 +564,20 @@ function Inline:start_diff()
     return
   end
 
-  local ok
   local provider = config.display.inline.diff.provider
-  ok, diff_provider = pcall(require, "codecompanion.helpers.diff." .. provider)
+  local ok, diff = pcall(require, "codecompanion.helpers.diff." .. provider)
   if not ok then
     return log:error("Diff provider not found: %s", provider)
   end
 
-  diff_provider.setup({
+  ---@type CodeCompanion.Diff
+  self.diff = diff.new({
     bufnr = self.context.bufnr,
     cursor_pos = self.context.cursor_pos,
     filetype = self.context.filetype,
-    lines = self.diff.lines,
+    contents = self.lines,
     winnr = self.context.winnr,
   })
-end
-
----Accept the changes from the LLM
----@return nil
-function Inline:accept()
-  diff_provider.accept()
-  self.diff = {}
-end
-
----Reject the changes from the LLM
----@return nil
-function Inline:reject()
-  diff_provider.reject()
-  self.diff = {}
 end
 
 return Inline

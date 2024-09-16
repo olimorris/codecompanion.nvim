@@ -402,16 +402,20 @@ M.debug = {
 M.accept_change = {
   desc = "Accept the change from the LLM",
   callback = function(inline)
-    inline:accept()
-    clear_map(config.strategies.inline.keymaps, inline.context.bufnr)
+    if inline.diff then
+      inline.diff:accept()
+      clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
+    end
   end,
 }
 
 M.reject_change = {
   desc = "Reject the change from the LLM",
   callback = function(inline)
-    inline:reject()
-    clear_map(config.strategies.inline.keymaps, inline.context.bufnr)
+    if inline.diff then
+      inline.diff:reject()
+      clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
+    end
   end,
 }
 
