@@ -10,55 +10,59 @@ local _oauth_token
 ---@type table|nil
 local _github_token
 
----Get the Copilot OAuth token from local storage
+--- Finds the configuration path
+local function find_config_path()
+  if os.getenv("CODECOMPANION_TOKEN_PATH") then
+    return os.getenv("CODECOMPANION_TOKEN_PATH")
+  end
+
+  local config = vim.fn.expand("$XDG_CONFIG_HOME")
+  if config and vim.fn.isdirectory(config) > 0 then
+    return config
+  elseif vim.fn.has("win32") > 0 then
+    config = vim.fn.expand("~/AppData/Local")
+    if vim.fn.isdirectory(config) > 0 then
+      return config
+    end
+  else
+    config = vim.fn.expand("~/.config")
+    if vim.fn.isdirectory(config) > 0 then
+      return config
+    end
+  end
+end
+
+---Get the Copilot OAuth token
+--- The function first attempts to load the token from the environment variables,
+--- specifically for GitHub Codespaces. If not found, it then attempts to load
+--- the token from configuration files located in the user's configuration path.
 ---@return string|nil
-local function get_oauth_token()
+local function get_github_token()
   if _oauth_token then
     return _oauth_token
   end
 
-  local config_dir
-  if vim.fn.has("win32") == 1 then
-    config_dir = vim.fn.expand("~/AppData/Local")
-  elseif os.getenv("CODECOMPANION_TOKEN_PATH") then
-    config_dir = os.getenv("CODECOMPANION_TOKEN_PATH")
-  else
-    local xdg_config = vim.fn.expand("$XDG_CONFIG_HOME")
-    config_dir = (xdg_config and vim.fn.isdirectory(xdg_config) > 0) and xdg_config or vim.fn.expand("~/.config")
+  local token = os.getenv("GITHUB_TOKEN")
+  local codespaces = os.getenv("CODESPACES")
+  if token and codespaces then
+    return token
   end
 
-  log:debug("Fetching Copilot Oauth token from: %s", config_dir)
+  local config_path = find_config_path()
+  if not config_path then
+    return nil
+  end
 
-  local token_files = {
-    "/github-copilot/hosts.json",
-    "/github-copilot/apps.json",
+  local file_paths = {
+    config_path .. "/github-copilot/hosts.json",
+    config_path .. "/github-copilot/apps.json",
   }
 
-  for _, file in ipairs(token_files) do
-    local path = vim.fn.expand(config_dir .. file)
-
-    if vim.fn.filereadable(path) ~= 1 then
-      log:debug("File not found: %s", path)
-    end
-
-    local f = io.open(path, "r")
-    if not f then
-      return log:error("Could not open file: %s", path)
-    end
-
-    local content = f:read("*all")
-    f:close()
-
-    local ok, data = pcall(vim.fn.json_decode, content)
-    if not ok then
-      return log:error("Could not decode JSON from file: %s", path)
-    end
-
-    if data["github.com"] then
-      return data["github.com"].oauth_token
-    else
-      for key, value in pairs(data) do
-        if key:match("^github.com:") then
+  for _, file_path in ipairs(file_paths) do
+    if vim.fn.filereadable(file_path) == 1 then
+      local userdata = vim.fn.json_decode(vim.fn.readfile(file_path))
+      for key, value in pairs(userdata) do
+        if string.find(key, "github.com") then
           return value.oauth_token
         end
       end
@@ -129,7 +133,7 @@ return {
     ---@param self CodeCompanion.AdapterArgs
     ---@return boolean
     setup = function(self)
-      _oauth_token = get_oauth_token()
+      _oauth_token = get_github_token()
       if not _oauth_token then
         log:error("No GitHub Copilot token found. Please refer to https://github.com/github/copilot.vim")
         return false
