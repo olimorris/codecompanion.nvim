@@ -239,18 +239,6 @@ end
 ---@param opts nil|table
 ---@return nil
 M.setup = function(opts)
-  if opts and opts.default_prompts then
-    dep.write(
-      "The ",
-      { "`default_prompts`", "WarningMsg" },
-      " have been renamed to ",
-      { "`pre_defined_prompts`", "WarningMsg" },
-      "\nThey will be removed in the coming weeks."
-    )
-    opts.pre_defined_prompts = opts.default_prompts
-    opts.opts.use_default_pre_defined_prompts = opts.opts.use_default_prompts
-  end
-
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 
   if opts and opts.adapters then
@@ -328,6 +316,24 @@ M.setup = function(opts)
       },
     },
   }))
+
+  -- Setup cmp
+  local has_cmp, cmp = pcall(require, "cmp")
+  if has_cmp then
+    cmp.register_source("codecompanion_tools", require("cmp_codecompanion.tools").new(M.config))
+    cmp.register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
+    cmp.register_source("codecompanion_slash_commands", require("cmp_codecompanion.slash_commands").new())
+    cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new(M.config))
+    cmp.setup.filetype("codecompanion", {
+      enabled = true,
+      sources = {
+        { name = "codecompanion_tools" },
+        { name = "codecompanion_variables" },
+        { name = "codecompanion_slash_commands" },
+        { name = "codecompanion_models" },
+      },
+    })
+  end
 
   vim.treesitter.language.register("markdown", "codecompanion")
 end

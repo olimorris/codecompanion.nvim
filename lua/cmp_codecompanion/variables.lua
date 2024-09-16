@@ -1,4 +1,3 @@
-local tools = require("codecompanion.strategies.chat.tools").new().tools
 local variables = require("codecompanion.strategies.chat.variables").new().vars
 
 local source = {}
@@ -16,7 +15,7 @@ source.get_position_encoding_kind = function()
 end
 
 function source:get_trigger_characters()
-  return { "@", "#" }
+  return { "#" }
 end
 
 function source:get_keyword_pattern()
@@ -33,16 +32,6 @@ function source:complete(_, callback)
       kind = kind,
       detail = data.description,
     })
-  end
-
-  for label, data in pairs(tools) do
-    if label ~= "opts" then
-      table.insert(items, {
-        label = "@" .. label,
-        kind = kind,
-        detail = data.description,
-      })
-    end
   end
 
   callback({

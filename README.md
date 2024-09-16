@@ -20,7 +20,7 @@ New features are always announced <a href="https://github.com/olimorris/codecomp
 Thank you to the following people:
 
 <p align="center">
-<!-- coffee --><a href="https://github.com/bassamsdata"><img src="https://github.com/bassamsdata.png" width="60px" alt="Bassam Data" /></a><a href="https://github.com/ivo-toby"><img src="https://github.com/ivo-toby.png" width="60px" alt="Ivo Toby" /></a><a href="https://github.com/KTSCode"><img src="https://github.com/KTSCode.png" width="60px" alt="KTS Code" /></a><!-- coffee --><!-- sponsors --><a href="https://github.com/mtmr0x"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;5414299?u&#x3D;b60f401c665a5aecd45bf4a5c79f7fced0e85b6d&amp;v&#x3D;4" width="60px" alt="Matheus Marsiglio" /></a><a href="https://github.com/unicell"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;35352?u&#x3D;1de708f9084ea3ea710294a38694414af4c6ed53&amp;v&#x3D;4" width="60px" alt="Qiu Yu" /></a><a href="https://github.com/zhming0"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;1054703?u&#x3D;b173a2c1afc61fa25d9343704659630406e3dea7&amp;v&#x3D;4" width="60px" alt="Zhiming Guo" /></a><a href="https://github.com/koskeller"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;30801340?u&#x3D;b89bc8fe35246370a30bbe59719c3b32459f4129&amp;v&#x3D;4" width="60px" alt="Konstantin Keller" /></a><!-- sponsors -->
+<!-- coffee --><a href="https://x.com/luxus"><img src="https://pbs.twimg.com/profile_images/744754093495844864/GwnEJygG_400x400.jpg" width="60px" alt="Luxus" /></a><a href="https://github.com/bassamsdata"><img src="https://github.com/bassamsdata.png" width="60px" alt="Bassam Data" /></a><a href="https://github.com/ivo-toby"><img src="https://github.com/ivo-toby.png" width="60px" alt="Ivo Toby" /></a><a href="https://github.com/KTSCode"><img src="https://github.com/KTSCode.png" width="60px" alt="KTS Code" /></a><!-- coffee --><!-- sponsors --><a href="https://github.com/mtmr0x"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;5414299?u&#x3D;b60f401c665a5aecd45bf4a5c79f7fced0e85b6d&amp;v&#x3D;4" width="60px" alt="Matheus Marsiglio" /></a><a href="https://github.com/unicell"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;35352?u&#x3D;1de708f9084ea3ea710294a38694414af4c6ed53&amp;v&#x3D;4" width="60px" alt="Qiu Yu" /></a><a href="https://github.com/zhming0"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;1054703?u&#x3D;b173a2c1afc61fa25d9343704659630406e3dea7&amp;v&#x3D;4" width="60px" alt="Zhiming Guo" /></a><a href="https://github.com/koskeller"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;30801340?u&#x3D;b89bc8fe35246370a30bbe59719c3b32459f4129&amp;v&#x3D;4" width="60px" alt="Konstantin Keller" /></a><!-- sponsors -->
 </p>
 
 <!-- panvimdoc-ignore-end -->
@@ -147,8 +147,8 @@ _Slash commands_, accessed via `/`, run commands to insert additional context in
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out actions:
 
-- `@buffer_editor` - The LLM will edit code in a Neovim buffer by searching and replacing blocks
 - `@code_runner` - The LLM will run code for you in a Docker container
+- `@editor` - The LLM will edit code in a Neovim buffer
 - `@rag` - The LLM will browse and search the internet for real-time information to supplement its response
 
 > [!TIP]
@@ -866,7 +866,7 @@ Use Markdown formatting and include the programming language name at the start o
       diff = {
         enabled = true,
         -- mini_diff is using inline diff in the same buffer but requires the plugin to be installed: https://github.com/echasnovski/mini.diff
-        diff_method = "default", -- default|mini_diff 
+        diff_method = "default", -- default|mini_diff
         close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
         layout = "vertical", -- vertical|horizontal
         opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
@@ -1169,9 +1169,9 @@ By default, an inline assistant prompt will trigger the diff feature, showing di
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
-In the plugin, agents are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response for the plugin to parse, execute and feedback on. Agents can be added as a participant in a chat buffer by using the `@` key.
+In the plugin, agents are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response for the plugin to parse, execute and feedback on. Agents can be added as a participant to the chat buffer by using the `@` key.
 
-More information on how agents work and how you can create your own can be found in the [AGENTS](doc/AGENTS.md) guide.
+More information on how agents work and how you can create your own can be found in the [TOOLS](doc/TOOLS.md) guide.
 
 ### :world_map: Workflows
 
@@ -1204,6 +1204,7 @@ The plugin sets the following highlight groups during setup:
 
 The plugin fires many events during its lifecycle:
 
+- `CodeCompanionToolAdded` - Fired when a tool has been added to a chat buffer
 - `CodeCompanionChatClosed` - Fired after a chat has been closed
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionAgentStarted` - Fired when an agent has started using a tool

@@ -20,7 +20,12 @@ function source:get_keyword_pattern()
 end
 
 function source:complete(request, callback)
-  self.chat:complete(request, callback)
+  local chat = require("codecompanion").buf_get_chat(0)
+  if chat then
+    chat:complete(request, callback)
+  else
+    callback({ items = {}, isIncomplete = false })
+  end
 end
 
 return source
