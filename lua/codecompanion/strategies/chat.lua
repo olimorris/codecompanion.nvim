@@ -84,7 +84,7 @@ local function buf_parse_settings(bufnr, adapter, ts_query)
   local query = vim.treesitter.query.parse("yaml", ts_query)
   local root = parser:parse()[1]:root()
 
-  for _, match in query:iter_matches(root, bufnr) do
+  for _, match in query:iter_matches(root, bufnr, nil, nil, { all = false }) do
     local value = vim.treesitter.get_node_text(match[1], bufnr)
 
     settings = yaml.decode(value)
