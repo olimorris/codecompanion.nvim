@@ -207,8 +207,6 @@ local chatmap = {}
 ---@type CodeCompanion.Chat|nil
 local last_chat = {}
 
-local registered_cmp = false
-
 ---@class CodeCompanion.Chat
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
@@ -474,35 +472,6 @@ end
 ---@return nil
 function Chat:set_autocmds()
   local bufnr = self.bufnr
-
-  -- Setup completion
-  api.nvim_create_autocmd("InsertEnter", {
-    group = self.aug,
-    buffer = bufnr,
-    once = true,
-    desc = "Setup the completion of helpers in the chat buffer",
-    callback = function()
-      local has_cmp, cmp = pcall(require, "cmp")
-      if has_cmp then
-        if not registered_cmp then
-          registered_cmp = true
-          cmp.register_source("codecompanion_tools", require("cmp_codecompanion.tools").new(config))
-          cmp.register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
-          cmp.register_source("codecompanion_slash_commands", require("cmp_codecompanion.slash_commands").new())
-          cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new(config))
-        end
-        cmp.setup.buffer({
-          enabled = true,
-          sources = {
-            { name = "codecompanion_tools" },
-            { name = "codecompanion_variables" },
-            { name = "codecompanion_slash_commands" },
-            { name = "codecompanion_models" },
-          },
-        })
-      end
-    end,
-  })
 
   if config.display.chat.show_settings then
     api.nvim_create_autocmd("CursorMoved", {
