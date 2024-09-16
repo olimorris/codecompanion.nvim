@@ -1,5 +1,28 @@
 # Changelog
 
+## [3.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v2.7.0...v3.0.0) (2024-09-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* `default_prompts` removed
+
+### Features
+
+* :sparkles: add /help slash-command ([#212](https://github.com/olimorris/codecompanion.nvim/issues/212)) ([51cd95c](https://github.com/olimorris/codecompanion.nvim/commit/51cd95c9582cb4ba41f2050d96f51cb5e9bdeb17))
+* **tools:** :sparkles: improved tools ([c2a319f](https://github.com/olimorris/codecompanion.nvim/commit/c2a319f5a3885fda1030af0485055f6a3dc00e26))
+
+
+### Bug Fixes
+
+* [#224](https://github.com/olimorris/codecompanion.nvim/issues/224) cmp and settings error in chat buffer ([39448da](https://github.com/olimorris/codecompanion.nvim/commit/39448dac0afaacdab6ae48ea408e376c71b38a39))
+* **copilot:** token retrieval logic ([6679b60](https://github.com/olimorris/codecompanion.nvim/commit/6679b60d463b2fb3d1c030872f4856c0a6e167ba))
+
+
+### Code Refactoring
+
+* `default_prompts` removed ([63e7009](https://github.com/olimorris/codecompanion.nvim/commit/63e70098da4e11b9f50aaea4ba46ada8c2101e61))
+
 ## [2.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v2.6.6...v2.7.0) (2024-09-13)
 
 
