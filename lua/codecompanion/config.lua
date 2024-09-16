@@ -74,6 +74,13 @@ return {
             contains_code = true,
           },
         },
+        ["help"] = {
+          callback = "helpers.slash_commands.help",
+          description = "Insert content from help tags",
+          opts = {
+            contains_code = true,
+          },
+        },
       },
       keymaps = {
         options = {

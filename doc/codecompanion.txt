@@ -122,6 +122,7 @@ into the chat buffer:
 - `/file` - Insert a file
 - `/now` - Insert the current date and time
 - `/symbols` - Insert symbols for the active buffer
+- `/help` - Insert content from help tags
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out
 actions:
