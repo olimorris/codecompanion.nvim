@@ -1,7 +1,7 @@
 <!-- panvimdoc-ignore-start -->
 
 <p align="center">
-<img src="https://github.com/user-attachments/assets/da4619b6-e868-475e-bb0e-5aab6986cc18" alt="CodeCompanion.nvim" />
+<img src="https://github.com/user-attachments/assets/535c05ba-8be0-4d44-a636-45be2e622509" alt="CodeCompanion.nvim" />
 </p>
 
 <p align="center">
