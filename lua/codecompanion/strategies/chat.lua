@@ -326,6 +326,9 @@ function Chat:open()
   if self:is_visible() then
     return
   end
+  if config.display.chat.start_in_insert_mode then
+    vim.cmd("startinsert")
+  end
 
   local window = config.display.chat.window
   local width = window.width > 1 and window.width or math.floor(vim.o.columns * window.width)
@@ -554,28 +557,25 @@ end
 ---Set any extmarks in the chat buffer
 ---@return CodeCompanion.Chat|nil
 function Chat:set_extmarks()
-  if
-    config.display.chat.start_in_insert_mode
-    or self.intro_message
-    or (self.opts.messages and #self.opts.messages > 0)
-  then
-    vim.cmd("startinsert")
+  if self.intro_message or (self.opts.messages and #self.opts.messages > 0) then
     return self
   end
 
   -- Welcome message
-  local ns_intro = api.nvim_create_namespace(CONSTANTS.NS_INTRO)
-  local id = api.nvim_buf_set_extmark(self.bufnr, ns_intro, api.nvim_buf_line_count(self.bufnr) - 1, 0, {
-    virt_text = { { config.display.chat.intro_message, "CodeCompanionVirtualText" } },
-    virt_text_pos = "eol",
-  })
-  api.nvim_create_autocmd("InsertEnter", {
-    buffer = self.bufnr,
-    callback = function()
-      api.nvim_buf_del_extmark(self.bufnr, ns_intro, id)
-    end,
-  })
-  self.intro_message = true
+  if not config.display.chat.start_in_insert_mode then
+    local ns_intro = api.nvim_create_namespace(CONSTANTS.NS_INTRO)
+    local id = api.nvim_buf_set_extmark(self.bufnr, ns_intro, api.nvim_buf_line_count(self.bufnr) - 1, 0, {
+      virt_text = { { config.display.chat.intro_message, "CodeCompanionVirtualText" } },
+      virt_text_pos = "eol",
+    })
+    api.nvim_create_autocmd("InsertEnter", {
+      buffer = self.bufnr,
+      callback = function()
+        api.nvim_buf_del_extmark(self.bufnr, ns_intro, id)
+      end,
+    })
+    self.intro_message = true
+  end
 
   return self
 end
