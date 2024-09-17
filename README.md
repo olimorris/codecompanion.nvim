@@ -877,6 +877,9 @@ Use Markdown formatting and include the programming language name at the start o
   opts = {
     log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
 
+    -- Prompt used for interactive LLM calls
+    command_prompt_prefix = "Prompt ",
+
     diff = {
       enabled = true,
       close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...

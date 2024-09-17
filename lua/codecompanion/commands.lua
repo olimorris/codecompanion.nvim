@@ -1,4 +1,5 @@
 local log = require("codecompanion.utils.log")
+local config = require("codecompanion.config")
 
 ---@class CodeCompanionCommandOpts:table
 ---@field desc string
@@ -20,7 +21,7 @@ return {
     cmd = "CodeCompanion",
     callback = function(opts)
       if #vim.trim(opts.args or "") == 0 then
-        vim.ui.input({ prompt = "Prompt" }, function(input)
+        vim.ui.input({ prompt = config.opts.command_prompt_prefix }, function(input)
           if #vim.trim(input or "") == 0 then
             return
           end
