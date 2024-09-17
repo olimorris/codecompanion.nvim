@@ -198,7 +198,6 @@ function Inline:start(opts)
 
     vim.ui.input({ prompt = title .. " " .. config.opts.command_prompt_prefix }, function(input)
       if not input then
-        log:warn("No input provided")
         return
       end
 
