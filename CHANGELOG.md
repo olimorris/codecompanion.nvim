@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v3.0.2...v3.1.0) (2024-09-17)
+
+
+### Features
+
+* `vim.ui.input` prompt is now customizable ([#231](https://github.com/olimorris/codecompanion.nvim/issues/231)) ([f761716](https://github.com/olimorris/codecompanion.nvim/commit/f761716be16eeac12ad8b7a144fa8bca23ae2f21))
+* add back mini.diff ([#230](https://github.com/olimorris/codecompanion.nvim/issues/230)) ([574c0ac](https://github.com/olimorris/codecompanion.nvim/commit/574c0ac5cb0cdd8b999a2bbd7c81ecf63d2b2f76))
+
+
+### Bug Fixes
+
+* diff provider in editor tool ([#232](https://github.com/olimorris/codecompanion.nvim/issues/232)) ([3422b1c](https://github.com/olimorris/codecompanion.nvim/commit/3422b1ccd8bed844c25965de8428c05581bdfc2f))
+* move `opts.diff` to `display.diff` ([b5f3378](https://github.com/olimorris/codecompanion.nvim/commit/b5f337861a47e7ce3af9ba96b2735e2c3c45d5af))
+
 ## [3.0.2](https://github.com/olimorris/codecompanion.nvim/compare/v3.0.1...v3.0.2) (2024-09-16)
 
 
