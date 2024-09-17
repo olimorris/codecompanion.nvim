@@ -196,7 +196,7 @@ function Inline:start(opts)
       title = string.gsub(self.context.filetype, "^%l", string.upper)
     end
 
-    vim.ui.input({ prompt = title .. " " .. config.opts.command_prompt_prefix }, function(input)
+    vim.ui.input({ prompt = title .. " " .. config.display.action_palette.prompt }, function(input)
       if not input then
         return
       end

@@ -601,6 +601,7 @@ Use Markdown formatting and include the programming language name at the start o
     action_palette = {
       width = 95,
       height = 10,
+      prompt = "Prompt ", -- Prompt used for interactive LLM calls
     },
     chat = {
       window = {
@@ -642,9 +643,6 @@ Use Markdown formatting and include the programming language name at the start o
   -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
     log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
-
-    -- Prompt used for interactive LLM calls
-    command_prompt_prefix = "Prompt ",
 
     diff = {
       enabled = true,

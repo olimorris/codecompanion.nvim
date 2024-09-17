@@ -1,5 +1,4 @@
 local context_utils = require("codecompanion.utils.context")
-local dep = require("codecompanion.utils.deprecate")
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
