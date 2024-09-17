@@ -220,11 +220,28 @@ The plugin allows you to specify adapters for each strategy and also for each
 |codecompanion-pre-defined-prompt|.
 
 
-DEFAULTS ~
+CHANGING THE DEFAULTS ~
 
+The default config can be found here
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>
+and they can be changed by calling the `setup` function:
 
-  [!NOTE] You only need to the call the `setup` function if you wish to change
-  any of the config defaults.
+>lua
+    require("codecompanion").setup({
+      display = {
+        diff = {
+          provider = "mini_diff",
+        },
+      },
+      opts = {
+        log_level = "DEBUG",
+      },
+    })
+<
+
+Please refer to the |codecompanion-section| below in order to configure
+adapters.
+
 **Changing the System Prompt**
 
 The default system prompt has been carefully curated to deliver responses which
