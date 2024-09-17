@@ -601,6 +601,7 @@ Use Markdown formatting and include the programming language name at the start o
     action_palette = {
       width = 95,
       height = 10,
+      prompt = "Prompt ", -- Prompt used for interactive LLM calls
     },
     diff = {
       enabled = true,

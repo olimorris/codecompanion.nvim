@@ -10,17 +10,13 @@ local log = require("codecompanion.utils.log")
 
 local codecompanion = require("codecompanion")
 
-local clean_up_prompt = function(prompt)
-  return prompt:match("%s(.+)")
-end
-
 ---@type CodeCompanionCommand[]
 return {
   {
     cmd = "CodeCompanion",
     callback = function(opts)
       if #vim.trim(opts.args or "") == 0 then
-        vim.ui.input({ prompt = "Prompt" }, function(input)
+        vim.ui.input({ prompt = require("codecompanion").config.display.action_palette.prompt }, function(input)
           if #vim.trim(input or "") == 0 then
             return
           end

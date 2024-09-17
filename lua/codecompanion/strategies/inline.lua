@@ -196,9 +196,8 @@ function Inline:start(opts)
       title = string.gsub(self.context.filetype, "^%l", string.upper)
     end
 
-    vim.ui.input({ prompt = title .. " Prompt" }, function(input)
+    vim.ui.input({ prompt = title .. " " .. config.display.action_palette.prompt }, function(input)
       if not input then
-        log:warn("No input provided")
         return
       end
 
