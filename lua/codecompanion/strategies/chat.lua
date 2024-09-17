@@ -554,7 +554,12 @@ end
 ---Set any extmarks in the chat buffer
 ---@return CodeCompanion.Chat|nil
 function Chat:set_extmarks()
-  if self.intro_message or (self.opts.messages and #self.opts.messages > 0) then
+  if
+    config.display.chat.start_in_insert_mode
+    or self.intro_message
+    or (self.opts.messages and #self.opts.messages > 0)
+  then
+    vim.cmd("startinsert")
     return self
   end
 
