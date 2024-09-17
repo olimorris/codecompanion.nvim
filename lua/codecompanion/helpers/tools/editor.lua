@@ -21,7 +21,7 @@ return {
       -- Diff the buffer
       if config.opts.diff.enabled then
         local ok
-        local provider = config.display.inline.diff.provider
+        local provider = config.opts.diff.provider
         ok, diff = pcall(require, "codecompanion.helpers.diff." .. provider)
 
         if ok then
