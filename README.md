@@ -1221,6 +1221,8 @@ The plugin fires many events during its lifecycle:
 - `CodeCompanionInlineFinished` - Fired at the end of the Inline strategy
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
+- `CodeCompanionDiffAttached` - Fired when in Diff mode
+- `CodeCompanionDiffDetached` - Fired when exiting Diff mode
 
 > [!TIP]
 > Some events are sent with a data payload which can be leveraged.

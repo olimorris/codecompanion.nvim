@@ -646,9 +646,9 @@ Use Markdown formatting and include the programming language name at the start o
     diff = {
       enabled = true,
       close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-      layout = "vertical", -- vertical|horizontal
+      layout = "vertical", -- vertical|horizontal split for default provider
       opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
-      provider = "default", -- default
+      provider = "default", -- default|mini_diff
     },
 
     -- If this is false then any default prompt that is marked as containing code
