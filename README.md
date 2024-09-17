@@ -835,7 +835,7 @@ Use Markdown formatting and include the programming language name at the start o
     action_palette = {
       width = 95,
       height = 10,
-      command = "Prompt ", -- Prompt used for interactive LLM calls
+      prompt = "Prompt ", -- Prompt used for interactive LLM calls
     },
     chat = {
       window = {
