@@ -2,7 +2,9 @@
 -- https://github.com/S1M0N38/dante.nvim
 
 local config = require("codecompanion").config
+
 local log = require("codecompanion.utils.log")
+local util = require("codecompanion.utils.util")
 
 local api = vim.api
 
@@ -70,28 +72,35 @@ function Diff.new(args)
   end
 
   -- Begin diffing
+  util.fire("DiffAttached", { diff = "default", bufnr = self.bufnr })
   api.nvim_set_current_win(self.winnr_diff)
   vim.cmd("diffthis")
   api.nvim_set_current_win(self.winnr)
   vim.cmd("diffthis")
 
+  log:trace("Using default diff")
   return self
 end
 
 ---Accept the diff
 ---@return nil
 function Diff:accept()
-  return api.nvim_win_close(self.winnr_diff, false)
+  return self:teardown()
 end
 
 ---Reject the diff
 ---@return nil
 function Diff:reject()
+  self:teardown()
+  return api.nvim_buf_set_lines(self.bufnr, 0, -1, true, self.contents)
+end
+
+---Close down the diff
+---@return nil
+function Diff:teardown()
   vim.cmd("diffoff")
   api.nvim_win_close(self.winnr_diff, false)
-
-  -- Set the buffer back to the original contents
-  return api.nvim_buf_set_lines(self.bufnr, 0, -1, true, self.contents)
+  util.fire("DiffDetached", { diff = "default", bufnr = self.bufnr })
 end
 
 return Diff
