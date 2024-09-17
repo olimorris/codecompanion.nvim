@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v3.2.0...v3.2.1) (2024-09-17)
+
+
+### Bug Fixes
+
+* **chat:** entering insert mode ([c7bbfac](https://github.com/olimorris/codecompanion.nvim/commit/c7bbfac0e914b2d13067e5a2f89f2190bbcd44b7))
+
 ## [3.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v3.1.0...v3.2.0) (2024-09-17)
 
 
