@@ -292,14 +292,10 @@ Points to note:
         {
           role = "system",
           content = function(context)
-            if context.buftype == "terminal" then
-              return "I want you to act as an expert in writing terminal commands that will work for my current shell "
-                .. os.getenv("SHELL")
-                .. ". I will ask you specific questions and I want you to return the raw command only (no codeblocks and explanations). If you can't respond with a command, respond with nothing"
-            end
-            return "I want you to act as a senior "
-              .. context.filetype
-              .. " developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing"
+            return string.format(
+              [["I want you to act as a senior %s developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing]],
+              context.filetype
+            )
           end,
           opts = {
             visible = false,
@@ -340,7 +336,16 @@ Points to note:
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
-            return "Please explain this code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
+            return string.format(
+              [[Please explain this code:
+
+```%s
+%s
+```
+]],
+              context.filetype,
+              code
+            )
           end,
           opts = {
             contains_code = true,
@@ -384,7 +389,16 @@ Points to note:
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
-            return "Please generate unit tests for this code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
+            return string.format(
+              [[Please generate unit tests for this code:
+
+```%s
+%s
+```
+]],
+              context.filetype,
+              code
+            )
           end,
           opts = {
             contains_code = true,
@@ -432,7 +446,16 @@ Use Markdown formatting and include the programming language name at the start o
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
-            return "Please fix the selected code:\n\n```" .. context.filetype .. "\n" .. code .. "\n```\n\n"
+            return string.format(
+              [[Please fix this code:
+
+```%s
+%s
+```
+]],
+              context.filetype,
+              code
+            )
           end,
           opts = {
             contains_code = true,
@@ -485,11 +508,17 @@ Use Markdown formatting and include the programming language name at the start o
           end,
           content = function(context)
             local selection = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-            return "And this is some that relates to my question:\n\n```"
-              .. context.filetype
-              .. "\n"
-              .. selection
-              .. "\n```\n\n"
+
+            return string.format(
+              [[And this is some code that relates to my question:
+
+```%s
+%s
+```
+]],
+              context.filetype,
+              selection
+            )
           end,
           opts = {
             contains_code = true,
@@ -544,25 +573,34 @@ Use Markdown formatting and include the programming language name at the start o
                 .. "\n"
             end
 
-            return "The programming language is "
-              .. context.filetype
-              .. ". This is a list of the diagnostic messages:\n\n"
-              .. concatenated_diagnostics
+            return string.format(
+              [[The programming language is %s. This is a list of the diagnostic messages:
+
+%s
+]],
+              context.filetype,
+              concatenated_diagnostics
+            )
           end,
         },
         {
           role = "user",
           content = function(context)
-            return "This is the code, for context:\n\n"
-              .. "```"
-              .. context.filetype
-              .. "\n"
-              .. require("codecompanion.helpers.actions").get_code(
-                context.start_line,
-                context.end_line,
-                { show_line_numbers = true }
-              )
-              .. "\n```\n\n"
+            local code = require("codecompanion.helpers.actions").get_code(
+              context.start_line,
+              context.end_line,
+              { show_line_numbers = true }
+            )
+            return string.format(
+              [[This is the code, for context:
+
+```%s
+%s
+```
+]],
+              context.filetype,
+              code
+            )
           end,
           opts = {
             contains_code = true,
@@ -584,10 +622,15 @@ Use Markdown formatting and include the programming language name at the start o
         {
           role = "user",
           content = function()
-            return "You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:"
-              .. "\n\n```\n"
-              .. vim.fn.system("git diff")
-              .. "\n```"
+            return string.format(
+              [[You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:
+
+```diff
+%s
+```
+]],
+              vim.fn.system("git diff")
+            )
           end,
           opts = {
             contains_code = true,
