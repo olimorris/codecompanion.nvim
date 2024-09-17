@@ -42,16 +42,16 @@ function Diff.new(args)
   local wrap = vim.wo.wrap
   local linebreak = vim.wo.linebreak
   local breakindent = vim.wo.breakindent
-  vim.cmd("set diffopt=" .. table.concat(config.opts.diff.opts, ","))
+  vim.cmd("set diffopt=" .. table.concat(config.display.diff.opts, ","))
 
   --- Minimize the chat buffer window if there's not enough screen estate
   local last_chat = require("codecompanion").last_chat()
-  if last_chat and last_chat:is_visible() and config.opts.diff.close_chat_at > vim.o.columns then
+  if last_chat and last_chat:is_visible() and config.display.diff.close_chat_at > vim.o.columns then
     last_chat:hide()
   end
 
   -- Create the diff buffer
-  if config.opts.diff.layout == "vertical" then
+  if config.display.diff.layout == "vertical" then
     vim.cmd("vsplit")
   else
     vim.cmd("split")

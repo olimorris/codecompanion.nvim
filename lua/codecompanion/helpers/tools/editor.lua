@@ -19,9 +19,9 @@ return {
       local lines = vim.split(action.code, "\n", { plain = true, trimempty = false })
 
       -- Diff the buffer
-      if config.opts.diff.enabled then
+      if config.display.diff.enabled then
         local ok
-        local provider = config.opts.diff.provider
+        local provider = config.display.diff.provider
         ok, diff = pcall(require, "codecompanion.helpers.diff." .. provider)
 
         if ok then
