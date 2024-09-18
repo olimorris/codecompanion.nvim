@@ -122,23 +122,23 @@ M.toggle = function()
   chat:open()
 end
 
----Get a single chat buffer or return all of them
+---Return a chat buffer
 ---@param bufnr? integer
 ---@return CodeCompanion.Chat|table
 M.buf_get_chat = function(bufnr)
   return require("codecompanion.strategies.chat").buf_get_chat(bufnr)
 end
 
----Close the last chat buffer
----@return nil
-M.close_last_chat = function()
-  return require("codecompanion.strategies.chat").close_last_chat()
-end
-
 ---Get the last chat buffer
 ---@return CodeCompanion.Chat|nil
 M.last_chat = function()
   return require("codecompanion.strategies.chat").last_chat()
+end
+
+---Close the last chat buffer
+---@return nil
+M.close_last_chat = function()
+  return require("codecompanion.strategies.chat").close_last_chat()
 end
 
 local _cached_actions = {}
@@ -271,7 +271,7 @@ M.setup = function(opts)
     end),
   })
 
-  -- Setup the slash commands
+  -- Setup the inline slash commands
   local prompts = require("codecompanion.prompts").new(M.config.pre_defined_prompts):setup()
   for name, prompt in pairs(prompts.prompts) do
     if prompt.opts then
@@ -288,6 +288,7 @@ M.setup = function(opts)
     end
   end
 
+  -- TODO: Move to chat buffer
   M.config.INFO_NS = api.nvim_create_namespace("CodeCompanion-info")
   M.config.ERROR_NS = api.nvim_create_namespace("CodeCompanion-error")
 
