@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.2](https://github.com/olimorris/codecompanion.nvim/compare/v3.2.1...v3.2.2) (2024-09-18)
+
+
+### Bug Fixes
+
+* **ollama:** [#223](https://github.com/olimorris/codecompanion.nvim/issues/223) ollama can be slow when `num_ctx` is large ([4b60b0e](https://github.com/olimorris/codecompanion.nvim/commit/4b60b0ef26d180c214b075e788470fd1c6cac729))
+
 ## [3.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v3.2.0...v3.2.1) (2024-09-17)
 
 
