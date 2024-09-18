@@ -97,12 +97,12 @@ use({
 ```vim
 call plug#begin()
 
-Plug "nvim-lua/plenary.nvim"
-Plug "nvim-treesitter/nvim-treesitter"
-Plug "hrsh7th/nvim-cmp", " Optional: For using slash commands and variables in the chat buffer
-Plug "stevearc/dressing.nvim" " Optional: Improves the default Neovim UI
-Plug "nvim-telescope/telescope.nvim", " Optional: For using slash commands
-Plug "olimorris/codecompanion.nvim"
+Plug 'nvim-lua/plenary.nvim'
+Plug 'nvim-treesitter/nvim-treesitter'
+Plug 'hrsh7th/nvim-cmp', " Optional: For using slash commands and variables in the chat buffer
+Plug 'stevearc/dressing.nvim' " Optional: Improves the default Neovim UI
+Plug 'nvim-telescope/telescope.nvim', " Optional: For using slash commands
+Plug 'olimorris/codecompanion.nvim'
 
 call plug#end()
 
