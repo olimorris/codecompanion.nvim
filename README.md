@@ -1,7 +1,7 @@
 <!-- panvimdoc-ignore-start -->
 
 <p align="center">
-<img src="https://github.com/user-attachments/assets/535c05ba-8be0-4d44-a636-45be2e622509" alt="CodeCompanion.nvim" />
+<img src="https://github.com/user-attachments/assets/83a7685d-4d7e-4849-bdae-a92d193345c2" alt="CodeCompanion.nvim" />
 </p>
 
 <p align="center">
@@ -64,11 +64,8 @@ Install the plugin with your preferred package manager:
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
     "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
-    {
-      "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
-      opts = {},
-    },
     "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
+    { "stevearc/dressing.nvim", opts = {} }, -- Optional: Improves the default Neovim UI
   },
   config = true
 }
@@ -86,8 +83,8 @@ use({
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
     "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
-    "stevearc/dressing.nvim" -- Optional: Improves the default Neovim UI
     "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
+    "stevearc/dressing.nvim" -- Optional: Improves the default Neovim UI
   }
 })
 ```
@@ -100,8 +97,8 @@ call plug#begin()
 Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-treesitter/nvim-treesitter'
 Plug 'hrsh7th/nvim-cmp', " Optional: For using slash commands and variables in the chat buffer
-Plug 'stevearc/dressing.nvim' " Optional: Improves the default Neovim UI
 Plug 'nvim-telescope/telescope.nvim', " Optional: For using slash commands
+Plug 'stevearc/dressing.nvim' " Optional: Improves the default Neovim UI
 Plug 'olimorris/codecompanion.nvim'
 
 call plug#end()
