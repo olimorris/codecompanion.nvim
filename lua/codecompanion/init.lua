@@ -95,7 +95,7 @@ M.chat = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
 
   if args and args.fargs then
-    adapter = M.config.adapters[args.fargs[1]]
+    adapter = M.config.adapters[args.fargs[1]:lower()]
   end
 
   return require("codecompanion.strategies.chat").new({
