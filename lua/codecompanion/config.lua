@@ -60,6 +60,13 @@ return {
             provider = "telescope", -- telescope|mini_pick|fzf_lua
           },
         },
+        ["help"] = {
+          callback = "helpers.slash_commands.help",
+          description = "Insert content from help tags",
+          opts = {
+            contains_code = false,
+          },
+        },
         ["now"] = {
           callback = "helpers.slash_commands.now",
           description = "Insert the current date and time",
@@ -74,11 +81,11 @@ return {
             contains_code = true,
           },
         },
-        ["help"] = {
-          callback = "helpers.slash_commands.help",
-          description = "Insert content from help tags",
+        ["terminal"] = {
+          callback = "helpers.slash_commands.terminal",
+          description = "Insert terminal output",
           opts = {
-            contains_code = true,
+            contains_code = false,
           },
         },
       },
@@ -248,7 +255,6 @@ return {
           description = "Supplement the LLM with real-time info from the internet",
           opts = {
             api_key = nil,
-            hide_output = true,
           },
         },
         opts = {

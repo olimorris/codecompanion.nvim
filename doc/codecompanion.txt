@@ -43,11 +43,8 @@ Install the plugin with your preferred package manager:
         "nvim-lua/plenary.nvim",
         "nvim-treesitter/nvim-treesitter",
         "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
-        {
-          "stevearc/dressing.nvim", -- Optional: Improves the default Neovim UI
-          opts = {},
-        },
         "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
+        { "stevearc/dressing.nvim", opts = {} }, -- Optional: Improves the default Neovim UI
       },
       config = true
     }
@@ -65,8 +62,8 @@ Install the plugin with your preferred package manager:
         "nvim-lua/plenary.nvim",
         "nvim-treesitter/nvim-treesitter",
         "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
-        "stevearc/dressing.nvim" -- Optional: Improves the default Neovim UI
         "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
+        "stevearc/dressing.nvim" -- Optional: Improves the default Neovim UI
       }
     })
 <
@@ -79,8 +76,8 @@ Install the plugin with your preferred package manager:
     Plug 'nvim-lua/plenary.nvim'
     Plug 'nvim-treesitter/nvim-treesitter'
     Plug 'hrsh7th/nvim-cmp', " Optional: For using slash commands and variables in the chat buffer
-    Plug 'stevearc/dressing.nvim' " Optional: Improves the default Neovim UI
     Plug 'nvim-telescope/telescope.nvim', " Optional: For using slash commands
+    Plug 'stevearc/dressing.nvim' " Optional: Improves the default Neovim UI
     Plug 'olimorris/codecompanion.nvim'
     
     call plug#end()
@@ -123,9 +120,10 @@ into the chat buffer:
 
 - `/buffer` - Insert open buffers
 - `/file` - Insert a file
+- `/help` - Insert content from help tags
 - `/now` - Insert the current date and time
 - `/symbols` - Insert symbols for the active buffer
-- `/help` - Insert content from help tags
+- `/terminal` - Insert terminal output
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out
 actions:

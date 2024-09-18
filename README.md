@@ -142,9 +142,10 @@ _Slash commands_, accessed via `/`, run commands to insert additional context in
 
 - `/buffer` - Insert open buffers
 - `/file` - Insert a file
+- `/help` - Insert content from help tags
 - `/now` - Insert the current date and time
 - `/symbols` - Insert symbols for the active buffer
-- `/help` - Insert content from help tags
+- `/terminal` - Insert terminal output
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out actions:
 
