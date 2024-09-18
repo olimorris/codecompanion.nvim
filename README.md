@@ -111,6 +111,9 @@ lua << EOF
 EOF
 ```
 
+> [!IMPORTANT]
+> The plugin requires the markdown Tree-sitter parser to be installed with `:TSInstall markdown`
+
 [Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is a suggested inclusion in order to leverage Slash Commands. However other providers are available. Please refer to the [Chat Buffer](#speech_balloon-the-chat-buffer) section for more information.
 
 ## :rocket: Quickstart
