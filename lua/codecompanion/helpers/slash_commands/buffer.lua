@@ -34,7 +34,15 @@ local function output(SlashCommand, selected)
   end
 
   local Chat = SlashCommand.Chat
-  Chat:append_to_buf({ content = "[!" .. CONSTANTS.NAME .. ": `" .. selected[CONSTANTS.DISPLAY] .. "`]\n" })
+  Chat:append_to_buf({
+    content = "[!"
+      .. CONSTANTS.NAME
+      .. ": `"
+      .. selected[CONSTANTS.DISPLAY]
+      .. "` / Buf No.: "
+      .. selected.bufnr
+      .. "]\n",
+  })
   Chat:append_to_buf({ content = content })
   Chat:fold_code()
 end
