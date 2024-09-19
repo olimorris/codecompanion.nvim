@@ -739,7 +739,7 @@ You must:
 
 When given a task:
 1. Think step-by-step and describe your plan for what to build in pseudocode, written out in great detail.
-2. Output the code in a single code block.
+2. Output the code in a single code block, being careful to only return relevant code.
 3. You should always generate short suggestions for the next user turns that are relevant to the conversation.
 4. You can only give one reply for each conversation turn.]],
   },
