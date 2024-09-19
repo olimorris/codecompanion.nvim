@@ -94,7 +94,7 @@ M.chat = function(args)
   local adapter
   local context = context_utils.get(api.nvim_get_current_buf(), args)
 
-  if args and args.fargs then
+  if args and args.fargs and #args.fargs > 0 then
     adapter = M.config.adapters[args.fargs[1]:lower()]
   end
 
