@@ -267,6 +267,7 @@ function Tools:run()
         local event_data = { bufnr = self.bufnr, status = output.status, output = output.output }
         if output.status == CONSTANTS.STATUS_ERROR then
           event_data.error = output.output
+          output = nil
         end
         return util.fire("AgentFinished", event_data)
       end
