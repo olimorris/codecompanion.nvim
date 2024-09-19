@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.2](https://github.com/olimorris/codecompanion.nvim/compare/v3.3.1...v3.3.2) (2024-09-19)
+
+
+### Bug Fixes
+
+* **slash_cmd:** include buffer number ([9ef7840](https://github.com/olimorris/codecompanion.nvim/commit/9ef78403f19d2ed972be3325174542597fd569bb))
+
 ## [3.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v3.3.0...v3.3.1) (2024-09-19)
 
 
