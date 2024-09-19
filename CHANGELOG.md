@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v3.3.0...v3.3.1) (2024-09-19)
+
+
+### Bug Fixes
+
+* add buffer number to terminal slash command ([635a922](https://github.com/olimorris/codecompanion.nvim/commit/635a922b5f364b022c1c3f06c5d159fc8146ae5c))
+* **chat:** don't index an empty table ([#241](https://github.com/olimorris/codecompanion.nvim/issues/241)) ([0fa1748](https://github.com/olimorris/codecompanion.nvim/commit/0fa174846246b07bde80107c876c65fc626b7936))
+* **chat:** LLM returning the whole buffer ([37c51a9](https://github.com/olimorris/codecompanion.nvim/commit/37c51a94212158581ff7f96bcdff51b7789cd728))
+* **tools:** editor handles buffers out of context ([7997faa](https://github.com/olimorris/codecompanion.nvim/commit/7997faabf40d13cc87b728c8320109889bf1a1c4))
+* **tools:** on error do not send output ([93c0579](https://github.com/olimorris/codecompanion.nvim/commit/93c0579ef8b8e1714eec54b238631654b9721db8))
+
 ## [3.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v3.2.2...v3.3.0) (2024-09-18)
 
 
