@@ -1,6 +1,7 @@
 local config = require("codecompanion").config
 
 local keymaps = require("codecompanion.utils.keymaps")
+local ui = require("codecompanion.utils.ui")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local api = vim.api
@@ -15,46 +16,41 @@ return {
     ---@return table { status: string, output: string }
     function(self, input)
       local diff
+
       local action = self.tool.request.parameters.inputs
+      local bufnr = tonumber(action.buffer)
+      local winnr = ui.buf_get_win(bufnr)
       local lines = vim.split(action.code, "\n", { plain = true, trimempty = false })
 
+      if not api.nvim_buf_is_valid(bufnr) then
+        return { status = "error", output = "Invalid buffer number" }
+      end
+
       -- Diff the buffer
-      if config.display.diff.enabled then
+      if config.display.diff.enabled and bufnr and vim.bo[bufnr].buftype ~= "terminal" then
         local ok
         local provider = config.display.diff.provider
         ok, diff = pcall(require, "codecompanion.helpers.diff." .. provider)
 
-        if ok then
+        if ok and winnr then
           ---@type CodeCompanion.DiffArgs
           local diff_args = {
-            bufnr = tonumber(action.buffer),
-            contents = api.nvim_buf_get_lines(self.chat.context.bufnr, 0, -1, true),
-            filetype = self.chat.context.filetype,
-            winnr = self.chat.context.winnr,
+            bufnr = bufnr,
+            contents = api.nvim_buf_get_lines(bufnr, 0, -1, true),
+            filetype = api.nvim_buf_get_option(bufnr, "filetype"),
+            winnr = winnr,
           }
           ---@type CodeCompanion.Diff
           diff = diff.new(diff_args)
-          keymaps.set(config.strategies.inline.keymaps, self.chat.context.bufnr, { diff = diff })
+          keymaps.set(config.strategies.inline.keymaps, bufnr, { diff = diff })
         end
       end
 
       if action.method == "insert" then
-        vim.api.nvim_buf_set_lines(
-          tonumber(action.buffer),
-          tonumber(action.line) - 1,
-          tonumber(action.line) - 1,
-          false,
-          lines
-        )
+        api.nvim_buf_set_lines(bufnr, tonumber(action.line), tonumber(action.line), false, lines)
       end
       if action.method == "replace" then
-        vim.api.nvim_buf_set_lines(
-          tonumber(action.buffer),
-          tonumber(action.start_line) - 1,
-          tonumber(action.end_line),
-          false,
-          lines
-        )
+        api.nvim_buf_set_lines(bufnr, tonumber(action.start_line) - 1, tonumber(action.end_line), false, lines)
       end
 
       return { status = "success", output = nil }
