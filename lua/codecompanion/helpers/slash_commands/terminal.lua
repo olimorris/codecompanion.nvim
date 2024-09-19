@@ -31,7 +31,17 @@ function SlashCommandTerminal:execute()
   local Chat = self.Chat
 
   Chat:append_to_buf({ content = "[!" .. CONSTANTS.NAME .. "]\n" })
-  Chat:append_to_buf({ content = "```\n" .. table.concat(content, "\n") .. "\n```\n" })
+  Chat:append_to_buf({
+    content = string.format(
+      [[```
+Buffer Number: %s
+Output:
+%s
+```]],
+      terminal_buf,
+      table.concat(content, "\n")
+    ),
+  })
   Chat:fold_code()
 end
 
