@@ -120,7 +120,27 @@ local Providers = {
     })
   end,
 
-  ---TODO: Add the mini.pick provider
+  ---@param SlashCommand CodeCompanion.SlashCommandHelp
+  ---@return nil
+  mini_pick = function(SlashCommand)
+    local ok, mini_pick = pcall(require, "mini.pick")
+    if not ok then
+      return log:error("mini.pick is not installed")
+    end
+    mini_pick.builtin.help({}, {
+      source = {
+        name = CONSTANTS.PROMPT,
+        choose = function(item)
+          if item == nil then
+            return
+          end
+          local selection = { path = item.filename, tag = item.name }
+          output(SlashCommand, selection)
+        end,
+      },
+    })
+  end,
+
   ---TODO: The fzf-lua provider
 }
 
