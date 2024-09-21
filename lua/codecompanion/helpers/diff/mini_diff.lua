@@ -45,6 +45,7 @@ function MiniDiff.new(args)
       end,
       detach = function(bufnr)
         util.fire("DiffDetached", { diff = "mini_diff", bufnr = bufnr })
+        self:teardown()
       end,
     },
   }
@@ -58,21 +59,22 @@ end
 ---Accept the diff
 ---@return nil
 function MiniDiff:accept()
-  self:teardown()
+  vim.b[self.bufnr].minidiff_config = nil
+  diff.disable(self.bufnr)
 end
 
 ---Reject the diff
 ---@return nil
 function MiniDiff:reject()
-  self:teardown()
   api.nvim_buf_set_lines(self.bufnr, 0, -1, true, self.contents)
+
+  vim.b[self.bufnr].minidiff_config = nil
+  diff.disable(self.bufnr)
 end
 
 ---Close down mini.diff
 ---@return nil
 function MiniDiff:teardown()
-  diff.disable(self.bufnr)
-
   -- Revert the source
   if current_source then
     vim.b[self.bufnr].minidiff_config = diff.gen_source[current_source]()
