@@ -27,7 +27,7 @@ require("codecompanion").setup({
 })
 ```
 
-In this example, if you run `:CodeCompanionActions`, you should see "My New Prompt" in the bottom of the _Prompts_ section of the palette. Clicking on your new action will initiate the _chat_ strategy and set the value of the chat buffer based on the _role_ and _content_ that's been specified in the prompt.
+In this example, if you run `:CodeCompanionActions` or `:CodeCompanionTelescope`, you should see "My New Prompt" in the bottom of the _Prompts_ section of the palette. Clicking on your new action will initiate the _chat_ strategy and set the value of the chat buffer based on the _role_ and _content_ that's been specified in the prompt.
 
 In the following sections, we'll explore how you can customise your prompts even more.
 

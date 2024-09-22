@@ -161,7 +161,7 @@ There are keymaps available to accept or reject edits from the LLM in the
 
 **Action Palette**
 
-Run `:CodeCompanionActions` to open the action palette, which gives you access
+Run `:CodeCompanionActions` or `:CodeCompanionTelescope` to open the action palette, which gives you access
 to all of the functionality in the plugin. This is where core actions and the
 |codecompanion-pre-defined-prompts| are listed.
 
@@ -187,6 +187,7 @@ For an optimum workflow, I recommend the following keymaps:
 
 >lua
     vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
+    -- or: vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionTelescope<cr>", { noremap = true, silent = true })
     vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
     vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
     vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
