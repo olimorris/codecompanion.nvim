@@ -92,4 +92,11 @@ return {
     end,
     opts = { desc = "Add the current selection to a chat buffer", range = true },
   },
+  {
+    cmd = "CodeCompanionTelescope",
+    callback = function(opts)
+      require("telescope").extensions.codecompanion.codecompanion()
+    end,
+    opts = { desc = "Select a codecompanion action with telescope" },
+  },
 }
