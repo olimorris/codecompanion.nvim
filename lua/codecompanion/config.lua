@@ -65,6 +65,7 @@ return {
           description = "Insert content from help tags",
           opts = {
             contains_code = false,
+            provider = "telescope", -- telescope|mini_pick
           },
         },
         ["now"] = {
