@@ -18,20 +18,18 @@ return {
     },
   },
   schema = {
-    name = "code_runner",
-    parameters = {
-      inputs = {
-        lang = "python",
-        code = "print('Hello World')",
-      },
+    tool = {
+      _attr = { name = "code_runner" },
+      lang = "python",
+      code = "print('Hello World')",
     },
   },
   ---@param schema table
   env = function(schema)
     local temp_input = vim.fn.tempname()
     local temp_dir = temp_input:match("(.*/)")
-    local lang = schema.parameters.inputs.lang
-    local code = schema.parameters.inputs.code
+    local lang = schema.lang
+    local code = schema.code
 
     return {
       code = code,
@@ -54,12 +52,13 @@ Usage: To use this tool, you need to return an XML markdown code block (with bac
 ```
 
 You must:
+- Only use the tool when prompted by the user. For example "can you update the code for me?" or "can you add ..."
+- Be mindful that you may not be required to use the tool in all of your responses
 - Ensure the code you're executing will be able to parsed as valid XML
-- Ensure the code you're executing is safe
 - Ensure the code you're executing is concise
 - Ensure the code you're executing is relevant to the conversation
-- Ensure the code you're executing is not malicious]],
-      xml2lua.toXml(schema, "tool")
+- Ensure the XML markdown code block is valid and follows the schema]],
+      xml2lua.toXml({ tools = { schema } })
     )
   end,
   ---@param env table

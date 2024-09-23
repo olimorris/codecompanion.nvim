@@ -48,13 +48,13 @@ end
 function M.encode(url)
   if type(url) ~= "number" then
     url = url:gsub("\r?\n", "\r\n")
-    url = url:gsub("([^%w%-%.%_%~ ])", function(c)
+    url = url:gsub("([^%w%-%.%_%~%'%\"%? ])", function(c)
       return string.format("%%%02X", c:byte())
     end)
     url = url:gsub(" ", "+")
     return url
   else
-    return url
+    return tostring(url)
   end
 end
 

@@ -537,11 +537,11 @@ The plugin sets the following highlight groups during setup:
 
 The plugin fires many events during its lifecycle:
 
-- `CodeCompanionToolAdded` - Fired when a tool has been added to a chat buffer
 - `CodeCompanionChatClosed` - Fired after a chat has been closed
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
-- `CodeCompanionAgentStarted` - Fired when an agent has started using a tool
-- `CodeCompanionAgentFinished` - Fired when an agent has finished using a tool
+- `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
+- `CodeCompanionAgentStarted` - Fired when an agent has been initiated in the chat
+- `CodeCompanionAgentFinished` - Fired when an agent has finished all tool executions
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline strategy
 - `CodeCompanionInlineFinished` - Fired at the end of the Inline strategy
 - `CodeCompanionRequestStarted` - Fired at the start of any API request

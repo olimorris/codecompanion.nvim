@@ -17,34 +17,51 @@ M.capitalize = function(str)
   return (str:gsub("^%l", string.upper))
 end
 
----@param tbl table
+---@param t table
 ---@return integer
-M.count = function(tbl)
+M.count = function(t)
   local count = 0
-  for _ in pairs(tbl) do
+  for _ in pairs(t) do
     count = count + 1
   end
   return count
 end
 
 ---Check if a table is empty
----@param tbl? table
+---@param t? table
 ---@return boolean
-M.is_empty = function(tbl)
-  if tbl == nil then
+M.is_empty = function(t)
+  if t == nil then
     return true
   end
 
-  return next(tbl) == nil
+  return next(t) == nil
+end
+
+---Check if a table is an array
+---@param t table
+---@return boolean
+M.is_array = function(t)
+  if type(t) ~= "table" then
+    return false
+  end
+  local i = 0
+  for _ in pairs(t) do
+    i = i + 1
+    if t[i] == nil then
+      return false
+    end
+  end
+  return true
 end
 
 ---Find a nested key in a table and return the index
----@param tbl table
+---@param t table
 ---@param key any
 ---@param val any
 ---@return integer|nil
-function M.find_key(tbl, key, val)
-  for k, v in pairs(tbl) do
+function M.find_key(t, key, val)
+  for k, v in pairs(t) do
     if type(v) == "table" then
       if v[key] == val then
         return k
@@ -84,24 +101,24 @@ M.set_dot_repeat = function(name)
 end
 
 ---Replace any placeholders (e.g. ${placeholder}) in a string or table
----@param tbl table|string
+---@param t table|string
 ---@param replacements table
 ---@return nil|string
-function M.replace_placeholders(tbl, replacements)
-  if type(tbl) == "string" then
+function M.replace_placeholders(t, replacements)
+  if type(t) == "string" then
     for placeholder, replacement in pairs(replacements) do
-      tbl = tbl:gsub("%${" .. placeholder .. "}", replacement)
+      t = t:gsub("%${" .. placeholder .. "}", replacement)
     end
-    return tbl
+    return t
   else
-    for key, value in pairs(tbl) do
+    for key, value in pairs(t) do
       if type(value) == "table" then
         M.replace_placeholders(value, replacements)
       elseif type(value) == "string" then
         for placeholder, replacement in pairs(replacements) do
           value = value:gsub("%${" .. placeholder .. "}", replacement)
         end
-        tbl[key] = value
+        t[key] = value
       end
     end
   end
