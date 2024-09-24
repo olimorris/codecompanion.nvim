@@ -284,14 +284,14 @@ Points to note:
       },
     },
   },
-  -- PRE-DEFINED PROMPTS ------------------------------------------------------
-  pre_defined_prompts = {
+  -- PROMPT LIBRARIES ---------------------------------------------------------
+  prompt_library = {
     ["Custom Prompt"] = {
       strategy = "inline",
       description = "Prompt the LLM from Neovim",
       opts = {
         index = 3,
-        default_prompt = true,
+        is_default = true,
         mapping = "<LocalLeader>cc",
         user_prompt = true,
       },
@@ -316,7 +316,7 @@ Points to note:
       description = "Explain how code in a buffer works",
       opts = {
         index = 4,
-        default_prompt = true,
+        is_default = true,
         mapping = "<LocalLeader>ce",
         modes = { "v" },
         slash_cmd = "explain",
@@ -365,7 +365,7 @@ Points to note:
       description = "Generate unit tests for the selected code",
       opts = {
         index = 5,
-        default_prompt = true,
+        is_default = true,
         mapping = "<LocalLeader>ct",
         modes = { "v" },
         slash_cmd = "tests",
@@ -418,7 +418,7 @@ Points to note:
       description = "Fix the selected code",
       opts = {
         index = 6,
-        default_prompt = true,
+        is_default = true,
         mapping = "<LocalLeader>cf",
         modes = { "v" },
         slash_cmd = "fix",
@@ -476,7 +476,7 @@ Use Markdown formatting and include the programming language name at the start o
       opts = {
         index = 7,
         modes = { "v" },
-        default_prompt = true,
+        is_default = true,
         mapping = "<LocalLeader>cb",
         slash_cmd = "buffer",
         auto_submit = true,
@@ -540,7 +540,7 @@ Use Markdown formatting and include the programming language name at the start o
       description = "Explain the LSP diagnostics for the selected code",
       opts = {
         index = 8,
-        default_prompt = true,
+        is_default = true,
         mapping = "<LocalLeader>cl",
         modes = { "v" },
         slash_cmd = "lsp",
@@ -620,7 +620,7 @@ Use Markdown formatting and include the programming language name at the start o
       description = "Generate a commit message",
       opts = {
         index = 9,
-        default_prompt = true,
+        is_default = true,
         mapping = "<LocalLeader>cm",
         slash_cmd = "commit",
         auto_submit = true,
@@ -707,7 +707,7 @@ Use Markdown formatting and include the programming language name at the start o
     send_code = true,
 
     use_default_actions = true, -- Show the default actions in the action palette?
-    use_default_pre_defined_prompts = true, -- Show the default pre-defined prompts in the action palette?
+    use_default_prompt_library = true, -- Show the default prompt library in the action palette?
 
     -- This is the default prompt which is sent with every request in the chat
     -- strategy. It is primarily based on the GitHub Copilot Chat's prompt

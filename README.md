@@ -31,8 +31,9 @@ Thank you to the following people:
 - :electric_plug: Support for Anthropic, Copilot, Gemini, Ollama and OpenAI LLMs (or bring your own!)
 - :rocket: Inline transformations, code creation and refactoring
 - :robot: Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
-- :sparkles: Built in prompts for common tasks like advice on LSP errors and code explanations
-- :building_construction: Ability to create your own custom prompts, Variables and Slash Commands
+- :sparkles: Built in prompt library for common tasks like advice on LSP errors and code explanations
+- :building_construction: Create your own custom prompts, Variables and Slash Commands
+- :books: Have multiple chats open at the same time
 - :muscle: Async execution for fast performance
 
 <!-- panvimdoc-ignore-start -->
@@ -243,7 +244,7 @@ The plugin allows you to specify adapters for each strategy and also for each [p
 
 ### :hammer_and_wrench: Changing the Defaults
 
-The default config can be found [here](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) and they can be changed by calling the `setup` function:
+The default config can be found in the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) file and the defaults can be changed by calling the `setup` function:
 
 ```lua
 require("codecompanion").setup({
@@ -258,7 +259,7 @@ require("codecompanion").setup({
 })
 ```
 
-Please refer to the [section](#electric_plug-adapters) below in order to configure adapters.
+Please refer to the [adapter](#electric_plug-adapters) section below in order to configure adapters.
 
 **Changing the System Prompt**
 
@@ -370,7 +371,7 @@ require("codecompanion").setup({
 
 **Connecting via a Proxy**
 
-You can also connect via a Proxy:
+You can also connect via a proxy:
 
 ```lua
 require("codecompanion").setup({
@@ -432,9 +433,9 @@ require("codecompanion").setup({
 
 ## :bulb: Advanced Usage
 
-### :clipboard: Pre-Defined Prompts
+### :clipboard: Prompt Library
 
-The plugin comes with a number of pre-defined prompts. As per [the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua), these can be called via keymaps or slash commands (via the inline assistant). These prompts have been carefully curated to mimic those in [GitHub's Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide). Of course, you can create your own prompts and add them to the Action Palette. Please see the [RECIPES](doc/RECIPES.md) guide for more information.
+The plugin comes with a number of pre-built prompts. As per [the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua), these can be called via keymaps or slash commands (via the inline assistant). These prompts have been carefully curated to mimic those in [GitHub's Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide). Of course, you can create your own prompts and add them to the Action Palette. Please see the [RECIPES](doc/RECIPES.md) guide for more information.
 
 ### :speech_balloon: The Chat Buffer
 
@@ -718,11 +719,12 @@ I am open to contributions but they will be implemented at my discretion. Feel f
 ## :clap: Acknowledgements
 
 - [Steven Arcangeli](https://github.com/stevearc) for his genius creation of the chat buffer and his feedback early on
+- [Manoel Campos](https://github.com/manoelcampos) for the [xml2lua](https://github.com/manoelcampos/xml2lua) library that's used in the tools implementation
 - [Dante.nvim](https://github.com/S1M0N38/dante.nvim) for the beautifully simple diff implementation
 - [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) for the LSP assistant action
 - [CopilotChat.nvim](https://github.com/CopilotC-Nvim/CopilotChat.nvim) for the rendering and usability of the chat
 buffer
-- [Aerial.nvim](https://github.com/stevearc/aerial.nvim) for the Tree-sitter parsing which as inspired the symbols Slash
+- [Aerial.nvim](https://github.com/stevearc/aerial.nvim) for the Tree-sitter parsing which inspired the symbols Slash
 Command
 
 <!-- panvimdoc-ignore-end -->

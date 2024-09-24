@@ -8,7 +8,7 @@ A prompt can be added via the `setup` function:
 
 ```lua
 require("codecompanion").setup({
-  pre_defined_prompts = {
+  prompt_library = {
     ["My New Prompt"] = {
       strategy = "chat",
       description = "Some cool custom prompt you can do",
@@ -41,7 +41,7 @@ Let's take a look at how we can achieve that:
 
 ```lua
 require("codecompanion").setup({
-  pre_defined_prompts = {
+  prompt_library = {
     ["Boilerplate HTML"] = {
       strategy = "inline",
       description = "Generate some boilerplate HTML",
@@ -95,11 +95,11 @@ Whilst this example was useful at demonstrating the functionality of the _Action
 
 ## Recipe #2: Using context in your prompts
 
-Now let's look at how we can use an LLM to advise us on some code that we have visually selected in a buffer. Infact, this very example is builtin to the plugin as the _Code Advisor_ action:
+Now let's look at how we can use an LLM to advise us on some code that we have visually selected in a buffer. Infact, this very example used to be builtin to the plugin as the _Code Advisor_ action:
 
 ```lua
 require("codecompanion").setup({
-  pre_defined_prompts = {
+  prompt_library = {
     ["Code Expert"] = {
       strategy = "chat",
       description = "Get some special advice from an LLM",

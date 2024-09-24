@@ -240,12 +240,12 @@ M.static.actions = {
 local prompts = {}
 
 --- Add default prompts to the actions
-M.add_default_pre_defined_prompts = function(context)
-  if config.pre_defined_prompts and utils.count(config.pre_defined_prompts) > 0 then
+M.add_default_prompt_library = function(context)
+  if config.prompt_library and utils.count(config.prompt_library) > 0 then
     local sort_index = true
 
-    for name, prompt in pairs(config.pre_defined_prompts) do
-      if not config.opts.use_default_pre_defined_prompts and prompt.opts and prompt.opts.default_prompt then
+    for name, prompt in pairs(config.prompt_library) do
+      if not config.opts.use_default_prompt_library and (prompt.opts and prompt.opts.is_default) then
         goto continue
       end
 
