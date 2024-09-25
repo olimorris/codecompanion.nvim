@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v3.5.0...v3.5.1) (2024-09-25)
+
+
+### Bug Fixes
+
+* [#255](https://github.com/olimorris/codecompanion.nvim/issues/255) remove system prompt ([56603af](https://github.com/olimorris/codecompanion.nvim/commit/56603af3fdb86d1f38ad93979aedccf5da492bb9))
+
 ## [3.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v3.4.0...v3.5.0) (2024-09-23)
 
 
