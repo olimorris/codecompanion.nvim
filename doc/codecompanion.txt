@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.9.2       Last change: 2024 September 24
+*codecompanion.txt*       For NVIM v0.9.2       Last change: 2024 September 25
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -475,6 +475,7 @@ When in the chat buffer, there are number of keymaps available to you:
 - `gx` - Clear the buffer’s contents
 - `gx` - Add a codeblock
 - `gf` - To refresh the code folds in the buffer
+- `gd` - Debug the chat buffer
 - `}` - Move to the next chat
 - `{` - Move to the previous chat
 - `]]` - Move to the next header

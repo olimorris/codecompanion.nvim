@@ -456,6 +456,7 @@ When in the chat buffer, there are number of keymaps available to you:
 - `gx` - Clear the buffer's contents
 - `gx` - Add a codeblock
 - `gf` - To refresh the code folds in the buffer
+- `gd` - Debug the chat buffer
 - `}` - Move to the next chat
 - `{` - Move to the previous chat
 - `]]` - Move to the next header
