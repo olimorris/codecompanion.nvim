@@ -192,7 +192,7 @@ There are keymaps available to accept or reject edits from the LLM in the [inlin
 
 <!-- panvimdoc-ignore-end -->
 
-Run `:CodeCompanionActions` or `:CodeCompanionTelescope` to open the action palette, which gives you access to all of the functionality in the plugin. This is where core actions and the [pre-defined prompts](#clipboard-pre-defined-prompts) are listed.
+Run `:CodeCompanionActions` or `:lua require('telescope').extensions.codecompanion.codecompanion()` to open the action palette, which gives you access to all of the functionality in the plugin. This is where core actions and the [pre-defined prompts](#clipboard-pre-defined-prompts) are listed.
 
 > [!NOTE]
 > Some actions and prompts will only be visible if you're in _Visual mode_.
@@ -218,8 +218,9 @@ For an optimum workflow, I recommend the following keymaps:
 ```lua
 vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
--- or vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionTelescope<cr>", { noremap = true, silent = true })
--- or vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionTelescope<cr>", { noremap = true, silent = true })
+-- or vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>:lua require('telescope').extensions.codecompanion.codecompanion()<cr>", { noremap = true, silent = true })
+-- TODO: update visual selection binding
+-- or vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>:lua require('telescope').extensions.codecompanion.codecompanion()<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "ga", "<cmd>CodeCompanionAdd<cr>", { noremap = true, silent = true })
