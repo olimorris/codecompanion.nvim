@@ -4,7 +4,7 @@ In CodeCompanion, adapters are interfaces that act as a bridge between the plugi
 
 This guide is intended to serve as a reference for anyone who wishes to contribute an adapter to the plugin or understand the inner workings of existing adapters.
 
-## The Adapter Interface
+## The Interface
 
 Let's take a look at the interface of an adapter as per the `adapter.lua` file:
 
