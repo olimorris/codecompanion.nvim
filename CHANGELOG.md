@@ -1,5 +1,31 @@
 # Changelog
 
+## [3.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v3.5.0...v3.5.1) (2024-09-25)
+
+
+### Bug Fixes
+
+* [#255](https://github.com/olimorris/codecompanion.nvim/issues/255) remove system prompt ([56603af](https://github.com/olimorris/codecompanion.nvim/commit/56603af3fdb86d1f38ad93979aedccf5da492bb9))
+
+## [3.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v3.4.0...v3.5.0) (2024-09-23)
+
+
+### Features
+
+* **tools:** improved schema and editor tool can have multiple actions ([cfd1d07](https://github.com/olimorris/codecompanion.nvim/commit/cfd1d071c159cf7d2d4a3eff86aa2dd4c865c4c5))
+
+## [3.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v3.3.2...v3.4.0) (2024-09-23)
+
+
+### Features
+
+* add mini_pick to /help command ([#245](https://github.com/olimorris/codecompanion.nvim/issues/245)) ([66c2d8a](https://github.com/olimorris/codecompanion.nvim/commit/66c2d8aa93579a7dee2a9dd023442822149b9f62))
+
+
+### Bug Fixes
+
+* mini_diff not resetting ([6329698](https://github.com/olimorris/codecompanion.nvim/commit/6329698f9f98f59da079e179c8b81f43d8692cba))
+
 ## [3.3.2](https://github.com/olimorris/codecompanion.nvim/compare/v3.3.1...v3.3.2) (2024-09-19)
 
 

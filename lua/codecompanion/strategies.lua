@@ -124,7 +124,9 @@ function Strategies:chat()
         return chat(opts.user_prompt)
       end
 
-      vim.ui.input({ prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " " .. config.display.action_palette.prompt }, function(input)
+      vim.ui.input({
+        prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " " .. config.display.action_palette.prompt,
+      }, function(input)
         if not input then
           return
         end

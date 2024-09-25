@@ -5,7 +5,7 @@ PLENARY_URL = https://github.com/nvim-lua/plenary.nvim
 TREESITTER_DIR = misc/treesitter
 TREESITTER_URL = https://github.com/nvim-treesitter/nvim-treesitter
 
-all: format test docs
+all: format test docs tools adapters recipes
 
 docs: $(PANVIMDOC_DIR)
 	@echo "===> Docs:" && \
@@ -23,6 +23,57 @@ docs: $(PANVIMDOC_DIR)
 		-t scripts/panvimdoc.lua \
 		../../README.md \
 		-o ../../doc/codecompanion.txt
+
+tools: $(PANVIMDOC_DIR)
+	@echo "===> Tools:" && \
+	cd $(PANVIMDOC_DIR) && \
+	pandoc \
+		--metadata="project:codecompanion-tools" \
+		--metadata="vimversion:NVIM v0.9.2" \
+		--metadata="titledatepattern:%Y %B %d" \
+		--metadata="toc:true" \
+		--metadata="incrementheadinglevelby:0" \
+		--metadata="treesitter:true" \
+		--lua-filter scripts/skip-blocks.lua \
+		--lua-filter scripts/include-files.lua \
+		--lua-filter scripts/remove-emojis.lua \
+		-t scripts/panvimdoc.lua \
+		../../doc/TOOLS.md \
+		-o ../../doc/codecompanion-tools.txt
+
+adapters: $(PANVIMDOC_DIR)
+	@echo "===> Adapters:" && \
+	cd $(PANVIMDOC_DIR) && \
+	pandoc \
+		--metadata="project:codecompanion-adapters" \
+		--metadata="vimversion:NVIM v0.9.2" \
+		--metadata="titledatepattern:%Y %B %d" \
+		--metadata="toc:true" \
+		--metadata="incrementheadinglevelby:0" \
+		--metadata="treesitter:true" \
+		--lua-filter scripts/skip-blocks.lua \
+		--lua-filter scripts/include-files.lua \
+		--lua-filter scripts/remove-emojis.lua \
+		-t scripts/panvimdoc.lua \
+		../../doc/ADAPTERS.md \
+		-o ../../doc/codecompanion-adapters.txt
+
+recipes: $(PANVIMDOC_DIR)
+	@echo "===> Recipes:" && \
+	cd $(PANVIMDOC_DIR) && \
+	pandoc \
+		--metadata="project:codecompanion-recipes" \
+		--metadata="vimversion:NVIM v0.9.2" \
+		--metadata="titledatepattern:%Y %B %d" \
+		--metadata="toc:true" \
+		--metadata="incrementheadinglevelby:0" \
+		--metadata="treesitter:true" \
+		--lua-filter scripts/skip-blocks.lua \
+		--lua-filter scripts/include-files.lua \
+		--lua-filter scripts/remove-emojis.lua \
+		-t scripts/panvimdoc.lua \
+		../../doc/RECIPES.md \
+		-o ../../doc/codecompanion-recipes.txt
 
 $(PANVIMDOC_DIR):
 	git clone --depth=1 --no-single-branch $(PANVIMDOC_URL) $(PANVIMDOC_DIR)

@@ -1,4 +1,5 @@
 local context_utils = require("codecompanion.utils.context")
+local dep = require("codecompanion.utils.deprecate")
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
@@ -201,7 +202,7 @@ M.actions = function(args)
 
   if not next(_cached_actions) then
     if M.config.opts.use_default_actions then
-      actions.add_default_pre_defined_prompts(context)
+      actions.add_default_prompt_library(context)
       table.sort(actions.static.actions, function(a, b)
         if (a.opts and a.opts.index) and (b.opts and b.opts.index) then
           return a.opts.index < b.opts.index
@@ -244,6 +245,18 @@ M.setup = function(opts)
     require("codecompanion.utils.adapters").extend(M.config.adapters, opts.adapters)
   end
 
+  if opts and opts.pre_defined_prompts then
+    dep.write(
+      "The ",
+      { "`pre_defined_prompts`", "WarningMsg" },
+      " config table has been renamed to ",
+      { "`prompt_library`", "WarningMsg" },
+      ".\nIt will be removed in the coming days."
+    )
+    opts.prompt_library = opts.pre_defined_prompts
+    opts.opts.use_default_prompt_library = opts.opts.use_default_pre_defined_prompts
+  end
+
   -- Set the highlight groups
   api.nvim_set_hl(0, "CodeCompanionChatHeader", { link = "@markup.heading.2.markdown", default = true })
   api.nvim_set_hl(0, "CodeCompanionChatSeparator", { link = "@punctuation.special.markdown", default = true })
@@ -272,10 +285,10 @@ M.setup = function(opts)
   })
 
   -- Setup the inline slash commands
-  local prompts = require("codecompanion.prompts").new(M.config.pre_defined_prompts):setup()
+  local prompts = require("codecompanion.prompts").new(M.config.prompt_library):setup()
   for name, prompt in pairs(prompts.prompts) do
     if prompt.opts then
-      if not M.config.opts.use_default_pre_defined_prompts and prompt.opts.default_prompt then
+      if not M.config.opts.use_default_prompt_library and prompt.opts.is_default then
         goto continue
       end
 

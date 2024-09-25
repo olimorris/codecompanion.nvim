@@ -5,24 +5,24 @@ local xml2lua = require("codecompanion.utils.xml.xml2lua")
 return {
   name = "rag",
   cmds = {
-    { "curl", "${address}${query}" },
+    { "curl", "${url}/${query}" },
   },
   schema = {
     {
-      name = "rag",
-      parameters = {
-        inputs = {
-          action = "search",
-          query = "The query to search for",
+      tool = {
+        _attr = { name = "rag" },
+        action = {
+          _attr = { type = "search" },
+          query = "What's the newest version of Neovim?",
         },
       },
     },
     {
-      name = "rag",
-      parameters = {
-        inputs = {
-          action = "navigate",
-          url = "The page to navigate to",
+      tool = {
+        _attr = { name = "rag" },
+        action = {
+          _attr = { type = "navigate" },
+          url = "https://github.com/neovim/neovim/releases",
         },
       },
     },
@@ -32,44 +32,46 @@ return {
       [[### You have gained access to a new tool!
 
 Name: RAG (Retrieval Augmented Generation)
-Purpose: This gives you the ability to search or read from the internet
+Purpose: This gives you the ability to pull information from the internet
 Why: Sometimes you may need up to date information from the internet to help you with your responses
-Usage: To use this tool, you need to return an XML markdown code block (with backticks). Consider the following schema::
+Usage: To use this tool, you need to return an XML markdown code block (with backticks). Consider the following schema:
 
 ```xml
 %s
 ```
 
-It will use the RAG tool to search the internet:
-- Ensure the action input tag contains 'search'
-- Include your search query in the query input tag
+This is how you can use the RAG tool to search the internet. In this specific example, to search for the newest version of Neovim. Based on returned results results, you could then decide to navigate to a specific URL:
 
 ```xml
 %s
 ```
 
-It will use the RAG tool to navigate to a specific page:
-- Ensure action input tag contains 'navigate'
-- Include the URL of the page you'd like to read in the url input tag]],
-      xml2lua.toXml(schema[1], "tool"),
-      xml2lua.toXml(schema[2], "tool")
+Such as in this example where you can navigate to the Neovim releases page.
+
+You must:
+- Only use the tool when you have a gap in your knowledge and need to pull information from the internet
+- Be mindful that you may not be required to use the tool in all of your responses
+- Ensure the XML markdown code block is valid and follows the schema]],
+      xml2lua.toXml({ tools = { schema[1] } }),
+      xml2lua.toXml({ tools = { schema[2] } })
     )
   end,
-  env = function(xml)
-    local address
-    local query = xml.parameters.inputs.query
-
-    local action = xml.parameters.inputs.action
+  env = function(tool)
+    local url
+    local query
+    -- print(vim.inspect(tool))
+    local action = tool.action._attr.type
+    print(tool.action.query)
     if action == "search" then
-      address = "https://s.jina.ai/"
-      query = rag.encode(query)
-    elseif action == "read" then
-      address = "https://r.jina.ai/"
-      query = xml.parameters.inputs.url
+      url = "https://s.jina.ai"
+      query = rag.encode(tool.action.query)
+    elseif action == "navigate" then
+      url = "https://r.jina.ai"
+      query = tool.action.url
     end
 
     return {
-      address = address,
+      url = url,
       query = query,
     }
   end,

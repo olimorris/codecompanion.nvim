@@ -17,6 +17,8 @@ jobs:
         with:
           token: ${{ secrets.SPONSORS_TOKEN }}
           file: "README.md"
+          active-only: false
+          include-private: true
         if: ${{ github.repository == 'olimorris/codecompanion.nvim' }}
 
       - name: Create Pull Request 🚀

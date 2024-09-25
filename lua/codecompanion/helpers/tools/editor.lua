@@ -1,7 +1,9 @@
 local config = require("codecompanion").config
 
 local keymaps = require("codecompanion.utils.keymaps")
+local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
+local util = require("codecompanion.utils.util")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local api = vim.api
@@ -16,41 +18,62 @@ return {
     ---@return table { status: string, output: string }
     function(self, input)
       local diff
+      local diff_started = false
 
-      local action = self.tool.request.parameters.inputs
-      local bufnr = tonumber(action.buffer)
-      local winnr = ui.buf_get_win(bufnr)
-      local lines = vim.split(action.code, "\n", { plain = true, trimempty = false })
+      ---Run the action
+      ---@param action table
+      local function run(action)
+        local type = action._attr.type
+        local bufnr = tonumber(action.buffer)
+        local winnr = ui.buf_get_win(bufnr)
 
-      if not api.nvim_buf_is_valid(bufnr) then
-        return { status = "error", output = "Invalid buffer number" }
-      end
+        log:debug("Editor tool request: %s", action)
 
-      -- Diff the buffer
-      if config.display.diff.enabled and bufnr and vim.bo[bufnr].buftype ~= "terminal" then
-        local ok
-        local provider = config.display.diff.provider
-        ok, diff = pcall(require, "codecompanion.helpers.diff." .. provider)
-
-        if ok and winnr then
-          ---@type CodeCompanion.DiffArgs
-          local diff_args = {
-            bufnr = bufnr,
-            contents = api.nvim_buf_get_lines(bufnr, 0, -1, true),
-            filetype = api.nvim_buf_get_option(bufnr, "filetype"),
-            winnr = winnr,
-          }
-          ---@type CodeCompanion.Diff
-          diff = diff.new(diff_args)
-          keymaps.set(config.strategies.inline.keymaps, bufnr, { diff = diff })
+        if not api.nvim_buf_is_valid(bufnr) then
+          return { status = "error", output = "Invalid buffer number" }
         end
+
+        -- Diff the buffer
+        if config.display.diff.enabled and bufnr and vim.bo[bufnr].buftype ~= "terminal" then
+          local ok
+          local provider = config.display.diff.provider
+          ok, diff = pcall(require, "codecompanion.helpers.diff." .. provider)
+
+          if ok and winnr and not diff_started then
+            ---@type CodeCompanion.DiffArgs
+            local diff_args = {
+              bufnr = bufnr,
+              contents = api.nvim_buf_get_lines(bufnr, 0, -1, true),
+              filetype = api.nvim_buf_get_option(bufnr, "filetype"),
+              winnr = winnr,
+            }
+            ---@type CodeCompanion.Diff
+            diff = diff.new(diff_args)
+            keymaps.set(config.strategies.inline.keymaps, bufnr, { diff = diff })
+            diff_started = true
+          end
+        end
+
+        if type == "add" then
+          log:trace("Adding code to buffer")
+          local lines = vim.split(action.code, "\n", { plain = true, trimempty = false })
+          api.nvim_buf_set_lines(bufnr, tonumber(action.line), tonumber(action.line), false, lines)
+        end
+        if type == "delete" then
+          log:trace("Deleting code from the buffer")
+          api.nvim_buf_set_lines(bufnr, tonumber(action.start_line) - 1, tonumber(action.end_line), false, {})
+        end
+
+        --TODO: Scroll to new function
       end
 
-      if action.method == "insert" then
-        api.nvim_buf_set_lines(bufnr, tonumber(action.line), tonumber(action.line), false, lines)
-      end
-      if action.method == "replace" then
-        api.nvim_buf_set_lines(bufnr, tonumber(action.start_line) - 1, tonumber(action.end_line), false, lines)
+      local action = self.tool.request.action
+      if util.is_array(action) then
+        for _, v in ipairs(action) do
+          run(v)
+        end
+      else
+        run(action)
       end
 
       return { status = "success", output = nil }
@@ -58,25 +81,24 @@ return {
   },
   schema = {
     {
-      name = "editor",
-      parameters = {
-        inputs = {
+      tool = {
+        _attr = { name = "editor" },
+        action = {
+          _attr = { type = "add" },
           buffer = 1,
-          method = "insert",
           line = 203,
           code = "print('Hello World')",
         },
       },
     },
     {
-      name = "editor",
-      parameters = {
-        inputs = {
+      tool = {
+        _attr = { name = "editor" },
+        action = {
+          _attr = { type = "delete" },
           buffer = 14,
-          method = "replace",
           start_line = 10,
           end_line = 15,
-          code = "print('Hello CodeCompanion')",
         },
       },
     },
@@ -87,28 +109,44 @@ return {
 
 Name: Editor
 Purpose: The tool enables you to update the contents of a Neovim buffer
-Why: When you suggest code changes, the user can quickly implement them without having to copy and paste
-Usage: To use this tool, you need to return an XML markdown code block (with backticks). With the tool you can insert code at a specific line number and/or replace specific code.
+Why: When you suggest code changes in your response, the user can quickly implement them without having to copy and paste
+Usage: To use this tool, you need to return an XML markdown code block (with backticks) which follows one of the defined schemas below. With the tool you can add code at a specific line number in the buffer and/or delete code between specific lines:
 
-Consider the following example which inserts "Hello World" into a buffer with id 1, at line 203:
+Consider the following example which adds the code "Hello World" into a buffer with id 1, at line 203:
 
 ```xml
 %s
 ```
 
-Or, Consider the following example which replaces content between the lines 10 and 15 with "Hello CodeCompanion" in a buffer with id 14:
+Or, Consider the following example which deletes code between the lines 10 and 15 in a buffer with id 14:
+
+```xml
+%s
+```
+
+You can even combine multiple actions in a single response:
 
 ```xml
 %s
 ```
 
 You must:
-- Even though you have access to the tool, you are not permitted to use it in all of your responses
-- You can only use this tool when the user specifically asks for it in their last message. For example "can you update the code for me?" or "can you insert the code ..."
-- Ensure the user has seen your code and approved it before you call the tool
-- Ensure the code you're executing will be able to parsed as valid XML]],
-      xml2lua.toXml(schema[1], "tool"),
-      xml2lua.toXml(schema[2], "tool")
+- Only use the tool when prompted by the user. For example "can you update the code for me?" or "can you add ..."
+- Be mindful that you may not be required to use the tool in all of your responses
+- Ensure the XML markdown code block is valid and follows the schema]],
+      xml2lua.toXml({ tools = { schema[1] } }),
+      xml2lua.toXml({ tools = { schema[2] } }),
+      xml2lua.toXml({
+        tools = {
+          tool = {
+            _attr = { name = "editor" },
+            action = {
+              schema[1].tool.action,
+              schema[2].tool.action,
+            },
+          },
+        },
+      })
     )
   end,
 }

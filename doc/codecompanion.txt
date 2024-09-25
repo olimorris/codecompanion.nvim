@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.9.2       Last change: 2024 September 18
+*codecompanion.txt*       For NVIM v0.9.2       Last change: 2024 September 25
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -18,8 +18,9 @@ FEATURES                                              *codecompanion-features*
 - Support for Anthropic, Copilot, Gemini, Ollama and OpenAI LLMs (or bring your own!)
 - Inline transformations, code creation and refactoring
 - Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
-- Built in prompts for common tasks like advice on LSP errors and code explanations
-- Ability to create your own custom prompts, Variables and Slash Commands
+- Built in prompt library for common tasks like advice on LSP errors and code explanations
+- Create your own custom prompts, Variables and Slash Commands
+- Have multiple chats open at the same time
 - Async execution for fast performance
 
 
@@ -224,9 +225,9 @@ The plugin allows you to specify adapters for each strategy and also for each
 
 CHANGING THE DEFAULTS ~
 
-The default config can be found here
+The default config can be found in the config.lua
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>
-and they can be changed by calling the `setup` function:
+file and the defaults can be changed by calling the `setup` function:
 
 >lua
     require("codecompanion").setup({
@@ -241,7 +242,7 @@ and they can be changed by calling the `setup` function:
     })
 <
 
-Please refer to the |codecompanion-section| below in order to configure
+Please refer to the |codecompanion-adapter| section below in order to configure
 adapters.
 
 **Changing the System Prompt**
@@ -370,7 +371,7 @@ pass it via an "Authorization" header:
 
 **Connecting via a Proxy**
 
-You can also connect via a Proxy:
+You can also connect via a proxy:
 
 >lua
     require("codecompanion").setup({
@@ -436,9 +437,9 @@ adapter, these sit within a schema table and can be configured during setup:
 ADVANCED USAGE                                  *codecompanion-advanced-usage*
 
 
-PRE-DEFINED PROMPTS ~
+PROMPT LIBRARY ~
 
-The plugin comes with a number of pre-defined prompts. As per the config
+The plugin comes with a number of pre-built prompts. As per the config
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>,
 these can be called via keymaps or slash commands (via the inline assistant).
 These prompts have been carefully curated to mimic those in GitHub’s Copilot
@@ -475,6 +476,7 @@ When in the chat buffer, there are number of keymaps available to you:
 - `gx` - Clear the buffer’s contents
 - `gx` - Add a codeblock
 - `gf` - To refresh the code folds in the buffer
+- `gd` - Debug the chat buffer
 - `}` - Move to the next chat
 - `{` - Move to the previous chat
 - `]]` - Move to the next header
@@ -587,11 +589,11 @@ The plugin sets the following highlight groups during setup:
 
 The plugin fires many events during its lifecycle:
 
-- `CodeCompanionToolAdded` - Fired when a tool has been added to a chat buffer
 - `CodeCompanionChatClosed` - Fired after a chat has been closed
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
-- `CodeCompanionAgentStarted` - Fired when an agent has started using a tool
-- `CodeCompanionAgentFinished` - Fired when an agent has finished using a tool
+- `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
+- `CodeCompanionAgentStarted` - Fired when an agent has been initiated in the chat
+- `CodeCompanionAgentFinished` - Fired when an agent has finished all tool executions
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline strategy
 - `CodeCompanionInlineFinished` - Fired at the end of the Inline strategy
 - `CodeCompanionRequestStarted` - Fired at the start of any API request

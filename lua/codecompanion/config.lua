@@ -65,6 +65,7 @@ return {
           description = "Insert content from help tags",
           opts = {
             contains_code = false,
+            provider = "telescope", -- telescope|mini_pick
           },
         },
         ["now"] = {
@@ -264,33 +265,33 @@ return {
 
 You now have access to tools:
 - These enable you to assist the user with specific tasks
-- The user will outline which specific tools you have access to
+- The user will outline which specific tools you have access to in due course
 - You trigger a tool by following a specific XML schema which is defined for each tool
 
 You must:
 - Only use the tool when prompted by the user, despite having access to it
-- Follow the specific tool's schema, which is provided
+- Follow the specific tool's schema, which will be provided
 - Respond with the schema in XML format
 - Ensure the schema is in a markdown code block that is designated as XML
 - Ensure any output you're intending to execute will be able to parsed as valid XML
 
 Points to note:
 - The user detects that you've triggered a tool by using Tree-sitter to parse your markdown response
-- It looks for the XML code block and then triggers the tool
+- It will only ever parse the last XML code block in your response
 - If your response doesn't follow the tool's schema, the tool will not execute
-- Tools should alter your core tasks and how you respond to a user]],
+- Tools should not alter your core tasks and how you respond to a user]],
         },
       },
     },
   },
-  -- PRE-DEFINED PROMPTS ------------------------------------------------------
-  pre_defined_prompts = {
+  -- PROMPT LIBRARIES ---------------------------------------------------------
+  prompt_library = {
     ["Custom Prompt"] = {
       strategy = "inline",
       description = "Prompt the LLM from Neovim",
       opts = {
         index = 3,
-        default_prompt = true,
+        is_default = true,
         mapping = "<LocalLeader>cc",
         user_prompt = true,
       },
@@ -315,7 +316,7 @@ Points to note:
       description = "Explain how code in a buffer works",
       opts = {
         index = 4,
-        default_prompt = true,
+        is_default = true,
         mapping = "<LocalLeader>ce",
         modes = { "v" },
         slash_cmd = "explain",
@@ -364,7 +365,7 @@ Points to note:
       description = "Generate unit tests for the selected code",
       opts = {
         index = 5,
-        default_prompt = true,
+        is_default = true,
         mapping = "<LocalLeader>ct",
         modes = { "v" },
         slash_cmd = "tests",
@@ -417,7 +418,7 @@ Points to note:
       description = "Fix the selected code",
       opts = {
         index = 6,
-        default_prompt = true,
+        is_default = true,
         mapping = "<LocalLeader>cf",
         modes = { "v" },
         slash_cmd = "fix",
@@ -475,7 +476,7 @@ Use Markdown formatting and include the programming language name at the start o
       opts = {
         index = 7,
         modes = { "v" },
-        default_prompt = true,
+        is_default = true,
         mapping = "<LocalLeader>cb",
         slash_cmd = "buffer",
         auto_submit = true,
@@ -539,7 +540,7 @@ Use Markdown formatting and include the programming language name at the start o
       description = "Explain the LSP diagnostics for the selected code",
       opts = {
         index = 8,
-        default_prompt = true,
+        is_default = true,
         mapping = "<LocalLeader>cl",
         modes = { "v" },
         slash_cmd = "lsp",
@@ -619,7 +620,7 @@ Use Markdown formatting and include the programming language name at the start o
       description = "Generate a commit message",
       opts = {
         index = 9,
-        default_prompt = true,
+        is_default = true,
         mapping = "<LocalLeader>cm",
         slash_cmd = "commit",
         auto_submit = true,
@@ -706,7 +707,7 @@ Use Markdown formatting and include the programming language name at the start o
     send_code = true,
 
     use_default_actions = true, -- Show the default actions in the action palette?
-    use_default_pre_defined_prompts = true, -- Show the default pre-defined prompts in the action palette?
+    use_default_prompt_library = true, -- Show the default prompt library in the action palette?
 
     -- This is the default prompt which is sent with every request in the chat
     -- strategy. It is primarily based on the GitHub Copilot Chat's prompt

@@ -1,15 +1,15 @@
-*codecompanion-tools.txt*    For NVIM v0.9.2    Last change: 2024 September 16
+*codecompanion-tools.txt*    For NVIM v0.9.2    Last change: 2024 September 25
 
 ==============================================================================
 Table of Contents                      *codecompanion-tools-table-of-contents*
 
-1. Tools                                                 |codecompanion-tools|
+1. Tools                                           |codecompanion-tools-tools|
   - Introduction                            |codecompanion-tools-introduction|
   - Tool Types                                |codecompanion-tools-tool-types|
   - The Interface                          |codecompanion-tools-the-interface|
 
 ==============================================================================
-1. Tools                                                 *codecompanion-tools*
+1. Tools                                           *codecompanion-tools-tools*
 
 In CodeCompanion, tools offer pre-defined ways for LLMs to execute actions and
 act as an Agent. Tools are added to chat buffers as participants. This guide

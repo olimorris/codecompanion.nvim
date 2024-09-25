@@ -88,7 +88,7 @@ local function authorize_token()
       ["Accept"] = "application/json",
     },
     on_error = function(err)
-      log:error("GitHub Copilot token request error: %s", err)
+      log:error("Copilot Adapter: Token request error %s", err)
     end,
   })
 
@@ -135,13 +135,13 @@ return {
     setup = function(self)
       _oauth_token = get_github_token()
       if not _oauth_token then
-        log:error("No GitHub Copilot token found. Please refer to https://github.com/github/copilot.vim")
+        log:error("Copilot Adapter: No token found. Please refer to https://github.com/github/copilot.vim")
         return false
       end
 
       _github_token = authorize_token()
       if not _github_token or util.count(_github_token) == 0 then
-        log:error("Could not authorize your GitHub Copilot token.")
+        log:error("Copilot Adapter: Could not authorize your GitHub Copilot token")
         return false
       end
 
