@@ -15,7 +15,9 @@ function M.resolve(context, config)
   local sort_index = true
 
   for name, prompt in pairs(config.prompt_library) do
-    if not config.opts.use_default_prompt_library and (prompt.opts and prompt.opts.is_default) then
+    if
+      not config.display.action_palette.opts.show_default_prompt_library and (prompt.opts and prompt.opts.is_default)
+    then
       goto continue
     end
 
@@ -95,7 +97,7 @@ function M.setup_keymaps(config)
 
   for _, prompt in pairs(prompts) do
     if prompt.opts and prompt.opts.mapping then
-      if not config.opts.use_default_prompt_library and prompt.opts.is_default then
+      if not config.display.action_palette.opts.show_default_prompt_library and prompt.opts.is_default then
         goto continue
       end
       if prompt.opts.modes and type(prompt.opts.modes) == "table" then
@@ -119,7 +121,7 @@ function M.setup_inline_slash_commands(config)
 
   for name, prompt in pairs(prompts) do
     if prompt.opts then
-      if not config.opts.use_default_prompt_library and prompt.opts.is_default then
+      if not config.display.action_palette.opts.show_default_prompt_library and prompt.opts.is_default then
         goto continue
       end
 

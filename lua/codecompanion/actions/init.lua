@@ -42,7 +42,7 @@ end
 ---@return table
 function Actions.items(context)
   if not next(_cached_actions) then
-    if config.opts.use_default_actions then
+    if config.display.action_palette.opts.show_default_actions then
       for _, action in ipairs(static_actions) do
         table.insert(_cached_actions, action)
       end

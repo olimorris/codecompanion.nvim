@@ -654,6 +654,7 @@ Use Markdown formatting and include the programming language name at the start o
       prompt = "Prompt ", -- Prompt used for interactive LLM calls
       opts = {
         show_default_actions = true, -- Show the default actions in the action palette?
+        show_default_prompt_library = true, -- Show the default prompt library in the action palette?
       },
     },
     diff = {
@@ -708,8 +709,6 @@ Use Markdown formatting and include the programming language name at the start o
     -- will not be sent to the LLM. Please note that whilst I have made every
     -- effort to ensure no code leakage, using this is at your own risk
     send_code = true,
-
-    use_default_prompt_library = true, -- Show the default prompt library in the action palette?
 
     -- This is the default prompt which is sent with every request in the chat
     -- strategy. It is primarily based on the GitHub Copilot Chat's prompt
