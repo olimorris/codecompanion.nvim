@@ -13,7 +13,7 @@ return {
   strategies = {
     -- CHAT STRATEGY ----------------------------------------------------------
     chat = {
-      adapter = "openai",
+      adapter = "copilot",
       roles = {
         llm = "CodeCompanion", -- The markdown header content for the LLM's responses
         user = "Me", -- The markdown header for your questions
@@ -209,7 +209,7 @@ return {
     },
     -- INLINE STRATEGY --------------------------------------------------------
     inline = {
-      adapter = "openai",
+      adapter = "copilot",
       keymaps = {
         accept_change = {
           modes = {
@@ -240,7 +240,7 @@ return {
     },
     -- AGENT STRATEGY ---------------------------------------------------------
     agent = {
-      adapter = "openai",
+      --NOTE: This uses the adapter specified in the chat strategy
       tools = {
         ["code_runner"] = {
           callback = "helpers.tools.code_runner",
