@@ -1,5 +1,34 @@
 # Changelog
 
+## [4.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v3.5.1...v4.0.0) (2024-09-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* `CodeCompanionToggle` becomes `CodeCompanionChat Toggle`
+* rename variable #editor to #viewport
+* move `use_default_prompt_library` to `display.action_palette.opts` and rename to `show_default_prompt_library
+* move `use_default_actions` to `display.action_palette.opts` and rename to `show_default_actions`
+* make copilot the default adapter
+* remove `pre_defined_prompts` config option
+
+### Features
+
+* :sparkles: can now do `:CodeCompanionChat &lt;prompt&gt;` ([a13d030](https://github.com/olimorris/codecompanion.nvim/commit/a13d030679554af315f9f03e2deed88f37e99bdb))
+* [#249](https://github.com/olimorris/codecompanion.nvim/issues/249) option to turn off prompt library keymaps ([6d585b5](https://github.com/olimorris/codecompanion.nvim/commit/6d585b5c136a089eaf9b5afe68393438c0d8e073))
+* `CodeCompanionToggle` becomes `CodeCompanionChat Toggle` ([f694b22](https://github.com/olimorris/codecompanion.nvim/commit/f694b22bf5b9cb609ac149e8e0685b76089a9e08))
+* **actions:** add telescope as action palette provider ([1721bc1](https://github.com/olimorris/codecompanion.nvim/commit/1721bc1154d4114a0cde99501c321abb93ea512d))
+* **tools:** :sparkles: much improved `[@editor](https://github.com/editor)` tool ([07fd7c4](https://github.com/olimorris/codecompanion.nvim/commit/07fd7c439fd7da4a22d45d64fa65e781a88da2ca))
+
+
+### Code Refactoring
+
+* make copilot the default adapter ([a2f11ad](https://github.com/olimorris/codecompanion.nvim/commit/a2f11ad64625b705d8cf72e04e2c98885351c713))
+* move `use_default_actions` to `display.action_palette.opts` and rename to `show_default_actions` ([1624702](https://github.com/olimorris/codecompanion.nvim/commit/16247029282e8e57fa696bdad1ed11ab89dcf5b3))
+* move `use_default_prompt_library` to `display.action_palette.opts` and rename to `show_default_prompt_library ([247923b](https://github.com/olimorris/codecompanion.nvim/commit/247923be33c765afc0dce4327b82ab1dceb785f8))
+* remove `pre_defined_prompts` config option ([8052344](https://github.com/olimorris/codecompanion.nvim/commit/80523445ef1ca0cbef113d34b6b4301676dda63c))
+* rename variable #editor to #viewport ([1bbc762](https://github.com/olimorris/codecompanion.nvim/commit/1bbc76202b7eb09609485d82e882ab04afabc228))
+
 ## [3.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v3.5.0...v3.5.1) (2024-09-25)
 
 
