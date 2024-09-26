@@ -76,6 +76,7 @@ return {
     opts = {
       desc = "Open the CodeCompanion actions palette",
       range = true,
+      nargs = "*",
     },
   },
   {
@@ -90,6 +91,9 @@ return {
     callback = function(opts)
       codecompanion.add(opts)
     end,
-    opts = { desc = "Add the current selection to a chat buffer", range = true },
+    opts = {
+      desc = "Add the current selection to a chat buffer",
+      range = true,
+    },
   },
 }

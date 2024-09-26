@@ -1,38 +1,12 @@
-local config = require("codecompanion").config
-local utils = require("codecompanion.utils.util")
+local codecompanion = require("codecompanion")
 
-local M = {}
-
-M.static = {}
-
-local send_code = function(context)
+local function send_code(context)
   local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
   return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
 end
 
-M.validate = function(items, context)
-  local validated_items = {}
-  local mode = context.mode:lower()
-
-  for _, item in ipairs(items) do
-    if item.condition and type(item.condition) == "function" then
-      if item.condition(context) then
-        table.insert(validated_items, item)
-      end
-    elseif item.opts and item.opts.modes then
-      if utils.contains(item.opts.modes, mode) then
-        table.insert(validated_items, item)
-      end
-    else
-      table.insert(validated_items, item)
-    end
-  end
-
-  return validated_items
-end
-
-M.static.actions = {
+return {
   {
     name = "Chat",
     strategy = "chat",
@@ -44,7 +18,7 @@ M.static.actions = {
     },
     prompts = {
       n = function()
-        return require("codecompanion").chat()
+        return codecompanion.chat()
       end,
       v = {
         {
@@ -76,12 +50,12 @@ M.static.actions = {
       stop_context_insertion = true,
     },
     condition = function()
-      return #require("codecompanion").buf_get_chat() > 0
+      return #codecompanion.buf_get_chat() > 0
     end,
     picker = {
       prompt = "Select a chat",
       items = function()
-        local loaded_chats = require("codecompanion").buf_get_chat()
+        local loaded_chats = codecompanion.buf_get_chat()
         local open_chats = {}
 
         for _, data in ipairs(loaded_chats) do
@@ -90,7 +64,7 @@ M.static.actions = {
             strategy = "chat",
             description = data.description,
             callback = function()
-              require("codecompanion").close_last_chat()
+              codecompanion.close_last_chat()
               data.chat:open()
             end,
           })
@@ -236,56 +210,3 @@ M.static.actions = {
     },
   },
 }
-
-local prompts = {}
-
---- Add default prompts to the actions
-M.add_default_prompt_library = function(context)
-  if config.prompt_library and utils.count(config.prompt_library) > 0 then
-    local sort_index = true
-
-    for name, prompt in pairs(config.prompt_library) do
-      if not config.opts.use_default_prompt_library and (prompt.opts and prompt.opts.is_default) then
-        goto continue
-      end
-
-      if not prompt.opts or not prompt.opts.index then
-        sort_index = false
-      end
-
-      if type(prompt.name_f) == "function" then
-        name = prompt.name_f(context)
-      end
-
-      local description = prompt.description
-      if type(prompt.description) == "function" then
-        description = prompt.description(context)
-      end
-      if prompt.opts and prompt.opts.slash_cmd then
-        description = "(/" .. prompt.opts.slash_cmd .. ") " .. description
-      end
-
-      table.insert(prompts, {
-        name = name,
-        strategy = prompt.strategy,
-        description = description,
-        opts = prompt.opts,
-        prompts = prompt.prompts,
-      })
-
-      ::continue::
-    end
-
-    if sort_index then
-      table.sort(prompts, function(a, b)
-        return a.opts.index < b.opts.index
-      end)
-    end
-
-    for _, prompt in ipairs(prompts) do
-      table.insert(M.static.actions, prompt)
-    end
-  end
-end
-
-return M

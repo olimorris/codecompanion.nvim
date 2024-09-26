@@ -192,14 +192,16 @@ There are keymaps available to accept or reject edits from the LLM in the [inlin
 
 <!-- panvimdoc-ignore-end -->
 
-Run `:CodeCompanionActions` to open the action palette, which gives you access to all of the functionality in the plugin. This is where core actions and the [pre-defined prompts](#clipboard-pre-defined-prompts) are listed.
+Run `:CodeCompanionActions` to open the action palette, which gives you access to all functionality of the plugin. By default the plugin uses `vim.ui.select` however you can leverage additional providers:
+
+- `:CodeCompanionActions Telescope`
 
 > [!NOTE]
 > Some actions and prompts will only be visible if you're in _Visual mode_.
 
 **List of commands**
 
-Below is a list of all commands in the plugin:
+Below is a list of the plugin's commands:
 
 - `CodeCompanion` - Open the inline assistant
 - `CodeCompanion <your prompt>` - Prompt the inline assistant

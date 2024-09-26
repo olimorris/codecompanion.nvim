@@ -5,6 +5,9 @@ local log = require("codecompanion.utils.log")
 local api = vim.api
 
 ---@class CodeCompanion
+---@field chat fun(args?: table): nil
+---@field config table
+---@field buf_get_chat fun(bufnr: integer): CodeCompanion.Chat|table
 local M = {}
 
 M.slash_cmds = {}
@@ -40,7 +43,7 @@ end
 ---Run the prompt that the user initiated from the command line
 ---@param prompt table The prompt to resolve from the command
 ---@param args table The arguments that were passed to the command
----@return CodeCompanion.Strategies
+---@return nil
 M.run_inline_slash_cmds = function(prompt, args)
   log:trace("Running slash_cmd")
   local context = context_utils.get(api.nvim_get_current_buf(), args)
@@ -96,6 +99,7 @@ M.chat = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
 
   if args and args.fargs and #args.fargs > 0 then
+    -- Check if the adapter is available
     adapter = M.config.adapters[args.fargs[1]:lower()]
   end
 
@@ -142,97 +146,12 @@ M.close_last_chat = function()
   return require("codecompanion.strategies.chat").close_last_chat()
 end
 
-local _cached_actions = {}
 ---Show the action palette
 ---@param args table
 ---@return nil
 M.actions = function(args)
-  local actions = require("codecompanion.actions")
   local context = context_utils.get(api.nvim_get_current_buf(), args)
-
-  local function picker(items, opts, callback)
-    opts = opts or {}
-    opts.prompt = opts.prompt or "Select an option"
-    opts.columns = opts.columns or { "name", "strategy", "description" }
-
-    require("codecompanion.utils.ui").action_palette_selector(items, {
-      prompt = opts.prompt,
-      width = M.config.display.action_palette.width,
-      height = M.config.display.action_palette.height,
-      format = function(item)
-        local formatted_item = {}
-        for _, column in ipairs(opts.columns) do
-          if item[column] ~= nil then
-            if type(item[column]) == "function" then
-              table.insert(formatted_item, item[column](context))
-            else
-              table.insert(formatted_item, item[column] or "")
-            end
-          end
-        end
-        return formatted_item
-      end,
-      callback = callback,
-    })
-  end
-
-  local function selection(item)
-    if item.picker and type(item.picker.items) == "table" then
-      local picker_opts = {
-        prompt = item.picker.prompt,
-        columns = item.picker.columns,
-      }
-      return picker(actions.validate(item.picker.items, context), picker_opts, selection)
-    elseif item.picker and type(item.picker.items) == "function" then
-      local picker_opts = {
-        prompt = item.picker.prompt,
-        columns = item.picker.columns,
-      }
-      picker(actions.validate(item.picker.items(context), context), picker_opts, selection)
-    elseif item and type(item.callback) == "function" then
-      return item.callback(context)
-    else
-      local Strategy = require("codecompanion.strategies")
-      return Strategy.new({
-        context = context,
-        selected = item,
-      }):start(item.strategy)
-    end
-  end
-
-  if not next(_cached_actions) then
-    if M.config.opts.use_default_actions then
-      actions.add_default_prompt_library(context)
-      table.sort(actions.static.actions, function(a, b)
-        if (a.opts and a.opts.index) and (b.opts and b.opts.index) then
-          return a.opts.index < b.opts.index
-        end
-        return false
-      end)
-
-      for _, action in ipairs(actions.static.actions) do
-        if action.opts and action.opts.enabled == false then
-          goto continue
-        else
-          table.insert(_cached_actions, action)
-        end
-        ::continue::
-      end
-    end
-    if M.config.actions and #M.config.actions > 0 then
-      for _, action in ipairs(M.config.actions) do
-        table.insert(_cached_actions, action)
-      end
-    end
-  end
-
-  local items = actions.validate(_cached_actions, context)
-
-  if items and #items == 0 then
-    return log:warn("No actions set. Please create some in your config or turn on the defaults")
-  end
-
-  picker(items, { prompt = "CodeCompanion actions", columns = { "name", "strategy", "description" } }, selection)
+  return require("codecompanion.actions").launch(args.fargs, context)
 end
 
 ---Setup the plugin
@@ -284,22 +203,10 @@ M.setup = function(opts)
     end),
   })
 
-  -- Setup the inline slash commands
-  local prompts = require("codecompanion.prompts").new(M.config.prompt_library):setup()
-  for name, prompt in pairs(prompts.prompts) do
-    if prompt.opts then
-      if not M.config.opts.use_default_prompt_library and prompt.opts.is_default then
-        goto continue
-      end
-
-      if prompt.opts.slash_cmd then
-        prompt.name = name
-        M.slash_cmds[prompt.opts.slash_cmd] = prompt
-      end
-
-      ::continue::
-    end
-  end
+  -- Setup the inline slash commands the keymaps from the prompt library
+  local prompt_library = require("codecompanion.actions.prompt_library")
+  prompt_library.setup_keymaps(M.config)
+  M.slash_cmds = prompt_library.setup_inline_slash_commands(M.config)
 
   -- TODO: Move to chat buffer
   M.config.INFO_NS = api.nvim_create_namespace("CodeCompanion-info")
