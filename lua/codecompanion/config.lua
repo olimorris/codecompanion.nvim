@@ -710,6 +710,8 @@ Use Markdown formatting and include the programming language name at the start o
     -- effort to ensure no code leakage, using this is at your own risk
     send_code = true,
 
+    set_prompt_library_keymaps = true, -- Set the keymaps for the prompt library?
+
     -- This is the default prompt which is sent with every request in the chat
     -- strategy. It is primarily based on the GitHub Copilot Chat's prompt
     -- but with some modifications. You can choose to remove this via

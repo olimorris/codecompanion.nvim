@@ -93,6 +93,10 @@ end
 ---@param config table
 ---@return nil
 function M.setup_keymaps(config)
+  if not config.opts.set_prompt_library_keymaps then
+    return
+  end
+
   local prompts = config.prompt_library
 
   for _, prompt in pairs(prompts) do
