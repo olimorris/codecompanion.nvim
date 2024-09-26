@@ -1,6 +1,6 @@
 local context_utils = require("codecompanion.utils.context")
-local dep = require("codecompanion.utils.deprecate")
 local log = require("codecompanion.utils.log")
+local util = require("codecompanion.utils.util")
 
 local api = vim.api
 
@@ -96,6 +96,7 @@ end
 ---@return nil
 M.chat = function(args)
   local adapter
+  local messages = {}
   local context = context_utils.get(api.nvim_get_current_buf(), args)
 
   if args and args.fargs and #args.fargs > 0 then
@@ -109,13 +110,22 @@ M.chat = function(args)
         return M.add(args)
       elseif prompt == "toggle" then
         return M.toggle()
+      else
+        table.insert(messages, {
+          role = "user",
+          content = args.args,
+        })
       end
     end
   end
 
+  local has_messages = util.count(messages) > 0
+
   return require("codecompanion.strategies.chat").new({
     context = context,
     adapter = adapter,
+    messages = has_messages and messages or nil,
+    auto_submit = has_messages,
   })
 end
 
