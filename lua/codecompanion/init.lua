@@ -164,18 +164,6 @@ M.setup = function(opts)
     require("codecompanion.utils.adapters").extend(M.config.adapters, opts.adapters)
   end
 
-  if opts and opts.pre_defined_prompts then
-    dep.write(
-      "The ",
-      { "`pre_defined_prompts`", "WarningMsg" },
-      " config table has been renamed to ",
-      { "`prompt_library`", "WarningMsg" },
-      ".\nIt will be removed in the coming days."
-    )
-    opts.prompt_library = opts.pre_defined_prompts
-    opts.opts.use_default_prompt_library = opts.opts.use_default_pre_defined_prompts
-  end
-
   -- Set the highlight groups
   api.nvim_set_hl(0, "CodeCompanionChatHeader", { link = "@markup.heading.2.markdown", default = true })
   api.nvim_set_hl(0, "CodeCompanionChatSeparator", { link = "@punctuation.special.markdown", default = true })
