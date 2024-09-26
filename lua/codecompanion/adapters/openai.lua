@@ -54,7 +54,7 @@ return {
     ---@return number|nil
     tokens = function(self, data)
       if data and data ~= "" then
-        local data_mod = data:sub(7)
+        local data_mod = self.parameters.stream and data:sub(7) or data
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
@@ -75,12 +75,13 @@ return {
       local output = {}
 
       if data and data ~= "" then
-        local data_mod = data:sub(7)
+        local data_mod = self.parameters.stream and data:sub(7) or data
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
           if #json.choices > 0 then
-            local delta = json.choices[1].delta
+            local choice = json.choices[1]
+            local delta = self.parameters.stream and choice.delta or choice.message
 
             if delta.content then
               output.content = delta.content
@@ -103,7 +104,7 @@ return {
     ---@return string|table|nil
     inline_output = function(self, data, context)
       if data and data ~= "" then
-        data = data:sub(7)
+        data = self.parameters.stream and data:sub(7) or data
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
         if ok then
@@ -112,9 +113,10 @@ return {
             return
           end
 
-          local content = json.choices[1].delta.content
-          if content then
-            return content
+          local choice = json.choices[1]
+          local delta = self.parameters.stream and choice.delta or choice.message
+          if delta.content then
+            return delta.content
           end
         end
       end
