@@ -7,7 +7,7 @@
 
 * `CodeCompanionToggle` becomes `CodeCompanionChat Toggle`
 * rename variable #editor to #viewport
-* move `use_default_prompt_library` to `display.action_palette.opts` and rename to `show_default_prompt_library
+* move `use_default_prompt_library` to `display.action_palette.opts` and rename to `show_default_prompt_library`
 * move `use_default_actions` to `display.action_palette.opts` and rename to `show_default_actions`
 * make copilot the default adapter
 * remove `pre_defined_prompts` config option
