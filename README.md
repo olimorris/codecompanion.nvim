@@ -136,8 +136,8 @@ You can add context from your code base by using _Variables_ and _Slash Commands
 _Variables_, accessed via `#`, contain data about the present state of Neovim:
 
 - `#buffer` - Shares the current buffer's code. You can also specify line numbers with `#buffer:8-20`
-- `#editor` - Shares the buffers and lines that you see in the Neovim viewport
 - `#lsp` - Shares LSP information and code for the current buffer
+- `#viewport` - Shares the buffers and lines that you see in the Neovim viewport
 
 _Slash commands_, accessed via `/`, run commands to insert additional context into the chat buffer:
 

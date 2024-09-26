@@ -27,16 +27,16 @@ return {
             has_params = true,
           },
         },
-        ["editor"] = {
-          callback = "helpers.variables.editor",
-          description = "Share the code that you see in Neovim with the LLM",
+        ["lsp"] = {
+          callback = "helpers.variables.lsp",
+          description = "Share LSP information and code for the current buffer",
           opts = {
             contains_code = true,
           },
         },
-        ["lsp"] = {
-          callback = "helpers.variables.lsp",
-          description = "Share LSP information and code for the current buffer",
+        ["viewport"] = {
+          callback = "helpers.variables.viewport",
+          description = "Share the code that you see in Neovim with the LLM",
           opts = {
             contains_code = true,
           },

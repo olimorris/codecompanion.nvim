@@ -32,7 +32,7 @@ end
 ---@param chat CodeCompanion.Chat
 ---@param params string
 ---@return string
-M.editor = function(chat, params)
+M.viewport = function(chat, params)
   local buf_lines = buf_utils.get_visible_lines()
 
   -- Replace the line numbers with content
