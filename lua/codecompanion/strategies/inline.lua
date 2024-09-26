@@ -1,5 +1,5 @@
 local adapters = require("codecompanion.adapters")
-local client = require("codecompanion.client")
+local client = require("codecompanion.http")
 local config = require("codecompanion").config
 
 local keymaps = require("codecompanion.utils.keymaps")
