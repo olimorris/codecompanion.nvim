@@ -99,8 +99,18 @@ M.chat = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
 
   if args and args.fargs and #args.fargs > 0 then
+    local prompt = args.fargs[1]:lower()
+
     -- Check if the adapter is available
-    adapter = M.config.adapters[args.fargs[1]:lower()]
+    adapter = M.config.adapters[prompt]
+
+    if not adapter then
+      if prompt == "add" then
+        return M.add(args)
+      elseif prompt == "toggle" then
+        return M.toggle()
+      end
+    end
   end
 
   return require("codecompanion.strategies.chat").new({

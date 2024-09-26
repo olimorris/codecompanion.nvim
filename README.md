@@ -129,7 +129,7 @@ EOF
 
 <!-- panvimdoc-ignore-end -->
 
-Run `:CodeCompanionChat` to open the chat buffer. Type your prompt and press `<CR>`. Toggle the chat buffer with `:CodeCompanionToggle`.
+Run `:CodeCompanionChat` to open the chat buffer. Type your prompt and press `<CR>`. Toggle the chat buffer with `:CodeCompanionChat Toggle`.
 
 You can add context from your code base by using _Variables_ and _Slash Commands_ in the chat buffer.
 
@@ -208,9 +208,9 @@ Below is a list of the plugin's commands:
 - `CodeCompanion /<slash_cmd>` - Prompt the inline assistant with a slash command e.g. `/commit`
 - `CodeCompanionChat` - Open a chat buffer
 - `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
-- `CodeCompanionToggle` - Toggle a chat buffer
+- `CodeCompanionChat Toggle` - Toggle a chat buffer
+- `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
 - `CodeCompanionActions` - Open the _Action Palette_
-- `CodeCompanionAdd` - Add visually selected chat to the current chat buffer
 
 **Suggested workflow**
 
@@ -219,9 +219,9 @@ For an optimum workflow, I recommend the following keymaps:
 ```lua
 vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionToggle<cr>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "ga", "<cmd>CodeCompanionAdd<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true })
 
 -- Expand 'cc' into 'CodeCompanion' in the command line
 vim.cmd([[cab cc CodeCompanion]])

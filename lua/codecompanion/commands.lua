@@ -79,21 +79,4 @@ return {
       nargs = "*",
     },
   },
-  {
-    cmd = "CodeCompanionToggle",
-    callback = function()
-      codecompanion.toggle()
-    end,
-    opts = { desc = "Toggle a CodeCompanion chat buffer" },
-  },
-  {
-    cmd = "CodeCompanionAdd",
-    callback = function(opts)
-      codecompanion.add(opts)
-    end,
-    opts = {
-      desc = "Add the current selection to a chat buffer",
-      range = true,
-    },
-  },
 }
