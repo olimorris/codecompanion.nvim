@@ -171,7 +171,7 @@ Run `:CodeCompanion <your prompt>` to call the inline assistant. The assistant w
 
 The assistant has knowledge of your last conversation from a chat buffer. A prompt such as `:CodeCompanion add the new function here` will see the assistant add a code block directly into the current buffer.
 
-For convenience, you can call [pre-defined prompts](#clipboard-pre-defined-prompts) via the assistant such as `:'<,'>CodeCompanion /buffer what does this file do?`. The pre-defined prompts, by default, are:
+For convenience, you can call prompts from the [prompt-library](#clipboard-prompt-library) via the assistant such as `:'<,'>CodeCompanion /buffer what does this file do?`. The prompt-library comes with the following defaults:
 
 - `/buffer` - Send the current buffer to the LLM alongside a prompt
 - `/commit` - Generate a commit message
@@ -205,7 +205,7 @@ Below is a list of the plugin's commands:
 
 - `CodeCompanion` - Open the inline assistant
 - `CodeCompanion <your prompt>` - Prompt the inline assistant
-- `CodeCompanion /<slash_cmd>` - Prompt the inline assistant with a slash command e.g. `/commit`
+- `CodeCompanion /<prompt-library>` - Use the prompt-library with the inline assistant e.g. `/commit`
 - `CodeCompanionChat` - Open a chat buffer
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
@@ -242,8 +242,7 @@ The plugin uses adapters to connect to LLMs. Out of the box, the plugin supports
 
 The plugin also utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ and _agent_ strategies harness a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
 
-The plugin allows you to specify adapters for each strategy and also for each [pre-defined prompt](#clipboard-pre-defined-prompts).
-
+The plugin allows you to specify adapters for each strategy and also for each [prompt library](#clipboard-prompt-library) entry.
 
 ### :hammer_and_wrench: Changing the Defaults
 
