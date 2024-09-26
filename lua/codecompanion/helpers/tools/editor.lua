@@ -8,6 +8,53 @@ local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local api = vim.api
 
+---Sometimes the LLM will insert new lines as `\n` which are then escaped by
+---the XML library. This function unescapes them
+---@param str string
+---@return string
+local function unescape_breaks(str)
+  if not str then
+    return str
+  end
+  return str:gsub("\\n", "\n")
+end
+
+-- To keep track of the changes made to the buffer, we store them in this table
+local deltas = {}
+local function add_delta(bufnr, line, delta)
+  table.insert(deltas, { bufnr = bufnr, line = line, delta = delta })
+end
+local function intersect(bufnr, line)
+  local delta = 0
+  for _, v in ipairs(deltas) do
+    if bufnr == v.bufnr and line > v.line then
+      delta = delta + v.delta
+    end
+  end
+  return delta
+end
+
+local function add(bufnr, action)
+  log:trace("Adding code to buffer")
+  local start_line = tonumber(action.line)
+  local delta = intersect(bufnr, start_line)
+
+  local lines = vim.split(unescape_breaks(action.code), "\n", { plain = true, trimempty = false })
+  api.nvim_buf_set_lines(bufnr, start_line + delta - 1, start_line + delta - 1, false, lines)
+
+  add_delta(bufnr, start_line, tonumber(#lines))
+end
+
+local function delete(bufnr, action)
+  log:trace("Deleting code from the buffer")
+  local start_line = tonumber(action.start_line)
+  local end_line = tonumber(action.end_line)
+  local delta = intersect(bufnr, start_line)
+
+  api.nvim_buf_set_lines(bufnr, start_line + delta - 1, end_line + delta, false, {})
+  add_delta(bufnr, start_line, (start_line - end_line - 1))
+end
+
 ---@class CodeCompanion.Tool
 return {
   name = "editor",
@@ -55,16 +102,17 @@ return {
         end
 
         if type == "add" then
-          log:trace("Adding code to buffer")
-          local lines = vim.split(action.code, "\n", { plain = true, trimempty = false })
-          api.nvim_buf_set_lines(bufnr, tonumber(action.line), tonumber(action.line), false, lines)
-        end
-        if type == "delete" then
-          log:trace("Deleting code from the buffer")
-          api.nvim_buf_set_lines(bufnr, tonumber(action.start_line) - 1, tonumber(action.end_line), false, {})
+          add(bufnr, action)
+        elseif type == "delete" then
+          delete(bufnr, action)
+        elseif type == "update" then
+          delete(bufnr, action)
+
+          action.line = action.start_line
+          add(bufnr, action)
         end
 
-        --TODO: Scroll to new function
+        --TODO: Scroll to buffer and the new lines
       end
 
       local action = self.tool.request.action
@@ -76,6 +124,7 @@ return {
         run(action)
       end
 
+      deltas = {}
       return { status = "success", output = nil }
     end,
   },
@@ -87,7 +136,19 @@ return {
           _attr = { type = "add" },
           buffer = 1,
           line = 203,
-          code = "print('Hello World')",
+          code = "    print('Hello World')",
+        },
+      },
+    },
+    {
+      tool = {
+        _attr = { name = "editor" },
+        action = {
+          _attr = { type = "update" },
+          buffer = 10,
+          start_line = 199,
+          end_line = 199,
+          code = "   function M.capitalize()",
         },
       },
     },
@@ -102,47 +163,80 @@ return {
         },
       },
     },
+    {
+      tool = { name = "editor" },
+      action = {
+        {
+          _attr = { type = "delete" },
+          buffer = 5,
+          start_line = 13,
+          end_line = 13,
+        },
+        {
+          _attr = { type = "add" },
+          buffer = 5,
+          line = 20,
+          code = "function M.hello_world()",
+        },
+      },
+    },
   },
   system_prompt = function(schema)
     return string.format(
-      [[### You have gained access to a new tool!
+      [[### Editor Tool
 
-Name: Editor
-Purpose: The tool enables you to update the contents of a Neovim buffer
-Why: When you suggest code changes in your response, the user can quickly implement them without having to copy and paste
-Usage: To use this tool, you need to return an XML markdown code block (with backticks) which follows one of the defined schemas below. With the tool you can add code at a specific line number in the buffer and/or delete code between specific lines:
+1. **Purpose**: Update the contents of a Neovim buffer
 
-Consider the following example which adds the code "Hello World" into a buffer with id 1, at line 203:
+2. **Usage**: Return an XML markdown code block for add, update, or delete operations.
 
-```xml
-%s
-```
+3. **Key Points**:
+  - **Only use when prompted** by user (e.g., "can you update the code?")
+  - Ensure XML is **valid and follows the schema**
+  - **Include indentation** in your code
+  - **Don't escape** special characters
 
-Or, Consider the following example which deletes code between the lines 10 and 15 in a buffer with id 14:
+4. **Actions**:
 
-```xml
-%s
-```
-
-You can even combine multiple actions in a single response:
+a) Add:
 
 ```xml
 %s
 ```
 
-You must:
-- Only use the tool when prompted by the user. For example "can you update the code for me?" or "can you add ..."
-- Be mindful that you may not be required to use the tool in all of your responses
-- Ensure the XML markdown code block is valid and follows the schema]],
+b) Update:
+
+```xml
+%s
+```
+
+c) Delete:
+
+```xml
+%s
+```
+
+5. **Multiple Actions**: Combine actions in one response if needed:
+
+```xml
+%s
+```
+
+6. **Note**:
+  - For the delete action, the <start_line> and <end_line> tags are inclusive
+  - The update action first deletes the range in <start_line> and <end_line> (inclusively) and then adds new code from the <start_line>
+  - Account for comment blocks and indentation in your code
+
+Remember: Minimize explanations unless prompted. Focus on generating correct XML.]],
       xml2lua.toXml({ tools = { schema[1] } }),
       xml2lua.toXml({ tools = { schema[2] } }),
+      xml2lua.toXml({ tools = { schema[3] } }),
       xml2lua.toXml({
         tools = {
           tool = {
             _attr = { name = "editor" },
             action = {
-              schema[1].tool.action,
-              schema[2].tool.action,
+              schema[4].action[1],
+              schema[4].action[2],
             },
           },
         },

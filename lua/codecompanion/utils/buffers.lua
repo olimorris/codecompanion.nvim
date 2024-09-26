@@ -90,7 +90,7 @@ local function format(buffer, lines)
   lines = vim.split(lines, "\n")
   local formatted = {}
   for i, line in ipairs(lines) do
-    table.insert(formatted, string.format("%d  %s", i, line))
+    table.insert(formatted, string.format("%d:  %s", i, line))
   end
 
   return string.format(

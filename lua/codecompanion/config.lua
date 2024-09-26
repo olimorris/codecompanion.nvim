@@ -344,12 +344,13 @@ Points to note:
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return string.format(
-              [[Please explain this code:
+              [[Please explain this code from buffer %d:
 
 ```%s
 %s
 ```
 ]],
+              context.bufnr,
               context.filetype,
               code
             )
@@ -397,12 +398,13 @@ Points to note:
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return string.format(
-              [[Please generate unit tests for this code:
+              [[Please generate unit tests for this code from buffer %d:
 
 ```%s
 %s
 ```
 ]],
+              context.bufnr,
               context.filetype,
               code
             )
@@ -454,12 +456,13 @@ Use Markdown formatting and include the programming language name at the start o
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return string.format(
-              [[Please fix this code:
+              [[Please fix this code from buffer %d:
 
 ```%s
 %s
 ```
 ]],
+              context.bufnr,
               context.filetype,
               code
             )
@@ -573,6 +576,8 @@ Use Markdown formatting and include the programming language name at the start o
                 .. i
                 .. "\n  - Location: Line "
                 .. diagnostic.line_number
+                .. "\n  - Buffer: "
+                .. context.bufnr
                 .. "\n  - Severity: "
                 .. diagnostic.severity
                 .. "\n  - Message: "
@@ -599,7 +604,8 @@ Use Markdown formatting and include the programming language name at the start o
               { show_line_numbers = true }
             )
             return string.format(
-              [[This is the code, for context:
+              [[
+This is the code, for context:
 
 ```%s
 %s
