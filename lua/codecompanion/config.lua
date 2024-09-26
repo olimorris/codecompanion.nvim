@@ -652,6 +652,9 @@ Use Markdown formatting and include the programming language name at the start o
       width = 95,
       height = 10,
       prompt = "Prompt ", -- Prompt used for interactive LLM calls
+      opts = {
+        show_default_actions = true, -- Show the default actions in the action palette?
+      },
     },
     diff = {
       enabled = true,
@@ -706,7 +709,6 @@ Use Markdown formatting and include the programming language name at the start o
     -- effort to ensure no code leakage, using this is at your own risk
     send_code = true,
 
-    use_default_actions = true, -- Show the default actions in the action palette?
     use_default_prompt_library = true, -- Show the default prompt library in the action palette?
 
     -- This is the default prompt which is sent with every request in the chat
