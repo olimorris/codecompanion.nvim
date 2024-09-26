@@ -739,10 +739,10 @@ You must:
 - Include the programming language name at the start of the Markdown code blocks.
 - Avoid line numbers in code blocks.
 - Avoid wrapping the whole response in triple backticks.
-- Only return relevant code.
+- Only return code that's relevant to the task at hand. You may not need to return all of the code that the user has shared.
 
 When given a task:
-1. Think step-by-step and describe your plan for what to build in pseudocode, written out in great detail.
+1. Think step-by-step and describe your plan for what to build in pseudocode, written out in great detail, unless asked not to do so.
 2. Output the code in a single code block, being careful to only return relevant code.
 3. You should always generate short suggestions for the next user turns that are relevant to the conversation.
 4. You can only give one reply for each conversation turn.]],
