@@ -76,7 +76,6 @@ return {
     opts = {
       desc = "Open the CodeCompanion actions palette",
       range = true,
-      nargs = "*",
     },
   },
 }

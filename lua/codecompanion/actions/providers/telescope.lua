@@ -4,6 +4,7 @@ local conf = require("telescope.config").values
 local action_state = require("telescope.actions.state")
 local telescope_actions = require("telescope.actions")
 
+local is_registered = false
 local config = require("codecompanion").config
 
 local log = require("codecompanion.utils.log")
@@ -19,11 +20,6 @@ local Provider = {}
 ---@field resolve table Resolve an item into an action
 ---@field context table The buffer context
 function Provider.new(args)
-  local ok = pcall(require, "telescope")
-  if not ok then
-    return log:error("Telescope is not installed")
-  end
-
   log:trace("Telescope actions provider triggered")
   return setmetatable(args, { __index = Provider })
 end
@@ -71,6 +67,28 @@ end
 ---@return nil
 function Provider:select(item)
   return require("codecompanion.actions.providers.shared").select(self, item)
+end
+
+---Setup the provider
+---@param args table The arguments to inject into the provider
+---@param items table The items to display in the picker
+---@return nil
+function Provider.setup(args, items)
+  local ok, telescope = pcall(require, "telescope")
+  if not ok then
+    return log:error("Telescope is not installed")
+  end
+  local action = Provider.new(args):picker(items)
+  if not is_registered then
+    telescope.register_extension({
+      exports = {
+        codecompanion = action,
+      },
+    })
+    is_registered = true
+  else
+    return action
+  end
 end
 
 return Provider
