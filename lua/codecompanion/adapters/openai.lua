@@ -49,9 +49,10 @@ return {
     end,
 
     ---Returns the number of tokens generated from the LLM
+    ---@param self CodeCompanion.Adapter
     ---@param data table The data from the LLM
     ---@return number|nil
-    tokens = function(data)
+    tokens = function(self, data)
       if data and data ~= "" then
         local data_mod = data:sub(7)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
@@ -67,9 +68,10 @@ return {
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
+    ---@param self CodeCompanion.Adapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
     ---@return table|nil [status: string, output: table]
-    chat_output = function(data)
+    chat_output = function(self, data)
       local output = {}
 
       if data and data ~= "" then
@@ -95,10 +97,11 @@ return {
     end,
 
     ---Output the data from the API ready for inlining into the current buffer
+    ---@param self CodeCompanion.Adapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
     ---@param context table Useful context about the buffer to inline to
     ---@return string|table|nil
-    inline_output = function(data, context)
+    inline_output = function(self, data, context)
       if data and data ~= "" then
         data = data:sub(7)
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })

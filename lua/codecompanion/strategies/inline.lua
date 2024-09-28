@@ -262,7 +262,7 @@ function Inline:classify(user_input)
 
         if data then
           self.classification.placement = self.classification.placement
-            .. (self.adapter.handlers.inline_output(data) or "")
+            .. (self.adapter.handlers.inline_output(self.adapter, data) or "")
         end
       end,
       nil,
@@ -360,7 +360,7 @@ function Inline:submit()
       end
 
       if data then
-        local content = self.adapter.handlers.inline_output(data, self.context)
+        local content = self.adapter.handlers.inline_output(self.adapter, data, self.context)
 
         if content then
           vim.schedule(function()
