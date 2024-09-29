@@ -72,8 +72,9 @@ end
 
 ---Launch the action palette
 ---@param context table The buffer context
+---@param provider? string Override the provider in the config
 ---@return nil
-function Actions.launch(context)
+function Actions.launch(context, provider)
   local items = Actions.items(context)
 
   if items and #items == 0 then
@@ -83,11 +84,8 @@ function Actions.launch(context)
   local provider_args = { context = context, validate = Actions.validate, resolve = Actions.resolve }
 
   -- Resolve for a specific provider
-  local provider = config.display.action_palette.provider
-  if provider == "default" then
-    return require("codecompanion.actions.providers.default").new(provider_args):picker(items)
-  end
-  return require("codecompanion.actions.providers." .. provider).setup(provider_args, items)
+  provider = provider or config.display.action_palette.provider
+  return require("codecompanion.actions.providers." .. provider).new(provider_args):picker(items)
 end
 
 return Actions

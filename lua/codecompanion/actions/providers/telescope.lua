@@ -69,26 +69,4 @@ function Provider:select(item)
   return require("codecompanion.actions.providers.shared").select(self, item)
 end
 
----Setup the provider
----@param args table The arguments to inject into the provider
----@param items table The items to display in the picker
----@return nil
-function Provider.setup(args, items)
-  local ok, telescope = pcall(require, "telescope")
-  if not ok then
-    return log:error("Telescope is not installed")
-  end
-  local action = Provider.new(args):picker(items)
-  if not is_registered then
-    telescope.register_extension({
-      exports = {
-        codecompanion = action,
-      },
-    })
-    is_registered = true
-  else
-    return action
-  end
-end
-
 return Provider
