@@ -4,6 +4,7 @@ local conf = require("telescope.config").values
 local action_state = require("telescope.actions.state")
 local telescope_actions = require("telescope.actions")
 
+local is_registered = false
 local config = require("codecompanion").config
 
 local log = require("codecompanion.utils.log")
@@ -19,11 +20,6 @@ local Provider = {}
 ---@field resolve table Resolve an item into an action
 ---@field context table The buffer context
 function Provider.new(args)
-  local ok = pcall(require, "telescope")
-  if not ok then
-    return log:error("Telescope is not installed")
-  end
-
   log:trace("Telescope actions provider triggered")
   return setmetatable(args, { __index = Provider })
 end

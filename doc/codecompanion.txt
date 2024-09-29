@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.9.2       Last change: 2024 September 26
+*codecompanion.txt*       For NVIM v0.9.2       Last change: 2024 September 29
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -164,9 +164,10 @@ There are keymaps available to accept or reject edits from the LLM in the
 
 Run `:CodeCompanionActions` to open the action palette, which gives you access
 to all functionality of the plugin. By default the plugin uses `vim.ui.select`
-however you can leverage additional providers:
-
-- `:CodeCompanionActions Telescope`
+however you can change the provider by altering the
+`display.action_palette.provider` config value. You can also map `:Telescope
+codecompanion` to load the Telescope extension, as per the suggested workflow
+below.
 
 
   [!NOTE] Some actions and prompts will only be visible if you’re in _Visual
