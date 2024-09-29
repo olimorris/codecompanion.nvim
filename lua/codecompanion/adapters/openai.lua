@@ -80,8 +80,8 @@ return {
           if #json.choices > 0 then
             local delta = json.choices[1].delta
 
-            if delta.content then
-              output.content = delta.content
+            if delta.content or delta.role then
+              output.content = delta.content or ""
               output.role = delta.role or nil
 
               return {
