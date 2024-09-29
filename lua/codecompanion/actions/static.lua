@@ -10,7 +10,7 @@ return {
   {
     name = "Chat",
     strategy = "chat",
-    description = "Open a chat buffer to converse with an LLM",
+    description = "Create a new chat buffer to converse with an LLM",
     type = nil,
     opts = {
       index = 1,
