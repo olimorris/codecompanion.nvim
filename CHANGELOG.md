@@ -1,5 +1,21 @@
 # Changelog
 
+## [4.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v4.0.0...v4.1.0) (2024-09-30)
+
+
+### Features
+
+* add mini pick as provider for action_palette ([#272](https://github.com/olimorris/codecompanion.nvim/issues/272)) ([7d02085](https://github.com/olimorris/codecompanion.nvim/commit/7d0208511a97dc7e015b145afd2246175aba3f24))
+* add picker field to prompt resolution ([#275](https://github.com/olimorris/codecompanion.nvim/issues/275)) ([1808fd9](https://github.com/olimorris/codecompanion.nvim/commit/1808fd9bbbd4cbc1497eb09dc772e29d4d6d19ba))
+
+
+### Bug Fixes
+
+* prompt library conditionals ([#277](https://github.com/olimorris/codecompanion.nvim/issues/277)) ([a0518b9](https://github.com/olimorris/codecompanion.nvim/commit/a0518b9828a4542bd8a51a572f101fa11a0dcbae))
+* telescope extension can take opts ([423447f](https://github.com/olimorris/codecompanion.nvim/commit/423447f225f6cad02696c61b8875d8ee7485c435))
+* telescope extension for the action palette ([#267](https://github.com/olimorris/codecompanion.nvim/issues/267)) ([bf3722b](https://github.com/olimorris/codecompanion.nvim/commit/bf3722b4132036b28308ba220b38e32989e1fee1))
+* **tools:** remove print statement for RAG tool ([0ab3a6a](https://github.com/olimorris/codecompanion.nvim/commit/0ab3a6a42d89513c43b98485749c9e68fa5b18f0))
+
 ## [4.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v3.5.1...v4.0.0) (2024-09-26)
 
 
