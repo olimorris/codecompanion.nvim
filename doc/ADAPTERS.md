@@ -205,7 +205,7 @@ The first thing to note with streaming endpoints is that they don't return valid
 
 ```lua
 handlers = {
-  chat_output = function(data)
+  chat_output = function(self, data)
     data = data:sub(7)
   end
 }
@@ -218,7 +218,7 @@ We can then decode the JSON using native vim functions:
 
 ```lua
 handlers = {
-  chat_output = function(data)
+  chat_output = function(self, data)
     data = data:sub(7)
     local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
   end
@@ -231,7 +231,7 @@ Examining the output of the API, we see that the streamed data is stored in a `c
 
 ```lua
 handlers = {
-  chat_output = function(data)
+  chat_output = function(self, data)
     ---
     local delta = json.choices[1].delta
   end
@@ -242,7 +242,7 @@ and we can then access the new streamed data that we want to write into the chat
 
 ```lua
 handlers = {
-  chat_output = function(data)
+  chat_output = function(self, data)
     local output = {}
     ---
     local delta = json.choices[1].delta
@@ -259,7 +259,7 @@ And then we can return the output in the following format:
 
 ```lua
 handlers = {
-  chat_output = function(data)
+  chat_output = function(self, data)
     --
     return {
       status = "success",
@@ -273,7 +273,7 @@ Now if we put it all together, and put some checks in place to make sure that we
 
 ```lua
 handlers = {
-  chat_output = function(data)
+  chat_output = function(self, data)
     local output = {}
 
     if data and data ~= "" then
@@ -316,10 +316,11 @@ In the case of OpenAI, once we've checked the data we have back from the LLM and
 
 ```lua
 ---Output the data from the API ready for inlining into the current buffer
+---@param self CodeCompanion.Adapter
 ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
 ---@param context table Useful context about the buffer to inline to
 ---@return string|table|nil
-inline_output = function(data, context)
+inline_output = function(self, data, context)
   -- Data cleansed, parsed and validated
   -- ..
   local content = json.choices[1].delta.content

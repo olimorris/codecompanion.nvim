@@ -787,7 +787,7 @@ function Chat:submit(opts)
       if data then
         self:get_tokens(data)
 
-        local result = self.adapter.handlers.chat_output(data)
+        local result = self.adapter.handlers.chat_output(self.adapter, data)
         if result and result.status == CONSTANTS.STATUS_SUCCESS then
           if result.output.role then
             result.output.role = CONSTANTS.LLM_ROLE
@@ -1011,7 +1011,7 @@ end
 ---@return nil
 function Chat:get_tokens(data)
   if self.adapter.features.tokens then
-    local tokens = self.adapter.handlers.tokens(data)
+    local tokens = self.adapter.handlers.tokens(self.adapter, data)
     if tokens then
       self.tokens = tokens
     end

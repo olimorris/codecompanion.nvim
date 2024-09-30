@@ -195,7 +195,7 @@ The chat buffer, which is structured like:
 
 >markdown
     ## Me
-    
+
     Explain Ruby in two words
 <
 
@@ -259,7 +259,7 @@ remove it:
 
 >lua
     handlers = {
-      chat_output = function(data)
+      chat_output = function(self, data)
         data = data:sub(7)
       end
     }
@@ -272,7 +272,7 @@ We can then decode the JSON using native vim functions:
 
 >lua
     handlers = {
-      chat_output = function(data)
+      chat_output = function(self, data)
         data = data:sub(7)
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
       end
@@ -286,7 +286,7 @@ Examining the output of the API, we see that the streamed data is stored in a
 
 >lua
     handlers = {
-      chat_output = function(data)
+      chat_output = function(self, data)
         ---
         local delta = json.choices[1].delta
       end
@@ -298,11 +298,11 @@ chat buffer, with:
 
 >lua
     handlers = {
-      chat_output = function(data)
+      chat_output = function(self, data)
         local output = {}
         ---
         local delta = json.choices[1].delta
-    
+
         if delta.content then
           output.content = delta.content
           output.role = delta.role or nil
@@ -315,7 +315,7 @@ And then we can return the output in the following format:
 
 >lua
     handlers = {
-      chat_output = function(data)
+      chat_output = function(self, data)
         --
         return {
           status = "success",
@@ -330,19 +330,19 @@ we have data in our response:
 
 >lua
     handlers = {
-      chat_output = function(data)
+      chat_output = function(self, data)
         local output = {}
-    
+
         if data and data ~= "" then
           data = data:sub(7)
           local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
-    
+
           local delta = json.choices[1].delta
-    
+
           if delta.content then
             output.content = delta.content
             output.role = delta.role or nil
-    
+
             return {
               status = "success",
               output = output,
@@ -379,10 +379,11 @@ and parsed it as JSON, we simply need to:
 
 >lua
     ---Output the data from the API ready for inlining into the current buffer
+    ---@param self CodeCompanion.Adapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
     ---@param context table Useful context about the buffer to inline to
     ---@return string|table|nil
-    inline_output = function(data, context)
+    inline_output = function(self, data, context)
       -- Data cleansed, parsed and validated
       -- ..
       local content = json.choices[1].delta.content
@@ -424,7 +425,7 @@ handler:
     ---@return nil
     on_stdout = function(self, data)
       local stdout = table.concat(data._stdout_results)
-    
+
       local ok, json = pcall(vim.json.decode, stdout, { luanil = { object = true } })
       if ok then
         if json.error then
