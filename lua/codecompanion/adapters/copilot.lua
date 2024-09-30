@@ -155,11 +155,11 @@ return {
     form_messages = function(self, messages)
       return openai.handlers.form_messages(self, messages)
     end,
-    chat_output = function(data)
-      return openai.handlers.chat_output(data)
+    chat_output = function(self, data)
+      return openai.handlers.chat_output(self, data)
     end,
-    inline_output = function(data, context)
-      return openai.handlers.inline_output(data, context)
+    inline_output = function(self, data, context)
+      return openai.handlers.inline_output(self, data, context)
     end,
     on_stdout = function(self, data)
       return openai.handlers.on_stdout(self, data)

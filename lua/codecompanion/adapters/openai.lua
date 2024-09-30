@@ -49,11 +49,12 @@ return {
     end,
 
     ---Returns the number of tokens generated from the LLM
+    ---@param self CodeCompanion.Adapter
     ---@param data table The data from the LLM
     ---@return number|nil
-    tokens = function(data)
+    tokens = function(self, data)
       if data and data ~= "" then
-        local data_mod = data:sub(7)
+        local data_mod = self.parameters.stream and data:sub(7) or data
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
@@ -67,18 +68,20 @@ return {
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
+    ---@param self CodeCompanion.Adapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
     ---@return table|nil [status: string, output: table]
-    chat_output = function(data)
+    chat_output = function(self, data)
       local output = {}
 
       if data and data ~= "" then
-        local data_mod = data:sub(7)
+        local data_mod = self.parameters.stream and data:sub(7) or data
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
           if #json.choices > 0 then
-            local delta = json.choices[1].delta
+            local choice = json.choices[1]
+            local delta = self.parameters.stream and choice.delta or choice.message
 
             if delta.content then
               output.content = delta.content
@@ -95,12 +98,13 @@ return {
     end,
 
     ---Output the data from the API ready for inlining into the current buffer
+    ---@param self CodeCompanion.Adapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
     ---@param context table Useful context about the buffer to inline to
     ---@return string|table|nil
-    inline_output = function(data, context)
+    inline_output = function(self, data, context)
       if data and data ~= "" then
-        data = data:sub(7)
+        data = self.parameters.stream and data:sub(7) or data
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
         if ok then
@@ -109,9 +113,10 @@ return {
             return
           end
 
-          local content = json.choices[1].delta.content
-          if content then
-            return content
+          local choice = json.choices[1]
+          local delta = self.parameters.stream and choice.delta or choice.message
+          if delta.content then
+            return delta.content
           end
         end
       end
