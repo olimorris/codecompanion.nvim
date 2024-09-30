@@ -192,7 +192,7 @@ There are keymaps available to accept or reject edits from the LLM in the [inlin
 
 <!-- panvimdoc-ignore-end -->
 
-Run `:CodeCompanionActions` to open the action palette, which gives you access to all functionality of the plugin. By default the plugin uses `vim.ui.select` however you can change the provider by altering the `display.action_palette.provider` config value. You can also map `:Telescope codecompanion` to load the Telescope extension, as per the suggested workflow below.
+Run `:CodeCompanionActions` to open the action palette, which gives you access to all functionality of the plugin. By default the plugin uses `vim.ui.select` however you can change the provider by altering the `display.action_palette.provider` config value to be `telescope` or `mini_pick`. You can also map `:Telescope codecompanion` to load the Telescope extension, as per the suggested workflow below.
 
 > [!NOTE]
 > Some actions and prompts will only be visible if you're in _Visual mode_.
