@@ -1,5 +1,17 @@
 # Changelog
 
+## [5.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v4.1.0...v5.0.0) (2024-09-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* all adapter handlers now have self as first param
+
+### Features
+
+* all adapter handlers now have self as first param ([ec5c353](https://github.com/olimorris/codecompanion.nvim/commit/ec5c353e8c6f3d5fa2f4a8325b02e062d7c18352))
+* **prompts:** only use staged files for commit messages prompt ([77a4a94](https://github.com/olimorris/codecompanion.nvim/commit/77a4a94304122f3943415eacc5a7e359ea40511d))
+
 ## [4.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v4.0.0...v4.1.0) (2024-09-30)
 
 
