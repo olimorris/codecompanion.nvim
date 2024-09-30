@@ -39,6 +39,7 @@ function M.resolve(context, config)
     end
 
     table.insert(_prompts, {
+      condition = prompt.condition,
       description = description,
       name = name,
       opts = prompt.opts,
