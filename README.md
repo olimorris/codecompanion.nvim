@@ -1,7 +1,7 @@
 <!-- panvimdoc-ignore-start -->
 
 <p align="center">
-<img src="https://github.com/user-attachments/assets/83a7685d-4d7e-4849-bdae-a92d193345c2" alt="CodeCompanion.nvim" />
+<img src="https://github.com/user-attachments/assets/b56cbf02-2e48-43a2-9d86-321209bc0664" alt="CodeCompanion.nvim" />
 </p>
 
 <p align="center">
@@ -129,7 +129,7 @@ EOF
 
 <!-- panvimdoc-ignore-end -->
 
-Run `:CodeCompanionChat` to open the chat buffer. Type your prompt and press `<CR>`. Toggle the chat buffer with `:CodeCompanionChat Toggle`.
+Run `:CodeCompanionChat` to open the chat buffer. Type your prompt and press `<CR>`. Or, run `:CodeCompanionChat why are Lua and Neovim so perfect together?` to send a prompt directly to the chat buffer. Toggle the chat buffer with `:CodeCompanionChat Toggle`.
 
 You can add context from your code base by using _Variables_ and _Slash Commands_ in the chat buffer.
 
@@ -192,7 +192,7 @@ There are keymaps available to accept or reject edits from the LLM in the [inlin
 
 <!-- panvimdoc-ignore-end -->
 
-Run `:CodeCompanionActions` to open the action palette, which gives you access to all functionality of the plugin. By default the plugin uses `vim.ui.select` however you can change the provider by altering the `display.action_palette.provider` config value to be `telescope` or `mini_pick`. You can also map `:Telescope codecompanion` to load the Telescope extension, as per the suggested workflow below.
+Run `:CodeCompanionActions` to open the action palette, which gives you access to all functionality of the plugin. By default the plugin uses `vim.ui.select` however you can change the provider by altering the `display.action_palette.provider` config value to be `telescope` or `mini_pick`. You can also call the Telescope extension with `require("telescope").extensions.codecompanion.codecompanion(opts)`.
 
 > [!NOTE]
 > Some actions and prompts will only be visible if you're in _Visual mode_.
@@ -204,11 +204,13 @@ Below is a list of the plugin's commands:
 - `CodeCompanion` - Open the inline assistant
 - `CodeCompanion <your prompt>` - Prompt the inline assistant
 - `CodeCompanion /<prompt-library>` - Use the prompt-library with the inline assistant e.g. `/commit`
+
 - `CodeCompanionChat` - Open a chat buffer
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
+
 - `CodeCompanionActions` - Open the _Action Palette_
 
 **Suggested workflow**
@@ -468,7 +470,7 @@ You can display your selected adapter's schema at the top of the buffer, if `dis
 
 **Slash Commands**
 
-As outlined in the [Quickstart](#rocket-quickstart) section, Slash Commands allow you to easily share additional context with your LLM from the chat buffer. Some of the Slash Commands allow to change the default provider:
+As outlined in the [Quickstart](#rocket-quickstart) section, Slash Commands allow you to easily share additional context with your LLM from the chat buffer. Some of the commands also allow for multiple providers:
 
 - `/buffer` - Has a `default` provider (which leverages `vim.ui.select`) alongside `telescope` and `fzf_lua` providers
 - `/files` - Has `telescope`, `mini_pick` and `fzf_lua` providers
@@ -487,7 +489,7 @@ One of the challenges with inline editing is determining how the LLM's response 
 - _new_ - be placed in a new buffer
 - _chat_ - be placed in a chat buffer
 
-By default, an inline assistant prompt will trigger the diff feature, showing differences between the original buffer and the changes from the LLM. This can be turned off in your config via the `display.inline.diff` table. You can also choose to accept or reject the LLM's suggestions with the following keymaps:
+By default, an inline assistant prompt will trigger the diff feature, showing differences between the original buffer and the changes from the LLM. This can be turned off in your config via the `display.diff.provider` table. You can also choose to accept or reject the LLM's suggestions with the following keymaps:
 
 - `ga` - Accept an inline edit
 - `gr` - Reject an inline edit
