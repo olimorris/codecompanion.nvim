@@ -204,13 +204,11 @@ Below is a list of the plugin's commands:
 - `CodeCompanion` - Open the inline assistant
 - `CodeCompanion <your prompt>` - Prompt the inline assistant
 - `CodeCompanion /<prompt-library>` - Use the prompt-library with the inline assistant e.g. `/commit`
-
 - `CodeCompanionChat` - Open a chat buffer
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
-
 - `CodeCompanionActions` - Open the _Action Palette_
 
 **Suggested workflow**
