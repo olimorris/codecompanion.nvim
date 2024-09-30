@@ -59,9 +59,7 @@ You must:
   env = function(tool)
     local url
     local query
-    -- print(vim.inspect(tool))
     local action = tool.action._attr.type
-    print(tool.action.query)
     if action == "search" then
       url = "https://s.jina.ai"
       query = rag.encode(tool.action.query)
