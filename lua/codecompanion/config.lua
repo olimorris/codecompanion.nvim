@@ -1,3 +1,5 @@
+local fmt = string.format
+
 return {
   adapters = {
     anthropic = "anthropic",
@@ -231,7 +233,7 @@ return {
       prompts = {
         -- The prompt to send to the LLM when a user initiates the inline strategy and it needs to convert to a chat
         inline_to_chat = function(context)
-          return string.format(
+          return fmt(
             [[I want you to act as an expert and senior developer in the %s language. I will ask you questions, perhaps giving you code examples, and I want you to advise me with explanations and code where neccessary.]],
             context.filetype
           )
@@ -299,8 +301,8 @@ Points to note:
         {
           role = "system",
           content = function(context)
-            return string.format(
-              [["I want you to act as a senior %s developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing]],
+            return fmt(
+              [[I want you to act as a senior %s developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing]],
               context.filetype
             )
           end,
@@ -343,7 +345,7 @@ Points to note:
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
-            return string.format(
+            return fmt(
               [[Please explain this code from buffer %d:
 
 ```%s
@@ -397,7 +399,7 @@ Points to note:
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
-            return string.format(
+            return fmt(
               [[Please generate unit tests for this code from buffer %d:
 
 ```%s
@@ -455,7 +457,7 @@ Use Markdown formatting and include the programming language name at the start o
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
-            return string.format(
+            return fmt(
               [[Please fix this code from buffer %d:
 
 ```%s
@@ -519,7 +521,7 @@ Use Markdown formatting and include the programming language name at the start o
           content = function(context)
             local selection = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
-            return string.format(
+            return fmt(
               [[And this is some code that relates to my question:
 
 ```%s
@@ -585,7 +587,7 @@ Use Markdown formatting and include the programming language name at the start o
                 .. "\n"
             end
 
-            return string.format(
+            return fmt(
               [[The programming language is %s. This is a list of the diagnostic messages:
 
 %s
@@ -603,7 +605,7 @@ Use Markdown formatting and include the programming language name at the start o
               context.end_line,
               { show_line_numbers = true }
             )
-            return string.format(
+            return fmt(
               [[
 This is the code, for context:
 
@@ -635,7 +637,7 @@ This is the code, for context:
         {
           role = "user",
           content = function()
-            return string.format(
+            return fmt(
               [[You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:
 
 ```diff
