@@ -644,7 +644,7 @@ This is the code, for context:
 %s
 ```
 ]],
-              vim.fn.system("git diff")
+              vim.fn.system("git diff --staged")
             )
           end,
           opts = {
