@@ -124,7 +124,7 @@ EOF
 <!-- panvimdoc-ignore-start -->
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/6ac075e2-f97e-473a-807c-ea3e9fd1e3e5" alt="Chat buffer">
+  <img src="https://github.com/user-attachments/assets/597299d2-36b3-469e-b69c-4d8fd14838f8" alt="Chat buffer">
 </p>
 
 <!-- panvimdoc-ignore-end -->
@@ -162,8 +162,11 @@ _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out a
 <!-- panvimdoc-ignore-start -->
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/ee058f03-05c1-4fc3-b0b8-31fc46928ba7" alt="Inline Assistant">
+  <img src="https://github.com/user-attachments/assets/21568a7f-aea8-4928-b3d4-f39c6566a23c" alt="Inline Assistant">
 </p>
+
+> [!NOTE]
+> The diff provider was selected as `mini_pick` in the video above
 
 <!-- panvimdoc-ignore-end -->
 
@@ -493,14 +496,6 @@ By default, an inline assistant prompt will trigger the diff feature, showing di
 - `gr` - Reject an inline edit
 
 ### :robot: Agents / Tools
-
-<!-- panvimdoc-ignore-start -->
-
-<div align="center">
-  <p>https://github.com/user-attachments/assets/8bc083c7-f4f1-4eab-b9fe-ab6c4c30ee91</p>
-</div>
-
-<!-- panvimdoc-ignore-end -->
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
