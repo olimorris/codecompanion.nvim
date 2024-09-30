@@ -86,7 +86,11 @@ describe("Chat", function()
 
     it("buffer variables are handled", function()
       table.insert(Chat.messages, { role = "user", content = "#buffer what does this file do?" })
-      Chat:parse_msg_for_vars(Chat.messages[#Chat.messages])
+
+      local message = Chat.messages[#Chat.messages]
+      if Chat.variables:parse(Chat, message) then
+        message.content = Chat.variables:replace(message.content)
+      end
 
       -- Variable is inserted as its own new message at the end
       local message = Chat.messages[#Chat.messages]

@@ -254,7 +254,6 @@ function Chat.new(args)
     status = "",
     tokens = args.tokens,
     tools_in_use = {},
-    variables = require("codecompanion.strategies.chat.variables").new(),
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
@@ -268,9 +267,8 @@ function Chat.new(args)
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, {
     clear = false,
   })
-
-  self.tools =
-    require("codecompanion.strategies.chat.tools").new({ id = self.id, bufnr = self.bufnr, messages = self.messages })
+  self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
+  self.variables = require("codecompanion.strategies.chat.variables").new()
 
   table.insert(chatmap, {
     name = "Chat " .. #chatmap + 1,
@@ -716,6 +714,15 @@ function Chat:add_tool(tool)
   return self
 end
 
+---Add the given variable to the chat buffer
+---@param var table The var from the config
+---@return CodeCompanion.Chat
+function Chat:add_variable(var)
+  self:add_message({ role = CONSTANTS.USER_ROLE, content = var }, { visible = false, tag = "variable" })
+
+  return self
+end
+
 ---Add a message to the message table
 ---@param data table {role: string, content: string}
 ---@param opts? table Options for the message
@@ -761,10 +768,14 @@ function Chat:submit(opts)
   end
 
   message = self.messages[#self.messages]
-  self.tools:parse(self, message):parse_msg_for_vars(message)
 
+  self.tools:parse(self, message)
   if self:has_tools() then
     message.content = self.tools:replace(message.content)
+  end
+
+  if self.variables:parse(self, message) then
+    message.content = self.variables:replace(message.content)
   end
 
   local settings = buf_parse_settings(bufnr, self.adapter)
@@ -973,7 +984,7 @@ function Chat:append_to_buf(data, opts)
 end
 
 ---Determine if the chat buffer has any tools in use
----@return true
+---@return boolean
 function Chat:has_tools()
   return util.count(self.tools_in_use) > 0
 end

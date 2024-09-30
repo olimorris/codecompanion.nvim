@@ -1,31 +1,18 @@
 local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
 
-local _CONSTANTS = {
+local CONSTANTS = {
   PREFIX = "#",
 }
 
----Check a message for a variable
----@param message string
----@param vars table
----@return string|nil
-local function find(message, vars)
-  for var, _ in pairs(vars) do
-    if message:match("%f[%w" .. _CONSTANTS.PREFIX .. "]" .. _CONSTANTS.PREFIX .. var .. "%f[%W]") then
-      return var
-    end
-  end
-  return nil
-end
-
 ---Check a message for any parameters that have been given to the variable
----@param message string
+---@param message table
 ---@param var string
 ---@return string|nil
 local function find_params(message, var)
-  local pattern = _CONSTANTS.PREFIX .. var .. ":([^%s]+)"
+  local pattern = CONSTANTS.PREFIX .. var .. ":([^%s]+)"
 
-  local params = message:match(pattern)
+  local params = message.content:match(pattern)
   if params then
     log:trace("Params found for variable: %s", params)
     return params
@@ -37,7 +24,7 @@ end
 ---@param chat CodeCompanion.Chat
 ---@param callback table
 ---@param params? string
----@return table|nil
+---@return table
 local function resolve(chat, callback, params)
   local splits = vim.split(callback, ".", { plain = true })
   local path = table.concat(splits, ".", 1, #splits - 1)
@@ -69,43 +56,63 @@ function Variables.new(args)
   return self
 end
 
+---Check a message for a variable
+---@param message table
+---@return table|nil
+function Variables:find(message)
+  local found = {}
+  for var, _ in pairs(self.vars) do
+    if message.content:match("%f[%w" .. CONSTANTS.PREFIX .. "]" .. CONSTANTS.PREFIX .. var .. "%f[%W]") then
+      table.insert(found, var)
+    end
+  end
+
+  if #found == 0 then
+    return nil
+  end
+
+  return found
+end
+
 ---Parse a message to detect if it references any variables
 ---@param chat CodeCompanion.Chat
----@param message string
----@return table|nil
+---@param message table
+---@return boolean
 function Variables:parse(chat, message)
-  local var = find(message, self.vars)
-  if not var then
-    return
+  local vars = self:find(message)
+  if vars then
+    for _, var in ipairs(vars) do
+      local var_config = self.vars[var]
+      log:debug("Variable found: %s", var)
+
+      local params = nil
+      if var_config.opts and var_config.opts.has_params then
+        params = find_params(message, var)
+      end
+
+      if (var_config.opts and var_config.opts.contains_code) and config.opts.send_code == false then
+        log:debug("Sending of code disabled")
+        return
+      end
+
+      local resolved_var = resolve(chat, var_config.callback, params)
+      chat:add_variable(resolved_var)
+    end
+
+    return true
   end
 
-  local found = self.vars[var]
-  log:debug("Variable found: %s", var)
-
-  local params = nil
-  if found.opts and found.opts.has_params then
-    params = find_params(message, var)
-  end
-
-  if (found.opts and found.opts.contains_code) and config.opts.send_code == false then
-    log:debug("Sending of code disabled")
-    return
-  end
-
-  return {
-    var = var,
-    type = found.type,
-    content = resolve(chat, found.callback, params),
-  }
+  return false
 end
 
 ---Replace a variable in a given message
 ---@param message string
----@param vars table
 ---@return string
-function Variables:replace(message, vars)
-  local var = _CONSTANTS.PREFIX .. vars.var
-  return vim.trim(message:gsub(var, ""))
+function Variables:replace(message)
+  for var, _ in pairs(self.vars) do
+    message = vim.trim(message:gsub(CONSTANTS.PREFIX .. var, ""))
+  end
+  return message
 end
 
 return Variables

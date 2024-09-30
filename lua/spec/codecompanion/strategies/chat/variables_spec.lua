@@ -4,6 +4,7 @@ local Variables = require("codecompanion.strategies.chat.variables")
 local codecompanion = require("codecompanion")
 local config = require("codecompanion").config
 
+-- mock dependencies
 config.strategies = {
   chat = {
     variables = {
@@ -24,6 +25,11 @@ config.strategies = {
       },
     },
   },
+  agent = {
+    tools = {
+      ["blank"] = {},
+    },
+  },
 }
 
 describe("Variables", function()
@@ -31,7 +37,9 @@ describe("Variables", function()
   local vars
 
   before_each(function()
-    codecompanion.setup()
+    codecompanion.setup(config)
+
+    chat = Chat.new({ adapter = "openai", context = { bufnr = 0 } })
     vars = Variables.new()
 
     package.loaded["codecompanion.utils"] = {
@@ -57,40 +65,67 @@ describe("Variables", function()
 
   describe(":parse", function()
     it("should parse a message with a variable", function()
-      local result = vars:parse(chat, "#foo What does this code do?")
-      assert.is_not_nil(result)
-      assert.equals("foo", result.content)
+      table.insert(chat.messages, {
+        role = "user",
+        content = "#foo what does this do?",
+      })
+      local result = vars:parse(chat, chat.messages[#chat.messages])
+
+      assert.equals(true, result)
+
+      local message = chat.messages[#chat.messages]
+      assert.equals("foo", message.content)
     end)
 
     it("should return nil if no variable is found", function()
-      local result = vars:parse(chat, "no variable here", 1)
-      assert.is_nil(result)
+      table.insert(chat.messages, {
+        role = "user",
+        content = "what does this do?",
+      })
+      local result = vars:parse(chat, chat.messages[#chat.messages])
+
+      assert.equals(false, result)
     end)
 
     it("should parse a message with a variable and string params", function()
-      local result = vars:parse(chat, "#bar:baz Can you parse this variable?", 1)
-      assert.equals("bar baz", result.content)
+      table.insert(chat.messages, {
+        role = "user",
+        content = "#bar:baz Can you parse this variable?",
+      })
+      vars:parse(chat, chat.messages[#chat.messages])
+
+      local message = chat.messages[#chat.messages]
+      assert.equals("bar baz", message.content)
     end)
+
     it("should parse a message with a variable and numerical params", function()
-      local result = vars:parse(chat, "#bar:100-200 Can you parse this variable?", 1)
-      assert.equals("bar 100-200", result.content)
+      table.insert(chat.messages, {
+        role = "user",
+        content = "#bar:100-200 Can you parse this variable?",
+      })
+      vars:parse(chat, chat.messages[#chat.messages])
+
+      local message = chat.messages[#chat.messages]
+      assert.equals("bar 100-200", message.content)
     end)
+
     it("should parse a message with a variable and ignore params if they're not enabled", function()
-      local result = vars:parse(chat, "#baz:qux Can you parse this variable?", 1)
-      assert.equals("baz", result.content)
-    end)
-  end)
+      table.insert(chat.messages, {
+        role = "user",
+        content = "#baz:qux Can you parse this variable?",
+      })
+      vars:parse(chat, chat.messages[#chat.messages])
 
-  describe(":replace", function()
-    it("should replace a variable in the message", function()
-      local message = "#foo replace this variable"
-      local result = vars:replace(message, { var = "foo" })
-      assert.equals("replace this variable", result)
+      local message = chat.messages[#chat.messages]
+      assert.equals("baz", message.content)
     end)
-  end)
 
-  it("should resolve a built-in callback", function()
-    local result = vars:parse(chat, "#foo what is happening?", 1)
-    assert.equals("foo", result.content)
+    describe(":replace", function()
+      it("should replace the variable in the message", function()
+        local message = "#foo #bar replace this var"
+        local result = vars:replace(message, "foo")
+        assert.equals("replace this var", result)
+      end)
+    end)
   end)
 end)
