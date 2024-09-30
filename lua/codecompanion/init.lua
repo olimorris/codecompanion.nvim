@@ -171,7 +171,7 @@ end
 ---@return nil
 M.actions = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
-  return require("codecompanion.actions").launch(context, args.provider)
+  return require("codecompanion.actions").launch(context, args)
 end
 
 ---Setup the plugin

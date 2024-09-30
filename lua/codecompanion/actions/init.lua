@@ -72,20 +72,26 @@ end
 
 ---Launch the action palette
 ---@param context table The buffer context
----@param provider? string Override the provider in the config
+---@param args? table {name: string, opts: table} The provider to use
 ---@return nil
-function Actions.launch(context, provider)
+function Actions.launch(context, args)
   local items = Actions.items(context)
 
   if items and #items == 0 then
     return log:warn("No prompts available. Please create some in your config or turn on the prompt library")
   end
 
-  local provider_args = { context = context, validate = Actions.validate, resolve = Actions.resolve }
-
   -- Resolve for a specific provider
-  provider = provider or config.display.action_palette.provider
-  return require("codecompanion.actions.providers." .. provider).new(provider_args):picker(items)
+  local provider = config.display.action_palette.provider
+  local provider_opts = {}
+  if args and args.provider and args.provider.name then
+    provider = args.provider.name
+    provider_opts = args.provider.opts or {}
+  end
+
+  return require("codecompanion.actions.providers." .. provider)
+    .new({ context = context, validate = Actions.validate, resolve = Actions.resolve })
+    :picker(items, provider_opts)
 end
 
 return Actions
