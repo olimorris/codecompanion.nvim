@@ -44,6 +44,7 @@ function M.resolve(context, config)
       description = description,
       opts = prompt.opts,
       prompts = prompt.prompts,
+      picker = prompt.picker,
     })
 
     ::continue::
