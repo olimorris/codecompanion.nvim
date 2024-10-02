@@ -195,7 +195,7 @@ There are keymaps available to accept or reject edits from the LLM in the [inlin
 
 <!-- panvimdoc-ignore-end -->
 
-Run `:CodeCompanionActions` to open the action palette, which gives you access to all functionality of the plugin. By default the plugin uses `vim.ui.select` however you can change the provider by altering the `display.action_palette.provider` config value to be `telescope` or `mini_pick`. You can also call the Telescope extension with `require("telescope").extensions.codecompanion.codecompanion(opts)`.
+Run `:CodeCompanionActions` to open the action palette, which gives you access to all functionality of the plugin. By default the plugin uses `vim.ui.select` however you can change the provider by altering the `display.action_palette.provider` config value to be `telescope` or `mini_pick`. You can also call the Telescope extension with `:Telescope codecompanion`.
 
 > [!NOTE]
 > Some actions and prompts will only be visible if you're in _Visual mode_.
@@ -206,7 +206,7 @@ Below is a list of the plugin's commands:
 
 - `CodeCompanion` - Open the inline assistant
 - `CodeCompanion <your prompt>` - Prompt the inline assistant
-- `CodeCompanion /<prompt-library>` - Use the prompt-library with the inline assistant e.g. `/commit`
+- `CodeCompanion /<prompt-library>` - Use the [prompt-library](#clipboard-prompt-library) with the inline assistant e.g. `/commit`
 - `CodeCompanionChat` - Open a chat buffer
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
