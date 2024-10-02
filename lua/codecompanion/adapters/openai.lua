@@ -8,7 +8,7 @@ return {
     user = "user",
   },
   opts = {
-    stream = false,
+    stream = true,
   },
   features = {
     text = true,
