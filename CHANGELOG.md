@@ -1,5 +1,18 @@
 # Changelog
 
+## [5.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v5.0.0...v5.1.0) (2024-10-02)
+
+
+### Features
+
+* **editor:** streamline system prompt ([1c12cab](https://github.com/olimorris/codecompanion.nvim/commit/1c12cabbc8698bfea8b4e9ed5846412521b437db))
+
+
+### Bug Fixes
+
+* **openai:** check for choices ([9eb573e](https://github.com/olimorris/codecompanion.nvim/commit/9eb573e80b4c2558ce2f430fa96e82b4eb99c8b5))
+* **slash:** use loadfile for user's own commands ([6c349c8](https://github.com/olimorris/codecompanion.nvim/commit/6c349c8365d1c7aa59f4bda3edcdb9f35a51d080))
+
 ## [5.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v4.1.0...v5.0.0) (2024-09-30)
 
 
