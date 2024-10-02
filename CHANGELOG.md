@@ -1,5 +1,17 @@
 # Changelog
 
+## [5.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v5.1.0...v5.2.0) (2024-10-02)
+
+
+### Features
+
+* **adapters:** make it easier to work with non-streaming endpoints ([4ae9236](https://github.com/olimorris/codecompanion.nvim/commit/4ae9236012adf898b588bb8f5c5d882ab86e34b3))
+
+
+### Bug Fixes
+
+* **openai:** streaming should be the default ([0224ff9](https://github.com/olimorris/codecompanion.nvim/commit/0224ff91a29279b03a5a1dc7a3fc26a968628767))
+
 ## [5.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v5.0.0...v5.1.0) (2024-10-02)
 
 
