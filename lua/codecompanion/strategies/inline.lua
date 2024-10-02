@@ -243,8 +243,7 @@ function Inline:classify(user_input)
     util.fire("InlineStarted")
 
     self:autocmd_classify()
-    client.new({ user_args = { event = "InlineClassify" } }):stream(
-      self.adapter:map_schema_to_params(),
+    client.new({ adapter = self.adapter:map_schema_to_params(), user_args = { event = "InlineClassify" } }):request(
       self.adapter:map_roles({
         {
           role = CONSTANTS.SYSTEM_ROLE,
@@ -350,10 +349,9 @@ function Inline:submit()
   end
 
   self:autocmd_submit()
-  self.current_request = client.new({ user_args = { event = "InlineSubmit" } }):stream(
-    self.adapter:map_schema_to_params(),
-    self.adapter:map_roles(self.classification.prompts),
-    function(err, data)
+  self.current_request = client
+    .new({ adapter = self.adapter:map_schema_to_params(), user_args = { event = "InlineSubmit" } })
+    :request(self.adapter:map_roles(self.classification.prompts), function(err, data)
       if err then
         log:error("Error during stream: %s", err)
         return
@@ -371,15 +369,12 @@ function Inline:submit()
           end)
         end
       end
-    end,
-    function()
+    end, function()
       self.current_request = nil
       vim.schedule(function()
         util.fire("InlineFinished", { placement = self.classification.placement })
       end)
-    end,
-    { bufnr = bufnr }
-  )
+    end, { bufnr = bufnr })
 end
 
 ---Function to call when the LLM has finished processing the prompt

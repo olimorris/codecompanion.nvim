@@ -7,6 +7,9 @@ return {
     llm = "assistant",
     user = "user",
   },
+  opts = {
+    stream = false,
+  },
   features = {
     text = true,
     tokens = true,
@@ -24,13 +27,17 @@ return {
     ["Content-Type"] = "application/json",
     Authorization = "Bearer ${api_key}",
   },
-  parameters = {
-    stream = true,
-    stream_options = {
-      include_usage = true,
-    },
-  },
   handlers = {
+    ---@param self CodeCompanion.Adapter
+    ---@return boolean
+    setup = function(self)
+      if self.opts and self.opts.stream then
+        self.parameters.stream = true
+        self.parameters.stream_options = { include_usage = true }
+      end
+      return true
+    end,
+
     ---Set the parameters
     ---@param self CodeCompanion.Adapter
     ---@param params table
@@ -54,7 +61,7 @@ return {
     ---@return number|nil
     tokens = function(self, data)
       if data and data ~= "" then
-        local data_mod = self.parameters.stream and data:sub(7) or data
+        local data_mod = (self.opts and self.opts.stream) and data:sub(7) or data.body
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
@@ -75,13 +82,13 @@ return {
       local output = {}
 
       if data and data ~= "" then
-        local data_mod = self.parameters.stream and data:sub(7) or data
+        local data_mod = (self.opts and self.opts.stream) and data:sub(7) or data.body
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
           if json.choices and #json.choices > 0 then
             local choice = json.choices[1]
-            local delta = self.parameters.stream and choice.delta or choice.message
+            local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
 
             if delta.content then
               output.content = delta.content
@@ -104,7 +111,7 @@ return {
     ---@return string|table|nil
     inline_output = function(self, data, context)
       if data and data ~= "" then
-        data = self.parameters.stream and data:sub(7) or data
+        data = (self.opts and self.opts.stream) and data:sub(7) or data.body
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
         if ok then
@@ -114,7 +121,7 @@ return {
           end
 
           local choice = json.choices[1]
-          local delta = self.parameters.stream and choice.delta or choice.message
+          local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
           if delta.content then
             return delta.content
           end
@@ -127,14 +134,8 @@ return {
     ---@param data table
     ---@return nil
     on_stdout = function(self, data)
-      local stdout = table.concat(data._stdout_results)
-
-      local ok, json = pcall(vim.json.decode, stdout, { luanil = { object = true } })
-      if ok then
-        log:trace("stdout: %s", json)
-        if json.error then
-          log:error("Error: %s", json.error.message)
-        end
+      if data.status >= 400 then
+        log:error("Error: %s", data.body)
       end
     end,
   },

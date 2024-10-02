@@ -63,6 +63,9 @@ return {
     llm = "assistant",
     user = "user",
   },
+  opts = {
+    stream = true, -- NOTE: Currently, CodeCompanion ONLY supports streaming with this adapter
+  },
   features = {
     text = true,
     tokens = true,
@@ -170,12 +173,8 @@ return {
     ---@param data table
     ---@return nil
     on_stdout = function(self, data)
-      local ok, json = pcall(vim.json.decode, data._stdout_results[1], { luanil = { object = true } })
-      if ok then
-        log:trace("stdout: %s", json)
-        if json.error then
-          log:error("Error: %s", json.error)
-        end
+      if data.status >= 400 then
+        log:error("Error: %s", data.body)
       end
     end,
   },

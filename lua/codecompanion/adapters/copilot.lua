@@ -103,6 +103,9 @@ return {
     llm = "assistant",
     user = "user",
   },
+  opts = {
+    stream = true,
+  },
   features = {
     text = true,
     tokens = false,
@@ -125,20 +128,24 @@ return {
     ["Copilot-Integration-Id"] = "vscode-chat",
     ["editor-version"] = "Neovim/" .. vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
   },
-  parameters = {
-    stream = true,
-  },
   handlers = {
     ---Check for a token before starting the request
-    ---@param self CodeCompanion.AdapterArgs
+    ---@param self CodeCompanion.Adapter
     ---@return boolean
     setup = function(self)
+      if self.opts and self.opts.stream then
+        self.parameters = {
+          stream = true,
+        }
+      end
+
       _oauth_token = get_github_token()
       if not _oauth_token then
         log:error("Copilot Adapter: No token found. Please refer to https://github.com/github/copilot.vim")
         return false
       end
 
+      -- _github_token = { token = "ABC123", expires_at = os.time() + 3600 }
       _github_token = authorize_token()
       if not _github_token or util.count(_github_token) == 0 then
         log:error("Copilot Adapter: Could not authorize your GitHub Copilot token")

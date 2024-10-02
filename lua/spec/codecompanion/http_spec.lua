@@ -55,7 +55,7 @@ describe("Client", function()
 
     adapter = require("codecompanion.adapters").new(adapter)
 
-    Client.new():stream(adapter, {}, 0, cb)
+    Client.new({ adapter = adapter }):request({}, 0, cb)
 
     assert.stub(mock_request).was_called(1)
   end)

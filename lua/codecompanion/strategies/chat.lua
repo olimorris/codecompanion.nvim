@@ -547,7 +547,7 @@ function Chat:set_autocmds()
       if request.data.bufnr ~= self.bufnr then
         return
       end
-      self:done()
+      self:done(request)
     end,
   })
 end
@@ -787,8 +787,8 @@ function Chat:submit(opts)
   lock_buf(bufnr)
   log:info("Chat request started")
   self.current_request = client
-    .new()
-    :stream(settings, self.adapter:map_roles(vim.deepcopy(self.messages)), function(err, data)
+    .new({ adapter = settings })
+    :request(self.adapter:map_roles(vim.deepcopy(self.messages)), function(err, data)
       if err then
         self.status = CONSTANTS.STATUS_ERROR
         log:error("Error: %s", err)
@@ -815,8 +815,9 @@ function Chat:submit(opts)
 end
 
 ---After the response from the LLM is received...
+---@param request table
 ---@return nil
-function Chat:done()
+function Chat:done(request)
   self:add_message({ role = CONSTANTS.LLM_ROLE, content = buf_parse_message(self.bufnr).content })
 
   self:append_to_buf({ role = CONSTANTS.USER_ROLE, content = "" })

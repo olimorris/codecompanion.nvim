@@ -31,6 +31,7 @@ return {
     stream = true,
   },
   opts = {
+    stream = true, -- NOTE: Currently, CodeCompanion ONLY supports streaming with this adapter
     cache_breakpoints = 4, -- Cache up to this many messages
     cache_over = 300, -- Cache any message which has this many tokens or more
   },
@@ -186,12 +187,8 @@ return {
     ---@param data table
     ---@return nil
     on_stdout = function(self, data)
-      local ok, json = pcall(vim.json.decode, data._stdout_results[1], { luanil = { object = true } })
-      if ok then
-        log:trace("stdout: %s", json)
-        if json.error then
-          log:error("Error: %s", json.error.message)
-        end
+      if data.status >= 400 then
+        log:error("Error: %s", data.body)
       end
     end,
   },
