@@ -49,8 +49,35 @@ describe("Anthropic adapter", function()
     adapter = require("codecompanion.adapters").resolve("anthropic")
   end)
 
+  it("consolidates system prompts in their own block", function()
+    local messages = {
+      { content = "Hello", role = "system" },
+      { content = "World", role = "system" },
+      { content = "What can you do?!", role = "user" },
+    }
+
+    local output = adapter.handlers.form_messages(adapter, messages)
+
+    assert.are.same("Hello", output.system[1].text)
+    assert.are.same("World", output.system[2].text)
+    assert.are.same({ { content = "What can you do?!", role = "user" } }, output.messages)
+  end)
+
   it("can form messages to be sent to the API", function()
     assert.are.same({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+  end)
+
+  it("consolidates consecutive user messages together", function()
+    local messages = {
+      { content = "Hello", role = "user" },
+      { content = "World!", role = "user" },
+      { content = "What up?!", role = "user" },
+    }
+
+    assert.are.same(
+      { { role = "user", content = "Hello World! What up?!" } },
+      adapter.handlers.form_messages(adapter, messages).messages
+    )
   end)
 
   it("can output streamed data into a format for the chat buffer", function()
