@@ -3,14 +3,18 @@ local log = require("codecompanion.utils.log")
 
 ---Resolve the callback to the correct module
 ---@param callback string The module to get
----@return table
+---@return table|nil
 local function resolve(callback)
-  log:debug("Resolving slash command: %s", callback)
   local ok, slash_command = pcall(require, "codecompanion." .. callback)
   if not ok then
-    slash_command = require(callback)
+    -- Try loading the tool from the user's config
+    ok, slash_command = pcall(loadfile, callback)
+  end
+  if not ok then
+    return
   end
 
+  log:debug("Calling slash command: %s", callback)
   return slash_command
 end
 
