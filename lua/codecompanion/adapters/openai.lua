@@ -79,7 +79,7 @@ return {
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
-          if #json.choices > 0 then
+          if json.choices and #json.choices > 0 then
             local choice = json.choices[1]
             local delta = self.parameters.stream and choice.delta or choice.message
 
@@ -109,7 +109,7 @@ return {
 
         if ok then
           --- Some third-party OpenAI forwarding services may have a return package with an empty json.choices.
-          if #json.choices == 0 then
+          if not json.choices or #json.choices == 0 then
             return
           end
 
