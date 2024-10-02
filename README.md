@@ -31,7 +31,7 @@ Thank you to the following people:
 - :electric_plug: Support for Anthropic, Copilot, Gemini, Ollama and OpenAI LLMs (or bring your own!)
 - :rocket: Inline transformations, code creation and refactoring
 - :robot: Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
-- :sparkles: Built in prompt-library for common tasks like advice on LSP errors and code explanations
+- :sparkles: Built in prompt library for common tasks like advice on LSP errors and code explanations
 - :building_construction: Create your own custom prompts, Variables and Slash Commands
 - :books: Have multiple chats open at the same time
 - :muscle: Async execution for fast performance
@@ -174,7 +174,7 @@ Run `:CodeCompanion <your prompt>` to call the inline assistant. The assistant w
 
 The assistant has knowledge of your last conversation from a chat buffer. A prompt such as `:CodeCompanion add the new function here` will see the assistant add a code block directly into the current buffer.
 
-For convenience, you can call prompts from the [prompt-library](#clipboard-prompt-library) via the assistant such as `:'<,'>CodeCompanion /buffer what does this file do?`. The prompt-library comes with the following defaults:
+For convenience, you can call prompts from the [prompt library](#clipboard-prompt-library) via the assistant such as `:'<,'>CodeCompanion /buffer what does this file do?`. The prompt library comes with the following defaults:
 
 - `/buffer` - Send the current buffer to the LLM alongside a prompt
 - `/commit` - Generate a commit message
@@ -206,7 +206,7 @@ Below is a list of the plugin's commands:
 
 - `CodeCompanion` - Open the inline assistant
 - `CodeCompanion <your prompt>` - Prompt the inline assistant
-- `CodeCompanion /<prompt-library>` - Use the [prompt-library](#clipboard-prompt-library) with the inline assistant e.g. `/commit`
+- `CodeCompanion /<prompt library>` - Use the [prompt library](#clipboard-prompt-library) with the inline assistant e.g. `/commit`
 - `CodeCompanionChat` - Open a chat buffer
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
@@ -243,7 +243,7 @@ The plugin uses adapters to connect to LLMs. Out of the box, the plugin supports
 
 The plugin also utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ and _agent_ strategies harness a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
 
-The plugin allows you to specify adapters for each strategy and also for each [prompt-library](#clipboard-prompt-library) entry.
+The plugin allows you to specify adapters for each strategy and also for each [prompt library](#clipboard-prompt-library) entry.
 
 ### :hammer_and_wrench: Changing the Defaults
 
@@ -436,7 +436,7 @@ require("codecompanion").setup({
 
 ## :bulb: Advanced Usage
 
-### :clipboard: Prompt-Library
+### :clipboard: Prompt Library
 
 The plugin comes with a number of pre-built prompts. As per [the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua), these can be called via keymaps or slash commands (via the inline assistant). These prompts have been carefully curated to mimic those in [GitHub's Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide). Of course, you can create your own prompts and add them to the Action Palette. Please see the [RECIPES](doc/RECIPES.md) guide for more information.
 

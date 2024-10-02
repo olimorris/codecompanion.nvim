@@ -18,7 +18,7 @@ FEATURES                                              *codecompanion-features*
 - Support for Anthropic, Copilot, Gemini, Ollama and OpenAI LLMs (or bring your own!)
 - Inline transformations, code creation and refactoring
 - Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
-- Built in prompt-library for common tasks like advice on LSP errors and code explanations
+- Built in prompt library for common tasks like advice on LSP errors and code explanations
 - Create your own custom prompts, Variables and Slash Commands
 - Have multiple chats open at the same time
 - Async execution for fast performance
@@ -150,7 +150,7 @@ assistant add a code block directly into the current buffer.
 
 For convenience, you can call prompts from the |codecompanion-prompt-library|
 via the assistant such as `:'<,'>CodeCompanion /buffer what does this file
-do?`. The prompt-library comes with the following defaults:
+do?`. The prompt library comes with the following defaults:
 
 - `/buffer` - Send the current buffer to the LLM alongside a prompt
 - `/commit` - Generate a commit message
@@ -180,7 +180,7 @@ Below is a list of the plugin’s commands:
 
 - `CodeCompanion` - Open the inline assistant
 - `CodeCompanion <your prompt>` - Prompt the inline assistant
-- `CodeCompanion /<prompt-library>` - Use the |codecompanion-prompt-library| with the inline assistant e.g. `/commit`
+- `CodeCompanion /<prompt library>` - Use the |codecompanion-prompt-library| with the inline assistant e.g. `/commit`
 - `CodeCompanionChat` - Open a chat buffer
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
@@ -442,7 +442,7 @@ adapter, these sit within a schema table and can be configured during setup:
 ADVANCED USAGE                                  *codecompanion-advanced-usage*
 
 
-PROMPT-LIBRARY ~
+PROMPT LIBRARY ~
 
 The plugin comes with a number of pre-built prompts. As per the config
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>,
