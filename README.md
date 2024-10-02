@@ -66,7 +66,7 @@ Install the plugin with your preferred package manager:
     "nvim-treesitter/nvim-treesitter",
     "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
     "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
-    { "stevearc/dressing.nvim", opts = {} }, -- Optional: Improves the default Neovim UI
+    { "stevearc/dressing.nvim", opts = {} }, -- Optional: Improves `vim.ui.select`
   },
   config = true
 }
@@ -85,7 +85,7 @@ use({
     "nvim-treesitter/nvim-treesitter",
     "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
     "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
-    "stevearc/dressing.nvim" -- Optional: Improves the default Neovim UI
+    "stevearc/dressing.nvim" -- Optional: Improves `vim.ui.select`
   }
 })
 ```
@@ -99,7 +99,7 @@ Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-treesitter/nvim-treesitter'
 Plug 'hrsh7th/nvim-cmp', " Optional: For using slash commands and variables in the chat buffer
 Plug 'nvim-telescope/telescope.nvim', " Optional: For using slash commands
-Plug 'stevearc/dressing.nvim' " Optional: Improves the default Neovim UI
+Plug 'stevearc/dressing.nvim' " Optional: Improves `vim.ui.select`
 Plug 'olimorris/codecompanion.nvim'
 
 call plug#end()
