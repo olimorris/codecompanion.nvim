@@ -199,7 +199,7 @@ data: [DONE]
 > [!IMPORTANT]
 > Note that the `chat_output` handler requires a table containing `status` and `output` to be returned.
 
-Remember that we're streaming from the API so the request comes through in batches. Thankfully the client implementation handles this and we just have to handle formatting the output into the chat buffer.
+Remember that we're streaming from the API so the request comes through in batches. Thankfully the `http.lua` file handles this and we just have to handle formatting the output into the chat buffer.
 
 The first thing to note with streaming endpoints is that they don't return valid JSON. In this case, the output is prefixed with `data: `. So let's remove it:
 
@@ -372,7 +372,7 @@ The `log:error` call ensures that any errors are logged to the logfile as well a
 
 There are two optional handlers that you can make use of: `setup` and `teardown`.
 
-The `setup` handler will execute before the request is sent to the LLM's endpoint and before the environment variables have been set. This is leveraged in the Copilot adapter to obtain the token before it's resolved as part of the environment variables table. The `setup` handler **must** return a boolean value so the `client.lua` file can determine whether to proceed with the request.
+The `setup` handler will execute before the request is sent to the LLM's endpoint and before the environment variables have been set. This is leveraged in the Copilot adapter to obtain the token before it's resolved as part of the environment variables table. The `setup` handler **must** return a boolean value so the `http.lua` file can determine whether to proceed with the request.
 
 The `teardown` handler will execute once the request has completed and after `on_stdout`.
 
