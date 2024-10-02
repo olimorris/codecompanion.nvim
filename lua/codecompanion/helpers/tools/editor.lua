@@ -225,6 +225,7 @@ c) Delete:
   - For the delete action, the <start_line> and <end_line> tags are inclusive
   - The update action first deletes the range in <start_line> and <end_line> (inclusively) and then adds new code from the <start_line>
   - Account for comment blocks and indentation in your code
+  - If the user supplies no context, it can be assumed that they would like you to update the buffer with the code from your last response
 
 Remember: Minimize explanations unless prompted. Focus on generating correct XML.]],
       xml2lua.toXml({ tools = { schema[1] } }),
