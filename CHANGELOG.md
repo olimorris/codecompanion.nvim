@@ -1,5 +1,17 @@
 # Changelog
 
+## [6.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v5.3.0...v6.0.0) (2024-10-03)
+
+
+### Features
+
+* :sparkles: add /fetch slash command ([1389762](https://github.com/olimorris/codecompanion.nvim/commit/1389762b54d494fa6f98b099f49b682b7a56ec1d))
+
+
+### Miscellaneous Chores
+
+* release 6.0.0 ([5641236](https://github.com/olimorris/codecompanion.nvim/commit/56412362ab568420c7d6e40d09327416608c7de2))
+
 ## [5.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v5.2.0...v5.3.0) (2024-10-03)
 
 
