@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.9.2        Last change: 2024 October 02
+*codecompanion.txt*        For NVIM v0.9.2        Last change: 2024 October 03
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -45,7 +45,7 @@ Install the plugin with your preferred package manager:
         "nvim-treesitter/nvim-treesitter",
         "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
         "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
-        { "stevearc/dressing.nvim", opts = {} }, -- Optional: Improves the default Neovim UI
+        { "stevearc/dressing.nvim", opts = {} }, -- Optional: Improves `vim.ui.select`
       },
       config = true
     }
@@ -64,7 +64,7 @@ Install the plugin with your preferred package manager:
         "nvim-treesitter/nvim-treesitter",
         "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
         "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
-        "stevearc/dressing.nvim" -- Optional: Improves the default Neovim UI
+        "stevearc/dressing.nvim" -- Optional: Improves `vim.ui.select`
       }
     })
 <
@@ -78,7 +78,7 @@ Install the plugin with your preferred package manager:
     Plug 'nvim-treesitter/nvim-treesitter'
     Plug 'hrsh7th/nvim-cmp', " Optional: For using slash commands and variables in the chat buffer
     Plug 'nvim-telescope/telescope.nvim', " Optional: For using slash commands
-    Plug 'stevearc/dressing.nvim' " Optional: Improves the default Neovim UI
+    Plug 'stevearc/dressing.nvim' " Optional: Improves `vim.ui.select`
     Plug 'olimorris/codecompanion.nvim'
     
     call plug#end()
@@ -218,11 +218,11 @@ supports:
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
 
-The plugin also utilises objects called Strategies. These are the different
-ways that a user can interact with the plugin. The _chat_ and _agent_
-strategies harness a buffer to allow direct conversation with the LLM. The
-_inline_ strategy allows for output from the LLM to be written directly into a
-pre-existing Neovim buffer.
+The plugin utilises objects called Strategies. These are the different ways
+that a user can interact with the plugin. The _chat_ strategy harnesses a
+buffer to allow direct conversation with the LLM. The _inline_ strategy allows
+for output from the LLM to be written directly into a pre-existing Neovim
+buffer.
 
 The plugin allows you to specify adapters for each strategy and also for each
 |codecompanion-prompt-library| entry.
@@ -470,22 +470,8 @@ referenced in the chat buffer.
 
 **Keymaps**
 
-When in the chat buffer, there are number of keymaps available to you:
-
-- `?` - Bring up the menu that lists the keymaps and commands
-- `<CR>`|`<C-s>` - Send the buffer to the LLM
-- `<C-c>` - Close the buffer
-- `q` - Cancel the request from the LLM
-- `gr` - Regenerate the last response from the LLM
-- `ga` - Change the adapter
-- `gx` - Clear the buffer’s contents
-- `gx` - Add a codeblock
-- `gf` - To refresh the code folds in the buffer
-- `gd` - Debug the chat buffer
-- `}` - Move to the next chat
-- `{` - Move to the previous chat
-- `]]` - Move to the next header
-- `[[` - Move to the previous header
+When in the chat buffer, press `?` to bring up a menu that lists the available
+keymaps, variables, slash commands and tools.
 
 **Settings**
 
@@ -544,13 +530,14 @@ LLMs can act as agents by leveraging external tools. Andrew notes some common
 examples such as web searching or code execution that have obvious benefits
 when using LLMs.
 
-In the plugin, agents are simply context that’s given to an LLM via a
-`system` prompt. This gives it knowledge and a defined schema which it can
-include in its response for the plugin to parse, execute and feedback on.
-Agents can be added as a participant to the chat buffer by using the `@` key.
+In the plugin, tools are simply context that’s given to an LLM via a `system`
+prompt. This gives it knowledge and a defined schema which it can include in
+its response for the plugin to parse, execute and feedback on. Essentially
+turning it into an Agent. Tools can be added as a participant to the chat
+buffer by using the `@` key.
 
-More information on how agents work and how you can create your own can be
-found in the TOOLS <doc/TOOLS.md> guide.
+More information on how tools work and how you can create your own can be found
+in the TOOLS <doc/TOOLS.md> guide.
 
 
 WORKFLOWS ~

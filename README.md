@@ -241,7 +241,7 @@ The plugin uses adapters to connect to LLMs. Out of the box, the plugin supports
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
 
-The plugin also utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ and _agent_ strategies harness a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
+The plugin utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
 
 The plugin allows you to specify adapters for each strategy and also for each [prompt library](#clipboard-prompt-library) entry.
 
@@ -448,22 +448,7 @@ The look and feel of the chat buffer can be customised as per the `display.chat`
 
 **Keymaps**
 
-When in the chat buffer, there are number of keymaps available to you:
-
-- `?` - Bring up the menu that lists the keymaps and commands
-- `<CR>`|`<C-s>` - Send the buffer to the LLM
-- `<C-c>` - Close the buffer
-- `q` - Cancel the request from the LLM
-- `gr` - Regenerate the last response from the LLM
-- `ga` - Change the adapter
-- `gx` - Clear the buffer's contents
-- `gx` - Add a codeblock
-- `gf` - To refresh the code folds in the buffer
-- `gd` - Debug the chat buffer
-- `}` - Move to the next chat
-- `{` - Move to the previous chat
-- `]]` - Move to the next header
-- `[[` - Move to the previous header
+When in the chat buffer, press `?` to bring up a menu that lists the available keymaps, variables, slash commands and tools.
 
 **Settings**
 
@@ -499,9 +484,9 @@ By default, an inline assistant prompt will trigger the diff feature, showing di
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
-In the plugin, agents are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response for the plugin to parse, execute and feedback on. Agents can be added as a participant to the chat buffer by using the `@` key.
+In the plugin, tools are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response for the plugin to parse, execute and feedback on. Essentially turning it into an Agent. Tools can be added as a participant to the chat buffer by using the `@` key.
 
-More information on how agents work and how you can create your own can be found in the [TOOLS](doc/TOOLS.md) guide.
+More information on how tools work and how you can create your own can be found in the [TOOLS](doc/TOOLS.md) guide.
 
 ### :world_map: Workflows
 
