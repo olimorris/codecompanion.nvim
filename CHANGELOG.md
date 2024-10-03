@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v5.2.0...v5.3.0) (2024-10-03)
+
+
+### Features
+
+* **chat:** fire event when the model changes in the chat buffer ([2510965](https://github.com/olimorris/codecompanion.nvim/commit/251096585038085edfca6a94b4eb9be18808324b))
+
 ## [5.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v5.1.0...v5.2.0) (2024-10-02)
 
 
