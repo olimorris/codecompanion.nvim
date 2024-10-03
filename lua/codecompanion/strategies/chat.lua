@@ -282,6 +282,7 @@ function Chat.new(args)
     return log:error("No adapter found")
   end
   util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = self.adapter })
+  util.fire("ChatModel", { bufnr = self.bufnr, model = self.adapter.schema.model.default })
   self:apply_settings(self.opts.settings)
 
   self.close_last_chat()
@@ -903,6 +904,7 @@ function Chat:close()
   api.nvim_clear_autocmds({ group = self.aug })
   util.fire("ChatClosed", { bufnr = self.bufnr })
   util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = nil })
+  util.fire("ChatModel", { bufnr = self.bufnr, model = nil })
   self = nil
 end
 

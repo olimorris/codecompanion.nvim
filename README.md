@@ -521,6 +521,7 @@ The plugin fires many events during its lifecycle:
 
 - `CodeCompanionChatClosed` - Fired after a chat has been closed
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
+- `CodeCompanionChatModel` - Fired after the model has been set in the chat
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
 - `CodeCompanionAgentStarted` - Fired when an agent has been initiated in the chat
 - `CodeCompanionAgentFinished` - Fired when an agent has finished all tool executions

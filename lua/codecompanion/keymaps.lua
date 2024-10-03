@@ -291,6 +291,7 @@ M.change_adapter = {
 
     local adapters = require("codecompanion").config.adapters
     local current_adapter = chat.adapter.name
+    local current_model = vim.deepcopy(chat.adapter.schema.model.default)
 
     local list = {}
     for adapter, _ in pairs(adapters) do
@@ -329,24 +330,29 @@ M.change_adapter = {
         return
       end
 
-      local current_model = chat.adapter.schema.model.default
-      if type(current_model) == "function" then
-        current_model = current_model(chat.adapter)
+      local new_model = chat.adapter.schema.model.default
+      if type(new_model) == "function" then
+        new_model = new_model(chat.adapter)
       end
 
       list = {}
       for _, model in ipairs(models) do
-        if model ~= current_model then
+        if model ~= new_model then
           table.insert(list, model)
         end
       end
       table.sort(list)
-      table.insert(list, 1, current_model)
+      table.insert(list, 1, new_model)
 
-      vim.ui.select(list, select_opts("Select Model", current_model), function(selected)
+      vim.ui.select(list, select_opts("Select Model", new_model), function(selected)
         if not selected then
           return
         end
+
+        if current_model ~= selected then
+          util.fire("ChatModel", { bufnr = chat.bufnr, model = selected })
+        end
+
         chat:apply_model(selected)
       end)
     end)
