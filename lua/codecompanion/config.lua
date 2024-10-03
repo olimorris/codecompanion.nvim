@@ -9,7 +9,9 @@ return {
     ollama = "ollama",
     openai = "openai",
     -- NON-LLMs ---------------------------------------------------------------
-    jina = "jina",
+    non_llms = {
+      jina = "jina",
+    },
     -- OPTIONS ----------------------------------------------------------------
     opts = {
       allow_insecure = false, -- Allow insecure connections?
