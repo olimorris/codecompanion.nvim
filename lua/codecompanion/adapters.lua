@@ -106,12 +106,13 @@ local Adapter = {}
 ---@field opts? table Additional options for the adapter
 ---@field handlers table Functions which link the output from the request to CodeCompanion
 ---@field handlers.setup? fun(self: CodeCompanion.Adapter): boolean
+---@field handlers.set_body? fun(self: CodeCompanion.Adapter, data: table): table|nil
 ---@field handlers.form_parameters fun(self: CodeCompanion.Adapter, params: table, messages: table): table
 ---@field handlers.form_messages fun(self: CodeCompanion.Adapter, messages: table): table
 ---@field handlers.tokens? fun(self: CodeCompanion.Adapter, data: table): number|nil
 ---@field handlers.chat_output fun(self: CodeCompanion.Adapter, data: table): table|nil
 ---@field handlers.inline_output fun(self: CodeCompanion.Adapter, data: table, context: table): table|nil
----@field handlers.on_stdout fun(self: CodeCompanion.Adapter, data: table): table|nil
+---@field handlers.on_exit? fun(self: CodeCompanion.Adapter, data: table): table|nil
 ---@field handlers.teardown? fun(self: CodeCompanion.Adapter): any
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 
@@ -272,7 +273,9 @@ function Adapter.resolve(adapter)
   config = require("codecompanion").config
   adapter = adapter or config.adapters[config.strategies.chat.adapter]
 
-  if type(adapter) == "string" then
+  if type(adapter) == "table" then
+    return Adapter.new(adapter)
+  elseif type(adapter) == "string" then
     return Adapter.extend(adapter)
   elseif type(adapter) == "function" then
     return adapter()

@@ -25,7 +25,7 @@ Let's take a look at the interface of an adapter as per the `adapter.lua` file:
 ---@field handlers.form_messages fun()
 ---@field handlers.chat_output fun()
 ---@field handlers.inline_output fun()
----@field handlers.on_stdout fun()
+---@field handlers.on_exit? fun()
 ---@field handlers.teardown? fun()
 ---@field schema table Set of parameters for the LLM that the user can customise in the chat buffer
 ```
@@ -105,16 +105,17 @@ In this example, we're getting the value of a user's chosen model from the schem
 
 ## Handlers
 
-Currently, the handlers table requires five functions to be implemented:
+Currently, the handlers table requires four functions to be implemented:
 
 - `form_parameters` - A function which can be used to set the parameters of the request
 - `form_messages` - _Most_ LLMs have a `messages` array in the body of the request which contains the conversation. This function can be used to format and structure that array
 - `chat_output` - A function to format the output of the request into a Lua table that plugin can parse for the chat buffer
 - `inline_output` - A function to format the output of the request into a Lua table that plugin can parse, inline, to the current buffer
-- `on_stdout` - A function which is used to handle any errors returned from the LLM
 
-There are three optional handlers which you can make use of:
+There are some optional handlers which you can make use of:
 
+- `on_exit` - A function which receives the full payload from the API and is run once the request completes. Useful for
+  handling errors
 - `tokens` - A function to determine the amount of tokens consumed in the request(s)
 - `setup` - The function which is called before anything else
 - `teardown` - A function which is called last and after the request has completed
@@ -332,9 +333,9 @@ end,
 
 The `inline_output` handler also receives context from the buffer that initiated the request.
 
-### `on_stdout`
+### `on_exit`
 
-Handling errors from a streaming endpoint can be challenging. It's recommended that any errors are managed in the `on_stdout` handler which is initiated when the response has completed. In the case of OpenAI, if there is an error, we'll see a response back from the API like:
+Handling errors from a streaming endpoint can be challenging. It's recommended that any errors are managed in the `on_exit` handler which is initiated when the response has completed. In the case of OpenAI, if there is an error, we'll see a response back from the API like:
 
 ```sh
 data: {
@@ -347,26 +348,32 @@ data:     }
 data: }
 ```
 
-This would be challenging to parse! Thankfully we can leverage the `on_stdout` handler:
+This would be challenging to parse! Thankfully we can leverage the `on_exit` handler which receives the final payload, resembling:
 
 ```lua
----Function to catch any errors from the standard output
+{
+  body = '{\n    "error": {\n        "message": "Incorrect API key provided: 1sk-F18b****************************************XdwS. You can find your API key at https://platform.openai.com/account/api-keys.",\n        "type": "invalid_request_error",\n        "param": null,\n        "code": "invalid_api_key"\n    }\n}',
+  exit = 0,
+  headers = { "date: Thu, 03 Oct 2024 08:05:32 GMT" },
+  status = 401
+}
+```
+
+and that's much easier to work with:
+
+```lua
+---Function to run when the request has completed. Useful to catch errors
 ---@param self CodeCompanion.Adapter
 ---@param data table
 ---@return nil
-on_stdout = function(self, data)
-  local stdout = table.concat(data._stdout_results)
-
-  local ok, json = pcall(vim.json.decode, stdout, { luanil = { object = true } })
-  if ok then
-    if json.error then
-      return log:error("Error: %s", json.error.message)
-    end
+on_exit = function(self, data)
+  if data.status >= 400 then
+    log:error("Error: %s", data.body)
   end
 end,
 ```
 
-The `log:error` call ensures that any errors are logged to the logfile as well as displayed to the user in Neovim. It's also important to reference that the `chat_output` and `inline_output` handlers need to be able to ignore any errors from the API and let the `on_stdout` handle them.
+The `log:error` call ensures that any errors are logged to the logfile as well as displayed to the user in Neovim. It's also important to reference that the `chat_output` and `inline_output` handlers need to be able to ignore any errors from the API and let `on_exit` handle them.
 
 ### `setup` and `teardown`
 
@@ -374,7 +381,7 @@ There are two optional handlers that you can make use of: `setup` and `teardown`
 
 The `setup` handler will execute before the request is sent to the LLM's endpoint and before the environment variables have been set. This is leveraged in the Copilot adapter to obtain the token before it's resolved as part of the environment variables table. The `setup` handler **must** return a boolean value so the `http.lua` file can determine whether to proceed with the request.
 
-The `teardown` handler will execute once the request has completed and after `on_stdout`.
+The `teardown` handler will execute once the request has completed and after `on_exit`.
 
 ## Schema
 

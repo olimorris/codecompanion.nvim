@@ -182,13 +182,13 @@ return {
       end
     end,
 
-    ---Function to catch any errors from the standard output
+    ---Function to run when the request has completed. Useful to catch errors
     ---@param self CodeCompanion.Adapter
     ---@param data table
     ---@return nil
-    on_stdout = function(self, data)
+    on_exit = function(self, data)
       if data.status >= 400 then
-        log:error("Error: %s", data.body)
+        log:error("Error %s: %s", data.status, data.body)
       end
     end,
   },

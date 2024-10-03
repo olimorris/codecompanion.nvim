@@ -45,7 +45,7 @@ describe("Client", function()
     local mock_schedule = stub.new().returns(1)
 
     Client.static.opts = {
-      request = { default = mock_request },
+      post = { default = mock_request },
       encode = { default = mock_encode },
       decode = { default = mock_decode },
       schedule = { default = mock_schedule },

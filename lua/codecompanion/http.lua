@@ -15,7 +15,8 @@ Client.static = {}
 
 -- This makes it easier to mock during testing
 Client.static.opts = {
-  request = { default = curl.post },
+  post = { default = curl.post },
+  get = { default = curl.get },
   encode = { default = vim.json.encode },
   schedule = { default = vim.schedule_wrap },
 }
@@ -46,47 +47,51 @@ function Client:request(payload, cb, after, opts)
   opts = opts or {}
   cb = log:wrap_cb(cb, "Response error: %s")
 
-  if self.adapter.handlers.setup then
-    local ok = self.adapter.handlers.setup(self.adapter)
+  local adapter = self.adapter
+  local handlers = adapter.handlers
+
+  if handlers and handlers.setup then
+    local ok = handlers.setup(adapter)
     if not ok then
       return
     end
   end
 
-  self.adapter:get_env_vars()
+  adapter:get_env_vars()
 
   local body = self.opts.encode(
     vim.tbl_extend(
       "keep",
-      self.adapter.handlers.form_parameters(self.adapter, self.adapter:set_env_vars(self.adapter.parameters), payload)
+      handlers.form_parameters and handlers.form_parameters(adapter, adapter:set_env_vars(adapter.parameters), payload)
         or {},
-      self.adapter.handlers.form_messages(self.adapter, payload)
+      handlers.form_messages and handlers.form_messages(adapter, payload) or {},
+      handlers.set_body and handlers.set_body(adapter, payload) or {}
     )
   )
 
   local request_opts = {
-    url = self.adapter:set_env_vars(self.adapter.url),
-    headers = self.adapter:set_env_vars(self.adapter.headers),
+    url = adapter:set_env_vars(adapter.url),
+    headers = adapter:set_env_vars(adapter.headers),
     insecure = config.adapters.opts.allow_insecure,
     proxy = config.adapters.opts.proxy,
-    raw = self.adapter.raw or { "--no-buffer" },
-    body = body,
+    raw = adapter.raw or { "--no-buffer" },
+    body = body or "",
     -- This is called when the request is finished. It will only ever be called
     -- once, even if the endpoint is streaming.
     callback = function(data)
       vim.schedule(function()
-        if (not self.adapter.opts.stream) and data and data ~= "" then
+        if (not adapter.opts.stream) and data and data ~= "" then
           log:trace("Output data:\n%s", data)
           cb(nil, data)
         end
         if after and type(after) == "function" then
           after()
         end
-        if self.adapter.handlers.on_stdout then
-          self.adapter.handlers.on_stdout(self.adapter, data)
+        if handlers and handlers.on_exit then
+          handlers.on_exit(adapter, data)
         end
-        if self.adapter.handlers.teardown then
-          self.adapter.handlers.teardown(self.adapter)
+        if handlers and handlers.teardown then
+          handlers.teardown(adapter)
         end
 
         opts["status"] = "success"
@@ -106,7 +111,7 @@ function Client:request(payload, cb, after, opts)
     end,
   }
 
-  if self.adapter.opts and self.adapter.opts.stream then
+  if adapter.opts and adapter.opts.stream then
     -- This will be called multiple times until the stream is finished
     request_opts["stream"] = self.opts.schedule(function(_, data)
       if data and data ~= "" then
@@ -116,7 +121,12 @@ function Client:request(payload, cb, after, opts)
     end)
   end
 
-  local handler = self.opts.request(request_opts)
+  local request = "post"
+  if adapter.opts and adapter.opts.method then
+    request = adapter.opts.method:lower()
+  end
+
+  local handler = self.opts[request](request_opts)
   util.fire("RequestStarted", opts)
 
   if handler and handler.args then

@@ -166,13 +166,11 @@ return {
       end
     end,
 
-    ---Function to call when the stream ends and there is standard output
-    ---Ollama will return a code 0 if no model is found which we need
-    ---to handle and then alert the user to.
+    ---Function to run when the request has completed. Useful to catch errors
     ---@param self CodeCompanion.Adapter
     ---@param data table
     ---@return nil
-    on_stdout = function(self, data)
+    on_exit = function(self, data)
       if data.status >= 400 then
         log:error("Error: %s", data.body)
       end
