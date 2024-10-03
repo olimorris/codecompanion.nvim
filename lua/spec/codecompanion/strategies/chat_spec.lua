@@ -28,7 +28,11 @@ local adapter = {
       return false
     end,
   },
-  schema = {},
+  schema = {
+    model = {
+      default = "gpt-3.5-turbo",
+    },
+  },
 }
 
 describe("Chat", function()
