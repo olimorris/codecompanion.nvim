@@ -666,13 +666,6 @@ This is the code, for context:
         show_default_prompt_library = true, -- Show the default prompt library in the action palette?
       },
     },
-    diff = {
-      enabled = true,
-      close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-      layout = "vertical", -- vertical|horizontal split for default provider
-      opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
-      provider = "default", -- default|mini_diff
-    },
     chat = {
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer
@@ -704,6 +697,13 @@ This is the code, for context:
       token_count = function(tokens, adapter) -- The function to display the token count
         return " (" .. tokens .. " tokens)"
       end,
+    },
+    diff = {
+      enabled = true,
+      close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
+      layout = "vertical", -- vertical|horizontal split for default provider
+      opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
+      provider = "default", -- default|mini_diff
     },
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?
