@@ -1,5 +1,12 @@
 # Changelog
 
+## [6.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v6.0.0...v6.0.1) (2024-10-03)
+
+
+### Bug Fixes
+
+* stop non_llm adapters from appearing in chat buffer ([12f5925](https://github.com/olimorris/codecompanion.nvim/commit/12f59259d63504269895723d7bd913fce1bf424d))
+
 ## [6.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v5.3.0...v6.0.0) (2024-10-03)
 
 
