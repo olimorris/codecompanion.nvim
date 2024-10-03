@@ -142,6 +142,7 @@ _Variables_, accessed via `#`, contain data about the present state of Neovim:
 _Slash commands_, accessed via `/`, run commands to insert additional context into the chat buffer:
 
 - `/buffer` - Insert open buffers
+- `/fetch` - Insert URL contents
 - `/file` - Insert a file
 - `/help` - Insert content from help tags
 - `/now` - Insert the current date and time

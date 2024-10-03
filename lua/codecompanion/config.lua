@@ -2,11 +2,15 @@ local fmt = string.format
 
 return {
   adapters = {
+    -- LLMs -------------------------------------------------------------------
     anthropic = "anthropic",
     copilot = "copilot",
     gemini = "gemini",
     ollama = "ollama",
     openai = "openai",
+    -- NON-LLMs ---------------------------------------------------------------
+    jina = "jina",
+    -- OPTIONS ----------------------------------------------------------------
     opts = {
       allow_insecure = false, -- Allow insecure connections?
       proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
@@ -51,6 +55,13 @@ return {
           opts = {
             contains_code = true,
             provider = "default", -- default|telescope|mini_pick|fzf_lua
+          },
+        },
+        ["fetch"] = {
+          callback = "helpers.slash_commands.fetch",
+          description = "Insert URL contents",
+          opts = {
+            adapter = "jina",
           },
         },
         ["file"] = {
