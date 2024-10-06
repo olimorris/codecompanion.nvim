@@ -289,26 +289,29 @@ M.change_adapter = {
       }
     end
 
-    local adapters = require("codecompanion").config.adapters
     local current_adapter = chat.adapter.name
     local current_model = vim.deepcopy(chat.adapter.schema.model.default)
 
-    local list = {}
-    for adapter, _ in pairs(adapters) do
-      if adapter ~= current_adapter and adapter ~= "opts" and adapter ~= "non_llms" then
-        table.insert(list, adapter)
-      end
-    end
-    table.sort(list)
-    table.insert(list, 1, current_adapter)
+    local adapters = vim
+      .iter(require("codecompanion").config.adapters)
+      :filter(function(adapter)
+        return adapter ~= "opts" and adapter ~= "non_llms" and adapter ~= current_adapter
+      end)
+      :map(function(adapter, _)
+        return adapter
+      end)
+      :totable()
 
-    vim.ui.select(list, select_opts("Select Adapter", current_adapter), function(selected)
+    table.sort(adapters)
+    table.insert(adapters, 1, current_adapter)
+
+    vim.ui.select(adapters, select_opts("Select Adapter", current_adapter), function(selected)
       if not selected then
         return
       end
 
       if current_adapter ~= selected then
-        chat.adapter = require("codecompanion.adapters").resolve(adapters[selected])
+        chat.adapter = require("codecompanion.adapters").resolve(selected)
         util.fire("ChatAdapter", { bufnr = chat.bufnr, adapter = chat.adapter })
         chat:apply_settings()
       end
@@ -335,16 +338,15 @@ M.change_adapter = {
         new_model = new_model(chat.adapter)
       end
 
-      list = {}
-      for _, model in ipairs(models) do
-        if model ~= new_model then
-          table.insert(list, model)
-        end
-      end
-      table.sort(list)
-      table.insert(list, 1, new_model)
+      models = vim
+        .iter(models)
+        :filter(function(model)
+          return model ~= new_model
+        end)
+        :totable()
+      table.insert(models, 1, new_model)
 
-      vim.ui.select(list, select_opts("Select Model", new_model), function(selected)
+      vim.ui.select(models, select_opts("Select Model", new_model), function(selected)
         if not selected then
           return
         end
