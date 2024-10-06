@@ -117,7 +117,9 @@ return {
 
         if ok then
           if json.type == "message_start" then
-            input_tokens = json.message.usage.input_tokens or 0
+            input_tokens = (json.message.usage.input_tokens or 0)
+              + (json.message.usage.cache_creation_input_tokens or 0)
+
             output_tokens = json.message.usage.output_tokens or 0
           end
           if json.type == "message_delta" then
