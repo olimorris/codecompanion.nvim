@@ -12,7 +12,7 @@ docs: $(PANVIMDOC_DIR)
 	cd $(PANVIMDOC_DIR) && \
 	pandoc \
 		--metadata="project:codecompanion" \
-		--metadata="vimversion:NVIM v0.9.2" \
+		--metadata="vimversion:NVIM v0.10.0" \
 		--metadata="titledatepattern:%Y %B %d" \
 		--metadata="toc:true" \
 		--metadata="incrementheadinglevelby:0" \
@@ -29,7 +29,7 @@ tools: $(PANVIMDOC_DIR)
 	cd $(PANVIMDOC_DIR) && \
 	pandoc \
 		--metadata="project:codecompanion-tools" \
-		--metadata="vimversion:NVIM v0.9.2" \
+		--metadata="vimversion:NVIM v0.10.0" \
 		--metadata="titledatepattern:%Y %B %d" \
 		--metadata="toc:true" \
 		--metadata="incrementheadinglevelby:0" \
@@ -45,8 +45,8 @@ adapters: $(PANVIMDOC_DIR)
 	@echo "===> Adapters:" && \
 	cd $(PANVIMDOC_DIR) && \
 	pandoc \
-		--metadata="project:codecompanion-adapters" \
-		--metadata="vimversion:NVIM v0.9.2" \
+			--metadata="project:codecompanion-adapters" \
+			--metadata="vimversion:NVIM v0.10.0" \
 		--metadata="titledatepattern:%Y %B %d" \
 		--metadata="toc:true" \
 		--metadata="incrementheadinglevelby:0" \
@@ -63,7 +63,7 @@ recipes: $(PANVIMDOC_DIR)
 	cd $(PANVIMDOC_DIR) && \
 	pandoc \
 		--metadata="project:codecompanion-recipes" \
-		--metadata="vimversion:NVIM v0.9.2" \
+		--metadata="vimversion:NVIM v0.10.0" \
 		--metadata="titledatepattern:%Y %B %d" \
 		--metadata="toc:true" \
 		--metadata="incrementheadinglevelby:0" \

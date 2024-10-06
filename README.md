@@ -49,7 +49,7 @@ Thank you to the following people:
 ## :zap: Requirements
 
 - The `curl` library
-- Neovim 0.9.2 or greater
+- Neovim 0.10.0 or greater
 - _(Optional)_ An API key for your chosen LLM
 
 ## :package: Installation

@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.9.2        Last change: 2024 October 03
+*codecompanion.txt*        For NVIM v0.10.0       Last change: 2024 October 04
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -27,7 +27,7 @@ FEATURES                                              *codecompanion-features*
 REQUIREMENTS                                      *codecompanion-requirements*
 
 - The `curl` library
-- Neovim 0.9.2 or greater
+- Neovim 0.10.0 or greater
 - _(Optional)_ An API key for your chosen LLM
 
 
