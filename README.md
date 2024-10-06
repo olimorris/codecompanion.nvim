@@ -59,7 +59,9 @@ Install the plugin with your preferred package manager:
 **[Lazy.nvim](https://github.com/folke/lazy.nvim)**
 
 ```lua
-{
+
+-- init.lua:
+    {
   "olimorris/codecompanion.nvim",
   dependencies = {
     "nvim-lua/plenary.nvim",
@@ -70,6 +72,20 @@ Install the plugin with your preferred package manager:
   },
   config = true
 }
+
+-- plugins/telescope.lua:
+return {
+  "olimorris/codecompanion.nvim",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "nvim-treesitter/nvim-treesitter",
+    "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
+    "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
+    { "stevearc/dressing.nvim", opts = {} }, -- Optional: Improves `vim.ui.select`
+  },
+  config = true
+}
+
 ```
 
 **[Packer](https://github.com/wbthomason/packer.nvim)**
