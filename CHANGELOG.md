@@ -1,5 +1,22 @@
 # Changelog
 
+## [7.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v6.0.1...v7.0.0) (2024-10-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* Plugin now only supports Neovim 0.10.0 and above
+
+### Bug Fixes
+
+* **anthropic:** token count calculation ([d518113](https://github.com/olimorris/codecompanion.nvim/commit/d51811389eaed3bb910a297b3fc6273e285d1585))
+* **client:** [#293](https://github.com/olimorris/codecompanion.nvim/issues/293) use vim.schedule for `on_error` calls ([4c6dc82](https://github.com/olimorris/codecompanion.nvim/commit/4c6dc826bc96ee48bcc2986cc86d63b8e6aa3fab))
+
+
+### Code Refactoring
+
+* Plugin now only supports Neovim 0.10.0 and above ([38297a5](https://github.com/olimorris/codecompanion.nvim/commit/38297a5403446978cbb237f0eb4adcb98ed6143a))
+
 ## [6.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v6.0.0...v6.0.1) (2024-10-03)
 
 
