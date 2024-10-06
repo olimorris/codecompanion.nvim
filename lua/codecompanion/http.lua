@@ -105,9 +105,11 @@ function Client:request(payload, cb, after, opts)
         end
       end)
     end,
-    on_error = function(err, _, code)
-      log:error("Error %s: %s", code, err)
-      return cb(err, nil)
+    on_error = function(err)
+      vim.schedule(function()
+        log:error("Error: %s", err)
+        return cb(err, nil)
+      end)
     end,
   }
 
