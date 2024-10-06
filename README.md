@@ -73,7 +73,7 @@ Install the plugin with your preferred package manager:
   config = true
 }
 
--- plugins/telescope.lua:
+-- plugins/codecompanion.lua:
 return {
   "olimorris/codecompanion.nvim",
   dependencies = {
