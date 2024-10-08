@@ -36,39 +36,6 @@ function Strategies.new(args)
   }, { __index = Strategies })
 end
 
----Evaluate a set of prompts based on conditionals and context
----@param prompts table
----@return table
-function Strategies:evaluate_prompts(prompts)
-  local messages = {}
-
-  for _, prompt in ipairs(prompts) do
-    if prompt.opts and prompt.opts.contains_code and not config.opts.send_code then
-      goto continue
-    end
-    if prompt.condition and not prompt.condition(self.context) then
-      goto continue
-    end
-
-    local content
-    if type(prompt.content) == "function" then
-      content = prompt.content(self.context)
-    else
-      content = prompt.content
-    end
-
-    table.insert(messages, {
-      role = prompt.role,
-      content = content,
-      opts = prompt.opts or {},
-    })
-
-    ::continue::
-  end
-
-  return messages
-end
-
 ---@return CodeCompanion.Chat|nil
 function Strategies:start(strategy)
   return self[strategy](self)
@@ -85,10 +52,10 @@ function Strategies:chat()
   if type(prompts[mode]) == "function" then
     return prompts[mode]()
   elseif type(prompts[mode]) == "table" then
-    messages = self:evaluate_prompts(prompts[mode])
+    messages = self.evaluate_prompts(prompts[mode], self.context)
   else
     -- No mode specified
-    messages = self:evaluate_prompts(prompts)
+    messages = self.evaluate_prompts(prompts, self.context)
   end
 
   if not messages or #messages == 0 then
@@ -159,6 +126,40 @@ function Strategies:inline()
       prompts = self.selected.prompts,
     })
     :start()
+end
+
+---Evaluate a set of prompts based on conditionals and context
+---@param prompts table
+---@param context table
+---@return table
+function Strategies.evaluate_prompts(prompts, context)
+  local messages = {}
+
+  for _, prompt in ipairs(prompts) do
+    if prompt.opts and prompt.opts.contains_code and not config.opts.send_code then
+      goto continue
+    end
+    if prompt.condition and not prompt.condition(context) then
+      goto continue
+    end
+
+    local content
+    if type(prompt.content) == "function" then
+      content = prompt.content(context)
+    else
+      content = prompt.content
+    end
+
+    table.insert(messages, {
+      role = prompt.role,
+      content = content,
+      opts = prompt.opts or {},
+    })
+
+    ::continue::
+  end
+
+  return messages
 end
 
 return Strategies

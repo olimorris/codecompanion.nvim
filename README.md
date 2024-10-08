@@ -230,6 +230,9 @@ vim.api.nvim_set_keymap("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap =
 vim.cmd([[cab cc CodeCompanion]])
 ```
 
+> [!NOTE]
+> You can also assign prompts from the library to specific mappings. See the [prompt library](#clipboard-prompt-library) section for more information.
+
 ## :gear: Configuration
 
 Before configuring the plugin, it's important to understand how it's structured.
@@ -440,6 +443,22 @@ require("codecompanion").setup({
 ### :clipboard: Prompt Library
 
 The plugin comes with a number of pre-built prompts. As per [the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua), these can be called via keymaps or slash commands (via the inline assistant). These prompts have been carefully curated to mimic those in [GitHub's Copilot Chat](https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide). Of course, you can create your own prompts and add them to the Action Palette. Please see the [RECIPES](doc/RECIPES.md) guide for more information.
+
+**Using Keymaps**
+
+You can call a prompt from the library via a keymap using the `prompt` helper:
+
+```lua
+vim.api.nvim_set_keymap("v", "<LocalLeader>ce", "", {
+  callback = function()
+    require("codecompanion").prompt("explain")
+  end,
+  noremap = true,
+  silent = true,
+})
+```
+
+In the example above, we've set a visual keymap that will trigger the Explain prompt. Providing the `short_name` of the prompt as an argument to the helper (e.g. "commit") will resolve the strategy down to an action.
 
 ### :speech_balloon: The Chat Buffer
 

@@ -1,5 +1,6 @@
 local config = require("codecompanion").config
 local SlashCommands = require("codecompanion.strategies.chat.slash_commands")
+local strategy = require("codecompanion.strategies")
 
 local source = {}
 
@@ -20,12 +21,15 @@ function source:get_keyword_pattern()
 end
 
 function source:complete(params, callback)
-  local items = {}
   local kind = require("cmp").lsp.CompletionItemKind.Function
 
-  for name, data in pairs(config.strategies.chat.slash_commands) do
-    if name ~= "opts" then
-      table.insert(items, {
+  local slash_commands = vim
+    .iter(config.strategies.chat.slash_commands)
+    :filter(function(name)
+      return name ~= "opts"
+    end)
+    :map(function(name, data)
+      return {
         label = "/" .. name,
         kind = kind,
         detail = data.description,
@@ -34,12 +38,34 @@ function source:complete(params, callback)
           bufnr = params.context.bufnr,
           cursor = params.context.cursor,
         },
-      })
-    end
-  end
+      }
+    end)
+    :totable()
+
+  local prompts = vim
+    .iter(config.prompt_library)
+    :filter(function(_, v)
+      return v.opts and v.opts.is_slash_cmd and v.strategy == "chat"
+    end)
+    :map(function(_, v)
+      return {
+        label = "/" .. v.opts.short_name,
+        kind = kind,
+        detail = v.description,
+        config = v,
+        from_prompt_library = true,
+        context = {
+          bufnr = params.context.bufnr,
+          cursor = params.context.cursor,
+        },
+      }
+    end)
+    :totable()
+
+  local all_items = vim.tbl_extend("force", slash_commands, prompts)
 
   callback({
-    items = items,
+    items = all_items,
     isIncomplete = false,
   })
 end
@@ -50,9 +76,20 @@ end
 ---@return nil
 function source:execute(item, callback)
   vim.api.nvim_set_current_line("")
-
   item.Chat = require("codecompanion").buf_get_chat(item.context.bufnr)
-  SlashCommands:execute(item)
+
+  if item.from_prompt_library then
+    local prompts = strategy.evaluate_prompts(item.config.prompts, item.context)
+    vim.iter(prompts):each(function(prompt)
+      if prompt.role == "system" then
+        item.Chat:add_message(prompt, { visible = false })
+      elseif prompt.role == "user" then
+        item.Chat:append_to_buf(prompt)
+      end
+    end)
+  else
+    SlashCommands:execute(item)
+  end
 
   callback(item)
   vim.bo[item.context.bufnr].buflisted = false

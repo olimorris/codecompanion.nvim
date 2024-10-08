@@ -307,7 +307,7 @@ Points to note:
       opts = {
         index = 3,
         is_default = true,
-        mapping = "<LocalLeader>cc",
+        is_slash_cmd = false,
         user_prompt = true,
       },
       prompts = {
@@ -332,9 +332,9 @@ Points to note:
       opts = {
         index = 4,
         is_default = true,
-        mapping = "<LocalLeader>ce",
+        is_slash_cmd = false,
         modes = { "v" },
-        slash_cmd = "explain",
+        short_name = "explain",
         auto_submit = true,
         user_prompt = false,
         stop_context_insertion = true,
@@ -382,9 +382,9 @@ Points to note:
       opts = {
         index = 5,
         is_default = true,
-        mapping = "<LocalLeader>ct",
+        is_slash_cmd = false,
         modes = { "v" },
-        slash_cmd = "tests",
+        short_name = "tests",
         auto_submit = true,
         user_prompt = false,
         stop_context_insertion = true,
@@ -436,9 +436,9 @@ Points to note:
       opts = {
         index = 6,
         is_default = true,
-        mapping = "<LocalLeader>cf",
+        is_slash_cmd = false,
         modes = { "v" },
-        slash_cmd = "fix",
+        short_name = "fix",
         auto_submit = true,
         user_prompt = false,
         stop_context_insertion = true,
@@ -495,8 +495,8 @@ Use Markdown formatting and include the programming language name at the start o
         index = 7,
         modes = { "v" },
         is_default = true,
-        mapping = "<LocalLeader>cb",
-        slash_cmd = "buffer",
+        is_slash_cmd = false,
+        short_name = "buffer",
         auto_submit = true,
         user_prompt = true,
         stop_context_insertion = true,
@@ -559,9 +559,9 @@ Use Markdown formatting and include the programming language name at the start o
       opts = {
         index = 8,
         is_default = true,
-        mapping = "<LocalLeader>cl",
+        is_slash_cmd = false,
         modes = { "v" },
-        slash_cmd = "lsp",
+        short_name = "lsp",
         auto_submit = true,
         user_prompt = false,
         stop_context_insertion = true,
@@ -642,8 +642,8 @@ This is the code, for context:
       opts = {
         index = 9,
         is_default = true,
-        mapping = "<LocalLeader>cm",
-        slash_cmd = "commit",
+        is_slash_cmd = true,
+        short_name = "commit",
         auto_submit = true,
       },
       prompts = {
@@ -731,8 +731,6 @@ This is the code, for context:
     -- will not be sent to the LLM. Please note that whilst I have made every
     -- effort to ensure no code leakage, using this is at your own risk
     send_code = true,
-
-    set_prompt_library_keymaps = true, -- Set the keymaps for the prompt library?
 
     -- This is the default prompt which is sent with every request in the chat
     -- strategy. It is primarily based on the GitHub Copilot Chat's prompt

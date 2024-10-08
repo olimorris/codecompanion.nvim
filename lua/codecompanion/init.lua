@@ -10,7 +10,6 @@ local api = vim.api
 ---@field buf_get_chat fun(bufnr: integer): CodeCompanion.Chat|table
 local M = {}
 
-M.slash_cmds = {}
 M.config = require("codecompanion.config")
 
 ---Prompt the LLM from within the current buffer
@@ -40,27 +39,54 @@ M.inline = function(args)
     :start(args)
 end
 
----Run the prompt that the user initiated from the command line
----@param prompt table The prompt to resolve from the command
----@param args table The arguments that were passed to the command
+---Run a prompt from the prompt library
+---@param name string
+---@param args table
 ---@return nil
-M.run_inline_slash_cmds = function(prompt, args)
-  log:trace("Running slash_cmd")
+M.prompt = function(name, args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
-  local item = M.slash_cmds[prompt]
+  local prompt = vim
+    .iter(M.config.prompt_library)
+    :filter(function(_, v)
+      return v.opts.short_name and (v.opts.short_name:lower() == name:lower()) or false
+    end)
+    :map(function(_, v)
+      return v
+    end)
+    :totable()[1]
 
-  -- A user may add a prompt after calling the slash command
-  if item.opts.user_prompt and args.user_prompt then
-    log:trace("Adding custom user prompt via slash_cmd")
-    item.opts.user_prompt = args.user_prompt
+  if not prompt then
+    return log:warn("Could not find '%s' in the prompt library", name)
   end
 
   return require("codecompanion.strategies")
     .new({
       context = context,
-      selected = item,
+      selected = prompt,
     })
-    :start(item.strategy)
+    :start(prompt.strategy)
+end
+
+---Run the prompt that the user initiated from the command line
+---@param prompt table The prompt to resolve from the command
+---@param args table The arguments that were passed to the command
+---@return nil
+M.run_inline_prompt = function(prompt, args)
+  log:trace("Running inline prompt")
+  local context = context_utils.get(api.nvim_get_current_buf(), args)
+
+  -- A user may add a further prompt
+  if prompt.opts and prompt.opts.user_prompt and args.user_prompt then
+    log:trace("Adding custom user prompt")
+    prompt.opts.user_prompt = args.user_prompt
+  end
+
+  return require("codecompanion.strategies")
+    .new({
+      context = context,
+      selected = prompt,
+    })
+    :start(prompt.strategy)
 end
 
 ---Add visually selected code to the current chat buffer
@@ -210,11 +236,6 @@ M.setup = function(opts)
       end
     end),
   })
-
-  -- Setup the inline slash commands the keymaps from the prompt library
-  local prompt_library = require("codecompanion.actions.prompt_library")
-  prompt_library.setup_keymaps(M.config)
-  M.slash_cmds = prompt_library.setup_inline_slash_commands(M.config)
 
   -- TODO: Move to chat buffer
   M.config.INFO_NS = api.nvim_create_namespace("CodeCompanion-info")

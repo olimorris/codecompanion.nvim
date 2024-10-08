@@ -27,24 +27,35 @@ return {
         if string.sub(opts.args, 1, 1) == "/" then
           local user_prompt = nil
           -- Remove the leading slash
-          local slash_cmd = string.sub(opts.args, 2)
+          local prompt = string.sub(opts.args, 2)
 
-          local user_prompt_pos = string.find(slash_cmd, " ")
+          local user_prompt_pos = string.find(prompt, " ")
 
           if user_prompt_pos then
             -- Extract the user_prompt first
-            user_prompt = string.sub(slash_cmd, user_prompt_pos + 1)
-            slash_cmd = string.sub(slash_cmd, 1, user_prompt_pos - 1)
+            user_prompt = string.sub(prompt, user_prompt_pos + 1)
+            prompt = string.sub(prompt, 1, user_prompt_pos - 1)
 
-            log:trace("Slash cmd: %s", slash_cmd)
+            log:trace("Prompt library call: %s", prompt)
             log:trace("User prompt: %s", user_prompt)
           end
 
-          if codecompanion.slash_cmds[slash_cmd] then
+          local prompts = vim
+            .iter(require("codecompanion").config.prompt_library)
+            :filter(function(k, v)
+              return v.opts and v.opts.short_name and v.opts.short_name:lower() == prompt:lower()
+            end)
+            :map(function(k, v)
+              v.name = k
+              return v
+            end)
+            :nth(1)
+
+          if prompts then
             if user_prompt then
               opts.user_prompt = user_prompt
             end
-            return codecompanion.run_inline_slash_cmds(slash_cmd, opts)
+            return codecompanion.run_inline_prompt(prompts, opts)
           end
         end
 

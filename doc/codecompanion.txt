@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.10.0       Last change: 2024 October 04
+*codecompanion.txt*        For NVIM v0.10.0       Last change: 2024 October 07
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -204,6 +204,9 @@ For an optimum workflow, I recommend the following keymaps:
     vim.cmd([[cab cc CodeCompanion]])
 <
 
+
+  [!NOTE] You can also assign prompts from the library to specific mappings. See
+  the |codecompanion-prompt-library| section for more information.
 
 CONFIGURATION                                    *codecompanion-configuration*
 
@@ -453,6 +456,24 @@ Chat
 <https://docs.github.com/en/copilot/using-github-copilot/asking-github-copilot-questions-in-your-ide>.
 Of course, you can create your own prompts and add them to the Action Palette.
 Please see the RECIPES <doc/RECIPES.md> guide for more information.
+
+**Using Keymaps**
+
+You can call a prompt from the library via a keymap using the `prompt` helper:
+
+>lua
+    vim.api.nvim_set_keymap("v", "<LocalLeader>ce", "", {
+      callback = function()
+        require("codecompanion").prompt("explain")
+      end,
+      noremap = true,
+      silent = true,
+    })
+<
+
+In the example above, we’ve set a visual keymap that will trigger the Explain
+prompt. Providing the `short_name` of the prompt as an argument to the helper
+(e.g.� "commit") will resolve the strategy down to an action.
 
 
 THE CHAT BUFFER ~

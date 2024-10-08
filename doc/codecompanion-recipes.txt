@@ -1,4 +1,4 @@
-*codecompanion-recipes.txt*    For NVIM v0.10.0   Last change: 2024 October 04
+*codecompanion-recipes.txt*    For NVIM v0.10.0   Last change: 2024 October 08
 
 ==============================================================================
 Table of Contents                    *codecompanion-recipes-table-of-contents*
@@ -145,7 +145,7 @@ builtin to the plugin as the _Code Advisor_ action:
           opts = {
             mapping = "<LocalLeader>ce",
             modes = { "v" },
-            slash_cmd = "expert",
+            short_name = "expert",
             auto_submit = true,
             stop_context_insertion = true,
             user_prompt = true,
@@ -185,7 +185,7 @@ PALETTE OPTIONS ~
     opts = {
       mapping = "<LocalLeader>ce",
       modes = { "v" },
-      slash_cmd = "expert",
+      short_name = "expert",
       auto_submit = true,
       stop_context_insertion = true,
       user_prompt = true,
@@ -197,7 +197,7 @@ in the _Action Palette_ if we’re in visual mode. We’re also asking the chat
 strategy to automatically submit the prompts to the LLM via the `auto_submit =
 true` value. We’re also telling the picker that we want to get the user’s
 input before we action the response with `user_prompt = true`. With the
-`slash_cmd = "expert"` option, the user can run `:CodeCompanion /expert` from
+`short_name = "expert"` option, the user can run `:CodeCompanion /expert` from
 the cmdline in order to trigger this prompt. Finally, as we define a prompt to
 add any visually selected text to the chat buffer, we need to add the
 `stop_context_insertion = true` option to prevent the chat buffer from
@@ -330,6 +330,32 @@ And to determine the visibility of actions in the palette itself:
 
 
 OTHER CONFIGURATION OPTIONS*codecompanion-recipes-other-configuration-options*
+
+**Allowing a Prompt to appear as a Slash Command**
+
+It can be useful to have a prompt from the prompt library appear as a slash
+command in the chat buffer, like with the `Generate a Commit Message` action.
+This can be done by specifiying a `is_slash_cmd = true` option to the prompt:
+
+>lua
+    ["Generate a Commit Message"] = {
+      strategy = "chat",
+      description = "Generate a commit message",
+      opts = {
+        index = 9,
+        is_default = true,
+        is_slash_cmd = true,
+        short_name = "commit",
+        auto_submit = true,
+      },
+      prompts = {
+        -- Prompts go here
+      }
+    }
+<
+
+In the chat buffer, if you type `/` you will see the value of `opts.short_name`
+appear in the completion menu for you to expand.
 
 **Specifying an Adapter and Model**
 
