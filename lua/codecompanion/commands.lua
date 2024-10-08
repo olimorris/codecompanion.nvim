@@ -14,6 +14,19 @@ local prompt_library = vim
   end)
   :totable()
 
+local chat_subcommands = vim
+  .iter(config.adapters)
+  :filter(function(k, _)
+    return k ~= "non_llms" and k ~= "opts"
+  end)
+  :map(function(k, _)
+    return k
+  end)
+  :totable()
+
+table.insert(chat_subcommands, "Toggle")
+table.insert(chat_subcommands, "Add")
+
 ---@class CodeCompanionCommandOpts:table
 ---@field desc string
 
@@ -101,6 +114,18 @@ return {
       desc = "Open a CodeCompanion chat buffer",
       range = true,
       nargs = "*",
+      -- Reference:
+      -- https://github.com/nvim-neorocks/nvim-best-practices?tab=readme-ov-file#speaking_head-user-commands
+      complete = function(arg_lead, cmdline, _)
+        if cmdline:match("^['<,'>]*CodeCompanionChat[!]*%s+%w*$") then
+          return vim
+            .iter(chat_subcommands)
+            :filter(function(key)
+              return key:find(arg_lead) ~= nil
+            end)
+            :totable()
+        end
+      end,
     },
   },
   {
