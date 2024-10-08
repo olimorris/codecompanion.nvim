@@ -1,4 +1,18 @@
+local context = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
+
+local codecompanion = require("codecompanion")
+local config = codecompanion.config
+
+local prompt_library = vim
+  .iter(config.prompt_library)
+  :filter(function(_, v)
+    return v.opts and v.opts.short_name
+  end)
+  :map(function(_, v)
+    return "/" .. v.opts.short_name
+  end)
+  :totable()
 
 ---@class CodeCompanionCommandOpts:table
 ---@field desc string
@@ -8,15 +22,13 @@ local log = require("codecompanion.utils.log")
 ---@field callback fun(args:table)
 ---@field opts CodeCompanionCommandOpts
 
-local codecompanion = require("codecompanion")
-
 ---@type CodeCompanionCommand[]
 return {
   {
     cmd = "CodeCompanion",
     callback = function(opts)
       if #vim.trim(opts.args or "") == 0 then
-        vim.ui.input({ prompt = require("codecompanion").config.display.action_palette.prompt }, function(input)
+        vim.ui.input({ prompt = config.display.action_palette.prompt }, function(input)
           if #vim.trim(input or "") == 0 then
             return
           end
@@ -41,8 +53,8 @@ return {
           end
 
           local prompts = vim
-            .iter(require("codecompanion").config.prompt_library)
-            :filter(function(k, v)
+            .iter(config.prompt_library)
+            :filter(function(_, v)
               return v.opts and v.opts.short_name and v.opts.short_name:lower() == prompt:lower()
             end)
             :map(function(k, v)
@@ -63,9 +75,21 @@ return {
       end
     end,
     opts = {
-      desc = "Start a custom prompt",
+      desc = "Use the CodeCompanion Inline Assistant",
       range = true,
       nargs = "*",
+      -- Reference:
+      -- https://github.com/nvim-neorocks/nvim-best-practices?tab=readme-ov-file#speaking_head-user-commands
+      complete = function(arg_lead, cmdline, _)
+        if cmdline:match("^['<,'>]*CodeCompanion[!]*%s+%w*$") then
+          return vim
+            .iter(prompt_library)
+            :filter(function(key)
+              return key:find(arg_lead) ~= nil
+            end)
+            :totable()
+        end
+      end,
     },
   },
   {
