@@ -1,5 +1,16 @@
 # Changelog
 
+## [8.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v7.0.0...v8.0.0) (2024-10-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* use prompt library in chat buffer and better keymap support
+
+### Features
+
+* use prompt library in chat buffer and better keymap support ([b462c42](https://github.com/olimorris/codecompanion.nvim/commit/b462c42281541567f9197e289dbb2d5e6c7ad220))
+
 ## [7.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v6.0.1...v7.0.0) (2024-10-06)
 
 
