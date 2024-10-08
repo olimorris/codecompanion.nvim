@@ -1,5 +1,17 @@
 # Changelog
 
+## [8.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.0.1...v8.1.0) (2024-10-08)
+
+
+### Features
+
+* `:CodeCompanion` can now show sub commands ([06d01fa](https://github.com/olimorris/codecompanion.nvim/commit/06d01fac5553561f5b450f292462abc501f9fc05))
+
+
+### Bug Fixes
+
+* [#299](https://github.com/olimorris/codecompanion.nvim/issues/299) switching adapters in chat buffer ([bb14105](https://github.com/olimorris/codecompanion.nvim/commit/bb14105df0485e40e646185148578a1458553bc0))
+
 ## [8.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.0.0...v8.0.1) (2024-10-08)
 
 
