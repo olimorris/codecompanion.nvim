@@ -41,7 +41,7 @@ end
 
 ---Run a prompt from the prompt library
 ---@param name string
----@param args table
+---@param args table?
 ---@return nil
 M.prompt = function(name, args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
