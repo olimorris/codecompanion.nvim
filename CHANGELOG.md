@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.0.0...v8.0.1) (2024-10-08)
+
+
+### Bug Fixes
+
+* type for prompt() [#305](https://github.com/olimorris/codecompanion.nvim/issues/305) ([8ca9dfb](https://github.com/olimorris/codecompanion.nvim/commit/8ca9dfb46e427a141bfdb7db1a341f342db3f613))
+
 ## [8.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v7.0.0...v8.0.0) (2024-10-08)
 
 
