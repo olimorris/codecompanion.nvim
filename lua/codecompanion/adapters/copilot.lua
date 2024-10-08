@@ -147,7 +147,7 @@ return {
 
       -- _github_token = { token = "ABC123", expires_at = os.time() + 3600 }
       _github_token = authorize_token()
-      if not _github_token or util.count(_github_token) == 0 then
+      if not _github_token or vim.tbl_isempty(_github_token) then
         log:error("Copilot Adapter: Could not authorize your GitHub Copilot token")
         return false
       end

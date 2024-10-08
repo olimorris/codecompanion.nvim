@@ -313,7 +313,7 @@ function Inline:submit()
   })
 
   -- Add the context from the chat buffer
-  if util.count(self.chat_context) > 0 then
+  if not vim.tbl_isempty(self.chat_context) then
     local messages = msg_utils.pluck_messages(self.chat_context, CONSTANTS.LLM_ROLE)
 
     if #messages > 0 then

@@ -145,7 +145,7 @@ M.chat = function(args)
     end
   end
 
-  local has_messages = util.count(messages) > 0
+  local has_messages = not vim.tbl_isempty(messages)
 
   return require("codecompanion.strategies.chat").new({
     context = context,

@@ -133,33 +133,25 @@ end
 ---@param context table
 ---@return table
 function Strategies.evaluate_prompts(prompts, context)
-  local messages = {}
-
-  for _, prompt in ipairs(prompts) do
-    if prompt.opts and prompt.opts.contains_code and not config.opts.send_code then
-      goto continue
-    end
-    if prompt.condition and not prompt.condition(context) then
-      goto continue
-    end
-
-    local content
-    if type(prompt.content) == "function" then
-      content = prompt.content(context)
-    else
-      content = prompt.content
-    end
-
-    table.insert(messages, {
-      role = prompt.role,
-      content = content,
-      opts = prompt.opts or {},
-    })
-
-    ::continue::
+  if type(prompts) ~= "table" or vim.tbl_isempty(prompts) then
+    return {}
   end
 
-  return messages
+  return vim
+    .iter(prompts)
+    :filter(function(prompt)
+      return not (prompt.opts and prompt.opts.contains_code and not config.opts.send_code)
+        and not (prompt.condition and not prompt.condition(context))
+    end)
+    :map(function(prompt)
+      local content = type(prompt.content) == "function" and prompt.content(context) or prompt.content
+      return {
+        role = prompt.role or "",
+        content = content,
+        opts = prompt.opts or {},
+      }
+    end)
+    :totable()
 end
 
 return Strategies

@@ -1,6 +1,5 @@
 local config = require("codecompanion").config
 local Strategy = require("codecompanion.strategies")
-local default = require("codecompanion.actions.providers.default")
 local prompt_library = require("codecompanion.actions.prompt_library")
 local static_actions = require("codecompanion.actions.static")
 
@@ -48,7 +47,7 @@ function Actions.items(context)
       end
     end
 
-    if config.prompt_library and util.count(config.prompt_library) > 0 then
+    if config.prompt_library and not vim.tbl_isempty(config.prompt_library) then
       local prompts = prompt_library.resolve(context, config)
       for _, prompt in ipairs(prompts) do
         table.insert(_cached_actions, prompt)

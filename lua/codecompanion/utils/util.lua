@@ -17,27 +17,6 @@ M.capitalize = function(str)
   return (str:gsub("^%l", string.upper))
 end
 
----@param t table
----@return integer
-M.count = function(t)
-  local count = 0
-  for _ in pairs(t) do
-    count = count + 1
-  end
-  return count
-end
-
----Check if a table is empty
----@param t? table
----@return boolean
-M.is_empty = function(t)
-  if t == nil then
-    return true
-  end
-
-  return next(t) == nil
-end
-
 ---Check if a table is an array
 ---@param t table
 ---@return boolean

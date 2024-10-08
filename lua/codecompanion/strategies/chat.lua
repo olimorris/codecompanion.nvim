@@ -442,7 +442,7 @@ function Chat:render()
     spacer()
   end
 
-  if util.is_empty(self.messages) then
+  if vim.tbl_isempty(self.messages) then
     log:trace("Setting the header for the chat buffer")
     set_header(user_role)
     spacer()
@@ -758,7 +758,7 @@ function Chat:submit(opts)
   local bufnr = self.bufnr
 
   local message = buf_parse_message(bufnr)
-  if util.count(message) == 0 then
+  if vim.tbl_isempty(message) then
     return log:warn("No messages to submit")
   end
 
@@ -989,7 +989,7 @@ end
 ---Determine if the chat buffer has any tools in use
 ---@return boolean
 function Chat:has_tools()
-  return util.count(self.tools_in_use) > 0
+  return not vim.tbl_isempty(self.tools_in_use)
 end
 
 ---Follow the cursor in the chat buffer
@@ -1208,7 +1208,7 @@ end
 
 ---Display the chat buffer's settings and messages
 function Chat:debug()
-  if util.count(self.messages) == 0 then
+  if vim.tbl_isempty(self.messages) then
     return
   end
 
@@ -1232,7 +1232,7 @@ end
 ---Returns the last chat that was visible
 ---@return CodeCompanion.Chat|nil
 function Chat.last_chat()
-  if util.is_empty(last_chat) then
+  if not last_chat or vim.tbl_isempty(last_chat) then
     return nil
   end
   return last_chat
@@ -1241,7 +1241,7 @@ end
 ---Close the last chat buffer
 ---@return nil
 function Chat.close_last_chat()
-  if last_chat and not util.is_empty(last_chat) and last_chat:is_visible() then
+  if last_chat and not vim.tbl_isempty(last_chat) and last_chat:is_visible() then
     last_chat:hide()
   end
 end
