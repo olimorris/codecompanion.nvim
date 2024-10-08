@@ -289,11 +289,12 @@ M.change_adapter = {
       }
     end
 
+    local adapters = require("codecompanion").config.adapters
     local current_adapter = chat.adapter.name
     local current_model = vim.deepcopy(chat.adapter.schema.model.default)
 
-    local adapters = vim
-      .iter(require("codecompanion").config.adapters)
+    local adapters_list = vim
+      .iter(adapters)
       :filter(function(adapter)
         return adapter ~= "opts" and adapter ~= "non_llms" and adapter ~= current_adapter
       end)
@@ -302,16 +303,16 @@ M.change_adapter = {
       end)
       :totable()
 
-    table.sort(adapters)
-    table.insert(adapters, 1, current_adapter)
+    table.sort(adapters_list)
+    table.insert(adapters_list, 1, current_adapter)
 
-    vim.ui.select(adapters, select_opts("Select Adapter", current_adapter), function(selected)
+    vim.ui.select(adapters_list, select_opts("Select Adapter", current_adapter), function(selected)
       if not selected then
         return
       end
 
       if current_adapter ~= selected then
-        chat.adapter = require("codecompanion.adapters").resolve(selected)
+        chat.adapter = require("codecompanion.adapters").resolve(adapters[selected])
         util.fire("ChatAdapter", { bufnr = chat.bufnr, adapter = chat.adapter })
         chat:apply_settings()
       end
