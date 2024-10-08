@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.1.0...v8.2.0) (2024-10-08)
+
+
+### Features
+
+* add `:CodeCompanionChat` sub-commands ([98761d6](https://github.com/olimorris/codecompanion.nvim/commit/98761d6d30a36d1ab8bd5995ffbc3620d761bbba))
+
 ## [8.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.0.1...v8.1.0) (2024-10-08)
 
 
