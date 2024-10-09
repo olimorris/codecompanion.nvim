@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.2.0...v8.3.0) (2024-10-09)
+
+
+### Features
+
+* slash command output is now hidden ([dba83b9](https://github.com/olimorris/codecompanion.nvim/commit/dba83b9c632d099a6f8acc3cc178f7b51156750f))
+
 ## [8.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.1.0...v8.2.0) (2024-10-08)
 
 
