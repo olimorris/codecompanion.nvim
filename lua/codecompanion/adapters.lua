@@ -1,6 +1,4 @@
-local config = require("codecompanion").config
-
-local dep = require("codecompanion.utils.deprecate")
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
 ---Check if a variable starts with "cmd:"
@@ -270,7 +268,6 @@ end
 ---@param adapter? CodeCompanion.Adapter|string|function
 ---@return CodeCompanion.Adapter
 function Adapter.resolve(adapter)
-  config = require("codecompanion").config
   adapter = adapter or config.adapters[config.strategies.chat.adapter]
 
   if type(adapter) == "table" then

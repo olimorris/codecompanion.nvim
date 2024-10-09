@@ -1,5 +1,4 @@
 local MiniPick = require("mini.pick")
-local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Actions.Providers.MiniPick

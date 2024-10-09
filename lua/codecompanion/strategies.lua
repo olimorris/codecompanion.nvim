@@ -1,5 +1,5 @@
 local adapters = require("codecompanion.adapters")
-local config = require("codecompanion").config
+local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")
 

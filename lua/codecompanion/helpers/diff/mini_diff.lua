@@ -1,8 +1,6 @@
 ---Utilising the awesome:
 ---https://github.com/echasnovski/mini.diff
 
-local config = require("codecompanion").config
-
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils.util")
 

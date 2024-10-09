@@ -1,4 +1,4 @@
-local config = require("codecompanion").config
+local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")

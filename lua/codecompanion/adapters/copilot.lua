@@ -1,5 +1,6 @@
 local curl = require("plenary.curl")
 
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 local util = require("codecompanion.utils.util")
@@ -87,6 +88,8 @@ local function authorize_token()
       Authorization = "Bearer " .. _oauth_token,
       ["Accept"] = "application/json",
     },
+    insecure = config.adapters.opts.allow_insecure,
+    proxy = config.adapters.opts.proxy,
     on_error = function(err)
       log:error("Copilot Adapter: Token request error %s", err)
     end,
@@ -96,7 +99,7 @@ local function authorize_token()
   return _github_token
 end
 
----@class CodeCompanion.AdapterArgs
+---@class Copilot.Adapter: CodeCompanion.Adapter
 return {
   name = "copilot",
   roles = {

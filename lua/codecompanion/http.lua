@@ -1,4 +1,4 @@
-local config = require("codecompanion").config
+local config = require("codecompanion.config")
 
 local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")

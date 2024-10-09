@@ -1,4 +1,4 @@
-local config = require("codecompanion").config
+local config = require("codecompanion.config")
 
 local buf = require("codecompanion.utils.buffers")
 local file_utils = require("codecompanion.utils.files")
@@ -13,7 +13,7 @@ CONSTANTS = {
 }
 
 ---Output from the slash command in the chat buffer
----@param SlashCommand CodeCompanion.SlashCommandBuffer
+---@param SlashCommand CodeCompanion.SlashCommand
 ---@param selected table The selected item from the provider { name = string, bufnr = number, path = string }
 ---@return nil
 local function output(SlashCommand, selected)
@@ -34,22 +34,35 @@ local function output(SlashCommand, selected)
   end
 
   local Chat = SlashCommand.Chat
-  Chat:append_to_buf({
-    content = "[!"
-      .. CONSTANTS.NAME
-      .. ": `"
-      .. selected[CONSTANTS.DISPLAY]
-      .. "` / Buf No.: "
-      .. selected.bufnr
-      .. "]\n",
-  })
-  Chat:append_to_buf({ content = content })
-  Chat:fold_code()
+  if config.opts.visible then
+    Chat:append_to_buf({
+      content = "[!"
+        .. CONSTANTS.NAME
+        .. ": `"
+        .. selected[CONSTANTS.DISPLAY]
+        .. "` / Buf No.: "
+        .. selected.bufnr
+        .. "]\n",
+    })
+    Chat:append_to_buf({ content = content })
+    Chat:fold_code()
+  else
+    Chat:add_message({
+      role = "user",
+      content = string.format(
+        [[Here is the data from buffer number %d:
+
+%s]],
+        selected.bufnr,
+        content
+      ),
+    }, { visible = false })
+  end
 end
 
 local Providers = {
   ---The default provider
-  ---@param SlashCommand CodeCompanion.SlashCommandBuffer
+  ---@param SlashCommand CodeCompanion.SlashCommand
   ---@param list table { filetype = string, bufnr = number, name = string, path = string, relative_path = string }
   ---@return nil
   default = function(SlashCommand, list)
@@ -68,7 +81,7 @@ local Providers = {
   end,
 
   ---The Telescope provider
-  ---@param SlashCommand CodeCompanion.SlashCommandBuffer
+  ---@param SlashCommand CodeCompanion.SlashCommand
   ---@return nil
   telescope = function(SlashCommand)
     local ok, telescope = pcall(require, "telescope.builtin")
@@ -125,7 +138,7 @@ local Providers = {
   end,
 
   ---The fzf-lua provider
-  ---@param SlashCommand CodeCompanion.SlashCommandBuffer
+  ---@param SlashCommand CodeCompanion.SlashCommand
   ---@return nil
   fzf_lua = function(SlashCommand)
     local ok, fzf_lua = pcall(require, "fzf-lua")
@@ -151,26 +164,28 @@ local Providers = {
   end,
 }
 
----@class CodeCompanion.SlashCommandBuffer
-local SlashCommandBuffer = {}
+---@class CodeCompanion.SlashCommand.Buffer: CodeCompanion.SlashCommand
+---@field new fun(args: CodeCompanion.SlashCommand): CodeCompanion.SlashCommand.Buffer
+---@field execute fun(self: CodeCompanion.SlashCommand.Buffer)
+local SlashCommand = {}
 
----@class CodeCompanion.SlashCommandBuffer
+---@class Buffer.SlashCommand
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config of the slash command
 ---@field context table The context of the chat buffer from the completion menu
-function SlashCommandBuffer.new(args)
+function SlashCommand.new(args)
   local self = setmetatable({
     Chat = args.Chat,
     config = args.config,
     context = args.context,
-  }, { __index = SlashCommandBuffer })
+  }, { __index = SlashCommand })
 
   return self
 end
 
 ---Execute the slash command
 ---@return nil
-function SlashCommandBuffer:execute()
+function SlashCommand:execute()
   -- Use the `default` provider if no provider is set
   if not self.config.opts or (self.config.opts and self.config.opts.provider == "default") then
     local buffers = {}
@@ -208,4 +223,4 @@ function SlashCommandBuffer:execute()
   end
 end
 
-return SlashCommandBuffer
+return SlashCommand

@@ -1,16 +1,12 @@
+local config = require("codecompanion.config")
 local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils.util")
 
 local api = vim.api
 
 ---@class CodeCompanion
----@field chat fun(args?: table): nil
----@field config table
----@field buf_get_chat fun(bufnr: integer): CodeCompanion.Chat|table
+---@field last_chat fun(): CodeCompanion.Chat|nil
 local M = {}
-
-M.config = require("codecompanion.config")
 
 ---Prompt the LLM from within the current buffer
 ---@param args table
@@ -46,7 +42,7 @@ end
 M.prompt = function(name, args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
   local prompt = vim
-    .iter(M.config.prompt_library)
+    .iter(config.prompt_library)
     :filter(function(_, v)
       return v.opts.short_name and (v.opts.short_name:lower() == name:lower()) or false
     end)
@@ -98,7 +94,7 @@ M.add = function(args)
   if not chat then
     return log:warn("No chat buffer found")
   end
-  if not M.config.opts.send_code then
+  if not config.opts.send_code then
     return log:warn("Sending of code to an LLM has been disabled")
   end
 
@@ -129,7 +125,7 @@ M.chat = function(args)
     local prompt = args.fargs[1]:lower()
 
     -- Check if the adapter is available
-    adapter = M.config.adapters[prompt]
+    adapter = config.adapters[prompt]
 
     if not adapter then
       if prompt == "add" then
@@ -201,13 +197,23 @@ M.actions = function(args)
 end
 
 ---Setup the plugin
----@param opts nil|table
+---@param opts? table
 ---@return nil
 M.setup = function(opts)
-  M.config = vim.tbl_deep_extend("force", M.config, opts or {})
+  if vim.fn.has("nvim-0.10.0") == 0 then
+    return vim.api.nvim_err_writeln("CodeCompanion.nvim requires Neovim 0.10.0+")
+  end
+
+  config.setup(opts)
 
   if opts and opts.adapters then
-    require("codecompanion.utils.adapters").extend(M.config.adapters, opts.adapters)
+    require("codecompanion.utils.adapters").extend(config.adapters, opts.adapters)
+  end
+
+  -- Create the user commands
+  local cmds = require("codecompanion.commands")
+  for _, cmd in ipairs(cmds) do
+    vim.api.nvim_create_user_command(cmd.cmd, cmd.callback, cmd.opts)
   end
 
   -- Set the highlight groups
@@ -225,21 +231,21 @@ M.setup = function(opts)
     pattern = "codecompanion",
     group = group,
     callback = vim.schedule_wrap(function()
-      for name, var in pairs(M.config.strategies.chat.variables) do
+      for name, var in pairs(config.strategies.chat.variables) do
         vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '"')
         if var.opts and var.opts.has_params then
           vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. ':\\d\\+-\\?\\d\\+"')
         end
       end
-      for name, _ in pairs(M.config.strategies.agent.tools) do
+      for name, _ in pairs(config.strategies.agent.tools) do
         vim.cmd.syntax('match CodeCompanionChatTool "@' .. name .. '"')
       end
     end),
   })
 
   -- TODO: Move to chat buffer
-  M.config.INFO_NS = api.nvim_create_namespace("CodeCompanion-info")
-  M.config.ERROR_NS = api.nvim_create_namespace("CodeCompanion-error")
+  config.INFO_NS = api.nvim_create_namespace("CodeCompanion-info")
+  config.ERROR_NS = api.nvim_create_namespace("CodeCompanion-error")
 
   local diagnostic_config = {
     underline = false,
@@ -249,8 +255,8 @@ M.setup = function(opts)
     },
     signs = false,
   }
-  vim.diagnostic.config(diagnostic_config, M.config.INFO_NS)
-  vim.diagnostic.config(diagnostic_config, M.config.ERROR_NS)
+  vim.diagnostic.config(diagnostic_config, config.INFO_NS)
+  vim.diagnostic.config(diagnostic_config, config.ERROR_NS)
 
   log.set_root(log.new({
     handlers = {
@@ -261,7 +267,7 @@ M.setup = function(opts)
       {
         type = "file",
         filename = "codecompanion.log",
-        level = vim.log.levels[M.config.opts.log_level],
+        level = vim.log.levels[config.opts.log_level],
       },
     },
   }))
@@ -269,10 +275,10 @@ M.setup = function(opts)
   -- Setup cmp
   local has_cmp, cmp = pcall(require, "cmp")
   if has_cmp then
-    cmp.register_source("codecompanion_tools", require("cmp_codecompanion.tools").new(M.config))
+    cmp.register_source("codecompanion_tools", require("cmp_codecompanion.tools").new(config))
     cmp.register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
     cmp.register_source("codecompanion_slash_commands", require("cmp_codecompanion.slash_commands").new())
-    cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new(M.config))
+    cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new(config))
     cmp.setup.filetype("codecompanion", {
       enabled = true,
       sources = {

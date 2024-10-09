@@ -1,4 +1,4 @@
-local config = require("codecompanion").config
+local config = require("codecompanion.config")
 
 local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
@@ -9,7 +9,7 @@ CONSTANTS = {
 }
 
 ---Output from the slash command in the chat buffer
----@param SlashCommand CodeCompanion.SlashCommandFile
+---@param SlashCommand CodeCompanion.SlashCommand
 ---@param selected table The selected item from the provider { relative_path = string, path = string }
 ---@return nil
 local function output(SlashCommand, selected)
@@ -33,7 +33,7 @@ end
 
 local Providers = {
   ---The Telescope provider
-  ---@param SlashCommand CodeCompanion.SlashCommandFile
+  ---@param SlashCommand CodeCompanion.SlashCommand
   ---@return nil
   telescope = function(SlashCommand)
     local ok, telescope = pcall(require, "telescope.builtin")
@@ -62,7 +62,7 @@ local Providers = {
   end,
 
   ---The mini.pick provider
-  ---@param SlashCommand CodeCompanion.SlashCommandFile
+  ---@param SlashCommand CodeCompanion.SlashCommand
   ---@return nil
   mini_pick = function(SlashCommand)
     local ok, mini_pick = pcall(require, "mini.pick")
@@ -85,7 +85,7 @@ local Providers = {
   end,
 
   ---The fzf-lua provider
-  ---@param SlashCommand CodeCompanion.SlashCommandFile
+  ---@param SlashCommand CodeCompanion.SlashCommand
   ---@return nil
   fzf_lua = function(SlashCommand)
     local ok, fzf_lua = pcall(require, "fzf-lua")
@@ -109,26 +109,25 @@ local Providers = {
   end,
 }
 
----@class CodeCompanion.SlashCommandFile
-local SlashCommandFile = {}
+---@class CodeCompanion.SlashCommand.File: CodeCompanion.SlashCommand
+---@field new fun(args: CodeCompanion.SlashCommand): CodeCompanion.SlashCommand.File
+---@field execute fun(self: CodeCompanion.SlashCommand.File)
+local SlashCommand = {}
 
----@class CodeCompanion.SlashCommandFile
----@field Chat CodeCompanion.Chat The chat buffer
----@field config table The config of the slash command
----@field context table The context of the chat buffer from the completion menu
-function SlashCommandFile.new(args)
+---@param args CodeCompanion.SlashCommand
+function SlashCommand.new(args)
   local self = setmetatable({
     Chat = args.Chat,
     config = args.config,
     context = args.context,
-  }, { __index = SlashCommandFile })
+  }, { __index = SlashCommand })
 
   return self
 end
 
 ---Execute the slash command
 ---@return nil
-function SlashCommandFile:execute()
+function SlashCommand:execute()
   if self.config.opts and self.config.opts.provider then
     local provider = Providers[self.config.opts.provider]
     if not provider then
@@ -140,4 +139,4 @@ function SlashCommandFile:execute()
   end
 end
 
-return SlashCommandFile
+return SlashCommand

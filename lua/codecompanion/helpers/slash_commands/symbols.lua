@@ -1,4 +1,4 @@
-local config = require("codecompanion").config
+local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")
 
@@ -76,26 +76,25 @@ local Queries = {
 ]],
 }
 
----@class CodeCompanion.SlashCommandSymbols
-local SlashCommandSymbols = {}
+---@class CodeCompanion.SlashCommand.Symbols: CodeCompanion.SlashCommand
+---@field new fun(args: CodeCompanion.SlashCommand): CodeCompanion.SlashCommand.Symbols
+---@field execute fun(self: CodeCompanion.SlashCommand.Symbols)
+local SlashCommand = {}
 
----@class CodeCompanion.SlashCommandSymbols
----@field Chat CodeCompanion.Chat The chat buffer
----@field config table The config of the slash command
----@field context table The context of the chat buffer from the completion menu
-function SlashCommandSymbols.new(args)
+---@param args CodeCompanion.SlashCommand
+function SlashCommand.new(args)
   local self = setmetatable({
     Chat = args.Chat,
     config = args.config,
     context = args.context,
-  }, { __index = SlashCommandSymbols })
+  }, { __index = SlashCommand })
 
   return self
 end
 
 ---Execute the slash command
 ---@return nil
-function SlashCommandSymbols:execute()
+function SlashCommand:execute()
   if not config.opts.send_code and (self.config.opts and self.config.opts.contains_code) then
     return log:warn("Sending of code has been disabled")
   end
@@ -176,4 +175,4 @@ function SlashCommandSymbols:execute()
   Chat:fold_code()
 end
 
-return SlashCommandSymbols
+return SlashCommand

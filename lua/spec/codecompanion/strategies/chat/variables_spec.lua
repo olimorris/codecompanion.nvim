@@ -2,7 +2,7 @@ local Chat = require("codecompanion.strategies.chat")
 local Variables = require("codecompanion.strategies.chat.variables")
 
 local codecompanion = require("codecompanion")
-local config = require("codecompanion").config
+local config = require("codecompanion.config")
 
 -- mock dependencies
 config.strategies = {

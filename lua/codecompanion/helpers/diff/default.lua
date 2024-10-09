@@ -1,7 +1,7 @@
 -- Taken from the awesome:
 -- https://github.com/S1M0N38/dante.nvim
 
-local config = require("codecompanion").config
+local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils.util")

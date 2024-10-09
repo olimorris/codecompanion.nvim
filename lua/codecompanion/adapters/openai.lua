@@ -1,6 +1,6 @@
 local log = require("codecompanion.utils.log")
 
----@class CodeCompanion.AdapterArgs
+---@class OpenAI.Adapter: CodeCompanion.Adapter
 return {
   name = "openai",
   roles = {

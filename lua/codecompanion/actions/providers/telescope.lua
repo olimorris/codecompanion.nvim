@@ -5,7 +5,7 @@ local action_state = require("telescope.actions.state")
 local telescope_actions = require("telescope.actions")
 
 local is_registered = false
-local config = require("codecompanion").config
+local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")
 

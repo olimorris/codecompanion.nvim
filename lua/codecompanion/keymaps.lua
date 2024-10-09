@@ -1,4 +1,4 @@
-local config = require("codecompanion").config
+local config = require("codecompanion.config")
 
 local ts = require("codecompanion.utils.treesitter")
 local ui = require("codecompanion.utils.ui")
@@ -289,7 +289,7 @@ M.change_adapter = {
       }
     end
 
-    local adapters = require("codecompanion").config.adapters
+    local adapters = vim.deepcopy(config.adapters)
     local current_adapter = chat.adapter.name
     local current_model = vim.deepcopy(chat.adapter.schema.model.default)
 

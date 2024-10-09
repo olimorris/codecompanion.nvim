@@ -2,7 +2,7 @@ local context = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
 
 local codecompanion = require("codecompanion")
-local config = codecompanion.config
+local config = require("codecompanion.config")
 
 local prompt_library = vim
   .iter(config.prompt_library)

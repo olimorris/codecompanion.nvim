@@ -1,5 +1,5 @@
-local config = require("codecompanion").config
 local Strategy = require("codecompanion.strategies")
+local config = require("codecompanion.config")
 local prompt_library = require("codecompanion.actions.prompt_library")
 local static_actions = require("codecompanion.actions.static")
 

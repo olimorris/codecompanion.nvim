@@ -1,5 +1,5 @@
-local config = require("codecompanion").config
 local SlashCommands = require("codecompanion.strategies.chat.slash_commands")
+local config = require("codecompanion.config")
 local strategy = require("codecompanion.strategies")
 
 local source = {}

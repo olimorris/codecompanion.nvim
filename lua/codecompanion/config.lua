@@ -1,6 +1,6 @@
 local fmt = string.format
 
-return {
+local defaults = {
   adapters = {
     -- LLMs -------------------------------------------------------------------
     anthropic = "anthropic",
@@ -768,3 +768,22 @@ When given a task:
 4. You can only give one reply for each conversation turn.]],
   },
 }
+
+local M = {
+  config = vim.deepcopy(defaults),
+}
+
+---@param args? table
+M.setup = function(args)
+  args = args or {}
+  M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
+end
+
+return setmetatable(M, {
+  __index = function(_, key)
+    if key == "setup" then
+      return M.setup
+    end
+    return rawget(M.config, key)
+  end,
+})

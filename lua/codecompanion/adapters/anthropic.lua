@@ -5,7 +5,7 @@ local utils = require("codecompanion.utils.messages")
 local input_tokens = 0
 local output_tokens = 0
 
----@class CodeCompanion.AdapterArgs
+---@class Anthropic.Adapter: CodeCompanion.Adapter
 return {
   name = "anthropic",
   roles = {

@@ -4,7 +4,7 @@
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.messages")
 
----@class CodeCompanion.AdapterArgs
+---@class Gemini.Adapter: CodeCompanion.Adapter
 return {
   name = "gemini",
   roles = {

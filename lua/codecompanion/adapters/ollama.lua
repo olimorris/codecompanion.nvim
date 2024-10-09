@@ -1,4 +1,4 @@
-local config = require("codecompanion").config
+local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.messages")
@@ -56,7 +56,7 @@ local function get_models(self, opts)
   return models
 end
 
----@class CodeCompanion.AdapterArgs
+---@class Gemini.Adapter: CodeCompanion.Adapter
 return {
   name = "ollama",
   roles = {

@@ -1,5 +1,5 @@
 local Job = require("plenary.job")
-local config = require("codecompanion").config
+local config = require("codecompanion.config")
 
 local TreeHandler = require("codecompanion.utils.xml.xmlhandler.tree")
 local log = require("codecompanion.utils.log")
