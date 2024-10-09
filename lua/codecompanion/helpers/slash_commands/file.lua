@@ -28,7 +28,7 @@ local function output(SlashCommand, selected)
   local Chat = SlashCommand.Chat
   local relative_path = selected.relative_path or selected[1] or selected.path
   Chat:add_message({
-    role = "user",
+    role = config.constants.USER_ROLE,
     content = string.format(
       [[Here is the content from the file `%s`:
 

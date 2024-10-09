@@ -81,9 +81,9 @@ function source:execute(item, callback)
   if item.from_prompt_library then
     local prompts = strategy.evaluate_prompts(item.config.prompts, item.context)
     vim.iter(prompts):each(function(prompt)
-      if prompt.role == "system" then
+      if prompt.role == config.constants.SYSTEM_ROLE then
         item.Chat:add_message(prompt, { visible = false })
-      elseif prompt.role == "user" then
+      elseif prompt.role == config.constants.USER_ROLE then
         item.Chat:append_to_buf(prompt)
       end
     end)

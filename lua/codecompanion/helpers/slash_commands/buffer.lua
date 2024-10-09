@@ -36,7 +36,7 @@ local function output(SlashCommand, selected)
 
   local Chat = SlashCommand.Chat
   Chat:add_message({
-    role = "user",
+    role = config.constants.USER_ROLE,
     content = string.format(
       [[Here is the content from %s (which has a buffer number of _%d_ and a filepath of `%s`):
 

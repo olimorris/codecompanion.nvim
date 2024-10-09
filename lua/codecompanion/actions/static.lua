@@ -1,4 +1,5 @@
 local codecompanion = require("codecompanion")
+local config = require("codecompanion.config")
 
 local function send_code(context)
   local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
@@ -22,7 +23,7 @@ return {
       end,
       v = {
         {
-          role = "system",
+          role = config.constants.SYSTEM_ROLE,
           content = function(context)
             return "I want you to act as a senior "
               .. context.filetype
@@ -30,7 +31,7 @@ return {
           end,
         },
         {
-          role = "user",
+          role = config.constants.USER_ROLE,
           content = function(context)
             return send_code(context)
           end,
@@ -95,7 +96,7 @@ return {
               })
               :workflow({
                 {
-                  role = "system",
+                  role = config.constants.SYSTEM_ROLE,
                   content = "You carefully provide accurate, factual, thoughtful, nuanced answers, and are brilliant at reasoning. If you think there might not be a correct answer, you say so. Always spend a few sentences explaining background context, assumptions, and step-by-step thinking BEFORE you try to answer a question. Don't be verbose in your answers, but do provide details and examples where it might help the explanation. You are an expert software engineer for the "
                     .. context.filetype
                     .. " language.",
@@ -107,7 +108,7 @@ return {
                   condition = function()
                     return context.is_visual
                   end,
-                  role = "user",
+                  role = config.constants.USER_ROLE,
                   content = "Here is some relevant context: " .. send_code(context),
                   opts = {
                     contains_code = true,
@@ -115,28 +116,28 @@ return {
                   },
                 },
                 {
-                  role = "user",
+                  role = config.constants.USER_ROLE,
                   content = "I want you to help me code a feature. Before we write any code let's outline how we'll architect and implement the feature with the context you already have. The feature I'd like to add is ",
                   opts = {
                     start = true,
                   },
                 },
                 {
-                  role = "user",
+                  role = config.constants.USER_ROLE,
                   content = "Thanks. Now let's draft the code for the feature.",
                   opts = {
                     auto_submit = true,
                   },
                 },
                 {
-                  role = "user",
+                  role = config.constants.USER_ROLE,
                   content = "Great. Now let's consider the code. I'd like you to check it carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it.",
                   opts = {
                     auto_submit = true,
                   },
                 },
                 {
-                  role = "user",
+                  role = config.constants.USER_ROLE,
                   content = "Thanks. Now let's revise the code based on the feedback, without additional explanations.",
                   opts = {
                     auto_submit = true,
@@ -156,7 +157,7 @@ return {
               })
               :workflow({
                 {
-                  role = "system",
+                  role = config.constants.SYSTEM_ROLE,
                   content = "You carefully provide accurate, factual, thoughtful, nuanced answers, and are brilliant at reasoning. If you think there might not be a correct answer, you say so. Always spend a few sentences explaining background context, assumptions, and step-by-step thinking BEFORE you try to answer a question. Don't be verbose in your answers, but do provide details and examples where it might help the explanation. You are an expert software engineer for the "
                     .. context.filetype
                     .. " language.",
@@ -168,7 +169,7 @@ return {
                   condition = function()
                     return context.is_visual
                   end,
-                  role = "user",
+                  role = config.constants.USER_ROLE,
                   content = "Here is some relevant context: " .. send_code(context),
                   opts = {
                     contains_code = true,
@@ -176,28 +177,28 @@ return {
                   },
                 },
                 {
-                  role = "user",
+                  role = config.constants.USER_ROLE,
                   content = "I want you to help me with a refactor. Before we write any code let's outline how we'll architect and implement the code with the context you already have. What I'm looking to achieve is ",
                   opts = {
                     start = true,
                   },
                 },
                 {
-                  role = "user",
+                  role = config.constants.USER_ROLE,
                   content = "Thanks. Now let's draft the code for the refactor.",
                   opts = {
                     auto_submit = true,
                   },
                 },
                 {
-                  role = "user",
+                  role = config.constants.USER_ROLE,
                   content = "Great. Now let's consider the code. I'd like you to check it carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it.",
                   opts = {
                     auto_submit = true,
                   },
                 },
                 {
-                  role = "user",
+                  role = config.constants.USER_ROLE,
                   content = "Thanks. Now let's revise the code based on the feedback, without additional explanations.",
                   opts = {
                     auto_submit = true,

@@ -32,10 +32,6 @@ The user may also provide a prompt which references a conversation you've had wi
 
 Please respond to this prompt in the format "<method>", placing the classifiction in a tag. For example "replace" would be `<replace>`, "add" would be `<add>`, "new" would be `<new>` and "chat" would be `<chat>`. If you can't classify the message, reply with `<error>`. Do not provide any other content in your response or you'll break the plugin this is being called from.]],
   CODE_ONLY_PROMPT = [[Respond with code only. DO NOT format the code in Markdown code blocks, DO NOT use backticks AND DO NOT provide any explanations. If you cannot do this, reply with "Error"]],
-
-  USER_ROLE = "user",
-  LLM_ROLE = "llm",
-  SYSTEM_ROLE = "system",
 }
 
 ---Format given lines into a code block alongside a prompt
@@ -226,7 +222,7 @@ function Inline:classify(user_input)
 
   if user_input then
     table.insert(self.classification.prompts, {
-      role = CONSTANTS.USER_ROLE,
+      role = config.constants.USER_ROLE,
       content = "<question>" .. user_input .. "</question>",
       opts = {
         tag = "user_prompt",
@@ -246,11 +242,11 @@ function Inline:classify(user_input)
     client.new({ adapter = self.adapter:map_schema_to_params(), user_args = { event = "InlineClassify" } }):request(
       self.adapter:map_roles({
         {
-          role = CONSTANTS.SYSTEM_ROLE,
+          role = config.constants.SYSTEM_ROLE,
           content = CONSTANTS.PLACEMENT_PROMPT,
         },
         {
-          role = CONSTANTS.USER_ROLE,
+          role = config.constants.USER_ROLE,
           content = 'The prompt to assess is: "' .. prompt[1].content .. '"',
         },
       }),
@@ -304,7 +300,7 @@ function Inline:submit()
 
   -- Remind the LLM to respond with code only
   table.insert(self.classification.prompts, {
-    role = CONSTANTS.SYSTEM_ROLE,
+    role = config.constants.SYSTEM_ROLE,
     content = CONSTANTS.CODE_ONLY_PROMPT,
     opts = {
       tag = "system_tag",
@@ -314,11 +310,11 @@ function Inline:submit()
 
   -- Add the context from the chat buffer
   if not vim.tbl_isempty(self.chat_context) then
-    local messages = msg_utils.pluck_messages(self.chat_context, CONSTANTS.LLM_ROLE)
+    local messages = msg_utils.pluck_messages(self.chat_context, config.constants.LLM_ROLE)
 
     if #messages > 0 then
       table.insert(self.classification.prompts, {
-        role = CONSTANTS.USER_ROLE,
+        role = config.constants.USER_ROLE,
         content = "Here is the chat history from a conversation we had earlier. To answer my question, you _may_ need to use it:\n\n"
           .. messages[#messages].content,
         opts = {
@@ -419,7 +415,7 @@ function Inline:form_prompt()
     if self.context.is_visual and not self.opts.stop_context_insertion then
       log:trace("Sending visual selection")
       table.insert(output, {
-        role = CONSTANTS.USER_ROLE,
+        role = config.constants.USER_ROLE,
         content = code_block(
           "For context, this is the code that I've selected in the buffer",
           self.context.filetype,

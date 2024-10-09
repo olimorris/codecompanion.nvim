@@ -1,5 +1,6 @@
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
+local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils.util")
@@ -79,7 +80,7 @@ function SlashCommand:execute()
             )
 
             self.Chat:add_message({
-              role = "user",
+              role = config.constants.USER_ROLE,
               content = content,
             }, { visible = false })
 

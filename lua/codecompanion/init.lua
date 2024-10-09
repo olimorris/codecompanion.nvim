@@ -19,7 +19,7 @@ M.inline = function(args)
       context = context,
       prompts = {
         {
-          role = "system",
+          role = config.constants.SYSTEM_ROLE,
           content = function()
             return "I want you to act as a senior "
               .. context.filetype
@@ -102,7 +102,7 @@ M.add = function(args)
   local content = table.concat(context.lines, "\n")
 
   chat:append_to_buf({
-    role = "user",
+    role = config.constants.USER_ROLE,
     content = "Here is some code from "
       .. context.filename
       .. ":\n\n```"
@@ -134,7 +134,7 @@ M.chat = function(args)
         return M.toggle()
       else
         table.insert(messages, {
-          role = "user",
+          role = config.constants.USER_ROLE,
           content = args.args,
         })
       end

@@ -18,10 +18,6 @@ local CONSTANTS = {
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
 
-  USER_ROLE = "user",
-  LLM_ROLE = "llm",
-  SYSTEM_ROLE = "system",
-
   PROCESSING_MSG = "Tool processing ...",
 }
 
@@ -103,7 +99,7 @@ function Tools:set_autocmds()
         if request.data.status == CONSTANTS.STATUS_ERROR and self.tool.output_error_prompt then
           log:debug("Tool %s finished with error", self.tool.name)
           self.chat:append_to_buf({
-            role = CONSTANTS.USER_ROLE,
+            role = config.constants.USER_ROLE,
             content = self.tool.output_error_prompt(request.data.stderr),
           })
           if self.tools_config.opts.auto_submit_errors then
@@ -118,14 +114,14 @@ function Tools:set_autocmds()
           log:debug("Tool output: %s", output)
 
           local message = {
-            role = CONSTANTS.USER_ROLE,
+            role = config.constants.USER_ROLE,
             content = self.tool.output_prompt(output),
           }
 
           if self.tools_config[self.tool.name].opts and self.tools_config[self.tool.name].opts.hide_output then
             self.chat:add_message(message, { visible = false })
             self.chat:append_to_buf({
-              role = CONSTANTS.USER_ROLE,
+              role = config.constants.USER_ROLE,
               content = "I've shared the output with you",
             })
           else
@@ -359,13 +355,13 @@ end
 ---@return CodeCompanion.Tools
 function Tools:add_error_to_chat(error)
   self.chat:add_message({
-    role = CONSTANTS.USER_ROLE,
+    role = config.constants.USER_ROLE,
     content = error,
   }, { visible = false })
 
   --- Alert the user that the error message has been shared
   self.chat:append_to_buf({
-    role = CONSTANTS.USER_ROLE,
+    role = config.constants.USER_ROLE,
     content = "Please correct for the error message I've shared",
   })
 

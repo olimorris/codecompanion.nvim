@@ -1,3 +1,4 @@
+local config = require("codecompanion.config")
 local util = require("codecompanion.utils.util")
 
 CONSTANTS = {
@@ -31,7 +32,7 @@ function SlashCommand:execute()
 
   local Chat = self.Chat
   Chat:add_message({
-    role = "user",
+    role = config.constants.USER_ROLE,
     content = string.format(
       [[Here is the terminal output for buffer number `%s`:
 

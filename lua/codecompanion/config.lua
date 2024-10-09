@@ -1,5 +1,11 @@
 local fmt = string.format
 
+local constants = {
+  LLM_ROLE = "llm",
+  USER_ROLE = "user",
+  SYSTEM_ROLE = "system",
+}
+
 local defaults = {
   adapters = {
     -- LLMs -------------------------------------------------------------------
@@ -304,7 +310,7 @@ Points to note:
       },
       prompts = {
         {
-          role = "system",
+          role = constants.SYSTEM_ROLE,
           content = function(context)
             return fmt(
               [[I want you to act as a senior %s developer. I will ask you specific questions and I want you to return raw code only (no codeblocks and no explanations). If you can't respond with code, respond with nothing]],
@@ -333,7 +339,7 @@ Points to note:
       },
       prompts = {
         {
-          role = "system",
+          role = constants.SYSTEM_ROLE,
           content = [[When asked to explain code, follow these steps:
 
 1. Identify the programming language.
@@ -346,7 +352,7 @@ Points to note:
           },
         },
         {
-          role = "user",
+          role = constants.USER_ROLE,
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
@@ -383,7 +389,7 @@ Points to note:
       },
       prompts = {
         {
-          role = "system",
+          role = constants.SYSTEM_ROLE,
           content = [[When generating unit tests, follow these steps:
 
 1. Identify the programming language.
@@ -400,7 +406,7 @@ Points to note:
           },
         },
         {
-          role = "user",
+          role = constants.USER_ROLE,
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
@@ -437,7 +443,7 @@ Points to note:
       },
       prompts = {
         {
-          role = "system",
+          role = constants.SYSTEM_ROLE,
           content = [[When asked to fix code, follow these steps:
 
 1. **Identify the Issues**: Carefully read the provided code and identify any potential issues or improvements.
@@ -458,7 +464,7 @@ Use Markdown formatting and include the programming language name at the start o
           },
         },
         {
-          role = "user",
+          role = constants.USER_ROLE,
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
@@ -495,7 +501,7 @@ Use Markdown formatting and include the programming language name at the start o
       },
       prompts = {
         {
-          role = "system",
+          role = constants.SYSTEM_ROLE,
           content = function(context)
             return "I want you to act as a senior "
               .. context.filetype
@@ -507,7 +513,7 @@ Use Markdown formatting and include the programming language name at the start o
           },
         },
         {
-          role = "user",
+          role = constants.USER_ROLE,
           content = function(context)
             local buf_utils = require("codecompanion.utils.buffers")
 
@@ -519,7 +525,7 @@ Use Markdown formatting and include the programming language name at the start o
           },
         },
         {
-          role = "user",
+          role = constants.USER_ROLE,
           condition = function(context)
             return context.is_visual
           end,
@@ -560,14 +566,14 @@ Use Markdown formatting and include the programming language name at the start o
       },
       prompts = {
         {
-          role = "system",
+          role = constants.SYSTEM_ROLE,
           content = [[You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages. When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting.]],
           opts = {
             visible = false,
           },
         },
         {
-          role = "user",
+          role = constants.USER_ROLE,
           content = function(context)
             local diagnostics = require("codecompanion.helpers.actions").get_diagnostics(
               context.start_line,
@@ -603,7 +609,7 @@ Use Markdown formatting and include the programming language name at the start o
           end,
         },
         {
-          role = "user",
+          role = constants.USER_ROLE,
           content = function(context)
             local code = require("codecompanion.helpers.actions").get_code(
               context.start_line,
@@ -640,7 +646,7 @@ This is the code, for context:
       },
       prompts = {
         {
-          role = "user",
+          role = constants.USER_ROLE,
           content = function()
             return fmt(
               [[You are an expert at following the Conventional Commit specification. Given the git diff listed below, please generate a commit message for me:
@@ -768,7 +774,7 @@ local M = {
 ---@param args? table
 M.setup = function(args)
   args = args or {}
-  M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
+  M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), { constants = vim.deepcopy(constants) }, args)
 end
 
 return setmetatable(M, {

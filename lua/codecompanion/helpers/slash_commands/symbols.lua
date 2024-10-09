@@ -165,7 +165,7 @@ function SlashCommand:execute()
 
   local content = table.concat(symbols, "\n")
   Chat:add_message({
-    role = "user",
+    role = config.constants.USER_ROLE,
     content = string.format(
       [[Here is a symbolic outline of the file `%s` with filetype `%s`:
 
