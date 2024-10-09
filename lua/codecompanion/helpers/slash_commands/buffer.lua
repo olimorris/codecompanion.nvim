@@ -3,6 +3,7 @@ local config = require("codecompanion.config")
 local buf = require("codecompanion.utils.buffers")
 local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
+local util = require("codecompanion.utils.util")
 
 local api = vim.api
 
@@ -34,30 +35,19 @@ local function output(SlashCommand, selected)
   end
 
   local Chat = SlashCommand.Chat
-  if config.opts.visible then
-    Chat:append_to_buf({
-      content = "[!"
-        .. CONSTANTS.NAME
-        .. ": `"
-        .. selected[CONSTANTS.DISPLAY]
-        .. "` / Buf No.: "
-        .. selected.bufnr
-        .. "]\n",
-    })
-    Chat:append_to_buf({ content = content })
-    Chat:fold_code()
-  else
-    Chat:add_message({
-      role = "user",
-      content = string.format(
-        [[Here is the data from buffer number %d:
+  Chat:add_message({
+    role = "user",
+    content = string.format(
+      [[Here is the content from %s (which has a buffer number of _%d_ and a filepath of `%s`):
 
 %s]],
-        selected.bufnr,
-        content
-      ),
-    }, { visible = false })
-  end
+      selected.name,
+      selected.bufnr,
+      selected.path,
+      content
+    ),
+  }, { visible = false })
+  util.notify(string.format("Buffer `%s` content added to the chat", selected.name))
 end
 
 local Providers = {

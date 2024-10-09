@@ -204,14 +204,6 @@ local defaults = {
           callback = "keymaps.change_adapter",
           description = "Change adapter",
         },
-        fold_code = {
-          modes = {
-            n = "gf",
-          },
-          index = 12,
-          callback = "keymaps.fold_code",
-          description = "Fold code",
-        },
         debug = {
           modes = {
             n = "gd",

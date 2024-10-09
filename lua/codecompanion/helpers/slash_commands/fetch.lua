@@ -2,6 +2,7 @@ local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 
 local log = require("codecompanion.utils.log")
+local util = require("codecompanion.utils.util")
 
 local fmt = string.format
 
@@ -82,7 +83,7 @@ function SlashCommand:execute()
               content = content,
             }, { visible = false })
 
-            return vim.notify(fmt("Added the data from %s", input), vim.log.levels.INFO, { title = "CodeCompanion" })
+            return util.notify(fmt("Added the page contents for: %s", input))
           end
           if chunk.code >= 400 then
             return log:error("Error: %s", chunk.body.data)

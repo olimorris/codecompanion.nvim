@@ -1,3 +1,5 @@
+local util = require("codecompanion.utils.util")
+
 CONSTANTS = {
   NAME = "Terminal Output",
 }
@@ -28,20 +30,19 @@ function SlashCommand:execute()
   local content = vim.api.nvim_buf_get_lines(terminal_buf, 0, -1, false)
 
   local Chat = self.Chat
-
-  Chat:append_to_buf({ content = "[!" .. CONSTANTS.NAME .. "]\n" })
-  Chat:append_to_buf({
+  Chat:add_message({
+    role = "user",
     content = string.format(
-      [[```
-Buffer Number: %s
-Output:
+      [[Here is the terminal output for buffer number `%s`:
+
+<terminal>
 %s
-```]],
+</terminal>]],
       terminal_buf,
       table.concat(content, "\n")
     ),
-  })
-  Chat:fold_code()
+  }, { visible = false })
+  util.notify("Terminal output added to chat")
 end
 
 return SlashCommand

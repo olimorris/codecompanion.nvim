@@ -1,6 +1,7 @@
 local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")
+local util = require("codecompanion.utils.util")
 
 ---The Tree-sitter queries below are used to extract symbols from the buffer
 ---where the chat was initiated from. If you'd like to add more support
@@ -159,20 +160,24 @@ function SlashCommand:execute()
 
   if #symbols == 0 then
     log:info("No symbols found in the buffer")
-    return vim.notify("No symbols found in the buffer", "info", { title = "CodeCompanion" })
+    util.notify("No symbols found in the buffer")
   end
 
   local content = table.concat(symbols, "\n")
-  Chat:append_to_buf({ content = "[!Symbols]\n" })
-  Chat:append_to_buf({
+  Chat:add_message({
+    role = "user",
     content = string.format(
-      "```txt\nFilename: %s\nFiletype: %s\n<symbols>\n%s\n</symbols>\n```\n",
+      [[Here is a symbolic outline of the file `%s` with filetype `%s`:
+
+<symbols>
+%s
+</symbols>]],
       Chat.context.filename,
       Chat.context.filetype,
       content
     ),
-  })
-  Chat:fold_code()
+  }, { visible = false })
+  util.notify("Symbolic outline added to chat")
 end
 
 return SlashCommand

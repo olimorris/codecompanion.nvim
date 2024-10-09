@@ -3,6 +3,7 @@ local config = require("codecompanion.config")
 local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 local tokens_utils = require("codecompanion.utils.tokens")
+local util = require("codecompanion.utils.util")
 local ts = vim.treesitter
 
 CONSTANTS = {
@@ -85,9 +86,20 @@ local function output(SlashCommand, selected)
   end
 
   local Chat = SlashCommand.Chat
-  Chat:append_to_buf({ content = "[!" .. CONSTANTS.NAME .. ": `" .. selected.tag .. "`]\n" })
-  Chat:append_to_buf({ content = "```" .. ft .. "\n" .. content .. "\n```" })
-  Chat:fold_code()
+  Chat:add_message({
+    role = "user",
+    content = string.format(
+      [[Here is some additional context related to the tag `%s`:
+
+```%s
+%s
+```]],
+      selected.tag,
+      ft,
+      content
+    ),
+  }, { visible = false })
+  util.notify(string.format("%s help file added to chat", selected.tag))
 end
 
 local Providers = {

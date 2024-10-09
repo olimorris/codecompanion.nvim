@@ -362,12 +362,6 @@ M.change_adapter = {
   end,
 }
 
-M.fold_code = {
-  callback = function(chat)
-    chat:fold_code()
-  end,
-}
-
 M.debug = {
   desc = "Show debug information for the current chat",
   callback = function(chat)

@@ -2,6 +2,7 @@ local config = require("codecompanion.config")
 
 local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
+local util = require("codecompanion.utils.util")
 
 CONSTANTS = {
   NAME = "File",
@@ -26,9 +27,20 @@ local function output(SlashCommand, selected)
 
   local Chat = SlashCommand.Chat
   local relative_path = selected.relative_path or selected[1] or selected.path
-  Chat:append_to_buf({ content = "[!" .. CONSTANTS.NAME .. ": `" .. relative_path .. "`]\n" })
-  Chat:append_to_buf({ content = "```" .. ft .. "\n" .. content .. "```" })
-  Chat:fold_code()
+  Chat:add_message({
+    role = "user",
+    content = string.format(
+      [[Here is the content from the file `%s`:
+
+```%s
+%s
+```]],
+      relative_path,
+      ft,
+      content
+    ),
+  }, { visible = false })
+  util.notify("File data added to chat")
 end
 
 local Providers = {

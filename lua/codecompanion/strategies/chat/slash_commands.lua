@@ -1,4 +1,3 @@
-local config = require("codecompanion").config
 local log = require("codecompanion.utils.log")
 
 ---Resolve the callback to the correct module

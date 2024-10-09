@@ -10,6 +10,17 @@ function M.fire(event, opts)
   api.nvim_exec_autocmds("User", { pattern = "CodeCompanion" .. event, data = opts })
 end
 
+---Notify the user
+---@param msg string
+---@param level? string
+---@return nil
+function M.notify(msg, level)
+  level = level or vim.log.levels.INFO
+  return vim.notify(msg, level, {
+    title = "CodeCompanion",
+  })
+end
+
 ---Make the first letter uppercase
 ---@param str string
 ---@return string
