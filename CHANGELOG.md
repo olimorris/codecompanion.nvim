@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.3.0...v8.3.1) (2024-10-10)
+
+
+### Bug Fixes
+
+* **chat:** can prompt llm with slash commands and no user prompt ([167a786](https://github.com/olimorris/codecompanion.nvim/commit/167a786007abf7429d0f54c587dd4e49b7bc36e7))
+
 ## [8.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.2.0...v8.3.0) (2024-10-09)
 
 
