@@ -211,7 +211,6 @@ local last_chat = {}
 ---@field context table The context of the buffer that the chat was initiated from
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
----@field has_folded_code boolean Has the code been folded?
 ---@field header_ns integer The namespace for the virtual text that appears in the header
 ---@field id integer The unique identifier for the chat
 ---@field intro_message? boolean Whether the welcome message has been shown
@@ -242,7 +241,6 @@ function Chat.new(args)
   local self = setmetatable({
     opts = args,
     context = args.context,
-    has_folded_code = false,
     header_ns = api.nvim_create_namespace(CONSTANTS.NS_HEADER),
     id = id,
     last_role = args.last_role or config.constants.USER_ROLE,
@@ -1081,6 +1079,57 @@ function Chat:fold_heading(heading)
   end
 
   log:trace("Folding H3 header %s", heading)
+  return self
+end
+
+---Fold code under the user's heading in the chat buffer
+---@return self
+function Chat:fold_code()
+  local query = vim.treesitter.query.parse(
+    "markdown",
+    [[
+(section
+(
+ (atx_heading
+  (atx_h2_marker)
+  heading_content: (_) @role
+)
+([
+  (fenced_code_block)
+  (indented_code_block)
+] @code (#trim! @code))
+))
+]]
+  )
+
+  local parser = vim.treesitter.get_parser(self.bufnr, "markdown")
+  local tree = parser:parse()[1]
+  vim.o.foldmethod = "manual"
+
+  local role
+  for _, matches in query:iter_matches(tree:root(), self.bufnr, nil, nil, { all = false }) do
+    local match = {}
+    for id, node in pairs(matches) do
+      match = vim.tbl_extend("keep", match, {
+        [query.captures[id]] = {
+          node = node,
+        },
+      })
+    end
+
+    if match.role then
+      role = vim.trim(vim.treesitter.get_node_text(match.role.node, self.bufnr))
+      if role:match(user_role) and match.code then
+        local start_row, _, end_row, _ = match.code.node:range()
+        if start_row < end_row then
+          api.nvim_buf_call(self.bufnr, function()
+            vim.cmd(string.format("%d,%dfold", start_row, end_row))
+          end)
+        end
+      end
+    end
+  end
+
   return self
 end
 
