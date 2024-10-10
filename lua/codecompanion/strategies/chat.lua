@@ -756,12 +756,21 @@ function Chat:submit(opts)
 
   local message = buf_parse_message(bufnr)
   if vim.tbl_isempty(message) then
-    return log:warn("No messages to submit")
+    local has_user_messages = vim
+      .iter(self.messages)
+      :filter(function(msg)
+        return msg.role == config.constants.USER_ROLE
+      end)
+      :totable()
+
+    if #has_user_messages == 0 then
+      return log:warn("No messages to submit")
+    end
   end
 
   --- If we're regenerating the response, we don't want to add the user's last
   --- message from the buffer as it sends unnecessary context to the LLM
-  if not opts.regenerate then
+  if not opts.regenerate and not vim.tbl_isempty(message) then
     self:add_message({ role = config.constants.USER_ROLE, content = message.content })
   end
 

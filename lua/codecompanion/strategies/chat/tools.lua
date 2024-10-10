@@ -269,6 +269,10 @@ end
 ---@param message table
 ---@return table|nil
 function Tools:find(message)
+  if not message.content then
+    return nil
+  end
+
   local found = {}
   for tool, _ in pairs(self.tools_config) do
     if message.content:match("%f[%w" .. CONSTANTS.PREFIX .. "]" .. CONSTANTS.PREFIX .. tool .. "%f[%W]") then
