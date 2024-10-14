@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.3.1...v8.4.0) (2024-10-14)
+
+
+### Features
+
+* **adapters:** global var to allow override ([4535243](https://github.com/olimorris/codecompanion.nvim/commit/453524395fb6d5fd6b82e69fe68fd9256a6f5de3))
+
 ## [8.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.3.0...v8.3.1) (2024-10-10)
 
 
