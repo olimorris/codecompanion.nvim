@@ -441,6 +441,10 @@ require("codecompanion").setup({
 })
 ```
 
+**Set a Global Adapter with a Global Variable**
+
+In some cases, it may be helpful to set a global adapter across both the `chat` and `inline` strategies, on the fly. Perhaps, if your LLM of choice is down or you're without internet. This can be achieved by setting the `vim.g.codecompanion_adapter` variable to the name of an adapter in the config. This also prevents you from having to go into every chat buffer that you have open to manually set the adapter.
+
 ## :bulb: Advanced Usage
 
 ### :clipboard: Prompt Library

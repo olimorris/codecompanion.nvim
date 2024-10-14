@@ -785,6 +785,12 @@ function Chat:submit(opts)
     message.content = self.variables:replace(message.content)
   end
 
+  -- Check if the user has manually overriden the adapter. This is useful if the
+  -- user loses their internet connection and wants to switch to a local LLM
+  if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
+    self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
+  end
+
   local settings = buf_parse_settings(bufnr, self.adapter)
   settings = self.adapter:map_schema_to_params(settings)
 

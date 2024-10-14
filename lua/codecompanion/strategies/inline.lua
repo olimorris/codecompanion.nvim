@@ -128,7 +128,13 @@ function Inline.new(args)
     prompts = vim.deepcopy(args.prompts),
   }, { __index = Inline })
 
-  self.adapter = adapters.resolve(self.adapter)
+  -- Check if the user has manually overriden the adapter. This is useful if the
+  -- user loses their internet connection and wants to switch to a local LLM
+  if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
+    self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
+  else
+    self.adapter = adapters.resolve(self.adapter)
+  end
   if not self.adapter then
     return log:error("No adapter found")
   end
