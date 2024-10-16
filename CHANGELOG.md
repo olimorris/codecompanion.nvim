@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.4.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.4.0...v8.4.1) (2024-10-16)
+
+
+### Bug Fixes
+
+* custom tools and slash commands fail to load ([0f2e8de](https://github.com/olimorris/codecompanion.nvim/commit/0f2e8de176c5409b7d8587447f2b872cc15b04dd))
+
 ## [8.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.3.1...v8.4.0) (2024-10-14)
 
 
