@@ -1152,7 +1152,7 @@ end
 ---@param request table
 ---@param callback fun(request: table)
 ---@return nil
-function Chat:complete(request, callback)
+function Chat:complete_models(request, callback)
   local items = {}
   local cursor = api.nvim_win_get_cursor(0)
   local key_name, node = self:_get_settings_key({ pos = { cursor[1] - 1, 1 } })
