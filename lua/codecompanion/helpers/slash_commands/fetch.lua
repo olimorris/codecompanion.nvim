@@ -35,6 +35,10 @@ function SlashCommand:execute()
     ok, adapter = pcall(loadfile, self.config.opts.provider)
   end
 
+  if type(adapter) == "function" then
+    adapter = adapter()
+  end
+
   adapter = adapters.resolve(adapter)
   if not adapter then
     return log:error("Failed to load the provider")

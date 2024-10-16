@@ -383,16 +383,21 @@ function Tools.resolve(tool)
   local callback = tool.callback
 
   local ok, module = pcall(require, "codecompanion." .. callback)
-  if not ok then
-    -- Try loading the tool from the user's config
-    ok, module = pcall(loadfile, callback)
+  if ok then
+    log:debug("Calling tool: %s", callback)
+    return module
   end
+
+  -- Try loading the tool from the user's config
+  ok, module = pcall(loadfile, callback)
   if not ok then
     return log:error("Could not resolve tool: %s", callback)
   end
 
-  log:debug("Calling tool: %s", callback)
-  return module
+  if module then
+    log:debug("Calling tool: %s", callback)
+    return module()
+  end
 end
 
 return Tools

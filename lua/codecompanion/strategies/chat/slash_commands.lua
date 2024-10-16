@@ -5,16 +5,21 @@ local log = require("codecompanion.utils.log")
 ---@return table|nil
 local function resolve(callback)
   local ok, slash_command = pcall(require, "codecompanion." .. callback)
-  if not ok then
-    -- Try loading the tool from the user's config
-    ok, slash_command = pcall(loadfile, callback)
-  end
-  if not ok then
-    return
+  if ok then
+    log:debug("Calling slash command: %s", callback)
+    return slash_command
   end
 
-  log:debug("Calling slash command: %s", callback)
-  return slash_command
+  -- Try loading the tool from the user's config
+  ok, slash_command = pcall(loadfile, callback)
+  if not ok then
+    return log:error("Could not load the slash command: %s", callback)
+  end
+
+  if slash_command then
+    log:debug("Calling slash command: %s", callback)
+    return slash_command()
+  end
 end
 
 ---@class CodeCompanion.SlashCommands
