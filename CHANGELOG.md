@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.5.1...v8.6.0) (2024-10-17)
+
+
+### Features
+
+* :sparkles: improved workflows ([4bc19d1](https://github.com/olimorris/codecompanion.nvim/commit/4bc19d10c7b8026be5e943cccd98a1d5b086d5af))
+
 ## [8.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.5.0...v8.5.1) (2024-10-17)
 
 
