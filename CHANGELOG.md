@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.4.2](https://github.com/olimorris/codecompanion.nvim/compare/v8.4.1...v8.4.2) (2024-10-17)
+
+
+### Bug Fixes
+
+* always use the default diff in commit prompt ([e8ba37a](https://github.com/olimorris/codecompanion.nvim/commit/e8ba37a3d922f890464f66c0b21fab74f2263d31))
+
 ## [8.4.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.4.0...v8.4.1) (2024-10-16)
 
 
