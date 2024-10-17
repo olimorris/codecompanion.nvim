@@ -986,7 +986,7 @@ function Chat:append_to_buf(data, opts)
       self:render_headers()
     end
 
-    if self.last_role ~= CONSTANTS.USER_ROLE then
+    if self.last_role ~= config.constants.USER_ROLE then
       lock_buf(bufnr)
     end
 
