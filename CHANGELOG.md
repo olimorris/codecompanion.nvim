@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.5.0...v8.5.1) (2024-10-17)
+
+
+### Bug Fixes
+
+* [#322](https://github.com/olimorris/codecompanion.nvim/issues/322) `CodeCompanionChat Add` command locking buffer ([e96b6e5](https://github.com/olimorris/codecompanion.nvim/commit/e96b6e5df28622e31092f90aa64daff92eef52e8))
+
 ## [8.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.4.2...v8.5.0) (2024-10-17)
 
 
