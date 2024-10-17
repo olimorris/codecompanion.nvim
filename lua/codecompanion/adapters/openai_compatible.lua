@@ -65,6 +65,15 @@ local function get_url(self, opts)
   return url
 end
 
+local function get_completion_url(self, opts)
+  local adapter = require("codecompanion.adapters").resolve(self)
+  local url = adapter.env_replaced.chat_url
+  if not adapter.env_replaced.chat_url then
+    url = "/v1/chat/completions"
+  end
+  return url
+end
+
 ---@class Gemini.Adapter: CodeCompanion.Adapter
 return {
   name = "openai_compatible",
@@ -80,11 +89,14 @@ return {
     tokens = true,
     vision = false,
   },
-  url = "${url}/v1/chat/completions",
+  url = "${url}${chat_url}",
   env = {
     api_key = "OPENAI_API_KEY",
     url = function(self)
       return get_url(self)
+    end,
+    chat_url = function(self)
+      return get_completion_url(self)
     end,
   },
   raw = {
