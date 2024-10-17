@@ -211,11 +211,13 @@ local last_chat = {}
 ---@field context table The context of the buffer that the chat was initiated from
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
+---@field cycle number The amount of times the chat has been sent to the LLM
 ---@field header_ns integer The namespace for the virtual text that appears in the header
 ---@field id integer The unique identifier for the chat
 ---@field intro_message? boolean Whether the welcome message has been shown
 ---@field messages? table The table containing the messages in the chat buffer
 ---@field settings? table The settings that are used in the adapter of the chat buffer
+---@field subscribers table The subscribers to the chat buffer
 ---@field tokens? nil|number The number of tokens in the chat
 ---@field tools? CodeCompanion.Tools The tools available to the user
 ---@field tools_in_use? nil|table The tools that are currently being used in the chat
@@ -241,11 +243,13 @@ function Chat.new(args)
   local self = setmetatable({
     opts = args,
     context = args.context,
+    cycle = 0,
     header_ns = api.nvim_create_namespace(CONSTANTS.NS_HEADER),
     id = id,
     last_role = args.last_role or config.constants.USER_ROLE,
     messages = args.messages or {},
     status = "",
+    subscribers = {},
     tokens = args.tokens,
     tools_in_use = {},
     create_buf = function()
@@ -798,6 +802,8 @@ function Chat:submit(opts)
   log:debug("Messages:\n%s", self.messages)
 
   lock_buf(bufnr)
+  self.cycle = self.cycle + 1
+
   log:info("Chat request started")
   self.current_request = client
     .new({ adapter = settings })
@@ -841,7 +847,24 @@ function Chat:done(request)
   end
 
   log:info("Chat request completed")
-  return self:reset()
+  self:reset()
+
+  if self.has_subscribers then
+    local function action_subscription(subscriber)
+      subscriber.callback(self)
+      if subscriber.type == "once" then
+        self:unsubscribe(subscriber.id)
+      end
+    end
+
+    vim.iter(self.subscribers):each(function(subscriber)
+      if subscriber.order and subscriber.order <= self.cycle then
+        action_subscription(subscriber)
+      elseif not subscriber.order then
+        action_subscription(subscriber)
+      end
+    end)
+  end
 end
 
 ---Regenerate the response from the LLM
@@ -1176,6 +1199,27 @@ function Chat:complete_models(request, callback)
   end
 
   callback({ items = items, isIncomplete = false })
+end
+
+---Subscribe to a chat buffer
+---@param event table {name: string, type: string, callback: fun}
+function Chat:subscribe(event)
+  table.insert(self.subscribers, event)
+end
+
+---Does the chat buffer have any subscribers?
+function Chat:has_subscribers()
+  return #self.subscribers > 0
+end
+
+---Unsubscribe an object from a chat buffer
+---@param id integer|string
+function Chat:unsubscribe(id)
+  for i, subscriber in ipairs(self.subscribers) do
+    if subscriber.id == id then
+      table.remove(self.subscribers, i)
+    end
+  end
 end
 
 ---Clear the chat buffer

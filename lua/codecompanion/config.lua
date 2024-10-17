@@ -332,11 +332,65 @@ Points to note:
         },
       },
     },
+    ["Code workflow"] = {
+      strategy = "workflow",
+      description = "Use a workflow to guide an LLM in writing code",
+      opts = {
+        index = 4,
+        is_default = true,
+        short_name = "workflow",
+      },
+      prompts = {
+        {
+          -- We can group prompts together to make a workflow
+          -- This is the first prompt in the workflow
+          {
+            role = constants.SYSTEM_ROLE,
+            content = function(context)
+              return fmt(
+                "You carefully provide accurate, factual, thoughtful, nuanced answers, and are brilliant at reasoning. If you think there might not be a correct answer, you say so. Always spend a few sentences explaining background context, assumptions, and step-by-step thinking BEFORE you try to answer a question. Don't be verbose in your answers, but do provide details and examples where it might help the explanation. You are an expert software engineer for the %s language",
+                context.filetype
+              )
+            end,
+            opts = {
+              visible = false,
+            },
+          },
+          {
+            role = constants.USER_ROLE,
+            content = "I want you to ",
+            opts = {
+              auto_submit = false,
+            },
+          },
+        },
+        -- This is the second group of prompts
+        {
+          {
+            role = constants.USER_ROLE,
+            content = "Great. Now let's consider your code. I'd like you to check it carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it.",
+            opts = {
+              auto_submit = false,
+            },
+          },
+        },
+        -- This is the final group of prompts
+        {
+          {
+            role = constants.USER_ROLE,
+            content = "Thanks. Now let's revise the code based on the feedback, without additional explanations.",
+            opts = {
+              auto_submit = false,
+            },
+          },
+        },
+      },
+    },
     ["Explain"] = {
       strategy = "chat",
       description = "Explain how code in a buffer works",
       opts = {
-        index = 4,
+        index = 5,
         is_default = true,
         is_slash_cmd = false,
         modes = { "v" },
@@ -386,7 +440,7 @@ Points to note:
       strategy = "chat",
       description = "Generate unit tests for the selected code",
       opts = {
-        index = 5,
+        index = 6,
         is_default = true,
         is_slash_cmd = false,
         modes = { "v" },
@@ -440,7 +494,7 @@ Points to note:
       strategy = "chat",
       description = "Fix the selected code",
       opts = {
-        index = 6,
+        index = 7,
         is_default = true,
         is_slash_cmd = false,
         modes = { "v" },
@@ -498,7 +552,7 @@ Use Markdown formatting and include the programming language name at the start o
       strategy = "inline",
       description = "Send the current buffer to the LLM as part of an inline prompt",
       opts = {
-        index = 7,
+        index = 8,
         modes = { "v" },
         is_default = true,
         is_slash_cmd = false,
@@ -563,7 +617,7 @@ Use Markdown formatting and include the programming language name at the start o
       strategy = "chat",
       description = "Explain the LSP diagnostics for the selected code",
       opts = {
-        index = 8,
+        index = 9,
         is_default = true,
         is_slash_cmd = false,
         modes = { "v" },
@@ -646,7 +700,7 @@ This is the code, for context:
       strategy = "chat",
       description = "Generate a commit message",
       opts = {
-        index = 9,
+        index = 10,
         is_default = true,
         is_slash_cmd = true,
         short_name = "commit",

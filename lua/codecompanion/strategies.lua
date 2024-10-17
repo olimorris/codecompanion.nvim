@@ -108,6 +108,63 @@ function Strategies:chat()
   return chat()
 end
 
+---@return CodeCompanion.Chat|nil
+function Strategies:workflow()
+  local workflow = self.selected
+  local prompts = workflow.prompts
+  local opts = workflow.opts
+  local stages = #prompts
+
+  -- Expand the prompts
+  local eval_prompts = vim
+    .iter(prompts)
+    :map(function(prompt_group)
+      return vim
+        .iter(prompt_group)
+        :map(function(prompt)
+          local new_prompt = vim.deepcopy(prompt)
+          if type(new_prompt.content) == "function" then
+            new_prompt.content = new_prompt.content(self.context)
+          end
+          return new_prompt
+        end)
+        :totable()
+    end)
+    :totable()
+
+  local messages = eval_prompts[1]
+
+  -- We send the first batch of prompts to the chat buffer as messages
+  local chat = require("codecompanion.strategies.chat").new({
+    adapter = self.selected.adapter,
+    context = self.context,
+    messages = messages,
+    auto_submit = (messages.opts and messages.opts.auto_submit) or false,
+  })
+  table.remove(eval_prompts, 1)
+
+  -- Then when it completes we send the next batch and so on
+  if stages > 1 then
+    local order = 1
+    vim.iter(eval_prompts):each(function(prompt)
+      prompt = prompt[1]
+      local event = {
+        id = math.random(10000000),
+        order = order,
+        type = "once",
+        callback = function(chat_obj)
+          chat_obj:append_to_buf(prompt)
+          if prompt.opts and prompt.opts.auto_submit then
+            chat_obj:submit()
+          end
+        end,
+      }
+      chat:subscribe(event)
+      order = order + 1
+    end)
+  end
+end
+
 ---@return CodeCompanion.Inline|nil
 function Strategies:inline()
   log:info("Strategy: Inline")

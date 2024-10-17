@@ -112,7 +112,7 @@ EOF
 > [!IMPORTANT]
 > The plugin requires the markdown Tree-sitter parser to be installed with `:TSInstall markdown`
 
-[Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is a suggested inclusion in order to leverage Slash Commands. However other providers are available. Please refer to the [Chat Buffer](#speech_balloon-the-chat-buffer) section for more information.
+[Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is a suggested inclusion in order to leverage Slash Commands. However, other providers are available. Please refer to the [Chat Buffer](#speech_balloon-the-chat-buffer) section for more information.
 
 ## :rocket: Quickstart
 
@@ -196,7 +196,7 @@ There are keymaps available to accept or reject edits from the LLM in the [inlin
 
 <!-- panvimdoc-ignore-end -->
 
-Run `:CodeCompanionActions` to open the action palette, which gives you access to all functionality of the plugin. By default the plugin uses `vim.ui.select` however you can change the provider by altering the `display.action_palette.provider` config value to be `telescope` or `mini_pick`. You can also call the Telescope extension with `:Telescope codecompanion`.
+Run `:CodeCompanionActions` to open the action palette, which gives you access to all functionality of the plugin. By default the plugin uses `vim.ui.select`, however, you can change the provider by altering the `display.action_palette.provider` config value to be `telescope` or `mini_pick`. You can also call the Telescope extension with `:Telescope codecompanion`.
 
 > [!NOTE]
 > Some actions and prompts will only be visible if you're in _Visual mode_.
@@ -209,7 +209,7 @@ The plugin has three core commands:
 - `CodeCompanionChat` - Open a chat buffer
 - `CodeCompanionActions` - Open the _Action Palette_
 
-However there are multiple options available:
+However, there are multiple options available:
 
 - `CodeCompanion <your prompt>` - Prompt the inline assistant
 - `CodeCompanion /<prompt library>` - Use the [prompt library](#clipboard-prompt-library) with the inline assistant e.g. `/commit`
@@ -218,9 +218,9 @@ However there are multiple options available:
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
 
-**Suggested workflow**
+**Suggested plugin workflow**
 
-For an optimum workflow, I recommend the following keymaps:
+For an optimum plugin workflow, I recommend the following:
 
 ```lua
 vim.api.nvim_set_keymap("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
@@ -248,7 +248,7 @@ The plugin uses adapters to connect to LLMs. Out of the box, the plugin supports
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
 
-The plugin utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
+The plugin utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer. The _workflow_ strategy is a wrapper for the _chat_ strategy, allowing for [agentic workflows](#world_map-workflows).
 
 The plugin allows you to specify adapters for each strategy and also for each [prompt library](#clipboard-prompt-library) entry.
 
@@ -538,15 +538,9 @@ More information on how tools work and how you can create your own can be found 
 
 ### :world_map: Workflows
 
-> [!WARNING]
-> Workflows may result in the significant consumption of tokens if you're using an external LLM.
+Workflows prompt an LLM multiple times, giving them the ability to build their answer step-by-step instead of at once. This leads to much better output as [outlined](https://www.deeplearning.ai/the-batch/issue-242/) by Andrew Ng. Infact, it's possible for older models like GPT 3.5 to outperform newer models (using traditional zero-shot inference).
 
-As [outlined](https://www.deeplearning.ai/the-batch/issue-242/) by Andrew Ng, agentic workflows have the ability to dramatically improve the output of an LLM. Infact, it's possible for older models like GPT 3.5 to outperform newer models (using traditional zero-shot inference). Andrew [discussed](https://www.youtube.com/watch?v=sal78ACtGTc&t=249s) how an agentic workflow can be utilised via multiple prompts that invoke the LLM to self reflect. Implementing Andrew's advice, the plugin supports this notion via the use of workflows. At various stages of a pre-defined workflow, the plugin will automatically prompt the LLM without any input or triggering required from the user.
-
-Currently, the plugin comes with the following workflows:
-
-- Adding a new feature
-- Refactoring code
+Implementing Andrew's advice, at various stages of a pre-defined workflow, the plugin will automatically prompt the LLM without any input or triggering required from the user. The plugin contains a default `Code workflow`, as part of the prompt library, which guides the LLM into writing better code.
 
 Of course you can add new workflows by following the [RECIPES](doc/RECIPES.md) guide.
 
