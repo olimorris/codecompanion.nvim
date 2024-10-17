@@ -8,7 +8,7 @@ Table of Contents                    *codecompanion-recipes-table-of-contents*
   - Recipe #1: Creating boilerplate code|codecompanion-recipes-recipe-#1:-creating-boilerplate-code|
   - Recipe #2: Using context in your prompts|codecompanion-recipes-recipe-#2:-using-context-in-your-prompts|
   - Other Configuration Options|codecompanion-recipes-other-configuration-options|
-  - Workflows                                |codecompanion-recipes-workflows|
+  - Agentic Workflows                |codecompanion-recipes-agentic-workflows|
   - Conclusion                              |codecompanion-recipes-conclusion|
 
 ==============================================================================
@@ -394,7 +394,7 @@ In this example, the LLM response will be placed in a new buffer and the
 user’s code will not be returned back to them.
 
 
-WORKFLOWS                                    *codecompanion-recipes-workflows*
+AGENTIC WORKFLOWS                    *codecompanion-recipes-agentic-workflows*
 
 Workflows, at their core, are simply multiple prompts which are sent to the LLM
 in a turn-based manner. I fully recommend reading Issue 242

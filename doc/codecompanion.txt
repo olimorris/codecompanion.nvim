@@ -596,12 +596,12 @@ More information on how tools work and how you can create your own can be found
 in the TOOLS <doc/TOOLS.md> guide.
 
 
-WORKFLOWS ~
+AGENTIC WORKFLOWS ~
 
-Workflows prompt an LLM multiple times, giving them the ability to build their
-answer step-by-step instead of at once. This leads to much better output as
-outlined <https://www.deeplearning.ai/the-batch/issue-242/> by Andrew Ng.
-Infact, it’s possible for older models like GPT 3.5 to outperform newer
+Agentic Workflows prompt an LLM multiple times, giving them the ability to
+build their answer step-by-step instead of at once. This leads to much better
+output as outlined <https://www.deeplearning.ai/the-batch/issue-242/> by Andrew
+Ng. Infact, it’s possible for older models like GPT 3.5 to outperform newer
 models (using traditional zero-shot inference).
 
 Implementing Andrew’s advice, at various stages of a pre-defined workflow,

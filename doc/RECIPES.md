@@ -327,7 +327,7 @@ As outlined in the [README](README.md), an inline prompt can place its response 
 
 In this example, the LLM response will be placed in a new buffer and the user's code will not be returned back to them.
 
-## Workflows
+## Agentic Workflows
 
 Workflows, at their core, are simply multiple prompts which are sent to the LLM in a turn-based manner. I fully recommend reading [Issue 242](https://www.deeplearning.ai/the-batch/issue-242/) of The Batch to understand their use. Workflows are setup in exactly the same way as prompts in the prompt library. Take the `code workflow` as an example:
 

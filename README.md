@@ -248,7 +248,7 @@ The plugin uses adapters to connect to LLMs. Out of the box, the plugin supports
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
 
-The plugin utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer. The _workflow_ strategy is a wrapper for the _chat_ strategy, allowing for [agentic workflows](#world_map-workflows).
+The plugin utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer. The _workflow_ strategy is a wrapper for the _chat_ strategy, allowing for [agentic workflows](#world_map-agentic-workflows).
 
 The plugin allows you to specify adapters for each strategy and also for each [prompt library](#clipboard-prompt-library) entry.
 
@@ -536,9 +536,9 @@ In the plugin, tools are simply context that's given to an LLM via a `system` pr
 
 More information on how tools work and how you can create your own can be found in the [TOOLS](doc/TOOLS.md) guide.
 
-### :world_map: Workflows
+### :world_map: Agentic Workflows
 
-Workflows prompt an LLM multiple times, giving them the ability to build their answer step-by-step instead of at once. This leads to much better output as [outlined](https://www.deeplearning.ai/the-batch/issue-242/) by Andrew Ng. Infact, it's possible for older models like GPT 3.5 to outperform newer models (using traditional zero-shot inference).
+Agentic Workflows prompt an LLM multiple times, giving them the ability to build their answer step-by-step instead of at once. This leads to much better output as [outlined](https://www.deeplearning.ai/the-batch/issue-242/) by Andrew Ng. Infact, it's possible for older models like GPT 3.5 to outperform newer models (using traditional zero-shot inference).
 
 Implementing Andrew's advice, at various stages of a pre-defined workflow, the plugin will automatically prompt the LLM without any input or triggering required from the user. The plugin contains a default `Code workflow`, as part of the prompt library, which guides the LLM into writing better code.
 
