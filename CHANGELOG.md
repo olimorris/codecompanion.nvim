@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.4.2...v8.5.0) (2024-10-17)
+
+
+### Features
+
+* **adapter:** add generic openai compatible adapter ([e5e9d39](https://github.com/olimorris/codecompanion.nvim/commit/e5e9d3920131f0b645c4501741f72fd8fcd8847e))
+
 ## [8.4.2](https://github.com/olimorris/codecompanion.nvim/compare/v8.4.1...v8.4.2) (2024-10-17)
 
 
