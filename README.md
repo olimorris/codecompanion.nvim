@@ -379,6 +379,26 @@ require("codecompanion").setup({
 })
 ```
 
+
+**Using OpenAI compatible Models like LMStudio or self-hosted models**
+
+To use any other OpenAI compatible models, change the URL in the `env` table, set an API key:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    ollama = function()
+      return require("codecompanion.adapters").extend("openai_compatible", {
+        env = {
+          url = "http[s]://open_compatible_ai_url",
+          api_key = "OpenAI_API_KEY",
+        },
+      })
+    end,
+  },
+})
+```
+
 **Connecting via a Proxy**
 
 You can also connect via a proxy:
