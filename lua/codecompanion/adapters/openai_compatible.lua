@@ -363,5 +363,55 @@ return {
         return n >= 0 and n <= 1, "Must be between 0 and 1"
       end,
     },
+    max_tokens = {
+      order = 5,
+      mapping = "parameters",
+      type = "integer",
+      optional = true,
+      default = nil,
+      desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
+      validate = function(n)
+        return n > 0, "Must be greater than 0"
+      end,
+    },
+    presence_penalty = {
+      order = 6,
+      mapping = "parameters",
+      type = "number",
+      optional = true,
+      default = 0,
+      desc = "Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.",
+      validate = function(n)
+        return n >= -2 and n <= 2, "Must be between -2 and 2"
+      end,
+    },
+    frequency_penalty = {
+      order = 7,
+      mapping = "parameters",
+      type = "number",
+      optional = true,
+      default = 0,
+      desc = "Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.",
+      validate = function(n)
+        return n >= -2 and n <= 2, "Must be between -2 and 2"
+      end,
+    },
+    logit_bias = {
+      order = 8,
+      mapping = "parameters",
+      type = "map",
+      optional = true,
+      default = nil,
+      desc = "Modify the likelihood of specified tokens appearing in the completion. Maps tokens (specified by their token ID) to an associated bias value from -100 to 100. Use https://platform.openai.com/tokenizer to find token IDs.",
+      subtype_key = {
+        type = "integer",
+      },
+      subtype = {
+        type = "integer",
+        validate = function(n)
+          return n >= -100 and n <= 100, "Must be between -100 and 100"
+        end,
+      },
+    },
   },
 }
