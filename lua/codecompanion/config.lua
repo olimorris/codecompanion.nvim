@@ -663,7 +663,7 @@ This is the code, for context:
 %s
 ```
 ]],
-              vim.fn.system("git diff --staged")
+              vim.fn.system("git diff --no-ext-diff --staged")
             )
           end,
           opts = {
