@@ -235,6 +235,9 @@ local defaults = {
           description = "View debug info",
         },
       },
+      opts = {
+        register = "+", -- The register to use for yanking code
+      },
     },
     -- INLINE STRATEGY --------------------------------------------------------
     inline = {

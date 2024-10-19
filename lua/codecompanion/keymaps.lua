@@ -225,7 +225,7 @@ M.yank_code = {
       if type(code) == "table" then
         code = table.concat(code, "\n")
       end
-      vim.fn.setreg(vim.v.register, code)
+      vim.fn.setreg(config.strategies.chat.opts.register, code)
     end
   end,
 }
