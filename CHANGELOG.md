@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.7.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.7.0...v8.7.1) (2024-10-19)
+
+
+### Bug Fixes
+
+* allow register to be customised ([dc98cf2](https://github.com/olimorris/codecompanion.nvim/commit/dc98cf2f12129d5dd5300d9b7d323d8ecd8be974))
+
 ## [8.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.6.0...v8.7.0) (2024-10-19)
 
 
