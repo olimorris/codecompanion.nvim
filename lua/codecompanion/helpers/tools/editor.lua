@@ -136,7 +136,7 @@ return {
           _attr = { type = "add" },
           buffer = 1,
           line = 203,
-          code = "    print('Hello World')",
+          code = "<![CDATA[    print('Hello World')]]>",
         },
       },
     },
@@ -148,7 +148,7 @@ return {
           buffer = 10,
           start_line = 199,
           end_line = 199,
-          code = "   function M.capitalize()",
+          code = "<![CDATA[   function M.capitalize()]]>",
         },
       },
     },
@@ -176,7 +176,7 @@ return {
           _attr = { type = "add" },
           buffer = 5,
           line = 20,
-          code = "function M.hello_world()",
+          code = "<![CDATA[function M.hello_world()]]>",
         },
       },
     },
@@ -194,6 +194,7 @@ return {
   - Ensure XML is **valid and follows the schema**
   - **Include indentation** in your code
   - **Don't escape** special characters
+  - **Keep the CDATA** section wrapping the code, the code could contain characters reserved by XML.
 
 4. **Actions**:
 
