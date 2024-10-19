@@ -1,5 +1,18 @@
 # Changelog
 
+## [8.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.6.0...v8.7.0) (2024-10-19)
+
+
+### Features
+
+* add undojoin for inline inserts ([#338](https://github.com/olimorris/codecompanion.nvim/issues/338)) ([8c56f8f](https://github.com/olimorris/codecompanion.nvim/commit/8c56f8fccadc3cc965d397d250f7b3e3f091266f))
+* **chat:** :sparkles: yank the last code block ([f095b77](https://github.com/olimorris/codecompanion.nvim/commit/f095b77f43a6fd4ef014304dee636f78c02faba5))
+
+
+### Bug Fixes
+
+* [#336](https://github.com/olimorris/codecompanion.nvim/issues/336) use CDATA sections in editor tool XML schemas ([310cb7f](https://github.com/olimorris/codecompanion.nvim/commit/310cb7f30babe3e526dfb9bbac09e55a6f80b6c7))
+
 ## [8.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.5.1...v8.6.0) (2024-10-17)
 
 
