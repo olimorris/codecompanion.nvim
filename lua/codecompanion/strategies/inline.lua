@@ -364,6 +364,7 @@ function Inline:submit()
 
         if content then
           vim.schedule(function()
+            vim.cmd.undojoin()
             self:append_to_buf(content)
             if self.classification.placement == "new" and api.nvim_get_current_buf() == bufnr then
               ui.buf_scroll_to_end(bufnr)
