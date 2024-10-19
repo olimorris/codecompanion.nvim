@@ -217,6 +217,19 @@ M.codeblock = {
   end,
 }
 
+M.yank_code = {
+  desc = "Yank the last codeblock",
+  callback = function(chat)
+    local code = chat:yank_code()
+    if #code > 0 then
+      if type(code) == "table" then
+        code = table.concat(code, "\n")
+      end
+      vim.fn.setreg(vim.v.register, code)
+    end
+  end,
+}
+
 M.next_chat = {
   desc = "Move to the next chat",
   callback = function(chat)

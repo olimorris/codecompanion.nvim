@@ -170,11 +170,19 @@ local defaults = {
           callback = "keymaps.codeblock",
           description = "Insert Codeblock",
         },
+        yank_code = {
+          modes = {
+            n = "gy",
+          },
+          index = 7,
+          callback = "keymaps.yank_code",
+          description = "Yank Code",
+        },
         next_chat = {
           modes = {
             n = "}",
           },
-          index = 7,
+          index = 8,
           callback = "keymaps.next_chat",
           description = "Next Chat",
         },
@@ -182,7 +190,7 @@ local defaults = {
           modes = {
             n = "{",
           },
-          index = 8,
+          index = 9,
           callback = "keymaps.previous_chat",
           description = "Previous Chat",
         },
@@ -190,7 +198,7 @@ local defaults = {
           modes = {
             n = "]]",
           },
-          index = 9,
+          index = 10,
           callback = "keymaps.next_header",
           description = "Next Header",
         },
@@ -198,7 +206,7 @@ local defaults = {
           modes = {
             n = "[[",
           },
-          index = 10,
+          index = 11,
           callback = "keymaps.previous_header",
           description = "Previous Header",
         },
@@ -206,7 +214,7 @@ local defaults = {
           modes = {
             n = "ga",
           },
-          index = 11,
+          index = 12,
           callback = "keymaps.change_adapter",
           description = "Change adapter",
         },
@@ -214,7 +222,7 @@ local defaults = {
           modes = {
             n = "gf",
           },
-          index = 12,
+          index = 13,
           callback = "keymaps.fold_code",
           description = "Fold code",
         },
@@ -222,7 +230,7 @@ local defaults = {
           modes = {
             n = "gd",
           },
-          index = 13,
+          index = 14,
           callback = "keymaps.debug",
           description = "View debug info",
         },

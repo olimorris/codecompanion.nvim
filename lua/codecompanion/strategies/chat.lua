@@ -120,6 +120,29 @@ local function buf_parse_message(bufnr)
   return {}
 end
 
+---Parse the chat buffer for a code block
+---@param bufnr integer
+---@param cursor? table
+---@return table|nil
+local function buf_parse_codeblocks(bufnr, cursor)
+  local parser = vim.treesitter.get_parser(bufnr, "markdown")
+  local root = parser:parse()[1]:root()
+  local query = vim.treesitter.query.get("markdown", "chat")
+
+  local last_match = nil
+  for id, node in query:iter_captures(root, bufnr, 0, -1) do
+    if query.captures[id] == "code" then
+      last_match = node
+    end
+  end
+
+  if last_match then
+    return vim.treesitter.get_node_text(last_match, bufnr)
+  else
+    return nil
+  end
+end
+
 ---@class CodeCompanion.Chat
 ---@return nil
 local function buf_parse_tools(chat)
@@ -1157,6 +1180,12 @@ function Chat:fold_code()
   end
 
   return self
+end
+
+---Yank the last code block from the chat buffer
+---@return table|nil
+function Chat:yank_code()
+  return buf_parse_codeblocks(self.bufnr)
 end
 
 ---CodeCompanion models completion source
