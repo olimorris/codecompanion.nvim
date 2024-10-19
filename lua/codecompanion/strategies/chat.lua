@@ -71,13 +71,9 @@ local function buf_parse_settings(bufnr, adapter, ts_query)
     end
   end
 
-  ts_query = ts_query or [[
-    ((block_mapping (_)) @block)
-  ]]
-
   local settings = {}
   local parser = vim.treesitter.get_parser(bufnr, "yaml", { ignore_injections = false })
-  local query = vim.treesitter.query.parse("yaml", ts_query)
+  local query = vim.treesitter.query.get("yaml", "chat")
   local root = parser:parse()[1]:root()
 
   for _, match in query:iter_matches(root, bufnr, nil, nil, { all = false }) do
@@ -100,32 +96,24 @@ end
 ---@return table{content: string}
 local function buf_parse_message(bufnr)
   local parser = vim.treesitter.get_parser(bufnr, "markdown")
-  local query = vim.treesitter.query.parse(
-    "markdown",
-    [[
-(section
-  (atx_heading
-    (atx_h2_marker))
-  ((_) @content)+) @response
-]]
-  )
-  local root = parser:parse()[1]:root()
+  local query = vim.treesitter.query.get("markdown", "chat")
+
+  local tree = parser:parse()[1]
+  local root = tree:root()
 
   local last_section = nil
   local contents = {}
 
-  for id, node in query:iter_captures(root, bufnr) do
-    if query.captures[id] == "response" then
+  for id, node in query:iter_captures(root, bufnr, 0, -1) do
+    if query.captures[id] == "content" then
       last_section = node
       contents = {}
-    elseif query.captures[id] == "content" and last_section then
+    elseif query.captures[id] == "text" and last_section then
       table.insert(contents, vim.treesitter.get_node_text(node, bufnr))
     end
   end
 
   if #contents > 0 then
-    -- We need a double linebreak to prevent the text from being joined to a
-    -- block quote which we use to denote a slash command.
     return { content = vim.trim(table.concat(contents, "\n\n")) }
   end
 
