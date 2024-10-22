@@ -14,6 +14,7 @@ local defaults = {
     gemini = "gemini",
     ollama = "ollama",
     openai = "openai",
+    xai = "xai",
     -- NON-LLMs ---------------------------------------------------------------
     non_llms = {
       jina = "jina",

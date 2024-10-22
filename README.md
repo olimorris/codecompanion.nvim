@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-Currently supports: Anthropic, Copilot, Gemini, Ollama and OpenAI adapters<br><br>
+Currently supports: Anthropic, Copilot, Gemini, Ollama, OpenAI and xAI adapters<br><br>
 New features are always announced <a href="https://github.com/olimorris/codecompanion.nvim/discussions/categories/announcements">here</a>
 </p>
 
@@ -28,7 +28,7 @@ Thank you to the following people:
 ## :sparkles: Features
 
 - :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
-- :electric_plug: Support for Anthropic, Copilot, Gemini, Ollama and OpenAI LLMs (or bring your own!)
+- :electric_plug: Support for Anthropic, Copilot, Gemini, Ollama, OpenAI and xAI LLMs (or bring your own!)
 - :rocket: Inline transformations, code creation and refactoring
 - :robot: Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
 - :sparkles: Built in prompt library for common tasks like advice on LSP errors and code explanations
@@ -247,6 +247,7 @@ The plugin uses adapters to connect to LLMs. Out of the box, the plugin supports
 - Gemini (`gemini`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
+- xAI (`xai`) - Requires an API key
 
 The plugin utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer. The _workflow_ strategy is a wrapper for the _chat_ strategy, allowing for [agentic workflows](#world_map-agentic-workflows).
 
@@ -496,7 +497,25 @@ The look and feel of the chat buffer can be customised as per the `display.chat`
 
 **Keymaps**
 
-When in the chat buffer, press `?` to bring up a menu that lists the available keymaps, variables, slash commands and tools.
+When in the chat buffer, press `?` to bring up a menu that lists the available keymaps, variables, slash commands and tools. Currently, the keymaps available to you in normal mode are:
+
+- `<CR>|<C-s>` to send a message to the LLM
+- `<C-c>` to close the chat buffer
+- `q` to stop the current request
+- `ga` to change the adapter for the currentchat
+- `gc` to insert a codeblock in the chat buffer
+- `gd` to view/debug the chat buffer's contents
+- `gf` to fold any codeblocks in the chat buffer
+- `gr` to regenerate the last response
+- `gx` to clear the chat buffer's contents
+- `gy` to yank the last codeblock in the chat buffer
+- `[[` to move to the previous header
+- `]]` to move to the next header
+- `{` to move to the previous chat
+- `}` to move to the next chat
+
+> [!NOTE]
+> There are also corresponding insert mode mappings available.
 
 **Settings**
 

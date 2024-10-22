@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.10.0       Last change: 2024 October 17
+*codecompanion.txt*        For NVIM v0.10.0       Last change: 2024 October 22
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -15,7 +15,7 @@ Table of Contents                            *codecompanion-table-of-contents*
 FEATURES                                              *codecompanion-features*
 
 - Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
-- Support for Anthropic, Copilot, Gemini, Ollama and OpenAI LLMs (or bring your own!)
+- Support for Anthropic, Copilot, Gemini, Ollama, OpenAI and xAI LLMs (or bring your own!)
 - Inline transformations, code creation and refactoring
 - Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
 - Built in prompt library for common tasks like advice on LSP errors and code explanations
@@ -224,6 +224,7 @@ supports:
 - Gemini (`gemini`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
+- xAI (`xai`) - Requires an API key
 
 The plugin utilises objects called Strategies. These are the different ways
 that a user can interact with the plugin. The _chat_ strategy harnesses a
@@ -527,8 +528,26 @@ referenced in the chat buffer.
 **Keymaps**
 
 When in the chat buffer, press `?` to bring up a menu that lists the available
-keymaps, variables, slash commands and tools.
+keymaps, variables, slash commands and tools. Currently, the keymaps available
+to you in normal mode are:
 
+- `<CR>|<C-s>` to send a message to the LLM
+- `<C-c>` to close the chat buffer
+- `q` to stop the current request
+- `ga` to change the adapter for the currentchat
+- `gc` to insert a codeblock in the chat buffer
+- `gd` to view/debug the chat buffer’s contents
+- `gf` to fold any codeblocks in the chat buffer
+- `gr` to regenerate the last response
+- `gx` to clear the chat buffer’s contents
+- `gy` to yank the last codeblock in the chat buffer
+- `[[` to move to the previous header
+- `]]` to move to the next header
+- `{` to move to the previous chat
+- `}` to move to the next chat
+
+
+  [!NOTE] There are also corresponding insert mode mappings available.
 **Settings**
 
 You can display your selected adapter’s schema at the top of the buffer, if
