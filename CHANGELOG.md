@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.7.1...v8.8.0) (2024-10-22)
+
+
+### Features
+
+* **adapters:** :sparkles: add xAI ([516e320](https://github.com/olimorris/codecompanion.nvim/commit/516e3204f6e9fefb827bad985b7104a2fb82a291))
+
 ## [8.7.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.7.0...v8.7.1) (2024-10-19)
 
 
