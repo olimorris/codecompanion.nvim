@@ -52,6 +52,16 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
+      messages = vim
+        .iter(messages)
+        :map(function(m)
+          return {
+            role = m.role,
+            content = m.content,
+          }
+        end)
+        :totable()
+
       return { messages = messages }
     end,
 
