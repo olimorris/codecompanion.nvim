@@ -294,7 +294,7 @@ local defaults = {
         },
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
-          auto_submit_success = true, -- Send any successful output to the LLM automatically?
+          auto_submit_success = false, -- Send any successful output to the LLM automatically?
           system_prompt = [[## Tools
 
 You now have access to tools:
