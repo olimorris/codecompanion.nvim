@@ -1,5 +1,13 @@
 # Changelog
 
+## [8.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.10.1...v8.11.0) (2024-10-23)
+
+
+### Features
+
+* **slash_commands:** `symbols` can now be from a selected file ([5356829](https://github.com/olimorris/codecompanion.nvim/commit/53568298687773f1c0113b873fd8cdd2968208a7))
+* **slash_commands:** add a `default` provider ([c938304](https://github.com/olimorris/codecompanion.nvim/commit/c938304fd494a0bb29c917de5963230334649a15))
+
 ## [8.10.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.10.0...v8.10.1) (2024-10-23)
 
 
