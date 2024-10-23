@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.10.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.10.0...v8.10.1) (2024-10-23)
+
+
+### Miscellaneous Chores
+
+* release 8.10.1 ([1d3de26](https://github.com/olimorris/codecompanion.nvim/commit/1d3de2645b8f52c41caf502441a8299934a60dbe))
+
 ## [8.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.9.0...v8.10.0) (2024-10-23)
 
 
