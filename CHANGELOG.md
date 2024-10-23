@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.11.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.11.0...v8.11.1) (2024-10-23)
+
+
+### Bug Fixes
+
+* **slash_command:** symbols parsing ([ffbcefb](https://github.com/olimorris/codecompanion.nvim/commit/ffbcefbccaf9d59a9c0a56ce55507297c0130658))
+
 ## [8.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.10.1...v8.11.0) (2024-10-23)
 
 
