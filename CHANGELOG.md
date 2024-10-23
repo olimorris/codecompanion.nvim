@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.8.0...v8.9.0) (2024-10-23)
+
+
+### Features
+
+* **anthropic:** update to latest sonnet-3-5 model ([#346](https://github.com/olimorris/codecompanion.nvim/issues/346)) ([1d36e27](https://github.com/olimorris/codecompanion.nvim/commit/1d36e272a6e0d8ea7a4e940667335320762b6bc6))
+
 ## [8.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.7.1...v8.8.0) (2024-10-22)
 
 
