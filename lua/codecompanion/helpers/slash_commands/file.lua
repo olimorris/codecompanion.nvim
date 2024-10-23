@@ -5,6 +5,8 @@ local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils.util")
 
+local fmt = string.format
+
 CONSTANTS = {
   NAME = "File",
   PROMPT = "Select a file",
@@ -30,7 +32,7 @@ local function output(SlashCommand, selected)
   local relative_path = selected.relative_path or selected[1] or selected.path
   Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = string.format(
+    content = fmt(
       [[Here is the content from the file `%s`:
 
 ```%s
@@ -41,7 +43,7 @@ local function output(SlashCommand, selected)
       content
     ),
   }, { visible = false })
-  util.notify("File data added to chat")
+  util.notify(fmt("Added %s's content to the chat", vim.fn.fnamemodify(relative_path, ":t")))
 end
 
 ---@class CodeCompanion.SlashCommand.File: CodeCompanion.SlashCommand
