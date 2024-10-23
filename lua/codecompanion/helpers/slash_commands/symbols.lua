@@ -35,7 +35,6 @@ function SlashCommand:execute()
     local content = file_utils.read(selected.path)
 
     local Chat = self.Chat
-    local bufnr = self.Chat.context.bufnr
 
     local query = vim.treesitter.query.get(ft, "symbols")
 
@@ -50,7 +49,7 @@ function SlashCommand:execute()
     end
 
     local symbols = {}
-    for _, matches, metadata in query:iter_matches(tree:root(), bufnr, 0, -1, { all = false }) do
+    for _, matches, metadata in query:iter_matches(tree:root(), content, 0, -1, { all = false }) do
       local match = vim.tbl_extend("force", {}, metadata)
       for id, node in pairs(matches) do
         match = vim.tbl_extend("keep", match, {
@@ -95,7 +94,7 @@ function SlashCommand:execute()
       return
     end
 
-    local content = table.concat(symbols, "\n")
+    content = table.concat(symbols, "\n")
     Chat:add_message({
       role = config.constants.USER_ROLE,
       content = fmt(
@@ -104,12 +103,12 @@ function SlashCommand:execute()
 <symbols>
 %s
 </symbols>]],
-        Chat.context.filename,
-        Chat.context.filetype,
+        selected.relative_path,
+        ft,
         content
       ),
     }, { visible = false })
-    util.notify("Symbolic outline added to chat")
+    util.notify(fmt("Added %s's symbolic outline to the chat", vim.fn.fnamemodify(selected.relative_path, ":t")))
   end
 
   if self.config.opts and self.config.opts.provider then
