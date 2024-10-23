@@ -200,10 +200,10 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
-      default = "claude-3-5-sonnet-20241022",
+      default = "claude-3-5-sonnet-latest",
       choices = {
-        "claude-3-5-sonnet-20241022",
-        "claude-3-opus-20240229",
+        "claude-3-5-sonnet-latest",
+        "claude-3-opus-latest",
         "claude-3-haiku-20240307",
         "claude-2.1",
       },
