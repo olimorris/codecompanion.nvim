@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.9.0...v8.10.0) (2024-10-23)
+
+
+### Features
+
+* **anthropic:** update to latest anthropic models ([#353](https://github.com/olimorris/codecompanion.nvim/issues/353)) ([bdf4acc](https://github.com/olimorris/codecompanion.nvim/commit/bdf4acc623316e0f63f1a5d71b0c5bbceeb7263b))
+
 ## [8.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.8.0...v8.9.0) (2024-10-23)
 
 
