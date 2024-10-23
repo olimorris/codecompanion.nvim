@@ -92,9 +92,9 @@ Install the plugin with your preferred package manager:
   [!IMPORTANT] The plugin requires the markdown Tree-sitter parser to be
   installed with `:TSInstall markdown`
 Telescope.nvim <https://github.com/nvim-telescope/telescope.nvim> is a
-suggested inclusion in order to leverage Slash Commands. However, other
-providers are available. Please refer to the |codecompanion-chat-buffer|
-section for more information.
+suggested inclusion as it makes leveraging the Slash Commands a little bit
+prettier. However, other providers are available. Please refer to the
+|codecompanion-chat-buffer| section for more information.
 
 
 QUICKSTART                                          *codecompanion-quickstart*
@@ -126,7 +126,7 @@ into the chat buffer:
 - `/file` - Insert a file
 - `/help` - Insert content from help tags
 - `/now` - Insert the current date and time
-- `/symbols` - Insert symbols for the active buffer
+- `/symbols` - Insert symbols from a selected file
 - `/terminal` - Insert terminal output
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out
@@ -560,8 +560,8 @@ As outlined in the |codecompanion-quickstart| section, Slash Commands allow you
 to easily share additional context with your LLM from the chat buffer. Some of
 the commands also allow for multiple providers:
 
-- `/buffer` - Has a `default` provider (which leverages `vim.ui.select`) alongside `telescope` and `fzf_lua` providers
-- `/files` - Has `telescope`, `mini_pick` and `fzf_lua` providers
+- `/buffer` - Has `default`, `telescope` and `fzf_lua` providers
+- `/files` - Has `default`, `telescope`, `mini_pick` and `fzf_lua` providers
 
 Please refer to the config
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>

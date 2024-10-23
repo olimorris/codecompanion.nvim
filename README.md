@@ -112,7 +112,7 @@ EOF
 > [!IMPORTANT]
 > The plugin requires the markdown Tree-sitter parser to be installed with `:TSInstall markdown`
 
-[Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is a suggested inclusion in order to leverage Slash Commands. However, other providers are available. Please refer to the [Chat Buffer](#speech_balloon-the-chat-buffer) section for more information.
+[Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is a suggested inclusion as it makes leveraging the Slash Commands a little bit prettier. However, other providers are available. Please refer to the [Chat Buffer](#speech_balloon-the-chat-buffer) section for more information.
 
 ## :rocket: Quickstart
 
@@ -146,7 +146,7 @@ _Slash commands_, accessed via `/`, run commands to insert additional context in
 - `/file` - Insert a file
 - `/help` - Insert content from help tags
 - `/now` - Insert the current date and time
-- `/symbols` - Insert symbols for the active buffer
+- `/symbols` - Insert symbols from a selected file
 - `/terminal` - Insert terminal output
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out actions:
@@ -525,8 +525,8 @@ You can display your selected adapter's schema at the top of the buffer, if `dis
 
 As outlined in the [Quickstart](#rocket-quickstart) section, Slash Commands allow you to easily share additional context with your LLM from the chat buffer. Some of the commands also allow for multiple providers:
 
-- `/buffer` - Has a `default` provider (which leverages `vim.ui.select`) alongside `telescope` and `fzf_lua` providers
-- `/files` - Has `telescope`, `mini_pick` and `fzf_lua` providers
+- `/buffer` - Has `default`, `telescope` and `fzf_lua` providers
+- `/files` - Has `default`, `telescope`, `mini_pick` and `fzf_lua` providers
 
 Please refer to [the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) to see how to change the default provider.
 

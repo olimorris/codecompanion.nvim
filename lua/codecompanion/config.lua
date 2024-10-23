@@ -79,7 +79,7 @@ local defaults = {
           opts = {
             contains_code = true,
             max_lines = 1000,
-            provider = "telescope", -- telescope|mini_pick|fzf_lua
+            provider = "default", -- default|telescope|mini_pick|fzf_lua
           },
         },
         ["help"] = {
@@ -99,9 +99,10 @@ local defaults = {
         },
         ["symbols"] = {
           callback = "helpers.slash_commands.symbols",
-          description = "Insert symbols for the active buffer",
+          description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
+            provider = "default", -- default|telescope|mini_pick|fzf_lua
           },
         },
         ["terminal"] = {

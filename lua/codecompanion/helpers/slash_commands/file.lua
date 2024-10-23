@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local providers = require("codecompanion.helpers.slash_commands.shared.files")
 
 local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
@@ -43,84 +44,6 @@ local function output(SlashCommand, selected)
   util.notify("File data added to chat")
 end
 
-local Providers = {
-  ---The Telescope provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  telescope = function(SlashCommand)
-    local ok, telescope = pcall(require, "telescope.builtin")
-    if not ok then
-      return log:error("Telescope is not installed")
-    end
-
-    telescope.find_files({
-      prompt_title = CONSTANTS.PROMPT,
-      attach_mappings = function(prompt_bufnr, map)
-        local actions = require("telescope.actions")
-        local action_state = require("telescope.actions.state")
-
-        actions.select_default:replace(function()
-          actions.close(prompt_bufnr)
-          local selection = action_state.get_selected_entry()
-          if selection then
-            selection = { relative_path = selection[1], path = selection.path }
-            output(SlashCommand, selection)
-          end
-        end)
-
-        return true
-      end,
-    })
-  end,
-
-  ---The mini.pick provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  mini_pick = function(SlashCommand)
-    local ok, mini_pick = pcall(require, "mini.pick")
-    if not ok then
-      return log:error("mini.pick is not installed")
-    end
-    mini_pick.builtin.files({}, {
-      source = {
-        name = CONSTANTS.PROMPT,
-        choose = function(path)
-          local success, _ = pcall(function()
-            output(SlashCommand, { path = path })
-          end)
-          if success then
-            return nil
-          end
-        end,
-      },
-    })
-  end,
-
-  ---The fzf-lua provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  fzf_lua = function(SlashCommand)
-    local ok, fzf_lua = pcall(require, "fzf-lua")
-    if not ok then
-      return log:error("fzf-lua is not installed")
-    end
-
-    fzf_lua.files({
-      prompt = CONSTANTS.PROMPT,
-      actions = {
-        ["default"] = function(selected, o)
-          if not selected or #selected == 0 then
-            return
-          end
-          local file = fzf_lua.path.entry_to_file(selected[1], o)
-          local selection = { relative_path = file.stripped, path = file.path }
-          output(SlashCommand, selection)
-        end,
-      },
-    })
-  end,
-}
-
 ---@class CodeCompanion.SlashCommand.File: CodeCompanion.SlashCommand
 ---@field new fun(args: CodeCompanion.SlashCommand): CodeCompanion.SlashCommand.File
 ---@field execute fun(self: CodeCompanion.SlashCommand.File)
@@ -141,13 +64,13 @@ end
 ---@return nil
 function SlashCommand:execute()
   if self.config.opts and self.config.opts.provider then
-    local provider = Providers[self.config.opts.provider]
+    local provider = providers[self.config.opts.provider] --[[@type function]]
     if not provider then
       return log:error("Provider for the file slash command could not found: %s", self.config.opts.provider)
     end
-    provider(self)
+    provider(self, output)
   else
-    Providers.telescope(self)
+    providers.telescope(self, output)
   end
 end
 
