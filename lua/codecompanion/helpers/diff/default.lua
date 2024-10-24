@@ -51,14 +51,18 @@ function Diff.new(args)
   end
 
   -- Create the diff buffer
-  if config.display.diff.layout == "vertical" then
-    vim.cmd("vsplit")
-  else
-    vim.cmd("split")
-  end
+  -- Use `nvim_win_call()` to ensure that the split is opened
+  -- beside the source window
+  vim.api.nvim_win_call(self.winnr, function()
+    if config.display.diff.layout == "vertical" then
+      vim.cmd("vsplit")
+    else
+      vim.cmd("split")
+    end
+    self.bufnr_diff = api.nvim_create_buf(false, true)
+    self.winnr_diff = api.nvim_get_current_win()
+  end)
 
-  self.bufnr_diff = api.nvim_create_buf(false, true)
-  self.winnr_diff = api.nvim_get_current_win()
   api.nvim_win_set_buf(self.winnr_diff, self.bufnr_diff)
   api.nvim_set_option_value("filetype", self.filetype, { buf = self.bufnr_diff })
   api.nvim_set_option_value("wrap", wrap, { win = self.winnr_diff })
