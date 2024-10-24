@@ -121,26 +121,33 @@ local function buf_parse_message(bufnr)
 end
 
 ---Parse the chat buffer for a code block
+---returns the code block that the cursor is in or the last code block
 ---@param bufnr integer
 ---@param cursor? table
----@return table|nil
-local function buf_parse_codeblocks(bufnr, cursor)
+---@return TSNode | nil
+local function buf_find_codeblock(bufnr, cursor)
   local parser = vim.treesitter.get_parser(bufnr, "markdown")
   local root = parser:parse()[1]:root()
   local query = vim.treesitter.query.get("markdown", "chat")
+  if query == nil then
+    return nil
+  end
 
   local last_match = nil
   for id, node in query:iter_captures(root, bufnr, 0, -1) do
     if query.captures[id] == "code" then
+      if cursor then
+        local start_row, start_col, end_row, end_col = node:range()
+        if cursor[1] >= start_row and cursor[1] <= end_row and
+           cursor[2] >= start_col and cursor[2] <= end_col then
+          return node
+        end
+      end
       last_match = node
     end
   end
 
-  if last_match then
-    return vim.treesitter.get_node_text(last_match, bufnr)
-  else
-    return nil
-  end
+  return last_match
 end
 
 ---@class CodeCompanion.Chat
@@ -1182,10 +1189,11 @@ function Chat:fold_code()
   return self
 end
 
----Yank the last code block from the chat buffer
----@return table|nil
-function Chat:yank_code()
-  return buf_parse_codeblocks(self.bufnr)
+---Get currently focused code block or the last one in the chat buffer
+---@return TSNode | nil
+function Chat:get_codeblock()
+  local cursor = api.nvim_win_get_cursor(0)
+  return buf_find_codeblock(self.bufnr, cursor)
 end
 
 ---CodeCompanion models completion source
