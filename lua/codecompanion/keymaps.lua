@@ -218,10 +218,10 @@ M.codeblock = {
 }
 
 M.yank_code = {
-  desc = "Yank the last codeblock",
+  desc = "Yank focused or the last codeblock",
   callback = function(chat)
-    local code = chat:yank_code()
-    if #code > 0 then
+    local code = chat:get_codeblock()
+    if code ~= nil and #code > 0 then
       if type(code) == "table" then
         code = table.concat(code, "\n")
       end
