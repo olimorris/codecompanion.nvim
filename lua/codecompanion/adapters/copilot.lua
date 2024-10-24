@@ -137,9 +137,7 @@ return {
     ---@return boolean
     setup = function(self)
       if self.opts and self.opts.stream then
-        self.parameters = {
-          stream = true,
-        }
+        self.parameters.stream = true
       end
 
       _oauth_token = get_github_token()
