@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.11.2](https://github.com/olimorris/codecompanion.nvim/compare/v8.11.1...v8.11.2) (2024-10-24)
+
+
+### Bug Fixes
+
+* **diff:** diff split window wrongly opened in chat window ([#359](https://github.com/olimorris/codecompanion.nvim/issues/359)) ([21801b8](https://github.com/olimorris/codecompanion.nvim/commit/21801b88c5abb7c4b4b3e715a897505366a986d4))
+
 ## [8.11.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.11.0...v8.11.1) (2024-10-23)
 
 
