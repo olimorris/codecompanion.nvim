@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.11.3](https://github.com/olimorris/codecompanion.nvim/compare/v8.11.2...v8.11.3) (2024-10-24)
+
+
+### Bug Fixes
+
+* **copilot:** [#363](https://github.com/olimorris/codecompanion.nvim/issues/363) parameters overwritten when stream is true ([1c3449c](https://github.com/olimorris/codecompanion.nvim/commit/1c3449cf5b63b8b20bbe13842f047f2a220bf70a))
+
 ## [8.11.2](https://github.com/olimorris/codecompanion.nvim/compare/v8.11.1...v8.11.2) (2024-10-24)
 
 
