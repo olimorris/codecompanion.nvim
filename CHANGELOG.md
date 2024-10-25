@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.12.2](https://github.com/olimorris/codecompanion.nvim/compare/v8.12.1...v8.12.2) (2024-10-25)
+
+
+### Bug Fixes
+
+* **utils:** vim.api being replaced with api.api ([40114d7](https://github.com/olimorris/codecompanion.nvim/commit/40114d760af19f2ac21a1c248a34dc4c734acf9f))
+
 ## [8.12.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.12.0...v8.12.1) (2024-10-25)
 
 
