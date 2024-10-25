@@ -1,5 +1,13 @@
 # Changelog
 
+## [8.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.11.3...v8.12.0) (2024-10-25)
+
+
+### Features
+
+* **chat:** `yank_code` can now copy current code block and highlight the yank ([a84f826](https://github.com/olimorris/codecompanion.nvim/commit/a84f8267c1deca5b81e4974e2190a58fd71c3733))
+* **chat:** can toggle system prompt on/off in the chat buffer ([c157329](https://github.com/olimorris/codecompanion.nvim/commit/c15732913d695a7def6b99f22210293bb7d58889))
+
 ## [8.11.3](https://github.com/olimorris/codecompanion.nvim/compare/v8.11.2...v8.11.3) (2024-10-24)
 
 
