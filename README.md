@@ -117,7 +117,7 @@ EOF
 ## :rocket: Quickstart
 
 > [!NOTE]
-> Okay, okay...it's not quite a quickstart as you'll need to configure an [adapter](#electric_plug-adapters) and I recommend starting from the [configuration](#gear-configuratioon) section to understand how the plugin works.
+> Okay, okay...it's not quite a quickstart as you'll need to configure an [adapter](#electric_plug-adapters) and I recommend starting from the [configuration](#gear-configuration) section to understand how the plugin works.
 
 **Chat Buffer**
 
