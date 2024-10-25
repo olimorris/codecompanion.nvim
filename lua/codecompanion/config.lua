@@ -236,6 +236,14 @@ local defaults = {
           callback = "keymaps.debug",
           description = "View debug info",
         },
+        system_prompt = {
+          modes = {
+            n = "gs",
+          },
+          index = 15,
+          callback = "keymaps.toggle_system_prompt",
+          description = "Toggle the system prompt",
+        },
       },
       opts = {
         register = "+", -- The register to use for yanking code

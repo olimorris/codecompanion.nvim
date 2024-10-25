@@ -634,6 +634,18 @@ function Chat:set_system_prompt()
   return self
 end
 
+---Toggle the system prompt in the chat buffer
+---@return nil
+function Chat:toggle_system_prompt()
+  if self.messages[1] and self.messages[1].role == config.constants.SYSTEM_ROLE then
+    util.notify("Removed system prompt")
+    table.remove(self.messages, 1)
+  else
+    util.notify("Added system prompt")
+    self:set_system_prompt()
+  end
+end
+
 ---Get the settings key at the current cursor position
 ---@param opts? table
 function Chat:_get_settings_key(opts)

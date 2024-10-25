@@ -385,6 +385,10 @@ M.debug = {
   desc = "Show debug information for the current chat",
   callback = function(chat)
     local settings, messages = chat:debug()
+    if not settings and not messages then
+      return
+    end
+
     local lines = {}
 
     table.insert(lines, "--Settings")
@@ -416,6 +420,13 @@ M.debug = {
       height = vim.o.lines - 2,
       opts = { wrap = true },
     })
+  end,
+}
+
+M.toggle_system_prompt = {
+  desc = "Toggle the system prompt",
+  callback = function(chat)
+    chat:toggle_system_prompt()
   end,
 }
 

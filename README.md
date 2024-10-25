@@ -117,7 +117,7 @@ EOF
 ## :rocket: Quickstart
 
 > [!NOTE]
-> Okay, okay...it's not quite a quickstart as you'll need to configure an [adapter](#electric_plug-adapters) first.
+> Okay, okay...it's not quite a quickstart as you'll need to configure an [adapter](#electric_plug-adapters) and I recommend starting from the [configuration](#gear-configuratioon) section to understand how the plugin works.
 
 **Chat Buffer**
 
@@ -249,7 +249,7 @@ The plugin uses adapters to connect to LLMs. Out of the box, the plugin supports
 - OpenAI (`openai`) - Requires an API key
 - xAI (`xai`) - Requires an API key
 
-The plugin utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer. The _workflow_ strategy is a wrapper for the _chat_ strategy, allowing for [agentic workflows](#world_map-agentic-workflows).
+The plugin utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer. The _agent_ and _workflow_ strategies are wrappers for the _chat_ strategy, allowing for [tool use](#robot-agents--tools) and [agentic workflows](#world_map-agentic-workflows).
 
 The plugin allows you to specify adapters for each strategy and also for each [prompt library](#clipboard-prompt-library) entry.
 
@@ -507,6 +507,7 @@ When in the chat buffer, press `?` to bring up a menu that lists the available k
 - `gd` to view/debug the chat buffer's contents
 - `gf` to fold any codeblocks in the chat buffer
 - `gr` to regenerate the last response
+- `gs` to toggle the system prompt on/off
 - `gx` to clear the chat buffer's contents
 - `gy` to yank the last codeblock in the chat buffer
 - `[[` to move to the previous header
