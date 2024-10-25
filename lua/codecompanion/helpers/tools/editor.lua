@@ -8,17 +8,6 @@ local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local api = vim.api
 
----Sometimes the LLM will insert new lines as `\n` which are then escaped by
----the XML library. This function unescapes them
----@param str string
----@return string
-local function unescape_breaks(str)
-  if not str then
-    return str
-  end
-  return str:gsub("\\n", "\n")
-end
-
 -- To keep track of the changes made to the buffer, we store them in this table
 local deltas = {}
 local function add_delta(bufnr, line, delta)
@@ -39,7 +28,7 @@ local function add(bufnr, action)
   local start_line = tonumber(action.line)
   local delta = intersect(bufnr, start_line)
 
-  local lines = vim.split(unescape_breaks(action.code), "\n", { plain = true, trimempty = false })
+  local lines = vim.split(action.code, "\n", { plain = true, trimempty = false })
   api.nvim_buf_set_lines(bufnr, start_line + delta - 1, start_line + delta - 1, false, lines)
 
   add_delta(bufnr, start_line, tonumber(#lines))
