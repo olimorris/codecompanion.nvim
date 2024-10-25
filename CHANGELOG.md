@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.12.1](https://github.com/olimorris/codecompanion.nvim/compare/v8.12.0...v8.12.1) (2024-10-25)
+
+
+### Bug Fixes
+
+* [#362](https://github.com/olimorris/codecompanion.nvim/issues/362) use actual line breaks for new lines ([9938867](https://github.com/olimorris/codecompanion.nvim/commit/993886723868b6fe0340d294f2f3d2a7acc6ae26))
+
 ## [8.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.11.3...v8.12.0) (2024-10-25)
 
 
