@@ -136,13 +136,13 @@ end
 ---@param opt string
 ---@param value any
 function M.set_option(bufnr, opt, value)
-  if vim.api.nvim_set_option_value then
-    return vim.api.nvim_set_option_value(opt, value, {
+  if api.api.nvim_set_option_value then
+    return api.api.nvim_set_option_value(opt, value, {
       buf = bufnr,
     })
   end
-  if vim.api.nvim_buf_set_option then
-    return vim.api.nvim_buf_set_option(bufnr, opt, value)
+  if api.api.nvim_buf_set_option then
+    return api.api.nvim_buf_set_option(bufnr, opt, value)
   end
 end
 

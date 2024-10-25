@@ -27,7 +27,7 @@ local CONSTANTS = {
 local function parse_xml(message)
   local handler = TreeHandler:new()
   local parser = xml2lua.parser(handler)
-  parser.options.stripWS = nil
+  -- parser.options.stripWS = nil
   parser:parse(message)
 
   log:trace("Parsed xml: %s", handler.root)

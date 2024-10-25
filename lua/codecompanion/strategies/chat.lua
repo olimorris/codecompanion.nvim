@@ -138,8 +138,7 @@ local function buf_find_codeblock(bufnr, cursor)
     if query.captures[id] == "code" then
       if cursor then
         local start_row, start_col, end_row, end_col = node:range()
-        if cursor[1] >= start_row and cursor[1] <= end_row and
-           cursor[2] >= start_col and cursor[2] <= end_col then
+        if cursor[1] >= start_row and cursor[1] <= end_row and cursor[2] >= start_col and cursor[2] <= end_col then
           return node
         end
       end
@@ -1069,7 +1068,7 @@ function Chat:follow()
     return
   end
 
-  vim.api.nvim_win_set_cursor(self.winnr, { last_line + 1, last_column })
+  api.nvim_win_set_cursor(self.winnr, { last_line + 1, last_column })
 end
 
 ---When a request has finished, reset the chat buffer
