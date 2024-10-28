@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.10.0       Last change: 2024 October 25
+*codecompanion.txt*        For NVIM v0.10.0       Last change: 2024 October 28
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -310,9 +310,6 @@ To specify a different adapter to the default (`openai`), simply change the
         },
         inline = {
           adapter = "copilot",
-        },
-        agent = {
-          adapter = "anthropic",
         },
       },
     })

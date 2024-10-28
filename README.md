@@ -311,9 +311,6 @@ require("codecompanion").setup({
     inline = {
       adapter = "copilot",
     },
-    agent = {
-      adapter = "anthropic",
-    },
   },
 })
 ```
@@ -379,7 +376,6 @@ require("codecompanion").setup({
   },
 })
 ```
-
 
 **Using OpenAI compatible Models like LMStudio or self-hosted models**
 
