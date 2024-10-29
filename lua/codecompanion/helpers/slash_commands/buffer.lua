@@ -205,9 +205,9 @@ function SlashCommand:execute()
 
     return Providers.default(self, buffers)
   elseif self.config.opts and self.config.opts.provider then
-    local provider = Providers[self.config.opts.provider]
+    local provider = Providers[self.config.opts.provider] --[[@type function]]
     if not provider then
-      return log:error("Provider for the buffer slash command could not found: %s", self.config.opts.provider)
+      return log:error("Provider for the buffer slash command could not be found: %s", self.config.opts.provider)
     end
     return provider(self)
   end
