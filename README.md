@@ -114,6 +114,12 @@ EOF
 
 [Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is a suggested inclusion as it makes leveraging the Slash Commands a little bit prettier. However, other providers are available. Please refer to the [Chat Buffer](#speech_balloon-the-chat-buffer) section for more information.
 
+As per [#377](https://github.com/olimorris/codecompanion.nvim/issues/377), if you pin your plugins to the latest releases, consider setting plenary.nvim to:
+
+```lua
+{ "nvim-lua/plenary.nvim", branch = "master" },
+```
+
 ## :rocket: Quickstart
 
 > [!NOTE]
