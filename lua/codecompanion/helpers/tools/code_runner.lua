@@ -52,6 +52,7 @@ Usage: To use this tool, you need to return an XML markdown code block (with bac
 ```
 
 You must:
+- Remember to use CDATA in your XML response.
 - Only use the tool when prompted by the user. For example "can you update the code for me?" or "can you add ..."
 - Be mindful that you may not be required to use the tool in all of your responses
 - Ensure the code you're executing will be able to parsed as valid XML
