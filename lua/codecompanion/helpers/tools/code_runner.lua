@@ -21,7 +21,7 @@ return {
     tool = {
       _attr = { name = "code_runner" },
       lang = "python",
-      code = "print('Hello World')",
+      code = "<![CDATA[print('Hello World')]]>",
     },
   },
   ---@param schema table
@@ -40,21 +40,29 @@ return {
   end,
   system_prompt = function(schema)
     return string.format(
-      [[### You have gained access to a new tool!
+      [[### Code Runner Tool
 
-Name: Code Runner
-Purpose: The tool enables you to execute any code that you've created
-Why: This enables yourself and the user to validate that the code you've created is working as intended
-Usage: To use this tool, you need to return an XML markdown code block (with backticks). Consider the following example which prints 'Hello World' in Python:
+1. **Purpose**: Execute and run any code in safe environment and receive feedback on the outcome
+
+2. **Usage**: Return an XML markdown code block with the code you want to execute
+
+3. **Key Points**:
+- Use when prompted by the user or when you want to execute code
+- Ensure XML is **valid and follows the schema**
+- **Include indentation** in your code
+- **Don't escape** special characters
+- **Wrap code in a CDATA block**, the code could contain characters reserved by XML
+
+4. **Actions**:
 
 ```xml
 %s
 ```
 
+- In this example we're print hello world in python
+
 You must:
-- Only use the tool when prompted by the user. For example "can you update the code for me?" or "can you add ..."
 - Be mindful that you may not be required to use the tool in all of your responses
-- Ensure the code you're executing will be able to parsed as valid XML
 - Ensure the code you're executing is concise
 - Ensure the code you're executing is relevant to the conversation
 - Ensure the XML markdown code block is valid and follows the schema]],
