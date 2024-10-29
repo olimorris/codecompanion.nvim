@@ -1,5 +1,18 @@
 # Changelog
 
+## [8.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.12.2...v8.13.0) (2024-10-29)
+
+
+### Features
+
+* **tools:** :sparkles: add `[@files](https://github.com/files)` tool ([22ebfb8](https://github.com/olimorris/codecompanion.nvim/commit/22ebfb8437e833aa6b25d032a0e1833e736d1d06))
+
+
+### Bug Fixes
+
+* **code_runner:** Ensure code is wrapped in CDATA ([f814137](https://github.com/olimorris/codecompanion.nvim/commit/f8141375d3b5c4e3b2d387e62d1754b72b62f517))
+* **slash_commands:** show tracked and untracked files ([a7ad936](https://github.com/olimorris/codecompanion.nvim/commit/a7ad936a0b92177aa78be78d7661c3336e0ec7cf))
+
 ## [8.12.2](https://github.com/olimorris/codecompanion.nvim/compare/v8.12.1...v8.12.2) (2024-10-25)
 
 
