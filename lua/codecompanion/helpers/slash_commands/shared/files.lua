@@ -13,7 +13,11 @@ return {
       )
     end
 
-    local files = vim.fn.system(string.format("git -C %s ls-files", vim.fn.getcwd()))
+    local tracked_files = vim.fn.system(string.format("git -C %s ls-files", vim.fn.getcwd()))
+    local untracked_files =
+      vim.fn.system(string.format("git -C %s ls-files --others --exclude-standard", vim.fn.getcwd()))
+    local files = tracked_files .. "\n" .. untracked_files
+
     files = vim
       .iter(vim.split(files, "\n"))
       :map(function(f)
