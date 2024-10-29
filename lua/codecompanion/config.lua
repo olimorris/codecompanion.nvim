@@ -293,6 +293,13 @@ local defaults = {
           callback = "helpers.tools.editor",
           description = "Update a buffer with the LLM's response",
         },
+        ["files"] = {
+          callback = "helpers.tools.files",
+          description = "Update the file system with the LLM's response",
+          opts = {
+            user_approval = true,
+          },
+        },
         ["rag"] = {
           --- Uses the awesome http://jina.ai tool (which is free!)
           callback = "helpers.tools.rag",

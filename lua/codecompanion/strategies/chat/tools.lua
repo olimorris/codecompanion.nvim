@@ -205,6 +205,7 @@ function Tools:run()
     local cmd = cmds[index]
     log:debug("Running cmd: %s", cmd)
 
+    -- Tools that are setup as Lua functions
     if type(cmd) == "function" then
       local ok, output = pcall(cmd, self, ...)
       if not ok then
@@ -225,6 +226,7 @@ function Tools:run()
 
       run(cmds, index + 1, output)
     else
+      -- Tools that are setup as shell commands
       self.chat.current_tool = Job:new({
         command = cmd[1],
         args = { unpack(cmd, 2) }, -- args start from index 2

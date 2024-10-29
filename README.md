@@ -159,6 +159,7 @@ _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out a
 
 - `@code_runner` - The LLM will run code for you in a Docker container
 - `@editor` - The LLM will edit code in a Neovim buffer
+- `@files` -  The LLM will can work with files on the file system (subject to approval)
 - `@rag` - The LLM will browse and search the internet for real-time information to supplement its response
 
 > [!TIP]
