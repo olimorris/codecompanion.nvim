@@ -179,11 +179,11 @@ return {
 2. **Usage**: Return an XML markdown code block for add, update, or delete operations.
 
 3. **Key Points**:
-  - **Only use when prompted** by user (e.g., "can you update the code?")
+  - **Only use when prompted** by user (e.g., "can you update the code?", "update the buffer...")
   - Ensure XML is **valid and follows the schema**
   - **Include indentation** in your code
   - **Don't escape** special characters
-  - **Keep the CDATA** section wrapping the code, the code could contain characters reserved by XML.
+  - **Wrap code in a CDATA block**, the code could contain characters reserved by XML
 
 4. **Actions**:
 
@@ -212,8 +212,11 @@ c) Delete:
 ```
 
 6. **Note**:
+  - The tool can handle multiple actions in one response such as adding and deleting code
   - For the delete action, the <start_line> and <end_line> tags are inclusive
   - The update action first deletes the range in <start_line> and <end_line> (inclusively) and then adds new code from the <start_line>
+  - If you need to update a single line, set <start_line> and <end_line> to the same value in the update action
+  - Remember you can have multiple update actions after one another.
   - Account for comment blocks and indentation in your code
   - If the user supplies no context, it can be assumed that they would like you to update the buffer with the code from your last response
 
