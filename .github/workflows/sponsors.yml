@@ -17,7 +17,7 @@ jobs:
         with:
           token: ${{ secrets.SPONSORS_TOKEN }}
           file: "README.md"
-          active-only: false
+          active-only: true
           include-private: true
         if: ${{ github.repository == 'olimorris/codecompanion.nvim' }}
 
