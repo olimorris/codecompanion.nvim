@@ -301,11 +301,10 @@ local defaults = {
           },
         },
         ["rag"] = {
-          --- Uses the awesome http://jina.ai tool (which is free!)
           callback = "helpers.tools.rag",
           description = "Supplement the LLM with real-time info from the internet",
           opts = {
-            api_key = nil,
+            hide_output = true,
           },
         },
         opts = {
