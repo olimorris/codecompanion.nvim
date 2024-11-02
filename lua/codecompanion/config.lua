@@ -285,6 +285,12 @@ local defaults = {
     agent = {
       --NOTE: This uses the adapter specified in the chat strategy
       tools = {
+        ["cmd_runner"] = {
+          callback = "helpers.tools.cmd_runner",
+          description = "Run shell commands initiated by the LLM",
+          opts = {
+            user_approval = true,
+          },
         },
         ["editor"] = {
           callback = "helpers.tools.editor",

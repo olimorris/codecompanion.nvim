@@ -157,7 +157,7 @@ _Slash commands_, accessed via `/`, run commands to insert additional context in
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out actions:
 
-- `@code_runner` - The LLM will run code for you in a Docker container
+- `@cmd_runner` - The LLM will run shell commands (subject to approval)
 - `@editor` - The LLM will edit code in a Neovim buffer
 - `@files` -  The LLM will can work with files on the file system (subject to approval)
 - `@rag` - The LLM will browse and search the internet for real-time information to supplement its response
@@ -555,9 +555,9 @@ By default, an inline assistant prompt will trigger the diff feature, showing di
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
-In the plugin, tools are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response for the plugin to parse, execute and feedback on. Essentially turning it into an Agent. Tools can be added as a participant to the chat buffer by using the `@` key.
+In the plugin, tools are simply context that's given to an LLM via a `system` prompt and Agents are groupings of tools. These give LLM's knowledge and a defined schema which can be included in the response for the plugin to parse, execute and feedback on. Agents and tools can be added as a participant to the chat buffer by using the `@` key.
 
-More information on how tools work and how you can create your own can be found in the [TOOLS](doc/TOOLS.md) guide.
+More information on how agents and tools work and how you can create your own can be found in the [TOOLS](doc/TOOLS.md) guide.
 
 ### :world_map: Agentic Workflows
 
@@ -576,6 +576,7 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatHeader` - The headers in the chat buffer
 - `CodeCompanionChatSeparator` - Separator between headings in the chat buffer
 - `CodeCompanionChatTokens` - Virtual text in the chat buffer showing the token count
+- `CodeCompanionChatAgent` - Agents in the chat buffer
 - `CodeCompanionChatTool` - Tools in the chat buffer
 - `CodeCompanionChatVariable` - Variables in the chat buffer
 - `CodeCompanionVirtualText` - All other virtual text in the plugin
