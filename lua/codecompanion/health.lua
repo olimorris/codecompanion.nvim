@@ -1,8 +1,8 @@
-local start = vim.health.start or vim.health.report_start
-local ok = vim.health.ok or vim.health.report_ok
-local info = vim.health.info or vim.health.report_info
-local warn = vim.health.warn or vim.health.report_warn
-local error = vim.health.error or vim.health.report_error
+local start = vim.health.start or vim.health.report_start --[[@as function]]
+local ok = vim.health.ok or vim.health.report_ok --[[@as function]]
+local info = vim.health.info or vim.health.report_info --[[@as function]]
+local warn = vim.health.warn or vim.health.report_warn --[[@as function]]
+local error = vim.health.error or vim.health.report_error --[[@as function]]
 
 local fmt = string.format
 
@@ -77,8 +77,8 @@ local function parser_available(filetype)
 end
 
 function M.check()
-  if vim.fn.has("nvim-0.9.2") == 0 then
-    error("codecompanion.nvim requires Neovim 0.9.2+")
+  if vim.fn.has("nvim-0.10") == 0 then
+    error("codecompanion.nvim requires Neovim 0.10+")
   end
 
   local log = require("codecompanion.utils.log")
