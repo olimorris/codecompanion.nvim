@@ -84,7 +84,7 @@ function source:execute(item, callback)
       if prompt.role == config.constants.SYSTEM_ROLE then
         item.Chat:add_message(prompt, { visible = false })
       elseif prompt.role == config.constants.USER_ROLE then
-        item.Chat:append_to_buf(prompt)
+        item.Chat:add_buf_message(prompt)
       end
     end)
   else

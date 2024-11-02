@@ -45,7 +45,7 @@ local function to_chat(msg, tool, opts)
     )
   end
 
-  return tool.chat:append_to_buf({
+  return tool.chat:add_buf_message({
     role = config.constants.USER_ROLE,
     content = content,
   })

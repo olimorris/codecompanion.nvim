@@ -307,14 +307,14 @@ Remember:
   },
   output = {
     success = function(self, action, output)
-      return self.chat:append_to_buf({
+      return self.chat:add_buf_message({
         role = config.constants.USER_ROLE,
         content = string.format("The %s action was executed successfully.\n\n", string.upper(action._attr.type)),
       })
     end,
 
     error = function(self, action, err)
-      return self.chat:append_to_buf({
+      return self.chat:add_buf_message({
         role = config.constants.USER_ROLE,
         content = string.format(
           [[There was an error running the %s action:
@@ -329,7 +329,7 @@ Remember:
     end,
 
     rejected = function(self, action)
-      return self.chat:append_to_buf({
+      return self.chat:add_buf_message({
         role = config.constants.USER_ROLE,
         content = string.format("I rejected the %s action.\n\n", string.upper(action._attr.type)),
       })

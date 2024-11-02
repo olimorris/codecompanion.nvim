@@ -365,7 +365,7 @@ function Inline:submit()
         if content then
           vim.schedule(function()
             vim.cmd.undojoin()
-            self:append_to_buf(content)
+            self:add_buf_message(content)
             if self.classification.placement == "new" and api.nvim_get_current_buf() == bufnr then
               ui.buf_scroll_to_end(bufnr)
             end
@@ -527,7 +527,7 @@ end
 ---Write the given text to the buffer
 ---@param content string
 ---@return nil
-function Inline:append_to_buf(content)
+function Inline:add_buf_message(content)
   local line = self.classification.pos.line - 1
   local col = self.classification.pos.col
   local bufnr = self.classification.pos.bufnr

@@ -853,7 +853,7 @@ function Chat:submit(opts)
             result.output.role = config.constants.LLM_ROLE
           end
           self.status = CONSTANTS.STATUS_SUCCESS
-          self:append_to_buf(result.output)
+          self:add_buf_message(result.output)
         end
       end
     end, function()
@@ -869,7 +869,7 @@ end
 function Chat:done(request)
   self:add_message({ role = config.constants.LLM_ROLE, content = buf_parse_message(self.bufnr).content })
 
-  self:append_to_buf({ role = config.constants.USER_ROLE, content = "" })
+  self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
   self:display_tokens()
 
   if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
@@ -902,7 +902,7 @@ end
 function Chat:regenerate()
   if self.messages[#self.messages].role == config.constants.LLM_ROLE then
     table.remove(self.messages, #self.messages)
-    self:append_to_buf({ role = config.constants.USER_ROLE, content = "_Regenerating response..._" })
+    self:add_buf_message({ role = config.constants.USER_ROLE, content = "_Regenerating response..._" })
     self:submit({ regenerate = true })
   end
 end
@@ -999,10 +999,10 @@ function Chat:last()
   return last_line, last_column, line_count
 end
 
----Append a message to the chat buffer
+---Add a message directly to the chat buffer. This will be visible to the user
 ---@param data table
 ---@param opts? table
-function Chat:append_to_buf(data, opts)
+function Chat:add_buf_message(data, opts)
   local lines = {}
   local bufnr = self.bufnr
   local new_response = false

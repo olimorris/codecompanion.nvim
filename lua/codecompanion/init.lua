@@ -101,7 +101,7 @@ M.add = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
   local content = table.concat(context.lines, "\n")
 
-  chat:append_to_buf({
+  chat:add_buf_message({
     role = config.constants.USER_ROLE,
     content = "Here is some code from "
       .. context.filename

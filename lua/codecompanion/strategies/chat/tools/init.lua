@@ -447,7 +447,7 @@ function Tools:add_error_to_chat(error)
   }, { visible = false })
 
   --- Alert the user that the error message has been shared
-  self.chat:append_to_buf({
+  self.chat:add_buf_message({
     role = config.constants.USER_ROLE,
     content = "Please correct for the error message I've shared",
   })

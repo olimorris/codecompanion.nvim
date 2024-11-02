@@ -115,7 +115,7 @@ Remember:
         ),
       }, { visible = false })
 
-      self.chat:append_to_buf({
+      self.chat:add_buf_message({
         role = config.constants.USER_ROLE,
         content = "I've shared the error message from the RAG tool with you.\n",
       })
@@ -138,7 +138,7 @@ Remember:
         ),
       }, { visible = false })
 
-      self.chat:append_to_buf({
+      self.chat:add_buf_message({
         role = config.constants.USER_ROLE,
         content = "I've shared the content from the RAG tool with you.\n",
       })
