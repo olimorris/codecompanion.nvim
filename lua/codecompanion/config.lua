@@ -10,6 +10,7 @@ local defaults = {
   adapters = {
     -- LLMs -------------------------------------------------------------------
     anthropic = "anthropic",
+    azure_openai = "azure_openai",
     copilot = "copilot",
     gemini = "gemini",
     ollama = "ollama",
