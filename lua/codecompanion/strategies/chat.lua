@@ -169,16 +169,17 @@ local function buf_parse_tools(chat)
   )
   local assistant_tree = assistant_parser:parse()[1]
 
-  local assistant_response = {}
+  local llm = {}
   for id, node in assistant_query:iter_captures(assistant_tree:root(), chat.bufnr, 0, -1) do
     local name = assistant_query.captures[id]
     if name == "content" then
       local response = vim.treesitter.get_node_text(node, chat.bufnr)
-      table.insert(assistant_response, response)
+      table.insert(llm, response)
     end
   end
 
-  local response = assistant_response[#assistant_response]
+  -- Only work with the last response from the LLM
+  local response = llm[#llm]
 
   local parser = vim.treesitter.get_string_parser(response, "markdown")
   local tree = parser:parse()[1]
@@ -194,21 +195,21 @@ local function buf_parse_tools(chat)
 ]]
   )
 
-  local found_tools = {}
+  local tools = {}
   for id, node in query:iter_captures(tree:root(), response, 0, -1) do
     local name = query.captures[id]
     if name == "tool" then
       local tool = vim.treesitter.get_node_text(node, response)
-      table.insert(found_tools, tool)
+      table.insert(tools, tool)
     end
   end
 
-  log:debug("Tool detected: %s", found_tools)
+  log:debug("Tool detected: %s", tools)
 
-  --TODO: Parse XML to ensure the STag is <agent>
-
-  if #found_tools > 0 then
-    return chat.tools:setup(chat, found_tools[#found_tools])
+  if not vim.tbl_isempty(tools) then
+    vim.iter(tools):each(function(t)
+      return chat.tools:setup(chat, t)
+    end)
   end
 end
 
