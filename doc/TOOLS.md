@@ -6,7 +6,7 @@ In CodeCompanion, tools offer pre-defined ways for LLMs to execute actions and a
 
 In the plugin, tools work by sharing a system prompt with an LLM. This instructs them how to produce an XML markdown code block which can, in turn, be interpreted by the plugin to execute a command or function.
 
-The plugin has a tools class `CodeCompanion.Tools` which will call individual `CodeCompanion.Tool` such as the `code_runner` or the `editor`. The calling of tools is orchestrated by the `CodeCompanion.Chat` class which parses an LLM's response and looks to identify the XML code block.
+The plugin has a tools class `CodeCompanion.Tools` which will call individual `CodeCompanion.Tool` such as the `cmd_runner` or the `editor`. The calling of tools is orchestrated by the `CodeCompanion.Chat` class which parses an LLM's response and looks to identify any XML code blocks.
 
 ## Tool Types
 
@@ -27,10 +27,15 @@ Tools must implement the following interface:
 ---@field schema table The schema that the LLM must use in its response to execute a tool
 ---@field system_prompt fun(schema: table): string The system prompt to the LLM explaining the tool and the schema
 ---@field opts? table The options for the tool
----@field env? fun(xml: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
----@field pre_cmd? fun(env: table, xml: table): table|nil Function to call before the cmd table is executed
----@field output_error_prompt? fun(error: table): string The prompt to share with the LLM if an error is encountered
----@field output_prompt? fun(output: table): string The prompt to share with the LLM if the cmd is successful
+---@field env? fun(schema: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
+---@field handlers table Functions which can be called during the execution of the tool
+---@field handlers.setup? fun(self: CodeCompanion.Tools): any Function used to setup the tool. Called before any commands
+---@field handlers.approved? fun(self: CodeCompanion.Tools): boolean Function to call if an approval is needed before running a command
+---@field handlers.on_exit? fun(self: CodeCompanion.Tools): any Function to call at the end of all of the commands
+---@field output? table Functions which can be called after the command finishes
+---@field output.rejected? fun(self: CodeCompanion.Tools, cmd: table): any Function to call if the user rejects running a command
+---@field output.error? fun(self: CodeCompanion.Tools, cmd: table, error: table|string): any Function to call if the tool is unsuccesful
+---@field output.success? fun(self: CodeCompanion.Tools, cmd: table, output: table|string): any Function to call if the tool is successful
 ---@field request table The request from the LLM to use the Tool
 ```
 
@@ -40,9 +45,9 @@ The `cmds` table contains the list of commands or functions that will be execute
 
 **Command-Based Tools**
 
-The `cmds` table is a collection of commands which the agent will execute one after another. It's also possible to pass in environment variables (from the `env` function) by calling them in `${}` brackets.
+The `cmds` table is a collection of commands which the agent will execute one after another, asynchronously, using [plenary.job](https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/job.lua). It's also possible to pass in environment variables (from the `env` function) by calling them in `${}` brackets.
 
-The `code_runner` tool is defined as:
+The now removed `code_runner` tool was setup as:
 
 ```lua
 cmds = {
@@ -62,6 +67,8 @@ cmds = {
 
 In this example, the `CodeCompanion.Tools` class will call each table in order and replace the variables with output from the `env` function (more on that below).
 
+Using the `handlers.setup()` function, it's also possible to create commands dynamically like in the `cmd_runner` tool.
+
 **Function-based Tools**
 
 Function-based tools use the `cmds` table to define functions that will be executed one after another:
@@ -76,14 +83,14 @@ Function-based tools use the `cmds` table to define functions that will be execu
     ---Ensure the final function returns the status and the output
     ---@param self CodeCompanion.Tools The Tools object
     ---@param input any The output from the previous function call
-    ---@return table { status: string, output: string }
+    ---@return table { status: string, msg: string }
     function(self, input)
      print(input) -- prints "Hello, World"
     end,
   }
 ```
 
-In this example, the first function will be called by the `CodeCompanion.Tools` class and its output will be captured and passed onto the final function call. It should be noted that the last function call in the `cmds` block should return a table with the status (either `success` or `error`) and an output string.
+In this example, the first function will be called by the `CodeCompanion.Tools` class and its output will be captured and passed onto the final function call. It should be noted that the last function call in the `cmds` block should return a table with the status (either `success` or `error`) and a msg.
 
 ### `schema`
 
@@ -158,57 +165,26 @@ You must:
     )
 ````
 
-### `pre_cmd`
+### `handlers`
 
-A `pre_cmd` function can also be used in tools to do some pre-processing prior to the `cmds` table being executed. It receives the `env` table and the LLM's requested `schema`.
+The `handlers` table consists of three methods.
 
-### `output_error_prompt`
+The `setup` method is called before any of the `cmds` are called. This is useful if you wish to set the `cmds` dynamically on the tool itself, like in the `cmd_runner` tool.
 
-The `output_error_prompt` is a function that is called by the `CodeCompanion.Tools` class to inform the LLM of an error should it arise from executing one of the cmds in the `cmds` table.
+The `approved` method, which must return a boolean, contains logic to prompt the user for their approval prior to a command being executed. This is used in both the `files` and `cmd_runner` tool to allow the user to validate the actions the LLM is proposing to take.
 
-From the `code_runner` tool:
+Finally, the `on_exit` method is called after all of the `cmds` have been executed.
 
-```lua
----@param error table|string
-output_error_prompt = function(error)
-  if type(error) == "table" then
-    error = table.concat(error, "\n")
-  end
-  return string.format(
-    [[After the tool completed, there was an error:
+### `output`
 
-```
-%s
-```
+The `output` table consists of three methods.
 
-Can you attempt to fix this?]],
-    error
-  )
-end,
-```
+The `rejected` method is called when a user rejects to approve the running of a command. This method is useful of informing the LLM of the rejection.
 
-### `output_prompt`
+The `error` method is called to notify the LLM of an error when executing a command.
 
-Finally, the `output_prompt` function is called by the `CodeCompanion.Tools` class to send a response to the LLM with the output from the tool's execution.
+And finally, the `success` method is called to notify the LLM of a successful executin of a command.
 
-From the `code_runner` tool:
+### `request`
 
-```lua
----@param output table|string
-output_prompt = function(output)
-  if type(output) == "table" then
-    output = table.concat(output, "\n")
-  end
-
-  return string.format(
-    [[After the tool completed the output was:
-
-```
-%s
-```
-
-Is that what you expected? If it is, just reply with a confirmation. Don't reply with any code. If not, say so and I can plan our next step.]],
-    output
-  )
-end,
-```
+The request table is populated at runtime and contains the parsed XML that the LLM has requested to run.

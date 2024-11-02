@@ -5,9 +5,6 @@ local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils.util")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
-local accepted = {}
-local rejected = {}
-
 ---Create a file and it's surrounding folders
 ---@param action table The action object
 ---@return nil
@@ -85,36 +82,9 @@ local actions = {
   move = move,
 }
 
----Ask the user to approve the action
----@param action table The action object
-local function approve(action)
-  log:info("[Files Tool] Prompting for %s", action._attr.type)
-
-  local msg = string.upper(action._attr.type) .. " the file at " .. action.path
-  if action.new_path then
-    msg = msg .. " to " .. action.new_path
-  end
-  msg = msg .. "?"
-
-  local ok, choice = pcall(vim.fn.confirm, msg, "No\nYes")
-  if not ok or choice ~= 2 then
-    log:info("[Files Tool] Rejected the %s action", action._attr.type)
-    table.insert(rejected, {
-      type = action._attr.type,
-      path = action.path,
-      new_path = action.new_path,
-    })
-    return
-  end
-
-  log:info("[Files Tool] Approved the %s action", action._attr.type)
-  table.insert(accepted, {
-    type = action._attr.type,
-    path = action.path,
-    new_path = action.new_path,
-  })
-  return actions[action._attr.type](action)
-end
+---@class FilesTool.Output
+---@field status string The output status. Either "success" or "error"
+---@field msg string The message to send back to the LLM
 
 ---@class CodeCompanion.Tool
 return {
@@ -124,59 +94,25 @@ return {
     ---Execute the file commands
     ---@param self CodeCompanion.Tools The Tools object
     ---@param input any The output from the previous function call
-    ---@return table { status: string, output: string }
+    ---@return FilesTool.Output
     function(self, input)
-      accepted = {}
-      rejected = {}
-
-      local has_opts = config.strategies.agent.tools.files.opts
-
-      -- Run the action
-      local function run(action)
-        if has_opts and has_opts.user_approval then
-          approve(action)
-        else
-          actions[action._attr.type](action)
-          log:info("[Files Tool] Auto-approved the %s action", action._attr.type)
-        end
-      end
-
       -- Loop through the actions
       local action = self.tool.request.action
       if util.is_array(action) then
         for _, v in ipairs(action) do
-          run(v)
+          local ok, data = pcall(actions[action._attr.type], v)
+          if not ok then
+            return { status = "error", msg = data }
+          end
         end
       else
-        run(action)
+        local ok, data = pcall(actions[action._attr.type], action)
+        if not ok then
+          return { status = "error", msg = data }
+        end
       end
 
-      local function update_llm(tbl, str)
-        vim.iter(tbl):each(function(v)
-          local content = str .. string.upper(v.type) .. " the file at " .. v.path
-          if v.new_path then
-            content = content .. " to " .. v.new_path
-          end
-          self.chat:append_to_buf({
-            content = content .. "\n",
-          })
-        end)
-      end
-
-      if #accepted > 0 or #rejected > 0 then
-        self.chat:append_to_buf({
-          content = "Below is a list of all the file system actions that I accepted or rejected:\n\n",
-        })
-      end
-
-      if #accepted > 0 then
-        update_llm(accepted, "[x] ")
-      end
-      if #rejected > 0 then
-        update_llm(rejected, "[ ] ")
-      end
-
-      return { status = "success", output = nil }
+      return { status = "success", msg = nil }
     end,
   },
   schema = {
@@ -345,4 +281,58 @@ Remember:
       })
     )
   end,
+  handlers = {
+    ---Approve the command to be run
+    ---@param self CodeCompanion.Tools The tool object
+    ---@param action table
+    ---@return boolean
+    approved = function(self, action)
+      log:info("[Files Tool] Prompting for %s", action._attr.type)
+
+      local msg = string.upper(action._attr.type) .. " the file at " .. action.path
+      if action.new_path then
+        msg = msg .. " to " .. action.new_path
+      end
+      msg = msg .. "?"
+
+      local ok, choice = pcall(vim.fn.confirm, msg, "No\nYes")
+      if not ok or choice ~= 2 then
+        log:info("[Files Tool] Rejected the %s action", action._attr.type)
+        return false
+      end
+
+      log:info("[Files Tool] Approved the %s action", action._attr.type)
+      return true
+    end,
+  },
+  output = {
+    success = function(self, action, output)
+      return self.chat:append_to_buf({
+        role = config.constants.USER_ROLE,
+        content = string.format("The %s action was executed successfully.\n\n", string.upper(action._attr.type)),
+      })
+    end,
+
+    error = function(self, action, err)
+      return self.chat:append_to_buf({
+        role = config.constants.USER_ROLE,
+        content = string.format(
+          [[There was an error running the %s action:
+
+```txt
+%s
+```]],
+          string.upper(action._attr.type),
+          err
+        ),
+      })
+    end,
+
+    rejected = function(self, action)
+      return self.chat:append_to_buf({
+        role = config.constants.USER_ROLE,
+        content = string.format("I rejected the %s action.\n\n", string.upper(action._attr.type)),
+      })
+    end,
+  },
 }
