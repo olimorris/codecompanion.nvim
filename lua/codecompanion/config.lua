@@ -35,7 +35,7 @@ local defaults = {
       },
       variables = {
         ["buffer"] = {
-          callback = "helpers.variables.buffer",
+          callback = "strategies.chat.variables.buffer",
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
@@ -43,14 +43,14 @@ local defaults = {
           },
         },
         ["lsp"] = {
-          callback = "helpers.variables.lsp",
+          callback = "strategies.chat.variables.lsp",
           description = "Share LSP information and code for the current buffer",
           opts = {
             contains_code = true,
           },
         },
         ["viewport"] = {
-          callback = "helpers.variables.viewport",
+          callback = "strategies.chat.variables.viewport",
           description = "Share the code that you see in Neovim with the LLM",
           opts = {
             contains_code = true,
@@ -59,7 +59,7 @@ local defaults = {
       },
       slash_commands = {
         ["buffer"] = {
-          callback = "helpers.slash_commands.buffer",
+          callback = "strategies.chat.slash_commands.buffer",
           description = "Insert open buffers",
           opts = {
             contains_code = true,
@@ -67,14 +67,14 @@ local defaults = {
           },
         },
         ["fetch"] = {
-          callback = "helpers.slash_commands.fetch",
+          callback = "strategies.chat.slash_commands.fetch",
           description = "Insert URL contents",
           opts = {
             adapter = "jina",
           },
         },
         ["file"] = {
-          callback = "helpers.slash_commands.file",
+          callback = "strategies.chat.slash_commands.file",
           description = "Insert a file",
           opts = {
             contains_code = true,
@@ -83,7 +83,7 @@ local defaults = {
           },
         },
         ["help"] = {
-          callback = "helpers.slash_commands.help",
+          callback = "strategies.chat.slash_commands.help",
           description = "Insert content from help tags",
           opts = {
             contains_code = false,
@@ -91,14 +91,14 @@ local defaults = {
           },
         },
         ["now"] = {
-          callback = "helpers.slash_commands.now",
+          callback = "strategies.chat.slash_commands.now",
           description = "Insert the current date and time",
           opts = {
             contains_code = false,
           },
         },
         ["symbols"] = {
-          callback = "helpers.slash_commands.symbols",
+          callback = "strategies.chat.slash_commands.symbols",
           description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
@@ -106,7 +106,7 @@ local defaults = {
           },
         },
         ["terminal"] = {
-          callback = "helpers.slash_commands.terminal",
+          callback = "strategies.chat.slash_commands.terminal",
           description = "Insert terminal output",
           opts = {
             contains_code = false,
@@ -286,25 +286,25 @@ local defaults = {
       --NOTE: This uses the adapter specified in the chat strategy
       tools = {
         ["cmd_runner"] = {
-          callback = "helpers.tools.cmd_runner",
+          callback = "strategies.chat.tools.cmd_runner",
           description = "Run shell commands initiated by the LLM",
           opts = {
             user_approval = true,
           },
         },
         ["editor"] = {
-          callback = "helpers.tools.editor",
+          callback = "strategies.chat.tools.editor",
           description = "Update a buffer with the LLM's response",
         },
         ["files"] = {
-          callback = "helpers.tools.files",
+          callback = "strategies.chat.tools.files",
           description = "Update the file system with the LLM's response",
           opts = {
             user_approval = true,
           },
         },
         ["rag"] = {
-          callback = "helpers.tools.rag",
+          callback = "strategies.chat.tools.rag",
           description = "Supplement the LLM with real-time info from the internet",
           opts = {
             hide_output = true,

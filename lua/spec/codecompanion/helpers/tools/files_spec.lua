@@ -1,5 +1,5 @@
 local assert = require("luassert")
-local files = require("codecompanion.helpers.tools.files")
+local files = require("codecompanion.strategies.chat.tools.files")
 
 describe("File tools", function()
   it("can create a file", function()

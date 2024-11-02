@@ -1,5 +1,5 @@
 local config = require("codecompanion.config")
-local providers = require("codecompanion.helpers.slash_commands.shared.files")
+local providers = require("codecompanion.strategies.chat.slash_commands.shared.files")
 
 local file_utils = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
