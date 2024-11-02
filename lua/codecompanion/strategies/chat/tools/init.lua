@@ -42,12 +42,12 @@ end
 ---@field system_prompt fun(schema: table): string The system prompt to the LLM explaining the tool and the schema
 ---@field opts? table The options for the tool
 ---@field env? fun(schema: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
----@field pre_cmd? fun(env: table, schema: table): table|nil Function to call before the cmd table is executed
 ---@field handlers table Functions which can be called during the execution of the tool
 ---@field handlers.setup? fun(self: CodeCompanion.Tools): any Function used to setup the tool. Called before any commands
 ---@field handlers.approved? fun(self: CodeCompanion.Tools): boolean Function to call if an approval is needed before running a command
 ---@field handlers.on_exit? fun(self: CodeCompanion.Tools): any Function to call at the end of all of the commands
 ---@field output? table Functions which can be called after the command finishes
+---@field output.rejected? fun(self: CodeCompanion.Tools, cmd: table): any Function to call if the user rejects running a command
 ---@field output.error? fun(self: CodeCompanion.Tools, cmd: table, error: table|string): any Function to call if the tool is unsuccesful
 ---@field output.success? fun(self: CodeCompanion.Tools, cmd: table, output: table|string): any Function to call if the tool is successful
 ---@field request table The request from the LLM to use the Tool
@@ -153,10 +153,6 @@ function Tools:setup(chat, xml)
 
   if self.tool.env then
     local env = type(self.tool.env) == "function" and self.tool.env(schema.tool) or {}
-    if self.tool.pre_cmd and type(self.tool.pre_cmd) == "function" then
-      self.tool.pre_cmd(env, schema.tool)
-    end
-
     util.replace_placeholders(self.tool.cmds, env)
   end
 
