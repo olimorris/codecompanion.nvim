@@ -224,15 +224,15 @@ local function yank_node(node, register)
   local cursor_position = vim.fn.getcurpos()
 
   -- Create marks for the node range
-  vim.api.nvim_buf_set_mark(0, '[', start_row + 1, start_col, {})
-  vim.api.nvim_buf_set_mark(0, ']', end_row + 1, end_col - 1, {})
+  vim.api.nvim_buf_set_mark(0, "[", start_row + 1, start_col, {})
+  vim.api.nvim_buf_set_mark(0, "]", end_row + 1, end_col - 1, {})
 
   -- Yank using marks
   vim.cmd(string.format('normal! "%s`[y`]', config.strategies.chat.opts.register))
 
   -- Restore position after delay
   vim.defer_fn(function()
-    vim.fn.setpos('.', cursor_position)
+    vim.fn.setpos(".", cursor_position)
   end, config.strategies.chat.opts.yank_jump_delay_ms)
 end
 
@@ -323,14 +323,14 @@ M.change_adapter = {
     local current_model = vim.deepcopy(chat.adapter.schema.model.default)
 
     local adapters_list = vim
-        .iter(adapters)
-        :filter(function(adapter)
-          return adapter ~= "opts" and adapter ~= "non_llms" and adapter ~= current_adapter
-        end)
-        :map(function(adapter, _)
-          return adapter
-        end)
-        :totable()
+      .iter(adapters)
+      :filter(function(adapter)
+        return adapter ~= "opts" and adapter ~= "non_llms" and adapter ~= current_adapter
+      end)
+      :map(function(adapter, _)
+        return adapter
+      end)
+      :totable()
 
     table.sort(adapters_list)
     table.insert(adapters_list, 1, current_adapter)
@@ -369,11 +369,11 @@ M.change_adapter = {
       end
 
       models = vim
-          .iter(models)
-          :filter(function(model)
-            return model ~= new_model
-          end)
-          :totable()
+        .iter(models)
+        :filter(function(model)
+          return model ~= new_model
+        end)
+        :totable()
       table.insert(models, 1, new_model)
 
       vim.ui.select(models, select_opts("Select Model", new_model), function(selected)
