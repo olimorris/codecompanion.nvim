@@ -754,6 +754,42 @@ This is the code, for context:
         },
       },
     },
+    ["Generate docstrings"] = {
+      strategy = "inline",
+      description = "Generate docstrings for this function",
+      opts = {
+        index = 11,
+        is_default = true,
+        is_slash_cmd = false,
+        modes = { "n" },
+        short_name = "Docstrings",
+        auto_submit = true,
+        stop_context_insertion = true,
+        user_prompt = true,
+        placement = "add",
+      },
+      prompts = {
+        {
+          role = constants.SYSTEM_ROLE,
+          content = function(context)
+            local get_function_content = require("codecompanion.utils.treesitter").get_function_at_cursor
+            local bufnr = context.bufnr
+            local cursor = context.cursor_pos
+            local function_content = get_function_content(bufnr, cursor)
+
+            return "I want you to act as a senior "
+              .. context.filetype
+              .. " developer. Here is a function I want you to generate the docstrings for: "
+              .. "\n```"
+              .. context.filetype
+              .. "\n"
+              .. function_content
+              .. "\n```\n"
+              .. "Generate only the docstrings and nothing else using tabs or spaces depending on the current implementation. Do not change anything else in the code. Give only the docstrings. Use the following style to generate the docstrings. If I don't give you a style, use the typical style of the language."
+          end,
+        },
+      },
+    },
   },
   -- DISPLAY OPTIONS ----------------------------------------------------------
   display = {
