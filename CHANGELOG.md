@@ -1,5 +1,26 @@
 # Changelog
 
+## [9.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.13.0...v9.0.0) (2024-11-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* move tools/slash/vars from helpers to strategies.chat
+* **tools:** remove `code_runner` tool
+
+### Features
+
+* **adapters:** add claude-3-5-sonnet to Copilot ([1121015](https://github.com/olimorris/codecompanion.nvim/commit/1121015dbbce25afce88746861edc6fe930b7a9f))
+* **tools:** :sparkles: Add `cmd_runner` tool ([ff7ad7f](https://github.com/olimorris/codecompanion.nvim/commit/ff7ad7f9e18fb9656e8de23bc540988336a7a93c))
+* **tools:** :sparkles: tools can be stacked to form agents ([ee483b4](https://github.com/olimorris/codecompanion.nvim/commit/ee483b4e11d4c4e64a01ca6fb03c07edf6b2e20c))
+* **tools:** add read option to `[@files](https://github.com/files)` tool ([cb63d59](https://github.com/olimorris/codecompanion.nvim/commit/cb63d59fa3ec4a31ebed1a1db00e1b25f8886686))
+
+
+### Code Refactoring
+
+* move tools/slash/vars from helpers to strategies.chat ([806ed9c](https://github.com/olimorris/codecompanion.nvim/commit/806ed9cf17889347e03752516462e149e03a3ddf))
+* **tools:** remove `code_runner` tool ([362076b](https://github.com/olimorris/codecompanion.nvim/commit/362076b1e10748dd8999f73fbe993fb9a446733f))
+
 ## [8.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.12.2...v8.13.0) (2024-10-29)
 
 
