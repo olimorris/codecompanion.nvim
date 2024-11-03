@@ -13,6 +13,13 @@ describe("File tools", function()
     file:close()
   end)
 
+  it("can read a file", function()
+    local path = "~/tmp/test.txt"
+    local contents = files.actions.read({ path = path })
+
+    assert.are.same("Hello World", contents)
+  end)
+
   it("can edit a file", function()
     local path = "~/tmp/test.txt"
     files.actions.edit({ path = path, contents = "Hello CodeCompanion" })

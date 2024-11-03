@@ -15,6 +15,15 @@ local function create(action)
   p:write(action.contents or "", "w")
 end
 
+---Read the contents of af ile
+---@param action table The action object
+---@return string
+local function read(action)
+  local p = Path:new(action.path)
+  p.filename = p:expand()
+  return p:read()
+end
+
 ---Edit the contents of a file
 ---@param action table The action object
 --@return nil
@@ -75,6 +84,7 @@ end
 
 local actions = {
   create = create,
+  read = read,
   edit = edit,
   delete = delete,
   rename = rename,
@@ -123,6 +133,15 @@ return {
           _attr = { type = "create" },
           path = "/Users/Oli/Code/new_app/hello_world.py",
           contents = "<![CDATA[    print('Hello World')]]>",
+        },
+      },
+    },
+    {
+      tool = {
+        _attr = { name = "files" },
+        action = {
+          _attr = { type = "read" },
+          path = "/Users/Oli/Code/new_app/hello_world.py",
         },
       },
     },
@@ -217,28 +236,35 @@ a) Create:
 ```
 - This will ensure a file is created at the specified path with the given content.
 
-b) Edit:
+b) Read:
+
+```xml
+%s
+```
+- This will output the contents of a file at the specified path.
+
+c) Edit:
 
 ```xml
 %s
 ```
 - This will ensure a file is edited at the specified path and its contents replaced with the given content.
 
-c) Delete:
+d) Delete:
 
 ```xml
 %s
 ```
 - This will ensure a file is deleted at the specified path.
 
-d) Rename:
+e) Rename:
 
 ```xml
 %s
 ```
 - Ensure `new_path` contains the filename
 
-e) Copy:
+f) Copy:
 
 ```xml
 %s
@@ -246,7 +272,7 @@ e) Copy:
 - Ensure `new_path` contains the filename
 - Any folders that don't exist in the path will be created
 
-f) Move:
+g) Move:
 
 ```xml
 %s
@@ -270,6 +296,7 @@ Remember:
       xml2lua.toXml({ tools = { schema[4] } }),
       xml2lua.toXml({ tools = { schema[5] } }),
       xml2lua.toXml({ tools = { schema[6] } }),
+      xml2lua.toXml({ tools = { schema[7] } }),
       xml2lua.toXml({
         tools = {
           tool = {
