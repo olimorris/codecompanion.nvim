@@ -41,6 +41,7 @@ Thank you to the following people:
 ## :camera_flash: Screenshots
 
 <div align="center">
+  <p>https://github.com/user-attachments/assets/04a2bed3-7af0-4c07-b58f-f644cef1c4bb</p>
   <p>https://github.com/user-attachments/assets/4e2a3680-cef5-4134-bf94-e2be93242b38</p>
 </div>
 
