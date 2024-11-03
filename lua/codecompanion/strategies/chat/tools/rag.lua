@@ -70,11 +70,11 @@ return {
 2. **Usage**: Return an XML markdown code block for to search the internet or navigate to a specific URL.
 
 3. **Key Points**:
-  - **Use at your discretion** when you feel you don't have access to the latest information
+  - **Use at your discretion** when you feel you don't have access to the latest information in order to answer the user's question
   - This tool is expensive so you may wish to ask the user before using it
   - Ensure XML is **valid and follows the schema**
   - **Don't escape** special characters
-  - **Wrap query's and URLs in a CDATA block**, the text could contain characters reserved by XML
+  - **Wrap queries and URLs in a CDATA block**, the text could contain characters reserved by XML
 
 4. **Actions**:
 
@@ -120,6 +120,7 @@ Remember:
         content = "I've shared the error message from the RAG tool with you.\n",
       })
     end,
+
     success = function(self, cmd, stdout)
       if type(stdout) == "table" then
         stdout = table.concat(stdout, "\n")
