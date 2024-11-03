@@ -55,4 +55,47 @@ function M.goto_heading(direction, count)
   -- or implement some behavior like wrapping around or signaling an error.
 end
 
+--- @param bufnr integer: The buffer number.
+--- @param cursor integer[]: The cursor position as a {row, col} array.
+--- @return string|nil: The function code as a string, or nil if no function is found.
+function M.get_function_at_cursor(bufnr, cursor)
+  local row, col = cursor[1] - 1, cursor[2]
+
+  local parser = vim.treesitter.get_parser(bufnr)
+  local tree = parser:parse()[1]
+  local root = tree:root()
+
+  local function_node = nil
+
+  -- Traverse the tree to find the function node containing the cursor
+  local function traverse(node)
+    if node:type() == "function_definition" or node:type() == "function_declaration" then
+      local start_row, start_col, end_row, end_col = node:range()
+      if start_row <= row and end_row >= row and start_col <= col and end_col >= col then
+        function_node = node
+        return true
+      end
+    end
+
+    for child in node:iter_children() do
+      if traverse(child) then
+        return true
+      end
+    end
+    return false
+  end
+
+  traverse(root)
+
+  if function_node then
+    local start_row, start_col, end_row, end_col = function_node:range()
+    local lines = api.nvim_buf_get_lines(bufnr, start_row, end_row + 1, false)
+    lines[1] = lines[1]:sub(start_col + 1)
+    lines[#lines] = lines[#lines]:sub(1, end_col)
+    return table.concat(lines, "\n")
+  else
+    return nil
+  end
+end
+
 return M
