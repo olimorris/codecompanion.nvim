@@ -206,6 +206,7 @@ return {
   - **Don't escape** special characters
   - **Wrap contents in a CDATA block**, the contents could contain characters reserved by XML
   - **Don't duplicate code** in the response. Consider writing code directly into the contents tag of the XML
+  - The user's current working directory in Neovim is `%s`. They may refer to this in their message to you.
 
 4. **Actions**:
 
@@ -262,6 +263,7 @@ f) Move:
 Remember:
 - Minimize explanations unless prompted. Focus on generating correct XML.
 - If the user types `~` in their response, do not replace or expand it.]],
+      vim.fn.getcwd(),
       xml2lua.toXml({ tools = { schema[1] } }),
       xml2lua.toXml({ tools = { schema[2] } }),
       xml2lua.toXml({ tools = { schema[3] } }),
