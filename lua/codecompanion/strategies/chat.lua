@@ -723,7 +723,7 @@ function Chat:add_tool(tool)
     return self
   end
 
-  -- Add the agent system prompt first
+  -- Add the overarching agent system prompt first
   if not self:has_tools() then
     self:add_message({
       role = config.constants.SYSTEM_ROLE,
