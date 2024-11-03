@@ -235,6 +235,7 @@ a) Create:
 %s
 ```
 - This will ensure a file is created at the specified path with the given content.
+- It will also ensure that any folders that don't exist in the path are created.
 
 b) Read:
 

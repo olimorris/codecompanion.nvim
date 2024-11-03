@@ -162,6 +162,10 @@ _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out a
 - `@files` -  The LLM will can work with files on the file system (subject to approval)
 - `@rag` - The LLM will browse and search the internet for real-time information to supplement its response
 
+Tools can also be grouped together to form _Agents_, which are also accessed via `@` in the chat buffer:
+
+- `@full_stack_dev` - Contains the `cmd_runner`, `editor` and `files` tools.
+
 > [!TIP]
 > Press `?` in the chat buffer to reveal the keymaps and options that are available.
 

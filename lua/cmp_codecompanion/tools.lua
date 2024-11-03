@@ -22,23 +22,42 @@ end
 
 function source:complete(params, callback)
   local items = {}
-  local kind = require("cmp").lsp.CompletionItemKind.Snippet
+  local agent_kind = require("cmp").lsp.CompletionItemKind.Struct
+  local tool_kind = require("cmp").lsp.CompletionItemKind.Snippet
 
-  for label, data in pairs(self.config.strategies.agent.tools) do
-    if label ~= "opts" then
-      table.insert(items, {
-        label = "@" .. label,
-        kind = kind,
-        name = label,
-        config = self.config,
-        callback = data.callback,
-        detail = data.description,
-        context = {
-          bufnr = params.context.bufnr,
-        },
-      })
-    end
+  local function item(label, data, kind)
+    return {
+      label = "@" .. label,
+      kind = kind or tool_kind,
+      name = label,
+      config = self.config,
+      callback = data.callback,
+      detail = data.description,
+      context = {
+        bufnr = params.context.bufnr,
+      },
+    }
   end
+
+  -- Add agents
+  vim
+    .iter(self.config.strategies.agent)
+    :filter(function(label)
+      return label ~= "tools"
+    end)
+    :each(function(label, data)
+      table.insert(items, item(label, data, agent_kind))
+    end)
+
+  -- Add tools
+  vim
+    .iter(self.config.strategies.agent.tools)
+    :filter(function(label)
+      return label ~= "opts"
+    end)
+    :each(function(label, data)
+      table.insert(items, item(label, data))
+    end)
 
   callback({
     items = items,

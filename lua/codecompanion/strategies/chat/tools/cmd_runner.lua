@@ -93,6 +93,7 @@ return {
   - **Wrap the command in a CDATA block**, the command could contain characters reserved by XML
   - If you need information which hasn't been provided to you (e.g. the version of a language you've been asked to write a command in), write that command first and inform the user
   - The output from each command will be shared with you after each command executes
+  - Don't use this action to run file commands, use the Files Tool instead. If you don't have access to that then consider whether file operations are required
 
 4. **Actions**:
 
