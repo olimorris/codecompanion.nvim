@@ -762,7 +762,7 @@ This is the code, for context:
         is_default = true,
         is_slash_cmd = false,
         modes = { "n" },
-        short_name = "Docstrings",
+        short_name = "docstrings",
         auto_submit = true,
         stop_context_insertion = true,
         user_prompt = true,
@@ -785,7 +785,7 @@ This is the code, for context:
               .. "\n"
               .. function_content
               .. "\n```\n"
-              .. "Generate only the docstrings and nothing else using tabs or spaces depending on the current implementation. Do not change anything else in the code. Give only the docstrings. Use the following style to generate the docstrings. If I don't give you a style, use the typical style of the language."
+              .. "Generate only the docstrings and nothing else using tabs or spaces depending on the current implementation. Do not change anything else in the code. Give only the docstrings. Use the following style to generate the docstrings. If I don't give you a function, do nothing. If I don't give you a style, use the typical style of the language."
           end,
         },
       },
