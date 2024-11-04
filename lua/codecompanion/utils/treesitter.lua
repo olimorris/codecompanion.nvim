@@ -94,7 +94,7 @@ function M.get_function_at_cursor(bufnr, cursor)
     lines[#lines] = lines[#lines]:sub(1, end_col)
     return table.concat(lines, "\n")
   else
-    return nil
+    return ""
   end
 end
 
