@@ -75,8 +75,6 @@ Install the plugin with your preferred package manager:
     },
     config = true,
 }
-
-
 ```
 
 **[Packer](https://github.com/wbthomason/packer.nvim)**
