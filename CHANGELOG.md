@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.0.0...v9.1.0) (2024-11-04)
+
+
+### Features
+
+* :sparkles: support `render-markdown.nvim` plugin ([9b137be](https://github.com/olimorris/codecompanion.nvim/commit/9b137be7a9c275d865c9b10d5173e0a1f588aa47))
+
 ## [9.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v8.13.0...v9.0.0) (2024-11-03)
 
 
