@@ -67,6 +67,7 @@ Install the plugin with your preferred package manager:
     "nvim-treesitter/nvim-treesitter",
     "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
     "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
+    { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" }, -- Optional: For prettier markdown rendering
     { "stevearc/dressing.nvim", opts = {} }, -- Optional: Improves `vim.ui.select`
   },
   config = true
@@ -86,6 +87,7 @@ use({
     "nvim-treesitter/nvim-treesitter",
     "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
     "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
+    { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" }, -- Optional: For prettier markdown rendering
     "stevearc/dressing.nvim" -- Optional: Improves `vim.ui.select`
   }
 })
@@ -101,6 +103,7 @@ Plug 'nvim-treesitter/nvim-treesitter'
 Plug 'hrsh7th/nvim-cmp', " Optional: For using slash commands and variables in the chat buffer
 Plug 'nvim-telescope/telescope.nvim', " Optional: For using slash commands
 Plug 'stevearc/dressing.nvim' " Optional: Improves `vim.ui.select`
+Plug 'MeanderingProgrammer/render-markdown.nvim' " Optional: For prettier markdown rendering
 Plug 'olimorris/codecompanion.nvim'
 
 call plug#end()
@@ -299,6 +302,20 @@ require("codecompanion").setup({
       end
       return "My default system prompt"
     end
+  }
+})
+```
+
+**Using with render-markdown.nvim**
+
+If you use the fantastic [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) plugin, then please ensure you turn off the `render_headers` display option:
+
+```lua
+require("codecompanion").setup({
+display = {
+  chat = {
+    render_headers = false,
+    }
   }
 })
 ```

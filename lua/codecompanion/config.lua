@@ -801,7 +801,9 @@ This is the code, for context:
       },
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
 
+      render_headers = true, -- Render headers in the chat buffer? Set this to false if you're using an exteral markdown formatting plugin
       separator = "─", -- The separator between the different messages in the chat buffer
+
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_token_count = true, -- Show the token count for each response?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?

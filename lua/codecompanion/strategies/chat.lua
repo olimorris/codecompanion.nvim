@@ -396,6 +396,19 @@ function Chat:open()
   return self
 end
 
+---Format the header in the chat buffer
+---@param tbl table containing the buffer contents
+---@param role string The role of the user to display in the header
+---@return nil
+local function format_header(tbl, role)
+  if config.display.chat.render_headers then
+    table.insert(tbl, string.format("## %s %s", role, config.display.chat.separator))
+  else
+    table.insert(tbl, string.format("## %s", role))
+  end
+  table.insert(tbl, "")
+end
+
 ---Render the settings and any messages in the chat buffer
 ---@return self
 function Chat:render()
@@ -403,11 +416,6 @@ function Chat:render()
 
   local function spacer()
     table.insert(lines, "")
-  end
-
-  local function set_header(role)
-    table.insert(lines, string.format("## %s %s", role, config.display.chat.separator))
-    spacer()
   end
 
   -- Prevent duplicate headers
@@ -421,10 +429,10 @@ function Chat:render()
         end
 
         if msg.role == config.constants.USER_ROLE and last_set_role ~= config.constants.USER_ROLE then
-          set_header(user_role)
+          format_header(lines, user_role)
         end
         if msg.role == config.constants.LLM_ROLE and last_set_role ~= config.constants.LLM_ROLE then
-          set_header(llm_role)
+          format_header(lines, llm_role)
         end
 
         for _, text in ipairs(vim.split(msg.content, "\n", { plain = true, trimempty = true })) do
@@ -460,7 +468,7 @@ function Chat:render()
 
   if vim.tbl_isempty(self.messages) then
     log:trace("Setting the header for the chat buffer")
-    set_header(user_role)
+    format_header(lines, user_role)
     spacer()
   else
     log:trace("Setting the messages in the chat buffer")
@@ -598,6 +606,10 @@ end
 ---Render the headers in the chat buffer and apply extmarks
 ---@return nil
 function Chat:render_headers()
+  if not config.display.chat.render_headers then
+    return
+  end
+
   local separator = config.display.chat.separator
   local lines = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
 
@@ -1012,11 +1024,7 @@ function Chat:add_buf_message(data, opts)
     self.last_role = data.role
     table.insert(lines, "")
     table.insert(lines, "")
-    table.insert(
-      lines,
-      string.format("## %s %s", config.strategies.chat.roles[data.role], config.display.chat.separator)
-    )
-    table.insert(lines, "")
+    format_header(lines, config.strategies.chat.roles[data.role])
   end
 
   if data.content then
