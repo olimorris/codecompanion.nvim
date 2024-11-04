@@ -312,9 +312,9 @@ If you use the fantastic [render-markdown.nvim](https://github.com/MeanderingPro
 
 ```lua
 require("codecompanion").setup({
-display = {
-  chat = {
-    render_headers = false,
+  display = {
+    chat = {
+      render_headers = false,
     }
   }
 })

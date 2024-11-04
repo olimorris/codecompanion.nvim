@@ -310,9 +310,9 @@ please ensure you turn off the `render_headers` display option:
 
 >lua
     require("codecompanion").setup({
-    display = {
-      chat = {
-        render_headers = false,
+      display = {
+        chat = {
+          render_headers = false,
         }
       }
     })
