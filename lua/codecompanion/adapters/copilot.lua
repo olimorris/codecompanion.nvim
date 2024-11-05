@@ -179,10 +179,10 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
-      default = "claude-3.5-sonnet",
+      default = "gpt-4o-2024-05-13",
       choices = {
-        "claude-3.5-sonnet",
         "gpt-4o-2024-05-13",
+        "claude-3.5-sonnet",
       },
     },
     temperature = {
