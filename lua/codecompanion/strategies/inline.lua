@@ -13,24 +13,26 @@ local api = vim.api
 local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.inline",
 
-  PLACEMENT_PROMPT = [[I would like you to assess a prompt which has been made from within the Neovim text editor. Based on this prompt, I require you to determine where the output from this prompt should be placed. I am calling this determination the "<method>". For example, the user may wish for the output to be placed:
+  PLACEMENT_PROMPT = [[I would like you to assess a prompt which has been made from within the Neovim text editor. Based on this prompt, I require you to determine where the output from this prompt should be placed. I am calling this determination the "<method>". For example, the user may wish for the output to be placed in one of the following ways:
 
 1. `replace` the current selection
 2. `add` after the current cursor position
-3. `new` in a new buffer/file
-4. `chat` in a buffer which the user can then interact with
+3. `before` before the current cursor position
+4. `new` in a new buffer/file
+5. `chat` in a buffer which the user can then interact with
 
 Here are some example prompts and their correct method classification ("<method>") to help you:
 
-- "Can you refactor/fix/amend this code?" would be `replace`
-- "Can you create a method/function that does XYZ" would be `add`
-- "Can you create a method/function for XYZ and put it in a new buffer?" would be `new`
-- "Can you write unit tests for this code?" would be `new` as commonly tests are written in a new file
-- "Why is Neovim so popular?" or "What does this code do?" would be `chat` as the answer does not result in code being written
+- "Can you refactor/fix/amend this code?" would be `replace` as we're changing existing code
+- "Can you create a method/function that does XYZ" would be `add` as it requires new code to be added to a buffer
+- "Can you add a docstring to this function?" would be `before` as docstrings are typically before the start of a function
+- "Can you create a method/function for XYZ and put it in a new buffer?" would be `new` as the user is explictly asking for a new buffer
+- "Can you write unit tests for this code?" would be `new` as tests are commonly written in a new file away from the logic of the code they're testing
+- "Why is Neovim so popular?" or "What does this code do?" would be `chat` as the answer does not result in code being written and is a discursive topic leading to additional follow-up questions
 
 The user may also provide a prompt which references a conversation you've had with them previously. Just focus on determining the correct method classification.
 
-Please respond to this prompt in the format "<method>", placing the classifiction in a tag. For example "replace" would be `<replace>`, "add" would be `<add>`, "new" would be `<new>` and "chat" would be `<chat>`. If you can't classify the message, reply with `<error>`. Do not provide any other content in your response or you'll break the plugin this is being called from.]],
+Please respond to this prompt in the format "<method>", placing the classifiction in a tag. For example "replace" would be `<replace>`, "add" would be `<add>`, "before" would be `<before>`, "new" would be `<new>` and "chat" would be `<chat>`. If you can't classify the message, reply with `<error>`. Do not provide any other content in your response or you'll break the plugin this is being called from.]],
   CODE_ONLY_PROMPT = [[Respond with code only. DO NOT format the code in Markdown code blocks, DO NOT use backticks AND DO NOT provide any explanations. If you cannot do this, reply with "Error"]],
 }
 
@@ -143,37 +145,6 @@ function Inline.new(args)
   return self
 end
 
----Set the autocmds for the inline prompt
----@return nil
-function Inline:autocmd_classify()
-  api.nvim_create_autocmd("User", {
-    group = self.aug,
-    desc = "Listen for the classification to complete",
-    pattern = "CodeCompanionRequestFinishedInlineClassify",
-    callback = function(request)
-      if request.data.bufnr ~= self.context.bufnr then
-        return
-      end
-      self:classify_done()
-    end,
-  })
-end
-
-function Inline:autocmd_submit()
-  api.nvim_create_autocmd("User", {
-    group = self.aug,
-    desc = "Listen for the submission to complete",
-    pattern = "CodeCompanionRequestFinishedInlineSubmit",
-    callback = function(request)
-      if request.data.bufnr ~= self.classification.pos.bufnr then
-        return
-      end
-      self:submit_done()
-      api.nvim_del_augroup_by_id(self.aug)
-    end,
-  })
-end
-
 ---Start the classification of the user's prompt
 ---@param opts? table
 function Inline:start(opts)
@@ -244,7 +215,40 @@ function Inline:classify(user_input)
     log:info("Inline classification request started")
     util.fire("InlineStarted")
 
-    self:autocmd_classify()
+    ---Callback function to be called during the stream
+    ---@param err string
+    ---@param data table
+    local cb = function(err, data)
+      if err then
+        return log:error("Error during inline classification: %s", err)
+      end
+
+      if data then
+        self.classification.placement = self.classification.placement
+          .. (self.adapter.handlers.inline_output(self.adapter, data) or "")
+      end
+    end
+
+    ---Callback function to be called when the stream is done
+    local done = function()
+      log:info('Placement: "%s"', self.classification.placement)
+
+      local ok, parts = pcall(function()
+        return self.classification.placement:match("<(.-)>")
+      end)
+      if not ok or parts == "error" then
+        return log:error("Could not determine where to place the output from the prompt")
+      end
+
+      self.classification.placement = parts
+      if self.classification.placement == "chat" then
+        log:info("Sending inline prompt to the chat buffer")
+        return self:send_to_chat()
+      end
+
+      return self:submit()
+    end
+
     client.new({ adapter = self.adapter:map_schema_to_params(), user_args = { event = "InlineClassify" } }):request(
       self.adapter:map_roles({
         {
@@ -256,44 +260,13 @@ function Inline:classify(user_input)
           content = 'The prompt to assess is: "' .. prompt[1].content .. '"',
         },
       }),
-      function(err, data)
-        if err then
-          return log:error("Error during inline classification: %s", err)
-        end
-
-        if data then
-          self.classification.placement = self.classification.placement
-            .. (self.adapter.handlers.inline_output(self.adapter, data) or "")
-        end
-      end,
-      nil,
+      { callback = cb, done = done },
       { bufnr = self.context.bufnr }
     )
   else
     self.classification.placement = self.opts.placement
     return self:submit()
   end
-end
-
----Function to call when the LLM has finished classifying the prompt
----@return nil
-function Inline:classify_done()
-  log:info('Placement: "%s"', self.classification.placement)
-
-  local ok, parts = pcall(function()
-    return self.classification.placement:match("<(.-)>")
-  end)
-  if not ok or parts == "error" then
-    return log:error("Could not determine where to place the output from the prompt")
-  end
-
-  self.classification.placement = parts
-  if self.classification.placement == "chat" then
-    log:info("Sending inline prompt to the chat buffer")
-    return self:send_to_chat()
-  end
-
-  return self:submit()
 end
 
 ---Submit the prompts to the LLM to process
@@ -345,48 +318,50 @@ function Inline:submit()
     end,
   })
 
-  if self.classification.placement == "replace" or self.classification.placement == "add" then
+  if vim.tbl_contains({ "replace", "add", "before" }, self.classification.placement) then
     self:start_diff()
     keymaps.set(config.strategies.inline.keymaps, bufnr, self)
   end
 
-  self:autocmd_submit()
+  ---Callback function to be called during the stream
+  ---@param err string
+  ---@param data table
+  local cb = function(err, data)
+    if err then
+      return log:error("Error during stream: %s", err)
+    end
+
+    if data then
+      local content = self.adapter.handlers.inline_output(self.adapter, data, self.context)
+
+      if content then
+        vim.schedule(function()
+          vim.cmd.undojoin()
+          self:add_buf_message(content)
+          if self.classification.placement == "new" and api.nvim_get_current_buf() == bufnr then
+            ui.buf_scroll_to_end(bufnr)
+          end
+        end)
+      end
+    end
+  end
+
+  ---Callback function to be called when the stream is done
+  local done = function()
+    log:info("Inline request finished")
+
+    self.current_request = nil
+    api.nvim_buf_del_keymap(self.classification.pos.bufnr, "n", "q")
+    api.nvim_clear_autocmds({ group = self.aug })
+
+    vim.schedule(function()
+      util.fire("InlineFinished", { placement = self.classification.placement })
+    end)
+  end
+
   self.current_request = client
     .new({ adapter = self.adapter:map_schema_to_params(), user_args = { event = "InlineSubmit" } })
-    :request(self.adapter:map_roles(self.classification.prompts), function(err, data)
-      if err then
-        log:error("Error during stream: %s", err)
-        return
-      end
-
-      if data then
-        local content = self.adapter.handlers.inline_output(self.adapter, data, self.context)
-
-        if content then
-          vim.schedule(function()
-            vim.cmd.undojoin()
-            self:add_buf_message(content)
-            if self.classification.placement == "new" and api.nvim_get_current_buf() == bufnr then
-              ui.buf_scroll_to_end(bufnr)
-            end
-          end)
-        end
-      end
-    end, function()
-      self.current_request = nil
-      vim.schedule(function()
-        util.fire("InlineFinished", { placement = self.classification.placement })
-      end)
-    end, { bufnr = bufnr })
-end
-
----Function to call when the LLM has finished processing the prompt
----@return nil
-function Inline:submit_done()
-  log:info("Inline request finished")
-  local bufnr = self.classification.pos.bufnr
-  api.nvim_buf_del_keymap(bufnr, "n", "q")
-  api.nvim_clear_autocmds({ group = self.aug })
+    :request(self.adapter:map_roles(self.classification.prompts), { callback = cb, done = done }, { bufnr = bufnr })
 end
 
 ---When a defined prompt is sent alongside the user's input, we need to do some
@@ -458,6 +433,11 @@ function Inline:place(placement)
     pos.line = self.context.end_line + 1
     pos.col = 0
     pos.bufnr = self.context.bufnr
+  elseif placement == "before" then
+    api.nvim_buf_set_lines(self.context.bufnr, self.context.start_line - 1, self.context.start_line - 1, false, { "" })
+    self.context.start_line = self.context.start_line + 1
+    pos.line = self.context.start_line - 1
+    pos.col = self.context.start_col - 1
   elseif placement == "new" then
     local bufnr = api.nvim_create_buf(true, false)
     util.set_option(bufnr, "filetype", self.context.filetype)

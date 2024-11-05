@@ -562,19 +562,6 @@ function Chat:set_autocmds()
       last_chat = self
     end,
   })
-
-  -- For when the request has completed
-  api.nvim_create_autocmd("User", {
-    group = self.aug,
-    desc = "Listen for chat completion",
-    pattern = "CodeCompanionRequestFinished",
-    callback = function(request)
-      if request.data.bufnr ~= self.bufnr then
-        return
-      end
-      self:done(request)
-    end,
-  })
 end
 
 ---Set any extmarks in the chat buffer
@@ -801,6 +788,8 @@ function Chat:submit(opts)
   local bufnr = self.bufnr
 
   local message = buf_parse_message(bufnr)
+
+  -- Don't submit the chat buffer if there are no user messages
   if vim.tbl_isempty(message) then
     local has_user_messages = vim
       .iter(self.messages)
@@ -831,6 +820,37 @@ function Chat:submit(opts)
     message.content = self.variables:replace(message.content)
   end
 
+  log:debug("Messages:\n%s", self.messages)
+
+  ---Callback function to be called during the stream
+  ---@param err string
+  ---@param data table
+  local cb = function(err, data)
+    if err then
+      self.status = CONSTANTS.STATUS_ERROR
+      return self:done()
+    end
+
+    if data then
+      self:get_tokens(data)
+
+      local result = self.adapter.handlers.chat_output(self.adapter, data)
+      if result and result.status == CONSTANTS.STATUS_SUCCESS then
+        if result.output.role then
+          result.output.role = config.constants.LLM_ROLE
+        end
+        self.status = CONSTANTS.STATUS_SUCCESS
+        self:add_buf_message(result.output)
+      end
+    end
+  end
+
+  ---Callback function to be called when the stream is done
+  local done = function()
+    self.current_request = nil
+    return self:done()
+  end
+
   -- Check if the user has manually overriden the adapter. This is useful if the
   -- user loses their internet connection and wants to switch to a local LLM
   if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
@@ -839,46 +859,22 @@ function Chat:submit(opts)
 
   local settings = buf_parse_settings(bufnr, self.adapter)
   settings = self.adapter:map_schema_to_params(settings)
-
   log:debug("Settings:\n%s", settings)
-  log:debug("Messages:\n%s", self.messages)
 
   lock_buf(bufnr)
   self.cycle = self.cycle + 1
 
   log:info("Chat request started")
-  self.current_request = client
-    .new({ adapter = settings })
-    :request(self.adapter:map_roles(vim.deepcopy(self.messages)), function(err, data)
-      if err then
-        self.status = CONSTANTS.STATUS_ERROR
-        log:error("Error: %s", err)
-        return self:reset()
-      end
-
-      if data then
-        self:get_tokens(data)
-
-        local result = self.adapter.handlers.chat_output(self.adapter, data)
-        if result and result.status == CONSTANTS.STATUS_SUCCESS then
-          if result.output.role then
-            result.output.role = config.constants.LLM_ROLE
-          end
-          self.status = CONSTANTS.STATUS_SUCCESS
-          self:add_buf_message(result.output)
-        end
-      end
-    end, function()
-      self.current_request = nil
-    end, {
-      bufnr = bufnr,
-    })
+  self.current_request = client.new({ adapter = settings }):request(
+    self.adapter:map_roles(vim.deepcopy(self.messages)),
+    { callback = cb, done = done },
+    { bufnr = bufnr }
+  )
 end
 
 ---After the response from the LLM is received...
----@param request table
 ---@return nil
-function Chat:done(request)
+function Chat:done()
   self:add_message({ role = config.constants.LLM_ROLE, content = buf_parse_message(self.bufnr).content })
 
   self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
