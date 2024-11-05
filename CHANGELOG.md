@@ -1,5 +1,19 @@
 # Changelog
 
+## [9.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.1.0...v9.2.0) (2024-11-05)
+
+
+### Features
+
+* **adapters:** ✨ add Azure OpenAI ([#386](https://github.com/olimorris/codecompanion.nvim/issues/386)) ([542628d](https://github.com/olimorris/codecompanion.nvim/commit/542628dd68e26bbb59699aa48fe98b83a3798999))
+* **adapters:** update the new haiku model ([#404](https://github.com/olimorris/codecompanion.nvim/issues/404)) ([9b00ed3](https://github.com/olimorris/codecompanion.nvim/commit/9b00ed39c11f43fbb829bcbada2f0a7105dfcee6))
+
+
+### Bug Fixes
+
+* cancel requests to llm ([3a69421](https://github.com/olimorris/codecompanion.nvim/commit/3a694217ec868a8551fb6ec3203b98dad11888c9))
+* **copilot:** make gpt-4o the default again ([28e8ddc](https://github.com/olimorris/codecompanion.nvim/commit/28e8ddc97e0044e5f04ddd261ac6fa06da9deca6))
+
 ## [9.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.0.0...v9.1.0) (2024-11-04)
 
 
