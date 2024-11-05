@@ -1,3 +1,5 @@
+local config = require("codecompanion.config")
+
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 ---@class CodeCompanion.Tool
@@ -68,11 +70,11 @@ return {
 2. **Usage**: Return an XML markdown code block for to search the internet or navigate to a specific URL.
 
 3. **Key Points**:
-  - **Use at your discretion** when you feel you don't have access to the latest information
+  - **Use at your discretion** when you feel you don't have access to the latest information in order to answer the user's question
   - This tool is expensive so you may wish to ask the user before using it
   - Ensure XML is **valid and follows the schema**
   - **Don't escape** special characters
-  - **Wrap query's and URLs in a CDATA block**, the text could contain characters reserved by XML
+  - **Wrap queries and URLs in a CDATA block**, the text could contain characters reserved by XML
 
 4. **Actions**:
 
@@ -94,32 +96,53 @@ Remember:
       xml2lua.toXml({ tools = { schema[2] } })
     )
   end,
-  output_error_prompt = function(error)
-    if type(error) == "table" then
-      error = table.concat(error, "\n")
-    end
-    return string.format(
-      [[After the RAG tool completed, there was an error:
+  output = {
+    error = function(self, cmd, stderr)
+      if type(stderr) == "table" then
+        stderr = table.concat(stderr, "\n")
+      end
+
+      self.chat:add_message({
+        role = config.constants.USER_ROLE,
+        content = string.format(
+          [[After the RAG tool completed, there was an error:
 
 <error>
 %s
 </error>
 ]],
-      error
-    )
-  end,
-  output_prompt = function(output)
-    if type(output) == "table" then
-      output = table.concat(output, "\n")
-    end
+          stderr
+        ),
+      }, { visible = false })
 
-    return string.format(
-      [[Here is the content that the RAG tool found:
+      self.chat:add_buf_message({
+        role = config.constants.USER_ROLE,
+        content = "I've shared the error message from the RAG tool with you.\n",
+      })
+    end,
+
+    success = function(self, cmd, stdout)
+      if type(stdout) == "table" then
+        stdout = table.concat(stdout, "\n")
+      end
+
+      self.chat:add_message({
+        role = config.constants.USER_ROLE,
+        content = string.format(
+          [[Here is the content the RAG tool retrieved:
 
 <content>
 %s
-</content>]],
-      output
-    )
-  end,
+</content>
+]],
+          stdout
+        ),
+      }, { visible = false })
+
+      self.chat:add_buf_message({
+        role = config.constants.USER_ROLE,
+        content = "I've shared the content from the RAG tool with you.\n",
+      })
+    end,
+  },
 }

@@ -1,11 +1,10 @@
 local SlashCommands = require("codecompanion.strategies.chat.slash_commands")
-local config = require("codecompanion.config")
 local strategy = require("codecompanion.strategies")
 
 local source = {}
 
-function source.new()
-  return setmetatable({}, { __index = source })
+function source.new(config)
+  return setmetatable({ config = config }, { __index = source })
 end
 
 function source:is_available()
@@ -24,7 +23,7 @@ function source:complete(params, callback)
   local kind = require("cmp").lsp.CompletionItemKind.Function
 
   local slash_commands = vim
-    .iter(config.strategies.chat.slash_commands)
+    .iter(self.config.strategies.chat.slash_commands)
     :filter(function(name)
       return name ~= "opts"
     end)
@@ -43,7 +42,7 @@ function source:complete(params, callback)
     :totable()
 
   local prompts = vim
-    .iter(config.prompt_library)
+    .iter(self.config.prompt_library)
     :filter(function(_, v)
       return v.opts and v.opts.is_slash_cmd and v.strategy == "chat"
     end)
@@ -81,10 +80,10 @@ function source:execute(item, callback)
   if item.from_prompt_library then
     local prompts = strategy.evaluate_prompts(item.config.prompts, item.context)
     vim.iter(prompts):each(function(prompt)
-      if prompt.role == config.constants.SYSTEM_ROLE then
+      if prompt.role == self.config.constants.SYSTEM_ROLE then
         item.Chat:add_message(prompt, { visible = false })
-      elseif prompt.role == config.constants.USER_ROLE then
-        item.Chat:append_to_buf(prompt)
+      elseif prompt.role == self.config.constants.USER_ROLE then
+        item.Chat:add_buf_message(prompt)
       end
     end)
   else

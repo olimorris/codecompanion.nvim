@@ -9,18 +9,18 @@ config.strategies = {
   chat = {
     variables = {
       ["foo"] = {
-        callback = "utils.foo",
+        callback = "spec.codecompanion.strategies.chat.variables.foo",
         description = "foo",
       },
       ["bar"] = {
-        callback = "utils.bar",
+        callback = "spec.codecompanion.strategies.chat.variables.bar",
         description = "bar",
         opts = {
           has_params = true,
         },
       },
       ["baz"] = {
-        callback = "utils.baz",
+        callback = "spec.codecompanion.strategies.chat.variables.baz",
         description = "baz",
       },
     },
@@ -41,26 +41,6 @@ describe("Variables", function()
 
     chat = Chat.new({ adapter = "openai", context = { bufnr = 0 } })
     vars = Variables.new()
-
-    package.loaded["codecompanion.utils"] = {
-      foo = function(chat, params)
-        return "foo"
-      end,
-      bar = function(chat, params)
-        if params then
-          return "bar " .. params
-        end
-
-        return "bar"
-      end,
-      baz = function(chat, params)
-        if params then
-          return "baz " .. params
-        end
-
-        return "baz"
-      end,
-    }
   end)
 
   describe(":parse", function()

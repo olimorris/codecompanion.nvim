@@ -182,6 +182,7 @@ return {
       default = "gpt-4o-2024-05-13",
       choices = {
         "gpt-4o-2024-05-13",
+        "claude-3.5-sonnet",
       },
     },
     temperature = {

@@ -75,6 +75,7 @@ function M.display(token_str, ns_id, bufnr)
       virt_text = virtual_text,
       virt_text_pos = "eol",
       priority = 110,
+      hl_mode = "combine",
     })
   end
 end

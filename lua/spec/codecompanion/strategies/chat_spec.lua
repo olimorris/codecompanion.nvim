@@ -37,15 +37,10 @@ local adapter = {
 
 describe("Chat", function()
   before_each(function()
-    package.loaded["codecompanion.tools.code_runner"] = {
+    package.loaded["codecompanion.strategies.chat.tools.cmd_runner"] = {
       schema = {},
       system_prompt = function(schema)
         return "baz"
-      end,
-    }
-    package.loaded["codecompanion.helpers.variables"] = {
-      buffer = function(chat, params)
-        return "foobar"
       end,
     }
 
@@ -56,8 +51,13 @@ describe("Chat", function()
             llm = "assistant",
             user = "foo",
           },
+          variables = {
+            ["foo"] = {
+              callback = "spec.codecompanion.strategies.chat.variables.foo",
+              description = "foo",
+            },
+          },
         },
-
         agent = {
           adapter = "openai",
           tools = {
@@ -89,7 +89,7 @@ describe("Chat", function()
     end)
 
     it("buffer variables are handled", function()
-      table.insert(Chat.messages, { role = "user", content = "#buffer what does this file do?" })
+      table.insert(Chat.messages, { role = "user", content = "#foo what does this file do?" })
 
       local message = Chat.messages[#Chat.messages]
       if Chat.variables:parse(Chat, message) then
@@ -98,7 +98,7 @@ describe("Chat", function()
 
       -- Variable is inserted as its own new message at the end
       local message = Chat.messages[#Chat.messages]
-      assert.are.same("foobar", message.content)
+      assert.are.same("foo", message.content)
       assert.are.same(false, message.opts.visible)
       assert.are.same("variable", message.opts.tag)
     end)

@@ -1,5 +1,5 @@
 local assert = require("luassert")
-local files = require("codecompanion.helpers.tools.files")
+local files = require("codecompanion.strategies.chat.tools.files")
 
 describe("File tools", function()
   it("can create a file", function()
@@ -11,6 +11,13 @@ describe("File tools", function()
     local contents = file:read("*a")
     assert.are.same("Hello World", contents)
     file:close()
+  end)
+
+  it("can read a file", function()
+    local path = "~/tmp/test.txt"
+    local contents = files.actions.read({ path = path })
+
+    assert.are.same("Hello World", contents)
   end)
 
   it("can edit a file", function()

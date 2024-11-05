@@ -38,14 +38,17 @@ function Client.new(args)
   }, { __index = Client })
 end
 
+---@class CodeCompanion.Adapter.RequestActions
+---@field callback fun(err: nil|string, chunk: nil|table) Callback function, executed when the request has finished or is called multiple times if the request is streaming
+---@field done? fun() Function to run when the request is complete
+
 ---@param payload table The payload to be sent to the endpoint
----@param cb fun(err: nil|string, chunk: nil|table) Callback function, executed when the request has finished (can be called multiple times if the request is streaming)
----@param after? fun() Function to run when the request is finished
+---@param actions CodeCompanion.Adapter.RequestActions
 ---@param opts? table Options that can be passed to the request
 ---@return table|nil The Plenary job
-function Client:request(payload, cb, after, opts)
+function Client:request(payload, actions, opts)
   opts = opts or {}
-  cb = log:wrap_cb(cb, "Response error: %s")
+  local cb = log:wrap_cb(actions.callback, "Response error: %s")
 
   local adapter = self.adapter
   local handlers = adapter.handlers
@@ -84,14 +87,14 @@ function Client:request(payload, cb, after, opts)
           log:trace("Output data:\n%s", data)
           cb(nil, data)
         end
-        if after and type(after) == "function" then
-          after()
-        end
         if handlers and handlers.on_exit then
           handlers.on_exit(adapter, data)
         end
         if handlers and handlers.teardown then
           handlers.teardown(adapter)
+        end
+        if actions.done and type(actions.done) == "function" then
+          actions.done()
         end
 
         opts["status"] = "success"
@@ -107,8 +110,8 @@ function Client:request(payload, cb, after, opts)
     end,
     on_error = function(err)
       vim.schedule(function()
-        log:error("Error: %s", err)
-        return cb(err, nil)
+        cb(err, nil)
+        return util.fire("RequestFinished", opts)
       end)
     end,
   }
@@ -128,17 +131,18 @@ function Client:request(payload, cb, after, opts)
     request = adapter.opts.method:lower()
   end
 
-  local handler = self.opts[request](request_opts)
+  local job = self.opts[request](request_opts)
+
   util.fire("RequestStarted", opts)
 
-  if handler and handler.args then
-    log:debug("Request:\n%s", handler.args)
+  if job and job.args then
+    log:debug("Request:\n%s", job.args)
   end
   if self.user_args.event then
     util.fire("RequestStarted" .. (self.user_args.event or ""), opts)
   end
 
-  return handler
+  return job
 end
 
 return Client

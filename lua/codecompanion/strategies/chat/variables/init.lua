@@ -28,19 +28,23 @@ end
 local function resolve(chat, callback, params)
   local splits = vim.split(callback, ".", { plain = true })
   local path = table.concat(splits, ".", 1, #splits - 1)
-  local func = splits[#splits]
+  local variable = splits[#splits]
 
-  local ok, module = pcall(require, "codecompanion." .. path)
+  local ok, module = pcall(require, "codecompanion." .. path .. "." .. variable)
 
   -- User is using a custom callback
   if not ok then
-    log:trace("Calling variable: %s", path .. "." .. func)
-    return require(path)[func](chat, params)
+    log:trace("Calling variable: %s", path .. "." .. variable)
+    return require(path .. "." .. variable).new({ chat = chat, params = params }):execute()
   end
 
-  log:trace("Calling variable: %s", path .. "." .. func)
-  return module[func](chat, params)
+  log:trace("Calling variable: %s", path .. "." .. variable)
+  return module.new({ chat = chat, params = params }):execute()
 end
+
+---@class CodeCompanion.Variable
+---@field chat CodeCompanion.Chat
+---@field params string
 
 ---@class CodeCompanion.Variables
 ---@field vars table
@@ -96,7 +100,7 @@ function Variables:parse(chat, message)
 
       if (var_config.opts and var_config.opts.contains_code) and config.opts.send_code == false then
         log:debug("Sending of code disabled")
-        return
+        return false
       end
 
       local resolved_var = resolve(chat, var_config.callback, params)

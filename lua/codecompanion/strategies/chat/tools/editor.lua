@@ -44,6 +44,10 @@ local function delete(bufnr, action)
   add_delta(bufnr, start_line, (start_line - end_line - 1))
 end
 
+---@class EditorTool.Output
+---@field status string The output status. Either "success" or "error"
+---@field msg string The message to send back to the LLM
+
 ---@class CodeCompanion.Tool
 return {
   name = "editor",
@@ -51,7 +55,7 @@ return {
     ---Ensure the final function returns the status and the output
     ---@param self CodeCompanion.Tools The Tools object
     ---@param input any The output from the previous function call
-    ---@return table { status: string, output: string }
+    ---@return EditorTool.Output
     function(self, input)
       local diff
       local diff_started = false
@@ -66,7 +70,7 @@ return {
         log:debug("Editor tool request: %s", action)
 
         if not api.nvim_buf_is_valid(bufnr) then
-          return { status = "error", output = "Invalid buffer number" }
+          return { status = "error", msg = "Invalid buffer number" }
         end
 
         -- Diff the buffer
@@ -114,7 +118,7 @@ return {
       end
 
       deltas = {}
-      return { status = "success", output = nil }
+      return { status = "success", msg = nil }
     end,
   },
   schema = {

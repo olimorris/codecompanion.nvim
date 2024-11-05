@@ -169,16 +169,17 @@ local function buf_parse_tools(chat)
   )
   local assistant_tree = assistant_parser:parse()[1]
 
-  local assistant_response = {}
+  local llm = {}
   for id, node in assistant_query:iter_captures(assistant_tree:root(), chat.bufnr, 0, -1) do
     local name = assistant_query.captures[id]
     if name == "content" then
       local response = vim.treesitter.get_node_text(node, chat.bufnr)
-      table.insert(assistant_response, response)
+      table.insert(llm, response)
     end
   end
 
-  local response = assistant_response[#assistant_response]
+  -- Only work with the last response from the LLM
+  local response = llm[#llm]
 
   local parser = vim.treesitter.get_string_parser(response, "markdown")
   local tree = parser:parse()[1]
@@ -194,21 +195,21 @@ local function buf_parse_tools(chat)
 ]]
   )
 
-  local found_tools = {}
+  local tools = {}
   for id, node in query:iter_captures(tree:root(), response, 0, -1) do
     local name = query.captures[id]
     if name == "tool" then
       local tool = vim.treesitter.get_node_text(node, response)
-      table.insert(found_tools, tool)
+      table.insert(tools, tool)
     end
   end
 
-  log:debug("Tool detected: %s", found_tools)
+  log:debug("Tool detected: %s", tools)
 
-  --TODO: Parse XML to ensure the STag is <agent>
-
-  if #found_tools > 0 then
-    return chat.tools:setup(chat, found_tools[#found_tools])
+  if not vim.tbl_isempty(tools) then
+    vim.iter(tools):each(function(t)
+      return chat.tools:setup(chat, t)
+    end)
   end
 end
 
@@ -395,6 +396,19 @@ function Chat:open()
   return self
 end
 
+---Format the header in the chat buffer
+---@param tbl table containing the buffer contents
+---@param role string The role of the user to display in the header
+---@return nil
+local function format_header(tbl, role)
+  if config.display.chat.render_headers then
+    table.insert(tbl, string.format("## %s %s", role, config.display.chat.separator))
+  else
+    table.insert(tbl, string.format("## %s", role))
+  end
+  table.insert(tbl, "")
+end
+
 ---Render the settings and any messages in the chat buffer
 ---@return self
 function Chat:render()
@@ -402,11 +416,6 @@ function Chat:render()
 
   local function spacer()
     table.insert(lines, "")
-  end
-
-  local function set_header(role)
-    table.insert(lines, string.format("## %s %s", role, config.display.chat.separator))
-    spacer()
   end
 
   -- Prevent duplicate headers
@@ -420,10 +429,10 @@ function Chat:render()
         end
 
         if msg.role == config.constants.USER_ROLE and last_set_role ~= config.constants.USER_ROLE then
-          set_header(user_role)
+          format_header(lines, user_role)
         end
         if msg.role == config.constants.LLM_ROLE and last_set_role ~= config.constants.LLM_ROLE then
-          set_header(llm_role)
+          format_header(lines, llm_role)
         end
 
         for _, text in ipairs(vim.split(msg.content, "\n", { plain = true, trimempty = true })) do
@@ -459,7 +468,7 @@ function Chat:render()
 
   if vim.tbl_isempty(self.messages) then
     log:trace("Setting the header for the chat buffer")
-    set_header(user_role)
+    format_header(lines, user_role)
     spacer()
   else
     log:trace("Setting the messages in the chat buffer")
@@ -553,19 +562,6 @@ function Chat:set_autocmds()
       last_chat = self
     end,
   })
-
-  -- For when the request has completed
-  api.nvim_create_autocmd("User", {
-    group = self.aug,
-    desc = "Listen for chat completion",
-    pattern = "CodeCompanionRequestFinished",
-    callback = function(request)
-      if request.data.bufnr ~= self.bufnr then
-        return
-      end
-      self:done(request)
-    end,
-  })
 end
 
 ---Set any extmarks in the chat buffer
@@ -597,6 +593,10 @@ end
 ---Render the headers in the chat buffer and apply extmarks
 ---@return nil
 function Chat:render_headers()
+  if not config.display.chat.render_headers then
+    return
+  end
+
   local separator = config.display.chat.separator
   local lines = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
 
@@ -722,7 +722,7 @@ function Chat:add_tool(tool)
     return self
   end
 
-  -- Add the agent system prompt first
+  -- Add the overarching agent system prompt first
   if not self:has_tools() then
     self:add_message({
       role = config.constants.SYSTEM_ROLE,
@@ -788,6 +788,8 @@ function Chat:submit(opts)
   local bufnr = self.bufnr
 
   local message = buf_parse_message(bufnr)
+
+  -- Don't submit the chat buffer if there are no user messages
   if vim.tbl_isempty(message) then
     local has_user_messages = vim
       .iter(self.messages)
@@ -818,6 +820,37 @@ function Chat:submit(opts)
     message.content = self.variables:replace(message.content)
   end
 
+  log:debug("Messages:\n%s", self.messages)
+
+  ---Callback function to be called during the stream
+  ---@param err string
+  ---@param data table
+  local cb = function(err, data)
+    if err then
+      self.status = CONSTANTS.STATUS_ERROR
+      return self:done()
+    end
+
+    if data then
+      self:get_tokens(data)
+
+      local result = self.adapter.handlers.chat_output(self.adapter, data)
+      if result and result.status == CONSTANTS.STATUS_SUCCESS then
+        if result.output.role then
+          result.output.role = config.constants.LLM_ROLE
+        end
+        self.status = CONSTANTS.STATUS_SUCCESS
+        self:add_buf_message(result.output)
+      end
+    end
+  end
+
+  ---Callback function to be called when the stream is done
+  local done = function()
+    self.current_request = nil
+    return self:done()
+  end
+
   -- Check if the user has manually overriden the adapter. This is useful if the
   -- user loses their internet connection and wants to switch to a local LLM
   if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
@@ -826,49 +859,25 @@ function Chat:submit(opts)
 
   local settings = buf_parse_settings(bufnr, self.adapter)
   settings = self.adapter:map_schema_to_params(settings)
-
   log:debug("Settings:\n%s", settings)
-  log:debug("Messages:\n%s", self.messages)
 
   lock_buf(bufnr)
   self.cycle = self.cycle + 1
 
   log:info("Chat request started")
-  self.current_request = client
-    .new({ adapter = settings })
-    :request(self.adapter:map_roles(vim.deepcopy(self.messages)), function(err, data)
-      if err then
-        self.status = CONSTANTS.STATUS_ERROR
-        log:error("Error: %s", err)
-        return self:reset()
-      end
-
-      if data then
-        self:get_tokens(data)
-
-        local result = self.adapter.handlers.chat_output(self.adapter, data)
-        if result and result.status == CONSTANTS.STATUS_SUCCESS then
-          if result.output.role then
-            result.output.role = config.constants.LLM_ROLE
-          end
-          self.status = CONSTANTS.STATUS_SUCCESS
-          self:append_to_buf(result.output)
-        end
-      end
-    end, function()
-      self.current_request = nil
-    end, {
-      bufnr = bufnr,
-    })
+  self.current_request = client.new({ adapter = settings }):request(
+    self.adapter:map_roles(vim.deepcopy(self.messages)),
+    { callback = cb, done = done },
+    { bufnr = bufnr }
+  )
 end
 
 ---After the response from the LLM is received...
----@param request table
 ---@return nil
-function Chat:done(request)
+function Chat:done()
   self:add_message({ role = config.constants.LLM_ROLE, content = buf_parse_message(self.bufnr).content })
 
-  self:append_to_buf({ role = config.constants.USER_ROLE, content = "" })
+  self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
   self:display_tokens()
 
   if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
@@ -901,7 +910,7 @@ end
 function Chat:regenerate()
   if self.messages[#self.messages].role == config.constants.LLM_ROLE then
     table.remove(self.messages, #self.messages)
-    self:append_to_buf({ role = config.constants.USER_ROLE, content = "_Regenerating response..._" })
+    self:add_buf_message({ role = config.constants.USER_ROLE, content = "_Regenerating response..._" })
     self:submit({ regenerate = true })
   end
 end
@@ -998,10 +1007,10 @@ function Chat:last()
   return last_line, last_column, line_count
 end
 
----Append a message to the chat buffer
+---Add a message directly to the chat buffer. This will be visible to the user
 ---@param data table
 ---@param opts? table
-function Chat:append_to_buf(data, opts)
+function Chat:add_buf_message(data, opts)
   local lines = {}
   local bufnr = self.bufnr
   local new_response = false
@@ -1011,11 +1020,7 @@ function Chat:append_to_buf(data, opts)
     self.last_role = data.role
     table.insert(lines, "")
     table.insert(lines, "")
-    table.insert(
-      lines,
-      string.format("## %s %s", config.strategies.chat.roles[data.role], config.display.chat.separator)
-    )
-    table.insert(lines, "")
+    format_header(lines, config.strategies.chat.roles[data.role])
   end
 
   if data.content then

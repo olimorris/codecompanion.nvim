@@ -21,6 +21,22 @@ function M.notify(msg, level)
   })
 end
 
+---Get the Operating System
+---@return string
+function M.os()
+  local os_name
+  if vim.fn.has("win32") == 1 then
+    os_name = "Windows"
+  elseif vim.fn.has("macunix") == 1 then
+    os_name = "macOS"
+  elseif vim.fn.has("unix") == 1 then
+    os_name = "Unix"
+  else
+    os_name = "Unknown"
+  end
+  return os_name
+end
+
 ---Make the first letter uppercase
 ---@param str string
 ---@return string

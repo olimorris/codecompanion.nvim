@@ -55,46 +55,48 @@ function SlashCommand:execute()
       end,
     }
 
+    local cb = function(err, data)
+      if err then
+        return log:error("Error: %s", err)
+      end
+
+      if data then
+        ok, data = pcall(vim.fn.json_decode, data.body)
+        if not ok then
+          return log:error("Failed to decode the response")
+        end
+
+        if data.code == 200 then
+          local content = fmt(
+            [[Here is the content from <url>%s</url> that I'm sharing with you:
+
+<content>
+%s
+</content>]],
+            input,
+            data.data.text
+          )
+
+          self.Chat:add_message({
+            role = config.constants.USER_ROLE,
+            content = content,
+          }, { visible = false })
+
+          return util.notify(fmt("Added the page contents for: %s", input))
+        end
+        if data.code >= 400 then
+          return log:error("Error: %s", data.body.data)
+        end
+      end
+    end
+
     client
       .new({
         adapter = adapter,
       })
       :request({
         url = input,
-      }, function(err, chunk)
-        if err then
-          return log:error("Error: %s", err)
-        end
-
-        if chunk then
-          ok, chunk = pcall(vim.fn.json_decode, chunk.body)
-          if not ok then
-            return log:error("Failed to decode the response")
-          end
-
-          if chunk.code == 200 then
-            local content = fmt(
-              [[Here is the content from <url>%s</url> that I'm sharing with you:
-
-<content>
-%s
-</content>]],
-              input,
-              chunk.data.text
-            )
-
-            self.Chat:add_message({
-              role = config.constants.USER_ROLE,
-              content = content,
-            }, { visible = false })
-
-            return util.notify(fmt("Added the page contents for: %s", input))
-          end
-          if chunk.code >= 400 then
-            return log:error("Error: %s", chunk.body.data)
-          end
-        end
-      end)
+      }, { callback = cb })
   end)
 end
 

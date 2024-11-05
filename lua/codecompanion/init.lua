@@ -101,7 +101,7 @@ M.add = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
   local content = table.concat(context.lines, "\n")
 
-  chat:append_to_buf({
+  chat:add_buf_message({
     role = config.constants.USER_ROLE,
     content = "Here is some code from "
       .. context.filename
@@ -220,6 +220,7 @@ M.setup = function(opts)
   api.nvim_set_hl(0, "CodeCompanionChatHeader", { link = "@markup.heading.2.markdown", default = true })
   api.nvim_set_hl(0, "CodeCompanionChatSeparator", { link = "@punctuation.special.markdown", default = true })
   api.nvim_set_hl(0, "CodeCompanionChatTokens", { link = "Comment", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatAgent", { link = "Constant", default = true })
   api.nvim_set_hl(0, "CodeCompanionChatTool", { link = "Special", default = true })
   api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
   api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
@@ -231,15 +232,23 @@ M.setup = function(opts)
     pattern = "codecompanion",
     group = group,
     callback = vim.schedule_wrap(function()
-      for name, var in pairs(config.strategies.chat.variables) do
+      vim.iter(config.strategies.chat.variables):each(function(name, var)
         vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '"')
         if var.opts and var.opts.has_params then
           vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. ':\\d\\+-\\?\\d\\+"')
         end
-      end
-      for name, _ in pairs(config.strategies.agent.tools) do
+      end)
+      vim.iter(config.strategies.agent.tools):each(function(name, _)
         vim.cmd.syntax('match CodeCompanionChatTool "@' .. name .. '"')
-      end
+      end)
+      vim
+        .iter(config.strategies.agent)
+        :filter(function(name)
+          return name ~= "tools"
+        end)
+        :each(function(name, _)
+          vim.cmd.syntax('match CodeCompanionChatAgent "@' .. name .. '"')
+        end)
     end),
   })
 
@@ -277,7 +286,7 @@ M.setup = function(opts)
   if has_cmp then
     cmp.register_source("codecompanion_tools", require("cmp_codecompanion.tools").new(config))
     cmp.register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
-    cmp.register_source("codecompanion_slash_commands", require("cmp_codecompanion.slash_commands").new())
+    cmp.register_source("codecompanion_slash_commands", require("cmp_codecompanion.slash_commands").new(config))
     cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new(config))
     cmp.setup.filetype("codecompanion", {
       enabled = true,

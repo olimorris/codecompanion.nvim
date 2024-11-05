@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.10.0       Last change: 2024 October 29
+*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 November 05
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -15,7 +15,7 @@ Table of Contents                            *codecompanion-table-of-contents*
 FEATURES                                              *codecompanion-features*
 
 - Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
-- Support for Anthropic, Copilot, Gemini, Ollama, OpenAI and xAI LLMs (or bring your own!)
+- Support for Anthropic, Copilot, Gemini, Ollama, OpenAI, Azure OpenAI and xAI LLMs (or bring your own!)
 - Inline transformations, code creation and refactoring
 - Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
 - Built in prompt library for common tasks like advice on LSP errors and code explanations
@@ -45,6 +45,7 @@ Install the plugin with your preferred package manager:
         "nvim-treesitter/nvim-treesitter",
         "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
         "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
+        { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } }, -- Optional: For prettier markdown rendering
         { "stevearc/dressing.nvim", opts = {} }, -- Optional: Improves `vim.ui.select`
       },
       config = true
@@ -64,6 +65,7 @@ Install the plugin with your preferred package manager:
         "nvim-treesitter/nvim-treesitter",
         "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
         "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
+        { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } }, -- Optional: For prettier markdown rendering
         "stevearc/dressing.nvim" -- Optional: Improves `vim.ui.select`
       }
     })
@@ -79,6 +81,7 @@ Install the plugin with your preferred package manager:
     Plug 'hrsh7th/nvim-cmp', " Optional: For using slash commands and variables in the chat buffer
     Plug 'nvim-telescope/telescope.nvim', " Optional: For using slash commands
     Plug 'stevearc/dressing.nvim' " Optional: Improves `vim.ui.select`
+    Plug 'MeanderingProgrammer/render-markdown.nvim' " Optional: For prettier markdown rendering
     Plug 'olimorris/codecompanion.nvim'
     
     call plug#end()
@@ -140,10 +143,15 @@ into the chat buffer:
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out
 actions:
 
-- `@code_runner` - The LLM will run code for you in a Docker container
+- `@cmd_runner` - The LLM will run shell commands (subject to approval)
 - `@editor` - The LLM will edit code in a Neovim buffer
 - `@files` - The LLM will can work with files on the file system (subject to approval)
 - `@rag` - The LLM will browse and search the internet for real-time information to supplement its response
+
+Tools can also be grouped together to form _Agents_, which are also accessed
+via `@` in the chat buffer:
+
+- `@full_stack_dev` - Contains the `cmd_runner`, `editor` and `files` tools.
 
 
   [!TIP] Press `?` in the chat buffer to reveal the keymaps and options that are
@@ -233,6 +241,7 @@ supports:
 - Gemini (`gemini`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
+- Azure OpenAI (`azure_openai`) - Requires an Azure OpenAI service with a model deployment
 - xAI (`xai`) - Requires an API key
 
 The plugin utilises objects called Strategies. These are the different ways
@@ -290,6 +299,22 @@ setting system prompts that are LLM or model specific:
           end
           return "My default system prompt"
         end
+      }
+    })
+<
+
+**Using with render-markdown.nvim**
+
+If you use the fantastic render-markdown.nvim
+<https://github.com/MeanderingProgrammer/render-markdown.nvim> plugin, then
+please ensure you turn off the `render_headers` display option:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          render_headers = false,
+        }
       }
     })
 <
@@ -404,6 +429,43 @@ set an API key:
               url = "http[s]://open_compatible_ai_url", -- optional: default value is ollama url http://127.0.0.1:11434
               api_key = "OpenAI_API_KEY", -- optional: if your endpoint is authenticated
               chat_url = "/v1/chat/completions", -- optional: default value, override if different
+            },
+          })
+        end,
+      },
+    })
+<
+
+**Using Azure OpenAI**
+
+To use Azure OpenAI, you need to have an Azure OpenAI service, an API key, and
+a model deployment. Follow these steps to configure the adapter:
+
+1. Create an Azure OpenAI service in your Azure portal.
+2. Deploy a model in the Azure OpenAI service.
+3. Obtain the API key from the Azure portal.
+
+Then, configure the adapter in your setup as follows:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          adapter = "azure_openai",
+        },
+        inline = {
+          adapter = "azure_openai",
+        },
+      },
+      adapters = {
+        azure_openai = function()
+          return require("codecompanion.adapters").extend("azure_openai", {
+            env = {
+              api_key = 'YOUR_AZURE_OPENAI_API_KEY',
+              endpoint = 'YOUR_AZURE_OPENAI_ENDPOINT',
+            },
+            schema = {
+              model = "YOUR_DEPLOYMENT_NAME",
             },
           })
         end,
@@ -614,13 +676,13 @@ examples such as web searching or code execution that have obvious benefits
 when using LLMs.
 
 In the plugin, tools are simply context that’s given to an LLM via a `system`
-prompt. This gives it knowledge and a defined schema which it can include in
-its response for the plugin to parse, execute and feedback on. Essentially
-turning it into an Agent. Tools can be added as a participant to the chat
-buffer by using the `@` key.
+prompt and Agents are groupings of tools. These give LLM’s knowledge and a
+defined schema which can be included in the response for the plugin to parse,
+execute and feedback on. Agents and tools can be added as a participant to the
+chat buffer by using the `@` key.
 
-More information on how tools work and how you can create your own can be found
-in the TOOLS <doc/TOOLS.md> guide.
+More information on how agents and tools work and how you can create your own
+can be found in the TOOLS <doc/TOOLS.md> guide.
 
 
 AGENTIC WORKFLOWS ~
@@ -649,6 +711,7 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatHeader` - The headers in the chat buffer
 - `CodeCompanionChatSeparator` - Separator between headings in the chat buffer
 - `CodeCompanionChatTokens` - Virtual text in the chat buffer showing the token count
+- `CodeCompanionChatAgent` - Agents in the chat buffer
 - `CodeCompanionChatTool` - Tools in the chat buffer
 - `CodeCompanionChatVariable` - Variables in the chat buffer
 - `CodeCompanionVirtualText` - All other virtual text in the plugin

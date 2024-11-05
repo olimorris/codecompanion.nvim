@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-Currently supports: Anthropic, Copilot, Gemini, Ollama, OpenAI and xAI adapters<br><br>
+Currently supports: Anthropic, Copilot, Gemini, Ollama, OpenAI, Azure OpenAI and xAI adapters<br><br>
 New features are always announced <a href="https://github.com/olimorris/codecompanion.nvim/discussions/categories/announcements">here</a>
 </p>
 
@@ -20,7 +20,7 @@ New features are always announced <a href="https://github.com/olimorris/codecomp
 Thank you to the following people:
 
 <p align="center">
-<!-- coffee --><a href="https://github.com/bassamsdata"><img src="https://github.com/bassamsdata.png" width="60px" alt="Bassam Data" /></a><a href="https://github.com/ivo-toby"><img src="https://github.com/ivo-toby.png" width="60px" alt="Ivo Toby" /></a><a href="https://github.com/KTSCode"><img src="https://github.com/KTSCode.png" width="60px" alt="KTS Code" /></a><a href="https://x.com/luxus"><img src="https://pbs.twimg.com/profile_images/744754093495844864/GwnEJygG_400x400.jpg" width="60px" alt="Luxus" /></a><!-- coffee --><!-- sponsors --><a href="https://github.com/zhming0"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;1054703?u&#x3D;b173a2c1afc61fa25d9343704659630406e3dea7&amp;v&#x3D;4" width="60px" alt="Zhiming Guo" /></a><a href="https://github.com/MDario123"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;102547680?v&#x3D;4" width="60px" alt="" /></a><a href="https://github.com/carlosflorencio"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;1500881?u&#x3D;6b4f80028aea4589bc3632739a40191bbcf58d22&amp;v&#x3D;4" width="60px" alt="Carlos Florêncio" /></a><!-- sponsors -->
+<!-- coffee --><a href="https://github.com/bassamsdata"><img src="https://github.com/bassamsdata.png" width="60px" alt="Bassam Data" /></a><a href="https://github.com/ivo-toby"><img src="https://github.com/ivo-toby.png" width="60px" alt="Ivo Toby" /></a><a href="https://github.com/KTSCode"><img src="https://github.com/KTSCode.png" width="60px" alt="KTS Code" /></a><a href="https://x.com/luxus"><img src="https://pbs.twimg.com/profile_images/744754093495844864/GwnEJygG_400x400.jpg" width="60px" alt="Luxus" /></a><!-- coffee --><!-- sponsors --><a href="https://github.com/zhming0"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;1054703?u&#x3D;b173a2c1afc61fa25d9343704659630406e3dea7&amp;v&#x3D;4" width="60px" alt="Zhiming Guo" /></a><a href="https://github.com/carlosflorencio"><img src="https:&#x2F;&#x2F;avatars.githubusercontent.com&#x2F;u&#x2F;1500881?u&#x3D;6b4f80028aea4589bc3632739a40191bbcf58d22&amp;v&#x3D;4" width="60px" alt="Carlos Florêncio" /></a><!-- sponsors -->
 </p>
 
 <!-- panvimdoc-ignore-end -->
@@ -28,7 +28,7 @@ Thank you to the following people:
 ## :sparkles: Features
 
 - :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
-- :electric_plug: Support for Anthropic, Copilot, Gemini, Ollama, OpenAI and xAI LLMs (or bring your own!)
+- :electric_plug: Support for Anthropic, Copilot, Gemini, Ollama, OpenAI, Azure OpenAI and xAI LLMs (or bring your own!)
 - :rocket: Inline transformations, code creation and refactoring
 - :robot: Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
 - :sparkles: Built in prompt library for common tasks like advice on LSP errors and code explanations
@@ -41,6 +41,7 @@ Thank you to the following people:
 ## :camera_flash: Screenshots
 
 <div align="center">
+  <p>https://github.com/user-attachments/assets/04a2bed3-7af0-4c07-b58f-f644cef1c4bb</p>
   <p>https://github.com/user-attachments/assets/4e2a3680-cef5-4134-bf94-e2be93242b38</p>
 </div>
 
@@ -66,6 +67,7 @@ Install the plugin with your preferred package manager:
     "nvim-treesitter/nvim-treesitter",
     "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
     "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
+    { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } }, -- Optional: For prettier markdown rendering
     { "stevearc/dressing.nvim", opts = {} }, -- Optional: Improves `vim.ui.select`
   },
   config = true
@@ -85,6 +87,7 @@ use({
     "nvim-treesitter/nvim-treesitter",
     "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
     "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
+    { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } }, -- Optional: For prettier markdown rendering
     "stevearc/dressing.nvim" -- Optional: Improves `vim.ui.select`
   }
 })
@@ -100,6 +103,7 @@ Plug 'nvim-treesitter/nvim-treesitter'
 Plug 'hrsh7th/nvim-cmp', " Optional: For using slash commands and variables in the chat buffer
 Plug 'nvim-telescope/telescope.nvim', " Optional: For using slash commands
 Plug 'stevearc/dressing.nvim' " Optional: Improves `vim.ui.select`
+Plug 'MeanderingProgrammer/render-markdown.nvim' " Optional: For prettier markdown rendering
 Plug 'olimorris/codecompanion.nvim'
 
 call plug#end()
@@ -157,10 +161,14 @@ _Slash commands_, accessed via `/`, run commands to insert additional context in
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out actions:
 
-- `@code_runner` - The LLM will run code for you in a Docker container
+- `@cmd_runner` - The LLM will run shell commands (subject to approval)
 - `@editor` - The LLM will edit code in a Neovim buffer
 - `@files` -  The LLM will can work with files on the file system (subject to approval)
 - `@rag` - The LLM will browse and search the internet for real-time information to supplement its response
+
+Tools can also be grouped together to form _Agents_, which are also accessed via `@` in the chat buffer:
+
+- `@full_stack_dev` - Contains the `cmd_runner`, `editor` and `files` tools.
 
 > [!TIP]
 > Press `?` in the chat buffer to reveal the keymaps and options that are available.
@@ -254,6 +262,7 @@ The plugin uses adapters to connect to LLMs. Out of the box, the plugin supports
 - Gemini (`gemini`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
+- Azure OpenAI (`azure_openai`) - Requires an Azure OpenAI service with a model deployment
 - xAI (`xai`) - Requires an API key
 
 The plugin utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer. The _agent_ and _workflow_ strategies are wrappers for the _chat_ strategy, allowing for [tool use](#robot-agents--tools) and [agentic workflows](#world_map-agentic-workflows).
@@ -294,6 +303,20 @@ require("codecompanion").setup({
       end
       return "My default system prompt"
     end
+  }
+})
+```
+
+**Using with render-markdown.nvim**
+
+If you use the fantastic [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) plugin, then please ensure you turn off the `render_headers` display option:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      render_headers = false,
+    }
   }
 })
 ```
@@ -397,6 +420,42 @@ require("codecompanion").setup({
           url = "http[s]://open_compatible_ai_url", -- optional: default value is ollama url http://127.0.0.1:11434
           api_key = "OpenAI_API_KEY", -- optional: if your endpoint is authenticated
           chat_url = "/v1/chat/completions", -- optional: default value, override if different
+        },
+      })
+    end,
+  },
+})
+```
+
+**Using Azure OpenAI**
+
+To use Azure OpenAI, you need to have an Azure OpenAI service, an API key, and a model deployment. Follow these steps to configure the adapter:
+
+1. Create an Azure OpenAI service in your Azure portal.
+2. Deploy a model in the Azure OpenAI service.
+3. Obtain the API key from the Azure portal.
+
+Then, configure the adapter in your setup as follows:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      adapter = "azure_openai",
+    },
+    inline = {
+      adapter = "azure_openai",
+    },
+  },
+  adapters = {
+    azure_openai = function()
+      return require("codecompanion.adapters").extend("azure_openai", {
+        env = {
+          api_key = 'YOUR_AZURE_OPENAI_API_KEY',
+          endpoint = 'YOUR_AZURE_OPENAI_ENDPOINT',
+        },
+        schema = {
+          model = "YOUR_DEPLOYMENT_NAME",
         },
       })
     end,
@@ -555,9 +614,9 @@ By default, an inline assistant prompt will trigger the diff feature, showing di
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
-In the plugin, tools are simply context that's given to an LLM via a `system` prompt. This gives it knowledge and a defined schema which it can include in its response for the plugin to parse, execute and feedback on. Essentially turning it into an Agent. Tools can be added as a participant to the chat buffer by using the `@` key.
+In the plugin, tools are simply context that's given to an LLM via a `system` prompt and Agents are groupings of tools. These give LLM's knowledge and a defined schema which can be included in the response for the plugin to parse, execute and feedback on. Agents and tools can be added as a participant to the chat buffer by using the `@` key.
 
-More information on how tools work and how you can create your own can be found in the [TOOLS](doc/TOOLS.md) guide.
+More information on how agents and tools work and how you can create your own can be found in the [TOOLS](doc/TOOLS.md) guide.
 
 ### :world_map: Agentic Workflows
 
@@ -576,6 +635,7 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatHeader` - The headers in the chat buffer
 - `CodeCompanionChatSeparator` - Separator between headings in the chat buffer
 - `CodeCompanionChatTokens` - Virtual text in the chat buffer showing the token count
+- `CodeCompanionChatAgent` - Agents in the chat buffer
 - `CodeCompanionChatTool` - Tools in the chat buffer
 - `CodeCompanionChatVariable` - Variables in the chat buffer
 - `CodeCompanionVirtualText` - All other virtual text in the plugin

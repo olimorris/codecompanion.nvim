@@ -18,7 +18,7 @@ end
 ---@return nil
 function SlashCommand:execute()
   local Chat = self.Chat
-  Chat:append_to_buf({ content = os.date("%a, %d %b %Y %H:%M:%S %z") })
+  Chat:add_buf_message({ content = os.date("%a, %d %b %Y %H:%M:%S %z") })
 end
 
 return SlashCommand

@@ -153,7 +153,7 @@ function Strategies:workflow()
         order = order,
         type = "once",
         callback = function(chat_obj)
-          chat_obj:append_to_buf(prompt)
+          chat_obj:add_buf_message(prompt)
           if prompt.opts and prompt.opts.auto_submit then
             chat_obj:submit()
           end
