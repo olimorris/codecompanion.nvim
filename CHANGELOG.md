@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.2.0...v9.3.0) (2024-11-06)
+
+
+### Features
+
+* add language configuration for LLM responses ([#410](https://github.com/olimorris/codecompanion.nvim/issues/410)) ([e1a39bb](https://github.com/olimorris/codecompanion.nvim/commit/e1a39bb4e19cbda955a0f3caf09b78b798d10c4c))
+
 ## [9.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.1.0...v9.2.0) (2024-11-05)
 
 
