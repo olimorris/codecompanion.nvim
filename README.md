@@ -297,8 +297,8 @@ require("codecompanion").setup({
   opts = {
     ---@param adapter CodeCompanion.Adapter
     ---@return string
-    system_prompt = function(adapter)
-      if adapter.schema.model.default == "llama3.1:latest" then
+    system_prompt = function(opts)
+      if opts.adapter.schema.model.default == "llama3.1:latest" then
         return "My custom system prompt"
       end
       return "My default system prompt"
@@ -317,7 +317,6 @@ require('codecompanion').setup({
   }
 })
 ```
-
 
 **Using with render-markdown.nvim**
 
