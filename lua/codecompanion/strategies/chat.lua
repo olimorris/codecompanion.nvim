@@ -626,7 +626,10 @@ function Chat:set_system_prompt()
   local prompt = config.opts.system_prompt
   if prompt ~= "" then
     if type(prompt) == "function" then
-      prompt = prompt(self.adapter)
+      prompt = prompt({
+        adapter = self.adapter,
+        language = config.opts.language
+      })
     end
 
     local system_prompt = {
