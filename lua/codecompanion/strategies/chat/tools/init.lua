@@ -392,27 +392,31 @@ end
 
 ---@param chat CodeCompanion.Chat
 ---@param message table
+---@return boolean
 function Tools:parse(chat, message)
   local tools, agents = self:find(chat, message)
 
-  if tools and not vim.tbl_isempty(tools) then
-    for _, tool in ipairs(tools) do
-      chat:add_tool(self.agent_config.tools[tool])
-    end
-  end
-
-  if agents and not vim.tbl_isempty(agents) then
-    for _, agent in ipairs(agents) do
-      if self.agent_config[agent].system_prompt then
-        chat:add_message({
-          role = config.constants.SYSTEM_ROLE,
-          content = self.agent_config[agent].system_prompt,
-        }, { tag = "tool", visible = false })
+  if tools or agents then
+    if tools and not vim.tbl_isempty(tools) then
+      for _, tool in ipairs(tools) do
+        chat:add_tool(self.agent_config.tools[tool])
       end
     end
+
+    if agents and not vim.tbl_isempty(agents) then
+      for _, agent in ipairs(agents) do
+        if self.agent_config[agent].system_prompt then
+          chat:add_message({
+            role = config.constants.SYSTEM_ROLE,
+            content = self.agent_config[agent].system_prompt,
+          }, { tag = "tool", visible = false })
+        end
+      end
+    end
+    return true
   end
 
-  return chat
+  return false
 end
 
 ---Replace the tool tag in a given message

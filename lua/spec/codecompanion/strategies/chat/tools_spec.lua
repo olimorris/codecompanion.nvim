@@ -70,8 +70,8 @@ describe("Tools", function()
         role = "user",
         content = "@foo do some stuff",
       })
-      local result = tools:parse(chat, chat.messages[#chat.messages])
-      local messages = result.messages
+      tools:parse(chat, chat.messages[#chat.messages])
+      local messages = chat.messages
 
       assert.equals("My tool system prompt", messages[#messages - 1].content)
       assert.equals("foo", messages[#messages].content)

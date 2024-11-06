@@ -779,17 +779,22 @@ function Chat:add_message(data, opts)
   return self
 end
 
----Submit the chat buffer's contents to the LLM
----@param opts? table
+---Apply any tools or variables that a user has tagged in their message
+---@param message table
 ---@return nil
-function Chat:submit(opts)
-  opts = opts or {}
+function Chat:apply_tools_and_variables(message)
+  if self.tools:parse(self, message) then
+    message.content = self.tools:replace(message.content)
+  end
+  if self.variables:parse(self, message) then
+    message.content = self.variables:replace(message.content)
+  end
+end
 
-  local bufnr = self.bufnr
-
-  local message = buf_parse_message(bufnr)
-
-  -- Don't submit the chat buffer if there are no user messages
+---Are there any user messages in the chat buffer?
+---@param message table
+---@return boolean
+function Chat:has_user_messages(message)
   if vim.tbl_isempty(message) then
     local has_user_messages = vim
       .iter(self.messages)
@@ -799,57 +804,32 @@ function Chat:submit(opts)
       :totable()
 
     if #has_user_messages == 0 then
-      return log:warn("No messages to submit")
+      return false
     end
   end
+  return true
+end
 
-  --- If we're regenerating the response, we don't want to add the user's last
-  --- message from the buffer as it sends unnecessary context to the LLM
+---Submit the chat buffer's contents to the LLM
+---@param opts? table
+---@return nil
+function Chat:submit(opts)
+  opts = opts or {}
+
+  local bufnr = self.bufnr
+
+  local message = buf_parse_message(bufnr)
+  if not self:has_user_messages(message) then
+    return log:warn("No messages to submit")
+  end
+
+  --- Only send the user's last message if we're not regenerating the response
   if not opts.regenerate and not vim.tbl_isempty(message) then
     self:add_message({ role = config.constants.USER_ROLE, content = message.content })
   end
-
   message = self.messages[#self.messages]
 
-  self.tools:parse(self, message)
-  if self:has_tools() then
-    message.content = self.tools:replace(message.content)
-  end
-
-  if self.variables:parse(self, message) then
-    message.content = self.variables:replace(message.content)
-  end
-
-  log:debug("Messages:\n%s", self.messages)
-
-  ---Callback function to be called during the stream
-  ---@param err string
-  ---@param data table
-  local cb = function(err, data)
-    if err then
-      self.status = CONSTANTS.STATUS_ERROR
-      return self:done()
-    end
-
-    if data then
-      self:get_tokens(data)
-
-      local result = self.adapter.handlers.chat_output(self.adapter, data)
-      if result and result.status == CONSTANTS.STATUS_SUCCESS then
-        if result.output.role then
-          result.output.role = config.constants.LLM_ROLE
-        end
-        self.status = CONSTANTS.STATUS_SUCCESS
-        self:add_buf_message(result.output)
-      end
-    end
-  end
-
-  ---Callback function to be called when the stream is done
-  local done = function()
-    self.current_request = nil
-    return self:done()
-  end
+  self:apply_tools_and_variables(message)
 
   -- Check if the user has manually overriden the adapter. This is useful if the
   -- user loses their internet connection and wants to switch to a local LLM
@@ -859,22 +839,47 @@ function Chat:submit(opts)
 
   local settings = buf_parse_settings(bufnr, self.adapter)
   settings = self.adapter:map_schema_to_params(settings)
+
   log:debug("Settings:\n%s", settings)
+  log:debug("Messages:\n%s", self.messages)
+  log:info("Chat request started")
 
   lock_buf(bufnr)
   self.cycle = self.cycle + 1
+  self.current_request = client
+    .new({ adapter = settings })
+    :request(self.adapter:map_roles(vim.deepcopy(self.messages)), {
+      ---@param err string
+      ---@param data table
+      callback = function(err, data)
+        if err then
+          self.status = CONSTANTS.STATUS_ERROR
+          return self:done()
+        end
 
-  log:info("Chat request started")
-  self.current_request = client.new({ adapter = settings }):request(
-    self.adapter:map_roles(vim.deepcopy(self.messages)),
-    { callback = cb, done = done },
-    { bufnr = bufnr }
-  )
+        if data then
+          self:get_tokens(data)
+
+          local result = self.adapter.handlers.chat_output(self.adapter, data)
+          if result and result.status == CONSTANTS.STATUS_SUCCESS then
+            if result.output.role then
+              result.output.role = config.constants.LLM_ROLE
+            end
+            self.status = CONSTANTS.STATUS_SUCCESS
+            self:add_buf_message(result.output)
+          end
+        end
+      end,
+      done = function()
+        self:done()
+      end,
+    }, { bufnr = bufnr })
 end
 
 ---After the response from the LLM is received...
 ---@return nil
 function Chat:done()
+  self.current_request = nil
   self:add_message({ role = config.constants.LLM_ROLE, content = buf_parse_message(self.bufnr).content })
 
   self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
