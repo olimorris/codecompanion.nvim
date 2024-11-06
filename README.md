@@ -306,6 +306,18 @@ require("codecompanion").setup({
   }
 })
 ```
+**Changing the Language**
+
+CodeCompanion supports multiple languages for non-code responses. You can configure this in your setup:
+
+```lua
+require('codecompanion').setup({
+  opts = {
+    language = "English" -- Default is "English"
+  }
+})
+```
+
 
 **Using with render-markdown.nvim**
 

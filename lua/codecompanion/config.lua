@@ -830,6 +830,7 @@ This is the code, for context:
   -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
     log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
+    language = "English", -- The language used for LLM responses
 
     -- If this is false then any default prompt that is marked as containing code
     -- will not be sent to the LLM. Please note that whilst I have made every
@@ -840,7 +841,10 @@ This is the code, for context:
     -- strategy. It is primarily based on the GitHub Copilot Chat's prompt
     -- but with some modifications. You can choose to remove this via
     -- your own config but note that LLM results may not be as good
-    system_prompt = [[You are an AI programming assistant named "CodeCompanion".
+    system_prompt = function(opts)
+      local language = opts.language or "English"
+      return string.format(
+        [[You are an AI programming assistant named "CodeCompanion".
 You are currently plugged in to the Neovim text editor on a user's machine.
 
 Your core tasks include:
@@ -866,12 +870,16 @@ You must:
 - Only return code that's relevant to the task at hand. You may not need to return all of the code that the user has shared.
 - Use actual line breaks instead of '\n' in your response to begin new lines.
 - Use '\n' only when you want a literal backslash followed by a character 'n'.
+- All non-code responses must use %s.
 
 When given a task:
 1. Think step-by-step and describe your plan for what to build in pseudocode, written out in great detail, unless asked not to do so.
 2. Output the code in a single code block, being careful to only return relevant code.
 3. You should always generate short suggestions for the next user turns that are relevant to the conversation.
 4. You can only give one reply for each conversation turn.]],
+        language
+      )
+    end,
   },
 }
 
