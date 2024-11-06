@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.3.0...v9.4.0) (2024-11-06)
+
+
+### Features
+
+* /buffer slash command can select multiple buffers ([e88b703](https://github.com/olimorris/codecompanion.nvim/commit/e88b7036a6428ce82b7254b0a2d58ae869635bbd))
+
 ## [9.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.2.0...v9.3.0) (2024-11-06)
 
 
