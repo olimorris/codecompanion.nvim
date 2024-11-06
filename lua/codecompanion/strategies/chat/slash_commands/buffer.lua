@@ -10,6 +10,7 @@ local api = vim.api
 CONSTANTS = {
   NAME = "Buffer",
   PROMPT = "Select a buffer",
+  PROMPT_MULTI = "Select buffers",
   DISPLAY = "name",
 }
 
@@ -79,22 +80,82 @@ local Providers = {
       return log:error("Telescope is not installed")
     end
 
+    local function process_buffers(selections)
+      local combined_content = {}
+      local buffer_names = {}
+
+      for _, selection in ipairs(selections) do
+        local content
+        -- Get just the filename without the path
+        local filename = vim.fn.fnamemodify(selection.filename, ":t")
+
+        if not api.nvim_buf_is_loaded(selection.bufnr) then
+          content = file_utils.read(selection.path)
+          if content == "" then
+            log:warn("Could not read the file: %s", selection.path)
+            goto continue
+          end
+          content = "```" .. file_utils.get_filetype(selection.path) .. "\n" .. content .. "\n```"
+        else
+          content = buf.format(selection.bufnr)
+        end
+
+        table.insert(
+          combined_content,
+          string.format(
+            [[Content from %s (buffer: _%d_, path: `%s`):
+
+%s]],
+            filename,
+            selection.bufnr,
+            selection.path,
+            content
+          )
+        )
+        table.insert(buffer_names, filename)
+        ::continue::
+      end
+
+      if #combined_content == 0 then
+        return
+      end
+
+      local Chat = SlashCommand.Chat
+      Chat:add_message({
+        role = config.constants.USER_ROLE,
+        content = table.concat(combined_content, "\n\n"),
+      }, { visible = false })
+
+      util.notify(string.format("Buffers %s added to the chat", table.concat(buffer_names, ", ")))
+    end
+
     telescope.buffers({
-      prompt_title = CONSTANTS.PROMPT,
+      prompt_title = CONSTANTS.PROMPT_MULTI,
+      ignore_current_buffer = true, -- Ignore the codecompanion buffer when selecting buffers
       attach_mappings = function(prompt_bufnr, _)
         local actions = require("telescope.actions")
         local action_state = require("telescope.actions.state")
 
         actions.select_default:replace(function()
-          actions.close(prompt_bufnr)
-          local selection = action_state.get_selected_entry()
-          if selection then
-            output(SlashCommand, {
-              bufnr = selection.bufnr,
-              name = selection.filename,
-              path = selection.path,
-            })
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local selections = picker:get_multi_selection()
+
+          if not selections then
+            return
           end
+
+          -- Handle single selection case
+          if #selections == 0 then
+            local selection = action_state.get_selected_entry()
+            if not selection then
+              return
+            end
+            selections = { selection }
+          end
+
+          actions.close(prompt_bufnr)
+
+          process_buffers(selections)
         end)
 
         return true
