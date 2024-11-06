@@ -126,7 +126,7 @@ local Providers = {
         content = table.concat(combined_content, "\n\n"),
       }, { visible = false })
 
-      util.notify(string.format("Buffers %s to the chat", table.concat(buffer_names, ", ")))
+      util.notify(string.format("Buffers %s added to the chat", table.concat(buffer_names, ", ")))
     end
 
     telescope.buffers({
