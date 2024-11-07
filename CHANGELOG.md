@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.4.0...v9.5.0) (2024-11-07)
+
+
+### Features
+
+* mini_pick can select multiple buffers ([#413](https://github.com/olimorris/codecompanion.nvim/issues/413)) ([031a9e9](https://github.com/olimorris/codecompanion.nvim/commit/031a9e9d253872308d22c6619fa7e7db62ba7fc7))
+
 ## [9.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.3.0...v9.4.0) (2024-11-06)
 
 
