@@ -184,6 +184,20 @@ local Providers = {
             return nil
           end
         end,
+        choose_marked = function(marked_items)
+          for _, selection in ipairs(marked_items) do
+            local success, _ = pcall(function()
+              output(SlashCommand, {
+                bufnr = selection.bufnr,
+                name = selection.text,
+                path = selection.text,
+              })
+            end)
+            if not success then
+              break
+            end
+          end
+        end,
       },
     })
   end,
