@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v9.5.0...v9.5.1) (2024-11-09)
+
+
+### Bug Fixes
+
+* **tools:** add XML block formatting guidance ([#417](https://github.com/olimorris/codecompanion.nvim/issues/417)) ([315da62](https://github.com/olimorris/codecompanion.nvim/commit/315da62c789fd9053d5b17ba28bb78364d687d49))
+
 ## [9.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.4.0...v9.5.0) (2024-11-07)
 
 
