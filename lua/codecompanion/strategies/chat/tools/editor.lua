@@ -188,6 +188,7 @@ return {
   - **Include indentation** in your code
   - **Don't escape** special characters
   - **Wrap code in a CDATA block**, the code could contain characters reserved by XML
+  - Make sure the tools xml block is **surrounded by ```xml**
 
 4. **Actions**:
 

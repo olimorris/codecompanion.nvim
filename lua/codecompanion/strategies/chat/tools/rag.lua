@@ -75,6 +75,7 @@ return {
   - Ensure XML is **valid and follows the schema**
   - **Don't escape** special characters
   - **Wrap queries and URLs in a CDATA block**, the text could contain characters reserved by XML
+  - Make sure the tools xml block is **surrounded by ```xml**
 
 4. **Actions**:
 

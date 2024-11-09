@@ -226,6 +226,7 @@ return {
   - **Wrap contents in a CDATA block**, the contents could contain characters reserved by XML
   - **Don't duplicate code** in the response. Consider writing code directly into the contents tag of the XML
   - The user's current working directory in Neovim is `%s`. They may refer to this in their message to you.
+  - Make sure the tools xml block is **surrounded by ```xml**
 
 4. **Actions**:
 
