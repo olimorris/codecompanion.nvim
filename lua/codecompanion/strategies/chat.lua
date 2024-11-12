@@ -401,7 +401,7 @@ end
 ---@param role string The role of the user to display in the header
 ---@return nil
 local function format_header(tbl, role)
-  if config.display.chat.render_headers then
+  if config.display.chat.show_header_separator then
     table.insert(tbl, string.format("## %s %s", role, config.display.chat.separator))
   else
     table.insert(tbl, string.format("## %s", role))
@@ -593,7 +593,7 @@ end
 ---Render the headers in the chat buffer and apply extmarks
 ---@return nil
 function Chat:render_headers()
-  if not config.display.chat.render_headers then
+  if not config.display.chat.show_header_separator then
     return
   end
 
