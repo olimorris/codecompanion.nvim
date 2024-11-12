@@ -7,6 +7,10 @@ local config = require("codecompanion.config")
 -- mock dependencies
 config.strategies = {
   chat = {
+    roles = {
+      llm = "CodeCompanion",
+      user = "Me",
+    },
     variables = {
       ["foo"] = {
         callback = "spec.codecompanion.strategies.chat.variables.foo",

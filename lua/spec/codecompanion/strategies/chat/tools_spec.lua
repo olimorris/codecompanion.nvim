@@ -7,6 +7,10 @@ local config = require("codecompanion.config")
 -- Mock dependencies
 config.strategies = {
   chat = {
+    roles = {
+      llm = "CodeCompanion",
+      user = "Me",
+    },
     variables = {
       ["blank"] = {},
     },
