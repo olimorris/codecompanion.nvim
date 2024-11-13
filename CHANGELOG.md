@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.5.2...v9.6.0) (2024-11-13)
+
+
+### Features
+
+* **chat:** display references which are shared with the LLM in the UI ([767efee](https://github.com/olimorris/codecompanion.nvim/commit/767efee2ff8fd7d84ac9a5ff35bac52eecec5584))
+
 ## [9.5.2](https://github.com/olimorris/codecompanion.nvim/compare/v9.5.1...v9.5.2) (2024-11-13)
 
 
