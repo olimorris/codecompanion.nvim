@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.5.2](https://github.com/olimorris/codecompanion.nvim/compare/v9.5.1...v9.5.2) (2024-11-13)
+
+
+### Bug Fixes
+
+* **slash_commands:** [#408](https://github.com/olimorris/codecompanion.nvim/issues/408) no symbols found in file ([aececa0](https://github.com/olimorris/codecompanion.nvim/commit/aececa030a05ad86614df3fcb0fae0c40c7bac13))
+
 ## [9.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v9.5.0...v9.5.1) (2024-11-09)
 
 
