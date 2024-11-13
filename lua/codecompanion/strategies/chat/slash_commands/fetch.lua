@@ -12,11 +12,9 @@ CONSTANTS = {
 }
 
 ---@class CodeCompanion.SlashCommand.Fetch: CodeCompanion.SlashCommand
----@field new fun(args: CodeCompanion.SlashCommand): CodeCompanion.SlashCommand.Fetch
----@field execute fun(self: CodeCompanion.SlashCommand.Fetch)
 local SlashCommand = {}
 
----@param args CodeCompanion.SlashCommand
+---@param args CodeCompanion.SlashCommandArgs
 function SlashCommand.new(args)
   local self = setmetatable({
     Chat = args.Chat,
@@ -80,7 +78,13 @@ function SlashCommand:execute()
           self.Chat:add_message({
             role = config.constants.USER_ROLE,
             content = content,
-          }, { visible = false })
+          }, { reference = input, visible = false })
+
+          self.Chat.References:add({
+            source = "slash_command",
+            name = "fetch",
+            id = input,
+          })
 
           return util.notify(fmt("Added the page contents for: %s", input))
         end

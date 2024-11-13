@@ -42,16 +42,21 @@ local function output(SlashCommand, selected)
       ft,
       content
     ),
-  }, { visible = false })
+  }, { reference = relative_path, visible = false })
+
+  Chat.References:add({
+    source = "slash_command",
+    name = "file",
+    id = relative_path,
+  })
+
   util.notify(fmt("Added %s's content to the chat", vim.fn.fnamemodify(relative_path, ":t")))
 end
 
 ---@class CodeCompanion.SlashCommand.File: CodeCompanion.SlashCommand
----@field new fun(args: CodeCompanion.SlashCommand): CodeCompanion.SlashCommand.File
----@field execute fun(self: CodeCompanion.SlashCommand.File)
 local SlashCommand = {}
 
----@param args CodeCompanion.SlashCommand
+---@param args CodeCompanion.SlashCommandArgs
 function SlashCommand.new(args)
   local self = setmetatable({
     Chat = args.Chat,

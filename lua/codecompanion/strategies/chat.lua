@@ -237,6 +237,7 @@ function Chat.new(args)
     id = id,
     last_role = args.last_role or config.constants.USER_ROLE,
     messages = args.messages or {},
+    refs = {},
     status = "",
     subscribers = {},
     tokens = args.tokens,
@@ -254,6 +255,7 @@ function Chat.new(args)
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, {
     clear = false,
   })
+  self.References = require("codecompanion.strategies.chat.references").new(self)
   self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
   self.variables = require("codecompanion.strategies.chat.variables").new()
 
@@ -801,7 +803,7 @@ function Chat:submit(opts)
   if not opts.regenerate and not vim.tbl_isempty(message) then
     self:add_message({ role = config.constants.USER_ROLE, content = message.content })
   end
-  message = self.messages[#self.messages]
+  message = self.References:clear(self.messages[#self.messages])
 
   self:apply_tools_and_variables(message)
 
@@ -857,6 +859,7 @@ function Chat:done()
   self:add_message({ role = config.constants.LLM_ROLE, content = buf_parse_message(self.bufnr).content })
 
   self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
+  self.References:render()
   self:display_tokens()
 
   if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then

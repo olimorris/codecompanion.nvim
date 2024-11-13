@@ -8,7 +8,12 @@
 
 ---@meta CodeCompanion
 
----@class (exact) CodeCompanion.SlashCommand
+---@class CodeCompanion.SlashCommand
+---@field Chat CodeCompanion.Chat The chat buffer
+---@field config table The config of the slash command
+---@field context table The context of the chat buffer from the completion menu
+
+---@class CodeCompanion.SlashCommandArgs
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config of the slash command
 ---@field context table The context of the chat buffer from the completion menu
@@ -47,6 +52,7 @@
 ---@field tokens? table Total tokens spent in the chat buffer so far
 
 ---@class CodeCompanion.Chat.Ref
----@field type string
----@field id string
+---@field source string The source of the reference e.g. slash_command
+---@field name string The name of the source e.g. buffer
+---@field id string The unique ID of the reference which links it to a message in the chat buffer and is displayed to the user
 ---@field opts? table

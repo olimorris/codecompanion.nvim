@@ -86,6 +86,8 @@ local function output(SlashCommand, selected)
   end
 
   local Chat = SlashCommand.Chat
+  local id = vim.fn.fnamemodify(selected.path, ":s?.*runtime??")
+
   Chat:add_message({
     role = config.constants.USER_ROLE,
     content = string.format(
@@ -98,7 +100,14 @@ local function output(SlashCommand, selected)
       ft,
       content
     ),
-  }, { visible = false })
+  }, { reference = id, visible = false })
+
+  Chat.References:add({
+    source = "slash_command",
+    name = "help",
+    id = id,
+  })
+
   util.notify(string.format("%s help file added to chat", selected.tag))
 end
 
@@ -157,11 +166,9 @@ local Providers = {
 }
 
 ---@class CodeCompanion.SlashCommand.Help: CodeCompanion.SlashCommand
----@field new fun(args: CodeCompanion.SlashCommand): CodeCompanion.SlashCommand.Help
----@field execute fun(self: CodeCompanion.SlashCommand.Help)
 local SlashCommand = {}
 
----@param args CodeCompanion.SlashCommand
+---@param args CodeCompanion.SlashCommandArgs
 function SlashCommand.new(args)
   local self = setmetatable({
     Chat = args.Chat,

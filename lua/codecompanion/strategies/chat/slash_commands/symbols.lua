@@ -8,11 +8,9 @@ local util = require("codecompanion.utils.util")
 local fmt = string.format
 
 ---@class CodeCompanion.SlashCommand.Symbols: CodeCompanion.SlashCommand
----@field new fun(args: CodeCompanion.SlashCommand): CodeCompanion.SlashCommand.Symbols
----@field execute fun(self: CodeCompanion.SlashCommand.Symbols)
 local SlashCommand = {}
 
----@param args CodeCompanion.SlashCommand
+---@param args CodeCompanion.SlashCommandArgs
 function SlashCommand.new(args)
   local self = setmetatable({
     Chat = args.Chat,
@@ -100,7 +98,9 @@ function SlashCommand:execute()
       return no_symbols()
     end
 
+    local id = selected.relative_path .. " ($)"
     content = table.concat(symbols, "\n")
+
     Chat:add_message({
       role = config.constants.USER_ROLE,
       content = fmt(
@@ -113,7 +113,14 @@ function SlashCommand:execute()
         ft,
         content
       ),
-    }, { visible = false })
+    }, { reference = id, visible = false })
+
+    Chat.References:add({
+      source = "slash_command",
+      name = "symbols",
+      id = id,
+    })
+
     util.notify(fmt("Added %s's symbolic outline to the chat", vim.fn.fnamemodify(selected.relative_path, ":t")))
   end
 
