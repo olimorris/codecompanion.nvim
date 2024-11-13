@@ -30,13 +30,21 @@ function SlashCommand:execute()
     return log:warn("Sending of code has been disabled")
   end
 
+  local Chat = self.Chat
+
+  local function no_symbols()
+    util.notify("No symbols found in the buffer", vim.log.levels.WARN)
+  end
+
   local function output(SlashCommand, selected)
     local ft = file_utils.get_filetype(selected.path)
     local content = file_utils.read(selected.path)
 
-    local Chat = self.Chat
-
     local query = vim.treesitter.query.get(ft, "symbols")
+
+    if not query then
+      return no_symbols()
+    end
 
     local parser = vim.treesitter.get_string_parser(content, ft)
     local tree = parser:parse()[1]
@@ -89,9 +97,7 @@ function SlashCommand:execute()
     end
 
     if #symbols == 0 then
-      log:info("No symbols found in the buffer")
-      util.notify("No symbols found in the buffer")
-      return
+      return no_symbols()
     end
 
     content = table.concat(symbols, "\n")
