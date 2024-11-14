@@ -14,8 +14,7 @@ local api = vim.api
 ---@field filetype string The filetype of the original buffer
 ---@field contents string[] The contents of the original buffer
 ---@field winnr number The window number of the original buffer
----@field bufnr_diff number The buffer number of the diff buffer
----@field winnr_diff number The window number of the diff buffer
+---@field diff table The table containing the diff buffer and window
 local Diff = {}
 
 ---@class CodeCompanion.DiffArgs
@@ -38,11 +37,20 @@ function Diff.new(args)
 
   log:trace("Using default diff")
 
-  -- Get current window properties
-  local wrap = vim.wo.wrap
-  local linebreak = vim.wo.linebreak
-  local breakindent = vim.wo.breakindent
+  -- Set the diff properties
   vim.cmd("set diffopt=" .. table.concat(config.display.diff.opts, ","))
+
+  local vertical = (config.display.diff.layout == "vertical")
+
+  -- Get current properties
+  local buf_opts = {
+    ft = self.filetype,
+  }
+  local win_opts = {
+    wrap = vim.wo.wrap,
+    lbr = vim.wo.linebreak,
+    bri = vim.wo.breakindent,
+  }
 
   --- Minimize the chat buffer window if there's not enough screen estate
   local last_chat = require("codecompanion").last_chat()
@@ -51,38 +59,36 @@ function Diff.new(args)
   end
 
   -- Create the diff buffer
-  -- Use `nvim_win_call()` to ensure that the split is opened
-  -- beside the source window
-  vim.api.nvim_win_call(self.winnr, function()
-    if config.display.diff.layout == "vertical" then
-      vim.cmd("vsplit")
-    else
-      vim.cmd("split")
-    end
-    self.bufnr_diff = api.nvim_create_buf(false, true)
-    self.winnr_diff = api.nvim_get_current_win()
-  end)
+  local diff = {
+    buf = vim.api.nvim_create_buf(false, true),
+    name = "[CodeCompanion] " .. math.random(10000000),
+  }
+  api.nvim_buf_set_name(diff.buf, diff.name)
+  for opt, value in pairs(buf_opts) do
+    api.nvim_set_option_value(opt, value, { buf = diff.buf })
+  end
 
-  api.nvim_win_set_buf(self.winnr_diff, self.bufnr_diff)
-  api.nvim_set_option_value("filetype", self.filetype, { buf = self.bufnr_diff })
-  api.nvim_set_option_value("wrap", wrap, { win = self.winnr_diff })
-  api.nvim_set_option_value("linebreak", linebreak, { win = self.winnr_diff })
-  api.nvim_set_option_value("breakindent", breakindent, { win = self.winnr_diff })
-
+  -- Create the diff window
+  diff.win = api.nvim_open_win(diff.buf, true, { vertical = vertical, win = self.winnr })
+  for opt, value in pairs(win_opts) do
+    vim.api.nvim_set_option_value(opt, value, { win = diff.win })
+  end
   -- Set the diff buffer to the contents, prior to any modifications
-  api.nvim_buf_set_lines(self.bufnr_diff, 0, 0, true, self.contents)
+  api.nvim_buf_set_lines(diff.buf, 0, 0, true, self.contents)
   if self.cursor_pos then
-    api.nvim_win_set_cursor(self.winnr_diff, { self.cursor_pos[1], self.cursor_pos[2] })
+    api.nvim_win_set_cursor(diff.win, { self.cursor_pos[1], self.cursor_pos[2] })
   end
 
   -- Begin diffing
   util.fire("DiffAttached", { diff = "default", bufnr = self.bufnr })
-  api.nvim_set_current_win(self.winnr_diff)
+  api.nvim_set_current_win(diff.win)
   vim.cmd("diffthis")
   api.nvim_set_current_win(self.winnr)
   vim.cmd("diffthis")
 
   log:trace("Using default diff")
+  self.diff = diff
+
   return self
 end
 
@@ -103,7 +109,7 @@ end
 ---@return nil
 function Diff:teardown()
   vim.cmd("diffoff")
-  api.nvim_win_close(self.winnr_diff, false)
+  api.nvim_win_close(self.diff.win, false)
   util.fire("DiffDetached", { diff = "default", bufnr = self.bufnr })
 end
 

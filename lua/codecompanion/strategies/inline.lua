@@ -543,7 +543,7 @@ function Inline:start_diff()
   end
 
   local provider = config.display.diff.provider
-  local ok, diff = pcall(require, "codecompanion.helpers.diff." .. provider)
+  local ok, diff = pcall(require, "codecompanion.providers.diff." .. provider)
   if not ok then
     return log:error("Diff provider not found: %s", provider)
   end

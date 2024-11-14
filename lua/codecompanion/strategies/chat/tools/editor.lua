@@ -77,7 +77,7 @@ return {
         if config.display.diff.enabled and bufnr and vim.bo[bufnr].buftype ~= "terminal" then
           local ok
           local provider = config.display.diff.provider
-          ok, diff = pcall(require, "codecompanion.helpers.diff." .. provider)
+          ok, diff = pcall(require, "codecompanion.providers.diff." .. provider)
 
           if ok and winnr and not diff_started then
             ---@type CodeCompanion.DiffArgs
