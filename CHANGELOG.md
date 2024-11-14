@@ -1,5 +1,13 @@
 # Changelog
 
+## [9.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v9.6.0...v9.6.1) (2024-11-14)
+
+
+### Bug Fixes
+
+* [#423](https://github.com/olimorris/codecompanion.nvim/issues/423) diff provider and `before` inline prompt ([f9a54cc](https://github.com/olimorris/codecompanion.nvim/commit/f9a54cc28a861770c3b3db787353b24e7fd0cd2d))
+* [#427](https://github.com/olimorris/codecompanion.nvim/issues/427) long prompts causing issue with curl ([d5bef40](https://github.com/olimorris/codecompanion.nvim/commit/d5bef403460908069810726ffe79039d4c69f054))
+
 ## [9.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.5.2...v9.6.0) (2024-11-13)
 
 
