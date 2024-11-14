@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.6.1...v9.7.0) (2024-11-14)
+
+
+### Features
+
+* **slash_commands:** help can now select multiple docs ([57e8e54](https://github.com/olimorris/codecompanion.nvim/commit/57e8e54df850749eb98001f52af5bc4f60b79f0e))
+
 ## [9.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v9.6.0...v9.6.1) (2024-11-14)
 
 
