@@ -434,6 +434,7 @@ function Inline:place(placement)
     pos.col = 0
     pos.bufnr = self.context.bufnr
   elseif placement == "before" then
+    self.lines = api.nvim_buf_get_lines(self.context.bufnr, 0, -1, true)
     api.nvim_buf_set_lines(self.context.bufnr, self.context.start_line - 1, self.context.start_line - 1, false, { "" })
     self.context.start_line = self.context.start_line + 1
     pos.line = self.context.start_line - 1
