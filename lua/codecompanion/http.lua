@@ -1,6 +1,7 @@
-local config = require("codecompanion.config")
+local Curl = require("plenary.curl")
+local Path = require("plenary.path")
 
-local curl = require("plenary.curl")
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
 local util = require("codecompanion.utils.util")
@@ -15,8 +16,8 @@ Client.static = {}
 
 -- This makes it easier to mock during testing
 Client.static.opts = {
-  post = { default = curl.post },
-  get = { default = curl.get },
+  post = { default = Curl.post },
+  get = { default = Curl.get },
   encode = { default = vim.json.encode },
   schedule = { default = vim.schedule_wrap },
 }
@@ -72,13 +73,24 @@ function Client:request(payload, actions, opts)
     )
   )
 
+  local body_file = vim.fn.tempname() .. ".json"
+  Path.new(body_file):write(vim.split(body, "\n"), "w")
+
+  log:debug("Request body file: %s", body_file)
+
+  local function cleanup()
+    if vim.tbl_contains({ "DEBUG", "ERROR", "INFO" }, config.opts.log_level) then
+      Path.new(body_file):rm()
+    end
+  end
+
   local request_opts = {
     url = adapter:set_env_vars(adapter.url),
     headers = adapter:set_env_vars(adapter.headers),
     insecure = config.adapters.opts.allow_insecure,
     proxy = config.adapters.opts.proxy,
     raw = adapter.raw or { "--no-buffer" },
-    body = body or "",
+    body = body_file or "",
     -- This is called when the request is finished. It will only ever be called
     -- once, even if the endpoint is streaming.
     callback = function(data)
@@ -103,6 +115,7 @@ function Client:request(payload, actions, opts)
         end
 
         util.fire("RequestFinished", opts)
+        cleanup()
         if self.user_args.event then
           util.fire("RequestFinished" .. (self.user_args.event or ""), opts)
         end
@@ -111,6 +124,7 @@ function Client:request(payload, actions, opts)
     on_error = function(err)
       vim.schedule(function()
         cb(err, nil)
+        cleanup()
         return util.fire("RequestFinished", opts)
       end)
     end,
