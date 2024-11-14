@@ -86,7 +86,7 @@ local function output(SlashCommand, selected)
   end
 
   local Chat = SlashCommand.Chat
-  local id = vim.fn.fnamemodify(selected.path, ":s?.*runtime??")
+  local id = selected.tag
 
   Chat:add_message({
     role = config.constants.USER_ROLE,
