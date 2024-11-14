@@ -61,10 +61,8 @@ function source:complete(params, callback)
     end)
     :totable()
 
-  local all_items = vim.tbl_extend("force", slash_commands, prompts)
-
   callback({
-    items = all_items,
+    items = vim.tbl_extend("force", slash_commands, prompts),
     isIncomplete = false,
   })
 end
