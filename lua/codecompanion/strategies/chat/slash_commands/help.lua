@@ -128,12 +128,19 @@ local Providers = {
         local action_state = require("telescope.actions.state")
 
         actions.select_default:replace(function()
-          local selection = action_state.get_selected_entry()
-          actions.close(prompt_bufnr)
-          if selection then
-            selection = { path = selection.filename, tag = selection.display }
-            output(SlashCommand, selection)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local selections = picker:get_multi_selection()
+          if not selections then
+            return
           end
+
+          actions.close(prompt_bufnr)
+          vim.iter(selections):each(function(selection)
+            if selection then
+              selection = { path = selection.filename, tag = selection.display }
+              output(SlashCommand, selection)
+            end
+          end)
         end)
 
         return true
@@ -151,12 +158,21 @@ local Providers = {
     mini_pick.builtin.help({}, {
       source = {
         name = CONSTANTS.PROMPT,
-        choose = function(item)
-          if item == nil then
+        choose = function(selection)
+          if selection == nil then
             return
           end
-          local selection = { path = item.filename, tag = item.name }
-          output(SlashCommand, selection)
+          output(SlashCommand, { path = selection.filename, tag = selection.name })
+        end,
+        choose_marked = function(selection)
+          for _, selected in ipairs(selection) do
+            local success, _ = pcall(function()
+              output(SlashCommand, { path = selected.filename, tag = selected.name })
+            end)
+            if not success then
+              break
+            end
+          end
         end,
       },
     })
