@@ -73,14 +73,14 @@ function Client:request(payload, actions, opts)
     )
   )
 
-  local body_file = vim.fn.tempname() .. ".json"
-  Path.new(body_file):write(vim.split(body, "\n"), "w")
+  local body_file = Path.new(vim.fn.tempname() .. ".json")
+  body_file:write(vim.split(body, "\n"), "w")
 
-  log:debug("Request body file: %s", body_file)
+  log:debug("Request body file: %s", body_file.filename)
 
   local function cleanup()
     if vim.tbl_contains({ "DEBUG", "ERROR", "INFO" }, config.opts.log_level) then
-      Path.new(body_file):rm()
+      body_file:rm()
     end
   end
 
@@ -90,7 +90,7 @@ function Client:request(payload, actions, opts)
     insecure = config.adapters.opts.allow_insecure,
     proxy = config.adapters.opts.proxy,
     raw = adapter.raw or { "--no-buffer" },
-    body = body_file or "",
+    body = body_file.filename or "",
     -- This is called when the request is finished. It will only ever be called
     -- once, even if the endpoint is streaming.
     callback = function(data)
