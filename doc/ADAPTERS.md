@@ -387,7 +387,7 @@ The `teardown` handler will execute once the request has completed and after `on
 
 The schema table describes the settings/parameters for the LLM. If the user has `display.chat.show_settings = true` then this table will be exposed at the top of the chat buffer.
 
-We'll explore some of the options in the OpenAI adapter's schema table:
+We'll explore some of the options in the Copilot adapter's schema table:
 
 ```lua
 schema = {
@@ -396,34 +396,36 @@ schema = {
     mapping = "parameters",
     type = "enum",
     desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
-    default = "gpt-4o",
+    default = "gpt-4o-2024-08-06",
     choices = {
-      "gpt-4o",
-      "gpt-4o-mini",
-      "gpt-4-turbo-preview",
-      "gpt-4",
-      "gpt-3.5-turbo",
+      "gpt-4o-2024-08-06",
+      "claude-3.5-sonnet",
+      ["o1-preview-2024-09-12"] = { opts = { stream = false } },
+      ["o1-mini-2024-09-12"] = { opts = { stream = false } },
     },
   },
 }
 ```
 
-The model key sets out the specific model which is to be used to interact with the OpenAI endpoint. We've listed the default, in this example, as `gpt-4o` but we allow the user to choose from a possible five options, via the `choices` key. We've given this an order value of `1` so that it's always displayed at the top of the chat buffer. We've also given it a useful description as this is used in the virtual text when a user hovers over it. Finally, we've specified that it has a mapping property of `parameters`. This tells the adapter that we wish to map this model key to the parameters part of the HTTP request.
+The model key sets out the specific model which is to be used to interact with the Copilot endpoint. We've listed the default, in this example, as `gpt-4o-2024-08-06` but we allow the user to choose from a possible five options, via the `choices` key. We've given this an order value of `1` so that it's always displayed at the top of the chat buffer. We've also given it a useful description as this is used in the virtual text when a user hovers over it. Finally, we've specified that it has a mapping property of `parameters`. This tells the adapter that we wish to map this model key to the parameters part of the HTTP request. You'll also notice that some of the models have a table attached to them. This can be useful if you need to do conditional logic in any of the handler methods at runtime.
 
-Let's take a look at one more:
+Let's take a look at one more schema value:
 
 ```lua
 temperature = {
   order = 2,
   mapping = "parameters",
   type = "number",
-  optional = true,
-  default = 1,
-  desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
+  default = 0,
+  condition = function(schema)
+    return not vim.startswith(schema.model.default, "o1")
+  end,
+  -- This isn't in the Copilot adapter but it's useful to reference!
   validate = function(n)
     return n >= 0 and n <= 2, "Must be between 0 and 2"
   end,
+  desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
 },
 ```
 
-You'll see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2. Again, we'll use virtual text and LSP warnings to alert the user if they've strayed from these constraints.
+You'll see we've specified a function call for the `condition` key. We're simply checking that the model name doesn't being with `o1` as these models don't accept temperature as a parameter. You'll also see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2

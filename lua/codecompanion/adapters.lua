@@ -127,6 +127,10 @@ function Adapter:get_default_settings()
   local settings = {}
 
   for key, value in pairs(self.schema) do
+    if type(value.condition) == "function" and not value.condition(self.schema) then
+      goto continue
+    end
+
     local default = value.default
     if default ~= nil then
       if type(default) == "function" then
@@ -134,6 +138,8 @@ function Adapter:get_default_settings()
       end
       settings[key] = default
     end
+
+    ::continue::
   end
 
   return settings

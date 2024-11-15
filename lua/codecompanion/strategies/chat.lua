@@ -4,6 +4,7 @@ local config = require("codecompanion.config")
 local keymaps = require("codecompanion.utils.keymaps")
 local schema = require("codecompanion.schema")
 
+local adapter_utils = require("codecompanion.utils.adapters")
 local hash = require("codecompanion.utils.hash")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
@@ -270,7 +271,10 @@ function Chat.new(args)
   if not self.adapter then
     return log:error("No adapter found")
   end
-  util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = self.adapter })
+  util.fire("ChatAdapter", {
+    bufnr = self.bufnr,
+    adapter = adapter_utils.make_safe(self.adapter),
+  })
   util.fire("ChatModel", { bufnr = self.bufnr, model = self.adapter.schema.model.default })
   self:apply_settings(self.opts.settings)
 

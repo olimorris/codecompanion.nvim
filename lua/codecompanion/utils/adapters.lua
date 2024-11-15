@@ -17,4 +17,28 @@ function M.extend(base_tbl, new_tbl)
   end
 end
 
+---Make an adapter safe for serialization
+---@param adapter CodeCompanion.Adapter
+---@return table
+function M.make_safe(adapter)
+  return {
+    name = adapter.name,
+    features = adapter.features,
+    url = adapter.url,
+    headers = adapter.headers,
+    params = adapter.parameters,
+    opts = adapter.opts,
+    handlers = adapter.handlers,
+    schema = vim
+      .iter(adapter.schema)
+      :filter(function(n, _)
+        if n == "model" then
+          return false
+        end
+        return true
+      end)
+      :totable(),
+  }
+end
+
 return M

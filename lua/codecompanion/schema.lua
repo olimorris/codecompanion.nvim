@@ -5,6 +5,10 @@ local islist = vim.islist or vim.tbl_islist
 M.get_default = function(schema, defaults)
   local ret = {}
   for k, v in pairs(schema) do
+    if type(v.condition) == "function" and not v.condition(schema) then
+      goto continue
+    end
+
     if not vim.startswith(k, "_") then
       if defaults and defaults[k] ~= nil then
         ret[k] = defaults[k]
@@ -12,6 +16,7 @@ M.get_default = function(schema, defaults)
         ret[k] = v.default
       end
     end
+    ::continue::
   end
   return ret
 end
@@ -109,7 +114,14 @@ end
 ---@param schema CodeCompanion.SchemaParam
 ---@return string[]
 M.get_ordered_keys = function(schema)
+  for k, v in pairs(schema) do
+    if type(v.condition) == "function" and not v.condition(schema) then
+      schema[k] = nil
+    end
+  end
+
   local keys = vim.tbl_keys(schema)
+
   -- Sort the params by required, then if they have no value, then by name
   table.sort(keys, function(a, b)
     local aparam = schema[a]

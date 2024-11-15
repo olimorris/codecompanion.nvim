@@ -370,6 +370,13 @@ M.change_adapter = {
 
       models = vim
         .iter(models)
+        :map(function(model, value)
+          if type(model) == "string" then
+            return model
+          else
+            return value -- This is for the table entry case
+          end
+        end)
         :filter(function(model)
           return model ~= new_model
         end)
