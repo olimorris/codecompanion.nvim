@@ -78,8 +78,8 @@ function Client:request(payload, actions, opts)
 
   log:debug("Request body file: %s", body_file.filename)
 
-  local function cleanup()
-    if vim.tbl_contains({ "DEBUG", "ERROR", "INFO" }, config.opts.log_level) then
+  local function cleanup(status)
+    if vim.tbl_contains({ "DEBUG", "ERROR", "INFO" }, config.opts.log_level) and status ~= "error" then
       body_file:rm()
     end
   end
@@ -109,13 +109,13 @@ function Client:request(payload, actions, opts)
           actions.done()
         end
 
-        opts["status"] = "success"
+        opts.status = "success"
         if data.status >= 400 then
-          opts["status"] = "error"
+          opts.status = "error"
         end
 
         util.fire("RequestFinished", opts)
-        cleanup()
+        cleanup(opts.status)
         if self.user_args.event then
           util.fire("RequestFinished" .. (self.user_args.event or ""), opts)
         end
@@ -124,7 +124,6 @@ function Client:request(payload, actions, opts)
     on_error = function(err)
       vim.schedule(function()
         cb(err, nil)
-        cleanup()
         return util.fire("RequestFinished", opts)
       end)
     end,
