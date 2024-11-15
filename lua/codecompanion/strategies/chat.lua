@@ -1262,6 +1262,7 @@ function Chat:clear()
     CONSTANTS.NS_VIRTUAL_TEXT,
   }
 
+  self.refs = {}
   self.messages = {}
   self.tools_in_use = {}
   self.tokens = nil
