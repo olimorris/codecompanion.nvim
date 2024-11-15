@@ -135,6 +135,12 @@ return {
     ---@param self CodeCompanion.Adapter
     ---@return boolean
     setup = function(self)
+      local model = self.schema.model.default
+      local model_opts = self.schema.model.choices[model]
+      if model_opts and model_opts.opts then
+        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
+      end
+
       if self.opts and self.opts.stream then
         self.parameters.stream = true
       end
@@ -160,6 +166,15 @@ return {
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
+      messages = vim
+        .iter(messages)
+        :map(function(message)
+          if vim.startswith(self.schema.model.default, "o1") and message.role == "system" then
+            message.role = self.roles.user
+          end
+          return message
+        end)
+        :totable()
       return openai.handlers.form_messages(self, messages)
     end,
     chat_output = function(self, data)
@@ -178,10 +193,12 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
-      default = "gpt-4o-2024-05-13",
+      default = "gpt-4o-2024-08-06",
       choices = {
-        "gpt-4o-2024-05-13",
+        "gpt-4o-2024-08-06",
         "claude-3.5-sonnet",
+        ["o1-preview-2024-09-12"] = { opts = { stream = false } },
+        ["o1-mini-2024-09-12"] = { opts = { stream = false } },
       },
     },
     temperature = {
@@ -189,6 +206,9 @@ return {
       mapping = "parameters",
       type = "number",
       default = 0,
+      condition = function(schema)
+        return not vim.startswith(schema.model.default, "o1")
+      end,
       desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
     },
     max_tokens = {
@@ -203,6 +223,9 @@ return {
       mapping = "parameters",
       type = "number",
       default = 1,
+      condition = function(schema)
+        return not vim.startswith(schema.model.default, "o1")
+      end,
       desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
     },
     n = {
@@ -210,6 +233,9 @@ return {
       mapping = "parameters",
       type = "number",
       default = 1,
+      condition = function(schema)
+        return not vim.startswith(schema.model.default, "o1")
+      end,
       desc = "How many chat completions to generate for each prompt.",
     },
   },
