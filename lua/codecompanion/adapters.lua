@@ -287,4 +287,28 @@ function Adapter.resolve(adapter)
   return adapter
 end
 
+---Make an adapter safe for serialization
+---@param adapter CodeCompanion.Adapter
+---@return table
+function Adapter.make_safe(adapter)
+  return {
+    name = adapter.name,
+    features = adapter.features,
+    url = adapter.url,
+    headers = adapter.headers,
+    params = adapter.parameters,
+    opts = adapter.opts,
+    handlers = adapter.handlers,
+    schema = vim
+      .iter(adapter.schema)
+      :filter(function(n, _)
+        if n == "model" then
+          return false
+        end
+        return true
+      end)
+      :totable(),
+  }
+end
+
 return Adapter
