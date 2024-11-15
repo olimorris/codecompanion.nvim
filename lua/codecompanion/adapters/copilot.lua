@@ -3,7 +3,6 @@ local curl = require("plenary.curl")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
-local util = require("codecompanion.utils.util")
 
 ---@type string|nil
 local _oauth_token
@@ -17,18 +16,18 @@ local function find_config_path()
     return os.getenv("CODECOMPANION_TOKEN_PATH")
   end
 
-  local config = vim.fn.expand("$XDG_CONFIG_HOME")
-  if config and vim.fn.isdirectory(config) > 0 then
-    return config
+  local path = vim.fn.expand("$XDG_CONFIG_HOME")
+  if path and vim.fn.isdirectory(path) > 0 then
+    return path
   elseif vim.fn.has("win32") > 0 then
-    config = vim.fn.expand("~/AppData/Local")
-    if vim.fn.isdirectory(config) > 0 then
-      return config
+    path = vim.fn.expand("~/AppData/Local")
+    if vim.fn.isdirectory(path) > 0 then
+      return path
     end
   else
-    config = vim.fn.expand("~/.config")
-    if vim.fn.isdirectory(config) > 0 then
-      return config
+    path = vim.fn.expand("~/.config")
+    if vim.fn.isdirectory(path) > 0 then
+      return path
     end
   end
 end
