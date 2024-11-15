@@ -181,8 +181,15 @@ return {
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       default = "gpt-4o-2024-05-13",
       choices = {
+        "gpt-3.5-turbo-0613",
+        "gpt-4-0613",
         "gpt-4o-2024-05-13",
-        "claude-3.5-sonnet",
+        "gpt-4o-2024-08-06",
+        "o1-preview-2024-09-12", -- im unsure if this works as a dropin? the o1 models dont do streaming
+        "o1-mini-2024-09-12",
+        "gpt-4o-mini-2024-07-18",
+        "gpt-4-0125-preview",
+        "claude-3.5-sonnet"
       },
     },
     temperature = {
