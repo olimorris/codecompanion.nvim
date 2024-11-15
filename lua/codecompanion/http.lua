@@ -76,7 +76,7 @@ function Client:request(payload, actions, opts)
   local body_file = Path.new(vim.fn.tempname() .. ".json")
   body_file:write(vim.split(body, "\n"), "w")
 
-  log:debug("Request body file: %s", body_file.filename)
+  log:info("Request body file: %s", body_file.filename)
 
   local function cleanup(status)
     if vim.tbl_contains({ "DEBUG", "ERROR", "INFO" }, config.opts.log_level) and status ~= "error" then
