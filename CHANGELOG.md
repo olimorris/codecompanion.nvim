@@ -1,5 +1,18 @@
 # Changelog
 
+## [9.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.7.0...v9.8.0) (2024-11-15)
+
+
+### Features
+
+* **adapters:** allow for o1 models at some point with improved schema ([601fa72](https://github.com/olimorris/codecompanion.nvim/commit/601fa72b09327f57e0703539673ef120ba3f420c))
+* **copilot:** now working with o1 models ([7283611](https://github.com/olimorris/codecompanion.nvim/commit/72836115615b62065507431b8a9a8523d224f8e4))
+
+
+### Bug Fixes
+
+* **chat:** clear references table ([7c0f6fb](https://github.com/olimorris/codecompanion.nvim/commit/7c0f6fb1687c4499075d02913e308279cfeb1b2a))
+
 ## [9.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.6.1...v9.7.0) (2024-11-14)
 
 
