@@ -213,9 +213,12 @@ local function buf_parse_tools(chat)
   end
 end
 
----Used to store all of the open chat buffers
+---Methods that are available outside of CodeCompanion
 ---@type table<CodeCompanion.Chat>
 local chatmap = {}
+
+---@type table
+_G.codecompanion_buffers = {}
 
 ---Used to record the last chat buffer that was opened
 ---@type CodeCompanion.Chat|nil
@@ -259,12 +262,13 @@ function Chat.new(args)
   self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
   self.variables = require("codecompanion.strategies.chat.variables").new()
 
-  table.insert(chatmap, {
-    name = "Chat " .. #chatmap + 1,
+  table.insert(_G.codecompanion_buffers, self.bufnr)
+  chatmap[self.bufnr] = {
+    name = "Chat " .. vim.tbl_count(chatmap) + 1,
     description = CONSTANTS.BLANK_DESC,
     strategy = "chat",
     chat = self,
-  })
+  }
 
   self.adapter = adapters.resolve(self.opts.adapter)
   if not self.adapter then
@@ -953,11 +957,13 @@ function Chat:close()
     last_chat = nil
   end
 
-  local index = util.find_key(chatmap, "bufnr", self.bufnr)
-  if index then
-    table.remove(chatmap, index)
-  end
-
+  table.remove(
+    _G.codecompanion_buffers,
+    vim.iter(_G.codecompanion_buffers):enumerate():find(function(_, v)
+      return v == self.bufnr
+    end)
+  )
+  chatmap[self.bufnr] = nil
   api.nvim_buf_delete(self.bufnr, { force = true })
   api.nvim_clear_autocmds({ group = self.aug })
   util.fire("ChatClosed", { bufnr = self.bufnr })
@@ -1289,13 +1295,18 @@ end
 ---@return CodeCompanion.Chat|table
 function Chat.buf_get_chat(bufnr)
   if not bufnr then
-    return chatmap
+    return vim
+      .iter(pairs(chatmap))
+      :map(function(_, v)
+        return v
+      end)
+      :totable()
   end
 
   if bufnr == 0 then
     bufnr = api.nvim_get_current_buf()
   end
-  return chatmap[util.find_key(chatmap, "bufnr", bufnr)].chat
+  return chatmap[bufnr].chat
 end
 
 ---Returns the last chat that was visible

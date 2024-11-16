@@ -176,7 +176,7 @@ M.close = {
     chat:close()
 
     local chats = require("codecompanion").buf_get_chat()
-    if #chats == 0 then
+    if vim.tbl_count(chats) == 0 then
       return
     end
     chats[1].chat:open()
@@ -246,41 +246,45 @@ M.yank_code = {
   end,
 }
 
+---@param chat CodeCompanion.Chat
+---@param direction number
+local function move_buffer(chat, direction)
+  local bufs = _G.codecompanion_buffers
+  local len = #bufs
+  local next_buf = vim
+    .iter(bufs)
+    :enumerate()
+    :filter(function(_, v)
+      return v == chat.bufnr
+    end)
+    :map(function(i, _)
+      return direction > 0 and bufs[(i % len) + 1] or bufs[((i - 2 + len) % len) + 1]
+    end)
+    :next()
+
+  local codecompanion = require("codecompanion")
+
+  codecompanion.buf_get_chat(chat.bufnr):hide()
+  codecompanion.buf_get_chat(next_buf):open()
+end
+
 M.next_chat = {
   desc = "Move to the next chat",
   callback = function(chat)
-    local chats = require("codecompanion").buf_get_chat()
-    if #chats == 1 then
+    if vim.tbl_count(_G.codecompanion_buffers) == 1 then
       return
     end
-
-    local index = util.find_key(chats, "bufnr", chat.bufnr)
-    local next = index + 1
-    if next > #chats then
-      next = 1
-    end
-
-    chats[index].chat:hide()
-    chats[next].chat:open()
+    move_buffer(chat, 1)
   end,
 }
 
 M.previous_chat = {
   desc = "Move to the previous chat",
   callback = function(chat)
-    local chats = require("codecompanion").buf_get_chat()
-    if #chats == 1 then
+    if vim.tbl_count(_G.codecompanion_buffers) == 1 then
       return
     end
-
-    local index = util.find_key(chats, "bufnr", chat.bufnr)
-    local previous = index - 1
-    if previous < 1 then
-      previous = #chats
-    end
-
-    chats[index].chat:hide()
-    chats[previous].chat:open()
+    move_buffer(chat, -1)
   end,
 }
 
