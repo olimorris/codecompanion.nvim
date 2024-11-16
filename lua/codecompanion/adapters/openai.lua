@@ -31,6 +31,12 @@ return {
     ---@param self CodeCompanion.Adapter
     ---@return boolean
     setup = function(self)
+      local model = self.schema.model.default
+      local model_opts = self.schema.model.choices[model]
+      if model_opts and model_opts.opts then
+        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
+      end
+
       if self.opts and self.opts.stream then
         self.parameters.stream = true
         self.parameters.stream_options = { include_usage = true }
@@ -55,6 +61,10 @@ return {
       messages = vim
         .iter(messages)
         :map(function(m)
+          if vim.startswith(self.schema.model.default, "o1") and m.role == "system" then
+            m.role = self.roles.user
+          end
+
           return {
             role = m.role,
             content = m.content,
@@ -157,6 +167,8 @@ return {
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       default = "gpt-4o",
       choices = {
+        ["o1-preview-2024-09-12"] = { opts = { stream = false } },
+        ["o1-mini-2024-09-12"] = { opts = { stream = false } },
         "gpt-4o",
         "gpt-4o-mini",
         "gpt-4-turbo-preview",

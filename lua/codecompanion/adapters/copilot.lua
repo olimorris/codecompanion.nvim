@@ -166,15 +166,6 @@ return {
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
-      messages = vim
-        .iter(messages)
-        :map(function(message)
-          if vim.startswith(self.schema.model.default, "o1") and message.role == "system" then
-            message.role = self.roles.user
-          end
-          return message
-        end)
-        :totable()
       return openai.handlers.form_messages(self, messages)
     end,
     chat_output = function(self, data)
