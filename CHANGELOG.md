@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.8.2...v9.9.0) (2024-11-16)
+
+
+### Features
+
+* **openai:** support for o1 models ([6f98005](https://github.com/olimorris/codecompanion.nvim/commit/6f980055b49d1c96af1c63943152147b4f303ab8))
+
 ## [9.8.2](https://github.com/olimorris/codecompanion.nvim/compare/v9.8.1...v9.8.2) (2024-11-16)
 
 
