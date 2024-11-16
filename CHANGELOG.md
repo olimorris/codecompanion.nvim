@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.8.1](https://github.com/olimorris/codecompanion.nvim/compare/v9.8.0...v9.8.1) (2024-11-16)
+
+
+### Bug Fixes
+
+* **slash_commands:** telescope selection ([6184bd4](https://github.com/olimorris/codecompanion.nvim/commit/6184bd4e60d4f301cc5f47416a9a90731eb7f8fb))
+
 ## [9.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.7.0...v9.8.0) (2024-11-15)
 
 
