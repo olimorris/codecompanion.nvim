@@ -61,29 +61,6 @@ M.is_array = function(t)
   return true
 end
 
----Find a nested key in a table and return the index
----@param t table
----@param key any
----@param val any
----@return integer|nil
-function M.find_key(t, key, val)
-  for k, v in pairs(t) do
-    if type(v) == "table" then
-      if v[key] == val then
-        return k
-      else
-        local result = M.find_key(v, key, val)
-        if result then
-          return k
-        end
-      end
-    elseif k == key and v == val then
-      return k
-    end
-  end
-  return nil
-end
-
 ---@param table table
 ---@param value string
 ---@return boolean
