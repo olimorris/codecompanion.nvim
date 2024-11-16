@@ -123,22 +123,19 @@ local Providers = {
 
     telescope.help_tags({
       prompt_title = CONSTANTS.PROMPT,
-      attach_mappings = function(prompt_bufnr, map)
+      attach_mappings = function(prompt_bufnr, _)
         local actions = require("telescope.actions")
         local action_state = require("telescope.actions.state")
 
         actions.select_default:replace(function()
           local picker = action_state.get_current_picker(prompt_bufnr)
           local selections = picker:get_multi_selection()
-          actions.close(prompt_bufnr)
 
-          if vim.tbl_count(selections) == 0 then
-            local selection = action_state.get_selected_entry()
-            if selection then
-              return output(SlashCommand, { path = selection.filename, tag = selection.display })
-            end
+          if vim.tbl_isempty(selections) then
+            selections = { action_state.get_selected_entry() }
           end
 
+          actions.close(prompt_bufnr)
           vim.iter(selections):each(function(selection)
             if selection then
               selection = { path = selection.filename, tag = selection.display }

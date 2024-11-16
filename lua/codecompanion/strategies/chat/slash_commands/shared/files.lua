@@ -58,15 +58,12 @@ return {
         actions.select_default:replace(function()
           local picker = action_state.get_current_picker(prompt_bufnr)
           local selections = picker:get_multi_selection()
-          actions.close(prompt_bufnr)
 
-          if vim.tbl_count(selections) == 0 then
-            local selection = action_state.get_selected_entry()
-            if selection then
-              output(SlashCommand, { relative_path = selection[1], path = selection.path })
-            end
+          if vim.tbl_isempty(selections) then
+            selections = { action_state.get_selected_entry() }
           end
 
+          actions.close(prompt_bufnr)
           vim.iter(selections):each(function(selection)
             if selection then
               output(SlashCommand, { relative_path = selection[1], path = selection.path })
