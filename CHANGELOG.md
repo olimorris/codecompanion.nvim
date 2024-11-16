@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.8.2](https://github.com/olimorris/codecompanion.nvim/compare/v9.8.1...v9.8.2) (2024-11-16)
+
+
+### Bug Fixes
+
+* [#435](https://github.com/olimorris/codecompanion.nvim/issues/435) navigate chat buffers ([5779868](https://github.com/olimorris/codecompanion.nvim/commit/5779868e2db9fd056c835f375a57287bf46444f0))
+
 ## [9.8.1](https://github.com/olimorris/codecompanion.nvim/compare/v9.8.0...v9.8.1) (2024-11-16)
 
 
