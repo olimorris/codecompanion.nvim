@@ -56,12 +56,22 @@ return {
         local action_state = require("telescope.actions.state")
 
         actions.select_default:replace(function()
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local selections = picker:get_multi_selection()
           actions.close(prompt_bufnr)
-          local selection = action_state.get_selected_entry()
-          if selection then
-            selection = { relative_path = selection[1], path = selection.path }
-            output(SlashCommand, selection)
+
+          if vim.tbl_count(selections) == 0 then
+            local selection = action_state.get_selected_entry()
+            if selection then
+              output(SlashCommand, { relative_path = selection[1], path = selection.path })
+            end
           end
+
+          vim.iter(selections):each(function(selection)
+            if selection then
+              output(SlashCommand, { relative_path = selection[1], path = selection.path })
+            end
+          end)
         end)
 
         return true

@@ -99,12 +99,15 @@ local Providers = {
         actions.select_default:replace(function()
           local picker = action_state.get_current_picker(prompt_bufnr)
           local selections = picker:get_multi_selection()
+          actions.close(prompt_bufnr)
 
-          if not selections then
-            return
+          if vim.tbl_count(selections) == 0 then
+            local selection = action_state.get_selected_entry()
+            if selection then
+              return output(SlashCommand, { bufnr = selection.bufnr, name = selection.filename, path = selection.path })
+            end
           end
 
-          actions.close(prompt_bufnr)
           vim.iter(selections):each(function(selection)
             if selection then
               output(SlashCommand, {
