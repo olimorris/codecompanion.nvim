@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.9.1...v9.10.0) (2024-11-17)
+
+
+### Features
+
+* **chat:** tools and variables are now added to references ([a291a05](https://github.com/olimorris/codecompanion.nvim/commit/a291a05233f8ecf7b86a163dcd8bd349f319ff43))
+
 ## [9.9.1](https://github.com/olimorris/codecompanion.nvim/compare/v9.9.0...v9.9.1) (2024-11-17)
 
 
