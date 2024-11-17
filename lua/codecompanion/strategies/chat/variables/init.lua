@@ -42,19 +42,12 @@ local function resolve(chat, callback, params)
   return module.new({ chat = chat, params = params }):execute()
 end
 
----@class CodeCompanion.Variable
----@field chat CodeCompanion.Chat
----@field params string
-
 ---@class CodeCompanion.Variables
----@field vars table
 local Variables = {}
 
----@param args? table
-function Variables.new(args)
+function Variables.new()
   local self = setmetatable({
     vars = config.strategies.chat.variables,
-    args = args,
   }, { __index = Variables })
 
   return self
@@ -103,8 +96,20 @@ function Variables:parse(chat, message)
         return false
       end
 
-      local resolved_var = resolve(chat, var_config.callback, params)
-      chat:add_variable(resolved_var)
+      local id = chat.References:make_id_from_buf(chat.context.bufnr)
+
+      chat:add_message({
+        role = config.constants.USER_ROLE,
+        content = resolve(chat, var_config.callback, params),
+      }, { visible = false, reference = id, tag = "variable" })
+
+      if var_config.opts and not var_config.opts.hide_reference then
+        chat.References:add({
+          source = "variable",
+          name = var,
+          id = id,
+        })
+      end
     end
 
     return true

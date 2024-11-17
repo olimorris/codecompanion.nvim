@@ -204,4 +204,12 @@ function References:render()
   return self
 end
 
+---Make a unique ID from the buffer number
+---@param bufnr number
+---@return string
+function References:make_id_from_buf(bufnr)
+  local bufname = api.nvim_buf_get_name(bufnr)
+  return vim.fn.fnamemodify(bufname, ":.")
+end
+
 return References

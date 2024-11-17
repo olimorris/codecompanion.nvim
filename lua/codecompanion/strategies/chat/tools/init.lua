@@ -399,7 +399,7 @@ function Tools:parse(chat, message)
   if tools or agents then
     if tools and not vim.tbl_isempty(tools) then
       for _, tool in ipairs(tools) do
-        chat:add_tool(self.agent_config.tools[tool])
+        chat:add_tool(tool, self.agent_config.tools[tool])
       end
     end
 

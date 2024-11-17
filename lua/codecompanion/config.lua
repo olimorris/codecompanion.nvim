@@ -48,6 +48,7 @@ local defaults = {
           description = "Share LSP information and code for the current buffer",
           opts = {
             contains_code = true,
+            hide_reference = true,
           },
         },
         ["viewport"] = {
@@ -55,6 +56,7 @@ local defaults = {
           description = "Share the code that you see in Neovim with the LLM",
           opts = {
             contains_code = true,
+            hide_reference = true,
           },
         },
       },

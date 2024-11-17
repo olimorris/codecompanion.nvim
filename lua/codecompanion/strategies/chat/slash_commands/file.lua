@@ -50,7 +50,7 @@ local function output(SlashCommand, selected)
     id = relative_path,
   })
 
-  util.notify(fmt("Added %s's content to the chat", vim.fn.fnamemodify(relative_path, ":t")))
+  util.notify(fmt("File `%s` content added to the chat", vim.fn.fnamemodify(relative_path, ":t")))
 end
 
 ---@class CodeCompanion.SlashCommand.File: CodeCompanion.SlashCommand

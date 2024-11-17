@@ -2,11 +2,9 @@ local buf_utils = require("codecompanion.utils.buffers")
 local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Variable.Buffer: CodeCompanion.Variable
----@field new fun(args: CodeCompanion.Variable): CodeCompanion.Variable.Buffer
----@field execute fun(self: CodeCompanion.Variable.Buffer): string
 local Variable = {}
 
----@param args CodeCompanion.Variable
+---@param args CodeCompanion.VariableArgs
 function Variable.new(args)
   local self = setmetatable({
     chat = args.chat,

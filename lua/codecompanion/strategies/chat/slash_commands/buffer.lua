@@ -6,6 +6,7 @@ local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils.util")
 
 local api = vim.api
+local fmt = string.format
 
 CONSTANTS = {
   NAME = "Buffer",
@@ -37,10 +38,11 @@ local function output(SlashCommand, selected)
     content = buf.format(selected.bufnr)
   end
 
-  local id = filename .. " (" .. selected.bufnr .. ")"
+  local id = SlashCommand.Chat.References:make_id_from_buf(selected.bufnr)
+
   SlashCommand.Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = string.format(
+    content = fmt(
       [[Here is the content from `%s` (which has a buffer number of _%d_ and a filepath of `%s`):
 
 %s]],
@@ -57,7 +59,7 @@ local function output(SlashCommand, selected)
     id = id,
   })
 
-  util.notify(string.format("Buffer `%s` content added to the chat", filename))
+  util.notify(fmt("Buffer `%s` content added to the chat", filename))
 end
 
 local Providers = {

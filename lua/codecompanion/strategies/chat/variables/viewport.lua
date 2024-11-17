@@ -1,11 +1,9 @@
 local buf_utils = require("codecompanion.utils.buffers")
 
 ---@class CodeCompanion.Variable.ViewPort: CodeCompanion.Variable
----@field new fun(args: CodeCompanion.Variable): CodeCompanion.Variable.ViewPort
----@field execute fun(self: CodeCompanion.Variable.ViewPort): string
 local Variable = {}
 
----@param args CodeCompanion.Variable
+---@param args CodeCompanion.VariableArgs
 function Variable.new(args)
   local self = setmetatable({
     chat = args.chat,

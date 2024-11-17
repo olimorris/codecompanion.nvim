@@ -499,24 +499,33 @@ function Chat:has_tools()
 end
 
 ---Add the given tool to the chat buffer
----@param tool table The tool from the config
+---@param tool string The name of the tool
+---@param tool_config table The tool from the config
 ---@return CodeCompanion.Chat
-function Chat:add_tool(tool)
+function Chat:add_tool(tool, tool_config)
   if self.tools_in_use[tool] then
     return self
   end
 
   -- Add the overarching agent system prompt first
   if not self:has_tools() then
+    local id = string.upper(tool) .. " tool"
+
     self:add_message({
       role = config.constants.SYSTEM_ROLE,
       content = config.strategies.agent.tools.opts.system_prompt,
-    }, { visible = false, tag = "tool" })
+    }, { visible = false, reference = id, tag = "tool" })
+
+    self.References:add({
+      source = "tool",
+      name = "tool",
+      id = id,
+    })
   end
 
   self.tools_in_use[tool] = true
 
-  local resolved = self.tools.resolve(tool)
+  local resolved = self.tools.resolve(tool_config)
   if resolved then
     self:add_message(
       { role = config.constants.SYSTEM_ROLE, content = resolved.system_prompt(resolved.schema) },
