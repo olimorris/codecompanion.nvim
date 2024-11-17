@@ -397,6 +397,7 @@ M.change_adapter = {
         end
 
         chat:apply_model(selected)
+        chat:apply_settings()
       end)
     end)
   end,

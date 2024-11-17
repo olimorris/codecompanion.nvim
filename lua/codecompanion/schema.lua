@@ -2,6 +2,9 @@ local M = {}
 
 local islist = vim.islist or vim.tbl_islist
 
+---Return the default values for a schema
+---@param schema CodeCompanion.Schema
+---@param defaults table
 M.get_default = function(schema, defaults)
   local ret = {}
   for k, v in pairs(schema) do
@@ -21,7 +24,7 @@ M.get_default = function(schema, defaults)
   return ret
 end
 
----@class CodeCompanion.SchemaParam
+---@class CodeCompanion.Schema
 ---@field type "string"|"number"|"integer"|"boolean"|"enum"|"list"|"map"
 ---@field mapping string
 ---@field order nil|integer
@@ -30,7 +33,7 @@ end
 ---@field desc string
 ---@field validate? fun(value: any): boolean, nil|string
 
----@param schema CodeCompanion.SchemaParam
+---@param schema CodeCompanion.Schema
 ---@param value any
 ---@param adapter? CodeCompanion.Adapter
 ---@return boolean
@@ -49,7 +52,7 @@ local function validate_type(schema, value, adapter)
       end
     end
     local valid = vim.tbl_contains(choices, value)
-    if not valid then
+    if not valid and choices then
       return valid, string.format("must be one of %s", table.concat(choices, ", "))
     else
       return valid
@@ -78,7 +81,7 @@ local function validate_type(schema, value, adapter)
   end
 end
 
----@param schema CodeCompanion.SchemaParam
+---@param schema CodeCompanion.Schema
 ---@param value any
 ---@param adapter? CodeCompanion.Adapter
 ---@return boolean
@@ -94,7 +97,7 @@ local function validate_field(schema, value, adapter)
   return true
 end
 
----@param schema CodeCompanion.SchemaParam
+---@param schema CodeCompanion.Schema
 ---@param values table
 ---@param adapter? CodeCompanion.Adapter
 ---@return nil|table<string, string>
@@ -111,7 +114,7 @@ M.validate = function(schema, values, adapter)
   end
 end
 
----@param schema CodeCompanion.SchemaParam
+---@param schema CodeCompanion.Schema
 ---@return string[]
 M.get_ordered_keys = function(schema)
   for k, v in pairs(schema) do
