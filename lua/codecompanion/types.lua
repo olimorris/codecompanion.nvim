@@ -18,6 +18,17 @@
 ---@field config table The config of the slash command
 ---@field context table The context of the chat buffer from the completion menu
 
+---@class CodeCompanion.Variables
+---@field vars table The variables from the config
+
+---@class CodeCompanion.Variable
+---@field chat CodeCompanion.Chat The chat buffer
+---@field params table The context of the chat buffer from the completion menu
+
+---@class CodeCompanion.VariableArgs
+---@field chat CodeCompanion.Chat The chat buffer
+---@field params table The context of the chat buffer from the completion menu
+
 ---@class CodeCompanion.Chat
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
@@ -38,6 +49,7 @@
 ---@field tokens? nil|number The number of tokens in the chat
 ---@field tools? CodeCompanion.Tools The tools available to the user
 ---@field tools_in_use? nil|table The tools that are currently being used in the chat
+---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field variables? CodeCompanion.Variables The variables available to the user
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
@@ -56,3 +68,22 @@
 ---@field name string The name of the source e.g. buffer
 ---@field id string The unique ID of the reference which links it to a message in the chat buffer and is displayed to the user
 ---@field opts? table
+
+---@class CodeCompanion.Chat.UI
+---@field adapter CodeCompanion.Adapter
+---@field bufnr number
+---@field header_ns number
+---@field id number
+---@field roles table
+---@field winnr number
+---@field settings table
+---@field tokens number
+
+---@class CodeCompanion.Chat.UIArgs
+---@field adapter CodeCompanion.Adapter
+---@field bufnr number
+---@field id number
+---@field roles table
+---@field winnr number
+---@field settings table
+---@field tokens number

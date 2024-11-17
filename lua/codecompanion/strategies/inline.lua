@@ -495,14 +495,12 @@ function Inline:send_to_chat()
 
   api.nvim_clear_autocmds({ group = self.aug })
 
-  return require("codecompanion.strategies.chat")
-    .new({
-      context = self.context,
-      adapter = self.adapter,
-      messages = prompt,
-      auto_submit = true,
-    })
-    :fold_heading("buffers")
+  return require("codecompanion.strategies.chat").new({
+    context = self.context,
+    adapter = self.adapter,
+    messages = prompt,
+    auto_submit = true,
+  })
 end
 
 ---Write the given text to the buffer
