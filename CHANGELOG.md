@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.9.1](https://github.com/olimorris/codecompanion.nvim/compare/v9.9.0...v9.9.1) (2024-11-17)
+
+
+### Bug Fixes
+
+* **chat:** changing model always changes settings ([318f40d](https://github.com/olimorris/codecompanion.nvim/commit/318f40d35bb53d663f8f80f26737b69430fe1c55))
+
 ## [9.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.8.2...v9.9.0) (2024-11-16)
 
 
