@@ -96,6 +96,16 @@ return {
             return nil
           end
         end,
+        choose_marked = function(selection)
+          for _, selected in ipairs(selection) do
+            local success, _ = pcall(function()
+              output(SlashCommand, { path = selected })
+            end)
+            if not success then
+              break
+            end
+          end
+        end,
       },
     })
   end,
