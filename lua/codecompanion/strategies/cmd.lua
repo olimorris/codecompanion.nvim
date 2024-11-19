@@ -40,7 +40,6 @@ function Cmd:start()
     table.insert(messages, p)
   end)
 
-  -- Submit the messages
   client.new({ adapter = self.adapter:map_schema_to_params() }):request(self.adapter:map_roles(messages), {
     ---@param err string
     ---@param data table

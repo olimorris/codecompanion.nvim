@@ -348,6 +348,7 @@ Points to note:
         },
       },
     },
+    -- CMD STRATEGY -----------------------------------------------------------
     cmd = {
       adapter = "copilot",
       opts = {
