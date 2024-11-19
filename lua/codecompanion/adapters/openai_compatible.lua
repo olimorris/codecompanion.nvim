@@ -1,8 +1,6 @@
 local config = require("codecompanion.config")
-
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.messages")
-
 local curl = require("plenary.curl")
 
 ---Get a list of available OpenAI compatible models
@@ -74,7 +72,7 @@ local function get_completion_url(self, opts)
   return url
 end
 
----@class Gemini.Adapter: CodeCompanion.Adapter
+---@class OpenAICompatible.Adapter: CodeCompanion.Adapter
 return {
   name = "openai_compatible",
   roles = {
@@ -156,7 +154,7 @@ return {
 
     ---Output the data from the API ready for insertion into the chat buffer
     ---@param self CodeCompanion.Adapter
-    ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
+    ---@param data string The streamed JSON data from the API, also formatted by the format_data handler
     ---@return table|nil [status: string, output: table]
     chat_output = function(self, data)
       local output = {}
@@ -165,20 +163,28 @@ return {
         local data_mod = (self.opts and self.opts.stream) and data:sub(7) or data.body
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
-        if ok then
-          if json.choices and #json.choices > 0 then
-            local choice = json.choices[1]
-            local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
+        if ok and json.choices and #json.choices > 0 then
+          local choice = json.choices[1]
+          local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
 
+          if delta then
+            if delta.role then
+              output.role = delta.role
+            else
+              output.role = nil
+            end
+
+            -- Some providers may return empty content
             if delta.content then
               output.content = delta.content
-              output.role = delta.role or nil
-
-              return {
-                status = "success",
-                output = output,
-              }
+            else
+              output.content = ""
             end
+
+            return {
+              status = "success",
+              output = output,
+            }
           end
         end
       end
