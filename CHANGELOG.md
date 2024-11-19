@@ -1,5 +1,13 @@
 # Changelog
 
+## [9.12.1](https://github.com/olimorris/codecompanion.nvim/compare/v9.12.0...v9.12.1) (2024-11-19)
+
+
+### Bug Fixes
+
+* **inline:** [#426](https://github.com/olimorris/codecompanion.nvim/issues/426) concat of lines ([34beee3](https://github.com/olimorris/codecompanion.nvim/commit/34beee3a1f5e97cde61bd906afa9ddd534aeb88c))
+* **openai:** support streaming in o1 models ([7c77a82](https://github.com/olimorris/codecompanion.nvim/commit/7c77a82b1c726734c6b6022b3f4b657660e37b57))
+
 ## [9.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.11.2...v9.12.0) (2024-11-19)
 
 
