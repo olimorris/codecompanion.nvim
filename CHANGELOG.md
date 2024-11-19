@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.11.2...v9.12.0) (2024-11-19)
+
+
+### Features
+
+* :sparkles: `CodeCompanionCmd` to write command-line commands ([da52e53](https://github.com/olimorris/codecompanion.nvim/commit/da52e53bcc69fb00c28e19edce61f927af2e683d))
+
 ## [9.11.2](https://github.com/olimorris/codecompanion.nvim/compare/v9.11.1...v9.11.2) (2024-11-19)
 
 
