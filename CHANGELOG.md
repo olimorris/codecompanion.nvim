@@ -1,5 +1,18 @@
 # Changelog
 
+## [9.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.10.0...v9.11.0) (2024-11-19)
+
+
+### Features
+
+* **mini_pick:** allow multi selection in /files ([#444](https://github.com/olimorris/codecompanion.nvim/issues/444)) ([68e0610](https://github.com/olimorris/codecompanion.nvim/commit/68e0610fa847ad818f621006746ff4a5f911371f))
+
+
+### Bug Fixes
+
+* **chat:** [#447](https://github.com/olimorris/codecompanion.nvim/issues/447) moving between windows ([d3e88dd](https://github.com/olimorris/codecompanion.nvim/commit/d3e88dd8f66bf746d361c8ba96e862d4e3e4aa0f))
+* OpenAI-compatible adapter ([#446](https://github.com/olimorris/codecompanion.nvim/issues/446)) ([3bfc575](https://github.com/olimorris/codecompanion.nvim/commit/3bfc575dd69e43cb1b2d01868f1689d024d3bbe4))
+
 ## [9.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.9.1...v9.10.0) (2024-11-17)
 
 
