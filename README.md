@@ -201,6 +201,10 @@ For convenience, you can call prompts from the [prompt library](#clipboard-promp
 
 There are keymaps available to accept or reject edits from the LLM in the [inline assistant](#pencil2-inline-assistant) section.
 
+**Commands**
+
+Use CodeCompanion to create Neovim commands in command-line mode (`:h Command-line`) via `:CodeCompanionCmd <your prompt>`.
+
 **Action Palette**
 
 <!-- panvimdoc-ignore-start -->

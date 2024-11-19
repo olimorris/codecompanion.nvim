@@ -348,6 +348,19 @@ Points to note:
         },
       },
     },
+    cmd = {
+      adapter = "copilot",
+      opts = {
+        system_prompt = [[You are currently plugged in to the Neovim text editor on a user's machine. Your core task is to generate an command-line inputs that the user can run within Neovim. Below are some rules to adhere to:
+
+- Return plain text only
+- Do not wrap your response in a markdown block or backticks
+- Do not use any line breaks or newlines in you response
+- Do not provide any explanations
+- Generate an command that is valid and can be run in Neovim
+- Ensure the command is relevant to the user's request]],
+      },
+    },
   },
   -- PROMPT LIBRARIES ---------------------------------------------------------
   prompt_library = {

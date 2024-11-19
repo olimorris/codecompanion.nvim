@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 November 09
+*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 November 19
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -179,6 +179,11 @@ do?`. The prompt library comes with the following defaults:
 
 There are keymaps available to accept or reject edits from the LLM in the
 |codecompanion-inline-assistant| section.
+
+**Commands**
+
+Use CodeCompanion to create Neovim commands in command-line mode
+(|Command-line|) via `:CodeCompanionCmd <your prompt>`.
 
 **Action Palette**
 

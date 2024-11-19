@@ -151,6 +151,42 @@ M.chat = function(args)
   })
 end
 
+---Create a cmd
+---@return nil
+M.cmd = function(args)
+  local context = context_utils.get(api.nvim_get_current_buf(), args)
+
+  return require("codecompanion.strategies.cmd")
+    .new({
+      context = context,
+      prompts = {
+        {
+          role = config.constants.SYSTEM_ROLE,
+          content = string.format(
+            [[Some additional context which **may** be useful:
+
+- The user is currently working in a %s file
+- It has %d lines
+- The user is currently on line %d
+- The file's full path is %s]],
+            context.filetype,
+            context.line_count,
+            context.cursor_pos[1],
+            context.filename
+          ),
+          opts = {
+            visible = false,
+          },
+        },
+        {
+          role = config.constants.USER_ROLE,
+          content = args.args,
+        },
+      },
+    })
+    :start(args)
+end
+
 ---Toggle the chat buffer
 ---@return nil
 M.toggle = function()

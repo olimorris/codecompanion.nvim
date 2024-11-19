@@ -29,6 +29,11 @@
 ---@field chat CodeCompanion.Chat The chat buffer
 ---@field params table The context of the chat buffer from the completion menu
 
+---@class CodeCompanion.Cmd
+---@field adapter CodeCompanion.Adapter The adapter to use for the chat
+---@field context table The context of the buffer that the chat was initiated from
+---@field prompts table Any prompts to be sent to the LLM
+
 ---@class CodeCompanion.Chat
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
@@ -71,6 +76,7 @@
 
 ---@class CodeCompanion.Chat.UI
 ---@field adapter CodeCompanion.Adapter
+---@field aug number
 ---@field bufnr number
 ---@field header_ns number
 ---@field id number
