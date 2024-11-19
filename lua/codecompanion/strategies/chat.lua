@@ -744,8 +744,12 @@ function Chat:close()
   )
   chatmap[self.bufnr] = nil
   api.nvim_buf_delete(self.bufnr, { force = true })
-  api.nvim_clear_autocmds({ group = self.aug })
-  api.nvim_clear_autocmds({ group = ui.aug })
+  if self.aug then
+    api.nvim_clear_autocmds({ group = self.aug })
+  end
+  if self.ui.aug then
+    api.nvim_clear_autocmds({ group = self.ui.aug })
+  end
   util.fire("ChatClosed", { bufnr = self.bufnr })
   util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = nil })
   util.fire("ChatModel", { bufnr = self.bufnr, model = nil })
