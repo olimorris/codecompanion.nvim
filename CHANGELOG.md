@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.11.2](https://github.com/olimorris/codecompanion.nvim/compare/v9.11.1...v9.11.2) (2024-11-19)
+
+
+### Bug Fixes
+
+* **chat:** [#450](https://github.com/olimorris/codecompanion.nvim/issues/450) no longer remove autocmds ([ca1e4d8](https://github.com/olimorris/codecompanion.nvim/commit/ca1e4d837d224fc879e031fcea4613c29fade1c0))
+
 ## [9.11.1](https://github.com/olimorris/codecompanion.nvim/compare/v9.11.0...v9.11.1) (2024-11-19)
 
 
