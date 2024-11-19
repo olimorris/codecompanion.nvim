@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.11.1](https://github.com/olimorris/codecompanion.nvim/compare/v9.11.0...v9.11.1) (2024-11-19)
+
+
+### Bug Fixes
+
+* **keymaps:** closing and opening chat buffer ([91a08d7](https://github.com/olimorris/codecompanion.nvim/commit/91a08d76d47e16f3779545b1f4267a1eb0be1cb1))
+
 ## [9.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.10.0...v9.11.0) (2024-11-19)
 
 
