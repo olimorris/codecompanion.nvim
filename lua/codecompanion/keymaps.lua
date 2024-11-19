@@ -179,7 +179,7 @@ M.close = {
     if vim.tbl_count(chats) == 0 then
       return
     end
-    chats[1].chat:open()
+    chats[1].chat.ui:open()
   end,
 }
 
