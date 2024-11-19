@@ -263,7 +263,7 @@ function Chat.new(args)
 
   self:apply_settings(self.opts.settings)
 
-  ui = ui.new({
+  self.ui = ui.new({
     adapter = self.adapter,
     id = self.id,
     bufnr = self.bufnr,
@@ -272,7 +272,7 @@ function Chat.new(args)
   })
 
   self.close_last_chat()
-  ui:open():render(self.context, self.messages, self.opts):set_extmarks(self.opts)
+  self.ui:open():render(self.context, self.messages, self.opts):set_extmarks(self.opts)
 
   if config.strategies.chat.keymaps then
     keymaps.set(config.strategies.chat.keymaps, self.bufnr, self)
@@ -628,7 +628,7 @@ function Chat:submit(opts)
   log:debug("Messages:\n%s", self.messages)
   log:info("Chat request started")
 
-  ui:lock_buf()
+  self.ui:lock_buf()
   self.cycle = self.cycle + 1
   self.current_request = client
     .new({ adapter = settings })
@@ -642,7 +642,7 @@ function Chat:submit(opts)
         end
 
         if data then
-          ui:get_tokens(data)
+          self.ui:get_tokens(data)
 
           local result = self.adapter.handlers.chat_output(self.adapter, data)
           if result and result.status == CONSTANTS.STATUS_SUCCESS then
@@ -668,7 +668,7 @@ function Chat:done()
 
   self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
   self.References:render()
-  ui:display_tokens()
+  self.ui:display_tokens()
 
   if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
     buf_parse_tools(self)
@@ -765,7 +765,7 @@ function Chat:add_buf_message(data, opts)
     self.last_role = data.role
     table.insert(lines, "")
     table.insert(lines, "")
-    ui:format_header(lines, config.strategies.chat.roles[data.role])
+    self.ui:format_header(lines, config.strategies.chat.roles[data.role])
   end
 
   if data.content then
@@ -773,9 +773,9 @@ function Chat:add_buf_message(data, opts)
       table.insert(lines, text)
     end
 
-    ui:unlock_buf()
+    self.ui:unlock_buf()
 
-    local last_line, last_column, line_count = ui:last()
+    local last_line, last_column, line_count = self.ui:last()
     if opts and opts.insert_at then
       last_line = opts.insert_at
       last_column = 0
@@ -785,17 +785,17 @@ function Chat:add_buf_message(data, opts)
     api.nvim_buf_set_text(bufnr, last_line, last_column, last_line, last_column, lines)
 
     if new_response then
-      ui:render_headers()
+      self.ui:render_headers()
     end
 
     if self.last_role ~= config.constants.USER_ROLE then
-      ui:lock_buf()
+      self.ui:lock_buf()
     end
 
-    if cursor_moved and ui:is_active() then
-      ui:follow()
-    elseif not ui:is_active() then
-      ui:follow()
+    if cursor_moved and self.ui:is_active() then
+      self.ui:follow()
+    elseif not self.ui:is_active() then
+      self.ui:follow()
     end
   end
 end
@@ -804,7 +804,7 @@ end
 ---@return nil
 function Chat:reset()
   self.status = ""
-  ui:unlock_buf()
+  self.ui:unlock_buf()
 end
 
 ---Get the messages from the chat buffer
@@ -837,7 +837,7 @@ end
 ---Fold code under the user's heading in the chat buffer
 ---@return CodeCompanion.Chat.UI
 function Chat:fold_code()
-  return ui:fold_code()
+  return self.ui:fold_code()
 end
 
 ---Get currently focused code block or the last one in the chat buffer
@@ -855,7 +855,7 @@ function Chat:clear()
   self.tools_in_use = {}
 
   log:trace("Clearing chat buffer")
-  ui:render(self.context, self.messages, self.opts):set_extmarks(self.opts)
+  self.ui:render(self.context, self.messages, self.opts):set_extmarks(self.opts)
   self:set_system_prompt()
 end
 
@@ -900,11 +900,8 @@ end
 ---@return nil
 function Chat.close_last_chat()
   if last_chat and not vim.tbl_isempty(last_chat) then
-    local last_ui = require("codecompanion.strategies.chat.ui").new({
-      bufnr = last_chat.bufnr,
-    })
-    if last_ui:is_visible() then
-      last_ui:hide()
+    if last_chat.ui:is_visible() then
+      last_chat.ui:hide()
     end
   end
 end

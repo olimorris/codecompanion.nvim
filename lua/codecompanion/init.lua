@@ -160,18 +160,13 @@ M.toggle = function()
     return M.chat()
   end
 
-  local ui = require("codecompanion.strategies.chat.ui").new({
-    bufnr = chat.bufnr,
-    winnr = require("codecompanion.utils.ui").buf_get_win(chat.bufnr),
-  })
-
-  if ui:is_visible() then
-    return ui:hide()
+  if chat.ui:is_visible() then
+    return chat.ui:hide()
   end
 
   chat.context = context_utils.get(api.nvim_get_current_buf())
   M.close_last_chat()
-  ui:open()
+  chat.ui:open()
 end
 
 ---Return a chat buffer

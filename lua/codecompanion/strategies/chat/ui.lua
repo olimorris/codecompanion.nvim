@@ -119,7 +119,10 @@ function UI:hide()
     if self:is_active() then
       vim.cmd("hide")
     else
-      api.nvim_win_hide(self.winnr or 0)
+      if not self.winnr then
+        self.winnr = ui.buf_get_win(self.bufnr)
+      end
+      api.nvim_win_hide(self.winnr)
     end
   else
     vim.cmd("buffer " .. vim.fn.bufnr("#"))
