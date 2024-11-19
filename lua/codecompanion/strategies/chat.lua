@@ -2,14 +2,12 @@ local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
 local schema = require("codecompanion.schema")
-local yaml = require("codecompanion.utils.yaml")
-
-local ui = require("codecompanion.strategies.chat.ui")
 
 local hash = require("codecompanion.utils.hash")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils.util")
+local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
 
@@ -263,7 +261,7 @@ function Chat.new(args)
 
   self:apply_settings(self.opts.settings)
 
-  self.ui = ui.new({
+  self.ui = require("codecompanion.strategies.chat.ui").new({
     adapter = self.adapter,
     id = self.id,
     bufnr = self.bufnr,

@@ -17,7 +17,7 @@ local CONSTANTS = {
   NS_TOKENS = "CodeCompanion-tokens",
   NS_VIRTUAL_TEXT = "CodeCompanion-virtual_text",
 
-  AUTOCMD_GROUP = "codecompanion.chatui",
+  AUTOCMD_GROUP = "codecompanion.chat.ui",
 }
 
 ---@class CodeCompanion.Chat.UI
