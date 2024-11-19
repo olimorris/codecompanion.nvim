@@ -28,7 +28,7 @@ Client.static.opts = {
 ---@field user_args nil|table
 
 ---@param args CodeCompanion.ClientArgs
----@return CodeCompanion.Client
+---@return table
 function Client.new(args)
   args = args or {}
 
