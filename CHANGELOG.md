@@ -1,5 +1,16 @@
 # Changelog
 
+## [10.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.12.4...v10.0.0) (2024-11-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* **adapters:** azure_openai deployment model mapping
+
+### Bug Fixes
+
+* **adapters:** azure_openai deployment model mapping ([907e47a](https://github.com/olimorris/codecompanion.nvim/commit/907e47ac490a9ab91be8db820e99be6845e0cdc5))
+
 ## [9.12.4](https://github.com/olimorris/codecompanion.nvim/compare/v9.12.3...v9.12.4) (2024-11-20)
 
 
