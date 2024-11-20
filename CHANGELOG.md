@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.12.3](https://github.com/olimorris/codecompanion.nvim/compare/v9.12.2...v9.12.3) (2024-11-20)
+
+
+### Bug Fixes
+
+* **chat:** display tokens in chat buffer ([de55dd5](https://github.com/olimorris/codecompanion.nvim/commit/de55dd5c270e486cebf2d11861da41d816926051))
+
 ## [9.12.2](https://github.com/olimorris/codecompanion.nvim/compare/v9.12.1...v9.12.2) (2024-11-20)
 
 
