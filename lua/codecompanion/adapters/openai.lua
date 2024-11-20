@@ -55,7 +55,11 @@ return {
       messages = vim
         .iter(messages)
         :map(function(m)
-          if vim.startswith(self.schema.model.default, "o1") and m.role == "system" then
+          local model = self.schema.model.default
+          if type(model) == "function" then
+            model = model()
+          end
+          if vim.startswith(model, "o1") and m.role == "system" then
             m.role = self.roles.user
           end
 
@@ -159,6 +163,7 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
+      ---@type string|fun(): string
       default = "gpt-4o",
       choices = {
         "o1-preview-2024-09-12",
