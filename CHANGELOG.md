@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.12.2](https://github.com/olimorris/codecompanion.nvim/compare/v9.12.1...v9.12.2) (2024-11-20)
+
+
+### Bug Fixes
+
+* **cmd:** users can now change adapters ([ec2e4df](https://github.com/olimorris/codecompanion.nvim/commit/ec2e4dfedbaf35fa79f03d9f73c4cf4089425359))
+
 ## [9.12.1](https://github.com/olimorris/codecompanion.nvim/compare/v9.12.0...v9.12.1) (2024-11-19)
 
 
