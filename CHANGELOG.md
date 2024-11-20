@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.12.4](https://github.com/olimorris/codecompanion.nvim/compare/v9.12.3...v9.12.4) (2024-11-20)
+
+
+### Bug Fixes
+
+* **openai:** [#458](https://github.com/olimorris/codecompanion.nvim/issues/458) handle models being a function ([041193b](https://github.com/olimorris/codecompanion.nvim/commit/041193b1b238d7b4980847a24c19c74dcf080029))
+
 ## [9.12.3](https://github.com/olimorris/codecompanion.nvim/compare/v9.12.2...v9.12.3) (2024-11-20)
 
 
