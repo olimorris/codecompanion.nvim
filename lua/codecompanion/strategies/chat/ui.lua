@@ -351,19 +351,6 @@ function UI:display_tokens()
   end
 end
 
----Get the tokens from the adapter
----@param data table
----@return nil
-function UI:get_tokens(data)
-  if self.adapter.features.tokens then
-    local tokens = self.adapter.handlers.tokens(self.adapter, data)
-    if tokens then
-      print(tokens)
-      self.tokens = tokens
-    end
-  end
-end
-
 ---Fold code under the user's heading in the chat buffer
 ---@return self
 function UI:fold_code()

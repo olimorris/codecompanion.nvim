@@ -640,7 +640,12 @@ function Chat:submit(opts)
         end
 
         if data then
-          self.ui:get_tokens(data)
+          if self.adapter.features.tokens then
+            local tokens = self.adapter.handlers.tokens(self.adapter, data)
+            if tokens then
+              self.ui.tokens = tokens
+            end
+          end
 
           local result = self.adapter.handlers.chat_output(self.adapter, data)
           if result and result.status == CONSTANTS.STATUS_SUCCESS then
