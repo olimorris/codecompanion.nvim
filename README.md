@@ -470,7 +470,9 @@ require("codecompanion").setup({
           endpoint = 'YOUR_AZURE_OPENAI_ENDPOINT',
         },
         schema = {
-          model = "YOUR_DEPLOYMENT_NAME",
+          model = {
+            default = "YOUR_DEPLOYMENT_NAME",
+          }
         },
       })
     end,

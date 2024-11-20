@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 November 19
+*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 November 20
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -483,7 +483,9 @@ Then, configure the adapter in your setup as follows:
               endpoint = 'YOUR_AZURE_OPENAI_ENDPOINT',
             },
             schema = {
-              model = "YOUR_DEPLOYMENT_NAME",
+              model = {
+                default = "YOUR_DEPLOYMENT_NAME",
+              }
             },
           })
         end,

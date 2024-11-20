@@ -20,7 +20,7 @@ return {
     api_key = "AZURE_OPENAI_API_KEY",
     endpoint = "AZURE_OPENAI_ENDPOINT",
     api_version = "2024-06-01",
-    deployment = "schema.model",
+    deployment = "schema.model.default",
   },
   raw = {
     "--no-buffer",
@@ -63,6 +63,7 @@ return {
       type = "string",
       desc = "Name of the Azure OpenAI model deployment",
       optional = false,
+      -- schema.model.default should be populated by the user in their config
     },
     temperature = {
       order = 2,

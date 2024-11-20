@@ -396,6 +396,7 @@ schema = {
     mapping = "parameters",
     type = "enum",
     desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
+    ---@type string|fun(): string
     default = "gpt-4o-2024-08-06",
     choices = {
       "gpt-4o-2024-08-06",
@@ -418,7 +419,11 @@ temperature = {
   type = "number",
   default = 0,
   condition = function(schema)
-    return not vim.startswith(schema.model.default, "o1")
+    local model = schema.model.default
+    if type(model) == "function" then
+      model = model()
+    end
+    return not vim.startswith(model, "o1")
   end,
   -- This isn't in the Copilot adapter but it's useful to reference!
   validate = function(n)
