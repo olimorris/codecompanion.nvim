@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.0.0...v10.0.1) (2024-11-20)
+
+
+### Bug Fixes
+
+* **diff:** is_visible() a nil value in default diff ([8d7a796](https://github.com/olimorris/codecompanion.nvim/commit/8d7a7965095925039dbfe34f56b0d72920e67545))
+
 ## [10.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v9.12.4...v10.0.0) (2024-11-20)
 
 
