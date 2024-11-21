@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.0.3](https://github.com/olimorris/codecompanion.nvim/compare/v10.0.2...v10.0.3) (2024-11-21)
+
+
+### Bug Fixes
+
+* opening existing chats from the action palette ([59823c2](https://github.com/olimorris/codecompanion.nvim/commit/59823c232da7cbbc8a5fde5edbbf32578bd653b4))
+
 ## [10.0.2](https://github.com/olimorris/codecompanion.nvim/compare/v10.0.1...v10.0.2) (2024-11-21)
 
 
