@@ -1,9 +1,17 @@
+--[[
+*Files Tool*
+This tool can be used make edits to files on disk. It can handle multple actions
+in the same XML block. All actions must be approved by you.
+--]]
+
 local Path = require("plenary.path")
 local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils.util")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
+
+local file = nil
 
 ---Create a file and it's surrounding folders
 ---@param action table The action object
@@ -17,11 +25,15 @@ end
 
 ---Read the contents of af ile
 ---@param action table The action object
----@return string
+---@return nil
 local function read(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
-  return p:read()
+  file = {
+    content = p:read(),
+    filetype = vim.fn.fnamemodify(p.filename, ":e"),
+  }
+  return file
 end
 
 ---Edit the contents of a file
@@ -103,25 +115,14 @@ return {
   cmds = {
     ---Execute the file commands
     ---@param self CodeCompanion.Tools The Tools object
+    ---@param action table The action object
     ---@param input any The output from the previous function call
     ---@return FilesTool.Output
-    function(self, input)
-      -- Loop through the actions
-      local action = self.tool.request.action
-      if util.is_array(action) then
-        for _, v in ipairs(action) do
-          local ok, data = pcall(actions[action._attr.type], v)
-          if not ok then
-            return { status = "error", msg = data }
-          end
-        end
-      else
-        local ok, data = pcall(actions[action._attr.type], action)
-        if not ok then
-          return { status = "error", msg = data }
-        end
+    function(self, action, input)
+      local ok, data = pcall(actions[action._attr.type], action)
+      if not ok then
+        return { status = "error", msg = data }
       end
-
       return { status = "success", msg = nil }
     end,
   },
@@ -225,8 +226,9 @@ return {
   - **Don't escape** special characters
   - **Wrap contents in a CDATA block**, the contents could contain characters reserved by XML
   - **Don't duplicate code** in the response. Consider writing code directly into the contents tag of the XML
-  - The user's current working directory in Neovim is `%s`. They may refer to this in their message to you.
+  - The user's current working directory in Neovim is `%s`. They may refer to this in their message to you
   - Make sure the tools xml block is **surrounded by ```xml**
+  - Do not hallucinate. If you can't read a file's contents, say so
 
 4. **Actions**:
 
@@ -290,7 +292,8 @@ g) Move:
 
 Remember:
 - Minimize explanations unless prompted. Focus on generating correct XML.
-- If the user types `~` in their response, do not replace or expand it.]],
+- If the user types `~` in their response, do not replace or expand it.
+- Wait for the user to share the outputs with you before responding.]],
       vim.fn.getcwd(),
       xml2lua.toXml({ tools = { schema[1] } }),
       xml2lua.toXml({ tools = { schema[2] } }),
@@ -335,16 +338,45 @@ Remember:
       log:info("[Files Tool] Approved the %s action", action._attr.type)
       return true
     end,
+    on_exit = function(self)
+      log:debug("[Files Tool] on_exit handler executed")
+      file = nil
+    end,
   },
   output = {
     success = function(self, action, output)
+      log:debug("[Files Tool] success callback executed")
+      local type = action._attr.type
+      local output_msg = string.format("The %s action was executed successfully", string.upper(action._attr.type))
+
+      if file then
+        if type == "read" then
+          output_msg = output_msg .. " on the file at `" .. action.path .. "`"
+        end
+        output_msg = output_msg .. ". I've shared the output with you"
+
+        self.chat:add_message({
+          role = config.constants.USER_ROLE,
+          content = string.format(
+            [[The output from the %s action was:
+
+       ```%s
+       %s
+       ```]],
+            string.upper(type),
+            file.filetype,
+            file.content
+          ),
+        }, { visible = false })
+      end
       return self.chat:add_buf_message({
         role = config.constants.USER_ROLE,
-        content = string.format("The %s action was executed successfully.\n\n", string.upper(action._attr.type)),
+        content = output_msg .. ".\n\n",
       })
     end,
 
     error = function(self, action, err)
+      log:debug("[Files Tool] error callback executed")
       return self.chat:add_buf_message({
         role = config.constants.USER_ROLE,
         content = string.format(

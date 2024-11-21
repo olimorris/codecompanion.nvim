@@ -1,3 +1,9 @@
+--[[
+*Editor Tool*
+This tool is used to directly modify the contents of a buffer. It can handle
+multiple edits in the same XML block.
+--]]
+
 local config = require("codecompanion.config")
 
 local keymaps = require("codecompanion.utils.keymaps")
@@ -7,6 +13,8 @@ local util = require("codecompanion.utils.util")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local api = vim.api
+
+local diff_started = false
 
 -- To keep track of the changes made to the buffer, we store them in this table
 local deltas = {}
@@ -54,12 +62,10 @@ return {
   cmds = {
     ---Ensure the final function returns the status and the output
     ---@param self CodeCompanion.Tools The Tools object
+    ---@param actions table The action object
     ---@param input any The output from the previous function call
     ---@return EditorTool.Output
-    function(self, input)
-      local diff
-      local diff_started = false
-
+    function(self, actions, input)
       ---Run the action
       ---@param action table
       local function run(action)
@@ -74,12 +80,11 @@ return {
         end
 
         -- Diff the buffer
-        if config.display.diff.enabled and bufnr and vim.bo[bufnr].buftype ~= "terminal" then
-          local ok
+        if not diff_started and config.display.diff.enabled and bufnr and vim.bo[bufnr].buftype ~= "terminal" then
           local provider = config.display.diff.provider
-          ok, diff = pcall(require, "codecompanion.providers.diff." .. provider)
+          local ok, diff = pcall(require, "codecompanion.providers.diff." .. provider)
 
-          if ok and winnr and not diff_started then
+          if ok and winnr then
             ---@type CodeCompanion.DiffArgs
             local diff_args = {
               bufnr = bufnr,
@@ -108,16 +113,14 @@ return {
         --TODO: Scroll to buffer and the new lines
       end
 
-      local action = self.tool.request.action
-      if util.is_array(action) then
-        for _, v in ipairs(action) do
+      if util.is_array(actions) then
+        for _, v in ipairs(actions) do
           run(v)
         end
       else
-        run(action)
+        run(actions)
       end
 
-      deltas = {}
       return { status = "success", msg = nil }
     end,
   },
@@ -242,4 +245,9 @@ Remember: Minimize explanations unless prompted. Focus on generating correct XML
       })
     )
   end,
+  handlers = {
+    on_exit = function(self)
+      deltas = {}
+    end,
+  },
 }

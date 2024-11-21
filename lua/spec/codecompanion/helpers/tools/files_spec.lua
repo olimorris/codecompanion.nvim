@@ -15,9 +15,9 @@ describe("File tools", function()
 
   it("can read a file", function()
     local path = "~/tmp/test.txt"
-    local contents = files.actions.read({ path = path })
+    local output = files.actions.read({ path = path })
 
-    assert.are.same("Hello World", contents)
+    assert.are.same("Hello World", output.content)
   end)
 
   it("can edit a file", function()

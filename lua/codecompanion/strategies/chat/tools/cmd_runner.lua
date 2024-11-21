@@ -1,3 +1,9 @@
+--[[
+*Command Runner Tool*
+This tool is used to run shell commands on your system. It can handle multple
+commands in the same XML block. All commands must be approved by you.
+--]]
+
 local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")

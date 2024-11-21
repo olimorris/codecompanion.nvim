@@ -1,3 +1,8 @@
+--[[
+*RAG Tool*
+This tool can be used to search the internet or navigate directly to a specifc URL.
+--]]
+
 local config = require("codecompanion.config")
 
 local xml2lua = require("codecompanion.utils.xml.xml2lua")

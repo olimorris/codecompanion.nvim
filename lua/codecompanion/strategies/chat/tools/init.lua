@@ -243,21 +243,23 @@ function Tools:run()
     local cmd = self.tool.cmds[index]
     log:debug("Running cmd: %s", cmd)
 
-    -- Tools that are setup as Lua functions
-    if type(cmd) == "function" then
-      if requires_approval and not handlers.approved(self.tool.request.action) then
-        output.rejected(self.tool.request.action)
+    ---Execute a function tool
+    local function execute_func(action, ...)
+      if requires_approval and not handlers.approved(action) then
+        output.rejected(action)
         if not should_iter() then
           return close()
         end
       end
 
-      local ok, data = pcall(cmd, self, ...)
+      local ok, data = pcall(function(...)
+        return cmd(self, action, ...)
+      end)
       if not ok then
         status = CONSTANTS.STATUS_ERROR
         table.insert(stderr, data)
         log:error("Error calling function in %s: %s", self.tool.name, data)
-        output.error(self.tool.request.action, data)
+        output.error(action, data)
         return close()
       end
 
@@ -265,10 +267,10 @@ function Tools:run()
         status = CONSTANTS.STATUS_ERROR
         table.insert(stderr, output.msg)
         log:error("Error whilst running %s: %s", self.tool.name, output.msg)
-        output.error(self.tool.request.action, output.msg)
+        output.error(action, output.msg)
       else
         table.insert(stdout, output.msg)
-        output.success(self.tool.request.action, output.msg)
+        output.success(action, output.msg)
       end
 
       if not should_iter() then
@@ -276,6 +278,18 @@ function Tools:run()
       end
 
       run(index + 1, output)
+    end
+
+    -- Tools that are setup as Lua functions
+    if type(cmd) == "function" then
+      local action = self.tool.request.action
+      if type(action) == "table" and type(action[1]) == "table" then
+        for _, a in ipairs(action) do
+          execute_func(a, ...)
+        end
+      else
+        execute_func(action, ...)
+      end
     end
 
     -- Tools that are setup as shell commands
@@ -315,9 +329,11 @@ function Tools:run()
 
             if not vim.tbl_isempty(stderr) then
               output.error(cmd, stderr)
+              stderr = {}
             end
             if not vim.tbl_isempty(stdout) then
               output.success(cmd, stdout)
+              stdout = {}
             end
 
             if not should_iter() then
