@@ -66,7 +66,7 @@ return {
             description = data.description,
             callback = function()
               codecompanion.close_last_chat()
-              data.chat:open()
+              data.chat.ui:open()
             end,
           })
         end
