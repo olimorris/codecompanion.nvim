@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.0.4](https://github.com/olimorris/codecompanion.nvim/compare/v10.0.3...v10.0.4) (2024-11-21)
+
+
+### Bug Fixes
+
+* **tools:** editor diff should be cleared on_exit ([b143ee0](https://github.com/olimorris/codecompanion.nvim/commit/b143ee0831c59fe2ad3582883c09a24f6659b7b0))
+
 ## [10.0.3](https://github.com/olimorris/codecompanion.nvim/compare/v10.0.2...v10.0.3) (2024-11-21)
 
 
