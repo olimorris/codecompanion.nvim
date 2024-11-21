@@ -248,6 +248,7 @@ Remember: Minimize explanations unless prompted. Focus on generating correct XML
   handlers = {
     on_exit = function(self)
       deltas = {}
+      diff_started = false
     end,
   },
 }
