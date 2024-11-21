@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.0.2](https://github.com/olimorris/codecompanion.nvim/compare/v10.0.1...v10.0.2) (2024-11-21)
+
+
+### Bug Fixes
+
+* **tools:** [#467](https://github.com/olimorris/codecompanion.nvim/issues/467) reading of files on disk ([034ed9e](https://github.com/olimorris/codecompanion.nvim/commit/034ed9eec8f8726cc30f9854d92d6f608e399717))
+
 ## [10.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.0.0...v10.0.1) (2024-11-20)
 
 
