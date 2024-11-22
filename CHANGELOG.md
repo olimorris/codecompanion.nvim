@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.1.0...v10.1.1) (2024-11-22)
+
+
+### Bug Fixes
+
+* **completion:** setting of keymaps ([03fbb0a](https://github.com/olimorris/codecompanion.nvim/commit/03fbb0ac20d3a028d9462efe49f3d53b60e92a8a))
+
 ## [10.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.0.4...v10.1.0) (2024-11-22)
 
 
