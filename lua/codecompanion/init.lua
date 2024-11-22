@@ -240,8 +240,8 @@ M.setup = function(opts)
     return api.nvim_err_writeln("CodeCompanion.nvim requires Neovim 0.10.0+")
   end
 
+  -- Setup the plugin's config
   config.setup(opts)
-
   if opts and opts.adapters then
     require("codecompanion.utils.adapters").extend(config.adapters, opts.adapters)
   end
@@ -306,7 +306,7 @@ M.setup = function(opts)
   log.set_root(log.new({
     handlers = {
       {
-        type = "echo",
+        type = "notify",
         level = vim.log.levels.WARN,
       },
       {
