@@ -127,7 +127,7 @@ local defaults = {
         },
         completion = {
           modes = {
-            i = "<C-/>",
+            i = "<C-_>",
           },
           index = 1,
           callback = "keymaps.completion",
