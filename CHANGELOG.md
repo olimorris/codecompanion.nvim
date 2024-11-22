@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.1.2](https://github.com/olimorris/codecompanion.nvim/compare/v10.1.1...v10.1.2) (2024-11-22)
+
+
+### Bug Fixes
+
+* **keymaps:** completion menu is now `&lt;c-_&gt;` ([24f296b](https://github.com/olimorris/codecompanion.nvim/commit/24f296bd2382bc9f50d387b5ac849410d6c2d491))
+
 ## [10.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.1.0...v10.1.1) (2024-11-22)
 
 
