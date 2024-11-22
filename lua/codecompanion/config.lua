@@ -125,6 +125,14 @@ local defaults = {
           description = "Options",
           hide = true,
         },
+        completion = {
+          modes = {
+            i = "<C-/>",
+          },
+          index = 1,
+          callback = "keymaps.completion",
+          description = "Completion Menu",
+        },
         send = {
           modes = {
             n = { "<CR>", "<C-s>" },

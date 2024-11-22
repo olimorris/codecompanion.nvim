@@ -1,5 +1,7 @@
+local completion = require("codecompanion.completion")
 local config = require("codecompanion.config")
 
+local async = require("plenary.async")
 local ts = require("codecompanion.utils.treesitter")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils.util")
@@ -22,7 +24,7 @@ end
 
 ---Open a floating window with the provided lines
 ---@param lines table
----@param opts table
+---@param opts? table
 ---@return nil
 local function open_float(lines, opts)
   opts = opts or {}
@@ -156,6 +158,87 @@ M.options = {
 
     _cached_options = lines
     open_float(lines)
+  end,
+}
+
+-- Native completion
+M.completion = {
+  condition = function()
+    -- Use cmp by default
+    local has_cmp, _ = pcall(require, "nvim-cmp")
+    if has_cmp then
+      return true
+    end
+    return false
+  end,
+  callback = function(chat)
+    local function complete_items(callback)
+      async.run(function()
+        local slash_cmds = completion.slash_commands()
+        local tools = completion.tools()
+        local vars = completion.variables()
+
+        local items = {}
+
+        if type(slash_cmds[1]) == "table" then
+          vim.list_extend(items, slash_cmds)
+        end
+        if type(tools[1]) == "table" then
+          vim.list_extend(items, tools)
+        end
+        if type(vars[1]) == "table" then
+          vim.list_extend(items, vars)
+        end
+
+        -- Process each item to match the completion format
+        for _, item in ipairs(items) do
+          if item.label then
+            item.word = item.label
+            item.abbr = item.label:sub(2)
+            item.menu = item.description or item.detail
+            item.icase = 1
+            item.dup = 0
+            item.empty = 0
+            item.user_data = {
+              command = item.label:sub(2),
+              label = item.label,
+              type = item.type,
+              config = item.config,
+              from_prompt_library = item.from_prompt_library,
+            }
+          end
+        end
+
+        vim.schedule(function()
+          callback(items)
+        end)
+      end)
+    end
+
+    local function trigger_complete()
+      local line = vim.api.nvim_get_current_line()
+      local cursor = vim.api.nvim_win_get_cursor(0)
+      local col = cursor[2]
+      if col == 0 or #line == 0 then
+        return
+      end
+
+      local prefix, cmp_start = unpack(vim.fn.matchstrpos(line:sub(1, col), [[\%(@\|/\|#\|\$\)\S*]]))
+      if not prefix then
+        return
+      end
+
+      complete_items(function(items)
+        vim.fn.complete(
+          cmp_start + 1,
+          vim.tbl_filter(function(item)
+            return vim.startswith(item.word:lower(), prefix:lower())
+          end, items)
+        )
+      end)
+    end
+
+    trigger_complete()
   end,
 }
 

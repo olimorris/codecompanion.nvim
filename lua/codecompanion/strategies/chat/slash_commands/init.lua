@@ -32,8 +32,9 @@ end
 
 ---Execute the selected slash command
 ---@param item table The selected item from the completion menu
+---@param chat CodeCompanion.Chat
 ---@return nil
-function SlashCommands:execute(item)
+function SlashCommands:execute(item, chat)
   local label = item.label:sub(2)
   log:debug("Executing slash command: %s", label)
 
@@ -42,13 +43,10 @@ function SlashCommands:execute(item)
     return log:error("Slash command not found: %s", label)
   end
 
-  --TODO: Enable callbacks to be functions
-  --We can then pass in the Chat and context to the callback
-
   return callback
     .new({
       config = item.config,
-      Chat = item.Chat,
+      Chat = chat,
       context = item.context,
     })
     :execute(item)

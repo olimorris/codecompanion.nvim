@@ -65,10 +65,9 @@ Install the plugin with your preferred package manager:
   dependencies = {
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
-    "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
-    "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
-    { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } }, -- Optional: For prettier markdown rendering
-    { "stevearc/dressing.nvim", opts = {} }, -- Optional: Improves `vim.ui.select`
+    -- The following are optional:
+    "nvim-telescope/telescope.nvim", -- For using slash commands
+    { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } },
   },
   config = true
 }
@@ -85,10 +84,9 @@ use({
   requires = {
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
-    "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
-    "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
-    { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } }, -- Optional: For prettier markdown rendering
-    "stevearc/dressing.nvim" -- Optional: Improves `vim.ui.select`
+    -- The following are optional:
+    "nvim-telescope/telescope.nvim", -- For using slash commands
+    { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } },
   }
 })
 ```
@@ -100,10 +98,10 @@ call plug#begin()
 
 Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-treesitter/nvim-treesitter'
-Plug 'hrsh7th/nvim-cmp', " Optional: For using slash commands and variables in the chat buffer
-Plug 'nvim-telescope/telescope.nvim', " Optional: For using slash commands
-Plug 'stevearc/dressing.nvim' " Optional: Improves `vim.ui.select`
-Plug 'MeanderingProgrammer/render-markdown.nvim' " Optional: For prettier markdown rendering
+" -- The following are optional
+Plug 'nvim-telescope/telescope.nvim', " For using slash commands
+Plug 'MeanderingProgrammer/render-markdown.nvim'
+" --
 Plug 'olimorris/codecompanion.nvim'
 
 call plug#end()
@@ -170,8 +168,8 @@ Tools can also be grouped together to form _Agents_, which are also accessed via
 
 - `@full_stack_dev` - Contains the `cmd_runner`, `editor` and `files` tools.
 
-> [!TIP]
-> Press `?` in the chat buffer to reveal the keymaps and options that are available.
+> [!IMPORTANT]
+> These have been designed to work with native Neovim completions and also with [nvim-cmp](https://github.com/hrsh7th/nvim-cmp). To open the completion menu use `<C-/>` in insert mode when in the chat buffer.
 
 **Inline Assistant**
 
