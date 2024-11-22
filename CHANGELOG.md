@@ -1,5 +1,17 @@
 # Changelog
 
+## [10.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.0.4...v10.1.0) (2024-11-22)
+
+
+### Features
+
+* add native completions ([a1147f8](https://github.com/olimorris/codecompanion.nvim/commit/a1147f8133707251603525acf6a87f5c12ef3a70))
+
+
+### Bug Fixes
+
+* **slash_commands:** fetch doesn't error on no input ([be9e36c](https://github.com/olimorris/codecompanion.nvim/commit/be9e36c217f15ff53b06c9eb2ba7c42de026dc70))
+
 ## [10.0.4](https://github.com/olimorris/codecompanion.nvim/compare/v10.0.3...v10.0.4) (2024-11-21)
 
 
