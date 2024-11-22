@@ -48,17 +48,10 @@ end
 ---@param t table
 ---@return boolean
 M.is_array = function(t)
-  if type(t) ~= "table" then
-    return false
+  if type(t) == "table" and type(t[1]) == "table" then
+    return true
   end
-  local i = 0
-  for _ in pairs(t) do
-    i = i + 1
-    if t[i] == nil then
-      return false
-    end
-  end
-  return true
+  return false
 end
 
 ---@param table table
