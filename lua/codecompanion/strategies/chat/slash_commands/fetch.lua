@@ -43,8 +43,8 @@ function SlashCommand:execute()
   end
 
   vim.ui.input({ prompt = "URL" }, function(input)
-    if input == "" then
-      return log:error("URL cannot be empty")
+    if input == "" or not input then
+      return
     end
 
     adapter.env = {
