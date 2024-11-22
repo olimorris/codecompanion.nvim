@@ -301,7 +301,7 @@ function Chat:set_autocmds()
     end,
   })
 
-  local has_cmp, _ = pcall(require, "nvim-cmp")
+  local has_cmp, _ = pcall(require, "cmp")
   if not has_cmp then
     api.nvim_create_autocmd("CompleteDone", {
       group = self.aug,

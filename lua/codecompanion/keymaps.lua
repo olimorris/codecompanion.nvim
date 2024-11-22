@@ -165,11 +165,11 @@ M.options = {
 M.completion = {
   condition = function()
     -- Use cmp by default
-    local has_cmp, _ = pcall(require, "nvim-cmp")
+    local has_cmp, _ = pcall(require, "cmp")
     if has_cmp then
-      return true
+      return false
     end
-    return false
+    return true
   end,
   callback = function(chat)
     local function complete_items(callback)
