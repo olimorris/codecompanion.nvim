@@ -320,17 +320,17 @@ M.setup = function(opts)
   -- Setup cmp
   local has_cmp, cmp = pcall(require, "cmp")
   if has_cmp then
+    cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new(config))
+    cmp.register_source("codecompanion_slash_commands", require("cmp_codecompanion.slash_commands").new(config))
     cmp.register_source("codecompanion_tools", require("cmp_codecompanion.tools").new(config))
     cmp.register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
-    cmp.register_source("codecompanion_slash_commands", require("cmp_codecompanion.slash_commands").new(config))
-    cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new(config))
     cmp.setup.filetype("codecompanion", {
       enabled = true,
       sources = {
+        { name = "codecompanion_models" },
+        { name = "codecompanion_slash_commands" },
         { name = "codecompanion_tools" },
         { name = "codecompanion_variables" },
-        { name = "codecompanion_slash_commands" },
-        { name = "codecompanion_models" },
       },
     })
   end
