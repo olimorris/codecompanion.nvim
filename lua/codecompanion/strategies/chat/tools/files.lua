@@ -104,10 +104,6 @@ local actions = {
   move = move,
 }
 
----@class FilesTool.Output
----@field status string The output status. Either "success" or "error"
----@field msg string The message to send back to the LLM
-
 ---@class CodeCompanion.Tool
 return {
   name = "files",
@@ -117,7 +113,7 @@ return {
     ---@param self CodeCompanion.Tools The Tools object
     ---@param action table The action object
     ---@param input any The output from the previous function call
-    ---@return FilesTool.Output
+    ---@return { status: string, msg: string }
     function(self, action, input)
       local ok, data = pcall(actions[action._attr.type], action)
       if not ok then

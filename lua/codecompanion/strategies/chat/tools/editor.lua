@@ -52,10 +52,6 @@ local function delete(bufnr, action)
   add_delta(bufnr, start_line, (start_line - end_line - 1))
 end
 
----@class EditorTool.Output
----@field status string The output status. Either "success" or "error"
----@field msg string The message to send back to the LLM
-
 ---@class CodeCompanion.Tool
 return {
   name = "editor",
@@ -64,7 +60,7 @@ return {
     ---@param self CodeCompanion.Tools The Tools object
     ---@param actions table The action object
     ---@param input any The output from the previous function call
-    ---@return EditorTool.Output
+    ---@return { status: string, msg: string }
     function(self, actions, input)
       ---Run the action
       ---@param action table
