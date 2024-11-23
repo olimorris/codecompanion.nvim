@@ -1,5 +1,17 @@
 # Changelog
 
+## [10.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.1.2...v10.2.0) (2024-11-23)
+
+
+### Features
+
+* **keymaps:** add condition logic ([c4eb21e](https://github.com/olimorris/codecompanion.nvim/commit/c4eb21e89ecf466416b75395ac00bf3db83838e7))
+
+
+### Bug Fixes
+
+* **config:** wrap completion condition in pcall ([d19ae05](https://github.com/olimorris/codecompanion.nvim/commit/d19ae05f561a7d3b5d311453285996e84cc925de))
+
 ## [10.1.2](https://github.com/olimorris/codecompanion.nvim/compare/v10.1.1...v10.1.2) (2024-11-22)
 
 
