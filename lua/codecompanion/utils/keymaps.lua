@@ -24,12 +24,6 @@ local function resolve(rhs)
   if type(rhs) == "string" and vim.startswith(rhs, "keymaps.") then
     return resolve(plugin_maps[vim.split(rhs, ".", { plain = true })[2]])
   elseif type(rhs) == "table" then
-    if type(rhs.condition) == "function" then
-      if not rhs.condition() then
-        return false, {}
-      end
-    end
-
     local opts = vim.deepcopy(rhs)
     local callback = opts.callback
     local mode = opts.mode
@@ -54,7 +48,7 @@ function M.set(keymaps, bufnr, data)
   for _, map in pairs(keymaps) do
     local callback
     local rhs, action_opts = resolve(map.callback)
-    if not rhs then
+    if type(map.condition) == "function" and not map.condition() then
       goto continue
     end
 

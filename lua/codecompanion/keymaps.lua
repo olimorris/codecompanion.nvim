@@ -113,6 +113,9 @@ M.options = {
     table.insert(lines, "### Keymaps")
 
     for _, map in pairs(keymaps) do
+      if type(map.condition) == "function" and not map.condition() then
+        goto continue
+      end
       if not map.hide then
         local modes = {
           n = "Normal",
@@ -136,6 +139,7 @@ M.options = {
 
         table.insert(lines, indent .. pad("_" .. map.description .. "_", max_length, 4) .. " " .. output_str)
       end
+      ::continue::
     end
 
     -- Variables
@@ -163,14 +167,6 @@ M.options = {
 
 -- Native completion
 M.completion = {
-  condition = function()
-    -- Use cmp by default
-    local has_cmp, _ = pcall(require, "cmp")
-    if has_cmp then
-      return false
-    end
-    return true
-  end,
   callback = function(chat)
     local function complete_items(callback)
       async.run(function()
@@ -223,14 +219,14 @@ M.completion = {
         return
       end
 
-      local prefix, cmp_start = unpack(vim.fn.matchstrpos(line:sub(1, col), [[\%(@\|/\|#\|\$\)\S*]]))
+      local prefix, start = unpack(vim.fn.matchstrpos(line:sub(1, col), [[\%(@\|/\|#\|\$\)\S*]]))
       if not prefix then
         return
       end
 
       complete_items(function(items)
         vim.fn.complete(
-          cmp_start + 1,
+          start + 1,
           vim.tbl_filter(function(item)
             return vim.startswith(item.word:lower(), prefix:lower())
           end, items)
