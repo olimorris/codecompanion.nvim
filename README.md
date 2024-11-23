@@ -169,7 +169,7 @@ Tools can also be grouped together to form _Agents_, which are also accessed via
 - `@full_stack_dev` - Contains the `cmd_runner`, `editor` and `files` tools.
 
 > [!IMPORTANT]
-> These have been designed to work with native Neovim completions and also with [nvim-cmp](https://github.com/hrsh7th/nvim-cmp). To open the completion menu use `<C-/>` in insert mode when in the chat buffer.
+> These have been designed to work with native Neovim completions and also with [nvim-cmp](https://github.com/hrsh7th/nvim-cmp). To open the completion menu use `<C-_>` in insert mode when in the chat buffer.
 
 **Inline Assistant**
 
@@ -592,8 +592,9 @@ When in the chat buffer, press `?` to bring up a menu that lists the available k
 - `{` to move to the previous chat
 - `}` to move to the next chat
 
-> [!NOTE]
-> There are also corresponding insert mode mappings available.
+and in insert mode:
+
+- `<C-_>` to open the completion menu (if nvim-cmp isn't installed)
 
 **Settings**
 

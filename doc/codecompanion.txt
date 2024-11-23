@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 November 22
+*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 November 23
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -154,7 +154,7 @@ via `@` in the chat buffer:
 
   [!IMPORTANT] These have been designed to work with native Neovim completions
   and also with nvim-cmp <https://github.com/hrsh7th/nvim-cmp>. To open the
-  completion menu use `<C-/>` in insert mode when in the chat buffer.
+  completion menu use `<C-_>` in insert mode when in the chat buffer.
 **Inline Assistant**
 
 Run `:CodeCompanion <your prompt>` to call the inline assistant. The assistant
@@ -635,8 +635,10 @@ to you in normal mode are:
 - `{` to move to the previous chat
 - `}` to move to the next chat
 
+and in insert mode:
 
-  [!NOTE] There are also corresponding insert mode mappings available.
+- `<C-_>` to open the completion menu (if nvim-cmp isn’t installed)
+
 **Settings**
 
 You can display your selected adapter’s schema at the top of the buffer, if
