@@ -132,7 +132,7 @@ local defaults = {
           index = 1,
           callback = "keymaps.completion",
           condition = function()
-            local has_cmp, _ = require("cmp")
+            local has_cmp, _ = pcall(require, "cmp")
             return not has_cmp
           end,
           description = "Completion Menu",
