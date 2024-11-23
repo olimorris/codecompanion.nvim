@@ -130,3 +130,13 @@
 ---@field output function The function to call when a selection is made
 ---@field SlashCommand CodeCompanion.SlashCommand
 ---@field title string The title of the provider's window
+
+---@class CodeCompanion.Actions.Provider
+---@field validate table Validate an item
+---@field resolve table Resolve an item into an action
+---@field context table Store all arguments in this table
+---
+---@class CodeCompanion.Actions.ProvidersArgs Arguments that can be injected into the chat
+---@field validate table Validate an item
+---@field resolve table Resolve an item into an action
+---@field context table The buffer context

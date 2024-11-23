@@ -88,7 +88,7 @@ function Actions.launch(context, args)
     provider_opts = args.provider.opts or {}
   end
 
-  return require("codecompanion.actions.providers." .. provider)
+  return require("codecompanion.providers.actions." .. provider)
     .new({ context = context, validate = Actions.validate, resolve = Actions.resolve })
     :picker(items, provider_opts)
 end

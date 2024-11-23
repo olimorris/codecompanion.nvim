@@ -1,16 +1,10 @@
 local MiniPick = require("mini.pick")
 local log = require("codecompanion.utils.log")
 
----@class CodeCompanion.Actions.Providers.MiniPick
----@field validate table Validate an item
----@field resolve table Resolve an item into an action
----@field context table Store all arguments in this table
+---@class CodeCompanion.Actions.Provider.MiniPick: CodeCompanion.SlashCommand.Provider
 local Provider = {}
 
----@class CodeCompanion.Actions.Providers.MiniPick.Args Arguments that can be injected into the chat
----@field validate table Validate an item
----@field resolve table Resolve an item into an action
----@field context table The buffer context
+---@params CodeCompanion.Actions.ProvidersArgs
 function Provider.new(args)
   log:trace("MiniPick actions provider triggered")
   return setmetatable(args, { __index = Provider })
@@ -66,7 +60,7 @@ end
 ---@param item table The selected item
 ---@return nil
 function Provider:select(item)
-  return require("codecompanion.actions.providers.shared").select(self, item)
+  return require("codecompanion.providers.actions.shared").select(self, item)
 end
 
 return Provider

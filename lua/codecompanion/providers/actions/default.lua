@@ -3,16 +3,10 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 
----@class CodeCompanion.Actions.Providers.Default
----@field validate table Validate an item
----@field resolve table Resolve an item into an action
----@field context table Store all arguments in this table
+---@class CodeCompanion.Actions.Provider.Default: CodeCompanion.SlashCommand.Provider
 local Provider = {}
 
----@class CodeCompanion.Actions.Providers.Default.Args Arguments that can be injected into the chat
----@field validate table Validate an item
----@field resolve table Resolve an item into an action
----@field context table The buffer context
+---@params CodeCompanion.Actions.ProvidersArgs
 function Provider.new(args)
   log:trace("Default actions provider triggered")
 
@@ -55,7 +49,7 @@ end
 ---@param item table The selected item
 ---@return nil
 function Provider:select(item)
-  return require("codecompanion.actions.providers.shared").select(self, item)
+  return require("codecompanion.providers.actions.shared").select(self, item)
 end
 
 return Provider
