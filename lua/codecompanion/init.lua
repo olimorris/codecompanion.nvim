@@ -306,6 +306,10 @@ M.setup = function(opts)
   log.set_root(log.new({
     handlers = {
       {
+        type = "echo",
+        level = vim.log.levels.ERROR,
+      },
+      {
         type = "notify",
         level = vim.log.levels.WARN,
       },
