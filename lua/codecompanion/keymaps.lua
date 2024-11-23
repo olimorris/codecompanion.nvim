@@ -301,8 +301,7 @@ M.codeblock = {
 }
 
 ---@param node TSNode to yank text from
----@param register string register to yank to
-local function yank_node(node, register)
+local function yank_node(node)
   local start_row, start_col, end_row, end_col = node:range()
   local cursor_position = vim.fn.getcurpos()
 
