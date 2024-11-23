@@ -91,14 +91,18 @@ local function output(SlashCommand, selected)
   Chat:add_message({
     role = config.constants.USER_ROLE,
     content = string.format(
-      [[Here is some additional context related to the tag `%s`:
+      [[Help context for `%s`:
 
 ```%s
 %s
-```]],
+```
+
+Note the help file is located at %s.
+]],
       selected.tag,
       ft,
-      content
+      content,
+      selected.path
     ),
   }, { reference = id, visible = false })
 
@@ -108,78 +112,71 @@ local function output(SlashCommand, selected)
     id = id,
   })
 
-  util.notify(string.format("%s help file added to chat", selected.tag))
+  util.notify(string.format("Added the `%s` help to the chat", selected.tag))
 end
 
-local Providers = {
+local providers = {
   ---The Telescope provider
   ---@param SlashCommand CodeCompanion.SlashCommand
   ---@return nil
   telescope = function(SlashCommand)
-    local ok, telescope = pcall(require, "telescope.builtin")
-    if not ok then
-      return log:error("Telescope is not installed")
-    end
-
-    telescope.help_tags({
-      prompt_title = CONSTANTS.PROMPT,
-      attach_mappings = function(prompt_bufnr, _)
-        local actions = require("telescope.actions")
-        local action_state = require("telescope.actions.state")
-
-        actions.select_default:replace(function()
-          local picker = action_state.get_current_picker(prompt_bufnr)
-          local selections = picker:get_multi_selection()
-
-          if vim.tbl_isempty(selections) then
-            selections = { action_state.get_selected_entry() }
-          end
-
-          actions.close(prompt_bufnr)
-          vim.iter(selections):each(function(selection)
-            if selection then
-              selection = { path = selection.filename, tag = selection.display }
-              output(SlashCommand, selection)
-            end
-          end)
-        end)
-
-        return true
+    local telescope = require("codecompanion.providers.slash_commands.telescope")
+    telescope = telescope.new({
+      title = CONSTANTS.PROMPT,
+      output = function(selection)
+        return output(SlashCommand, { path = selection.filename, tag = selection.display })
       end,
+    })
+
+    telescope.provider.help_tags({
+      prompt_title = telescope.title,
+      attach_mappings = telescope:display(),
     })
   end,
 
+  ---The Mini.Pick provider
   ---@param SlashCommand CodeCompanion.SlashCommand
   ---@return nil
   mini_pick = function(SlashCommand)
-    local ok, mini_pick = pcall(require, "mini.pick")
-    if not ok then
-      return log:error("mini.pick is not installed")
-    end
-    mini_pick.builtin.help({}, {
-      source = {
-        name = CONSTANTS.PROMPT,
-        choose = function(selection)
-          if selection == nil then
-            return
-          end
-          output(SlashCommand, { path = selection.filename, tag = selection.name })
-        end,
-        choose_marked = function(selection)
-          for _, selected in ipairs(selection) do
-            local success, _ = pcall(function()
-              output(SlashCommand, { path = selected.filename, tag = selected.name })
-            end)
-            if not success then
-              break
-            end
-          end
-        end,
-      },
+    local mini_pick = require("codecompanion.providers.slash_commands.mini_pick")
+    mini_pick = mini_pick.new({
+      title = CONSTANTS.PROMPT,
+      output = function(selected)
+        return output(SlashCommand, selected)
+      end,
     })
+
+    mini_pick.provider.builtin.help(
+      {},
+      mini_pick:display(function(selected)
+        return {
+          path = selected.filename,
+          tag = selected.name,
+        }
+      end)
+    )
   end,
 
-  ---TODO: The fzf-lua provider
+  ---The fzf-lua provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  fzf_lua = function(SlashCommand)
+    local fzf = require("codecompanion.providers.slash_commands.fzf_lua")
+    fzf = fzf.new({
+      title = CONSTANTS.PROMPT,
+      output = function(selected)
+        return output(SlashCommand, selected)
+      end,
+    })
+
+    fzf.provider.helptags(fzf:display(function(selected, opts)
+      local file = fzf.provider.path.entry_to_file(selected, opts)
+      return {
+        path = file.path,
+        tag = selected:match("[^%s]+"),
+      }
+    end))
+  end,
 }
 
 ---@class CodeCompanion.SlashCommand.Help: CodeCompanion.SlashCommand
@@ -197,17 +194,13 @@ function SlashCommand.new(args)
 end
 
 ---Execute the slash command
+---@param SlashCommands CodeCompanion.SlashCommands
 ---@return nil
-function SlashCommand:execute()
-  if self.config.opts and self.config.opts.provider then
-    local provider = Providers[self.config.opts.provider] --[[@type function]]
-    if not provider then
-      return log:error("Provider for the help slash command could not be found: %s", self.config.opts.provider)
-    end
-    provider(self)
-  else
-    Providers.telescope(self)
+function SlashCommand:execute(SlashCommands)
+  if not config.opts.send_code and (self.config.opts and self.config.opts.contains_code) then
+    return log:warn("Sending of code has been disabled")
   end
+  return SlashCommands:set_provider(self, providers)
 end
 
 return SlashCommand

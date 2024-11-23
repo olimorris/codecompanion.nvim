@@ -66,7 +66,6 @@ Install the plugin with your preferred package manager:
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
     -- The following are optional:
-    "nvim-telescope/telescope.nvim", -- For using slash commands
     { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } },
   },
   config = true
@@ -85,7 +84,6 @@ use({
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
     -- The following are optional:
-    "nvim-telescope/telescope.nvim", -- For using slash commands
     { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } },
   }
 })
@@ -99,7 +97,6 @@ call plug#begin()
 Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-treesitter/nvim-treesitter'
 " -- The following are optional
-Plug 'nvim-telescope/telescope.nvim', " For using slash commands
 Plug 'MeanderingProgrammer/render-markdown.nvim'
 " --
 Plug 'olimorris/codecompanion.nvim'
@@ -114,7 +111,7 @@ EOF
 > [!IMPORTANT]
 > The plugin requires the markdown Tree-sitter parser to be installed with `:TSInstall markdown`
 
-[Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is a suggested inclusion as it makes leveraging the Slash Commands a little bit prettier. However, other providers are available. Please refer to the [Chat Buffer](#speech_balloon-the-chat-buffer) section for more information.
+To better utilise Slash Commands, [Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim), [mini.pick](https://github.com/echasnovski/mini.pick) or [fzf lua](https://github.com/ibhagwan/fzf-lua) can also be installed. Please refer to the [Chat Buffer](#speech_balloon-the-chat-buffer) section for more information.
 
 As per [#377](https://github.com/olimorris/codecompanion.nvim/issues/377), if you pin your plugins to the latest releases, consider setting plenary.nvim to:
 
@@ -224,6 +221,7 @@ The plugin has three core commands:
 
 - `CodeCompanion` - Open the inline assistant
 - `CodeCompanionChat` - Open a chat buffer
+- `CodeCompanionCmd` - Generate a command in the command-liine
 - `CodeCompanionActions` - Open the _Action Palette_
 
 However, there are multiple options available:
@@ -606,6 +604,8 @@ As outlined in the [Quickstart](#rocket-quickstart) section, Slash Commands allo
 
 - `/buffer` - Has `default`, `telescope` and `fzf_lua` providers
 - `/files` - Has `default`, `telescope`, `mini_pick` and `fzf_lua` providers
+- `/help` - Has `telescope`, `mini_pick` and `fzf_lua` providers
+- `/symbols` - Has `default`, `telescope`, `mini_pick` and `fzf_lua` providers
 
 Please refer to [the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) to see how to change the default provider.
 

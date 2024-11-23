@@ -90,7 +90,7 @@ local defaults = {
           description = "Insert content from help tags",
           opts = {
             contains_code = false,
-            provider = "telescope", -- telescope|mini_pick
+            provider = "telescope", -- telescope|mini_pick|fzf_lua
           },
         },
         ["now"] = {

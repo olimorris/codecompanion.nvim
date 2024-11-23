@@ -119,3 +119,14 @@
 ---@field tool CodeCompanion.Tool The current tool that's being run
 ---@field agent_config table The agent strategy from the config
 ---@field tools_ns integer The namespace for the virtual text that appears in the header
+
+---@class CodeCompanion.SlashCommand.Provider
+---@field output function The function to call when a selection is made
+---@field provider table The path to the provider
+---@field title string The title of the provider's window
+---@field SlashCommand CodeCompanion.SlashCommand
+
+---@class CodeCompanion.SlashCommand.ProviderArgs
+---@field output function The function to call when a selection is made
+---@field SlashCommand CodeCompanion.SlashCommand
+---@field title string The title of the provider's window
