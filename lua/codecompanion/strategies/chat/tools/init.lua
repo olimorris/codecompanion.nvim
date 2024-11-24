@@ -210,7 +210,7 @@ function Tools:run()
       if not self.tool.cmds then
         return false
       end
-      if vim.tbl_count(self.tool.cmds) <= index or status == CONSTANTS.STATUS_ERROR then
+      if index >= vim.tbl_count(self.tool.cmds) or status == CONSTANTS.STATUS_ERROR then
         return false
       end
       return true
@@ -272,7 +272,9 @@ function Tools:run()
     if type(cmd) == "table" then
       if requires_approval and not handlers.approved(cmd) then
         output.rejected(cmd)
-        return run(index + 1)
+        if not should_iter() then
+          return close()
+        end
       end
 
       self.chat.current_tool = Job:new({
