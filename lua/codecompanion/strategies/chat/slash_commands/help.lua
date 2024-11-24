@@ -1,9 +1,10 @@
-local config = require("codecompanion.config")
+local path = require("plenary.path")
 
-local file_utils = require("codecompanion.utils.files")
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local tokens_utils = require("codecompanion.utils.tokens")
 local util = require("codecompanion.utils.util")
+
 local ts = vim.treesitter
 
 CONSTANTS = {
@@ -72,7 +73,7 @@ local function output(SlashCommand, selected)
   end
 
   local ft = "vimdoc"
-  local content = file_utils.read(selected.path)
+  local content = path.new(selected.path):read()
 
   if content == "" then
     return log:warn("Could not read the file: %s", selected.path)

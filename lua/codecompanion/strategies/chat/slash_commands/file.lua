@@ -1,6 +1,6 @@
-local config = require("codecompanion.config")
+local path = require("plenary.path")
 
-local file_utils = require("codecompanion.utils.files")
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils.util")
 
@@ -20,8 +20,8 @@ local function output(SlashCommand, selected)
     return log:warn("Sending of code has been disabled")
   end
 
-  local ft = file_utils.get_filetype(selected.path)
-  local content = file_utils.read(selected.path)
+  local ft = vim.filetype.match({ filename = selected.path })
+  local content = path.new(selected.path):read()
 
   if content == "" then
     return log:warn("Could not read the file: %s", selected.path)

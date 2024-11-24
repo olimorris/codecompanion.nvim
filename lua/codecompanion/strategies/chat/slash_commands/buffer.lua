@@ -1,7 +1,7 @@
-local config = require("codecompanion.config")
+local path = require("plenary.path")
 
 local buf = require("codecompanion.utils.buffers")
-local file_utils = require("codecompanion.utils.files")
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils.util")
 
@@ -27,11 +27,11 @@ local function output(SlashCommand, selected)
   -- If the buffer is not loaded, then read the file
   local content
   if not api.nvim_buf_is_loaded(selected.bufnr) then
-    content = file_utils.read(selected.path)
+    content = path.new(selected.path):read()
     if content == "" then
       return log:warn("Could not read the file: %s", selected.path)
     end
-    content = "```" .. file_utils.get_filetype(selected.path) .. "\n" .. content .. "\n```"
+    content = "```" .. vim.filetype.match({ filename = selected.path }) .. "\n" .. content .. "\n```"
   else
     content = buf.format(selected.bufnr)
   end

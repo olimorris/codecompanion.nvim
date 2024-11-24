@@ -1,6 +1,6 @@
-local config = require("codecompanion.config")
+local path = require("plenary.path")
 
-local file_utils = require("codecompanion.utils.files")
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils.util")
 
@@ -21,8 +21,8 @@ end
 ---@param selected table The selected item from the provider { relative_path = string, path = string }
 ---@return nil
 local function output(SlashCommand, selected)
-  local ft = file_utils.get_filetype(selected.path)
-  local content = file_utils.read(selected.path)
+  local ft = vim.filetype.match({ filename = selected.path })
+  local content = path.new(selected.path):read()
 
   local query = vim.treesitter.query.get(ft, "symbols")
 
