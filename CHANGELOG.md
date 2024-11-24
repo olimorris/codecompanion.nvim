@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.2.2](https://github.com/olimorris/codecompanion.nvim/compare/v10.2.1...v10.2.2) (2024-11-24)
+
+
+### Bug Fixes
+
+* **tools:** rejected cmd tools close properly ([50d0d25](https://github.com/olimorris/codecompanion.nvim/commit/50d0d2543ed3115477cfacfd80db0e029857127e))
+
 ## [10.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.2.0...v10.2.1) (2024-11-24)
 
 
