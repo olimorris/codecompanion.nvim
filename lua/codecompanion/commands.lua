@@ -129,6 +129,18 @@ return {
     },
   },
   {
+    cmd = "CodeCompanionCmd",
+    callback = function(opts)
+      codecompanion.cmd(opts)
+    end,
+    opts = {
+      desc = "Prompt the LLM to write a command for the command-line",
+      range = false,
+      nargs = "*",
+    },
+  },
+
+  {
     cmd = "CodeCompanionActions",
     callback = function(opts)
       codecompanion.actions(opts)

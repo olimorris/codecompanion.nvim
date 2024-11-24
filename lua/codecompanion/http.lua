@@ -1,9 +1,10 @@
-local config = require("codecompanion.config")
+local Curl = require("plenary.curl")
+local Path = require("plenary.path")
 
-local curl = require("plenary.curl")
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
-local util = require("codecompanion.utils.util")
+local util = require("codecompanion.utils")
 
 ---@class CodeCompanion.Client
 ---@field adapter CodeCompanion.Adapter
@@ -15,8 +16,8 @@ Client.static = {}
 
 -- This makes it easier to mock during testing
 Client.static.opts = {
-  post = { default = curl.post },
-  get = { default = curl.get },
+  post = { default = Curl.post },
+  get = { default = Curl.get },
   encode = { default = vim.json.encode },
   schedule = { default = vim.schedule_wrap },
 }
@@ -27,7 +28,7 @@ Client.static.opts = {
 ---@field user_args nil|table
 
 ---@param args CodeCompanion.ClientArgs
----@return CodeCompanion.Client
+---@return table
 function Client.new(args)
   args = args or {}
 
@@ -38,14 +39,17 @@ function Client.new(args)
   }, { __index = Client })
 end
 
+---@class CodeCompanion.Adapter.RequestActions
+---@field callback fun(err: nil|string, chunk: nil|table) Callback function, executed when the request has finished or is called multiple times if the request is streaming
+---@field done? fun() Function to run when the request is complete
+
 ---@param payload table The payload to be sent to the endpoint
----@param cb fun(err: nil|string, chunk: nil|table) Callback function, executed when the request has finished (can be called multiple times if the request is streaming)
----@param after? fun() Function to run when the request is finished
+---@param actions CodeCompanion.Adapter.RequestActions
 ---@param opts? table Options that can be passed to the request
 ---@return table|nil The Plenary job
-function Client:request(payload, cb, after, opts)
+function Client:request(payload, actions, opts)
   opts = opts or {}
-  cb = log:wrap_cb(cb, "Response error: %s")
+  local cb = log:wrap_cb(actions.callback, "Response error: %s")
 
   local adapter = self.adapter
   local handlers = adapter.handlers
@@ -69,13 +73,24 @@ function Client:request(payload, cb, after, opts)
     )
   )
 
+  local body_file = Path.new(vim.fn.tempname() .. ".json")
+  body_file:write(vim.split(body, "\n"), "w")
+
+  log:info("Request body file: %s", body_file.filename)
+
+  local function cleanup(status)
+    if vim.tbl_contains({ "DEBUG", "ERROR", "INFO" }, config.opts.log_level) and status ~= "error" then
+      body_file:rm()
+    end
+  end
+
   local request_opts = {
     url = adapter:set_env_vars(adapter.url),
     headers = adapter:set_env_vars(adapter.headers),
     insecure = config.adapters.opts.allow_insecure,
     proxy = config.adapters.opts.proxy,
     raw = adapter.raw or { "--no-buffer" },
-    body = body or "",
+    body = body_file.filename or "",
     -- This is called when the request is finished. It will only ever be called
     -- once, even if the endpoint is streaming.
     callback = function(data)
@@ -84,22 +99,23 @@ function Client:request(payload, cb, after, opts)
           log:trace("Output data:\n%s", data)
           cb(nil, data)
         end
-        if after and type(after) == "function" then
-          after()
-        end
         if handlers and handlers.on_exit then
           handlers.on_exit(adapter, data)
         end
         if handlers and handlers.teardown then
           handlers.teardown(adapter)
         end
+        if actions.done and type(actions.done) == "function" then
+          actions.done()
+        end
 
-        opts["status"] = "success"
+        opts.status = "success"
         if data.status >= 400 then
-          opts["status"] = "error"
+          opts.status = "error"
         end
 
         util.fire("RequestFinished", opts)
+        cleanup(opts.status)
         if self.user_args.event then
           util.fire("RequestFinished" .. (self.user_args.event or ""), opts)
         end
@@ -107,8 +123,8 @@ function Client:request(payload, cb, after, opts)
     end,
     on_error = function(err)
       vim.schedule(function()
-        log:error("Error: %s", err)
-        return cb(err, nil)
+        cb(err, nil)
+        return util.fire("RequestFinished", opts)
       end)
     end,
   }
@@ -128,17 +144,18 @@ function Client:request(payload, cb, after, opts)
     request = adapter.opts.method:lower()
   end
 
-  local handler = self.opts[request](request_opts)
+  local job = self.opts[request](request_opts)
+
   util.fire("RequestStarted", opts)
 
-  if handler and handler.args then
-    log:debug("Request:\n%s", handler.args)
+  if job and job.args then
+    log:debug("Request:\n%s", job.args)
   end
   if self.user_args.event then
     util.fire("RequestStarted" .. (self.user_args.event or ""), opts)
   end
 
-  return handler
+  return job
 end
 
 return Client

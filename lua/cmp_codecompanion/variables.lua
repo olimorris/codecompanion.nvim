@@ -1,5 +1,3 @@
-local variables = require("codecompanion.strategies.chat.variables").new().vars
-
 local source = {}
 
 function source.new()
@@ -23,16 +21,13 @@ function source:get_keyword_pattern()
 end
 
 function source:complete(_, callback)
-  local items = {}
+  local items = require("codecompanion.completion").variables()
   local kind = require("cmp").lsp.CompletionItemKind.Variable
 
-  for label, data in pairs(variables) do
-    table.insert(items, {
-      label = "#" .. label,
-      kind = kind,
-      detail = data.description,
-    })
-  end
+  vim.iter(items):map(function(item)
+    item.kind = kind
+    return item
+  end)
 
   callback({
     items = items,

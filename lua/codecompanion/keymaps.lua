@@ -1,8 +1,10 @@
+local completion = require("codecompanion.completion")
 local config = require("codecompanion.config")
 
+local async = require("plenary.async")
 local ts = require("codecompanion.utils.treesitter")
 local ui = require("codecompanion.utils.ui")
-local util = require("codecompanion.utils.util")
+local util = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -22,7 +24,7 @@ end
 
 ---Open a floating window with the provided lines
 ---@param lines table
----@param opts table
+---@param opts? table
 ---@return nil
 local function open_float(lines, opts)
   opts = opts or {}
@@ -111,6 +113,9 @@ M.options = {
     table.insert(lines, "### Keymaps")
 
     for _, map in pairs(keymaps) do
+      if type(map.condition) == "function" and not map.condition() then
+        goto continue
+      end
       if not map.hide then
         local modes = {
           n = "Normal",
@@ -134,6 +139,7 @@ M.options = {
 
         table.insert(lines, indent .. pad("_" .. map.description .. "_", max_length, 4) .. " " .. output_str)
       end
+      ::continue::
     end
 
     -- Variables
@@ -159,6 +165,79 @@ M.options = {
   end,
 }
 
+-- Native completion
+M.completion = {
+  callback = function(chat)
+    local function complete_items(callback)
+      async.run(function()
+        local slash_cmds = completion.slash_commands()
+        local tools = completion.tools()
+        local vars = completion.variables()
+
+        local items = {}
+
+        if type(slash_cmds[1]) == "table" then
+          vim.list_extend(items, slash_cmds)
+        end
+        if type(tools[1]) == "table" then
+          vim.list_extend(items, tools)
+        end
+        if type(vars[1]) == "table" then
+          vim.list_extend(items, vars)
+        end
+
+        -- Process each item to match the completion format
+        for _, item in ipairs(items) do
+          if item.label then
+            item.word = item.label
+            item.abbr = item.label:sub(2)
+            item.menu = item.description or item.detail
+            item.icase = 1
+            item.dup = 0
+            item.empty = 0
+            item.user_data = {
+              command = item.label:sub(2),
+              label = item.label,
+              type = item.type,
+              config = item.config,
+              from_prompt_library = item.from_prompt_library,
+            }
+          end
+        end
+
+        vim.schedule(function()
+          callback(items)
+        end)
+      end)
+    end
+
+    local function trigger_complete()
+      local line = vim.api.nvim_get_current_line()
+      local cursor = vim.api.nvim_win_get_cursor(0)
+      local col = cursor[2]
+      if col == 0 or #line == 0 then
+        return
+      end
+
+      local prefix, start = unpack(vim.fn.matchstrpos(line:sub(1, col), [[\%(@\|/\|#\|\$\)\S*]]))
+      if not prefix then
+        return
+      end
+
+      complete_items(function(items)
+        vim.fn.complete(
+          start + 1,
+          vim.tbl_filter(function(item)
+            return vim.startswith(item.word:lower(), prefix:lower())
+          end, items)
+        )
+      end)
+    end
+
+    trigger_complete()
+  end,
+}
+
 M.send = {
   callback = function(chat)
     chat:submit()
@@ -176,10 +255,10 @@ M.close = {
     chat:close()
 
     local chats = require("codecompanion").buf_get_chat()
-    if #chats == 0 then
+    if vim.tbl_count(chats) == 0 then
       return
     end
-    chats[1].chat:open()
+    chats[1].chat.ui:open()
   end,
 }
 
@@ -218,21 +297,20 @@ M.codeblock = {
 }
 
 ---@param node TSNode to yank text from
----@param register string register to yank to
-local function yank_node(node, register)
+local function yank_node(node)
   local start_row, start_col, end_row, end_col = node:range()
   local cursor_position = vim.fn.getcurpos()
 
   -- Create marks for the node range
-  vim.api.nvim_buf_set_mark(0, '[', start_row + 1, start_col, {})
-  vim.api.nvim_buf_set_mark(0, ']', end_row + 1, end_col - 1, {})
+  vim.api.nvim_buf_set_mark(0, "[", start_row + 1, start_col, {})
+  vim.api.nvim_buf_set_mark(0, "]", end_row + 1, end_col - 1, {})
 
   -- Yank using marks
   vim.cmd(string.format('normal! "%s`[y`]', config.strategies.chat.opts.register))
 
   -- Restore position after delay
   vim.defer_fn(function()
-    vim.fn.setpos('.', cursor_position)
+    vim.fn.setpos(".", cursor_position)
   end, config.strategies.chat.opts.yank_jump_delay_ms)
 end
 
@@ -246,41 +324,45 @@ M.yank_code = {
   end,
 }
 
+---@param chat CodeCompanion.Chat
+---@param direction number
+local function move_buffer(chat, direction)
+  local bufs = _G.codecompanion_buffers
+  local len = #bufs
+  local next_buf = vim
+    .iter(bufs)
+    :enumerate()
+    :filter(function(_, v)
+      return v == chat.bufnr
+    end)
+    :map(function(i, _)
+      return direction > 0 and bufs[(i % len) + 1] or bufs[((i - 2 + len) % len) + 1]
+    end)
+    :next()
+
+  local codecompanion = require("codecompanion")
+
+  codecompanion.buf_get_chat(chat.bufnr).ui:hide()
+  codecompanion.buf_get_chat(next_buf).ui:open()
+end
+
 M.next_chat = {
   desc = "Move to the next chat",
   callback = function(chat)
-    local chats = require("codecompanion").buf_get_chat()
-    if #chats == 1 then
+    if vim.tbl_count(_G.codecompanion_buffers) == 1 then
       return
     end
-
-    local index = util.find_key(chats, "bufnr", chat.bufnr)
-    local next = index + 1
-    if next > #chats then
-      next = 1
-    end
-
-    chats[index].chat:hide()
-    chats[next].chat:open()
+    move_buffer(chat, 1)
   end,
 }
 
 M.previous_chat = {
   desc = "Move to the previous chat",
   callback = function(chat)
-    local chats = require("codecompanion").buf_get_chat()
-    if #chats == 1 then
+    if vim.tbl_count(_G.codecompanion_buffers) == 1 then
       return
     end
-
-    local index = util.find_key(chats, "bufnr", chat.bufnr)
-    local previous = index - 1
-    if previous < 1 then
-      previous = #chats
-    end
-
-    chats[index].chat:hide()
-    chats[previous].chat:open()
+    move_buffer(chat, -1)
   end,
 }
 
@@ -323,14 +405,14 @@ M.change_adapter = {
     local current_model = vim.deepcopy(chat.adapter.schema.model.default)
 
     local adapters_list = vim
-        .iter(adapters)
-        :filter(function(adapter)
-          return adapter ~= "opts" and adapter ~= "non_llms" and adapter ~= current_adapter
-        end)
-        :map(function(adapter, _)
-          return adapter
-        end)
-        :totable()
+      .iter(adapters)
+      :filter(function(adapter)
+        return adapter ~= "opts" and adapter ~= "non_llms" and adapter ~= current_adapter
+      end)
+      :map(function(adapter, _)
+        return adapter
+      end)
+      :totable()
 
     table.sort(adapters_list)
     table.insert(adapters_list, 1, current_adapter)
@@ -369,11 +451,18 @@ M.change_adapter = {
       end
 
       models = vim
-          .iter(models)
-          :filter(function(model)
-            return model ~= new_model
-          end)
-          :totable()
+        .iter(models)
+        :map(function(model, value)
+          if type(model) == "string" then
+            return model
+          else
+            return value -- This is for the table entry case
+          end
+        end)
+        :filter(function(model)
+          return model ~= new_model
+        end)
+        :totable()
       table.insert(models, 1, new_model)
 
       vim.ui.select(models, select_opts("Select Model", new_model), function(selected)
@@ -386,6 +475,7 @@ M.change_adapter = {
         end
 
         chat:apply_model(selected)
+        chat:apply_settings()
       end)
     end)
   end,

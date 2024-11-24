@@ -4,7 +4,7 @@ local prompt_library = require("codecompanion.actions.prompt_library")
 local static_actions = require("codecompanion.actions.static")
 
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils.util")
+local util = require("codecompanion.utils")
 
 ---@class CodeCompanion.Actions
 local Actions = {}
@@ -88,7 +88,7 @@ function Actions.launch(context, args)
     provider_opts = args.provider.opts or {}
   end
 
-  return require("codecompanion.actions.providers." .. provider)
+  return require("codecompanion.providers.actions." .. provider)
     .new({ context = context, validate = Actions.validate, resolve = Actions.resolve })
     :picker(items, provider_opts)
 end

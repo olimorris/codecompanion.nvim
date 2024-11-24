@@ -1,5 +1,4 @@
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils.util")
 
 local api = vim.api
 
@@ -199,15 +198,6 @@ end
 function M.set_win_options(winnr, opts)
   for k, v in pairs(opts) do
     api.nvim_set_option_value(k, v, { scope = "local", win = winnr })
-  end
-end
-
----@param bufnr number
----@param opts table
----@return nil
-function M.set_buf_options(bufnr, opts)
-  for k, v in pairs(opts) do
-    util.set_option(bufnr, k, v)
   end
 end
 

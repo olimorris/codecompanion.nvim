@@ -1,9 +1,9 @@
 local a = require("plenary.async")
-local files = require("codecompanion.utils.files")
+local path = require("plenary.path")
 
 ---@class CodeCompanion.LogHandler
----@field type string
----@field level integer
+---@field type? string
+---@field level? integer
 ---@field formatter? fun(level: integer, msg: string, ...: any)
 ---@field handle? fun(level: integer, text: string)
 local LogHandler = {}
@@ -64,8 +64,8 @@ local function create_file_handler(opts)
   if not ok then
     stdpath = vim.fn.stdpath("cache")
   end
-  local filepath = files.join(stdpath, opts.filename)
-
+  local filepath = path:new(stdpath):joinpath(opts.filename).filename
+  --
   local write_queue = {}
   local is_writing = false
 
@@ -81,19 +81,27 @@ local function create_file_handler(opts)
     a.run(function()
       local err, fd = a.uv.fs_open(filepath, "a", 438)
       if err then
-        vim.notify(string.format("Failed to open log file: %s", err), vim.log.levels.ERROR)
+        vim.notify(string.format("Failed to open log file: %s", err), vim.log.levels.ERROR, { title = "CodeCompanion" })
         is_writing = false
         return
       end
 
       err, _ = a.uv.fs_write(fd, text)
       if err then
-        vim.notify(string.format("Failed to write to log file: %s", err), vim.log.levels.ERROR)
+        vim.notify(
+          string.format("Failed to write to log file: %s", err),
+          vim.log.levels.ERROR,
+          { title = "CodeCompanion" }
+        )
       end
 
       err = a.uv.fs_close(fd)
       if err then
-        vim.notify(string.format("Failed to close log file: %s", err), vim.log.levels.ERROR)
+        vim.notify(
+          string.format("Failed to close log file: %s", err),
+          vim.log.levels.ERROR,
+          { title = "CodeCompanion" }
+        )
       end
 
       is_writing = false
@@ -113,7 +121,7 @@ end
 ---@return CodeCompanion.LogHandler
 local function create_notify_handler(opts)
   opts.handle = function(level, text)
-    vim.notify(text, level)
+    vim.notify(text, level, { title = "CodeCompanion" })
   end
   return LogHandler.new(opts)
 end
@@ -157,13 +165,13 @@ local function create_handler(opts)
   elseif opts.type == "echo" then
     return create_echo_handler(opts)
   else
-    vim.notify(string.format("Unknown log handler %s", opts.type), vim.log.levels.ERROR)
+    vim.notify(string.format("Unknown log handler %s", opts.type), vim.log.levels.ERROR, { title = "CodeCompanion" })
     return create_null_handler()
   end
 end
 
 ---@class CodeCompanion.Logger
----@field handlers CodeCompanion.LogHandler[]
+---@field handlers? CodeCompanion.LogHandler[]
 local Logger = {}
 
 ---@class CodeCompanion.LoggerArgs
@@ -273,7 +281,7 @@ M.get_logfile = function()
     stdpath = vim.fn.stdpath("cache")
   end
 
-  return files.join(stdpath, "codecompanion.log")
+  return path:new(stdpath):joinpath("codecompanion.log").filename
 end
 
 ---@param logger CodeCompanion.Logger

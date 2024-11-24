@@ -107,8 +107,6 @@ function M.get(bufnr, args)
     lines, start_line, start_col, end_line, end_col = M.get_visual_selection(bufnr)
   end
 
-  -- Consider adjustment here for is_normal if there are scenarios where it doesn't align appropriately
-
   return {
     winnr = winnr,
     bufnr = bufnr,
@@ -120,6 +118,7 @@ function M.get(bufnr, args)
     filename = api.nvim_buf_get_name(bufnr),
     cursor_pos = cursor_pos,
     lines = lines,
+    line_count = api.nvim_buf_line_count(bufnr),
     start_line = start_line,
     start_col = start_col,
     end_line = end_line,

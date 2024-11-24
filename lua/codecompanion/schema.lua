@@ -2,9 +2,16 @@ local M = {}
 
 local islist = vim.islist or vim.tbl_islist
 
+---Return the default values for a schema
+---@param schema CodeCompanion.Schema
+---@param defaults table
 M.get_default = function(schema, defaults)
   local ret = {}
   for k, v in pairs(schema) do
+    if type(v.condition) == "function" and not v.condition(schema) then
+      goto continue
+    end
+
     if not vim.startswith(k, "_") then
       if defaults and defaults[k] ~= nil then
         ret[k] = defaults[k]
@@ -12,11 +19,12 @@ M.get_default = function(schema, defaults)
         ret[k] = v.default
       end
     end
+    ::continue::
   end
   return ret
 end
 
----@class CodeCompanion.SchemaParam
+---@class CodeCompanion.Schema
 ---@field type "string"|"number"|"integer"|"boolean"|"enum"|"list"|"map"
 ---@field mapping string
 ---@field order nil|integer
@@ -25,7 +33,7 @@ end
 ---@field desc string
 ---@field validate? fun(value: any): boolean, nil|string
 
----@param schema CodeCompanion.SchemaParam
+---@param schema CodeCompanion.Schema
 ---@param value any
 ---@param adapter? CodeCompanion.Adapter
 ---@return boolean
@@ -44,7 +52,7 @@ local function validate_type(schema, value, adapter)
       end
     end
     local valid = vim.tbl_contains(choices, value)
-    if not valid then
+    if not valid and choices then
       return valid, string.format("must be one of %s", table.concat(choices, ", "))
     else
       return valid
@@ -73,7 +81,7 @@ local function validate_type(schema, value, adapter)
   end
 end
 
----@param schema CodeCompanion.SchemaParam
+---@param schema CodeCompanion.Schema
 ---@param value any
 ---@param adapter? CodeCompanion.Adapter
 ---@return boolean
@@ -89,7 +97,7 @@ local function validate_field(schema, value, adapter)
   return true
 end
 
----@param schema CodeCompanion.SchemaParam
+---@param schema CodeCompanion.Schema
 ---@param values table
 ---@param adapter? CodeCompanion.Adapter
 ---@return nil|table<string, string>
@@ -106,10 +114,17 @@ M.validate = function(schema, values, adapter)
   end
 end
 
----@param schema CodeCompanion.SchemaParam
+---@param schema CodeCompanion.Schema
 ---@return string[]
 M.get_ordered_keys = function(schema)
+  for k, v in pairs(schema) do
+    if type(v.condition) == "function" and not v.condition(schema) then
+      schema[k] = nil
+    end
+  end
+
   local keys = vim.tbl_keys(schema)
+
   -- Sort the params by required, then if they have no value, then by name
   table.sort(keys, function(a, b)
     local aparam = schema[a]

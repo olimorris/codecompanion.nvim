@@ -1,4 +1,4 @@
-*codecompanion.txt*        For NVIM v0.10.0       Last change: 2024 October 28
+*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 November 23
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -15,7 +15,7 @@ Table of Contents                            *codecompanion-table-of-contents*
 FEATURES                                              *codecompanion-features*
 
 - Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
-- Support for Anthropic, Copilot, Gemini, Ollama, OpenAI and xAI LLMs (or bring your own!)
+- Support for Anthropic, Copilot, Gemini, Ollama, OpenAI, Azure OpenAI and xAI LLMs (or bring your own!)
 - Inline transformations, code creation and refactoring
 - Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
 - Built in prompt library for common tasks like advice on LSP errors and code explanations
@@ -43,9 +43,8 @@ Install the plugin with your preferred package manager:
       dependencies = {
         "nvim-lua/plenary.nvim",
         "nvim-treesitter/nvim-treesitter",
-        "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
-        "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
-        { "stevearc/dressing.nvim", opts = {} }, -- Optional: Improves `vim.ui.select`
+        -- The following are optional:
+        { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } },
       },
       config = true
     }
@@ -62,9 +61,8 @@ Install the plugin with your preferred package manager:
       requires = {
         "nvim-lua/plenary.nvim",
         "nvim-treesitter/nvim-treesitter",
-        "hrsh7th/nvim-cmp", -- Optional: For using slash commands and variables in the chat buffer
-        "nvim-telescope/telescope.nvim", -- Optional: For using slash commands
-        "stevearc/dressing.nvim" -- Optional: Improves `vim.ui.select`
+        -- The following are optional:
+        { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } },
       }
     })
 <
@@ -76,9 +74,9 @@ Install the plugin with your preferred package manager:
     
     Plug 'nvim-lua/plenary.nvim'
     Plug 'nvim-treesitter/nvim-treesitter'
-    Plug 'hrsh7th/nvim-cmp', " Optional: For using slash commands and variables in the chat buffer
-    Plug 'nvim-telescope/telescope.nvim', " Optional: For using slash commands
-    Plug 'stevearc/dressing.nvim' " Optional: Improves `vim.ui.select`
+    " -- The following are optional
+    Plug 'MeanderingProgrammer/render-markdown.nvim'
+    " --
     Plug 'olimorris/codecompanion.nvim'
     
     call plug#end()
@@ -91,10 +89,18 @@ Install the plugin with your preferred package manager:
 
   [!IMPORTANT] The plugin requires the markdown Tree-sitter parser to be
   installed with `:TSInstall markdown`
-Telescope.nvim <https://github.com/nvim-telescope/telescope.nvim> is a
-suggested inclusion as it makes leveraging the Slash Commands a little bit
-prettier. However, other providers are available. Please refer to the
-|codecompanion-chat-buffer| section for more information.
+To better utilise Slash Commands, Telescope.nvim
+<https://github.com/nvim-telescope/telescope.nvim>, mini.pick
+<https://github.com/echasnovski/mini.pick> or fzf lua
+<https://github.com/ibhagwan/fzf-lua> can also be installed. Please refer to
+the |codecompanion-chat-buffer| section for more information.
+
+As per #377 <https://github.com/olimorris/codecompanion.nvim/issues/377>, if
+you pin your plugins to the latest releases, consider setting plenary.nvim to:
+
+>lua
+    { "nvim-lua/plenary.nvim", branch = "master" },
+<
 
 
 QUICKSTART                                          *codecompanion-quickstart*
@@ -133,13 +139,20 @@ into the chat buffer:
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out
 actions:
 
-- `@code_runner` - The LLM will run code for you in a Docker container
+- `@cmd_runner` - The LLM will run shell commands (subject to approval)
 - `@editor` - The LLM will edit code in a Neovim buffer
+- `@files` - The LLM will can work with files on the file system (subject to approval)
 - `@rag` - The LLM will browse and search the internet for real-time information to supplement its response
 
+Tools can also be grouped together to form _Agents_, which are also accessed
+via `@` in the chat buffer:
 
-  [!TIP] Press `?` in the chat buffer to reveal the keymaps and options that are
-  available.
+- `@full_stack_dev` - Contains the `cmd_runner`, `editor` and `files` tools.
+
+
+  [!IMPORTANT] These have been designed to work with native Neovim completions
+  and also with nvim-cmp <https://github.com/hrsh7th/nvim-cmp>. To open the
+  completion menu use `<C-_>` in insert mode when in the chat buffer.
 **Inline Assistant**
 
 Run `:CodeCompanion <your prompt>` to call the inline assistant. The assistant
@@ -164,6 +177,11 @@ do?`. The prompt library comes with the following defaults:
 There are keymaps available to accept or reject edits from the LLM in the
 |codecompanion-inline-assistant| section.
 
+**Commands**
+
+Use CodeCompanion to create Neovim commands in command-line mode
+(|Command-line|) via `:CodeCompanionCmd <your prompt>`.
+
 **Action Palette**
 
 Run `:CodeCompanionActions` to open the action palette, which gives you access
@@ -182,6 +200,7 @@ The plugin has three core commands:
 
 - `CodeCompanion` - Open the inline assistant
 - `CodeCompanionChat` - Open a chat buffer
+- `CodeCompanionCmd` - Generate a command in the command-liine
 - `CodeCompanionActions` - Open the _Action Palette_
 
 However, there are multiple options available:
@@ -225,6 +244,7 @@ supports:
 - Gemini (`gemini`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
+- Azure OpenAI (`azure_openai`) - Requires an Azure OpenAI service with a model deployment
 - xAI (`xai`) - Requires an API key
 
 The plugin utilises objects called Strategies. These are the different ways
@@ -276,12 +296,41 @@ setting system prompts that are LLM or model specific:
       opts = {
         ---@param adapter CodeCompanion.Adapter
         ---@return string
-        system_prompt = function(adapter)
-          if adapter.schema.model.default == "llama3.1:latest" then
+        system_prompt = function(opts)
+          if opts.adapter.schema.model.default == "llama3.1:latest" then
             return "My custom system prompt"
           end
           return "My default system prompt"
         end
+      }
+    })
+<
+
+**Changing the Language**
+
+CodeCompanion supports multiple languages for non-code responses. You can
+configure this in your setup:
+
+>lua
+    require('codecompanion').setup({
+      opts = {
+        language = "English" -- Default is "English"
+      }
+    })
+<
+
+**Using with render-markdown.nvim**
+
+If you use the fantastic render-markdown.nvim
+<https://github.com/MeanderingProgrammer/render-markdown.nvim> plugin, then
+please ensure you turn off the `render_headers` display option:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          render_headers = false,
+        }
       }
     })
 <
@@ -396,6 +445,45 @@ set an API key:
               url = "http[s]://open_compatible_ai_url", -- optional: default value is ollama url http://127.0.0.1:11434
               api_key = "OpenAI_API_KEY", -- optional: if your endpoint is authenticated
               chat_url = "/v1/chat/completions", -- optional: default value, override if different
+            },
+          })
+        end,
+      },
+    })
+<
+
+**Using Azure OpenAI**
+
+To use Azure OpenAI, you need to have an Azure OpenAI service, an API key, and
+a model deployment. Follow these steps to configure the adapter:
+
+1. Create an Azure OpenAI service in your Azure portal.
+2. Deploy a model in the Azure OpenAI service.
+3. Obtain the API key from the Azure portal.
+
+Then, configure the adapter in your setup as follows:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          adapter = "azure_openai",
+        },
+        inline = {
+          adapter = "azure_openai",
+        },
+      },
+      adapters = {
+        azure_openai = function()
+          return require("codecompanion.adapters").extend("azure_openai", {
+            env = {
+              api_key = 'YOUR_AZURE_OPENAI_API_KEY',
+              endpoint = 'YOUR_AZURE_OPENAI_ENDPOINT',
+            },
+            schema = {
+              model = {
+                default = "YOUR_DEPLOYMENT_NAME",
+              }
             },
           })
         end,
@@ -546,8 +634,10 @@ to you in normal mode are:
 - `{` to move to the previous chat
 - `}` to move to the next chat
 
+and in insert mode:
 
-  [!NOTE] There are also corresponding insert mode mappings available.
+- `<C-_>` to open the completion menu (if nvim-cmp isn’t installed)
+
 **Settings**
 
 You can display your selected adapter’s schema at the top of the buffer, if
@@ -562,6 +652,8 @@ the commands also allow for multiple providers:
 
 - `/buffer` - Has `default`, `telescope` and `fzf_lua` providers
 - `/files` - Has `default`, `telescope`, `mini_pick` and `fzf_lua` providers
+- `/help` - Has `telescope`, `mini_pick` and `fzf_lua` providers
+- `/symbols` - Has `default`, `telescope`, `mini_pick` and `fzf_lua` providers
 
 Please refer to the config
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>
@@ -606,13 +698,13 @@ examples such as web searching or code execution that have obvious benefits
 when using LLMs.
 
 In the plugin, tools are simply context that’s given to an LLM via a `system`
-prompt. This gives it knowledge and a defined schema which it can include in
-its response for the plugin to parse, execute and feedback on. Essentially
-turning it into an Agent. Tools can be added as a participant to the chat
-buffer by using the `@` key.
+prompt and Agents are groupings of tools. These give LLM’s knowledge and a
+defined schema which can be included in the response for the plugin to parse,
+execute and feedback on. Agents and tools can be added as a participant to the
+chat buffer by using the `@` key.
 
-More information on how tools work and how you can create your own can be found
-in the TOOLS <doc/TOOLS.md> guide.
+More information on how agents and tools work and how you can create your own
+can be found in the TOOLS <doc/TOOLS.md> guide.
 
 
 AGENTIC WORKFLOWS ~
@@ -641,6 +733,7 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatHeader` - The headers in the chat buffer
 - `CodeCompanionChatSeparator` - Separator between headings in the chat buffer
 - `CodeCompanionChatTokens` - Virtual text in the chat buffer showing the token count
+- `CodeCompanionChatAgent` - Agents in the chat buffer
 - `CodeCompanionChatTool` - Tools in the chat buffer
 - `CodeCompanionChatVariable` - Variables in the chat buffer
 - `CodeCompanionVirtualText` - All other virtual text in the plugin

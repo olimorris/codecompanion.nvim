@@ -55,7 +55,7 @@ describe("Client", function()
 
     adapter = require("codecompanion.adapters").new(adapter)
 
-    Client.new({ adapter = adapter }):request({}, 0, cb)
+    Client.new({ adapter = adapter }):request({}, { callback = cb })
 
     assert.stub(mock_request).was_called(1)
   end)

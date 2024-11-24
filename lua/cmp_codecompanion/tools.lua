@@ -21,24 +21,22 @@ function source:get_keyword_pattern()
 end
 
 function source:complete(params, callback)
-  local items = {}
-  local kind = require("cmp").lsp.CompletionItemKind.Snippet
+  local items = require("codecompanion.completion").tools()
+  local agent_kind = require("cmp").lsp.CompletionItemKind.Struct
+  local tool_kind = require("cmp").lsp.CompletionItemKind.Snippet
 
-  for label, data in pairs(self.config.strategies.agent.tools) do
-    if label ~= "opts" then
-      table.insert(items, {
-        label = "@" .. label,
-        kind = kind,
-        name = label,
-        config = self.config,
-        callback = data.callback,
-        detail = data.description,
-        context = {
-          bufnr = params.context.bufnr,
-        },
-      })
+  vim.iter(items):map(function(item)
+    if item.name == "tools" then
+      item.kind = tool_kind
+    else
+      item.kind = agent_kind
     end
-  end
+    item.config = self.config
+    item.context = {
+      bufnr = params.context.bufnr,
+    }
+    return item
+  end)
 
   callback({
     items = items,

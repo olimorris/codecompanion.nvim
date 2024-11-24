@@ -3,7 +3,6 @@ local curl = require("plenary.curl")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
-local util = require("codecompanion.utils.util")
 
 ---@type string|nil
 local _oauth_token
@@ -17,18 +16,18 @@ local function find_config_path()
     return os.getenv("CODECOMPANION_TOKEN_PATH")
   end
 
-  local config = vim.fn.expand("$XDG_CONFIG_HOME")
-  if config and vim.fn.isdirectory(config) > 0 then
-    return config
+  local path = vim.fn.expand("$XDG_CONFIG_HOME")
+  if path and vim.fn.isdirectory(path) > 0 then
+    return path
   elseif vim.fn.has("win32") > 0 then
-    config = vim.fn.expand("~/AppData/Local")
-    if vim.fn.isdirectory(config) > 0 then
-      return config
+    path = vim.fn.expand("~/AppData/Local")
+    if vim.fn.isdirectory(path) > 0 then
+      return path
     end
   else
-    config = vim.fn.expand("~/.config")
-    if vim.fn.isdirectory(config) > 0 then
-      return config
+    path = vim.fn.expand("~/.config")
+    if vim.fn.isdirectory(path) > 0 then
+      return path
     end
   end
 end
@@ -136,6 +135,12 @@ return {
     ---@param self CodeCompanion.Adapter
     ---@return boolean
     setup = function(self)
+      local model = self.schema.model.default
+      local model_opts = self.schema.model.choices[model]
+      if model_opts and model_opts.opts then
+        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
+      end
+
       if self.opts and self.opts.stream then
         self.parameters.stream = true
       end
@@ -179,9 +184,13 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
-      default = "gpt-4o-2024-05-13",
+      ---@type string|fun(): string
+      default = "gpt-4o-2024-08-06",
       choices = {
-        "gpt-4o-2024-05-13",
+        "gpt-4o-2024-08-06",
+        "claude-3.5-sonnet",
+        ["o1-preview-2024-09-12"] = { opts = { stream = false } },
+        ["o1-mini-2024-09-12"] = { opts = { stream = false } },
       },
     },
     temperature = {
@@ -189,6 +198,13 @@ return {
       mapping = "parameters",
       type = "number",
       default = 0,
+      condition = function(schema)
+        local model = schema.model.default
+        if type(model) == "function" then
+          model = model()
+        end
+        return not vim.startswith(model, "o1")
+      end,
       desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
     },
     max_tokens = {
@@ -203,6 +219,13 @@ return {
       mapping = "parameters",
       type = "number",
       default = 1,
+      condition = function(schema)
+        local model = schema.model.default
+        if type(model) == "function" then
+          model = model()
+        end
+        return not vim.startswith(model, "o1")
+      end,
       desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
     },
     n = {
@@ -210,6 +233,13 @@ return {
       mapping = "parameters",
       type = "number",
       default = 1,
+      condition = function(schema)
+        local model = schema.model.default
+        if type(model) == "function" then
+          model = model()
+        end
+        return not vim.startswith(model, "o1")
+      end,
       desc = "How many chat completions to generate for each prompt.",
     },
   },
