@@ -6,7 +6,7 @@ local telescope_actions = require("telescope.actions")
 
 local log = require("codecompanion.utils.log")
 
----@class CodeCompanion.Actions.Provider.Telescop: CodeCompanion.SlashCommand.Provider
+---@class CodeCompanion.Actions.Provider.Telescope: CodeCompanion.SlashCommand.Provider
 local Provider = {}
 
 ---@params CodeCompanion.Actions.ProvidersArgs
