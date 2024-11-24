@@ -2,7 +2,7 @@
 ---https://github.com/echasnovski/mini.diff
 
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils.util")
+local util = require("codecompanion.utils")
 
 local ok, diff = pcall(require, "mini.diff")
 if not ok then

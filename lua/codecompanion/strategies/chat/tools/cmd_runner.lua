@@ -7,7 +7,7 @@ commands in the same XML block. All commands must be approved by you.
 local config = require("codecompanion.config")
 
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils.util")
+local util = require("codecompanion.utils")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 ---@class CmdRunner.ChatOpts

@@ -3,7 +3,7 @@ local path = require("plenary.path")
 local buf = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils.util")
+local util = require("codecompanion.utils")
 
 local api = vim.api
 local fmt = string.format

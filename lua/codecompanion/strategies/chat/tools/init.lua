@@ -4,7 +4,7 @@ local config = require("codecompanion.config")
 local TreeHandler = require("codecompanion.utils.xml.xmlhandler.tree")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
-local util = require("codecompanion.utils.util")
+local util = require("codecompanion.utils")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local api = vim.api

@@ -1,5 +1,5 @@
 local config = require("codecompanion.config")
-local util = require("codecompanion.utils.util")
+local util = require("codecompanion.utils")
 
 CONSTANTS = {
   NAME = "Terminal Output",

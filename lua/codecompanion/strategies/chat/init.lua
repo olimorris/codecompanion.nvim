@@ -7,7 +7,7 @@ local schema = require("codecompanion.schema")
 local hash = require("codecompanion.utils.hash")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils.util")
+local util = require("codecompanion.utils")
 local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
