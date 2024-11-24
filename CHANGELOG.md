@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.2.0...v10.2.1) (2024-11-24)
+
+
+### Bug Fixes
+
+* **utils:** visual selection range no longer uses feedkeys ([e981da2](https://github.com/olimorris/codecompanion.nvim/commit/e981da23ae0e900a4086e8dcbc0b6abf86b737a9))
+
 ## [10.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.1.2...v10.2.0) (2024-11-23)
 
 
