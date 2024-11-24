@@ -32,14 +32,33 @@ end
 ---@param bufnr nil|integer
 ---@return table,number,number,number,number
 function M.get_visual_selection(bufnr)
-  bufnr = bufnr or 0
+  bufnr = bufnr or vim.api.nvim_get_current_buf()
+  -- store the current mode
+  local mode = vim.fn.mode()
+  -- if we're not in visual mode, we need to re-enter it briefly
+  if not is_visual_mode(mode) then
+    vim.cmd("normal! gv")
+  end
 
-  api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
-  api.nvim_feedkeys("gv", "x", false)
-  api.nvim_feedkeys(ESC_FEEDKEY, "n", true)
+  -- now we can get the positions
+  local start_pos = vim.fn.getpos("v")
+  local end_pos = vim.fn.getpos(".")
+  -- reacquire current mode and exit visual mode if it is
+  if is_visual_mode(vim.fn.mode()) then
+    vim.cmd("normal! " .. ESC_FEEDKEY)
+  end
 
-  local end_line, end_col = unpack(api.nvim_buf_get_mark(bufnr, ">"))
-  local start_line, start_col = unpack(api.nvim_buf_get_mark(bufnr, "<"))
+  local start_line = start_pos[2]
+  local start_col = start_pos[3]
+  local end_line = end_pos[2]
+  local end_col = end_pos[3]
+
+  -- normalize the range to start < end
+  if start_line > end_line or (start_line == end_line and start_col > end_col) then
+    start_line, end_line = end_line, start_line
+    start_col, end_col = end_col, start_col
+  end
+
   local lines = api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
 
   -- get whole buffer if there is no current/previous visual selection
