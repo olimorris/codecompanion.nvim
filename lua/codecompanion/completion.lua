@@ -1,6 +1,7 @@
 local SlashCommands = require("codecompanion.strategies.chat.slash_commands")
 local config = require("codecompanion.config")
 local strategy = require("codecompanion.strategies")
+local util = require("codecompanion.utils")
 
 local trigger = {
   agents = "@",
@@ -28,12 +29,8 @@ function M.slash_commands()
     end)
     :totable()
 
-  vim
-    .iter(config.prompt_library)
-    :filter(function(_, v)
-      return v.opts and v.opts.is_slash_cmd and v.strategy == "chat"
-    end)
-    :map(function(_, v)
+  for _, v in pairs(config.prompt_library) do
+    if v.opts and v.opts.is_slash_cmd and v.strategy == "chat" then
       table.insert(slash_commands, {
         label = "/" .. v.opts.short_name,
         detail = v.description,
@@ -41,7 +38,8 @@ function M.slash_commands()
         type = "slash_command",
         from_prompt_library = true,
       })
-    end)
+    end
+  end
 
   return slash_commands
 end
@@ -58,6 +56,21 @@ function M.slash_commands_execute(selected, chat)
         chat:add_message(prompt, { visible = false })
       elseif prompt.role == config.constants.USER_ROLE then
         chat:add_buf_message(prompt)
+      end
+      -- change adapter for custom prompt
+      if
+        not vim.g.codecompanion_adapter
+        or (
+          vim.g.codecompanion_adapter
+          and selected.config.opts
+          and selected.config.opts.adapter
+          and selected.config.opts.adapter.name
+          and selected.config.opts.adapter.name ~= vim.g.codecompanion_adapter
+        )
+      then
+        chat.adapter = require("codecompanion.adapters").resolve(config.adapters[selected.config.opts.adapter.name])
+        util.fire("ChatAdapter", { bufnr = chat.bufnr, adapter = chat.adapter })
+        chat:apply_settings()
       end
     end)
   else
