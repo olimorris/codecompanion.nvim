@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.2.3](https://github.com/olimorris/codecompanion.nvim/compare/v10.2.2...v10.2.3) (2024-11-25)
+
+
+### Bug Fixes
+
+* mini.pick as action_palette provider ([adeb7c4](https://github.com/olimorris/codecompanion.nvim/commit/adeb7c42fb7fb1187c64773a46d5bfee8f85dacf))
+
 ## [10.2.2](https://github.com/olimorris/codecompanion.nvim/compare/v10.2.1...v10.2.2) (2024-11-24)
 
 
