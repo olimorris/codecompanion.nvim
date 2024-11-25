@@ -29,11 +29,11 @@ function M.slash_commands()
     :totable()
 
   vim
-    .iter(config.prompt_library)
+    .iter(pairs(config.prompt_library))
     :filter(function(_, v)
       return v.opts and v.opts.is_slash_cmd and v.strategy == "chat"
     end)
-    :map(function(_, v)
+    :each(function(_, v)
       table.insert(slash_commands, {
         label = "/" .. v.opts.short_name,
         detail = v.description,
