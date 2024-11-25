@@ -2,11 +2,18 @@ local MiniPick = require("mini.pick")
 local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Actions.Provider.MiniPick: CodeCompanion.SlashCommand.Provider
+---@field context table
+---@field resolve function
 local Provider = {}
 
 ---@params CodeCompanion.Actions.ProvidersArgs
 function Provider.new(args)
   log:trace("MiniPick actions provider triggered")
+  -- Ensure we have the resolve function
+  if not args.resolve then
+    args.resolve = require("codecompanion.actions").resolve
+  end
+
   return setmetatable(args, { __index = Provider })
 end
 
@@ -17,19 +24,45 @@ end
 function Provider:picker(items, opts)
   opts = opts or {}
 
+  -- Store provider reference
+  local provider = self
+
+  -- Transform items to include both display text and original data
+  local picker_items = {}
+  for _, item in ipairs(items) do
+    local description = item.description and " - " .. item.description or ""
+    table.insert(picker_items, {
+      text = string.format("%s%s", item.name, description),
+      item = item,
+    })
+  end
+
   local source = {
-    items = items,
+    items = picker_items,
     name = opts.prompt or "CodeCompanion actions",
     choose = function(chosen_item)
-      self:select(chosen_item)
+      if chosen_item and chosen_item.item then
+        -- Get the target window before closing the picker
+        local win_target = MiniPick.get_picker_state().windows.target
+        if not vim.api.nvim_win_is_valid(win_target) then
+          win_target = vim.api.nvim_get_current_win()
+        end
+
+        -- Switch to target window and perform selection
+        vim.api.nvim_win_call(win_target, function()
+          if provider.resolve then
+            -- Try direct resolution if select fails
+            provider.resolve(chosen_item.item, provider.context)
+          else
+            provider:select(chosen_item.item)
+          end
+          MiniPick.set_picker_target_window(vim.api.nvim_get_current_win())
+        end)
+        return false -- Close picker after selection
+      end
     end,
     show = function(buf_id, items_to_show, query)
-      local formatted_items = {}
-      for _, item in ipairs(items_to_show) do
-        local description = item.description and " - " .. item.description or ""
-        table.insert(formatted_items, { text = string.format("%s%s", item.name, description) })
-      end
-      MiniPick.default_show(buf_id, formatted_items, query)
+      MiniPick.default_show(buf_id, items_to_show, query)
     end,
   }
 
@@ -60,6 +93,9 @@ end
 ---@param item table The selected item
 ---@return nil
 function Provider:select(item)
+  if self.resolve then
+    return self.resolve(item, self.context)
+  end
   return require("codecompanion.providers.actions.shared").select(self, item)
 end
 
