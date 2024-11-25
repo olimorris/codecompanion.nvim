@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.2.4](https://github.com/olimorris/codecompanion.nvim/compare/v10.2.3...v10.2.4) (2024-11-25)
+
+
+### Bug Fixes
+
+* **chat:** slash commands from prompt library not visible ([3376f60](https://github.com/olimorris/codecompanion.nvim/commit/3376f6052217737cb936236d9069bd4a63ccbace))
+
 ## [10.2.3](https://github.com/olimorris/codecompanion.nvim/compare/v10.2.2...v10.2.3) (2024-11-25)
 
 
