@@ -259,6 +259,14 @@ local defaults = {
           callback = "keymaps.toggle_system_prompt",
           description = "Toggle the system prompt",
         },
+        hide = {
+          modes = {
+            n = "gh",
+          },
+          index = 16,
+          callback = "keymaps.hide",
+          description = "Hide Chat",
+        },
       },
       opts = {
         register = "+", -- The register to use for yanking code

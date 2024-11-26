@@ -581,6 +581,7 @@ When in the chat buffer, press `?` to bring up a menu that lists the available k
 - `gc` to insert a codeblock in the chat buffer
 - `gd` to view/debug the chat buffer's contents
 - `gf` to fold any codeblocks in the chat buffer
+- `gh` to hide the chat buffer window
 - `gr` to regenerate the last response
 - `gs` to toggle the system prompt on/off
 - `gx` to clear the chat buffer's contents

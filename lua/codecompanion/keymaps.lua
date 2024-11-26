@@ -536,6 +536,12 @@ M.toggle_system_prompt = {
   end,
 }
 
+M.hide = {
+  callback = function(chat)
+    chat.ui:hide()
+  end,
+}
+
 -- INLINE MAPPINGS ------------------------------------------------------------
 
 M.accept_change = {
