@@ -33,17 +33,16 @@ end
 ---@return table,number,number,number,number
 function M.get_visual_selection(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
-  -- store the current mode
   local mode = vim.fn.mode()
+
   -- if we're not in visual mode, we need to re-enter it briefly
   if not is_visual_mode(mode) then
     vim.cmd("normal! gv")
   end
 
-  -- now we can get the positions
   local start_pos = vim.fn.getpos("v")
   local end_pos = vim.fn.getpos(".")
-  -- reacquire current mode and exit visual mode if it is
+
   if is_visual_mode(vim.fn.mode()) then
     vim.cmd("normal! " .. ESC_FEEDKEY)
   end
