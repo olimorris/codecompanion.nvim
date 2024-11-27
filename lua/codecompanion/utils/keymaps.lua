@@ -23,6 +23,8 @@ end
 local function resolve(rhs)
   if type(rhs) == "string" and vim.startswith(rhs, "keymaps.") then
     return resolve(plugin_maps[vim.split(rhs, ".", { plain = true })[2]])
+  elseif type(rhs) == "function" then
+    return rhs, {}
   elseif type(rhs) == "table" then
     local opts = vim.deepcopy(rhs)
     local callback = opts.callback

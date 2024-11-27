@@ -306,14 +306,58 @@ require("codecompanion").setup({
   }
 })
 ```
-**Changing the Language**
+**Changing the language**
 
-CodeCompanion supports multiple languages for non-code responses. You can configure this in your setup:
+The plugin enables the language for non-code responses to be changed. You can configure this in your setup:
 
 ```lua
 require('codecompanion').setup({
   opts = {
     language = "English" -- Default is "English"
+  }
+})
+```
+
+**Adding your own keymaps**
+
+The [chat buffer](speech_balloon-the-chat-buffer) comes with a number of pre-defined keymaps which you can customize:
+
+```lua
+require('codecompanion').setup({
+  strategies = {
+    chat = {
+      keymaps = {
+        send = {
+          modes = {
+            -- Only send a response to the LLM with <C-s>
+            n = { "<C-s>" },
+          },
+        },
+      }
+    }
+  }
+})
+```
+
+You an also add your own keymaps:
+
+```lua
+require('codecompanion').setup({
+  strategies = {
+    chat = {
+      keymaps = {
+        hide = {
+          modes = {
+            n = "gh",
+          },
+          --  Add your own custom callback that receives the chat buffer object
+          callback = function(chat)
+            chat.ui:hide()
+          end,
+          description = "Hide the chat buffer",
+        },
+      }
+    }
   }
 })
 ```
