@@ -1,6 +1,6 @@
 set rtp+=.
-set rtp+=./misc/plenary
-set rtp+=./misc/treesitter
+set rtp+=./deps/plenary
+set rtp+=./deps/treesitter
 
 set noswapfile
 

@@ -1,8 +1,8 @@
-PANVIMDOC_DIR = misc/panvimdoc
+PANVIMDOC_DIR = deps/panvimdoc
 PANVIMDOC_URL = https://github.com/kdheepak/panvimdoc
-PLENARY_DIR = misc/plenary
+PLENARY_DIR = deps/plenary
 PLENARY_URL = https://github.com/nvim-lua/plenary.nvim
-TREESITTER_DIR = misc/treesitter
+TREESITTER_DIR = deps/treesitter
 TREESITTER_URL = https://github.com/nvim-treesitter/nvim-treesitter
 
 all: format test docs tools adapters recipes
