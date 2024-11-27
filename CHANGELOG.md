@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.2.4...v10.3.0) (2024-11-27)
+
+
+### Features
+
+* **chat:** keymaps can be custom functions ([5f729f9](https://github.com/olimorris/codecompanion.nvim/commit/5f729f91a6b6a4025f8e4753d2c2c29810da0149))
+
 ## [10.2.4](https://github.com/olimorris/codecompanion.nvim/compare/v10.2.3...v10.2.4) (2024-11-25)
 
 
