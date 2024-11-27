@@ -364,7 +364,7 @@ require('codecompanion').setup({
 
 **Using with render-markdown.nvim**
 
-If you use the fantastic [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) plugin, then please ensure you turn off the `render_headers` display option:
+If you use the fantastic [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) plugin, then please you can turn off the `render_headers` display option for a cleaner chat buffer:
 
 ```lua
 require("codecompanion").setup({

@@ -368,7 +368,8 @@ You can also add your own keymaps:
 
 If you use the fantastic render-markdown.nvim
 <https://github.com/MeanderingProgrammer/render-markdown.nvim> plugin, then
-please ensure you turn off the `render_headers` display option:
+please you can turn off the `render_headers` display option for a cleaner chat
+buffer:
 
 >lua
     require("codecompanion").setup({
