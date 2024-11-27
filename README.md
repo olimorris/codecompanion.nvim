@@ -318,7 +318,7 @@ require('codecompanion').setup({
 })
 ```
 
-**Adding your own keymaps**
+**Changing or adding to the default keymaps**
 
 The [chat buffer](speech_balloon-the-chat-buffer) comes with a number of pre-defined keymaps which you can customize:
 
@@ -339,7 +339,7 @@ require('codecompanion').setup({
 })
 ```
 
-You an also add your own keymaps:
+You can also add your own keymaps:
 
 ```lua
 require('codecompanion').setup({
