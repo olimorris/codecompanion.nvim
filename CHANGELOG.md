@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.3.0...v10.3.1) (2024-11-28)
+
+
+### Bug Fixes
+
+* **utils:** [#488](https://github.com/olimorris/codecompanion.nvim/issues/488) fix edge cases in visual selection ([84a8e89](https://github.com/olimorris/codecompanion.nvim/commit/84a8e8962e9ae20b8357d813dee1ea44a8079605))
+
 ## [10.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.2.4...v10.3.0) (2024-11-27)
 
 
