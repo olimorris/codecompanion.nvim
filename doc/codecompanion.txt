@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 November 27
+*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 November 29
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -367,9 +367,8 @@ You can also add your own keymaps:
 **Using with render-markdown.nvim**
 
 If you use the fantastic render-markdown.nvim
-<https://github.com/MeanderingProgrammer/render-markdown.nvim> plugin, then
-please you can turn off the `render_headers` display option for a cleaner chat
-buffer:
+<https://github.com/MeanderingProgrammer/render-markdown.nvim> plugin, then you
+can turn off the `render_headers` option for a cleaner chat buffer:
 
 >lua
     require("codecompanion").setup({
