@@ -86,8 +86,8 @@ format:
 test: $(PLENARY_DIR) $(TREESITTER_DIR)
 	@echo "===> Testing:"
 	nvim --headless --clean \
-	-u scripts/minimal.vim \
-	-c "PlenaryBustedDirectory lua/spec/codecompanion { minimal_init = 'scripts/minimal.vim' }"
+	-u scripts/minimal.lua \
+	-c "PlenaryBustedDirectory lua/spec/codecompanion { minimal_init = 'scripts/minimal.lua' }"
 
 $(PLENARY_DIR):
 	git clone --depth=1 $(PLENARY_URL) $(PLENARY_DIR)
