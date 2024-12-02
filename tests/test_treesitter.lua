@@ -100,6 +100,5 @@ describe("Tree-sitter", function()
         table.insert(refs, vim.trim(ref))
       end
     end
-    print(vim.inspect(refs))
   end)
 end)

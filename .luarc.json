@@ -7,7 +7,8 @@
         "describe",
         "it",
         "MiniTest",
-        "before_each"],
+        "before_each",
+        "after_each"],
   "type": {
     "checkTableShape": true
   }

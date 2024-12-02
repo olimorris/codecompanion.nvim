@@ -1,34 +1,31 @@
-local h = require("tests.helpers")
-
 local mock = require("luassert.mock")
 
-local codecompanion = require("codecompanion")
-codecompanion.setup({
-  adapters = {
-    test_adapter = function()
-      return require("codecompanion.adapters").extend("openai", {
-        name = "test_adapter",
-        schema = {
-          model = {
-            default = "custom_model",
-          },
-        },
-      })
-    end,
-    anthropic = "anthropic",
-    ollama = "ollama",
-    openai = "openai",
-  },
-  strategies = {
-    chat = { adapter = "test_adapter" },
-    inline = { adapter = "test_adapter" },
-  },
-})
-
 describe("Strategies", function()
-  local strategies
   local chat_mock
   local inline_mock
+
+  local codecompanion = require("codecompanion")
+  codecompanion.setup({
+    adapters = {
+      test_adapter = function()
+        return require("codecompanion.adapters").extend("openai", {
+          name = "test_adapter",
+          schema = {
+            model = {
+              default = "custom_model",
+            },
+          },
+        })
+      end,
+      anthropic = "anthropic",
+      ollama = "ollama",
+      openai = "openai",
+    },
+    strategies = {
+      chat = { adapter = "test_adapter" },
+      inline = { adapter = "test_adapter" },
+    },
+  })
 
   before_each(function()
     chat_mock = mock(require("codecompanion.strategies.chat"), true)

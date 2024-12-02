@@ -1,48 +1,47 @@
 local h = require("tests.helpers")
 
-local Chat = require("codecompanion.strategies.chat")
-local Tools = require("codecompanion.strategies.chat.tools")
-
-local codecompanion = require("codecompanion")
-local config = require("codecompanion.config")
-
--- Mock dependencies
-config.strategies = {
-  chat = {
-    roles = {
-      llm = "CodeCompanion",
-      user = "Me",
-    },
-    variables = {
-      ["blank"] = {},
-    },
-  },
-  agent = {
-    tools = {
-      ["foo"] = {
-        callback = "utils.foo",
-        description = "Some foo function",
-      },
-      ["bar"] = {
-        callback = "utils.bar",
-        description = "Some bar function",
-      },
-      ["bar_again"] = {
-        callback = "utils.bar_again",
-        description = "Some bar_again function",
-      },
-      opts = {
-        system_prompt = [[My tool system prompt]],
-      },
-    },
-  },
-}
-
 describe("Tools", function()
   local chat
   local tools
 
   before_each(function()
+    local Chat = require("codecompanion.strategies.chat")
+    local Tools = require("codecompanion.strategies.chat.tools")
+
+    local codecompanion = require("codecompanion")
+    local config = require("codecompanion.config")
+
+    config.strategies = {
+      chat = {
+        roles = {
+          llm = "CodeCompanion",
+          user = "Me",
+        },
+        variables = {
+          ["blank"] = {},
+        },
+      },
+      agent = {
+        tools = {
+          ["foo"] = {
+            callback = "utils.foo",
+            description = "Some foo function",
+          },
+          ["bar"] = {
+            callback = "utils.bar",
+            description = "Some bar function",
+          },
+          ["bar_again"] = {
+            callback = "utils.bar_again",
+            description = "Some bar_again function",
+          },
+          opts = {
+            system_prompt = [[My tool system prompt]],
+          },
+        },
+      },
+    }
+
     codecompanion.setup(config)
 
     chat = Chat.new({ adapter = "openai", context = { bufnr = 0 } })
@@ -68,6 +67,12 @@ describe("Tools", function()
         return "baz"
       end,
     }
+  end)
+
+  after_each(function()
+    package.loaded["codecompanion.utils.foo"] = nil
+    package.loaded["codecompanion.utils.bar"] = nil
+    package.loaded["codecompanion.utils.bar_again"] = nil
   end)
 
   describe(":parse", function()
