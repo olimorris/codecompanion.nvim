@@ -459,6 +459,10 @@ end
 ---Set the system prompt in the chat buffer
 ---@return CodeCompanion.Chat
 function Chat:set_system_prompt()
+  if self.opts and self.opts.ignore_system_prompt then
+    return self
+  end
+
   local prompt = config.opts.system_prompt
   if prompt ~= "" then
     if type(prompt) == "function" then

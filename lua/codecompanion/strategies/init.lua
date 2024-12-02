@@ -78,6 +78,7 @@ function Strategies:chat()
       messages = messages,
       auto_submit = (opts and opts.auto_submit) or false,
       stop_context_insertion = (opts and self.selected.opts.stop_context_insertion) or false,
+      ignore_system_prompt = (opts and opts.ignore_system_prompt) or false,
     })
   end
 
