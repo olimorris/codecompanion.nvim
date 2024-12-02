@@ -1,4 +1,5 @@
-local match = require("luassert.match")
+local h = require("tests.helpers")
+
 local mock = require("luassert.mock")
 
 local codecompanion = require("codecompanion")

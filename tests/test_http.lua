@@ -1,3 +1,5 @@
+local h = require("tests.helpers")
+
 local assert = require("luassert")
 local codecompanion = require("codecompanion")
 local stub = require("luassert.stub")

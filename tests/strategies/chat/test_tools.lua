@@ -1,3 +1,5 @@
+local h = require("tests.helpers")
+
 local Chat = require("codecompanion.strategies.chat")
 local Tools = require("codecompanion.strategies.chat.tools")
 
@@ -77,8 +79,8 @@ describe("Tools", function()
       tools:parse(chat, chat.messages[#chat.messages])
       local messages = chat.messages
 
-      assert.equals("My tool system prompt", messages[#messages - 1].content)
-      assert.equals("foo", messages[#messages].content)
+      h.eq("My tool system prompt", messages[#messages - 1].content)
+      h.eq("foo", messages[#messages].content)
     end)
   end)
 
@@ -86,7 +88,7 @@ describe("Tools", function()
     it("should replace the tool in the message", function()
       local message = "@foo replace this tool"
       local result = tools:replace(message, "foo")
-      assert.equals("replace this tool", result)
+      h.eq("replace this tool", result)
     end)
   end)
 end)
