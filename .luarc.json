@@ -3,7 +3,12 @@
     "version": "LuaJIT",
     "pathStrict": true
   },
-  "diagnostics.globals": ["vim"],
+  "diagnostics.globals": ["vim",
+        "describe",
+        "it",
+        "MiniTest",
+        "before_each",
+        "after_each"],
   "type": {
     "checkTableShape": true
   }

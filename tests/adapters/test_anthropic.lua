@@ -1,6 +1,6 @@
 local adapter = require("codecompanion.adapters.anthropic")
-local assert = require("luassert")
-local helpers = require("spec.codecompanion.adapters.helpers")
+local adapter_helpers = require("tests.adapters.helpers")
+local h = require("tests.helpers")
 
 --------------------------------------------------- OUTPUT FROM THE CHAT BUFFER
 local messages = { {
@@ -58,13 +58,13 @@ describe("Anthropic adapter", function()
 
     local output = adapter.handlers.form_messages(adapter, messages)
 
-    assert.are.same("Hello", output.system[1].text)
-    assert.are.same("World", output.system[2].text)
-    assert.are.same({ { content = "What can you do?!", role = "user" } }, output.messages)
+    h.eq("Hello", output.system[1].text)
+    h.eq("World", output.system[2].text)
+    h.eq({ { content = "What can you do?!", role = "user" } }, output.messages)
   end)
 
   it("can form messages to be sent to the API", function()
-    assert.are.same({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+    h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
   end)
 
   it("consolidates consecutive user messages together", function()
@@ -74,13 +74,13 @@ describe("Anthropic adapter", function()
       { content = "What up?!", role = "user" },
     }
 
-    assert.are.same(
+    h.eq(
       { { role = "user", content = "Hello World! What up?!" } },
       adapter.handlers.form_messages(adapter, messages).messages
     )
   end)
 
   it("can output streamed data into a format for the chat buffer", function()
-    assert.are.same(stream_response[#stream_response].output, helpers.chat_buffer_output(stream_response, adapter))
+    h.eq(stream_response[#stream_response].output, adapter_helpers.chat_buffer_output(stream_response, adapter))
   end)
 end)

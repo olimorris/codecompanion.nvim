@@ -1,6 +1,4 @@
-local adapter
-local assert = require("luassert")
-local helpers = require("spec.codecompanion.adapters.helpers")
+local h = require("tests.helpers")
 
 local json1 = [[{
   "github.com:12345": {
@@ -33,12 +31,8 @@ local function get_token(json)
 end
 
 describe("Copilot adapter", function()
-  before_each(function()
-    adapter = require("codecompanion.adapters").resolve("copilot")
-  end)
-
   it("can get the oauth_token", function()
-    assert.equals("abc123", get_token(json1))
-    assert.equals("abc123", get_token(json2))
+    h.eq("abc123", get_token(json1))
+    h.eq("abc123", get_token(json2))
   end)
 end)
