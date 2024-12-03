@@ -55,6 +55,9 @@ Thank you to the following people:
 
 ## :package: Installation
 
+> [!IMPORTANT]
+> The plugin requires the markdown Tree-sitter parser to be installed with `:TSInstall markdown`
+
 Install the plugin with your preferred package manager:
 
 **[Lazy.nvim](https://github.com/folke/lazy.nvim)**
@@ -101,9 +104,6 @@ lua << EOF
 EOF
 ```
 
-> [!IMPORTANT]
-> The plugin requires the markdown Tree-sitter parser to be installed with `:TSInstall markdown`
-
 **Slash Commands**
 
 To better utilise Slash Commands, [Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim), [mini.pick](https://github.com/echasnovski/mini.pick) or [fzf lua](https://github.com/ibhagwan/fzf-lua) can also be installed. Please refer to the [Chat Buffer](#speech_balloon-the-chat-buffer) section for more information.
@@ -116,7 +116,7 @@ As per [#377](https://github.com/olimorris/codecompanion.nvim/issues/377), if yo
 { "nvim-lua/plenary.nvim", branch = "master" },
 ```
 
-**Use with `render-markdown.nvim`**
+**Prettify with `render-markdown.nvim`**
 
 Add the following to your dependencies:
 
@@ -619,6 +619,21 @@ The chat buffer is where you converse with an LLM from within Neovim. The chat b
 
 The look and feel of the chat buffer can be customised as per the `display.chat` table in the [config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua). You can also add additional _Variables_ and _Slash Commands_ which can then be referenced in the chat buffer.
 
+**Slash Commands**
+
+As outlined in the [Quickstart](#rocket-quickstart) section, Slash Commands allow you to easily share additional context with your LLM from the chat buffer. Some of the commands also allow for multiple providers:
+
+- `/buffer` - Has `default`, `telescope` and `fzf_lua` providers
+- `/files` - Has `default`, `telescope`, `mini_pick` and `fzf_lua` providers
+- `/help` - Has `telescope`, `mini_pick` and `fzf_lua` providers
+- `/symbols` - Has `default`, `telescope`, `mini_pick` and `fzf_lua` providers
+
+Please refer to [the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) to see how to change the default provider.
+
+**References**
+
+When Slash Commands or Variables are used, a block quote is added to the chat buffer referencing what's been shared with the LLM. When a conversation becomes long, this allows you to keep track of what's been shared. You can modify these block quotes to remove references from being shared with the LLM which will alter the history of the conversation. This can be useful to minimize token consumption.
+
 **Keymaps**
 
 When in the chat buffer, press `?` to bring up a menu that lists the available keymaps, variables, slash commands and tools. Currently, the keymaps available to you in normal mode are:
@@ -646,17 +661,6 @@ and in insert mode:
 **Settings**
 
 You can display your selected adapter's schema at the top of the buffer, if `display.chat.show_settings` is set to `true`. This allows you to vary the response from the LLM.
-
-**Slash Commands**
-
-As outlined in the [Quickstart](#rocket-quickstart) section, Slash Commands allow you to easily share additional context with your LLM from the chat buffer. Some of the commands also allow for multiple providers:
-
-- `/buffer` - Has `default`, `telescope` and `fzf_lua` providers
-- `/files` - Has `default`, `telescope`, `mini_pick` and `fzf_lua` providers
-- `/help` - Has `telescope`, `mini_pick` and `fzf_lua` providers
-- `/symbols` - Has `default`, `telescope`, `mini_pick` and `fzf_lua` providers
-
-Please refer to [the config](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) to see how to change the default provider.
 
 ### :pencil2: Inline Assistant
 
