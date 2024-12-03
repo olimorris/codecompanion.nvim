@@ -321,13 +321,14 @@ M.setup = function(opts)
     },
   }))
 
-  -- Setup cmp
+  -- Setup completion
   local has_cmp, cmp = pcall(require, "cmp")
   if has_cmp then
-    cmp.register_source("codecompanion_models", require("cmp_codecompanion.models").new(config))
-    cmp.register_source("codecompanion_slash_commands", require("cmp_codecompanion.slash_commands").new(config))
-    cmp.register_source("codecompanion_tools", require("cmp_codecompanion.tools").new(config))
-    cmp.register_source("codecompanion_variables", require("cmp_codecompanion.variables").new())
+    local completion = "codecompanion.integrations.cmp"
+    cmp.register_source("codecompanion_models", require(completion .. ".models").new(config))
+    cmp.register_source("codecompanion_slash_commands", require(completion .. ".slash_commands").new(config))
+    cmp.register_source("codecompanion_tools", require(completion .. ".tools").new(config))
+    cmp.register_source("codecompanion_variables", require(completion .. ".variables").new())
     cmp.setup.filetype("codecompanion", {
       enabled = true,
       sources = {
