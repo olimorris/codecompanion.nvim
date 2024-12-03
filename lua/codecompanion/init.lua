@@ -324,7 +324,7 @@ M.setup = function(opts)
   -- Setup completion
   local has_cmp, cmp = pcall(require, "cmp")
   if has_cmp then
-    local completion = "codecompanion.integrations.cmp"
+    local completion = "codecompanion.providers.completion.cmp"
     cmp.register_source("codecompanion_models", require(completion .. ".models").new(config))
     cmp.register_source("codecompanion_slash_commands", require(completion .. ".slash_commands").new(config))
     cmp.register_source("codecompanion_tools", require(completion .. ".tools").new(config))
