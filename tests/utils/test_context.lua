@@ -16,7 +16,7 @@ describe("context visual selection", function()
     vim.api.nvim_set_current_buf(test_buffer)
     vim.opt.showmode = false
     -- Ensure we're in normal mode and selection is inclusive
-    vim.cmd("normal! \27") -- ESC
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<ESC>", true, false, true), "nx", true)
     vim.o.selection = "inclusive"
   end)
 
@@ -101,7 +101,7 @@ describe("context visual selection", function()
 
     it("should get whole buffer when there's no visual selection", function()
       -- Ensure we're in normal mode with no previous visual selection
-      vim.cmd("normal! \27") -- ESC
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<ESC>", true, false, true), "nx", true)
       local lines = context.get_visual_selection(test_buffer)
       h.eq(#test_text, #lines)
       for i = 1, #test_text do
@@ -110,7 +110,7 @@ describe("context visual selection", function()
     end)
 
     it("should handle context retrieval in normal mode", function()
-      vim.cmd("normal! \27")
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<ESC>", true, false, true), "nx", true)
       local ctx = context.get(test_buffer)
       h.eq(false, ctx.is_visual)
       h.eq(true, ctx.is_normal)
@@ -120,25 +120,23 @@ describe("context visual selection", function()
     end)
 
     it("should handle bottom-to-top line-wise visual selection", function()
-      vim.cmd("normal! GV3k") -- Select 3 lines upward
+      vim.cmd("normal! GV2k") -- Select 3 lines upward
       local lines = context.get_visual_selection(test_buffer)
-      h.eq(4, #lines)
-      for i = 1, 4 do
-        h.eq(test_text[i], lines[i])
+      h.eq(3, #lines)
+      local start_idx = #test_text - 2
+      for i = 1, 3 do
+        h.eq(test_text[start_idx + i - 1], lines[i])
       end
     end)
 
     it("should clear previous visual selection", function()
       -- Make a visual selection first
       vim.cmd("normal! ggV2j")
-      vim.cmd("normal! \27") -- Exit visual mode
-      -- Wait a moment to ensure mode change is processed
-      vim.cmd("sleep 10m")
-      -- Now get context in normal mode
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<ESC>", true, false, true), "nx", true)
       local ctx = context.get(test_buffer)
       h.eq(false, ctx.is_visual)
       h.eq(true, ctx.is_normal)
-      h.eq(0, #ctx.lines)
+      h.eq(0, #ctx.lines) -- Check that lines are empty in normal mode
     end)
 
     it("should handle current buffer when no buffer specified", function()
