@@ -1,42 +1,41 @@
-local assert = require("luassert")
-local mock = require("luassert.mock")
-
 local codecompanion = require("codecompanion")
-
-local Chat
-local adapter = {
-  name = "TestAdapter",
-  url = "https://api.openai.com/v1/chat/completions",
-  roles = {
-    llm = "assistant",
-    user = "user",
-  },
-  headers = {
-    content_type = "application/json",
-  },
-  parameters = {
-    stream = true,
-  },
-  handlers = {
-    form_parameters = function()
-      return {}
-    end,
-    form_messages = function()
-      return {}
-    end,
-    is_complete = function()
-      return false
-    end,
-  },
-  schema = {
-    model = {
-      default = "gpt-3.5-turbo",
-    },
-  },
-}
+local h = require("tests.helpers")
 
 describe("Chat", function()
+  local Chat
+
   before_each(function()
+    local adapter = {
+      name = "TestAdapter",
+      url = "https://api.openai.com/v1/chat/completions",
+      roles = {
+        llm = "assistant",
+        user = "user",
+      },
+      headers = {
+        content_type = "application/json",
+      },
+      parameters = {
+        stream = true,
+      },
+      handlers = {
+        form_parameters = function()
+          return {}
+        end,
+        form_messages = function()
+          return {}
+        end,
+        is_complete = function()
+          return false
+        end,
+      },
+      schema = {
+        model = {
+          default = "gpt-3.5-turbo",
+        },
+      },
+    }
+
     package.loaded["codecompanion.strategies.chat.tools.cmd_runner"] = {
       schema = {},
       system_prompt = function(schema)
@@ -53,7 +52,7 @@ describe("Chat", function()
           },
           variables = {
             ["foo"] = {
-              callback = "spec.codecompanion.strategies.chat.variables.foo",
+              callback = "tests.strategies.chat.variables.foo",
               description = "foo",
             },
           },
@@ -80,12 +79,21 @@ describe("Chat", function()
       context = { bufnr = 1, filetype = "lua" },
       adapter = require("codecompanion.adapters").extend(adapter),
     })
+    Chat.vars = {
+      foo = {
+        callback = "spec.codecompanion.strategies.chat.variables.foo",
+        description = "foo",
+      },
+    }
+  end)
+  after_each(function()
+    package.loaded["codecompanion.strategies.chat.tools.cmd_runner"] = nil
   end)
 
   describe("messages", function()
     it("system prompt is added first", function()
-      assert.are.same("system", Chat.messages[1].role)
-      assert.are.same("foo", Chat.messages[1].content)
+      h.eq("system", Chat.messages[1].role)
+      h.eq("foo", Chat.messages[1].content)
     end)
 
     it("buffer variables are handled", function()
@@ -97,10 +105,10 @@ describe("Chat", function()
       end
 
       -- Variable is inserted as its own new message at the end
-      local message = Chat.messages[#Chat.messages]
-      assert.are.same("foo", message.content)
-      assert.are.same(false, message.opts.visible)
-      assert.are.same("variable", message.opts.tag)
+      message = Chat.messages[#Chat.messages]
+      h.eq("foo", message.content)
+      h.eq(false, message.opts.visible)
+      h.eq("variable", message.opts.tag)
     end)
   end)
 end)

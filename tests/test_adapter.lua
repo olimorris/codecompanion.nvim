@@ -1,4 +1,5 @@
-local assert = require("luassert")
+local h = require("tests.helpers")
+
 local utils = require("codecompanion.utils.messages")
 
 local test_adapter = {
@@ -98,7 +99,7 @@ describe("Adapter", function()
     result.parameters.stream = nil
     result.parameters.stream_options = nil
 
-    assert.are.same(chat_buffer_settings, result.parameters)
+    h.eq(chat_buffer_settings, result.parameters)
   end)
 
   it("can nest parameters based on an adapter's schema", function()
@@ -116,15 +117,15 @@ describe("Adapter", function()
       },
     }
 
-    assert.are.same(expected, result.parameters)
+    h.eq(expected, result.parameters)
   end)
 
   it("can form environment variables", function()
     local adapter = require("codecompanion.adapters").extend(test_adapter2)
     local result = adapter:get_env_vars()
 
-    assert.are.same(test_adapter2.schema.model.default, result.env_replaced.model)
-    assert.are.same(os.getenv("HOME"), result.env_replaced.home)
+    h.eq(test_adapter2.schema.model.default, result.env_replaced.model)
+    h.eq(os.getenv("HOME"), result.env_replaced.home)
   end)
 
   it("can set environment variables in the adapter", function()
@@ -132,10 +133,10 @@ describe("Adapter", function()
     adapter:get_env_vars()
 
     local url = adapter:set_env_vars(adapter.url)
-    assert.are.same("https://api.oli.ai/v1/chat/oli_model_v2", url)
+    h.eq("https://api.oli.ai/v1/chat/oli_model_v2", url)
 
     local headers = adapter:set_env_vars(adapter.headers)
-    assert.are.same({
+    h.eq({
       content_type = "application/json",
       home = os.getenv("HOME"),
     }, headers)
@@ -146,7 +147,7 @@ describe("Adapter", function()
     adapter:get_env_vars()
 
     local params = adapter:set_env_vars(adapter.parameters)
-    assert.are.same(test_adapter2.parameters, params)
+    h.eq(test_adapter2.parameters, params)
   end)
 
   it("can consolidate consecutive messages", function()
@@ -156,7 +157,7 @@ describe("Adapter", function()
       { role = "user", content = "Bar" },
     }
 
-    assert.are.same({
+    h.eq({
       { role = "system", content = "This is a system prompt" },
       { role = "user", content = "Foo Bar" },
     }, utils.merge_messages(messages))
@@ -182,7 +183,7 @@ describe("Adapter", function()
       end
     end
 
-    assert.are.same({
+    h.eq({
       { role = "user", content = "Foo" },
       { role = "user", content = "Bar" },
     }, messages)

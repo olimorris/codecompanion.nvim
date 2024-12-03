@@ -70,32 +70,35 @@ describe("Tree-sitter", function()
     }, result)
   end)
 
-  --   it("can clear any block quotes from a message", function()
-  --     local message = [[> Used 2 references:
-  -- > - config.lua
-  -- > - init.lua
-  --
-  -- What can you do?]]
-  --
-  --     local parser = vim.treesitter.get_string_parser(message, "markdown")
-  --     local query = vim.treesitter.query.get("markdown", "chat")
-  --     local root = parser:parse()[1]:root()
-  --
-  --     local refs = nil
-  --     for id, node in query:iter_captures(root, message) do
-  --       if query.captures[id] == "refs" then
-  --         refs = node
-  --       end
-  --     end
-  --
-  --     if refs then
-  --       local start_row, _, end_row, _ = refs:range()
-  --       message = vim.split(message, "\n")
-  --       for i = start_row, end_row do
-  --         message[i] = ""
-  --       end
-  --     end
-  --
-  --     assert.are.same("What can you do?", vim.trim(table.concat(message, "\n")))
-  --   end)
+  it("can get references", function()
+    local message = [[## olimorris
+
+> Used 2 references:
+> - config.lua
+> - init.lua
+
+   What can you do?]]
+
+    local parser = vim.treesitter.get_string_parser(message, "markdown")
+    local query = vim.treesitter.query.parse(
+      "markdown",
+      [[
+      (section
+    (atx_heading) @heading
+    (#match? @heading "## olimorris")
+  (block_quote (list (list_item (paragraph)? @ref)))
+    )
+]]
+    )
+    local root = parser:parse()[1]:root()
+
+    local refs = {}
+    for id, node in query:iter_captures(root, message) do
+      if query.captures[id] == "ref" then
+        local ref = vim.treesitter.get_node_text(node, message)
+        ref = string.gsub(ref, "[\n>]", "")
+        table.insert(refs, vim.trim(ref))
+      end
+    end
+  end)
 end)

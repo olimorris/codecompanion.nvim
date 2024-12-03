@@ -1,5 +1,19 @@
 # Changelog
 
+## [10.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.3.1...v10.4.0) (2024-12-02)
+
+
+### Features
+
+* **prompts:** system prompt is optional for custom prompts ([90820fc](https://github.com/olimorris/codecompanion.nvim/commit/90820fcdb5e6a570dc4f92731fade4d5f716ea02))
+
+## [10.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.3.0...v10.3.1) (2024-11-28)
+
+
+### Bug Fixes
+
+* **utils:** [#488](https://github.com/olimorris/codecompanion.nvim/issues/488) fix edge cases in visual selection ([84a8e89](https://github.com/olimorris/codecompanion.nvim/commit/84a8e8962e9ae20b8357d813dee1ea44a8079605))
+
 ## [10.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.2.4...v10.3.0) (2024-11-27)
 
 

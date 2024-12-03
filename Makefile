@@ -1,15 +1,8 @@
-PANVIMDOC_DIR = deps/panvimdoc
-PANVIMDOC_URL = https://github.com/kdheepak/panvimdoc
-PLENARY_DIR = deps/plenary
-PLENARY_URL = https://github.com/nvim-lua/plenary.nvim
-TREESITTER_DIR = deps/treesitter
-TREESITTER_URL = https://github.com/nvim-treesitter/nvim-treesitter
+all: format docs test
 
-all: format test docs tools adapters recipes
-
-docs: $(PANVIMDOC_DIR)
-	@echo "===> Docs:" && \
-	cd $(PANVIMDOC_DIR) && \
+docs: deps/panvimdoc
+	@echo Generating Docs... && \
+	cd deps/panvimdoc && \
 	pandoc \
 		--metadata="project:codecompanion" \
 		--metadata="vimversion:NVIM v0.10.0" \
@@ -24,75 +17,39 @@ docs: $(PANVIMDOC_DIR)
 		../../README.md \
 		-o ../../doc/codecompanion.txt
 
-tools: $(PANVIMDOC_DIR)
-	@echo "===> Tools:" && \
-	cd $(PANVIMDOC_DIR) && \
-	pandoc \
-		--metadata="project:codecompanion-tools" \
-		--metadata="vimversion:NVIM v0.10.0" \
-		--metadata="titledatepattern:%Y %B %d" \
-		--metadata="toc:true" \
-		--metadata="incrementheadinglevelby:0" \
-		--metadata="treesitter:true" \
-		--lua-filter scripts/skip-blocks.lua \
-		--lua-filter scripts/include-files.lua \
-		--lua-filter scripts/remove-emojis.lua \
-		-t scripts/panvimdoc.lua \
-		../../doc/TOOLS.md \
-		-o ../../doc/codecompanion-tools.txt
-
-adapters: $(PANVIMDOC_DIR)
-	@echo "===> Adapters:" && \
-	cd $(PANVIMDOC_DIR) && \
-	pandoc \
-			--metadata="project:codecompanion-adapters" \
-			--metadata="vimversion:NVIM v0.10.0" \
-		--metadata="titledatepattern:%Y %B %d" \
-		--metadata="toc:true" \
-		--metadata="incrementheadinglevelby:0" \
-		--metadata="treesitter:true" \
-		--lua-filter scripts/skip-blocks.lua \
-		--lua-filter scripts/include-files.lua \
-		--lua-filter scripts/remove-emojis.lua \
-		-t scripts/panvimdoc.lua \
-		../../doc/ADAPTERS.md \
-		-o ../../doc/codecompanion-adapters.txt
-
-recipes: $(PANVIMDOC_DIR)
-	@echo "===> Recipes:" && \
-	cd $(PANVIMDOC_DIR) && \
-	pandoc \
-		--metadata="project:codecompanion-recipes" \
-		--metadata="vimversion:NVIM v0.10.0" \
-		--metadata="titledatepattern:%Y %B %d" \
-		--metadata="toc:true" \
-		--metadata="incrementheadinglevelby:0" \
-		--metadata="treesitter:true" \
-		--lua-filter scripts/skip-blocks.lua \
-		--lua-filter scripts/include-files.lua \
-		--lua-filter scripts/remove-emojis.lua \
-		-t scripts/panvimdoc.lua \
-		../../doc/RECIPES.md \
-		-o ../../doc/codecompanion-recipes.txt
-
-$(PANVIMDOC_DIR):
-	git clone --depth=1 --no-single-branch $(PANVIMDOC_URL) $(PANVIMDOC_DIR)
-	@rm -rf doc/panvimdoc/.git
-
 format:
-	@echo "===> Formatting:"
+	@echo Formatting...
 	@stylua lua/ -f ./stylua.toml
 
-test: $(PLENARY_DIR) $(TREESITTER_DIR)
+test: deps
+	@echo Testing...
+	nvim --headless --noplugin -u ./scripts/minimal_init.lua -c "lua MiniTest.run()"
+
+test_file: deps
+	@echo Testing File...
+	nvim --headless --noplugin -u ./scripts/minimal_init.lua -c "lua MiniTest.run_file('$(FILE)')"
+
+plenary:
 	@echo "===> Testing:"
 	nvim --headless --clean \
-	-u scripts/minimal.vim \
-	-c "PlenaryBustedDirectory lua/spec/codecompanion { minimal_init = 'scripts/minimal.vim' }"
+	-u scripts/minimal_init.lua \
+	-c "PlenaryBustedDirectory lua/spec/codecompanion { minimal_init = 'scripts/minimal_init.lua' }"
 
-$(PLENARY_DIR):
-	git clone --depth=1 $(PLENARY_URL) $(PLENARY_DIR)
-	@rm -rf $(PLENARY_DIR)/.git
+deps: deps/plenary.nvim deps/nvim-treesitter deps/mini.nvim deps/panvimdoc
+	@echo Pulling...
 
-$(TREESITTER_DIR):
-	git clone --depth=1 $(TREESITTER_URL) $(TREESITTER_DIR)
-	@rm -rf $(TREESITTER_DIR)/.git
+deps/plenary.nvim:
+	@mkdir -p deps
+	git clone --filter=blob:none https://github.com/nvim-lua/plenary.nvim.git $@
+
+deps/nvim-treesitter:
+	@mkdir -p deps
+	git clone --filter=blob:none https://github.com/nvim-treesitter/nvim-treesitter.git $@
+
+deps/mini.nvim:
+	@mkdir -p deps
+	git clone --filter=blob:none https://github.com/echasnovski/mini.nvim $@
+
+deps/panvimdoc:
+	@mkdir -p deps
+	git clone --filter=blob:none https://github.com/kdheepak/panvimdoc $@

@@ -33,18 +33,21 @@ end
 ---@return table,number,number,number,number
 function M.get_visual_selection(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
+  -- store the current mode
   local mode = vim.fn.mode()
-
   -- if we're not in visual mode, we need to re-enter it briefly
-  if not is_visual_mode(mode) then
-    vim.cmd("normal! gv")
-  end
+  local is_visual = is_visual_mode(mode)
 
-  local start_pos = vim.fn.getpos("v")
-  local end_pos = vim.fn.getpos(".")
-
-  if is_visual_mode(vim.fn.mode()) then
-    vim.cmd("normal! " .. ESC_FEEDKEY)
+  -- Get positions
+  local start_pos, end_pos
+  if is_visual then
+    -- If we're in visual mode, use 'v' and '.'
+    start_pos = vim.fn.getpos("v")
+    end_pos = vim.fn.getpos(".")
+  else
+    -- Fallback to marks if not in visual mode
+    start_pos = vim.fn.getpos("'<")
+    end_pos = vim.fn.getpos("'>")
   end
 
   local start_line = start_pos[2]
@@ -69,13 +72,22 @@ function M.get_visual_selection(bufnr)
     end_col = #lines[#lines]
   end
 
-  -- use 1-based indexing and handle selections made in visual line mode (see :help getpos)
-  start_col = start_col + 1
-  end_col = math.min(end_col, #lines[#lines] - 1) + 1
-
-  -- shorten first/last line according to start_col/end_col
-  lines[#lines] = lines[#lines]:sub(1, end_col)
-  lines[1] = lines[1]:sub(start_col)
+  -- Handle partial line selections
+  if #lines > 0 then
+    if mode == "V" or (not is_visual and vim.fn.visualmode() == "V") then
+      -- For line-wise selection, use full lines
+      start_col = 1
+      end_col = #lines[#lines]
+    else
+      -- For character-wise selection, respect the columns
+      if #lines == 1 then
+        lines[1] = lines[1]:sub(start_col, end_col)
+      else
+        lines[1] = lines[1]:sub(start_col)
+        lines[#lines] = lines[#lines]:sub(1, end_col)
+      end
+    end
+  end
 
   return lines, start_line, start_col, end_line, end_col
 end

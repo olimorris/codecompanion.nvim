@@ -1,7 +1,7 @@
 local adapter
 
-local assert = require("luassert")
-local helpers = require("spec.codecompanion.adapters.helpers")
+local adapter_helpers = require("tests.adapters.helpers")
+local h = require("tests.helpers")
 
 --------------------------------------------------- OUTPUT FROM THE CHAT BUFFER
 local messages = {
@@ -43,7 +43,7 @@ describe("Gemini adapter", function()
   end)
 
   it("can form messages to be sent to the API", function()
-    local adapter = require("codecompanion.adapters").extend("gemini")
+    adapter = require("codecompanion.adapters").extend("gemini")
     local output = {
       system_instruction = {
         role = "user",
@@ -62,10 +62,10 @@ describe("Gemini adapter", function()
       },
     }
 
-    assert.are.same(output, adapter.handlers.form_messages(adapter, messages))
+    h.eq(output, adapter.handlers.form_messages(adapter, messages))
   end)
 
   it("can output streamed data into a format for the chat buffer", function()
-    assert.are.same(stream_response[#stream_response].output, helpers.chat_buffer_output(stream_response, adapter))
+    h.eq(stream_response[#stream_response].output, adapter_helpers.chat_buffer_output(stream_response, adapter))
   end)
 end)

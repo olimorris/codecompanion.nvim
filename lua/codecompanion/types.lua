@@ -61,6 +61,7 @@
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field context? table Context of the buffer that the chat was initiated from
+---@field ignore_system_prompt? table Do not send the default system prompt with the request
 ---@field last_role? string The role of the last response in the chat buffer
 ---@field messages? table The messages to display in the chat buffer
 ---@field settings? table The settings that are used in the adapter of the chat buffer
