@@ -65,8 +65,6 @@ Install the plugin with your preferred package manager:
   dependencies = {
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
-    -- The following are optional:
-    { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } },
   },
   config = true
 }
@@ -83,8 +81,6 @@ use({
   requires = {
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
-    -- The following are optional:
-    { "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } },
   }
 })
 ```
@@ -96,9 +92,6 @@ call plug#begin()
 
 Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-treesitter/nvim-treesitter'
-" -- The following are optional
-Plug 'MeanderingProgrammer/render-markdown.nvim'
-" --
 Plug 'olimorris/codecompanion.nvim'
 
 call plug#end()
@@ -111,12 +104,24 @@ EOF
 > [!IMPORTANT]
 > The plugin requires the markdown Tree-sitter parser to be installed with `:TSInstall markdown`
 
+**Slash Commands**
+
 To better utilise Slash Commands, [Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim), [mini.pick](https://github.com/echasnovski/mini.pick) or [fzf lua](https://github.com/ibhagwan/fzf-lua) can also be installed. Please refer to the [Chat Buffer](#speech_balloon-the-chat-buffer) section for more information.
+
+**Pinned plugins**
 
 As per [#377](https://github.com/olimorris/codecompanion.nvim/issues/377), if you pin your plugins to the latest releases, consider setting plenary.nvim to:
 
 ```lua
 { "nvim-lua/plenary.nvim", branch = "master" },
+```
+
+**Use with `render-markdown.nvim`**
+
+Add the following to your dependencies:
+
+```lua
+{ "MeanderingProgrammer/render-markdown.nvim", ft = { "markdown", "codecompanion" } },
 ```
 
 ## :rocket: Quickstart
