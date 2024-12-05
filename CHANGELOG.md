@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.4.3](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.2...v10.4.3) (2024-12-05)
+
+
+### Bug Fixes
+
+* **tools:** remove ANSI sequences from all output ([2836849](https://github.com/olimorris/codecompanion.nvim/commit/2836849c6e1533fc54d06e88d52354374efc728d))
+
 ## [10.4.2](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.1...v10.4.2) (2024-12-05)
 
 
