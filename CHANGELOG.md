@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.4.2](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.1...v10.4.2) (2024-12-05)
+
+
+### Bug Fixes
+
+* **tools:** [#503](https://github.com/olimorris/codecompanion.nvim/issues/503) shell redirection ([7023e58](https://github.com/olimorris/codecompanion.nvim/commit/7023e58a056cb834cd3620fec6c42de37469109b))
+
 ## [10.4.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.0...v10.4.1) (2024-12-05)
 
 
