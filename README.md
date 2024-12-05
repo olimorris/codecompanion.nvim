@@ -369,13 +369,13 @@ require('codecompanion').setup({
 
 **Using with render-markdown.nvim**
 
-If you use the fantastic [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) plugin, then you can turn off the `render_headers` option for a cleaner chat buffer:
+If you use the fantastic [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) plugin, then you can turn off the `show_header_separator` option for a cleaner chat buffer:
 
 ```lua
 require("codecompanion").setup({
   display = {
     chat = {
-      render_headers = false,
+      show_header_separator = false,
     }
   }
 })
