@@ -191,6 +191,7 @@ function Tools:run()
   local function close()
     vim.schedule(function()
       handlers.on_exit()
+
       util.fire(
         "AgentFinished",
         { name = self.tool.name, bufnr = self.bufnr, status = status, stderr = stderr, stdout = stdout }
@@ -292,6 +293,11 @@ function Tools:run()
           end
         end,
         on_stdout = function(_, data)
+          -- Remove any ANSI escape codes
+          for i, v in ipairs(stdout) do
+            stdout[i] = v:gsub("\27%[[0-9;]*%a", "")
+          end
+
           vim.schedule(function()
             table.insert(stdout, data)
           end)
