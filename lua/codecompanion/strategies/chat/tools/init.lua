@@ -279,9 +279,9 @@ function Tools:run()
       end
 
       self.chat.current_tool = Job:new({
-        command = cmd[1],
+        command = vim.fn.has("win32") == 1 and "cmd.exe" or "sh",
+        args = { vim.fn.has("win32") == 1 and "/c" or "-c", table.concat(cmd, " ") },
         cwd = vim.fn.getcwd(),
-        args = { unpack(cmd, 2) }, -- args start from index 2
         on_stderr = function(err, _)
           if err then
             vim.schedule(function()
