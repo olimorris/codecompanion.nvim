@@ -278,6 +278,14 @@ function Tools:run()
         end
       end
 
+      -- Strip any ANSI codes from a table of output
+      local function remove_ansi(tbl)
+        for i, v in ipairs(tbl) do
+          tbl[i] = v:gsub("\027%[[0-9;]*%a", "")
+        end
+        return tbl
+      end
+
       self.chat.current_tool = Job:new({
         command = vim.fn.has("win32") == 1 and "cmd.exe" or "sh",
         args = { vim.fn.has("win32") == 1 and "/c" or "-c", table.concat(cmd, " ") },
@@ -285,7 +293,7 @@ function Tools:run()
         on_stderr = function(err, _)
           if err then
             vim.schedule(function()
-              stderr = err
+              stderr = remove_ansi(err)
               status = CONSTANTS.STATUS_ERROR
               log:error("Error running tool %s: %s", self.tool.name, err)
               return close()
@@ -293,13 +301,8 @@ function Tools:run()
           end
         end,
         on_stdout = function(_, data)
-          -- Remove any ANSI escape codes
-          for i, v in ipairs(stdout) do
-            stdout[i] = v:gsub("\27%[[0-9;]*%a", "")
-          end
-
           vim.schedule(function()
-            table.insert(stdout, data)
+            table.insert(remove_ansi(stdout), data)
           end)
         end,
         on_exit = function(data, _)
@@ -307,17 +310,17 @@ function Tools:run()
 
           vim.schedule(function()
             if _G.codecompanion_cancel_tool then
-              stdout = stdout
-              stderr = stderr
+              stdout = remove_ansi(stdout)
+              stderr = remove_ansi(stderr)
               return close()
             end
 
             if not vim.tbl_isempty(stderr) then
-              output.error(cmd, stderr)
+              output.error(cmd, remove_ansi(stderr))
               stderr = {}
             end
             if not vim.tbl_isempty(stdout) then
-              output.success(cmd, stdout)
+              output.success(cmd, remove_ansi(stdout))
               stdout = {}
             end
 
