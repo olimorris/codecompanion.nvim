@@ -1,5 +1,13 @@
 # Changelog
 
+## [10.4.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.0...v10.4.1) (2024-12-05)
+
+
+### Bug Fixes
+
+* **tools:** explictly add cwd to `plenary.job` call ([e78006d](https://github.com/olimorris/codecompanion.nvim/commit/e78006d5a09f0bc9ec78aab4f2a53a4d6bf40149))
+* **tools:** strip ansi from cmd output ([679a9a5](https://github.com/olimorris/codecompanion.nvim/commit/679a9a513f61a5d4e622c7506599cad55f35e502))
+
 ## [10.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.3.1...v10.4.0) (2024-12-02)
 
 
