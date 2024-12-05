@@ -279,6 +279,7 @@ function Tools:run()
 
       self.chat.current_tool = Job:new({
         command = cmd[1],
+        cwd = vim.fn.getcwd(),
         args = { unpack(cmd, 2) }, -- args start from index 2
         on_stderr = function(err, _)
           if err then
