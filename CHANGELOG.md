@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.4.4](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.3...v10.4.4) (2024-12-06)
+
+
+### Bug Fixes
+
+* [#501](https://github.com/olimorris/codecompanion.nvim/issues/501) `blink.compat` causing issues with completion menu ([c5065d0](https://github.com/olimorris/codecompanion.nvim/commit/c5065d02916d8c1bf5dd3baf9f0dd5e1f017fd57))
+
 ## [10.4.3](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.2...v10.4.3) (2024-12-05)
 
 
