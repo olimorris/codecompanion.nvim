@@ -301,23 +301,20 @@ function Chat:set_autocmds()
     end,
   })
 
-  local has_cmp, _ = pcall(require, "cmp")
-  if not has_cmp then
-    api.nvim_create_autocmd("CompleteDone", {
-      group = self.aug,
-      buffer = bufnr,
-      callback = function()
-        local item = vim.v.completed_item
-        if item.user_data and item.user_data.type == "slash_command" then
-          -- Clear the word from the buffer
-          local row, col = unpack(api.nvim_win_get_cursor(0))
-          api.nvim_buf_set_text(bufnr, row - 1, col - #item.word, row - 1, col, { "" })
+  api.nvim_create_autocmd("CompleteDone", {
+    group = self.aug,
+    buffer = bufnr,
+    callback = function()
+      local item = vim.v.completed_item
+      if item.user_data and item.user_data.type == "slash_command" then
+        -- Clear the word from the buffer
+        local row, col = unpack(api.nvim_win_get_cursor(0))
+        api.nvim_buf_set_text(bufnr, row - 1, col - #item.word, row - 1, col, { "" })
 
-          completion.slash_commands_execute(item.user_data, self)
-        end
-      end,
-    })
-  end
+        completion.slash_commands_execute(item.user_data, self)
+      end
+    end,
+  })
 
   if config.display.chat.show_settings then
     api.nvim_create_autocmd("CursorMoved", {
