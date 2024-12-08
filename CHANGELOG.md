@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.4.5](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.4...v10.4.5) (2024-12-08)
+
+
+### Bug Fixes
+
+* **chat:** prevent double adding of references ([953b20d](https://github.com/olimorris/codecompanion.nvim/commit/953b20dabf63e4e5c7b30b9d32cd1136291aceb1))
+
 ## [10.4.4](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.3...v10.4.4) (2024-12-06)
 
 
