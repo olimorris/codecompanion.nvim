@@ -15,6 +15,7 @@ local api = vim.api
 local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.chat",
 
+  STATUS_CANCELLING = "cancelling",
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
 
@@ -687,6 +688,11 @@ end
 ---@return nil
 function Chat:done()
   self.current_request = nil
+  if self.status == CONSTANTS.STATUS_CANCELLING then
+    self.status = ""
+    return self:reset()
+  end
+
   self:add_message({ role = config.constants.LLM_ROLE, content = buf_parse_message(self.bufnr).content })
 
   self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
