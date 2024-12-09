@@ -104,6 +104,25 @@ lua << EOF
 EOF
 ```
 
+**Completion**
+
+When conversing with the LLM, you can leverage variables, slash commands and tools in the chat buffer. Out of the box, the plugin will display these to you via a native Neovim completion menu (which you'll need to trigger with `<C-_>`). However, it also has support for [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). The former, requires no setup however to enable completions for `blink.cmp`, please ensure you've enabled it in your config:
+
+```lua
+sources = {
+  completion = {
+    enabled_providers = { "some", "other", "providers", "codecompanion" },
+  },
+  providers = {
+    codecompanion = {
+      name = "CodeCompanion",
+      module = "codecompanion.providers.completion.blink",
+      enabled = true,
+    },
+  },
+},
+```
+
 **Slash Commands**
 
 To better utilise Slash Commands, [Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim), [mini.pick](https://github.com/echasnovski/mini.pick) or [fzf lua](https://github.com/ibhagwan/fzf-lua) can also be installed. Please refer to the [Chat Buffer](#speech_balloon-the-chat-buffer) section for more information.
