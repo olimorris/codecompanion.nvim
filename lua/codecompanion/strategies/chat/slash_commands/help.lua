@@ -37,8 +37,6 @@ local function trim_content(content, tag)
   local lines = vim.split(content, "\n")
   local tag_row = get_tag_row(tag, content)
 
-  line_count = #lines
-
   local prefix = ""
   local suffix = ""
   local start_, end_
@@ -62,23 +60,13 @@ local function trim_content(content, tag)
   return prefix .. content .. suffix
 end
 
----Output from the slash command in the chat buffer
+---Send the output to the chat buffer
 ---@param SlashCommand CodeCompanion.SlashCommand
----@param selected table The selected item from the provider { relative_path = string, path = string }
+---@param content string The content of the help file
+---@param selected table The selected item from the provider { tag = string, path = string }
 ---@return nil
-local function output(SlashCommand, selected)
-  if not config.opts.send_code and (SlashCommand.config.opts and SlashCommand.config.opts.contains_code) then
-    return log:warn("Sending of code has been disabled")
-  end
-
+local function send_output(SlashCommand, content, selected)
   local ft = "vimdoc"
-  local content = path.new(selected.path):read()
-
-  if content == "" then
-    return log:warn("Could not read the file: %s", selected.path)
-  end
-  content = trim_content(content, selected.tag)
-
   local Chat = SlashCommand.Chat
   local id = selected.tag
 
@@ -91,7 +79,7 @@ local function output(SlashCommand, selected)
 %s
 ```
 
-Note the help file is located at %s.
+Note the path to the help file is `%s`.
 ]],
       selected.tag,
       ft,
@@ -106,12 +94,37 @@ Note the help file is located at %s.
     id = id,
   })
 
-  local message = string.format("Added the `%s` help to the chat", selected.tag)
-  if line_count > CONSTANTS.MAX_LINES then
-    message = message .. ". It was trimmed to " .. CONSTANTS.MAX_LINES .. " lines"
+  return util.notify(string.format("Added the `%s` help to the chat", selected.tag))
+end
+
+---Output from the slash command in the chat buffer
+---@param SlashCommand CodeCompanion.SlashCommand
+---@param selected table The selected item from the provider { tag = string, path = string }
+---@return nil
+local function output(SlashCommand, selected)
+  if not config.opts.send_code and (SlashCommand.config.opts and SlashCommand.config.opts.contains_code) then
+    return log:warn("Sending of code has been disabled")
   end
 
-  util.notify(message)
+  local content = path.new(selected.path):read()
+  line_count = #vim.split(content, "\n")
+
+  if line_count > CONSTANTS.MAX_LINES then
+    vim.ui.select({ "Yes", "No" }, {
+      prompt = "The help file is more than " .. CONSTANTS.MAX_LINES .. " lines. Do you want to trim it?",
+    }, function(choice)
+      if not choice then
+        return
+      end
+      if choice == "No" then
+        return send_output(SlashCommand, content, selected)
+      end
+      content = trim_content(content, selected.tag)
+      return send_output(SlashCommand, content, selected)
+    end)
+  else
+    return send_output(SlashCommand, content, selected)
+  end
 end
 
 local providers = {
