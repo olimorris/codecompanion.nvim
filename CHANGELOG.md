@@ -1,5 +1,13 @@
 # Changelog
 
+## [10.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.6...v10.5.0) (2024-12-09)
+
+
+### Features
+
+* **chat:** :sparkles: `blink.cmp` support ([cb2c93f](https://github.com/olimorris/codecompanion.nvim/commit/cb2c93f8a6b0ab0522a814f244b8011a7275ea3b))
+* **slash_commands:** `help` cmd now prompts user to trim if exceeding max_lines ([33c326a](https://github.com/olimorris/codecompanion.nvim/commit/33c326a0d31473ecf3112d783dbcc22afccfb801))
+
 ## [10.4.6](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.5...v10.4.6) (2024-12-09)
 
 
