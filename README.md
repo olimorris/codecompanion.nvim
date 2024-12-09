@@ -367,20 +367,6 @@ require('codecompanion').setup({
 })
 ```
 
-**Using with render-markdown.nvim**
-
-If you use the fantastic [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) plugin, then you can turn off the `show_header_separator` option for a cleaner chat buffer:
-
-```lua
-require("codecompanion").setup({
-  display = {
-    chat = {
-      show_header_separator = false,
-    }
-  }
-})
-```
-
 ### :electric_plug: Adapters
 
 Please refer to your [chosen adapter](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters) to understand its configuration. You will need to set an API key for non-locally hosted LLMs.
