@@ -1,5 +1,14 @@
 # Changelog
 
+## [10.4.5](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.4...v10.4.5) (2024-12-09)
+
+
+### Bug Fixes
+
+* **chat:** prevent double adding of references ([953b20d](https://github.com/olimorris/codecompanion.nvim/commit/953b20dabf63e4e5c7b30b9d32cd1136291aceb1))
+* **inline:** [#516](https://github.com/olimorris/codecompanion.nvim/issues/516) switching adapters via `vim.g.codecompanion_adapter` ([0d91c08](https://github.com/olimorris/codecompanion.nvim/commit/0d91c086b30da050aa0a95dd9e69d16d9d88c587))
+* **slash_commands:** [#515](https://github.com/olimorris/codecompanion.nvim/issues/515) help tags line limit can be customised ([e1b9876](https://github.com/olimorris/codecompanion.nvim/commit/e1b9876641e4ea0fa80f78339c260b16b729a21f))
+
 ## [10.4.4](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.3...v10.4.4) (2024-12-06)
 
 
