@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.4.6](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.5...v10.4.6) (2024-12-09)
+
+
+### Bug Fixes
+
+* **cmd:** strategy now respects `vim.g.codecompanion_adapter` ([b629005](https://github.com/olimorris/codecompanion.nvim/commit/b629005f0467471b4439192492cea2d49f22d52f))
+
 ## [10.4.5](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.4...v10.4.5) (2024-12-09)
 
 
