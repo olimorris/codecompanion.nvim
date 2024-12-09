@@ -103,20 +103,28 @@ return {
         local data_mod = (self.opts and self.opts.stream) and data:sub(7) or data.body
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
-        if ok then
-          if json.choices and #json.choices > 0 then
-            local choice = json.choices[1]
-            local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
+        if ok and json.choices and #json.choices > 0 then
+          local choice = json.choices[1]
+          local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
 
+          if delta then
+            if delta.role then
+              output.role = delta.role
+            else
+              output.role = nil
+            end
+
+            -- Some providers may return empty content
             if delta.content then
               output.content = delta.content
-              output.role = delta.role or nil
-
-              return {
-                status = "success",
-                output = output,
-              }
+            else
+              output.content = ""
             end
+
+            return {
+              status = "success",
+              output = output,
+            }
           end
         end
       end

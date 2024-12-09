@@ -1,7 +1,7 @@
 local config = require("codecompanion.config")
-local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.messages")
 local curl = require("plenary.curl")
+local log = require("codecompanion.utils.log")
+local openai = require("codecompanion.adapters.openai")
 
 ---Get a list of available OpenAI compatible models
 ---@params self CodeCompanion.Adapter
@@ -116,113 +116,23 @@ return {
       return true
     end,
 
-    ---Set the parameters
-    ---@param self CodeCompanion.Adapter
-    ---@param params table
-    ---@param messages table
-    ---@return table
-    form_parameters = function(self, params, messages)
-      return params
-    end,
-
-    ---Set the format of the role and content for the messages from the chat buffer
-    ---@param self CodeCompanion.Adapter
-    ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
-    ---@return table
-    form_messages = function(self, messages)
-      return { messages = messages }
-    end,
-
-    ---Returns the number of tokens generated from the LLM
-    ---@param self CodeCompanion.Adapter
-    ---@param data table The data from the LLM
-    ---@return number|nil
     tokens = function(self, data)
-      if data and data ~= "" then
-        local data_mod = (self.opts and self.opts.stream) and data:sub(7) or data.body
-        local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
-
-        if ok then
-          if json.usage then
-            local tokens = json.usage.total_tokens
-            log:trace("Tokens: %s", tokens)
-            return tokens
-          end
-        end
-      end
+      return openai.handlers.tokens(self, data)
     end,
-
-    ---Output the data from the API ready for insertion into the chat buffer
-    ---@param self CodeCompanion.Adapter
-    ---@param data string The streamed JSON data from the API, also formatted by the format_data handler
-    ---@return table|nil [status: string, output: table]
+    form_parameters = function(self, params, messages)
+      return openai.handlers.form_parameters(self, params, messages)
+    end,
+    form_messages = function(self, messages)
+      return openai.handlers.form_messages(self, messages)
+    end,
     chat_output = function(self, data)
-      local output = {}
-
-      if data and data ~= "" then
-        local data_mod = (self.opts and self.opts.stream) and data:sub(7) or data.body
-        local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
-
-        if ok and json.choices and #json.choices > 0 then
-          local choice = json.choices[1]
-          local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
-
-          if delta then
-            if delta.role then
-              output.role = delta.role
-            else
-              output.role = nil
-            end
-
-            -- Some providers may return empty content
-            if delta.content then
-              output.content = delta.content
-            else
-              output.content = ""
-            end
-
-            return {
-              status = "success",
-              output = output,
-            }
-          end
-        end
-      end
+      return openai.handlers.chat_output(self, data)
     end,
-
-    ---Output the data from the API ready for inlining into the current buffer
-    ---@param self CodeCompanion.Adapter
-    ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
-    ---@param context table Useful context about the buffer to inline to
-    ---@return string|table|nil
     inline_output = function(self, data, context)
-      if data and data ~= "" then
-        data = (self.opts and self.opts.stream) and data:sub(7) or data.body
-        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
-
-        if ok then
-          --- Some third-party OpenAI forwarding services may have a return package with an empty json.choices.
-          if not json.choices or #json.choices == 0 then
-            return
-          end
-
-          local choice = json.choices[1]
-          local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
-          if delta.content then
-            return delta.content
-          end
-        end
-      end
+      return openai.handlers.inline_output(self, data, context)
     end,
-
-    ---Function to run when the request has completed. Useful to catch errors
-    ---@param self CodeCompanion.Adapter
-    ---@param data table
-    ---@return nil
     on_exit = function(self, data)
-      if data.status >= 400 then
-        log:error("Error: %s", data.body)
-      end
+      return openai.handlers.on_exit(self, data)
     end,
   },
   schema = {
