@@ -2,17 +2,16 @@ local path = require("plenary.path")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local tokens_utils = require("codecompanion.utils.tokens")
 local util = require("codecompanion.utils")
 
 local ts = vim.treesitter
 
+local line_count = 0
+
 CONSTANTS = {
   NAME = "Help",
   PROMPT = "Select a help tag",
-  MAX_TOKENS = 2048,
-  MAX_LINES = 128,
-  --NOTE: On averege vimdoc line are 10-11 tokens long
+  MAX_LINES = config.strategies.chat.slash_commands.help.opts.max_lines,
 }
 
 ---Find the tag row
@@ -38,6 +37,8 @@ local function trim_content(content, tag)
   local lines = vim.split(content, "\n")
   local tag_row = get_tag_row(tag, content)
 
+  line_count = #lines
+
   local prefix = ""
   local suffix = ""
   local start_, end_
@@ -57,8 +58,6 @@ local function trim_content(content, tag)
   end
 
   content = table.concat(vim.list_slice(lines, start_, end_), "\n")
-  local tokens = tokens_utils.calculate(content)
-  assert(tokens < CONSTANTS.MAX_TOKENS, "The number of tokens exceeds the limit: " .. tokens)
 
   return prefix .. content .. suffix
 end
@@ -78,13 +77,7 @@ local function output(SlashCommand, selected)
   if content == "" then
     return log:warn("Could not read the file: %s", selected.path)
   end
-
-  local tokens = tokens_utils.calculate(content)
-
-  -- Add the whole help file
-  if tokens > CONSTANTS.MAX_TOKENS then
-    content = trim_content(content, selected.tag)
-  end
+  content = trim_content(content, selected.tag)
 
   local Chat = SlashCommand.Chat
   local id = selected.tag
@@ -113,7 +106,12 @@ Note the help file is located at %s.
     id = id,
   })
 
-  util.notify(string.format("Added the `%s` help to the chat", selected.tag))
+  local message = string.format("Added the `%s` help to the chat", selected.tag)
+  if line_count > CONSTANTS.MAX_LINES then
+    message = message .. ". It was trimmed to " .. CONSTANTS.MAX_LINES .. " lines"
+  end
+
+  util.notify(message)
 end
 
 local providers = {

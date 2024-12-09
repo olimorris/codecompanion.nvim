@@ -90,6 +90,7 @@ local defaults = {
           description = "Insert content from help tags",
           opts = {
             contains_code = false,
+            max_lines = 128, -- Maximum amount of lines to of the help file to send (NOTE: each vimdoc line is typically 10 tokens)
             provider = "telescope", -- telescope|mini_pick|fzf_lua
           },
         },
