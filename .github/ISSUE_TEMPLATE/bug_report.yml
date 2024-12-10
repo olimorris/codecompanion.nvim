@@ -43,9 +43,32 @@ body:
               dependencies = {
                 { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
                 { "nvim-lua/plenary.nvim" },
-                { "hrsh7th/nvim-cmp" },
-                { "stevearc/dressing.nvim", opts = {} },
-                { "nvim-telescope/telescope.nvim" },
+                -- Comment this out if you don't want to setup blink.cmp
+                {
+                  "saghen/blink.cmp",
+                  lazy = false,
+                  build = "cargo build --release",
+                  opts = {
+                    -- 'enter' for mappings similar to 'super-tab' but with 'enter' to accept
+                    keymap = {
+                      preset = "enter",
+                      ["<S-Tab>"] = { "select_prev", "fallback" },
+                      ["<Tab>"] = { "select_next", "fallback" },
+                    },
+                    sources = {
+                      completion = {
+                        enabled_providers = { "lsp", "path", "buffer", "codecompanion" },
+                      },
+                      providers = {
+                        codecompanion = {
+                          name = "CodeCompanion",
+                          module = "codecompanion.providers.completion.blink",
+                          enabled = true,
+                        },
+                      },
+                    },
+                  },
+                },
               },
               opts = {
                 --Refer to: https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua
@@ -69,21 +92,6 @@ body:
             treesitter.setup({
               ensure_installed = { "lua", "markdown", "markdown_inline", "yaml" },
               highlight = { enable = true },
-            })
-          end
-
-          -- Setup completion
-          local cmp_status, cmp = pcall(require, "cmp")
-          if cmp_status then
-            cmp.setup({
-              mapping = cmp.mapping.preset.insert({
-                ["<C-b>"] = cmp.mapping.scroll_docs(-4),
-                ["<C-f>"] = cmp.mapping.scroll_docs(4),
-                ["<C-Space>"] = cmp.mapping.complete(),
-                ["<C-e>"] = cmp.mapping.abort(),
-                ["<CR>"] = cmp.mapping.confirm({ select = true }),
-                -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
-              }),
             })
           end
           ```
