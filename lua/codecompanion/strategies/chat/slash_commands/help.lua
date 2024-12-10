@@ -68,7 +68,7 @@ end
 local function send_output(SlashCommand, content, selected)
   local ft = "vimdoc"
   local Chat = SlashCommand.Chat
-  local id = selected.tag
+  local id = "<help>" .. selected.tag .. "</help>"
 
   Chat:add_message({
     role = config.constants.USER_ROLE,

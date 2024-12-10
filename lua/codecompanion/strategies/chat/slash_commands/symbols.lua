@@ -81,7 +81,7 @@ local function output(SlashCommand, selected)
     return no_symbols()
   end
 
-  local id = selected.relative_path .. " ($)"
+  local id = "<symbols>" .. selected.relative_path .. "</symbols>"
   content = table.concat(symbols, "\n")
 
   SlashCommand.Chat:add_message({

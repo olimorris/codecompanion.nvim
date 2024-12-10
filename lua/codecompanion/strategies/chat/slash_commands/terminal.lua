@@ -6,8 +6,6 @@ CONSTANTS = {
 }
 
 ---@class CodeCompanion.SlashCommand.Terminal: CodeCompanion.SlashCommand
----@field new fun(args: CodeCompanion.SlashCommand): CodeCompanion.SlashCommand.Terminal
----@field execute fun(self: CodeCompanion.SlashCommand.Terminal)
 local SlashCommand = {}
 
 ---@param args CodeCompanion.SlashCommand

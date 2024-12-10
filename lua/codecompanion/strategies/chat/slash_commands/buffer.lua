@@ -36,7 +36,7 @@ local function output(SlashCommand, selected)
     content = buf.format(selected.bufnr)
   end
 
-  local id = SlashCommand.Chat.References:make_id_from_buf(selected.bufnr)
+  local id = "<buf>" .. SlashCommand.Chat.References:make_id_from_buf(selected.bufnr) .. "</buf>"
 
   SlashCommand.Chat:add_message({
     role = config.constants.USER_ROLE,

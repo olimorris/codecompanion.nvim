@@ -29,6 +29,8 @@ local function output(SlashCommand, selected)
 
   local Chat = SlashCommand.Chat
   local relative_path = selected.relative_path or selected[1] or selected.path
+  local id = "<file>" .. relative_path .. "</file>"
+
   Chat:add_message({
     role = config.constants.USER_ROLE,
     content = fmt(
@@ -41,12 +43,12 @@ local function output(SlashCommand, selected)
       ft,
       content
     ),
-  }, { reference = relative_path, visible = false })
+  }, { reference = id, visible = false })
 
   Chat.References:add({
     source = "slash_command",
     name = "file",
-    id = relative_path,
+    id = id,
   })
 
   util.notify(fmt("Added the `%s` file to the chat", vim.fn.fnamemodify(relative_path, ":t")))

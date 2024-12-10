@@ -75,15 +75,17 @@ function SlashCommand:execute()
             data.data.text
           )
 
+          local id = "<url>" .. input .. "</url>"
+
           self.Chat:add_message({
             role = config.constants.USER_ROLE,
             content = content,
-          }, { reference = input, visible = false })
+          }, { reference = id, visible = false })
 
           self.Chat.References:add({
             source = "slash_command",
             name = "fetch",
-            id = input,
+            id = id,
           })
 
           return util.notify(fmt("Added the page contents for: %s", input))
