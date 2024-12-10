@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.5.0...v10.5.1) (2024-12-10)
+
+
+### Bug Fixes
+
+* **slash_commands:** prompt library now works with blink.cmp ([1027f47](https://github.com/olimorris/codecompanion.nvim/commit/1027f47c6c583a6b6592ae60a8008d780517792a))
+
 ## [10.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.4.6...v10.5.0) (2024-12-09)
 
 
