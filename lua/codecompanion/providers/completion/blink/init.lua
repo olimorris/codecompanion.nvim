@@ -31,6 +31,7 @@ function M:get_completions(ctx, callback)
           return {
             label = item.label:sub(2),
             ctx = ctx,
+            from_prompt_library = item.from_prompt_library,
             config = item.config,
             type = "slash_command",
             kind = vim.lsp.protocol.CompletionItemKind.Function,
@@ -100,7 +101,7 @@ function M:execute(ctx, item)
     { "" }
   )
 
-  local chat = require("codecompanion").buf_get_chat(ctx.bufnr)
+  local chat = require("codecompanion").buf_get_chat(item.ctx.bufnr)
   completion.slash_commands_execute(item, chat)
 
   vim.bo[item.ctx.bufnr].buflisted = false
