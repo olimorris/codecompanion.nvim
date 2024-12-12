@@ -65,6 +65,92 @@ describe("Gemini adapter", function()
     h.eq(output, adapter.handlers.form_messages(adapter, messages))
   end)
 
+  it("can form messages with system prompt", function()
+    adapter = require("codecompanion.adapters").extend("gemini")
+    local messages_with_system = {
+      {
+        content = "You are a helpful assistant",
+        role = "system",
+        id = 1,
+        opts = { visible = false },
+      },
+      {
+        content = "hello",
+        id = 2,
+        opts = { visible = true },
+        role = "user",
+      },
+      {
+        content = "Hi, how can I help?",
+        id = 3,
+        opts = { visible = true },
+        role = "llm",
+      },
+    }
+
+    local output = {
+      system_instruction = {
+        role = "user",
+        parts = {
+          { text = "You are a helpful assistant" },
+        },
+      },
+      contents = {
+        {
+          role = "user",
+          parts = {
+            { text = "hello" },
+          },
+        },
+        {
+          role = "user",
+          parts = {
+            { text = "Hi, how can I help?" },
+          },
+        },
+      },
+    }
+
+    h.eq(output, adapter.handlers.form_messages(adapter, messages_with_system))
+  end)
+
+  it("can form messages without system prompt", function()
+    adapter = require("codecompanion.adapters").extend("gemini")
+    local messages_without_system = {
+      {
+        content = "hello",
+        id = 1,
+        opts = { visible = true },
+        role = "user",
+      },
+      {
+        content = "Hi, how can I help?",
+        id = 2,
+        opts = { visible = true },
+        role = "llm",
+      },
+    }
+
+    local output = {
+      contents = {
+        {
+          role = "user",
+          parts = {
+            { text = "hello" },
+          },
+        },
+        {
+          role = "user",
+          parts = {
+            { text = "Hi, how can I help?" },
+          },
+        },
+      },
+    }
+
+    h.eq(output, adapter.handlers.form_messages(adapter, messages_without_system))
+  end)
+
   it("can output streamed data into a format for the chat buffer", function()
     h.eq(stream_response[#stream_response].output, adapter_helpers.chat_buffer_output(stream_response, adapter))
   end)
