@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.5.2](https://github.com/olimorris/codecompanion.nvim/compare/v10.5.1...v10.5.2) (2024-12-12)
+
+
+### Bug Fixes
+
+* **adapters:** [#528](https://github.com/olimorris/codecompanion.nvim/issues/528) Gemini adapter fails if system prompt is removed ([7ca4364](https://github.com/olimorris/codecompanion.nvim/commit/7ca43642376d7768a3f2ecea2cd99ae9a792451a))
+
 ## [10.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.5.0...v10.5.1) (2024-12-10)
 
 
