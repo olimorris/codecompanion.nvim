@@ -44,20 +44,25 @@ return {
     form_messages = function(self, messages)
       -- Format system prompts
       local system = utils.pluck_messages(vim.deepcopy(messages), "system")
-      for _, msg in ipairs(system) do
-        msg.text = msg.content
+      local system_instruction
 
-        -- Remove unnecessary fields
-        msg.tag = nil
-        msg.content = nil
-        msg.role = nil
-        msg.id = nil
-        msg.opts = nil
+      -- Only create system_instruction if there are system messages
+      if #system > 0 then
+        for _, msg in ipairs(system) do
+          msg.text = msg.content
+
+          -- Remove unnecessary fields
+          msg.tag = nil
+          msg.content = nil
+          msg.role = nil
+          msg.id = nil
+          msg.opts = nil
+        end
+        system_instruction = {
+          role = self.roles.user,
+          parts = system,
+        }
       end
-      local sys_prompts = {
-        role = self.roles.user,
-        parts = system,
-      }
 
       -- Format messages (remove all system prompts)
       local output = {}
@@ -71,10 +76,15 @@ return {
         })
       end
 
-      return {
-        system_instruction = sys_prompts,
+      -- Only include system_instruction if it exists
+      local result = {
         contents = output,
       }
+      if system_instruction then
+        result.system_instruction = system_instruction
+      end
+
+      return result
     end,
 
     ---Returns the number of tokens generated from the LLM
