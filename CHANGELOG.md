@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.5.3](https://github.com/olimorris/codecompanion.nvim/compare/v10.5.2...v10.5.3) (2024-12-13)
+
+
+### Bug Fixes
+
+* **inline:** [#531](https://github.com/olimorris/codecompanion.nvim/issues/531) inline edits in c++ buffers ([73e8ea5](https://github.com/olimorris/codecompanion.nvim/commit/73e8ea561e81cce3b9c75d825b8294e0a82fc4e9))
+
 ## [10.5.2](https://github.com/olimorris/codecompanion.nvim/compare/v10.5.1...v10.5.2) (2024-12-12)
 
 
