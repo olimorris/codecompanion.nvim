@@ -44,7 +44,7 @@ function Diff.new(args)
 
   -- Get current properties
   local buf_opts = {
-    ft = self.filetype,
+    ft = (self.filetype == "C++" and "cpp" or self.filetype),
   }
   local win_opts = {
     wrap = vim.wo.wrap,
