@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.5.3...v10.6.0) (2024-12-13)
+
+
+### Features
+
+* **adapters:** add Hugging Face adapter ([#527](https://github.com/olimorris/codecompanion.nvim/issues/527)) ([48747c4](https://github.com/olimorris/codecompanion.nvim/commit/48747c4e36eb0a3f44d6d9e55f8089b9e27cacfc))
+
 ## [10.5.3](https://github.com/olimorris/codecompanion.nvim/compare/v10.5.2...v10.5.3) (2024-12-13)
 
 
