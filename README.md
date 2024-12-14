@@ -719,6 +719,7 @@ The plugin sets the following highlight groups during setup:
 
 The plugin fires many events during its lifecycle:
 
+- `CodeCompanionChatOpened` - Fired after a chat has been opened
 - `CodeCompanionChatClosed` - Fired after a chat has been closed
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat

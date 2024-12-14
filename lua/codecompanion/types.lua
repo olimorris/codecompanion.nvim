@@ -43,6 +43,7 @@
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
 ---@field cycle number The amount of times the chat has been sent to the LLM
+---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library-
 ---@field header_ns integer The namespace for the virtual text that appears in the header
 ---@field id integer The unique identifier for the chat
 ---@field intro_message? boolean Whether the welcome message has been shown
@@ -61,6 +62,7 @@
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field context? table Context of the buffer that the chat was initiated from
+---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field ignore_system_prompt? table Do not send the default system prompt with the request
 ---@field last_role? string The role of the last response in the chat buffer
 ---@field messages? table The messages to display in the chat buffer
