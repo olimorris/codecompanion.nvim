@@ -42,11 +42,9 @@ return {
     ---@param messages table Format is: { contents = { parts { text = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
-      -- Format system prompts
       local system = utils.pluck_messages(vim.deepcopy(messages), "system")
       local system_instruction
 
-      -- Only create system_instruction if there are system messages
       if #system > 0 then
         for _, msg in ipairs(system) do
           msg.text = msg.content
@@ -76,7 +74,6 @@ return {
         })
       end
 
-      -- Only include system_instruction if it exists
       local result = {
         contents = output,
       }
