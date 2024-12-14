@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.6.0...v10.7.0) (2024-12-14)
+
+
+### Features
+
+* **chat:** add `CodeCompanionChatOpened` event ([fdfc640](https://github.com/olimorris/codecompanion.nvim/commit/fdfc640f638de7e44580c75882b81cc6dd99b950))
+
 ## [10.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.5.3...v10.6.0) (2024-12-13)
 
 
