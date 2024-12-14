@@ -27,10 +27,12 @@ body:
           ```lua
           ---@diagnostic disable: missing-fields
 
-          --NOTE: Set config path to enable the copilot adapter to work.
-          --It will search the follwoing paths for the for copilot token:
-          --  - "$CODECOMPANION_TOKEN_PATH/github-copilot/hosts.json"
-          --  - "$CODECOMPANION_TOKEN_PATH/github-copilot/apps.json"
+          --[[
+          NOTE: Set the config path to enable the copilot adapter to work.
+          It will search the following paths for a token:
+            - "$CODECOMPANION_TOKEN_PATH/github-copilot/hosts.json"
+            - "$CODECOMPANION_TOKEN_PATH/github-copilot/apps.json"
+          --]]
           vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand("~/.config")
 
           vim.env.LAZY_STDPATH = ".repro"

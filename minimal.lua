@@ -1,9 +1,11 @@
 ---@diagnostic disable: missing-fields
 
---NOTE: Set config path to enable the copilot adapter to work.
---It will search the follwoing paths for the for copilot token:
---  - "$CODECOMPANION_TOKEN_PATH/github-copilot/hosts.json"
---  - "$CODECOMPANION_TOKEN_PATH/github-copilot/apps.json"
+--[[
+NOTE: Set the config path to enable the copilot adapter to work.
+It will search the following paths for a token:
+  - "$CODECOMPANION_TOKEN_PATH/github-copilot/hosts.json"
+  - "$CODECOMPANION_TOKEN_PATH/github-copilot/apps.json"
+--]]
 vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand("~/.config")
 
 vim.env.LAZY_STDPATH = ".repro"
@@ -16,13 +18,12 @@ local plugins = {
     dependencies = {
       { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
       { "nvim-lua/plenary.nvim" },
-      -- Comment this out if you don't want to setup blink.cmp
+      -- Test with blink.cmp
       {
         "saghen/blink.cmp",
         lazy = false,
-        build = "cargo build --release",
+        version = "*",
         opts = {
-          -- 'enter' for mappings similar to 'super-tab' but with 'enter' to accept
           keymap = {
             preset = "enter",
             ["<S-Tab>"] = { "select_prev", "fallback" },
@@ -42,6 +43,8 @@ local plugins = {
           },
         },
       },
+      -- Test with nvim-cmp
+      -- { "hrsh7th/nvim-cmp" },
     },
     opts = {
       --Refer to: https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua
@@ -67,3 +70,18 @@ if ts_status then
     highlight = { enable = true },
   })
 end
+
+-- Setup nvim-cmp
+-- local cmp_status, cmp = pcall(require, "cmp")
+-- if cmp_status then
+--   cmp.setup({
+--     mapping = cmp.mapping.preset.insert({
+--       ["<C-b>"] = cmp.mapping.scroll_docs(-4),
+--       ["<C-f>"] = cmp.mapping.scroll_docs(4),
+--       ["<C-Space>"] = cmp.mapping.complete(),
+--       ["<C-e>"] = cmp.mapping.abort(),
+--       ["<CR>"] = cmp.mapping.confirm({ select = true }),
+--       -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+--     }),
+--   })
+-- end
