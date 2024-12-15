@@ -72,9 +72,9 @@
 ---@field tokens? table Total tokens spent in the chat buffer so far
 
 ---@class CodeCompanion.Chat.Ref
----@field source string The source of the reference e.g. slash_command
----@field name string The name of the source e.g. buffer
 ---@field id string The unique ID of the reference which links it to a message in the chat buffer and is displayed to the user
+---@field name string The name of the source e.g. buffer
+---@field source string The source of the reference e.g. slash_command
 ---@field opts? table
 
 ---@class CodeCompanion.Chat.UI
