@@ -635,10 +635,8 @@ function Chat:submit(opts)
   message = self.References:clear(self.messages[#self.messages])
 
   self:apply_tools_and_variables(message)
-  self:check_references()
 
-  -- Check if the user has manually overriden the adapter. This is useful if the
-  -- user loses their internet connection and wants to switch to a local LLM
+  -- Check if the user has manually overriden the adapter
   if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
     self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
   end
@@ -697,10 +695,10 @@ function Chat:done()
   end
 
   self:add_message({ role = config.constants.LLM_ROLE, content = buf_parse_message(self.bufnr).content })
-  self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
-  self.ui:display_tokens()
 
+  self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
   self.References:render()
+  self.ui:display_tokens()
 
   if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
     buf_parse_tools(self)
@@ -727,50 +725,6 @@ function Chat:done()
   end
 end
 
----Reconcile the references table to the references in the chat buffer
----This allows users to manually remove references themselves
----@return nil
-function Chat:check_references()
-  local refs = self.References:get_from_chat()
-  if vim.tbl_isempty(refs) and vim.tbl_isempty(self.refs) then
-    return
-  end
-
-  -- Fetch references that exist on the chat object but not in the buffer
-  local to_remove = vim
-    .iter(pairs(self.refs))
-    :filter(function(ref, _)
-      return not vim.tbl_contains(refs, ref)
-    end)
-    :map(function(ref, _)
-      return ref
-    end)
-    :totable()
-
-  if vim.tbl_isempty(to_remove) then
-    return
-  end
-
-  -- Remove them from the messages table
-  self.messages = vim
-    .iter(self.messages)
-    :filter(function(msg)
-      if msg.opts and msg.opts.reference and vim.tbl_contains(to_remove, msg.opts.reference) then
-        return false
-      end
-      return true
-    end)
-    :totable()
-
-  -- And from the refs table
-  self.refs = vim
-    .iter(self.refs)
-    :filter(function(ref)
-      return not vim.tbl_contains(to_remove, ref)
-    end)
-    :totable()
-end
-
 ---Regenerate the response from the LLM
 ---@return nil
 function Chat:regenerate()
@@ -785,7 +739,6 @@ end
 ---@return nil
 function Chat:stop()
   local job
-  self.status = CONSTANTS.STATUS_CANCELLING
   if self.current_tool then
     job = self.current_tool
     self.current_tool = nil
