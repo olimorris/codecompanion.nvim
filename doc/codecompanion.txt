@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 December 11
+*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 December 15
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -328,8 +328,8 @@ setting system prompts that are LLM or model specific:
       opts = {
         ---@param adapter CodeCompanion.Adapter
         ---@return string
-        system_prompt = function(opts)
-          if opts.adapter.schema.model.default == "llama3.1:latest" then
+        system_prompt = function(adapter)
+          if adapter.schema.model.default == "llama3.1:latest" then
             return "My custom system prompt"
           end
           return "My default system prompt"
@@ -656,7 +656,7 @@ You can call a prompt from the library via a keymap using the `prompt` helper:
 
 In the example above, we’ve set a visual keymap that will trigger the Explain
 prompt. Providing the `short_name` of the prompt as an argument to the helper
-(e.g.� "commit") will resolve the strategy down to an action.
+(e.g. "commit") will resolve the strategy down to an action.
 
 
 THE CHAT BUFFER ~
@@ -812,6 +812,7 @@ The plugin sets the following highlight groups during setup:
 
 The plugin fires many events during its lifecycle:
 
+- `CodeCompanionChatOpened` - Fired after a chat has been opened
 - `CodeCompanionChatClosed` - Fired after a chat has been closed
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
