@@ -33,7 +33,17 @@ Here are some example prompts and their correct method classification ("<method>
 The user may also provide a prompt which references a conversation you've had with them previously. Just focus on determining the correct method classification.
 
 Please respond to this prompt in the format "<method>", placing the classifiction in a tag. For example "replace" would be `<replace>`, "add" would be `<add>`, "before" would be `<before>`, "new" would be `<new>` and "chat" would be `<chat>`. If you can't classify the message, reply with `<error>`. Do not provide any other content in your response or you'll break the plugin this is being called from.]],
-  CODE_ONLY_PROMPT = [[Respond with code only. DO NOT format the code in Markdown code blocks, DO NOT use backticks AND DO NOT provide any explanations. If you cannot do this, reply with "Error"]],
+  CODE_ONLY_PROMPT = [[The following response must contain ONLY raw code that can be directly written to a Neovim buffer:
+
+1. No Markdown formatting or backticks
+2. No explanations or prose
+3. Use proper indentation for the target language
+4. Include language-appropriate comments when needed
+5. Use actual line breaks (not \n)
+6. Preserve all whitespace
+7. Only include relevant code (no full file echoing)
+
+If you cannot provide clean file-ready code, reply with `<error>`]],
 }
 
 ---Format given lines into a code block alongside a prompt

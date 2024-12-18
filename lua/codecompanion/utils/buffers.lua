@@ -82,6 +82,14 @@ function M.get_content(bufnr, range)
   return content
 end
 
+---Get the content of a given line in a buffer
+---@param bufnr number
+---@param line number
+---@return string
+function M.get_line(bufnr, line)
+  return api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or ""
+end
+
 ---Formats the content of a buffer into a markdown string
 ---@param buffer table The buffer data to include
 ---@param lines string The lines of the buffer to include
