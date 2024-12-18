@@ -36,6 +36,10 @@ function M:get_completions(ctx, callback)
             type = "slash_command",
             kind = vim.lsp.protocol.CompletionItemKind.Function,
             insertText = "",
+            documentation = {
+              kind = "plaintext",
+              value = item.detail,
+            },
           }
         end)
         :totable(),
@@ -56,6 +60,10 @@ function M:get_completions(ctx, callback)
             type = "variable",
             kind = vim.lsp.protocol.CompletionItemKind.Variable,
             insertText = item.label:sub(2),
+            documentation = {
+              kind = "plaintext",
+              value = item.detail,
+            },
           }
         end)
         :totable(),
@@ -78,7 +86,7 @@ function M:get_completions(ctx, callback)
             insertText = item.label:sub(2),
             documentation = {
               kind = "plaintext",
-              value = item.description,
+              value = item.detail,
             },
           }
         end)
