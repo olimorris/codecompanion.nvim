@@ -830,6 +830,7 @@ This is the code, for context:
           foldcolumn = "0",
           linebreak = true,
           list = false,
+          numberwidth = 1,
           signcolumn = "no",
           spell = false,
           wrap = true,
