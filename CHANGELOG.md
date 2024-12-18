@@ -1,5 +1,19 @@
 # Changelog
 
+## [10.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.7.0...v10.8.0) (2024-12-18)
+
+
+### Features
+
+* **chat:** can delete references ([367eccc](https://github.com/olimorris/codecompanion.nvim/commit/367eccc7cc57edcc249bae850ac4ccdf599a060c))
+* **chat:** can delete references ([c0b8c25](https://github.com/olimorris/codecompanion.nvim/commit/c0b8c2522c20b8369201132a4ce953f3cdf7b5e2))
+
+
+### Bug Fixes
+
+* [#542](https://github.com/olimorris/codecompanion.nvim/issues/542) use vim.treesitter instead of nvim-treesitter. ([#543](https://github.com/olimorris/codecompanion.nvim/issues/543)) ([b741490](https://github.com/olimorris/codecompanion.nvim/commit/b741490066c0129554300e493f27767b760ffa16))
+* **chat:** show documentation for blink.cmp ([f41dbab](https://github.com/olimorris/codecompanion.nvim/commit/f41dbab850572b290e37e0b52244b8ccb9699870))
+
 ## [10.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.6.0...v10.7.0) (2024-12-14)
 
 
