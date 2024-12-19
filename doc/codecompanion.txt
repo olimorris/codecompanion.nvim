@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 December 19
+*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 December 15
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -46,12 +46,6 @@ Install the plugin with your preferred package manager:
       dependencies = {
         "nvim-lua/plenary.nvim",
         "nvim-treesitter/nvim-treesitter",
-      },
-      cmd = {
-        "CodeCompanion",
-        "CodeCompanionChat",
-        "CodeCompanionActions",
-        "CodeCompanionCmd",
       },
       config = true
     }
