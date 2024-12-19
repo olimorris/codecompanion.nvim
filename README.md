@@ -69,6 +69,12 @@ Install the plugin with your preferred package manager:
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
   },
+  cmd = {
+    "CodeCompanion",
+    "CodeCompanionChat",
+    "CodeCompanionActions",
+    "CodeCompanionCmd",
+  },
   config = true
 }
 ```
