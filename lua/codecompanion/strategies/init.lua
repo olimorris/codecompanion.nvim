@@ -114,7 +114,6 @@ end
 function Strategies:workflow()
   local workflow = self.selected
   local prompts = workflow.prompts
-  local opts = workflow.opts
   local stages = #prompts
 
   -- Expand the prompts
@@ -141,7 +140,7 @@ function Strategies:workflow()
     adapter = self.selected.adapter,
     context = self.context,
     messages = messages,
-    auto_submit = (messages.opts and messages.opts.auto_submit) or false,
+    auto_submit = (messages[#messages].opts and messages[#messages].opts.auto_submit) or false,
   })
   table.remove(eval_prompts, 1)
 
