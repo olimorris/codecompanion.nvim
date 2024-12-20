@@ -1,5 +1,13 @@
 # Changelog
 
+## [10.8.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.8.0...v10.8.1) (2024-12-20)
+
+
+### Bug Fixes
+
+* **workflow:** can auto_submit the first prompt ([86f96d5](https://github.com/olimorris/codecompanion.nvim/commit/86f96d5419915b0711afbc93d948a3312bfc25b6))
+* **workflows:** wrap in `vim.schedule` for performance ([f0f6e26](https://github.com/olimorris/codecompanion.nvim/commit/f0f6e260a98c5ffe6ff6257227d1f429a4ecb07c))
+
 ## [10.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.7.0...v10.8.0) (2024-12-18)
 
 
