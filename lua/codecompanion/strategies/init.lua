@@ -113,12 +113,11 @@ end
 ---@return CodeCompanion.Chat|nil
 function Strategies:workflow()
   local workflow = self.selected
-  local prompts = workflow.prompts
-  local stages = #prompts
+  local stages = #workflow.prompts
 
   -- Expand the prompts
   local eval_prompts = vim
-    .iter(prompts)
+    .iter(workflow.prompts)
     :map(function(prompt_group)
       return vim
         .iter(prompt_group)
@@ -147,20 +146,23 @@ function Strategies:workflow()
   -- Then when it completes we send the next batch and so on
   if stages > 1 then
     local order = 1
-    vim.iter(eval_prompts):each(function(prompt)
-      prompt = prompt[1]
-      local event = {
-        id = math.random(10000000),
-        order = order,
-        type = "once",
-        callback = function(chat_obj)
-          chat_obj:add_buf_message(prompt)
-          if prompt.opts and prompt.opts.auto_submit then
-            chat_obj:submit()
-          end
-        end,
-      }
-      chat:subscribe(event)
+    vim.iter(eval_prompts):each(function(prompts)
+      for i, prompt in ipairs(prompts) do
+        chat:subscribe({
+          id = math.random(10000000),
+          order = order,
+          type = "once",
+          ---@param chat_obj CodeCompanion.Chat
+          callback = function(chat_obj)
+            vim.schedule(function()
+              chat_obj:add_buf_message(prompt)
+              if i == #prompts and prompt.opts and prompt.opts.auto_submit then
+                chat_obj:submit()
+              end
+            end)
+          end,
+        })
+      end
       order = order + 1
     end)
   end
