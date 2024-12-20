@@ -49,7 +49,7 @@ end
 ---@return table|nil The Plenary job
 function Client:request(payload, actions, opts)
   opts = opts or {}
-  local cb = log:wrap_cb(actions.callback, "Response error: %s")
+  local cb = log:wrap_cb(actions.callback, "Response error: %s") --[[@type function]]
 
   local adapter = self.adapter
   local handlers = adapter.handlers
