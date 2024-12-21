@@ -118,7 +118,7 @@ local function buf_parse_tools(chat)
       llm_role
     )
   )
-  local assistant_tree = self.parser:parse()[1]
+  local assistant_tree = chat.parser:parse()[1]
 
   local llm = {}
   for id, node in assistant_query:iter_captures(assistant_tree:root(), chat.bufnr, 0, -1) do
@@ -766,7 +766,7 @@ function Chat:check_references()
     :totable()
 
   -- And from the refs table
-  for i, ref in pairs(self.refs) do
+  for i, ref in ipairs(self.refs) do
     if vim.tbl_contains(to_remove, ref.id) then
       table.remove(self.refs, i)
     end
