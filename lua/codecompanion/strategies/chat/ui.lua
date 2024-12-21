@@ -81,21 +81,51 @@ function UI:open()
     }
     self.winnr = api.nvim_open_win(self.bufnr, true, win_opts)
   elseif window.layout == "vertical" then
+    local position = window.position
+    if position == nil or (position ~= "left" and position ~= "right") then
+      position = "left"
+    end
     local cmd = "vsplit"
-    if width ~= 0 then
+    if position ~= "right" and width ~= 0 then
       cmd = width .. cmd
     end
     vim.cmd(cmd)
+    local code_win = nil
+    if position == "right" then
+      code_win = api.nvim_get_current_win()
+      vim.cmd("wincmd l")
+      if width ~= 0 then
+        vim.cmd("vertical resize " .. width)
+      end
+    end
     self.winnr = api.nvim_get_current_win()
     api.nvim_win_set_buf(self.winnr, self.bufnr)
+    if code_win ~= nil then
+      vim.cmd("call win_gotoid(" .. code_win .. ")")
+    end
   elseif window.layout == "horizontal" then
+    local position = window.position
+    if position == nil or (position ~= "top" and position ~= "bottom") then
+      position = "top"
+    end
     local cmd = "split"
-    if height ~= 0 then
+    if position == "top" and height ~= 0 then
       cmd = height .. cmd
     end
     vim.cmd(cmd)
+    local code_win = nil
+    if position == "bottom" then
+      code_win = api.nvim_get_current_win()
+      vim.cmd("wincmd j")
+      if height ~= 0 then
+        vim.cmd("resize " .. height)
+      end
+    end
     self.winnr = api.nvim_get_current_win()
     api.nvim_win_set_buf(self.winnr, self.bufnr)
+    if code_win ~= nil then
+      vim.cmd("call win_gotoid(" .. code_win .. ")")
+    end
   else
     self.winnr = api.nvim_get_current_win()
     api.nvim_set_current_buf(self.bufnr)
