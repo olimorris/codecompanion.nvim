@@ -74,24 +74,23 @@ local function buf_parse_settings(bufnr, adapter, ts_query)
 end
 
 ---Parse the chat buffer for the last message
----@param bufnr integer
+---@param chat CodeCompanion.Chat
 ---@return table{content: string}
-local function buf_parse_message(bufnr)
-  local parser = vim.treesitter.get_parser(bufnr, "markdown")
+local function buf_parse_message(chat)
   local query = vim.treesitter.query.get("markdown", "chat")
 
-  local tree = parser:parse()[1]
+  local tree = chat.parser:parse()[1]
   local root = tree:root()
 
   local last_section = nil
   local contents = {}
 
-  for id, node in query:iter_captures(root, bufnr, 0, -1) do
+  for id, node in query:iter_captures(root, chat.bufnr, 0, -1) do
     if query.captures[id] == "content" then
       last_section = node
       contents = {}
     elseif query.captures[id] == "text" and last_section then
-      table.insert(contents, vim.treesitter.get_node_text(node, bufnr))
+      table.insert(contents, vim.treesitter.get_node_text(node, chat.bufnr))
     end
   end
 
@@ -105,7 +104,6 @@ end
 ---@class CodeCompanion.Chat
 ---@return nil
 local function buf_parse_tools(chat)
-  local assistant_parser = vim.treesitter.get_parser(chat.bufnr, "markdown")
   local assistant_query = vim.treesitter.query.parse(
     "markdown",
     string.format(
@@ -120,7 +118,7 @@ local function buf_parse_tools(chat)
       llm_role
     )
   )
-  local assistant_tree = assistant_parser:parse()[1]
+  local assistant_tree = self.parser:parse()[1]
 
   local llm = {}
   for id, node in assistant_query:iter_captures(assistant_tree:root(), chat.bufnr, 0, -1) do
@@ -168,19 +166,18 @@ end
 
 ---Parse the chat buffer for a code block
 ---returns the code block that the cursor is in or the last code block
----@param bufnr integer
+---@param chat CodeCompanion.Chat
 ---@param cursor? table
 ---@return TSNode | nil
-local function buf_find_codeblock(bufnr, cursor)
-  local parser = vim.treesitter.get_parser(bufnr, "markdown")
-  local root = parser:parse()[1]:root()
+local function buf_find_codeblock(chat, cursor)
+  local root = chat.parser:parse()[1]:root()
   local query = vim.treesitter.query.get("markdown", "chat")
   if query == nil then
     return nil
   end
 
   local last_match = nil
-  for id, node in query:iter_captures(root, bufnr, 0, -1) do
+  for id, node in query:iter_captures(root, chat.bufnr, 0, -1) do
     if query.captures[id] == "code" then
       if cursor then
         local start_row, start_col, end_row, end_col = node:range()
@@ -240,6 +237,13 @@ function Chat.new(args)
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, {
     clear = false,
   })
+
+  local ok, parser = pcall(vim.treesitter.get_parser, self.bufnr, "markdown")
+  if not ok then
+    return log:error("Could not find the markdown Tree-sitter parser")
+  end
+  self.parser = parser
+
   self.References = require("codecompanion.strategies.chat.references").new(self)
   self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
   self.variables = require("codecompanion.strategies.chat.variables").new()
@@ -623,7 +627,7 @@ function Chat:submit(opts)
 
   local bufnr = self.bufnr
 
-  local message = buf_parse_message(bufnr)
+  local message = buf_parse_message(self)
   if not self:has_user_messages(message) then
     return log:warn("No messages to submit")
   end
@@ -695,7 +699,7 @@ function Chat:done()
     return self:reset()
   end
 
-  self:add_message({ role = config.constants.LLM_ROLE, content = buf_parse_message(self.bufnr).content })
+  self:add_message({ role = config.constants.LLM_ROLE, content = buf_parse_message(self).content })
 
   self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
   self.ui:display_tokens()
@@ -923,7 +927,7 @@ end
 ---@return TSNode | nil
 function Chat:get_codeblock()
   local cursor = api.nvim_win_get_cursor(0)
-  return buf_find_codeblock(self.bufnr, cursor)
+  return buf_find_codeblock(self, cursor)
 end
 
 ---Clear the chat buffer
