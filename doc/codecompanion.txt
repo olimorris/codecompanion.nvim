@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 December 15
+*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 December 21
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -94,15 +94,20 @@ enable completions for `blink.cmp`, please ensure you’ve enabled it in your
 config:
 
 >lua
-    sources = {
-      completion = {
-        enabled_providers = { "some", "other", "providers", "codecompanion" },
-      },
-      providers = {
-        codecompanion = {
-          name = "CodeCompanion",
-          module = "codecompanion.providers.completion.blink",
-          enabled = true,
+    {
+      "saghen/blink.cmp",
+      ---@module 'blink.cmp'
+      ---@type blink.cmp.Config
+      opts = {
+        sources = {
+          default = { "codecompanion" },
+          providers = {
+            codecompanion = {
+              name = "CodeCompanion",
+              module = "codecompanion.providers.completion.blink",
+              enabled = true,
+            },
+          },
         },
       },
     },
