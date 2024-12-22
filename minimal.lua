@@ -30,9 +30,7 @@ local plugins = {
             ["<Tab>"] = { "select_next", "fallback" },
           },
           sources = {
-            completion = {
-              enabled_providers = { "lsp", "path", "buffer", "codecompanion" },
-            },
+            default = { "lsp", "path", "buffer", "codecompanion" },
             providers = {
               codecompanion = {
                 name = "CodeCompanion",
