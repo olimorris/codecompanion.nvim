@@ -812,7 +812,7 @@ This is the code, for context:
     chat = {
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer
-        position = "left",   -- left|right|top|bottom
+        position = nil,      -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
         border = "single",
         height = 0.8,
         width = 0.45,

@@ -83,49 +83,33 @@ function UI:open()
   elseif window.layout == "vertical" then
     local position = window.position
     if position == nil or (position ~= "left" and position ~= "right") then
-      position = "left"
+      position = vim.opt.splitright:get() and "right" or "left"
     end
-    local cmd = "vsplit"
-    if position ~= "right" and width ~= 0 then
-      cmd = width .. cmd
+    vim.cmd("vsplit")
+    if position == "left" and vim.opt.splitright:get() then
+      vim.cmd("wincmd h")
     end
-    vim.cmd(cmd)
-    local code_win = nil
-    if position == "right" then
-      code_win = api.nvim_get_current_win()
+    if position == "right" and not vim.opt.splitright:get() then
       vim.cmd("wincmd l")
-      if width ~= 0 then
-        vim.cmd("vertical resize " .. width)
-      end
     end
+    vim.cmd("vertical resize " .. width)
     self.winnr = api.nvim_get_current_win()
     api.nvim_win_set_buf(self.winnr, self.bufnr)
-    if code_win ~= nil then
-      vim.cmd("call win_gotoid(" .. code_win .. ")")
-    end
   elseif window.layout == "horizontal" then
     local position = window.position
     if position == nil or (position ~= "top" and position ~= "bottom") then
-      position = "top"
+      position = vim.opt.splitbelow:get() and "bottom" or "top"
     end
-    local cmd = "split"
-    if position == "top" and height ~= 0 then
-      cmd = height .. cmd
+    vim.cmd("split")
+    if position == "top" and vim.opt.splitbelow:get() then
+      vim.cmd("wincmd k")
     end
-    vim.cmd(cmd)
-    local code_win = nil
-    if position == "bottom" then
-      code_win = api.nvim_get_current_win()
+    if position == "bottom" and not vim.opt.splitbelow:get() then
       vim.cmd("wincmd j")
-      if height ~= 0 then
-        vim.cmd("resize " .. height)
-      end
     end
+    vim.cmd("resize " .. height)
     self.winnr = api.nvim_get_current_win()
     api.nvim_win_set_buf(self.winnr, self.bufnr)
-    if code_win ~= nil then
-      vim.cmd("call win_gotoid(" .. code_win .. ")")
-    end
   else
     self.winnr = api.nvim_get_current_win()
     api.nvim_set_current_buf(self.bufnr)
