@@ -66,7 +66,7 @@ end
 local function get_completion_url(self, opts)
   local adapter = require("codecompanion.adapters").resolve(self)
   local url = adapter.env_replaced.chat_url
-  if not adapter.env_replaced.chat_url then
+  if not url then
     url = "/v1/chat/completions"
   end
   return url
