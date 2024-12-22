@@ -54,17 +54,27 @@ local function get_models(self, opts)
   return models
 end
 
-local function get_url(self, opts)
+---Form the URL
+---@params self CodeCompanion.Adapter
+---@return string
+local function get_url(self)
   local adapter = require("codecompanion.adapters").resolve(self)
+  adapter:get_env_vars()
+
   local url = adapter.env_replaced.url
-  if not adapter.env_replaced.url then
+  if not url then
     url = "http://localhost:11434"
   end
   return url
 end
 
-local function get_completion_url(self, opts)
+---Form the Completion URL
+---@params self CodeCompanion.Adapter
+---@return string
+local function get_completion_url(self)
   local adapter = require("codecompanion.adapters").resolve(self)
+  adapter:get_env_vars()
+
   local url = adapter.env_replaced.chat_url
   if not url then
     url = "/v1/chat/completions"
