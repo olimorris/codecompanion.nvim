@@ -1,5 +1,13 @@
 # Changelog
 
+## [10.8.2](https://github.com/olimorris/codecompanion.nvim/compare/v10.8.1...v10.8.2) (2024-12-22)
+
+
+### Bug Fixes
+
+* **adapters:** [#560](https://github.com/olimorris/codecompanion.nvim/issues/560) nil url in openai_compatible adpater ([5cc2693](https://github.com/olimorris/codecompanion.nvim/commit/5cc26934b0732dda03d311195e6d3f357e4f4a0c))
+* **adapters:** further openai_compatible fixes ([a84f6ff](https://github.com/olimorris/codecompanion.nvim/commit/a84f6ff4be745bcff7d69af96fdbdae2465a33a2))
+
 ## [10.8.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.8.0...v10.8.1) (2024-12-20)
 
 
