@@ -29,6 +29,7 @@ Here are some example prompts and their correct method classification ("<method>
 - "Can you create a method/function for XYZ and put it in a new buffer?" would be `new` as the user is explictly asking for a new buffer
 - "Can you write unit tests for this code?" would be `new` as tests are commonly written in a new file away from the logic of the code they're testing
 - "Why is Neovim so popular?" or "What does this code do?" would be `chat` as the answer does not result in code being written and is a discursive topic leading to additional follow-up questions
+- "Write some comments for this code." would be `replace` as we're changing existing code
 
 The user may also provide a prompt which references a conversation you've had with them previously. Just focus on determining the correct method classification.
 

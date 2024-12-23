@@ -136,7 +136,17 @@ return {
           return
         end
 
-        return json.candidates[1].content.parts[1].text
+        local text = json.candidates[1].content.parts[1].text
+        local model = json.modelVersion
+
+        if model == "gemini-2.0-flash-exp" then
+          text = text:gsub("```", "")
+          if context then
+            text = text:gsub(context.filetype .. "\n", "\n")
+          end
+        end
+
+        return text
       end
     end,
 
