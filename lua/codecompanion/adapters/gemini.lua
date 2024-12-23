@@ -142,7 +142,7 @@ return {
         if model == "gemini-2.0-flash-exp" then
           text = text:gsub("```", "")
           if context then
-            text = text:gsub(context.filetype .. "\n", "\n")
+            text = text:gsub(context.filetype .. "\n", "")
           end
         end
 
