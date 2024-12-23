@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.9.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.9.0...v10.9.1) (2024-12-23)
+
+
+### Bug Fixes
+
+* **adapters:** openai_compatible ([0d1388f](https://github.com/olimorris/codecompanion.nvim/commit/0d1388f7409f06e96ef2a7eadfa76c1dcfb74648))
+
 ## [10.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.8.2...v10.9.0) (2024-12-23)
 
 
