@@ -1,5 +1,12 @@
 # Changelog
 
+## [10.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.8.2...v10.9.0) (2024-12-23)
+
+
+### Features
+
+* **chat:** customize split position ([#556](https://github.com/olimorris/codecompanion.nvim/issues/556)) ([7374192](https://github.com/olimorris/codecompanion.nvim/commit/73741920097f36c762bb8fe1f4de6617389e2d4c))
+
 ## [10.8.2](https://github.com/olimorris/codecompanion.nvim/compare/v10.8.1...v10.8.2) (2024-12-22)
 
 
