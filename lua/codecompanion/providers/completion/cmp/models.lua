@@ -1,3 +1,5 @@
+local buf = require("codecompanion.utils.buffers")
+
 local source = {}
 
 ---@param config table
@@ -8,7 +10,7 @@ function source.new(config)
 end
 
 function source:is_available()
-  return vim.bo.filetype == "codecompanion" and self.config.display.chat.show_settings
+  return buf.is_codecompanion_buffer() and self.config.display.chat.show_settings
 end
 
 source.get_position_encoding_kind = function()

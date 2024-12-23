@@ -1,4 +1,5 @@
 local SlashCommands = require("codecompanion.strategies.chat.slash_commands")
+local buf = require("codecompanion.utils.buffers")
 local completion = require("codecompanion.completion")
 local strategy = require("codecompanion.strategies")
 
@@ -9,7 +10,7 @@ function source.new(config)
 end
 
 function source:is_available()
-  return vim.bo.filetype == "codecompanion"
+  return buf.is_codecompanion_buffer()
 end
 
 function source:get_trigger_characters()

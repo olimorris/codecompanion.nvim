@@ -1,3 +1,5 @@
+local buf = require("codecompanion.utils.buffers")
+
 local source = {}
 
 function source.new(config)
@@ -5,7 +7,7 @@ function source.new(config)
 end
 
 function source:is_available()
-  return vim.bo.filetype == "codecompanion"
+  return buf.is_codecompanion_buffer()
 end
 
 source.get_position_encoding_kind = function()

@@ -9,6 +9,7 @@ local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 local yaml = require("codecompanion.utils.yaml")
+local buf = require("codecompanion.utils.buffers")
 
 local api = vim.api
 
@@ -227,7 +228,7 @@ function Chat.new(args)
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
-      vim.bo[bufnr].filetype = "codecompanion"
+      buf.set_codecompanion_buffer(bufnr)
 
       return bufnr
     end,

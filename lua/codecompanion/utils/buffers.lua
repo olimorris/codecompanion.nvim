@@ -11,7 +11,7 @@ function M.get_visible_lines()
   for _, win in ipairs(wins) do
     local bufnr = vim.api.nvim_win_get_buf(win)
 
-    if vim.api.nvim_get_option_value("filetype", { buf = bufnr }) ~= "codecompanion" then
+    if not buf.is_codecompanion_buffer(bufnr) then
       local start_line = vim.api.nvim_win_call(win, function()
         return vim.fn.line("w0")
       end)
@@ -143,6 +143,25 @@ function M.format(bufnr, range)
     buffer.filetype,
     M.get_content(bufnr, range)
   )
+end
+
+---Check if a buffer is a codecompanion buffer
+---@param bufnr integer? default to current buffer
+---@return boolean?
+function M.is_codecompanion_buffer(bufnr)
+  return vim.b[bufnr or 0].codecompanion
+end
+
+---Set filetype and buffer-local variable to mark a buffer as a codecompanion
+---buffer
+---
+---Notice that we first set the buffer-local variable and then the filetype so
+---that user can set autocmds on `FileType` event and check if the buffer is a
+---codecompanion buffer by checking `vim.b.codecompanion` variable
+---@param bufnr integer? default to current buffer
+function M.set_codecompanion_buffer(bufnr)
+  vim.b[bufnr or 0].codecompanion = true
+  vim.bo[bufnr or 0].filetype = "markdown"
 end
 
 return M
