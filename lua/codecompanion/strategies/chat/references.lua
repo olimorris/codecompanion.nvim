@@ -9,10 +9,11 @@ local api = vim.api
 local user_role = config.strategies.chat.roles.user
 
 ---Parse the chat buffer to find where to add the references
----@param chat CodeCompanion.Chat
+---@param bufnr number
+---@param chat_refs table<CodeCompanion.Chat.Ref>
 ---@return table|nil
-local function ts_parse_buffer(chat)
-  local parser = vim.treesitter.get_parser(chat.bufnr, "markdown")
+local function ts_parse_buffer(bufnr, chat_refs)
+  local parser = vim.treesitter.get_parser(bufnr, "markdown")
   local query = vim.treesitter.query.parse(
     "markdown",
     string.format(
@@ -30,13 +31,13 @@ local function ts_parse_buffer(chat)
   local root = parser:parse()[1]:root()
 
   local refs = nil
-  for id, node in query:iter_captures(root, chat.bufnr, 0, -1) do
+  for id, node in query:iter_captures(root, bufnr, 0, -1) do
     if query.captures[id] == "refs" then
       refs = node
     end
   end
 
-  if refs and not vim.tbl_isempty(chat.refs) then
+  if refs and not vim.tbl_isempty(chat_refs) then
     local start_row, _, end_row, _ = refs:range()
     return {
       capture = "refs",
@@ -46,7 +47,7 @@ local function ts_parse_buffer(chat)
   end
 
   local heading = nil
-  for id, node in query:iter_captures(root, chat.bufnr, 0, -1) do
+  for id, node in query:iter_captures(root, bufnr, 0, -1) do
     if query.captures[id] == "heading" then
       heading = node
     end
@@ -65,33 +66,36 @@ local function ts_parse_buffer(chat)
 end
 
 ---Add a reference to the chat buffer
+---@param bufnr number
+---@param chat_refs table<CodeCompanion.Chat.Ref>
+---@param ref CodeCompanion.Chat.Ref
 ---@param row integer
-local function add(chat, ref, row)
+local function add(bufnr, chat_refs, ref, row)
   local lines = {}
 
   table.insert(lines, string.format("> - %s", ref.id))
 
-  if vim.tbl_count(chat.refs) == 1 then
+  if vim.tbl_count(chat_refs) == 1 then
     table.insert(lines, 1, "> Sharing:")
     table.insert(lines, "")
   end
 
-  api.nvim_buf_set_lines(chat.bufnr, row, row, false, lines)
+  api.nvim_buf_set_lines(bufnr, row, row, false, lines)
 end
 
 ---@class CodeCompanion.Chat.References
----@field chat CodeCompanion.Chat
----@field refs table<CodeCompanion.Chat.Ref>
+---@field bufnr number
+---@field chat_refs table<CodeCompanion.Chat.Ref>
 local References = {}
 
 ---@class CodeCompanion.Chat.RefsArgs
 ---@field chat CodeCompanion.Chat
----@field refs table<CodeCompanion.Chat.Ref>
 
 ---@param chat CodeCompanion.Chat
 function References.new(chat)
   local self = setmetatable({
-    chat = chat,
+    bufnr = chat.bufnr,
+    chat_refs = chat.refs,
   }, { __index = References })
 
   return self
@@ -111,18 +115,18 @@ function References:add(ref)
         pinned = false,
       }
     end
-    table.insert(self.chat.refs, ref)
+    table.insert(self.chat_refs, ref)
   end
 
-  local parsed_buffer = ts_parse_buffer(self.chat)
+  local parsed_buffer = ts_parse_buffer(self.bufnr, self.chat_refs)
 
   if parsed_buffer then
     -- If the reference block already exists, add to it
     if parsed_buffer.capture == "refs" then
-      add(self.chat, ref, parsed_buffer.end_row - 1)
+      add(self.bufnr, self.chat_refs, ref, parsed_buffer.end_row - 1)
     -- If there are no references then add a new block below the heading
     elseif parsed_buffer.capture == "heading" then
-      add(self.chat, ref, parsed_buffer.end_row)
+      add(self.bufnr, self.chat_refs, ref, parsed_buffer.end_row)
     end
     return self
   end
@@ -135,7 +139,7 @@ end
 ---@param message table
 ---@return table
 function References:clear(message)
-  if vim.tbl_isempty(self.chat.refs) or not config.display.chat.show_references then
+  if vim.tbl_isempty(self.chat_refs) or not config.display.chat.show_references then
     return message or nil
   end
 
@@ -165,11 +169,11 @@ end
 ---Render all the references in the chat buffer after a response from the LLM
 ---@return CodeCompanion.Chat.References
 function References:render()
-  if vim.tbl_isempty(self.chat.refs) then
+  if vim.tbl_isempty(self.chat_refs) then
     return self
   end
 
-  local parser = vim.treesitter.get_parser(self.chat.bufnr, "markdown")
+  local parser = vim.treesitter.get_parser(self.bufnr, "markdown")
   local query = vim.treesitter.query.parse(
     "markdown",
     string.format(
@@ -185,7 +189,7 @@ function References:render()
   local root = parser:parse()[1]:root()
 
   local heading = nil
-  for id, node in query:iter_captures(root, self.chat.bufnr, 0, -1) do
+  for id, node in query:iter_captures(root, self.bufnr, 0, -1) do
     if query.captures[id] == "heading" then
       heading = node
     end
@@ -198,7 +202,7 @@ function References:render()
     local lines = {}
     table.insert(lines, "> Sharing:")
 
-    for _, ref in pairs(self.chat.refs) do
+    for _, ref in pairs(self.chat_refs) do
       if not ref then
         goto continue
       end
@@ -211,7 +215,7 @@ function References:render()
     end
     table.insert(lines, "")
 
-    api.nvim_buf_set_lines(self.chat.bufnr, start_row, start_row, false, lines)
+    api.nvim_buf_set_lines(self.bufnr, start_row, start_row, false, lines)
   end
 
   return self
@@ -229,7 +233,7 @@ end
 ---@return table
 function References:get_from_chat()
   local refs = {}
-  local parser = vim.treesitter.get_parser(self.chat.bufnr, "markdown")
+  local parser = vim.treesitter.get_parser(self.bufnr, "markdown")
   local query = vim.treesitter.query.parse(
     "markdown",
     string.format(
@@ -245,7 +249,7 @@ function References:get_from_chat()
   local root = parser:parse()[1]:root()
   local last_heading = nil
   -- Get the last heading
-  for id, node in query:iter_captures(root, self.chat.bufnr, 0, -1) do
+  for id, node in query:iter_captures(root, self.bufnr, 0, -1) do
     if query.captures[id] == "heading" then
       last_heading = node
     end
@@ -256,9 +260,9 @@ function References:get_from_chat()
     -- Get the references
     local refs_query =
       vim.treesitter.query.parse("markdown", [[(block_quote (list (list_item (paragraph (inline) @ref))))]])
-    for id, node in refs_query:iter_captures(root, self.chat.bufnr, start_row, -1) do
+    for id, node in refs_query:iter_captures(root, self.bufnr, start_row, -1) do
       if refs_query.captures[id] == "ref" then
-        local ref = vim.treesitter.get_node_text(node, self.chat.bufnr)
+        local ref = vim.treesitter.get_node_text(node, self.bufnr)
         ref:gsub("^> %- ", "")
         table.insert(refs, vim.trim(ref))
       end
