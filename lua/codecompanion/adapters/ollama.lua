@@ -1,9 +1,7 @@
 local config = require("codecompanion.config")
-
+local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.messages")
-
-local curl = require("plenary.curl")
 
 ---Get a list of available Ollama models
 ---@params self CodeCompanion.Adapter
@@ -56,7 +54,7 @@ local function get_models(self, opts)
   return models
 end
 
----@class Gemini.Adapter: CodeCompanion.Adapter
+---@class Ollama.Adapter: CodeCompanion.Adapter
 return {
   name = "ollama",
   roles = {
