@@ -1,3 +1,4 @@
+local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
@@ -265,26 +266,31 @@ M.setup = function(opts)
   local group = "codecompanion.syntax"
   api.nvim_create_augroup(group, { clear = true })
   api.nvim_create_autocmd("FileType", {
-    pattern = "codecompanion",
+    pattern = "markdown",
     group = group,
-    callback = vim.schedule_wrap(function()
-      vim.iter(config.strategies.chat.variables):each(function(name, var)
-        vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '"')
-        if var.opts and var.opts.has_params then
-          vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. ':\\d\\+-\\?\\d\\+"')
-        end
-      end)
-      vim.iter(config.strategies.agent.tools):each(function(name, _)
-        vim.cmd.syntax('match CodeCompanionChatTool "@' .. name .. '"')
-      end)
-      vim
-        .iter(config.strategies.agent)
-        :filter(function(name)
-          return name ~= "tools"
+    callback = vim.schedule_wrap(function(info)
+      if not api.nvim_buf_is_valid(info.buf) or not buf_utils.is_codecompanion_buffer(info.buf) then
+        return
+      end
+      api.nvim_buf_call(info.buf, function()
+        vim.iter(config.strategies.chat.variables):each(function(name, var)
+          vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '"')
+          if var.opts and var.opts.has_params then
+            vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. ':\\d\\+-\\?\\d\\+"')
+          end
         end)
-        :each(function(name, _)
-          vim.cmd.syntax('match CodeCompanionChatAgent "@' .. name .. '"')
+        vim.iter(config.strategies.agent.tools):each(function(name, _)
+          vim.cmd.syntax('match CodeCompanionChatTool "@' .. name .. '"')
         end)
+        vim
+          .iter(config.strategies.agent)
+          :filter(function(name)
+            return name ~= "tools"
+          end)
+          :each(function(name, _)
+            vim.cmd.syntax('match CodeCompanionChatAgent "@' .. name .. '"')
+          end)
+      end)
     end),
   })
 
@@ -334,26 +340,35 @@ M.setup = function(opts)
     cmp.register_source("codecompanion_slash_commands", require(completion .. ".slash_commands").new(config))
     cmp.register_source("codecompanion_tools", require(completion .. ".tools").new(config))
     cmp.register_source("codecompanion_variables", require(completion .. ".variables").new())
-    cmp.setup.filetype("codecompanion", {
+    cmp.setup.filetype("markdown", {
       enabled = true,
-      sources = {
+      sources = vim.list_extend({
         { name = "codecompanion_models" },
         { name = "codecompanion_slash_commands" },
         { name = "codecompanion_tools" },
         { name = "codecompanion_variables" },
-      },
+      }, cmp.get_config().sources),
     })
   end
 
   -- Capture the last terminal buffer
   _G.codecompanion_last_terminal = nil
+
+  ---Check if given buffer is a terminal buffer
+  ---and set `_G.codecompanion_last_terminal` if it is
+  ---@param buf number? when nil, the current buffer is used
+  local function check_terminal(buf)
+    local buf = buf ~= 0 and buf or api.nvim_get_current_buf()
+    if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buftype == "terminal" then
+      _G.codecompanion_last_terminal = buf
+    end
+  end
+
+  check_terminal()
   api.nvim_create_autocmd("TermEnter", {
     desc = "Capture the last terminal buffer",
-    callback = function()
-      local bufnr = api.nvim_get_current_buf()
-      if vim.bo[bufnr].buftype == "terminal" then
-        _G.codecompanion_last_terminal = bufnr
-      end
+    callback = function(info)
+      check_terminal(info.buf)
     end,
   })
 

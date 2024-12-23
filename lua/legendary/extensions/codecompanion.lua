@@ -1,10 +1,16 @@
+local buf = require("codecompanion.utils.buffers")
+
 local function to_legendary_keymap(key, keymap)
   return {
     key,
     -- prefix makes it easier to search in legendary.nvim window
     desc = string.format("CodeCompanion: %s", require("legendary.util").get_desc(keymap)),
     -- keymaps are all for the chat buffer
-    filters = { filetype = "codecompanion" },
+    filters = {
+      function(_, context)
+        return buf.is_codecompanion_buffer(context.buf)
+      end,
+    },
   }
 end
 
