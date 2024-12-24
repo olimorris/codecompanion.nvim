@@ -89,17 +89,21 @@ end
 ---@param args table
 ---@return nil
 M.add = function(args)
+  local context = context_utils.get(api.nvim_get_current_buf(), args)
+  local content = table.concat(context.lines, "\n")
+
   local chat = M.last_chat()
 
   if not chat then
-    return log:warn("No chat buffer found")
+    chat = M.chat()
+
+    if not chat then
+      return log:warn("Could not create chat buffer")
+    end
   end
   if not config.opts.send_code then
     return log:warn("Sending of code to an LLM has been disabled")
   end
-
-  local context = context_utils.get(api.nvim_get_current_buf(), args)
-  local content = table.concat(context.lines, "\n")
 
   chat:add_buf_message({
     role = config.constants.USER_ROLE,
@@ -111,6 +115,7 @@ M.add = function(args)
       .. content
       .. "\n```\n",
   })
+  chat.ui:open()
 end
 
 ---Open a chat buffer and converse with an LLM
