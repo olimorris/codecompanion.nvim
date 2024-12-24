@@ -1,5 +1,17 @@
 # Changelog
 
+## [10.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.9.1...v10.10.0) (2024-12-24)
+
+
+### Features
+
+* **chat:** adding to chat initializes buffer if needed ([#567](https://github.com/olimorris/codecompanion.nvim/issues/567)) ([8c82ced](https://github.com/olimorris/codecompanion.nvim/commit/8c82cedc3d70255ec6ea0fdb348b3e931c435fba))
+
+
+### Bug Fixes
+
+* **adapters:** gemini-2.0-flash-exp inline strategy ([#568](https://github.com/olimorris/codecompanion.nvim/issues/568)) ([a9faa69](https://github.com/olimorris/codecompanion.nvim/commit/a9faa69d3bf8308b78deab97292af2acc57d2f87))
+
 ## [10.9.1](https://github.com/olimorris/codecompanion.nvim/compare/v10.9.0...v10.9.1) (2024-12-23)
 
 
