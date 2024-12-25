@@ -1,4 +1,5 @@
 local completion = require("codecompanion.completion")
+local buf = require("codecompanion.utils.buffers")
 
 local slash_commands = completion.slash_commands()
 local tools = completion.tools()
@@ -15,7 +16,7 @@ function M:get_trigger_characters()
 end
 
 function M:enabled()
-  return vim.bo.filetype == "codecompanion"
+  return buf.is_codecompanion_buffer()
 end
 
 function M:get_completions(ctx, callback)
