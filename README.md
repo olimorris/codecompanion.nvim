@@ -206,7 +206,7 @@ Tools can also be grouped together to form _Agents_, which are also accessed via
 </p>
 
 > [!NOTE]
-> The diff provider was selected as `mini_pick` in the video above
+> The diff provider was selected as `[mini.diff](https://github.com/echasnovski/mini.diff)` in the video above
 
 <!-- panvimdoc-ignore-end -->
 
