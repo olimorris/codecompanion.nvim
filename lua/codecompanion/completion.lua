@@ -70,7 +70,7 @@ end
 function M.tools()
   -- Add agents
   local items = vim
-    .iter(config.strategies.agent)
+    .iter(config.strategies.chat.agents)
     :filter(function(label)
       return label ~= "tools"
     end)
@@ -87,7 +87,7 @@ function M.tools()
 
   -- Add tools
   vim
-    .iter(config.strategies.agent.tools)
+    .iter(config.strategies.chat.agents.tools)
     :filter(function(label)
       return label ~= "opts"
     end)

@@ -539,7 +539,7 @@ function Chat:add_tool(tool, tool_config)
 
     self:add_message({
       role = config.constants.SYSTEM_ROLE,
-      content = config.strategies.agent.tools.opts.system_prompt,
+      content = config.strategies.chat.agents.tools.opts.system_prompt,
     }, { visible = false, reference = "tool_system_prompt", tag = "tool" })
 
     self.References:add({

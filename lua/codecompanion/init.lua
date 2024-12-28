@@ -279,11 +279,11 @@ M.setup = function(opts)
           vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. ':\\d\\+-\\?\\d\\+"')
         end
       end)
-      vim.iter(config.strategies.agent.tools):each(function(name, _)
+      vim.iter(config.strategies.chat.agents.tools):each(function(name, _)
         vim.cmd.syntax('match CodeCompanionChatTool "@' .. name .. '"')
       end)
       vim
-        .iter(config.strategies.agent)
+        .iter(config.strategies.chat.agents)
         :filter(function(name)
           return name ~= "tools"
         end)

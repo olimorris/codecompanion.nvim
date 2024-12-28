@@ -104,7 +104,7 @@ M.options = {
     local vars = config.strategies.chat.variables
     local vars_max = max("key", vars)
 
-    local tools = config.strategies.agent.tools
+    local tools = config.strategies.chat.agents.tools
     local tools_max = max("key", tools)
 
     local max_length = math.max(keymaps_max, vars_max, tools_max)

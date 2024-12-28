@@ -49,6 +49,26 @@ Helpers.setup_chat_buffer = function()
           llm = "assistant",
           user = "foo",
         },
+        agents = {
+          tools = {
+            ["foo"] = {
+              callback = "utils.foo",
+              description = "Some foo function",
+            },
+            ["bar"] = {
+              callback = "utils.bar",
+              description = "Some bar function",
+            },
+            ["bar_again"] = {
+              callback = "utils.bar_again",
+              description = "Some bar_again function",
+            },
+            opts = {
+              system_prompt = [[My tool system prompt]],
+            },
+          },
+        },
+
         variables = {
           ["foo"] = {
             callback = "tests.strategies.chat.variables.foo",
@@ -64,25 +84,6 @@ Helpers.setup_chat_buffer = function()
           ["baz"] = {
             callback = "tests.strategies.chat.variables.baz",
             description = "baz",
-          },
-        },
-      },
-      agent = {
-        tools = {
-          ["foo"] = {
-            callback = "utils.foo",
-            description = "Some foo function",
-          },
-          ["bar"] = {
-            callback = "utils.bar",
-            description = "Some bar function",
-          },
-          ["bar_again"] = {
-            callback = "utils.bar_again",
-            description = "Some bar_again function",
-          },
-          opts = {
-            system_prompt = [[My tool system prompt]],
           },
         },
       },

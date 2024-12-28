@@ -34,6 +34,69 @@ local defaults = {
         llm = "CodeCompanion", -- The markdown header content for the LLM's responses
         user = "Me", -- The markdown header for your questions
       },
+      agents = {
+        ["full_stack_dev"] = {
+          description = "Full Stack Developer - Can run code, edit code and modify files",
+          system_prompt = "**DO NOT** make any assumptions about the dependencies that a user has installed. If you need to install any dependencies to fulfil the user's request, do so via the Command Runner tool. If the user doesn't specify a path, use their current working directory.",
+          tools = {
+            "cmd_runner",
+            "editor",
+            "files",
+          },
+        },
+        tools = {
+          ["cmd_runner"] = {
+            callback = "strategies.chat.tools.cmd_runner",
+            description = "Run shell commands initiated by the LLM",
+            opts = {
+              user_approval = true,
+            },
+          },
+          ["editor"] = {
+            callback = "strategies.chat.tools.editor",
+            description = "Update a buffer with the LLM's response",
+          },
+          ["files"] = {
+            callback = "strategies.chat.tools.files",
+            description = "Update the file system with the LLM's response",
+            opts = {
+              user_approval = true,
+            },
+          },
+          ["rag"] = {
+            callback = "strategies.chat.tools.rag",
+            description = "Supplement the LLM with real-time info from the internet",
+            opts = {
+              hide_output = true,
+            },
+          },
+          opts = {
+            auto_submit_errors = false, -- Send any errors to the LLM automatically?
+            auto_submit_success = false, -- Send any successful output to the LLM automatically?
+            system_prompt = [[## Tools
+
+You now have access to tools:
+- These enable you to assist the user with specific tasks
+- The user will outline which specific tools you have access to
+- You trigger a tool by following a specific XML schema which is defined for each tool
+
+You must:
+- Only use the tool when prompted by the user, despite having access to it
+- Follow the specific tool's schema
+- Respond with the schema in XML format
+- Ensure the schema is in a markdown code block that is designated as XML
+- Ensure any output you're intending to execute will be able to parsed as valid XML
+
+Points to note:
+- The user detects that you've triggered a tool by using Tree-sitter to parse your markdown response
+- If you call multiple tools within the same response:
+  - Each unique tool MUST be called in its own, individual, XML codeblock
+  - Tools of the same type SHOULD be called in the same XML codeblock
+- If your response doesn't follow the tool's schema, the tool will not execute
+- Tools should not alter your core tasks and how you respond to a user]],
+          },
+        },
+      },
       variables = {
         ["buffer"] = {
           callback = "strategies.chat.variables.buffer",
@@ -299,70 +362,6 @@ local defaults = {
             context.filetype
           )
         end,
-      },
-    },
-    -- AGENT STRATEGY ---------------------------------------------------------
-    agent = {
-      ["full_stack_dev"] = {
-        description = "Full Stack Developer - Can run code, edit code and modify files",
-        system_prompt = "**DO NOT** make any assumptions about the dependencies that a user has installed. If you need to install any dependencies to fulfil the user's request, do so via the Command Runner tool. If the user doesn't specify a path, use their current working directory.",
-        tools = {
-          "cmd_runner",
-          "editor",
-          "files",
-        },
-      },
-      tools = {
-        ["cmd_runner"] = {
-          callback = "strategies.chat.tools.cmd_runner",
-          description = "Run shell commands initiated by the LLM",
-          opts = {
-            user_approval = true,
-          },
-        },
-        ["editor"] = {
-          callback = "strategies.chat.tools.editor",
-          description = "Update a buffer with the LLM's response",
-        },
-        ["files"] = {
-          callback = "strategies.chat.tools.files",
-          description = "Update the file system with the LLM's response",
-          opts = {
-            user_approval = true,
-          },
-        },
-        ["rag"] = {
-          callback = "strategies.chat.tools.rag",
-          description = "Supplement the LLM with real-time info from the internet",
-          opts = {
-            hide_output = true,
-          },
-        },
-        opts = {
-          auto_submit_errors = false, -- Send any errors to the LLM automatically?
-          auto_submit_success = false, -- Send any successful output to the LLM automatically?
-          system_prompt = [[## Tools
-
-You now have access to tools:
-- These enable you to assist the user with specific tasks
-- The user will outline which specific tools you have access to
-- You trigger a tool by following a specific XML schema which is defined for each tool
-
-You must:
-- Only use the tool when prompted by the user, despite having access to it
-- Follow the specific tool's schema
-- Respond with the schema in XML format
-- Ensure the schema is in a markdown code block that is designated as XML
-- Ensure any output you're intending to execute will be able to parsed as valid XML
-
-Points to note:
-- The user detects that you've triggered a tool by using Tree-sitter to parse your markdown response
-- If you call multiple tools within the same response:
-  - Each unique tool MUST be called in its own, individual, XML codeblock
-  - Tools of the same type SHOULD be called in the same XML codeblock
-- If your response doesn't follow the tool's schema, the tool will not execute
-- Tools should not alter your core tasks and how you respond to a user]],
-        },
       },
     },
     -- CMD STRATEGY -----------------------------------------------------------

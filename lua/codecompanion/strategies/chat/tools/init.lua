@@ -46,7 +46,7 @@ function Tools.new(args)
     chat = {},
     messages = args.messages,
     tool = {},
-    agent_config = config.strategies.agent,
+    agent_config = config.strategies.chat.agents,
     tools_ns = api.nvim_create_namespace(CONSTANTS.NS_TOOLS),
   }, { __index = Tools })
 
@@ -145,8 +145,8 @@ function Tools:run()
   _G.codecompanion_cancel_tool = false
 
   local requires_approval = (
-    config.strategies.agent.tools[self.tool.name].opts
-      and config.strategies.agent.tools[self.tool.name].opts.user_approval
+    config.strategies.chat.agents.tools[self.tool.name].opts
+      and config.strategies.chat.agents.tools[self.tool.name].opts.user_approval
     or false
   )
 
