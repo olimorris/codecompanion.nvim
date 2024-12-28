@@ -1,5 +1,22 @@
 # Changelog
 
+## [11.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.10.0...v11.0.0) (2024-12-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **agents:** agents are now in `strategies.chat.agents`
+* **chat:** :sparkles: can pin buffers and files to requests
+
+### Features
+
+* **chat:** :sparkles: can pin buffers and files to requests ([fc8ee3a](https://github.com/olimorris/codecompanion.nvim/commit/fc8ee3a085a44d0ef0111be0499f6552d7dbe865))
+
+
+### Code Refactoring
+
+* **agents:** agents are now in `strategies.chat.agents` ([3f437a6](https://github.com/olimorris/codecompanion.nvim/commit/3f437a62d55ad6efe14a4af2ffdc4e474696852a))
+
 ## [10.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.9.1...v10.10.0) (2024-12-24)
 
 
