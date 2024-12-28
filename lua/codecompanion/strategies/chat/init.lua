@@ -75,7 +75,7 @@ end
 
 ---Parse the chat buffer for the last message
 ---@param chat CodeCompanion.Chat
----@return table{content: string}
+---@return table{content: string, cycle: number}
 local function buf_parse_message(chat)
   local query = vim.treesitter.query.get("markdown", "chat")
 
@@ -95,7 +95,7 @@ local function buf_parse_message(chat)
   end
 
   if #contents > 0 then
-    return { content = vim.trim(table.concat(contents, "\n\n")) }
+    return { content = vim.trim(table.concat(contents, "\n\n")), cycle = chat.cycle }
   end
 
   return {}
@@ -215,7 +215,7 @@ function Chat.new(args)
   local self = setmetatable({
     opts = args,
     context = args.context,
-    cycle = 0,
+    cycle = 1,
     from_prompt_library = args.from_prompt_library or false,
     id = id,
     last_role = args.last_role or config.constants.USER_ROLE,
@@ -481,6 +481,7 @@ function Chat:set_system_prompt()
       content = prompt,
     }
     system_prompt.id = make_id(system_prompt)
+    system_prompt.cycle = self.cycle
     system_prompt.opts = { visible = false }
     table.insert(self.messages, 1, system_prompt)
   end
@@ -578,6 +579,7 @@ function Chat:add_message(data, opts)
     content = data.content,
   }
   message.id = make_id(message)
+  message.cycle = self.cycle
   message.opts = opts
   if opts.index then
     table.insert(self.messages, opts.index, message)
@@ -640,6 +642,7 @@ function Chat:submit(opts)
 
   self:apply_tools_and_variables(message)
   self:check_references()
+  self:add_pins()
 
   -- Check if the user has manually overriden the adapter
   if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
@@ -654,7 +657,6 @@ function Chat:submit(opts)
   log:info("Chat request started")
 
   self.ui:lock_buf()
-  self.cycle = self.cycle + 1
   self.current_request = client
     .new({ adapter = settings })
     :request(self.adapter:map_roles(vim.deepcopy(self.messages)), {
@@ -690,6 +692,13 @@ function Chat:submit(opts)
     }, { bufnr = bufnr })
 end
 
+---Increment the cycle count in the chat buffer
+---@return CodeCompanion.Chat
+function Chat:increment()
+  self.cycle = self.cycle + 1
+  return self
+end
+
 ---After the response from the LLM is received...
 ---@return nil
 function Chat:done()
@@ -700,9 +709,11 @@ function Chat:done()
   end
 
   self:add_message({ role = config.constants.LLM_ROLE, content = buf_parse_message(self).content })
+  self:increment()
 
   self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
   self.ui:display_tokens()
+
   self.References:render()
 
   if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
@@ -721,7 +732,7 @@ function Chat:done()
     end
 
     vim.iter(self.subscribers):each(function(subscriber)
-      if subscriber.order and subscriber.order <= self.cycle then
+      if subscriber.order and subscriber.order < self.cycle then
         action_subscription(subscriber)
       elseif not subscriber.order then
         action_subscription(subscriber)
@@ -731,7 +742,6 @@ function Chat:done()
 end
 
 ---Reconcile the references table to the references in the chat buffer
----This allows users to manually remove references themselves
 ---@return nil
 function Chat:check_references()
   local refs = self.References:get_from_chat()
@@ -766,9 +776,37 @@ function Chat:check_references()
     :totable()
 
   -- And from the refs table
-  for i, ref in ipairs(self.refs) do
-    if vim.tbl_contains(to_remove, ref.id) then
-      table.remove(self.refs, i)
+  self.refs = vim
+    .iter(self.refs)
+    :filter(function(ref)
+      return not vim.tbl_contains(to_remove, ref.id)
+    end)
+    :totable()
+  self.References.chat_refs = self.refs
+end
+
+---Add updated content from the pins to the chat buffer
+---@return nil
+function Chat:add_pins()
+  local pins = vim
+    .iter(self.refs)
+    :filter(function(ref)
+      return ref.opts.pinned
+    end)
+    :totable()
+
+  for _, pin in ipairs(pins) do
+    -- Don't add the pin twice in the same cycle
+    local exists = false
+    vim.iter(self.messages):each(function(msg)
+      if msg.opts and msg.opts.reference == pin.id and msg.cycle == self.cycle then
+        exists = true
+      end
+    end)
+    if not exists then
+      require(pin.source)
+        .new({ Chat = self })
+        :output({ path = pin.path, bufnr = pin.bufnr, params = pin.params }, { pin = true })
     end
   end
 end
@@ -933,9 +971,11 @@ end
 ---Clear the chat buffer
 ---@return nil
 function Chat:clear()
+  self.cycle = 1
   self.refs = {}
   self.messages = {}
   self.tools_in_use = {}
+  self.References.chat_refs = self.refs
 
   log:trace("Clearing chat buffer")
   self.ui:render(self.context, self.messages, self.opts):set_extmarks(self.opts)

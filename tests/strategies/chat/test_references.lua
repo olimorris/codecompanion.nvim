@@ -1,3 +1,5 @@
+local config = require("codecompanion.config")
+
 local new_set = MiniTest.new_set
 local h = require("tests.helpers")
 
@@ -85,7 +87,7 @@ T["References"]["Can be deleted"] = function()
   chat:check_references()
 
   -- Verify results
-  h.eq(#chat.messages, 2, "Should have 1 messages after reference removal")
+  h.eq(#chat.messages, 2, "Should have 2 messages after reference removal")
   h.eq(chat.messages[1].content, "Message with another reference")
   h.eq(chat.messages[2].content, "Message without reference")
   h.eq(vim.tbl_count(chat.refs), 1, "Should have 1 reference")
@@ -100,6 +102,61 @@ T["References"]["Can be deleted"] = function()
     return msg.opts.reference == "<buf>test2.lua</buf>"
   end)
   h.eq(has_ref_message, true, "Message with second reference should still be present")
+end
+
+T["References"]["Can be pinned"] = function()
+  local icon = config.display.chat.icons.pinned_buffer
+
+  chat.References:add({
+    id = "<buf>pinned example</buf>",
+    path = "tests.stubs.file.txt",
+    source = "tests.strategies.chat.slash_commands.basic",
+    opts = {
+      pinned = true,
+    },
+  })
+  chat.References:add({
+    id = "<buf>unpinned example</buf>",
+    path = "test2",
+    source = "test",
+  })
+
+  -- Add messages with and without pins
+  chat.messages = {
+    {
+      role = "user",
+      content = "Pinned reference",
+      opts = {
+        reference = "<buf>pinned example</buf>",
+      },
+    },
+    {
+      role = "user",
+      content = "Unpinned reference",
+      opts = {
+        reference = "<buf>unpinned example</buf>",
+      },
+    },
+    {
+      role = "user",
+      content = "What do these references do?",
+    },
+  }
+  h.eq(#chat.refs, 2, "There are two references")
+  h.eq(#chat.messages, 3, "There are three messages")
+  h.eq(chat.refs[1].opts.pinned, true, "Reference is pinned")
+
+  chat:submit()
+  h.eq(#chat.messages, 5, "There are four messages")
+  h.eq(chat.messages[#chat.messages].content, "Basic Slash Command")
+
+  chat:done()
+  local buffer = h.get_buf_lines(chat.bufnr)
+  h.eq("> Sharing:", buffer[3])
+  h.eq(string.format("> - %s<buf>pinned example</buf>", icon), buffer[4])
+  h.eq("> - <buf>unpinned example</buf>", buffer[5])
+
+  h.eq(chat.refs, chat.References.chat_refs)
 end
 
 return T

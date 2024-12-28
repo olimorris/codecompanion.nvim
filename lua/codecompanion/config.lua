@@ -139,7 +139,7 @@ local defaults = {
             n = { "<CR>", "<C-s>" },
             i = "<C-s>",
           },
-          index = 1,
+          index = 2,
           callback = "keymaps.send",
           description = "Send",
         },
@@ -147,7 +147,7 @@ local defaults = {
           modes = {
             n = "gr",
           },
-          index = 2,
+          index = 3,
           callback = "keymaps.regenerate",
           description = "Regenerate the last response",
         },
@@ -156,7 +156,7 @@ local defaults = {
             n = "<C-c>",
             i = "<C-c>",
           },
-          index = 3,
+          index = 4,
           callback = "keymaps.close",
           description = "Close Chat",
         },
@@ -164,7 +164,7 @@ local defaults = {
           modes = {
             n = "q",
           },
-          index = 4,
+          index = 5,
           callback = "keymaps.stop",
           description = "Stop Request",
         },
@@ -172,7 +172,7 @@ local defaults = {
           modes = {
             n = "gx",
           },
-          index = 5,
+          index = 6,
           callback = "keymaps.clear",
           description = "Clear Chat",
         },
@@ -180,7 +180,7 @@ local defaults = {
           modes = {
             n = "gc",
           },
-          index = 6,
+          index = 7,
           callback = "keymaps.codeblock",
           description = "Insert Codeblock",
         },
@@ -188,15 +188,23 @@ local defaults = {
           modes = {
             n = "gy",
           },
-          index = 7,
+          index = 8,
           callback = "keymaps.yank_code",
           description = "Yank Code",
+        },
+        pin = {
+          modes = {
+            n = "gp",
+          },
+          index = 9,
+          callback = "keymaps.pin_reference",
+          description = "Pin Reference",
         },
         next_chat = {
           modes = {
             n = "}",
           },
-          index = 8,
+          index = 10,
           callback = "keymaps.next_chat",
           description = "Next Chat",
         },
@@ -204,7 +212,7 @@ local defaults = {
           modes = {
             n = "{",
           },
-          index = 9,
+          index = 11,
           callback = "keymaps.previous_chat",
           description = "Previous Chat",
         },
@@ -212,7 +220,7 @@ local defaults = {
           modes = {
             n = "]]",
           },
-          index = 10,
+          index = 12,
           callback = "keymaps.next_header",
           description = "Next Header",
         },
@@ -220,7 +228,7 @@ local defaults = {
           modes = {
             n = "[[",
           },
-          index = 11,
+          index = 13,
           callback = "keymaps.previous_header",
           description = "Previous Header",
         },
@@ -228,7 +236,7 @@ local defaults = {
           modes = {
             n = "ga",
           },
-          index = 12,
+          index = 14,
           callback = "keymaps.change_adapter",
           description = "Change adapter",
         },
@@ -236,7 +244,7 @@ local defaults = {
           modes = {
             n = "gf",
           },
-          index = 13,
+          index = 14,
           callback = "keymaps.fold_code",
           description = "Fold code",
         },
@@ -244,7 +252,7 @@ local defaults = {
           modes = {
             n = "gd",
           },
-          index = 14,
+          index = 15,
           callback = "keymaps.debug",
           description = "View debug info",
         },
@@ -252,7 +260,7 @@ local defaults = {
           modes = {
             n = "gs",
           },
-          index = 15,
+          index = 16,
           callback = "keymaps.toggle_system_prompt",
           description = "Toggle the system prompt",
         },
@@ -437,7 +445,7 @@ Points to note:
             role = constants.USER_ROLE,
             content = "Great. Now let's consider your code. I'd like you to check it carefully for correctness, style, and efficiency, and give constructive criticism for how to improve it.",
             opts = {
-              auto_submit = false,
+              auto_submit = true,
             },
           },
         },
@@ -447,7 +455,7 @@ Points to note:
             role = constants.USER_ROLE,
             content = "Thanks. Now let's revise the code based on the feedback, without additional explanations.",
             opts = {
-              auto_submit = false,
+              auto_submit = true,
             },
           },
         },
@@ -810,9 +818,12 @@ This is the code, for context:
       },
     },
     chat = {
+      icons = {
+        pinned_buffer = " ",
+      },
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer
-        position = nil,      -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
+        position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
         border = "single",
         height = 0.8,
         width = 0.45,
@@ -896,12 +907,12 @@ You must:
 - Minimize other prose.
 - Use Markdown formatting in your answers.
 - Include the programming language name at the start of the Markdown code blocks.
-- Avoid line numbers in code blocks.
+- Avoid including line numbers in code blocks.
 - Avoid wrapping the whole response in triple backticks.
 - Only return code that's relevant to the task at hand. You may not need to return all of the code that the user has shared.
 - Use actual line breaks instead of '\n' in your response to begin new lines.
 - Use '\n' only when you want a literal backslash followed by a character 'n'.
-- All non-code responses must use %s.
+- All non-code responses must be in %s.
 
 When given a task:
 1. Think step-by-step and describe your plan for what to build in pseudocode, written out in great detail, unless asked not to do so.

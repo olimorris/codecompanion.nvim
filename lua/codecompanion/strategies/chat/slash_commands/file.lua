@@ -11,49 +11,6 @@ CONSTANTS = {
   PROMPT = "Select file(s)",
 }
 
----Output from the slash command in the chat buffer
----@param SlashCommand CodeCompanion.SlashCommand
----@param selected table The selected item from the provider { relative_path = string, path = string }
----@return nil
-local function output(SlashCommand, selected)
-  if not config.opts.send_code and (SlashCommand.config.opts and SlashCommand.config.opts.contains_code) then
-    return log:warn("Sending of code has been disabled")
-  end
-
-  local ft = vim.filetype.match({ filename = selected.path })
-  local content = path.new(selected.path):read()
-
-  if content == "" then
-    return log:warn("Could not read the file: %s", selected.path)
-  end
-
-  local Chat = SlashCommand.Chat
-  local relative_path = selected.relative_path or selected[1] or selected.path
-  local id = "<file>" .. relative_path .. "</file>"
-
-  Chat:add_message({
-    role = config.constants.USER_ROLE,
-    content = fmt(
-      [[Here is the content from the file `%s`:
-
-```%s
-%s
-```]],
-      relative_path,
-      ft,
-      content
-    ),
-  }, { reference = id, visible = false })
-
-  Chat.References:add({
-    source = "slash_command",
-    name = "file",
-    id = id,
-  })
-
-  util.notify(fmt("Added the `%s` file to the chat", vim.fn.fnamemodify(relative_path, ":t")))
-end
-
 local providers = {
   ---The default provider
   ---@param SlashCommand CodeCompanion.SlashCommand
@@ -63,7 +20,7 @@ local providers = {
     return default
       .new({
         output = function(selection)
-          return output(SlashCommand, { relative_path = selection[1], path = selection.path })
+          return SlashCommand:output(selection)
         end,
         SlashCommand = SlashCommand,
         title = CONSTANTS.PROMPT,
@@ -79,7 +36,7 @@ local providers = {
     telescope = telescope.new({
       title = CONSTANTS.PROMPT,
       output = function(selection)
-        return output(SlashCommand, { relative_path = selection[1], path = selection.path })
+        return SlashCommand:output(selection)
       end,
     })
 
@@ -97,7 +54,7 @@ local providers = {
     mini_pick = mini_pick.new({
       title = CONSTANTS.PROMPT,
       output = function(selected)
-        return output(SlashCommand, selected)
+        return SlashCommand:output(selected)
       end,
     })
 
@@ -119,7 +76,7 @@ local providers = {
     fzf = fzf.new({
       title = CONSTANTS.PROMPT,
       output = function(selected)
-        return output(SlashCommand, selected)
+        return SlashCommand:output(selected)
       end,
     })
 
@@ -142,6 +99,7 @@ function SlashCommand.new(args)
     Chat = args.Chat,
     config = args.config,
     context = args.context,
+    opts = args.opts,
   }, { __index = SlashCommand })
 
   return self
@@ -155,6 +113,66 @@ function SlashCommand:execute(SlashCommands)
     return log:warn("Sending of code has been disabled")
   end
   return SlashCommands:set_provider(self, providers)
+end
+
+---Open and read the contents of the selected file
+---@param selected table The selected item from the provider { relative_path = string, path = string }
+function SlashCommand:read(selected)
+  local content = path.new(selected.path):read()
+  local ft = vim.filetype.match({ filename = selected.path })
+  local relative_path = selected.relative_path or selected[1] or selected.path
+  local id = "<file>" .. relative_path .. "</file>"
+
+  return content, ft, id, relative_path
+end
+
+---Output from the slash command in the chat buffer
+---@param selected table The selected item from the provider { relative_path = string, path = string }
+---@param opts? table
+---@return nil
+function SlashCommand:output(selected, opts)
+  if not config.opts.send_code and (self.config.opts and self.config.opts.contains_code) then
+    return log:warn("Sending of code has been disabled")
+  end
+  opts = opts or {}
+
+  local content, ft, id, relative_path = self:read(selected)
+
+  if content == "" then
+    return log:warn("Could not read the file: %s", selected.path)
+  end
+
+  local message = "Here is the content from the file"
+  if opts.pin then
+    message = "Here is the updated content from the file"
+  end
+
+  self.Chat:add_message({
+    role = config.constants.USER_ROLE,
+    content = fmt(
+      [[%s `%s`:
+
+```%s
+%s
+```]],
+      message,
+      relative_path,
+      ft,
+      content
+    ),
+  }, { reference = id, visible = false })
+
+  if opts.pin then
+    return
+  end
+
+  self.Chat.References:add({
+    id = id,
+    path = selected.path,
+    source = "codecompanion.strategies.chat.slash_commands.file",
+  })
+
+  util.notify(fmt("Added the `%s` file to the chat", vim.fn.fnamemodify(relative_path, ":t")))
 end
 
 return SlashCommand

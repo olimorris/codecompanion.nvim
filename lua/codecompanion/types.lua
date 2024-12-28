@@ -15,21 +15,26 @@
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config of the slash command
 ---@field context table The context of the chat buffer from the completion menu
+---@field opts table The options for the slash command
+---@field output fun(selected: table, opts: table): nil The function to call when a selection is made
 
 ---@class CodeCompanion.SlashCommandArgs
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config of the slash command
 ---@field context table The context of the chat buffer from the completion menu
+---@field opts table The options for the slash command
 
 ---@class CodeCompanion.Variables
 ---@field vars table The variables from the config
 
 ---@class CodeCompanion.Variable
----@field chat CodeCompanion.Chat The chat buffer
+---@field Chat CodeCompanion.Chat The chat buffer
+---@field config table The config for the variable
 ---@field params table The context of the chat buffer from the completion menu
 
 ---@class CodeCompanion.VariableArgs
----@field chat CodeCompanion.Chat The chat buffer
+---@field Chat CodeCompanion.Chat The chat buffer
+---@field config table The config for the variable
 ---@field params table The context of the chat buffer from the completion menu
 
 ---@class CodeCompanion.Cmd
@@ -77,7 +82,6 @@
 
 ---@class CodeCompanion.Chat.Ref
 ---@field source string The source of the reference e.g. slash_command
----@field name string The name of the source e.g. buffer
 ---@field id string The unique ID of the reference which links it to a message in the chat buffer and is displayed to the user
 ---@field opts? table
 

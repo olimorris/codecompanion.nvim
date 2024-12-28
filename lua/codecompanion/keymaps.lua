@@ -324,6 +324,46 @@ M.yank_code = {
   end,
 }
 
+M.pin_reference = {
+  desc = "Pin Reference",
+  callback = function(chat)
+    local current_line = vim.api.nvim_win_get_cursor(0)[1]
+    local line = vim.api.nvim_buf_get_lines(chat.bufnr, current_line - 1, current_line, true)[1]
+
+    if not vim.startswith(line, "> - ") then
+      return
+    end
+
+    local icon = config.display.chat.icons.pinned_buffer
+    local id = line:gsub("^> %- ", "")
+
+    if not chat.References:can_be_pinned(id) then
+      return util.notify("This reference type cannot be pinned", vim.log.levels.WARN)
+    end
+
+    local filename = id
+    local state = "unpinned"
+    if line:find(icon) then
+      state = "pinned"
+      filename = filename:gsub(icon, "")
+      id = filename
+    end
+
+    -- Update the UI
+    local new_line = (state == "pinned") and string.format("> - %s", filename)
+      or string.format("> - %s%s", icon, filename)
+    api.nvim_buf_set_lines(chat.bufnr, current_line - 1, current_line, true, { new_line })
+
+    -- Update the references on the chat buffer
+    for _, ref in ipairs(chat.refs) do
+      if ref.id == id then
+        ref.opts.pinned = not ref.opts.pinned
+        break
+      end
+    end
+  end,
+}
+
 ---@param chat CodeCompanion.Chat
 ---@param direction number
 local function move_buffer(chat, direction)

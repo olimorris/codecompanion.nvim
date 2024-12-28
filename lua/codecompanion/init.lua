@@ -102,7 +102,7 @@ M.add = function(args)
     end
   end
   if not config.opts.send_code then
-    return log:warn("Sending of code to an LLM has been disabled")
+    return log:warn("Sending of code has been disabled")
   end
 
   chat:add_buf_message({

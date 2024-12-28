@@ -1,4 +1,5 @@
 local buf_utils = require("codecompanion.utils.buffers")
+local config = require("codecompanion.config")
 
 ---@class CodeCompanion.Variable.ViewPort: CodeCompanion.Variable
 local Variable = {}
@@ -6,7 +7,8 @@ local Variable = {}
 ---@param args CodeCompanion.VariableArgs
 function Variable.new(args)
   local self = setmetatable({
-    chat = args.chat,
+    Chat = args.Chat,
+    config = args.config,
     params = args.params,
   }, { __index = Variable })
 
@@ -14,8 +16,8 @@ function Variable.new(args)
 end
 
 ---Return all of the visible lines in the editor's viewport
----@return string
-function Variable:execute()
+---@return nil
+function Variable:output()
   local buf_lines = buf_utils.get_visible_lines()
 
   -- Replace the line numbers with content
@@ -25,7 +27,10 @@ function Variable:execute()
     table.insert(formatted, buf_utils.format_with_line_numbers(bufnr, range))
   end
 
-  return table.concat(formatted, "\n\n")
+  self.Chat:add_message({
+    role = config.constants.USER_ROLE,
+    content = table.concat(formatted, "\n\n"),
+  }, { tag = "variable", visible = false })
 end
 
 return Variable

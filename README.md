@@ -289,11 +289,11 @@ The plugin uses adapters to connect to LLMs. Out of the box, the plugin supports
 - Anthropic (`anthropic`) - Requires an API key and supports [prompt caching](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching)
 - Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in [Copilot.vim](https://github.com/github/copilot.vim)
 - Gemini (`gemini`) - Requires an API key
+- HuggingFace (`huggingface`) - Requires a Serveless Inference API key from HuggingFace.co
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
 - Azure OpenAI (`azure_openai`) - Requires an Azure OpenAI service with a model deployment
 - xAI (`xai`) - Requires an API key
-- HuggingFace (`huggingface`) - Requires a Serveless Inference API key from HuggingFace.co
 
 The plugin utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer. The _agent_ and _workflow_ strategies are wrappers for the _chat_ strategy, allowing for [tool use](#robot-agents--tools) and [agentic workflows](#world_map-agentic-workflows).
 
@@ -645,6 +645,8 @@ Please refer to [the config](https://github.com/olimorris/codecompanion.nvim/blo
 
 When Slash Commands or Variables are used, a block quote is added to the chat buffer referencing what's been shared with the LLM. When a conversation becomes long, this allows you to keep track of what's been shared. You can modify these block quotes to remove references from being shared with the LLM which will alter the history of the conversation. This can be useful to minimize token consumption.
 
+By default, references are only shared once with an LLM, at the point you inserted them into the chat buffer. However, it can be useful to "pin" references to every request you make, commonly, for buffers or files that you are consistently editing alongside the LLM. Pressing `gp` in the chat buffer next to the reference will toggle a pin icon. Everytime you send a message to the LLM, the contents of the referenced file will be updated. Currently this works for the file and buffer slash commands as well as the buffer variable.
+
 **Keymaps**
 
 When in the chat buffer, press `?` to bring up a menu that lists the available keymaps, variables, slash commands and tools. Currently, the keymaps available to you in normal mode are:
@@ -656,6 +658,7 @@ When in the chat buffer, press `?` to bring up a menu that lists the available k
 - `gc` to insert a codeblock in the chat buffer
 - `gd` to view/debug the chat buffer's contents
 - `gf` to fold any codeblocks in the chat buffer
+- `gp` to pin a reference to the chat buffer
 - `gr` to regenerate the last response
 - `gs` to toggle the system prompt on/off
 - `gx` to clear the chat buffer's contents

@@ -13,53 +13,6 @@ CONSTANTS = {
   PROMPT = "Select buffer(s)",
 }
 
----Output from the slash command in the chat buffer
----@param SlashCommand CodeCompanion.SlashCommand
----@param selected table The selected item from the provider { name = string, bufnr = number, path = string }
----@return nil
-local function output(SlashCommand, selected)
-  if not config.opts.send_code and (SlashCommand.config.opts and SlashCommand.config.opts.contains_code) then
-    return log:warn("Sending of code has been disabled")
-  end
-
-  local filename = vim.fn.fnamemodify(selected.path, ":t")
-
-  -- If the buffer is not loaded, then read the file
-  local content
-  if not api.nvim_buf_is_loaded(selected.bufnr) then
-    content = path.new(selected.path):read()
-    if content == "" then
-      return log:warn("Could not read the file: %s", selected.path)
-    end
-    content = "```" .. vim.filetype.match({ filename = selected.path }) .. "\n" .. content .. "\n```"
-  else
-    content = buf.format(selected.bufnr)
-  end
-
-  local id = "<buf>" .. SlashCommand.Chat.References:make_id_from_buf(selected.bufnr) .. "</buf>"
-
-  SlashCommand.Chat:add_message({
-    role = config.constants.USER_ROLE,
-    content = fmt(
-      [[Here is the content from `%s` (which has a buffer number of _%d_ and a filepath of `%s`):
-
-%s]],
-      filename,
-      selected.bufnr,
-      selected.path,
-      content
-    ),
-  }, { reference = id, visible = false })
-
-  SlashCommand.Chat.References:add({
-    source = "slash_command",
-    name = "buffer",
-    id = id,
-  })
-
-  util.notify(fmt("Added buffer `%s` to the chat", filename))
-end
-
 local providers = {
   ---The default provider
   ---@param SlashCommand CodeCompanion.SlashCommand
@@ -69,7 +22,7 @@ local providers = {
     default = default
       .new({
         output = function(selection)
-          output(SlashCommand, selection)
+          SlashCommand:output(selection)
         end,
         SlashCommand = SlashCommand,
         title = CONSTANTS.PROMPT,
@@ -86,7 +39,7 @@ local providers = {
     telescope = telescope.new({
       title = CONSTANTS.PROMPT,
       output = function(selection)
-        return output(SlashCommand, {
+        return SlashCommand:output({
           bufnr = selection.bufnr,
           name = selection.filename,
           path = selection.path,
@@ -109,7 +62,7 @@ local providers = {
     mini_pick = mini_pick.new({
       title = CONSTANTS.PROMPT,
       output = function(selected)
-        return output(SlashCommand, selected)
+        return SlashCommand:output(selected)
       end,
     })
 
@@ -133,7 +86,7 @@ local providers = {
     fzf = fzf.new({
       title = CONSTANTS.PROMPT,
       output = function(selected)
-        return output(SlashCommand, selected)
+        return SlashCommand:output(selected)
       end,
     })
 
@@ -170,6 +123,73 @@ function SlashCommand:execute(SlashCommands)
     return log:warn("Sending of code has been disabled")
   end
   return SlashCommands:set_provider(self, providers)
+end
+
+---Open and read the contents of the selected file
+---@param selected table The selected item from the provider { relative_path = string, path = string }
+function SlashCommand:read(selected)
+  local filename = vim.fn.fnamemodify(selected.path, ":t")
+
+  -- If the buffer is not loaded, then read the file
+  local content
+  if not api.nvim_buf_is_loaded(selected.bufnr) then
+    content = path.new(selected.path):read()
+    if content == "" then
+      return log:warn("Could not read the file: %s", selected.path)
+    end
+    content = "```" .. vim.filetype.match({ filename = selected.path }) .. "\n" .. content .. "\n```"
+  else
+    content = buf.format(selected.bufnr)
+  end
+
+  local id = "<buf>" .. self.Chat.References:make_id_from_buf(selected.bufnr) .. "</buf>"
+
+  return content, filename, id
+end
+
+---Output from the slash command in the chat buffer
+---@param selected table The selected item from the provider { relative_path = string, path = string }
+---@param opts? table
+---@return nil
+function SlashCommand:output(selected, opts)
+  if not config.opts.send_code and (SlashCommand.config.opts and SlashCommand.config.opts.contains_code) then
+    return log:warn("Sending of code has been disabled")
+  end
+  local opts = opts or {}
+
+  local content, filename, id = self:read(selected)
+
+  local message = "Here is the content from"
+  if opts.pin then
+    message = "Here is the updated content from"
+  end
+
+  self.Chat:add_message({
+    role = config.constants.USER_ROLE,
+    content = fmt(
+      [[%s `%s` (which has a buffer number of _%d_ and a filepath of `%s`):
+
+%s]],
+      message,
+      filename,
+      selected.bufnr,
+      selected.path,
+      content
+    ),
+  }, { reference = id, visible = false })
+
+  if opts.pin then
+    return
+  end
+
+  self.Chat.References:add({
+    bufnr = selected.bufnr,
+    id = id,
+    path = selected.path,
+    source = "codecompanion.strategies.chat.slash_commands.buffer",
+  })
+
+  util.notify(fmt("Added buffer `%s` to the chat", filename))
 end
 
 return SlashCommand

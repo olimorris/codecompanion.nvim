@@ -1,4 +1,5 @@
 local buf_utils = require("codecompanion.utils.buffers")
+local config = require("codecompanion.config")
 
 ---@class CodeCompanion.Variable.LSP: CodeCompanion.Variable
 local Variable = {}
@@ -6,7 +7,8 @@ local Variable = {}
 ---@param args CodeCompanion.VariableArgs
 function Variable.new(args)
   local self = setmetatable({
-    chat = args.chat,
+    Chat = args.Chat,
+    config = args.config,
     params = args.params,
   }, { __index = Variable })
 
@@ -14,8 +16,8 @@ function Variable.new(args)
 end
 
 ---Return all of the LSP information and code for the current buffer
----@return string
-function Variable:execute()
+---@return nil
+function Variable:output()
   local severity = {
     [1] = "ERROR",
     [2] = "WARNING",
@@ -23,7 +25,7 @@ function Variable:execute()
     [4] = "HINT",
   }
 
-  local bufnr = self.chat.context.bufnr
+  local bufnr = self.Chat.context.bufnr
 
   local diagnostics = vim.diagnostic.get(bufnr, {
     severity = { min = vim.diagnostic.severity.HINT },
@@ -57,13 +59,16 @@ Code:
 ]],
         severity[diagnostic.severity],
         diagnostic.message,
-        self.chat.context.filetype,
+        self.Chat.context.filetype,
         table.concat(diagnostic.lines, "\n")
       )
     )
   end
 
-  return table.concat(formatted, "\n\n")
+  self.Chat:add_message({
+    role = config.constants.USER_ROLE,
+    content = table.concat(formatted, "\n\n"),
+  }, { tag = "variable", visible = false })
 end
 
 return Variable

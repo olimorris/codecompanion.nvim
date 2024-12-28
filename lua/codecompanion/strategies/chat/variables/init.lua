@@ -22,24 +22,30 @@ local function find_params(message, var)
 end
 
 ---@param chat CodeCompanion.Chat
----@param callback table
+---@param var_config table
 ---@param params? string
 ---@return table
-local function resolve(chat, callback, params)
-  local splits = vim.split(callback, ".", { plain = true })
+local function resolve(chat, var_config, params)
+  local splits = vim.split(var_config.callback, ".", { plain = true })
   local path = table.concat(splits, ".", 1, #splits - 1)
   local variable = splits[#splits]
 
   local ok, module = pcall(require, "codecompanion." .. path .. "." .. variable)
 
+  local init = {
+    Chat = chat,
+    config = var_config,
+    params = params,
+  }
+
   -- User is using a custom callback
   if not ok then
     log:trace("Calling variable: %s", path .. "." .. variable)
-    return require(path .. "." .. variable).new({ chat = chat, params = params }):execute()
+    return require(path .. "." .. variable).new(init):output()
   end
 
   log:trace("Calling variable: %s", path .. "." .. variable)
-  return module.new({ chat = chat, params = params }):execute()
+  return module.new(init):output()
 end
 
 ---@class CodeCompanion.Variables
@@ -86,30 +92,19 @@ function Variables:parse(chat, message)
       local var_config = self.vars[var]
       log:debug("Variable found: %s", var)
 
+      if (var_config.opts and var_config.opts.contains_code) and config.opts.send_code == false then
+        log:warn("Sending of code has been disabled")
+        goto continue
+      end
+
       local params = nil
       if var_config.opts and var_config.opts.has_params then
         params = find_params(message, var)
       end
 
-      if (var_config.opts and var_config.opts.contains_code) and config.opts.send_code == false then
-        log:debug("Sending of code disabled")
-        return false
-      end
+      resolve(chat, var_config, params)
 
-      local id = chat.References:make_id_from_buf(chat.context.bufnr)
-
-      chat:add_message({
-        role = config.constants.USER_ROLE,
-        content = resolve(chat, var_config.callback, params),
-      }, { visible = false, reference = id, tag = "variable" })
-
-      if var_config.opts and not var_config.opts.hide_reference then
-        chat.References:add({
-          source = "variable",
-          name = var,
-          id = id,
-        })
-      end
+      ::continue::
     end
 
     return true

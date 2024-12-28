@@ -7,6 +7,12 @@ local config = require("codecompanion.config")
 
 local api = vim.api
 local user_role = config.strategies.chat.roles.user
+local pinned_icon = config.display.chat.icons.pinned_buffer
+
+local allowed_pins = {
+  "<buf>",
+  "<file>",
+}
 
 ---Parse the chat buffer to find where to add the references
 ---@param bufnr number
@@ -207,7 +213,7 @@ function References:render()
         goto continue
       end
       if ref.opts and ref.opts.pinned then
-        table.insert(lines, string.format("> - %s%s", config.display.chat.icons.pinned_buffer, ref.id))
+        table.insert(lines, string.format("> - %s%s", pinned_icon, ref.id))
       else
         table.insert(lines, string.format("> - %s", ref.id))
       end
@@ -227,6 +233,45 @@ end
 function References:make_id_from_buf(bufnr)
   local bufname = api.nvim_buf_get_name(bufnr)
   return vim.fn.fnamemodify(bufname, ":.")
+end
+
+---Determine if a reference can be pinned
+---@param ref string
+---@return boolean
+function References:can_be_pinned(ref)
+  for _, pin in ipairs(allowed_pins) do
+    if ref:find(pin) then
+      return true
+    end
+  end
+  return false
+end
+
+---Remove the pin from a reference id
+---@param ref string
+---@return string
+function References:remove_pin(ref)
+  local cleaned = ref:gsub(pinned_icon, "")
+  return cleaned
+end
+
+---Check if the reference is pinned
+---@param refs table References from the chat buffer
+function References:check_pins(refs)
+  local pins = {}
+  for _, ref in ipairs(refs) do
+    if ref:find(pinned_icon) then
+      ref = ref:gsub(pinned_icon, "")
+      pins[ref] = { pinned = true }
+    end
+  end
+
+  -- Update the chat references
+  for _, ref in ipairs(self.chat_refs) do
+    if pins[ref.id] then
+      ref.opts.pinned = true
+    end
+  end
 end
 
 ---Get the references from the chat buffer
@@ -263,7 +308,7 @@ function References:get_from_chat()
     for id, node in refs_query:iter_captures(root, self.bufnr, start_row, -1) do
       if refs_query.captures[id] == "ref" then
         local ref = vim.treesitter.get_node_text(node, self.bufnr)
-        ref:gsub("^> %- ", "")
+        ref = ref:gsub("^> %- ", ""):gsub(pinned_icon, "")
         table.insert(refs, vim.trim(ref))
       end
     end
