@@ -72,6 +72,7 @@ describe("Gemini adapter", function()
         content = "You are a helpful assistant",
         role = "system",
         id = 1,
+        cycle = 1,
         opts = { visible = false },
       },
       {
