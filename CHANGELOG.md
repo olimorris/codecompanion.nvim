@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.0.0...v11.0.1) (2024-12-29)
+
+
+### Bug Fixes
+
+* **gemini:** remove cycle from system prompt ([d6b95bb](https://github.com/olimorris/codecompanion.nvim/commit/d6b95bb6cbf074e2e431c6a7f9acdd1af7cc9397))
+
 ## [11.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v10.10.0...v11.0.0) (2024-12-28)
 
 
