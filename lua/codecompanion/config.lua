@@ -111,7 +111,6 @@ Points to note:
           description = "Share LSP information and code for the current buffer",
           opts = {
             contains_code = true,
-            hide_reference = true,
           },
         },
         ["viewport"] = {
@@ -119,7 +118,6 @@ Points to note:
           description = "Share the code that you see in Neovim with the LLM",
           opts = {
             contains_code = true,
-            hide_reference = true,
           },
         },
       },
@@ -153,7 +151,7 @@ Points to note:
           description = "Insert content from help tags",
           opts = {
             contains_code = false,
-            max_lines = 128, -- Maximum amount of lines to of the help file to send (NOTE: each vimdoc line is typically 10 tokens)
+            max_lines = 128, -- Maximum amount of lines to of the help file to send (NOTE: Each vimdoc line is typically 10 tokens)
             provider = "telescope", -- telescope|mini_pick|fzf_lua
           },
         },

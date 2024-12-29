@@ -330,7 +330,14 @@ function Inline:submit()
 
   if vim.tbl_contains({ "replace", "add", "before" }, self.classification.placement) then
     self:start_diff()
-    keymaps.set(config.strategies.inline.keymaps, bufnr, self)
+    keymaps
+      .new({
+        bufnr = bufnr,
+        callbacks = require("codecompanion.strategies.inline.keymaps"),
+        data = self,
+        keymaps = config.strategies.inline.keymaps,
+      })
+      :set()
   end
 
   ---Callback function to be called during the stream

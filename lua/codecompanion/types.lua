@@ -146,8 +146,14 @@
 ---@field validate table Validate an item
 ---@field resolve table Resolve an item into an action
 ---@field context table Store all arguments in this table
----
+
 ---@class CodeCompanion.Actions.ProvidersArgs Arguments that can be injected into the chat
 ---@field validate table Validate an item
 ---@field resolve table Resolve an item into an action
 ---@field context table The buffer context
+
+---@class CodeCompanion.Keymaps
+---@field bufnr number The buffer number to apply the keymaps to
+---@field callbacks table The callbacks to execute for each keymap
+---@field data table The CodeCompanion class
+---@field keymaps table The keymaps from the user's config

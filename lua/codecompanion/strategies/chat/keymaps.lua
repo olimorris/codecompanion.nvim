@@ -1,7 +1,6 @@
+local async = require("plenary.async")
 local completion = require("codecompanion.completion")
 local config = require("codecompanion.config")
-
-local async = require("plenary.async")
 local ts = require("codecompanion.utils.treesitter")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils")
@@ -9,18 +8,6 @@ local util = require("codecompanion.utils")
 local api = vim.api
 
 local M = {}
-
----Clear a keymap from a specific buffer
----@param keymaps table
----@param bufnr? integer
-local function clear_map(keymaps, bufnr)
-  bufnr = bufnr or 0
-  for _, map in pairs(keymaps) do
-    for _, key in pairs(map.modes) do
-      vim.keymap.del("n", key, { buffer = bufnr })
-    end
-  end
-end
 
 ---Open a floating window with the provided lines
 ---@param lines table
@@ -573,28 +560,6 @@ M.toggle_system_prompt = {
   desc = "Toggle the system prompt",
   callback = function(chat)
     chat:toggle_system_prompt()
-  end,
-}
-
--- INLINE MAPPINGS ------------------------------------------------------------
-
-M.accept_change = {
-  desc = "Accept the change from the LLM",
-  callback = function(inline)
-    if inline.diff then
-      inline.diff:accept()
-      clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
-    end
-  end,
-}
-
-M.reject_change = {
-  desc = "Reject the change from the LLM",
-  callback = function(inline)
-    if inline.diff then
-      inline.diff:reject()
-      clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
-    end
   end,
 }
 

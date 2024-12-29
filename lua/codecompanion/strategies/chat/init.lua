@@ -281,7 +281,14 @@ function Chat.new(args)
   self.ui:open():render(self.context, self.messages, self.opts):set_extmarks(self.opts)
 
   if config.strategies.chat.keymaps then
-    keymaps.set(config.strategies.chat.keymaps, self.bufnr, self)
+    keymaps
+      .new({
+        bufnr = self.bufnr,
+        callbacks = require("codecompanion.strategies.chat.keymaps"),
+        data = self,
+        keymaps = config.strategies.chat.keymaps,
+      })
+      :set()
   end
 
   self:set_system_prompt():set_autocmds()

@@ -90,7 +90,15 @@ return {
             }
             ---@type CodeCompanion.Diff
             diff = diff.new(diff_args)
-            keymaps.set(config.strategies.inline.keymaps, bufnr, { diff = diff })
+            keymaps
+              .new({
+                bufnr = bufnr,
+                callbacks = require("codecompanion.strategies.inline.keymaps"),
+                data = { diff = diff },
+                keymaps = config.strategies.inline.keymaps,
+              })
+              :set()
+
             diff_started = true
           end
         end
