@@ -46,19 +46,13 @@ return {
       local system_instruction
 
       if #system > 0 then
+        local system_parts = {}
         for _, msg in ipairs(system) do
-          msg.text = msg.content
-
-          -- Remove unnecessary fields
-          msg.tag = nil
-          msg.content = nil
-          msg.role = nil
-          msg.id = nil
-          msg.opts = nil
+          table.insert(system_parts, { text = msg.content })
         end
         system_instruction = {
           role = self.roles.user,
-          parts = system,
+          parts = system_parts,
         }
       end
 
@@ -167,6 +161,7 @@ return {
       desc = "The model that will complete your prompt. See https://ai.google.dev/gemini-api/docs/models/gemini#model-variations for additional details and options.",
       default = "gemini-1.5-flash",
       choices = {
+        "gemini-2.0-flash-exp",
         "gemini-1.5-flash",
         "gemini-1.5-pro",
         "gemini-1.0-pro",
