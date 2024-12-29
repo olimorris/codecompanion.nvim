@@ -8,7 +8,7 @@ local fmt = string.format
 
 local M = {}
 
-M.plugins = {
+M.deps = {
   {
     name = "plenary.nvim",
     plugin_name = "plenary",
@@ -70,9 +70,9 @@ function M.check()
   info(fmt("Neovim version: %s.%s.%s", vim.version().major, vim.version().minor, vim.version().patch))
   info(fmt("Log file: %s", log.get_logfile()))
 
-  start("Plugins:")
+  start("Dependencies:")
 
-  for _, plugin in ipairs(M.plugins) do
+  for _, plugin in ipairs(M.deps) do
     if plugin_available(plugin.plugin_name) then
       ok(fmt("%s installed", plugin.name))
     else
