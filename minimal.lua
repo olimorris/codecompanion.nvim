@@ -31,11 +31,11 @@ local plugins = {
           },
           sources = {
             default = { "lsp", "path", "buffer", "codecompanion" },
+            cmdline = {}, -- Disable sources for command-line mode
             providers = {
               codecompanion = {
                 name = "CodeCompanion",
                 module = "codecompanion.providers.completion.blink",
-                enabled = true,
               },
             },
           },

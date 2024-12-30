@@ -57,14 +57,12 @@ body:
                       ["<Tab>"] = { "select_next", "fallback" },
                     },
                     sources = {
-                      completion = {
-                        enabled_providers = { "lsp", "path", "buffer", "codecompanion" },
-                      },
+                      default = { "lsp", "path", "buffer", "codecompanion" },
+                      cmdline = {}, -- Disable sources for command-line mode
                       providers = {
                         codecompanion = {
                           name = "CodeCompanion",
                           module = "codecompanion.providers.completion.blink",
-                          enabled = true,
                         },
                       },
                     },
