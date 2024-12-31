@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 December 28
+*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 December 31
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -109,6 +109,9 @@ config:
             },
           },
         },
+      },
+      opts_extend = {
+        "sources.default",
       },
     },
 <
