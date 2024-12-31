@@ -16,4 +16,5 @@
 ## Checklist
 
 - [ ] I've read the [CONTRIBUTING](https://github.com/olimorris/codecompanion.nvim/blob/main/CONTRIBUTING.md) guidelines and have adhered to them in this PR
-- [ ] I've updated the README and ran the `make docs` command
+- [ ] I've updated the README
+- [ ] I've ran the `make docs` command
