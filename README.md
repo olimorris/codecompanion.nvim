@@ -125,6 +125,9 @@ When conversing with the LLM, you can leverage variables, slash commands and too
       },
     },
   },
+  opts_extend = {
+    "sources.default",
+  },
 },
 ```
 
