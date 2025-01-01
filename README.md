@@ -111,22 +111,18 @@ When conversing with the LLM, you can leverage variables, slash commands and too
 ```lua
 {
   "saghen/blink.cmp",
-  ---@module 'blink.cmp'
-  ---@type blink.cmp.Config
+  version = "*",
   opts = {
     sources = {
-      default = { "codecompanion" },
+      -- Change the sources to suit your config
+      default = { "lsp", "path", "buffer", "codecompanion" },
       providers = {
         codecompanion = {
           name = "CodeCompanion",
           module = "codecompanion.providers.completion.blink",
-          enabled = true,
         },
       },
     },
-  },
-  opts_extend = {
-    "sources.default",
   },
 },
 ```
