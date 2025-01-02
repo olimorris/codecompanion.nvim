@@ -110,7 +110,7 @@ return {
   },
   features = {
     text = true,
-    tokens = false,
+    tokens = true,
     vision = false,
   },
   url = "https://api.githubcopilot.com/chat/completions",
@@ -167,6 +167,9 @@ return {
     end,
     form_messages = function(self, messages)
       return openai.handlers.form_messages(self, messages)
+    end,
+    tokens = function(self, data)
+      return openai.handlers.tokens(self, data)
     end,
     chat_output = function(self, data)
       return openai.handlers.chat_output(self, data)
