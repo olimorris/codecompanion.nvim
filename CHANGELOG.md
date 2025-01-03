@@ -1,5 +1,13 @@
 # Changelog
 
+## [11.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.0.1...v11.1.0) (2025-01-03)
+
+
+### Features
+
+* **adapters:** update `copilot` and `openai` adapters for o1 models ([c7ba92a](https://github.com/olimorris/codecompanion.nvim/commit/c7ba92ad367939e94bfa23df7e3eb1bc74909348))
+* **copilot:** add token count ([4fd26a6](https://github.com/olimorris/codecompanion.nvim/commit/4fd26a6fd9bc6aa4e88176350a05ff7e16b3a789))
+
 ## [11.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.0.0...v11.0.1) (2024-12-29)
 
 
