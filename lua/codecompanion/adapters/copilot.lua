@@ -192,8 +192,8 @@ return {
       choices = {
         "gpt-4o-2024-08-06",
         "claude-3.5-sonnet",
-        ["o1-preview-2024-09-12"] = { opts = { stream = false } },
-        ["o1-mini-2024-09-12"] = { opts = { stream = false } },
+        "o1-2024-12-17",
+        "o1-mini-2024-09-12",
       },
     },
     temperature = {
