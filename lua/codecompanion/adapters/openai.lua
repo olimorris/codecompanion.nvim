@@ -4,10 +4,10 @@ local log = require("codecompanion.utils.log")
 ---@param data string | { body: string }
 ---@return string
 local prepare_data_for_json = function(data)
-  if type(data) == 'table' then
+  if type(data) == "table" then
     return data.body
   end
-  local find_json_start = string.find(data, '{') or 1
+  local find_json_start = string.find(data, "{") or 1
   return string.sub(data, find_json_start)
 end
 
