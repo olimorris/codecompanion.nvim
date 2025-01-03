@@ -206,7 +206,10 @@ M.completion = {
         return
       end
 
-      local prefix, start = unpack(vim.fn.matchstrpos(line:sub(1, col), [[\%(@\|/\|#\|\$\)\S*]]))
+      local before_cursor = line:sub(1, col)
+      local find_current_word = string.find(before_cursor, "%s[^%s]*$")
+      local start = find_current_word or 0
+      local prefix = line:sub(start + 1, col)
       if not prefix then
         return
       end
