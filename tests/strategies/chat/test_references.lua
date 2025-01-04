@@ -150,13 +150,60 @@ T["References"]["Can be pinned"] = function()
   h.eq(#chat.messages, 5, "There are four messages")
   h.eq(chat.messages[#chat.messages].content, "Basic Slash Command")
 
-  chat:done()
+  chat:done({})
+
   local buffer = h.get_buf_lines(chat.bufnr)
   h.eq("> Sharing:", buffer[3])
-  h.eq(string.format("> - %s<buf>pinned example</buf>", icon), buffer[4])
-  h.eq("> - <buf>unpinned example</buf>", buffer[5])
+  h.eq(string.format("> - %s<buf>pinned example</buf>", icon), buffer[8])
+  h.eq("> - <buf>unpinned example</buf>", buffer[9])
 
-  h.eq(chat.refs, chat.References.chat_refs)
+  h.eq(chat.refs, {
+    {
+      id = "<buf>pinned example</buf>",
+      opts = {
+        pinned = true,
+      },
+      path = "tests.stubs.file.txt",
+      source = "tests.strategies.chat.slash_commands.basic",
+    },
+    {
+      id = "<buf>unpinned example</buf>",
+      opts = {
+        pinned = false,
+      },
+      path = "test2",
+      source = "test",
+    },
+  })
+end
+
+T["References"]["Tree-sitter test"] = function()
+  chat.References:add({
+    id = "<buf>pinned example</buf>",
+    path = "tests.stubs.file.txt",
+    source = "tests.strategies.chat.slash_commands.basic",
+    opts = {
+      pinned = true,
+    },
+  })
+
+  h.eq(chat.References:get_from_chat(), { "<buf>pinned example</buf>" })
+end
+
+T["References"]["Render"] = function()
+  chat.refs = {
+    {
+      id = "<buf>pinned example</buf>",
+      path = "tests.stubs.file.txt",
+      source = "tests.strategies.chat.slash_commands.basic",
+      opts = {
+        pinned = true,
+      },
+    },
+  }
+  chat.References:render()
+
+  h.eq(h.get_buf_lines(chat.bufnr), { "## foo", "", "> Sharing:", "> -  <buf>pinned example</buf>", "", "" })
 end
 
 return T

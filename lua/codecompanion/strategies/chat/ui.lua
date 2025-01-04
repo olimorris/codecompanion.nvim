@@ -353,14 +353,16 @@ function UI:last()
 end
 
 ---Display the tokens in the chat buffer
+---@param parser table
+---@param start_row integer
 ---@return nil
-function UI:display_tokens()
+function UI:display_tokens(parser, start_row)
   if config.display.chat.show_token_count and self.tokens then
     local to_display = config.display.chat.token_count
     if type(to_display) == "function" then
       local ns_id = api.nvim_create_namespace(CONSTANTS.NS_TOKENS)
       to_display = to_display(self.tokens, self.adapter)
-      require("codecompanion.utils.tokens").display(to_display, ns_id, self.bufnr)
+      require("codecompanion.utils.tokens").display(to_display, ns_id, parser, start_row, self.bufnr)
     end
   end
 end

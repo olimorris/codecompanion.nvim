@@ -248,6 +248,19 @@ function Logger:error(msg, ...)
   self:log(vim.log.levels.ERROR, msg, ...)
 end
 
+---Track the time elapsed between two executions
+---@return number|nil
+function Logger:time()
+  if not self._timer_start then
+    self._timer_start = vim.loop.hrtime()
+    return nil
+  end
+
+  local elapsed = (vim.loop.hrtime() - self._timer_start) / 1000000 -- Convert to ms
+  self._timer_start = nil
+  return elapsed
+end
+
 ---@generic T : any
 ---@param cb T
 ---@param message nil|string

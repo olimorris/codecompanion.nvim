@@ -7,7 +7,7 @@ local chat, tools
 
 T["Tools"] = new_set({
   hooks = {
-    pre_once = function()
+    pre_case = function()
       chat, tools = h.setup_chat_buffer()
     end,
     post_once = function()
@@ -18,7 +18,7 @@ T["Tools"] = new_set({
 
 T["Tools"][":parse"] = new_set()
 
-T["Tools"][":parse"]["should parse a message with a tool"] = function()
+T["Tools"][":parse"]["a message with a tool"] = function()
   table.insert(chat.messages, {
     role = "user",
     content = "@foo do some stuff",
@@ -28,6 +28,41 @@ T["Tools"][":parse"]["should parse a message with a tool"] = function()
 
   h.eq("My tool system prompt", messages[#messages - 1].content)
   h.eq("foo", messages[#messages].content)
+end
+
+T["Tools"][":parse"]["an LLMs response"] = function()
+  function add_messages()
+    chat:add_buf_message({
+      role = "user",
+      content = "@foo do some stuff",
+    })
+    chat:add_buf_message({
+      role = "llm",
+      content = [[Sure. Let's do this.
+
+```xml
+<tools>
+  <tool>
+    <name>foo</name>
+    <content>Some foo function</content>
+  </tool>
+</tools>
+```
+]],
+    })
+  end
+
+  -- Mock out the tools:setup function
+  function chat.tools:setup() end
+
+  add_messages()
+  chat.line_to_parse_from = 5
+  chat.tools:parse_buffer(chat)
+
+  h.eq(
+    "<tools>\n  <tool>\n    <name>foo</name>\n    <content>Some foo function</content>\n  </tool>\n</tools>",
+    vim.trim(chat.tools.extracted[1])
+  )
 end
 
 T["Tools"][":replace"] = new_set()

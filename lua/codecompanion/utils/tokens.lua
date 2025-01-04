@@ -48,26 +48,28 @@ end
 ---Display the number of tokens in the current buffer
 ---@param token_str string
 ---@param ns_id number
+---@param parser table
+---@param start_row number
 ---@param bufnr? number
 ---@return nil
-function M.display(token_str, ns_id, bufnr)
+function M.display(token_str, ns_id, parser, start_row, bufnr)
   bufnr = bufnr or api.nvim_get_current_buf()
 
   api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
 
-  local parser = vim.treesitter.get_parser(bufnr, "markdown", {})
-  local tree = parser:parse()[1]
+  local query = vim.treesitter.query.get("markdown", "tokens")
+  local tree = parser:parse({ start_row - 1, -1 })[1]
+  local root = tree:root()
 
-  local query = vim.treesitter.query.parse("markdown", "(atx_heading) @heading")
-  local last_heading_node = nil
-  for id, node, _ in query:iter_captures(tree:root(), bufnr) do
-    if query.captures[id] == "heading" then
-      last_heading_node = node
+  local header
+  for id, node in query:iter_captures(root, bufnr, start_row - 1, -1) do
+    if query.captures[id] == "role" then
+      header = node
     end
   end
 
-  if last_heading_node then
-    local _, _, end_row, _ = last_heading_node:range()
+  if header then
+    local _, _, end_row, _ = header:range()
 
     local virtual_text = { { token_str, "CodeCompanionChatTokens" } }
 

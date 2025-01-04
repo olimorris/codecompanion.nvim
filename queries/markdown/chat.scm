@@ -1,10 +1,6 @@
 (section
-  (atx_heading
-    (atx_h2_marker))
-  ((_) @text)+) @content
-
-(section
-  (block_quote) @refs
+  (atx_heading) @role
+  (_) @content
 )
 
 (section

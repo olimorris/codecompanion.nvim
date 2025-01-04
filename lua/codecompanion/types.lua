@@ -50,13 +50,14 @@
 ---@field context table The context of the buffer that the chat was initiated from
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
----@field cycle number The amount of times the chat has been sent to the LLM
+---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
+---@field line_to_parse_from number The line number that any Tree-sitter parsing should start from
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library-
 ---@field header_ns integer The namespace for the virtual text that appears in the header
 ---@field id integer The unique identifier for the chat
 ---@field intro_message? boolean Whether the welcome message has been shown
 ---@field messages? table The messages in the chat buffer
----@field parser vim.treesitter.LanguageTree The parser for the chat buffer
+---@field parser vim.treesitter.LanguageTree The Tree-sitter parser for the chat buffer
 ---@field References CodeCompanion.Chat.References
 ---@field refs? table<CodeCompanion.Chat.Ref> References which are sent to the LLM e.g. buffers, slash command output
 ---@field settings? table The settings that are used in the adapter of the chat buffer
@@ -126,6 +127,7 @@
 ---@field aug number The augroup for the tool
 ---@field bufnr number The buffer of the chat buffer
 ---@field chat CodeCompanion.Chat The chat buffer that initiated the tool
+---@field extracted table The extracted tools from the LLM's response
 ---@field messages table The messages in the chat buffer
 ---@field tool CodeCompanion.Tool The current tool that's being run
 ---@field agent_config table The agent strategy from the config
