@@ -103,9 +103,9 @@ function M:execute(ctx, item)
   vim.api.nvim_buf_set_text(
     item.ctx.bufnr,
     item.ctx.bounds.line_number - 1,
-    item.ctx.bounds.start_col - 1,
+    item.ctx.bounds.start_col - 2,
     item.ctx.bounds.line_number - 1,
-    item.ctx.bounds.end_col or (item.ctx.bounds.start_col - 1),
+    item.ctx.bounds.end_col or item.ctx.bounds.start_col + 1,
     { "" }
   )
 
