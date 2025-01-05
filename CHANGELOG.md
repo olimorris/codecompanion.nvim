@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.1.0...v11.1.1) (2025-01-04)
+
+
+### Bug Fixes
+
+* allow for multiple completions in a single line ([3516e46](https://github.com/olimorris/codecompanion.nvim/commit/3516e46a62ebb151e6fa0afe4ac631432994cc3a))
+
 ## [11.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.0.1...v11.1.0) (2025-01-03)
 
 
