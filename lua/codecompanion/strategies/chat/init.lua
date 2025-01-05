@@ -216,10 +216,6 @@ function Chat.new(args)
     settings = self.settings,
   })
 
-  if config.display.chat.show_settings then
-    self:set_range()
-  end
-
   self.close_last_chat()
   self.ui:open():render(self.context, self.messages, self.opts):set_extmarks(self.opts)
 
