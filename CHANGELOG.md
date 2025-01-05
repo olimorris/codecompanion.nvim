@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.6.0...v11.6.1) (2025-01-05)
+
+
+### Bug Fixes
+
+* **tools:** output correctly in the chat buffer ([3a6acfb](https://github.com/olimorris/codecompanion.nvim/commit/3a6acfbc52989848b8264fe415380747a9af5615))
+
 ## [11.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.5.0...v11.6.0) (2025-01-05)
 
 
