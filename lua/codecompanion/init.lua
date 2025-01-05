@@ -338,6 +338,7 @@ M.setup = function(opts)
             name = "CodeCompanion",
             module = "codecompanion.providers.completion.blink",
             enabled = true,
+            score_offset = 10,
           })
         end)
       end,
