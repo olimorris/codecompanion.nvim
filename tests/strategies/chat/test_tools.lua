@@ -56,7 +56,7 @@ T["Tools"][":parse"]["an LLMs response"] = function()
   function chat.tools:setup() end
 
   add_messages()
-  chat.line_to_parse_from = 5
+  chat.header_line = 5
   chat.tools:parse_buffer(chat)
 
   h.eq(

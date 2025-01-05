@@ -154,7 +154,7 @@ function Chat.new(args)
     opts = args,
     context = args.context,
     cycle = 1,
-    line_to_parse_from = 1,
+    header_line = 1,
     from_prompt_library = args.from_prompt_library or false,
     id = id,
     last_role = args.last_role or config.constants.USER_ROLE,
@@ -580,7 +580,7 @@ function Chat:submit(opts)
 
   local bufnr = self.bufnr
 
-  local message = ts_parse_messages(self, user_role, self.line_to_parse_from)
+  local message = ts_parse_messages(self, user_role, self.header_line)
   if not self:has_user_messages(message) or message.content == "" then
     return log:warn("No messages to submit")
   end
@@ -659,7 +659,7 @@ end
 ---@return nil
 function Chat:set_range(modifier)
   modifier = modifier or 0
-  self.line_to_parse_from = api.nvim_buf_line_count(self.bufnr) + modifier
+  self.header_line = api.nvim_buf_line_count(self.bufnr) + modifier
 end
 
 ---Method to call after the response from the LLM is received
@@ -685,7 +685,7 @@ function Chat:done(output)
   self:increment_cycle()
   self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
   self:set_range(-2)
-  self.ui:display_tokens(self.parser, self.line_to_parse_from)
+  self.ui:display_tokens(self.parser, self.header_line)
   self.References:render()
 
   log:info("Chat request completed")
@@ -943,7 +943,7 @@ end
 ---@return nil
 function Chat:clear()
   self.cycle = 1
-  self.line_to_parse_from = 1
+  self.header_line = 1
   self.messages = {}
   self.refs = {}
   self.tools_in_use = {}

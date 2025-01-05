@@ -20,12 +20,12 @@ local allowed_pins = {
 local function ts_parse_buffer(chat)
   local query = vim.treesitter.query.get("markdown", "reference")
 
-  local tree = chat.parser:parse({ chat.line_to_parse_from - 1, -1 })[1]
+  local tree = chat.parser:parse({ chat.header_line - 1, -1 })[1]
   local root = tree:root()
 
   -- Check if there are any references already in the chat buffer
   local refs
-  for id, node in query:iter_captures(root, chat.bufnr, chat.line_to_parse_from - 1, -1) do
+  for id, node in query:iter_captures(root, chat.bufnr, chat.header_line - 1, -1) do
     if query.captures[id] == "refs" then
       refs = node
     end
@@ -43,7 +43,7 @@ local function ts_parse_buffer(chat)
   -- If not, check if there is a heading to add the references below
   local role
   local role_node
-  for id, node in query:iter_captures(root, chat.bufnr, chat.line_to_parse_from - 1, -1) do
+  for id, node in query:iter_captures(root, chat.bufnr, chat.header_line - 1, -1) do
     if query.captures[id] == "role" then
       role = vim.treesitter.get_node_text(node, chat.bufnr)
       role = role:gsub("## ", "")
@@ -165,7 +165,7 @@ function References:render()
   if vim.tbl_isempty(chat.refs) then
     return self
   end
-  local start_row = chat.line_to_parse_from + 1
+  local start_row = chat.header_line + 1
 
   local lines = {}
   table.insert(lines, "> Sharing:")
@@ -219,7 +219,7 @@ function References:get_from_chat()
 
   local chat = self.Chat
 
-  for id, node in query:iter_captures(root, chat.bufnr, chat.line_to_parse_from - 1, -1) do
+  for id, node in query:iter_captures(root, chat.bufnr, chat.header_line - 1, -1) do
     if query.captures[id] == "role" then
       role = vim.treesitter.get_node_text(node, chat.bufnr)
       role = role:gsub("## ", "")

@@ -112,10 +112,10 @@ end
 ---@return nil
 function Tools:parse_buffer(chat)
   local query = vim.treesitter.query.get("markdown", "tools")
-  local tree = chat.parser:parse({ chat.line_to_parse_from - 1, -1 })[1]
+  local tree = chat.parser:parse({ chat.header_line - 1, -1 })[1]
 
   local llm = {}
-  for id, node in query:iter_captures(tree:root(), chat.bufnr, chat.line_to_parse_from - 1, -1) do
+  for id, node in query:iter_captures(tree:root(), chat.bufnr, chat.header_line - 1, -1) do
     if query.captures[id] == "content" then
       table.insert(llm, vim.treesitter.get_node_text(node, chat.bufnr))
     end
