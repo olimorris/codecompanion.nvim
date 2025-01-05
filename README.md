@@ -106,7 +106,13 @@ EOF
 
 **Completion**
 
-When conversing with the LLM, you can leverage variables, slash commands and tools in the chat buffer. Out of the box, the plugin will display these to you via a native Neovim completion menu (which you'll need to trigger with `<C-_>`). However, it also has out-of-the-box support for [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp), requiring no setup.
+When conversing with the LLM, you can leverage variables, slash commands and tools in the chat buffer. Out of the box, the plugin will display these to you via a native Neovim completion menu (which you'll need to trigger with `<C-_>`). However, it also has out-of-the-box support for [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, simply add it to your default sources:
+
+```lua
+sources = {
+  default = { "lsp", "path", "snippets", "buffer", "codecompanion" }
+}
+```
 
 **Slash Commands**
 
