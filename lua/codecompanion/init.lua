@@ -335,6 +335,7 @@ M.setup = function(opts)
         name = "CodeCompanion",
         module = "codecompanion.providers.completion.blink",
         enabled = true,
+        score_offset = 10,
       })
     end)
   -- We need to check for blink alongside cmp as blink.compat has a module that
