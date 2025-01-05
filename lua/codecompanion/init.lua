@@ -330,20 +330,14 @@ M.setup = function(opts)
   local has_cmp, cmp = pcall(require, "cmp")
   local has_blink, blink = pcall(require, "blink.cmp")
   if has_blink then
-    api.nvim_create_autocmd("FileType", {
-      pattern = { "codecompanion" },
-      callback = function()
-        pcall(function()
-          blink.add_provider("codecompanion", {
-            name = "CodeCompanion",
-            module = "codecompanion.providers.completion.blink",
-            enabled = true,
-            score_offset = 10,
-          })
-        end)
-      end,
-      once = true,
-    })
+    pcall(function()
+      blink.add_provider("codecompanion", {
+        name = "CodeCompanion",
+        module = "codecompanion.providers.completion.blink",
+        enabled = true,
+        score_offset = 10,
+      })
+    end)
   -- We need to check for blink alongside cmp as blink.compat has a module that
   -- is detected by a require("cmp") call and a lot of users have it installed
   -- Reference: https://github.com/olimorris/codecompanion.nvim/discussions/501
