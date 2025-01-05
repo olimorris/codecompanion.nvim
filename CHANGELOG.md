@@ -1,5 +1,13 @@
 # Changelog
 
+## [11.1.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.1.1...v11.1.2) (2025-01-05)
+
+
+### Bug Fixes
+
+* **blink:** [#587](https://github.com/olimorris/codecompanion.nvim/issues/587) slash commands ([1b8ab18](https://github.com/olimorris/codecompanion.nvim/commit/1b8ab18cd0be76f13d13e6deaa56e6c33dce5a23))
+* **blink:** slash commands leaving brackes in chat buffer ([820bc52](https://github.com/olimorris/codecompanion.nvim/commit/820bc52c7b4a5a494773a3aa4e25e9e36659e378))
+
 ## [11.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.1.0...v11.1.1) (2025-01-04)
 
 
