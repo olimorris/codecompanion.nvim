@@ -771,6 +771,7 @@ function Chat:add_pins()
       end
     end)
     if not exists then
+      util.fire("ChatPin", { bufnr = self.bufnr, id = pin.id })
       require(pin.source)
         .new({ Chat = self })
         :output({ path = pin.path, bufnr = pin.bufnr, params = pin.params }, { pin = true })

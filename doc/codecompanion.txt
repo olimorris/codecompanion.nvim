@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.10.0       Last change: 2024 December 31
+*codecompanion.txt*        For NVIM v0.10.0       Last change: 2025 January 05
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -829,6 +829,7 @@ The plugin fires many events during its lifecycle:
 - `CodeCompanionChatClosed` - Fired after a chat has been closed
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
+- `CodeCompanionChatPin` - Fired after a pinned reference has been updated in the messages table
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
 - `CodeCompanionAgentStarted` - Fired when an agent has been initiated in the chat
 - `CodeCompanionAgentFinished` - Fired when an agent has finished all tool executions
