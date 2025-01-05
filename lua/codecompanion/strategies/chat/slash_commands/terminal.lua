@@ -24,6 +24,7 @@ end
 function SlashCommand:execute()
   local terminal_buf = _G.codecompanion_last_terminal
   if not terminal_buf then
+    util.notify("No recent terminal buffer found.", vim.log.levels.WARN)
     return
   end
   local content = vim.api.nvim_buf_get_lines(terminal_buf, 0, -1, false)
