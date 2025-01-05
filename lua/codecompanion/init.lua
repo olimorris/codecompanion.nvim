@@ -326,14 +326,27 @@ M.setup = function(opts)
     },
   }))
 
-  -- Setup completion for cmp
+  -- Setup completion for blink.cmp and cmp
   local has_cmp, cmp = pcall(require, "cmp")
-  local has_blink, _ = pcall(require, "blink.cmp")
+  local has_blink, blink = pcall(require, "blink.cmp")
+  if has_blink then
+    api.nvim_create_autocmd("FileType", {
+      pattern = { "codecompanion" },
+      callback = function()
+        pcall(function()
+          blink.add_provider("codecompanion", {
+            name = "CodeCompanion",
+            module = "codecompanion.providers.completion.blink",
+            enabled = true,
+          })
+        end)
+      end,
+      once = true,
+    })
   -- We need to check for blink alongside cmp as blink.compat has a module that
   -- is detected by a require("cmp") call and a lot of users have it installed
   -- Reference: https://github.com/olimorris/codecompanion.nvim/discussions/501
-  -- TODO: Once we add blink.cmp support natively it can take precedence
-  if has_cmp and not has_blink then
+  elseif has_cmp and not has_blink then
     local completion = "codecompanion.providers.completion.cmp"
     cmp.register_source("codecompanion_models", require(completion .. ".models").new(config))
     cmp.register_source("codecompanion_slash_commands", require(completion .. ".slash_commands").new(config))

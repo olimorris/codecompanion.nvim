@@ -106,26 +106,7 @@ EOF
 
 **Completion**
 
-When conversing with the LLM, you can leverage variables, slash commands and tools in the chat buffer. Out of the box, the plugin will display these to you via a native Neovim completion menu (which you'll need to trigger with `<C-_>`). However, it also has support for [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). The former, requires no setup however to enable completions for `blink.cmp`, please ensure you've enabled it in your config:
-
-```lua
-{
-  "saghen/blink.cmp",
-  version = "*",
-  opts = {
-    sources = {
-      -- Change the sources to suit your config
-      default = { "lsp", "path", "buffer", "codecompanion" },
-      providers = {
-        codecompanion = {
-          name = "CodeCompanion",
-          module = "codecompanion.providers.completion.blink",
-        },
-      },
-    },
-  },
-},
-```
+When conversing with the LLM, you can leverage variables, slash commands and tools in the chat buffer. Out of the box, the plugin will display these to you via a native Neovim completion menu (which you'll need to trigger with `<C-_>`). However, it also has out-of-the-box support for [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp), requiring no setup.
 
 **Slash Commands**
 
