@@ -137,9 +137,13 @@ function SlashCommand:read(selected)
     if content == "" then
       return log:warn("Could not read the file: %s", selected.path)
     end
-    content = "```" .. vim.filetype.match({ filename = selected.path }) .. "\n" .. content .. "\n```"
+    content = "```"
+      .. vim.filetype.match({ filename = selected.path })
+      .. "\n"
+      .. buf.add_line_numbers(vim.trim(content))
+      .. "\n```"
   else
-    content = buf.format(selected.bufnr)
+    content = buf.format_with_line_numbers(selected.bufnr)
   end
 
   local id = "<buf>" .. self.Chat.References:make_id_from_buf(selected.bufnr) .. "</buf>"

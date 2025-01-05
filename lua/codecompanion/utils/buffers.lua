@@ -129,6 +129,20 @@ function M.format_with_line_numbers(bufnr, range)
   return format(M.get_info(bufnr), M.get_content(bufnr, range))
 end
 
+---Add line numbers to the table of content
+---@param content string
+---@return string
+function M.add_line_numbers(content)
+  local formatted = {}
+
+  content = vim.split(content, "\n")
+  for i, line in ipairs(content) do
+    table.insert(formatted, string.format("%d:  %s", i, line))
+  end
+
+  return table.concat(formatted, "\n")
+end
+
 ---Format a buffer's contents for use in a markdown file
 ---@param bufnr number
 ---@param range? table
