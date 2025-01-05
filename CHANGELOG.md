@@ -1,5 +1,17 @@
 # Changelog
 
+## [11.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.4.0...v11.5.0) (2025-01-05)
+
+
+### Features
+
+* **slash_cmds:** `buffer` slash command now sends line numbers ([25dab99](https://github.com/olimorris/codecompanion.nvim/commit/25dab9939e5065a59207d3b77eefc63e4b6e9fc0))
+
+
+### Bug Fixes
+
+* **cmp:** extend default sources ([8b0ebb4](https://github.com/olimorris/codecompanion.nvim/commit/8b0ebb4092c3266746663443d1b8dff13e3ba723))
+
 ## [11.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.3.0...v11.4.0) (2025-01-05)
 
 
