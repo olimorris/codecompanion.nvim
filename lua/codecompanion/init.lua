@@ -354,12 +354,12 @@ M.setup = function(opts)
     cmp.register_source("codecompanion_variables", require(completion .. ".variables").new())
     cmp.setup.filetype("codecompanion", {
       enabled = true,
-      sources = {
+      sources = vim.list_extend({
         { name = "codecompanion_models" },
         { name = "codecompanion_slash_commands" },
         { name = "codecompanion_tools" },
         { name = "codecompanion_variables" },
-      },
+      }, cmp.get_config().sources),
     })
   end
 
