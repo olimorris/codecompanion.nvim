@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.2.0...v11.3.0) (2025-01-05)
+
+
+### Features
+
+* **event:** add `CodeCompanionChatPin` event ([f86f4a7](https://github.com/olimorris/codecompanion.nvim/commit/f86f4a72dd154bb677d117e06cab9a9ee8d35f56))
+
 ## [11.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.1.2...v11.2.0) (2025-01-05)
 
 
