@@ -1,5 +1,17 @@
 # Changelog
 
+## [11.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.5.0...v11.6.0) (2025-01-05)
+
+
+### Features
+
+* **completion:** suggestions in blink have better score ([4317513](https://github.com/olimorris/codecompanion.nvim/commit/4317513cdb5fb7f35147448e3ca696756bf82cf2))
+
+
+### Bug Fixes
+
+* **completion:** [#597](https://github.com/olimorris/codecompanion.nvim/issues/597) blink configuration ([a1166d5](https://github.com/olimorris/codecompanion.nvim/commit/a1166d5a2e9249f81060d328859382be57eae79d))
+
 ## [11.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.4.0...v11.5.0) (2025-01-05)
 
 
