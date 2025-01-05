@@ -668,21 +668,23 @@ function Chat:done(output)
     return self:reset()
   end
 
-  if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
-    self.tools:parse_buffer(self)
-  end
-
   if not vim.tbl_isempty(output) then
     self:add_message({
       role = config.constants.LLM_ROLE,
       content = vim.trim(table.concat(output, "")),
     })
   end
+
   self:increment_cycle()
   self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
+  local assistant_range = self.header_line
   self:set_range(-2)
   self.ui:display_tokens(self.parser, self.header_line)
   self.References:render()
+
+  if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
+    self.tools:parse_buffer(self, assistant_range, self.header_line - 1)
+  end
 
   log:info("Chat request completed")
   self:reset()

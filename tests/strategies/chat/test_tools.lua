@@ -57,7 +57,9 @@ T["Tools"][":parse"]["an LLMs response"] = function()
 
   add_messages()
   chat.header_line = 5
-  chat.tools:parse_buffer(chat)
+
+  -- Make sure we parse the whole buffer
+  chat.tools:parse_buffer(chat, 5, 100)
 
   h.eq(
     "<tools>\n  <tool>\n    <name>foo</name>\n    <content>Some foo function</content>\n  </tool>\n</tools>",

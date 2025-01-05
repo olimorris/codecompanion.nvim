@@ -109,13 +109,15 @@ end
 
 ---Parse a chat buffer for tools
 ---@param chat CodeCompanion.Chat
+---@param start_range number
+---@param end_range number
 ---@return nil
-function Tools:parse_buffer(chat)
+function Tools:parse_buffer(chat, start_range, end_range)
   local query = vim.treesitter.query.get("markdown", "tools")
-  local tree = chat.parser:parse({ chat.header_line - 1, -1 })[1]
+  local tree = chat.parser:parse({ start_range - 1, end_range - 1 })[1]
 
   local llm = {}
-  for id, node in query:iter_captures(tree:root(), chat.bufnr, chat.header_line - 1, -1) do
+  for id, node in query:iter_captures(tree:root(), chat.bufnr, start_range - 1, end_range - 1) do
     if query.captures[id] == "content" then
       table.insert(llm, vim.treesitter.get_node_text(node, chat.bufnr))
     end
