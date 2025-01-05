@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.3.0...v11.4.0) (2025-01-05)
+
+
+### Features
+
+* **completion:** auto setup blink.cmp ([90a6603](https://github.com/olimorris/codecompanion.nvim/commit/90a66033ffddb2f1daac0e5d23723214673ab0e5))
+
 ## [11.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.2.0...v11.3.0) (2025-01-05)
 
 
