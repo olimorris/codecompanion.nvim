@@ -105,7 +105,7 @@ function M:execute(ctx, item)
     item.ctx.bounds.line_number - 1,
     item.ctx.bounds.start_col - 1,
     item.ctx.bounds.line_number - 1,
-    item.ctx.bounds.end_col,
+    item.ctx.bounds.end_col or (item.ctx.bounds.start_col - 1),
     { "" }
   )
 
