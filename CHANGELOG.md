@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.1.2...v11.2.0) (2025-01-05)
+
+
+### Features
+
+* **slash_cmd:** notify if no terminal buffer is found ([3687b88](https://github.com/olimorris/codecompanion.nvim/commit/3687b8807746700851f13a373ad6ead04bb082bd))
+
 ## [11.1.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.1.1...v11.1.2) (2025-01-05)
 
 
