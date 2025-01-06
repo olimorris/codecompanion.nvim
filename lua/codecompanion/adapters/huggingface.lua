@@ -22,10 +22,6 @@ return {
     url = "https://api-inference.huggingface.co",
     model = "schema.model.default",
   },
-  raw = {
-    "--no-buffer",
-    "--silent",
-  },
   headers = {
     ["Content-Type"] = "application/json",
     Authorization = "Bearer ${api_key}",

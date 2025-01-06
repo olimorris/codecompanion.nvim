@@ -19,10 +19,6 @@ return {
   env = {
     api_key = "XAI_API_KEY",
   },
-  raw = {
-    "--no-buffer",
-    "--silent",
-  },
   parameters = {
     stream = true,
   },

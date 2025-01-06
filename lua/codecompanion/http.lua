@@ -79,9 +79,25 @@ function Client:request(payload, actions, opts)
   log:info("Request body file: %s", body_file.filename)
 
   local function cleanup(status)
-    if vim.tbl_contains({ "DEBUG", "ERROR", "INFO" }, config.opts.log_level) and status ~= "error" then
+    if vim.tbl_contains({ "ERROR", "INFO" }, config.opts.log_level) and status ~= "error" then
       body_file:rm()
     end
+  end
+
+  local raw = {
+    "--retry",
+    "3",
+    "--retry-delay",
+    "1",
+    "--keepalive-time",
+    "60",
+    "--connect-timeout",
+    "10",
+  }
+
+  if adapter.opts and adapter.opts.stream then
+    table.insert(raw, "--tcp-nodelay")
+    table.insert(raw, "--no-buffer")
   end
 
   local request_opts = {
@@ -89,7 +105,7 @@ function Client:request(payload, actions, opts)
     headers = adapter:set_env_vars(adapter.headers),
     insecure = config.adapters.opts.allow_insecure,
     proxy = config.adapters.opts.proxy,
-    raw = adapter.raw or { "--no-buffer" },
+    raw = adapter.raw or raw,
     body = body_file.filename or "",
     -- This is called when the request is finished. It will only ever be called
     -- once, even if the endpoint is streaming.
@@ -130,6 +146,9 @@ function Client:request(payload, actions, opts)
   }
 
   if adapter.opts and adapter.opts.stream then
+    -- Turn off plenary's default compression
+    request_opts["compressed"] = adapter.opts.compress or false
+
     -- This will be called multiple times until the stream is finished
     request_opts["stream"] = self.opts.schedule(function(_, data)
       if data and data ~= "" then

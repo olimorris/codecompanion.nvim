@@ -120,10 +120,6 @@ return {
       return authorize_token().token
     end,
   },
-  raw = {
-    "--no-buffer",
-    "--silent",
-  },
   headers = {
     Authorization = "Bearer ${api_key}",
     ["Content-Type"] = "application/json",

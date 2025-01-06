@@ -30,10 +30,6 @@ return {
   env = {
     api_key = "OPENAI_API_KEY",
   },
-  raw = {
-    "--no-buffer",
-    "--silent",
-  },
   headers = {
     ["Content-Type"] = "application/json",
     Authorization = "Bearer ${api_key}",

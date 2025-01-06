@@ -22,10 +22,6 @@ return {
     api_version = "2024-06-01",
     deployment = "schema.model.default",
   },
-  raw = {
-    "--no-buffer",
-    "--silent",
-  },
   headers = {
     ["Content-Type"] = "application/json",
     ["api-key"] = "${api_key}",

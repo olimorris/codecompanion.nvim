@@ -75,10 +75,6 @@ return {
     url = "http://localhost:11434",
     chat_url = "/v1/chat/completions",
   },
-  raw = {
-    "--no-buffer",
-    "--silent",
-  },
   headers = {
     ["Content-Type"] = "application/json",
     Authorization = "Bearer ${api_key}",
