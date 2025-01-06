@@ -23,7 +23,7 @@ describe("File tools", function()
 
   it("can edit a file", function()
     local path = "~/tmp/test.txt"
-    files.actions.edit({ path = path, contents = "Hello CodeCompanion" })
+    files.actions.edit({ path = path, search = "Hello World", replace = "Hello CodeCompanion" })
 
     local file = io.open(vim.fn.expand(path), "r")
     local contents = file:read("*a")

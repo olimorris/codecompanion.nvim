@@ -42,7 +42,17 @@ end
 local function edit(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
-  p:write(action.contents, "w")
+
+  local content = p:read()
+  if not content then
+    return util.notify(string.format("No data found in %s", action.path))
+  end
+
+  if not content:find(vim.pesc(action.search)) then
+    return util.notify(string.format("Could not find the search string in %s", action.path))
+  end
+
+  p:write(content:gsub(vim.pesc(action.search), vim.pesc(action.replace)))
 end
 
 ---Delete a file
@@ -148,7 +158,8 @@ return {
         action = {
           _attr = { type = "edit" },
           path = "/Users/Oli/Code/new_app/hello_world.py",
-          contents = "<![CDATA[    print('Hello CodeCompanion')]]>",
+          search = "<![CDATA[    print('Hello World')]]>",
+          replace = "<![CDATA[    print('Hello CodeCompanion')]]>",
         },
       },
     },
@@ -248,7 +259,11 @@ c) Edit:
 ```xml
 %s
 ```
-- This will ensure a file is edited at the specified path and its contents replaced with the given content.
+
+- This will ensure a file is edited at the specified path
+- Ensure that you are terse with which text to search for and replace
+- Be specific about what text to search for and what to replace it with
+- If the text is not found, the file will not be edited
 
 d) Delete:
 
@@ -291,9 +306,9 @@ Remember:
 - If the user types `~` in their response, do not replace or expand it.
 - Wait for the user to share the outputs with you before responding.]],
       vim.fn.getcwd(),
-      xml2lua.toXml({ tools = { schema[1] } }),
-      xml2lua.toXml({ tools = { schema[2] } }),
-      xml2lua.toXml({ tools = { schema[3] } }),
+      xml2lua.toXml({ tools = { schema[1] } }), -- Create
+      xml2lua.toXml({ tools = { schema[2] } }), -- Read
+      xml2lua.toXml({ tools = { schema[3] } }), -- Edit
       xml2lua.toXml({ tools = { schema[4] } }),
       xml2lua.toXml({ tools = { schema[5] } }),
       xml2lua.toXml({ tools = { schema[6] } }),
