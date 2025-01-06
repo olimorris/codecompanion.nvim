@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.6.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.6.1...v11.6.2) (2025-01-06)
+
+
+### Performance Improvements
+
+* **http:** improve resiliency of requests ([d99928b](https://github.com/olimorris/codecompanion.nvim/commit/d99928b5503788651b0b67bb3a577746763c7349))
+
 ## [11.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.6.0...v11.6.1) (2025-01-05)
 
 
