@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.7.0...v11.8.0) (2025-01-06)
+
+
+### Features
+
+* **tools:** `files` tool now uses search/replace block to edit text ([a02f6c7](https://github.com/olimorris/codecompanion.nvim/commit/a02f6c7bcbfdf955ca1c603b635cd9bc5baaaa7c))
+
 ## [11.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.6.2...v11.7.0) (2025-01-06)
 
 
