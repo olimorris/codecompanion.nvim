@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.6.2...v11.7.0) (2025-01-06)
+
+
+### Features
+
+* [#604](https://github.com/olimorris/codecompanion.nvim/issues/604) `send_code` can be a function ([30b899e](https://github.com/olimorris/codecompanion.nvim/commit/30b899e638d5525494b64eacd19b1c0eb50f988c))
+
 ## [11.6.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.6.1...v11.6.2) (2025-01-06)
 
 
