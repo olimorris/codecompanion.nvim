@@ -85,10 +85,14 @@ M.run_inline_prompt = function(prompt, args)
     :start(prompt.strategy)
 end
 
----Add visually selected code to the current chat buffer
+--Add visually selected code to the current chat buffer
 ---@param args table
 ---@return nil
 M.add = function(args)
+  if not config.can_send_code() then
+    return log:warn("Sending of code has been disabled")
+  end
+
   local context = context_utils.get(api.nvim_get_current_buf(), args)
   local content = table.concat(context.lines, "\n")
 
@@ -100,9 +104,6 @@ M.add = function(args)
     if not chat then
       return log:warn("Could not create chat buffer")
     end
-  end
-  if not config.opts.send_code then
-    return log:warn("Sending of code has been disabled")
   end
 
   chat:add_buf_message({

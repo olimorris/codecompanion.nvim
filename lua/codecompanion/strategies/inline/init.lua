@@ -389,7 +389,7 @@ function Inline:form_prompt()
   local output = {}
 
   for _, prompt in ipairs(self.prompts) do
-    if prompt.opts and prompt.opts.contains_code and not config.opts.send_code then
+    if prompt.opts and prompt.opts.contains_code and not config.can_send_code() then
       goto continue
     end
     if prompt.condition and not prompt.condition(self.context) then
@@ -410,7 +410,7 @@ function Inline:form_prompt()
   end
 
   -- Add any visual selection to the prompt
-  if config.opts.send_code then
+  if config.can_send_code() then
     if self.context.is_visual and not self.opts.stop_context_insertion then
       log:trace("Sending visual selection")
       table.insert(output, {

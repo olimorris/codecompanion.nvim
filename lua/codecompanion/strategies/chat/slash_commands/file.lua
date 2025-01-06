@@ -109,7 +109,7 @@ end
 ---@param SlashCommands CodeCompanion.SlashCommands
 ---@return nil
 function SlashCommand:execute(SlashCommands)
-  if not config.opts.send_code and (self.config.opts and self.config.opts.contains_code) then
+  if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
     return log:warn("Sending of code has been disabled")
   end
   return SlashCommands:set_provider(self, providers)
@@ -131,7 +131,7 @@ end
 ---@param opts? table
 ---@return nil
 function SlashCommand:output(selected, opts)
-  if not config.opts.send_code and (self.config.opts and self.config.opts.contains_code) then
+  if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
     return log:warn("Sending of code has been disabled")
   end
   opts = opts or {}

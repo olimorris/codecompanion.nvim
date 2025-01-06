@@ -92,7 +92,7 @@ function Variables:parse(chat, message)
       local var_config = self.vars[var]
       log:debug("Variable found: %s", var)
 
-      if (var_config.opts and var_config.opts.contains_code) and config.opts.send_code == false then
+      if (var_config.opts and var_config.opts.contains_code) and not config.can_send_code() then
         log:warn("Sending of code has been disabled")
         goto continue
       end

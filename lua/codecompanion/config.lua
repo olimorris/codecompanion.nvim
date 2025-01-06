@@ -874,6 +874,8 @@ This is the code, for context:
     -- If this is false then any default prompt that is marked as containing code
     -- will not be sent to the LLM. Please note that whilst I have made every
     -- effort to ensure no code leakage, using this is at your own risk
+    ---@type boolean|function
+    ---@return boolean
     send_code = true,
 
     -- This is the default prompt which is sent with every request in the chat
@@ -930,6 +932,15 @@ local M = {
 M.setup = function(args)
   args = args or {}
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), { constants = vim.deepcopy(constants) }, args)
+end
+
+M.can_send_code = function()
+  if type(M.config.opts.send_code) == "boolean" then
+    return M.config.opts.send_code
+  elseif type(M.config.opts.send_code) == "function" then
+    return M.config.opts.send_code()
+  end
+  return false
 end
 
 return setmetatable(M, {

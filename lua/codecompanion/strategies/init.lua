@@ -200,7 +200,7 @@ function Strategies.evaluate_prompts(prompts, context)
   return vim
     .iter(prompts)
     :filter(function(prompt)
-      return not (prompt.opts and prompt.opts.contains_code and not config.opts.send_code)
+      return not (prompt.opts and prompt.opts.contains_code and not config.can_send_code())
         and not (prompt.condition and not prompt.condition(context))
     end)
     :map(function(prompt)
