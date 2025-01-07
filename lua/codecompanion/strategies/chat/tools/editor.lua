@@ -68,7 +68,6 @@ return {
         local type = action._attr.type
 
         if not action.buffer then
-          print("Throwing error")
           return { status = "error", msg = "No buffer number provided by the LLM" }
         end
 
