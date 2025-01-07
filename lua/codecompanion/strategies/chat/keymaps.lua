@@ -354,6 +354,46 @@ M.pin_reference = {
   end,
 }
 
+M.toggle_watch = {
+  desc = "Toggle Watch Buffer",
+  callback = function(chat)
+    local current_line = vim.api.nvim_win_get_cursor(0)[1]
+    local line = vim.api.nvim_buf_get_lines(chat.bufnr, current_line - 1, current_line, true)[1]
+
+    if not vim.startswith(line, "> - ") then
+      return
+    end
+
+    local id = line:gsub("^> %- ", "")
+    if not chat.References:can_be_watched(id) then
+      return util.notify("This reference type cannot be watched", vim.log.levels.WARN)
+    end
+
+    -- Find the reference and toggle watch state
+    for _, ref in ipairs(chat.refs) do
+      local clean_id = id:gsub(config.display.chat.icons.pinned_buffer, "")
+      if ref.id == clean_id then
+        if not ref.opts then
+          ref.opts = {}
+        end
+        ref.opts.watched = not ref.opts.watched
+
+        if ref.opts.watched then
+          chat.watcher:watch(ref.bufnr)
+          util.notify("Now watching buffer " .. ref.id)
+        else
+          chat.watcher:unwatch(ref.bufnr)
+          util.notify("Stopped watching buffer " .. ref.id)
+        end
+
+        -- Force reference list refresh
+        chat.References:render()
+        break
+      end
+    end
+  end,
+}
+
 ---@param chat CodeCompanion.Chat
 ---@param direction number
 local function move_buffer(chat, direction)

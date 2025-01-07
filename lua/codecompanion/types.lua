@@ -85,6 +85,9 @@
 ---@field source string The source of the reference e.g. slash_command
 ---@field id string The unique ID of the reference which links it to a message in the chat buffer and is displayed to the user
 ---@field opts? table
+---@field opts.pinned? boolean Whether this reference is pinned
+---@field opts.watched? boolean Whether this reference is being watched for changes
+---@field bufnr? number The buffer number if this is a buffer reference
 
 ---@class CodeCompanion.Chat.UI
 ---@field adapter CodeCompanion.Adapter

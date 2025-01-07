@@ -8,10 +8,15 @@ local config = require("codecompanion.config")
 local api = vim.api
 local user_role = config.strategies.chat.roles.user
 local pinned_icon = config.display.chat.icons.pinned_buffer
+local watched_icon = config.display.chat.icons.watched_buffer
 
 local allowed_pins = {
   "<buf>",
   "<file>",
+}
+
+local allowed_watches = {
+  "<buf>",
 }
 
 ---Parse the chat buffer to find where to add the references
@@ -108,9 +113,14 @@ function References:add(ref)
     if not ref.opts then
       ref.opts = {
         pinned = false,
+        watched = false,
       }
     end
     table.insert(self.Chat.refs, ref)
+    -- If it's a buffer reference and it's being watched, start watching
+    if ref.bufnr and ref.opts.watched then
+      self.Chat.watcher:watch(ref.bufnr)
+    end
   end
 
   local parsed_buffer = ts_parse_buffer(self.Chat)
@@ -176,6 +186,8 @@ function References:render()
     end
     if ref.opts and ref.opts.pinned then
       table.insert(lines, string.format("> - %s%s", pinned_icon, ref.id))
+    elseif ref.opts and ref.opts.watched then
+      table.insert(lines, string.format("> - %s%s", watched_icon, ref.id))
     else
       table.insert(lines, string.format("> - %s", ref.id))
     end
@@ -200,6 +212,18 @@ end
 function References:can_be_pinned(ref)
   for _, pin in ipairs(allowed_pins) do
     if ref:find(pin) then
+      return true
+    end
+  end
+  return false
+end
+
+---Determine if a reference can be watched
+---@param ref string
+---@return boolean
+function References:can_be_watched(ref)
+  for _, watch in ipairs(allowed_watches) do
+    if ref:find(watch) then
       return true
     end
   end

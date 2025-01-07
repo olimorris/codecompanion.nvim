@@ -184,6 +184,7 @@ function Chat.new(args)
   self.parser = parser
 
   self.References = require("codecompanion.strategies.chat.references").new({ chat = self })
+  self.watcher = require("codecompanion.strategies.chat.watcher").new()
   self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
   self.variables = require("codecompanion.strategies.chat.variables").new()
 
@@ -577,6 +578,39 @@ function Chat:submit(opts)
   local bufnr = self.bufnr
 
   local message = ts_parse_messages(self, user_role, self.header_line)
+
+  for _, ref in ipairs(self.refs) do
+    if ref.bufnr and ref.opts and ref.opts.watched then
+      local changes = self.watcher:get_changes(ref.bufnr)
+      log:debug("Checking watched buffer %d, found %d changes", ref.bufnr, changes and #changes or 0)
+
+      if changes and #changes > 0 then
+        log:debug("Adding changes to messages")
+        -- Format changes message
+        local changes_text = string.format(
+          "Changes detected in `%s` (buffer %d):\n",
+          vim.fn.fnamemodify(api.nvim_buf_get_name(ref.bufnr), ":t"),
+          ref.bufnr
+        )
+
+        -- Add each change
+        for _, change in ipairs(changes) do
+          changes_text = changes_text
+            .. string.format(
+              "The file now contains:\n```%s\n%s\n```\n",
+              vim.bo[ref.bufnr].filetype,
+              table.concat(change.lines, "\n")
+            )
+        end
+
+        -- Add changes as a message
+        self:add_message({
+          role = config.constants.USER_ROLE,
+          content = changes_text,
+        }, { visible = true })
+      end
+    end
+  end
   if not self:has_user_messages(message) or message.content == "" then
     return log:warn("No messages to submit")
   end
