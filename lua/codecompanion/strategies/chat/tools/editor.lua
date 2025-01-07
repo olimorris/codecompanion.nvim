@@ -66,6 +66,12 @@ return {
       ---@param action table
       local function run(action)
         local type = action._attr.type
+
+        if not action.buffer then
+          print("Throwing error")
+          return { status = "error", msg = "No buffer number provided by the LLM" }
+        end
+
         local bufnr = tonumber(action.buffer)
         local winnr = ui.buf_get_win(bufnr)
 
@@ -115,17 +121,23 @@ return {
         end
 
         --TODO: Scroll to buffer and the new lines
+
+        return { status = "success", msg = nil }
       end
 
+      local output = {}
       if util.is_array(actions) then
         for _, v in ipairs(actions) do
-          run(v)
+          output = run(v)
+          if output.status == "error" then
+            break
+          end
         end
       else
-        run(actions)
+        output = run(actions)
       end
 
-      return { status = "success", msg = nil }
+      return output
     end,
   },
   schema = {

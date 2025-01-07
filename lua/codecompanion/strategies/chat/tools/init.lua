@@ -82,8 +82,8 @@ function Tools:set_autocmds()
 
         -- Handle any errors
         if request.data.status == CONSTANTS.STATUS_ERROR then
-          local error = request.data.sterr
-          log:error("Tool %s finished with error: %s", self.tool.name, error)
+          local error = request.data.stderr
+          log:error("Tool %s finished with error(s): %s", self.tool.name, error)
 
           if self.tool.output and self.tool.output.errors then
             self.tool.output.errors(self, error)
@@ -288,14 +288,13 @@ function Tools:run()
         return close()
       end
 
-      if output.status == CONSTANTS.STATUS_ERROR then
+      if data.status == CONSTANTS.STATUS_ERROR then
         status = CONSTANTS.STATUS_ERROR
-        table.insert(stderr, output.msg)
-        log:error("Error whilst running %s: %s", self.tool.name, output.msg)
-        output.error(action, output.msg)
+        table.insert(stderr, data.msg)
+        output.error(action, data.msg)
       else
-        table.insert(stdout, output.msg)
-        output.success(action, output.msg)
+        table.insert(stdout, data.msg)
+        output.success(action, data.msg)
       end
 
       if not should_iter() then
