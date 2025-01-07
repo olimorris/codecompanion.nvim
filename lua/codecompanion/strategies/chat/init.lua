@@ -481,19 +481,18 @@ function Chat:add_tool(tool, tool_config)
 
   -- Add the overarching agent system prompt first
   if not self:has_tools() then
-    local id = string.upper(tool) .. " tool"
-
     self:add_message({
       role = config.constants.SYSTEM_ROLE,
       content = config.strategies.chat.agents.tools.opts.system_prompt,
     }, { visible = false, reference = "tool_system_prompt", tag = "tool" })
-
-    self.References:add({
-      source = "tool",
-      name = "tool",
-      id = id,
-    })
   end
+
+  local id = "<tool>" .. tool .. "</tool>"
+  self.References:add({
+    source = "tool",
+    name = "tool",
+    id = id,
+  })
 
   self.tools_in_use[tool] = true
 
@@ -501,7 +500,7 @@ function Chat:add_tool(tool, tool_config)
   if resolved then
     self:add_message(
       { role = config.constants.SYSTEM_ROLE, content = resolved.system_prompt(resolved.schema) },
-      { visible = false, tag = "tool" }
+      { visible = false, tag = "tool", reference = id }
     )
   end
 
