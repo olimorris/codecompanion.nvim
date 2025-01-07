@@ -196,7 +196,7 @@ body:
       validations:
         required: false
 
-    - type: textarea
+    - type: input
       id: adapter
       attributes:
         label: Adapter and model
