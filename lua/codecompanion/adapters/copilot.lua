@@ -16,16 +16,17 @@ local function find_config_path()
     return os.getenv("CODECOMPANION_TOKEN_PATH")
   end
 
-  local path = vim.fn.expand("$XDG_CONFIG_HOME")
+  local path = vim.fs.normalize("$XDG_CONFIG_HOME")
+
   if path and vim.fn.isdirectory(path) > 0 then
     return path
   elseif vim.fn.has("win32") > 0 then
-    path = vim.fn.expand("~/AppData/Local")
+    path = vim.fs.normalize("~/AppData/Local")
     if vim.fn.isdirectory(path) > 0 then
       return path
     end
   else
-    path = vim.fn.expand("~/.config")
+    path = vim.fs.normalize("~/.config")
     if vim.fn.isdirectory(path) > 0 then
       return path
     end
