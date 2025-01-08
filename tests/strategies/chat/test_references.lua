@@ -206,4 +206,22 @@ T["References"]["Render"] = function()
   h.eq(h.get_buf_lines(chat.bufnr), { "## foo", "", "> Sharing:", "> -  <buf>pinned example</buf>", "", "" })
 end
 
+T["References"]["can be cleared from messages"] = function()
+  chat.References:add({
+    id = "<buf>pinned example</buf>",
+    path = "tests.stubs.file.txt",
+    source = "tests.strategies.chat.slash_commands.basic",
+    opts = {
+      pinned = true,
+    },
+  })
+
+  local message = {
+    role = "user",
+    content = "> Sharing:\n> -  <buf>pinned example</buf>\n\nHello, World",
+  }
+
+  h.eq("Hello, World", chat.References:clear(message).content)
+end
+
 return T
