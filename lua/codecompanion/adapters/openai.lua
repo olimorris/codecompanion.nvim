@@ -181,7 +181,7 @@ return {
       ---@type string|fun(): string
       default = "gpt-4o",
       choices = {
-        "o1-2024-12-17",
+        ["o1-2024-12-17"] = { opts = { stream = false } },
         "o1-mini-2024-09-12",
         "gpt-4o",
         "gpt-4o-mini",
