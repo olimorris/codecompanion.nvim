@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.8.4](https://github.com/olimorris/codecompanion.nvim/compare/v11.8.3...v11.8.4) (2025-01-08)
+
+
+### Bug Fixes
+
+* use slash commands with `:CodeCompanion` cmd ([8cbf696](https://github.com/olimorris/codecompanion.nvim/commit/8cbf6960960bf386d85badad99152bf021554986))
+
 ## [11.8.3](https://github.com/olimorris/codecompanion.nvim/compare/v11.8.2...v11.8.3) (2025-01-08)
 
 
