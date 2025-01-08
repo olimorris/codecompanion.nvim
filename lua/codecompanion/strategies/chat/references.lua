@@ -136,7 +136,7 @@ function References:clear(message)
   end
 
   local parser = vim.treesitter.get_string_parser(message.content, "markdown")
-  local query = vim.treesitter.query.get("markdown", "chat")
+  local query = vim.treesitter.query.get("markdown", "reference")
   local root = parser:parse()[1]:root()
 
   local refs = nil
