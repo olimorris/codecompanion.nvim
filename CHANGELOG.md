@@ -1,5 +1,13 @@
 # Changelog
 
+## [11.8.3](https://github.com/olimorris/codecompanion.nvim/compare/v11.8.2...v11.8.3) (2025-01-08)
+
+
+### Bug Fixes
+
+* **openai:** [#619](https://github.com/olimorris/codecompanion.nvim/issues/619) o1 streaming ([83786d8](https://github.com/olimorris/codecompanion.nvim/commit/83786d878ebf46b50ae0a3717ad033934a80a390))
+* **openai:** [#619](https://github.com/olimorris/codecompanion.nvim/issues/619) o1 streaming ([8bfb496](https://github.com/olimorris/codecompanion.nvim/commit/8bfb49633b6cd9194807856636b6b63047a06ac4))
+
 ## [11.8.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.8.1...v11.8.2) (2025-01-08)
 
 
