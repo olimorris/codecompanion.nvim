@@ -1,5 +1,14 @@
 # Changelog
 
+## [11.8.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.8.1...v11.8.2) (2025-01-08)
+
+
+### Bug Fixes
+
+* **chat:** agent's tools are no displayed individually ([d889210](https://github.com/olimorris/codecompanion.nvim/commit/d889210fd2c536940fb57ec0ad90d018e76c275c))
+* **chat:** always strip references from messages ([4c91a46](https://github.com/olimorris/codecompanion.nvim/commit/4c91a46136b6db99880c694313c9cabee24bd715))
+* **chat:** changing adapter in empty chat w/o system prompt ([#616](https://github.com/olimorris/codecompanion.nvim/issues/616)) ([3e64e6c](https://github.com/olimorris/codecompanion.nvim/commit/3e64e6c89af1c3e841bbd59b67265f475983c164))
+
 ## [11.8.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.8.0...v11.8.1) (2025-01-07)
 
 
