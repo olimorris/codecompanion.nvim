@@ -585,7 +585,7 @@ function Chat:submit(opts)
       log:debug("Checking watched buffer %d, found %d changes", ref.bufnr, changes and #changes or 0)
 
       if changes and #changes > 0 then
-        log:debug("Adding changes to messages")
+        log:debug("Processing %d changes for buffer %d", #changes, ref.bufnr)
         -- Format changes message
         local changes_text = string.format(
           "Changes detected in `%s` (buffer %d):\n",
@@ -597,7 +597,9 @@ function Chat:submit(opts)
         for _, change in ipairs(changes) do
           changes_text = changes_text
             .. string.format(
-              "The file now contains:\n```%s\n%s\n```\n",
+              "Lines %d-%d were changed to:\n```%s\n%s\n```\n",
+              change.start_row,
+              change.end_row,
               vim.bo[ref.bufnr].filetype,
               table.concat(change.lines, "\n")
             )
