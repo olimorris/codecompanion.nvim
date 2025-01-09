@@ -71,7 +71,9 @@ end
 
 function Watcher:unwatch(bufnr)
   if self.buffers[bufnr] then
+    log:debug("Unwatching buffer %d", bufnr)
     vim.api.nvim_buf_attach(bufnr, false, {})
+    self.buffers[bufnr] = nil
   end
 end
 
@@ -92,38 +94,41 @@ function Watcher:get_changes(bufnr)
 
   log:debug("Found %d unreported changes in buffer %d", #unreported, bufnr)
 
-  -- Sort changes by timestamp and line number
+  -- Sort changes by timestamp
   table.sort(unreported, function(a, b)
-    if a.start_row == b.start_row then
-      return a.timestamp < b.timestamp
-    end
-    return a.start_row < b.start_row
+    return a.timestamp < b.timestamp
   end)
+
+  -- Group changes by line ranges
+  local changes_by_range = {}
+  for _, change in ipairs(unreported) do
+    local range_key = string.format("%d-%d", change.start_row, change.end_row)
+    if not changes_by_range[range_key] then
+      changes_by_range[range_key] = {}
+    end
+    table.insert(changes_by_range[range_key], change)
+  end
 
   -- Get current buffer state for context
   local current_lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
   log:debug("Current buffer state: %s", vim.inspect(current_lines))
 
-  -- Take the last change for each line range
+  -- Take significant changes from each range
   local consolidated = {}
-  local seen_ranges = {}
+  for _, changes in pairs(changes_by_range) do
+    -- Get first and last change in sequence
+    local first = changes[1]
+    local last = changes[#changes]
 
-  for i = #unreported, 1, -1 do
-    local change = unreported[i]
-    local range_key = string.format("%d-%d", change.start_row, change.end_row)
-
-    if not seen_ranges[range_key] then
-      seen_ranges[range_key] = true
-      table.insert(consolidated, {
-        start_row = change.start_row,
-        end_row = change.end_row,
-        lines = change.lines,
-        is_deletion = change.is_deletion,
-        changedtick = change.changedtick,
-        timestamp = change.timestamp,
-        reported = false,
-      })
-    end
+    table.insert(consolidated, {
+      start_row = first.start_row,
+      end_row = last.end_row,
+      lines = last.lines,
+      is_deletion = last.is_deletion,
+      changedtick = last.changedtick,
+      timestamp = first.timestamp,
+      reported = false,
+    })
   end
 
   -- Sort consolidated changes by line number
@@ -131,7 +136,7 @@ function Watcher:get_changes(bufnr)
     return a.start_row < b.start_row
   end)
 
-  log:debug("Found %d consolidated changes in buffer %d", #consolidated, bufnr)
+  log:debug("Consolidated %d changes into %d significant changes", #unreported, #consolidated)
 
   -- Mark original changes as reported
   for _, change in ipairs(unreported) do

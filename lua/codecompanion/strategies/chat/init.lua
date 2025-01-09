@@ -594,10 +594,11 @@ function Chat:submit(opts)
         )
 
         -- Add each change
-        for _, change in ipairs(changes) do
+        for i, change in ipairs(changes) do
+          log:debug("Processing change %d/%d for buffer %d", i, #changes, ref.bufnr)
           changes_text = changes_text
             .. string.format(
-              "Lines %d-%d were changed to:\n```%s\n%s\n```\n",
+              "Lines %d-%d were modified to:\n```%s\n%s\n```\n",
               change.start_row,
               change.end_row,
               vim.bo[ref.bufnr].filetype,
