@@ -72,7 +72,9 @@ end
 function Watcher:unwatch(bufnr)
   if self.buffers[bufnr] then
     log:debug("Unwatching buffer %d", bufnr)
-    vim.api.nvim_buf_attach(bufnr, false, {})
+    if vim.api.nvim_buf_is_valid(bufnr) then
+      vim.api.nvim_buf_detach(bufnr)
+    end
     self.buffers[bufnr] = nil
   end
 end
