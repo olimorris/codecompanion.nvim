@@ -454,7 +454,10 @@ M.change_adapter = {
 
       if current_adapter ~= selected then
         chat.adapter = require("codecompanion.adapters").resolve(adapters[selected])
-        util.fire("ChatAdapter", { bufnr = chat.bufnr, adapter = chat.adapter })
+        util.fire(
+          "ChatAdapter",
+          { bufnr = chat.bufnr, adapter = require("codecompanion.adapters").make_safe(chat.adapter) }
+        )
         chat:apply_settings()
       end
 
