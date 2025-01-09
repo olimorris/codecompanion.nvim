@@ -372,6 +372,7 @@ M.toggle_watch = {
     -- Find the reference and toggle watch state
     for _, ref in ipairs(chat.refs) do
       local clean_id = id:gsub(config.display.chat.icons.pinned_buffer, "")
+        :gsub(config.display.chat.icons.watched_buffer, "")
       if ref.id == clean_id then
         if not ref.opts then
           ref.opts = {}

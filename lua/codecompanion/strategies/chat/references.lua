@@ -249,7 +249,8 @@ function References:get_from_chat()
       role = role:gsub("## ", "")
     elseif role == user_role and query.captures[id] == "ref" then
       local ref = vim.treesitter.get_node_text(node, chat.bufnr)
-      ref = ref:gsub("^> %- ", ""):gsub(pinned_icon, "")
+      -- Clean both pinned and watched icons
+      ref = ref:gsub("^> %- ", ""):gsub(pinned_icon, ""):gsub(watched_icon, "")
       table.insert(refs, vim.trim(ref))
     end
   end
