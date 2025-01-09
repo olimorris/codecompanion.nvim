@@ -1,5 +1,15 @@
 # Changelog
 
+## [11.8.5](https://github.com/olimorris/codecompanion.nvim/compare/v11.8.4...v11.8.5) (2025-01-09)
+
+
+### Bug Fixes
+
+* **chat:** [#622](https://github.com/olimorris/codecompanion.nvim/issues/622) parse messages when `show_header_separator` is on ([6040ce4](https://github.com/olimorris/codecompanion.nvim/commit/6040ce4b45e0b9378e4c51c2d86cf5f40b2af2c5))
+* **completion:** blink.cmp failing for slash commands ([6dd3309](https://github.com/olimorris/codecompanion.nvim/commit/6dd3309e6761d7ae8cbda386781eb48354f00db2))
+* **copilot:** show token output in chat ([6908fd7](https://github.com/olimorris/codecompanion.nvim/commit/6908fd71b589c9a4813f2dad9f460a6368003617))
+* **inline:** [#613](https://github.com/olimorris/codecompanion.nvim/issues/613) negative column indexing ([977a521](https://github.com/olimorris/codecompanion.nvim/commit/977a521d1a3780d2278d1f175e37ca439b10a372))
+
 ## [11.8.4](https://github.com/olimorris/codecompanion.nvim/compare/v11.8.3...v11.8.4) (2025-01-08)
 
 
