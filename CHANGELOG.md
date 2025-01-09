@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.8.6](https://github.com/olimorris/codecompanion.nvim/compare/v11.8.5...v11.8.6) (2025-01-09)
+
+
+### Bug Fixes
+
+* **chat:** changing adapters for models with table type ([3a961bb](https://github.com/olimorris/codecompanion.nvim/commit/3a961bb2df0dd9245bdf2c9cc2e3fcdb7d9f3654))
+
 ## [11.8.5](https://github.com/olimorris/codecompanion.nvim/compare/v11.8.4...v11.8.5) (2025-01-09)
 
 
