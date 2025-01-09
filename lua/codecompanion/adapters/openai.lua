@@ -97,7 +97,10 @@ return {
 
         if ok then
           if json.usage then
-            local tokens = json.usage.total_tokens
+            local total_tokens = json.usage.total_tokens or 0
+            local completion_tokens = json.usage.completion_tokens or 0
+            local prompt_tokens = json.usage.prompt_tokens or 0
+            local tokens = total_tokens > 0 and total_tokens or completion_tokens + prompt_tokens
             log:trace("Tokens: %s", tokens)
             return tokens
           end
