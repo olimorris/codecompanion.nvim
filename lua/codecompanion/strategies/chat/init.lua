@@ -89,8 +89,7 @@ local function ts_parse_messages(chat, role, start_range)
   for id, node in query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
     if query.captures[id] == "role" then
       last_role = vim.treesitter.get_node_text(node, chat.bufnr)
-      last_role = last_role:gsub("## ", "")
-    elseif last_role == role and query.captures[id] == "content" then
+    elseif last_role == chat.ui:format_header(user_role) and query.captures[id] == "content" then
       table.insert(content, vim.treesitter.get_node_text(node, chat.bufnr))
     end
   end
@@ -855,7 +854,7 @@ function Chat:add_buf_message(data, opts)
     self.last_role = data.role
     table.insert(lines, "")
     table.insert(lines, "")
-    self.ui:format_header(lines, config.strategies.chat.roles[data.role])
+    self.ui:set_header(lines, config.strategies.chat.roles[data.role])
   end
 
   if data.content then
