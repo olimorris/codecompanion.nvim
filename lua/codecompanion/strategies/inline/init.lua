@@ -455,7 +455,7 @@ function Inline:place(placement)
     api.nvim_buf_set_lines(self.context.bufnr, self.context.start_line - 1, self.context.start_line - 1, false, { "" })
     self.context.start_line = self.context.start_line + 1
     pos.line = self.context.start_line - 1
-    pos.col = self.context.start_col - 1
+    pos.col = math.max(0, self.context.start_col - 1)
   elseif placement == "new" then
     local bufnr = api.nvim_create_buf(true, false)
     util.set_option(bufnr, "filetype", self.context.filetype)
