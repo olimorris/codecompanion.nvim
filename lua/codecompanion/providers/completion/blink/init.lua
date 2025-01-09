@@ -100,12 +100,21 @@ function M:execute(ctx, item)
     return
   end
 
+  local lines =
+    vim.api.nvim_buf_get_lines(item.ctx.bufnr, item.ctx.bounds.line_number - 1, item.ctx.bounds.line_number, true)
+
+  local end_col = item.ctx.bounds.end_col or item.ctx.bounds.start_col + 1
+
+  if lines and #lines == 1 and end_col > #lines[1] then
+    end_col = #lines[1]
+  end
+
   vim.api.nvim_buf_set_text(
     item.ctx.bufnr,
     item.ctx.bounds.line_number - 1,
     item.ctx.bounds.start_col - 2,
     item.ctx.bounds.line_number - 1,
-    item.ctx.bounds.end_col or item.ctx.bounds.start_col + 1,
+    end_col,
     { "" }
   )
 
