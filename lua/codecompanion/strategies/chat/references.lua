@@ -111,11 +111,11 @@ function References:add(ref)
 
   if ref then
     if not ref.opts then
-      ref.opts = {
-        pinned = false,
-        watched = false,
-      }
+      ref.opts = {}
     end
+    -- Ensure both properties exist with defaults
+    ref.opts.pinned = ref.opts.pinned or false
+    ref.opts.watched = ref.opts.watched or false
     table.insert(self.Chat.refs, ref)
     -- If it's a buffer reference and it's being watched, start watching
     if ref.bufnr and ref.opts.watched then
