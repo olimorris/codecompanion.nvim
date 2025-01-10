@@ -585,28 +585,35 @@ function Chat:submit(opts)
       log:debug("Checking watched buffer %d, found %d changes", ref.bufnr, changes and #changes or 0)
 
       if changes and #changes > 0 then
-        log:debug("Processing %d changes for buffer %d", #changes, ref.bufnr)
-        -- Format changes message
         local changes_text = string.format(
           "Changes detected in `%s` (buffer %d):\n",
           vim.fn.fnamemodify(api.nvim_buf_get_name(ref.bufnr), ":t"),
           ref.bufnr
         )
 
-        -- Add each change
-        for i, change in ipairs(changes) do
-          log:debug("Processing change %d/%d for buffer %d", i, #changes, ref.bufnr)
-          changes_text = changes_text
-            .. string.format(
-              "Lines %d-%d were modified to:\n```%s\n%s\n```\n",
-              change.start_row,
-              change.end_row,
-              vim.bo[ref.bufnr].filetype,
-              table.concat(change.lines, "\n")
-            )
+        for _, change in ipairs(changes) do
+          if change.type == "delete" then
+            changes_text = changes_text
+              .. string.format(
+                "Lines %d-%d were deleted:\n```%s\n%s\n```\n",
+                change.start,
+                change.end_line,
+                vim.bo[ref.bufnr].filetype,
+                table.concat(change.lines, "\n")
+              )
+          else
+            changes_text = changes_text
+              .. string.format(
+                "Lines %d-%d were %s:\n```%s\n%s\n```\n",
+                change.start,
+                change.end_line,
+                change.type == "add" and "added" or "modified",
+                vim.bo[ref.bufnr].filetype,
+                table.concat(change.lines, "\n")
+              )
+          end
         end
 
-        -- Add changes as a message
         self:add_message({
           role = config.constants.USER_ROLE,
           content = changes_text,
@@ -614,6 +621,7 @@ function Chat:submit(opts)
       end
     end
   end
+
   if not self:has_user_messages(message) or message.content == "" then
     return log:warn("No messages to submit")
   end
