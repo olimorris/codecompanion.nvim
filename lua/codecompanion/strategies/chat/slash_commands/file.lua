@@ -118,7 +118,14 @@ end
 ---Open and read the contents of the selected file
 ---@param selected table The selected item from the provider { relative_path = string, path = string }
 function SlashCommand:read(selected)
-  local content = path.new(selected.path):read()
+  local ok, content = pcall(function()
+    return path.new(selected.path):read()
+  end)
+
+  if not ok then
+    return ""
+  end
+
   local ft = vim.filetype.match({ filename = selected.path })
   local relative_path = selected.relative_path or selected[1] or selected.path
   local id = "<file>" .. relative_path .. "</file>"
@@ -171,6 +178,10 @@ function SlashCommand:output(selected, opts)
     path = selected.path,
     source = "codecompanion.strategies.chat.slash_commands.file",
   })
+
+  if opts.silent then
+    return
+  end
 
   util.notify(fmt("Added the `%s` file to the chat", vim.fn.fnamemodify(relative_path, ":t")))
 end

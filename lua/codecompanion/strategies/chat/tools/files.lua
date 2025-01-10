@@ -38,7 +38,7 @@ end
 
 ---Edit the contents of a file
 ---@param action table The action object
---@return nil
+---@return nil
 local function edit(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
