@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.8.6...v11.9.0) (2025-01-10)
+
+
+### Features
+
+* **prompts:** :sparkles: can now add references to the prompt library ([d5d86c9](https://github.com/olimorris/codecompanion.nvim/commit/d5d86c9af92555d2cafcb147573871445b8688b5))
+
 ## [11.8.6](https://github.com/olimorris/codecompanion.nvim/compare/v11.8.5...v11.8.6) (2025-01-09)
 
 
