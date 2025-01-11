@@ -50,15 +50,19 @@ T["Watcher"]["detects line modification"] = function()
 
   local changes = watcher:get_changes(bufnr)
   h.not_eq(changes, nil)
-  -- Check that we have the change, don't care about internal representation
-  local found_change = false
+
+  -- Check for modification type and content
+  local found_modification = false
   for _, change in ipairs(changes) do
-    if vim.tbl_contains(change.lines, "modified line 2") then
-      found_change = true
+    if change.type == "modify" then
+      h.eq(change.old_lines[1], "line 2", "Old line content should match")
+      h.eq(change.new_lines[1], "modified line 2", "New line content should match")
+      h.eq(change.start, 2, "Modification should be at line 2")
+      found_modification = true
       break
     end
   end
-  h.eq(found_change, true)
+  h.eq(found_modification, true, "Should detect line modification")
 end
 
 T["Watcher"]["detects line deletion"] = function()
@@ -200,29 +204,28 @@ T["Watcher"]["handles mixed operations"] = function()
   local changes = watcher:get_changes(bufnr)
   h.not_eq(changes, nil)
 
-  -- Verify both deletion and insertion are captured
-  local found_deletion = false
-  local found_insertion = false
+  -- We expect modifications for existing line positions and additions for new lines
+  local modifications = 0
+  local additions = 0
 
   for _, change in ipairs(changes) do
-    if
-      change.type == "delete"
-      and vim.tbl_contains(change.lines, "line 2")
-      and vim.tbl_contains(change.lines, "line 3")
-    then
-      found_deletion = true
-    elseif
-      change.type == "add"
-      and vim.tbl_contains(change.lines, "new line 1")
-      and vim.tbl_contains(change.lines, "new line 2")
-      and vim.tbl_contains(change.lines, "new line 3")
-    then
-      found_insertion = true
+    if change.type == "modify" then
+      if modifications == 0 then
+        h.eq(change.old_lines[1], "line 2")
+        h.eq(change.new_lines[1], "new line 1")
+      elseif modifications == 1 then
+        h.eq(change.old_lines[1], "line 3")
+        h.eq(change.new_lines[1], "new line 2")
+      end
+      modifications = modifications + 1
+    elseif change.type == "add" then
+      h.eq(change.lines[1], "new line 3")
+      additions = additions + 1
     end
   end
 
-  h.eq(found_deletion, true, "Should have found the deletion")
-  h.eq(found_insertion, true, "Should have found the insertion")
+  h.eq(modifications, 2, "Should detect two modifications")
+  h.eq(additions, 1, "Should detect one addition")
 end
 
 T["Watcher"]["handles unwatching buffer"] = function()
@@ -254,22 +257,22 @@ T["Watcher"]["handles empty buffer"] = function()
   local watcher = Watcher.new()
   local bufnr = vim.api.nvim_get_current_buf()
 
+  -- Ensure buffer is empty
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
   watcher:watch(bufnr)
 
   -- Add content to empty buffer
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "new line" })
 
   local changes = watcher:get_changes(bufnr)
-  h.not_eq(changes, nil)
 
-  local found_addition = false
-  for _, change in ipairs(changes) do
-    if vim.tbl_contains(change.lines, "new line") then
-      found_addition = true
-      break
-    end
-  end
-  h.eq(found_addition, true)
+  h.not_eq(changes, nil)
+  h.eq(#changes, 1, "Should have one change")
+
+  local change = changes[1]
+  h.eq(change.type, "add", "Should be an addition")
+  h.eq(change.lines[1], "new line", "Content should match")
+  h.eq(change.start, 1, "Should start at line 1")
 end
 
 T["Watcher"]["handles prepending to start of buffer"] = function()
@@ -352,19 +355,110 @@ T["Watcher"]["handles complete buffer replacement"] = function()
   local changes = watcher:get_changes(bufnr)
   h.not_eq(changes, nil)
 
-  local found_deletion = false
-  local found_addition = false
+  local modifications = 0
+  local additions = 0
 
   for _, change in ipairs(changes) do
-    if change.type == "delete" and vim.tbl_contains(change.lines, "old line 1") then
-      found_deletion = true
-    elseif change.type == "add" and vim.tbl_contains(change.lines, "new line 1") then
-      found_addition = true
+    if change.type == "modify" then
+      if modifications == 0 then
+        h.eq(change.old_lines[1], "old line 1")
+        h.eq(change.new_lines[1], "new line 1")
+      elseif modifications == 1 then
+        h.eq(change.old_lines[1], "old line 2")
+        h.eq(change.new_lines[1], "new line 2")
+      end
+      modifications = modifications + 1
+    elseif change.type == "add" then
+      h.eq(change.lines[1], "new line 3")
+      additions = additions + 1
     end
   end
 
-  h.eq(found_deletion, true, "Should detect deletion of old content")
-  h.eq(found_addition, true, "Should detect addition of new content")
+  h.eq(modifications, 2, "Should detect modifications of existing lines")
+  h.eq(additions, 1, "Should detect addition of new line")
+end
+
+T["Watcher"]["handles modifications after buffer switching"] = function()
+  local watcher = Watcher.new()
+  local main_buf = vim.api.nvim_get_current_buf()
+
+  -- Initial state
+  vim.api.nvim_buf_set_lines(main_buf, 0, -1, false, {
+    "line 1",
+    "line 2",
+    "line 3",
+    "line 4",
+  })
+
+  watcher:watch(main_buf)
+
+  -- First modification
+  vim.api.nvim_buf_set_lines(main_buf, 1, 3, false, {
+    "modified line 2",
+    "new line between",
+    "modified line 3",
+  })
+
+  -- Get and process first changes
+  local first_changes = watcher:get_changes(main_buf)
+
+  -- Switch buffers
+  vim.cmd("new")
+  local temp_buf = vim.api.nvim_get_current_buf()
+  vim.api.nvim_buf_set_lines(temp_buf, 0, -1, false, { "temporary buffer" })
+  vim.api.nvim_set_current_buf(main_buf)
+
+  -- Make new changes
+  vim.api.nvim_buf_set_lines(main_buf, 1, 4, false, {
+    "modified again line 2",
+    "modified new line between",
+  })
+
+  local changes = watcher:get_changes(main_buf)
+  h.not_eq(changes, nil)
+
+  local found_modifications = 0
+  local found_deletion = false
+
+  for _, change in ipairs(changes) do
+    if change.type == "modify" then
+      if change.old_lines[1] == "modified line 2" and change.new_lines[1] == "modified again line 2" then
+        found_modifications = found_modifications + 1
+      elseif change.old_lines[1] == "new line between" and change.new_lines[1] == "modified new line between" then
+        found_modifications = found_modifications + 1
+      end
+    elseif change.type == "delete" then
+      if vim.tbl_contains(change.lines, "modified line 3") then
+        found_deletion = true
+      end
+    end
+  end
+
+  h.eq(found_modifications, 2, "Should detect both line modifications from last known state")
+  h.eq(found_deletion, true, "Should detect deletion from last known state")
+
+  -- Clean up
+  vim.api.nvim_buf_delete(temp_buf, { force = true })
+end
+
+T["Watcher"]["handles buffer deletion"] = function()
+  local watcher = Watcher.new()
+
+  -- Create a temporary buffer
+  vim.cmd("new")
+  local temp_buf = vim.api.nvim_get_current_buf()
+
+  watcher:watch(temp_buf)
+  h.not_eq(watcher.buffers[temp_buf], nil)
+
+  vim.api.nvim_buf_delete(temp_buf, { force = true })
+
+  -- Try to get changes (should return nil)
+  local changes = watcher:get_changes(temp_buf)
+  h.eq(changes, nil)
+
+  -- Verify the buffer is no longer being watched
+  h.eq(watcher.buffers[temp_buf], nil)
 end
 
 return T
