@@ -56,7 +56,7 @@ require("codecompanion").setup({
 ## Adding a Custom Adapter
 
 > [!NOTE]
-> See the [Creating Adapters](extending/adapters) section to learn how to create custom adapters
+> See the [Creating Adapters](/extending/adapters) section to learn how to create custom adapters
 
 Custom adapters can be added to the plugin as follows:
 

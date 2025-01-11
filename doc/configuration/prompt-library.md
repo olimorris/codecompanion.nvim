@@ -5,7 +5,7 @@ The plugin comes with a number of pre-built prompts. As per [the config](https:/
 ## Adding Prompts
 
 > [!NOTE]
-> See the [Creating Prompts](/extending/prompts) guide to learn more on their syntax and how you can create your own
+> See the [Creating Prompts](/extending/prompt-library) guide to learn more on their syntax and how you can create your own
 
 Custom prompts can be added as follows:
 
