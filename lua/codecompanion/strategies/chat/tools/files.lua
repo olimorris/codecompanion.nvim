@@ -1,6 +1,6 @@
 --[[
 *Files Tool*
-This tool can be used make edits to files on disk. It can handle multple actions
+This tool can be used make edits to files on disk. It can handle multiple actions
 in the same XML block. All actions must be approved by you.
 --]]
 

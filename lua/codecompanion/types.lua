@@ -119,7 +119,7 @@
 ---@field handlers.on_exit? fun(self: CodeCompanion.Tools): any Function to call at the end of all of the commands
 ---@field output? table Functions which can be called after the command finishes
 ---@field output.rejected? fun(self: CodeCompanion.Tools, cmd: table): any Function to call if the user rejects running a command
----@field output.error? fun(self: CodeCompanion.Tools, cmd: table, error: table|string): any Function to call if the tool is unsuccesful
+---@field output.error? fun(self: CodeCompanion.Tools, cmd: table, error: table|string): any Function to call if the tool is unsuccessful
 ---@field output.success? fun(self: CodeCompanion.Tools, cmd: table, output: table|string): any Function to call if the tool is successful
 ---@field request table The request from the LLM to use the Tool
 

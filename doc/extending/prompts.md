@@ -236,7 +236,7 @@ Lets now take a look at the second prompt:
 You can see that we're using a handy helper to get the code between two lines and formatting it into a markdown code block.
 
 > [!IMPORTANT]
-> We've also specifed a `contains_code = true` flag. If you've turned off the sending of code to LLMs then the plugin will block this from happening.
+> We've also specified a `contains_code = true` flag. If you've turned off the sending of code to LLMs then the plugin will block this from happening.
 
 ### Conditionals
 
@@ -273,7 +273,7 @@ And to determine the visibility of actions in the palette itself:
 
 **Allowing a Prompt to appear as a Slash Command**
 
-It can be useful to have a prompt from the prompt library appear as a slash command in the chat buffer, like with the `Generate a Commit Message` action. This can be done by specifiying a `is_slash_cmd = true` option to the prompt:
+It can be useful to have a prompt from the prompt library appear as a slash command in the chat buffer, like with the `Generate a Commit Message` action. This can be done by specifying a `is_slash_cmd = true` option to the prompt:
 
 ```lua
 ["Generate a Commit Message"] = {

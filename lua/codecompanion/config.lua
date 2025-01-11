@@ -356,7 +356,7 @@ Points to note:
         -- The prompt to send to the LLM when a user initiates the inline strategy and it needs to convert to a chat
         inline_to_chat = function(context)
           return fmt(
-            [[I want you to act as an expert and senior developer in the %s language. I will ask you questions, perhaps giving you code examples, and I want you to advise me with explanations and code where neccessary.]],
+            [[I want you to act as an expert and senior developer in the %s language. I will ask you questions, perhaps giving you code examples, and I want you to advise me with explanations and code where necessary.]],
             context.filetype
           )
         end,
@@ -840,7 +840,7 @@ This is the code, for context:
       },
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
 
-      show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an exteral markdown formatting plugin
+      show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
       separator = "─", -- The separator between the different messages in the chat buffer
 
       show_references = true, -- Show references (from slash commands and variables) in the chat buffer?

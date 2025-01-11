@@ -26,14 +26,14 @@ Here are some example prompts and their correct method classification ("<method>
 - "Can you refactor/fix/amend this code?" would be `replace` as we're changing existing code
 - "Can you create a method/function that does XYZ" would be `add` as it requires new code to be added to a buffer
 - "Can you add a docstring to this function?" would be `before` as docstrings are typically before the start of a function
-- "Can you create a method/function for XYZ and put it in a new buffer?" would be `new` as the user is explictly asking for a new buffer
+- "Can you create a method/function for XYZ and put it in a new buffer?" would be `new` as the user is explicitly asking for a new buffer
 - "Can you write unit tests for this code?" would be `new` as tests are commonly written in a new file away from the logic of the code they're testing
 - "Why is Neovim so popular?" or "What does this code do?" would be `chat` as the answer does not result in code being written and is a discursive topic leading to additional follow-up questions
 - "Write some comments for this code." would be `replace` as we're changing existing code
 
 The user may also provide a prompt which references a conversation you've had with them previously. Just focus on determining the correct method classification.
 
-Please respond to this prompt in the format "<method>", placing the classifiction in a tag. For example "replace" would be `<replace>`, "add" would be `<add>`, "before" would be `<before>`, "new" would be `<new>` and "chat" would be `<chat>`. If you can't classify the message, reply with `<error>`. Do not provide any other content in your response or you'll break the plugin this is being called from.]],
+Please respond to this prompt in the format "<method>", placing the classification in a tag. For example "replace" would be `<replace>`, "add" would be `<add>`, "before" would be `<before>`, "new" would be `<new>` and "chat" would be `<chat>`. If you can't classify the message, reply with `<error>`. Do not provide any other content in your response or you'll break the plugin this is being called from.]],
   CODE_ONLY_PROMPT = [[The following response must contain ONLY raw code that can be directly written to a Neovim buffer:
 
 1. No Markdown formatting or backticks
@@ -146,7 +146,7 @@ function Inline.new(args)
     return log:error("No adapter found")
   end
 
-  -- Check if the user has manually overriden the adapter
+  -- Check if the user has manually overridden the adapter
   if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
     self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
   end

@@ -58,7 +58,7 @@ end
 
 local lshift, rshift -- forward declare
 
-rshift = function(a, disp) -- Lua5.2 insipred
+rshift = function(a, disp) -- Lua5.2 inspired
   if disp < 0 then
     return lshift(a, -disp)
   end

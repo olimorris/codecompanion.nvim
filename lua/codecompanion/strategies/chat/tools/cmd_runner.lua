@@ -1,6 +1,6 @@
 --[[
 *Command Runner Tool*
-This tool is used to run shell commands on your system. It can handle multple
+This tool is used to run shell commands on your system. It can handle multiple
 commands in the same XML block. All commands must be approved by you.
 --]]
 
