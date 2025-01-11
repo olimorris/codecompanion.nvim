@@ -312,7 +312,7 @@ In the chat buffer, if you type `/` you will see the value of `opts.short_name` 
 
 **Specifying a Placement for Inline Prompts**
 
-As outlined in the [README](README.md), an inline prompt can place its response in many different ways. To override this, you can specify a specific placement:
+As outlined in the README, an inline prompt can place its response in many different ways. To override this, you can specify a specific placement:
 
 ```lua
 ["Your_New_Prompt"] = {
