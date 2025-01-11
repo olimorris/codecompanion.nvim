@@ -1,8 +1,8 @@
-# CodeCompanion.nvim
+# Welcome to CodeCompanion.nvim
 
 > AI-powered coding, seamlessly in _Neovim_
 
-CodeCompanion.nvim is a productivity tool which streamlines how you develop with LLMs, in Neovim.
+CodeCompanion is a productivity tool which streamlines how you develop with LLMs, in Neovim.
 
 <video controls autoplay muted src="https://github.com/user-attachments/assets/04a2bed3-7af0-4c07-b58f-f644cef1c4bb"></video>
 

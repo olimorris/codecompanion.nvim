@@ -4,7 +4,7 @@ An adapter is what connects Neovim to an LLM. It's the interface that allows dat
 
 ## Changing the Default Adapter
 
-Use the `adapter` field in each strategy:
+You can change the default adapter as follows:
 
 ```lua
 require("codecompanion").setup({
@@ -16,7 +16,7 @@ require("codecompanion").setup({
       adapter = "copilot",
     },
   },
-})
+}),
 ```
 
 ## Extending an Adapter
@@ -34,7 +34,7 @@ require("codecompanion").setup({
       })
     end,
   },
-})
+}),
 ```
 
 If you do not want to store secrets in plain text, prefix commands with `cmd:`:
@@ -50,7 +50,24 @@ require("codecompanion").setup({
       })
     end,
   },
-})
+}),
+```
+
+## Adding a Custom Adapter
+
+> [!NOTE]
+> See the [Creating Adapters](extending/adapters) section to learn how to create custom adapters
+
+Custom adapters can be added to the plugin as follows:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    my_custom_adapter = function()
+      return {} -- My adapter logic
+    end,
+  },
+}),
 ```
 
 ## Setting a Proxy
@@ -65,7 +82,7 @@ require("codecompanion").setup({
       proxy = "socks5://127.0.0.1:9999",
     },
   },
-})
+}),
 ```
 
 ## Changing a Model
@@ -85,7 +102,7 @@ require("codecompanion").setup({
       })
     end,
   },
-})
+}),
 ```
 ## Example: Azure OpenAI
 
@@ -116,6 +133,6 @@ require("codecompanion").setup({
       adapter = "azure_openai",
     },
   },
-})
+}),
 ```
 

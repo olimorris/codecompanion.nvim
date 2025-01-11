@@ -155,7 +155,7 @@ The plugin has three core commands:
 However, there are multiple options available:
 
 - `CodeCompanion <your prompt>` - Prompt the inline assistant
-- `CodeCompanion /<prompt library>` - Use the [prompt library](#clipboard-prompt-library) with the inline assistant e.g. `/commit`
+- `CodeCompanion /<prompt library>` - Use the [prompt library](configuration/prompt-library) with the inline assistant e.g. `/commit`
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
