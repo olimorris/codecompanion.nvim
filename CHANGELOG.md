@@ -1,5 +1,13 @@
 # Changelog
 
+## [11.9.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.9.0...v11.9.1) (2025-01-11)
+
+
+### Bug Fixes
+
+* **slash_cmds:** `file` slash command will show hidden files with telescope ([39c7ca0](https://github.com/olimorris/codecompanion.nvim/commit/39c7ca07918999fa5daf8ef344a4490befa56858))
+* **utils:** parse "boolean_scalar" fields when decoding yaml ([#635](https://github.com/olimorris/codecompanion.nvim/issues/635)) ([3bf8cac](https://github.com/olimorris/codecompanion.nvim/commit/3bf8cacd5298dfa1b103c52d8fd460b0be3b2d08))
+
 ## [11.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.8.6...v11.9.0) (2025-01-10)
 
 
