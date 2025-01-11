@@ -1,4 +1,4 @@
-# Recipes
+# Creating Prompts
 
 The purpose of this guide is to showcase how you can extend the functionality of CodeCompanion by adding your own prompts to the config that are reflected in the _Action Palette_. The _Action Palette_ is a lua table which is parsed by the plugin and displayed as a `vim.ui.select` component. By specifying certain keys, the behaviour of the table can be customised further.
 
@@ -319,7 +319,7 @@ As outlined in the README, an inline prompt can place its response in many diffe
   strategy = "inline",
   description = "Your Special Inline Prompt",
   opts = {
-    placement = "new|false"
+    placement = "new"
   },
   -- Your prompts here
 }
@@ -408,3 +408,4 @@ You'll notice that the comments use the notion of "groups". These are collection
 ## Conclusion
 
 Hopefully this serves as a useful introduction on how you can expand CodeCompanion to create prompts that suit your workflow. It's worth checking out the [actions.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) and [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) files for more complex examples.
+
