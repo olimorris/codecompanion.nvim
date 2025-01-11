@@ -898,7 +898,7 @@ For this purpose, I have included a [minimal.lua](https://github.com/olimorris/c
 
 ## :gift: Contributing
 
-I am open to contributions but they will be implemented at my discretion. Feel free to open up a discussion before embarking on a PR and please read the [CONTRIBUTING.md](CONTRIBUTING.md) guide.
+I am open to contributions but they will be implemented at my discretion. Feel free to open up a discussion before embarking on a PR and please read the [contributing.md](.github/contributing.md) guide.
 
 ## :clap: Acknowledgements
 
