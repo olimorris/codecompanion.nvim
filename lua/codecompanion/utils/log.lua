@@ -136,7 +136,9 @@ local function create_echo_handler(opts)
     elseif level == vim.log.levels.WARN then
       hl = "DiagnosticWarn"
     end
-    vim.api.nvim_echo({ { text, hl } }, true, {})
+    vim.schedule(function()
+      vim.api.nvim_echo({ { text, hl } }, true, {})
+    end)
   end
   return LogHandler.new(opts)
 end
