@@ -43,6 +43,7 @@ local providers = {
     telescope.provider.find_files({
       prompt_title = telescope.title,
       attach_mappings = telescope:display(),
+      hidden = true,
     })
   end,
 
