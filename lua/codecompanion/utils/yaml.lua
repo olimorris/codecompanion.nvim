@@ -86,6 +86,15 @@ local function decode(source, node)
     return text:sub(2, text:len() - 1)
   elseif nt == "integer_scalar" or nt == "float_scalar" then
     return tonumber(vim.treesitter.get_node_text(node, source))
+  elseif nt == "boolean_scalar" then
+    local text = vim.treesitter.get_node_text(node, source)
+    if text == "true" then
+      return true
+    elseif text == "false" then
+      return false
+    else
+      error("Invalid boolean scalar")
+    end
   elseif nt == "null_scalar" then
     return nil
   elseif nt == "ERROR" then
