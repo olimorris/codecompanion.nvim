@@ -24,6 +24,15 @@ function Watcher:watch(bufnr)
     content = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false),
     changedtick = vim.api.nvim_buf_get_changedtick(bufnr),
   }
+  -- Add autocmd for buffer deletion
+  vim.api.nvim_create_autocmd("BufDelete", {
+    group = self.augroup,
+    buffer = bufnr,
+    callback = function()
+      -- Unwatch before the buffer content becomes invalid
+      self:unwatch(bufnr)
+    end,
+  })
 end
 
 function Watcher:unwatch(bufnr)
@@ -139,10 +148,12 @@ function Watcher:get_changes(bufnr)
     return nil
   end
 
-  -- Check if buffer still exists
+  -- Check if buffer still exists first
   if not vim.api.nvim_buf_is_valid(bufnr) then
-    -- Buffer was deleted, clean up our state
-    self.buffers[bufnr] = nil
+    -- Buffer was deleted, clean up our state and return nil
+    if self.buffers[bufnr] then
+      self.buffers[bufnr] = nil
+    end
     return nil
   end
 
