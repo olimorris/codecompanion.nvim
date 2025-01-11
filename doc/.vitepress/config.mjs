@@ -2,9 +2,10 @@ import { defineConfig } from "vitepress";
 import { execSync } from "node:child_process";
 
 const isMain = process.env.IS_RELEASE !== "true";
-const version = execSync("git describe --tags --abbrev=0", {
-  encoding: "utf-8",
-}).trim();
+const version = execSync("git tag --list --sort=-v:refname")
+  .toString()
+  .split("\n")[0]
+  .trim();
 
 const siteUrl = "https://codecompanion.github.io";
 
