@@ -601,6 +601,17 @@ function Chat:submit(opts)
                 vim.bo[ref.bufnr].filetype,
                 table.concat(change.lines, "\n")
               )
+          elseif change.type == "modify" then
+            changes_text = changes_text
+              .. string.format(
+                "Lines %d-%d were modified from:\n```%s\n%s\n```\nto:\n```%s\n%s\n```\n",
+                change.start,
+                change.end_line,
+                vim.bo[ref.bufnr].filetype,
+                table.concat(change.old_lines, "\n"),
+                vim.bo[ref.bufnr].filetype,
+                table.concat(change.new_lines, "\n")
+              )
           else
             changes_text = changes_text
               .. string.format(
