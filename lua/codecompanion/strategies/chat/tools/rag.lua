@@ -1,6 +1,6 @@
 --[[
 *RAG Tool*
-This tool can be used to search the internet or navigate directly to a specifc URL.
+This tool can be used to search the internet or navigate directly to a specific URL.
 --]]
 
 local config = require("codecompanion.config")

@@ -589,7 +589,7 @@ function Chat:submit(opts)
   self:check_references()
   self:add_pins()
 
-  -- Check if the user has manually overriden the adapter
+  -- Check if the user has manually overridden the adapter
   if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
     self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
   end
