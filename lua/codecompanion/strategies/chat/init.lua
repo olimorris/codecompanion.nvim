@@ -612,13 +612,12 @@ function Chat:submit(opts)
                 vim.bo[ref.bufnr].filetype,
                 table.concat(change.new_lines, "\n")
               )
-          else
+          else -- type == "add"
             changes_text = changes_text
               .. string.format(
-                "Lines %d-%d were %s:\n```%s\n%s\n```\n",
+                "Lines %d-%d were added:\n```%s\n%s\n```\n",
                 change.start,
                 change.end_line,
-                change.type == "add" and "added" or "modified",
                 vim.bo[ref.bufnr].filetype,
                 table.concat(change.lines, "\n")
               )
