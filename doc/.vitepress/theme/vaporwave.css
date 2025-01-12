@@ -1,0 +1,15 @@
+:root {
+  --vp-c-brand-1: #9a77cf;
+  /* --vp-nav-bg-color: #ff0000; */
+}
+
+.dark {
+  --vp-c-brand-1: #c678dd;
+  --vp-c-bg: #1b1d2a;
+  --vp-c-bg-alt: #222435;
+  --vp-c-gutter: #585b89;
+  --vp-c-divider: #428c81;
+  --vp-c-text-1: #b4b7cf;
+  --vp-c-text-2: #8e91b7;
+  --vp-c-text-3: #428c81;
+}

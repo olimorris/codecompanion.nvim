@@ -27,6 +27,8 @@ require("codecompanion").setup({
 }),
 ```
 
+Of course, if you have your own system prompt you can specify your own language for the LLM to respond in.
+
 ## Sending Code
 
 > [!IMPORTANT]
