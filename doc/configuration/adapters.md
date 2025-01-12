@@ -19,7 +19,7 @@ require("codecompanion").setup({
 }),
 ```
 
-## Extending an Adapter
+## Setting an API Key
 
 Extend a base adapter to set options like `api_key` or `model`:
 
@@ -51,6 +51,36 @@ require("codecompanion").setup({
     end,
   },
 }),
+```
+
+> [!NOTE]
+> In this example, we're using the 1Password CLI to extract the OpenAI API Key. You could also use gpg as outlined [here](https://github.com/olimorris/codecompanion.nvim/discussions/601)
+
+## Configuring Adapter Settings
+
+LLMs have many settings such as model, temperature and max_tokens. In an adapter, these sit within a schema table and can be configured during setup:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    llama3 = function()
+      return require("codecompanion.adapters").extend("ollama", {
+        name = "llama3", -- Give this adapter a different name to differentiate it from the default ollama adapter
+        schema = {
+          model = {
+            default = "llama3:latest",
+          },
+          num_ctx = {
+            default = 16384,
+          },
+          num_predict = {
+            default = -1,
+          },
+        },
+      })
+    end,
+  },
+})
 ```
 
 ## Adding a Custom Adapter
@@ -104,6 +134,53 @@ require("codecompanion").setup({
   },
 }),
 ```
+
+## Example: Using OpenAI Compatible Models
+
+To use any other OpenAI compatible models, change the URL in the env table, set an API key:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    ollama = function()
+      return require("codecompanion.adapters").extend("openai_compatible", {
+        env = {
+          url = "http[s]://open_compatible_ai_url", -- optional: default value is ollama url http://127.0.0.1:11434
+          api_key = "OpenAI_API_KEY", -- optional: if your endpoint is authenticated
+          chat_url = "/v1/chat/completions", -- optional: default value, override if different
+        },
+      })
+    end,
+  },
+})
+```
+
+## Example: Using Ollama Remotely
+
+To use Ollama remotely, change the URL in the env table, set an API key and pass it via an "Authorization" header:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    ollama = function()
+      return require("codecompanion.adapters").extend("ollama", {
+        env = {
+          url = "https://my_ollama_url",
+          api_key = "OLLAMA_API_KEY",
+        },
+        headers = {
+          ["Content-Type"] = "application/json",
+          ["Authorization"] = "Bearer ${api_key}",
+        },
+        parameters = {
+          sync = true,
+        },
+      })
+    end,
+  },
+})
+```
+
 ## Example: Azure OpenAI
 
 Below is an example of how you can leverage the `azure_openai` adapter within the plugin:

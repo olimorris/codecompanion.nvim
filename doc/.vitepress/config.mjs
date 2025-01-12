@@ -42,6 +42,7 @@ export default defineConfig({
         text: "Configuration",
         collapsed: false,
         items: [
+          { text: "Introduction", link: "/configuration/introduction" },
           { text: "Adapters", link: "/configuration/adapters" },
           { text: "Chat Buffer", link: "/configuration/chat-buffer" },
           { text: "Inline Assistant", link: "/configuration/inline-assistant" },
@@ -95,5 +96,7 @@ export default defineConfig({
         link: "https://github.com/olimorris/codecompanion.nvim",
       },
     ],
+
+    search: { provider: "local" },
   },
 });
