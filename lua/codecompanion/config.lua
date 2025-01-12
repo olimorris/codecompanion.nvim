@@ -878,10 +878,12 @@ This is the code, for context:
     ---@return boolean
     send_code = true,
 
-    -- This is the default prompt which is sent with every request in the chat
-    -- strategy. It is primarily based on the GitHub Copilot Chat's prompt
-    -- but with some modifications. You can choose to remove this via
-    -- your own config but note that LLM results may not be as good
+    ---This is the default prompt which is sent with every request in the chat
+    ---strategy. It is primarily based on the GitHub Copilot Chat's prompt
+    ---but with some modifications. You can choose to remove this via
+    ---your own config but note that LLM results may not be as good
+    ---@param opts table
+    ---@return string
     system_prompt = function(opts)
       local language = opts.language or "English"
       return string.format(
