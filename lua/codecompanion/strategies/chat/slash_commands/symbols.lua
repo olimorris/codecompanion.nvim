@@ -144,13 +144,14 @@ function SlashCommand:output(selected, opts)
   local tree = parser:parse()[1]
 
   local function get_ts_node(output_tbl, type, match)
-    table.insert(output_tbl, fmt(" - %s %s", type, vim.trim(vim.treesitter.get_node_text(match.node, content, match))))
+    table.insert(output_tbl, fmt(" - %s %s", type, vim.trim(vim.treesitter.get_node_text(match.node, content))))
   end
 
   local symbols = {}
-  for _, matches, metadata in query:iter_matches(tree:root(), content, 0, -1, { all = false }) do
+  for _, matches, metadata in query:iter_matches(tree:root(), content) do
     local match = vim.tbl_extend("force", {}, metadata)
-    for id, node in pairs(matches) do
+    for id, nodes in pairs(matches) do
+      local node = type(nodes) == "table" and nodes[1] or nodes
       match = vim.tbl_extend("keep", match, {
         [query.captures[id]] = {
           metadata = metadata[id],

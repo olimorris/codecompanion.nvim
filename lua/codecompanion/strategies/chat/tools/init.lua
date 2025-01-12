@@ -512,8 +512,10 @@ function Tools:fold_xml()
 
   vim.o.foldmethod = "manual"
 
-  for _, matches, _ in query:iter_matches(tree:root(), self.bufnr, 0, -1, { all = false }) do
-    local code_node = matches[2] -- The second capture is always the code block
+  for _, matches, _ in query:iter_matches(tree:root(), self.bufnr) do
+    local nodes = matches[2] -- The second capture is always the code block
+    local code_node = type(nodes) == "table" and nodes[1] or nodes
+
     if code_node then
       local start_row, _, end_row, _ = code_node:range()
       if start_row < end_row then

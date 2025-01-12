@@ -396,9 +396,10 @@ function UI:fold_code()
   vim.o.foldmethod = "manual"
 
   local role
-  for _, matches in query:iter_matches(tree:root(), self.bufnr, nil, nil, { all = false }) do
+  for _, matches in query:iter_matches(tree:root(), self.bufnr) do
     local match = {}
-    for id, node in pairs(matches) do
+    for id, nodes in pairs(matches) do
+      local node = type(nodes) == "table" and nodes[1] or nodes
       match = vim.tbl_extend("keep", match, {
         [query.captures[id]] = {
           node = node,

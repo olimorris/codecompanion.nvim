@@ -57,8 +57,11 @@ local function ts_parse_settings(bufnr, adapter)
   local query = vim.treesitter.query.get("yaml", "chat")
   local root = parser:parse()[1]:root()
 
-  for _, match in query:iter_matches(root, bufnr, nil, nil, { all = false }) do
-    local value = vim.treesitter.get_node_text(match[1], bufnr)
+  for _, matches, _ in query:iter_matches(root, bufnr) do
+    local nodes = matches[1]
+    local node = type(nodes) == "table" and nodes[1] or nodes
+
+    local value = vim.treesitter.get_node_text(node, bufnr)
 
     settings = yaml.decode(value)
     break
