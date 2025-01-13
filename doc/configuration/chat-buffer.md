@@ -60,7 +60,7 @@ require("codecompanion").setup({
 
 Slash Commands (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.
 
-The plugin supports providers like `telescope`, `mini_pick`, or `fzf_lua` (please see the [Chat Buffer](/usage/chat-buffer) usage section for full details):
+The plugin supports providers like `telescope`, `mini_pick`, or `fzf_lua` (please see the [Chat Buffer](/usage/chat-buffer/index) usage section for full details):
 
 ```lua
 require("codecompanion").setup({
