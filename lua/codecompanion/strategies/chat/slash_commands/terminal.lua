@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
 CONSTANTS = {
@@ -27,7 +28,13 @@ function SlashCommand:execute()
     util.notify("No recent terminal buffer found.", vim.log.levels.WARN)
     return
   end
-  local content = vim.api.nvim_buf_get_lines(terminal_buf, 0, -1, false)
+  local ok, content = pcall(function()
+    return vim.api.nvim_buf_get_lines(terminal_buf, 0, -1, false)
+  end)
+
+  if not ok then
+    return log:error("Failed to get terminal output")
+  end
 
   local Chat = self.Chat
   Chat:add_message({
