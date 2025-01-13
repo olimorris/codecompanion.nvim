@@ -1,7 +1,8 @@
----@class CodeCompanion.BufferState
----@field content table Complete buffer content
----@field changedtick number Last known changedtick
----@field last_sent table Last content sent to LLM
+--[[
+Watcher tracks changes in Neovim buffers by comparing buffer content over time. It maintains
+a state for each watched buffer, recording the current content and last sent content. When
+checked, it compares states to detect line additions, deletions, and modifications.
+]]
 
 local Watcher = {}
 local log = require("codecompanion.utils.log")

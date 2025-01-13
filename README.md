@@ -649,6 +649,7 @@ When in the chat buffer, press `?` to bring up a menu that lists the available k
 - `gs` to toggle the system prompt on/off
 - `gx` to clear the chat buffer's contents
 - `gy` to yank the last codeblock in the chat buffer
+- `gw` to monitor attched buffer for any chnages and send it to the LLM
 - `[[` to move to the previous header
 - `]]` to move to the next header
 - `{` to move to the previous chat
@@ -657,6 +658,10 @@ When in the chat buffer, press `?` to bring up a menu that lists the available k
 and in insert mode:
 
 - `<C-_>` to open the completion menu (if nvim-cmp isn't installed)
+
+**Buffer Watcher**
+
+The buffer watcher feature allows you to monitor changes in specific buffers during your conversation with CodeCompanion. When activated, any changes in the watched buffer will be automatically sent to the LLM in your next conversation turn.
 
 **Settings**
 

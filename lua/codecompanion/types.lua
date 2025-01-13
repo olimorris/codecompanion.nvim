@@ -42,6 +42,26 @@
 ---@field context table The context of the buffer that the chat was initiated from
 ---@field prompts table Any prompts to be sent to the LLM
 
+---@class CodeCompanion.Change
+---@field type "add"|"delete"|"modify" The type of change
+---@field start number Starting line number
+---@field end_line number Ending line number
+---@field lines? string[] Added or deleted lines
+---@field old_lines? string[] Original lines (for modify type)
+---@field new_lines? string[] New lines (for modify type)
+
+---@class CodeCompanion.Watcher
+---@field buffers table<number, CodeCompanion.WatcherState> Map of buffer numbers to their states
+---@field augroup integer The autocmd group ID
+---@field watch fun(self: CodeCompanion.Watcher, bufnr: number): nil Start watching a buffer
+---@field unwatch fun(self: CodeCompanion.Watcher, bufnr: number): nil Stop watching a buffer
+---@field get_changes fun(self: CodeCompanion.Watcher, bufnr: number): CodeCompanion.Change[]|nil Get changes since last check
+
+---@class CodeCompanion.WatcherState
+---@field content string[] Complete buffer content
+---@field changedtick number Last known changedtick
+---@field last_sent string[] Last content sent to LLM
+
 ---@class CodeCompanion.Chat
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
@@ -67,6 +87,7 @@
 ---@field tools_in_use? nil|table The tools that are currently being used in the chat
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field variables? CodeCompanion.Variables The variables available to the user
+---@field watcher CodeCompanion.Watcher The buffer watcher instance
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer

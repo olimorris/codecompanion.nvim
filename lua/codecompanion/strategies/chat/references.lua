@@ -7,15 +7,18 @@ local config = require("codecompanion.config")
 
 local api = vim.api
 local user_role = config.strategies.chat.roles.user
-local pinned_icon = config.display.chat.icons.pinned_buffer
-local watched_icon = config.display.chat.icons.watched_buffer
+local icons_path = config.display.chat.icons
+local icons = {
+  pinned = icons_path.pinned_buffer,
+  watched = icons_path.watched_buffer,
+}
 
 local allowed_pins = {
   "<buf>",
   "<file>",
 }
 
-local allowed_watches = {
+local allowed_watchers = {
   "<buf>",
 }
 
@@ -185,9 +188,9 @@ function References:render()
       goto continue
     end
     if ref.opts and ref.opts.pinned then
-      table.insert(lines, string.format("> - %s%s", pinned_icon, ref.id))
+      table.insert(lines, string.format("> - %s%s", icons.pinned, ref.id))
     elseif ref.opts and ref.opts.watched then
-      table.insert(lines, string.format("> - %s%s", watched_icon, ref.id))
+      table.insert(lines, string.format("> - %s%s", icons.watched, ref.id))
     else
       table.insert(lines, string.format("> - %s", ref.id))
     end
@@ -222,7 +225,7 @@ end
 ---@param ref string
 ---@return boolean
 function References:can_be_watched(ref)
-  for _, watch in ipairs(allowed_watches) do
+  for _, watch in ipairs(allowed_watchers) do
     if ref:find(watch) then
       return true
     end
@@ -250,7 +253,9 @@ function References:get_from_chat()
     elseif role == user_role and query.captures[id] == "ref" then
       local ref = vim.treesitter.get_node_text(node, chat.bufnr)
       -- Clean both pinned and watched icons
-      ref = ref:gsub("^> %- ", ""):gsub(pinned_icon, ""):gsub(watched_icon, "")
+      ref = vim.iter(vim.tbl_values(icons)):fold(select(1, ref:gsub("^> %- ", "")), function(acc, icon)
+        return select(1, acc:gsub(icon, ""))
+      end)
       table.insert(refs, vim.trim(ref))
     end
   end
