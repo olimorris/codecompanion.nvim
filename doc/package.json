@@ -4,7 +4,7 @@
     "vitepress": "^1.5.0"
   },
   "scripts": {
-    "dev": "VPL_MVB_VERSION=$(git describe --tags --always --abbrev=1 --match=\"v[0-9].*\") vitepress dev",
+    "dev": "vitepress dev",
     "build": "vitepress build",
     "build:release": "IS_RELEASE=true vitepress build",
     "preview": "vitepress preview"

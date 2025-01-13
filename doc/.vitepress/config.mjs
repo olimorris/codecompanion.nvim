@@ -1,10 +1,13 @@
 import { defineConfig } from "vitepress";
 import { execSync } from "node:child_process";
 
+const version = "Main";
+if (process.env.IS_RELEASE === "true") {
+  const version = execSync("git describe --tags --abbrev=0", {
+    encoding: "utf-8",
+  }).trim();
+}
 const isMain = process.env.IS_RELEASE !== "true";
-const version = execSync("git describe --tags --abbrev=0", {
-  encoding: "utf-8",
-}).trim();
 
 const siteUrl = "https://codecompanion.olimorris.dev";
 
