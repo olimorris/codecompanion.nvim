@@ -52,6 +52,23 @@
     var(--vw-purple) 25%,
     var(--vw-base-bg)
   );
+
+  --vp-custom-block-tip-bg: color-mix(
+    in srgb,
+    var(--vw-green) 10%,
+    var(--vw-base-bg)
+  );
+  --vp-custom-block-tip-border: var(--vw-green);
+  --vp-custom-block-tip-text: color-mix(
+    in srgb,
+    var(--vp-c-text-1) var(--vw-base-bg-mixer),
+    var(--vw-base-fg)
+  );
+  --vp-custom-block-tip-code-bg: color-mix(
+    in srgb,
+    var(--vw-green) 25%,
+    var(--vw-base-bg)
+  );
 }
 
 .dark {

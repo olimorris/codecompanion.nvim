@@ -1,16 +1,10 @@
 import { defineConfig } from "vitepress";
-import { execSync } from "node:child_process";
 
-const isMain = process.env.IS_RELEASE !== "true";
-const version = execSync("git tag --list --sort=-v:refname")
-  .toString()
-  .split("\n")[0]
-  .trim();
+const version = process.env.CC_VERSION.toString().split("\n")[0].trim();
 
-const siteUrl = "https://codecompanion.github.io";
-
-const title = isMain ? "Main" : version;
-const otherTitle = isMain ? version : "Main";
+const siteUrl = "https://codecompanion.olimorris.dev";
+const title = version ? version : "Main";
+const otherTitle = version ? "Main" : version;
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({

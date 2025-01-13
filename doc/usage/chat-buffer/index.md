@@ -1,11 +1,21 @@
 # Using the Chat Buffer
 
 > [!NOTE]
-> The Chat Buffer has a filetype of `codecompanion` and a buftype of `nofile`
+> The chat buffer has a filetype of `codecompanion` and a buftype of `nofile`
 
-You can open a Chat Buffer with the `:CodeCompanionChat` command or with `require("codecompanion").chat()`. You can toggle the visibility of the chat buffer with `:CodeCompanionChat Toggle` or `require("codecompanion").toggle()`.
+You can open a chat buffer with the `:CodeCompanionChat` command or with `require("codecompanion").chat()`. You can toggle the visibility of the chat buffer with `:CodeCompanionChat Toggle` or `require("codecompanion").toggle()`.
 
-The Chat Buffer uses markdown as its syntax and `H2` headers separate the user and LLM's responses. The user's responses are parsed by [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) and sent via an adapter to an LLM for a response which is then streamed back into the buffer. A response is sent to the LLM by pressing `<CR>` or `<C-s>`. This can of course be changed as per the [keymaps](#keymaps) section.
+The chat buffer uses markdown as its syntax and `H2` headers separate the user and LLM's responses. The user's responses are parsed by [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) and sent via an adapter to an LLM for a response which is then streamed back into the buffer. A response is sent to the LLM by pressing `<CR>` or `<C-s>`. This can of course be changed as per the [keymaps](#keymaps) section.
+
+## Messages
+
+Messages which are sent to the LLM sit under `H2` headers in the chat buffer. However, when adding system prompts or context to the chat buffer via [Slash Commands](/usage/chat-buffer/slash-commands), some messages will be hidden. Using the keymap `gd` (to debug the chat buffer), you are able to see the full contents of the messages table.
+
+## Settings
+
+<img src="https://github.com/user-attachments/assets/01f1e482-1f7b-474f-ae23-f25cc637f40a" />
+
+When conversing with an LLM, it can be useful to tweak model settings in between responses in order to generate the perfect output. If settings are enabled (`display.chat.show_settings = true`), then a yaml block will be present at the top of the chat buffer which can be modified in between responses. The yaml block is simply a representation of an adapter's schema table.
 
 ## References
 
@@ -24,11 +34,11 @@ References can also be pinned to a chat buffer with the `gp` keymap. Pinning res
 
 <img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" />
 
-The plugin supports multiple completion plugins, out of the box. By default, the plugin will look to setup [blink.cmp](https://github.com/Saghen/blink.cmp) before trying to setup [nvim-cmp](https://github.com/hrsh7th/nvim-cmp). If you don't use a completion plugin, then you can use native completions, invoking them with `<C-_>` from within the Chat Buffer.
+The plugin supports multiple completion plugins out of the box. By default, the plugin will look to setup [blink.cmp](https://github.com/Saghen/blink.cmp) before trying to setup [nvim-cmp](https://github.com/hrsh7th/nvim-cmp). If you don't use a completion plugin, then you can use native completions with no setup, invoking them with `<C-_>` from within the chat buffer.
 
 ## Keymaps
 
-The plugin has a host of keymaps available in the Chat Buffer. Pressing `?` in the Chat Buffer will conveniently display all of them to you.
+The plugin has a host of keymaps available in the chat buffer. Pressing `?` in the chat buffer will conveniently display all of them to you.
 
 The keymaps available to the user in normal mode are:
 
