@@ -1,5 +1,13 @@
 # Changelog
 
+## [11.9.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.9.1...v11.9.2) (2025-01-13)
+
+
+### Bug Fixes
+
+* **slash_commands:** handle no content in `terminal` slash command ([aae2085](https://github.com/olimorris/codecompanion.nvim/commit/aae208550ade2d1cbcfaada2c72aeeee83b989b0))
+* **yaml:** handle nil values in show_settings ([9b44789](https://github.com/olimorris/codecompanion.nvim/commit/9b447897320ee149531b6d6d8f90b25d97880666))
+
 ## [11.9.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.9.0...v11.9.1) (2025-01-11)
 
 
