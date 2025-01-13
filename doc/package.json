@@ -4,9 +4,9 @@
     "vitepress": "^1.5.0"
   },
   "scripts": {
-    "dev": "CC_VERSION=$(git tag --list --sort=-v:refname) vitepress dev",
-    "build": "CC_VERSION=$(git tag --list --sort=-v:refname) vitepress build",
-    "build:release": "CC_VERSION=$(git tag --list --sort=-v:refname) IS_RELEASE=true vitepress build",
-    "preview": "CC_VERSION=$(git tag --list --sort=-v:refname) vitepress preview"
+    "dev": "VPL_MVB_VERSION=$(git describe --tags --always --abbrev=1 --match=\"v[0-9].*\") vitepress dev",
+    "build": "vitepress build",
+    "build:release": "IS_RELEASE=true vitepress build",
+    "preview": "vitepress preview"
   }
 }

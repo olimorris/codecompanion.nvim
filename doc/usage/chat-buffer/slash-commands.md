@@ -23,7 +23,7 @@ The _file_ slash command allows you to add the contents of a file in the current
 
 ## /help
 
-The _help_ slash command allows you to add content from a vim help file (`:h helpfile`), to the chat buffer, by searching for help tags. Currently this is only availble for _Telescope_, _mini.pick_ and _fzf_lua_ providers. By default, the slash command will prompt you to trim a help file that is over 1,000 lines in length.
+The _help_ slash command allows you to add content from a vim help file (`:h helpfile`), to the chat buffer, by searching for help tags. Currently this is only available for _Telescope_, _mini.pick_ and _fzf_lua_ providers. By default, the slash command will prompt you to trim a help file that is over 1,000 lines in length.
 
 ## /now
 

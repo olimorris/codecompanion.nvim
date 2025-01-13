@@ -1,10 +1,15 @@
 import { defineConfig } from "vitepress";
+import { execSync } from "node:child_process";
 
-const version = process.env.CC_VERSION.toString().split("\n")[0].trim();
+const isMain = process.env.IS_RELEASE !== "true";
+const version = execSync("git describe --tags --abbrev=0", {
+  encoding: "utf-8",
+}).trim();
 
 const siteUrl = "https://codecompanion.olimorris.dev";
-const title = version ? version : "Main";
-const otherTitle = version ? "Main" : version;
+
+const title = isMain ? "Main" : version;
+const otherTitle = isMain ? version : "Main";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -14,7 +19,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       {
-        text: version,
+        text: `${title}`,
         items: [
           {
             text: "Changelog",
