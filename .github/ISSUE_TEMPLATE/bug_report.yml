@@ -196,6 +196,16 @@ body:
       validations:
         required: false
 
+    - type: input
+      id: adapter
+      attributes:
+        label: Adapter and model
+        description: Please share the adapter and model you used
+        placeholder: |
+          Anthropic and claude-3.5-sonnet
+      validations:
+        required: true
+
     - type: checkboxes
       id: final-checks
       attributes:

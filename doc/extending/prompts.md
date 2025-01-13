@@ -1,4 +1,4 @@
-# Recipes
+# Creating Prompts
 
 The purpose of this guide is to showcase how you can extend the functionality of CodeCompanion by adding your own prompts to the config that are reflected in the _Action Palette_. The _Action Palette_ is a lua table which is parsed by the plugin and displayed as a `vim.ui.select` component. By specifying certain keys, the behaviour of the table can be customised further.
 
@@ -236,7 +236,7 @@ Lets now take a look at the second prompt:
 You can see that we're using a handy helper to get the code between two lines and formatting it into a markdown code block.
 
 > [!IMPORTANT]
-> We've also specifed a `contains_code = true` flag. If you've turned off the sending of code to LLMs then the plugin will block this from happening.
+> We've also specified a `contains_code = true` flag. If you've turned off the sending of code to LLMs then the plugin will block this from happening.
 
 ### Conditionals
 
@@ -273,7 +273,7 @@ And to determine the visibility of actions in the palette itself:
 
 **Allowing a Prompt to appear as a Slash Command**
 
-It can be useful to have a prompt from the prompt library appear as a slash command in the chat buffer, like with the `Generate a Commit Message` action. This can be done by specifiying a `is_slash_cmd = true` option to the prompt:
+It can be useful to have a prompt from the prompt library appear as a slash command in the chat buffer, like with the `Generate a Commit Message` action. This can be done by specifying a `is_slash_cmd = true` option to the prompt:
 
 ```lua
 ["Generate a Commit Message"] = {
@@ -312,14 +312,14 @@ In the chat buffer, if you type `/` you will see the value of `opts.short_name` 
 
 **Specifying a Placement for Inline Prompts**
 
-As outlined in the [README](README.md), an inline prompt can place its response in many different ways. To override this, you can specify a specific placement:
+As outlined in the README, an inline prompt can place its response in many different ways. To override this, you can specify a specific placement:
 
 ```lua
 ["Your_New_Prompt"] = {
   strategy = "inline",
   description = "Your Special Inline Prompt",
   opts = {
-    placement = "new|false"
+    placement = "new"
   },
   -- Your prompts here
 }
@@ -408,3 +408,4 @@ You'll notice that the comments use the notion of "groups". These are collection
 ## Conclusion
 
 Hopefully this serves as a useful introduction on how you can expand CodeCompanion to create prompts that suit your workflow. It's worth checking out the [actions.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) and [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) files for more complex examples.
+

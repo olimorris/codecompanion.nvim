@@ -8,6 +8,97 @@ Helpers.get_buf_lines = function(bufnr)
   return vim.api.nvim_buf_get_lines(bufnr, 0, -1, true)
 end
 
+Helpers.config = {
+  strategies = {
+    chat = {
+      roles = {
+        llm = "assistant",
+        user = "foo",
+      },
+      agents = {
+        tools = {
+          ["foo"] = {
+            callback = "utils.foo",
+            description = "Some foo function",
+          },
+          ["bar"] = {
+            callback = "utils.bar",
+            description = "Some bar function",
+          },
+          ["bar_again"] = {
+            callback = "utils.bar_again",
+            description = "Some bar_again function",
+          },
+          opts = {
+            system_prompt = [[My tool system prompt]],
+          },
+        },
+      },
+
+      variables = {
+        ["foo"] = {
+          callback = "tests.strategies.chat.variables.foo",
+          description = "foo",
+        },
+        ["bar"] = {
+          callback = "tests.strategies.chat.variables.bar",
+          description = "bar",
+          opts = {
+            has_params = true,
+          },
+        },
+        ["baz"] = {
+          callback = "tests.strategies.chat.variables.baz",
+          description = "baz",
+        },
+      },
+
+      slash_commands = {
+        ["file"] = {
+          callback = "strategies.chat.slash_commands.file",
+          description = "Insert a file",
+          opts = {
+            contains_code = true,
+            max_lines = 1000,
+            provider = "default", -- default|telescope|mini_pick|fzf_lua
+          },
+        },
+      },
+    },
+  },
+  prompt_library = {
+    ["Test References"] = {
+      strategy = "chat",
+      description = "Add some references",
+      opts = {
+        index = 1,
+        is_default = true,
+        is_slash_cmd = false,
+        short_name = "test_ref",
+        auto_submit = false,
+      },
+      references = {
+        {
+          type = "file",
+          path = {
+            "lua/codecompanion/health.lua",
+            "lua/codecompanion/http.lua",
+          },
+        },
+      },
+      prompts = {
+        {
+          role = "foo",
+          content = "I need some references",
+        },
+      },
+    },
+  },
+  opts = {
+    system_prompt = "default system prompt",
+  },
+}
+
 Helpers.setup_chat_buffer = function()
   local codecompanion = require("codecompanion")
 
@@ -42,56 +133,7 @@ Helpers.setup_chat_buffer = function()
     },
   }
 
-  codecompanion.setup({
-    strategies = {
-      chat = {
-        roles = {
-          llm = "assistant",
-          user = "foo",
-        },
-        agents = {
-          tools = {
-            ["foo"] = {
-              callback = "utils.foo",
-              description = "Some foo function",
-            },
-            ["bar"] = {
-              callback = "utils.bar",
-              description = "Some bar function",
-            },
-            ["bar_again"] = {
-              callback = "utils.bar_again",
-              description = "Some bar_again function",
-            },
-            opts = {
-              system_prompt = [[My tool system prompt]],
-            },
-          },
-        },
-
-        variables = {
-          ["foo"] = {
-            callback = "tests.strategies.chat.variables.foo",
-            description = "foo",
-          },
-          ["bar"] = {
-            callback = "tests.strategies.chat.variables.bar",
-            description = "bar",
-            opts = {
-              has_params = true,
-            },
-          },
-          ["baz"] = {
-            callback = "tests.strategies.chat.variables.baz",
-            description = "baz",
-          },
-        },
-      },
-    },
-    opts = {
-      system_prompt = "default system prompt",
-    },
-  })
+  codecompanion.setup(Helpers.config)
 
   local chat = require("codecompanion.strategies.chat").new({
     context = { bufnr = 1, filetype = "lua" },

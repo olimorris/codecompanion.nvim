@@ -507,14 +507,17 @@ M.change_adapter = {
 
       if current_adapter ~= selected then
         chat.adapter = require("codecompanion.adapters").resolve(adapters[selected])
-        util.fire("ChatAdapter", { bufnr = chat.bufnr, adapter = chat.adapter })
+        util.fire(
+          "ChatAdapter",
+          { bufnr = chat.bufnr, adapter = require("codecompanion.adapters").make_safe(chat.adapter) }
+        )
         chat:apply_settings()
       end
 
       -- Update the system prompt
       local system_prompt = config.opts.system_prompt
       if type(system_prompt) == "function" then
-        if chat.messages[1].role == "system" then
+        if chat.messages[1] and chat.messages[1].role == "system" then
           chat.messages[1].content = system_prompt(chat.adapter)
         end
       end

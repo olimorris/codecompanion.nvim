@@ -1,0 +1,76 @@
+:root {
+  /* Custom colors */
+  --vp-c-bg: #fafafa;
+  --vw-fg: #6a6a6a;
+  --vw-purple: #9a77cf;
+  --vw-green: #1da912;
+  --vw-blue: #118dc3;
+  --vw-yellow: #eea825;
+
+  /* Base */
+  --vw-base-bg: var(--vp-c-bg);
+  --vw-base-fg: var(--vw-fg);
+  --vw-base-bg-mixer: 10%;
+
+  --vp-c-brand-1: var(--vw-purple);
+  --vp-c-text-1: #6a6a6a;
+  --vp-c-text-3: var(--vw-yellow);
+  --vp-code-color: var(--vp-c-brand-1);
+
+  /* Note info panel */
+  --vp-custom-block-note-bg: color-mix(
+    in srgb,
+    var(--vw-blue) var(--vw-base-bg-mixer),
+    var(--vw-base-bg)
+  );
+  --vp-custom-block-note-border: var(--vw-blue);
+  --vp-custom-block-note-text: color-mix(
+    in srgb,
+    var(--vp-c-text-1) var(--vw-base-bg-mixer),
+    var(--vw-base-fg)
+  );
+  --vp-custom-block-note-code-bg: color-mix(
+    in srgb,
+    var(--vw-blue) 10%,
+    var(--vw-base-bg)
+  );
+
+  /* Important info panel */
+  --vp-custom-block-important-bg: color-mix(
+    in srgb,
+    var(--vw-purple) 10%,
+    var(--vw-base-bg)
+  );
+  --vp-custom-block-important-border: var(--vw-purple);
+  --vp-custom-block-important-text: color-mix(
+    in srgb,
+    var(--vp-c-text-1) var(--vw-base-bg-mixer),
+    var(--vw-base-fg)
+  );
+  --vp-custom-block-important-code-bg: color-mix(
+    in srgb,
+    var(--vw-purple) 25%,
+    var(--vw-base-bg)
+  );
+}
+
+.dark {
+  /* Custom colors */
+  --vw-fg: #b4b7cf;
+  --vw-purple: #c678dd;
+  --vw-green: #75be78;
+  --vw-blue: #25abe4;
+  --vw-yellow: #eae852;
+  --vp-c-bg: #1b1d2a;
+
+  --vp-c-bg-alt: #222435;
+  --vp-c-brand-2: var(--vw-green);
+  --vp-c-gutter: var(--vw-blue);
+  --vp-c-divider: var(--vw-green);
+  --vp-c-text-1: #b4b7cf;
+  --vp-c-text-2: #8e91b7;
+  --vp-c-text-3: var(--vw-yellow);
+
+  /* Override base background for dark mode */
+  --vw-base-bg-mixer: 20%;
+}

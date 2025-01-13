@@ -38,6 +38,12 @@ return {
     ---@param self CodeCompanion.Adapter
     ---@return boolean
     setup = function(self)
+      local model = self.schema.model.default
+      local model_opts = self.schema.model.choices[model]
+      if model_opts and model_opts.opts then
+        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
+      end
+
       if self.opts and self.opts.stream then
         self.parameters.stream = true
         self.parameters.stream_options = { include_usage = true }
@@ -181,7 +187,7 @@ return {
       ---@type string|fun(): string
       default = "gpt-4o",
       choices = {
-        "o1-2024-12-17",
+        ["o1-2024-12-17"] = { opts = { stream = false } },
         "o1-mini-2024-09-12",
         "gpt-4o",
         "gpt-4o-mini",

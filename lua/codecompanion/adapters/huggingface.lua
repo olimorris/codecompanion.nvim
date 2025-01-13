@@ -26,7 +26,7 @@ return {
     ["Content-Type"] = "application/json",
     Authorization = "Bearer ${api_key}",
   },
-  -- NOTE: currently, decided to not implment the tokens counter handle, since the API infernce docs
+  -- NOTE: currently, decided to not implement the tokens counter handle, since the API infernce docs
   -- says it is supported, yet, the usage is returning null when the stream is enabled
   handlers = {
     ---@param self CodeCompanion.Adapter

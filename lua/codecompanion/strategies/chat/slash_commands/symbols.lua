@@ -16,11 +16,121 @@ local function no_symbols()
   util.notify("No symbols found in the buffer", vim.log.levels.WARN)
 end
 
----Output from the slash command in the chat buffer
----@param SlashCommand CodeCompanion.SlashCommand
----@param selected table The selected item from the provider { relative_path = string, path = string }
+local providers = {
+  ---The default provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  default = function(SlashCommand)
+    local default = require("codecompanion.providers.slash_commands.default")
+    return default
+      .new({
+        output = function(selection)
+          SlashCommand:output({ relative_path = selection.relative_path, path = selection.path })
+        end,
+        SlashCommand = SlashCommand,
+        title = CONSTANTS.PROMPT,
+      })
+      :find_files()
+      :display()
+  end,
+
+  ---The Telescope provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  telescope = function(SlashCommand)
+    local telescope = require("codecompanion.providers.slash_commands.telescope")
+    telescope = telescope.new({
+      title = CONSTANTS.PROMPT,
+      output = function(selection)
+        return SlashCommand:output({ relative_path = selection[1], path = selection.path })
+      end,
+    })
+
+    telescope.provider.find_files({
+      prompt_title = telescope.title,
+      attach_mappings = telescope:display(),
+    })
+  end,
+
+  ---The Mini.Pick provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  mini_pick = function(SlashCommand)
+    local mini_pick = require("codecompanion.providers.slash_commands.mini_pick")
+    mini_pick = mini_pick.new({
+      title = CONSTANTS.PROMPT,
+      output = function(selected)
+        return SlashCommand:output(selected)
+      end,
+    })
+
+    mini_pick.provider.builtin.files(
+      {},
+      mini_pick:display(function(selected)
+        return {
+          path = selected,
+          relative_path = selected,
+        }
+      end)
+    )
+  end,
+
+  ---The fzf-lua provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  fzf_lua = function(SlashCommand)
+    local fzf = require("codecompanion.providers.slash_commands.fzf_lua")
+    fzf = fzf.new({
+      title = CONSTANTS.PROMPT,
+      output = function(selected)
+        return SlashCommand:output(selected)
+      end,
+    })
+
+    fzf.provider.files(fzf:display(function(selected, opts)
+      local file = fzf.provider.path.entry_to_file(selected, opts)
+      return {
+        relative_path = file.stripped,
+        path = file.path,
+      }
+    end))
+  end,
+}
+
+---@class CodeCompanion.SlashCommand.Symbols: CodeCompanion.SlashCommand
+local SlashCommand = {}
+
+---@param args CodeCompanion.SlashCommandArgs
+function SlashCommand.new(args)
+  local self = setmetatable({
+    Chat = args.Chat,
+    config = args.config,
+    context = args.context,
+  }, { __index = SlashCommand })
+
+  return self
+end
+
+---Execute the slash command
+---@param SlashCommands CodeCompanion.SlashCommands
 ---@return nil
-local function output(SlashCommand, selected)
+function SlashCommand:execute(SlashCommands)
+  if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
+    return log:warn("Sending of code has been disabled")
+  end
+  return SlashCommands:set_provider(self, providers)
+end
+
+---Output from the slash command in the chat buffer
+---@param selected table The selected item from the provider { relative_path = string, path = string }
+---@param opts? table
+---@return nil
+function SlashCommand:output(selected, opts)
+  if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
+    return log:warn("Sending of code has been disabled")
+  end
+  opts = opts or {}
+
   local ft = vim.filetype.match({ filename = selected.path })
   local content = path.new(selected.path):read()
 
@@ -34,13 +144,14 @@ local function output(SlashCommand, selected)
   local tree = parser:parse()[1]
 
   local function get_ts_node(output_tbl, type, match)
-    table.insert(output_tbl, fmt(" - %s %s", type, vim.trim(vim.treesitter.get_node_text(match.node, content, match))))
+    table.insert(output_tbl, fmt(" - %s %s", type, vim.trim(vim.treesitter.get_node_text(match.node, content))))
   end
 
   local symbols = {}
-  for _, matches, metadata in query:iter_matches(tree:root(), content, 0, -1, { all = false }) do
+  for _, matches, metadata in query:iter_matches(tree:root(), content) do
     local match = vim.tbl_extend("force", {}, metadata)
-    for id, node in pairs(matches) do
+    for id, nodes in pairs(matches) do
+      local node = type(nodes) == "table" and nodes[1] or nodes
       match = vim.tbl_extend("keep", match, {
         [query.captures[id]] = {
           metadata = metadata[id],
@@ -81,10 +192,10 @@ local function output(SlashCommand, selected)
     return no_symbols()
   end
 
-  local id = "<symbols>" .. selected.relative_path .. "</symbols>"
+  local id = "<symbols>" .. (selected.relative_path or selected.path) .. "</symbols>"
   content = table.concat(symbols, "\n")
 
-  SlashCommand.Chat:add_message({
+  self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = fmt(
       [[Here is a symbolic outline of the file `%s` with filetype `%s`:
@@ -92,124 +203,23 @@ local function output(SlashCommand, selected)
 <symbols>
 %s
 </symbols>]],
-      selected.relative_path,
+      selected.relative_path or selected.path,
       ft,
       content
     ),
   }, { reference = id, visible = false })
 
-  SlashCommand.Chat.References:add({
+  self.Chat.References:add({
     source = "slash_command",
     name = "symbols",
     id = id,
   })
 
-  util.notify(fmt("Added the symbols for `%s` to the chat", vim.fn.fnamemodify(selected.relative_path, ":t")))
-end
-
-local providers = {
-  ---The default provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  default = function(SlashCommand)
-    local default = require("codecompanion.providers.slash_commands.default")
-    return default
-      .new({
-        output = function(selection)
-          output(SlashCommand, { relative_path = selection.relative_path, path = selection.path })
-        end,
-        SlashCommand = SlashCommand,
-        title = CONSTANTS.PROMPT,
-      })
-      :find_files()
-      :display()
-  end,
-
-  ---The Telescope provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  telescope = function(SlashCommand)
-    local telescope = require("codecompanion.providers.slash_commands.telescope")
-    telescope = telescope.new({
-      title = CONSTANTS.PROMPT,
-      output = function(selection)
-        return output(SlashCommand, { relative_path = selection[1], path = selection.path })
-      end,
-    })
-
-    telescope.provider.find_files({
-      prompt_title = telescope.title,
-      attach_mappings = telescope:display(),
-    })
-  end,
-
-  ---The Mini.Pick provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  mini_pick = function(SlashCommand)
-    local mini_pick = require("codecompanion.providers.slash_commands.mini_pick")
-    mini_pick = mini_pick.new({
-      title = CONSTANTS.PROMPT,
-      output = function(selected)
-        return output(SlashCommand, selected)
-      end,
-    })
-
-    mini_pick.provider.builtin.files(
-      {},
-      mini_pick:display(function(selected)
-        return {
-          path = selected,
-          relative_path = selected,
-        }
-      end)
-    )
-  end,
-
-  ---The fzf-lua provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  fzf_lua = function(SlashCommand)
-    local fzf = require("codecompanion.providers.slash_commands.fzf_lua")
-    fzf = fzf.new({
-      title = CONSTANTS.PROMPT,
-      output = function(selected)
-        return output(SlashCommand, selected)
-      end,
-    })
-
-    fzf.provider.files(fzf:display(function(selected, opts)
-      local file = fzf.provider.path.entry_to_file(selected, opts)
-      return {
-        relative_path = file.stripped,
-        path = file.path,
-      }
-    end))
-  end,
-}
-
----@class CodeCompanion.SlashCommand.Symbols: CodeCompanion.SlashCommand
-local SlashCommand = {}
-
----@param args CodeCompanion.SlashCommandArgs
-function SlashCommand.new(args)
-  local self = setmetatable({
-    Chat = args.Chat,
-    config = args.config,
-    context = args.context,
-  }, { __index = SlashCommand })
-
-  return self
-end
-
----Execute the slash command
----@param SlashCommands CodeCompanion.SlashCommands
----@return nil
-function SlashCommand:execute(SlashCommands)
-  if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
-    return log:warn("Sending of code has been disabled")
+  if opts.silent then
+    return
   end
-  return SlashCommands:set_provider(self, providers)
+
+  util.notify(fmt("Added the symbols for `%s` to the chat", vim.fn.fnamemodify(selected.relative_path, ":t")))
 end
 
 return SlashCommand

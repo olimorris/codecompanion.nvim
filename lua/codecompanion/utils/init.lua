@@ -12,7 +12,7 @@ end
 
 ---Notify the user
 ---@param msg string
----@param level? integer
+---@param level? number|string
 ---@return nil
 function M.notify(msg, level)
   level = level or vim.log.levels.INFO

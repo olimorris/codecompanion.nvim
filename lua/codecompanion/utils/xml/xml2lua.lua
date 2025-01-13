@@ -52,7 +52,7 @@
 local xml2lua = { _VERSION = "1.6-1" }
 local XmlParser = require("codecompanion.utils.xml.XmlParser")
 
----Recursivelly prints a table in an easy-to-ready format
+---Recursively prints a table in an easy-to-ready format
 --@param tb The table to be printed
 --@param level the indentation level to start with
 local function printableInternal(tb, level)
@@ -96,7 +96,7 @@ function xml2lua.parser(handler)
   return XmlParser.new(handler, options)
 end
 
----Recursivelly prints a table in an easy-to-ready format
+---Recursively prints a table in an easy-to-ready format
 --@param tb The table to be printed
 function xml2lua.printable(tb)
   printableInternal(tb)
@@ -141,8 +141,8 @@ function xml2lua.loadFile(xmlFilePath)
 end
 
 ---Gets an _attr element from a table that represents the attributes of an XML tag,
---and generates a XML String representing the attibutes to be inserted
---into the openning tag of the XML
+--and generates a XML String representing the attributes to be inserted
+--into the opening tag of the XML
 --
 --@param attrTable table from where the _attr field will be got
 --@return a XML String representation of the tag attributes

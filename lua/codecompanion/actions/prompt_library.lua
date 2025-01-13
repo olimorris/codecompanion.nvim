@@ -40,6 +40,7 @@ function M.resolve(context, config)
       description = description,
       name = name,
       opts = prompt.opts,
+      references = prompt.references,
       picker = prompt.picker,
       prompts = prompt.prompts,
       strategy = prompt.strategy,

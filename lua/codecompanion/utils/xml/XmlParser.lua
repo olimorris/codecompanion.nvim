@@ -65,7 +65,7 @@ local XmlParser = {
   _ATTRERR1 = '=+?%s*"[^"]*$',
   --Matches an attribute with non-closing single quotes (The equal sign is matched non-greedly by using =+?)
   _ATTRERR2 = "=+?%s*'[^']*$",
-  --Matches a closing tag such as </person> or the end of a openning tag such as <person>
+  --Matches a closing tag such as </person> or the end of a opening tag such as <person>
   _TAGEXT = "(%/?)>",
 
   _errstr = {
@@ -398,14 +398,14 @@ function XmlParser:parse(xml, parseAttributes)
   self.handler.parseAttributes = parseAttributes
 
   --Stores string.find results and parameters
-  --and other auxiliar variables
+  --and other auxiliary variables
   local f = {
     --string.find return
     match = 0,
     endMatch = 0,
     -- text, end1, tagstr, end2,
 
-    --string.find parameters and auxiliar variables
+    --string.find parameters and auxiliary variables
     pos = 1,
     -- startText, endText,
     -- errStart, errEnd, extStart, extEnd,

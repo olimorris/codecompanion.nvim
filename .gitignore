@@ -42,6 +42,10 @@ luac.out
 # Macos
 .DS_Store
 
+# vitepress
+doc/.vitepress/dist
+doc/.vitepress/cache
+
 .direnv/
 .testenv/
 .repro/

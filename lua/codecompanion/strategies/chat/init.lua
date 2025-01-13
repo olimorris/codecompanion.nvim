@@ -57,8 +57,11 @@ local function ts_parse_settings(bufnr, adapter)
   local query = vim.treesitter.query.get("yaml", "chat")
   local root = parser:parse()[1]:root()
 
-  for _, match in query:iter_matches(root, bufnr, nil, nil, { all = false }) do
-    local value = vim.treesitter.get_node_text(match[1], bufnr)
+  for _, matches, _ in query:iter_matches(root, bufnr) do
+    local nodes = matches[1]
+    local node = type(nodes) == "table" and nodes[1] or nodes
+
+    local value = vim.treesitter.get_node_text(node, bufnr)
 
     settings = yaml.decode(value)
     break
@@ -89,8 +92,7 @@ local function ts_parse_messages(chat, role, start_range)
   for id, node in query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
     if query.captures[id] == "role" then
       last_role = vim.treesitter.get_node_text(node, chat.bufnr)
-      last_role = last_role:gsub("## ", "")
-    elseif last_role == role and query.captures[id] == "content" then
+    elseif last_role == chat.ui:format_header(user_role) and query.captures[id] == "content" then
       table.insert(content, vim.treesitter.get_node_text(node, chat.bufnr))
     end
   end
@@ -482,19 +484,18 @@ function Chat:add_tool(tool, tool_config)
 
   -- Add the overarching agent system prompt first
   if not self:has_tools() then
-    local id = string.upper(tool) .. " tool"
-
     self:add_message({
       role = config.constants.SYSTEM_ROLE,
       content = config.strategies.chat.agents.tools.opts.system_prompt,
     }, { visible = false, reference = "tool_system_prompt", tag = "tool" })
-
-    self.References:add({
-      source = "tool",
-      name = "tool",
-      id = id,
-    })
   end
+
+  local id = "<tool>" .. tool .. "</tool>"
+  self.References:add({
+    source = "tool",
+    name = "tool",
+    id = id,
+  })
 
   self.tools_in_use[tool] = true
 
@@ -502,7 +503,7 @@ function Chat:add_tool(tool, tool_config)
   if resolved then
     self:add_message(
       { role = config.constants.SYSTEM_ROLE, content = resolved.system_prompt(resolved.schema) },
-      { visible = false, tag = "tool" }
+      { visible = false, tag = "tool", reference = id }
     )
   end
 
@@ -646,7 +647,7 @@ function Chat:submit(opts)
   self:check_references()
   self:add_pins()
 
-  -- Check if the user has manually overriden the adapter
+  -- Check if the user has manually overridden the adapter
   if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
     self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
   end
@@ -911,7 +912,7 @@ function Chat:add_buf_message(data, opts)
     self.last_role = data.role
     table.insert(lines, "")
     table.insert(lines, "")
-    self.ui:format_header(lines, config.strategies.chat.roles[data.role])
+    self.ui:set_header(lines, config.strategies.chat.roles[data.role])
   end
 
   if data.content then

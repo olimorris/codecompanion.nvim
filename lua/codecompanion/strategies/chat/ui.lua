@@ -170,20 +170,24 @@ function UI:is_visible()
   return self.winnr and api.nvim_win_is_valid(self.winnr) and api.nvim_win_get_buf(self.winnr) == self.bufnr
 end
 
--- is_active
+---Get the formatted header for the chat buffer
+---@param role string The role of the user
+---@return string
+function UI:format_header(role)
+  local header = "## " .. role
+  if config.display.chat.show_header_separator then
+    header = string.format("%s %s", header, config.display.chat.separator)
+  end
 
--- Follow
+  return header
+end
 
 ---Format the header in the chat buffer
 ---@param tbl table containing the buffer contents
 ---@param role string The role of the user to display in the header
 ---@return nil
-function UI:format_header(tbl, role)
-  if config.display.chat.show_header_separator then
-    table.insert(tbl, string.format("## %s %s", role, config.display.chat.separator))
-  else
-    table.insert(tbl, string.format("## %s", role))
-  end
+function UI:set_header(tbl, role)
+  table.insert(tbl, self:format_header(role))
   table.insert(tbl, "")
 end
 
@@ -210,10 +214,10 @@ function UI:render(context, messages, opts)
         end
 
         if msg.role == config.constants.USER_ROLE and last_set_role ~= config.constants.USER_ROLE then
-          self:format_header(lines, self.roles.user)
+          self:set_header(lines, self.roles.user)
         end
         if msg.role == config.constants.LLM_ROLE and last_set_role ~= config.constants.LLM_ROLE then
-          self:format_header(lines, self.roles.llm)
+          self:set_header(lines, self.roles.llm)
         end
 
         for _, text in ipairs(vim.split(msg.content, "\n", { plain = true, trimempty = true })) do
@@ -249,7 +253,7 @@ function UI:render(context, messages, opts)
 
   if vim.tbl_isempty(messages) then
     log:trace("Setting the header for the chat buffer")
-    self:format_header(lines, self.roles.user)
+    self:set_header(lines, self.roles.user)
     spacer()
   else
     log:trace("Setting the messages in the chat buffer")
@@ -392,9 +396,10 @@ function UI:fold_code()
   vim.o.foldmethod = "manual"
 
   local role
-  for _, matches in query:iter_matches(tree:root(), self.bufnr, nil, nil, { all = false }) do
+  for _, matches in query:iter_matches(tree:root(), self.bufnr) do
     local match = {}
-    for id, node in pairs(matches) do
+    for id, nodes in pairs(matches) do
+      local node = type(nodes) == "table" and nodes[1] or nodes
       match = vim.tbl_extend("keep", match, {
         [query.captures[id]] = {
           node = node,

@@ -40,15 +40,7 @@ return {
   {
     cmd = "CodeCompanion",
     callback = function(opts)
-      if #vim.trim(opts.args or "") == 0 then
-        vim.ui.input({ prompt = config.display.action_palette.prompt }, function(input)
-          if #vim.trim(input or "") == 0 then
-            return
-          end
-          opts.args = input
-          codecompanion.inline(opts)
-        end)
-      else
+      local handler = function(opts)
         if string.sub(opts.args, 1, 1) == "/" then
           local user_prompt = nil
           -- Remove the leading slash
@@ -85,6 +77,18 @@ return {
         end
 
         codecompanion.inline(opts)
+      end
+
+      if #vim.trim(opts.args or "") == 0 then
+        vim.ui.input({ prompt = config.display.action_palette.prompt }, function(input)
+          if #vim.trim(input or "") == 0 then
+            return
+          end
+          opts.args = input
+          handler(opts)
+        end)
+      else
+        handler(opts)
       end
     end,
     opts = {

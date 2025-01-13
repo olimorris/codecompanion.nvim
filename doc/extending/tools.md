@@ -1,4 +1,4 @@
-# Tools
+# Creating Tools
 
 In CodeCompanion, tools offer pre-defined ways for LLMs to execute actions and act as an Agent. Tools are added to chat buffers as participants. This guide walks you through the implementation of tools, enabling you to create your own.
 
@@ -6,15 +6,15 @@ In CodeCompanion, tools offer pre-defined ways for LLMs to execute actions and a
 
 In the plugin, tools work by sharing a system prompt with an LLM. This instructs them how to produce an XML markdown code block which can, in turn, be interpreted by the plugin to execute a command or function.
 
-The plugin has a tools class `CodeCompanion.Tools` which will call individual `CodeCompanion.Tool` such as the `cmd_runner` or the `editor`. The calling of tools is orchestrated by the `CodeCompanion.Chat` class which parses an LLM's response and looks to identify any XML code blocks.
+The plugin has a tools class `CodeCompanion.Tools` which will call individual `CodeCompanion.Tool` such as the [cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/cmd_runner.lua) or the [editor](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/editor.lua). The calling of tools is orchestrated by the `CodeCompanion.Chat` class which parses an LLM's response and looks to identify any XML code blocks.
 
 ## Tool Types
 
 There are two types of tools within the plugin:
 
-1. **Command-based**: These tools can execute a series of commands in the background using a `plenary.job`. They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
+1. **Command-based**: These tools can execute a series of commands in the background using a [plenary.job](https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/job.lua). They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
 
-2. **Function-based**: These tools, like the `editor` one, execute Lua functions directly in Neovim within the main process.
+2. **Function-based**: These tools, like the [editor](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/editor.lua) one, execute Lua functions directly in Neovim within the main process.
 
 ## The Interface
 
@@ -34,7 +34,7 @@ Tools must implement the following interface:
 ---@field handlers.on_exit? fun(self: CodeCompanion.Tools): any Function to call at the end of all of the commands
 ---@field output? table Functions which can be called after the command finishes
 ---@field output.rejected? fun(self: CodeCompanion.Tools, cmd: table): any Function to call if the user rejects running a command
----@field output.error? fun(self: CodeCompanion.Tools, cmd: table, error: table|string): any Function to call if the tool is unsuccesful
+---@field output.error? fun(self: CodeCompanion.Tools, cmd: table, error: table|string): any Function to call if the tool is unsuccessful
 ---@field output.success? fun(self: CodeCompanion.Tools, cmd: table, output: table|string): any Function to call if the tool is successful
 ---@field request table The request from the LLM to use the Tool
 ```
@@ -114,7 +114,7 @@ schema = {
 
 You can setup environment variables that other functions can access in the `env` function. This function receives the parsed schema which is requested by the LLM when it follows the schema's structure.
 
-For the Code Runner agent, the environment has been setup as:
+For the Code Runner agent, the environment was setup as:
 
 ```lua
 ---@param schema table
@@ -139,7 +139,7 @@ Note that a table has been returned that can then be used in other functions.
 
 In the plugin, LLMs are given knowledge about a tool via a system prompt. This gives the LLM knowledge of the tool alongside the instructions (via the schema) required to execute it.
 
-For the Code Runner agent, the `system_prompt` table is:
+For the Code Runner agent, the `system_prompt` table was:
 
 ````lua
   system_prompt = function(schema)
@@ -183,8 +183,9 @@ The `rejected` method is called when a user rejects to approve the running of a 
 
 The `error` method is called to notify the LLM of an error when executing a command.
 
-And finally, the `success` method is called to notify the LLM of a successful executin of a command.
+And finally, the `success` method is called to notify the LLM of a successful execution of a command.
 
 ### `request`
 
 The request table is populated at runtime and contains the parsed XML that the LLM has requested to run.
+

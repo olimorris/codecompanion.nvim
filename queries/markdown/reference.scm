@@ -7,3 +7,7 @@
   (atx_heading) @role
   (block_quote)? @refs
 )
+
+(section
+  (block_quote) @refs
+)

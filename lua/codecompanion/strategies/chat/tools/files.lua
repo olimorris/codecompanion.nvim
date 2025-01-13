@@ -1,6 +1,6 @@
 --[[
 *Files Tool*
-This tool can be used make edits to files on disk. It can handle multple actions
+This tool can be used make edits to files on disk. It can handle multiple actions
 in the same XML block. All actions must be approved by you.
 --]]
 
@@ -38,7 +38,7 @@ end
 
 ---Edit the contents of a file
 ---@param action table The action object
---@return nil
+---@return nil
 local function edit(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
