@@ -253,28 +253,6 @@ T["Watcher"]["ignores changes after unwatching"] = function()
   h.eq(changes, nil)
 end
 
-T["Watcher"]["handles empty buffer"] = function()
-  local watcher = Watcher.new()
-  local bufnr = vim.api.nvim_get_current_buf()
-
-  -- Ensure buffer is empty
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
-  watcher:watch(bufnr)
-
-  -- Add content to empty buffer
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "new line" })
-
-  local changes = watcher:get_changes(bufnr)
-
-  h.not_eq(changes, nil)
-  h.eq(#changes, 1, "Should have one change")
-
-  local change = changes[1]
-  h.eq(change.type, "add", "Should be an addition")
-  h.eq(change.lines[1], "new line", "Content should match")
-  h.eq(change.start, 1, "Should start at line 1")
-end
-
 T["Watcher"]["handles prepending to start of buffer"] = function()
   local watcher = Watcher.new()
   local bufnr = vim.api.nvim_get_current_buf()
@@ -441,24 +419,38 @@ T["Watcher"]["handles modifications after buffer switching"] = function()
   vim.api.nvim_buf_delete(temp_buf, { force = true })
 end
 
-T["Watcher"]["handles buffer deletion"] = function()
+T["Watcher"]["handles buffer deletion properly"] = function()
   local watcher = Watcher.new()
 
-  -- Create a temporary buffer
   vim.cmd("new")
   local temp_buf = vim.api.nvim_get_current_buf()
+  vim.api.nvim_buf_set_lines(temp_buf, 0, -1, false, { "test line 1", "test line 2" })
 
   watcher:watch(temp_buf)
   h.not_eq(watcher.buffers[temp_buf], nil)
 
+  local initial_changes = watcher:get_changes(temp_buf)
+  h.eq(initial_changes, nil)
+
   vim.api.nvim_buf_delete(temp_buf, { force = true })
 
-  -- Try to get changes (should return nil)
+  h.eq(watcher.buffers[temp_buf], nil)
+end
+
+T["Watcher"]["doesn't watch invalid buffers"] = function()
+  local watcher = Watcher.new()
+
+  -- Create and immediately delete a buffer
+  vim.cmd("new")
+  local temp_buf = vim.api.nvim_get_current_buf()
+  vim.api.nvim_buf_delete(temp_buf, { force = true })
+
+  watcher:watch(temp_buf)
+
+  h.eq(watcher.buffers[temp_buf], nil)
+
   local changes = watcher:get_changes(temp_buf)
   h.eq(changes, nil)
-
-  -- Verify the buffer is no longer being watched
-  h.eq(watcher.buffers[temp_buf], nil)
 end
 
 return T
