@@ -205,6 +205,32 @@ require("codecompanion").setup({
 }),
 ```
 
+## UI
+
+As the Chat Buffer uses markdown as its syntax, you can use popular rendering plugins to improve the UI:
+
+**[render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim)**
+
+```lua
+{
+  "MeanderingProgrammer/render-markdown.nvim",
+  ft = { "markdown", "codecompanion" }
+},
+```
+
+**[markview.nvim](https://github.com/OXY2DEV/markview.nvim)**
+
+```lua
+{
+  "OXY2DEV/markview.nvim",
+  ft = { "markdown", "codecompanion" },
+  opts = {
+    filetypes = { "markdown", "codecompanion" },
+    buf_ignore = {},
+  },
+},
+```
+
 ## Additional Options
 
 There are also a number of other options that you can customize:
