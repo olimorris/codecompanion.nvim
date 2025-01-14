@@ -342,6 +342,55 @@ It may also be useful to create custom prompts that do not send the default syst
 }
 ```
 
+### Prompts with References
+
+It can be useful to pre-load a chat buffer with references to _files_, _symbols_ or even _urls_. This makes conversing with an LLM that much more productive. As per `v11.9.0`, this can now be accomplished, as per the example below:
+
+```lua
+["Test References"] = {
+  strategy = "chat",
+  description = "Add some references",
+  opts = {
+    index = 11,
+    is_default = true,
+    is_slash_cmd = false,
+    short_name = "ref",
+    auto_submit = false,
+  },
+  -- These will appear at the top of the chat buffer
+  references = {
+    {
+      type = "file",
+      path = { -- This can be a string or a table of values
+        "lua/codecompanion/health.lua",
+        "lua/codecompanion/http.lua",
+      },
+    },
+    {
+      type = "file",
+      path = "lua/codecompanion/schema.lua",
+    },
+    {
+      type = "symbols",
+      path = "lua/codecompanion/strategies/chat/init.lua",
+    },
+    {
+      type = "url", -- This URL will even be cached for you!
+      url = "https://raw.githubusercontent.com/olimorris/codecompanion.nvim/refs/heads/main/lua/codecompanion/commands.lua",
+    },
+  },
+  prompts = {
+    {
+      role = "user",
+      content = "I'll think of something clever to put here...",
+      opts = {
+        contains_code = true,
+      },
+    },
+  },
+},
+```
+
 ## Agentic Workflows
 
 Workflows, at their core, are simply multiple prompts which are sent to the LLM in a turn-based manner. I fully recommend reading [Issue 242](https://www.deeplearning.ai/the-batch/issue-242/) of The Batch to understand their use. Workflows are setup in exactly the same way as prompts in the prompt library. Take the `code workflow` as an example:
