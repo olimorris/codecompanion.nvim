@@ -11,25 +11,6 @@ The chat buffer uses markdown as its syntax and `H2` headers separate the user a
 
 Messages which are sent to the LLM sit under `H2` headers in the chat buffer. However, when adding system prompts or context to the chat buffer via [Slash Commands](/usage/chat-buffer/slash-commands), some messages will be hidden. Using the keymap `gd` (to debug the chat buffer), you are able to see the full contents of the messages table.
 
-## Settings
-
-<img src="https://github.com/user-attachments/assets/01f1e482-1f7b-474f-ae23-f25cc637f40a" />
-
-When conversing with an LLM, it can be useful to tweak model settings in between responses in order to generate the perfect output. If settings are enabled (`display.chat.show_settings = true`), then a yaml block will be present at the top of the chat buffer which can be modified in between responses. The yaml block is simply a representation of an adapter's schema table.
-
-## References
-
-<img src="https://github.com/user-attachments/assets/1b44afe1-13f8-4c0f-9199-cb32439eb09e" />
-
-Sharing context with an LLM is a crucial in order to generate useful responses. In the plugin, references are defined as output that is shared with a chat buffer via a _Variable_, _Slash Command_ or _Agent/Tool_. They appear in a blockquote entitled `Sharing`. In essence, this is context that you're sharing with an LLM.
-
-References can be removed from the chat buffer by simply deleting them. On the next turn, the context will be removed from the message history.
-
-> [!NOTE]
-> Pinned references only work with buffer and file references
-
-References can also be pinned to a chat buffer with the `gp` keymap. Pinning results in the content from a buffer or a file, being reloaded and shared with the LLM before a response is sent. The advantage of this is that the LLM always has the latest data from that source, saving the user from manually re-adding it to the chat buffer.
-
 ## Completion
 
 <img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" />
@@ -58,4 +39,23 @@ The keymaps available to the user in normal mode are:
 - `]]` to move to the next header
 - `{` to move to the previous chat
 - `}` to move to the next chat
+
+## References
+
+<img src="https://github.com/user-attachments/assets/1b44afe1-13f8-4c0f-9199-cb32439eb09e" />
+
+Sharing context with an LLM is a crucial in order to generate useful responses. In the plugin, references are defined as output that is shared with a chat buffer via a _Variable_, _Slash Command_ or _Agent/Tool_. They appear in a blockquote entitled `Sharing`. In essence, this is context that you're sharing with an LLM.
+
+References can be removed from the chat buffer by simply deleting them. On the next turn, the context will be removed from the message history.
+
+> [!NOTE]
+> Pinned references only work with buffer and file references
+
+References can also be pinned to a chat buffer with the `gp` keymap. Pinning results in the content from a buffer or a file, being reloaded and shared with the LLM before a response is sent. The advantage of this is that the LLM always has the latest data from that source, saving the user from manually re-adding it to the chat buffer.
+
+## Settings
+
+<img src="https://github.com/user-attachments/assets/01f1e482-1f7b-474f-ae23-f25cc637f40a" />
+
+When conversing with an LLM, it can be useful to tweak model settings in between responses in order to generate the perfect output. If settings are enabled (`display.chat.show_settings = true`), then a yaml block will be present at the top of the chat buffer which can be modified in between responses. The yaml block is simply a representation of an adapter's schema table.
 

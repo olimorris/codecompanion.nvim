@@ -35,9 +35,9 @@ The _now_ slash command simply inserts the current datetime stamp into the chat 
 > If a filetype isn't supported please consider making a PR to add the corresponding Tree-sitter queries from
 > [aerial.nvim](https://github.com/stevearc/aerial.nvim)
 
-The _symbols_ slash command uses Tree-sitter to create a symbolic outline of a file to share with the LLM. This can be a useful way to minimize token consumption whilst sharing the basic outline of a file. The plugin utilizes the amazing work from **aerial.nvim** by using their Tree-sitter symbol queries.
+The _symbols_ slash command uses Tree-sitter to create a symbolic outline of a file to share with the LLM. This can be a useful way to minimize token consumption whilst sharing the basic outline of a file. The plugin utilizes the amazing work from **aerial.nvim** by using their Tree-sitter symbol queries. The list of filetypes that the plugin currently supports can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/queries).
 
 ## /terminal
 
-The _terminal_ slash command shares the output from the last terminal buffer with the Chat Buffer.
+The _terminal_ slash command shares the output from the last terminal buffer with the chat buffer.
 

@@ -45,10 +45,10 @@ export default defineConfig({
         collapsed: true,
         items: [
           { text: "Introduction", link: "/configuration/introduction" },
+          { text: "Action Palette", link: "/configuration/action-palette" },
           { text: "Adapters", link: "/configuration/adapters" },
           { text: "Chat Buffer", link: "/configuration/chat-buffer" },
           { text: "Inline Assistant", link: "/configuration/inline-assistant" },
-          { text: "Action Palette", link: "/configuration/action-palette" },
           { text: "Prompt Library", link: "/configuration/prompt-library" },
           { text: "System Prompt", link: "/configuration/system-prompt" },
           { text: "Others", link: "/configuration/others" },
@@ -58,9 +58,8 @@ export default defineConfig({
         text: "Usage",
         collapsed: false,
         items: [
-          { text: "General", link: "/usage/general" },
+          { text: "Introduction", link: "/usage/introduction" },
           { text: "Action Palette", link: "/usage/action-palette" },
-          { text: "Adapters", link: "/usage/adapters" },
           {
             text: "Chat Buffer",
             link: "/usage/chat-buffer",
@@ -74,11 +73,10 @@ export default defineConfig({
               { text: "Variables", link: "/usage/chat-buffer/variables" },
             ],
           },
-          { text: "Commands", link: "/usage/commands" },
           { text: "Events", link: "/usage/events" },
           { text: "Inline Assistant", link: "/usage/inline-assistant" },
           { text: "Workflows", link: "/usage/workflows" },
-          { text: "Miscellaneous", link: "/usage/misc" },
+          { text: "Others", link: "/usage/others" },
         ],
       },
       {
