@@ -206,7 +206,7 @@ function Chat.new(args)
     adapter = adapters.make_safe(self.adapter),
   })
   util.fire("ChatModel", { bufnr = self.bufnr, model = self.adapter.schema.model.default })
-  util.fire("ChatOpened", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library })
+  util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library })
 
   self:apply_settings(self.opts.settings)
 

@@ -81,7 +81,7 @@ export default defineConfig({
       },
       {
         text: "Extending the Plugin",
-        collapsed: true,
+        collapsed: false,
         items: [
           { text: "Creating Adapters", link: "/extending/adapters" },
           { text: "Creating Prompts", link: "/extending/prompts" },

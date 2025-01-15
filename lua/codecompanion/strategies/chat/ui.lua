@@ -8,6 +8,7 @@ local yaml = require("codecompanion.utils.yaml")
 
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
+local util = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -120,7 +121,7 @@ function UI:open()
   self:follow()
 
   log:trace("Chat opened with ID %d", self.id)
-
+  util.fire("ChatOpened", { bufnr = self.bufnr })
   return self
 end
 
@@ -141,6 +142,8 @@ function UI:hide()
   else
     vim.cmd("buffer " .. vim.fn.bufnr("#"))
   end
+
+  util.fire("ChatHidden", { bufnr = self.bufnr })
 end
 
 ---Follow the cursor in the chat buffer

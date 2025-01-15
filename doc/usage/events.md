@@ -6,8 +6,10 @@ In order to enable a tighter integration between CodeCompanion and your Neovim c
 
 The events that you can access are:
 
+- `CodeCompanionChatCreated` - Fired after a chat has been created for the first time
 - `CodeCompanionChatOpened` - Fired after a chat has been opened
-- `CodeCompanionChatClosed` - Fired after a chat has been closed
+- `CodeCompanionChatHidden` - Fired after a chat has been hidden
+- `CodeCompanionChatClosed` - Fired after a chat has been permanently closed
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
 - `CodeCompanionChatPin` - Fired after a pinned reference has been updated in the messages table
