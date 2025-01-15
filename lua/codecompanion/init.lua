@@ -330,9 +330,6 @@ M.setup = function(opts)
   -- Setup completion for blink.cmp and cmp
   local has_cmp, cmp = pcall(require, "cmp")
   local has_blink, blink = pcall(require, "blink.cmp")
-  if has_blink and has_cmp then
-    log:warn("Both cmp and blink available, please uninstall one")
-  end
   if has_blink then
     pcall(function()
       blink.add_provider("codecompanion", {
