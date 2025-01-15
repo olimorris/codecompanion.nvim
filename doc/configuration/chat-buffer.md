@@ -60,7 +60,7 @@ require("codecompanion").setup({
 
 Slash Commands (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.
 
-The plugin supports providers like `telescope`, `mini_pick`, or `fzf_lua` (please see the [Chat Buffer](/usage/chat-buffer) usage section for full details):
+The plugin supports providers like `telescope`, `mini_pick`, or `fzf_lua` (please see the [Chat Buffer](/usage/chat-buffer/index) usage section for full details):
 
 ```lua
 require("codecompanion").setup({
@@ -203,6 +203,32 @@ require("codecompanion").setup({
     },
   },
 }),
+```
+
+## UI
+
+As the Chat Buffer uses markdown as its syntax, you can use popular rendering plugins to improve the UI:
+
+**[render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim)**
+
+```lua
+{
+  "MeanderingProgrammer/render-markdown.nvim",
+  ft = { "markdown", "codecompanion" }
+},
+```
+
+**[markview.nvim](https://github.com/OXY2DEV/markview.nvim)**
+
+```lua
+{
+  "OXY2DEV/markview.nvim",
+  ft = { "markdown", "codecompanion" },
+  opts = {
+    filetypes = { "markdown", "codecompanion" },
+    buf_ignore = {},
+  },
+},
 ```
 
 ## Additional Options

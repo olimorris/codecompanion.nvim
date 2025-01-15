@@ -4,7 +4,7 @@
   <img src="https://github.com/user-attachments/assets/0d427d6d-aa5f-405c-ba14-583830251740" alt="Action Palette">
 </p>
 
-The Action Palette holds plugin specific items like the ability to launch a chat buffer and the currently open chat buffers. It also displays the prompts from the [Prompt Library](prompt-library).
+The Action Palette holds plugin specific items like the ability to launch a chat buffer and the currently open chat buffers alongside displaying the prompts from the [Prompt Library](prompt-library).
 
 ## Layout
 

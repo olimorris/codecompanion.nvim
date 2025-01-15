@@ -1,4 +1,4 @@
-# Introduction
+# Configuring CodeCompanion
 
 This section sets out how various elements of CodeCompanion's config can be changed. The examples are shown wrapped in a `require("codecompanion").setup({})` block to work with all plugin managers.
 

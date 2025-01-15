@@ -1,13 +1,15 @@
 import { defineConfig } from "vitepress";
 import { execSync } from "node:child_process";
 
+const version = "Main";
+if (process.env.IS_RELEASE === "true") {
+  const version = execSync("git describe --tags --abbrev=0", {
+    encoding: "utf-8",
+  }).trim();
+}
 const isMain = process.env.IS_RELEASE !== "true";
-const version = execSync("git tag --list --sort=-v:refname")
-  .toString()
-  .split("\n")[0]
-  .trim();
 
-const siteUrl = "https://codecompanion.github.io";
+const siteUrl = "https://codecompanion.olimorris.dev";
 
 const title = isMain ? "Main" : version;
 const otherTitle = isMain ? version : "Main";
@@ -20,7 +22,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       {
-        text: version,
+        text: `${title}`,
         items: [
           {
             text: "Changelog",
@@ -40,13 +42,13 @@ export default defineConfig({
       { text: "Getting Started", link: "getting-started" },
       {
         text: "Configuration",
-        collapsed: false,
+        collapsed: true,
         items: [
           { text: "Introduction", link: "/configuration/introduction" },
+          { text: "Action Palette", link: "/configuration/action-palette" },
           { text: "Adapters", link: "/configuration/adapters" },
           { text: "Chat Buffer", link: "/configuration/chat-buffer" },
           { text: "Inline Assistant", link: "/configuration/inline-assistant" },
-          { text: "Action Palette", link: "/configuration/action-palette" },
           { text: "Prompt Library", link: "/configuration/prompt-library" },
           { text: "System Prompt", link: "/configuration/system-prompt" },
           { text: "Others", link: "/configuration/others" },
@@ -54,18 +56,27 @@ export default defineConfig({
       },
       {
         text: "Usage",
-        collapsed: true,
+        collapsed: false,
         items: [
-          { text: "General", link: "/usage/general" },
-          { text: "Chat Buffer", link: "/usage/chat-buffer" },
-          { text: "Inline Assistant", link: "/usage/inline-assistant" },
-          { text: "Commands", link: "/usage/commands" },
+          { text: "Introduction", link: "/usage/introduction" },
           { text: "Action Palette", link: "/usage/action-palette" },
-          { text: "Adapters", link: "/usage/adapters" },
-          { text: "Agents/Tools", link: "/usage/agents" },
+          {
+            text: "Chat Buffer",
+            link: "/usage/chat-buffer",
+            collapsed: true,
+            items: [
+              { text: "Agents/Tools", link: "/usage/chat-buffer/agents" },
+              {
+                text: "Slash Commands",
+                link: "/usage/chat-buffer/slash-commands",
+              },
+              { text: "Variables", link: "/usage/chat-buffer/variables" },
+            ],
+          },
           { text: "Events", link: "/usage/events" },
+          { text: "Inline Assistant", link: "/usage/inline-assistant" },
           { text: "Workflows", link: "/usage/workflows" },
-          { text: "Miscellaneous", link: "/usage/misc" },
+          { text: "Others", link: "/usage/others" },
         ],
       },
       {

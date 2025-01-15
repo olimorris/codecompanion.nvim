@@ -271,7 +271,7 @@ And to determine the visibility of actions in the palette itself:
 
 ## Other Configuration Options
 
-**Allowing a Prompt to appear as a Slash Command**
+### Allowing a Prompt to appear as a Slash Command
 
 It can be useful to have a prompt from the prompt library appear as a slash command in the chat buffer, like with the `Generate a Commit Message` action. This can be done by specifying a `is_slash_cmd = true` option to the prompt:
 
@@ -294,7 +294,7 @@ It can be useful to have a prompt from the prompt library appear as a slash comm
 
 In the chat buffer, if you type `/` you will see the value of `opts.short_name` appear in the completion menu for you to expand.
 
-**Specifying an Adapter and Model**
+### Specifying an Adapter and Model
 
 ```lua
 ["Your_New_Prompt"] = {
@@ -310,7 +310,7 @@ In the chat buffer, if you type `/` you will see the value of `opts.short_name` 
 }
 ```
 
-**Specifying a Placement for Inline Prompts**
+### Specifying a Placement for Inline Prompts
 
 As outlined in the README, an inline prompt can place its response in many different ways. To override this, you can specify a specific placement:
 
@@ -327,7 +327,7 @@ As outlined in the README, an inline prompt can place its response in many diffe
 
 In this example, the LLM response will be placed in a new buffer and the user's code will not be returned back to them.
 
-**Ignoring the default system prompt**
+### Ignoring the default system prompt
 
 It may also be useful to create custom prompts that do not send the default system prompt with the request:
 
@@ -340,6 +340,55 @@ It may also be useful to create custom prompts that do not send the default syst
   },
   -- Your prompts here
 }
+```
+
+### Prompts with References
+
+It can be useful to pre-load a chat buffer with references to _files_, _symbols_ or even _urls_. This makes conversing with an LLM that much more productive. As per `v11.9.0`, this can now be accomplished, as per the example below:
+
+```lua
+["Test References"] = {
+  strategy = "chat",
+  description = "Add some references",
+  opts = {
+    index = 11,
+    is_default = true,
+    is_slash_cmd = false,
+    short_name = "ref",
+    auto_submit = false,
+  },
+  -- These will appear at the top of the chat buffer
+  references = {
+    {
+      type = "file",
+      path = { -- This can be a string or a table of values
+        "lua/codecompanion/health.lua",
+        "lua/codecompanion/http.lua",
+      },
+    },
+    {
+      type = "file",
+      path = "lua/codecompanion/schema.lua",
+    },
+    {
+      type = "symbols",
+      path = "lua/codecompanion/strategies/chat/init.lua",
+    },
+    {
+      type = "url", -- This URL will even be cached for you!
+      url = "https://raw.githubusercontent.com/olimorris/codecompanion.nvim/refs/heads/main/lua/codecompanion/commands.lua",
+    },
+  },
+  prompts = {
+    {
+      role = "user",
+      content = "I'll think of something clever to put here...",
+      opts = {
+        contains_code = true,
+      },
+    },
+  },
+},
 ```
 
 ## Agentic Workflows
@@ -407,5 +456,5 @@ You'll notice that the comments use the notion of "groups". These are collection
 
 ## Conclusion
 
-Hopefully this serves as a useful introduction on how you can expand CodeCompanion to create prompts that suit your workflow. It's worth checking out the [actions.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/actions.lua) and [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) files for more complex examples.
+Hopefully this serves as a useful introduction on how you can expand CodeCompanion to create prompts that suit your workflow. It's worth checking out [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) files for more complex examples.
 

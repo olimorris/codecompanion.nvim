@@ -3,11 +3,7 @@ name: Spelling
 permissions:
   contents: read
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
+on: [pull_request]
 
 env:
   CLICOLOR: 1

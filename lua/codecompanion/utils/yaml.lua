@@ -47,8 +47,18 @@ M.encode = function(data)
   end
 end
 
+---Decode a yaml node
+---@param source string
+---@param node TSNode
+---@return any
 local function decode(source, node)
-  local nt = node:type()
+  local ok, nt = pcall(function()
+    return node:type()
+  end)
+  if not ok then
+    return {}
+  end
+
   if nt == "stream" or nt == "document" or nt == "block_node" or nt == "flow_node" or nt == "plain_scalar" then
     for child in node:iter_children() do
       if child:named() then
