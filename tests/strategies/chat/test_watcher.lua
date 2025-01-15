@@ -1,9 +1,9 @@
-local Watcher = require("codecompanion.strategies.chat.watcher")
+local Watcher = require("codecompanion.strategies.chat.watchers")
 local h = require("tests.helpers")
 
 local T = MiniTest.new_set()
 
-T["Watcher"] = MiniTest.new_set({
+T["Watchers"] = MiniTest.new_set({
   hooks = {
     pre_case = function()
       -- Create a new buffer for each test
@@ -17,13 +17,13 @@ T["Watcher"] = MiniTest.new_set({
   },
 })
 
-T["Watcher"]["creates new instance"] = function()
+T["Watchers"]["creates new instance"] = function()
   local watcher = Watcher.new()
   h.eq(type(watcher.buffers), "table")
   h.eq(vim.tbl_count(watcher.buffers), 0)
 end
 
-T["Watcher"]["watches buffer"] = function()
+T["Watchers"]["watches buffer"] = function()
   local watcher = Watcher.new()
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -33,7 +33,7 @@ T["Watcher"]["watches buffer"] = function()
   h.eq(type(watcher.buffers[bufnr].changedtick), "number")
 end
 
-T["Watcher"]["detects line modification"] = function()
+T["Watchers"]["detects line modification"] = function()
   local watcher = Watcher.new()
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -65,7 +65,7 @@ T["Watcher"]["detects line modification"] = function()
   h.eq(found_modification, true, "Should detect line modification")
 end
 
-T["Watcher"]["detects line deletion"] = function()
+T["Watchers"]["detects line deletion"] = function()
   local watcher = Watcher.new()
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -99,7 +99,7 @@ T["Watcher"]["detects line deletion"] = function()
   h.eq(found_deletion, true)
 end
 
-T["Watcher"]["detects multiple line deletion"] = function()
+T["Watchers"]["detects multiple line deletion"] = function()
   local watcher = Watcher.new()
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -139,7 +139,7 @@ T["Watcher"]["detects multiple line deletion"] = function()
   h.eq(found_deletion, true, "Should have found the deletion of multiple lines")
 end
 
-T["Watcher"]["detects multiple line insertion"] = function()
+T["Watchers"]["detects multiple line insertion"] = function()
   local watcher = Watcher.new()
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -180,7 +180,7 @@ T["Watcher"]["detects multiple line insertion"] = function()
   h.eq(found_insertion, true, "Should have found the insertion of multiple lines")
 end
 
-T["Watcher"]["handles mixed operations"] = function()
+T["Watchers"]["handles mixed operations"] = function()
   local watcher = Watcher.new()
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -228,7 +228,7 @@ T["Watcher"]["handles mixed operations"] = function()
   h.eq(additions, 1, "Should detect one addition")
 end
 
-T["Watcher"]["handles unwatching buffer"] = function()
+T["Watchers"]["handles unwatching buffer"] = function()
   local watcher = Watcher.new()
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -239,7 +239,7 @@ T["Watcher"]["handles unwatching buffer"] = function()
   h.eq(watcher.buffers[bufnr], nil)
 end
 
-T["Watcher"]["ignores changes after unwatching"] = function()
+T["Watchers"]["ignores changes after unwatching"] = function()
   local watcher = Watcher.new()
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -253,7 +253,7 @@ T["Watcher"]["ignores changes after unwatching"] = function()
   h.eq(changes, nil)
 end
 
-T["Watcher"]["handles prepending to start of buffer"] = function()
+T["Watchers"]["handles prepending to start of buffer"] = function()
   local watcher = Watcher.new()
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -282,7 +282,7 @@ T["Watcher"]["handles prepending to start of buffer"] = function()
   h.eq(found_addition, true, "Should detect addition at buffer start")
 end
 
-T["Watcher"]["handles appending to end of buffer"] = function()
+T["Watchers"]["handles appending to end of buffer"] = function()
   local watcher = Watcher.new()
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -311,7 +311,7 @@ T["Watcher"]["handles appending to end of buffer"] = function()
   h.eq(found_addition, true, "Should detect addition at buffer end")
 end
 
-T["Watcher"]["handles complete buffer replacement"] = function()
+T["Watchers"]["handles complete buffer replacement"] = function()
   local watcher = Watcher.new()
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -356,7 +356,7 @@ T["Watcher"]["handles complete buffer replacement"] = function()
   h.eq(additions, 1, "Should detect addition of new line")
 end
 
-T["Watcher"]["handles modifications after buffer switching"] = function()
+T["Watchers"]["handles modifications after buffer switching"] = function()
   local watcher = Watcher.new()
   local main_buf = vim.api.nvim_get_current_buf()
 
@@ -419,7 +419,7 @@ T["Watcher"]["handles modifications after buffer switching"] = function()
   vim.api.nvim_buf_delete(temp_buf, { force = true })
 end
 
-T["Watcher"]["handles buffer deletion properly"] = function()
+T["Watchers"]["handles buffer deletion properly"] = function()
   local watcher = Watcher.new()
 
   vim.cmd("new")
@@ -437,7 +437,7 @@ T["Watcher"]["handles buffer deletion properly"] = function()
   h.eq(watcher.buffers[temp_buf], nil)
 end
 
-T["Watcher"]["doesn't watch invalid buffers"] = function()
+T["Watchers"]["doesn't watch invalid buffers"] = function()
   local watcher = Watcher.new()
 
   -- Create and immediately delete a buffer

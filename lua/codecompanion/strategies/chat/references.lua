@@ -121,7 +121,7 @@ function References:add(ref)
     table.insert(self.Chat.refs, ref)
     -- If it's a buffer reference and it's being watched, start watching
     if ref.bufnr and ref.opts.watched then
-      self.Chat.watcher:watch(ref.bufnr)
+      self.Chat.watchers:watch(ref.bufnr)
     end
   end
 
