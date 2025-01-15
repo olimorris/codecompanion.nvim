@@ -354,6 +354,59 @@ M.pin_reference = {
   end,
 }
 
+M.toggle_watch = {
+  desc = "Toggle Watch Buffer",
+  callback = function(chat)
+    local current_line = vim.api.nvim_win_get_cursor(0)[1]
+    local line = vim.api.nvim_buf_get_lines(chat.bufnr, current_line - 1, current_line, true)[1]
+
+    if not vim.startswith(line, "> - ") then
+      return
+    end
+
+    local icons = config.display.chat.icons
+    local id = line:gsub("^> %- ", "")
+    if not chat.References:can_be_watched(id) then
+      return util.notify("This reference type cannot be watched", vim.log.levels.WARN)
+    end
+
+    -- Find the reference and toggle watch state
+    for _, ref in ipairs(chat.refs) do
+      local clean_id = id:gsub(icons.pinned_buffer, ""):gsub(icons.watched_buffer, "")
+      if ref.id == clean_id then
+        if not ref.opts then
+          ref.opts = {}
+        end
+        ref.opts.watched = not ref.opts.watched
+
+        -- Update the UI for just this line
+        local new_line
+        if ref.opts.watched then
+          -- Check if buffer is still valid before watching
+          if vim.api.nvim_buf_is_valid(ref.bufnr) and vim.api.nvim_buf_is_loaded(ref.bufnr) then
+            chat.watchers:watch(ref.bufnr)
+            new_line = string.format("> - %s%s", icons.watched_buffer, clean_id)
+            util.notify("Now watching buffer " .. ref.id)
+          else
+            -- Buffer is invalid, can't watch it
+            ref.opts.watched = false
+            new_line = string.format("> - %s", clean_id)
+            util.notify("Cannot watch invalid or unloaded buffer " .. ref.id, vim.log.levels.WARN)
+          end
+        else
+          chat.watchers:unwatch(ref.bufnr)
+          new_line = string.format("> - %s", clean_id)
+          util.notify("Stopped watching buffer " .. ref.id)
+        end
+
+        -- Update only the current line
+        vim.api.nvim_buf_set_lines(chat.bufnr, current_line - 1, current_line, true, { new_line })
+        break
+      end
+    end
+  end,
+}
+
 ---@param chat CodeCompanion.Chat
 ---@param direction number
 local function move_buffer(chat, direction)

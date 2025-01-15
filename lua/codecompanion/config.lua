@@ -261,11 +261,19 @@ Points to note:
           callback = "keymaps.pin_reference",
           description = "Pin Reference",
         },
+        watch = {
+          modes = {
+            n = "gw",
+          },
+          index = 10,
+          callback = "keymaps.toggle_watch",
+          description = "Watch Buffer",
+        },
         next_chat = {
           modes = {
             n = "}",
           },
-          index = 10,
+          index = 11,
           callback = "keymaps.next_chat",
           description = "Next Chat",
         },
@@ -273,7 +281,7 @@ Points to note:
           modes = {
             n = "{",
           },
-          index = 11,
+          index = 12,
           callback = "keymaps.previous_chat",
           description = "Previous Chat",
         },
@@ -281,7 +289,7 @@ Points to note:
           modes = {
             n = "]]",
           },
-          index = 12,
+          index = 13,
           callback = "keymaps.next_header",
           description = "Next Header",
         },
@@ -289,7 +297,7 @@ Points to note:
           modes = {
             n = "[[",
           },
-          index = 13,
+          index = 14,
           callback = "keymaps.previous_header",
           description = "Previous Header",
         },
@@ -297,7 +305,7 @@ Points to note:
           modes = {
             n = "ga",
           },
-          index = 14,
+          index = 15,
           callback = "keymaps.change_adapter",
           description = "Change adapter",
         },
@@ -305,7 +313,7 @@ Points to note:
           modes = {
             n = "gf",
           },
-          index = 14,
+          index = 15,
           callback = "keymaps.fold_code",
           description = "Fold code",
         },
@@ -313,7 +321,7 @@ Points to note:
           modes = {
             n = "gd",
           },
-          index = 15,
+          index = 16,
           callback = "keymaps.debug",
           description = "View debug info",
         },
@@ -321,7 +329,7 @@ Points to note:
           modes = {
             n = "gs",
           },
-          index = 16,
+          index = 17,
           callback = "keymaps.toggle_system_prompt",
           description = "Toggle the system prompt",
         },
@@ -817,6 +825,7 @@ This is the code, for context:
     chat = {
       icons = {
         pinned_buffer = " ",
+        watched_buffer = "👀 ",
       },
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer

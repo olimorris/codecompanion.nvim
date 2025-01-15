@@ -50,6 +50,7 @@ Thank you to the following people:
 
 Please visit the [documentation site](https://codecompanion.olimorris.dev) for installation and configuration instructions.
 
+
 ## :toolbox: Troubleshooting
 
 Before raising an [issue](https://github.com/olimorris/codecompanion.nvim/issues), there are a number of steps you can take to troubleshoot a problem:

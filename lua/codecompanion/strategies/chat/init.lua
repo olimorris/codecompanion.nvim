@@ -186,6 +186,7 @@ function Chat.new(args)
   self.parser = parser
 
   self.References = require("codecompanion.strategies.chat.references").new({ chat = self })
+  self.watchers = require("codecompanion.strategies.chat.watchers").new()
   self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
   self.variables = require("codecompanion.strategies.chat.variables").new()
 
@@ -578,6 +579,60 @@ function Chat:submit(opts)
   local bufnr = self.bufnr
 
   local message = ts_parse_messages(self, user_role, self.header_line)
+
+  for _, ref in ipairs(self.refs) do
+    if ref.bufnr and ref.opts and ref.opts.watched then
+      local changes = self.watchers:get_changes(ref.bufnr)
+      log:debug("Checking watched buffer %d, found %d changes", ref.bufnr, changes and #changes or 0)
+
+      if changes and #changes > 0 then
+        local changes_text = string.format(
+          "Changes detected in `%s` (buffer %d):\n",
+          vim.fn.fnamemodify(api.nvim_buf_get_name(ref.bufnr), ":t"),
+          ref.bufnr
+        )
+
+        for _, change in ipairs(changes) do
+          if change.type == "delete" then
+            changes_text = changes_text
+              .. string.format(
+                "Lines %d-%d were deleted:\n```%s\n%s\n```\n",
+                change.start,
+                change.end_line,
+                vim.bo[ref.bufnr].filetype,
+                table.concat(change.lines, "\n")
+              )
+          elseif change.type == "modify" then
+            changes_text = changes_text
+              .. string.format(
+                "Lines %d-%d were modified from:\n```%s\n%s\n```\nto:\n```%s\n%s\n```\n",
+                change.start,
+                change.end_line,
+                vim.bo[ref.bufnr].filetype,
+                table.concat(change.old_lines, "\n"),
+                vim.bo[ref.bufnr].filetype,
+                table.concat(change.new_lines, "\n")
+              )
+          else -- type == "add"
+            changes_text = changes_text
+              .. string.format(
+                "Lines %d-%d were added:\n```%s\n%s\n```\n",
+                change.start,
+                change.end_line,
+                vim.bo[ref.bufnr].filetype,
+                table.concat(change.lines, "\n")
+              )
+          end
+        end
+
+        self:add_message({
+          role = config.constants.USER_ROLE,
+          content = changes_text,
+        }, { visible = true })
+      end
+    end
+  end
+
   if not self:has_user_messages(message) or message.content == "" then
     return log:warn("No messages to submit")
   end

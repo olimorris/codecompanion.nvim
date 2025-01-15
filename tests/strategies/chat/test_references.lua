@@ -162,6 +162,7 @@ T["References"]["Can be pinned"] = function()
       id = "<buf>pinned example</buf>",
       opts = {
         pinned = true,
+        watched = false,
       },
       path = "tests.stubs.file.txt",
       source = "tests.strategies.chat.slash_commands.basic",
@@ -170,6 +171,7 @@ T["References"]["Can be pinned"] = function()
       id = "<buf>unpinned example</buf>",
       opts = {
         pinned = false,
+        watched = false,
       },
       path = "test2",
       source = "test",
