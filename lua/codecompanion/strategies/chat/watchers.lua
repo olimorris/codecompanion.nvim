@@ -1,9 +1,11 @@
 --[[
-Watcher tracks changes in Neovim buffers by comparing buffer content over time. It maintains
+Watchers track changes in Neovim buffers by comparing buffer content over time. It maintains
 a state for each watched buffer, recording the current content and last sent content. When
 checked, it compares states to detect line additions, deletions, and modifications.
 ]]
 local log = require("codecompanion.utils.log")
+
+local api = vim.api
 
 ---@class CodeCompanion.Watchers
 local Watchers = {}
@@ -11,30 +13,33 @@ local Watchers = {}
 function Watchers.new()
   return setmetatable({
     buffers = {},
-    augroup = vim.api.nvim_create_augroup("CodeCompanionWatcher", { clear = true }),
+    augroup = api.nvim_create_augroup("CodeCompanionWatcher", { clear = true }),
   }, { __index = Watchers })
 end
 
+---Watch a buffer for changes
+---@param bufnr number
+---@return nil
 function Watchers:watch(bufnr)
   if self.buffers[bufnr] then
     return
   end
 
-  if not vim.api.nvim_buf_is_valid(bufnr) then
+  if not api.nvim_buf_is_valid(bufnr) then
     log:debug("Cannot watch invalid buffer: %d", bufnr)
     return
   end
 
   log:debug("Starting to watch buffer: %d", bufnr)
-  local initial_content = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local initial_content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
 
   self.buffers[bufnr] = {
     content = initial_content,
     last_sent = initial_content,
-    changedtick = vim.api.nvim_buf_get_changedtick(bufnr),
+    changedtick = api.nvim_buf_get_changedtick(bufnr),
   }
 
-  vim.api.nvim_create_autocmd("BufDelete", {
+  api.nvim_create_autocmd("BufDelete", {
     group = self.augroup,
     buffer = bufnr,
     callback = function()
@@ -43,6 +48,9 @@ function Watchers:watch(bufnr)
   })
 end
 
+---Stop watching a buffer
+---@param bufnr number
+---@return nil
 function Watchers:unwatch(bufnr)
   if self.buffers[bufnr] then
     log:debug("Unwatching buffer %d", bufnr)
@@ -50,6 +58,11 @@ function Watchers:unwatch(bufnr)
   end
 end
 
+---Find the index of a line in a list of lines
+---@param line string
+---@param lines table
+---@param start_idx number
+---@return number|nil
 local function find_line_match(line, lines, start_idx)
   for i = start_idx or 1, #lines do
     if lines[i] == line then
@@ -59,6 +72,10 @@ local function find_line_match(line, lines, start_idx)
   return nil
 end
 
+---Detect changes between two sets of lines
+---@param old_lines table
+---@param new_lines table
+---@return CodeCompanion.Change[]
 local function detect_changes(old_lines, new_lines)
   local changes = {}
   local old_size = #old_lines
@@ -167,14 +184,17 @@ local function detect_changes(old_lines, new_lines)
   return changes
 end
 
+---Get any changes in a watched buffer
+---@param bufnr number
+---@return CodeCompanion.Change[]|nil
 function Watchers:get_changes(bufnr)
   if not self.buffers[bufnr] then
     return nil
   end
 
   local buffer = self.buffers[bufnr]
-  local current_content = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  local current_tick = vim.api.nvim_buf_get_changedtick(bufnr)
+  local current_content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local current_tick = api.nvim_buf_get_changedtick(bufnr)
 
   if current_tick == buffer.changedtick then
     return nil
