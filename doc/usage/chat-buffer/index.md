@@ -31,6 +31,7 @@ The keymaps available to the user in normal mode are:
 - `gd` to view/debug the chat buffer's contents
 - `gf` to fold any codeblocks in the chat buffer
 - `gp` to pin a reference to the chat buffer
+- `gw` to watch a referenced buffer
 - `gr` to regenerate the last response
 - `gs` to toggle the system prompt on/off
 - `gx` to clear the chat buffer's contents
@@ -51,7 +52,9 @@ References can be removed from the chat buffer by simply deleting them. On the n
 > [!NOTE]
 > Pinned references only work with buffer and file references
 
-References can also be pinned to a chat buffer with the `gp` keymap. Pinning results in the content from a buffer or a file, being reloaded and shared with the LLM before a response is sent. The advantage of this is that the LLM always has the latest data from that source, saving the user from manually re-adding it to the chat buffer.
+References can be _pinned_ to a chat buffer with the `gp` keymap. Pinning results in the content from a buffer or a file being reloaded and shared with the LLM on every message. The advantage of this is that the LLM always has the latest data from that source, saving the user from manually re-adding it to the chat buffer. However, it can consume a lot of tokens.
+
+References can also be _watched_ via the `gw` keymap. Watching, whilst similar to pinning, is a more token conscious way of keeping the LLM up to date on the contents of a buffer. Watchers track changes in the underlying buffer and update the LLM accordingly.
 
 ## Settings
 
