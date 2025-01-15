@@ -11,9 +11,17 @@ CONSTANTS = {
   PROMPT = "Select symbol(s)",
 }
 
+---Return when no symbols query exists
+local function no_query(ft)
+  util.notify(
+    fmt("There are no Tree-sitter symbol queries for `%s` files yet. Please consider making a PR", ft),
+    vim.log.levels.WARN
+  )
+end
+
 ---Return when no symbols have been found
 local function no_symbols()
-  util.notify("No symbols found in the buffer", vim.log.levels.WARN)
+  util.notify("No symbols found in the given file", vim.log.levels.WARN)
 end
 
 local providers = {
@@ -137,7 +145,7 @@ function SlashCommand:output(selected, opts)
   local query = vim.treesitter.query.get(ft, "symbols")
 
   if not query then
-    return no_symbols()
+    return no_query(ft)
   end
 
   local parser = vim.treesitter.get_string_parser(content, ft)
