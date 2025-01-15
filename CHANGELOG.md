@@ -1,5 +1,17 @@
 # Changelog
 
+## [11.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.10.0...v11.11.0) (2025-01-15)
+
+
+### Features
+
+* **chat:** :sparkles: can watch buffers ([176c13e](https://github.com/olimorris/codecompanion.nvim/commit/176c13e227cf39c4e22bec68d4631a8c47b643de))
+
+
+### Bug Fixes
+
+* **slash_cmd:** improve symbols notifcations ([e6b36b4](https://github.com/olimorris/codecompanion.nvim/commit/e6b36b4448cb12215fb74372ce9868f61e046bea))
+
 ## [11.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.9.2...v11.10.0) (2025-01-15)
 
 
