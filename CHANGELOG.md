@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.9.2...v11.10.0) (2025-01-15)
+
+
+### Features
+
+* add new events ([9b85331](https://github.com/olimorris/codecompanion.nvim/commit/9b8533143e381fb0dd4e5c733217dac8f9852ea4))
+
 ## [11.9.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.9.1...v11.9.2) (2025-01-13)
 
 
