@@ -384,7 +384,7 @@ M.toggle_watch = {
         if ref.opts.watched then
           -- Check if buffer is still valid before watching
           if vim.api.nvim_buf_is_valid(ref.bufnr) and vim.api.nvim_buf_is_loaded(ref.bufnr) then
-            chat.watcher:watch(ref.bufnr)
+            chat.watchers:watch(ref.bufnr)
             new_line = string.format("> - %s%s", icons.watched_buffer, clean_id)
             util.notify("Now watching buffer " .. ref.id)
           else
@@ -394,7 +394,7 @@ M.toggle_watch = {
             util.notify("Cannot watch invalid or unloaded buffer " .. ref.id, vim.log.levels.WARN)
           end
         else
-          chat.watcher:unwatch(ref.bufnr)
+          chat.watchers:unwatch(ref.bufnr)
           new_line = string.format("> - %s", clean_id)
           util.notify("Stopped watching buffer " .. ref.id)
         end

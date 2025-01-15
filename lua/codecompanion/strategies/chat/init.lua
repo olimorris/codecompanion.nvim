@@ -186,7 +186,7 @@ function Chat.new(args)
   self.parser = parser
 
   self.References = require("codecompanion.strategies.chat.references").new({ chat = self })
-  self.watcher = require("codecompanion.strategies.chat.watcher").new()
+  self.watchers = require("codecompanion.strategies.chat.watchers").new()
   self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
   self.variables = require("codecompanion.strategies.chat.variables").new()
 
@@ -582,7 +582,7 @@ function Chat:submit(opts)
 
   for _, ref in ipairs(self.refs) do
     if ref.bufnr and ref.opts and ref.opts.watched then
-      local changes = self.watcher:get_changes(ref.bufnr)
+      local changes = self.watchers:get_changes(ref.bufnr)
       log:debug("Checking watched buffer %d, found %d changes", ref.bufnr, changes and #changes or 0)
 
       if changes and #changes > 0 then

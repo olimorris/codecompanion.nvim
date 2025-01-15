@@ -3,18 +3,19 @@ Watcher tracks changes in Neovim buffers by comparing buffer content over time. 
 a state for each watched buffer, recording the current content and last sent content. When
 checked, it compares states to detect line additions, deletions, and modifications.
 ]]
-
-local Watcher = {}
 local log = require("codecompanion.utils.log")
 
-function Watcher.new()
+---@class CodeCompanion.Watchers
+local Watchers = {}
+
+function Watchers.new()
   return setmetatable({
     buffers = {},
     augroup = vim.api.nvim_create_augroup("CodeCompanionWatcher", { clear = true }),
-  }, { __index = Watcher })
+  }, { __index = Watchers })
 end
 
-function Watcher:watch(bufnr)
+function Watchers:watch(bufnr)
   if self.buffers[bufnr] then
     return
   end
@@ -42,7 +43,7 @@ function Watcher:watch(bufnr)
   })
 end
 
-function Watcher:unwatch(bufnr)
+function Watchers:unwatch(bufnr)
   if self.buffers[bufnr] then
     log:debug("Unwatching buffer %d", bufnr)
     self.buffers[bufnr] = nil
@@ -166,7 +167,7 @@ local function detect_changes(old_lines, new_lines)
   return changes
 end
 
-function Watcher:get_changes(bufnr)
+function Watchers:get_changes(bufnr)
   if not self.buffers[bufnr] then
     return nil
   end
@@ -189,4 +190,4 @@ function Watcher:get_changes(bufnr)
   return changes
 end
 
-return Watcher
+return Watchers
