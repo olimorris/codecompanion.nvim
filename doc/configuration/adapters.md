@@ -1,5 +1,8 @@
 # Configuring Adapters
 
+> [!NOTE]
+  > The adapters that the plugin supports out of the box can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters). It is recommended that you review them so you better understand the settings that can be customized
+
 An adapter is what connects Neovim to an LLM. It's the interface that allows data to be sent, received and processed and there are a multitude of ways to customize them.
 
 ## Changing the Default Adapter
