@@ -1,3 +1,12 @@
+---
+prev:
+  text: 'Action Palette'
+  link: '/usage/action-palette'
+next:
+  text: 'Agents/Tools'
+  link: '/usage/chat-buffer/agents'
+---
+
 # Using the Chat Buffer
 
 > [!NOTE]
