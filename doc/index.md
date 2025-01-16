@@ -1,3 +1,10 @@
+---
+prev: false
+next:
+  text: 'Installation'
+  link: '/installation'
+---
+
 # Welcome to CodeCompanion.nvim
 
 > AI-powered coding, seamlessly in _Neovim_

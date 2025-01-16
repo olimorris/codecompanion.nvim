@@ -38,8 +38,8 @@ export default defineConfig({
 
     sidebar: [
       { text: "Introduction", link: "/" },
-      { text: "Installation", link: "installation" },
-      { text: "Getting Started", link: "getting-started" },
+      { text: "Installation", link: "/installation" },
+      { text: "Getting Started", link: "/getting-started" },
       {
         text: "Configuration",
         collapsed: true,
