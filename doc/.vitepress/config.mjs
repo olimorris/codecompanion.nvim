@@ -62,7 +62,7 @@ export default defineConfig({
           { text: "Action Palette", link: "/usage/action-palette" },
           {
             text: "Chat Buffer",
-            link: "/usage/chat-buffer",
+            link: "/usage/chat-buffer/",
             collapsed: true,
             items: [
               { text: "Agents/Tools", link: "/usage/chat-buffer/agents" },
