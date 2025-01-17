@@ -56,14 +56,18 @@ The keymaps available to the user in normal mode are:
 
 Sharing context with an LLM is a crucial in order to generate useful responses. In the plugin, references are defined as output that is shared with a chat buffer via a _Variable_, _Slash Command_ or _Agent/Tool_. They appear in a blockquote entitled `Sharing`. In essence, this is context that you're sharing with an LLM.
 
-References can be removed from the chat buffer by simply deleting them. On the next turn, the context will be removed from the message history.
+> [!IMPORTANT]
+> References contain the data of an object at a point in time. By default, they **are not** self-updating
 
-> [!NOTE]
-> Pinned references only work with buffer and file references
+In order to allow for references to self-update, they can be _pinned_ (for files and buffers) or _watched_ (for buffers).
 
-References can be _pinned_ to a chat buffer with the `gp` keymap. Pinning results in the content from a buffer or a file being reloaded and shared with the LLM on every message. The advantage of this is that the LLM always has the latest data from that source, saving the user from manually re-adding it to the chat buffer. However, it can consume a lot of tokens.
+File and buffer references can be _pinned_ to a chat buffer with the `gp` keymap. Pinning results in the content from the object being reloaded and shared with the LLM on every turn. The advantage of this is that the LLM will always receive a fresh copy of the source data regardless of any changes. This can be useful if you're working with the agents and tools. However, please note that this can consume a lot of tokens.
 
-References can also be _watched_ via the `gw` keymap. Watching, whilst similar to pinning, is a more token conscious way of keeping the LLM up to date on the contents of a buffer. Watchers track changes in the underlying buffer and update the LLM accordingly.
+Buffer references can be _watched_ via the `gw` keymap. Watching, whilst similar to pinning, is a more token conscious way of keeping the LLM up to date on the contents of a buffer. Watchers track changes in the underlying buffer and update the LLM on each turn.
+
+If a reference is added by mistake, it can be removed from the chat buffer by simply deleting it from the `Sharing` blockquote. On the next turn, all context related to that reference will be removed from the message history.
+
+Finally, it's important to note that all LLM endpoints require the sending of previous messages that make up the conversation. So even though you've shared a reference once, many messages ago, the LLM will always have that context to refer to.
 
 ## Settings
 
