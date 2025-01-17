@@ -59,11 +59,13 @@ EOF
 
 ## Completion
 
-Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, ensure that you've added `codecompanion` as a source:
+Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
 
 ```lua
 sources = {
-  default = { "lsp", "path", "snippets", "buffer", "codecompanion" }
+  per_filetype = {
+    codecompanion = { "codecompanion" },
+  }
 },
 ```
 
