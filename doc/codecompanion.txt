@@ -1,5 +1,4 @@
-*codecompanion.txt*        For NVIM v0.10.0       Last change: 2025 January 12
-
+*codecompanion.txt*        For NVIM v0.10.0       Last change: 2025 January 17
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -22,10 +21,8 @@ FEATURES                                              *codecompanion-features*
 
 DOCUMENTATION                                    *codecompanion-documentation*
 
-
 Please visit the documentation site <https://codecompanion.olimorris.dev> for
 installation and configuration instructions.
-
 
 
 TROUBLESHOOTING                                *codecompanion-troubleshooting*
