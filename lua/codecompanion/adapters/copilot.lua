@@ -4,10 +4,10 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 
----@type string|nil
+---@alias CopilotOAuthToken string|nil
 local _oauth_token
 
----@type table|nil
+---@alias CopilotToken {token: string, expires_at: number}|nil
 local _github_token
 
 --- Finds the configuration path
@@ -33,12 +33,11 @@ local function find_config_path()
   end
 end
 
----Get the Copilot OAuth token
---- The function first attempts to load the token from the environment variables,
---- specifically for GitHub Codespaces. If not found, it then attempts to load
---- the token from configuration files located in the user's configuration path.
----@return string|nil
-local function get_github_token()
+---The function first attempts to load the token from the environment variables,
+---specifically for GitHub Codespaces. If not found, it then attempts to load
+---the token from configuration files located in the user's configuration path.
+---@return CopilotOAuthToken
+local function get_token()
   if _oauth_token then
     return _oauth_token
   end
@@ -74,7 +73,7 @@ local function get_github_token()
 end
 
 ---Authorize the GitHub OAuth token
----@return table|nil
+---@return CopilotToken
 local function authorize_token()
   if _github_token and _github_token.expires_at > os.time() then
     log:debug("Reusing GitHub Copilot token")
@@ -153,13 +152,12 @@ return {
         self.parameters.stream = true
       end
 
-      _oauth_token = get_github_token()
+      _oauth_token = get_token()
       if not _oauth_token then
         log:error("Copilot Adapter: No token found. Please refer to https://github.com/github/copilot.vim")
         return false
       end
 
-      -- _github_token = { token = "ABC123", expires_at = os.time() + 3600 }
       _github_token = authorize_token()
       if not _github_token or vim.tbl_isempty(_github_token) then
         log:error("Copilot Adapter: Could not authorize your GitHub Copilot token")
