@@ -54,7 +54,7 @@ The keymaps available to the user in normal mode are:
 
 <img src="https://github.com/user-attachments/assets/1b44afe1-13f8-4c0f-9199-cb32439eb09e" />
 
-Sharing context with an LLM is a crucial in order to generate useful responses. In the plugin, references are defined as output that is shared with a chat buffer via a _Variable_, _Slash Command_ or _Agent/Tool_. They appear in a blockquote entitled `Sharing`. In essence, this is context that you're sharing with an LLM.
+Sharing context with an LLM is crucial in order to generate useful responses. In the plugin, references are defined as output that is shared with a chat buffer via a _Variable_, _Slash Command_ or _Agent/Tool_. They appear in a blockquote entitled `Sharing`. In essence, this is context that you're sharing with an LLM.
 
 > [!IMPORTANT]
 > References contain the data of an object at a point in time. By default, they **are not** self-updating
@@ -63,7 +63,7 @@ In order to allow for references to self-update, they can be _pinned_ (for files
 
 File and buffer references can be _pinned_ to a chat buffer with the `gp` keymap. Pinning results in the content from the object being reloaded and shared with the LLM on every turn. The advantage of this is that the LLM will always receive a fresh copy of the source data regardless of any changes. This can be useful if you're working with the agents and tools. However, please note that this can consume a lot of tokens.
 
-Buffer references can be _watched_ via the `gw` keymap. Watching, whilst similar to pinning, is a more token conscious way of keeping the LLM up to date on the contents of a buffer. Watchers track changes in the underlying buffer and update the LLM on each turn.
+Buffer references can be _watched_ via the `gw` keymap. Watching, whilst similar to pinning, is a more token-conscious way of keeping the LLM up to date on the contents of a buffer. Watchers track changes in the underlying buffer and update the LLM on each turn.
 
 If a reference is added by mistake, it can be removed from the chat buffer by simply deleting it from the `Sharing` blockquote. On the next turn, all context related to that reference will be removed from the message history.
 
