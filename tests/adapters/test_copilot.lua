@@ -17,7 +17,7 @@ local json2 = [[{
 ]]
 
 local function get_token(json)
-  local data = vim.fn.json_decode(json)
+  local data = vim.json.decode(json)
   if data["github.com"] then
     return data["github.com"].oauth_token
   else
