@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.12.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.12.0...v11.12.1) (2025-01-18)
+
+
+### Bug Fixes
+
+* **slash_command:** stop double wrapping output from `fetch` ([c53a917](https://github.com/olimorris/codecompanion.nvim/commit/c53a917803888458ba7955e52870353345c9c48c))
+
 ## [11.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.11.0...v11.12.0) (2025-01-18)
 
 
