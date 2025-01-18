@@ -113,7 +113,7 @@ return {
     tokens = function(self, data)
       if data then
         data = data:sub(6)
-        local ok, json = pcall(vim.fn.json_decode, data)
+        local ok, json = pcall(vim.json.decode, data)
 
         if ok then
           if json.type == "message_start" then

@@ -117,7 +117,7 @@ local function fetch(chat, adapter, url, opts)
         end
 
         if data then
-          local ok, body = pcall(vim.fn.json_decode, data.body)
+          local ok, body = pcall(vim.json.decode, data.body)
           if not ok then
             return log:error("Could not parse the JSON response")
           end
