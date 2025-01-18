@@ -16,10 +16,11 @@ const otherTitle = isMain ? version : "Main";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "CodeCompanion.nvim",
   description: "AI-powered coding, seamlessly in Neovim",
+  title: "CodeCompanion",
   sitemap: { hostname: siteUrl },
   themeConfig: {
+    logo: "https://github.com/user-attachments/assets/825fc040-9bc8-4743-be2a-71e257f8a7be",
     nav: [
       {
         text: `${title}`,
