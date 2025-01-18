@@ -1,5 +1,13 @@
 # Changelog
 
+## [11.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.11.0...v11.12.0) (2025-01-18)
+
+
+### Features
+
+* register source for filetype in blink.cmp ([#661](https://github.com/olimorris/codecompanion.nvim/issues/661)) ([2214916](https://github.com/olimorris/codecompanion.nvim/commit/2214916416dcf18741c65fe3afd034d0fe046263))
+* **tools:** `[@files](https://github.com/files)` tool can now read specific lines ([26c5b57](https://github.com/olimorris/codecompanion.nvim/commit/26c5b57aa80cb7a12baefa5a5a2e9cfe0a20126a))
+
 ## [11.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.10.0...v11.11.0) (2025-01-15)
 
 
