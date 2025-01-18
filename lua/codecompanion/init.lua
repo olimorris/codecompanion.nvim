@@ -339,6 +339,9 @@ M.setup = function(opts)
         score_offset = 10,
       })
     end)
+    pcall(function()
+      blink.add_filetype_source("codecompanion", "codecompanion")
+    end)
   -- We need to check for blink alongside cmp as blink.compat has a module that
   -- is detected by a require("cmp") call and a lot of users have it installed
   -- Reference: https://github.com/olimorris/codecompanion.nvim/discussions/501
