@@ -174,7 +174,7 @@ function SlashCommand:output(selected, opts)
       goto continue
     end
 
-    local name_match = match.name or {}
+    local matched = match.name or {}
     local kind = match.kind
 
     local kinds = {
@@ -190,7 +190,16 @@ function SlashCommand:output(selected, opts)
         return kind == k
       end)
       :each(function(k)
-        get_ts_node(symbols, k:lower(), name_match)
+        local start_row, _, end_row, _ = vim.treesitter.get_node_range(matched.node)
+        table.insert(
+          symbols,
+          fmt(
+            "- %s: `%s` (starts on line %s)",
+            k:lower(),
+            vim.trim(vim.treesitter.get_node_text(matched.node, content)),
+            start_row + 1
+          )
+        )
       end)
 
     ::continue::
@@ -206,11 +215,12 @@ function SlashCommand:output(selected, opts)
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = fmt(
-      [[Here is a symbolic outline of the file `%s` with filetype `%s`:
+      [[Here is a symbolic outline of the file `%s` (with filetype `%s`). I've also included the line numbers that each symbol starts from in the file:
 
-<symbols>
 %s
-</symbols>]],
+
+Prompt the user if you need to see more than the symbolic outline.
+]],
       selected.relative_path or selected.path,
       ft,
       content
