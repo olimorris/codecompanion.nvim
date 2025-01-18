@@ -21,6 +21,30 @@ describe("File tools", function()
     h.eq("Hello World", output.content)
   end)
 
+  it("can read lines of a file", function()
+    local path = "~/tmp/test2.txt"
+    files.actions.create({
+      path = path,
+      contents = [[This is line 1
+This is line 2
+This is line 3
+This is line 4
+This is line 5]],
+    })
+
+    local output = files.actions.read_lines({
+      path = path,
+      start_line = 2,
+      end_line = 4,
+    })
+
+    local lines = vim.split(output.content, "\n")
+
+    h.eq("2:  This is line 2", lines[1])
+    h.eq("3:  This is line 3", lines[#lines - 1])
+    h.eq("4:  This is line 4", lines[#lines])
+  end)
+
   it("can edit a file", function()
     local path = "~/tmp/test.txt"
     files.actions.edit({ path = path, search = "Hello World", replace = "Hello CodeCompanion" })

@@ -11,6 +11,7 @@ local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
+local fmt = string.format
 local file = nil
 
 ---Create a file and it's surrounding folders
@@ -25,12 +26,46 @@ end
 
 ---Read the contents of af ile
 ---@param action table The action object
----@return nil
+---@return table<string, string>
 local function read(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
   file = {
     content = p:read(),
+    filetype = vim.fn.fnamemodify(p.filename, ":e"),
+  }
+  return file
+end
+
+---Read the contents of a file between specific lines
+---@param action table The action object
+---@return nil
+local function read_lines(action)
+  local p = Path:new(action.path)
+  p.filename = p:expand()
+
+  -- Read requested lines
+  local extracted = {}
+  local current_line = 0
+
+  local lines = p:iter()
+
+  -- Parse line numbers
+  local start_line = tonumber(action.start_line) or 1
+  local end_line = tonumber(action.end_line) or #lines
+
+  for line in lines do
+    current_line = current_line + 1
+    if current_line >= start_line and current_line <= end_line then
+      table.insert(extracted, current_line .. ":  " .. line)
+    end
+    if current_line > end_line then
+      break
+    end
+  end
+
+  file = {
+    content = table.concat(extracted, "\n"),
     filetype = vim.fn.fnamemodify(p.filename, ":e"),
   }
   return file
@@ -45,11 +80,11 @@ local function edit(action)
 
   local content = p:read()
   if not content then
-    return util.notify(string.format("No data found in %s", action.path))
+    return util.notify(fmt("No data found in %s", action.path))
   end
 
   if not content:find(vim.pesc(action.search)) then
-    return util.notify(string.format("Could not find the search string in %s", action.path))
+    return util.notify(fmt("Could not find the search string in %s", action.path))
   end
 
   p:write(content:gsub(vim.pesc(action.search), vim.pesc(action.replace)))
@@ -107,6 +142,7 @@ end
 local actions = {
   create = create,
   read = read,
+  read_lines = read_lines,
   edit = edit,
   delete = delete,
   rename = rename,
@@ -149,6 +185,17 @@ return {
         action = {
           _attr = { type = "read" },
           path = "/Users/Oli/Code/new_app/hello_world.py",
+        },
+      },
+    },
+    {
+      tool = {
+        _attr = { name = "files" },
+        action = {
+          _attr = { type = "read_lines" },
+          path = "/Users/Oli/Code/new_app/hello_world.py",
+          start_line = "1",
+          end_line = "10",
         },
       },
     },
@@ -219,7 +266,7 @@ return {
     },
   },
   system_prompt = function(schema)
-    return string.format(
+    return fmt(
       [[### Files Tool
 
 1. **Purpose**: Create/Edit/Delete/Rename/Copy files on the file system.
@@ -254,7 +301,15 @@ b) Read:
 ```
 - This will output the contents of a file at the specified path.
 
-c) Edit:
+c) Read Lines (inclusively):
+
+```xml
+%s
+```
+- This will read specific line numbers (between the start and end lines, inclusively) in the file at the specified path
+- This can be useful if you have been given the symbolic outline of a file and need to see more of the file's content
+
+d) Edit:
 
 ```xml
 %s
@@ -265,21 +320,21 @@ c) Edit:
 - Be specific about what text to search for and what to replace it with
 - If the text is not found, the file will not be edited
 
-d) Delete:
+e) Delete:
 
 ```xml
 %s
 ```
 - This will ensure a file is deleted at the specified path.
 
-e) Rename:
+f) Rename:
 
 ```xml
 %s
 ```
 - Ensure `new_path` contains the filename
 
-f) Copy:
+i) Copy:
 
 ```xml
 %s
@@ -287,7 +342,7 @@ f) Copy:
 - Ensure `new_path` contains the filename
 - Any folders that don't exist in the path will be created
 
-g) Move:
+j) Move:
 
 ```xml
 %s
@@ -308,11 +363,12 @@ Remember:
       vim.fn.getcwd(),
       xml2lua.toXml({ tools = { schema[1] } }), -- Create
       xml2lua.toXml({ tools = { schema[2] } }), -- Read
-      xml2lua.toXml({ tools = { schema[3] } }), -- Edit
+      xml2lua.toXml({ tools = { schema[3] } }), -- Extract
       xml2lua.toXml({ tools = { schema[4] } }),
       xml2lua.toXml({ tools = { schema[5] } }),
       xml2lua.toXml({ tools = { schema[6] } }),
       xml2lua.toXml({ tools = { schema[7] } }),
+      xml2lua.toXml({ tools = { schema[8] } }),
       xml2lua.toXml({
         tools = {
           tool = {
@@ -334,9 +390,9 @@ Remember:
     approved = function(self, action)
       log:info("[Files Tool] Prompting for %s", action._attr.type)
 
-      local msg = string.upper(action._attr.type) .. " the file at " .. action.path
+      local msg = string.upper(action._attr.type) .. ": For `" .. vim.fn.fnamemodify(action.path, ":.") .. "`"
       if action.new_path then
-        msg = msg .. " to " .. action.new_path
+        msg = msg .. " to " .. vim.fn.fnamemodify(action.new_path, ":.")
       end
       msg = msg .. "?"
 
@@ -356,41 +412,34 @@ Remember:
   },
   output = {
     success = function(self, action, output)
-      log:debug("[Files Tool] success callback executed")
       local type = action._attr.type
-      local output_msg = string.format("The %s action was executed successfully", string.upper(action._attr.type))
+      local path = action.path
+      log:debug("[Files Tool] success callback executed")
+      util.notify(fmt("The files tool executed successfully for the `%s` file", vim.fn.fnamemodify(path, ":t")))
 
       if file then
-        if type == "read" then
-          output_msg = output_msg .. " on the file at `" .. action.path .. "`"
-        end
-        output_msg = output_msg .. ". I've shared the output with you"
-
         self.chat:add_message({
           role = config.constants.USER_ROLE,
-          content = string.format(
-            [[The output from the %s action was:
+          content = fmt(
+            [[The output from the %s action for file `%s` is:
 
-       ```%s
-       %s
-       ```]],
+```%s
+%s
+```]],
             string.upper(type),
+            path,
             file.filetype,
             file.content
           ),
         }, { visible = false })
       end
-      return self.chat:add_buf_message({
-        role = config.constants.USER_ROLE,
-        content = output_msg .. ".\n\n",
-      })
     end,
 
     error = function(self, action, err)
       log:debug("[Files Tool] error callback executed")
       return self.chat:add_buf_message({
         role = config.constants.USER_ROLE,
-        content = string.format(
+        content = fmt(
           [[There was an error running the %s action:
 
 ```txt
@@ -405,7 +454,7 @@ Remember:
     rejected = function(self, action)
       return self.chat:add_buf_message({
         role = config.constants.USER_ROLE,
-        content = string.format("I rejected the %s action.\n\n", string.upper(action._attr.type)),
+        content = fmt("I rejected the %s action.\n\n", string.upper(action._attr.type)),
       })
     end,
   },
