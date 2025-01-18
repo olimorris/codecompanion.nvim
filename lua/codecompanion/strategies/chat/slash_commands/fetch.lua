@@ -124,7 +124,7 @@ local function fetch(chat, adapter, url, opts)
           if data.status == 200 then
             write_cache(util_hash.hash(url), body.data.text)
             return output(chat, {
-              content = format_output(url, body.data.text),
+              content = body.data.text,
               url = url,
             }, opts)
           else
