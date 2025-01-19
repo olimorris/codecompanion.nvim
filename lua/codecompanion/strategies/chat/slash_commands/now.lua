@@ -1,6 +1,4 @@
 ---@class CodeCompanion.SlashCommand.Now: CodeCompanion.SlashCommand
----@field new fun(args: CodeCompanion.SlashCommand): CodeCompanion.SlashCommand.Now
----@field execute fun(self: CodeCompanion.SlashCommand.Now)
 local SlashCommand = {}
 
 ---@param args CodeCompanion.SlashCommand
