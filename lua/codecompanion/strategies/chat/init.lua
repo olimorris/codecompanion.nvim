@@ -79,7 +79,7 @@ end
 ---@param chat CodeCompanion.Chat
 ---@param role string
 ---@param start_range number
----@return table{content: string}
+---@return { content: string }
 local function ts_parse_messages(chat, role, start_range)
   local query = vim.treesitter.query.get("markdown", "chat")
 
@@ -513,7 +513,7 @@ function Chat:add_tool(tool, tool_config)
 end
 
 ---Add a message to the message table
----@param data table {role: string, content: string}
+---@param data { role: string, content: string }
 ---@param opts? table Options for the message
 ---@return CodeCompanion.Chat
 function Chat:add_message(data, opts)
@@ -961,7 +961,7 @@ function Chat:get_messages()
 end
 
 ---Subscribe to a chat buffer
----@param event table {name: string, type: string, callback: fun}
+---@param event { name: string, type: string, callback: fun() }
 function Chat:subscribe(event)
   table.insert(self.subscribers, event)
 end

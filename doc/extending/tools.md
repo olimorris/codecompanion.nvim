@@ -83,7 +83,7 @@ Function-based tools use the `cmds` table to define functions that will be execu
     ---Ensure the final function returns the status and the output
     ---@param self CodeCompanion.Tools The Tools object
     ---@param input any The output from the previous function call
-    ---@return table { status: string, msg: string }
+    ---@return { status: string, msg: string }
     function(self, input)
      print(input) -- prints "Hello, World"
     end,
