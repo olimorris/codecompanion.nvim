@@ -3,11 +3,15 @@ import { execSync } from "node:child_process";
 
 const inProd = process.env.NODE_ENV === "production";
 
-const version = "Main";
+let version = "Main";
 if (inProd) {
-  const version = execSync("git describe --tags --abbrev=0", {
-    encoding: "utf-8",
-  }).trim();
+  try {
+    version = execSync("git describe --tags --abbrev=0", {
+      encoding: "utf-8",
+    }).trim();
+  } catch (error) {
+    console.warn("Failed to get git version, using default.");
+  }
 }
 
 const baseHeaders = [];
