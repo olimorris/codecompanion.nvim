@@ -7,6 +7,7 @@ local schema = require("codecompanion.schema")
 local yaml = require("codecompanion.utils.yaml")
 
 local log = require("codecompanion.utils.log")
+local nui_ui = require("codecompanion.utils.nui_ui")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils")
 
@@ -68,32 +69,37 @@ function UI:open()
   local width = window.width > 1 and window.width or math.floor(vim.o.columns * window.width)
   local height = window.height > 1 and window.height or math.floor(vim.o.lines * window.height)
 
+  local win_opts = {
+    relative = window.relative,
+    width = width,
+    height = height,
+    row = window.row or math.floor((vim.o.lines - height) / 2),
+    col = window.col or math.floor((vim.o.columns - width) / 2),
+    border = window.border,
+    title = "Code Companion",
+    title_pos = "center",
+    zindex = 45,
+  }
+
   if window.layout == "float" then
-    local win_opts = {
-      relative = window.relative,
-      width = width,
-      height = height,
-      row = window.row or math.floor((vim.o.lines - height) / 2),
-      col = window.col or math.floor((vim.o.columns - width) / 2),
-      border = window.border,
-      title = "Code Companion",
-      title_pos = "center",
-      zindex = 45,
-    }
     self.winnr = api.nvim_open_win(self.bufnr, true, win_opts)
   elseif window.layout == "vertical" then
     local position = window.position
     if position == nil or (position ~= "left" and position ~= "right") then
       position = vim.opt.splitright:get() and "right" or "left"
     end
-    vim.cmd("vsplit")
-    if position == "left" and vim.opt.splitright:get() then
-      vim.cmd("wincmd h")
+    if nui_ui.enabled() then
+      nui_ui.split(win_opts, position)
+    else
+      vim.cmd("vsplit")
+      if position == "left" and vim.opt.splitright:get() then
+        vim.cmd("wincmd h")
+      end
+      if position == "right" and not vim.opt.splitright:get() then
+        vim.cmd("wincmd l")
+      end
+      vim.cmd("vertical resize " .. width)
     end
-    if position == "right" and not vim.opt.splitright:get() then
-      vim.cmd("wincmd l")
-    end
-    vim.cmd("vertical resize " .. width)
     self.winnr = api.nvim_get_current_win()
     api.nvim_win_set_buf(self.winnr, self.bufnr)
   elseif window.layout == "horizontal" then
@@ -101,14 +107,18 @@ function UI:open()
     if position == nil or (position ~= "top" and position ~= "bottom") then
       position = vim.opt.splitbelow:get() and "bottom" or "top"
     end
-    vim.cmd("split")
-    if position == "top" and vim.opt.splitbelow:get() then
-      vim.cmd("wincmd k")
+    if nui_ui.enabled() then
+      nui_ui.split(win_opts, position)
+    else
+      vim.cmd("split")
+      if position == "top" and vim.opt.splitbelow:get() then
+        vim.cmd("wincmd k")
+      end
+      if position == "bottom" and not vim.opt.splitbelow:get() then
+        vim.cmd("wincmd j")
+      end
+      vim.cmd("resize " .. height)
     end
-    if position == "bottom" and not vim.opt.splitbelow:get() then
-      vim.cmd("wincmd j")
-    end
-    vim.cmd("resize " .. height)
     self.winnr = api.nvim_get_current_win()
     api.nvim_win_set_buf(self.winnr, self.bufnr)
   else
