@@ -1,12 +1,16 @@
 # Using Slash Commands
 
-<img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" />
+<p>
+  <img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" />
+</p>
 
 Slash Commands enable you to quickly add context to the chat buffer. They are comprised of values present in the `strategies.chat.slash_commands` table alongside the `prompt_library` table where individual prompts have `opts.is_slash_cmd = true`.
 
 ## /buffer
 
+<p>
 <img src="https://github.com/user-attachments/assets/1be7593b-f77f-44f9-a418-1d04b3f46785" />
+</p>
 
 The _buffer_ slash command enables you to add the contents of any open buffers in Neovim to the chat buffer. The command has native, _Telescope_, _mini.pick_ and _fzf.lua_ providers available. Also, multiple buffers can be selected and added to the chat buffer as per the video above.
 

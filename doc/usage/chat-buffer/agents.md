@@ -3,7 +3,9 @@
 > [!TIP]
 > More information on how agents and tools work and how you can create your own can be found in the [Creating Tools](/extending/tools.md) guide.
 
+<p align="center">
 <img src="https://github.com/user-attachments/assets/f4a5d52a-0de5-422d-a054-f7e97bb76f62" />
+</p>
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
@@ -27,6 +29,7 @@ The _@files_ tool enables an LLM to perform various file operations on the user'
 
 - Creating a file
 - Reading a file
+- Reading lines from a file
 - Editing a file
 - Deleting a file
 - Renaming a file
