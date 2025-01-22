@@ -1,6 +1,5 @@
 local M = {}
 
-local _prompts = {}
 
 ---Resolve the prompts in the prompt library with a view to displaying them in
 ---the action palette.
@@ -8,6 +7,7 @@ local _prompts = {}
 ---@param context table
 ---@return table
 function M.resolve(context, config)
+  local _prompts = {}
   local sort_index = true
 
   --TODO: Replace with vim.iter()
