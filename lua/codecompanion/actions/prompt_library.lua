@@ -1,3 +1,36 @@
+---@class CodeCompanion.PromptConfig
+---@field strategy string The strategy to use (chat/inline/workflow)
+---@field description string Description of what the prompt does
+---@field opts? CodeCompanion.PromptOpts Configuration options
+---@field prompts CodeCompanion.Prompt|CodeCompanion.Prompt[] Single prompt or array of prompts
+---@field references? CodeCompanion.Reference[] Optional array of references
+---@field condition? function Optional condition function
+---@field picker? table Optional picker configuration
+
+---@class CodeCompanion.PromptOpts
+---@field index? integer The index for sorting prompts
+---@field is_default? boolean Whether this is a default prompt
+---@field is_slash_cmd? boolean Whether this is a slash command
+---@field modes? string[] Valid modes for the prompt
+---@field short_name? string Short name identifier
+---@field auto_submit? boolean Whether to auto-submit the prompt
+---@field user_prompt? boolean Whether this requires user input
+---@field stop_context_insertion? boolean Whether to stop context insertion
+---@field contains_code? boolean Whether the prompt contains code
+---@field visible? boolean Whether the prompt is visible
+---@field tag? string Custom tag for the prompt
+
+---@class CodeCompanion.Reference
+---@field type string The type of reference (file/symbols/url)
+---@field path? string|string[] Path to the file or files
+---@field url? string URL for web references
+
+---@class CodeCompanion.Prompt
+---@field role string The role of the prompt (system/user/assistant)
+---@field content string|function Content or function returning content
+---@field opts? CodeCompanion.PromptOpts Additional options for the prompt
+---@field condition? function Function determining if prompt should be shown
+
 local M = {}
 
 

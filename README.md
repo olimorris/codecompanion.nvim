@@ -75,9 +75,14 @@ and inspect the log file as per the location from the checkhealth command.
 
 **Try with a `minimal.lua` file**
 
+
 A large proportion of issues which are raised in Neovim plugins are to do with a user's own config. That's why I always ask users to fill in a `minimal.lua` file when they raise an issue. We can rule out their config being an issue and it allows me to recreate the problem.
 
-For this purpose, I have included a [minimal.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua) file in the repository for you to test out if you're facing issues. Simply copy the file, edit it and run neovim with `nvim --clean -u minimal.lua`.
+For this purpose, I have included a [minimal.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua) file in the repository for you to test out if you're facing issues. Simply copy the file, edit it and run neovim with:
+
+```sh
+nvim --clean -u minimal.lua
+```
 
 <!-- panvimdoc-ignore-start -->
 

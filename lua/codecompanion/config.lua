@@ -953,14 +953,14 @@ M.setup = function(args)
   )
 end
 
----Registers a new prompt in the prompt library
----@param prompt_name string The name of the prompt to register
----@param config table Configuration table for the prompt
+---Register/update a prompt in the prompt library
+---@param prompt_id string The id of the prompt to register, update the prompt with same id
+---@param config CodeCompanion.PromptConfig Configuration table for the prompt
 ---@return nil
-M.register_prompt = function(prompt_name, config)
+M.register_prompt = function(prompt_id, config)
   M.config = M.config or vim.deepcopy(defaults)
   M.config.prompt_library = M.config.prompt_library or {}
-  M.config.prompt_library[prompt_name] = config
+  M.config.prompt_library[prompt_id] = config
 end
 
 M.can_send_code = function()
