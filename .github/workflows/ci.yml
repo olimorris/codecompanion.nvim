@@ -51,18 +51,18 @@ jobs:
           nvim --version
           make test
 
-  release:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    needs:
-      - tests
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - name: Release 📦
-        uses: googleapis/release-please-action@v4
-        with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-          release-type: simple
-          manifest-file: .release-please-manifest.json
+  # release:
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - tests
+  #   permissions:
+  #     contents: write
+  #     pull-requests: write
+  #   steps:
+  #     - name: Release 📦
+  #       uses: googleapis/release-please-action@v4
+  #       with:
+  #         token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+  #         release-type: simple
+  #         manifest-file: .release-please-manifest.json
