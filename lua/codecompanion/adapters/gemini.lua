@@ -2,7 +2,6 @@
 ---https://github.com/google-gemini/cookbook/blob/main/quickstarts/rest/Streaming_REST.ipynb
 
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.messages")
 
 ---@class Gemini.Adapter: CodeCompanion.Adapter
 return {
@@ -42,35 +41,44 @@ return {
     ---@param messages table Format is: { contents = { parts { text = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
-      local system = utils.pluck_messages(vim.deepcopy(messages), "system")
-      local system_instruction
+      local system = vim
+        .iter(messages)
+        :filter(function(msg)
+          return msg.role == "system"
+        end)
+        :map(function(msg)
+          return { text = msg.content }
+        end)
+        :totable()
 
+      local system_instruction
       if #system > 0 then
-        local system_parts = {}
-        for _, msg in ipairs(system) do
-          table.insert(system_parts, { text = msg.content })
-        end
         system_instruction = {
           role = self.roles.user,
-          parts = system_parts,
+          parts = system,
         }
       end
 
       -- Format messages (remove all system prompts)
-      local output = {}
-      local user = utils.pop_messages(vim.deepcopy(messages), "system")
-      for _, msg in ipairs(user) do
-        table.insert(output, {
-          role = self.roles.user,
-          parts = {
-            { text = msg.content },
-          },
-        })
-      end
+      local output = vim
+        .iter(messages)
+        :filter(function(msg)
+          return msg.role ~= "system"
+        end)
+        :map(function(msg)
+          return {
+            role = self.roles.user,
+            parts = {
+              { text = msg.content },
+            },
+          }
+        end)
+        :totable()
 
       local result = {
         contents = output,
       }
+
       if system_instruction then
         result.system_instruction = system_instruction
       end

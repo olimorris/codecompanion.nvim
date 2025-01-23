@@ -1,6 +1,5 @@
 local log = require("codecompanion.utils.log")
 local tokens = require("codecompanion.utils.tokens")
-local utils = require("codecompanion.utils.messages")
 
 local input_tokens = 0
 local output_tokens = 0
@@ -50,22 +49,41 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
-      -- Put system prompts into their own table...
-      local system = {}
-      for _, prompt in ipairs(utils.pluck_messages(messages, "system")) do
-        table.insert(system, {
-          type = "text",
-          text = prompt.content,
-        })
-      end
-      if next(system) == nil then
-        system = nil
-      end
+      -- Extract and format system messages
+      local system = vim
+        .iter(messages)
+        :filter(function(msg)
+          return msg.role == "system"
+        end)
+        :map(function(msg)
+          return {
+            type = "text",
+            text = msg.content,
+            cache_control = nil, -- To be set later if needed
+          }
+        end)
+        :totable()
 
-      -- ...ensuring that they're removed from the messages table
-      utils.pop_messages(messages, "system")
-      -- And ensuring that consecutive messages of the same role are merged
-      messages = utils.merge_messages(messages)
+      system = next(system) and system or nil
+
+      -- Remove system messages from the messages table
+      messages = vim
+        .iter(messages)
+        :filter(function(msg)
+          return msg.role ~= "system"
+        end)
+        :totable()
+
+      -- Combine consecutive messages from the same role
+      messages = vim.iter(messages):fold({}, function(acc, msg)
+        local last = acc[#acc]
+        if last and last.role == msg.role then
+          last.content = last.content .. " " .. msg.content:gsub("^%s*\n\n", "")
+        else
+          table.insert(acc, { role = msg.role, content = msg.content })
+        end
+        return acc
+      end)
 
       local breakpoints_used = 0
 
