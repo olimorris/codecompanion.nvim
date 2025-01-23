@@ -216,3 +216,33 @@ require("codecompanion").setup({
 }),
 ```
 
+## Example: Using DeepSeek R1
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    deepseek = function()
+      return require("codecompanion.adapters").extend("deepseek", {
+        env = {
+          api_key = "DeepSeek_API_KEY", -- See note above about using cmd for secure API key storage
+        },
+        schema = {
+          model = {
+            default = "deepseek-reasoner",
+          },
+        },
+      })
+    end,
+  },
+  strategies = {
+    chat = {
+      adapter = "deepseek",
+    },
+    inline = {
+      adapter = "deepseek",
+    },
+  },
+
+}),
+
+```
