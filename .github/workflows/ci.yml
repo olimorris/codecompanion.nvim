@@ -65,3 +65,4 @@ jobs:
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           release-type: simple
+          manifest-file: .release-please-manifest.json
