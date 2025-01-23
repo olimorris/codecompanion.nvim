@@ -64,6 +64,11 @@ local function overwrite_selection(context)
     context.start_col = context.start_col - 1
   end
 
+  local line_length = #vim.api.nvim_buf_get_lines(context.bufnr, context.end_line - 1, context.end_line, true)[1]
+  if context.end_col > line_length then
+    context.end_col = line_length
+  end
+
   api.nvim_buf_set_text(
     context.bufnr,
     context.start_line - 1,
