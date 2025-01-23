@@ -236,10 +236,10 @@ require("codecompanion").setup({
   },
   strategies = {
     chat = {
-      adapter = "azure_openai",
+      adapter = "deepseek",
     },
     inline = {
-      adapter = "azure_openai",
+      adapter = "deepseek",
     },
   },
 
