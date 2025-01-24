@@ -1,3 +1,12 @@
+## [11.13.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.13.0...v11.13.1) (2025-01-24)
+## Other
+
+- fix(inline): #688 end_col out of range
+- chore(ci): remove release workflow
+- chore(ci): update release workflow
+- chore: update CHANGELOG.md
+
+
 ## [11.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.12.1...v11.13.0) (2025-01-23)
 
 ### Features
