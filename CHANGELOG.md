@@ -1,5 +1,3 @@
-# Changelog
-
 ## [11.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.12.1...v11.13.0) (2025-01-23)
 
 ### Features
