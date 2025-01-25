@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.14.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.13.2...v11.14.0) (2025-01-25)
+
+
+### Features
+
+* :sparkles: workspace slash command ([#702](https://github.com/olimorris/codecompanion.nvim/issues/702)) ([8173b5d](https://github.com/olimorris/codecompanion.nvim/commit/8173b5df1cd8da856b9449b4f68a8cd64d60f08d))
+
 ## [11.13.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.13.1...v11.13.2) (2025-01-25)
 
 ### Bug Fixes
