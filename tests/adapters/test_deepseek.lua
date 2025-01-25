@@ -50,19 +50,21 @@ describe("DeepSeek adapter", function()
     h.eq(response[#response].output, adapter_helpers.chat_buffer_output(response, adapter))
   end)
 
-  it("converts subsequent system messages to assistant role", function()
+  it("concatenates subsequent system messages and converts all system messages after user message to assistant role", function()
     local input = {
       { role = adapter.roles.llm,  content = "System1" },
-      { role = adapter.roles.user, content = "User1" },
       { role = adapter.roles.llm,  content = "System2" },
+      { role = adapter.roles.user, content = "User1" },
+      { role = adapter.roles.llm,  content = "System3" },
+      { role = adapter.roles.llm,  content = "System4" },
       { role = adapter.roles.user, content = "User2" },
     }
 
     local expected = {
       messages = {
-        { role = "system",    content = "System1" },
+        { role = "system",    content = "System1\n\nSystem2" },
         { role = "user",      content = "User1" },
-        { role = "assistant", content = "System2" },
+        { role = "assistant", content = "System3\n\nSystem4" },
         { role = "user",      content = "User2" },
       }
     }
