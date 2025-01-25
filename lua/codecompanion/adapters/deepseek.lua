@@ -71,27 +71,6 @@ return {
         model = model()
       end
 
-      ---System role is only allowed as the first message, after this we must label
-      ---all system messages as assistant
-      local has_system = false
-      messages = vim
-          .iter(messages)
-          :map(function(m)
-            local role = m.role
-            if role == self.roles.llm then
-              if not has_system then
-                has_system = true
-              else
-                role = "assistant"
-              end
-            end
-            return {
-              role = role,
-              content = m.content,
-            }
-          end)
-          :totable()
-
       ---DeepSeek-R1 doesn't allow consecutive messages from the same role,
       ---so we concatenate them into a single message
       for _, msg in ipairs(messages) do
@@ -105,6 +84,27 @@ return {
           })
         end
       end
+
+      ---System role is only allowed as the first message, after this we must label
+      ---all system messages as assistant
+      local has_system = false
+      processed = vim
+        .iter(processed)
+        :map(function(m)
+          local role = m.role
+          if role == self.roles.llm then
+            if not has_system then
+              has_system = true
+            else
+              role = "assistant"
+            end
+          end
+          return {
+            role = role,
+            content = m.content,
+          }
+        end)
+        :totable()
 
       return { messages = processed }
     end,
