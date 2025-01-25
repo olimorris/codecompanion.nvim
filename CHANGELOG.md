@@ -7,6 +7,13 @@
 - chore: update CHANGELOG.md
 
 
+## [11.13.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.13.1...v11.13.2) (2025-01-25)
+
+
+### Bug Fixes
+
+* **deepseek:** messages order ([#700](https://github.com/olimorris/codecompanion.nvim/issues/700)) ([c911a8e](https://github.com/olimorris/codecompanion.nvim/commit/c911a8e6f0bc87f557587cc60b2af27d6151ad19))
+
 ## [11.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.12.1...v11.13.0) (2025-01-23)
 
 ### Features
