@@ -1,103 +1,18 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
+  workflow_dispatch:
 
 jobs:
   release:
     runs-on: ubuntu-latest
+
     permissions:
       contents: write
-      pull-requests: read
+      pull-requests: write
+
     steps:
-
-      # https://github.com/mikepenz/release-changelog-builder-action
-      - name: Build Changelog 🏗️
-        id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v5
+      - name: Release 📦
+        uses: googleapis/release-please-action@v4
         with:
-          outputFile: "CHANGELOG.md"
-          mode: "COMMIT"
-          configurationJson: |
-            {
-              "template": "#{{CHANGELOG}}",
-              "categories": [
-                {
-                    "title": "## Features",
-                    "labels": ["feat", "feature"]
-                },
-                {
-                    "title": "## Bug Fixes",
-                    "labels": ["fix", "bug"]
-                },
-                {
-                    "title": "## Other",
-                    "labels": []
-                }
-              ],
-              "label_extractor": [
-                {
-                  "pattern": "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test|tests){1}(\\([\\w\\-\\.]+\\))?(!)?: ([\\w ])+([\\s\\S]*)",
-                  "target": "$1"
-                }
-              ]
-            }
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # https://github.com/ncipollo/release-action
-      - name: Create Release 🚀
-        uses: ncipollo/release-action@v1
-        with:
-          body: ${{ steps.build_changelog.outputs.changelog }}
-
-      - name: Checkout 🛎️
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-          ref: ${{ github.head_ref }}
-
-      - name: Fetch Tags 🎟️
-        id: tags
-        run: |
-          TAGS=$(git tag -l --sort=-version:refname | head -2)
-          LATEST_TAG=$(echo "$TAGS" | head -1 | tail -1)
-          LATEST_TAG_NAME=${LATEST_TAG#v}
-          PREVIOUS_TAG=$(echo "$TAGS" | head -2 | tail -1)
-          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
-          echo "LATEST_TAG_NAME=$LATEST_TAG_NAME" >> $GITHUB_ENV
-          echo "PREVIOUS_TAG=$PREVIOUS_TAG" >> $GITHUB_ENV
-
-      - name: Update Changelog 📖
-        run: |
-          echo "## [$LATEST_TAG_NAME](https://github.com/olimorris/codecompanion.nvim/compare/$PREVIOUS_TAG...$LATEST_TAG) (`date +%Y-%m-%d`)" >> CHANGELOG.md.tmp
-          echo "${{ steps.build_changelog.outputs.changelog }}" >> CHANGELOG.md.tmp
-          echo '-n' >> CHANGELOG.md
-          cat CHANGELOG.md >> CHANGELOG.md.tmp
-          mv CHANGELOG.md.tmp CHANGELOG.md
-
-      # https://github.com/stefanzweifel/git-auto-commit-action
-      - name: Commit Changes 📦
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          branch: main
-          commit_message: "chore: update CHANGELOG.md"
-          file_pattern: CHANGELOG.md
-
-      # - name: Pull Request updated CHANGELOG.md
-      #   uses: peter-evans/create-pull-request@v5
-      #   with:
-      #     commit-message: "docs: update CHANGELOG"
-      #     title: Update CHANGELOG for ${{steps.extract_version.outputs.tag_name}}
-      #     branch: update-changelog
-      #     delete-branch: true
-      #     base: master
-      #     labels: |
-      #       changelog
-      #     body: |
-      #       Automated changes by [create-pull-request](https://github.com/peter-evans/create-pull-request) GitHub action.
-      #
-      #       ${{steps.build_changelog.outputs.changelog}}
+          release-type: simple
