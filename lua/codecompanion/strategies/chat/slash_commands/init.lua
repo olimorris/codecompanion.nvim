@@ -1,3 +1,4 @@
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
 ---Resolve the callback to the correct module
@@ -67,6 +68,34 @@ function SlashCommands:execute(item, chat)
       context = item.context,
     })
     :execute(self)
+end
+
+---Function for external objects to add references via Slash Commands
+---@param chat CodeCompanion.Chat
+---@param slash_command string
+---@param opts { path: string, url?: string, description: string }
+---@return nil
+function SlashCommands.references(chat, slash_command, opts)
+  local slash_commands = {
+    file = require("codecompanion.strategies.chat.slash_commands.file").new({
+      Chat = chat,
+    }),
+    symbols = require("codecompanion.strategies.chat.slash_commands.symbols").new({
+      Chat = chat,
+    }),
+    url = require("codecompanion.strategies.chat.slash_commands.fetch").new({
+      Chat = chat,
+      config = config.strategies.chat.slash_commands["fetch"],
+    }),
+  }
+
+  if slash_command == "file" or slash_command == "symbols" then
+    return slash_commands[slash_command]:output({ description = opts.description, path = opts.path }, { silent = true })
+  end
+
+  if slash_command == "url" then
+    return slash_commands[slash_command]:output(opts.url, { silent = true })
+  end
 end
 
 return SlashCommands

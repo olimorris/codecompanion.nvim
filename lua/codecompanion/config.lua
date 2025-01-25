@@ -177,6 +177,13 @@ Points to note:
             contains_code = false,
           },
         },
+        ["workspace"] = {
+          callback = "strategies.chat.slash_commands.workspace",
+          description = "Load a workspace file",
+          opts = {
+            contains_code = true,
+          },
+        },
       },
       keymaps = {
         options = {

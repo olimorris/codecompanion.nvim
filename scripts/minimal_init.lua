@@ -5,7 +5,7 @@ vim.cmd("set rtp+=./deps/nvim-treesitter")
 
 -- Install and setup Tree-sitter
 require("nvim-treesitter").setup()
-local required_parsers = { "lua", "markdown", "markdown_inline", "yaml" }
+local required_parsers = { "go", "lua", "markdown", "markdown_inline", "python", "yaml" }
 local installed_parsers = require("nvim-treesitter.info").installed_parsers()
 local to_install = vim.tbl_filter(function(parser)
   return not vim.tbl_contains(installed_parsers, parser)
