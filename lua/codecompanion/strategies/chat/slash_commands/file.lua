@@ -117,7 +117,7 @@ function SlashCommand:execute(SlashCommands)
 end
 
 ---Open and read the contents of the selected file
----@param selected table The selected item from the provider { relative_path = string, path = string }
+---@param selected { relative_path: string?, path: string, description: string? }
 function SlashCommand:read(selected)
   local ok, content = pcall(function()
     return path.new(selected.path):read()
@@ -135,8 +135,8 @@ function SlashCommand:read(selected)
 end
 
 ---Output from the slash command in the chat buffer
----@param selected table The selected item from the provider { relative_path = string, path = string }
----@param opts? table
+---@param selected { relative_path: string?, path: string, description: string? }
+---@param opts? { silent: boolean, pin: boolean }
 ---@return nil
 function SlashCommand:output(selected, opts)
   if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
@@ -150,24 +150,36 @@ function SlashCommand:output(selected, opts)
     return log:warn("Could not read the file: %s", selected.path)
   end
 
-  local message = "Here is the content from the file"
-  if opts.pin then
-    message = "Here is the updated content from the file"
-  end
-
-  self.Chat:add_message({
-    role = config.constants.USER_ROLE,
-    content = fmt(
-      [[%s `%s`:
+  -- Workspaces allow the user to set their own custom description which should take priority
+  local description
+  if selected.description then
+    description = fmt(
+      [[%s
 
 ```%s
 %s
 ```]],
-      message,
-      relative_path,
+      selected.description,
       ft,
       content
-    ),
+    )
+  else
+    description = fmt(
+      [[%s %s:
+
+```%s
+%s
+```]],
+      opts.pin and "Here is the updated content from the file" or "Here is the content from the file",
+      "located at `" .. relative_path .. "`",
+      ft,
+      content
+    )
+  end
+
+  self.Chat:add_message({
+    role = config.constants.USER_ROLE,
+    content = description or "",
   }, { reference = id, visible = false })
 
   if opts.pin then
@@ -175,7 +187,7 @@ function SlashCommand:output(selected, opts)
   end
 
   self.Chat.References:add({
-    id = id,
+    id = id or "",
     path = selected.path,
     source = "codecompanion.strategies.chat.slash_commands.file",
   })

@@ -1,6 +1,12 @@
 ; Ref: https://github.com/stevearc/aerial.nvim/blob/master/queries/ruby/aerial.scm
 ; MIT License
 
+; Import definitions
+(call
+  method: (identifier) @name
+  (#contains? @name "require")
+  (#set! "kind" "Import")) @symbol
+
 ; Module definitions
 (module
   name: [

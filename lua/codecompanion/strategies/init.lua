@@ -24,50 +24,23 @@ local function add_ref(prompt, chat)
     return
   end
 
-  local slash_commands = {
-    file = require("codecompanion.strategies.chat.slash_commands.file").new({
-      Chat = chat,
-    }),
-    symbols = require("codecompanion.strategies.chat.slash_commands.symbols").new({
-      Chat = chat,
-    }),
-    url = require("codecompanion.strategies.chat.slash_commands.fetch").new({
-      Chat = chat,
-      config = config.strategies.chat.slash_commands["fetch"],
-    }),
-  }
-
-  ---Get the file or symbols from a given path
-  ---@param path string
-  ---@param type string
-  ---@return nil
-  local function get_file(path, type)
-    return slash_commands[type]:output({ path = path }, { silent = true })
-  end
-
-  ---Get the contents of the given URL
-  ---@param url string
-  ---@param type string
-  ---@return nil
-  local function get_url(url, type)
-    return slash_commands[type]:output(url, { silent = true })
-  end
+  local slash_commands = require("codecompanion.strategies.chat.slash_commands")
 
   vim.iter(prompt.references):each(function(ref)
     if ref.type == "file" or ref.type == "symbols" then
       if type(ref.path) == "string" then
-        return get_file(ref.path, ref.type)
+        return slash_commands.references(chat, ref.type, { path = ref.path })
       elseif type(ref.path) == "table" then
         for _, path in ipairs(ref.path) do
-          get_file(path, ref.type)
+          slash_commands.references(chat, ref.type, { path = path })
         end
       end
     elseif ref.type == "url" then
       if type(ref.url) == "string" then
-        get_url(ref.url, ref.type)
+        return slash_commands.references(chat, ref.type, { url = ref.url })
       elseif type(ref.url) == "table" then
         for _, url in ipairs(ref.url) do
-          get_url(url, ref.type)
+          slash_commands.references(chat, ref.type, { url = url })
         end
       end
     end

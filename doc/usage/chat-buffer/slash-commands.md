@@ -45,3 +45,10 @@ The _symbols_ slash command uses Tree-sitter to create a symbolic outline of a f
 
 The _terminal_ slash command shares the output from the last terminal buffer with the chat buffer.
 
+## /workspace
+
+The _workspace_ slash command allows users to share defined groups of files and/or symbols with an LLM, alongside some pre-written context. The slash command uses a [codecompanion-workspace.json](https://github.com/olimorris/codecompanion.nvim/blob/main/codecompanion-workspace.json) file, stored in the current working directory, to house this context. It is, in essence, a context management system for your repository.
+
+Whilst LLMs are incredibly powerful, they have no knowledge of the architectural decisions yourself or your team have made on a project. They have no context as to why you've selected the dependencies that you have. And, they can't see how your codebase has evolved over time.
+
+Please see the [Creating Workspaces](/extending/workspace) guide to learn how to build your own.
