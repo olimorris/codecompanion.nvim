@@ -55,7 +55,7 @@
 ---@field augroup integer The autocmd group ID
 ---@field watch fun(self: CodeCompanion.Watchers, bufnr: number): nil Start watching a buffer
 ---@field unwatch fun(self: CodeCompanion.Watchers, bufnr: number): nil Stop watching a buffer
----@field get_changes fun(self: CodeCompanion.Watchers, bufnr: number): CodeCompanion.Change[]|nil Get changes since last check
+---@field get_changes fun(self: CodeCompanion.Watchers, bufnr: number): CodeCompanion.Change[]|nil Get the latest changes in the buffer
 
 ---@class CodeCompanion.WatcherState
 ---@field content string[] Complete buffer content
