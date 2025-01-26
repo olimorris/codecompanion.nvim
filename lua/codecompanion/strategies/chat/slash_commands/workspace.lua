@@ -45,7 +45,7 @@ end
 local function add_group_description(chat, workspace, group)
   local builtin = {
     group_name = group.name,
-    hierarchy = get_file_list(group),
+    group_list = get_file_list(group),
     workspace_description = workspace.description,
     workspace_name = workspace.name,
   }

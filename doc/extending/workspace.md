@@ -47,7 +47,7 @@ Groups are the core of the workspace file. They are where logical groupings of f
 ```json
 {
   "name": "Chat Buffer",
-  "description": "${workspace_description}. I've grouped a number of files together into a group I'm calling \"${group_name}\". The chat buffer is a Neovim buffer which allows a user to interact with an LLM. The buffer is formatted as Markdown with a user's content residing under a H2 header. The user types their message, saves the buffer and the plugin then uses Tree-sitter to parse the buffer, extracting the contents and sending to an adapter which connects to the user's chosen LLM. The response back from the LLM is streamed into the buffer under another H2 header. The user is then free to respond back to the LLM.\n\nBelow are the relevant files which we will be discussing:\n\n${hierarchy}",
+  "description": "${workspace_description}. I've grouped a number of files together into a group I'm calling \"${group_name}\". The chat buffer is a Neovim buffer which allows a user to interact with an LLM. The buffer is formatted as Markdown with a user's content residing under a H2 header. The user types their message, saves the buffer and the plugin then uses Tree-sitter to parse the buffer, extracting the contents and sending to an adapter which connects to the user's chosen LLM. The response back from the LLM is streamed into the buffer under another H2 header. The user is then free to respond back to the LLM.\n\nBelow are the relevant files which we will be discussing:\n\n${group_list}",
   "vars": {
     "base_dir": "lua/codecompanion/strategies/chat"
   },
@@ -74,7 +74,7 @@ There's a lot going on in there:
 
 - Firstly, the `${workspace_description}` is a way of including the description from the top of the workspace file
 - The `${group_name}` provides the name of the current group
-- The `${hierarchy}` variable contains a list of all the files and symbols in the group
+- The `${group_list}` variable contains a list of all the files and symbols in the group
 - The `vars` object is a way of creating variables that can be referenced throughout the files and symbols arrays
 - Each object in the files/symbols array can be a string which defaults to a path, or can be an object containing a
 description and the path
@@ -95,7 +95,7 @@ A list of all the variables available in workspace files:
 
 - `${workspace_description}` - The description at the top of the workspace file
 - `${group_name}` - The name of the group that is being processed by the slash command
-- `${hierarchy}` - A list of all the files and symbols in the group
+- `${group_list}` - A list of all the files and symbols in the group
 - `${filename}` - The name of the current file/symbol that is being processed
 - `${cwd}` - The current working directory of the workspace file
 - `${path}` - The path to the current file/symbol
