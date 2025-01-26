@@ -36,23 +36,10 @@ return {
     Authorization = "Bearer ${api_key}",
   },
   handlers = {
-    ---@param self CodeCompanion.Adapter
-    ---@return boolean
-    setup = function(self)
-      local model = self.schema.model.default
-      local model_opts = self.schema.model.choices[model]
-      if model_opts and model_opts.opts then
-        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
-      end
-
-      if self.opts and self.opts.stream then
-        self.parameters.stream = true
-        self.parameters.stream_options = { include_usage = true }
-      end
-      return true
-    end,
-
     --- Use the OpenAI adapter for the bulk of the work
+    setup = function(self)
+      return openai.handlers.setup(self)
+    end,
     tokens = function(self, data)
       return openai.handlers.tokens(self, data)
     end,
@@ -71,8 +58,8 @@ return {
         model = model()
       end
 
-      ---DeepSeek-R1 doesn't allow consecutive messages from the same role,
-      ---so we concatenate them into a single message
+      -- DeepSeek-R1 doesn't allow consecutive messages from the same role,
+      -- so we concatenate them into a single message
       for _, msg in ipairs(messages) do
         local last = processed[#processed]
         if last and last.role == msg.role then
@@ -85,8 +72,8 @@ return {
         end
       end
 
-      ---System role is only allowed as the first message, after this we must label
-      ---all system messages as assistant
+      -- The system role is only allowed as the first message, after this we must label
+      -- all system messages as assistant
       local has_system = false
       processed = vim
         .iter(processed)
@@ -109,6 +96,10 @@ return {
       return { messages = processed }
     end,
 
+    ---Output the data from the API ready for insertion into the chat buffer
+    ---@param self CodeCompanion.Adapter
+    ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
+    ---@return { status: string, output: { role: string, content: string, reasoning: string? } } | nil
     chat_output = function(self, data)
       local output = {}
 
