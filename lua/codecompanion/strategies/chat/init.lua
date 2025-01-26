@@ -88,10 +88,9 @@ end
 
 ---Parse the chat buffer for the last message
 ---@param chat CodeCompanion.Chat
----@param role string
 ---@param start_range number
 ---@return { content: string }
-local function ts_parse_messages(chat, role, start_range)
+local function ts_parse_messages(chat, start_range)
   local query = get_query("markdown", "chat")
 
   local tree = chat.parser:parse({ start_range - 1, -1 })[1]
@@ -589,7 +588,7 @@ function Chat:submit(opts)
 
   local bufnr = self.bufnr
 
-  local message = ts_parse_messages(self, user_role, self.header_line)
+  local message = ts_parse_messages(self, self.header_line)
 
   -- Check if any watched buffers have any changes
   self.watchers:check_for_changes(self)
@@ -860,6 +859,8 @@ function Chat:close()
   self = nil
 end
 
+local has_been_reasoning = false
+
 ---Add a message directly to the chat buffer. This will be visible to the user
 ---@param data table
 ---@param opts? table
@@ -868,7 +869,13 @@ function Chat:add_buf_message(data, opts)
   local bufnr = self.bufnr
   local new_response = false
 
-  if (data.role and data.role ~= self.last_role) or (opts and opts.force_role) then
+  local function write(text)
+    for _, t in ipairs(vim.split(text, "\n", { plain = true, trimempty = false })) do
+      table.insert(lines, t)
+    end
+  end
+
+  local function new_role()
     new_response = true
     self.last_role = data.role
     table.insert(lines, "")
@@ -876,13 +883,28 @@ function Chat:add_buf_message(data, opts)
     self.ui:set_header(lines, config.strategies.chat.roles[data.role])
   end
 
-  if data.content then
-    for _, text in ipairs(vim.split(data.content, "\n", { plain = true, trimempty = false })) do
-      table.insert(lines, text)
+  local function append_data()
+    if data.reasoning then
+      has_been_reasoning = true
+      if new_response then
+        table.insert(lines, "### Reasoning")
+        table.insert(lines, "")
+      end
+      write(data.reasoning)
+    else
+      if has_been_reasoning then
+        has_been_reasoning = false
+        table.insert(lines, "")
+        table.insert(lines, "")
+        table.insert(lines, "### Response")
+        table.insert(lines, "")
+      end
+      write(data.content)
     end
+  end
 
+  local function update_buffer()
     self.ui:unlock_buf()
-
     local last_line, last_column, line_count = self.ui:last()
     if opts and opts.insert_at then
       last_line = opts.insert_at
@@ -905,6 +927,17 @@ function Chat:add_buf_message(data, opts)
     elseif not self.ui:is_active() then
       self.ui:follow()
     end
+  end
+
+  -- Handle a new role
+  if (data.role and data.role ~= self.last_role) or (opts and opts.force_role) then
+    new_role()
+  end
+
+  -- Append the output from the LLM
+  if data.content or data.reasoning then
+    append_data()
+    update_buffer()
   end
 end
 

@@ -110,7 +110,37 @@ return {
     end,
 
     chat_output = function(self, data)
-      return openai.handlers.chat_output(self, data)
+      local output = {}
+
+      if data and data ~= "" then
+        local data_mod = prepare_data_for_json(data)
+        local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
+
+        if ok and json.choices and #json.choices > 0 then
+          local choice = json.choices[1]
+          local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
+
+          if delta then
+            output.role = nil
+            if delta.role then
+              output.role = delta.role
+            end
+
+            if self.opts.can_reason and delta.reasoning_content then
+              output.reasoning = delta.reasoning_content
+            end
+
+            if delta.content then
+              output.content = (output.content or "") .. delta.content
+            end
+
+            return {
+              status = "success",
+              output = output,
+            }
+          end
+        end
+      end
     end,
     inline_output = function(self, data, context)
       return openai.handlers.inline_output(self, data, context)
@@ -128,7 +158,7 @@ return {
       ---@type string|fun(): string
       default = "deepseek-reasoner",
       choices = {
-        "deepseek-reasoner",
+        ["deepseek-reasoner"] = { opts = { can_reason = true } },
         "deepseek-chat",
       },
     },
