@@ -91,7 +91,6 @@ export default defineConfig({
           { text: "Events", link: "/usage/events" },
           { text: "Inline Assistant", link: "/usage/inline-assistant" },
           { text: "Workflows", link: "/usage/workflows" },
-          { text: "Others", link: "/usage/others" },
         ],
       },
       {
