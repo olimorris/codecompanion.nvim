@@ -11,6 +11,8 @@ local util = require("codecompanion.utils")
 local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
+local get_node_text = vim.treesitter.get_node_text --[[@type function]]
+local get_query = vim.treesitter.query.get --[[@type function]]
 
 local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.chat",
@@ -32,7 +34,8 @@ local function make_id(val)
   return hash.hash(val)
 end
 
-local _cached_settings
+local _cached_settings = {}
+local _yaml_parser
 
 ---Parse the chat buffer for settings
 ---@param bufnr integer
@@ -47,21 +50,29 @@ local function ts_parse_settings(bufnr, adapter)
   if not config.display.chat.show_settings then
     if adapter then
       _cached_settings[bufnr] = adapter:get_default_settings()
-
       return _cached_settings[bufnr]
     end
   end
 
   local settings = {}
-  local parser = vim.treesitter.get_parser(bufnr, "yaml", { ignore_injections = false })
-  local query = vim.treesitter.query.get("yaml", "chat")
-  local root = parser:parse()[1]:root()
+  if not _yaml_parser then
+    _yaml_parser = vim.treesitter.get_parser(bufnr, "yaml", { ignore_injections = false })
+  end
 
-  for _, matches, _ in query:iter_matches(root, bufnr) do
+  local query = get_query("yaml", "chat")
+  local root = _yaml_parser:parse()[1]:root()
+
+  local end_line = -1
+  if adapter then
+    -- Account for the two YAML lines and the fact Tree-sitter is 0-indexed
+    end_line = vim.tbl_count(adapter:get_default_settings()) + 2 - 1
+  end
+
+  for _, matches, _ in query:iter_matches(root, bufnr, 0, end_line) do
     local nodes = matches[1]
     local node = type(nodes) == "table" and nodes[1] or nodes
 
-    local value = vim.treesitter.get_node_text(node, bufnr)
+    local value = get_node_text(node, bufnr)
 
     settings = yaml.decode(value)
     break
@@ -81,7 +92,7 @@ end
 ---@param start_range number
 ---@return { content: string }
 local function ts_parse_messages(chat, role, start_range)
-  local query = vim.treesitter.query.get("markdown", "chat")
+  local query = get_query("markdown", "chat")
 
   local tree = chat.parser:parse({ start_range - 1, -1 })[1]
   local root = tree:root()
@@ -91,9 +102,9 @@ local function ts_parse_messages(chat, role, start_range)
 
   for id, node in query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
     if query.captures[id] == "role" then
-      last_role = vim.treesitter.get_node_text(node, chat.bufnr)
+      last_role = get_node_text(node, chat.bufnr)
     elseif last_role == chat.ui:format_header(user_role) and query.captures[id] == "content" then
-      table.insert(content, vim.treesitter.get_node_text(node, chat.bufnr))
+      table.insert(content, get_node_text(node, chat.bufnr))
     end
   end
 
@@ -111,7 +122,7 @@ end
 ---@return TSNode | nil
 local function ts_parse_codeblock(chat, cursor)
   local root = chat.parser:parse()[1]:root()
-  local query = vim.treesitter.query.get("markdown", "chat")
+  local query = get_query("markdown", "chat")
   if query == nil then
     return nil
   end
@@ -315,7 +326,7 @@ function Chat:set_autocmds()
         if errors and node then
           for child in node:iter_children() do
             assert(child:type() == "block_mapping_pair")
-            local key = vim.treesitter.get_node_text(child:named_child(0), self.bufnr)
+            local key = get_node_text(child:named_child(0), self.bufnr)
             if errors[key] then
               local lnum, col, end_lnum, end_col = child:range()
               table.insert(items, {
@@ -350,7 +361,7 @@ function Chat:_get_settings_key(opts)
     return
   end
   local key_node = node:named_child(0)
-  local key_name = vim.treesitter.get_node_text(key_node, self.bufnr)
+  local key_name = get_node_text(key_node, self.bufnr)
   return key_name, node
 end
 
