@@ -162,6 +162,18 @@ function SlashCommand:output(selected, opts)
   opts = opts or {}
 
   local ft = vim.filetype.match({ filename = selected.path })
+  -- weird TypeScript bug for vim.filetype.match
+  -- see: https://github.com/neovim/neovim/issues/27265
+  if not ft then
+    local base_name = vim.fs.basename(selected.path)
+    local split_name = vim.split(base_name, "%.")
+    if #split_name > 1 then
+      local ext = split_name[#split_name]
+      if ext == "ts" then
+        ft = "typescript"
+      end
+    end
+  end
   local content = path.new(selected.path):read()
 
   local query = vim.treesitter.query.get(ft, "symbols")
