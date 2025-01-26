@@ -26,7 +26,7 @@ function Variable:read(bufnr, range)
   local content = buf_utils.format_with_line_numbers(bufnr, range)
   log:trace("Buffer Variable:\n---\n%s", content)
 
-  local name = self.Chat.References:make_id_from_buf(bufnr)
+  local name = self.Chat.references:make_id_from_buf(bufnr)
   if name == "" then
     name = "Buffer " .. bufnr
   end
@@ -76,7 +76,7 @@ function Variable:output(selected, opts)
     return
   end
 
-  self.Chat.References:add({
+  self.Chat.references:add({
     bufnr = bufnr,
     params = params,
     id = id,

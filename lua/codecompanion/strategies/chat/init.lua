@@ -196,7 +196,7 @@ function Chat.new(args)
   end
   self.parser = parser
 
-  self.References = require("codecompanion.strategies.chat.references").new({ chat = self })
+  self.references = require("codecompanion.strategies.chat.references").new({ chat = self })
   self.watchers = require("codecompanion.strategies.chat.watchers").new()
   self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
   self.variables = require("codecompanion.strategies.chat.variables").new()
@@ -502,7 +502,7 @@ function Chat:add_tool(tool, tool_config)
   end
 
   local id = "<tool>" .. tool .. "</tool>"
-  self.References:add({
+  self.references:add({
     source = "tool",
     name = "tool",
     id = id,
@@ -602,7 +602,7 @@ function Chat:submit(opts)
   if not opts.regenerate and not vim.tbl_isempty(message) then
     self:add_message({ role = config.constants.USER_ROLE, content = message.content })
   end
-  message = self.References:clear(self.messages[#self.messages])
+  message = self.references:clear(self.messages[#self.messages])
 
   self:apply_tools_and_variables(message)
   self:check_references()
@@ -697,7 +697,7 @@ function Chat:done(output)
   local assistant_range = self.header_line
   self:set_range(-2)
   self.ui:display_tokens(self.parser, self.header_line)
-  self.References:render()
+  self.references:render()
 
   if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
     self.tools:parse_buffer(self, assistant_range, self.header_line - 1)
@@ -727,7 +727,7 @@ end
 ---Reconcile the references table to the references in the chat buffer
 ---@return nil
 function Chat:check_references()
-  local refs = self.References:get_from_chat()
+  local refs = self.references:get_from_chat()
   if vim.tbl_isempty(refs) and vim.tbl_isempty(self.refs) then
     return
   end

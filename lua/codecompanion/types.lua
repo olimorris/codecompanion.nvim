@@ -78,7 +78,7 @@
 ---@field intro_message? boolean Whether the welcome message has been shown
 ---@field messages? table The messages in the chat buffer
 ---@field parser vim.treesitter.LanguageTree The Tree-sitter parser for the chat buffer
----@field References CodeCompanion.Chat.References
+---@field references CodeCompanion.Chat.References
 ---@field refs? table<CodeCompanion.Chat.Ref> References which are sent to the LLM e.g. buffers, slash command output
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer

@@ -265,7 +265,7 @@ Prompt the user if you need to see more than the symbolic outline.
     content = description,
   }, { reference = id, visible = false })
 
-  self.Chat.References:add({
+  self.Chat.references:add({
     source = "slash_command",
     name = "symbols",
     id = id,
