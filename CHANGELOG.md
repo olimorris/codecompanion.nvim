@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.14.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.14.1...v11.14.2) (2025-01-26)
+
+
+### Bug Fixes
+
+* [#698](https://github.com/olimorris/codecompanion.nvim/issues/698) custom variables ([#711](https://github.com/olimorris/codecompanion.nvim/issues/711)) ([104f913](https://github.com/olimorris/codecompanion.nvim/commit/104f91331979be7c44fa9b766b8356863ab955cd))
+
 ## [11.14.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.14.0...v11.14.1) (2025-01-26)
 
 
