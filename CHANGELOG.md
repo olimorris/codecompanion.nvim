@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.14.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.14.0...v11.14.1) (2025-01-26)
+
+
+### Performance Improvements
+
+* **chat:** [#552](https://github.com/olimorris/codecompanion.nvim/issues/552) improve settings tree-sitter query ([#708](https://github.com/olimorris/codecompanion.nvim/issues/708)) ([c7e54d2](https://github.com/olimorris/codecompanion.nvim/commit/c7e54d28cc29e7cd2b221b585b90640c7fa21483))
+
 ## [11.14.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.13.2...v11.14.0) (2025-01-25)
 
 
