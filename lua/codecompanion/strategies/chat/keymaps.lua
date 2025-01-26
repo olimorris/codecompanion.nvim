@@ -467,6 +467,7 @@ M.change_adapter = {
   desc = "Change the adapter",
   callback = function(chat)
     if config.display.chat.show_settings then
+      util.notify("Cannot change adapter while chat.show_settings is enabled", vim.log.levels.WARN)
       return
     end
 
