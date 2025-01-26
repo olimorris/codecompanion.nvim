@@ -146,7 +146,7 @@ function SlashCommand:read(selected)
     content = buf.format_with_line_numbers(selected.bufnr)
   end
 
-  local id = "<buf>" .. self.Chat.References:make_id_from_buf(selected.bufnr) .. "</buf>"
+  local id = "<buf>" .. self.Chat.references:make_id_from_buf(selected.bufnr) .. "</buf>"
 
   return content, filename, id
 end
@@ -186,7 +186,7 @@ function SlashCommand:output(selected, opts)
     return
   end
 
-  self.Chat.References:add({
+  self.Chat.references:add({
     bufnr = selected.bufnr,
     id = id,
     path = selected.path,

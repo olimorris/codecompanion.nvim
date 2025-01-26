@@ -19,12 +19,12 @@ T["References"] = new_set({
 })
 
 T["References"]["Can be added to the UI of the chat buffer"] = function()
-  chat.References:add({
+  chat.references:add({
     source = "test",
     name = "test",
     id = "testing",
   })
-  chat.References:add({
+  chat.references:add({
     source = "test",
     name = "test",
     id = "testing again",
@@ -40,12 +40,12 @@ end
 
 T["References"]["Can be deleted"] = function()
   -- Add references
-  chat.References:add({
+  chat.references:add({
     source = "test",
     name = "test",
     id = "<buf>test.lua</buf>",
   })
-  chat.References:add({
+  chat.references:add({
     source = "test",
     name = "test2",
     id = "<buf>test2.lua</buf>",
@@ -80,7 +80,7 @@ T["References"]["Can be deleted"] = function()
   h.eq(vim.tbl_count(chat.refs), 2, "Should have 2 reference")
 
   -- Mock the get_from_chat method
-  chat.References.get_from_chat = function()
+  chat.references.get_from_chat = function()
     return { "<buf>test2.lua</buf>" }
   end
 
@@ -107,7 +107,7 @@ end
 T["References"]["Can be pinned"] = function()
   local icon = config.display.chat.icons.pinned_buffer
 
-  chat.References:add({
+  chat.references:add({
     id = "<buf>pinned example</buf>",
     path = "tests.stubs.file.txt",
     source = "tests.strategies.chat.slash_commands.basic",
@@ -115,7 +115,7 @@ T["References"]["Can be pinned"] = function()
       pinned = true,
     },
   })
-  chat.References:add({
+  chat.references:add({
     id = "<buf>unpinned example</buf>",
     path = "test2",
     source = "test",
@@ -180,7 +180,7 @@ T["References"]["Can be pinned"] = function()
 end
 
 T["References"]["Tree-sitter test"] = function()
-  chat.References:add({
+  chat.references:add({
     id = "<buf>pinned example</buf>",
     path = "tests.stubs.file.txt",
     source = "tests.strategies.chat.slash_commands.basic",
@@ -189,7 +189,7 @@ T["References"]["Tree-sitter test"] = function()
     },
   })
 
-  h.eq(chat.References:get_from_chat(), { "<buf>pinned example</buf>" })
+  h.eq(chat.references:get_from_chat(), { "<buf>pinned example</buf>" })
 end
 
 T["References"]["Render"] = function()
@@ -203,13 +203,13 @@ T["References"]["Render"] = function()
       },
     },
   }
-  chat.References:render()
+  chat.references:render()
 
   h.eq(h.get_buf_lines(chat.bufnr), { "## foo", "", "> Sharing:", "> -  <buf>pinned example</buf>", "", "" })
 end
 
 T["References"]["can be cleared from messages"] = function()
-  chat.References:add({
+  chat.references:add({
     id = "<buf>pinned example</buf>",
     path = "tests.stubs.file.txt",
     source = "tests.strategies.chat.slash_commands.basic",
@@ -223,7 +223,7 @@ T["References"]["can be cleared from messages"] = function()
     content = "> Sharing:\n> -  <buf>pinned example</buf>\n\nHello, World",
   }
 
-  h.eq("Hello, World", chat.References:clear(message).content)
+  h.eq("Hello, World", chat.references:clear(message).content)
 end
 
 return T

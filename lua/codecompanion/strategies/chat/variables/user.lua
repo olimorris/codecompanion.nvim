@@ -25,7 +25,7 @@ function Variable:output()
     content = self.config.callback(),
   }, { reference = id, tag = "variable", visible = false })
 
-  self.Chat.References:add({
+  self.Chat.references:add({
     bufnr = self.Chat.bufnr,
     id = id,
     source = "codecompanion.strategies.chat.variables.user",

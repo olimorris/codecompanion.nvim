@@ -327,7 +327,7 @@ M.pin_reference = {
     local icon = config.display.chat.icons.pinned_buffer
     local id = line:gsub("^> %- ", "")
 
-    if not chat.References:can_be_pinned(id) then
+    if not chat.references:can_be_pinned(id) then
       return util.notify("This reference type cannot be pinned", vim.log.levels.WARN)
     end
 
@@ -366,7 +366,7 @@ M.toggle_watch = {
 
     local icons = config.display.chat.icons
     local id = line:gsub("^> %- ", "")
-    if not chat.References:can_be_watched(id) then
+    if not chat.references:can_be_watched(id) then
       return util.notify("This reference type cannot be watched", vim.log.levels.WARN)
     end
 

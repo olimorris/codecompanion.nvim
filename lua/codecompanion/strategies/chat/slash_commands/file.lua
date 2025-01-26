@@ -186,7 +186,7 @@ function SlashCommand:output(selected, opts)
     return
   end
 
-  self.Chat.References:add({
+  self.Chat.references:add({
     id = id or "",
     path = selected.path,
     source = "codecompanion.strategies.chat.slash_commands.file",
