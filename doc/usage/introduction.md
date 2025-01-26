@@ -16,7 +16,7 @@ The [cmd_runner](/usage/chat-buffer/agents#cmd-runner) tool enables an LLM to ex
 
 ## Quickly accessing a chat buffer
 
-The `:CodeCompanionChat Toggle` command will automically create a chat buffer if one doesn't exist, open the last chat buffer or hide the current chat buffer. It's the fastest way to navigate chat buffers.
+The `:CodeCompanionChat Toggle` command will automatically create a chat buffer if one doesn't exist, open the last chat buffer or hide the current chat buffer.
 
 When in a chat buffer, you can cycle between other chat buffers with `{` or `}`.
 
