@@ -36,30 +36,16 @@ return {
     Authorization = "Bearer ${api_key}",
   },
   handlers = {
-    ---@param self CodeCompanion.Adapter
-    ---@return boolean
-    setup = function(self)
-      local model = self.schema.model.default
-      local model_opts = self.schema.model.choices[model]
-      if model_opts and model_opts.opts then
-        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
-      end
-
-      if self.opts and self.opts.stream then
-        self.parameters.stream = true
-        self.parameters.stream_options = { include_usage = true }
-      end
-      return true
-    end,
-
     --- Use the OpenAI adapter for the bulk of the work
+    setup = function(self)
+      return openai.handlers.setup(self)
+    end,
     tokens = function(self, data)
       return openai.handlers.tokens(self, data)
     end,
     form_parameters = function(self, params, messages)
       return openai.handlers.form_parameters(self, params, messages)
     end,
-
     ---Set the format of the role and content for the messages from the chat buffer
     ---@param self CodeCompanion.Adapter
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
@@ -108,7 +94,6 @@ return {
 
       return { messages = processed }
     end,
-
     chat_output = function(self, data)
       local output = {}
 
