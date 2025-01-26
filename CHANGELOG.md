@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.15.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.14.2...v11.15.0) (2025-01-26)
+
+
+### Features
+
+* **deepseek:** [#692](https://github.com/olimorris/codecompanion.nvim/issues/692) [#669](https://github.com/olimorris/codecompanion.nvim/issues/669) show reasoning output ([#716](https://github.com/olimorris/codecompanion.nvim/issues/716)) ([b4467a1](https://github.com/olimorris/codecompanion.nvim/commit/b4467a1af36e8b99ffadc95dfed55154b18aebf8))
+
 ## [11.14.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.14.1...v11.14.2) (2025-01-26)
 
 
