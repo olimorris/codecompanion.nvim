@@ -46,6 +46,7 @@ return {
     form_parameters = function(self, params, messages)
       return openai.handlers.form_parameters(self, params, messages)
     end,
+
     ---Set the format of the role and content for the messages from the chat buffer
     ---@param self CodeCompanion.Adapter
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
@@ -57,8 +58,8 @@ return {
         model = model()
       end
 
-      ---DeepSeek-R1 doesn't allow consecutive messages from the same role,
-      ---so we concatenate them into a single message
+      -- DeepSeek-R1 doesn't allow consecutive messages from the same role,
+      -- so we concatenate them into a single message
       for _, msg in ipairs(messages) do
         local last = processed[#processed]
         if last and last.role == msg.role then
@@ -71,8 +72,8 @@ return {
         end
       end
 
-      ---System role is only allowed as the first message, after this we must label
-      ---all system messages as assistant
+      -- The system role is only allowed as the first message, after this we must label
+      -- all system messages as assistant
       local has_system = false
       processed = vim
         .iter(processed)
@@ -94,6 +95,11 @@ return {
 
       return { messages = processed }
     end,
+
+    ---Output the data from the API ready for insertion into the chat buffer
+    ---@param self CodeCompanion.Adapter
+    ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
+    ---@return { status: string, output: { role: string, content: string, reasoning: string? } } | nil
     chat_output = function(self, data)
       local output = {}
 
