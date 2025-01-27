@@ -1,0 +1,62 @@
+{
+  "name": "CodeCompanion.nvim",
+  "version": "1.0.0",
+  "workspace_spec": "1.0",
+  "description": "test",
+  "groups": [
+    {
+      "name": "Test",
+      "description": "This is a test group",
+      "vars": {
+        "base_dir": "tests/stubs"
+      },
+      "files": [
+        {
+          "description": "Test description for the file ${filename} located at ${path}",
+          "path": "${base_dir}/stub.go"
+        },
+        "${base_dir}/stub.txt"
+      ],
+      "symbols": [
+        {
+          "description": "Test symbol description for the file ${filename} located at ${path}",
+          "path": "${base_dir}/stub.lua"
+        },
+        "${base_dir}/stub.py"
+      ]
+    },
+    {
+      "name": "Test 2",
+      "system_prompt": "Testing to remove the default system prompt",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "vars": {
+        "base_dir": "tests/stubs"
+      },
+      "files": [
+        {
+          "description": "A test description",
+          "path": "${base_dir}/stub.go"
+        }
+      ]
+    },
+    {
+      "name": "Test 3",
+      "description": "system prompt test",
+      "system_prompt": "This is a system prompt ${workspace_description}",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "vars": {
+        "base_dir": "tests/stubs"
+      },
+      "files": [
+        {
+          "description": "A test description",
+          "path": "${base_dir}/stub.go"
+        }
+      ]
+    }
+  ]
+}

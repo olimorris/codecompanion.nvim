@@ -420,13 +420,14 @@ function Chat:complete_models(request, callback)
 end
 
 ---Set the system prompt in the chat buffer
+---@prompt? string
 ---@return CodeCompanion.Chat
-function Chat:set_system_prompt()
+function Chat:set_system_prompt(prompt)
   if self.opts and self.opts.ignore_system_prompt then
     return self
   end
 
-  local prompt = config.opts.system_prompt
+  prompt = prompt or config.opts.system_prompt
   if prompt ~= "" then
     if type(prompt) == "function" then
       prompt = prompt({
@@ -456,6 +457,14 @@ function Chat:toggle_system_prompt()
   else
     util.notify("Added system prompt")
     self:set_system_prompt()
+  end
+end
+
+---Remove the system prompt from the chat buffer
+---@return nil
+function Chat:remove_system_prompt()
+  if self.messages[1] and self.messages[1].role == config.constants.SYSTEM_ROLE then
+    table.remove(self.messages, 1)
   end
 end
 

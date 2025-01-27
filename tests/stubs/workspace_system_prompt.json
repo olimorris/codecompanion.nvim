@@ -1,0 +1,24 @@
+{
+  "name": "Testing System Prompts",
+  "version": "1.0.0",
+  "workspace_spec": "1.0",
+  "system_prompt": "High level system prompt",
+  "groups": [
+    {
+      "name": "Test",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "vars": {
+        "base_dir": "tests/stubs"
+      },
+      "files": [
+        {
+          "description": "A test description",
+          "path": "${base_dir}/stub.go"
+        }
+      ]
+    }
+  ]
+}
+
