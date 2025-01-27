@@ -527,7 +527,7 @@ M.change_adapter = {
       if type(models) == "function" then
         models = models(chat.adapter)
       end
-      if not models or #models < 2 then
+      if not models or vim.tbl_count(models) < 2 then
         return
       end
 
