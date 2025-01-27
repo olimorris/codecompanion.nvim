@@ -31,6 +31,29 @@ local providers = {
       :display()
   end,
 
+  ---The Snacks.nvim provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  snacks = function(SlashCommand)
+    local snacks = require("codecompanion.providers.slash_commands.snacks")
+    snacks = snacks.new({
+      title = CONSTANTS.PROMPT .. ": ",
+      output = function(selection)
+        return SlashCommand:output({
+          bufnr = selection.buf,
+          name = vim.fn.bufname(selection.buf),
+          path = selection.file,
+        })
+      end,
+    })
+
+    snacks.provider.picker.pick({
+      source = "buffers",
+      prompt = snacks.title,
+      confirm = snacks:display(),
+    })
+  end,
+
   ---The Telescope provider
   ---@param SlashCommand CodeCompanion.SlashCommand
   ---@return nil

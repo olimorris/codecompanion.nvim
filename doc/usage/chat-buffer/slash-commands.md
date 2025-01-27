@@ -12,7 +12,7 @@ Slash Commands enable you to quickly add context to the chat buffer. They are co
 <img src="https://github.com/user-attachments/assets/1be7593b-f77f-44f9-a418-1d04b3f46785" />
 </p>
 
-The _buffer_ slash command enables you to add the contents of any open buffers in Neovim to the chat buffer. The command has native, _Telescope_, _mini.pick_ and _fzf.lua_ providers available. Also, multiple buffers can be selected and added to the chat buffer as per the video above.
+The _buffer_ slash command enables you to add the contents of any open buffers in Neovim to the chat buffer. The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple buffers can be selected and added to the chat buffer as per the video above.
 
 ## /fetch
 
@@ -23,11 +23,11 @@ The _fetch_ slash command allows you to add the contents of a URL to the chat bu
 
 ## /file
 
-The _file_ slash command allows you to add the contents of a file in the current working directory to the chat buffer. The command has native, _Telescope_, _mini.pick_ and _fzf.lua_ providers available. Also, multiple files can be selected and added to the chat buffer.
+The _file_ slash command allows you to add the contents of a file in the current working directory to the chat buffer. The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple files can be selected and added to the chat buffer.
 
 ## /help
 
-The _help_ slash command allows you to add content from a vim help file (`:h helpfile`), to the chat buffer, by searching for help tags. Currently this is only available for _Telescope_, _mini.pick_ and _fzf_lua_ providers. By default, the slash command will prompt you to trim a help file that is over 1,000 lines in length.
+The _help_ slash command allows you to add content from a vim help file (`:h helpfile`), to the chat buffer, by searching for help tags. Currently this is only available for _Telescope_, _mini.pick_, _fzf_lua_ and _snacks.nvim_ providers. By default, the slash command will prompt you to trim a help file that is over 1,000 lines in length.
 
 ## /now
 
@@ -39,7 +39,9 @@ The _now_ slash command simply inserts the current datetime stamp into the chat 
 > If a filetype isn't supported please consider making a PR to add the corresponding Tree-sitter queries from
 > [aerial.nvim](https://github.com/stevearc/aerial.nvim)
 
-The _symbols_ slash command uses Tree-sitter to create a symbolic outline of a file to share with the LLM. This can be a useful way to minimize token consumption whilst sharing the basic outline of a file. The plugin utilizes the amazing work from **aerial.nvim** by using their Tree-sitter symbol queries. The list of filetypes that the plugin currently supports can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/queries).
+The _symbols_ slash command uses Tree-sitter to create a symbolic outline of a file to share with the LLM. This can be a useful way to minimize token consumption whilst sharing the basic outline of a file. The plugin utilizes the amazing work from **aerial.nvim** by using their Tree-sitter symbol queries as the basis. The list of filetypes that the plugin currently supports can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/queries).
+
+The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple symbols can be selected and added to the chat buffer.
 
 ## /terminal
 
