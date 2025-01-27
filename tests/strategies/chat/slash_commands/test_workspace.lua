@@ -19,11 +19,15 @@ local expect_starts_with = MiniTest.new_expectation(
 
 local chat
 local wks
-local json
+
+local function set_workspace(path)
+  path = path or "tests/stubs/workspace.json"
+  wks.workspace = wks:read_workspace_file(path)
+end
 
 T["Workspace"] = new_set({
   hooks = {
-    pre_once = function()
+    pre_case = function()
       chat, _ = h.setup_chat_buffer()
       wks = workspace.new({
         Chat = chat,
@@ -31,19 +35,22 @@ T["Workspace"] = new_set({
         opts = {},
       })
     end,
-    post_once = function()
+    post_case = function()
       h.teardown_chat_buffer()
     end,
   },
 })
 
 T["Workspace"]["fetches groups"] = function()
-  wks.workspace = wks:read_workspace_file()
+  set_workspace()
 
-  h.eq("Test", wks.workspace.groups[2].name)
+  h.eq("Test", wks.workspace.groups[1].name)
+  h.eq("Test 2", wks.workspace.groups[2].name)
 end
 
 T["Workspace"]["adds files and symbols"] = function()
+  set_workspace()
+
   h.eq(1, #chat.messages)
   wks:output("Test")
 
@@ -57,6 +64,23 @@ T["Workspace"]["adds files and symbols"] = function()
     chat.messages[5].content
   )
   expect_starts_with("Here is a symbolic outline of the file `tests/stubs/stub.py`", chat.messages[6].content)
+end
+
+T["Workspace"]["can remove the default system prompt"] = function()
+  set_workspace()
+  wks:output("Test 2")
+
+  h.eq("system", chat.messages[1].role)
+  h.eq("Testing to remove the default system prompt", chat.messages[1].content)
+  h.eq("user", chat.messages[2].role)
+end
+
+T["Workspace"]["can add system prompts"] = function()
+  set_workspace("tests/stubs/workspace_system_prompt.json")
+  wks:output("Test")
+
+  h.eq("system", chat.messages[1].role)
+  h.eq("High level system prompt", chat.messages[1].content)
 end
 
 return T
