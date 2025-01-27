@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.15.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.15.1...v11.15.2) (2025-01-27)
+
+
+### Bug Fixes
+
+* **chat:** change deepseek models ([7e211d5](https://github.com/olimorris/codecompanion.nvim/commit/7e211d522d0cf1f8cbd3b5f25d486e80f4276693))
+
 ## [11.15.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.15.0...v11.15.1) (2025-01-27)
 
 
