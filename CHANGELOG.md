@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.16.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.15.3...v11.16.0) (2025-01-27)
+
+
+### Features
+
+* **slash_command:** control system prompts in `/workspace` ([#736](https://github.com/olimorris/codecompanion.nvim/issues/736)) ([16d7f62](https://github.com/olimorris/codecompanion.nvim/commit/16d7f62239bea7b716b06c9ec588f977e054f90e))
+
 ## [11.15.3](https://github.com/olimorris/codecompanion.nvim/compare/v11.15.2...v11.15.3) (2025-01-27)
 
 
