@@ -602,12 +602,12 @@ function Chat:submit(opts)
   -- Check if any watched buffers have any changes
   self.watchers:check_for_changes(self)
 
-  if not self:has_user_messages(message) or message.content == "" then
+  if not self:has_user_messages(message) then
     return log:warn("No messages to submit")
   end
 
   --- Only send the user's last message if we're not regenerating the response
-  if not opts.regenerate and not vim.tbl_isempty(message) then
+  if not opts.regenerate and not vim.tbl_isempty(message) and message.content ~= "" then
     self:add_message({ role = config.constants.USER_ROLE, content = message.content })
   end
   message = self.references:clear(self.messages[#self.messages])
@@ -636,11 +636,12 @@ function Chat:submit(opts)
   self.current_request = client
     .new({ adapter = settings })
     :request(self.adapter:map_roles(vim.deepcopy(self.messages)), {
-      ---@param err string
+      ---@param err { message: string, stderr: string }
       ---@param data table
       callback = function(err, data)
-        if err then
+        if err and err.stderr ~= "{}" then
           self.status = CONSTANTS.STATUS_ERROR
+          log:error("Error: %s", err.stderr)
           return self:done(output)
         end
 
@@ -826,13 +827,17 @@ function Chat:stop()
     self.current_tool = nil
 
     _G.codecompanion_cancel_tool = true
-    job:shutdown()
+    pcall(function()
+      job:shutdown()
+    end)
   end
   if self.current_request then
     job = self.current_request
     self.current_request = nil
     if job then
-      job:shutdown()
+      pcall(function()
+        job:shutdown()
+      end)
     end
   end
 end
