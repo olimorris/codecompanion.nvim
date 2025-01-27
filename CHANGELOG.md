@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.16.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.16.0...v11.16.1) (2025-01-27)
+
+
+### Bug Fixes
+
+* **chat:** more graceful cancellations ([#739](https://github.com/olimorris/codecompanion.nvim/issues/739)) ([05c8853](https://github.com/olimorris/codecompanion.nvim/commit/05c8853ff0ff931a0daed569367d69524c792292))
+
 ## [11.16.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.15.3...v11.16.0) (2025-01-27)
 
 
