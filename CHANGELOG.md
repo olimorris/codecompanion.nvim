@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.15.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.15.0...v11.15.1) (2025-01-27)
+
+
+### Bug Fixes
+
+* **slash_command:** typescript ft not recognised ([#723](https://github.com/olimorris/codecompanion.nvim/issues/723)) ([c114e42](https://github.com/olimorris/codecompanion.nvim/commit/c114e4203d858aef99a835280e02a67a6d0d9082))
+
 ## [11.15.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.14.2...v11.15.0) (2025-01-26)
 
 
