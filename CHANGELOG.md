@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.17.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.16.1...v11.17.0) (2025-01-27)
+
+
+### Features
+
+* :sparkles: add support for `snacks.nvim` ([#741](https://github.com/olimorris/codecompanion.nvim/issues/741)) ([5407aba](https://github.com/olimorris/codecompanion.nvim/commit/5407aba817d11c4e1f27da34210e4cd58e88a388))
+
 ## [11.16.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.16.0...v11.16.1) (2025-01-27)
 
 
