@@ -1,16 +1,6 @@
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
-
----Prepare data to be parsed as JSON
----@param data string | { body: string }
----@return string
-local prepare_data_for_json = function(data)
-  if type(data) == "table" then
-    return data.body
-  end
-  local find_json_start = string.find(data, "{") or 1
-  return string.sub(data, find_json_start)
-end
+local utils = require("codecompanion.utils.adapters")
 
 --@class DeepSeek.Adapter: CodeCompanion.Adapter
 return {
@@ -52,7 +42,6 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
-      local processed = {}
       local model = self.schema.model.default
       if type(model) == "function" then
         model = model()
@@ -60,23 +49,13 @@ return {
 
       -- DeepSeek-R1 doesn't allow consecutive messages from the same role,
       -- so we concatenate them into a single message
-      for _, msg in ipairs(messages) do
-        local last = processed[#processed]
-        if last and last.role == msg.role then
-          last.content = last.content .. "\n\n" .. msg.content
-        else
-          table.insert(processed, {
-            role = msg.role,
-            content = msg.content,
-          })
-        end
-      end
+      messages = utils.merge_messages(messages)
 
       -- The system role is only allowed as the first message, after this we must label
       -- all system messages as assistant
       local has_system = false
-      processed = vim
-        .iter(processed)
+      messages = vim
+        .iter(messages)
         :map(function(m)
           local role = m.role
           if role == self.roles.llm then
@@ -93,7 +72,7 @@ return {
         end)
         :totable()
 
-      return { messages = processed }
+      return { messages = messages }
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
@@ -104,7 +83,7 @@ return {
       local output = {}
 
       if data and data ~= "" then
-        local data_mod = prepare_data_for_json(data)
+        local data_mod = utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok and json.choices and #json.choices > 0 then

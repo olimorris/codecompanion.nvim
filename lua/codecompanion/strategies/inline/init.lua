@@ -1,10 +1,9 @@
+local adapter_utils = require("codecompanion.utils.adapters")
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
-
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
-local msg_utils = require("codecompanion.utils.messages")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils")
 
@@ -223,7 +222,8 @@ function Inline:classify(user_input)
     })
   end
 
-  local prompt = msg_utils.merge_messages(msg_utils.pluck_messages(vim.deepcopy(self.classification.prompts), "user"))
+  local prompt =
+    adapter_utils.merge_messages(adapter_utils.pluck_messages(vim.deepcopy(self.classification.prompts), "user"))
   log:debug("Prompt to classify: %s", prompt)
 
   if not self.opts.placement then
@@ -304,7 +304,7 @@ function Inline:submit()
 
   -- Add the context from the chat buffer
   if not vim.tbl_isempty(self.chat_context) then
-    local messages = msg_utils.pluck_messages(self.chat_context, config.constants.LLM_ROLE)
+    local messages = adapter_utils.pluck_messages(self.chat_context, config.constants.LLM_ROLE)
 
     if #messages > 0 then
       table.insert(self.classification.prompts, {

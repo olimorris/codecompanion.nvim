@@ -1,8 +1,8 @@
-local curl = require("plenary.curl")
-
 local config = require("codecompanion.config")
+local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
+local utils = require("codecompanion.utils.adapters")
 
 ---@alias CopilotOAuthToken string|nil
 local _oauth_token
@@ -98,17 +98,6 @@ local function authorize_token()
   return _github_token
 end
 
----Prepare data to be parsed as JSON
----@param data string | { body: string }
----@return string
-local prepare_data_for_json = function(data)
-  if type(data) == "table" then
-    return data.body
-  end
-  local find_json_start = string.find(data, "{") or 1
-  return string.sub(data, find_json_start)
-end
-
 ---@class Copilot.Adapter: CodeCompanion.Adapter
 return {
   name = "copilot",
@@ -176,7 +165,7 @@ return {
     end,
     tokens = function(self, data)
       if data and data ~= "" then
-        local data_mod = prepare_data_for_json(data)
+        local data_mod = utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then

@@ -1,6 +1,6 @@
 local h = require("tests.helpers")
 
-local utils = require("codecompanion.utils.messages")
+local utils = require("codecompanion.utils.adapters")
 
 local test_adapter = {
   name = "TestAdapter",
