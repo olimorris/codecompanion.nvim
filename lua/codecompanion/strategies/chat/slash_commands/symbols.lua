@@ -64,6 +64,28 @@ local providers = {
       :display()
   end,
 
+  ---The Snacks.nvim provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  snacks = function(SlashCommand)
+    local snacks = require("codecompanion.providers.slash_commands.snacks")
+    snacks = snacks.new({
+      title = CONSTANTS.PROMPT .. ": ",
+      output = function(selection)
+        return SlashCommand:output({
+          relative_path = selection.file,
+          path = vim.fs.joinpath(selection.cwd, selection.file),
+        })
+      end,
+    })
+
+    snacks.provider.picker.pick({
+      source = "files",
+      prompt = snacks.title,
+      confirm = snacks:display(),
+    })
+  end,
+
   ---The Telescope provider
   ---@param SlashCommand CodeCompanion.SlashCommand
   ---@return nil
@@ -72,7 +94,10 @@ local providers = {
     telescope = telescope.new({
       title = CONSTANTS.PROMPT,
       output = function(selection)
-        return SlashCommand:output({ relative_path = selection[1], path = selection.path })
+        return SlashCommand:output({
+          relative_path = selection[1],
+          path = selection.path,
+        })
       end,
     })
 
