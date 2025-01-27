@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.15.3](https://github.com/olimorris/codecompanion.nvim/compare/v11.15.2...v11.15.3) (2025-01-27)
+
+
+### Bug Fixes
+
+* [#732](https://github.com/olimorris/codecompanion.nvim/issues/732) can use deepseek with no config ([#733](https://github.com/olimorris/codecompanion.nvim/issues/733)) ([23d81a9](https://github.com/olimorris/codecompanion.nvim/commit/23d81a946e71c28cf2bdd025c1a3708f07f8d880))
+
 ## [11.15.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.15.1...v11.15.2) (2025-01-27)
 
 
