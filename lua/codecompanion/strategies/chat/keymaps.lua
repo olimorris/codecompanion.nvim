@@ -553,38 +553,6 @@ M.debug = {
         settings = settings,
       })
       :render()
-
-    -- local lines = {}
-    --
-    -- table.insert(lines, "--Settings")
-    -- table.insert(lines, 'adapter = "' .. chat.adapter.name .. '"')
-    --
-    -- for key, val in pairs(settings) do
-    --   if type(val) == "number" or type(val) == "boolean" then
-    --     table.insert(lines, key .. " = " .. val)
-    --   elseif type(val) == "string" then
-    --     table.insert(lines, key .. " = " .. '"' .. val .. '"')
-    --   else
-    --     table.insert(lines, key .. " = " .. vim.inspect(val))
-    --   end
-    -- end
-    --
-    -- table.insert(lines, "")
-    -- table.insert(lines, "--Messages")
-    --
-    -- messages = vim.inspect(messages)
-    -- for line in messages:gmatch("[^\r\n]+") do
-    --   table.insert(lines, line)
-    -- end
-    --
-    -- open_float(lines, {
-    --   title = "Debug Chat",
-    --   filetype = "lua",
-    --   relative = "editor",
-    --   width = vim.o.columns - 5,
-    --   height = vim.o.lines - 2,
-    --   opts = { wrap = true },
-    -- })
   end,
 }
 
