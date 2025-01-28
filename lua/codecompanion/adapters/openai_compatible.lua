@@ -3,6 +3,10 @@ local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 
+---Cached list of available models
+---@type table<string>
+local _models = {}
+
 ---Get a list of available OpenAI compatible models
 ---@params self CodeCompanion.Adapter
 ---@params opts? table
@@ -14,44 +18,47 @@ local function get_models(self, opts)
     return {}
   end
 
-  adapter:get_env_vars()
-  local url = adapter.env_replaced.url
+  if vim.tbl_isempty(_models) or config.display.chat.show_settings == false then
+    adapter:get_env_vars()
+    local url = adapter.env_replaced.url
 
-  local headers = {
-    ["content-type"] = "application/json",
-  }
-  if adapter.env_replaced.api_key then
-    headers["Authorization"] = "Bearer " .. adapter.env_replaced.api_key
-  end
+    local headers = {
+      ["content-type"] = "application/json",
+    }
+    if adapter.env_replaced.api_key then
+      headers["Authorization"] = "Bearer " .. adapter.env_replaced.api_key
+    end
 
-  local ok, response = pcall(function()
-    return curl.get(url .. "/v1/models", {
-      sync = true,
-      headers = headers,
-      insecure = config.adapters.opts.allow_insecure,
-      proxy = config.adapters.opts.proxy,
-    })
-  end)
-  if not ok then
-    log:error("Could not get the OpenAI compatible models from " .. url .. "/v1/models.\nError: %s", response)
-    return {}
-  end
+    local ok, response, json
 
-  local ok, json = pcall(vim.json.decode, response.body)
-  if not ok then
-    log:error("Could not parse the response from " .. url .. "/v1/models")
-    return {}
-  end
+    ok, response = pcall(function()
+      return curl.get(url .. "/v1/models", {
+        sync = true,
+        headers = headers,
+        insecure = config.adapters.opts.allow_insecure,
+        proxy = config.adapters.opts.proxy,
+      })
+    end)
+    if not ok then
+      log:error("Could not get the OpenAI compatible models from " .. url .. "/v1/models.\nError: %s", response)
+      return {}
+    end
 
-  local models = {}
-  for _, model in ipairs(json.data) do
-    table.insert(models, model.id)
+    ok, json = pcall(vim.json.decode, response.body)
+    if not ok then
+      log:error("Could not parse the response from " .. url .. "/v1/models")
+      return {}
+    end
+
+    for _, model in ipairs(json.data) do
+      table.insert(_models, model.id)
+    end
   end
 
   if opts and opts.last then
-    return models[1]
+    return _models[1]
   end
-  return models
+  return _models
 end
 
 ---@class OpenAICompatible.Adapter: CodeCompanion.Adapter
