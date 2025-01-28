@@ -368,10 +368,10 @@ end
 ---@param settings table
 ---@return self
 function Chat:apply_settings(settings)
-  -- Clear the cache
-  _cached_settings = {}
-
   self.settings = settings or schema.get_default(self.adapter.schema, self.opts.settings)
+
+  -- Reset the cache
+  _cached_settings[self.bufnr] = self.settings
 
   return self
 end
