@@ -77,8 +77,8 @@ To make this example complete, we can leverage a pre-hook to create a new buffer
     opts = {
       pre_hook = function()
         local bufnr = vim.api.nvim_create_buf(true, false)
-        vim.api.nvim_buf_set_option(bufnr, "filetype", "html")
         vim.api.nvim_set_current_buf(bufnr)
+        vim.api.nvim_set_option_value("filetype", "html", { buf = buf } )
         return bufnr
       end
     }
@@ -312,20 +312,20 @@ In the chat buffer, if you type `/` you will see the value of `opts.short_name` 
 
 ### Specifying a Placement for Inline Prompts
 
-As outlined in the README, an inline prompt can place its response in many different ways. To override this, you can specify a specific placement:
+As outlined in the [classification](/usage/inline-assistant.html#classification) section, an inline prompt can place its response in many different ways within a Neovim buffer. To override this, you can reference a specific placement:
 
 ```lua
 ["Your_New_Prompt"] = {
   strategy = "inline",
   description = "Your Special Inline Prompt",
   opts = {
-    placement = "new"
+    placement = "new" -- or "replace"|"add"|"before"|"chat"
   },
   -- Your prompts here
 }
 ```
 
-In this example, the LLM response will be placed in a new buffer and the user's code will not be returned back to them.
+In this example, the LLM's response will be placed in a new buffer.
 
 ### Ignoring the default system prompt
 
