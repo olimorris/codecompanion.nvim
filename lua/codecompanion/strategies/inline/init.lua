@@ -40,9 +40,10 @@ Please respond to this prompt in the format "<method>", placing the classificati
 2. No explanations or prose
 3. Use proper indentation for the target language
 4. Include language-appropriate comments when needed
-5. Use actual line breaks (not \n)
+5. Use actual line breaks (not `\n`)
 6. Preserve all whitespace
 7. Only include relevant code (no full file echoing)
+8. Be mindful that you may not need to return all of the code that the user has sent
 
 If you cannot provide clean file-ready code, reply with `<error>`]],
 }
