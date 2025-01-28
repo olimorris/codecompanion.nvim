@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.17.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.1...v11.17.2) (2025-01-28)
+
+
+### Bug Fixes
+
+* **inline:** tweak system prompt ([#754](https://github.com/olimorris/codecompanion.nvim/issues/754)) ([4985375](https://github.com/olimorris/codecompanion.nvim/commit/4985375c6256498ff6991179404557c16118568a))
+
 ## [11.17.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.0...v11.17.1) (2025-01-28)
 
 
