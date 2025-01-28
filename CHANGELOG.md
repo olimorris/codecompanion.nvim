@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.17.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.0...v11.17.1) (2025-01-28)
+
+
+### Bug Fixes
+
+* **adapter:** [#731](https://github.com/olimorris/codecompanion.nvim/issues/731) openai_compat adapter calling API too much ([#738](https://github.com/olimorris/codecompanion.nvim/issues/738)) ([184ca40](https://github.com/olimorris/codecompanion.nvim/commit/184ca40c1f802b7eb2b0dc5236dab56a10d9e96e))
+
 ## [11.17.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.16.1...v11.17.0) (2025-01-27)
 
 
