@@ -1,5 +1,17 @@
 # Changelog
 
+## [11.19.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.18.1...v11.19.0) (2025-01-29)
+
+
+### Features
+
+* add symbols for scala ([#768](https://github.com/olimorris/codecompanion.nvim/issues/768)) ([4535cb5](https://github.com/olimorris/codecompanion.nvim/commit/4535cb5bdf92e3bc88d4cf061c606447131e27db))
+
+
+### Bug Fixes
+
+* **chat:** message editing for adapters with model schema as a function ([b6dcc37](https://github.com/olimorris/codecompanion.nvim/commit/b6dcc378c95014b0a3e62593c9150f682206e61f))
+
 ## [11.18.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.18.0...v11.18.1) (2025-01-29)
 
 
