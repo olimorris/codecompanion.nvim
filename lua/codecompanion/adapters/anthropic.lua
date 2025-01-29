@@ -76,15 +76,7 @@ return {
         :totable()
 
       -- Combine consecutive messages from the same role
-      messages = vim.iter(messages):fold({}, function(acc, msg)
-        local last = acc[#acc]
-        if last and last.role == msg.role then
-          last.content = last.content .. " " .. msg.content:gsub("^%s*\n\n", "")
-        else
-          table.insert(acc, { role = msg.role, content = msg.content })
-        end
-        return acc
-      end)
+      messages = utils.merge_messages(messages)
 
       local breakpoints_used = 0
 
