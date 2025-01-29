@@ -159,7 +159,7 @@ describe("Adapter", function()
 
     h.eq({
       { role = "system", content = "This is a system prompt" },
-      { role = "user", content = "Foo Bar" },
+      { role = "user", content = "Foo\n\nBar" },
     }, utils.merge_messages(messages))
   end)
 

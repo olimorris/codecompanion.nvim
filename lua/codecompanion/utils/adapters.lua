@@ -71,7 +71,7 @@ function M.merge_messages(messages)
       if last_role ~= nil then
         table.insert(new_msgs, {
           role = last_role,
-          content = table.concat(temp_msgs, " "),
+          content = table.concat(temp_msgs, "\n\n"),
         })
       end
       -- Start new accumulation for the current role
@@ -84,7 +84,7 @@ function M.merge_messages(messages)
   if vim.tbl_count(temp_msgs) > 0 then
     table.insert(new_msgs, {
       role = last_role,
-      content = table.concat(temp_msgs, " "),
+      content = table.concat(temp_msgs, "\n\n"),
     })
   end
 
