@@ -6,7 +6,7 @@ local utils = require("codecompanion.utils.adapters")
 return {
   name = "deepseek",
   roles = {
-    llm = "system",
+    llm = "assistant",
     user = "user",
   },
   opts = {
@@ -42,37 +42,31 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
-      local model = self.schema.model.default
-      if type(model) == "function" then
-        model = model()
-      end
+      -- Extract and merge system messages
+      local system_messages = vim
+        .iter(messages)
+        :filter(function(msg)
+          return msg.role == "system"
+        end)
+        :totable()
+      system_messages = utils.merge_messages(system_messages)
 
-      -- DeepSeek-R1 doesn't allow consecutive messages from the same role,
-      -- so we concatenate them into a single message
-      messages = utils.merge_messages(messages)
-
-      -- The system role is only allowed as the first message, after this we must label
-      -- all system messages as assistant
-      local has_system = false
+      -- Remove system messages then merge messages with the same role
       messages = vim
         .iter(messages)
-        :map(function(m)
-          local role = m.role
-          if role == self.roles.llm then
-            if not has_system then
-              has_system = true
-            else
-              role = "assistant"
-            end
-          end
+        :filter(function(msg)
+          return msg.role ~= "system"
+        end)
+        :map(function(msg)
           return {
-            role = role,
-            content = m.content,
+            role = msg.role,
+            content = msg.content,
           }
         end)
         :totable()
+      messages = utils.merge_messages(messages)
 
-      return { messages = messages }
+      return { messages = vim.list_extend(system_messages, messages) }
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
