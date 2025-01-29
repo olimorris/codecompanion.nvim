@@ -18,7 +18,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-20.04
-            url: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
+            url: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.tar.gz
           - os: ubuntu-20.04
             url: https://github.com/neovim/neovim/releases/download/v0.10.0/nvim-linux64.tar.gz
 
