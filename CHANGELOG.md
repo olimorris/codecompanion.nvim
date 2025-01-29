@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.18.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.5...v11.18.0) (2025-01-29)
+
+
+### Features
+
+* :sparkles: can edit setting and message history ([#753](https://github.com/olimorris/codecompanion.nvim/issues/753)) ([2592d26](https://github.com/olimorris/codecompanion.nvim/commit/2592d26eb3da9462174c858464324c31eb35eb91))
+
 ## [11.17.5](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.4...v11.17.5) (2025-01-29)
 
 
