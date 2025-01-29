@@ -64,19 +64,15 @@ return {
           }
         end)
         :totable()
-
       system = next(system) and system or nil
 
-      -- Remove system messages from the messages table
-      messages = vim
+      -- Remove system messages and merge user/assistant messages
+      messages = utils.merge_messages(vim
         .iter(messages)
         :filter(function(msg)
           return msg.role ~= "system"
         end)
-        :totable()
-
-      -- Combine consecutive messages from the same role
-      messages = utils.merge_messages(messages)
+        :totable())
 
       local breakpoints_used = 0
 
