@@ -2,7 +2,7 @@
 ; MIT License
 (package_clause
   name: (package_identifier) @name
-  (#set! "kind" "Package")) @symbol
+  (#set! "kind" "Import")) @symbol
 
 (import_declaration
   path: (identifier) @name
