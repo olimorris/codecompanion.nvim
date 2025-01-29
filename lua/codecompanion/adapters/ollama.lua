@@ -80,6 +80,14 @@ return {
     ---@param messages table
     ---@return table
     form_parameters = function(self, params, messages)
+      if type(params.model) == "function" then
+        params.model = params.model(self)
+      end
+      vim.iter(params.options):each(function(k, v)
+        if type(v) == "function" then
+          params[k] = v(self)
+        end
+      end)
       return params
     end,
 
