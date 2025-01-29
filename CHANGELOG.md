@@ -1,5 +1,13 @@
 # Changelog
 
+## [11.18.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.18.0...v11.18.1) (2025-01-29)
+
+
+### Bug Fixes
+
+* **adapter:** [#769](https://github.com/olimorris/codecompanion.nvim/issues/769) ollama adapter model not being expanded ([6a78557](https://github.com/olimorris/codecompanion.nvim/commit/6a78557b3fbd69a0f1dcec3e962c353b0b79db85))
+* **adapters:** handle multiline userdata in copilot adapter ([#770](https://github.com/olimorris/codecompanion.nvim/issues/770)) ([4282c68](https://github.com/olimorris/codecompanion.nvim/commit/4282c68476f60ea9328790508ff3b191b6ec512b))
+
 ## [11.18.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.5...v11.18.0) (2025-01-29)
 
 
