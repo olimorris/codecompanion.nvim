@@ -1,5 +1,6 @@
 local log = require("codecompanion.utils.log")
 local tokens = require("codecompanion.utils.tokens")
+local utils = require("codecompanion.utils.adapters")
 
 local input_tokens = 0
 local output_tokens = 0
@@ -160,8 +161,8 @@ return {
       end
 
       if data and data ~= "" then
-        data = data:sub(6)
-        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
+        local data_mod = utils.clean_streamed_data(data)
+        local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
           if json.type == "message_start" then

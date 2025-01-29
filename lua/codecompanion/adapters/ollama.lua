@@ -1,7 +1,7 @@
 local config = require("codecompanion.config")
 local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.messages")
+local utils = require("codecompanion.utils.adapters")
 
 ---Get a list of available Ollama models
 ---@params self CodeCompanion.Adapter

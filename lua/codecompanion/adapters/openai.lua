@@ -1,15 +1,5 @@
 local log = require("codecompanion.utils.log")
-
----Prepare data to be parsed as JSON
----@param data string | { body: string }
----@return string
-local prepare_data_for_json = function(data)
-  if type(data) == "table" then
-    return data.body
-  end
-  local find_json_start = string.find(data, "{") or 1
-  return string.sub(data, find_json_start)
-end
+local utils = require("codecompanion.utils.adapters")
 
 ---@class OpenAI.Adapter: CodeCompanion.Adapter
 return {
@@ -92,7 +82,7 @@ return {
     ---@return number|nil
     tokens = function(self, data)
       if data and data ~= "" then
-        local data_mod = prepare_data_for_json(data)
+        local data_mod = utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok then
@@ -113,7 +103,7 @@ return {
       local output = {}
 
       if data and data ~= "" then
-        local data_mod = prepare_data_for_json(data)
+        local data_mod = utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
 
         if ok and json.choices and #json.choices > 0 then
@@ -150,7 +140,7 @@ return {
     ---@return string|table|nil
     inline_output = function(self, data, context)
       if data and data ~= "" then
-        data = prepare_data_for_json(data)
+        data = utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
         if ok then
