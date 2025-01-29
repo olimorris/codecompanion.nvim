@@ -57,6 +57,14 @@ lua << EOF
 EOF
 ```
 
+**Pinned plugins**
+
+As per [#377](https://github.com/olimorris/codecompanion.nvim/issues/377), if you pin your plugins to the latest releases, ensure you set plenary.nvim to follow the master branch:
+
+```lua
+{ "nvim-lua/plenary.nvim", branch = "master" },
+```
+
 ## Completion
 
 Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
