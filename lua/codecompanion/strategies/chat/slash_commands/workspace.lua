@@ -88,6 +88,11 @@ function SlashCommand:read_workspace_file(path)
   if not path then
     path = CONSTANTS.WORKSPACE_FILE
   end
+  if not path then
+    path = vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json")
+    CONSTANTS.WORKSPACE_FILE = vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json")
+  end
+
   if not vim.uv.fs_stat(path) then
     return log:warn(fmt("Could not find a workspace file at `%s`", path))
   end
