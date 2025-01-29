@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.17.5](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.4...v11.17.5) (2025-01-29)
+
+
+### Bug Fixes
+
+* **workspaces:** workspace path constant cleared after first use ([#761](https://github.com/olimorris/codecompanion.nvim/issues/761)) ([b39acc1](https://github.com/olimorris/codecompanion.nvim/commit/b39acc15dfdf057f6e7f2d0b87e0183d3d151409))
+
 ## [11.17.4](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.3...v11.17.4) (2025-01-29)
 
 
