@@ -1,7 +1,6 @@
 local async = require("plenary.async")
 local completion = require("codecompanion.completion")
 local config = require("codecompanion.config")
-local debug = require("codecompanion.strategies.chat.debug")
 local ts = require("codecompanion.utils.treesitter")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils")
@@ -547,7 +546,7 @@ M.debug = {
       return
     end
 
-    return debug
+    return require("codecompanion.strategies.chat.debug")
       .new({
         chat = chat,
         settings = settings,
