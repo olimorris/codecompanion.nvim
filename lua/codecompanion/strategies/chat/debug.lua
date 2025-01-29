@@ -16,7 +16,7 @@ local function get_buffer_content(lines)
     env
   )
   if not chunk then
-    error("Failed to parse buffer: " .. (err or "unknown error"))
+    return error("Failed to parse buffer: " .. (err or "unknown error"))
   end
 
   local result = chunk()
@@ -47,16 +47,18 @@ function Debug:render()
 
   table.insert(lines, '-- Adapter: "' .. self.chat.adapter.name .. '"')
   table.insert(lines, "-- Buffer: " .. self.chat.bufnr)
-  table.insert(lines, "")
 
   -- Add settings
   if not config.display.chat.show_settings then
+    table.insert(lines, "")
+    table.sort(self.settings)
     table.insert(lines, "local settings = {")
     for key, val in pairs(self.settings) do
       if key == "model" then
         local other_models = " -- "
 
         vim.iter(models):each(function(model, model_name)
+          -- Display the other models that are available in the adapter
           if type(model) == "number" then
             model = model_name
           end
@@ -64,7 +66,6 @@ function Debug:render()
             other_models = other_models .. '"' .. model .. '", '
           end
         end)
-
         if vim.tbl_count(models) > 1 then
           table.insert(lines, "  " .. key .. ' = "' .. val .. '", ' .. other_models)
         else
@@ -93,18 +94,57 @@ function Debug:render()
   end
 
   self.bufnr = api.nvim_create_buf(false, true)
-  vim.keymap.set("n", "<C-s>", function()
-    return self:save()
-  end, { buffer = self.bufnr })
+
+  -- Set the keymaps as per the user's chat buffer config
+  local maps = {}
+  local config_maps = vim.deepcopy(config.strategies.chat.keymaps)
+  maps["save"] = config_maps["send"]
+  maps["save"].callback = "save"
+  maps["save"].description = "Save debug window content"
+  maps["close"] = config_maps["close"]
+  maps["close"].callback = "close"
+  maps["close"].description = "Close debug window"
+
+  require("codecompanion.utils.keymaps")
+    .new({
+      bufnr = self.bufnr,
+      callbacks = function()
+        local M = {}
+        M.save = function()
+          return self:save()
+        end
+        M.close = function()
+          return self:close()
+        end
+        return M
+      end,
+      data = nil,
+      keymaps = maps,
+    })
+    :set()
+
+  local height, width
+
+  if type(config.display.chat.debug_window.height) == "function" then
+    height = config.display.chat.debug_window.height()
+  else
+    height = config.display.chat.debug_window.height
+  end
+  if type(config.display.chat.debug_window.width) == "function" then
+    width = config.display.chat.debug_window.width()
+  else
+    width = config.display.chat.debug_window.width
+  end
 
   ui.create_float(lines, {
     bufnr = self.bufnr,
-    window = config.display.chat.window,
-    title = "Debug Chat",
     filetype = "lua",
+    height = height,
+    ignore_keymaps = true,
     relative = "editor",
-    width = vim.o.columns - 5,
-    height = vim.o.lines - 2,
+    title = "Debug Chat",
+    width = width,
+    window = config.display.chat.window,
     opts = {
       wrap = true,
     },
@@ -157,7 +197,7 @@ function Debug:save()
     self.chat.messages = messages
   end
 
-  util.notify("Saved settings and messages to chat buffer")
+  util.notify("Updated the settings and messages")
 end
 
 ---Function to run when the debug chat is closed
@@ -166,6 +206,7 @@ function Debug:close()
   if self.aug then
     api.nvim_clear_autocmds({ group = self.aug })
   end
+  api.nvim_buf_delete(self.bufnr, { force = true })
 end
 
 return Debug

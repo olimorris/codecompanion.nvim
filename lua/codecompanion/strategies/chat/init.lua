@@ -599,11 +599,11 @@ function Chat:submit(opts)
 
   local message = ts_parse_messages(self, self.header_line)
 
-  -- Check if any watched buffers have any changes
+  -- Check if any watched buffers have changes
   self.watchers:check_for_changes(self)
 
   if not self:has_user_messages(message) then
-    return log:warn("No messages to submit")
+    return log:info("No messages to submit")
   end
 
   --- Only send the user's last message if we're not regenerating the response
@@ -703,6 +703,7 @@ function Chat:done(output)
 
   self:increment_cycle()
   self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
+
   local assistant_range = self.header_line
   self:set_range(-2)
   self.ui:display_tokens(self.parser, self.header_line)
