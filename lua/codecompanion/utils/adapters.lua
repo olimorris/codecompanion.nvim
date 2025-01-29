@@ -50,45 +50,19 @@ function M.pluck_messages(messages, role)
   return output
 end
 
----Takes consecutive messages and merges them into a single message
+---Merge consecutive messages with the same role, together
 ---@param messages table
 ---@return table
 function M.merge_messages(messages)
-  local new_msgs = {}
-  local temp_msgs = {}
-  local last_role = nil
-
-  local function trim_newlines(message)
-    return (message:gsub("^%s*\n\n", ""))
-  end
-
-  for _, message in ipairs(messages) do
-    if message.role == last_role then
-      -- Continue accumulating content for the same role
-      table.insert(temp_msgs, trim_newlines(message.content))
+  return vim.iter(messages):fold({}, function(acc, msg)
+    local last = acc[#acc]
+    if last and last.role == msg.role then
+      last.content = last.content .. "\n\n" .. msg.content
     else
-      -- If switching roles, flush accumulated messages from previous role
-      if last_role ~= nil then
-        table.insert(new_msgs, {
-          role = last_role,
-          content = table.concat(temp_msgs, "\n\n"),
-        })
-      end
-      -- Start new accumulation for the current role
-      temp_msgs = { trim_newlines(message.content) }
+      table.insert(acc, { role = msg.role, content = msg.content })
     end
-    last_role = message.role
-  end
-
-  -- Add remaining accumulated messages
-  if vim.tbl_count(temp_msgs) > 0 then
-    table.insert(new_msgs, {
-      role = last_role,
-      content = table.concat(temp_msgs, "\n\n"),
-    })
-  end
-
-  return new_msgs
+    return acc
+  end)
 end
 
 ---Clean streaming data to be parsed as JSON. Typically streaming endpoints
