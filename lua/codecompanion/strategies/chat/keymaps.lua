@@ -9,53 +9,18 @@ local api = vim.api
 
 local M = {}
 
----Open a floating window with the provided lines
----@param lines table
----@param opts? table
----@return nil
-local function open_float(lines, opts)
-  opts = opts or {}
-  local window = config.display.chat.window
-  local width = window.width > 1 and window.width or opts.width or 85
-  local height = window.height > 1 and window.height or opts.height or 17
-
-  local bufnr = api.nvim_create_buf(false, true)
-  util.set_option(bufnr, "filetype", opts.filetype or "codecompanion")
-  local winnr = api.nvim_open_win(bufnr, true, {
-    relative = opts.relative or "cursor",
-    border = "single",
-    width = width,
-    height = height,
-    style = "minimal",
-    row = 10,
-    col = 0,
-    title = opts.title or "Options",
-    title_pos = "center",
-  })
-
-  api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-
-  vim.bo[bufnr].modified = false
-  vim.bo[bufnr].modifiable = false
-
-  if opts.opts then
-    ui.set_win_options(winnr, opts.opts)
-  end
-
-  local function close()
-    api.nvim_buf_delete(bufnr, { force = true })
-  end
-
-  vim.keymap.set("n", "q", close, { buffer = bufnr })
-  vim.keymap.set("n", "<ESC>", close, { buffer = bufnr })
-end
-
 -- CHAT MAPPINGS --------------------------------------------------------------
 local _cached_options = {}
 M.options = {
   callback = function()
+    local float_opts = {
+      title = "Options",
+      lock = true,
+      window = config.display.chat.window,
+    }
+
     if next(_cached_options) ~= nil then
-      return open_float(_cached_options)
+      return ui.create_float(_cached_options, float_opts)
     end
 
     local lines = {}
@@ -148,7 +113,7 @@ M.options = {
     end
 
     _cached_options = lines
-    open_float(lines)
+    ui.create_float(lines, float_opts)
   end,
 }
 
@@ -581,37 +546,12 @@ M.debug = {
       return
     end
 
-    local lines = {}
-
-    table.insert(lines, "--Settings")
-    table.insert(lines, 'adapter = "' .. chat.adapter.name .. '"')
-
-    for key, val in pairs(settings) do
-      if type(val) == "number" or type(val) == "boolean" then
-        table.insert(lines, key .. " = " .. val)
-      elseif type(val) == "string" then
-        table.insert(lines, key .. " = " .. '"' .. val .. '"')
-      else
-        table.insert(lines, key .. " = " .. vim.inspect(val))
-      end
-    end
-
-    table.insert(lines, "")
-    table.insert(lines, "--Messages")
-
-    messages = vim.inspect(messages)
-    for line in messages:gmatch("[^\r\n]+") do
-      table.insert(lines, line)
-    end
-
-    open_float(lines, {
-      title = "Debug Chat",
-      filetype = "lua",
-      relative = "editor",
-      width = vim.o.columns - 5,
-      height = vim.o.lines - 2,
-      opts = { wrap = true },
-    })
+    return require("codecompanion.strategies.chat.debug")
+      .new({
+        chat = chat,
+        settings = settings,
+      })
+      :render()
   end,
 }
 

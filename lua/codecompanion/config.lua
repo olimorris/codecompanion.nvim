@@ -836,6 +836,12 @@ This is the code, for context:
         pinned_buffer = " ",
         watched_buffer = "👀 ",
       },
+      debug_window = {
+        ---@return number|fun(): number
+        width = vim.o.columns - 5,
+        ---@return number|fun(): number
+        height = vim.o.lines - 2,
+      },
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer
         position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
