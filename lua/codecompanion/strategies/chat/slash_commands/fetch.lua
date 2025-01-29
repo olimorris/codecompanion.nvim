@@ -87,6 +87,7 @@ end
 local function write_cache(hash, data)
   local p = Path:new(CONSTANTS.CACHE_PATH .. "/" .. hash)
   p.filename = p:expand()
+  vim.fn.mkdir(CONSTANTS.CACHE_PATH, "p")
   p:touch({ parents = true })
   p:write(data or "", "w")
 end
