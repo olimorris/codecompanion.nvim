@@ -41,11 +41,18 @@ end
 ---Render the settings and messages
 ---@return CodeCompanion.Chat.Debug
 function Debug:render()
-  local models = self.chat.adapter.schema.model.choices
+  local models
+  local adapter = vim.deepcopy(self.chat.adapter)
+
+  if type(adapter.schema.model.choices) == "function" then
+    models = adapter.schema.model.choices()
+  else
+    models = adapter.schema.model.choices
+  end
 
   local lines = {}
 
-  table.insert(lines, '-- Adapter: "' .. self.chat.adapter.name .. '"')
+  table.insert(lines, '-- Adapter: "' .. adapter.name .. '"')
   table.insert(lines, "-- Buffer: " .. self.chat.bufnr)
 
   -- Add settings
@@ -66,6 +73,10 @@ function Debug:render()
             other_models = other_models .. '"' .. model .. '", '
           end
         end)
+
+        if type(val) == "function" then
+          val = val()
+        end
         if vim.tbl_count(models) > 1 then
           table.insert(lines, "  " .. key .. ' = "' .. val .. '", ' .. other_models)
         else
