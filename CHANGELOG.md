@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.17.3](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.2...v11.17.3) (2025-01-29)
+
+
+### Bug Fixes
+
+* **slash_command:** create cache folder on windows for `/fetch` ([#756](https://github.com/olimorris/codecompanion.nvim/issues/756)) ([223e35f](https://github.com/olimorris/codecompanion.nvim/commit/223e35f8150f49a16ec19c966d822594c2bcf4b7))
+
 ## [11.17.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.1...v11.17.2) (2025-01-28)
 
 
