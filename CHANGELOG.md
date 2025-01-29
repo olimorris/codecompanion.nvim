@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.17.4](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.3...v11.17.4) (2025-01-29)
+
+
+### Bug Fixes
+
+* **deepseek:** [#760](https://github.com/olimorris/codecompanion.nvim/issues/760) tooling and update adapter utils ([3d3b1a1](https://github.com/olimorris/codecompanion.nvim/commit/3d3b1a1f5deb5e06a86d67a9b792a263ea8e9191))
+
 ## [11.17.3](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.2...v11.17.3) (2025-01-29)
 
 
