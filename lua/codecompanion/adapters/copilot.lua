@@ -60,7 +60,13 @@ local function get_token()
 
   for _, file_path in ipairs(file_paths) do
     if vim.uv.fs_stat(file_path) then
-      local userdata = vim.json.decode(vim.fn.readfile(file_path)[1])
+      local userdata = vim.fn.readfile(file_path)
+
+      if vim.islist(userdata) then
+        userdata = table.concat(userdata, " ")
+      end
+
+      local userdata = vim.json.decode(userdata)
       for key, value in pairs(userdata) do
         if string.find(key, "github.com") then
           return value.oauth_token
