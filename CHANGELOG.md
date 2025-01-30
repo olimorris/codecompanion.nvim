@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.20.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.19.0...v11.20.0) (2025-01-30)
+
+
+### Features
+
+* **chat:** :sparkles: LLM header name can now be a function ([#778](https://github.com/olimorris/codecompanion.nvim/issues/778)) ([5a82a54](https://github.com/olimorris/codecompanion.nvim/commit/5a82a5422494c44e6bbcf6c8afedacfe61659b03))
+
 ## [11.19.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.18.1...v11.19.0) (2025-01-29)
 
 
