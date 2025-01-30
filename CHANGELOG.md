@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.20.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.20.0...v11.20.1) (2025-01-30)
+
+
+### Bug Fixes
+
+* **chat:** navigate between H2 headers in buffer only ([#781](https://github.com/olimorris/codecompanion.nvim/issues/781)) ([391aeae](https://github.com/olimorris/codecompanion.nvim/commit/391aeae6b0dbbe6e4d31bd0ac77a25fefa0ea9de))
+
 ## [11.20.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.19.0...v11.20.0) (2025-01-30)
 
 
