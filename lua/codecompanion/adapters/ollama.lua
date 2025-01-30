@@ -57,6 +57,7 @@ end
 ---@class Ollama.Adapter: CodeCompanion.Adapter
 return {
   name = "ollama",
+  formatted_name = "Ollama",
   roles = {
     llm = "assistant",
     user = "user",

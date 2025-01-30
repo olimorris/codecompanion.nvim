@@ -64,6 +64,7 @@ end
 ---@class OpenAICompatible.Adapter: CodeCompanion.Adapter
 return {
   name = "openai_compatible",
+  formatted_name = "OpenAI Compatible",
   roles = {
     llm = "assistant",
     user = "user",

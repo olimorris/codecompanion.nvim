@@ -476,6 +476,7 @@ M.change_adapter = {
           "ChatAdapter",
           { bufnr = chat.bufnr, adapter = require("codecompanion.adapters").make_safe(chat.adapter) }
         )
+        chat.ui.adapter = chat.adapter
         chat:apply_settings()
       end
 

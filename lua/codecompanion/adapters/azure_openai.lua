@@ -3,6 +3,7 @@ local openai = require("codecompanion.adapters.openai")
 ---@class AzureOpenAI.Adapter: CodeCompanion.Adapter
 return {
   name = "azure_openai",
+  formatted_name = "Azure OpenAI",
   roles = {
     llm = "assistant",
     user = "user",
