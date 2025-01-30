@@ -1,6 +1,3 @@
-local a = require("plenary.async")
-local path = require("plenary.path")
-
 ---@class CodeCompanion.LogHandler
 ---@field type? string
 ---@field level? integer
@@ -57,6 +54,7 @@ end
 ---@param opts table
 ---@return CodeCompanion.LogHandler
 local function create_file_handler(opts)
+  local a = require("plenary.async")
   vim.validate({
     filename = { opts.filename, "s" },
   })
@@ -64,7 +62,7 @@ local function create_file_handler(opts)
   if not ok then
     stdpath = vim.fn.stdpath("cache")
   end
-  local filepath = path:new(stdpath):joinpath(opts.filename).filename
+  local filepath = vim.fs.joinpath(stdpath, opts.filename)
   --
   local write_queue = {}
   local is_writing = false
@@ -296,7 +294,7 @@ M.get_logfile = function()
     stdpath = vim.fn.stdpath("cache")
   end
 
-  return path:new(stdpath):joinpath("codecompanion.log").filename
+  return vim.fs.joinpath(stdpath, "codecompanion.log")
 end
 
 ---@param logger CodeCompanion.Logger

@@ -28,6 +28,7 @@ local defaults = {
       proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
     },
   },
+  constants = constants,
   strategies = {
     -- CHAT STRATEGY ----------------------------------------------------------
     chat = {
@@ -964,7 +965,11 @@ local M = {
 ---@param args? table
 M.setup = function(args)
   args = args or {}
-  M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), { constants = vim.deepcopy(constants) }, args)
+  if args.constants then
+	vim.notify("codecompanion.nvim: Your config table cannot have field 'constants', vim.log.levels.ERROR")
+	return
+  end
+  M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
 end
 
 M.can_send_code = function()
