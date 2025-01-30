@@ -957,7 +957,25 @@ local M = {
 ---@param args? table
 M.setup = function(args)
   args = args or {}
-  M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), { constants = vim.deepcopy(constants) }, args)
+  local existing_prompts = M.config and M.config.prompt_library or {}
+
+  M.config = vim.tbl_deep_extend(
+    "force",
+    vim.deepcopy(defaults),
+    { constants = vim.deepcopy(constants) },
+    { prompt_library = existing_prompts },
+    args
+  )
+end
+
+---Register/update a prompt in the prompt library
+---@param prompt_id string The id of the prompt to register, update the prompt with same id
+---@param config CodeCompanion.PromptConfig Configuration table for the prompt
+---@return nil
+M.register_prompt = function(prompt_id, config)
+  M.config = M.config or vim.deepcopy(defaults)
+  M.config.prompt_library = M.config.prompt_library or {}
+  M.config.prompt_library[prompt_id] = config
 end
 
 M.can_send_code = function()

@@ -9,8 +9,6 @@ local util = require("codecompanion.utils")
 ---@class CodeCompanion.Actions
 local Actions = {}
 
-local _cached_actions = {}
-
 ---Validate the items against the context to determine their visibility
 ---@param items table The items to validate
 ---@param context table The buffer context
@@ -40,22 +38,21 @@ end
 ---@param context table The buffer context
 ---@return table
 function Actions.items(context)
-  if not next(_cached_actions) then
-    if config.display.action_palette.opts.show_default_actions then
-      for _, action in ipairs(static_actions) do
-        table.insert(_cached_actions, action)
-      end
-    end
-
-    if config.prompt_library and not vim.tbl_isempty(config.prompt_library) then
-      local prompts = prompt_library.resolve(context, config)
-      for _, prompt in ipairs(prompts) do
-        table.insert(_cached_actions, prompt)
-      end
+  local actions = {}
+  if config.display.action_palette.opts.show_default_actions then
+    for _, action in ipairs(static_actions) do
+      table.insert(actions, action)
     end
   end
 
-  return Actions.validate(_cached_actions, context)
+  if config.prompt_library and not vim.tbl_isempty(config.prompt_library) then
+    local prompts = prompt_library.resolve(context, config)
+    for _, prompt in ipairs(prompts) do
+      table.insert(actions, prompt)
+    end
+  end
+
+  return Actions.validate(actions, context)
 end
 
 ---Resolve the selected item into a strategy
