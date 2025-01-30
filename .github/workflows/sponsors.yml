@@ -1,4 +1,4 @@
-name: Update Sponsors in the README
+name: Update Sponsors
 
 on:
   workflow_dispatch:
