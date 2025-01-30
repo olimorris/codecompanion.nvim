@@ -31,6 +31,29 @@ local providers = {
       :display()
   end,
 
+  ---The Snacks.nvim provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  snacks = function(SlashCommand)
+    local snacks = require("codecompanion.providers.slash_commands.snacks")
+    snacks = snacks.new({
+      title = CONSTANTS.PROMPT .. ": ",
+      output = function(selection)
+        return SlashCommand:output({
+          bufnr = selection.buf,
+          name = vim.fn.bufname(selection.buf),
+          path = selection.file,
+        })
+      end,
+    })
+
+    snacks.provider.picker.pick({
+      source = "buffers",
+      prompt = snacks.title,
+      confirm = snacks:display(),
+    })
+  end,
+
   ---The Telescope provider
   ---@param SlashCommand CodeCompanion.SlashCommand
   ---@return nil
@@ -146,7 +169,7 @@ function SlashCommand:read(selected)
     content = buf.format_with_line_numbers(selected.bufnr)
   end
 
-  local id = "<buf>" .. self.Chat.References:make_id_from_buf(selected.bufnr) .. "</buf>"
+  local id = "<buf>" .. self.Chat.references:make_id_from_buf(selected.bufnr) .. "</buf>"
 
   return content, filename, id
 end
@@ -186,7 +209,7 @@ function SlashCommand:output(selected, opts)
     return
   end
 
-  self.Chat.References:add({
+  self.Chat.references:add({
     bufnr = selected.bufnr,
     id = id,
     path = selected.path,

@@ -139,7 +139,7 @@ function Client:request(payload, actions, opts)
     end,
     on_error = function(err)
       vim.schedule(function()
-        cb(err, nil)
+        actions.callback(err, nil)
         return util.fire("RequestFinished", opts)
       end)
     end,

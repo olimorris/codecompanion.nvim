@@ -60,7 +60,7 @@ require("codecompanion").setup({
 
 Slash Commands (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.
 
-The plugin supports providers like `telescope`, `mini_pick`, or `fzf_lua` (please see the [Chat Buffer](/usage/chat-buffer/index) usage section for full details):
+The plugin supports providers like `telescope`, `mini_pick`, `fzf_lua` and `snacks` (as in snacks.nvim). Please see the [Chat Buffer](/usage/chat-buffer/index) usage section for full details:
 
 ```lua
 require("codecompanion").setup({
@@ -71,7 +71,7 @@ require("codecompanion").setup({
           callback = "strategies.chat.slash_commands.file",
           description = "Select a file using Telescope",
           opts = {
-            provider = "telescope", -- Other options include 'default', 'mini_pick', 'fzf_lua'
+            provider = "telescope", -- Other options include 'default', 'mini_pick', 'fzf_lua', snacks
             contains_code = true,
           },
         },
@@ -146,10 +146,24 @@ You can change the appearance of the chat buffer by changing the `display.chat.w
 require("codecompanion").setup({
   display = {
     chat = {
+      -- Change the default icons
+      icons = {
+        pinned_buffer = " ",
+        watched_buffer = "👀 ",
+      },
+
+      -- Alter the sizing of the debug window
+      debug_window = {
+        ---@return number|fun(): number
+        width = vim.o.columns - 5,
+        ---@return number|fun(): number
+        height = vim.o.lines - 2,
+      },
+
       -- Options to customize the UI of the chat buffer
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer
-        position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
+        position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.plitright|vim.opt.splitbelow)
         border = "single",
         height = 0.8,
         width = 0.45,
@@ -176,7 +190,7 @@ require("codecompanion").setup({
         return " (" .. tokens .. " tokens)"
       end,
     },
-  }
+  },
 }),
 ```
 

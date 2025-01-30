@@ -4,6 +4,56 @@ local api = vim.api
 
 local M = {}
 
+---Open a floating window with the provided lines
+---@param lines table
+---@param opts table
+---@return number,number The buffer and window numbers
+M.create_float = function(lines, opts)
+  local window = opts.window
+  local width = window.width > 1 and window.width or opts.width or 85
+  local height = window.height > 1 and window.height or opts.height or 17
+
+  local bufnr = opts.bufnr or api.nvim_create_buf(false, true)
+
+  require("codecompanion.utils").set_option(bufnr, "filetype", opts.filetype or "codecompanion")
+
+  local winnr = api.nvim_open_win(bufnr, true, {
+    relative = opts.relative or "cursor",
+    border = "single",
+    width = width,
+    height = height,
+    style = "minimal",
+    row = 10,
+    col = 0,
+    title = opts.title or "Options",
+    title_pos = "center",
+  })
+
+  api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+
+  if opts.lock then
+    vim.bo[bufnr].modified = false
+    vim.bo[bufnr].modifiable = false
+  end
+
+  if opts.opts then
+    M.set_win_options(winnr, opts.opts)
+  end
+
+  if opts.ignore_keymaps then
+    return bufnr, winnr
+  end
+
+  local function close()
+    api.nvim_buf_delete(bufnr, { force = true })
+  end
+
+  vim.keymap.set("n", "q", close, { buffer = bufnr })
+  vim.keymap.set("n", "<ESC>", close, { buffer = bufnr })
+
+  return bufnr, winnr
+end
+
 ---@param bufnr number
 ---@param ns_id number
 ---@param message string

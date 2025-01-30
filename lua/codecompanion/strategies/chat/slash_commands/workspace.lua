@@ -38,23 +38,29 @@ local function get_file_list(group)
   return table.concat(items, "\n")
 end
 
----Add the description of the group to the chat buffer
----@param chat CodeCompanion.Chat
+---Replace variables in a string
 ---@param workspace table
----@param group { name: string, description: string, files: table?, symbols: table? }
-local function add_group_description(chat, workspace, group)
+---@param group table
+---@param str string
+---@return string
+local function replace_vars(workspace, group, str)
   local builtin = {
     group_name = group.name,
     group_files = get_file_list(group),
     workspace_description = workspace.description,
     workspace_name = workspace.name,
   }
+  return util.replace_placeholders(str, builtin)
+end
 
-  local description = util.replace_placeholders(group.description, builtin)
-
+---Add the description of the group to the chat buffer
+---@param chat CodeCompanion.Chat
+---@param workspace table
+---@param group { name: string, description: string, files: table?, symbols: table? }
+local function add_group_description(chat, workspace, group)
   chat:add_message({
     role = config.constants.USER_ROLE,
-    content = description,
+    content = replace_vars(workspace, group, group.description),
   }, { visible = false })
 end
 
@@ -67,9 +73,10 @@ function SlashCommand.new(args)
     Chat = args.Chat,
     config = args.config,
     context = args.context,
-    workspace = args.workspace or {},
-    opts = args.opts,
+    opts = args.opts or {},
   }, { __index = SlashCommand })
+
+  self.workspace = {}
 
   return self
 end
@@ -81,6 +88,11 @@ function SlashCommand:read_workspace_file(path)
   if not path then
     path = CONSTANTS.WORKSPACE_FILE
   end
+  if not path then
+    path = vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json")
+    CONSTANTS.WORKSPACE_FILE = vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json")
+  end
+
   if not vim.uv.fs_stat(path) then
     return log:warn(fmt("Could not find a workspace file at `%s`", path))
   end
@@ -148,9 +160,27 @@ function SlashCommand:output(selected_group, opts)
     return g.name == selected_group
   end, self.workspace.groups)[1]
 
-  --TODO: Account for all groups
+  if group.opts then
+    if group.opts.remove_config_system_prompt then
+      self.Chat:remove_system_prompt()
+    end
+  end
 
-  add_group_description(self.Chat, self.workspace, group)
+  -- Add the system prompts
+  if self.workspace.system_prompt or group.system_prompt then
+    local system_prompt = ""
+    if self.workspace.system_prompt and group.system_prompt then
+      system_prompt = self.workspace.system_prompt .. "\n\n" .. group.system_prompt
+    else
+      system_prompt = self.workspace.system_prompt or group.system_prompt
+    end
+    self.Chat:set_system_prompt(replace_vars(self.workspace, group, system_prompt))
+  end
+
+  -- Add the description as a user message
+  if group.description then
+    add_group_description(self.Chat, self.workspace, group)
+  end
 
   -- Add files
   if group.files and vim.tbl_count(group.files) > 0 then

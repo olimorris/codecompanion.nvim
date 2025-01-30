@@ -51,5 +51,5 @@ doc/.vitepress/cache
 .repro/
 deps/
 todo.md
-media/
-examples/
+/media/
+/examples/

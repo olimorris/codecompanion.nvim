@@ -26,26 +26,36 @@ end
 ---@param params? string
 ---@return table
 local function resolve(chat, var_config, params)
-  local splits = vim.split(var_config.callback, ".", { plain = true })
-  local path = table.concat(splits, ".", 1, #splits - 1)
-  local variable = splits[#splits]
+  if type(var_config.callback) == "string" then
+    local splits = vim.split(var_config.callback, ".", { plain = true })
+    local path = table.concat(splits, ".", 1, #splits - 1)
+    local variable = splits[#splits]
 
-  local ok, module = pcall(require, "codecompanion." .. path .. "." .. variable)
+    local ok, module = pcall(require, "codecompanion." .. path .. "." .. variable)
 
-  local init = {
-    Chat = chat,
-    config = var_config,
-    params = params,
-  }
+    local init = {
+      Chat = chat,
+      config = var_config,
+      params = params,
+    }
 
-  -- User is using a custom callback
-  if not ok then
+    -- User is using a custom callback
+    if not ok then
+      log:trace("Calling variable: %s", path .. "." .. variable)
+      return require(path .. "." .. variable).new(init):output()
+    end
+
     log:trace("Calling variable: %s", path .. "." .. variable)
-    return require(path .. "." .. variable).new(init):output()
+    return module.new(init):output()
   end
 
-  log:trace("Calling variable: %s", path .. "." .. variable)
-  return module.new(init):output()
+  return require("codecompanion.strategies.chat.variables.user")
+    .new({
+      Chat = chat,
+      config = var_config,
+      params = params,
+    })
+    :output()
 end
 
 ---@class CodeCompanion.Variables
@@ -91,6 +101,8 @@ function Variables:parse(chat, message)
     for _, var in ipairs(vars) do
       local var_config = self.vars[var]
       log:debug("Variable found: %s", var)
+
+      var_config["name"] = var
 
       if (var_config.opts and var_config.opts.contains_code) and not config.can_send_code() then
         log:warn("Sending of code has been disabled")

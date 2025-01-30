@@ -35,7 +35,6 @@ return {
       if self.opts and self.opts.stream then
         self.parameters.stream = true
       end
-
       return true
     end,
 

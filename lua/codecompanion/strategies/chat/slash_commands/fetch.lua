@@ -43,7 +43,7 @@ local function output(chat, data, opts)
     content = format_output(data.url, data.content),
   }, { reference = id, visible = false })
 
-  chat.References:add({
+  chat.references:add({
     source = "slash_command",
     name = "fetch",
     id = id,
@@ -87,6 +87,7 @@ end
 local function write_cache(hash, data)
   local p = Path:new(CONSTANTS.CACHE_PATH .. "/" .. hash)
   p.filename = p:expand()
+  vim.fn.mkdir(CONSTANTS.CACHE_PATH, "p")
   p:touch({ parents = true })
   p:write(data or "", "w")
 end

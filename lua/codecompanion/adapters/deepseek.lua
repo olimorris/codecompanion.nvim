@@ -1,22 +1,12 @@
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
-
----Prepare data to be parsed as JSON
----@param data string | { body: string }
----@return string
-local prepare_data_for_json = function(data)
-  if type(data) == "table" then
-    return data.body
-  end
-  local find_json_start = string.find(data, "{") or 1
-  return string.sub(data, find_json_start)
-end
+local utils = require("codecompanion.utils.adapters")
 
 --@class DeepSeek.Adapter: CodeCompanion.Adapter
 return {
   name = "deepseek",
   roles = {
-    llm = "system",
+    llm = "assistant",
     user = "user",
   },
   opts = {
@@ -36,23 +26,10 @@ return {
     Authorization = "Bearer ${api_key}",
   },
   handlers = {
-    ---@param self CodeCompanion.Adapter
-    ---@return boolean
-    setup = function(self)
-      local model = self.schema.model.default
-      local model_opts = self.schema.model.choices[model]
-      if model_opts and model_opts.opts then
-        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
-      end
-
-      if self.opts and self.opts.stream then
-        self.parameters.stream = true
-        self.parameters.stream_options = { include_usage = true }
-      end
-      return true
-    end,
-
     --- Use the OpenAI adapter for the bulk of the work
+    setup = function(self)
+      return openai.handlers.setup(self)
+    end,
     tokens = function(self, data)
       return openai.handlers.tokens(self, data)
     end,
@@ -65,52 +42,69 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
-      local processed = {}
-      local model = self.schema.model.default
-      if type(model) == "function" then
-        model = model()
-      end
+      -- Extract and merge system messages
+      local system_messages = vim
+        .iter(messages)
+        :filter(function(msg)
+          return msg.role == "system"
+        end)
+        :totable()
+      system_messages = utils.merge_messages(system_messages)
 
-      ---DeepSeek-R1 doesn't allow consecutive messages from the same role,
-      ---so we concatenate them into a single message
-      for _, msg in ipairs(messages) do
-        local last = processed[#processed]
-        if last and last.role == msg.role then
-          last.content = last.content .. "\n\n" .. msg.content
-        else
-          table.insert(processed, {
+      -- Remove system messages then merge messages with the same role
+      messages = vim
+        .iter(messages)
+        :filter(function(msg)
+          return msg.role ~= "system"
+        end)
+        :map(function(msg)
+          return {
             role = msg.role,
             content = msg.content,
-          })
-        end
-      end
-
-      ---System role is only allowed as the first message, after this we must label
-      ---all system messages as assistant
-      local has_system = false
-      processed = vim
-        .iter(processed)
-        :map(function(m)
-          local role = m.role
-          if role == self.roles.llm then
-            if not has_system then
-              has_system = true
-            else
-              role = "assistant"
-            end
-          end
-          return {
-            role = role,
-            content = m.content,
           }
         end)
         :totable()
+      messages = utils.merge_messages(messages)
 
-      return { messages = processed }
+      return { messages = vim.list_extend(system_messages, messages) }
     end,
 
+    ---Output the data from the API ready for insertion into the chat buffer
+    ---@param self CodeCompanion.Adapter
+    ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
+    ---@return { status: string, output: { role: string, content: string, reasoning: string? } } | nil
     chat_output = function(self, data)
-      return openai.handlers.chat_output(self, data)
+      local output = {}
+
+      if data and data ~= "" then
+        local data_mod = utils.clean_streamed_data(data)
+        local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
+
+        if ok and json.choices and #json.choices > 0 then
+          local choice = json.choices[1]
+          local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
+
+          if delta then
+            output.role = nil
+            if delta.role then
+              output.role = delta.role
+            end
+
+            if self.opts.can_reason and delta.reasoning_content then
+              output.reasoning = delta.reasoning_content
+            end
+
+            if delta.content then
+              output.content = (output.content or "") .. delta.content
+            end
+
+            return {
+              status = "success",
+              output = output,
+            }
+          end
+        end
+      end
     end,
     inline_output = function(self, data, context)
       return openai.handlers.inline_output(self, data, context)
@@ -128,7 +122,7 @@ return {
       ---@type string|fun(): string
       default = "deepseek-reasoner",
       choices = {
-        "deepseek-reasoner",
+        ["deepseek-reasoner"] = { opts = { can_reason = true } },
         "deepseek-chat",
       },
     },

@@ -88,7 +88,7 @@ Note the path to the help file is `%s`.
     ),
   }, { reference = id, visible = false })
 
-  Chat.References:add({
+  Chat.references:add({
     source = "slash_command",
     name = "help",
     id = id,
@@ -128,6 +128,28 @@ local function output(SlashCommand, selected)
 end
 
 local providers = {
+  ---The Snacks.nvim provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  snacks = function(SlashCommand)
+    local snacks = require("codecompanion.providers.slash_commands.snacks")
+    snacks = snacks.new({
+      title = CONSTANTS.PROMPT .. ": ",
+      output = function(selection)
+        return output(SlashCommand, {
+          path = selection.file,
+          tag = selection.tag,
+        })
+      end,
+    })
+
+    snacks.provider.picker.pick({
+      source = "help",
+      prompt = snacks.title,
+      confirm = snacks:display(),
+    })
+  end,
+
   ---The Telescope provider
   ---@param SlashCommand CodeCompanion.SlashCommand
   ---@return nil
@@ -136,7 +158,10 @@ local providers = {
     telescope = telescope.new({
       title = CONSTANTS.PROMPT,
       output = function(selection)
-        return output(SlashCommand, { path = selection.filename, tag = selection.display })
+        return output(SlashCommand, {
+          path = selection.filename,
+          tag = selection.display,
+        })
       end,
     })
 

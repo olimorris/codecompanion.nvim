@@ -1,7 +1,7 @@
 local config = require("codecompanion.config")
 local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.messages")
+local utils = require("codecompanion.utils.adapters")
 
 ---Get a list of available Ollama models
 ---@params self CodeCompanion.Adapter
@@ -80,6 +80,14 @@ return {
     ---@param messages table
     ---@return table
     form_parameters = function(self, params, messages)
+      if type(params.model) == "function" then
+        params.model = params.model(self)
+      end
+      vim.iter(params.options):each(function(k, v)
+        if type(v) == "function" then
+          params[k] = v(self)
+        end
+      end)
       return params
     end,
 

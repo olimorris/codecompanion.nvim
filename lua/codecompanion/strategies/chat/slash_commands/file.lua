@@ -28,6 +28,29 @@ local providers = {
       :find_files()
       :display()
   end,
+
+  ---The Snacks.nvim provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  snacks = function(SlashCommand)
+    local snacks = require("codecompanion.providers.slash_commands.snacks")
+    snacks = snacks.new({
+      title = CONSTANTS.PROMPT .. ": ",
+      output = function(selection)
+        return SlashCommand:output({
+          relative_path = selection.file,
+          path = vim.fs.joinpath(selection.cwd, selection.file),
+        })
+      end,
+    })
+
+    snacks.provider.picker.pick({
+      source = "files",
+      prompt = snacks.title,
+      confirm = snacks:display(),
+    })
+  end,
+
   ---The Telescope provider
   ---@param SlashCommand CodeCompanion.SlashCommand
   ---@return nil
@@ -186,7 +209,7 @@ function SlashCommand:output(selected, opts)
     return
   end
 
-  self.Chat.References:add({
+  self.Chat.references:add({
     id = id or "",
     path = selected.path,
     source = "codecompanion.strategies.chat.slash_commands.file",

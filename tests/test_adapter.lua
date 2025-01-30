@@ -1,6 +1,6 @@
 local h = require("tests.helpers")
 
-local utils = require("codecompanion.utils.messages")
+local utils = require("codecompanion.utils.adapters")
 
 local test_adapter = {
   name = "TestAdapter",
@@ -159,7 +159,7 @@ describe("Adapter", function()
 
     h.eq({
       { role = "system", content = "This is a system prompt" },
-      { role = "user", content = "Foo Bar" },
+      { role = "user", content = "Foo\n\nBar" },
     }, utils.merge_messages(messages))
   end)
 

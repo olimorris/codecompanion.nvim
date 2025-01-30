@@ -64,6 +64,28 @@ local providers = {
       :display()
   end,
 
+  ---The Snacks.nvim provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  snacks = function(SlashCommand)
+    local snacks = require("codecompanion.providers.slash_commands.snacks")
+    snacks = snacks.new({
+      title = CONSTANTS.PROMPT .. ": ",
+      output = function(selection)
+        return SlashCommand:output({
+          relative_path = selection.file,
+          path = vim.fs.joinpath(selection.cwd, selection.file),
+        })
+      end,
+    })
+
+    snacks.provider.picker.pick({
+      source = "files",
+      prompt = snacks.title,
+      confirm = snacks:display(),
+    })
+  end,
+
   ---The Telescope provider
   ---@param SlashCommand CodeCompanion.SlashCommand
   ---@return nil
@@ -72,7 +94,10 @@ local providers = {
     telescope = telescope.new({
       title = CONSTANTS.PROMPT,
       output = function(selection)
-        return SlashCommand:output({ relative_path = selection[1], path = selection.path })
+        return SlashCommand:output({
+          relative_path = selection[1],
+          path = selection.path,
+        })
       end,
     })
 
@@ -162,6 +187,18 @@ function SlashCommand:output(selected, opts)
   opts = opts or {}
 
   local ft = vim.filetype.match({ filename = selected.path })
+  -- weird TypeScript bug for vim.filetype.match
+  -- see: https://github.com/neovim/neovim/issues/27265
+  if not ft then
+    local base_name = vim.fs.basename(selected.path)
+    local split_name = vim.split(base_name, "%.")
+    if #split_name > 1 then
+      local ext = split_name[#split_name]
+      if ext == "ts" then
+        ft = "typescript"
+      end
+    end
+  end
   local content = path.new(selected.path):read()
 
   local query = vim.treesitter.query.get(ft, "symbols")
@@ -265,7 +302,7 @@ Prompt the user if you need to see more than the symbolic outline.
     content = description,
   }, { reference = id, visible = false })
 
-  self.Chat.References:add({
+  self.Chat.references:add({
     source = "slash_command",
     name = "symbols",
     id = id,

@@ -1,7 +1,7 @@
 <!-- panvimdoc-ignore-start -->
 
 <p align="center">
-<img src="https://github.com/user-attachments/assets/edf5a316-cca1-4785-b28f-297d7dd4c3b7" alt="CodeCompanion.nvim" />
+<img src="https://raw.githubusercontent.com/olimorris/codecompanion.nvim/refs/heads/main/doc/media/logo.png" alt="CodeCompanion.nvim" />
 </p>
 
 <p align="center">
@@ -10,17 +10,14 @@
 <a href="https://github.com/olimorris/codecompanion.nvim/releases"><img src="https://img.shields.io/github/v/release/olimorris/codecompanion.nvim?style=for-the-badge"></a>
 </p>
 
-<p align="center">
-Currently supports: Anthropic, Copilot, Gemini, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI adapters<br><br>
-New features are always announced <a href="https://github.com/olimorris/codecompanion.nvim/discussions/categories/announcements">here</a>
-</p>
+<p align="center">New features are always announced <a href="https://github.com/olimorris/codecompanion.nvim/discussions/categories/announcements">here</a></p>
 
 ## :purple_heart: Sponsors
 
 Thank you to the following people:
 
 <p align="center">
-<!-- coffee --><a href="https://github.com/bassamsdata"><img src="https://github.com/bassamsdata.png" width="60px" alt="Bassam Data" /></a><a href="https://github.com/ivo-toby"><img src="https://github.com/ivo-toby.png" width="60px" alt="Ivo Toby" /></a><a href="https://github.com/KTSCode"><img src="https://github.com/KTSCode.png" width="60px" alt="KTS Code" /></a><a href="https://x.com/luxus"><img src="https://pbs.twimg.com/profile_images/744754093495844864/GwnEJygG_400x400.jpg" width="60px" alt="Luxus" /></a><!-- coffee --><!-- sponsors --><a href="https://github.com/koskeller"><img src="https:&#x2F;&#x2F;github.com&#x2F;koskeller.png" width="60px" alt="User avatar: Konstantin Keller" /></a><a href="https://github.com/carlosflorencio"><img src="https:&#x2F;&#x2F;github.com&#x2F;carlosflorencio.png" width="60px" alt="User avatar: Carlos Florêncio" /></a><a href="https://github.com/adam-e-trepanier"><img src="https:&#x2F;&#x2F;github.com&#x2F;adam-e-trepanier.png" width="60px" alt="User avatar: Adam Trepanier" /></a><a href="https://github.com/jfgordon2"><img src="https:&#x2F;&#x2F;github.com&#x2F;jfgordon2.png" width="60px" alt="User avatar: Jeff Gordon" /></a><a href="https://github.com/"><img src="https:&#x2F;&#x2F;raw.githubusercontent.com&#x2F;JamesIves&#x2F;github-sponsors-readme-action&#x2F;dev&#x2F;.github&#x2F;assets&#x2F;placeholder.png" width="60px" alt="User avatar: Private Sponsor" /></a><a href="https://github.com/"><img src="https:&#x2F;&#x2F;raw.githubusercontent.com&#x2F;JamesIves&#x2F;github-sponsors-readme-action&#x2F;dev&#x2F;.github&#x2F;assets&#x2F;placeholder.png" width="60px" alt="User avatar: Private Sponsor" /></a><!-- sponsors -->
+<!-- coffee --><a href="https://github.com/bassamsdata"><img src="https://github.com/bassamsdata.png" width="60px" alt="Bassam Data" /></a><a href="https://github.com/ivo-toby"><img src="https://github.com/ivo-toby.png" width="60px" alt="Ivo Toby" /></a><a href="https://github.com/KTSCode"><img src="https://github.com/KTSCode.png" width="60px" alt="KTS Code" /></a><a href="https://x.com/luxus"><img src="https://pbs.twimg.com/profile_images/744754093495844864/GwnEJygG_400x400.jpg" width="60px" alt="Luxus" /></a><!-- coffee --><!-- sponsors --><a href="https://github.com/koskeller"><img src="https:&#x2F;&#x2F;github.com&#x2F;koskeller.png" width="60px" alt="User avatar: Konstantin Keller" /></a><a href="https://github.com/carlosflorencio"><img src="https:&#x2F;&#x2F;github.com&#x2F;carlosflorencio.png" width="60px" alt="User avatar: Carlos Florêncio" /></a><a href="https://github.com/adam-e-trepanier"><img src="https:&#x2F;&#x2F;github.com&#x2F;adam-e-trepanier.png" width="60px" alt="User avatar: Adam Trepanier" /></a><a href="https://github.com/jfgordon2"><img src="https:&#x2F;&#x2F;github.com&#x2F;jfgordon2.png" width="60px" alt="User avatar: Jeff Gordon" /></a><a href="https://github.com/"><img src="https:&#x2F;&#x2F;raw.githubusercontent.com&#x2F;JamesIves&#x2F;github-sponsors-readme-action&#x2F;dev&#x2F;.github&#x2F;assets&#x2F;placeholder.png" width="60px" alt="User avatar: Private Sponsor" /></a><!-- sponsors -->
 </p>
 
 <!-- panvimdoc-ignore-end -->
@@ -83,7 +80,7 @@ For this purpose, I have included a [minimal.lua](https://github.com/olimorris/c
 
 ## :gift: Contributing
 
-I am open to contributions but they will be implemented at my discretion. Feel free to open up a discussion before embarking on a PR and please read the [contributing.md](.github/contributing.md) guide.
+I am open to contributions but they will be implemented at my discretion. Feel free to open up a discussion before embarking on a PR and please read the [CONTRIBUTING.md](CONTRIBUTING.md) guide.
 
 ## :clap: Acknowledgements
 

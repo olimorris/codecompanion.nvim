@@ -19,6 +19,7 @@ One of the challenges with inline editing is determining how the LLM's response 
 
 - _replace_ - replace a visual selection you've made
 - _add_ - be added in the current buffer at the cursor position
+- _before_ to be added in the current buffer before the cursor position
 - _new_ - be placed in a new buffer
 - _chat_ - be placed in a chat buffer
 

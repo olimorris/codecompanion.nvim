@@ -12,7 +12,9 @@ local defaults = {
     anthropic = "anthropic",
     azure_openai = "azure_openai",
     copilot = "copilot",
+    deepseek = "deepseek",
     gemini = "gemini",
+    huggingface = "huggingface",
     ollama = "ollama",
     openai = "openai",
     xai = "xai",
@@ -834,6 +836,12 @@ This is the code, for context:
       icons = {
         pinned_buffer = " ",
         watched_buffer = "👀 ",
+      },
+      debug_window = {
+        ---@return number|fun(): number
+        width = vim.o.columns - 5,
+        ---@return number|fun(): number
+        height = vim.o.lines - 2,
       },
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer

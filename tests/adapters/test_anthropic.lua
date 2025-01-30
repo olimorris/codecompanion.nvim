@@ -75,7 +75,7 @@ describe("Anthropic adapter", function()
     }
 
     h.eq(
-      { { role = "user", content = "Hello World! What up?!" } },
+      { { role = "user", content = "Hello\n\nWorld!\n\nWhat up?!" } },
       adapter.handlers.form_messages(adapter, messages).messages
     )
   end)

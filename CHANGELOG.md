@@ -1,5 +1,123 @@
 # Changelog
 
+## [11.19.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.18.1...v11.19.0) (2025-01-29)
+
+
+### Features
+
+* add symbols for scala ([#768](https://github.com/olimorris/codecompanion.nvim/issues/768)) ([4535cb5](https://github.com/olimorris/codecompanion.nvim/commit/4535cb5bdf92e3bc88d4cf061c606447131e27db))
+
+
+### Bug Fixes
+
+* **chat:** message editing for adapters with model schema as a function ([b6dcc37](https://github.com/olimorris/codecompanion.nvim/commit/b6dcc378c95014b0a3e62593c9150f682206e61f))
+
+## [11.18.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.18.0...v11.18.1) (2025-01-29)
+
+
+### Bug Fixes
+
+* **adapter:** [#769](https://github.com/olimorris/codecompanion.nvim/issues/769) ollama adapter model not being expanded ([6a78557](https://github.com/olimorris/codecompanion.nvim/commit/6a78557b3fbd69a0f1dcec3e962c353b0b79db85))
+* **adapters:** handle multiline userdata in copilot adapter ([#770](https://github.com/olimorris/codecompanion.nvim/issues/770)) ([4282c68](https://github.com/olimorris/codecompanion.nvim/commit/4282c68476f60ea9328790508ff3b191b6ec512b))
+
+## [11.18.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.5...v11.18.0) (2025-01-29)
+
+
+### Features
+
+* :sparkles: can edit setting and message history ([#753](https://github.com/olimorris/codecompanion.nvim/issues/753)) ([2592d26](https://github.com/olimorris/codecompanion.nvim/commit/2592d26eb3da9462174c858464324c31eb35eb91))
+
+## [11.17.5](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.4...v11.17.5) (2025-01-29)
+
+
+### Bug Fixes
+
+* **workspaces:** workspace path constant cleared after first use ([#761](https://github.com/olimorris/codecompanion.nvim/issues/761)) ([b39acc1](https://github.com/olimorris/codecompanion.nvim/commit/b39acc15dfdf057f6e7f2d0b87e0183d3d151409))
+
+## [11.17.4](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.3...v11.17.4) (2025-01-29)
+
+
+### Bug Fixes
+
+* **deepseek:** [#760](https://github.com/olimorris/codecompanion.nvim/issues/760) tooling and update adapter utils ([3d3b1a1](https://github.com/olimorris/codecompanion.nvim/commit/3d3b1a1f5deb5e06a86d67a9b792a263ea8e9191))
+
+## [11.17.3](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.2...v11.17.3) (2025-01-29)
+
+
+### Bug Fixes
+
+* **slash_command:** create cache folder on windows for `/fetch` ([#756](https://github.com/olimorris/codecompanion.nvim/issues/756)) ([223e35f](https://github.com/olimorris/codecompanion.nvim/commit/223e35f8150f49a16ec19c966d822594c2bcf4b7))
+
+## [11.17.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.1...v11.17.2) (2025-01-28)
+
+
+### Bug Fixes
+
+* **inline:** tweak system prompt ([#754](https://github.com/olimorris/codecompanion.nvim/issues/754)) ([4985375](https://github.com/olimorris/codecompanion.nvim/commit/4985375c6256498ff6991179404557c16118568a))
+
+## [11.17.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.17.0...v11.17.1) (2025-01-28)
+
+
+### Bug Fixes
+
+* **adapter:** [#731](https://github.com/olimorris/codecompanion.nvim/issues/731) openai_compat adapter calling API too much ([#738](https://github.com/olimorris/codecompanion.nvim/issues/738)) ([184ca40](https://github.com/olimorris/codecompanion.nvim/commit/184ca40c1f802b7eb2b0dc5236dab56a10d9e96e))
+
+## [11.17.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.16.1...v11.17.0) (2025-01-27)
+
+
+### Features
+
+* :sparkles: add support for `snacks.nvim` ([#741](https://github.com/olimorris/codecompanion.nvim/issues/741)) ([5407aba](https://github.com/olimorris/codecompanion.nvim/commit/5407aba817d11c4e1f27da34210e4cd58e88a388))
+
+## [11.16.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.16.0...v11.16.1) (2025-01-27)
+
+
+### Bug Fixes
+
+* **chat:** more graceful cancellations ([#739](https://github.com/olimorris/codecompanion.nvim/issues/739)) ([05c8853](https://github.com/olimorris/codecompanion.nvim/commit/05c8853ff0ff931a0daed569367d69524c792292))
+
+## [11.16.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.15.3...v11.16.0) (2025-01-27)
+
+
+### Features
+
+* **slash_command:** control system prompts in `/workspace` ([#736](https://github.com/olimorris/codecompanion.nvim/issues/736)) ([16d7f62](https://github.com/olimorris/codecompanion.nvim/commit/16d7f62239bea7b716b06c9ec588f977e054f90e))
+
+## [11.15.3](https://github.com/olimorris/codecompanion.nvim/compare/v11.15.2...v11.15.3) (2025-01-27)
+
+
+### Bug Fixes
+
+* [#732](https://github.com/olimorris/codecompanion.nvim/issues/732) can use deepseek with no config ([#733](https://github.com/olimorris/codecompanion.nvim/issues/733)) ([23d81a9](https://github.com/olimorris/codecompanion.nvim/commit/23d81a946e71c28cf2bdd025c1a3708f07f8d880))
+
+## [11.15.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.15.1...v11.15.2) (2025-01-27)
+
+
+### Bug Fixes
+
+* **chat:** change deepseek models ([7e211d5](https://github.com/olimorris/codecompanion.nvim/commit/7e211d522d0cf1f8cbd3b5f25d486e80f4276693))
+
+## [11.15.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.15.0...v11.15.1) (2025-01-27)
+
+
+### Bug Fixes
+
+* **slash_command:** typescript ft not recognised ([#723](https://github.com/olimorris/codecompanion.nvim/issues/723)) ([c114e42](https://github.com/olimorris/codecompanion.nvim/commit/c114e4203d858aef99a835280e02a67a6d0d9082))
+
+## [11.15.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.14.2...v11.15.0) (2025-01-26)
+
+
+### Features
+
+* **deepseek:** [#692](https://github.com/olimorris/codecompanion.nvim/issues/692) [#669](https://github.com/olimorris/codecompanion.nvim/issues/669) show reasoning output ([#716](https://github.com/olimorris/codecompanion.nvim/issues/716)) ([b4467a1](https://github.com/olimorris/codecompanion.nvim/commit/b4467a1af36e8b99ffadc95dfed55154b18aebf8))
+
+## [11.14.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.14.1...v11.14.2) (2025-01-26)
+
+
+### Bug Fixes
+
+* [#698](https://github.com/olimorris/codecompanion.nvim/issues/698) custom variables ([#711](https://github.com/olimorris/codecompanion.nvim/issues/711)) ([104f913](https://github.com/olimorris/codecompanion.nvim/commit/104f91331979be7c44fa9b766b8356863ab955cd))
+
 ## [11.14.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.14.0...v11.14.1) (2025-01-26)
 
 

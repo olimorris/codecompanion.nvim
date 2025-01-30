@@ -25,6 +25,36 @@ function Keymaps.new(args)
   }, { __index = Keymaps })
 end
 
+---Resolve the callback for each keymap
+---@param rhs string|table|fun()
+---@return string|fun(table)|boolean rhs
+---@return table opts
+---@return string|nil mode
+function Keymaps:resolve(rhs)
+  if type(rhs) == "string" and vim.startswith(rhs, "keymaps.") then
+    return self:resolve(self.callbacks[vim.split(rhs, ".", { plain = true })[2]])
+  elseif type(rhs) == "string" then
+    return self.callbacks()[rhs], {}
+  elseif type(rhs) == "function" then
+    return rhs, {}
+  elseif type(rhs) == "table" then
+    local opts = vim.deepcopy(rhs)
+    local callback = opts.callback
+    local mode = opts.mode
+    if type(rhs.callback) == "string" then
+      local action_opts, action_mode
+      callback, action_opts, action_mode = self:resolve(rhs.callback)
+      opts = vim.tbl_extend("keep", opts, action_opts)
+      mode = mode or action_mode
+    end
+    opts.callback = nil
+    opts.mode = nil
+    return callback, opts, mode
+  else
+    return rhs, {}
+  end
+end
+
 ---Set the keymaps
 ---@return nil
 function Keymaps:set()
@@ -59,34 +89,6 @@ function Keymaps:set()
       end
     end
     ::continue::
-  end
-end
-
----Resolve the callback for each keymap
----@param rhs string|table|fun()
----@return string|fun(table)|boolean rhs
----@return table opts
----@return string|nil mode
-function Keymaps:resolve(rhs)
-  if type(rhs) == "string" and vim.startswith(rhs, "keymaps.") then
-    return self:resolve(self.callbacks[vim.split(rhs, ".", { plain = true })[2]])
-  elseif type(rhs) == "function" then
-    return rhs, {}
-  elseif type(rhs) == "table" then
-    local opts = vim.deepcopy(rhs)
-    local callback = opts.callback
-    local mode = opts.mode
-    if type(rhs.callback) == "string" then
-      local action_opts, action_mode
-      callback, action_opts, action_mode = self:resolve(rhs.callback)
-      opts = vim.tbl_extend("keep", opts, action_opts)
-      mode = mode or action_mode
-    end
-    opts.callback = nil
-    opts.mode = nil
-    return callback, opts, mode
-  else
-    return rhs, {}
   end
 end
 

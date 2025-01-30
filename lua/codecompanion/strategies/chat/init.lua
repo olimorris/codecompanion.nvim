@@ -88,10 +88,9 @@ end
 
 ---Parse the chat buffer for the last message
 ---@param chat CodeCompanion.Chat
----@param role string
 ---@param start_range number
 ---@return { content: string }
-local function ts_parse_messages(chat, role, start_range)
+local function ts_parse_messages(chat, start_range)
   local query = get_query("markdown", "chat")
 
   local tree = chat.parser:parse({ start_range - 1, -1 })[1]
@@ -196,7 +195,7 @@ function Chat.new(args)
   end
   self.parser = parser
 
-  self.References = require("codecompanion.strategies.chat.references").new({ chat = self })
+  self.references = require("codecompanion.strategies.chat.references").new({ chat = self })
   self.watchers = require("codecompanion.strategies.chat.watchers").new()
   self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
   self.variables = require("codecompanion.strategies.chat.variables").new()
@@ -369,10 +368,10 @@ end
 ---@param settings table
 ---@return self
 function Chat:apply_settings(settings)
-  -- Clear the cache
-  _cached_settings = {}
-
   self.settings = settings or schema.get_default(self.adapter.schema, self.opts.settings)
+
+  -- Reset the cache
+  _cached_settings[self.bufnr] = self.settings
 
   return self
 end
@@ -421,13 +420,14 @@ function Chat:complete_models(request, callback)
 end
 
 ---Set the system prompt in the chat buffer
+---@prompt? string
 ---@return CodeCompanion.Chat
-function Chat:set_system_prompt()
+function Chat:set_system_prompt(prompt)
   if self.opts and self.opts.ignore_system_prompt then
     return self
   end
 
-  local prompt = config.opts.system_prompt
+  prompt = prompt or config.opts.system_prompt
   if prompt ~= "" then
     if type(prompt) == "function" then
       prompt = prompt({
@@ -457,6 +457,14 @@ function Chat:toggle_system_prompt()
   else
     util.notify("Added system prompt")
     self:set_system_prompt()
+  end
+end
+
+---Remove the system prompt from the chat buffer
+---@return nil
+function Chat:remove_system_prompt()
+  if self.messages[1] and self.messages[1].role == config.constants.SYSTEM_ROLE then
+    table.remove(self.messages, 1)
   end
 end
 
@@ -502,7 +510,7 @@ function Chat:add_tool(tool, tool_config)
   end
 
   local id = "<tool>" .. tool .. "</tool>"
-  self.References:add({
+  self.references:add({
     source = "tool",
     name = "tool",
     id = id,
@@ -589,70 +597,20 @@ function Chat:submit(opts)
 
   local bufnr = self.bufnr
 
-  local message = ts_parse_messages(self, user_role, self.header_line)
+  local message = ts_parse_messages(self, self.header_line)
 
-  for _, ref in ipairs(self.refs) do
-    if ref.bufnr and ref.opts and ref.opts.watched then
-      local changes = self.watchers:get_changes(ref.bufnr)
-      log:debug("Checking watched buffer %d, found %d changes", ref.bufnr, changes and #changes or 0)
+  -- Check if any watched buffers have changes
+  self.watchers:check_for_changes(self)
 
-      if changes and #changes > 0 then
-        local changes_text = string.format(
-          "Changes detected in `%s` (buffer %d):\n",
-          vim.fn.fnamemodify(api.nvim_buf_get_name(ref.bufnr), ":t"),
-          ref.bufnr
-        )
-
-        for _, change in ipairs(changes) do
-          if change.type == "delete" then
-            changes_text = changes_text
-              .. string.format(
-                "Lines %d-%d were deleted:\n```%s\n%s\n```\n",
-                change.start,
-                change.end_line,
-                vim.bo[ref.bufnr].filetype,
-                table.concat(change.lines, "\n")
-              )
-          elseif change.type == "modify" then
-            changes_text = changes_text
-              .. string.format(
-                "Lines %d-%d were modified from:\n```%s\n%s\n```\nto:\n```%s\n%s\n```\n",
-                change.start,
-                change.end_line,
-                vim.bo[ref.bufnr].filetype,
-                table.concat(change.old_lines, "\n"),
-                vim.bo[ref.bufnr].filetype,
-                table.concat(change.new_lines, "\n")
-              )
-          else -- type == "add"
-            changes_text = changes_text
-              .. string.format(
-                "Lines %d-%d were added:\n```%s\n%s\n```\n",
-                change.start,
-                change.end_line,
-                vim.bo[ref.bufnr].filetype,
-                table.concat(change.lines, "\n")
-              )
-          end
-        end
-
-        self:add_message({
-          role = config.constants.USER_ROLE,
-          content = changes_text,
-        }, { visible = true })
-      end
-    end
-  end
-
-  if not self:has_user_messages(message) or message.content == "" then
-    return log:warn("No messages to submit")
+  if not self:has_user_messages(message) then
+    return log:info("No messages to submit")
   end
 
   --- Only send the user's last message if we're not regenerating the response
-  if not opts.regenerate and not vim.tbl_isempty(message) then
+  if not opts.regenerate and not vim.tbl_isempty(message) and message.content ~= "" then
     self:add_message({ role = config.constants.USER_ROLE, content = message.content })
   end
-  message = self.References:clear(self.messages[#self.messages])
+  message = self.references:clear(self.messages[#self.messages])
 
   self:apply_tools_and_variables(message)
   self:check_references()
@@ -678,11 +636,12 @@ function Chat:submit(opts)
   self.current_request = client
     .new({ adapter = settings })
     :request(self.adapter:map_roles(vim.deepcopy(self.messages)), {
-      ---@param err string
+      ---@param err { message: string, stderr: string }
       ---@param data table
       callback = function(err, data)
-        if err then
+        if err and err.stderr ~= "{}" then
           self.status = CONSTANTS.STATUS_ERROR
+          log:error("Error: %s", err.stderr)
           return self:done(output)
         end
 
@@ -744,10 +703,11 @@ function Chat:done(output)
 
   self:increment_cycle()
   self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
+
   local assistant_range = self.header_line
   self:set_range(-2)
   self.ui:display_tokens(self.parser, self.header_line)
-  self.References:render()
+  self.references:render()
 
   if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
     self.tools:parse_buffer(self, assistant_range, self.header_line - 1)
@@ -777,7 +737,7 @@ end
 ---Reconcile the references table to the references in the chat buffer
 ---@return nil
 function Chat:check_references()
-  local refs = self.References:get_from_chat()
+  local refs = self.references:get_from_chat()
   if vim.tbl_isempty(refs) and vim.tbl_isempty(self.refs) then
     return
   end
@@ -868,13 +828,17 @@ function Chat:stop()
     self.current_tool = nil
 
     _G.codecompanion_cancel_tool = true
-    job:shutdown()
+    pcall(function()
+      job:shutdown()
+    end)
   end
   if self.current_request then
     job = self.current_request
     self.current_request = nil
     if job then
-      job:shutdown()
+      pcall(function()
+        job:shutdown()
+      end)
     end
   end
 end
@@ -910,6 +874,8 @@ function Chat:close()
   self = nil
 end
 
+local has_been_reasoning = false
+
 ---Add a message directly to the chat buffer. This will be visible to the user
 ---@param data table
 ---@param opts? table
@@ -918,7 +884,13 @@ function Chat:add_buf_message(data, opts)
   local bufnr = self.bufnr
   local new_response = false
 
-  if (data.role and data.role ~= self.last_role) or (opts and opts.force_role) then
+  local function write(text)
+    for _, t in ipairs(vim.split(text, "\n", { plain = true, trimempty = false })) do
+      table.insert(lines, t)
+    end
+  end
+
+  local function new_role()
     new_response = true
     self.last_role = data.role
     table.insert(lines, "")
@@ -926,13 +898,28 @@ function Chat:add_buf_message(data, opts)
     self.ui:set_header(lines, config.strategies.chat.roles[data.role])
   end
 
-  if data.content then
-    for _, text in ipairs(vim.split(data.content, "\n", { plain = true, trimempty = false })) do
-      table.insert(lines, text)
+  local function append_data()
+    if data.reasoning then
+      has_been_reasoning = true
+      if new_response then
+        table.insert(lines, "### Reasoning")
+        table.insert(lines, "")
+      end
+      write(data.reasoning)
+    else
+      if has_been_reasoning then
+        has_been_reasoning = false
+        table.insert(lines, "")
+        table.insert(lines, "")
+        table.insert(lines, "### Response")
+        table.insert(lines, "")
+      end
+      write(data.content)
     end
+  end
 
+  local function update_buffer()
     self.ui:unlock_buf()
-
     local last_line, last_column, line_count = self.ui:last()
     if opts and opts.insert_at then
       last_line = opts.insert_at
@@ -955,6 +942,17 @@ function Chat:add_buf_message(data, opts)
     elseif not self.ui:is_active() then
       self.ui:follow()
     end
+  end
+
+  -- Handle a new role
+  if (data.role and data.role ~= self.last_role) or (opts and opts.force_role) then
+    new_role()
+  end
+
+  -- Append the output from the LLM
+  if data.content or data.reasoning then
+    append_data()
+    update_buffer()
   end
 end
 
