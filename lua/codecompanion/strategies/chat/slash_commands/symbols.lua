@@ -14,7 +14,7 @@ local util = require("codecompanion.utils")
 local fmt = string.format
 local get_node_text = vim.treesitter.get_node_text --[[@type function]]
 
-CONSTANTS = {
+local CONSTANTS = {
   NAME = "Symbols",
   PROMPT = "Select symbol(s)",
 }

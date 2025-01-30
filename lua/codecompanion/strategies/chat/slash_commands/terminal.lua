@@ -2,7 +2,7 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
-CONSTANTS = {
+local CONSTANTS = {
   NAME = "Terminal Output",
 }
 
