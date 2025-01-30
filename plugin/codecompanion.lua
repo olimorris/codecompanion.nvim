@@ -1,7 +1,6 @@
 if vim.g.loaded_codecompanion then
   return
 end
-
 vim.g.loaded_codecompanion = true
 
 if vim.fn.has("nvim-0.10.0") == 0 then
@@ -136,4 +135,5 @@ api.nvim_create_autocmd("TermEnter", {
   end,
 })
 
+-- Register the Tree-sitter filetype
 vim.treesitter.language.register("markdown", "codecompanion")
