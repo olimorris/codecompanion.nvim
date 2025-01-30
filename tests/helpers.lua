@@ -99,7 +99,7 @@ Helpers.config = {
   },
 }
 
-Helpers.setup_chat_buffer = function()
+Helpers.setup_chat_buffer = function(config)
   local codecompanion = require("codecompanion")
 
   local adapter = {
@@ -133,7 +133,7 @@ Helpers.setup_chat_buffer = function()
     },
   }
 
-  codecompanion.setup(Helpers.config)
+  codecompanion.setup(config or Helpers.config)
 
   local chat = require("codecompanion.strategies.chat").new({
     context = { bufnr = 1, filetype = "lua" },
