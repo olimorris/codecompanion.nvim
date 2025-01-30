@@ -247,6 +247,25 @@ M.setup = function(opts)
   if opts and opts.adapters then
     require("codecompanion.utils.adapters").extend(config.adapters, opts.adapters)
   end
+
+  -- Set the log root
+  log.set_root(log.new({
+    handlers = {
+      {
+        type = "echo",
+        level = vim.log.levels.ERROR,
+      },
+      {
+        type = "notify",
+        level = vim.log.levels.WARN,
+      },
+      {
+        type = "file",
+        filename = "codecompanion.log",
+        level = vim.log.levels[config.opts.log_level],
+      },
+    },
+  }))
 end
 
 return M

@@ -9,7 +9,6 @@ end
 
 local cmds = require("codecompanion.commands")
 local config = require("codecompanion.config")
-local log = require("codecompanion.utils.log")
 
 local api = vim.api
 
@@ -68,25 +67,6 @@ local diagnostic_config = {
 }
 vim.diagnostic.config(diagnostic_config, config.INFO_NS)
 vim.diagnostic.config(diagnostic_config, config.ERROR_NS)
-
--- Set the log root
-log.set_root(log.new({
-  handlers = {
-    {
-      type = "echo",
-      level = vim.log.levels.ERROR,
-    },
-    {
-      type = "notify",
-      level = vim.log.levels.WARN,
-    },
-    {
-      type = "file",
-      filename = "codecompanion.log",
-      level = vim.log.levels[config.opts.log_level],
-    },
-  },
-}))
 
 -- Setup completion for blink.cmp and cmp
 local has_cmp, cmp = pcall(require, "cmp")
