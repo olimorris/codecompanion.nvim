@@ -1,5 +1,13 @@
 # Changelog
 
+## [11.20.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.20.1...v11.20.2) (2025-01-30)
+
+
+### Bug Fixes
+
+* **chat:** [#783](https://github.com/olimorris/codecompanion.nvim/issues/783) display settings in chat buffer ([#784](https://github.com/olimorris/codecompanion.nvim/issues/784)) ([cd712c5](https://github.com/olimorris/codecompanion.nvim/commit/cd712c5cafe9fcf2d17c5564bb2bd0141b16f15d))
+* logging in plugin ([#786](https://github.com/olimorris/codecompanion.nvim/issues/786)) ([ec30170](https://github.com/olimorris/codecompanion.nvim/commit/ec301700c01414abbe7bfb7883b80ebb9255762b))
+
 ## [11.20.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.20.0...v11.20.1) (2025-01-30)
 
 
