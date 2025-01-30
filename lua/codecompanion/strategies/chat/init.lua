@@ -49,7 +49,7 @@ local function ts_parse_settings(bufnr, adapter)
   -- If the user has disabled settings in the chat buffer, use the default settings
   if not config.display.chat.show_settings then
     if adapter then
-      _cached_settings[bufnr] = adapter:get_default_settings()
+      _cached_settings[bufnr] = adapter:make_from_schema()
       return _cached_settings[bufnr]
     end
   end
@@ -65,7 +65,7 @@ local function ts_parse_settings(bufnr, adapter)
   local end_line = -1
   if adapter then
     -- Account for the two YAML lines and the fact Tree-sitter is 0-indexed
-    end_line = vim.tbl_count(adapter:get_default_settings()) + 2 - 1
+    end_line = vim.tbl_count(adapter:make_from_schema()) + 2 - 1
   end
 
   for _, matches, _ in query:iter_matches(root, bufnr, 0, end_line) do
@@ -368,10 +368,8 @@ end
 ---@param settings table
 ---@return self
 function Chat:apply_settings(settings)
-  self.settings = settings or schema.get_default(self.adapter.schema, self.opts.settings)
-
-  -- Reset the cache
-  _cached_settings[self.bufnr] = self.settings
+  _cached_settings[self.bufnr] = settings
+  self.settings = settings
 
   return self
 end
