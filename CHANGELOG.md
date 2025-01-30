@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.20.3](https://github.com/olimorris/codecompanion.nvim/compare/v11.20.2...v11.20.3) (2025-01-30)
+
+
+### Bug Fixes
+
+* **slash_commands:** scope constants to be local ([#787](https://github.com/olimorris/codecompanion.nvim/issues/787)) ([7daf143](https://github.com/olimorris/codecompanion.nvim/commit/7daf143c46c9710697ee3e17f2043664c0859951))
+
 ## [11.20.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.20.1...v11.20.2) (2025-01-30)
 
 
