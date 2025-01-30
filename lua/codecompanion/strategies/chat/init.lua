@@ -219,7 +219,7 @@ function Chat.new(args)
   util.fire("ChatModel", { bufnr = self.bufnr, model = self.adapter.schema.model.default })
   util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library })
 
-  self:apply_settings(self.opts.settings)
+  self:apply_settings(schema.get_default(self.adapter.schema, self.opts.settings))
 
   self.ui = require("codecompanion.strategies.chat.ui").new({
     adapter = self.adapter,
@@ -365,11 +365,13 @@ function Chat:_get_settings_key(opts)
 end
 
 ---Apply custom settings to the chat buffer
----@param settings table
+---@param settings? table
 ---@return self
 function Chat:apply_settings(settings)
-  _cached_settings[self.bufnr] = settings
+  settings = settings or schema.get_default(self.adapter.schema, self.opts.settings)
+
   self.settings = settings
+  _cached_settings[self.bufnr] = settings
 
   return self
 end
