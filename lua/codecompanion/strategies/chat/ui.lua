@@ -21,6 +21,17 @@ local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.chat.ui",
 }
 
+---Set the LLM role based on the adapter
+---@param role string|function
+---@param adapter table
+---@return string
+local function set_llm_role(role, adapter)
+  if type(role) == "function" then
+    return role(adapter)
+  end
+  return role
+end
+
 ---@class CodeCompanion.Chat.UI
 local UI = {}
 
@@ -190,6 +201,11 @@ end
 ---@param role string The role of the user to display in the header
 ---@return nil
 function UI:set_header(tbl, role)
+  -- If the role is the LLM then we need to swap this out for a user func
+  if type(role) == "function" then
+    role = set_llm_role(role, self.adapter)
+  end
+
   table.insert(tbl, self:format_header(role))
   table.insert(tbl, "")
 end

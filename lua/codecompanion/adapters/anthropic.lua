@@ -8,6 +8,7 @@ local output_tokens = 0
 ---@class Anthropic.Adapter: CodeCompanion.Adapter
 return {
   name = "anthropic",
+  formatted_name = "Anthropic",
   roles = {
     llm = "assistant",
     user = "user",

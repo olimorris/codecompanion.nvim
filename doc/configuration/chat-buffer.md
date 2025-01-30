@@ -221,6 +221,36 @@ require("codecompanion").setup({
 
 ## UI
 
+### User and LLM Roles
+
+The chat buffer places user and LLM responses under a `H2` header. These can be customized in the configuration:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      roles = {
+        ---The header name for the LLM's messages
+        ---@type string|fun(adapter: CodeCompanion.Adapter): string
+        llm = function(adapter)
+          return "CodeCompanion (" .. adapter.formatted_name .. ")"
+        end,
+
+        ---The header name for your messages
+        ---@type string
+        user = "Me",
+      }
+    }
+  }
+})
+```
+
+By default, the LLM's responses will be placed under a header such as `CodeCompanion (DeepSeek)`, leveraging the current adapter in the chat buffer. This option can be in the form of a string or a function that returns a string. If you opt for a function, the first parameter will always be the adapter from the chat buffer.
+
+The user role is currently only available as a string.
+
+### Markdown Rendering
+
 As the Chat Buffer uses markdown as its syntax, you can use popular rendering plugins to improve the UI:
 
 **[render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim)**

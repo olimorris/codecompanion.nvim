@@ -6,6 +6,7 @@ local log = require("codecompanion.utils.log")
 ---@class Gemini.Adapter: CodeCompanion.Adapter
 return {
   name = "gemini",
+  formatted_name = "Gemini",
   roles = {
     llm = "model",
     user = "user",

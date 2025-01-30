@@ -33,8 +33,15 @@ local defaults = {
     chat = {
       adapter = "copilot",
       roles = {
-        llm = "CodeCompanion", -- The markdown header content for the LLM's responses
-        user = "Me", -- The markdown header for your questions
+        ---The header name for the LLM's messages
+        ---@type string|fun(adapter: CodeCompanion.Adapter): string
+        llm = function(adapter)
+          return "CodeCompanion (" .. adapter.formatted_name .. ")"
+        end,
+
+        ---The header name for your messages
+        ---@type string
+        user = "Me",
       },
       agents = {
         ["full_stack_dev"] = {

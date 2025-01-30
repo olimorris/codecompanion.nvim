@@ -3,6 +3,7 @@ local openai = require("codecompanion.adapters.openai")
 ---@class xAI.Adapter: CodeCompanion.Adapter
 return {
   name = "xai",
+  formatted_name = "xAI",
   roles = {
     llm = "assistant",
     user = "user",

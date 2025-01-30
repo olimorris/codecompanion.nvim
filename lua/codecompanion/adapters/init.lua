@@ -92,6 +92,7 @@ local Adapter = {}
 
 ---@class CodeCompanion.Adapter
 ---@field name string The name of the adapter
+---@field formatted_name string The formatted name of the adapter
 ---@field roles table The mapping of roles in the config to the LLM's defined roles
 ---@field features table The features that the adapter supports
 ---@field url string The URL of the generative AI service to connect to

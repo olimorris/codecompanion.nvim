@@ -4,6 +4,7 @@ local openai = require("codecompanion.adapters.openai")
 ---@class HuggingFace.Adapter: CodeCompanion.Adapter
 return {
   name = "huggingface",
+  formatted_name = "Hugging Face",
   roles = {
     llm = "assistant",
     user = "user",

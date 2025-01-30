@@ -4,6 +4,7 @@ local utils = require("codecompanion.utils.adapters")
 ---@class OpenAI.Adapter: CodeCompanion.Adapter
 return {
   name = "openai",
+  formatted_name = "OpenAI",
   roles = {
     llm = "assistant",
     user = "user",

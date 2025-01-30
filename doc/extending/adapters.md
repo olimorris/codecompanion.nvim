@@ -10,7 +10,8 @@ Let's take a look at the interface of an adapter as per the `adapter.lua` file:
 
 ```lua
 ---@class CodeCompanion.Adapter
----@field name string The name of the adapter
+---@field name string The name of the adapter e.g. "openai"
+---@field formatted_name string The formatted name of the adapter e.g. "OpenAI"
 ---@field roles table The mapping of roles in the config to the LLM's defined roles
 ---@field url string The URL of the LLM to connect to
 ---@field env? table Environment variables which can be referenced in the parameters

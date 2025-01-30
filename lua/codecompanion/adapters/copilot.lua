@@ -107,6 +107,7 @@ end
 ---@class Copilot.Adapter: CodeCompanion.Adapter
 return {
   name = "copilot",
+  formatted_name = "Copilot",
   roles = {
     llm = "assistant",
     user = "user",

@@ -5,6 +5,7 @@ local utils = require("codecompanion.utils.adapters")
 --@class DeepSeek.Adapter: CodeCompanion.Adapter
 return {
   name = "deepseek",
+  formatted_name = "DeepSeek",
   roles = {
     llm = "assistant",
     user = "user",
