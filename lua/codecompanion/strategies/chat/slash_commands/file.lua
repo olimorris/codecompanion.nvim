@@ -6,7 +6,7 @@ local util = require("codecompanion.utils")
 
 local fmt = string.format
 
-CONSTANTS = {
+local CONSTANTS = {
   NAME = "File",
   PROMPT = "Select file(s)",
 }

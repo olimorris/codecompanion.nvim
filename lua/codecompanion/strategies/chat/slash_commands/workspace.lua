@@ -5,7 +5,7 @@ local util = require("codecompanion.utils")
 
 local fmt = string.format
 
-CONSTANTS = {
+local CONSTANTS = {
   NAME = "Workspace",
   PROMPT = "Select a workspace group",
   WORKSPACE_FILE = vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json"),

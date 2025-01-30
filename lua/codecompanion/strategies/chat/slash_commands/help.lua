@@ -8,7 +8,7 @@ local ts = vim.treesitter
 
 local line_count = 0
 
-CONSTANTS = {
+local CONSTANTS = {
   NAME = "Help",
   PROMPT = "Select a help tag",
   MAX_LINES = config.strategies.chat.slash_commands.help.opts.max_lines,

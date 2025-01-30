@@ -9,7 +9,7 @@ local util_hash = require("codecompanion.utils.hash")
 
 local fmt = string.format
 
-CONSTANTS = {
+local CONSTANTS = {
   NAME = "Fetch",
   CACHE_PATH = vim.fn.stdpath("cache") .. "/codecompanion/urls",
 }

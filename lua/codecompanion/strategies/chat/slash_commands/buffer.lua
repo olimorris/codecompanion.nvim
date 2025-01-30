@@ -8,7 +8,7 @@ local util = require("codecompanion.utils")
 local api = vim.api
 local fmt = string.format
 
-CONSTANTS = {
+local CONSTANTS = {
   NAME = "Buffer",
   PROMPT = "Select buffer(s)",
 }
