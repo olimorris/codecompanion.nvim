@@ -19,7 +19,7 @@ function M.goto_heading(direction, count)
 
   local root_tree = parser:parse()[1]:root()
 
-  local query = vim.treesitter.query.parse("markdown", [[(atx_heading) @heading]])
+  local query = vim.treesitter.query.parse("markdown", [[(atx_heading (atx_h2_marker) @heading)]])
 
   local from_row, to_row, found_headings
   if direction == "next" then
