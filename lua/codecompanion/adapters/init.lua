@@ -120,10 +120,9 @@ function Adapter.new(args)
   return setmetatable(args, { __index = Adapter })
 end
 
----TODO: Refactor this to return self so we can chain it
 ---Get the default settings from the schema
 ---@return table
-function Adapter:get_default_settings()
+function Adapter:make_from_schema()
   local settings = {}
 
   for key, value in pairs(self.schema) do
@@ -201,9 +200,7 @@ end
 ---@param settings? table
 ---@return CodeCompanion.Adapter
 function Adapter:map_schema_to_params(settings)
-  if not settings then
-    settings = self:get_default_settings()
-  end
+  settings = settings or self:make_from_schema()
 
   for k, v in pairs(settings) do
     local mapping = self.schema[k] and self.schema[k].mapping
