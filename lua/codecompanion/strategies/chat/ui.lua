@@ -3,12 +3,11 @@ Manages the UI for the chat buffer such as opening and closing splits/windows,
 parsing settings and rendering extmarks.
 --]]
 local config = require("codecompanion.config")
-local schema = require("codecompanion.schema")
-local yaml = require("codecompanion.utils.yaml")
-
 local log = require("codecompanion.utils.log")
+local schema = require("codecompanion.schema")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils")
+local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
 
