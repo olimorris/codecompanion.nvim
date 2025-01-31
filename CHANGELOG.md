@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.20.4](https://github.com/olimorris/codecompanion.nvim/compare/v11.20.3...v11.20.4) (2025-01-31)
+
+
+### Bug Fixes
+
+* [#769](https://github.com/olimorris/codecompanion.nvim/issues/769) ollama adapter ([#793](https://github.com/olimorris/codecompanion.nvim/issues/793)) ([8a98c71](https://github.com/olimorris/codecompanion.nvim/commit/8a98c71cbdbde65230824c01d10eed262717c7a7))
+
 ## [11.20.3](https://github.com/olimorris/codecompanion.nvim/compare/v11.20.2...v11.20.3) (2025-01-30)
 
 
