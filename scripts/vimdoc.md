@@ -1,4 +1,3 @@
-
 ```{.include}
 doc/index.md
 doc/installation.md

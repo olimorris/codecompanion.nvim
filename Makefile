@@ -13,8 +13,8 @@ docs: deps/panvimdoc
 		--metadata="ignorerawblocks:true" \
 		--metadata="docmapping:false" \
 		--metadata="docmappingproject:true" \
-		--lua-filter=deps/panvimdoc/scripts/include-files.lua \
-		--lua-filter=deps/panvimdoc/scripts/skip-blocks.lua \
+		--lua-filter deps/panvimdoc/scripts/include-files.lua \
+		--lua-filter deps/panvimdoc/scripts/skip-blocks.lua \
 		--lua-filter scripts/panvimdoc-cleanup.lua \
 		-t deps/panvimdoc/scripts/panvimdoc.lua \
 		scripts/vimdoc.md \

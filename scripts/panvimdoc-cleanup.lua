@@ -56,6 +56,13 @@ function M.Cite(el)
   return pandoc.Str(stringify(el.content))
 end
 
+function M.Str(el)
+  if el.text:find(":[%a_]+:") then
+    el.text = ''
+  end
+  return el
+end
+
 -- _@cmd_ -> {'_', '@cmd_'} or {'_', '@cmd', '_'}, so find and replace those with code
 function M.Inlines(inlines)
   -- iterates backwards over each line
