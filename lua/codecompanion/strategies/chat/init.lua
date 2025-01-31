@@ -364,14 +364,12 @@ function Chat:_get_settings_key(opts)
   return key_name, node
 end
 
----Apply custom settings to the chat buffer
+---Format and apply settings to the chat buffer
 ---@param settings? table
 ---@return self
 function Chat:apply_settings(settings)
-  settings = settings or schema.get_default(self.adapter.schema, self.opts.settings)
-
-  self.settings = settings
-  _cached_settings[self.bufnr] = settings
+  self.settings = settings or schema.get_default(self.adapter.schema, self.opts.settings)
+  _cached_settings[self.bufnr] = self.settings
 
   return self
 end

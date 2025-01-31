@@ -12,7 +12,7 @@ T["References"] = new_set({
     pre_case = function()
       chat, _ = h.setup_chat_buffer()
     end,
-    post_once = function()
+    post_case = function()
       h.teardown_chat_buffer()
     end,
   },

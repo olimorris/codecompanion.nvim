@@ -87,7 +87,6 @@ local function replace_var(adapter, str)
 end
 
 ---@class CodeCompanion.Adapter
----@field args CodeCompanion.Adapter
 local Adapter = {}
 
 ---@class CodeCompanion.Adapter
@@ -115,7 +114,6 @@ local Adapter = {}
 ---@field handlers.teardown? fun(self: CodeCompanion.Adapter): any
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 
----@param args CodeCompanion.Adapter
 ---@return CodeCompanion.Adapter
 function Adapter.new(args)
   return setmetatable(args, { __index = Adapter })
@@ -162,7 +160,7 @@ function Adapter:get_env_vars()
     elseif type(v) == "string" and is_env_var(v) then
       self.env_replaced[k] = get_env_var(v)
     elseif type(v) == "function" then
-      self.env_replaced[k] = v()
+      self.env_replaced[k] = v(self)
     else
       local schema = get_schema(self, v)
       if schema then
@@ -190,7 +188,7 @@ function Adapter:set_env_vars(object)
       if type(v) == "string" then
         replaced[k] = replace_var(self, v)
       elseif type(v) == "function" then
-        replaced[k] = v(self)
+        replaced[k] = replace_var(self, v(self))
       else
         replaced[k] = v
       end

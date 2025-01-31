@@ -99,39 +99,40 @@ Helpers.config = {
   },
 }
 
-Helpers.setup_chat_buffer = function(config)
+Helpers.setup_chat_buffer = function(config, adapter)
   local codecompanion = require("codecompanion")
 
-  local adapter = {
-    name = "TestAdapter",
-    url = "https://api.openai.com/v1/chat/completions",
-    roles = {
-      llm = "assistant",
-      user = "user",
-    },
-    headers = {
-      content_type = "application/json",
-    },
-    parameters = {
-      stream = true,
-    },
-    handlers = {
-      form_parameters = function()
-        return {}
-      end,
-      form_messages = function()
-        return {}
-      end,
-      is_complete = function()
-        return false
-      end,
-    },
-    schema = {
-      model = {
-        default = "gpt-3.5-turbo",
+  adapter = adapter
+    or {
+      name = "TestAdapter",
+      url = "https://api.openai.com/v1/chat/completions",
+      roles = {
+        llm = "assistant",
+        user = "user",
       },
-    },
-  }
+      headers = {
+        content_type = "application/json",
+      },
+      parameters = {
+        stream = true,
+      },
+      handlers = {
+        form_parameters = function()
+          return {}
+        end,
+        form_messages = function()
+          return {}
+        end,
+        is_complete = function()
+          return false
+        end,
+      },
+      schema = {
+        model = {
+          default = "gpt-3.5-turbo",
+        },
+      },
+    }
 
   codecompanion.setup(config or Helpers.config)
 
