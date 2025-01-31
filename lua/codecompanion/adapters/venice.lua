@@ -123,7 +123,7 @@ return {
       mapping = "parameters",
       type = "enum",
       desc =
-      "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
+      "ID of the model to use. It specifies the AI model that will process and respond to the user's input. Different models may have varying capabilities, performance, and compatibility with the Chat API.",
       default = function(self)
         return get_models(self, { last = true })
       end,
@@ -143,44 +143,20 @@ return {
         return n >= 0 and n <= 2, "Must be between 0 and 2"
       end,
     },
-    stop = {
-      order = 10,
-      mapping = "parameters",
-      type = "string",
-      optional = true,
-      default = nil,
-      desc =
-      "Sets the stop sequences to use. When this pattern is encountered the LLM will stop generating text and return. Multiple stop patterns may be set by specifying multiple separate stop parameters in a modelfile.",
-      validate = function(s)
-        return s:len() > 0, "Cannot be an empty string"
-      end,
-    },
-    top_p = {
-      order = 14,
-      mapping = "parameters",
-      type = "number",
-      optional = true,
-      default = 0.9,
-      desc =
-      "Works together with top-k. A higher value (e.g., 0.95) will lead to more diverse text, while a lower value (e.g., 0.5) will generate more focused and conservative text. (Default: 0.9)",
-      validate = function(n)
-        return n >= 0 and n <= 1, "Must be between 0 and 1"
-      end,
-    },
-    max_tokens = {
-      order = 5,
+    max_completion_tokens = {
+      order = 3,
       mapping = "parameters",
       type = "integer",
       optional = true,
       default = nil,
       desc =
-      "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
+      "An upper bound for the number of tokens that can be generated for a completion.",
       validate = function(n)
         return n > 0, "Must be greater than 0"
       end,
     },
     presence_penalty = {
-      order = 6,
+      order = 4,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -191,16 +167,28 @@ return {
         return n >= -2 and n <= 2, "Must be between -2 and 2"
       end,
     },
-    frequency_penalty = {
-      order = 7,
+    top_p = {
+      order = 5,
       mapping = "parameters",
       type = "number",
       optional = true,
-      default = 0,
+      default = 0.9,
       desc =
-      "Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.",
+      "A higher value (e.g., 0.95) will lead to more diverse text, while a lower value (e.g., 0.5) will generate more focused and conservative text. (Default: 0.9)",
       validate = function(n)
-        return n >= -2 and n <= 2, "Must be between -2 and 2"
+        return n >= 0 and n <= 1, "Must be between 0 and 1"
+      end,
+    },
+    stop = {
+      order = 6,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      default = nil,
+      desc =
+      "Sets the stop sequences to use. When this pattern is encountered the LLM will stop generating text and return. Multiple stop patterns may be set by specifying multiple separate stop parameters in a modelfile.",
+      validate = function(s)
+        return s:len() > 0, "Cannot be an empty string"
       end,
     },
   },
