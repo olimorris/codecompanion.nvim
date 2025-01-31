@@ -189,6 +189,8 @@ function Adapter:set_env_vars(object)
     for k, v in pairs(obj_copy) do
       if type(v) == "string" then
         replaced[k] = replace_var(self, v)
+      elseif type(v) == "function" then
+        replaced[k] = v(self)
       else
         replaced[k] = v
       end
