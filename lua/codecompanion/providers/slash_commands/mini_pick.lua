@@ -26,7 +26,7 @@ function MiniPick:display(transformer)
   end
   return {
     source = {
-      name = CONSTANTS.PROMPT,
+      name = self.title or "CodeCompanion",
       choose = function(selected)
         local success, _ = pcall(function()
           return self.output(transformer(selected))
