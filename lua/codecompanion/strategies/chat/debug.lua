@@ -45,7 +45,7 @@ function Debug:render()
   local adapter = vim.deepcopy(self.chat.adapter)
 
   if type(adapter.schema.model.choices) == "function" then
-    models = adapter.schema.model.choices()
+    models = adapter.schema.model.choices(adapter)
   else
     models = adapter.schema.model.choices
   end

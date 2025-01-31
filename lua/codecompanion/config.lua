@@ -966,8 +966,8 @@ local M = {
 M.setup = function(args)
   args = args or {}
   if args.constants then
-	vim.notify("codecompanion.nvim: Your config table cannot have field 'constants', vim.log.levels.ERROR")
-	return
+    vim.notify("codecompanion.nvim: Your config table cannot have field 'constants', vim.log.levels.ERROR")
+    return
   end
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
 end
