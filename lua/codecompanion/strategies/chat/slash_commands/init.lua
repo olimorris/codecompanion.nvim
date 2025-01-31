@@ -94,7 +94,7 @@ function SlashCommands.references(chat, slash_command, opts)
   end
 
   if slash_command == "url" then
-    -- NOTE: To conform to the <path, description> interfact, we need to pass all
+    -- NOTE: To conform to the <path, description> interface, we need to pass all
     -- other options via the opts table. Then, of course, we need to strip the
     -- double opts out of the opts table. Hacky, for sure.
     opts.silent = true
