@@ -18,6 +18,7 @@ local defaults = {
     ollama = "ollama",
     openai = "openai",
     xai = "xai",
+    venice = "venice",
     -- NON-LLMs ---------------------------------------------------------------
     non_llms = {
       jina = "jina",

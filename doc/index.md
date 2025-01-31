@@ -18,7 +18,7 @@ CodeCompanion is a productivity tool which streamlines how you develop with LLMs
 ## Features
 
 - :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
-- :electric_plug: Support for Anthropic, Copilot, DeepSeek, Gemini, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs (or bring your own!)
+- :electric_plug: Support for Anthropic, Copilot, DeepSeek, Gemini, Ollama, OpenAI, Azure OpenAI, HuggingFace, Venice and xAI LLMs (or bring your own!)
 - :rocket: Inline transformations, code creation and refactoring
 - :robot: Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
 - :sparkles: Built in prompt library for common tasks like advice on LSP errors and code explanations
@@ -38,6 +38,7 @@ The plugin uses [adapters](configuration/adapters) to connect to LLMs. Out of th
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
 - Azure OpenAI (`azure_openai`) - Requires an Azure OpenAI service with a model deployment
+- Venice (`venice`) - Requires an API key
 - xAI (`xai`) - Requires an API key
 
 The plugin utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
