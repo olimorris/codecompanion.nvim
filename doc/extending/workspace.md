@@ -123,7 +123,7 @@ By tagging the `files` tool, the LLM can request specific line ranges from these
 
 ### URLs
 
-Workspace files support URLs. When loading a URL, the `fetch` adapter retrieves the data. The plugin:
+Workspace files also support the loading of data from URLs. When loading a URL, the `fetch` slash command adapter retrieves the data. The plugin:
 
 - Caches URL data to disk by default
 - Prompts before restoring from cache
