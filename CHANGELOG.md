@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.20.6](https://github.com/olimorris/codecompanion.nvim/compare/v11.20.5...v11.20.6) (2025-01-31)
+
+
+### Bug Fixes
+
+* **slash_commands:** [#803](https://github.com/olimorris/codecompanion.nvim/issues/803) mini_pick provider ([#804](https://github.com/olimorris/codecompanion.nvim/issues/804)) ([4a895b9](https://github.com/olimorris/codecompanion.nvim/commit/4a895b9f4385e8c04dd70411c3628423dfd6b8a6))
+
 ## [11.20.5](https://github.com/olimorris/codecompanion.nvim/compare/v11.20.4...v11.20.5) (2025-01-31)
 
 
