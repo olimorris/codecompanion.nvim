@@ -265,7 +265,7 @@ As the Chat Buffer uses markdown as its syntax, you can use popular rendering pl
 ```lua
 {
   "OXY2DEV/markview.nvim",
-  ft = { "markdown", "codecompanion" },
+  lazy = false,
   opts = {
     preview = {
       filetypes = { "markdown", "codecompanion" },
