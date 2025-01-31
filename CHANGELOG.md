@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.20.5](https://github.com/olimorris/codecompanion.nvim/compare/v11.20.4...v11.20.5) (2025-01-31)
+
+
+### Bug Fixes
+
+* **chat:** can debug adapters with `schema.model.default` as a function ([#797](https://github.com/olimorris/codecompanion.nvim/issues/797)) ([fbb15a8](https://github.com/olimorris/codecompanion.nvim/commit/fbb15a8b10d203c8c4df5fb938d5c9ac841725fa))
+
 ## [11.20.4](https://github.com/olimorris/codecompanion.nvim/compare/v11.20.3...v11.20.4) (2025-01-31)
 
 
