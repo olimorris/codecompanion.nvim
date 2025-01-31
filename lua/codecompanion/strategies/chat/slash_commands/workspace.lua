@@ -198,12 +198,25 @@ function SlashCommand:output(selected_group, opts)
       self:add_item(group, "symbols", file)
     end)
   end
+
+  -- Add URLs
+  if group.urls and vim.tbl_count(group.urls) > 0 then
+    vim.iter(group.urls):each(function(url)
+      url.path = url.url
+      --TODO: Refactor this...we're adding to an options table to then strip it away in slash_commands/init.lua
+      url.opts = {
+        ignore_cache = url.ignore_cache,
+        auto_restore_cache = url.auto_restore_cache,
+      }
+      self:add_item(group, "url", url)
+    end)
+  end
 end
 
 ---Add an item from the group to the chat buffer
 ---@param group table
 ---@param item_type string
----@param item { path: string, description: string } | string
+---@param item { path: string, description: string, opts: table? } | string
 function SlashCommand:add_item(group, item_type, item)
   -- Replace any variables in the path
   local path = item.path or item
@@ -221,7 +234,11 @@ function SlashCommand:add_item(group, item_type, item)
     item.description = util.replace_placeholders(item.description, builtin)
   end
 
-  return slash_commands.references(self.Chat, item_type, { path = path, description = item.description })
+  return slash_commands.references(
+    self.Chat,
+    item_type,
+    { path = path, description = item.description, opts = item.opts }
+  )
 end
 
 return SlashCommand

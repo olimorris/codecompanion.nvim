@@ -74,6 +74,8 @@ local function read_cache(chat, url, hash, opts)
   local p = Path:new(CONSTANTS.CACHE_PATH .. "/" .. hash)
   local cache = p:read()
 
+  log:debug("Fetch Slash Command: Restoring from cache for %s", url)
+
   return output(chat, {
     content = cache,
     url = url,
@@ -104,6 +106,8 @@ local function fetch(chat, adapter, url, opts)
       return url
     end,
   }
+
+  log:debug("Fetch Slash Command: Fetching from %s", url)
 
   return client
     .new({
@@ -210,14 +214,27 @@ function SlashCommand:output(url, opts)
     return log:error("Failed to load the adapter for the fetch Slash Command")
   end
 
+  local function call_fetch()
+    return fetch(self.Chat, adapter, url, opts)
+  end
+
   local hash = util_hash.hash(url)
+
+  if opts and opts.ignore_cache then
+    log:debug("Fetch Slash Command: Ignoring cache")
+    return call_fetch()
+  end
+  if opts and opts.auto_restore_cache then
+    log:debug("Fetch Slash Command: Auto restoring from cache")
+    return read_cache(self.Chat, url, hash, opts)
+  end
 
   if is_cached(hash) then
     load_from_cache(self.Chat, url, hash, adapter, opts, function()
-      return fetch(self.Chat, adapter, url, opts)
+      return call_fetch()
     end)
   else
-    return fetch(self.Chat, adapter, url, opts)
+    return call_fetch()
   end
 end
 
