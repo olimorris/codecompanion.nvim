@@ -5,7 +5,24 @@
   "system_prompt": "High level system prompt",
   "groups": [
     {
-      "name": "Test",
+      "name": "Test 1",
+      "system_prompt": "Group prompt 1",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "vars": {
+        "base_dir": "tests/stubs"
+      },
+      "files": [
+        {
+          "description": "A test description",
+          "path": "${base_dir}/stub.go"
+        }
+      ]
+    },
+    {
+      "name": "Test 2",
+      "system_prompt": "Group prompt 2",
       "opts": {
         "remove_config_system_prompt": true
       },

@@ -243,7 +243,7 @@ function Chat.new(args)
       :set()
   end
 
-  self:set_system_prompt():set_autocmds()
+  self:add_system_prompt():set_autocmds()
 
   last_chat = self
 
@@ -417,12 +417,44 @@ function Chat:complete_models(request, callback)
   callback({ items = items, isIncomplete = false })
 end
 
+---Determine if a tag exists in the messages table
+---@param tag string
+---@param messages table
+---@return boolean
+local function has_tag(tag, messages)
+  return vim.tbl_contains(
+    vim.tbl_map(function(msg)
+      return msg.opts.tag
+    end, messages),
+    tag
+  )
+end
+
 ---Set the system prompt in the chat buffer
----@prompt? string
+---@params prompt? string
+---@params opts? table
 ---@return CodeCompanion.Chat
-function Chat:set_system_prompt(prompt)
+function Chat:add_system_prompt(prompt, opts)
   if self.opts and self.opts.ignore_system_prompt then
     return self
+  end
+
+  opts = opts or { visible = false, tag = "from_config" }
+
+  -- Don't add the same system prompt twice
+  if has_tag(opts.tag, self.messages) then
+    return self
+  end
+
+  -- Get the index of the last system prompt
+  local index
+  if not opts.index then
+    for i = #self.messages, 1, -1 do
+      if self.messages[i].role == config.constants.SYSTEM_ROLE then
+        index = i + 1
+        break
+      end
+    end
   end
 
   prompt = prompt or config.opts.system_prompt
@@ -440,8 +472,9 @@ function Chat:set_system_prompt(prompt)
     }
     system_prompt.id = make_id(system_prompt)
     system_prompt.cycle = self.cycle
-    system_prompt.opts = { visible = false }
-    table.insert(self.messages, 1, system_prompt)
+    system_prompt.opts = opts
+
+    table.insert(self.messages, index or 1, system_prompt)
   end
   return self
 end
@@ -449,21 +482,35 @@ end
 ---Toggle the system prompt in the chat buffer
 ---@return nil
 function Chat:toggle_system_prompt()
-  if self.messages[1] and self.messages[1].role == config.constants.SYSTEM_ROLE then
+  local has_system_prompt = vim.tbl_contains(
+    vim.tbl_map(function(msg)
+      return msg.opts.tag
+    end, self.messages),
+    "from_config"
+  )
+
+  if has_system_prompt then
+    self:remove_tagged_message("from_config")
     util.notify("Removed system prompt")
-    table.remove(self.messages, 1)
   else
+    self:add_system_prompt()
     util.notify("Added system prompt")
-    self:set_system_prompt()
   end
 end
 
----Remove the system prompt from the chat buffer
+---Remove a message with a given tag
+---@param tag string
 ---@return nil
-function Chat:remove_system_prompt()
-  if self.messages[1] and self.messages[1].role == config.constants.SYSTEM_ROLE then
-    table.remove(self.messages, 1)
-  end
+function Chat:remove_tagged_message(tag)
+  self.messages = vim
+    .iter(self.messages)
+    :filter(function(msg)
+      if msg.opts and msg.opts.tag == tag then
+        return false
+      end
+      return true
+    end)
+    :totable()
 end
 
 ---Parse the last message for any variables
@@ -1012,7 +1059,7 @@ function Chat:clear()
 
   log:trace("Clearing chat buffer")
   self.ui:render(self.context, self.messages, self.opts):set_extmarks(self.opts)
-  self:set_system_prompt()
+  self:add_system_prompt()
 end
 
 ---Display the chat buffer's settings and messages

@@ -162,19 +162,22 @@ function SlashCommand:output(selected_group, opts)
 
   if group.opts then
     if group.opts.remove_config_system_prompt then
-      self.Chat:remove_system_prompt()
+      self.Chat:remove_tagged_message("from_config")
     end
   end
 
   -- Add the system prompts
-  if self.workspace.system_prompt or group.system_prompt then
-    local system_prompt = ""
-    if self.workspace.system_prompt and group.system_prompt then
-      system_prompt = self.workspace.system_prompt .. "\n\n" .. group.system_prompt
-    else
-      system_prompt = self.workspace.system_prompt or group.system_prompt
-    end
-    self.Chat:set_system_prompt(replace_vars(self.workspace, group, system_prompt))
+  if self.workspace.system_prompt then
+    self.Chat:add_system_prompt(
+      replace_vars(self.workspace, group, self.workspace.system_prompt),
+      { index = 1, visible = false, tag = self.workspace.name .. " // Workspace" }
+    )
+  end
+  if group.system_prompt then
+    self.Chat:add_system_prompt(
+      replace_vars(self.workspace, group, group.system_prompt),
+      { visible = false, tag = group.name .. " // Workspace Group" }
+    )
   end
 
   -- Add the description as a user message

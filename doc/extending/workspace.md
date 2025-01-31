@@ -47,6 +47,10 @@ removed from the chat buffer
 > [!INFO]
 > When a user selects a group to load, the workspace slash command will iterate through the group adding the description first and then sequentially adding the files and symbols. For the latter two, their description is added first, before their content.
 
+### System Prompts
+
+Currently, workspaces allow for system prompts to exist at the top-level of the workspace file and at a group level. The plugin will always insert top-level system prompts at the first index in the messages table in the chat buffer. Any group system prompts will be added afterwards.
+
 ## Groups
 
 Groups are the core of the workspace file. They are where logical groupings of files and/or symbols are defined. Exploring the _Chat Buffer_ group in detail:
