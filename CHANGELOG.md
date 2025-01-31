@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.22.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.21.0...v11.22.0) (2025-01-31)
+
+
+### Features
+
+* **workspaces:** :sparkles: now supporting URLs ([#808](https://github.com/olimorris/codecompanion.nvim/issues/808)) ([5a1212d](https://github.com/olimorris/codecompanion.nvim/commit/5a1212d1124618853a6e39ecdc98c003619564f1))
+
 ## [11.21.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.20.6...v11.21.0) (2025-01-31)
 
 
