@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.21.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.20.6...v11.21.0) (2025-01-31)
+
+
+### Features
+
+* **workspaces:** handle multiple workflows better ([#806](https://github.com/olimorris/codecompanion.nvim/issues/806)) ([e463d65](https://github.com/olimorris/codecompanion.nvim/commit/e463d65ed4a5ba023acd58039b8f223eb82308c0))
+
 ## [11.20.6](https://github.com/olimorris/codecompanion.nvim/compare/v11.20.5...v11.20.6) (2025-01-31)
 
 
