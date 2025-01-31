@@ -83,4 +83,15 @@ T["Workspace"]["can add system prompts"] = function()
   h.eq("High level system prompt", chat.messages[1].content)
 end
 
+T["Workspace"]["top-level prompts are not duplicated and are ordered correctly"] = function()
+  set_workspace("tests/stubs/workspace_multiple.json")
+  wks:output("Test 1")
+  wks:output("Test 2")
+
+  h.eq("High level system prompt", chat.messages[1].content)
+  h.eq("Group prompt 1", chat.messages[2].content)
+  h.eq("Group prompt 2", chat.messages[3].content)
+  expect_starts_with("A test description", chat.messages[4].content)
+end
+
 return T
