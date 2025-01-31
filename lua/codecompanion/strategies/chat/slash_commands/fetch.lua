@@ -221,7 +221,7 @@ function SlashCommand:output(url, opts)
   local hash = util_hash.hash(url)
 
   if opts and opts.ignore_cache then
-    log:debug("Fetch Slash Command: Ignoring the cache")
+    log:debug("Fetch Slash Command: Ignoring cache")
     return call_fetch()
   end
   if opts and opts.auto_restore_cache then
