@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.25.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.24.0...v11.25.0) (2025-02-01)
+
+
+### Features
+
+* **chat:** ui title is configurable ([8c93ab0](https://github.com/olimorris/codecompanion.nvim/commit/8c93ab0ecb031261d026cf3e8f7b84fe48b81f73))
+
 ## [11.24.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.23.1...v11.24.0) (2025-02-01)
 
 
