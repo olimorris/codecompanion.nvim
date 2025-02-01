@@ -210,6 +210,7 @@ return {
         "claude-3.5-sonnet",
         "o1-2024-12-17",
         "o1-mini-2024-09-12",
+        "o3-mini",
       },
     },
     temperature = {
