@@ -1,5 +1,13 @@
 # Changelog
 
+## [11.23.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.22.0...v11.23.0) (2025-02-01)
+
+
+### Features
+
+* **adapters:** add reasoning effort to copilot and openai ([#812](https://github.com/olimorris/codecompanion.nvim/issues/812)) ([b9a58eb](https://github.com/olimorris/codecompanion.nvim/commit/b9a58eb8f151f9771938105220d81c7577a52e0e))
+* **copilot:** add o3-mini support ([#810](https://github.com/olimorris/codecompanion.nvim/issues/810)) ([2816d12](https://github.com/olimorris/codecompanion.nvim/commit/2816d1244f0ce905c330fd9041d96ead51bbb0c2))
+
 ## [11.22.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.21.0...v11.22.0) (2025-01-31)
 
 
