@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.23.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.23.0...v11.23.1) (2025-02-01)
+
+
+### Bug Fixes
+
+* **chat:** [#814](https://github.com/olimorris/codecompanion.nvim/issues/814) `show_header_separator` ([#816](https://github.com/olimorris/codecompanion.nvim/issues/816)) ([38793d3](https://github.com/olimorris/codecompanion.nvim/commit/38793d32f2d00df580e7648f7e8109817bc70855))
+
 ## [11.23.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.22.0...v11.23.0) (2025-02-01)
 
 
