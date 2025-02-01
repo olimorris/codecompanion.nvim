@@ -86,7 +86,7 @@ function UI:open()
       row = window.row or math.floor((vim.o.lines - height) / 2),
       col = window.col or math.floor((vim.o.columns - width) / 2),
       border = window.border,
-      title = "Code Companion",
+      title = "CodeCompanion",
       title_pos = "center",
       zindex = 45,
     }
@@ -235,7 +235,7 @@ function UI:render(context, messages, opts)
           self:set_header(lines, self.roles.user)
         end
         if msg.role == config.constants.LLM_ROLE and last_set_role ~= config.constants.LLM_ROLE then
-          self:set_header(lines, self.roles.llm)
+          self:set_header(lines, set_llm_role(self.roles.llm, self.adapter))
         end
 
         for _, text in ipairs(vim.split(msg.content, "\n", { plain = true, trimempty = true })) do
@@ -306,9 +306,10 @@ function UI:render_headers()
 
   local separator = config.display.chat.separator
   local lines = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
+  local llm_role = set_llm_role(self.roles.llm, self.adapter)
 
   for line, content in ipairs(lines) do
-    if content:match("^## " .. self.roles.user) or content:match("^## " .. self.roles.llm) then
+    if content:match("^## " .. vim.pesc(self.roles.user)) or content:match("^## " .. vim.pesc(llm_role)) then
       local col = vim.fn.strwidth(content) - vim.fn.strwidth(separator)
 
       api.nvim_buf_set_extmark(self.bufnr, self.header_ns, line - 1, col, {
