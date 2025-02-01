@@ -12,7 +12,7 @@ next:
 CodeCompanion is a productivity tool which streamlines how you develop with LLMs, in Neovim.
 
 <p>
-<video controls autoplay muted src="https://github.com/user-attachments/assets/04a2bed3-7af0-4c07-b58f-f644cef1c4bb"></video>
+<video controls autoplay muted src="https://github.com/user-attachments/assets/dbf14e7b-34b8-4271-9260-6d0c3ef322b3"></video>
 </p>
 
 ## Features
