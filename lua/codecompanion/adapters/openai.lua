@@ -178,8 +178,9 @@ return {
       ---@type string|fun(): string
       default = "gpt-4o",
       choices = {
-        ["o1-2024-12-17"] = { opts = { stream = false } },
-        "o1-mini-2024-09-12",
+        ["o3-mini-2025-01-31"] = { opts = { can_reason = true } },
+        ["o1-2024-12-17"] = { opts = { stream = true } },
+        ["o1-mini-2024-09-12"] = { opts = { can_reason = true } },
         "gpt-4o",
         "gpt-4o-mini",
         "gpt-4-turbo-preview",
@@ -187,8 +188,30 @@ return {
         "gpt-3.5-turbo",
       },
     },
-    temperature = {
+    reasoning_effort = {
       order = 2,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      condition = function(schema)
+        local model = schema.model.default
+        if type(model) == "function" then
+          model = model()
+        end
+        if schema.model.choices[model] and schema.model.choices[model].opts then
+          return schema.model.choices[model].opts.can_reason
+        end
+      end,
+      default = "medium",
+      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
+      choices = {
+        "high",
+        "medium",
+        "low",
+      },
+    },
+    temperature = {
+      order = 3,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -199,7 +222,7 @@ return {
       end,
     },
     top_p = {
-      order = 3,
+      order = 4,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -210,7 +233,7 @@ return {
       end,
     },
     stop = {
-      order = 4,
+      order = 5,
       mapping = "parameters",
       type = "list",
       optional = true,
@@ -224,7 +247,7 @@ return {
       end,
     },
     max_tokens = {
-      order = 5,
+      order = 6,
       mapping = "parameters",
       type = "integer",
       optional = true,
@@ -235,7 +258,7 @@ return {
       end,
     },
     presence_penalty = {
-      order = 6,
+      order = 7,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -246,7 +269,7 @@ return {
       end,
     },
     frequency_penalty = {
-      order = 7,
+      order = 8,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -257,7 +280,7 @@ return {
       end,
     },
     logit_bias = {
-      order = 8,
+      order = 9,
       mapping = "parameters",
       type = "map",
       optional = true,
@@ -274,7 +297,7 @@ return {
       },
     },
     user = {
-      order = 9,
+      order = 10,
       mapping = "parameters",
       type = "string",
       optional = true,
