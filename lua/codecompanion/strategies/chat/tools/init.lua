@@ -83,7 +83,7 @@ function Tools:set_autocmds()
         -- Handle any errors
         if request.data.status == CONSTANTS.STATUS_ERROR then
           local error = request.data.stderr
-          log:error("Tool %s finished with error(s): %s", self.tool.name, error)
+          log:error("Tool %s finished with error(s): %s", string.upper(self.tool.name), error)
 
           if self.tool.output and self.tool.output.errors then
             self.tool.output.errors(self, error)
@@ -95,7 +95,7 @@ function Tools:set_autocmds()
 
         -- Handle any success
         if request.data.status == CONSTANTS.STATUS_SUCCESS then
-          log:debug("Tool %s finished", self.tool.name)
+          log:debug("[Tools] Finished %s", string.upper(self.tool.name))
           if self.agent_config.tools.opts.auto_submit_success then
             self.chat:submit()
           end
@@ -142,7 +142,7 @@ function Tools:parse_buffer(chat, start_range, end_range)
     end
   end
 
-  log:debug("Tool detected: %s", tools)
+  log:debug("[Tools] Detected: %s", tools)
 
   if not vim.tbl_isempty(tools) then
     self.extracted = tools
@@ -266,7 +266,7 @@ function Tools:run()
     end
 
     local cmd = self.tool.cmds[index]
-    log:debug("Running cmd: %s", cmd)
+    log:debug("[Tools] Running cmd: %s", cmd)
 
     ---Execute a function tool
     local function execute_func(action, ...)
@@ -557,18 +557,18 @@ function Tools.resolve(tool)
 
   local ok, module = pcall(require, "codecompanion." .. callback)
   if ok then
-    log:debug("Calling tool: %s", callback)
+    log:debug("[Tools] Calling %s", callback)
     return module
   end
 
   -- Try loading the tool from the user's config
   ok, module = pcall(loadfile, callback)
   if not ok then
-    return log:error("Could not resolve tool: %s", callback)
+    return log:error("[Tools] Could not resolve tool: %s", callback)
   end
 
   if module then
-    log:debug("Calling tool: %s", callback)
+    log:debug("[Tools] Calling tool: %s", callback)
     return module()
   end
 end
