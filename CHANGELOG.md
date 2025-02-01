@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.24.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.23.1...v11.24.0) (2025-02-01)
+
+
+### Features
+
+* **events:** add strategy and adapter to payload ([#822](https://github.com/olimorris/codecompanion.nvim/issues/822)) ([b2e06de](https://github.com/olimorris/codecompanion.nvim/commit/b2e06de23f4b19f472ed97259260102fa7f9af0e))
+
 ## [11.23.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.23.0...v11.23.1) (2025-02-01)
 
 
