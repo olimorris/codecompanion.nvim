@@ -206,15 +206,37 @@ return {
       ---@type string|fun(): string
       default = "gpt-4o-2024-08-06",
       choices = {
-        "gpt-4o-2024-08-06",
+        ["o3-mini-2025-01-31"] = { opts = { can_reason = true } },
+        ["o1-2024-12-17"] = { opts = { can_reason = true } },
+        ["o1-mini-2024-09-12"] = { opts = { can_reason = true } },
         "claude-3.5-sonnet",
-        "o1-2024-12-17",
-        "o1-mini-2024-09-12",
-        "o3-mini",
+        "gpt-4o-2024-08-06",
+      },
+    },
+    reasoning_effort = {
+      order = 2,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      condition = function(schema)
+        local model = schema.model.default
+        if type(model) == "function" then
+          model = model()
+        end
+        if schema.model.choices[model] and schema.model.choices[model].opts then
+          return schema.model.choices[model].opts.can_reason
+        end
+      end,
+      default = "medium",
+      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
+      choices = {
+        "high",
+        "medium",
+        "low",
       },
     },
     temperature = {
-      order = 2,
+      order = 3,
       mapping = "parameters",
       type = "number",
       default = 0,
@@ -228,14 +250,14 @@ return {
       desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
     },
     max_tokens = {
-      order = 3,
+      order = 4,
       mapping = "parameters",
       type = "integer",
       default = 4096,
       desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
     },
     top_p = {
-      order = 4,
+      order = 5,
       mapping = "parameters",
       type = "number",
       default = 1,
@@ -249,7 +271,7 @@ return {
       desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
     },
     n = {
-      order = 5,
+      order = 6,
       mapping = "parameters",
       type = "number",
       default = 1,
