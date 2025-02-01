@@ -712,7 +712,15 @@ function Chat:submit(opts)
       done = function()
         self:done(output)
       end,
-    }, { bufnr = bufnr })
+    }, {
+      bufnr = bufnr,
+      strategy = "chat",
+      adapter = {
+        name = self.adapter.name,
+        formatted_name = self.adapter.formatted_name,
+        model = self.adapter.schema.model.default,
+      },
+    })
 end
 
 ---Increment the cycle count in the chat buffer

@@ -63,7 +63,15 @@ function Cmd:start()
       end
     end,
     done = function() end,
-  }, { bufnr = self.context.bufnr })
+  }, {
+    bufnr = self.context.bufnr,
+    strategy = "cmd",
+    adapter = {
+      name = self.adapter.name,
+      formatted_name = self.adapter.formatted_name,
+      model = self.adapter.schema.model.default,
+    },
+  })
 end
 
 return Cmd

@@ -277,7 +277,15 @@ function Inline:classify(user_input)
         },
       }),
       { callback = cb, done = done },
-      { bufnr = self.context.bufnr }
+      {
+        bufnr = self.context.bufnr,
+        strategy = "inline",
+        adapter = {
+          name = self.adapter.name,
+          formatted_name = self.adapter.formatted_name,
+          model = self.adapter.schema.model.default,
+        },
+      }
     )
   else
     self.classification.placement = self.opts.placement
@@ -384,7 +392,15 @@ function Inline:submit()
 
   self.current_request = client
     .new({ adapter = self.adapter:map_schema_to_params(), user_args = { event = "InlineSubmit" } })
-    :request(self.adapter:map_roles(self.classification.prompts), { callback = cb, done = done }, { bufnr = bufnr })
+    :request(self.adapter:map_roles(self.classification.prompts), { callback = cb, done = done }, {
+      bufnr = bufnr,
+      strategy = "inline",
+      adapter = {
+        name = self.adapter.name,
+        formatted_name = self.adapter.formatted_name,
+        model = self.adapter.schema.model.default,
+      },
+    })
 end
 
 ---When a defined prompt is sent alongside the user's input, we need to do some
