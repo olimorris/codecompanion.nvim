@@ -86,7 +86,7 @@ function UI:open()
       row = window.row or math.floor((vim.o.lines - height) / 2),
       col = window.col or math.floor((vim.o.columns - width) / 2),
       border = window.border,
-      title = "CodeCompanion",
+      title = window.title or "CodeCompanion",
       title_pos = "center",
       zindex = 45,
     }
