@@ -53,6 +53,7 @@ function Client:request(payload, actions, opts)
 
   local adapter = self.adapter
   local handlers = adapter.handlers
+  opts.id = math.random(10000000)
 
   if handlers and handlers.setup then
     local ok = handlers.setup(adapter)
