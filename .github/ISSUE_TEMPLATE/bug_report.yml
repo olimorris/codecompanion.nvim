@@ -8,7 +8,7 @@ body:
     - type: markdown
       attributes:
         value: |
-          ## Before Reporting
+          ## 1. Before Reporting
           Please do the following steps before reporting an issue.
 
           - Update the plugin to the latest version
@@ -17,9 +17,9 @@ body:
     - type: markdown
       attributes:
         value: |
-          ## Test with a `minimal.lua` file
+          ## 2. Test with a `minimal.lua` file
           > [!IMPORTANT]
-          > Please do not skip this step. For most users, issues occur because of their Neovim configuration. This step enables me to recreate the issue you're facing.
+          > This step enables me to recreate the issue you're facing. If you skip it, I'll likely close your issue.
 
           - Firstly, use the minimal config below as a template
           - Save the a `minimal.lua` file and add any additional plugins/configuration you may need:
@@ -115,12 +115,10 @@ body:
           > [!NOTE]
           > You may need to do this a couple of times for Treesitter to fully download and sync
 
-          - Confirm you can recreate the issue with the minimal config
-
     - type: markdown
       attributes:
         value: |
-          ## Outputs
+          ## 3. The Issue
 
     - type: textarea
       id: codecompanion-config
@@ -159,18 +157,6 @@ body:
         required: true
 
     - type: textarea
-      id: health
-      attributes:
-        label: Health check output
-        description: Please paste the output from `:checkhealth codecompanion`
-        placeholder: |
-          ```txt
-          -- Paste health check here
-          ```
-      validations:
-        required: false
-
-    - type: textarea
       id: bug
       attributes:
         label: Describe the bug
@@ -194,7 +180,7 @@ body:
           2.
           3.
       validations:
-        required: false
+        required: true
 
     - type: input
       id: adapter
@@ -204,7 +190,7 @@ body:
         placeholder: |
           Anthropic and claude-3.5-sonnet
       validations:
-        required: true
+        required: false
 
     - type: checkboxes
       id: final-checks
