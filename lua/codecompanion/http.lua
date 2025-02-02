@@ -53,7 +53,6 @@ function Client:request(payload, actions, opts)
 
   local adapter = self.adapter
   local handlers = adapter.handlers
-  opts.id = math.random(10000000)
 
   if handlers and handlers.setup then
     local ok = handlers.setup(adapter)
@@ -165,6 +164,14 @@ function Client:request(payload, actions, opts)
   end
 
   local job = self.opts[request](request_opts)
+
+  -- Data to be sent via the request
+  opts.id = math.random(10000000)
+  opts.adapter = {
+    name = adapter.name,
+    formatted_name = adapter.formatted_name,
+    model = adapter.schema.model.default,
+  }
 
   util.fire("RequestStarted", opts)
 

@@ -280,11 +280,6 @@ function Inline:classify(user_input)
       {
         bufnr = self.context.bufnr,
         strategy = "inline",
-        adapter = {
-          name = self.adapter.name,
-          formatted_name = self.adapter.formatted_name,
-          model = self.adapter.schema.model.default,
-        },
       }
     )
   else

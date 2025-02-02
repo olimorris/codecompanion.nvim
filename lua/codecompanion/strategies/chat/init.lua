@@ -715,11 +715,6 @@ function Chat:submit(opts)
     }, {
       bufnr = bufnr,
       strategy = "chat",
-      adapter = {
-        name = self.adapter.name,
-        formatted_name = self.adapter.formatted_name,
-        model = self.adapter.schema.model.default,
-      },
     })
 end
 
