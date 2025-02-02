@@ -35,7 +35,7 @@ Thank you to the following people:
 
 <!-- panvimdoc-ignore-start -->
 
-## :camera_flash: Demo
+## :camera_flash: Screenshots
 
 <div align="center">
   <p>https://github.com/user-attachments/assets/aa109f1d-0ec9-4f08-bd9a-df99da03b9a4</p>
