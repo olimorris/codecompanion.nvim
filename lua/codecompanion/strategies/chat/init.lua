@@ -699,23 +699,22 @@ function Chat:submit(opts)
           end
 
           local result = self.adapter.handlers.chat_output(self.adapter, data)
-          if result and result.status == CONSTANTS.STATUS_SUCCESS then
-            if result.output.role then
-              result.output.role = config.constants.LLM_ROLE
+          if result and result.status then
+            self.status = result.status
+            if self.status == CONSTANTS.STATUS_SUCCESS then
+              if result.output.role then
+                result.output.role = config.constants.LLM_ROLE
+              end
+              table.insert(output, result.output.content)
+              self:add_buf_message(result.output)
             end
-            self.status = CONSTANTS.STATUS_SUCCESS
-            table.insert(output, result.output.content)
-            self:add_buf_message(result.output)
           end
         end
       end,
       done = function()
         self:done(output)
       end,
-    }, {
-      bufnr = bufnr,
-      strategy = "chat",
-    })
+    }, { bufnr = bufnr, strategy = "chat" })
 end
 
 ---Increment the cycle count in the chat buffer
@@ -738,6 +737,11 @@ end
 function Chat:done(output)
   self.current_request = nil
 
+  -- Commonly, a status may not be set if the message exceeds a token limit
+  if not self.status or self.status == "" then
+    return self:reset()
+  end
+
   if output and not vim.tbl_isempty(output) then
     self:add_message({
       role = config.constants.LLM_ROLE,
@@ -750,6 +754,7 @@ function Chat:done(output)
 
   local assistant_range = self.header_line
   self:set_range(-2)
+
   self.ui:display_tokens(self.parser, self.header_line)
   self.references:render()
 
