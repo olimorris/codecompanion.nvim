@@ -699,23 +699,22 @@ function Chat:submit(opts)
           end
 
           local result = self.adapter.handlers.chat_output(self.adapter, data)
-          if result and result.status == CONSTANTS.STATUS_SUCCESS then
-            if result.output.role then
-              result.output.role = config.constants.LLM_ROLE
+          if result and result.status then
+            self.status = result.status
+            if self.status == CONSTANTS.STATUS_SUCCESS then
+              if result.output.role then
+                result.output.role = config.constants.LLM_ROLE
+              end
+              table.insert(output, result.output.content)
+              self:add_buf_message(result.output)
             end
-            self.status = CONSTANTS.STATUS_SUCCESS
-            table.insert(output, result.output.content)
-            self:add_buf_message(result.output)
           end
         end
       end,
       done = function()
         self:done(output)
       end,
-    }, {
-      bufnr = bufnr,
-      strategy = "chat",
-    })
+    }, { bufnr = bufnr, strategy = "chat" })
 end
 
 ---Increment the cycle count in the chat buffer
