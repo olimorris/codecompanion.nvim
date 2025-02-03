@@ -104,8 +104,6 @@ return {
               output = output,
             }
           end
-        else
-          return { status = "error" }
         end
       end
     end,

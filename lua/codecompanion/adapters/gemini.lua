@@ -121,8 +121,6 @@ return {
             status = "success",
             output = output,
           }
-        else
-          return { status = "error" }
         end
       end
     end,
