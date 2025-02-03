@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.25.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.25.1...v11.25.2) (2025-02-03)
+
+
+### Bug Fixes
+
+* **chat:** prevent duplicate references ([fb6444b](https://github.com/olimorris/codecompanion.nvim/commit/fb6444b739c01c2009a6adb6dbeea23c425b4c7c))
+
 ## [11.25.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.25.0...v11.25.1) (2025-02-03)
 
 
