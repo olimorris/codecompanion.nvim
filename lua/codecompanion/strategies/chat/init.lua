@@ -737,6 +737,11 @@ end
 function Chat:done(output)
   self.current_request = nil
 
+  -- Commonly, a status may not be set if the message exceeds a token limit
+  if not self.status or self.status == "" then
+    return self:reset()
+  end
+
   if output and not vim.tbl_isempty(output) then
     self:add_message({
       role = config.constants.LLM_ROLE,
@@ -749,6 +754,7 @@ function Chat:done(output)
 
   local assistant_range = self.header_line
   self:set_range(-2)
+
   self.ui:display_tokens(self.parser, self.header_line)
   self.references:render()
 
