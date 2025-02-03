@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.25.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.25.0...v11.25.1) (2025-02-03)
+
+
+### Bug Fixes
+
+* **chat:** better cancelling of requests ([#828](https://github.com/olimorris/codecompanion.nvim/issues/828)) ([84e8098](https://github.com/olimorris/codecompanion.nvim/commit/84e80986e2915a003f1609d8e3107d7046c6e3b8))
+
 ## [11.25.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.24.0...v11.25.0) (2025-02-01)
 
 
