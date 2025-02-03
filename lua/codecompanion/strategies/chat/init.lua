@@ -733,16 +733,12 @@ function Chat:set_range(modifier)
 end
 
 ---Method to call after the response from the LLM is received
----@param output table The output from the LLM
+---@param output? table The output from the LLM
 ---@return nil
 function Chat:done(output)
   self.current_request = nil
-  if self.status == CONSTANTS.STATUS_CANCELLING then
-    self.status = ""
-    return self:reset()
-  end
 
-  if not vim.tbl_isempty(output) then
+  if output and not vim.tbl_isempty(output) then
     self:add_message({
       role = config.constants.LLM_ROLE,
       content = vim.trim(table.concat(output, "")),
@@ -761,7 +757,7 @@ function Chat:done(output)
     self.tools:parse_buffer(self, assistant_range, self.header_line - 1)
   end
 
-  log:info("Chat request completed")
+  log:info("Chat request finished")
   self:reset()
 
   if self.has_subscribers then
@@ -871,6 +867,7 @@ end
 function Chat:stop()
   local job
   self.status = CONSTANTS.STATUS_CANCELLING
+
   if self.current_tool then
     job = self.current_tool
     self.current_tool = nil
@@ -880,6 +877,7 @@ function Chat:stop()
       job:shutdown()
     end)
   end
+
   if self.current_request then
     job = self.current_request
     self.current_request = nil
@@ -889,6 +887,11 @@ function Chat:stop()
       end)
     end
   end
+
+  vim.schedule(function()
+    log:debug("Chat request cancelled")
+    self:done()
+  end)
 end
 
 ---Close the current chat buffer
