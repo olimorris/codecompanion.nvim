@@ -535,7 +535,7 @@ M.change_adapter = {
 
 M.fold_code = {
   callback = function(chat)
-    chat:fold_code()
+    chat.ui:fold_code()
   end,
 }
 

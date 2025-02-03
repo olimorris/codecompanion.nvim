@@ -29,6 +29,58 @@
           "path": "${base_dir}/watchers.lua"
         }
       ]
+    },
+    {
+      "name": "Workflows",
+      "system_prompt": "Within the plugin, workflows are a way for users to be able to automatically send or chain multiple prompts, sequentially, to an LLM. They do this by \"subscribing\" to a chat buffer.\n\nFocus on:\n 1. How workflows integrate with the chat buffer\n2. How they can be refactored\n3. How they can work better with the chat buffer itself.\n\nThe files to analyze are:\n${group_files}",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "vars": {
+        "base_dir": "lua/codecompanion/strategies"
+      },
+      "files": [
+        {
+          "description": "The `${filename}` is where the workflow are initiated from.",
+          "path": "${base_dir}/init.lua"
+        },
+        {
+          "description": "The `${filename}` is where the subscribers logic resides.",
+          "path": "${base_dir}/chat/subscribers.lua"
+        },
+        {
+          "description": "The `${filename}` file is the entry point for the chat strategy, which is called the `chat buffer`. All methods directly relating to the chat buffer reside here.",
+          "path": "${base_dir}/chat/init.lua"
+        },
+        {
+          "description": "An example workflow can be seen below:",
+          "path": "tests/stubs/workflow.lua"
+        }
+      ]
+    },
+    {
+      "name": "Tests",
+      "system_prompt": "The plugin uses a testing framework called Mini.Test. The tests are written in Lua and are located in the `tests` directory. The tests are run using the `make test` command. The tests are written in a BDD style and are used to ensure the plugin is functioning as expected.",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "urls": [
+        {
+          "auto_restore_cache": true,
+          "description": "Below is the Mini.Test documentation:",
+          "url": "https://raw.githubusercontent.com/echasnovski/mini.nvim/refs/heads/main/TESTING.md"
+        }
+      ],
+      "files": [
+        {
+          "description": "I've included an example test file below:",
+          "path": "tests/strategies/chat/test_references.lua"
+        },
+        {
+          "description": "I've included the test helper file as well:",
+          "path": "tests/helpers.lua"
+        }
+      ]
     }
   ]
 }

@@ -42,7 +42,7 @@
 ---@field context table The context of the buffer that the chat was initiated from
 ---@field prompts table Any prompts to be sent to the LLM
 
----@class CodeCompanion.Change
+---@class CodeCompanion.WatcherChange
 ---@field type "add"|"delete"|"modify" The type of change
 ---@field start number Starting line number
 ---@field end_line number Ending line number
@@ -55,12 +55,24 @@
 ---@field augroup integer The autocmd group ID
 ---@field watch fun(self: CodeCompanion.Watchers, bufnr: number): nil Start watching a buffer
 ---@field unwatch fun(self: CodeCompanion.Watchers, bufnr: number): nil Stop watching a buffer
----@field get_changes fun(self: CodeCompanion.Watchers, bufnr: number): CodeCompanion.Change[]|nil Get the latest changes in the buffer
+---@field get_changes fun(self: CodeCompanion.Watchers, bufnr: number): CodeCompanion.WatcherChange[]|nil Get the latest changes in the buffer
 
 ---@class CodeCompanion.WatcherState
 ---@field content string[] Complete buffer content
 ---@field changedtick number Last known changedtick
 ---@field last_sent string[] Last content sent to LLM
+
+---@class CodeCompanion.Subscribers
+---@field queue CodeCompanion.Chat.Event[]
+
+---@class CodeCompanion.SubscribersArgs
+---@field queue CodeCompanion.Chat.Event[]
+
+---@class CodeCompanion.Chat.Event
+---@field callback fun(chat: CodeCompanion.Chat): nil The prompt to send to the LLM
+---@field id number The unique identifier for the event
+---@field order number The order in which the events are executed
+---@field type string The type of the event
 
 ---@class CodeCompanion.Chat
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table

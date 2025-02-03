@@ -173,6 +173,16 @@ Helpers.setup_chat_buffer = function(config, adapter)
   return chat, tools, vars
 end
 
+---@param chat CodeCompanion.Chat
+---@param message string
+---@return nil
+Helpers.send_to_llm = function(chat, message)
+  chat:submit()
+  chat:add_buf_message({ role = "llm", content = message or "Hello there" })
+  chat.status = "success"
+  chat:done()
+end
+
 Helpers.teardown_chat_buffer = function()
   package.loaded["codecompanion.utils.foo"] = nil
   package.loaded["codecompanion.utils.bar"] = nil

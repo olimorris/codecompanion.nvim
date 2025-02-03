@@ -57,7 +57,6 @@ local Strategies = {}
 ---@field selected table
 
 ---@param args CodeCompanion.StrategyArgs
----@return CodeCompanion.Strategies
 function Strategies.new(args)
   log:trace("Context: %s", args.context)
 
@@ -149,23 +148,23 @@ function Strategies:workflow()
   local stages = #workflow.prompts
 
   -- Expand the prompts
-  local eval_prompts = vim
+  local prompts = vim
     .iter(workflow.prompts)
     :map(function(prompt_group)
       return vim
         .iter(prompt_group)
         :map(function(prompt)
-          local new_prompt = vim.deepcopy(prompt)
-          if type(new_prompt.content) == "function" then
-            new_prompt.content = new_prompt.content(self.context)
+          local p = vim.deepcopy(prompt)
+          if type(p.content) == "function" then
+            p.content = p.content(self.context)
           end
-          return new_prompt
+          return p
         end)
         :totable()
     end)
     :totable()
 
-  local messages = eval_prompts[1]
+  local messages = prompts[1]
 
   -- We send the first batch of prompts to the chat buffer as messages
   local chat = require("codecompanion.strategies.chat").new({
@@ -174,26 +173,22 @@ function Strategies:workflow()
     messages = messages,
     auto_submit = (messages[#messages].opts and messages[#messages].opts.auto_submit) or false,
   })
-  table.remove(eval_prompts, 1)
+  table.remove(prompts, 1)
 
   -- Then when it completes we send the next batch and so on
   if stages > 1 then
     local order = 1
-    vim.iter(eval_prompts):each(function(prompts)
-      for i, prompt in ipairs(prompts) do
-        chat:subscribe({
-          id = math.random(10000000),
-          order = order,
-          type = "once",
-          ---@param chat_obj CodeCompanion.Chat
-          callback = function(chat_obj)
-            vim.schedule(function()
-              chat_obj:add_buf_message(prompt)
-              if i == #prompts and prompt.opts and prompt.opts.auto_submit then
-                chat_obj:submit()
-              end
-            end)
+    vim.iter(prompts):each(function(prompt)
+      for _, val in ipairs(prompt) do
+        chat.subscribers:subscribe({
+          callback = function()
+            chat:add_buf_message(val)
+            if val.opts and val.opts.auto_submit then
+              chat:submit()
+            end
           end,
+          order = order,
+          type = val.type or "once",
         })
       end
       order = order + 1

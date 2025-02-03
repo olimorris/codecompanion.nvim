@@ -173,7 +173,6 @@ function Chat.new(args)
     messages = args.messages or {},
     refs = {},
     status = "",
-    subscribers = {},
     tools_in_use = {},
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
@@ -196,8 +195,9 @@ function Chat.new(args)
   self.parser = parser
 
   self.references = require("codecompanion.strategies.chat.references").new({ chat = self })
-  self.watchers = require("codecompanion.strategies.chat.watchers").new()
+  self.subscribers = require("codecompanion.strategies.chat.subscribers").new()
   self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
+  self.watchers = require("codecompanion.strategies.chat.watchers").new()
   self.variables = require("codecompanion.strategies.chat.variables").new()
 
   table.insert(_G.codecompanion_buffers, self.bufnr)
@@ -765,22 +765,7 @@ function Chat:done(output)
   log:info("Chat request finished")
   self:reset()
 
-  if self.has_subscribers then
-    local function action_subscription(subscriber)
-      subscriber.callback(self)
-      if subscriber.type == "once" then
-        self:unsubscribe(subscriber.id)
-      end
-    end
-
-    vim.iter(self.subscribers):each(function(subscriber)
-      if subscriber.order and subscriber.order < self.cycle then
-        action_subscription(subscriber)
-      elseif not subscriber.order then
-        action_subscription(subscriber)
-      end
-    end)
-  end
+  self.subscribers:process(self)
 end
 
 ---Reconcile the references table to the references in the chat buffer
@@ -936,6 +921,8 @@ local has_been_reasoning = false
 ---@param data table
 ---@param opts? table
 function Chat:add_buf_message(data, opts)
+  assert(type(data) == "table", "data must be a table")
+
   local lines = {}
   local bufnr = self.bufnr
   local new_response = false
@@ -1023,33 +1010,6 @@ end
 ---@return table
 function Chat:get_messages()
   return self.messages
-end
-
----Subscribe to a chat buffer
----@param event { name: string, type: string, callback: fun() }
-function Chat:subscribe(event)
-  table.insert(self.subscribers, event)
-end
-
----Does the chat buffer have any subscribers?
-function Chat:has_subscribers()
-  return #self.subscribers > 0
-end
-
----Unsubscribe an object from a chat buffer
----@param id integer|string
-function Chat:unsubscribe(id)
-  for i, subscriber in ipairs(self.subscribers) do
-    if subscriber.id == id then
-      table.remove(self.subscribers, i)
-    end
-  end
-end
-
----Fold code under the user's heading in the chat buffer
----@return CodeCompanion.Chat.UI
-function Chat:fold_code()
-  return self.ui:fold_code()
 end
 
 ---Get currently focused code block or the last one in the chat buffer
