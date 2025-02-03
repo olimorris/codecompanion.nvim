@@ -150,9 +150,11 @@ T["References"]["Can be pinned"] = function()
   h.eq(#chat.messages, 5, "There are four messages")
   h.eq(chat.messages[#chat.messages].content, "Basic Slash Command")
 
-  chat:done({})
+  chat.status = "success"
+  chat:done({ content = "Some data" })
 
   local buffer = h.get_buf_lines(chat.bufnr)
+
   h.eq("> Sharing:", buffer[3])
   h.eq(string.format("> - %s<buf>pinned example</buf>", icon), buffer[8])
   h.eq("> - <buf>unpinned example</buf>", buffer[9])
