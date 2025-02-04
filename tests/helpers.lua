@@ -173,14 +173,16 @@ Helpers.setup_chat_buffer = function(config, adapter)
   return chat, tools, vars
 end
 
+---Mock the sending of a chat buffer to an LLM
 ---@param chat CodeCompanion.Chat
 ---@param message string
 ---@return nil
 Helpers.send_to_llm = function(chat, message)
+  message = message or "Hello there"
   chat:submit()
-  chat:add_buf_message({ role = "llm", content = message or "Hello there" })
+  chat:add_buf_message({ role = "llm", content = message })
   chat.status = "success"
-  chat:done()
+  chat:done({ message })
 end
 
 Helpers.teardown_chat_buffer = function()
