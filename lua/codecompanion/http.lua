@@ -170,7 +170,7 @@ function Client:request(payload, actions, opts)
   opts.adapter = {
     name = adapter.name,
     formatted_name = adapter.formatted_name,
-    model = adapter.schema.model.default,
+    model = adapter.schema.model.default or "",
   }
 
   util.fire("RequestStarted", opts)
