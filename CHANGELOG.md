@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.26.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.25.3...v11.26.0) (2025-02-05)
+
+
+### Features
+
+* **slash_cmds:** can be functions and modules ([#844](https://github.com/olimorris/codecompanion.nvim/issues/844)) ([59ea59e](https://github.com/olimorris/codecompanion.nvim/commit/59ea59e3c2bd336334b706a99446b792c32464bf))
+
 ## [11.25.3](https://github.com/olimorris/codecompanion.nvim/compare/v11.25.2...v11.25.3) (2025-02-05)
 
 
