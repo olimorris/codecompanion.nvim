@@ -70,9 +70,11 @@
 
 ---@class CodeCompanion.Chat.Event
 ---@field callback fun(chat: CodeCompanion.Chat): nil The prompt to send to the LLM
+---@field condition fun(chat: CodeCompanion.Chat): boolean The condition to check before sending the prompt
+---@field data { name: string, type: string, opts: {auto_submit: boolean } } The data to send to the LLM
 ---@field id number The unique identifier for the event
+---@field reuse fun(chat: CodeCompanion.Chat): boolean Should the current prompt be reused?
 ---@field order number The order in which the events are executed
----@field type string The type of the event
 
 ---@class CodeCompanion.Chat
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
@@ -95,6 +97,7 @@
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field tokens? nil|number The number of tokens in the chat
+---@field tool_flags table Flags that external functions can update and subscribers can interact with
 ---@field tools? CodeCompanion.Tools The tools available to the user
 ---@field tools_in_use? nil|table The tools that are currently being used in the chat
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer

@@ -3,6 +3,8 @@ Subscribers are functions that are set from outside the chat buffer that can be
 executed at the end of every response. This is used in workflows, allowing
 for consecutive prompts to be sent and even automatically submitted.
 ]]
+local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Subscribers
 local Subscribers = {}
@@ -11,6 +13,7 @@ local Subscribers = {}
 function Subscribers.new(args)
   return setmetatable({
     queue = {},
+    stopped = false,
   }, { __index = Subscribers })
 end
 
@@ -23,11 +26,14 @@ function Subscribers:subscribe(event)
 end
 
 ---Unsubscribe an object from a chat buffer
----@param id integer|string
+---@param event CodeCompanion.Chat.Event
 ---@return nil
-function Subscribers:unsubscribe(id)
+function Subscribers:unsubscribe(event)
+  local name = event.data and event.data.name or ""
+
   for i, subscriber in ipairs(self.queue) do
-    if subscriber.id == id then
+    if subscriber.id == event.id then
+      log:debug("[Subscription] Unsubscribing %s (%s)", name, event.id)
       table.remove(self.queue, i)
     end
   end
@@ -41,12 +47,24 @@ end
 
 ---Execute the subscriber's callback
 ---@param chat CodeCompanion.Chat
----@param subscriber CodeCompanion.Chat.Event
+---@param event CodeCompanion.Chat.Event
 ---@return nil
-function Subscribers:action(chat, subscriber)
-  subscriber.callback(chat)
-  if subscriber.type == "once" then
-    self:unsubscribe(subscriber.id)
+function Subscribers:action(chat, event)
+  local name = event.data and event.data.name or ""
+
+  if event.reuse then
+    local reuse = event.reuse(chat)
+    if reuse then
+      log:debug("[Subscription] Reusing %s (%s)", name, event.id)
+      return event.callback(chat)
+    end
+    return self:unsubscribe(event)
+  end
+
+  log:debug("[Subscription] Actioning: %s (%s)", name, event.id)
+  event.callback(chat)
+  if event.data and event.data.type == "once" then
+    return self:unsubscribe(event)
   end
 end
 
@@ -64,7 +82,28 @@ function Subscribers:process(chat)
     elseif not subscriber.order then
       self:action(chat, subscriber)
     end
+    self:submit(chat, subscriber)
   end)
+end
+
+---Automatically submit the chat buffer
+---@param chat CodeCompanion.Chat
+---@param subscriber CodeCompanion.Chat.Event
+function Subscribers:submit(chat, subscriber)
+  if subscriber.data and subscriber.data.opts and subscriber.data.opts.auto_submit and not self.stopped then
+    -- Defer the call for 2 seconds to prevent rate limit bans
+    vim.defer_fn(function()
+      chat:submit()
+    end, config.opts.auto_submit_delay)
+  end
+end
+
+---When a request has been stopped, we should stop any automatic subscribers
+---@return CodeCompanion.Subscribers
+function Subscribers:stop()
+  log:debug("[Subscription] Stopping")
+  self.stopped = true
+  return self
 end
 
 return Subscribers

@@ -180,15 +180,22 @@ function Strategies:workflow()
     local order = 1
     vim.iter(prompts):each(function(prompt)
       for _, val in ipairs(prompt) do
+        val.type = val.type or "once"
         chat.subscribers:subscribe({
           callback = function()
             chat:add_buf_message(val)
-            if val.opts and val.opts.auto_submit then
-              chat:submit()
+          end,
+          data = val,
+          order = order,
+          ---Should the event be reused?
+          ---@param c CodeCompanion.Chat
+          ---@return boolean|nil
+          reuse = function(c)
+            if val.repeat_until then
+              assert(type(val.repeat_until) == "function", "repeat_until must be a function")
+              return val.repeat_until(c) == false
             end
           end,
-          order = order,
-          type = val.type or "once",
         })
       end
       order = order + 1

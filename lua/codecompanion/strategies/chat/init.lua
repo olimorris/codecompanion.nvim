@@ -173,6 +173,7 @@ function Chat.new(args)
     messages = args.messages or {},
     refs = {},
     status = "",
+    tool_flags = {},
     tools_in_use = {},
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
@@ -213,11 +214,12 @@ function Chat.new(args)
     return log:error("No adapter found")
   end
   util.fire("ChatAdapter", {
-    bufnr = self.bufnr,
     adapter = adapters.make_safe(self.adapter),
+    bufnr = self.bufnr,
+    id = self.id,
   })
-  util.fire("ChatModel", { bufnr = self.bufnr, model = self.adapter.schema.model.default })
-  util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library })
+  util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = self.adapter.schema.model.default })
+  util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
 
   self:apply_settings(schema.get_default(self.adapter.schema, self.opts.settings))
 
@@ -571,7 +573,7 @@ function Chat:add_tool(tool, tool_config)
     )
   end
 
-  util.fire("ChatToolAdded", { bufnr = self.bufnr, tool = tool })
+  util.fire("ChatToolAdded", { bufnr = self.bufnr, id = self.id, tool = tool })
 
   return self
 end
@@ -754,18 +756,18 @@ function Chat:done(output)
 
   local assistant_range = self.header_line
   self:set_range(-2)
-
   self.ui:display_tokens(self.parser, self.header_line)
   self.references:render()
 
   if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
     self.tools:parse_buffer(self, assistant_range, self.header_line - 1)
+    -- Let the tool class process subscribers in place of the chat buffer
+  else
+    self.subscribers:process(self)
   end
 
   log:info("Chat request finished")
   self:reset()
-
-  self.subscribers:process(self)
 end
 
 ---Reconcile the references table to the references in the chat buffer
@@ -834,7 +836,7 @@ function Chat:add_pins()
       end
     end)
     if not exists then
-      util.fire("ChatPin", { bufnr = self.bufnr, id = pin.id })
+      util.fire("ChatPin", { bufnr = self.bufnr, id = self.id, pin_id = pin.id })
       require(pin.source)
         .new({ Chat = self })
         :output({ path = pin.path, bufnr = pin.bufnr, params = pin.params }, { pin = true })
@@ -857,6 +859,7 @@ end
 function Chat:stop()
   local job
   self.status = CONSTANTS.STATUS_CANCELLING
+  util.fire("ChatStopped", { bufnr = self.bufnr, id = self.id })
 
   if self.current_tool then
     job = self.current_tool
@@ -877,6 +880,8 @@ function Chat:stop()
       end)
     end
   end
+
+  self.subscribers:stop()
 
   vim.schedule(function()
     log:debug("Chat request cancelled")
@@ -909,9 +914,9 @@ function Chat:close()
   if self.ui.aug then
     api.nvim_clear_autocmds({ group = self.ui.aug })
   end
-  util.fire("ChatClosed", { bufnr = self.bufnr })
-  util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = nil })
-  util.fire("ChatModel", { bufnr = self.bufnr, model = nil })
+  util.fire("ChatClosed", { bufnr = self.bufnr, id = self.id })
+  util.fire("ChatAdapter", { bufnr = self.bufnr, id = self.id, adapter = nil })
+  util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
   self = nil
 end
 

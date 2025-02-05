@@ -350,6 +350,14 @@ Points to note:
           callback = "keymaps.toggle_system_prompt",
           description = "Toggle the system prompt",
         },
+        approve_tools = {
+          modes = {
+            n = "gt",
+          },
+          index = 18,
+          callback = "keymaps.approve_tools",
+          description = "Toggle the approval of tools",
+        },
       },
       opts = {
         register = "+", -- The register to use for yanking code
@@ -478,6 +486,41 @@ Points to note:
             content = "Thanks. Now let's revise the code based on the feedback, without additional explanations.",
             opts = {
               auto_submit = true,
+            },
+          },
+        },
+      },
+    },
+    ["Testing workflow"] = {
+      strategy = "workflow",
+      description = "Use a workflow to repeatedly test code",
+      opts = {
+        index = 4,
+        is_default = true,
+        short_name = "tw",
+      },
+      prompts = {
+        {
+          {
+            name = "Setup Test",
+            role = constants.USER_ROLE,
+            content = "@cmd_runner I'd like you to run the test suite for my repository. The cmd to use is ",
+            opts = {
+              auto_submit = false,
+            },
+          },
+        },
+        {
+          {
+            name = "Repeat On Failure",
+            role = constants.USER_ROLE,
+            -- Repeat until the tests pass, as indicated by the testing flag from the cmd_runner tool
+            repeat_until = function(chat)
+              return chat.tool_flags.testing == true
+            end,
+            content = "The test failed. Can we edit the code and re-run the tests?",
+            opts = {
+              auto_submit = false,
             },
           },
         },
@@ -909,6 +952,8 @@ This is the code, for context:
     ---@type boolean|function
     ---@return boolean
     send_code = true,
+
+    submit_delay = 3000, -- Delay in milliseconds before auto-submitting the chat buffer
 
     ---This is the default prompt which is sent with every request in the chat
     ---strategy. It is primarily based on the GitHub Copilot Chat's prompt

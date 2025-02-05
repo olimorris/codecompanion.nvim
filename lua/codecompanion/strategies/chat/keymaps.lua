@@ -563,4 +563,17 @@ M.toggle_system_prompt = {
   end,
 }
 
+M.approve_tools = {
+  desc = "Toggle the approval of tools",
+  callback = function(chat)
+    if vim.g.codecompanion_auto_approve then
+      vim.g.codecompanion_auto_approve = nil
+      return util.notify("Tools now require approval", vim.log.levels.INFO)
+    else
+      vim.g.codecompanion_auto_approve = true
+      return util.notify("Tools will now be auto-approved", vim.log.levels.INFO)
+    end
+  end,
+}
+
 return M

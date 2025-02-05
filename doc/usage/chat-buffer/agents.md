@@ -15,9 +15,28 @@ In the plugin, tools are simply context and actions that are shared with an LLM 
 > The agentic use of some tools in the plugin results in you, the developer, acting as the human-in-the-loop and
 > approving their use. I intend on making this easier in the coming releases
 
+## How Tools Work
+
+LLMs are instructured by the plugin to return a structured XML block which has been defined for each tool. The chat buffer parses the LLMs response and detects any tool use before calling the appropriate tool. The chat buffer will then be updated with the outcome. Depending on the tool, flags may be inserted on the chat buffer for later processing.
+
 ## @cmd_runner
 
 The _@cmd_runner_ tool enables an LLM to execute commands on your machine, subject to your authorization. A common example can be asking the LLM to run your test suite and provide feedback on any failures.
+
+The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its XML output. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for workflows to hook into.
+
+An example of the XML that an LLM may generate is:
+
+```xml
+<tools>
+  <tool name="cmd_runner">
+    <action>
+      <command><![CDATA[make test]]></command>
+      <flag>testing</flag>
+    </action>
+  </tool>
+</tools>
+```
 
 ## @editor
 
@@ -46,4 +65,10 @@ The _@rag_ tool uses [jina.ai](https://jina.ai) to parse a given URL's content a
 ## @full_stack_dev
 
 The _@full_stack_dev_ agent is a combination of the _@cmd_runner_, _@editor_ and _@files_ tools.
+
+## Useful Tips
+
+### Automatic Approval
+
+Simply set the global variable `vim.g.codecompanion_auto_approve` to automatically approve all tool requests. Remove the variable to undo this. Alternatively, the keymap `gt` will toggle this for you in the chat buffer.
 

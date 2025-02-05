@@ -77,9 +77,6 @@ function Tools:set_autocmds()
           { hl_group = "CodeCompanionVirtualText" }
         )
       elseif request.match == "CodeCompanionAgentFinished" then
-        log:debug("Agent Finished")
-        api.nvim_buf_clear_namespace(self.bufnr, self.tools_ns, 0, -1)
-
         -- Handle any errors
         if request.data.status == CONSTANTS.STATUS_ERROR then
           local error = request.data.stderr
@@ -100,9 +97,8 @@ function Tools:set_autocmds()
             self.chat:submit()
           end
         end
-
-        self:reset()
       end
+      self:reset()
     end,
   })
 end
@@ -237,9 +233,9 @@ function Tools:run()
 
   ---Action to take when closing the job
   local function close()
-    vim.schedule(function()
-      handlers.on_exit()
+    handlers.on_exit()
 
+    vim.schedule(function()
       util.fire(
         "AgentFinished",
         { name = self.tool.name, bufnr = self.bufnr, status = status, stderr = stderr, stdout = stdout }
@@ -248,6 +244,8 @@ function Tools:run()
       status = CONSTANTS.STATUS_SUCCESS
       stderr = {}
       stdout = {}
+
+      self.chat.subscribers:process(self.chat)
     end)
   end
 
@@ -333,6 +331,10 @@ function Tools:run()
         return tbl
       end
 
+      -- Some commands may have a flag
+      local flag = cmd.flag
+      cmd = cmd.cmd or cmd
+
       self.chat.current_tool = Job:new({
         command = vim.fn.has("win32") == 1 and "cmd.exe" or "sh",
         args = { vim.fn.has("win32") == 1 and "/c" or "-c", table.concat(cmd, " ") },
@@ -352,8 +354,13 @@ function Tools:run()
             table.insert(remove_ansi(stdout), data)
           end)
         end,
-        on_exit = function(data, _)
+        on_exit = function(data, exit_code)
           self.chat.current_tool = nil
+
+          if flag then
+            self.chat.tool_flags = self.chat.tool_flags or {}
+            self.chat.tool_flags[flag] = (exit_code == 0)
+          end
 
           vim.schedule(function()
             if _G.codecompanion_cancel_tool then
@@ -487,6 +494,7 @@ end
 ---Reset the tool class
 ---@return nil
 function Tools:reset()
+  api.nvim_buf_clear_namespace(self.bufnr, self.tools_ns, 0, -1)
   api.nvim_clear_autocmds({ group = self.aug })
   self.extracted = {}
   log:debug("Agent finished")

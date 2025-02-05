@@ -388,6 +388,11 @@ Remember:
     ---@param action table
     ---@return boolean
     approved = function(self, action)
+      if vim.g.codecompanion_auto_approve then
+        log:info("[Cmd Runner Tool] Auto-approved running the command")
+        return true
+      end
+
       log:info("[Files Tool] Prompting for: %s", string.upper(action._attr.type))
 
       local prompts = {
