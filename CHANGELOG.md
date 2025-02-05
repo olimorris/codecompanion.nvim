@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.25.3](https://github.com/olimorris/codecompanion.nvim/compare/v11.25.2...v11.25.3) (2025-02-05)
+
+
+### Bug Fixes
+
+* **http:** prevent model from no schema.model ([#839](https://github.com/olimorris/codecompanion.nvim/issues/839)) ([abaf645](https://github.com/olimorris/codecompanion.nvim/commit/abaf645cfcb64bddc8f9124fb4bf71999372e752))
+
 ## [11.25.2](https://github.com/olimorris/codecompanion.nvim/compare/v11.25.1...v11.25.2) (2025-02-03)
 
 
