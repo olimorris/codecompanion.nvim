@@ -2,7 +2,6 @@
   (atx_heading) @role
 ) @content
 
-
 (section
   (atx_heading) @role
   (#eq? @role "Response")

@@ -389,7 +389,7 @@ Remember:
     ---@return boolean
     approved = function(self, action)
       if vim.g.codecompanion_auto_approve then
-        log:info("[Cmd Runner Tool] Auto-approved running the command")
+        log:info("[Files Tool] Auto-approved running the command")
         return true
       end
 

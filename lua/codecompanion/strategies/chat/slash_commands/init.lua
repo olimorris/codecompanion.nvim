@@ -56,7 +56,7 @@ function SlashCommands:execute(item, chat)
   local label = item.label:sub(1)
   log:debug("Executing slash command: %s", label)
 
-  local callback = resolve(item.config.callback)
+  local callback = resolve(item.config.callback, self.chat)
   if not callback then
     return log:error("Slash command not found: %s", label)
   end

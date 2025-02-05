@@ -165,7 +165,7 @@ return {
     setup = function(self)
       local tool = self.tool --[[@type CodeCompanion.Tool]]
       local action = tool.request.action
-      local actions = util.is_array(action) and action or { action }
+      local actions = vim.isarray(action) and action or { action }
 
       for _, act in ipairs(actions) do
         local entry = { cmd = vim.split(act.command, " ") }

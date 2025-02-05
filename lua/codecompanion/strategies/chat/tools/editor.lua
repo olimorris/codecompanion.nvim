@@ -125,7 +125,7 @@ return {
       end
 
       local output = {}
-      if util.is_array(actions) then
+      if vim.isarray(actions) then
         for _, v in ipairs(actions) do
           output = run(v)
           if output.status == "error" then

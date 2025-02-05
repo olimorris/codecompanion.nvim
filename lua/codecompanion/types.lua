@@ -30,12 +30,12 @@
 ---@class CodeCompanion.Variable
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config for the variable
----@field params table The context of the chat buffer from the completion menu
+---@field params string
 
 ---@class CodeCompanion.VariableArgs
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config for the variable
----@field params table The context of the chat buffer from the completion menu
+---@field params string
 
 ---@class CodeCompanion.Cmd
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat

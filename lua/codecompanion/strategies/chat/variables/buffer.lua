@@ -4,6 +4,31 @@ local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 
+local reserved_params = {
+  "pin",
+  "watch",
+}
+
+---Extract the range from the params
+---@param params string
+---@return table
+local function get_range(params)
+  local range
+
+  local start, finish = params:match("(%d+)-(%d+)")
+
+  if start and finish then
+    start = tonumber(start) - 1
+    finish = tonumber(finish)
+  end
+
+  if start <= finish then
+    range = { start, finish }
+  end
+
+  return range
+end
+
 ---@class CodeCompanion.Variable.Buffer: CodeCompanion.Variable
 local Variable = {}
 
@@ -43,23 +68,14 @@ end
 function Variable:output(selected, opts)
   selected = selected or {}
   opts = opts or {}
+
   local bufnr = selected.bufnr or self.Chat.context.bufnr
   local params = selected.params or self.params
 
   local range
-  if params then
-    local start, finish = params:match("(%d+)-(%d+)")
-
-    if start and finish then
-      start = tonumber(start) - 1
-      finish = tonumber(finish)
-    end
-
-    if start <= finish then
-      range = { start, finish }
-    end
+  if params and not vim.tbl_contains(reserved_params, params) then
+    range = get_range(params)
   end
-
   local content, id = self:read(bufnr, range)
 
   local message = "Here is the content from the buffer.\n\n"
@@ -80,6 +96,10 @@ function Variable:output(selected, opts)
     bufnr = bufnr,
     params = params,
     id = id,
+    opts = {
+      pinned = (params and params == "pin"),
+      watched = (params and params == "watch"),
+    },
     source = "codecompanion.strategies.chat.variables.buffer",
   })
 end

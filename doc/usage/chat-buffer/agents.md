@@ -25,7 +25,7 @@ The _@cmd_runner_ tool enables an LLM to execute commands on your machine, subje
 
 The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its XML output. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for workflows to hook into.
 
-An example of the XML that an LLM may generate is:
+An example of the XML that an LLM may generate for the tool:
 
 ```xml
 <tools>
