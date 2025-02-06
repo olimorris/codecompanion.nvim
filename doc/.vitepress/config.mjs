@@ -101,6 +101,7 @@ export default defineConfig({
           { text: "Creating Adapters", link: "/extending/adapters" },
           { text: "Creating Prompts", link: "/extending/prompts" },
           { text: "Creating Tools", link: "/extending/tools" },
+          { text: "Creating Workflows", link: "/extending/workflows" },
           { text: "Creating Workspaces", link: "/extending/workspace" },
         ],
       },

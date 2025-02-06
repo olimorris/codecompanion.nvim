@@ -21,9 +21,9 @@ LLMs are instructured by the plugin to return a structured XML block which has b
 
 ## @cmd_runner
 
-The _@cmd_runner_ tool enables an LLM to execute commands on your machine, subject to your authorization. A common example can be asking the LLM to run your test suite and provide feedback on any failures.
+The _@cmd_runner_ tool enables an LLM to execute commands on your machine, subject to your authorization. A common example can be asking the LLM to run your test suite and provide feedback on any failures. Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) which means the plugin can't pass the output of the execution to the LLM. When this occurs, the tool will instead share the exit code.
 
-The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its XML output. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for workflows to hook into.
+The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its XML request. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for [workflows](/extending/workflows) to hook into.
 
 An example of the XML that an LLM may generate for the tool:
 
@@ -42,9 +42,43 @@ An example of the XML that an LLM may generate for the tool:
 
 The _@editor_ tool enables an LLM to modify the code in a Neovim buffer. If a buffer's content has been shared with the LLM then the tool can be used to add, edit or delete specific lines. Consider pinning or watching a buffer to avoid manually re-sending a buffer's content to the LLM.
 
+An example of the XML that an LLM may generate for the tool:
+
+```xml
+<tools>
+  <tool name="editor">
+    <action type="add">
+      <code><![CDATA[
+    def transfer(self, amount, account):
+        pass
+      ]]></code>
+      <buffer>3</buffer>
+      <line>15</line>
+    </action>
+    <action type="delete">
+      <buffer>3</buffer>
+      <start_line>17</start_line>
+      <end_line>18</end_line>
+    </action>
+    <action type="update">
+      <code><![CDATA[
+    def deposit(self, amount):
+        print(f"Depositing {amount}")
+      ]]></code>
+      <buffer>3</buffer>
+      <start_line>11</start_line>
+      <end_line>12</end_line>
+    </action>
+  </tool>
+</tools>
+```
+
 ## @files
 
-The _@files_ tool enables an LLM to perform various file operations on the user's disk, such as:
+> [!NOTE]
+> All file operations require approval from the user before they're executed
+
+The _@files_ tool leverages the [Plenary.Path](https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/path.lua) module to enable an LLM to perform various file operations on the user's disk:
 
 - Creating a file
 - Reading a file
@@ -55,8 +89,33 @@ The _@files_ tool enables an LLM to perform various file operations on the user'
 - Copying a file
 - Moving a file
 
-> [!NOTE]
-> All file operations require approval from the user before they can take place
+An example of the XML that an LLM may generate for the tool:
+
+```xml
+<tools>
+  <tool name="files">
+    <action type="create">
+      <contents><![CDATA[
+<example>
+  <title>Sample XML</title>
+  <description>This is an example XML file for the files tool.</description>
+  <items>
+    <item>
+      <name>Item 1</name>
+      <value>Value 1</value>
+    </item>
+    <item>
+      <name>Item 2</name>
+      <value>Value 2</value>
+    </item>
+  </items>
+</example>
+      ]]></contents>
+      <path>/Users/Oli/Code/Python/benchmarking/exercises/practice/bank-account/example.xml</path>
+    </action>
+  </tool>
+</tools>
+```
 
 ## @rag
 
@@ -70,5 +129,5 @@ The _@full_stack_dev_ agent is a combination of the _@cmd_runner_, _@editor_ and
 
 ### Automatic Approval
 
-Simply set the global variable `vim.g.codecompanion_auto_approve` to automatically approve all tool requests. Remove the variable to undo this. Alternatively, the keymap `gt` will toggle this for you in the chat buffer.
+Simply set the global variable `vim.g.codecompanion_auto_approve` to automatically approve all tool requests. Remove the variable to undo this. Alternatively, the keymap `gt` will toggle whist you're in the chat buffer.
 
