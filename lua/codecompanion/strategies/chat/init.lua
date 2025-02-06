@@ -759,9 +759,9 @@ function Chat:done(output)
   self.ui:display_tokens(self.parser, self.header_line)
   self.references:render()
 
+  -- If we're running any tooling, let them handle the subscriptions instead
   if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
     self.tools:parse_buffer(self, assistant_range, self.header_line - 1)
-    -- Let the tool class process subscribers in place of the chat buffer
   else
     self.subscribers:process(self)
   end

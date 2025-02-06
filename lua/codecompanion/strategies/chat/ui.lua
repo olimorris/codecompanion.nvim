@@ -336,23 +336,40 @@ function UI:set_extmarks(opts)
     return self
   end
 
-  -- Welcome message
   if not config.display.chat.start_in_insert_mode then
-    local ns_intro = api.nvim_create_namespace(CONSTANTS.NS_INTRO)
-    local id = api.nvim_buf_set_extmark(self.bufnr, ns_intro, api.nvim_buf_line_count(self.bufnr) - 1, 0, {
-      virt_text = { { config.display.chat.intro_message, "CodeCompanionVirtualText" } },
-      virt_text_pos = "eol",
-    })
+    local extmark_id = self:set_virtual_text(config.display.chat.intro_message, "eol")
     api.nvim_create_autocmd("InsertEnter", {
       buffer = self.bufnr,
       callback = function()
-        api.nvim_buf_del_extmark(self.bufnr, ns_intro, id)
+        self:clear_virtual_text(extmark_id)
       end,
     })
     self.intro_message = true
   end
 
   return self
+end
+
+---Set virtual text in the chat buffer
+---@param message string
+---@param method? string "eol", "inline" etc
+---@param range? table<number, number>
+---@return number The id of the extmark
+function UI:set_virtual_text(message, method, range)
+  range = range or { api.nvim_buf_line_count(self.bufnr) - 1, 0 }
+  self.virtual_text_ns = api.nvim_create_namespace(CONSTANTS.NS_VIRTUAL_TEXT)
+
+  return api.nvim_buf_set_extmark(self.bufnr, self.virtual_text_ns, range[1], range[2], {
+    virt_text = { { message, "CodeCompanionVirtualText" } },
+    virt_text_pos = method or "eol",
+  })
+end
+
+---Clear virtual text in the chat buffer
+---@param extmark_id number The id of the extmark to delete
+---@return nil
+function UI:clear_virtual_text(extmark_id)
+  api.nvim_buf_del_extmark(self.bufnr, self.virtual_text_ns, extmark_id)
 end
 
 ---Get the last line, column and line count in the chat buffer
