@@ -671,8 +671,8 @@ function Chat:submit(opts)
   local settings = ts_parse_settings(bufnr, self.adapter)
   settings = self.adapter:map_schema_to_params(settings)
 
-  log:debug("Settings:\n%s", settings)
-  log:debug("Messages:\n%s", self.messages)
+  log:trace("Settings:\n%s", settings)
+  log:trace("Messages:\n%s", self.messages)
   log:info("Chat request started")
 
   self.ui:lock_buf()
