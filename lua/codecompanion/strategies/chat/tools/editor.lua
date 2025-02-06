@@ -194,56 +194,55 @@ return {
   },
   system_prompt = function(schema)
     return string.format(
-      [[### Editor Tool
+      [[## Editor Tool
 
-1. **Purpose**: Update the contents of a Neovim buffer
+### Purpose:
+- Modify the content of a Neovim buffer by adding, updating, or deleting code when explicitly requested.
 
-2. **Usage**: Return an XML markdown code block for add, update, or delete operations.
+### When to Use:
+- Only invoke the Editor Tool when the user specifically asks (e.g., "can you update the code?" or "update the buffer...").
+- Use this tool solely for buffer edit operations. Other file tasks should be handled by the designated tools.
 
-3. **Key Points**:
-  - **Only use when prompted** by user (e.g., "can you update the code?", "update the buffer...")
-  - Ensure XML is **valid and follows the schema**
-  - **Include indentation** in your code
-  - **Don't escape** special characters
-  - **Wrap code in a CDATA block**, the code could contain characters reserved by XML
-  - Make sure the tools xml block is **surrounded by ```xml**
+### Execution Format:
+- Always return an XML markdown code block.
+- Each code operation must:
+  - Be wrapped in a CDATA section to preserve special characters (CDATA sections ensure that characters like '<' and '&' are not interpreted as XML markup).
+  - Follow the XML schema exactly.
+- If several actions (add, update, delete) need to be performed sequentially, combine them in one XML block with separate <action> entries.
 
-4. **Actions**:
+### XML Schema:
+Each tool invocation should adhere to this structure:
 
-a) Add:
-
+a) **Add Action:**
 ```xml
 %s
 ```
 
-b) Update:
-
+b) **Update Action:**
 ```xml
 %s
 ```
 
-c) Delete:
-
+c) **Delete Action:**
 ```xml
 %s
 ```
 
-5. **Multiple Actions**: Combine actions in one response if needed:
-
+d) **Multiple Actions:**
 ```xml
 %s
 ```
 
-6. **Note**:
-  - The tool can handle multiple actions in one response such as adding and deleting code
-  - For the delete action, the <start_line> and <end_line> tags are inclusive
-  - The update action first deletes the range in <start_line> and <end_line> (inclusively) and then adds new code from the <start_line>
-  - If you need to update a single line, set <start_line> and <end_line> to the same value in the update action
-  - Remember you can have multiple update actions after one another.
-  - Account for comment blocks and indentation in your code
-  - If the user supplies no context, it can be assumed that they would like you to update the buffer with the code from your last response
+### Key Considerations:
+- **Safety and Accuracy:** Validate all code updates carefully.
+- **CDATA Usage:** Code is wrapped in CDATA blocks to protect special characters and prevent them from being misinterpreted by XML.
+- **Tag Order:** Use a consistent order by always listing <start_line> before <end_line> for update and delete actions.
+- **Update Rule:** The update action first deletes the range defined in <start_line> to <end_line> (inclusive) and then adds the new code starting from <start_line>.
+- **Contextual Assumptions:** If no context is provided, assume that you should update the buffer with the code from your last response.
 
-Remember: Minimize explanations unless prompted. Focus on generating correct XML.]],
+### Reminder:
+- Minimize extra explanations and focus on returning correct XML blocks with properly wrapped CDATA sections.
+- Always use the structure above for consistency.]],
       xml2lua.toXml({ tools = { schema[1] } }),
       xml2lua.toXml({ tools = { schema[2] } }),
       xml2lua.toXml({ tools = { schema[3] } }),
