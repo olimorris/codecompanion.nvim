@@ -43,6 +43,7 @@ end
 function Debug:render()
   local models
   local adapter = vim.deepcopy(self.chat.adapter)
+  local bufname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(self.chat.context.bufnr), ":t")
 
   if type(adapter.schema.model.choices) == "function" then
     models = adapter.schema.model.choices(adapter)
@@ -54,6 +55,7 @@ function Debug:render()
 
   table.insert(lines, '-- Adapter: "' .. adapter.name .. '"')
   table.insert(lines, "-- Buffer: " .. self.chat.bufnr)
+  table.insert(lines, '-- Context: "' .. bufname .. '" (' .. self.chat.context.bufnr .. ")")
 
   -- Add settings
   if not config.display.chat.show_settings then
