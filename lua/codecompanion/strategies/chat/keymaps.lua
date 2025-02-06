@@ -566,10 +566,10 @@ M.approve_tools = {
   callback = function(chat)
     if vim.g.codecompanion_auto_approve then
       vim.g.codecompanion_auto_approve = nil
-      return util.notify("Tools now require approval", vim.log.levels.INFO)
+      return util.notify("Tools now require approval and Diff mode enabled", vim.log.levels.INFO)
     else
       vim.g.codecompanion_auto_approve = true
-      return util.notify("Tools will now be auto-approved", vim.log.levels.INFO)
+      return util.notify("Tools will be auto-approved and Diff mode disabled", vim.log.levels.INFO)
     end
   end,
 }

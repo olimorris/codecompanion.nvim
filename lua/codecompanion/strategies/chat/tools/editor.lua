@@ -81,7 +81,10 @@ return {
         end
 
         -- Diff the buffer
-        if not diff_started and config.display.diff.enabled and bufnr and vim.bo[bufnr].buftype ~= "terminal" then
+        if
+          not vim.g.codecompanion_auto_approve
+          and (not diff_started and config.display.diff.enabled and bufnr and vim.bo[bufnr].buftype ~= "terminal")
+        then
           local provider = config.display.diff.provider
           local ok, diff = pcall(require, "codecompanion.providers.diff." .. provider)
 
