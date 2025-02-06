@@ -69,7 +69,7 @@ require("codecompanion").setup({
 
 The Chat Buffer is where you can converse with an LLM from within Neovim. It operates on a single response per turn, basis.
 
-Run `:CodeCompanionChat` to open a chat buffer. Type your prompt and press `<CR>`. Or, run `:CodeCompanionChat why are Lua and Neovim so perfect together?` to send a prompt directly to the chat buffer. Toggle the chat buffer with `:CodeCompanionChat Toggle`.
+Run `:CodeCompanionChat` to open a chat buffer. Type your prompt and send it by pressing `<C-s>` while in insert mode or `<CR>` in normal mode. Alternatively, run `:CodeCompanionChat why are Lua and Neovim so perfect together?` to open the chat buffer and send a prompt at the same time. Toggle the chat buffer with `:CodeCompanionChat Toggle`.
 
 You can add context from your code base by using _Variables_ and _Slash Commands_ in the chat buffer.
 
