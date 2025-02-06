@@ -35,11 +35,11 @@ Thank you to the following people:
 
 <!-- panvimdoc-ignore-start -->
 
-## :camera_flash: Screenshots
+## :camera_flash: In Action
 
 <div align="center">
-  <p>https://github.com/user-attachments/assets/aa109f1d-0ec9-4f08-bd9a-df99da03b9a4</p>
-  <p>https://github.com/user-attachments/assets/16bd6c17-bd70-41a1-83aa-7af45c166ae9</p>
+  <p><h3>The Chat Buffer</h3>https://github.com/user-attachments/assets/aa109f1d-0ec9-4f08-bd9a-df99da03b9a4</p>
+  <p><h3>Using Agents and Tools</h3>https://github.com/user-attachments/assets/16bd6c17-bd70-41a1-83aa-7af45c166ae9</p>
 </div>
 
 <!-- panvimdoc-ignore-end -->

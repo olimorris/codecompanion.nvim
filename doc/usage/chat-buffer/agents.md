@@ -129,5 +129,5 @@ The _@full_stack_dev_ agent is a combination of the _@cmd_runner_, _@editor_ and
 
 ### Automatic Approval
 
-Simply set the global variable `vim.g.codecompanion_auto_approve` to automatically approve all tool requests. Remove the variable to undo this. Alternatively, the keymap `gt` will toggle whist you're in the chat buffer.
+Simply set the global variable `vim.g.codecompanion_auto_approve` to automatically approve all tool requests and stop the diff mode in any tools. Remove the variable to undo this. Alternatively, the keymap `gt` will toggle whist you're in the chat buffer.
 

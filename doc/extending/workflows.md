@@ -81,3 +81,50 @@ Now let's explore a more complex example: the `Testing workflow` that comes with
 
 This workflow is unique in that it combines with the [@cmd_runner](/usage/chat-buffer/agents#cmd-runner) tool to understand the status of any tests that have been executed. If there were any failures, then the LLM will be notified and prompted to make any updates via the [@editor](/usage/chat-buffer/agents#editor) tool. If the tests were all green, then no further prompting is made.
 
+## Other Options
+
+There are also a number of options which haven't been covered in the example prompts above:
+
+**Specifying an Adapter**
+
+You can specify a specific adapter for a workflow prompt:
+
+```lua
+["Workflow"] = {
+  strategy = "workflow",
+  description = "My workflow",
+  opts = {
+    adapter = "openai", -- Always use the OpenAI adapter for this workflow
+  },
+  -- Prompts go here
+},
+```
+
+**Persistent Prompts**
+
+By default, all workflow prompts are of the type `once`. That is, they are consumed once and then removed. However, this can be changed:
+
+```lua
+["A Cool Workflow"] = {
+  strategy = "workflow",
+  description = "My cool workflow",
+  prompts = {
+    {
+      -- Some first prompt
+    },
+    {
+      {
+        role = constants.USER_ROLE,
+        content = "This prompt will never go away!",
+        type = "persistent",
+        opts = {
+          auto_submit = false,
+        },
+      },
+    },
+  },
+},
+```
+
+Note that persistent prompts are not available for the first prompt group.
+
