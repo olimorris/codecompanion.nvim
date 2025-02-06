@@ -52,7 +52,7 @@ end
 function Subscribers:action(chat, event)
   local name = event.data and event.data.name or ""
 
-  if event.reuse then
+  if type(event.reuse) == "function" then
     local reuse = event.reuse(chat)
     if reuse then
       log:debug("[Subscription] Reusing %s (%s)", name, event.id)
@@ -77,12 +77,10 @@ function Subscribers:process(chat)
   end
 
   vim.iter(self.queue):each(function(subscriber)
-    if subscriber.order and subscriber.order < chat.cycle then
+    if not subscriber.order or subscriber.order < chat.cycle then
       self:action(chat, subscriber)
-    elseif not subscriber.order then
-      self:action(chat, subscriber)
+      self:submit(chat, subscriber)
     end
-    self:submit(chat, subscriber)
   end)
 end
 
@@ -91,10 +89,10 @@ end
 ---@param subscriber CodeCompanion.Chat.Event
 function Subscribers:submit(chat, subscriber)
   if subscriber.data and subscriber.data.opts and subscriber.data.opts.auto_submit and not self.stopped then
-    -- Defer the call for 2 seconds to prevent rate limit bans
+    -- Defer the call to prevent rate limit bans
     vim.defer_fn(function()
       chat:submit()
-    end, config.opts.auto_submit_delay)
+    end, config.opts.submit_delay)
   end
 end
 
