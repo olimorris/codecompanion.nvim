@@ -21,6 +21,16 @@ local CONSTANTS = {
   PROCESSING_MSG = "Tool processing ...",
 }
 
+---Some commands output ANSI color codes so we need to strip them
+---@param tbl table
+---@return table
+local function strip_ansi(tbl)
+  for i, v in ipairs(tbl) do
+    tbl[i] = v:gsub("\027%[[0-9;]*%a", "")
+  end
+  return tbl
+end
+
 ---Parse XML in a given message
 ---@param message string
 ---@return table
@@ -253,7 +263,7 @@ function Tools:run()
   ---@param index number
   ---@param ... any
   local function run(index, ...)
-    local function should_iter()
+    local function continue()
       if not self.tool.cmds then
         return false
       end
@@ -270,7 +280,7 @@ function Tools:run()
     local function execute_func(action, ...)
       if requires_approval and not handlers.approved(action) then
         output.rejected(action)
-        if not should_iter() then
+        if not continue() then
           return close()
         end
       end
@@ -295,7 +305,7 @@ function Tools:run()
         output.success(action, data.msg)
       end
 
-      if not should_iter() then
+      if not continue() then
         return close()
       end
 
@@ -318,67 +328,66 @@ function Tools:run()
     if type(cmd) == "table" then
       if requires_approval and not handlers.approved(cmd) then
         output.rejected(cmd)
-        if not should_iter() then
+        if not continue() then
           return close()
         end
       end
 
-      -- Strip any ANSI codes from a table of output
-      local function remove_ansi(tbl)
-        for i, v in ipairs(tbl) do
-          tbl[i] = v:gsub("\027%[[0-9;]*%a", "")
-        end
-        return tbl
-      end
-
-      -- Some commands may have a flag
-      local flag = cmd.flag
-      cmd = cmd.cmd or cmd
-
       self.chat.current_tool = Job:new({
         command = vim.fn.has("win32") == 1 and "cmd.exe" or "sh",
-        args = { vim.fn.has("win32") == 1 and "/c" or "-c", table.concat(cmd, " ") },
+        args = { vim.fn.has("win32") == 1 and "/c" or "-c", table.concat(cmd.cmd or cmd, " ") },
+        enable_recording = true,
         cwd = vim.fn.getcwd(),
+        on_stdout = function(_, data)
+          vim.schedule(function()
+            table.insert(strip_ansi(stdout), data)
+          end)
+        end,
         on_stderr = function(err, _)
           if err then
             vim.schedule(function()
-              stderr = remove_ansi(err)
+              stderr = strip_ansi(err)
               status = CONSTANTS.STATUS_ERROR
               log:error("Error running tool %s: %s", self.tool.name, err)
               return close()
             end)
           end
         end,
-        on_stdout = function(_, data)
-          vim.schedule(function()
-            table.insert(remove_ansi(stdout), data)
-          end)
-        end,
-        on_exit = function(data, exit_code)
+        on_exit = function(data, code)
           self.chat.current_tool = nil
 
-          if flag then
+          -- Handle the LLM setting any flags
+          if cmd.flag then
             self.chat.tool_flags = self.chat.tool_flags or {}
-            self.chat.tool_flags[flag] = (exit_code == 0)
+            self.chat.tool_flags[cmd.flag] = (code == 0)
           end
+
+          log:debug("Tool %s finished with code: %s", self.tool.name, code)
 
           vim.schedule(function()
             if _G.codecompanion_cancel_tool then
-              stdout = remove_ansi(stdout)
-              stderr = remove_ansi(stderr)
+              stdout = strip_ansi(stdout)
+              stderr = strip_ansi(stderr)
               return close()
             end
 
-            if not vim.tbl_isempty(stderr) then
-              output.error(cmd, remove_ansi(stderr))
+            if vim.tbl_isempty(stdout) and vim.tbl_isempty(stderr) then
+              if code == 0 then
+                output.success(cmd, "Tool finished successfully but with no output")
+              else
+                output.error(cmd, "Tool failed with code " .. code .. " and no output")
+              end
+            elseif not vim.tbl_isempty(stderr) then
+              output.error(cmd, strip_ansi(stderr))
+              log:debug("Tool %s finished with stderr: %s", self.tool.name, stderr)
               stderr = {}
-            end
-            if not vim.tbl_isempty(stdout) then
-              output.success(cmd, remove_ansi(stdout))
+            elseif not vim.tbl_isempty(stdout) then
+              output.success(cmd, strip_ansi(stdout))
+              log:debug("Tool %s finished with output: %s", self.tool.name, stdout)
               stdout = {}
             end
 
-            if not should_iter() then
+            if not continue() then
               return close()
             end
 
