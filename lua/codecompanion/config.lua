@@ -518,9 +518,9 @@ Points to note:
             repeat_until = function(chat)
               return chat.tool_flags.testing == true
             end,
-            content = "The test failed. Can we edit the code and re-run the tests?",
+            content = "The test failed. Can we try again?",
             opts = {
-              auto_submit = false,
+              auto_submit = true,
             },
           },
         },

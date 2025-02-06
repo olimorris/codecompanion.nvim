@@ -26,6 +26,7 @@ doc/usage/chat-buffer/slash-commands.md
 doc/usage/chat-buffer/variables.md
 doc/usage/events.md
 doc/usage/inline-assistant.md
+doc/usage/ui.md
 doc/usage/workflows.md
 ```
 
@@ -34,5 +35,6 @@ doc/usage/workflows.md
 doc/extending/adapters.md
 doc/extending/prompts.md
 doc/extending/tools.md
+doc/extending/workflows.md
 doc/extending/workspace.md
 ```

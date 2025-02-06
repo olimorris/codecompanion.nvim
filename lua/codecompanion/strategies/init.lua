@@ -100,7 +100,7 @@ function Strategies:chat()
       })
     end
 
-    log:info("Strategy: Chat")
+    log:info("[Strategy] Chat Start")
     return require("codecompanion.strategies.chat").new({
       adapter = self.selected.adapter,
       context = self.context,
@@ -147,6 +147,8 @@ function Strategies:workflow()
   local workflow = self.selected
   local stages = #workflow.prompts
 
+  log:info("[Strategy] Workflow Starting")
+
   -- Expand the prompts
   local prompts = vim
     .iter(workflow.prompts)
@@ -180,23 +182,24 @@ function Strategies:workflow()
     local order = 1
     vim.iter(prompts):each(function(prompt)
       for _, val in ipairs(prompt) do
-        val.type = val.type or "once"
-        chat.subscribers:subscribe({
+        local event_data = vim.tbl_deep_extend("keep", {}, val, { type = "once" })
+
+        local event = {
           callback = function()
             chat:add_buf_message(val)
           end,
-          data = val,
+          data = event_data,
           order = order,
-          ---Should the event be reused?
-          ---@param c CodeCompanion.Chat
-          ---@return boolean|nil
-          reuse = function(c)
-            if val.repeat_until then
-              assert(type(val.repeat_until) == "function", "repeat_until must be a function")
-              return val.repeat_until(c) == false
-            end
-          end,
-        })
+        }
+
+        if event_data.repeat_until then
+          event.reuse = function(c)
+            assert(type(val.repeat_until) == "function", "repeat_until must be a function")
+            return val.repeat_until(c) == false
+          end
+        end
+
+        chat.subscribers:subscribe(event)
       end
       order = order + 1
     end)
@@ -205,7 +208,7 @@ end
 
 ---@return CodeCompanion.Inline|nil
 function Strategies:inline()
-  log:info("Strategy: Inline")
+  log:info("[Strategy] Inline Starting")
 
   local opts = self.selected.opts
 
