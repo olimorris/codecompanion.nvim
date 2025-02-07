@@ -104,4 +104,15 @@ function Variable:output(selected, opts)
   })
 end
 
+---Replace the variable in the message
+---@param message string
+---@param bufnr number
+---@return string
+function Variable.replace(prefix, message, bufnr)
+  local bufname = buf_utils.name_from_bufnr(bufnr)
+  local result = message:gsub(prefix .. "buffer:?[%w]*", "buffer " .. bufnr .. " (`" .. bufname .. "`)")
+
+  return result
+end
+
 return Variable

@@ -100,7 +100,7 @@ function Strategies:chat()
       })
     end
 
-    log:info("[Strategy] Chat Start")
+    log:info("[Strategy] Chat Initiated")
     return require("codecompanion.strategies.chat").new({
       adapter = self.selected.adapter,
       context = self.context,
@@ -147,7 +147,7 @@ function Strategies:workflow()
   local workflow = self.selected
   local stages = #workflow.prompts
 
-  log:info("[Strategy] Workflow Starting")
+  log:info("[Strategy] Workflow Initiated")
 
   -- Expand the prompts
   local prompts = vim
@@ -186,6 +186,9 @@ function Strategies:workflow()
 
         local event = {
           callback = function()
+            if type(val.content) == "function" then
+              val.content = val.content(self.context)
+            end
             chat:add_buf_message(val)
           end,
           data = event_data,
@@ -193,6 +196,7 @@ function Strategies:workflow()
         }
 
         if event_data.repeat_until then
+          ---@param c CodeCompanion.Chat
           event.reuse = function(c)
             assert(type(val.repeat_until) == "function", "repeat_until must be a function")
             return val.repeat_until(c) == false
@@ -208,7 +212,7 @@ end
 
 ---@return CodeCompanion.Inline|nil
 function Strategies:inline()
-  log:info("[Strategy] Inline Starting")
+  log:info("[Strategy] Inline Initiated")
 
   local opts = self.selected.opts
 

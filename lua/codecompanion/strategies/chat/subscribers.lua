@@ -58,7 +58,12 @@ function Subscribers:action(chat, event)
       log:debug("[Subscription] Reusing %s (%s)", name, event.id)
       return event.callback(chat)
     end
-    return self:unsubscribe(event)
+    self:unsubscribe(event)
+    -- Don't auto submit a reuse prompt if it's the last one
+    if vim.tbl_isempty(self.queue) then
+      self.stopped = true
+    end
+    return
   end
 
   log:debug("[Subscription] Actioning: %s (%s)", name, event.id)
@@ -77,7 +82,13 @@ function Subscribers:process(chat)
   end
 
   vim.iter(self.queue):each(function(subscriber)
+    local name = subscriber.data and subscriber.data.name or ""
     if not subscriber.order or subscriber.order < chat.cycle then
+      if type(subscriber.data.condition) == "function" then
+        if not subscriber.data.condition(chat) then
+          return log:debug("[Subscription] Condition not met: %s (%s)", name, subscriber.id)
+        end
+      end
       self:action(chat, subscriber)
       self:submit(chat, subscriber)
     end
@@ -89,8 +100,13 @@ end
 ---@param subscriber CodeCompanion.Chat.Event
 function Subscribers:submit(chat, subscriber)
   if subscriber.data and subscriber.data.opts and subscriber.data.opts.auto_submit and not self.stopped then
+    if chat.current_request ~= nil then
+      return log:debug("[Subscription] Prevent double submit")
+    end
+
     -- Defer the call to prevent rate limit bans
     vim.defer_fn(function()
+      log:debug("[Subscription] Auto-submitting")
       chat:submit()
     end, config.opts.submit_delay)
   end

@@ -267,7 +267,7 @@ return {
   },
   system_prompt = function(schema)
     return fmt(
-      [[### Files Tool
+      [[### Files Tool (`files`)
 
 1. **Purpose**: Create/Edit/Delete/Rename/Copy files on the file system.
 
@@ -388,7 +388,7 @@ Remember:
     ---@param action table
     ---@return boolean
     approved = function(self, action)
-      if vim.g.codecompanion_auto_approve then
+      if vim.g.codecompanion_auto_tool_mode then
         log:info("[Files Tool] Auto-approved running the command")
         return true
       end

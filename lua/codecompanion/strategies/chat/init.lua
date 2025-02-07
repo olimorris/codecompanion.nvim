@@ -522,7 +522,7 @@ function Chat:parse_msg_for_vars(message)
   local vars = self.variables:parse(self, message)
 
   if vars then
-    message.content = self.variables:replace(message.content)
+    message.content = self.variables:replace(message.content, self.context.bufnr)
     message.id = make_id({ role = message.role, content = message.content })
     self:add_message(
       { role = config.constants.USER_ROLE, content = message.content },
@@ -612,7 +612,7 @@ function Chat:apply_tools_and_variables(message)
     message.content = self.tools:replace(message.content)
   end
   if self.variables:parse(self, message) then
-    message.content = self.variables:replace(message.content)
+    message.content = self.variables:replace(message.content, self.context.bufnr)
   end
 end
 
@@ -639,6 +639,10 @@ end
 ---@param opts? table
 ---@return nil
 function Chat:submit(opts)
+  if self.current_request then
+    return log:debug("Chat request already in progress")
+  end
+
   log:time()
   opts = opts or {}
 

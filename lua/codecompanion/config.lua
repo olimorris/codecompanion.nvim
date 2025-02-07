@@ -350,13 +350,13 @@ Points to note:
           callback = "keymaps.toggle_system_prompt",
           description = "Toggle the system prompt",
         },
-        approve_tools = {
+        auto_tool_mode = {
           modes = {
-            n = "gt",
+            n = "gta",
           },
           index = 18,
-          callback = "keymaps.approve_tools",
-          description = "Toggle the approval of tools",
+          callback = "keymaps.auto_tool_mode",
+          description = "Toggle automatic tool mode",
         },
       },
       opts = {
@@ -514,11 +514,17 @@ Points to note:
           {
             name = "Repeat On Failure",
             role = constants.USER_ROLE,
+            -- Don't execute if the current tool is not the cmd_runner
+            condition = function()
+              return vim.g.codecompanion_current_tool == "cmd_runner"
+            end,
             -- Repeat until the tests pass, as indicated by the testing flag from the cmd_runner tool
             repeat_until = function(chat)
               return chat.tool_flags.testing == true
             end,
-            content = "The test failed. Can we try again?",
+            content = function(context)
+              return "The tests have failed. Can you edit the code and run the test suite again?"
+            end,
             opts = {
               auto_submit = true,
             },
@@ -953,7 +959,8 @@ This is the code, for context:
     ---@return boolean
     send_code = true,
 
-    submit_delay = 3000, -- Delay in milliseconds before auto-submitting the chat buffer
+    job_start_delay = 1500, -- Delay in milliseconds between cmd tools
+    submit_delay = 2000, -- Delay in milliseconds before auto-submitting the chat buffer
 
     ---This is the default prompt which is sent with every request in the chat
     ---strategy. It is primarily based on the GitHub Copilot Chat's prompt

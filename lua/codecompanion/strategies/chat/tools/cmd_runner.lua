@@ -95,7 +95,7 @@ return {
   },
   system_prompt = function(schema)
     return string.format(
-      [[## Command Runner Tool – Enhanced Guidelines
+      [[## Command Runner Tool (`cmd_runner`) – Enhanced Guidelines
 
 ### Purpose:
 - Execute safe, validated shell commands on the user's system when explicitly requested.
@@ -181,7 +181,7 @@ return {
     ---@param cmd table
     ---@return boolean
     approved = function(self, cmd)
-      if vim.g.codecompanion_auto_approve then
+      if vim.g.codecompanion_auto_tool_mode then
         log:info("[Cmd Runner Tool] Auto-approved running the command")
         return true
       end

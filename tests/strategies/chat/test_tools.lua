@@ -70,9 +70,9 @@ end
 T["Tools"][":replace"] = new_set()
 
 T["Tools"][":replace"]["should replace the tool in the message"] = function()
-  local message = "@foo replace this tool"
+  local message = "run the @foo tool"
   local result = tools:replace(message, "foo")
-  h.eq("replace this tool", result)
+  h.eq("run the foo tool", result)
 end
 
 return T

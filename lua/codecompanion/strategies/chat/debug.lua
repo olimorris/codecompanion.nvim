@@ -1,3 +1,4 @@
+local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils")
@@ -43,7 +44,7 @@ end
 function Debug:render()
   local models
   local adapter = vim.deepcopy(self.chat.adapter)
-  local bufname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(self.chat.context.bufnr), ":t")
+  local bufname = buf_utils.name_from_bufnr(self.chat.context.bufnr)
 
   if type(adapter.schema.model.choices) == "function" then
     models = adapter.schema.model.choices(adapter)

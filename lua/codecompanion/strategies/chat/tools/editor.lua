@@ -32,7 +32,7 @@ local function intersect(bufnr, line)
 end
 
 local function add(bufnr, action)
-  log:trace("Adding code to buffer")
+  log:debug("[Editor Tool] Adding code to buffer")
   local start_line = tonumber(action.line)
   local delta = intersect(bufnr, start_line)
 
@@ -43,7 +43,7 @@ local function add(bufnr, action)
 end
 
 local function delete(bufnr, action)
-  log:trace("Deleting code from the buffer")
+  log:debug("[Editor Tool] Deleting code from the buffer")
   local start_line = tonumber(action.start_line)
   local end_line = tonumber(action.end_line)
   local delta = intersect(bufnr, start_line)
@@ -74,7 +74,7 @@ return {
         local bufnr = tonumber(action.buffer)
         local winnr = ui.buf_get_win(bufnr)
 
-        log:debug("Editor tool request: %s", action)
+        log:trace("[Editor Tool] request: %s", action)
 
         if not api.nvim_buf_is_valid(bufnr) then
           return { status = "error", msg = "Invalid buffer number" }
@@ -82,7 +82,7 @@ return {
 
         -- Diff the buffer
         if
-          not vim.g.codecompanion_auto_approve
+          not vim.g.codecompanion_auto_tool_mode
           and (not diff_started and config.display.diff.enabled and bufnr and vim.bo[bufnr].buftype ~= "terminal")
         then
           local provider = config.display.diff.provider
@@ -123,6 +123,14 @@ return {
         end
 
         --TODO: Scroll to buffer and the new lines
+
+        -- Automatically save the buffer
+        if vim.g.codecompanion_auto_tool_mode then
+          log:info("[Editor Tool] Auto-saving buffer")
+          api.nvim_buf_call(bufnr, function()
+            vim.cmd("silent write")
+          end)
+        end
 
         return { status = "success", msg = nil }
       end
@@ -197,7 +205,7 @@ return {
   },
   system_prompt = function(schema)
     return string.format(
-      [[## Editor Tool
+      [[## Editor Tool (`editor`) - Enhanced Guidelines
 
 ### Purpose:
 - Modify the content of a Neovim buffer by adding, updating, or deleting code when explicitly requested.

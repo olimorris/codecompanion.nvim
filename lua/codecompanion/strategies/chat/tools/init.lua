@@ -79,7 +79,7 @@ function Tools:set_autocmds()
       end
 
       if request.match == "CodeCompanionAgentStarted" then
-        log:debug("Agent started")
+        log:info("[Agent] Initiated")
         return ui.set_virtual_text(
           self.bufnr,
           self.tools_ns,
@@ -102,7 +102,6 @@ function Tools:set_autocmds()
 
         -- Handle any success
         if request.data.status == CONSTANTS.STATUS_SUCCESS then
-          log:debug("[Tools] Finished %s", string.upper(self.tool.name))
           if self.agent_config.tools.opts.auto_submit_success then
             self.chat:submit()
           end
@@ -148,7 +147,7 @@ function Tools:parse_buffer(chat, start_range, end_range)
     end
   end
 
-  log:debug("[Tools] Detected: %s", tools)
+  log:trace("[Tools] Detected: %s", tools)
 
   if not vim.tbl_isempty(tools) then
     self.extracted = tools
@@ -206,6 +205,7 @@ function Tools:run()
 
   local handlers = {
     setup = function()
+      vim.g.codecompanion_current_tool = self.tool.name
       if self.tool.handlers and self.tool.handlers.setup then
         self.tool.handlers.setup(self)
       end
@@ -245,18 +245,17 @@ function Tools:run()
   local function close()
     handlers.on_exit()
 
-    vim.schedule(function()
-      util.fire(
-        "AgentFinished",
-        { name = self.tool.name, bufnr = self.bufnr, status = status, stderr = stderr, stdout = stdout }
-      )
+    util.fire(
+      "AgentFinished",
+      { name = self.tool.name, bufnr = self.bufnr, status = status, stderr = stderr, stdout = stdout }
+    )
 
-      status = CONSTANTS.STATUS_SUCCESS
-      stderr = {}
-      stdout = {}
+    status = CONSTANTS.STATUS_SUCCESS
+    stderr = {}
+    stdout = {}
 
-      self.chat.subscribers:process(self.chat)
-    end)
+    self.chat.subscribers:process(self.chat)
+    vim.g.codecompanion_current_tool = nil
   end
 
   ---Run the commands in the tool
@@ -274,7 +273,7 @@ function Tools:run()
     end
 
     local cmd = self.tool.cmds[index]
-    log:debug("[Tools] Running cmd: %s", cmd)
+    log:debug("[Tools] Running cmd: %s", self.tool.name)
 
     ---Execute a function tool
     local function execute_func(action, ...)
@@ -333,6 +332,7 @@ function Tools:run()
         end
       end
 
+      -- Delay executing the job to allow for output to be collated and processed
       self.chat.current_tool = Job:new({
         command = vim.fn.has("win32") == 1 and "cmd.exe" or "sh",
         args = { vim.fn.has("win32") == 1 and "/c" or "-c", table.concat(cmd.cmd or cmd, " ") },
@@ -362,7 +362,7 @@ function Tools:run()
             self.chat.tool_flags[cmd.flag] = (code == 0)
           end
 
-          log:debug("Tool %s finished with code: %s", self.tool.name, code)
+          log:debug("[Tools] %s finished with code %s", self.tool.name, code)
 
           vim.schedule(function()
             if _G.codecompanion_cancel_tool then
@@ -379,11 +379,11 @@ function Tools:run()
               end
             elseif not vim.tbl_isempty(stderr) then
               output.error(cmd, strip_ansi(stderr))
-              log:debug("Tool %s finished with stderr: %s", self.tool.name, stderr)
+              log:debug("[Tools] %s finished with stderr: %s", self.tool.name, stderr)
               stderr = {}
             elseif not vim.tbl_isempty(stdout) then
               output.success(cmd, strip_ansi(stdout))
-              log:debug("Tool %s finished with output: %s", self.tool.name, stdout)
+              log:trace("[Tools] %s finished with output: %s", self.tool.name, stdout)
               stdout = {}
             end
 
@@ -491,7 +491,7 @@ end
 ---@return string
 function Tools:replace(message)
   for tool, _ in pairs(self.agent_config.tools) do
-    message = vim.trim(message:gsub(CONSTANTS.PREFIX .. tool, ""))
+    message = vim.trim(message:gsub(CONSTANTS.PREFIX .. tool, tool))
   end
   for agent, _ in pairs(self.agent_config) do
     message = vim.trim(message:gsub(CONSTANTS.PREFIX .. agent, ""))
@@ -506,7 +506,7 @@ function Tools:reset()
   api.nvim_buf_clear_namespace(self.bufnr, self.tools_ns, 0, -1)
   api.nvim_clear_autocmds({ group = self.aug })
   self.extracted = {}
-  log:debug("Agent finished")
+  log:info("[Agent] Completed")
 end
 
 ---Fold any XML code blocks in the buffer
@@ -574,18 +574,18 @@ function Tools.resolve(tool)
 
   local ok, module = pcall(require, "codecompanion." .. callback)
   if ok then
-    log:debug("[Tools] Calling %s", callback)
+    log:debug("[Tools] %s identified", callback)
     return module
   end
 
   -- Try loading the tool from the user's config
   ok, module = pcall(loadfile, callback)
   if not ok then
-    return log:error("[Tools] Could not resolve tool: %s", callback)
+    return log:error("[Tools] %s could not be resolved", callback)
   end
 
   if module then
-    log:debug("[Tools] Calling tool: %s", callback)
+    log:debug("[Tools] %s identified", callback)
     return module()
   end
 end

@@ -561,15 +561,15 @@ M.toggle_system_prompt = {
   end,
 }
 
-M.approve_tools = {
-  desc = "Toggle the approval of tools",
+M.auto_tool_mode = {
+  desc = "Toggle automatic tool mode",
   callback = function(chat)
-    if vim.g.codecompanion_auto_approve then
-      vim.g.codecompanion_auto_approve = nil
-      return util.notify("Tools now require approval and Diff mode enabled", vim.log.levels.INFO)
+    if vim.g.codecompanion_auto_tool_mode then
+      vim.g.codecompanion_auto_tool_mode = nil
+      return util.notify("Disabled automatic tool mode", vim.log.levels.INFO)
     else
-      vim.g.codecompanion_auto_approve = true
-      return util.notify("Tools will be auto-approved and Diff mode disabled", vim.log.levels.INFO)
+      vim.g.codecompanion_auto_tool_mode = true
+      return util.notify("Enabled automatic tool mode", vim.log.levels.INFO)
     end
   end,
 }

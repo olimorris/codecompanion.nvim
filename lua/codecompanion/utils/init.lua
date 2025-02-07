@@ -41,7 +41,8 @@ end
 ---@param str string
 ---@return string
 M.capitalize = function(str)
-  return (str:gsub("^%l", string.upper))
+  local result = str:gsub("^%l", string.upper)
+  return result
 end
 
 ---Check if a table is an array
