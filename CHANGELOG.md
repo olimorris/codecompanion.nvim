@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.27.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.27.0...v11.27.1) (2025-02-07)
+
+
+### Bug Fixes
+
+* delete diff buffers instead of closing ([#852](https://github.com/olimorris/codecompanion.nvim/issues/852)) ([4c48bd3](https://github.com/olimorris/codecompanion.nvim/commit/4c48bd336e900ed7bf3be95689ac1cc147b3701e))
+
 ## [11.27.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.26.0...v11.27.0) (2025-02-07)
 
 
