@@ -26,7 +26,7 @@ T["Chat"]["buffer variables are handled"] = function()
 
   local message = chat.messages[#chat.messages]
   if chat.variables:parse(chat, message) then
-    message.content = chat.variables:replace(message.content)
+    message.content = chat.variables:replace(message.content, chat.context.bufnr)
   end
 
   -- Variable is inserted as its own new message at the end

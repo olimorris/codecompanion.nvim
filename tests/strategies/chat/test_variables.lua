@@ -77,8 +77,14 @@ end
 
 T["Variables"][":replace"]["should replace the variable in the message"] = function()
   local message = "#foo #bar replace this var"
-  local result = vars:replace(message, "foo")
+  local result = vars:replace(message, 0)
   h.eq("replace this var", result)
+end
+
+T["Variables"][":replace"]["should partly replace #buffer in the message"] = function()
+  local message = "what does #buffer do?"
+  local result = vars:replace(message, 0)
+  h.eq("what does buffer 0 (`[CodeCompanion] 8555552`) do?", result)
 end
 
 return T
