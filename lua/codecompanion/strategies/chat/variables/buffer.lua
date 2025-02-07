@@ -9,26 +9,6 @@ local reserved_params = {
   "watch",
 }
 
----Extract the range from the params
----@param params string
----@return table
-local function get_range(params)
-  local range
-
-  local start, finish = params:match("(%d+)-(%d+)")
-
-  if start and finish then
-    start = tonumber(start) - 1
-    finish = tonumber(finish)
-  end
-
-  if start <= finish then
-    range = { start, finish }
-  end
-
-  return range
-end
-
 ---@class CodeCompanion.Variable.Buffer: CodeCompanion.Variable
 local Variable = {}
 
@@ -45,10 +25,9 @@ end
 
 ---Read the contents of the buffer
 ---@param bufnr number
----@param range table
 ---@return string, string
-function Variable:read(bufnr, range)
-  local content = buf_utils.format_with_line_numbers(bufnr, range)
+function Variable:read(bufnr)
+  local content = buf_utils.format_with_line_numbers(bufnr)
   log:trace("Buffer Variable:\n---\n%s", content)
 
   local name = self.Chat.references:make_id_from_buf(bufnr)
@@ -72,11 +51,11 @@ function Variable:output(selected, opts)
   local bufnr = selected.bufnr or self.Chat.context.bufnr
   local params = selected.params or self.params
 
-  local range
   if params and not vim.tbl_contains(reserved_params, params) then
-    range = get_range(params)
+    return log:warn("Invalid parameter for buffer variable: %s", params)
   end
-  local content, id = self:read(bufnr, range)
+
+  local content, id = self:read(bufnr)
 
   local message = "Here is the content from the buffer.\n\n"
   if opts.pin then
@@ -110,7 +89,10 @@ end
 ---@return string
 function Variable.replace(prefix, message, bufnr)
   local bufname = buf_utils.name_from_bufnr(bufnr)
-  local result = message:gsub(prefix .. "buffer:?[%w]*", "buffer " .. bufnr .. " (`" .. bufname .. "`)")
+  local replacement = "buffer " .. bufnr .. " (`" .. bufname .. "`)"
+
+  local result = message:gsub(prefix .. "buffer{[^}]*}", replacement)
+  result = result:gsub(prefix .. "buffer", replacement)
 
   return result
 end

@@ -10,7 +10,7 @@ local CONSTANTS = {
 ---@param var string
 ---@return string|nil
 local function find_params(message, var)
-  local pattern = CONSTANTS.PREFIX .. var .. ":([^%s]+)"
+  local pattern = CONSTANTS.PREFIX .. var .. "{([^}]+)}"
 
   local params = message.content:match(pattern)
   if params then

@@ -36,7 +36,7 @@ api.nvim_create_autocmd("FileType", {
     vim.iter(config.strategies.chat.variables):each(function(name, var)
       vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '"')
       if var.opts and var.opts.has_params then
-        vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. ':\\S\\+"')
+        vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '{[^}]*}"')
       end
     end)
     vim.iter(config.strategies.chat.agents.tools):each(function(name, _)
