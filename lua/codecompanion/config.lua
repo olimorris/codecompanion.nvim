@@ -14,6 +14,7 @@ local defaults = {
     copilot = "copilot",
     deepseek = "deepseek",
     gemini = "gemini",
+    githubmodels = "githubmodels",
     huggingface = "huggingface",
     ollama = "ollama",
     openai = "openai",

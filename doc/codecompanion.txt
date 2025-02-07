@@ -56,7 +56,7 @@ LLMs, in Neovim.
 FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
--  Support for Anthropic, Copilot, DeepSeek, Gemini, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs (or bring your own!)
+-  Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs (or bring your own!)
 -  Inline transformations, code creation and refactoring
 -  Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
 -  Built in prompt library for common tasks like advice on LSP errors and code explanations
