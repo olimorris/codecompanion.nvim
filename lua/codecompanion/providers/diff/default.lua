@@ -109,7 +109,7 @@ end
 ---@return nil
 function Diff:teardown()
   vim.cmd("diffoff")
-  api.nvim_win_close(self.diff.win, false)
+  api.nvim_buf_delete(self.diff.buf, {})
   util.fire("DiffDetached", { diff = "default", bufnr = self.bufnr })
 end
 
