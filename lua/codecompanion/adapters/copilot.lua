@@ -211,6 +211,7 @@ return {
         ["o1-mini-2024-09-12"] = { opts = { can_reason = true } },
         "claude-3.5-sonnet",
         "gpt-4o-2024-08-06",
+        "gemini-2.0-flash-001",
       },
     },
     reasoning_effort = {
