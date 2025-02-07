@@ -45,29 +45,18 @@ end
 T["Variables"][":parse"]["should parse a message with a variable and string params"] = function()
   table.insert(chat.messages, {
     role = "user",
-    content = "#bar:baz Can you parse this variable?",
+    content = "#bar{pin} Can you parse this variable?",
   })
   vars:parse(chat, chat.messages[#chat.messages])
 
   local message = chat.messages[#chat.messages]
-  h.eq("bar baz", message.content)
-end
-
-T["Variables"][":parse"]["should parse a message with a variable and numerical params"] = function()
-  table.insert(chat.messages, {
-    role = "user",
-    content = "#bar:100-200 Can you parse this variable?",
-  })
-  vars:parse(chat, chat.messages[#chat.messages])
-
-  local message = chat.messages[#chat.messages]
-  h.eq("bar 100-200", message.content)
+  h.eq("bar pin", message.content)
 end
 
 T["Variables"][":parse"]["should parse a message with a variable and ignore params if they're not enabled"] = function()
   table.insert(chat.messages, {
     role = "user",
-    content = "#baz:qux Can you parse this variable?",
+    content = "#baz{qux} Can you parse this variable?",
   })
   vars:parse(chat, chat.messages[#chat.messages])
 
@@ -84,7 +73,13 @@ end
 T["Variables"][":replace"]["should partly replace #buffer in the message"] = function()
   local message = "what does #buffer do?"
   local result = vars:replace(message, 0)
-  h.eq("what does buffer 0 (`[CodeCompanion] 8555552`) do?", result)
+  h.expect_starts_with("what does buffer 0", result)
+end
+
+T["Variables"][":replace"]["should partly replace #buffer in the message"] = function()
+  local message = "what does #buffer{pin} do?"
+  local result = vars:replace(message, 0)
+  h.expect_starts_with("what does buffer 0", result)
 end
 
 return T

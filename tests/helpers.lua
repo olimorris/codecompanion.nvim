@@ -3,6 +3,18 @@ local Helpers = {}
 Helpers.expect = MiniTest.expect --[[@type function]]
 Helpers.eq = MiniTest.expect.equality --[[@type function]]
 Helpers.not_eq = MiniTest.expect.no_equality --[[@type function]]
+Helpers.expect_starts_with = MiniTest.new_expectation( --[[@type function]]
+  -- Expectation subject
+  "string starts with",
+  -- Predicate
+  function(pattern, str)
+    return str:find("^" .. pattern) ~= nil
+  end,
+  -- Fail context
+  function(pattern, str)
+    return string.format("Expected string to start with: %s\nObserved string: %s", vim.inspect(pattern), str)
+  end
+)
 
 Helpers.get_buf_lines = function(bufnr)
   return vim.api.nvim_buf_get_lines(bufnr, 0, -1, true)
