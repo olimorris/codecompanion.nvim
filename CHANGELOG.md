@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.27.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.26.0...v11.27.0) (2025-02-07)
+
+
+### Features
+
+* **copilot:** add support for gemini 2.0 flash ([#855](https://github.com/olimorris/codecompanion.nvim/issues/855)) ([#856](https://github.com/olimorris/codecompanion.nvim/issues/856)) ([c0ea1c0](https://github.com/olimorris/codecompanion.nvim/commit/c0ea1c0faf57a61c1121532cad9bbeea58dcd0cc))
+
 ## [11.26.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.25.3...v11.26.0) (2025-02-05)
 
 
