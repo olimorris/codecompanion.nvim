@@ -30,7 +30,8 @@ local function run_cmd(var)
     local result = handle:read("*a")
     log:trace("Executed cmd: %s", cmd)
     handle:close()
-    return result:gsub("%s+$", "")
+    local r = result:gsub("%s+$", "")
+    return r
   else
     return log:error("Error: Could not execute cmd: %s", cmd)
   end
@@ -81,9 +82,11 @@ end
 local function replace_var(adapter, str)
   local pattern = "${(.-)}"
 
-  return str:gsub(pattern, function(var)
+  local result = str:gsub(pattern, function(var)
     return adapter.env_replaced[var]
   end)
+
+  return result
 end
 
 ---@class CodeCompanion.Adapter
