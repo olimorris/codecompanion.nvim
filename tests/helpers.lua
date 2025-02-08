@@ -180,7 +180,7 @@ Helpers.setup_chat_buffer = function(config, adapter)
       end,
     },
     system_prompt = function()
-      return "my bar sysem prompt"
+      return "my bar system prompt"
     end,
   }
   package.loaded["codecompanion.utils.bar_again"] = {
