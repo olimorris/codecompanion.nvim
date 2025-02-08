@@ -504,7 +504,16 @@ Points to note:
           {
             name = "Setup Test",
             role = constants.USER_ROLE,
-            content = "@cmd_runner I'd like you to run the test suite for my repository. The cmd to use is ",
+            content = function()
+              -- Enable turbo mode
+              vim.g.codecompanion_auto_tool_mode = true
+
+              return [[### Actions
+
+1. Update the code in #buffer{watch} using the @editor tool.
+2. Then use the @cmd_runner tool to run the tests with `pytest`. Do this after you have edited the buffer
+3. Make sure you trigger both tools in the same response]]
+            end,
             opts = {
               auto_submit = false,
             },
