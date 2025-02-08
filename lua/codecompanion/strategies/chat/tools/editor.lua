@@ -97,13 +97,17 @@ return {
           return { status = "error", msg = "No buffer number provided by the LLM" }
         end
 
-        local bufnr = tonumber(action.buffer)
+        local bufnr
+        if not action.buffer then
+          log:debug("[Editor Tool] No buffer number provided by the LLM, using the current buffer")
+          bufnr = self.chat.context.bufnr
+        end
+        bufnr = tonumber(action.buffer)
         assert(bufnr, "No buffer number provided by the LLM")
-
-        local winnr = ui.buf_get_win(bufnr)
 
         log:trace("[Editor Tool] request: %s", action)
 
+        local winnr = ui.buf_get_win(bufnr)
         if not api.nvim_buf_is_valid(bufnr) then
           return { status = "error", msg = "Invalid buffer number" }
         end
