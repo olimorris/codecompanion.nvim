@@ -1,8 +1,6 @@
-local config = require("codecompanion.config")
-
-local new_set = MiniTest.new_set
 local h = require("tests.helpers")
 
+local new_set = MiniTest.new_set
 local T = MiniTest.new_set()
 
 local chat

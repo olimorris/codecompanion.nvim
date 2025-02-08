@@ -171,8 +171,14 @@ function Tools:setup(chat, xml)
   end
 
   ---@type CodeCompanion.Tool|nil
-  local resolved_tool = Tools.resolve(self.agent_config.tools[schema.tool._attr.name])
-  if not resolved_tool then
+  local resolved_tool
+  ok, resolved_tool = pcall(function()
+    return Tools.resolve(self.agent_config.tools[schema.tool._attr.name])
+  end)
+  if not ok or not resolved_tool then
+    log:error("Couldn't resolve the tool(s) from the LLM's response")
+    log:info("XML:\n%s", xml)
+    log:info("Schema:\n%s", schema)
     return
   end
 

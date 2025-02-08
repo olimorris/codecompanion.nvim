@@ -142,7 +142,7 @@ function Strategies:chat()
   return add_ref(self.selected, chat)
 end
 
----@return CodeCompanion.Chat|nil
+---@return CodeCompanion.Chat
 function Strategies:workflow()
   local workflow = self.selected
   local stages = #workflow.prompts
@@ -208,6 +208,8 @@ function Strategies:workflow()
       order = order + 1
     end)
   end
+
+  return chat
 end
 
 ---@return CodeCompanion.Inline|nil

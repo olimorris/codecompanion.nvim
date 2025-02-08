@@ -46,7 +46,6 @@ Helpers.config = {
           },
         },
       },
-
       variables = {
         ["foo"] = {
           callback = "tests.strategies.chat.variables.foo",
@@ -64,7 +63,6 @@ Helpers.config = {
           description = "baz",
         },
       },
-
       slash_commands = {
         ["file"] = {
           callback = "strategies.chat.slash_commands.file",
@@ -188,12 +186,16 @@ end
 ---Mock the sending of a chat buffer to an LLM
 ---@param chat CodeCompanion.Chat
 ---@param message string
+---@param callback? function
 ---@return nil
-Helpers.send_to_llm = function(chat, message)
+Helpers.send_to_llm = function(chat, message, callback)
   message = message or "Hello there"
   chat:submit()
   chat:add_buf_message({ role = "llm", content = message })
   chat.status = "success"
+  if callback then
+    callback()
+  end
   chat:done({ message })
 end
 
