@@ -7,15 +7,8 @@ if vim.fn.has("nvim-0.10.0") == 0 then
   return vim.notify("CodeCompanion.nvim requires Neovim 0.10.0+", vim.log.levels.ERROR)
 end
 
-local cmds = require("codecompanion.commands")
 local config = require("codecompanion.config")
-
 local api = vim.api
-
--- Create the user commands
-for _, cmd in ipairs(cmds) do
-  api.nvim_create_user_command(cmd.cmd, cmd.callback, cmd.opts)
-end
 
 -- Set the highlight groups
 api.nvim_set_hl(0, "CodeCompanionChatHeader", { link = "@markup.heading.2.markdown", default = true })
