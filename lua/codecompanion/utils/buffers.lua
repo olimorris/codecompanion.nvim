@@ -47,7 +47,7 @@ function M.get_info(bufnr)
   return {
     bufnr = bufnr,
     filetype = api.nvim_buf_get_option(bufnr, "filetype"),
-    id = bufnr,
+    number = bufnr,
     name = vim.fn.fnamemodify(bufname, ":t"),
     path = bufname,
     relative_path = relative_path,
@@ -110,7 +110,7 @@ local function format(buffer, lines)
 
   return string.format(
     [[
-Buffer ID: %d
+Buffer Number: %d
 Name: %s
 Path: %s
 Filetype: %s
@@ -119,7 +119,7 @@ Content:
 %s
 ```
 ]],
-    buffer.id,
+    buffer.number,
     buffer.name,
     buffer.path,
     buffer.filetype,
