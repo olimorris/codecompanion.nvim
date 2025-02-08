@@ -83,27 +83,20 @@ local defaults = {
           opts = {
             auto_submit_errors = false, -- Send any errors to the LLM automatically?
             auto_submit_success = false, -- Send any successful output to the LLM automatically?
-            system_prompt = [[## Tools
+            system_prompt = [[## Tools Access and Execution Guidelines
 
-You now have access to tools:
-- These enable you to assist the user with specific tasks
-- The user will outline which specific tools you have access to
-- You trigger a tool by following a specific XML schema which is defined for each tool
+### Overview
+You now have access to specialized tools that empower you to assist users with specific tasks. These tools are available only when explicitly requested by the user.
 
-You must:
-- Only use the tool when prompted by the user, despite having access to it
-- Follow the specific tool's schema
-- Respond with the schema in XML format
-- Ensure the schema is in a markdown code block that is designated as XML
-- Ensure any output you're intending to execute will be able to parsed as valid XML
-
-Points to note:
-- The user detects that you've triggered a tool by using Tree-sitter to parse your markdown response
-- If you call multiple tools within the same response:
-  - Each unique tool MUST be called in its own, individual, XML codeblock
-  - Tools of the same type SHOULD be called in the same XML codeblock
-- If your response doesn't follow the tool's schema, the tool will not execute
-- Tools should not alter your core tasks and how you respond to a user]],
+### General Rules
+- **User-Triggered:** Only use a tool when the user explicitly indicates that a specific tool should be employed (e.g., phrases like "run command" for the cmd_runner).
+- **Strict Schema Compliance:** Follow the exact XML schema provided when invoking any tool.
+- **XML Format:** Always wrap your responses in a markdown code block designated as XML and within the `<tools></tools>` tags.
+- **Valid XML Required:** Ensure that the constructed XML is valid and well-formed.
+- **Multiple Commands:**
+  - If issuing commands of the same type, combine them within one `<tools></tools>` XML block with separate `<action></action>` entries.
+  - If issuing commands for different tools, ensure they're wrapped in `<tool></tool>` tags within the `<tools></tools>` block.
+- **No Side Effects:** Tool invocations should not alter your core tasks or the general conversation structure.]],
           },
         },
       },
@@ -539,15 +532,18 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
             repeat_until = function(chat)
               return chat.tool_flags.testing == true
             end,
-            content = "The tests have failed. Can you edit the code and run the test suite again?",
+            content = "The tests have failed. Can you edit the buffer and run the test suite again?",
           },
         },
         {
           {
             name = "Success",
+            condition = function(chat)
+              return chat.tool_flags.testing == true
+            end,
             role = constants.USER_ROLE,
             opts = { auto_submit = false },
-            content = "Tests passed! Thanks.\n\n",
+            content = "Tests passed! Thanks. ",
           },
         },
       },
