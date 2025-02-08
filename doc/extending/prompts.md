@@ -78,7 +78,7 @@ To make this example complete, we can leverage a pre-hook to create a new buffer
       pre_hook = function()
         local bufnr = vim.api.nvim_create_buf(true, false)
         vim.api.nvim_set_current_buf(bufnr)
-        vim.api.nvim_set_option_value("filetype", "html", { buf = buf } )
+        vim.api.nvim_set_option_value("filetype", "html", { buf = bufnr } )
         return bufnr
       end
     }
