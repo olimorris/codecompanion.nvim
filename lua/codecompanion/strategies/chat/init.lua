@@ -163,7 +163,6 @@ function Chat.new(args)
   log:trace("Chat created with ID %d", id)
 
   local self = setmetatable({
-    opts = args,
     context = args.context,
     cycle = 1,
     header_line = 1,
@@ -209,7 +208,7 @@ function Chat.new(args)
     chat = self,
   }
 
-  self.adapter = adapters.resolve(self.opts.adapter)
+  self.adapter = adapters.resolve(args.adapter)
   if not self.adapter then
     return log:error("No adapter found")
   end
@@ -221,7 +220,7 @@ function Chat.new(args)
   util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = self.adapter.schema.model.default })
   util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
 
-  self:apply_settings(schema.get_default(self.adapter.schema, self.opts.settings))
+  self:apply_settings(schema.get_default(self.adapter.schema, args.settings))
 
   self.ui = require("codecompanion.strategies.chat.ui").new({
     adapter = self.adapter,
@@ -231,8 +230,16 @@ function Chat.new(args)
     settings = self.settings,
   })
 
+  if args.messages then
+    self.messages = args.messages
+  end
+
   self.close_last_chat()
-  self.ui:open():render(self.context, self.messages, self.opts):set_extmarks(self.opts)
+  self.ui:open():render(self.context, self.messages, args)
+
+  if vim.tbl_isempty(self.messages) then
+    self.ui:set_intro_msg()
+  end
 
   if config.strategies.chat.keymaps then
     keymaps
@@ -249,7 +256,7 @@ function Chat.new(args)
 
   last_chat = self
 
-  if self.opts.auto_submit then
+  if args.auto_submit then
     self:submit()
   end
 
@@ -370,7 +377,7 @@ end
 ---@param settings? table
 ---@return self
 function Chat:apply_settings(settings)
-  self.settings = settings or schema.get_default(self.adapter.schema, self.opts.settings)
+  self.settings = settings or schema.get_default(self.adapter.schema, self.settings)
   _cached_settings[self.bufnr] = self.settings
 
   return self
@@ -1038,7 +1045,7 @@ function Chat:clear()
   self.tools_in_use = {}
 
   log:trace("Clearing chat buffer")
-  self.ui:render(self.context, self.messages, self.opts):set_extmarks(self.opts)
+  self.ui:render(self.context, self.messages, self.opts):set_intro_msg()
   self:add_system_prompt()
 end
 

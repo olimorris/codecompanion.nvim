@@ -227,7 +227,8 @@ function UI:render(context, messages, opts)
   local function add_messages_to_buf(msgs)
     for i, msg in ipairs(msgs) do
       if msg.role ~= config.constants.SYSTEM_ROLE or (msg.opts and msg.opts.visible ~= false) then
-        if i > 1 and self.last_role ~= msg.role then
+        -- For workflow prompts: Ensure main user role doesn't get spaced
+        if i > 1 and self.last_role ~= msg.role and msg.role ~= config.constants.USER_ROLE then
           spacer()
         end
 
@@ -328,11 +329,10 @@ function UI:render_headers()
   log:trace("Rendering headers in the chat buffer")
 end
 
----Set any extmarks in the chat buffer
----@param opts table
+---Set the welcome message in the chat buffer
 ---@return CodeCompanion.Chat.UI|nil
-function UI:set_extmarks(opts)
-  if self.intro_message or (opts.messages and vim.tbl_count(opts.messages) > 0) then
+function UI:set_intro_msg()
+  if self.intro_message then
     return self
   end
 

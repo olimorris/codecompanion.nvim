@@ -171,9 +171,9 @@ function Strategies:workflow()
   -- We send the first batch of prompts to the chat buffer as messages
   local chat = require("codecompanion.strategies.chat").new({
     adapter = self.selected.adapter,
+    auto_submit = (messages[#messages].opts and messages[#messages].opts.auto_submit) or false,
     context = self.context,
     messages = messages,
-    auto_submit = (messages[#messages].opts and messages[#messages].opts.auto_submit) or false,
   })
   table.remove(prompts, 1)
 

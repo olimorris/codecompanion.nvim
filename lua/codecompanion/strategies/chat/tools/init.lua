@@ -170,10 +170,11 @@ function Tools:setup(chat, xml)
     return log:error("Error parsing XML schema: %s", schema)
   end
 
-  ---@type CodeCompanion.Tool|nil
-  local resolved_tool
-
-  local function call(s)
+  ---Resolve and run the tool
+  ---@param s table The tool's schema
+  local function run_tool(s)
+    ---@type CodeCompanion.Tool|nil
+    local resolved_tool
     ok, resolved_tool = pcall(function()
       return Tools.resolve(self.agent_config.tools[s.tool._attr.name])
     end)
@@ -197,13 +198,15 @@ function Tools:setup(chat, xml)
     self:run()
   end
 
+  -- This allows us to run multiple tools in a single response whether they're in
+  -- their own XML block or they're in an array within the <tools> tag
   if vim.isarray(schema.tool) then
     vim.iter(schema.tool):each(function(tool)
-      call({ tool = tool })
+      run_tool({ tool = tool })
     end)
     return
   end
-  return call(schema)
+  return run_tool(schema)
 end
 
 ---Run the tool

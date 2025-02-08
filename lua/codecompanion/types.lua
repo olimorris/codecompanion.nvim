@@ -89,7 +89,6 @@
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library-
 ---@field header_ns integer The namespace for the virtual text that appears in the header
 ---@field id integer The unique identifier for the chat
----@field intro_message? boolean Whether the welcome message has been shown
 ---@field messages? table The messages in the chat buffer
 ---@field parser vim.treesitter.LanguageTree The Tree-sitter parser for the chat buffer
 ---@field references CodeCompanion.Chat.References
