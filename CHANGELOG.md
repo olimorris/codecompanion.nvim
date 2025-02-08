@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.28.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.27.1...v11.28.0) (2025-02-08)
+
+
+### Features
+
+* **adapters:** add GitHub Models support ([#862](https://github.com/olimorris/codecompanion.nvim/issues/862)) ([4a6567b](https://github.com/olimorris/codecompanion.nvim/commit/4a6567b2a563503b157705ec284fb922f81b784a))
+
 ## [11.27.1](https://github.com/olimorris/codecompanion.nvim/compare/v11.27.0...v11.27.1) (2025-02-07)
 
 
