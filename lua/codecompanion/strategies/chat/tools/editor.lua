@@ -9,7 +9,6 @@ local config = require("codecompanion.config")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
-local util = require("codecompanion.utils")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local api = vim.api
@@ -21,6 +20,10 @@ local deltas = {}
 local function add_delta(bufnr, line, delta)
   table.insert(deltas, { bufnr = bufnr, line = line, delta = delta })
 end
+
+---Calculate if there is any intersection between the lines
+---@param bufnr number
+---@param line number
 local function intersect(bufnr, line)
   local delta = 0
   for _, v in ipairs(deltas) do
@@ -31,9 +34,18 @@ local function intersect(bufnr, line)
   return delta
 end
 
+---Add lines to the buffer
+---@param bufnr number
+---@param action table
 local function add(bufnr, action)
   log:debug("[Editor Tool] Adding code to buffer")
+
   local start_line = tonumber(action.line)
+  assert(start_line, "No start line number provided by the LLM")
+  if start_line == 0 then
+    start_line = 1
+  end
+
   local delta = intersect(bufnr, start_line)
 
   local lines = vim.split(action.code, "\n", { plain = true, trimempty = false })
@@ -42,10 +54,24 @@ local function add(bufnr, action)
   add_delta(bufnr, start_line, tonumber(#lines))
 end
 
+---Delete lines from the buffer
+---@param bufnr number
+---@param action table
 local function delete(bufnr, action)
   log:debug("[Editor Tool] Deleting code from the buffer")
+
   local start_line = tonumber(action.start_line)
+  assert(start_line, "No start line number provided by the LLM")
+  if start_line == 0 then
+    start_line = 1
+  end
+
   local end_line = tonumber(action.end_line)
+  assert(end_line, "No end line number provided by the LLM")
+  if end_line == 0 then
+    end_line = 1
+  end
+
   local delta = intersect(bufnr, start_line)
 
   api.nvim_buf_set_lines(bufnr, start_line + delta - 1, end_line + delta, false, {})
@@ -72,6 +98,8 @@ return {
         end
 
         local bufnr = tonumber(action.buffer)
+        assert(bufnr, "No buffer number provided by the LLM")
+
         local winnr = ui.buf_get_win(bufnr)
 
         log:trace("[Editor Tool] request: %s", action)
@@ -168,8 +196,8 @@ return {
         action = {
           _attr = { type = "update" },
           buffer = 10,
-          start_line = 199,
-          end_line = 199,
+          start_line = 50,
+          end_line = 99,
           code = "<![CDATA[   function M.capitalize()]]>",
         },
       },
@@ -216,7 +244,7 @@ return {
 
 ### Execution Format:
 - Always return an XML markdown code block.
-- Always include the buffer number that the user has shared with you, in the `<buffer>` attribute. If the user has not supplied this, prompt them for it.
+- Always include the buffer number that the user has shared with you, in the `<buffer></buffer>` tag. If the user has not supplied this, prompt them for it.
 - Each code operation must:
   - Be wrapped in a CDATA section to preserve special characters (CDATA sections ensure that characters like '<' and '&' are not interpreted as XML markup).
   - Follow the XML schema exactly.
@@ -234,6 +262,7 @@ b) **Update Action:**
 ```xml
 %s
 ```
+- Be sure to include both the start and end lines for the range to be updated.
 
 c) **Delete Action:**
 ```xml
@@ -249,6 +278,7 @@ d) **Multiple Actions:**
 - **Safety and Accuracy:** Validate all code updates carefully.
 - **CDATA Usage:** Code is wrapped in CDATA blocks to protect special characters and prevent them from being misinterpreted by XML.
 - **Tag Order:** Use a consistent order by always listing <start_line> before <end_line> for update and delete actions.
+- **Line Numbers:** Note that line numbers are 1-indexed, so the first line is line 1, not line 0.
 - **Update Rule:** The update action first deletes the range defined in <start_line> to <end_line> (inclusive) and then adds the new code starting from <start_line>.
 - **Contextual Assumptions:** If no context is provided, assume that you should update the buffer with the code from your last response.
 
