@@ -172,27 +172,38 @@ function Tools:setup(chat, xml)
 
   ---@type CodeCompanion.Tool|nil
   local resolved_tool
-  ok, resolved_tool = pcall(function()
-    return Tools.resolve(self.agent_config.tools[schema.tool._attr.name])
-  end)
-  if not ok or not resolved_tool then
-    log:error("Couldn't resolve the tool(s) from the LLM's response")
-    log:info("XML:\n%s", xml)
-    log:info("Schema:\n%s", schema)
+
+  local function call(s)
+    ok, resolved_tool = pcall(function()
+      return Tools.resolve(self.agent_config.tools[s.tool._attr.name])
+    end)
+    if not ok or not resolved_tool then
+      log:error("Couldn't resolve the tool(s) from the LLM's response")
+      log:info("XML:\n%s", xml)
+      log:info("Schema:\n%s", s)
+      return
+    end
+
+    self.tool = vim.deepcopy(resolved_tool)
+    self.tool.request = s.tool
+    self:fold_xml()
+    self:set_autocmds()
+
+    if self.tool.env then
+      local env = type(self.tool.env) == "function" and self.tool.env(s.tool) or {}
+      util.replace_placeholders(self.tool.cmds, env)
+    end
+
+    self:run()
+  end
+
+  if vim.isarray(schema.tool) then
+    vim.iter(schema.tool):each(function(tool)
+      call({ tool = tool })
+    end)
     return
   end
-
-  self.tool = vim.deepcopy(resolved_tool)
-  self.tool.request = schema.tool
-  self:fold_xml()
-  self:set_autocmds()
-
-  if self.tool.env then
-    local env = type(self.tool.env) == "function" and self.tool.env(schema.tool) or {}
-    util.replace_placeholders(self.tool.cmds, env)
-  end
-
-  self:run()
+  return call(schema)
 end
 
 ---Run the tool
