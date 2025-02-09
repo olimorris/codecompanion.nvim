@@ -82,7 +82,8 @@ local function add(bufnr, action)
     delete(bufnr, { start_line = 1, end_line = api.nvim_buf_line_count(bufnr) })
     start_line = 1
   else
-    start_line = action.line and tonumber(action.line) or 1
+    start_line = tonumber(action.line)
+    assert(start_line, "No line number provided by the LLM")
     if start_line == 0 then
       start_line = 1
     end
@@ -114,21 +115,13 @@ return {
         if not action.buffer then
           return { status = "error", msg = "No buffer number provided by the LLM" }
         end
-
-        local bufnr
-        if not action.buffer then
-          log:debug("[Editor Tool] No buffer number provided by the LLM, using the current buffer")
-          bufnr = self.chat.context.bufnr
-        end
-        bufnr = tonumber(action.buffer)
-        assert(bufnr, "No buffer number provided by the LLM")
-
-        log:trace("[Editor Tool] request: %s", action)
+        local bufnr = tonumber(action.buffer)
+        assert(bufnr, "Buffer number conversion failed")
+        local is_valid, _ = pcall(api.nvim_buf_is_valid, bufnr)
+        assert(is_valid, "Invalid buffer number")
 
         local winnr = ui.buf_get_win(bufnr)
-        if not api.nvim_buf_is_valid(bufnr) then
-          return { status = "error", msg = "Invalid buffer number" }
-        end
+        log:trace("[Editor Tool] request: %s", action)
 
         -- Diff the buffer
         if
