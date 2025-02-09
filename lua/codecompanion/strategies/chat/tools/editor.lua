@@ -34,26 +34,6 @@ local function intersect(bufnr, line)
   return delta
 end
 
----Add lines to the buffer
----@param bufnr number
----@param action table
-local function add(bufnr, action)
-  log:debug("[Editor Tool] Adding code to buffer")
-
-  local start_line = tonumber(action.line)
-  assert(start_line, "No start line number provided by the LLM")
-  if start_line == 0 then
-    start_line = 1
-  end
-
-  local delta = intersect(bufnr, start_line)
-
-  local lines = vim.split(action.code, "\n", { plain = true, trimempty = false })
-  api.nvim_buf_set_lines(bufnr, start_line + delta - 1, start_line + delta - 1, false, lines)
-
-  add_delta(bufnr, start_line, tonumber(#lines))
-end
-
 ---Delete lines from the buffer
 ---@param bufnr number
 ---@param action table
@@ -76,6 +56,37 @@ local function delete(bufnr, action)
 
   api.nvim_buf_set_lines(bufnr, start_line + delta - 1, end_line + delta, false, {})
   add_delta(bufnr, start_line, (start_line - end_line - 1))
+end
+
+---Add lines to the buffer
+---@param bufnr number
+---@param action table
+local function add(bufnr, action)
+  log:debug("[Editor Tool] Adding code to buffer")
+
+  if not action.line and not action.replace then
+    assert(false, "No line number or replace request provided by the LLM")
+  end
+
+  local start_line
+  if action.replace then
+    -- Clear the entire buffer
+    log:debug("[Editor Tool] Replacing the entire buffer")
+    delete(bufnr, { start_line = 1, end_line = api.nvim_buf_line_count(bufnr) })
+    start_line = 1
+  else
+    start_line = action.line and tonumber(action.line) or 1
+    if start_line == 0 then
+      start_line = 1
+    end
+  end
+
+  local delta = intersect(bufnr, start_line)
+
+  local lines = vim.split(action.code, "\n", { plain = true, trimempty = false })
+  api.nvim_buf_set_lines(bufnr, start_line + delta - 1, start_line + delta - 1, false, lines)
+
+  add_delta(bufnr, start_line, tonumber(#lines))
 end
 
 ---@class CodeCompanion.Tool
@@ -198,6 +209,18 @@ return {
       tool = {
         _attr = { name = "editor" },
         action = {
+          _attr = { type = "add" },
+          buffer = 1,
+          replace = true,
+          code = "<![CDATA[    print('Hello World')]]>",
+        },
+      },
+    },
+
+    {
+      tool = {
+        _attr = { name = "editor" },
+        action = {
           _attr = { type = "update" },
           buffer = 10,
           start_line = 50,
@@ -262,6 +285,11 @@ a) **Add Action:**
 %s
 ```
 
+If you'd like to replace the entire buffer's contents, pass in `<replace>true</replace>` in the action:
+```xml
+%s
+```
+
 b) **Update Action:**
 ```xml
 %s
@@ -289,16 +317,17 @@ d) **Multiple Actions:**
 ### Reminder:
 - Minimize extra explanations and focus on returning correct XML blocks with properly wrapped CDATA sections.
 - Always use the structure above for consistency.]],
-      xml2lua.toXml({ tools = { schema[1] } }),
-      xml2lua.toXml({ tools = { schema[2] } }),
-      xml2lua.toXml({ tools = { schema[3] } }),
-      xml2lua.toXml({
+      xml2lua.toXml({ tools = { schema[1] } }), -- Add
+      xml2lua.toXml({ tools = { schema[2] } }), -- Add with replace
+      xml2lua.toXml({ tools = { schema[3] } }), -- Update
+      xml2lua.toXml({ tools = { schema[4] } }), -- Delete
+      xml2lua.toXml({ -- Multiple
         tools = {
           tool = {
             _attr = { name = "editor" },
             action = {
-              schema[4].action[1],
-              schema[4].action[2],
+              schema[5].action[1],
+              schema[5].action[2],
             },
           },
         },
