@@ -40,16 +40,23 @@ end
 local function delete(bufnr, action)
   log:debug("[Editor Tool] Deleting code from the buffer")
 
-  local start_line = tonumber(action.start_line)
-  assert(start_line, "No start line number provided by the LLM")
-  if start_line == 0 then
+  local start_line
+  local end_line
+  if action.all then
     start_line = 1
-  end
+    end_line = api.nvim_buf_line_count(bufnr)
+  else
+    start_line = tonumber(action.start_line)
+    assert(start_line, "No start line number provided by the LLM")
+    if start_line == 0 then
+      start_line = 1
+    end
 
-  local end_line = tonumber(action.end_line)
-  assert(end_line, "No end line number provided by the LLM")
-  if end_line == 0 then
-    end_line = 1
+    end_line = tonumber(action.end_line)
+    assert(end_line, "No end line number provided by the LLM")
+    if end_line == 0 then
+      end_line = 1
+    end
   end
 
   local delta = intersect(bufnr, start_line)
@@ -216,7 +223,6 @@ return {
         },
       },
     },
-
     {
       tool = {
         _attr = { name = "editor" },
@@ -237,6 +243,16 @@ return {
           buffer = 14,
           start_line = 10,
           end_line = 15,
+        },
+      },
+    },
+    {
+      tool = {
+        _attr = { name = "editor" },
+        action = {
+          _attr = { type = "delete" },
+          buffer = 14,
+          all = true,
         },
       },
     },
@@ -275,7 +291,7 @@ return {
 - Each code operation must:
   - Be wrapped in a CDATA section to preserve special characters (CDATA sections ensure that characters like '<' and '&' are not interpreted as XML markup).
   - Follow the XML schema exactly.
-- If several actions (add, update, delete) need to be performed sequentially, combine them in one XML block with separate <action> entries.
+- If several actions (add, update, delete) need to be performed sequentially, combine them in one XML block, within the <tool></tool> tags and with separate <action></action> entries.
 
 ### XML Schema:
 Each tool invocation should adhere to this structure:
@@ -301,7 +317,12 @@ c) **Delete Action:**
 %s
 ```
 
-d) **Multiple Actions:**
+If you'd like to delete the entire buffer's contents, pass in `<all>true</all>` in the action:
+```xml
+%s
+```
+
+d) **Multiple Actions** (If several actions (add, update, delete) need to be performed sequentially):
 ```xml
 %s
 ```
@@ -321,13 +342,14 @@ d) **Multiple Actions:**
       xml2lua.toXml({ tools = { schema[2] } }), -- Add with replace
       xml2lua.toXml({ tools = { schema[3] } }), -- Update
       xml2lua.toXml({ tools = { schema[4] } }), -- Delete
+      xml2lua.toXml({ tools = { schema[5] } }), -- Delete all
       xml2lua.toXml({ -- Multiple
         tools = {
           tool = {
             _attr = { name = "editor" },
             action = {
-              schema[5].action[1],
-              schema[5].action[2],
+              schema[6].action[1],
+              schema[6].action[2],
             },
           },
         },
