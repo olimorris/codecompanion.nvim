@@ -4,7 +4,7 @@ local islist = vim.islist or vim.tbl_islist
 
 ---Return the default values for a schema
 ---@param schema CodeCompanion.Schema
----@param defaults table
+---@param defaults? table Any default values to use (will override schema defaults)
 M.get_default = function(schema, defaults)
   local ret = {}
   for k, v in pairs(schema) do
