@@ -535,17 +535,6 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
             content = "The tests have failed. Can you edit the buffer and run the test suite again?",
           },
         },
-        {
-          {
-            name = "Success",
-            condition = function(chat)
-              return chat.tool_flags.testing == true
-            end,
-            role = constants.USER_ROLE,
-            opts = { auto_submit = false },
-            content = "Tests passed! Thanks. ",
-          },
-        },
       },
     },
     ["Explain"] = {
