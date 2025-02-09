@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.28.0...v12.0.0) (2025-02-09)
+
+
+### Features
+
+* :sparkles: Agentic Workflows and much more ([#832](https://github.com/olimorris/codecompanion.nvim/issues/832)) ([f26fa4e](https://github.com/olimorris/codecompanion.nvim/commit/f26fa4eb8d0bd1ac0b0a2ab980839965db381fc2))
+
 ## [11.28.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.27.1...v11.28.0) (2025-02-08)
 
 
