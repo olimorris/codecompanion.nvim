@@ -377,7 +377,7 @@ end
 ---@param settings? table
 ---@return self
 function Chat:apply_settings(settings)
-  self.settings = settings or schema.get_default(self.adapter.schema, self.settings)
+  self.settings = settings or schema.get_default(self.adapter.schema)
   _cached_settings[self.bufnr] = self.settings
 
   return self
