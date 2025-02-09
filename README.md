@@ -46,6 +46,10 @@ Thank you to the following people:
     <h3>Using Agents and Tools</h3>
     <video conrols muted src="https://github.com/user-attachments/assets/16bd6c17-bd70-41a1-83aa-7af45c166ae9"></video>
   </p>
+  <p>
+    <h3>Agentic Workflows</h3>
+    <video controls muted src="https://github.com/user-attachments/assets/31bae248-ae70-4395-9df1-67fc252475ca"></video>
+  </p>
 </div>
 
 <!-- panvimdoc-ignore-end -->
