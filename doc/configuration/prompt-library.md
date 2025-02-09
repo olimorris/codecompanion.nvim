@@ -46,3 +46,16 @@ I'm also sharing my `config.lua` file which I'm mapping to the `configuration` s
   },
 })
 ```
+
+## Assigning Prompts to a Keymap
+
+You can assign prompts from the prompt library to a keymap via the `prompt` function:
+
+```lua
+vim.keymap.set("n", "<LocalLeader>d", function()
+  require("codecompanion").prompt("docs")
+end, { noremap = true, silent = true })
+```
+
+Where `docs` is the `short_name` of the prompt.
+

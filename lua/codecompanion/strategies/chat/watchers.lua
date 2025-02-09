@@ -25,7 +25,7 @@ end
 ---Detect changes between two sets of lines
 ---@param old_lines table
 ---@param new_lines table
----@return CodeCompanion.Change[]
+---@return CodeCompanion.WatcherChange[]
 local function detect_changes(old_lines, new_lines)
   local changes = {}
   local old_size = #old_lines
@@ -187,7 +187,7 @@ end
 
 ---Get any changes in a watched buffer
 ---@param bufnr number
----@return CodeCompanion.Change[]|nil
+---@return CodeCompanion.WatcherChange[]|nil
 function Watchers:get_changes(bufnr)
   if not self.buffers[bufnr] then
     return nil

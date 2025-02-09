@@ -48,6 +48,7 @@ The keymaps available to the user in normal mode are:
 - `gw` to watch a referenced buffer
 - `gr` to regenerate the last response
 - `gs` to toggle the system prompt on/off
+- `gta` to toggle auto tool mode
 - `gx` to clear the chat buffer's contents
 - `gy` to yank the last codeblock in the chat buffer
 - `[[` to move to the previous header

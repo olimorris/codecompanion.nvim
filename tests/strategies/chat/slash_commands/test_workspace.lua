@@ -4,19 +4,6 @@ local workspace = require("codecompanion.strategies.chat.slash_commands.workspac
 local new_set = MiniTest.new_set
 local T = new_set()
 
-local expect_starts_with = MiniTest.new_expectation(
-  -- Expectation subject
-  "string starts with",
-  -- Predicate
-  function(pattern, str)
-    return str:find("^" .. pattern) ~= nil
-  end,
-  -- Fail context
-  function(pattern, str)
-    return string.format("Expected string to start with: %s\nObserved string: %s", vim.inspect(pattern), str)
-  end
-)
-
 local chat
 local wks
 
@@ -59,11 +46,11 @@ T["Workspace"]["adds files and symbols"] = function()
     'Test description for the file stub.go located at tests/stubs/stub.go\n\n```go\nimport (\n\t"math"\n)\n\ntype ExampleStruct struct {\n\tValue float64\n}\n\nfunc (e ExampleStruct) Compute() float64 {\n\treturn math.Sqrt(e.Value)\n}\n\n\n```',
     chat.messages[3].content
   )
-  expect_starts_with(
+  h.expect_starts_with(
     "Test symbol description for the file stub.lua located at tests/stubs/stub.lua",
     chat.messages[5].content
   )
-  expect_starts_with("Here is a symbolic outline of the file `tests/stubs/stub.py`", chat.messages[6].content)
+  h.expect_starts_with("Here is a symbolic outline of the file `tests/stubs/stub.py`", chat.messages[6].content)
 end
 
 T["Workspace"]["can remove the default system prompt"] = function()
@@ -91,7 +78,7 @@ T["Workspace"]["top-level prompts are not duplicated and are ordered correctly"]
   h.eq("High level system prompt", chat.messages[1].content)
   h.eq("Group prompt 1", chat.messages[2].content)
   h.eq("Group prompt 2", chat.messages[3].content)
-  expect_starts_with("A test description", chat.messages[4].content)
+  h.expect_starts_with("A test description", chat.messages[4].content)
 end
 
 return T

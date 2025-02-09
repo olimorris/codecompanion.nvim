@@ -351,7 +351,6 @@ M.toggle_watch = {
           if vim.api.nvim_buf_is_valid(ref.bufnr) and vim.api.nvim_buf_is_loaded(ref.bufnr) then
             chat.watchers:watch(ref.bufnr)
             new_line = string.format("> - %s%s", icons.watched_buffer, clean_id)
-            util.notify("Now watching buffer " .. ref.id)
           else
             -- Buffer is invalid, can't watch it
             ref.opts.watched = false
@@ -361,7 +360,6 @@ M.toggle_watch = {
         else
           chat.watchers:unwatch(ref.bufnr)
           new_line = string.format("> - %s", clean_id)
-          util.notify("Stopped watching buffer " .. ref.id)
         end
 
         -- Update only the current line
@@ -535,7 +533,7 @@ M.change_adapter = {
 
 M.fold_code = {
   callback = function(chat)
-    chat:fold_code()
+    chat.ui:fold_code()
   end,
 }
 
@@ -560,6 +558,19 @@ M.toggle_system_prompt = {
   desc = "Toggle the system prompt",
   callback = function(chat)
     chat:toggle_system_prompt()
+  end,
+}
+
+M.auto_tool_mode = {
+  desc = "Toggle automatic tool mode",
+  callback = function(chat)
+    if vim.g.codecompanion_auto_tool_mode then
+      vim.g.codecompanion_auto_tool_mode = nil
+      return util.notify("Disabled automatic tool mode", vim.log.levels.INFO)
+    else
+      vim.g.codecompanion_auto_tool_mode = true
+      return util.notify("Enabled automatic tool mode", vim.log.levels.INFO)
+    end
   end,
 }
 

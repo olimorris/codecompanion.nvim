@@ -30,19 +30,19 @@
 ---@class CodeCompanion.Variable
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config for the variable
----@field params table The context of the chat buffer from the completion menu
+---@field params string
 
 ---@class CodeCompanion.VariableArgs
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config for the variable
----@field params table The context of the chat buffer from the completion menu
+---@field params string
 
 ---@class CodeCompanion.Cmd
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
 ---@field context table The context of the buffer that the chat was initiated from
 ---@field prompts table Any prompts to be sent to the LLM
 
----@class CodeCompanion.Change
+---@class CodeCompanion.WatcherChange
 ---@field type "add"|"delete"|"modify" The type of change
 ---@field start number Starting line number
 ---@field end_line number Ending line number
@@ -55,12 +55,26 @@
 ---@field augroup integer The autocmd group ID
 ---@field watch fun(self: CodeCompanion.Watchers, bufnr: number): nil Start watching a buffer
 ---@field unwatch fun(self: CodeCompanion.Watchers, bufnr: number): nil Stop watching a buffer
----@field get_changes fun(self: CodeCompanion.Watchers, bufnr: number): CodeCompanion.Change[]|nil Get the latest changes in the buffer
+---@field get_changes fun(self: CodeCompanion.Watchers, bufnr: number): CodeCompanion.WatcherChange[]|nil Get the latest changes in the buffer
 
 ---@class CodeCompanion.WatcherState
 ---@field content string[] Complete buffer content
 ---@field changedtick number Last known changedtick
 ---@field last_sent string[] Last content sent to LLM
+
+---@class CodeCompanion.Subscribers
+---@field queue CodeCompanion.Chat.Event[]
+
+---@class CodeCompanion.SubscribersArgs
+---@field queue CodeCompanion.Chat.Event[]
+
+---@class CodeCompanion.Chat.Event
+---@field callback fun(chat: CodeCompanion.Chat): nil The prompt to send to the LLM
+---@field condition fun(chat: CodeCompanion.Chat): boolean The condition to check before sending the prompt
+---@field data { name: string, type: string, opts: {auto_submit: boolean } } The data to send to the LLM
+---@field id number The unique identifier for the event
+---@field reuse fun(chat: CodeCompanion.Chat): boolean Should the current prompt be reused?
+---@field order number The order in which the events are executed
 
 ---@class CodeCompanion.Chat
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
@@ -75,7 +89,6 @@
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library-
 ---@field header_ns integer The namespace for the virtual text that appears in the header
 ---@field id integer The unique identifier for the chat
----@field intro_message? boolean Whether the welcome message has been shown
 ---@field messages? table The messages in the chat buffer
 ---@field parser vim.treesitter.LanguageTree The Tree-sitter parser for the chat buffer
 ---@field references CodeCompanion.Chat.References
@@ -83,6 +96,7 @@
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field tokens? nil|number The number of tokens in the chat
+---@field tool_flags table Flags that external functions can update and subscribers can interact with
 ---@field tools? CodeCompanion.Tools The tools available to the user
 ---@field tools_in_use? nil|table The tools that are currently being used in the chat
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer

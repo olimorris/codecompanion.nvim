@@ -102,7 +102,7 @@ local function ts_parse_messages(chat, start_range)
   for id, node in query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
     if query.captures[id] == "role" then
       last_role = get_node_text(node, chat.bufnr)
-    elseif last_role == chat.ui:format_header(user_role) and query.captures[id] == "content" then
+    elseif last_role == user_role and query.captures[id] == "content" then
       table.insert(content, get_node_text(node, chat.bufnr))
     end
   end
@@ -163,7 +163,6 @@ function Chat.new(args)
   log:trace("Chat created with ID %d", id)
 
   local self = setmetatable({
-    opts = args,
     context = args.context,
     cycle = 1,
     header_line = 1,
@@ -173,7 +172,7 @@ function Chat.new(args)
     messages = args.messages or {},
     refs = {},
     status = "",
-    subscribers = {},
+    tool_flags = {},
     tools_in_use = {},
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
@@ -196,8 +195,9 @@ function Chat.new(args)
   self.parser = parser
 
   self.references = require("codecompanion.strategies.chat.references").new({ chat = self })
-  self.watchers = require("codecompanion.strategies.chat.watchers").new()
+  self.subscribers = require("codecompanion.strategies.chat.subscribers").new()
   self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
+  self.watchers = require("codecompanion.strategies.chat.watchers").new()
   self.variables = require("codecompanion.strategies.chat.variables").new()
 
   table.insert(_G.codecompanion_buffers, self.bufnr)
@@ -208,18 +208,19 @@ function Chat.new(args)
     chat = self,
   }
 
-  self.adapter = adapters.resolve(self.opts.adapter)
+  self.adapter = adapters.resolve(args.adapter)
   if not self.adapter then
     return log:error("No adapter found")
   end
   util.fire("ChatAdapter", {
-    bufnr = self.bufnr,
     adapter = adapters.make_safe(self.adapter),
+    bufnr = self.bufnr,
+    id = self.id,
   })
-  util.fire("ChatModel", { bufnr = self.bufnr, model = self.adapter.schema.model.default })
-  util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library })
+  util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = self.adapter.schema.model.default })
+  util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
 
-  self:apply_settings(schema.get_default(self.adapter.schema, self.opts.settings))
+  self:apply_settings(schema.get_default(self.adapter.schema, args.settings))
 
   self.ui = require("codecompanion.strategies.chat.ui").new({
     adapter = self.adapter,
@@ -229,8 +230,16 @@ function Chat.new(args)
     settings = self.settings,
   })
 
+  if args.messages then
+    self.messages = args.messages
+  end
+
   self.close_last_chat()
-  self.ui:open():render(self.context, self.messages, self.opts):set_extmarks(self.opts)
+  self.ui:open():render(self.context, self.messages, args)
+
+  if vim.tbl_isempty(self.messages) then
+    self.ui:set_intro_msg()
+  end
 
   if config.strategies.chat.keymaps then
     keymaps
@@ -247,7 +256,7 @@ function Chat.new(args)
 
   last_chat = self
 
-  if self.opts.auto_submit then
+  if args.auto_submit then
     self:submit()
   end
 
@@ -368,7 +377,7 @@ end
 ---@param settings? table
 ---@return self
 function Chat:apply_settings(settings)
-  self.settings = settings or schema.get_default(self.adapter.schema, self.opts.settings)
+  self.settings = settings or schema.get_default(self.adapter.schema, self.settings)
   _cached_settings[self.bufnr] = self.settings
 
   return self
@@ -520,7 +529,7 @@ function Chat:parse_msg_for_vars(message)
   local vars = self.variables:parse(self, message)
 
   if vars then
-    message.content = self.variables:replace(message.content)
+    message.content = self.variables:replace(message.content, self.context.bufnr)
     message.id = make_id({ role = message.role, content = message.content })
     self:add_message(
       { role = config.constants.USER_ROLE, content = message.content },
@@ -571,7 +580,7 @@ function Chat:add_tool(tool, tool_config)
     )
   end
 
-  util.fire("ChatToolAdded", { bufnr = self.bufnr, tool = tool })
+  util.fire("ChatToolAdded", { bufnr = self.bufnr, id = self.id, tool = tool })
 
   return self
 end
@@ -610,7 +619,7 @@ function Chat:apply_tools_and_variables(message)
     message.content = self.tools:replace(message.content)
   end
   if self.variables:parse(self, message) then
-    message.content = self.variables:replace(message.content)
+    message.content = self.variables:replace(message.content, self.context.bufnr)
   end
 end
 
@@ -637,6 +646,10 @@ end
 ---@param opts? table
 ---@return nil
 function Chat:submit(opts)
+  if self.current_request then
+    return log:debug("Chat request already in progress")
+  end
+
   log:time()
   opts = opts or {}
 
@@ -669,8 +682,8 @@ function Chat:submit(opts)
   local settings = ts_parse_settings(bufnr, self.adapter)
   settings = self.adapter:map_schema_to_params(settings)
 
-  log:debug("Settings:\n%s", settings)
-  log:debug("Messages:\n%s", self.messages)
+  log:trace("Settings:\n%s", settings)
+  log:trace("Messages:\n%s", self.messages)
   log:info("Chat request started")
 
   self.ui:lock_buf()
@@ -754,33 +767,18 @@ function Chat:done(output)
 
   local assistant_range = self.header_line
   self:set_range(-2)
-
   self.ui:display_tokens(self.parser, self.header_line)
   self.references:render()
 
+  -- If we're running any tooling, let them handle the subscriptions instead
   if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
     self.tools:parse_buffer(self, assistant_range, self.header_line - 1)
+  else
+    self.subscribers:process(self)
   end
 
   log:info("Chat request finished")
   self:reset()
-
-  if self.has_subscribers then
-    local function action_subscription(subscriber)
-      subscriber.callback(self)
-      if subscriber.type == "once" then
-        self:unsubscribe(subscriber.id)
-      end
-    end
-
-    vim.iter(self.subscribers):each(function(subscriber)
-      if subscriber.order and subscriber.order < self.cycle then
-        action_subscription(subscriber)
-      elseif not subscriber.order then
-        action_subscription(subscriber)
-      end
-    end)
-  end
 end
 
 ---Reconcile the references table to the references in the chat buffer
@@ -849,7 +847,7 @@ function Chat:add_pins()
       end
     end)
     if not exists then
-      util.fire("ChatPin", { bufnr = self.bufnr, id = pin.id })
+      util.fire("ChatPin", { bufnr = self.bufnr, id = self.id, pin_id = pin.id })
       require(pin.source)
         .new({ Chat = self })
         :output({ path = pin.path, bufnr = pin.bufnr, params = pin.params }, { pin = true })
@@ -872,6 +870,7 @@ end
 function Chat:stop()
   local job
   self.status = CONSTANTS.STATUS_CANCELLING
+  util.fire("ChatStopped", { bufnr = self.bufnr, id = self.id })
 
   if self.current_tool then
     job = self.current_tool
@@ -892,6 +891,8 @@ function Chat:stop()
       end)
     end
   end
+
+  self.subscribers:stop()
 
   vim.schedule(function()
     log:debug("Chat request cancelled")
@@ -924,9 +925,9 @@ function Chat:close()
   if self.ui.aug then
     api.nvim_clear_autocmds({ group = self.ui.aug })
   end
-  util.fire("ChatClosed", { bufnr = self.bufnr })
-  util.fire("ChatAdapter", { bufnr = self.bufnr, adapter = nil })
-  util.fire("ChatModel", { bufnr = self.bufnr, model = nil })
+  util.fire("ChatClosed", { bufnr = self.bufnr, id = self.id })
+  util.fire("ChatAdapter", { bufnr = self.bufnr, id = self.id, adapter = nil })
+  util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
   self = nil
 end
 
@@ -936,6 +937,8 @@ local has_been_reasoning = false
 ---@param data table
 ---@param opts? table
 function Chat:add_buf_message(data, opts)
+  assert(type(data) == "table", "data must be a table")
+
   local lines = {}
   local bufnr = self.bufnr
   local new_response = false
@@ -1025,33 +1028,6 @@ function Chat:get_messages()
   return self.messages
 end
 
----Subscribe to a chat buffer
----@param event { name: string, type: string, callback: fun() }
-function Chat:subscribe(event)
-  table.insert(self.subscribers, event)
-end
-
----Does the chat buffer have any subscribers?
-function Chat:has_subscribers()
-  return #self.subscribers > 0
-end
-
----Unsubscribe an object from a chat buffer
----@param id integer|string
-function Chat:unsubscribe(id)
-  for i, subscriber in ipairs(self.subscribers) do
-    if subscriber.id == id then
-      table.remove(self.subscribers, i)
-    end
-  end
-end
-
----Fold code under the user's heading in the chat buffer
----@return CodeCompanion.Chat.UI
-function Chat:fold_code()
-  return self.ui:fold_code()
-end
-
 ---Get currently focused code block or the last one in the chat buffer
 ---@return TSNode | nil
 function Chat:get_codeblock()
@@ -1069,7 +1045,7 @@ function Chat:clear()
   self.tools_in_use = {}
 
   log:trace("Clearing chat buffer")
-  self.ui:render(self.context, self.messages, self.opts):set_extmarks(self.opts)
+  self.ui:render(self.context, self.messages, self.opts):set_intro_msg()
   self:add_system_prompt()
 end
 

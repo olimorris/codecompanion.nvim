@@ -82,7 +82,7 @@ end
 ---@return CopilotToken
 local function authorize_token()
   if _github_token and _github_token.expires_at > os.time() then
-    log:debug("Reusing GitHub Copilot token")
+    log:trace("Reusing GitHub Copilot token")
     return _github_token
   end
 

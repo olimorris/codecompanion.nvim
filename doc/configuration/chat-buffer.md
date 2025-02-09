@@ -68,6 +68,7 @@ require("codecompanion").setup({
     chat = {
       slash_commands = {
         ["file"] = {
+          -- Location to the slash command in CodeCompanion
           callback = "strategies.chat.slash_commands.file",
           description = "Select a file using Telescope",
           opts = {
@@ -89,19 +90,20 @@ require("codecompanion").setup({
     chat = {
       slash_commands = {
         ["mycmd"] = {
-          description = "Describe what mycmd inserts",
-          callback = function()
-            return "Custom context or data"
+          description = "My fancy new command",
+          ---@param chat CodeCompanion.Chat
+          callback = function(chat)
+            return chat:add_buf_message({ content = "Just writing to the chat buffer" })
           end,
-          opts = {
-            contains_code = true,
-          },
         },
       },
     },
   },
 })
 ```
+
+> [!NOTE]
+> You can also point the callback to a lua file that resides within your own configuration
 
 ## Agents and Tools
 

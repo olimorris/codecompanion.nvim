@@ -10,6 +10,7 @@ The events that you can access are:
 - `CodeCompanionChatOpened` - Fired after a chat has been opened
 - `CodeCompanionChatHidden` - Fired after a chat has been hidden
 - `CodeCompanionChatClosed` - Fired after a chat has been permanently closed
+- `CodeCompanionChatStopped` - Fired after a chat has been stopped
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
 - `CodeCompanionChatPin` - Fired after a pinned reference has been updated in the messages table

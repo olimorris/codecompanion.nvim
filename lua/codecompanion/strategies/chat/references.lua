@@ -58,7 +58,7 @@ local function ts_parse_buffer(chat)
     end
   end
 
-  if role_node and role == chat.ui:format_header(user_role) then
+  if role_node and role == user_role then
     local start_row, _, end_row, _ = role_node:range()
     return {
       capture = "role",
@@ -133,7 +133,7 @@ function References:add(ref)
       add(self.Chat, ref, parsed_buffer.end_row - 1)
     -- If there are no references then add a new block below the heading
     elseif parsed_buffer.capture == "role" then
-      add(self.Chat, ref, parsed_buffer.end_row)
+      add(self.Chat, ref, parsed_buffer.end_row + 1)
     end
   end
 end
@@ -248,7 +248,7 @@ function References:get_from_chat()
   for id, node in query:iter_captures(root, chat.bufnr, chat.header_line - 1, -1) do
     if query.captures[id] == "role" then
       role = vim.treesitter.get_node_text(node, chat.bufnr)
-    elseif role == chat.ui:format_header(user_role) and query.captures[id] == "ref" then
+    elseif role == user_role and query.captures[id] == "ref" then
       local ref = vim.treesitter.get_node_text(node, chat.bufnr)
       -- Clean both pinned and watched icons
       ref = vim.iter(vim.tbl_values(icons)):fold(select(1, ref:gsub("^> %- ", "")), function(acc, icon)
