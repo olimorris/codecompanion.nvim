@@ -153,6 +153,9 @@ describe("Gemini adapter", function()
   end)
 
   it("can output streamed data into a format for the chat buffer", function()
-    h.eq(stream_response[#stream_response].output, adapter_helpers.chat_buffer_output(stream_response, adapter))
+    h.eq({
+      content = "Object-oriented scripting.\n\nNext: What is the difference between Ruby and Python?",
+      role = "llm",
+    }, adapter_helpers.chat_buffer_output(stream_response, adapter))
   end)
 end)

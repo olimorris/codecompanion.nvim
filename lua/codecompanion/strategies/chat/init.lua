@@ -949,6 +949,7 @@ function Chat:add_buf_message(data, opts)
     end
   end
 
+  -- Add a new header to the chat buffer
   local function new_role()
     new_response = true
     self.last_role = data.role
@@ -957,6 +958,7 @@ function Chat:add_buf_message(data, opts)
     self.ui:set_header(lines, config.strategies.chat.roles[data.role])
   end
 
+  -- Add data to the chat buffer
   local function append_data()
     if data.reasoning then
       has_been_reasoning = true
@@ -965,7 +967,8 @@ function Chat:add_buf_message(data, opts)
         table.insert(lines, "")
       end
       write(data.reasoning)
-    else
+    end
+    if data.content then
       if has_been_reasoning then
         has_been_reasoning = false
         table.insert(lines, "")

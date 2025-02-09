@@ -113,6 +113,9 @@ describe("Ollama adapter", function()
   end)
 
   it("can output streamed data into a format for the chat buffer", function()
-    h.eq(stream_response[#stream_response].output, adapter_helpers.chat_buffer_output(stream_response, adapter))
+    h.eq({
+      content = '\n"Beautiful Language"',
+      role = "assistant",
+    }, adapter_helpers.chat_buffer_output(stream_response, adapter))
   end)
 end)

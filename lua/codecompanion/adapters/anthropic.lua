@@ -18,6 +18,11 @@ return {
     text = true,
     vision = true,
   },
+  opts = {
+    stream = true,
+    cache_breakpoints = 4, -- Cache up to this many messages
+    cache_over = 300, -- Cache any message which has this many tokens or more
+  },
   url = "https://api.anthropic.com/v1/messages",
   env = {
     api_key = "ANTHROPIC_API_KEY",
@@ -28,15 +33,17 @@ return {
     ["anthropic-version"] = "2023-06-01",
     ["anthropic-beta"] = "prompt-caching-2024-07-31",
   },
-  parameters = {
-    stream = true,
-  },
-  opts = {
-    stream = true, -- NOTE: Currently, CodeCompanion ONLY supports streaming with this adapter
-    cache_breakpoints = 4, -- Cache up to this many messages
-    cache_over = 300, -- Cache any message which has this many tokens or more
-  },
   handlers = {
+    ---@param self CodeCompanion.Adapter
+    ---@return boolean
+    setup = function(self)
+      if self.opts and self.opts.stream then
+        self.parameters.stream = true
+      end
+
+      return true
+    end,
+
     ---Set the parameters
     ---@param self CodeCompanion.Adapter
     ---@param params table
@@ -116,11 +123,15 @@ return {
 
     ---Returns the number of tokens generated from the LLM
     ---@param self CodeCompanion.Adapter
-    ---@param data string The data from the LLM
+    ---@param data table The data from the LLM
     ---@return number|nil
     tokens = function(self, data)
       if data then
-        data = data:sub(6)
+        if self.opts.stream then
+          data = utils.clean_streamed_data(data)
+        else
+          data = data.body
+        end
         local ok, json = pcall(vim.json.decode, data)
 
         if ok then
@@ -129,9 +140,10 @@ return {
               + (json.message.usage.cache_creation_input_tokens or 0)
 
             output_tokens = json.message.usage.output_tokens or 0
-          end
-          if json.type == "message_delta" then
+          elseif json.type == "message_delta" then
             return (input_tokens + output_tokens + json.usage.output_tokens)
+          elseif json.type == "message" then
+            return (json.usage.input_tokens + json.usage.output_tokens)
           end
         end
       end
@@ -139,19 +151,25 @@ return {
 
     ---Output the data from the API ready for insertion into the chat buffer
     ---@param self CodeCompanion.Adapter
-    ---@param data string The streamed JSON data from the API, also formatted by the format_data handler
+    ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
     ---@return table|nil
     chat_output = function(self, data)
       local output = {}
 
-      -- Skip the event messages
-      if type(data) == "string" and string.sub(data, 1, 6) == "event:" then
-        return
+      if self.opts.stream then
+        if type(data) == "string" and string.sub(data, 1, 6) == "event:" then
+          return
+        end
       end
 
       if data and data ~= "" then
-        local data_mod = utils.clean_streamed_data(data)
-        local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
+        if self.opts.stream then
+          data = utils.clean_streamed_data(data)
+        else
+          data = data.body
+        end
+
+        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
         if ok then
           if json.type == "message_start" then
@@ -160,6 +178,9 @@ return {
           elseif json.type == "content_block_delta" then
             output.role = nil
             output.content = json.delta.text
+          elseif json.type == "message" then
+            output.role = json.role
+            output.content = json.content[1].text
           end
 
           return {
@@ -176,17 +197,25 @@ return {
     ---@param context table Useful context about the buffer to inline to
     ---@return table|nil
     inline_output = function(self, data, context)
-      if type(data) == "string" and string.sub(data, 1, 6) == "event:" then
-        return
+      if self.opts.stream then
+        if type(data) == "string" and string.sub(data, 1, 6) == "event:" then
+          return
+        end
       end
 
       if data and data ~= "" then
-        data = data:sub(6)
+        if self.opts.stream then
+          data = utils.clean_streamed_data(data)
+        else
+          data = data.body
+        end
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
         if ok then
           if json.type == "content_block_delta" then
             return json.delta.text
+          elseif json.type == "message" then
+            return json.content[1].text
           end
         end
       end
