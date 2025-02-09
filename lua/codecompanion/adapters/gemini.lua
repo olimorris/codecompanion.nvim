@@ -168,9 +168,9 @@ return {
       order = 1,
       type = "enum",
       desc = "The model that will complete your prompt. See https://ai.google.dev/gemini-api/docs/models/gemini#model-variations for additional details and options.",
-      default = "gemini-1.5-flash",
+      default = "gemini-2.0-flash",
       choices = {
-        "gemini-2.0-flash-exp",
+        "gemini-2.0-flash",
         "gemini-1.5-flash",
         "gemini-1.5-pro",
         "gemini-1.0-pro",
