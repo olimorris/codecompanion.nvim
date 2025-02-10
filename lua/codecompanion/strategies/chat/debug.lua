@@ -77,7 +77,15 @@ function Debug:render()
         table.insert(keys, key)
       end
     end
-    table.sort(keys)
+
+    table.sort(keys, function(a, b)
+      local a_order = adapter.schema[a] and adapter.schema[a].order or 999
+      local b_order = adapter.schema[b] and adapter.schema[b].order or 999
+      if a_order == b_order then
+        return a < b -- alphabetical sort as fallback
+      end
+      return a_order < b_order
+    end)
 
     table.insert(lines, "local settings = {")
     for _, key in ipairs(keys) do
