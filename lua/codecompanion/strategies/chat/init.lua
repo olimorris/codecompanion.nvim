@@ -65,7 +65,7 @@ local function ts_parse_settings(bufnr, adapter)
   local end_line = -1
   if adapter then
     -- Account for the two YAML lines and the fact Tree-sitter is 0-indexed
-    end_line = vim.tbl_count(adapter:make_from_schema()) + 2 - 1
+    end_line = vim.tbl_count(adapter.schema) + 2 - 1
   end
 
   for _, matches, _ in query:iter_matches(root, bufnr, 0, end_line) do
