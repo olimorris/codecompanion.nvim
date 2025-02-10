@@ -81,6 +81,30 @@
           "path": "tests/helpers.lua"
         }
       ]
+    },
+    {
+      "name": "Adapters",
+      "system_prompt": "In the CodeCompanion plugin, adapters are used to connect to LLMs. The adapters contain various options for the LLM's endpoint alongside a defined schema for properties such as the model, temperature, top k, top p etc. The adapters also contain various handler functions which define how messages which are sent to the LLM should be formatted alongside how output from the LLM should be received and displayed in the chat buffer. The adapters are defined in the `adapters` directory.",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "vars": {
+        "base_dir": "lua/codecompanion"
+      },
+      "files": [
+        {
+          "description": "Each LLM has their own adapter. This allows for LLM settings to be generated from the schema table in an adapter before they're sent to the LLM via the http file. ",
+          "path": "${base_dir}/adapters/init.lua"
+        },
+        {
+          "description": "Adapters are then passed to the http client which sends requests to LLMs via Curl:",
+          "path": "${base_dir}/http.lua"
+        },
+        {
+          "description": "Adapters must follow a schema. The validation and how schema values are extracted from the table schema is defined in:",
+          "path": "${base_dir}/schema.lua"
+        }
+      ]
     }
   ]
 }

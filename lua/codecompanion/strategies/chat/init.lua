@@ -375,12 +375,13 @@ end
 
 ---Format and apply settings to the chat buffer
 ---@param settings? table
----@return self
+---@return nil
 function Chat:apply_settings(settings)
   self.settings = settings or schema.get_default(self.adapter.schema)
-  _cached_settings[self.bufnr] = self.settings
 
-  return self
+  if not config.display.chat.show_settings then
+    _cached_settings[self.bufnr] = self.settings
+  end
 end
 
 ---Set a model in the chat buffer

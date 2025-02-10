@@ -46,6 +46,9 @@ function Debug:render()
   local adapter = vim.deepcopy(self.chat.adapter)
   local bufname = buf_utils.name_from_bufnr(self.chat.context.bufnr)
 
+  -- Get the current settings from the chat buffer rather than making new ones
+  local current_settings = self.settings or {}
+
   if type(adapter.schema.model.choices) == "function" then
     models = adapter.schema.model.choices(adapter)
   else
@@ -54,21 +57,40 @@ function Debug:render()
 
   local lines = {}
 
-  table.insert(lines, '-- Adapter: "' .. adapter.name .. '"')
+  table.insert(lines, '-- Adapter: "' .. adapter.formatted_name .. '"')
   table.insert(lines, "-- Buffer: " .. self.chat.bufnr)
   table.insert(lines, '-- Context: "' .. bufname .. '" (' .. self.chat.context.bufnr .. ")")
 
   -- Add settings
   if not config.display.chat.show_settings then
     table.insert(lines, "")
-    table.sort(self.settings)
+    local keys = {}
+
+    -- Collect all settings keys including those with nil defaults
+    for key, _ in pairs(self.settings) do
+      table.insert(keys, key)
+    end
+
+    -- Add any nil_defaults that aren't already in keys
+    if adapter.nil_defaults then
+      for _, key in ipairs(adapter.nil_defaults) do
+        -- Only add nil defaults if they're not already set in current settings
+        if current_settings[key] == nil then
+          table.insert(keys, key)
+        end
+      end
+    end
+    table.sort(keys)
+
     table.insert(lines, "local settings = {")
-    for key, val in pairs(self.settings) do
+    for _, key in ipairs(keys) do
+      local val = self.settings[key]
+      local is_nil_default = adapter.nil_defaults and vim.tbl_contains(adapter.nil_defaults, key)
+
       if key == "model" then
         local other_models = " -- "
 
         vim.iter(models):each(function(model, model_name)
-          -- Display the other models that are available in the adapter
           if type(model) == "number" then
             model = model_name
           end
@@ -85,10 +107,13 @@ function Debug:render()
         else
           table.insert(lines, "  " .. key .. ' = "' .. val .. '",')
         end
+      elseif is_nil_default and current_settings[key] == nil then
+        -- Only show as nil if it's a nil default AND not set in current settings
+        table.insert(lines, "  " .. key .. " = nil,")
       elseif type(val) == "number" or type(val) == "boolean" then
-        table.insert(lines, "  " .. key .. " = " .. val .. ",")
+        table.insert(lines, "  " .. key .. " = " .. tostring(val) .. ",")
       elseif type(val) == "string" then
-        table.insert(lines, "  " .. key .. " = " .. '"' .. val .. '",')
+        table.insert(lines, "  " .. key .. ' = "' .. val .. '",')
       else
         table.insert(lines, "  " .. key .. " = " .. vim.inspect(val))
       end

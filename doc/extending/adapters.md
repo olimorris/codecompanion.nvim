@@ -18,6 +18,8 @@ Let's take a look at the interface of an adapter as per the `adapter.lua` file:
 ---@field env_replaced? table Replacement of environment variables with their actual values
 ---@field headers table The headers to pass to the request
 ---@field parameters table The parameters to pass to the request
+---@field body table Additional body parameters to pass to the request
+---@field chat_prompt string The system chat prompt to send to the LLM
 ---@field raw? table Any additional curl arguments to pass to the request
 ---@field opts? table Additional options for the adapter
 ---@field handlers table Functions which link the output from the request to CodeCompanion
@@ -29,6 +31,7 @@ Let's take a look at the interface of an adapter as per the `adapter.lua` file:
 ---@field handlers.on_exit? fun()
 ---@field handlers.teardown? fun()
 ---@field schema table Set of parameters for the LLM that the user can customise in the chat buffer
+---@field nil_defaults? table Names of values in the schema table that contain nil values
 ```
 
 Everything up to the handlers should be self-explanatory. We're simply providing details of the LLM's API to the curl library and executing the request. The real intelligence of the adapter comes from the handlers table which is a set of functions which bridge the functionality of the plugin to the LLM.
@@ -448,4 +451,15 @@ temperature = {
 },
 ```
 
-You'll see we've specified a function call for the `condition` key. We're simply checking that the model name doesn't being with `o1` as these models don't accept temperature as a parameter. You'll also see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2
+You'll see we've specified a function call for the `condition` key. We're simply checking that the model name doesn't being with `o1` as these models don't accept temperature as a parameter. You'll also see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2.
+
+By the time an adapter's schema is processed in the debug window of the chat buffer, any `nil` values have been excluded from the table. To account for this, you can explicitly declare which schema key's have a default value of `nil`:
+
+```lua
+nil_defaults = {
+  "stop",
+  "max_tokens ",
+  "logit_bias ",
+  "user",
+},
+```

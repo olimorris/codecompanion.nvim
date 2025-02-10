@@ -286,7 +286,7 @@ return {
       default = nil,
       desc = "Only sample from the top K options for each subsequent token. Use top_k to remove long tail low probability responses",
       validate = function(n)
-        return n >= 0 and n <= 500, "Must be between 0 and 500"
+        return n >= 0, "Must be greater than 0"
       end,
     },
     stop_sequences = {
@@ -303,5 +303,10 @@ return {
         return #l >= 1, "Must have more than 1 element"
       end,
     },
+  },
+  nil_defaults = {
+    "top_p",
+    "top_k",
+    "stop_sequences",
   },
 }

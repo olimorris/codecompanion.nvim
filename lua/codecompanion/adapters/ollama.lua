@@ -344,4 +344,7 @@ return {
       end,
     },
   },
+  nil_defaults = {
+    "stop",
+  },
 }

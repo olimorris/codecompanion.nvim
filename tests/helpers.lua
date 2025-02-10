@@ -104,6 +104,11 @@ Helpers.config = {
       },
     },
   },
+  display = {
+    chat = {
+      show_settings = false,
+    },
+  },
   opts = {
     system_prompt = "default system prompt",
   },

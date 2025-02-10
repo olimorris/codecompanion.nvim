@@ -9,7 +9,16 @@ local chat
 
 describe("Ollama adapter", function()
   before_each(function()
-    adapter = require("codecompanion.adapters").resolve("ollama")
+    adapter = require("codecompanion.adapters").extend("ollama", {
+      schema = {
+        model = {
+          default = function()
+            return "llama2"
+          end,
+          choices = { "llama2" },
+        },
+      },
+    })
     chat, _ = h.setup_chat_buffer(nil, adapter)
 
     --------------------------------------------------- OUTPUT FROM THE CHAT BUFFER

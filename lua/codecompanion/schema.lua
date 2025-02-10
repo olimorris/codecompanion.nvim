@@ -1,3 +1,12 @@
+---@class CodeCompanion.Schema
+---@field type "string"|"number"|"integer"|"boolean"|"enum"|"list"|"map"
+---@field mapping string
+---@field order nil|integer
+---@field optional nil|boolean
+---@field choices nil|table
+---@field desc string
+---@field validate? fun(value: any): boolean, nil|string
+
 local M = {}
 
 local islist = vim.islist or vim.tbl_islist
@@ -23,15 +32,6 @@ M.get_default = function(schema, defaults)
   end
   return ret
 end
-
----@class CodeCompanion.Schema
----@field type "string"|"number"|"integer"|"boolean"|"enum"|"list"|"map"
----@field mapping string
----@field order nil|integer
----@field optional nil|boolean
----@field choices nil|table
----@field desc string
----@field validate? fun(value: any): boolean, nil|string
 
 ---@param schema CodeCompanion.Schema
 ---@param value any
