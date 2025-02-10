@@ -207,16 +207,43 @@ return {
         return n >= 0 and n <= 2, "Must be between 0 and 2"
       end,
     },
-    top_p = {
+    topP = {
       order = 4,
       mapping = "body.generationConfig",
-      type = "number",
+      type = "integer",
       optional = true,
       default = nil,
       desc = "The maximum cumulative probability of tokens to consider when sampling. The model uses combined Top-k and Top-p (nucleus) sampling. Tokens are sorted based on their assigned probabilities so that only the most likely tokens are considered. Top-k sampling directly limits the maximum number of tokens to consider, while Nucleus sampling limits the number of tokens based on the cumulative probability.",
       validate = function(n)
-        return n >= 0 and n <= 1, "Must be between 0 and 1"
+        return n > 0, "Must be greater than 0"
       end,
+    },
+    topK = {
+      order = 5,
+      mapping = "body.generationConfig",
+      type = "integer",
+      optional = true,
+      default = nil,
+      desc = "The maximum number of tokens to consider when sampling",
+      validate = function(n)
+        return n > 0, "Must be greater than 0"
+      end,
+    },
+    presencePenalty = {
+      order = 6,
+      mapping = "body.generationConfig",
+      type = "number",
+      optional = true,
+      default = nil,
+      desc = "Presence penalty applied to the next token's logprobs if the token has already been seen in the response",
+    },
+    frequencyPenalty = {
+      order = 7,
+      mapping = "body.generationConfig",
+      type = "number",
+      optional = true,
+      default = nil,
+      desc = "Frequency penalty applied to the next token's logprobs, multiplied by the number of times each token has been seen in the respponse so far.",
     },
   },
 }
