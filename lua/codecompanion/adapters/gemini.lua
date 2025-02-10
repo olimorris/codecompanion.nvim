@@ -243,7 +243,7 @@ return {
       type = "number",
       optional = true,
       default = nil,
-      desc = "Frequency penalty applied to the next token's logprobs, multiplied by the number of times each token has been seen in the respponse so far.",
+      desc = "Frequency penalty applied to the next token's logprobs, multiplied by the number of times each token has been seen in the response so far.",
     },
   },
 }
