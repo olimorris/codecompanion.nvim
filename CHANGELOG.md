@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.0.0...v12.0.1) (2025-02-09)
+
+
+### Bug Fixes
+
+* **chat:** incorrectly applying settings ([#881](https://github.com/olimorris/codecompanion.nvim/issues/881)) ([2b0fe19](https://github.com/olimorris/codecompanion.nvim/commit/2b0fe199ca7d4b38895a8ab29b6320ca877809c6))
+
 ## [12.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v11.28.0...v12.0.0) (2025-02-09)
 
 
