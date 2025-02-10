@@ -304,9 +304,4 @@ return {
       end,
     },
   },
-  nil_defaults = {
-    "top_p",
-    "top_k",
-    "stop_sequences",
-  },
 }

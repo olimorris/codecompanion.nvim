@@ -319,10 +319,4 @@ return {
       end,
     },
   },
-  nil_defaults = {
-    "stop",
-    "max_tokens ",
-    "logit_bias ",
-    "user",
-  },
 }

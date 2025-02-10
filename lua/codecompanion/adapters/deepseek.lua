@@ -215,9 +215,4 @@ return {
       end,
     },
   },
-  nil_defaults = {
-    "logprobs",
-    "stop",
-    "user",
-  },
 }

@@ -26,7 +26,6 @@ local log = require("codecompanion.utils.log")
 ---@field handlers.on_exit? fun(self: CodeCompanion.Adapter, data: table): table|nil
 ---@field handlers.teardown? fun(self: CodeCompanion.Adapter): any
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
----@field nil_defaults? table Names of values in the schema table that contain nil values
 
 ---Check if a variable starts with "cmd:"
 ---@param var string
@@ -147,13 +146,6 @@ function Adapter:make_from_schema()
     end
 
     ::continue::
-  end
-
-  -- Process nil defaults
-  if self.nil_defaults then
-    for _, key in ipairs(self.nil_defaults) do
-      settings[key] = self.NIL_SENTINEL
-    end
   end
 
   return settings

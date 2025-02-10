@@ -219,9 +219,4 @@ return {
       end,
     },
   },
-  nil_defaults = {
-    "maxOutputTokens",
-    "temperature",
-    "top_p",
-  },
 }

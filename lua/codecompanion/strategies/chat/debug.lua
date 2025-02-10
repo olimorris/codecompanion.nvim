@@ -71,13 +71,10 @@ function Debug:render()
       table.insert(keys, key)
     end
 
-    -- Add any nil_defaults that aren't already in keys
-    if adapter.nil_defaults then
-      for _, key in ipairs(adapter.nil_defaults) do
-        -- Only add nil defaults if they're not already set in current settings
-        if current_settings[key] == nil then
-          table.insert(keys, key)
-        end
+    -- Add any schema keys that have an explicit nil default
+    for key, schema_value in pairs(adapter.schema) do
+      if schema_value.default == nil and not vim.tbl_contains(keys, key) then
+        table.insert(keys, key)
       end
     end
     table.sort(keys)
@@ -85,7 +82,7 @@ function Debug:render()
     table.insert(lines, "local settings = {")
     for _, key in ipairs(keys) do
       local val = self.settings[key]
-      local is_nil_default = adapter.nil_defaults and vim.tbl_contains(adapter.nil_defaults, key)
+      local is_nil = adapter.schema[key] and adapter.schema[key].default == nil
 
       if key == "model" then
         local other_models = " -- "
@@ -107,8 +104,7 @@ function Debug:render()
         else
           table.insert(lines, "  " .. key .. ' = "' .. val .. '",')
         end
-      elseif is_nil_default and current_settings[key] == nil then
-        -- Only show as nil if it's a nil default AND not set in current settings
+      elseif is_nil and current_settings[key] == nil then
         table.insert(lines, "  " .. key .. " = nil,")
       elseif type(val) == "number" or type(val) == "boolean" then
         table.insert(lines, "  " .. key .. " = " .. tostring(val) .. ",")
