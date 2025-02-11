@@ -1,3 +1,47 @@
+--[[
+The Chat Buffer - This is where all of the logic for conversing with an LLM sits
+--]]
+
+---@class CodeCompanion.Chat
+---@field opts CodeCompanion.ChatArgs Store all arguments in this table
+---@field adapter CodeCompanion.Adapter The adapter to use for the chat
+---@field aug number The ID for the autocmd group
+---@field bufnr integer The buffer number of the chat
+---@field context table The context of the buffer that the chat was initiated from
+---@field current_request table|nil The current request being executed
+---@field current_tool table The current tool being executed
+---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
+---@field header_line number The line number that any Tree-sitter parsing should start from
+---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library-
+---@field header_ns integer The namespace for the virtual text that appears in the header
+---@field id integer The unique identifier for the chat
+---@field messages? table The messages in the chat buffer
+---@field parser vim.treesitter.LanguageTree The Tree-sitter parser for the chat buffer
+---@field references CodeCompanion.Chat.References
+---@field refs? table<CodeCompanion.Chat.Ref> References which are sent to the LLM e.g. buffers, slash command output
+---@field settings? table The settings that are used in the adapter of the chat buffer
+---@field subscribers table The subscribers to the chat buffer
+---@field tokens? nil|number The number of tokens in the chat
+---@field tool_flags table Flags that external functions can update and subscribers can interact with
+---@field tools? CodeCompanion.Tools The tools available to the user
+---@field tools_in_use? nil|table The tools that are currently being used in the chat
+---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
+---@field variables? CodeCompanion.Variables The variables available to the user
+---@field watchers CodeCompanion.Watchers The buffer watcher instance
+
+---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
+---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
+---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
+---@field context? table Context of the buffer that the chat was initiated from
+---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
+---@field ignore_system_prompt? table Do not send the default system prompt with the request
+---@field last_role? string The role of the last response in the chat buffer
+---@field messages? table The messages to display in the chat buffer
+---@field settings? table The settings that are used in the adapter of the chat buffer
+---@field status? string The status of any running jobs in the chat buffe
+---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
+---@field tokens? table Total tokens spent in the chat buffer so far
+
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local completion = require("codecompanion.completion")
@@ -65,7 +109,7 @@ local function ts_parse_settings(bufnr, adapter)
   local end_line = -1
   if adapter then
     -- Account for the two YAML lines and the fact Tree-sitter is 0-indexed
-    end_line = vim.tbl_count(adapter:make_from_schema()) + 2 - 1
+    end_line = vim.tbl_count(adapter.schema) + 2 - 1
   end
 
   for _, matches, _ in query:iter_matches(root, bufnr, 0, end_line) do
@@ -375,12 +419,13 @@ end
 
 ---Format and apply settings to the chat buffer
 ---@param settings? table
----@return self
+---@return nil
 function Chat:apply_settings(settings)
   self.settings = settings or schema.get_default(self.adapter.schema)
-  _cached_settings[self.bufnr] = self.settings
 
-  return self
+  if not config.display.chat.show_settings then
+    _cached_settings[self.bufnr] = self.settings
+  end
 end
 
 ---Set a model in the chat buffer
@@ -949,6 +994,7 @@ function Chat:add_buf_message(data, opts)
     end
   end
 
+  -- Add a new header to the chat buffer
   local function new_role()
     new_response = true
     self.last_role = data.role
@@ -957,6 +1003,7 @@ function Chat:add_buf_message(data, opts)
     self.ui:set_header(lines, config.strategies.chat.roles[data.role])
   end
 
+  -- Add data to the chat buffer
   local function append_data()
     if data.reasoning then
       has_been_reasoning = true
@@ -965,7 +1012,8 @@ function Chat:add_buf_message(data, opts)
         table.insert(lines, "")
       end
       write(data.reasoning)
-    else
+    end
+    if data.content then
       if has_been_reasoning then
         has_been_reasoning = false
         table.insert(lines, "")

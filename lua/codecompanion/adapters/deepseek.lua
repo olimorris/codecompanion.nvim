@@ -1,4 +1,3 @@
-local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
 
@@ -90,15 +89,12 @@ return {
             if delta.role then
               output.role = delta.role
             end
-
             if self.opts.can_reason and delta.reasoning_content then
               output.reasoning = delta.reasoning_content
             end
-
             if delta.content then
               output.content = (output.content or "") .. delta.content
             end
-
             return {
               status = "success",
               output = output,

@@ -22,7 +22,7 @@ describe("File tools", function()
   end)
 
   it("can read lines of a file", function()
-    local path = "~/tmp/test2.txt"
+    local path = vim.fn.tempname()
     files.actions.create({
       path = path,
       contents = [[This is line 1

@@ -1,10 +1,18 @@
 local M = {}
 
 function M.chat_buffer_output(response, adapter)
-  local output = {}
+  local output = { output = { content = "", role = "assistant" } }
 
   for _, data in ipairs(response) do
-    output = adapter.handlers.chat_output(adapter, data.request)
+    local chunk = adapter.handlers.chat_output(adapter, data.request)
+    if chunk and chunk.output then
+      if chunk.output.role then
+        output.output.role = chunk.output.role
+      end
+      if chunk.output.content then
+        output.output.content = output.output.content .. chunk.output.content
+      end
+    end
   end
 
   return output.output

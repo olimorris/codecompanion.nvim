@@ -2,6 +2,7 @@
 ---https://github.com/google-gemini/cookbook/blob/main/quickstarts/rest/Streaming_REST.ipynb
 
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils.adapters")
 
 ---@class Gemini.Adapter: CodeCompanion.Adapter
 return {
@@ -12,17 +13,25 @@ return {
     user = "user",
   },
   opts = {
-    stream = true, -- NOTE: Currently, CodeCompanion ONLY supports streaming with this adapter
+    stream = true,
   },
   features = {
     tokens = true,
     text = true,
     vision = true,
   },
-  url = "https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${api_key}",
+  url = "https://generativelanguage.googleapis.com/v1beta/models/${model}${stream}key=${api_key}",
   env = {
     api_key = "GEMINI_API_KEY",
     model = "schema.model.default",
+    stream = function(self)
+      local stream = ":generateContent?"
+      if self.opts.stream then
+        -- NOTE: With sse each stream chunk is a GenerateContentResponse object with a portion of the output text in candidates[0].content.parts[0].text
+        stream = ":streamGenerateContent?alt=sse&"
+      end
+      return stream
+    end,
   },
   headers = {
     ["Content-Type"] = "application/json",
@@ -93,7 +102,7 @@ return {
     ---@return number|nil
     tokens = function(self, data)
       if data and data ~= "" then
-        data = data:sub(6)
+        data = utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
         if ok then
@@ -110,7 +119,7 @@ return {
       local output = {}
 
       if data and data ~= "" then
-        data = data:sub(6)
+        data = utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
         if ok and json.candidates[1].content then
@@ -132,7 +141,7 @@ return {
     ---@return table|nil
     inline_output = function(self, data, context)
       if data and data ~= "" then
-        data = data:sub(6)
+        data = utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
         if not ok then
@@ -175,6 +184,66 @@ return {
         "gemini-1.5-pro",
         "gemini-1.0-pro",
       },
+    },
+    maxOutputTokens = {
+      order = 2,
+      mapping = "body.generationConfig",
+      type = "integer",
+      optional = true,
+      default = nil,
+      desc = "The maximum number of tokens to include in a response candidate. Note: The default value varies by model",
+      validate = function(n)
+        return n > 0, "Must be greater than 0"
+      end,
+    },
+    temperature = {
+      order = 3,
+      mapping = "body.generationConfig",
+      type = "number",
+      optional = true,
+      default = nil,
+      desc = "Controls the randomness of the output.",
+      validate = function(n)
+        return n >= 0 and n <= 2, "Must be between 0 and 2"
+      end,
+    },
+    topP = {
+      order = 4,
+      mapping = "body.generationConfig",
+      type = "integer",
+      optional = true,
+      default = nil,
+      desc = "The maximum cumulative probability of tokens to consider when sampling. The model uses combined Top-k and Top-p (nucleus) sampling. Tokens are sorted based on their assigned probabilities so that only the most likely tokens are considered. Top-k sampling directly limits the maximum number of tokens to consider, while Nucleus sampling limits the number of tokens based on the cumulative probability.",
+      validate = function(n)
+        return n > 0, "Must be greater than 0"
+      end,
+    },
+    topK = {
+      order = 5,
+      mapping = "body.generationConfig",
+      type = "integer",
+      optional = true,
+      default = nil,
+      desc = "The maximum number of tokens to consider when sampling",
+      validate = function(n)
+        return n > 0, "Must be greater than 0"
+      end,
+    },
+    presencePenalty = {
+      order = 6,
+      mapping = "body.generationConfig",
+      type = "number",
+      optional = true,
+      default = nil,
+      desc = "Presence penalty applied to the next token's logprobs if the token has already been seen in the response",
+    },
+    frequencyPenalty = {
+      order = 7,
+      mapping = "body.generationConfig",
+      type = "number",
+      optional = true,
+      default = nil,
+      desc = "Frequency penalty applied to the next token's logprobs, multiplied by the number of times each token has been seen in the response so far.",
     },
   },
 }

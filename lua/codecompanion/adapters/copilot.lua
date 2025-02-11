@@ -254,7 +254,7 @@ return {
       order = 4,
       mapping = "parameters",
       type = "integer",
-      default = 4096,
+      default = 15000,
       desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
     },
     top_p = {

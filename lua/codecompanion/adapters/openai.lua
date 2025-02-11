@@ -109,6 +109,17 @@ return {
 
         if ok and json.choices and #json.choices > 0 then
           local choice = json.choices[1]
+
+          if choice.finish_reason then
+            local reason = choice.finish_reason
+            if reason ~= "stop" then
+              return {
+                status = "error",
+                output = "The stream was stopped due to: " .. reason,
+              }
+            end
+          end
+
           local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
 
           if delta then

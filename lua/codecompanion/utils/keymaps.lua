@@ -1,6 +1,12 @@
 -- Taken from:
 -- https://github.com/stevearc/oil.nvim/blob/master/lua/oil/keymap_util.lua
 
+---@class CodeCompanion.Keymaps
+---@field bufnr number The buffer number to apply the keymaps to
+---@field callbacks table The callbacks to execute for each keymap
+---@field data table The CodeCompanion class
+---@field keymaps table The keymaps from the user's config
+
 ---Get the current position of the cursor when the keymap was triggered
 ---@return table
 local function get_position_info()

@@ -69,6 +69,7 @@ function Client:request(payload, actions, opts)
       handlers.form_parameters and handlers.form_parameters(adapter, adapter:set_env_vars(adapter.parameters), payload)
         or {},
       handlers.form_messages and handlers.form_messages(adapter, payload) or {},
+      adapter.body and adapter.body or {},
       handlers.set_body and handlers.set_body(adapter, payload) or {}
     )
   )
@@ -176,7 +177,9 @@ function Client:request(payload, actions, opts)
   opts.adapter = {
     name = adapter.name,
     formatted_name = adapter.formatted_name,
-    model = adapter.schema.model.default or "",
+    model = type(adapter.schema.model.default) == "function" and adapter.schema.model.default()
+      or adapter.schema.model.default
+      or "",
   }
 
   util.fire("RequestStarted", opts)

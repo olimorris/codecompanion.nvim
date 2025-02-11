@@ -1,4 +1,4 @@
-local Job = require('plenary.job')
+local Job = require("plenary.job")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
@@ -9,8 +9,8 @@ local _gh_token
 local function get_github_token()
   local token
   local job = Job:new({
-    command = 'gh',
-    args = { 'auth', 'token', '-h', 'github.com' },
+    command = "gh",
+    args = { "auth", "token", "-h", "github.com" },
     on_exit = function(j, return_val)
       if return_val == 0 then
         token = j:result()[1]
@@ -133,8 +133,7 @@ return {
       order = 1,
       mapping = "parameters",
       type = "enum",
-      desc =
-      "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
+      desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
       default = "gpt-4o",
       choices = {
@@ -163,8 +162,7 @@ return {
         end
       end,
       default = "medium",
-      desc =
-      "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
+      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
       choices = {
         "high",
         "medium",
@@ -183,16 +181,14 @@ return {
         end
         return not vim.startswith(model, "o1")
       end,
-      desc =
-      "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
+      desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
     },
     max_tokens = {
       order = 4,
       mapping = "parameters",
       type = "integer",
       default = 4096,
-      desc =
-      "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
+      desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
     },
     top_p = {
       order = 5,
@@ -206,8 +202,7 @@ return {
         end
         return not vim.startswith(model, "o1")
       end,
-      desc =
-      "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
+      desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
     },
     n = {
       order = 6,
