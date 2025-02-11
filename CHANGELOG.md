@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.1.0...v12.1.1) (2025-02-11)
+
+
+### Bug Fixes
+
+* **chat:** [#889](https://github.com/olimorris/codecompanion.nvim/issues/889) pinned file references always have same id ([#890](https://github.com/olimorris/codecompanion.nvim/issues/890)) ([cbac9bc](https://github.com/olimorris/codecompanion.nvim/commit/cbac9bc6552a0eb3c3b6b0a64adb5ddd71617dbc))
+
 ## [12.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.0.1...v12.1.0) (2025-02-11)
 
 
