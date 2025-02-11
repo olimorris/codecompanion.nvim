@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.1.2](https://github.com/olimorris/codecompanion.nvim/compare/v12.1.1...v12.1.2) (2025-02-11)
+
+
+### Bug Fixes
+
+* **openai:** [#892](https://github.com/olimorris/codecompanion.nvim/issues/892) handle different finish reasons ([#893](https://github.com/olimorris/codecompanion.nvim/issues/893)) ([70179b0](https://github.com/olimorris/codecompanion.nvim/commit/70179b00092a1ab45114448b256bb02c2fdb34de))
+
 ## [12.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.1.0...v12.1.1) (2025-02-11)
 
 
