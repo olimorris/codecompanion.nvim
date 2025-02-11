@@ -773,7 +773,6 @@ function Chat:submit(opts)
         end
       end,
       done = function()
-        print("Called done")
         self:done(output)
       end,
     }, { bufnr = bufnr, strategy = "chat" })
