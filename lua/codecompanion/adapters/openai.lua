@@ -112,10 +112,10 @@ return {
 
           if choice.finish_reason then
             local reason = choice.finish_reason
-            if reason ~= "stop" then
+            if reason ~= "stop" and reason ~= "" then
               return {
                 status = "error",
-                output = "The stream was stopped due to: " .. reason,
+                output = "The stream was stopped with the a finish_reason of '" .. reason .. "'",
               }
             end
           end
