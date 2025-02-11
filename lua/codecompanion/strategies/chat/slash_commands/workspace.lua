@@ -203,6 +203,7 @@ function SlashCommand:output(selected_group, opts)
   if group.urls and vim.tbl_count(group.urls) > 0 then
     vim.iter(group.urls):each(function(url)
       url.path = url.url
+      url.description = url.description
       --TODO: Refactor this...we're adding to an options table to then strip it away in slash_commands/init.lua
       url.opts = {
         ignore_cache = url.ignore_cache,

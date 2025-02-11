@@ -17,17 +17,20 @@ local CONSTANTS = {
 ---Format the output for the chat buffer
 ---@param url string
 ---@param text string
+---@param opts table
 ---@return string
-local function format_output(url, text)
-  return fmt(
-    [[Here is the content from `%s` that I'm sharing with you:
+local function format_output(url, text, opts)
+  local output = [[%s
 
 <content>
 %s
-</content>]],
-    url,
-    text
-  )
+</content>]]
+
+  if opts and opts.description then
+    return fmt(output, opts.description, text)
+  end
+
+  return fmt(output, "Here is the output from " .. url .. " that I'm sharing with you:", text)
 end
 
 ---Output the contents of the URL to the chat buffer
@@ -40,7 +43,7 @@ local function output(chat, data, opts)
 
   chat:add_message({
     role = config.constants.USER_ROLE,
-    content = format_output(data.url, data.content),
+    content = format_output(data.url, data.content, opts),
   }, { reference = id, visible = false })
 
   chat.references:add({
@@ -224,7 +227,7 @@ function SlashCommand:output(url, opts)
     log:debug("Fetch Slash Command: Ignoring cache")
     return call_fetch()
   end
-  if opts and opts.auto_restore_cache then
+  if opts and opts.auto_restore_cache and is_cached(hash) then
     log:debug("Fetch Slash Command: Auto restoring from cache")
     return read_cache(self.Chat, url, hash, opts)
   end
