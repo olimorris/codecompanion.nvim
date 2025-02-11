@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.10.0       Last change: 2025 February 08
+*codecompanion.txt*       For NVIM v0.10.0       Last change: 2025 February 11
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -74,6 +74,7 @@ of the box, the plugin supports:
 
 - Anthropic (`anthropic`) - Requires an API key and supports prompt caching <https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching>
 - Copilot (`copilot`) - Requires a token which is created via `:Copilot setup` in Copilot.vim <https://github.com/github/copilot.vim>
+- GitHub Models (`githubmodels`) - Requires `gh` <https://github.com/cli/cli> to be installed and logged in
 - DeepSeek (`deepseek`) - Requires an API key
 - Gemini (`gemini`) - Requires an API key
 - HuggingFace (`huggingface`) - Requires an API key
@@ -263,10 +264,11 @@ CHAT BUFFER                        *codecompanion-getting-started-chat-buffer*
 The Chat Buffer is where you can converse with an LLM from within Neovim. It
 operates on a single response per turn, basis.
 
-Run `:CodeCompanionChat` to open a chat buffer. Type your prompt and press
-`<CR>`. Or, run `:CodeCompanionChat why are Lua and Neovim so perfect
-together?` to send a prompt directly to the chat buffer. Toggle the chat buffer
-with `:CodeCompanionChat Toggle`.
+Run `:CodeCompanionChat` to open a chat buffer. Type your prompt and send it by
+pressing `<C-s>` while in insert mode or `<CR>` in normal mode. Alternatively,
+run `:CodeCompanionChat why are Lua and Neovim so perfect together?` to open
+the chat buffer and send a prompt at the same time. Toggle the chat buffer with
+`:CodeCompanionChat Toggle`.
 
 You can add context from your code base by using `Variables` and `Slash
 Commands` in the chat buffer.
@@ -1825,6 +1827,7 @@ The events that you can access are:
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline strategy
 - `CodeCompanionInlineFinished` - Fired at the end of the Inline strategy
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
+- `CodeCompanionRequestStreaming` - Fired at the start of a streaming API request
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
 - `CodeCompanionDiffAttached` - Fired when in Diff mode
 - `CodeCompanionDiffDetached` - Fired when exiting Diff mode
@@ -2176,6 +2179,7 @@ file:
     ---@field env_replaced? table Replacement of environment variables with their actual values
     ---@field headers table The headers to pass to the request
     ---@field parameters table The parameters to pass to the request
+    ---@field body table Additional body parameters to pass to the request
     ---@field raw? table Any additional curl arguments to pass to the request
     ---@field opts? table Additional options for the adapter
     ---@field handlers table Functions which link the output from the request to CodeCompanion
@@ -2689,7 +2693,7 @@ You’ll see we’ve specified a function call for the `condition` key. We’re
 simply checking that the model name doesn’t being with `o1` as these models
 don’t accept temperature as a parameter. You’ll also see we’ve specified
 a function call for the `validate` key. We’re simply checking that the value
-of the temperature is between 0 and 2
+of the temperature is between 0 and 2.
 
 
 CREATING PROMPTS                    *codecompanion-extending-creating-prompts*
@@ -2789,7 +2793,7 @@ buffer and set the filetype to be html:
           pre_hook = function()
             local bufnr = vim.api.nvim_create_buf(true, false)
             vim.api.nvim_set_current_buf(bufnr)
-            vim.api.nvim_set_option_value("filetype", "html", { buf = buf } )
+            vim.api.nvim_set_option_value("filetype", "html", { buf = bufnr } )
             return bufnr
           end
         }
