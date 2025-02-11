@@ -56,7 +56,7 @@ Thank you to the following people:
 
 ## :book: Documentation
 
-Please visit the [documentation site](https://codecompanion.olimorris.dev) for installation and configuration instructions.
+Please visit the [documentation site](https://codecompanion.olimorris.dev) for information around installation, configuration and usage.
 
 
 ## :toolbox: Troubleshooting
