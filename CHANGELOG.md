@@ -1,5 +1,13 @@
 # Changelog
 
+## [12.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.0.1...v12.1.0) (2025-02-11)
+
+
+### Features
+
+* adapter and debug window improvement ([be55c9b](https://github.com/olimorris/codecompanion.nvim/commit/be55c9b05d34940a15ad5aed70f62f04e333c7c4))
+* **events:** new request streaming event ([#878](https://github.com/olimorris/codecompanion.nvim/issues/878)) ([6846482](https://github.com/olimorris/codecompanion.nvim/commit/68464826515b764ebae5fdf28e4d3f8c01c80296))
+
 ## [12.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.0.0...v12.0.1) (2025-02-09)
 
 
