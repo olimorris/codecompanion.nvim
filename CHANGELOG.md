@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.2.0...v12.2.1) (2025-02-11)
+
+
+### Bug Fixes
+
+* **workspaces:** add description to urls from cache and check they exist ([#900](https://github.com/olimorris/codecompanion.nvim/issues/900)) ([2d08176](https://github.com/olimorris/codecompanion.nvim/commit/2d0817684206b6caa17c72c2a58d3e21641d96fe))
+
 ## [12.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.1.2...v12.2.0) (2025-02-11)
 
 
