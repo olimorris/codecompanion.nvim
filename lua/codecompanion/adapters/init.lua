@@ -12,7 +12,6 @@ local log = require("codecompanion.utils.log")
 ---@field headers table The headers to pass to the request
 ---@field parameters table The parameters to pass to the request
 ---@field body table Additional body parameters to pass to the request
----@field chat_prompt string The system chat prompt to send to the LLM
 ---@field raw? table Any additional curl arguments to pass to the request
 ---@field opts? table Additional options for the adapter
 ---@field handlers table Functions which link the output from the request to CodeCompanion
