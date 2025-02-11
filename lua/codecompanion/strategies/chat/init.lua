@@ -765,6 +765,9 @@ function Chat:submit(opts)
               end
               table.insert(output, result.output.content)
               self:add_buf_message(result.output)
+            elseif self.status == CONSTANTS.STATUS_ERROR then
+              log:error("Error: %s", result.output)
+              return self:done(output)
             end
           end
         end

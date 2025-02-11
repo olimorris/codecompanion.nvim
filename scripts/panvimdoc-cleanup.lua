@@ -28,12 +28,12 @@ function M.Header(el)
 end
 
 function M.Link(el)
-  if not el.target:find('^http') then
+  if not el.target:find("^http") then
     -- start with / is root
     -- otherwise, it's relative. can't easily track
     -- make sure that tags are now #s here
-    el.content = el.target:gsub("^/", ""):gsub("/", "-"):gsub('%.md', ''):gsub('#', '-')
-    el.target = '#' -- ensures it makes a tag
+    el.content = el.target:gsub("^/", ""):gsub("/", "-"):gsub("%.md", ""):gsub("#", "-")
+    el.target = "#" -- ensures it makes a tag
   end
   return el
 end
@@ -58,7 +58,7 @@ end
 
 function M.Str(el)
   if el.text:find(":[%a_]+:") then
-    el.text = ''
+    el.text = ""
   end
   return el
 end
