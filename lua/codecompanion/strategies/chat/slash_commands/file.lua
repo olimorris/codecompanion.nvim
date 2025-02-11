@@ -150,8 +150,17 @@ function SlashCommand:read(selected)
     return ""
   end
 
+  -- Make path relative
+  local relative_path
+  if selected.relative_path then
+    relative_path = selected.relative_path
+  elseif selected[1] then
+    relative_path = selected[1]
+  else
+    relative_path = vim.fn.fnamemodify(selected.path, ":.")
+  end
+
   local ft = vim.filetype.match({ filename = selected.path })
-  local relative_path = selected.relative_path or selected[1] or selected.path
   local id = "<file>" .. relative_path .. "</file>"
 
   return content, ft, id, relative_path
