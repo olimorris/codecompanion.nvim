@@ -104,6 +104,7 @@ function SlashCommands.references(chat, slash_command, opts)
     -- double opts out of the opts table. Hacky, for sure.
     opts.silent = true
     opts.url = opts.url or opts.path
+    opts.description = opts.description
     opts.auto_restore_cache = opts.opts.auto_restore_cache
     opts.ignore_cache = opts.opts.ignore_cache
 
