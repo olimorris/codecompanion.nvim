@@ -117,9 +117,6 @@ end
 ---@class CodeCompanion.Adapter
 local Adapter = {}
 
-local NIL_SENTINEL = vim.empty_dict()
-Adapter.NIL_SENTINEL = NIL_SENTINEL
-
 ---@return CodeCompanion.Adapter
 function Adapter.new(args)
   return setmetatable(args, { __index = Adapter })
