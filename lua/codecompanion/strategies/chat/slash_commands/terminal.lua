@@ -20,32 +20,42 @@ function SlashCommand.new(args)
   return self
 end
 
+local _terminal_data = {}
 ---Execute the slash command
 ---@return nil
 function SlashCommand:execute()
-  local terminal_buf = _G.codecompanion_last_terminal
-  if not terminal_buf then
-    util.notify("No recent terminal buffer found.", vim.log.levels.WARN)
-    return
+  local bufnr = _G.codecompanion_last_terminal
+  if not bufnr then
+    return util.notify("No recent terminal buffer found", vim.log.levels.WARN)
   end
-  local ok, content = pcall(function()
-    return vim.api.nvim_buf_get_lines(terminal_buf, 0, -1, false)
-  end)
 
+  local start_line = 0
+  if _terminal_data[bufnr] then
+    start_line = _terminal_data[bufnr].lines - 3 -- Account for new prompt lines
+  end
+
+  local ok, content = pcall(function()
+    return vim.api.nvim_buf_get_lines(bufnr, start_line, -1, false)
+  end)
   if not ok then
     return log:error("Failed to get terminal output")
   end
+
+  _terminal_data[bufnr] = {
+    lines = #content + (_terminal_data[bufnr] and _terminal_data[bufnr].lines or 0),
+    timestamp = os.time(),
+  }
 
   local Chat = self.Chat
   Chat:add_message({
     role = config.constants.USER_ROLE,
     content = string.format(
-      [[Here is the terminal output for buffer number `%s`:
+      [[Here is the latest output from terminal `%s`:
 
-<terminal>
+```
 %s
-</terminal>]],
-      terminal_buf,
+```]],
+      bufnr,
       table.concat(content, "\n")
     ),
   }, { visible = false })
