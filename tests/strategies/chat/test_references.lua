@@ -241,11 +241,6 @@ T["References"]["file references always have a relative id"] = function()
       pinned = true,
     },
   })
-  require("codecompanion.strategies.chat.slash_commands").references(
-    chat,
-    "file",
-    { description = "test", path = path, pin = true }
-  )
 
   h.send_to_llm(chat, "Hello there")
   chat:add_message({ role = "user", content = "Can you see the updated content?" })
