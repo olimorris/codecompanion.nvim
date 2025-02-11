@@ -228,4 +228,31 @@ T["References"]["can be cleared from messages"] = function()
   h.eq("Hello, World", chat.references:clear(message).content)
 end
 
+---Bug fix: #889 https://github.com/olimorris/codecompanion.nvim/issues/889
+---We want to use relative paths as they're prettier in the chat buffer than
+---full paths. However, a lot of the providers only output the full path
+T["References"]["file references always have a relative id"] = function()
+  local path = vim.fn.fnamemodify(vim.fn.getcwd(), ":p") .. "tests/stubs/file.txt"
+  chat.references:add({
+    id = "<file>tests/stubs/file.txt</file>",
+    path = path,
+    source = "codecompanion.strategies.chat.slash_commands.file",
+    opts = {
+      pinned = true,
+    },
+  })
+  require("codecompanion.strategies.chat.slash_commands").references(
+    chat,
+    "file",
+    { description = "test", path = path, pin = true }
+  )
+
+  h.send_to_llm(chat, "Hello there")
+  chat:add_message({ role = "user", content = "Can you see the updated content?" })
+  h.send_to_llm(chat, "Yes I can")
+
+  h.expect_starts_with("Here is the updated content", chat.messages[#chat.messages - 1].content)
+  h.eq("<file>tests/stubs/file.txt</file>", chat.messages[#chat.messages - 1].opts.reference)
+end
+
 return T
