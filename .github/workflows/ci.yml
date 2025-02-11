@@ -17,9 +17,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             url: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.tar.gz
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             url: https://github.com/neovim/neovim/releases/download/v0.10.0/nvim-linux64.tar.gz
 
     steps:
@@ -41,7 +41,6 @@ jobs:
             curl -sL ${{ matrix.url }} | tar xzf - --strip-components=1 -C "${PWD}/_neovim"
           }
           mkdir -p ~/.local/share/nvim/site/pack/vendor/start
-          git clone --depth 1 https://github.com/nvim-lua/plenary.nvim ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
           ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
 
       - name: Run tests 🧪
@@ -50,3 +49,4 @@ jobs:
           export VIM="${PWD}/_neovim/share/nvim/runtime"
           nvim --version
           make test
+
