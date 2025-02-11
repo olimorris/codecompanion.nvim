@@ -1,5 +1,17 @@
 # Changelog
 
+## [12.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.1.2...v12.2.0) (2025-02-11)
+
+
+### Features
+
+* **slash_cmds:** terminal command only shows latest changes ([#898](https://github.com/olimorris/codecompanion.nvim/issues/898)) ([cde1882](https://github.com/olimorris/codecompanion.nvim/commit/cde18827e796f898b18899b5dbecf3badf72d2a9))
+
+
+### Bug Fixes
+
+* **openai:** model streaming ([#896](https://github.com/olimorris/codecompanion.nvim/issues/896)) ([28a03a3](https://github.com/olimorris/codecompanion.nvim/commit/28a03a38c7f9019fd303614d1d42b4539f324b97))
+
 ## [12.1.2](https://github.com/olimorris/codecompanion.nvim/compare/v12.1.1...v12.1.2) (2025-02-11)
 
 
