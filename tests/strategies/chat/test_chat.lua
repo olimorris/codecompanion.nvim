@@ -36,4 +36,12 @@ T["Chat"]["buffer variables are handled"] = function()
   h.eq("variable", message.opts.tag)
 end
 
+T["Chat"]["system prompt can be ignored"] = function()
+  local new_chat = require("codecompanion.strategies.chat").new({
+    ignore_system_prompt = true,
+  })
+
+  h.eq(nil, new_chat.messages[1])
+end
+
 return T

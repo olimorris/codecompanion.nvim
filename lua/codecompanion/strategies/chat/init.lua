@@ -3,7 +3,6 @@ The Chat Buffer - This is where all of the logic for conversing with an LLM sits
 --]]
 
 ---@class CodeCompanion.Chat
----@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
 ---@field aug number The ID for the autocmd group
 ---@field bufnr integer The buffer number of the chat
@@ -16,6 +15,7 @@ The Chat Buffer - This is where all of the logic for conversing with an LLM sits
 ---@field header_ns integer The namespace for the virtual text that appears in the header
 ---@field id integer The unique identifier for the chat
 ---@field messages? table The messages in the chat buffer
+---@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field parser vim.treesitter.LanguageTree The Tree-sitter parser for the chat buffer
 ---@field references CodeCompanion.Chat.References
 ---@field refs? table<CodeCompanion.Chat.Ref> References which are sent to the LLM e.g. buffers, slash command output
@@ -217,6 +217,7 @@ function Chat.new(args)
     id = id,
     last_role = args.last_role or config.constants.USER_ROLE,
     messages = args.messages or {},
+    opts = args,
     refs = {},
     status = "",
     tool_flags = {},
