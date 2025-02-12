@@ -41,6 +41,7 @@ return {
     cmd = "CodeCompanion",
     callback = function(opts)
       local handler = function(opts)
+        -- If the user has supplied a slash command then we need to process it
         if string.sub(opts.args, 1, 1) == "/" then
           local user_prompt = nil
           -- Remove the leading slash
@@ -75,10 +76,10 @@ return {
             return codecompanion.run_inline_prompt(prompts, opts)
           end
         end
-
         codecompanion.inline(opts)
       end
 
+      -- If the user calls the command with no prompt, then prompt them
       if #vim.trim(opts.args or "") == 0 then
         vim.ui.input({ prompt = config.display.action_palette.prompt }, function(input)
           if #vim.trim(input or "") == 0 then

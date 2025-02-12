@@ -149,8 +149,12 @@ return {
     ---@param self CodeCompanion.Adapter
     ---@param data string|table The streamed JSON data from the API, also formatted by the format_data handler
     ---@param context table Useful context about the buffer to inline to
-    ---@return string|table|nil
+    ---@return string|nil
     inline_output = function(self, data, context)
+      if self.opts.stream then
+        return log:error("Inline output is not supported for non-streaming models")
+      end
+
       if data and data ~= "" then
         data = utils.clean_streamed_data(data)
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })

@@ -589,7 +589,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
       },
     },
     ["Unit Tests"] = {
-      strategy = "chat",
+      strategy = "inline",
       description = "Generate unit tests for the selected code",
       opts = {
         index = 6,
@@ -599,6 +599,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
         short_name = "tests",
         auto_submit = true,
         user_prompt = false,
+        placement = "new",
         stop_context_insertion = true,
       },
       prompts = {
