@@ -626,11 +626,13 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return fmt(
-              [[Please generate unit tests for this code from buffer %d:
+              [[<user_prompt>
+Please generate unit tests for this code from buffer %d:
 
 ```%s
 %s
 ```
+</user_prompt>
 ]],
               context.bufnr,
               context.filetype,

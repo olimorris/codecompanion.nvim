@@ -4,67 +4,120 @@ local h = require("tests.helpers")
 local new_set = MiniTest.new_set
 local T = MiniTest.new_set()
 
+local inline
+
+local mock_adapter = {
+  name = "mock",
+  formatted_name = "Mock",
+  roles = {
+    llm = "assistant",
+    user = "user",
+  },
+  opts = {
+    stream = false,
+  },
+  url = "http://mock-url",
+  headers = {},
+  handlers = {
+    setup = function(self)
+      return true
+    end,
+    form_parameters = function(self, params, messages)
+      return params
+    end,
+    form_messages = function(self, messages)
+      return { messages = messages }
+    end,
+    inline_output = function(self, data, context)
+      return "<response>\n<code><![CDATA[function hello_world()\n  print('Hello World')\nend]]></code>\n<placement>add</placement>\n</response>"
+    end,
+  },
+  schema = {
+    model = {
+      default = "mock-model",
+      choices = {},
+    },
+  },
+}
+
 T["Inline"] = new_set({
   hooks = {
-    pre_case = function() end,
+    pre_case = function()
+      inline = require("codecompanion.strategies.inline").new({
+        adapter = mock_adapter,
+        context = {
+          winnr = 0,
+          bufnr = 0,
+          filetype = "lua",
+          start_line = 1,
+          end_line = 1,
+          start_col = 0,
+          end_col = 0,
+        },
+      })
+    end,
     post_case = function() end,
   },
 })
 
-T["Inline"]["can be prompted from the cmdline"] = function()
-  -- 1. Set up test environment
-  local child = h.new_child_neovim()
-  child.setup()
-
-  -- 2. Mock necessary components/functions
-  -- Since inline prompt uses vim.ui.input, we should mock it
-  child.lua([[
-    _G.input_args = nil
-    vim.ui.input = function(opts, cb)
-      _G.input_args = opts
-      -- Simulate user entering "write a hello world function"
-      cb("write a hello world function")
-    end
+T["Inline"]["can parse XML output correctly"] = function()
+  local code, placement = inline:parse_output([[
+    <response>
+      <code>function test() end</code>
+      <placement>add</placement>
+    </response>
   ]])
 
-  -- 3. Create test command arguments
-  local prompt = {
-    args = "write a hello world function",
-    bang = false,
-    count = -1,
-    fargs = { "write", "a", "hello", "world", "function" },
-    line1 = 1,
-    line2 = 1,
+  h.eq("function test() end", code)
+  h.eq("add", placement)
+end
+
+T["Inline"]["handles different placements"] = function()
+  -- Test 'add' placement
+  inline:place("add")
+  h.eq(inline.classification.pos, {
+    line = inline.context.end_line + 1,
+    col = 0,
+    bufnr = inline.context.bufnr,
+  })
+
+  -- Test 'replace' placement
+  inline:place("replace")
+  h.eq(inline.classification.pos, {
+    line = inline.context.start_line,
+    col = inline.context.start_col,
+    bufnr = inline.context.bufnr,
+  })
+
+  -- Test 'before' placement
+  inline:place("before")
+  h.eq(inline.classification.pos, {
+    line = inline.context.start_line - 1,
+    col = math.max(0, inline.context.start_col - 1),
+    bufnr = inline.context.bufnr,
+  })
+end
+
+T["Inline"]["forms correct prompts"] = function()
+  local prompts = {
+    {
+      role = "user",
+      content = "test prompt",
+      opts = { contains_code = true },
+    },
   }
 
-  -- 4. Execute the inline command
-  child.lua(
-    [[
-    local codecompanion = require('codecompanion')
-    local output = codecompanion.inline(...)
-  ]],
-    { prompt }
+  inline.prompts = prompts
+  inline.context.is_visual = true
+  inline.context.lines = { "local x = 1" }
+
+  local formed_prompts = inline:make_ext_prompts()
+  h.eq(#formed_prompts, 2) -- One for the prompt, one for the visual selection
+  h.eq("test prompt", formed_prompts[1].content)
+  h.eq(
+    "For context, this is some code that I've selected in the buffer which is relevant to my prompt:\n\n```lua\nlocal x = 1\n```",
+    formed_prompts[2].content
   )
-
-  -- 5. Verify the input prompt was shown correctly
-  local input_args = child.lua_get("_G.input_args")
-  -- h.eq(input_args.prompt, "Lua Action") -- Assuming filetype is Lua
-
-  -- 6. Wait for and verify the output in the buffer
-  vim.wait(1000, function()
-    local lines = child.api.nvim_buf_get_lines(0, 0, -1, true)
-    return #lines > 0 and lines[1]:match("function") ~= nil
-  end)
-
-  local final_lines = child.api.nvim_buf_get_lines(0, 0, -1, true)
-  h.expect_match(table.concat(final_lines, "\n"), "function")
-  print(vim.inspect(final_lines))
-
-  -- 7. Clean up
-  child.stop()
 end
-T["Inline"]["can prompt for placement"] = function() end
-T["Inline"]["can ignore placement"] = function() end
-T["Inline"]["can include buffer contents"] = function() end
 
 return T
