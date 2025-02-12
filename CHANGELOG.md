@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.2.3](https://github.com/olimorris/codecompanion.nvim/compare/v12.2.2...v12.2.3) (2025-02-12)
+
+
+### Bug Fixes
+
+* **chat:** [#906](https://github.com/olimorris/codecompanion.nvim/issues/906) ignore system prompt now works ([#909](https://github.com/olimorris/codecompanion.nvim/issues/909)) ([4d0e4dd](https://github.com/olimorris/codecompanion.nvim/commit/4d0e4dd80016a63ffcf28953ba13da72a1ccd953))
+
 ## [12.2.2](https://github.com/olimorris/codecompanion.nvim/compare/v12.2.1...v12.2.2) (2025-02-12)
 
 
