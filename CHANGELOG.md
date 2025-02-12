@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.2.2](https://github.com/olimorris/codecompanion.nvim/compare/v12.2.1...v12.2.2) (2025-02-12)
+
+
+### Bug Fixes
+
+* **chat:** [#887](https://github.com/olimorris/codecompanion.nvim/issues/887) header separator is now detected ([#902](https://github.com/olimorris/codecompanion.nvim/issues/902)) ([63e76c5](https://github.com/olimorris/codecompanion.nvim/commit/63e76c580d49eb30c147594a8bf9ca50f145f8f7))
+
 ## [12.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.2.0...v12.2.1) (2025-02-11)
 
 
