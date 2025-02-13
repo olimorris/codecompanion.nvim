@@ -135,8 +135,9 @@ T["Inline"]["forms correct prompts"] = function()
 end
 
 T["Inline"]["generates correct prompt structure"] = function()
-  -- Capture the submitted prompts
   local submitted_prompts = {}
+
+  -- Mock the submit function
   function inline:submit(prompts)
     submitted_prompts = prompts
   end
@@ -147,11 +148,8 @@ T["Inline"]["generates correct prompt structure"] = function()
   }
   inline:prompt(user_prompt)
 
-  -- Should be a system prompt and the user prompt
-  h.eq(#submitted_prompts, 2)
-
+  h.eq(#submitted_prompts, 2) -- Should be a system prompt and the user prompt
   h.eq(submitted_prompts[1].role, "system")
-
   h.eq(submitted_prompts[2].role, "user")
   h.eq(submitted_prompts[2].content, "<user_prompt>Test prompt</user_prompt>")
 end

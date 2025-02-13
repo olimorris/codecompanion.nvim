@@ -415,7 +415,7 @@ function Inline:submit(prompt)
     })
 end
 
----Once the requset has been completed, we can process the output
+---Once the request has been completed, we can process the output
 ---@param output string The output from the LLM
 ---@return nil
 function Inline:done(output)
