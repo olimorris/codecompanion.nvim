@@ -12,6 +12,12 @@ Custom variables can be shared by adding them to the `strategies.chat.variables`
 
 The _#buffer_ variable shares the full contents from the buffer that the user was last in when they initiated `:CodeCompanionChat`. To select another buffer, use the _/buffer_ slash command. These buffers can be [pinned or watched](/usage/chat-buffer/index#references) to enable updated content to be automatically shared with the LLM.
 
+It's also possible to pass parameters to the _#buffer_ variable:
+
+- `#buffer:23-30` - To send lines 23 to 30 of the current buffer the LLM
+- `#buffer:pin` - To pin the current buffer
+- `#buffer:watch` - To watch the current buffer
+
 ## #lsp
 
 > [!TIP]

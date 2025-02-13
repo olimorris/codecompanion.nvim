@@ -1,8 +1,46 @@
+local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils")
 
 local api = vim.api
+
+---@param bufnr number
+---@param opts? table
+local function _get_settings_key(bufnr, opts)
+  opts = vim.tbl_extend("force", opts or {}, {
+    lang = "lua",
+  })
+  local node = vim.treesitter.get_node(opts)
+
+  local current = node
+  local in_settings = false
+  while current do
+    if current:type() == "assignment_statement" then
+      local name_node = current:named_child(0)
+      if name_node and vim.treesitter.get_node_text(name_node, bufnr) == "settings" then
+        in_settings = true
+        break
+      end
+    end
+    current = current:parent()
+  end
+
+  if not in_settings then
+    return
+  end
+
+  while node do
+    if node:type() == "field" then
+      local key_node = node:named_child(0)
+      if key_node and key_node:type() == "identifier" then
+        local key_name = vim.treesitter.get_node_text(key_node, bufnr)
+        return key_name, node
+      end
+    end
+    node = node:parent()
+  end
+end
 
 ---Extract the settings and messages from the buffer
 local function get_buffer_content(lines)
@@ -43,29 +81,60 @@ end
 function Debug:render()
   local models
   local adapter = vim.deepcopy(self.chat.adapter)
+  self.adapter = adapter
+
+  local bufname = buf_utils.name_from_bufnr(self.chat.context.bufnr)
+
+  -- Get the current settings from the chat buffer rather than making new ones
+  local current_settings = self.settings or {}
 
   if type(adapter.schema.model.choices) == "function" then
-    models = adapter.schema.model.choices()
+    models = adapter.schema.model.choices(adapter)
   else
     models = adapter.schema.model.choices
   end
 
   local lines = {}
 
-  table.insert(lines, '-- Adapter: "' .. adapter.name .. '"')
+  table.insert(lines, '-- Adapter: "' .. adapter.formatted_name .. '"')
   table.insert(lines, "-- Buffer: " .. self.chat.bufnr)
+  table.insert(lines, '-- Context: "' .. bufname .. '" (' .. self.chat.context.bufnr .. ")")
 
   -- Add settings
   if not config.display.chat.show_settings then
     table.insert(lines, "")
-    table.sort(self.settings)
+    local keys = {}
+
+    -- Collect all settings keys including those with nil defaults
+    for key, _ in pairs(self.settings) do
+      table.insert(keys, key)
+    end
+
+    -- Add any schema keys that have an explicit nil default
+    for key, schema_value in pairs(adapter.schema) do
+      if schema_value.default == nil and not vim.tbl_contains(keys, key) then
+        table.insert(keys, key)
+      end
+    end
+
+    table.sort(keys, function(a, b)
+      local a_order = adapter.schema[a] and adapter.schema[a].order or 999
+      local b_order = adapter.schema[b] and adapter.schema[b].order or 999
+      if a_order == b_order then
+        return a < b -- alphabetical sort as fallback
+      end
+      return a_order < b_order
+    end)
+
     table.insert(lines, "local settings = {")
-    for key, val in pairs(self.settings) do
+    for _, key in ipairs(keys) do
+      local val = self.settings[key]
+      local is_nil = adapter.schema[key] and adapter.schema[key].default == nil
+
       if key == "model" then
         local other_models = " -- "
 
         vim.iter(models):each(function(model, model_name)
-          -- Display the other models that are available in the adapter
           if type(model) == "number" then
             model = model_name
           end
@@ -82,10 +151,12 @@ function Debug:render()
         else
           table.insert(lines, "  " .. key .. ' = "' .. val .. '",')
         end
+      elseif is_nil and current_settings[key] == nil then
+        table.insert(lines, "  " .. key .. " = nil,")
       elseif type(val) == "number" or type(val) == "boolean" then
-        table.insert(lines, "  " .. key .. " = " .. val .. ",")
+        table.insert(lines, "  " .. key .. " = " .. tostring(val) .. ",")
       elseif type(val) == "string" then
-        table.insert(lines, "  " .. key .. " = " .. '"' .. val .. '",')
+        table.insert(lines, "  " .. key .. ' = "' .. val .. '",')
       else
         table.insert(lines, "  " .. key .. " = " .. vim.inspect(val))
       end
@@ -171,6 +242,32 @@ end
 function Debug:setup_window()
   self.aug = api.nvim_create_augroup("codecompanion.debug" .. ":" .. self.bufnr, {
     clear = true,
+  })
+
+  api.nvim_create_autocmd("CursorMoved", {
+    group = self.aug,
+    buffer = self.bufnr,
+    desc = "Show settings information in the CodeCompanion chat buffer",
+    callback = function()
+      local key_name, node = _get_settings_key(self.bufnr)
+      if not key_name or not node then
+        return vim.diagnostic.set(config.INFO_NS, self.bufnr, {})
+      end
+
+      local key_schema = self.adapter.schema[key_name]
+      if key_schema and key_schema.desc then
+        local lnum, col, end_lnum, end_col = node:range()
+        local diagnostic = {
+          lnum = lnum,
+          col = col,
+          end_lnum = end_lnum,
+          end_col = end_col,
+          severity = vim.diagnostic.severity.INFO,
+          message = key_schema.desc,
+        }
+        vim.diagnostic.set(config.INFO_NS, self.bufnr, { diagnostic })
+      end
+    end,
   })
 
   api.nvim_create_autocmd("BufWrite", {

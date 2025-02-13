@@ -17,17 +17,20 @@ local CONSTANTS = {
 ---Format the output for the chat buffer
 ---@param url string
 ---@param text string
+---@param opts table
 ---@return string
-local function format_output(url, text)
-  return fmt(
-    [[Here is the content from `%s` that I'm sharing with you:
+local function format_output(url, text, opts)
+  local output = [[%s
 
 <content>
 %s
-</content>]],
-    url,
-    text
-  )
+</content>]]
+
+  if opts and opts.description then
+    return fmt(output, opts.description, text)
+  end
+
+  return fmt(output, "Here is the output from " .. url .. " that I'm sharing with you:", text)
 end
 
 ---Output the contents of the URL to the chat buffer
@@ -40,7 +43,7 @@ local function output(chat, data, opts)
 
   chat:add_message({
     role = config.constants.USER_ROLE,
-    content = format_output(data.url, data.content),
+    content = format_output(data.url, data.content, opts),
   }, { reference = id, visible = false })
 
   chat.references:add({
@@ -74,6 +77,8 @@ local function read_cache(chat, url, hash, opts)
   local p = Path:new(CONSTANTS.CACHE_PATH .. "/" .. hash)
   local cache = p:read()
 
+  log:debug("Fetch Slash Command: Restoring from cache for %s", url)
+
   return output(chat, {
     content = cache,
     url = url,
@@ -104,6 +109,8 @@ local function fetch(chat, adapter, url, opts)
       return url
     end,
   }
+
+  log:debug("Fetch Slash Command: Fetching from %s", url)
 
   return client
     .new({
@@ -210,14 +217,27 @@ function SlashCommand:output(url, opts)
     return log:error("Failed to load the adapter for the fetch Slash Command")
   end
 
+  local function call_fetch()
+    return fetch(self.Chat, adapter, url, opts)
+  end
+
   local hash = util_hash.hash(url)
+
+  if opts and opts.ignore_cache then
+    log:debug("Fetch Slash Command: Ignoring cache")
+    return call_fetch()
+  end
+  if opts and opts.auto_restore_cache and is_cached(hash) then
+    log:debug("Fetch Slash Command: Auto restoring from cache")
+    return read_cache(self.Chat, url, hash, opts)
+  end
 
   if is_cached(hash) then
     load_from_cache(self.Chat, url, hash, adapter, opts, function()
-      return fetch(self.Chat, adapter, url, opts)
+      return call_fetch()
     end)
   else
-    return fetch(self.Chat, adapter, url, opts)
+    return call_fetch()
   end
 end
 

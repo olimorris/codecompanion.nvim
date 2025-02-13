@@ -26,7 +26,11 @@ local adapter = {
       return false
     end,
   },
-  schema = {},
+  schema = {
+    model = {
+      default = "my_model",
+    },
+  },
 }
 
 describe("Client", function()

@@ -63,7 +63,10 @@ function Cmd:start()
       end
     end,
     done = function() end,
-  }, { bufnr = self.context.bufnr })
+  }, {
+    bufnr = self.context.bufnr,
+    strategy = "cmd",
+  })
 end
 
 return Cmd

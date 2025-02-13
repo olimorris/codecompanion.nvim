@@ -69,8 +69,9 @@ sources = {
 },
 ```
 
-The plugin also supports native completion.
+The plugin also supports [native completion](usage/chat-buffer/index#completion).
 
-## Troubleshooting
+## Help
 
-Run `:checkhealth codecompanion` to check that plugin is installed correctly.
+If you're having trouble installing the plugin, as a first step, run `:checkhealth codecompanion` to check that plugin is installed correctly. After that, consider using the [minimal.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua)  file to troubleshoot, running it with `nvim --clean -u minimal.lua`.
+

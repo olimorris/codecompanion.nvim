@@ -248,6 +248,11 @@ M.setup = function(opts)
     require("codecompanion.utils.adapters").extend(config.adapters, opts.adapters)
   end
 
+  local cmds = require("codecompanion.commands")
+  for _, cmd in ipairs(cmds) do
+    api.nvim_create_user_command(cmd.cmd, cmd.callback, cmd.opts)
+  end
+
   -- Set the log root
   log.set_root(log.new({
     handlers = {

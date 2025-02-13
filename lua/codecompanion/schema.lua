@@ -1,10 +1,19 @@
+---@class CodeCompanion.Schema
+---@field type "string"|"number"|"integer"|"boolean"|"enum"|"list"|"map"
+---@field mapping string
+---@field order nil|integer
+---@field optional nil|boolean
+---@field choices nil|table
+---@field desc string
+---@field validate? fun(value: any): boolean, nil|string
+
 local M = {}
 
 local islist = vim.islist or vim.tbl_islist
 
 ---Return the default values for a schema
 ---@param schema CodeCompanion.Schema
----@param defaults table
+---@param defaults? table Any default values to use (will override schema defaults)
 M.get_default = function(schema, defaults)
   local ret = {}
   for k, v in pairs(schema) do
@@ -23,15 +32,6 @@ M.get_default = function(schema, defaults)
   end
   return ret
 end
-
----@class CodeCompanion.Schema
----@field type "string"|"number"|"integer"|"boolean"|"enum"|"list"|"map"
----@field mapping string
----@field order nil|integer
----@field optional nil|boolean
----@field choices nil|table
----@field desc string
----@field validate? fun(value: any): boolean, nil|string
 
 ---@param schema CodeCompanion.Schema
 ---@param value any

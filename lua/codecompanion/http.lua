@@ -69,6 +69,7 @@ function Client:request(payload, actions, opts)
       handlers.form_parameters and handlers.form_parameters(adapter, adapter:set_env_vars(adapter.parameters), payload)
         or {},
       handlers.form_messages and handlers.form_messages(adapter, payload) or {},
+      adapter.body and adapter.body or {},
       handlers.set_body and handlers.set_body(adapter, payload) or {}
     )
   )
@@ -149,9 +150,15 @@ function Client:request(payload, actions, opts)
     -- Turn off plenary's default compression
     request_opts["compressed"] = adapter.opts.compress or false
 
+    local streaming = false
+
     -- This will be called multiple times until the stream is finished
     request_opts["stream"] = self.opts.schedule(function(_, data)
       if data and data ~= "" then
+        if not streaming then
+          streaming = true
+          util.fire("RequestStreaming", opts)
+        end
         log:trace("Output data:\n%s", data)
       end
       cb(nil, data)
@@ -164,6 +171,16 @@ function Client:request(payload, actions, opts)
   end
 
   local job = self.opts[request](request_opts)
+
+  -- Data to be sent via the request
+  opts.id = math.random(10000000)
+  opts.adapter = {
+    name = adapter.name,
+    formatted_name = adapter.formatted_name,
+    model = type(adapter.schema.model.default) == "function" and adapter.schema.model.default()
+      or adapter.schema.model.default
+      or "",
+  }
 
   util.fire("RequestStarted", opts)
 

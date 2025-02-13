@@ -13,9 +13,10 @@ jobs:
     name: Spell Check with Typos
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Actions Repository
+      - name: Checkout 🛎️
         uses: actions/checkout@v4
-      - name: Spell Check Repo
+
+      - name: Spell Check 📝
         uses: crate-ci/typos@v1.29.4
         with:
           config: ./spelling.toml

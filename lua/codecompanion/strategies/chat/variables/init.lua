@@ -10,7 +10,7 @@ local CONSTANTS = {
 ---@param var string
 ---@return string|nil
 local function find_params(message, var)
-  local pattern = CONSTANTS.PREFIX .. var .. ":([^%s]+)"
+  local pattern = CONSTANTS.PREFIX .. var .. "{([^}]+)}"
 
   local params = message.content:match(pattern)
   if params then
@@ -127,10 +127,15 @@ end
 
 ---Replace a variable in a given message
 ---@param message string
+---@param bufnr number
 ---@return string
-function Variables:replace(message)
+function Variables:replace(message, bufnr)
   for var, _ in pairs(self.vars) do
-    message = vim.trim(message:gsub(CONSTANTS.PREFIX .. var, ""))
+    if var:match("^buffer") then
+      message = require("codecompanion.strategies.chat.variables.buffer").replace(CONSTANTS.PREFIX, message, bufnr)
+    else
+      message = vim.trim(message:gsub(CONSTANTS.PREFIX .. var, ""))
+    end
   end
   return message
 end

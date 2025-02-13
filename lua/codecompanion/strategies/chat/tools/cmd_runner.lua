@@ -79,62 +79,82 @@ return {
           command = "<![CDATA[gem install rspec]]>",
         },
         {
-          command = "<![CDATA[rspec]]>",
+          command = "<![CDATA[gem install rubocop]]>",
+        },
+      },
+    },
+    {
+      tool = {
+        _attr = { name = "cmd_runner" },
+        action = {
+          flag = "testing",
+          command = "<![CDATA[make test]]>",
         },
       },
     },
   },
   system_prompt = function(schema)
     return string.format(
-      [[### Command Runner Tool
+      [[## Command Runner Tool (`cmd_runner`) – Enhanced Guidelines
 
-1. **Purpose**: Run commands in a user's shell.
+### Purpose:
+- Execute safe, validated shell commands on the user's system when explicitly requested.
 
-2. **Usage**: Return an XML markdown code block with a shell command to be executed. The command should be valid and safe to run on the user's system.
+### When to Use:
+- Only invoke the command runner when the user specifically asks.
+- Use this tool strictly for command execution; file operations must be handled with the designated Files Tool.
 
-3. **Key Points**:
-  - **Only use when you deem it necessary**. The user has the final control on these operations through an approval mechanism
-  - Ensure XML is **valid and follows the schema**
-  - **Don't escape** special characters
-  - **Wrap the command in a CDATA block**, the command could contain characters reserved by XML
-  - If you need information which hasn't been provided to you (e.g. the version of a language you've been asked to write a command in), write that command first and inform the user
-  - The output from each command will be shared with you after each command executes
-  - Don't use this action to run file commands, use the Files Tool instead. If you don't have access to that then consider whether file operations are required
-  - Make sure the tools xml block is **surrounded by ```xml**
+### Execution Format:
+- Always return an XML markdown code block.
+- Each shell command execution should:
+  - Be wrapped in a CDATA section to protect special characters.
+  - Follow the XML schema exactly.
+- If several commands need to run sequentially, combine them in one XML block with separate <action> entries.
 
-4. **Actions**:
-
-```xml
-%s
-```
-
-5. **Multiple Commands**: Combine multiple shell commands in one response if needed:
+### XML Schema:
+- The XML must be valid. Each tool invocation should adhere to this structure:
 
 ```xml
 %s
 ```
 
-They will be executed sequentially.
+- Combine multiple shell commands in one response if needed and they will be executed sequentially:
 
-6. **The User's Environment**: Information that you may need when running commands:
+```xml
+%s
+```
+
+- If the user asks you to run tests or a test suite, be sure to include a testing flag so the Neovim editor is aware:
+
+```xml
+%s
+```
+
+### Key Considerations
+- **Safety First:** Ensure every command is safe and validated.
+- **User Environment Awareness:**
   - **Shell**: %s
   - **Operating System**: %s
   - **Neovim Version**: %s
+- **User Oversight:** The user retains full control with an approval mechanism before execution.
+- **Extensibility:** If environment details aren’t available (e.g., language version details), output the command first along with a request for more information.
 
-Remember:
-- Minimize explanations unless prompted. Focus on generating correct XML and good commands.]],
-      xml2lua.toXml({ tools = { schema[1] } }),
-      xml2lua.toXml({
+### Reminder
+- Minimize explanations and focus on returning precise XML blocks with CDATA-wrapped commands.
+- Follow this structure each time to ensure consistency and reliability.]],
+      xml2lua.toXml({ tools = { schema[1] } }), -- Regular
+      xml2lua.toXml({ -- Multiple
         tools = {
           tool = {
             _attr = { name = "cmd_runner" },
             action = {
-              schema[#schema].action[1],
-              schema[#schema].action[2],
+              schema[2].action[1],
+              schema[2].action[2],
             },
           },
         },
       }),
+      xml2lua.toXml({ tools = { schema[3] } }), -- Testing flag
       vim.o.shell,
       util.os(),
       vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch
@@ -144,16 +164,15 @@ Remember:
     ---@param self CodeCompanion.Tools The tool object
     setup = function(self)
       local tool = self.tool --[[@type CodeCompanion.Tool]]
-
       local action = tool.request.action
-      if util.is_array(action) then
-        for _, v in ipairs(action) do
-          local split = vim.split(v.command, " ")
-          table.insert(tool.cmds, split)
+      local actions = vim.isarray(action) and action or { action }
+
+      for _, act in ipairs(actions) do
+        local entry = { cmd = vim.split(act.command, " ") }
+        if act.flag then
+          entry.flag = act.flag
         end
-      else
-        local split = vim.split(action.command, " ")
-        table.insert(tool.cmds, split)
+        table.insert(tool.cmds, entry)
       end
     end,
 
@@ -162,9 +181,14 @@ Remember:
     ---@param cmd table
     ---@return boolean
     approved = function(self, cmd)
-      local cmd_concat = table.concat(cmd, " ")
+      if vim.g.codecompanion_auto_tool_mode then
+        log:info("[Cmd Runner Tool] Auto-approved running the command")
+        return true
+      end
 
-      local msg = "Run command: " .. cmd_concat .. " ?"
+      local cmd_concat = table.concat(cmd.cmd or cmd, " ")
+
+      local msg = "Run command: `" .. cmd_concat .. "`?"
       local ok, choice = pcall(vim.fn.confirm, msg, "No\nYes")
       if not ok or choice ~= 2 then
         log:info("[Cmd Runner Tool] Rejected running the command")
@@ -179,21 +203,21 @@ Remember:
   output = {
     ---Rejection message back to the LLM
     rejected = function(self, cmd)
-      to_chat("I chose not to run", self, { cmd = cmd, output = "" })
+      to_chat("I chose not to run", self, { cmd = cmd.cmd or cmd, output = "" })
     end,
 
     ---@param self CodeCompanion.Tools The tools object
     ---@param cmd table|string The command that was executed
     ---@param stderr table|string
     error = function(self, cmd, stderr)
-      to_chat("There was an error from", self, { cmd = cmd, output = stderr })
+      to_chat("There was an error from", self, { cmd = cmd.cmd or cmd, output = stderr })
     end,
 
     ---@param self CodeCompanion.Tools The tools object
     ---@param cmd table|string The command that was executed
     ---@param stdout table|string
     success = function(self, cmd, stdout)
-      to_chat("The output from", self, { cmd = cmd, output = stdout })
+      to_chat("The output from", self, { cmd = cmd.cmd or cmd, output = stdout })
     end,
   },
 }

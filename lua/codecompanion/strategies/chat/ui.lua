@@ -86,7 +86,7 @@ function UI:open()
       row = window.row or math.floor((vim.o.lines - height) / 2),
       col = window.col or math.floor((vim.o.columns - width) / 2),
       border = window.border,
-      title = "Code Companion",
+      title = window.title or "CodeCompanion",
       title_pos = "center",
       zindex = 45,
     }
@@ -227,7 +227,8 @@ function UI:render(context, messages, opts)
   local function add_messages_to_buf(msgs)
     for i, msg in ipairs(msgs) do
       if msg.role ~= config.constants.SYSTEM_ROLE or (msg.opts and msg.opts.visible ~= false) then
-        if i > 1 and self.last_role ~= msg.role then
+        -- For workflow prompts: Ensure main user role doesn't get spaced
+        if i > 1 and self.last_role ~= msg.role and msg.role ~= config.constants.USER_ROLE then
           spacer()
         end
 
@@ -235,7 +236,7 @@ function UI:render(context, messages, opts)
           self:set_header(lines, self.roles.user)
         end
         if msg.role == config.constants.LLM_ROLE and last_set_role ~= config.constants.LLM_ROLE then
-          self:set_header(lines, self.roles.llm)
+          self:set_header(lines, set_llm_role(self.roles.llm, self.adapter))
         end
 
         for _, text in ipairs(vim.split(msg.content, "\n", { plain = true, trimempty = true })) do
@@ -306,9 +307,10 @@ function UI:render_headers()
 
   local separator = config.display.chat.separator
   local lines = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
+  local llm_role = set_llm_role(self.roles.llm, self.adapter)
 
   for line, content in ipairs(lines) do
-    if content:match("^## " .. self.roles.user) or content:match("^## " .. self.roles.llm) then
+    if content:match("^## " .. vim.pesc(self.roles.user)) or content:match("^## " .. vim.pesc(llm_role)) then
       local col = vim.fn.strwidth(content) - vim.fn.strwidth(separator)
 
       api.nvim_buf_set_extmark(self.bufnr, self.header_ns, line - 1, col, {
@@ -327,31 +329,47 @@ function UI:render_headers()
   log:trace("Rendering headers in the chat buffer")
 end
 
----Set any extmarks in the chat buffer
----@param opts table
+---Set the welcome message in the chat buffer
 ---@return CodeCompanion.Chat.UI|nil
-function UI:set_extmarks(opts)
-  if self.intro_message or (opts.messages and vim.tbl_count(opts.messages) > 0) then
+function UI:set_intro_msg()
+  if self.intro_message then
     return self
   end
 
-  -- Welcome message
   if not config.display.chat.start_in_insert_mode then
-    local ns_intro = api.nvim_create_namespace(CONSTANTS.NS_INTRO)
-    local id = api.nvim_buf_set_extmark(self.bufnr, ns_intro, api.nvim_buf_line_count(self.bufnr) - 1, 0, {
-      virt_text = { { config.display.chat.intro_message, "CodeCompanionVirtualText" } },
-      virt_text_pos = "eol",
-    })
+    local extmark_id = self:set_virtual_text(config.display.chat.intro_message, "eol")
     api.nvim_create_autocmd("InsertEnter", {
       buffer = self.bufnr,
       callback = function()
-        api.nvim_buf_del_extmark(self.bufnr, ns_intro, id)
+        self:clear_virtual_text(extmark_id)
       end,
     })
     self.intro_message = true
   end
 
   return self
+end
+
+---Set virtual text in the chat buffer
+---@param message string
+---@param method? string "eol", "inline" etc
+---@param range? table<number, number>
+---@return number The id of the extmark
+function UI:set_virtual_text(message, method, range)
+  range = range or { api.nvim_buf_line_count(self.bufnr) - 1, 0 }
+  self.virtual_text_ns = api.nvim_create_namespace(CONSTANTS.NS_VIRTUAL_TEXT)
+
+  return api.nvim_buf_set_extmark(self.bufnr, self.virtual_text_ns, range[1], range[2], {
+    virt_text = { { message, "CodeCompanionVirtualText" } },
+    virt_text_pos = method or "eol",
+  })
+end
+
+---Clear virtual text in the chat buffer
+---@param extmark_id number The id of the extmark to delete
+---@return nil
+function UI:clear_virtual_text(extmark_id)
+  api.nvim_buf_del_extmark(self.bufnr, self.virtual_text_ns, extmark_id)
 end
 
 ---Get the last line, column and line count in the chat buffer

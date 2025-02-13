@@ -267,7 +267,7 @@ return {
   },
   system_prompt = function(schema)
     return fmt(
-      [[### Files Tool
+      [[### Files Tool (`files`)
 
 1. **Purpose**: Create/Edit/Delete/Rename/Copy files on the file system.
 
@@ -388,21 +388,39 @@ Remember:
     ---@param action table
     ---@return boolean
     approved = function(self, action)
-      log:info("[Files Tool] Prompting for %s", action._attr.type)
-
-      local msg = string.upper(action._attr.type) .. ": For `" .. vim.fn.fnamemodify(action.path, ":.") .. "`"
-      if action.new_path then
-        msg = msg .. " to " .. vim.fn.fnamemodify(action.new_path, ":.")
+      if vim.g.codecompanion_auto_tool_mode then
+        log:info("[Files Tool] Auto-approved running the command")
+        return true
       end
-      msg = msg .. "?"
 
-      local ok, choice = pcall(vim.fn.confirm, msg, "No\nYes")
+      log:info("[Files Tool] Prompting for: %s", string.upper(action._attr.type))
+
+      local prompts = {
+        base = function(a)
+          return fmt("%s the file at `%s`?", string.upper(a._attr.type), vim.fn.fnamemodify(a.path, ":."))
+        end,
+        move = function(a)
+          return fmt(
+            "%s file from `%s` to `%s`?",
+            string.upper(a._attr.type),
+            vim.fn.fnamemodify(a.path, ":."),
+            vim.fn.fnamemodify(a.new_path, ":.")
+          )
+        end,
+      }
+
+      local prompt = prompts.base(action)
+      if action.new_path then
+        prompt = prompts.move(action)
+      end
+
+      local ok, choice = pcall(vim.fn.confirm, prompt, "No\nYes")
       if not ok or choice ~= 2 then
-        log:info("[Files Tool] Rejected the %s action", action._attr.type)
+        log:info("[Files Tool] Rejected the %s action", string.upper(action._attr.type))
         return false
       end
 
-      log:info("[Files Tool] Approved the %s action", action._attr.type)
+      log:info("[Files Tool] Approved the %s action", string.upper(action._attr.type))
       return true
     end,
     on_exit = function(self)

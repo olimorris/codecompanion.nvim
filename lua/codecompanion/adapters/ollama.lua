@@ -63,7 +63,7 @@ return {
     user = "user",
   },
   opts = {
-    stream = true, -- NOTE: Currently, CodeCompanion ONLY supports streaming with this adapter
+    stream = true,
   },
   features = {
     text = true,
@@ -75,6 +75,17 @@ return {
     url = "http://localhost:11434",
   },
   handlers = {
+    ---@param self CodeCompanion.Adapter
+    ---@return boolean
+    setup = function(self)
+      self.parameters.stream = false
+      if self.opts and self.opts.stream then
+        self.parameters.stream = true
+      end
+
+      return true
+    end,
+
     ---Set the parameters
     ---@param self CodeCompanion.Adapter
     ---@param params table
@@ -120,13 +131,13 @@ return {
       local output = {}
 
       if data and data ~= "" then
+        if not self.opts.stream then
+          data = data.body
+        end
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
         if not ok then
-          return {
-            status = "error",
-            output = string.format("Error malformed json: %s", json),
-          }
+          return { status = "error" }
         end
 
         local message = json.message
@@ -135,8 +146,6 @@ return {
           output.content = message.content
           output.role = message.role or nil
         end
-
-        -- log:trace("----- For Adapter test creation -----\nOutput: %s\n ---------- // END ----------", output)
 
         return {
           status = "success",
@@ -154,6 +163,9 @@ return {
     ---@return table|nil
     inline_output = function(self, data, context)
       if data and data ~= "" then
+        if not self.opts.stream then
+          data = data.body
+        end
         local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
 
         if not ok then

@@ -162,19 +162,22 @@ function SlashCommand:output(selected_group, opts)
 
   if group.opts then
     if group.opts.remove_config_system_prompt then
-      self.Chat:remove_system_prompt()
+      self.Chat:remove_tagged_message("from_config")
     end
   end
 
   -- Add the system prompts
-  if self.workspace.system_prompt or group.system_prompt then
-    local system_prompt = ""
-    if self.workspace.system_prompt and group.system_prompt then
-      system_prompt = self.workspace.system_prompt .. "\n\n" .. group.system_prompt
-    else
-      system_prompt = self.workspace.system_prompt or group.system_prompt
-    end
-    self.Chat:set_system_prompt(replace_vars(self.workspace, group, system_prompt))
+  if self.workspace.system_prompt then
+    self.Chat:add_system_prompt(
+      replace_vars(self.workspace, group, self.workspace.system_prompt),
+      { index = 1, visible = false, tag = self.workspace.name .. " // Workspace" }
+    )
+  end
+  if group.system_prompt then
+    self.Chat:add_system_prompt(
+      replace_vars(self.workspace, group, group.system_prompt),
+      { visible = false, tag = group.name .. " // Workspace Group" }
+    )
   end
 
   -- Add the description as a user message
@@ -195,12 +198,26 @@ function SlashCommand:output(selected_group, opts)
       self:add_item(group, "symbols", file)
     end)
   end
+
+  -- Add URLs
+  if group.urls and vim.tbl_count(group.urls) > 0 then
+    vim.iter(group.urls):each(function(url)
+      url.path = url.url
+      url.description = url.description
+      --TODO: Refactor this...we're adding to an options table to then strip it away in slash_commands/init.lua
+      url.opts = {
+        ignore_cache = url.ignore_cache,
+        auto_restore_cache = url.auto_restore_cache,
+      }
+      self:add_item(group, "url", url)
+    end)
+  end
 end
 
 ---Add an item from the group to the chat buffer
 ---@param group table
 ---@param item_type string
----@param item { path: string, description: string } | string
+---@param item { path: string, description: string, opts: table? } | string
 function SlashCommand:add_item(group, item_type, item)
   -- Replace any variables in the path
   local path = item.path or item
@@ -218,7 +235,11 @@ function SlashCommand:add_item(group, item_type, item)
     item.description = util.replace_placeholders(item.description, builtin)
   end
 
-  return slash_commands.references(self.Chat, item_type, { path = path, description = item.description })
+  return slash_commands.references(
+    self.Chat,
+    item_type,
+    { path = path, description = item.description, opts = item.opts }
+  )
 end
 
 return SlashCommand

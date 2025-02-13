@@ -10,6 +10,11 @@ return {
     ["X-Return-Format"] = "text",
     ["Accept"] = "application/json",
   },
+  schema = {
+    model = {
+      default = "jina",
+    },
+  },
   handlers = {
     set_body = function(self, data)
       return { url = data.url }

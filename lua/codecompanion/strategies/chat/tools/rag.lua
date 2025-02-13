@@ -68,7 +68,7 @@ return {
   },
   system_prompt = function(schema)
     return string.format(
-      [[### Retrieval Augmented Generated (RAG) Tool
+      [[### Retrieval Augmented Generated (RAG) Tool (`rag`)
 
 1. **Purpose**: This gives you the ability to access the internet to find information that you may not know.
 

@@ -58,7 +58,10 @@ describe("OpenAI compatible adapter", function()
   end)
 
   it("can output streamed data into a format for the chat buffer", function()
-    h.eq(response[#response].output, adapter_helpers.chat_buffer_output(response, adapter))
+    h.eq(
+      { content = "Programming language", role = "assistant" },
+      adapter_helpers.chat_buffer_output(response, adapter)
+    )
   end)
 end)
 

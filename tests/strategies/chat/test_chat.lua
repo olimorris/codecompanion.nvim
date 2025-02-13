@@ -26,7 +26,7 @@ T["Chat"]["buffer variables are handled"] = function()
 
   local message = chat.messages[#chat.messages]
   if chat.variables:parse(chat, message) then
-    message.content = chat.variables:replace(message.content)
+    message.content = chat.variables:replace(message.content, chat.context.bufnr)
   end
 
   -- Variable is inserted as its own new message at the end
@@ -34,6 +34,14 @@ T["Chat"]["buffer variables are handled"] = function()
   h.eq("foo", message.content)
   h.eq(false, message.opts.visible)
   h.eq("variable", message.opts.tag)
+end
+
+T["Chat"]["system prompt can be ignored"] = function()
+  local new_chat = require("codecompanion.strategies.chat").new({
+    ignore_system_prompt = true,
+  })
+
+  h.eq(nil, new_chat.messages[1])
 end
 
 return T

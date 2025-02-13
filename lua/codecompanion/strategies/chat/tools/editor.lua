@@ -9,7 +9,6 @@ local config = require("codecompanion.config")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
-local util = require("codecompanion.utils")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local api = vim.api
@@ -21,6 +20,10 @@ local deltas = {}
 local function add_delta(bufnr, line, delta)
   table.insert(deltas, { bufnr = bufnr, line = line, delta = delta })
 end
+
+---Calculate if there is any intersection between the lines
+---@param bufnr number
+---@param line number
 local function intersect(bufnr, line)
   local delta = 0
   for _, v in ipairs(deltas) do
@@ -31,25 +34,67 @@ local function intersect(bufnr, line)
   return delta
 end
 
+---Delete lines from the buffer
+---@param bufnr number
+---@param action table
+local function delete(bufnr, action)
+  log:debug("[Editor Tool] Deleting code from the buffer")
+
+  local start_line
+  local end_line
+  if action.all then
+    start_line = 1
+    end_line = api.nvim_buf_line_count(bufnr)
+  else
+    start_line = tonumber(action.start_line)
+    assert(start_line, "No start line number provided by the LLM")
+    if start_line == 0 then
+      start_line = 1
+    end
+
+    end_line = tonumber(action.end_line)
+    assert(end_line, "No end line number provided by the LLM")
+    if end_line == 0 then
+      end_line = 1
+    end
+  end
+
+  local delta = intersect(bufnr, start_line)
+
+  api.nvim_buf_set_lines(bufnr, start_line + delta - 1, end_line + delta, false, {})
+  add_delta(bufnr, start_line, (start_line - end_line - 1))
+end
+
+---Add lines to the buffer
+---@param bufnr number
+---@param action table
 local function add(bufnr, action)
-  log:trace("Adding code to buffer")
-  local start_line = tonumber(action.line)
+  log:debug("[Editor Tool] Adding code to buffer")
+
+  if not action.line and not action.replace then
+    assert(false, "No line number or replace request provided by the LLM")
+  end
+
+  local start_line
+  if action.replace then
+    -- Clear the entire buffer
+    log:debug("[Editor Tool] Replacing the entire buffer")
+    delete(bufnr, { start_line = 1, end_line = api.nvim_buf_line_count(bufnr) })
+    start_line = 1
+  else
+    start_line = tonumber(action.line)
+    assert(start_line, "No line number provided by the LLM")
+    if start_line == 0 then
+      start_line = 1
+    end
+  end
+
   local delta = intersect(bufnr, start_line)
 
   local lines = vim.split(action.code, "\n", { plain = true, trimempty = false })
   api.nvim_buf_set_lines(bufnr, start_line + delta - 1, start_line + delta - 1, false, lines)
 
   add_delta(bufnr, start_line, tonumber(#lines))
-end
-
-local function delete(bufnr, action)
-  log:trace("Deleting code from the buffer")
-  local start_line = tonumber(action.start_line)
-  local end_line = tonumber(action.end_line)
-  local delta = intersect(bufnr, start_line)
-
-  api.nvim_buf_set_lines(bufnr, start_line + delta - 1, end_line + delta, false, {})
-  add_delta(bufnr, start_line, (start_line - end_line - 1))
 end
 
 ---@class CodeCompanion.Tool
@@ -70,18 +115,19 @@ return {
         if not action.buffer then
           return { status = "error", msg = "No buffer number provided by the LLM" }
         end
-
         local bufnr = tonumber(action.buffer)
+        assert(bufnr, "Buffer number conversion failed")
+        local is_valid, _ = pcall(api.nvim_buf_is_valid, bufnr)
+        assert(is_valid, "Invalid buffer number")
+
         local winnr = ui.buf_get_win(bufnr)
-
-        log:debug("Editor tool request: %s", action)
-
-        if not api.nvim_buf_is_valid(bufnr) then
-          return { status = "error", msg = "Invalid buffer number" }
-        end
+        log:trace("[Editor Tool] request: %s", action)
 
         -- Diff the buffer
-        if not diff_started and config.display.diff.enabled and bufnr and vim.bo[bufnr].buftype ~= "terminal" then
+        if
+          not vim.g.codecompanion_auto_tool_mode
+          and (not diff_started and config.display.diff.enabled and bufnr and vim.bo[bufnr].buftype ~= "terminal")
+        then
           local provider = config.display.diff.provider
           local ok, diff = pcall(require, "codecompanion.providers.diff." .. provider)
 
@@ -121,11 +167,19 @@ return {
 
         --TODO: Scroll to buffer and the new lines
 
+        -- Automatically save the buffer
+        if vim.g.codecompanion_auto_tool_mode then
+          log:info("[Editor Tool] Auto-saving buffer")
+          api.nvim_buf_call(bufnr, function()
+            vim.cmd("silent write")
+          end)
+        end
+
         return { status = "success", msg = nil }
       end
 
       local output = {}
-      if util.is_array(actions) then
+      if vim.isarray(actions) then
         for _, v in ipairs(actions) do
           output = run(v)
           if output.status == "error" then
@@ -155,10 +209,21 @@ return {
       tool = {
         _attr = { name = "editor" },
         action = {
+          _attr = { type = "add" },
+          buffer = 1,
+          replace = true,
+          code = "<![CDATA[    print('Hello World')]]>",
+        },
+      },
+    },
+    {
+      tool = {
+        _attr = { name = "editor" },
+        action = {
           _attr = { type = "update" },
           buffer = 10,
-          start_line = 199,
-          end_line = 199,
+          start_line = 50,
+          end_line = 99,
           code = "<![CDATA[   function M.capitalize()]]>",
         },
       },
@@ -171,6 +236,16 @@ return {
           buffer = 14,
           start_line = 10,
           end_line = 15,
+        },
+      },
+    },
+    {
+      tool = {
+        _attr = { name = "editor" },
+        action = {
+          _attr = { type = "delete" },
+          buffer = 14,
+          all = true,
         },
       },
     },
@@ -194,66 +269,80 @@ return {
   },
   system_prompt = function(schema)
     return string.format(
-      [[### Editor Tool
+      [[## Editor Tool (`editor`) - Enhanced Guidelines
 
-1. **Purpose**: Update the contents of a Neovim buffer
+### Purpose:
+- Modify the content of a Neovim buffer by adding, updating, or deleting code when explicitly requested.
 
-2. **Usage**: Return an XML markdown code block for add, update, or delete operations.
+### When to Use:
+- Only invoke the Editor Tool when the user specifically asks (e.g., "can you update the code?" or "update the buffer...").
+- Use this tool solely for buffer edit operations. Other file tasks should be handled by the designated tools.
 
-3. **Key Points**:
-  - **Only use when prompted** by user (e.g., "can you update the code?", "update the buffer...")
-  - Ensure XML is **valid and follows the schema**
-  - **Include indentation** in your code
-  - **Don't escape** special characters
-  - **Wrap code in a CDATA block**, the code could contain characters reserved by XML
-  - Make sure the tools xml block is **surrounded by ```xml**
+### Execution Format:
+- Always return an XML markdown code block.
+- Always include the buffer number that the user has shared with you, in the `<buffer></buffer>` tag. If the user has not supplied this, prompt them for it.
+- Each code operation must:
+  - Be wrapped in a CDATA section to preserve special characters (CDATA sections ensure that characters like '<' and '&' are not interpreted as XML markup).
+  - Follow the XML schema exactly.
+- If several actions (add, update, delete) need to be performed sequentially, combine them in one XML block, within the <tool></tool> tags and with separate <action></action> entries.
 
-4. **Actions**:
+### XML Schema:
+Each tool invocation should adhere to this structure:
 
-a) Add:
-
+a) **Add Action:**
 ```xml
 %s
 ```
 
-b) Update:
-
+If you'd like to replace the entire buffer's contents, pass in `<replace>true</replace>` in the action:
 ```xml
 %s
 ```
 
-c) Delete:
+b) **Update Action:**
+```xml
+%s
+```
+- Be sure to include both the start and end lines for the range to be updated.
 
+c) **Delete Action:**
 ```xml
 %s
 ```
 
-5. **Multiple Actions**: Combine actions in one response if needed:
-
+If you'd like to delete the entire buffer's contents, pass in `<all>true</all>` in the action:
 ```xml
 %s
 ```
 
-6. **Note**:
-  - The tool can handle multiple actions in one response such as adding and deleting code
-  - For the delete action, the <start_line> and <end_line> tags are inclusive
-  - The update action first deletes the range in <start_line> and <end_line> (inclusively) and then adds new code from the <start_line>
-  - If you need to update a single line, set <start_line> and <end_line> to the same value in the update action
-  - Remember you can have multiple update actions after one another.
-  - Account for comment blocks and indentation in your code
-  - If the user supplies no context, it can be assumed that they would like you to update the buffer with the code from your last response
+d) **Multiple Actions** (If several actions (add, update, delete) need to be performed sequentially):
+```xml
+%s
+```
 
-Remember: Minimize explanations unless prompted. Focus on generating correct XML.]],
-      xml2lua.toXml({ tools = { schema[1] } }),
-      xml2lua.toXml({ tools = { schema[2] } }),
-      xml2lua.toXml({ tools = { schema[3] } }),
-      xml2lua.toXml({
+### Key Considerations:
+- **Safety and Accuracy:** Validate all code updates carefully.
+- **CDATA Usage:** Code is wrapped in CDATA blocks to protect special characters and prevent them from being misinterpreted by XML.
+- **Tag Order:** Use a consistent order by always listing <start_line> before <end_line> for update and delete actions.
+- **Line Numbers:** Note that line numbers are 1-indexed, so the first line is line 1, not line 0.
+- **Update Rule:** The update action first deletes the range defined in <start_line> to <end_line> (inclusive) and then adds the new code starting from <start_line>.
+- **Contextual Assumptions:** If no context is provided, assume that you should update the buffer with the code from your last response.
+
+### Reminder:
+- Minimize extra explanations and focus on returning correct XML blocks with properly wrapped CDATA sections.
+- Always use the structure above for consistency.]],
+      xml2lua.toXml({ tools = { schema[1] } }), -- Add
+      xml2lua.toXml({ tools = { schema[2] } }), -- Add with replace
+      xml2lua.toXml({ tools = { schema[3] } }), -- Update
+      xml2lua.toXml({ tools = { schema[4] } }), -- Delete
+      xml2lua.toXml({ tools = { schema[5] } }), -- Delete all
+      xml2lua.toXml({ -- Multiple
         tools = {
           tool = {
             _attr = { name = "editor" },
             action = {
-              schema[4].action[1],
-              schema[4].action[2],
+              schema[6].action[1],
+              schema[6].action[2],
             },
           },
         },

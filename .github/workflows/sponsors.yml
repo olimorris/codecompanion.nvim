@@ -3,7 +3,7 @@ name: Update Sponsors
 on:
   workflow_dispatch:
   schedule:
-    - cron: 0 21 * * 0-6
+    - cron: 0 21 * * *
 
 jobs:
   deploy:
@@ -18,7 +18,6 @@ jobs:
           token: ${{ secrets.SPONSORS_TOKEN }}
           file: "README.md"
           active-only: true
-          include-private: true
         if: ${{ github.repository == 'olimorris/codecompanion.nvim' }}
 
       - name: Create Pull Request 🚀

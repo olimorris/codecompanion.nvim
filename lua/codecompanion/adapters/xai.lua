@@ -20,14 +20,18 @@ return {
   env = {
     api_key = "XAI_API_KEY",
   },
-  parameters = {
-    stream = true,
-  },
   headers = {
     Authorization = "Bearer ${api_key}",
     ["Content-Type"] = "application/json",
   },
   handlers = {
+    setup = function(self)
+      if self.opts and self.opts.stream then
+        self.parameters.stream = true
+      end
+      return true
+    end,
+
     --- Use the OpenAI adapter for the bulk of the work
     tokens = function(self, data)
       return openai.handlers.tokens(self, data)

@@ -53,8 +53,13 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return nil
 function SlashCommands:execute(item, chat)
-  local label = item.label:sub(2)
+  local label = item.label:sub(1)
   log:debug("Executing slash command: %s", label)
+
+  -- If the user has provided a callback function, use that
+  if type(item.config.callback) == "function" then
+    return item.config.callback(chat)
+  end
 
   local callback = resolve(item.config.callback)
   if not callback then
@@ -73,7 +78,7 @@ end
 ---Function for external objects to add references via Slash Commands
 ---@param chat CodeCompanion.Chat
 ---@param slash_command string
----@param opts { path: string, url?: string, description: string }
+---@param opts { path: string, url?: string, description: string, [any]: any }
 ---@return nil
 function SlashCommands.references(chat, slash_command, opts)
   local slash_commands = {
@@ -94,7 +99,16 @@ function SlashCommands.references(chat, slash_command, opts)
   end
 
   if slash_command == "url" then
-    return slash_commands[slash_command]:output(opts.url, { silent = true })
+    -- NOTE: To conform to the <path, description> interface, we need to pass all
+    -- other options via the opts table. Then, of course, we need to strip the
+    -- double opts out of the opts table. Hacky, for sure.
+    opts.silent = true
+    opts.url = opts.url or opts.path
+    opts.description = opts.description
+    opts.auto_restore_cache = opts.opts.auto_restore_cache
+    opts.ignore_cache = opts.opts.ignore_cache
+
+    return slash_commands[slash_command]:output(opts.url, opts)
   end
 end
 

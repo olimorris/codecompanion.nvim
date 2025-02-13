@@ -1,5 +1,10 @@
 # Getting Started
 
+<p>
+<video controls muted src="https://github.com/user-attachments/assets/16bd6c17-bd70-41a1-83aa-7af45c166ae9"></video>
+</p>
+
+
 ## Configuring an Adapter
 
 > [!NOTE]
@@ -21,7 +26,7 @@ require("codecompanion").setup({
 ```
 In the example above, we're using the Anthropic adapter for both the chat and inline strategies.
 
-Because most LLMs require an API key you'll need to share that with the adapter. By default, adapters will look in your environment for a `*_API_KEY` where `*` is the name of the adapter e.g. `ANTHROPIC` or `OPENAI`. However, you can extend the adapter and change the API key like so:
+Because most LLMs require an API key you'll need to share that with the adapter. By default, adapters will look in your environment for a `*_API_KEY` where `*` is the name of the adapter such as `ANTHROPIC` or `OPENAI`. However, you can extend the adapter and change the API key like so:
 
 ```lua
 require("codecompanion").setup({
@@ -64,7 +69,7 @@ require("codecompanion").setup({
 
 The Chat Buffer is where you can converse with an LLM from within Neovim. It operates on a single response per turn, basis.
 
-Run `:CodeCompanionChat` to open a chat buffer. Type your prompt and press `<CR>`. Or, run `:CodeCompanionChat why are Lua and Neovim so perfect together?` to send a prompt directly to the chat buffer. Toggle the chat buffer with `:CodeCompanionChat Toggle`.
+Run `:CodeCompanionChat` to open a chat buffer. Type your prompt and send it by pressing `<C-s>` while in insert mode or `<CR>` in normal mode. Alternatively, run `:CodeCompanionChat why are Lua and Neovim so perfect together?` to open the chat buffer and send a prompt at the same time. Toggle the chat buffer with `:CodeCompanionChat Toggle`.
 
 You can add context from your code base by using _Variables_ and _Slash Commands_ in the chat buffer.
 
@@ -72,7 +77,7 @@ You can add context from your code base by using _Variables_ and _Slash Commands
 
 _Variables_, accessed via `#`, contain data about the present state of Neovim:
 
-- `#buffer` - Shares the current buffer's code. You can also specify line numbers with `#buffer:8-20`
+- `#buffer` - Shares the current buffer's code. This can also receive [parameters](usage/chat-buffer/variables#buffer)
 - `#lsp` - Shares LSP information and code for the current buffer
 - `#viewport` - Shares the buffers and lines that you see in the Neovim viewport
 
@@ -166,14 +171,14 @@ However, there are multiple options available:
 For an optimum plugin workflow, I recommend the following:
 
 ```lua
-vim.api.nvim_set_keymap({ "n", "v" }, "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap({ "n", "v" }, "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true })
+vim.keymap.set({ "n", "v" }, "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
+vim.keymap.set({ "n", "v" }, "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
+vim.keymap.set("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true })
 
 -- Expand 'cc' into 'CodeCompanion' in the command line
 vim.cmd([[cab cc CodeCompanion]])
 ```
 
 > [!NOTE]
-> You can also assign prompts from the library to specific mappings. See the [prompt library](configuration/prompt-library) section for more information.
+> You can also assign prompts from the library to specific mappings. See the [prompt library](configuration/prompt-library#assigning-prompts-to-a-keymap) section for more information.
 

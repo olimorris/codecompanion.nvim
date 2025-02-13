@@ -45,7 +45,7 @@ The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ pr
 
 ## /terminal
 
-The _terminal_ slash command shares the output from the last terminal buffer with the chat buffer.
+The _terminal_ slash command shares the latest output from the last terminal buffer with the chat buffer. This can be useful for sharing the outputs of test runs with your LLM.
 
 ## /workspace
 

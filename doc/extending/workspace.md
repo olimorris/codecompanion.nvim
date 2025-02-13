@@ -47,6 +47,10 @@ removed from the chat buffer
 > [!INFO]
 > When a user selects a group to load, the workspace slash command will iterate through the group adding the description first and then sequentially adding the files and symbols. For the latter two, their description is added first, before their content.
 
+### System Prompts
+
+Currently, workspaces allow for system prompts to exist at the top-level of the workspace file and at a group level. The plugin will always insert top-level system prompts at the first index in the messages table in the chat buffer. Any group system prompts will be added afterwards.
+
 ## Groups
 
 Groups are the core of the workspace file. They are where logical groupings of files and/or symbols are defined. Exploring the _Chat Buffer_ group in detail:
@@ -77,7 +81,19 @@ Groups are the core of the workspace file. They are where logical groupings of f
       "description": "A watcher is when a user has toggled a specific buffer to be watched. When a message is sent to the LLM by the user, any changes made to the watched buffer are also sent, giving the LLM up to date context. The `${filename}` is where this logic sits and I've shared its symbolic outline below.",
       "path": "${base_dir}/watchers.lua"
     }
-  ]
+  ],
+  "urls": [
+    {
+      "ignore_cache": false,
+      "description": "The plugin uses Mini.test for its testing. Below is the Mini.Test documentation:",
+      "url": "https://raw.githubusercontent.com/echasnovski/mini.nvim/refs/heads/main/TESTING.md"
+    },
+    {
+      "auto_restore_cache": true,
+      "description": "I've also included a link to my README:",
+      "url": "https://raw.githubusercontent.com/olimorris/codecompanion.nvim/refs/heads/main/doc/codecompanion.txt"
+    }
+  ],
 }
 ```
 
@@ -96,9 +112,24 @@ When _files_ are defined, their entire content is shared with the LLM alongside 
 
 ### Symbols
 
-When _symbols_ are defined, a symbolic outline of the file, as per the Tree-sitter [queries](https://github.com/olimorris/codecompanion.nvim/tree/main/queries) in the plugin, is shared with the LLM. This will typically include class, method, interface and function names, alongside any file or library imports. The start and end line of each symbol is also shared.
+The plugin uses Tree-sitter [queries](https://github.com/olimorris/codecompanion.nvim/tree/main/queries) to create a symbolic outline of files, capturing:
 
-During conversation with the LLM, it can be useful to also tag the `@files` tool, giving the LLM the ability to fetch content between specific lines. This can be a cost-effective way for an LLM to get more information without sharing the whole file.
+- Classes, methods, and interfaces
+- Function names
+- File/library imports
+- Start/end lines for each symbol
+
+By tagging the `files` tool, the LLM can request specific line ranges from these symbols - a cost-effective alternative to sharing entire files.
+
+### URLs
+
+Workspace files also support the loading of data from URLs. When loading a URL, the `fetch` slash command adapter retrieves the data. The plugin:
+
+- Caches URL data to disk by default
+- Prompts before restoring from cache
+- Can be configured with:
+  - `"ignore_cache": true` to never use cache
+  - `"auto_restore_cache": true` to always use cache without prompting
 
 ## Variables
 

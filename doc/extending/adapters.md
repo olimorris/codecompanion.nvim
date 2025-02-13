@@ -18,6 +18,7 @@ Let's take a look at the interface of an adapter as per the `adapter.lua` file:
 ---@field env_replaced? table Replacement of environment variables with their actual values
 ---@field headers table The headers to pass to the request
 ---@field parameters table The parameters to pass to the request
+---@field body table Additional body parameters to pass to the request
 ---@field raw? table Any additional curl arguments to pass to the request
 ---@field opts? table Additional options for the adapter
 ---@field handlers table Functions which link the output from the request to CodeCompanion
@@ -415,6 +416,7 @@ schema = {
     choices = {
       "gpt-4o-2024-08-06",
       "claude-3.5-sonnet",
+      "gemini-2.0-flash-001",
       ["o1-preview-2024-09-12"] = { opts = { stream = false } },
       ["o1-mini-2024-09-12"] = { opts = { stream = false } },
     },
@@ -447,4 +449,5 @@ temperature = {
 },
 ```
 
-You'll see we've specified a function call for the `condition` key. We're simply checking that the model name doesn't being with `o1` as these models don't accept temperature as a parameter. You'll also see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2
+You'll see we've specified a function call for the `condition` key. We're simply checking that the model name doesn't being with `o1` as these models don't accept temperature as a parameter. You'll also see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2.
+

@@ -68,6 +68,7 @@ require("codecompanion").setup({
     chat = {
       slash_commands = {
         ["file"] = {
+          -- Location to the slash command in CodeCompanion
           callback = "strategies.chat.slash_commands.file",
           description = "Select a file using Telescope",
           opts = {
@@ -89,19 +90,20 @@ require("codecompanion").setup({
     chat = {
       slash_commands = {
         ["mycmd"] = {
-          description = "Describe what mycmd inserts",
-          callback = function()
-            return "Custom context or data"
+          description = "My fancy new command",
+          ---@param chat CodeCompanion.Chat
+          callback = function(chat)
+            return chat:add_buf_message({ content = "Just writing to the chat buffer" })
           end,
-          opts = {
-            contains_code = true,
-          },
         },
       },
     },
   },
 })
 ```
+
+> [!NOTE]
+> You can also point the callback to a lua file that resides within your own configuration
 
 ## Agents and Tools
 
@@ -206,14 +208,12 @@ There are a number of diff settings available to you:
 ```lua
 require("codecompanion").setup({
   display = {
-    chat = {
-      diff = {
-        enabled = true,
-        close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-        layout = "vertical", -- vertical|horizontal split for default provider
-        opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
-        provider = "default", -- default|mini_diff
-      },
+    diff = {
+      enabled = true,
+      close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
+      layout = "vertical", -- vertical|horizontal split for default provider
+      opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
+      provider = "default", -- default|mini_diff
     },
   },
 }),
@@ -267,10 +267,12 @@ As the Chat Buffer uses markdown as its syntax, you can use popular rendering pl
 ```lua
 {
   "OXY2DEV/markview.nvim",
-  ft = { "markdown", "codecompanion" },
+  lazy = false,
   opts = {
-    filetypes = { "markdown", "codecompanion" },
-    buf_ignore = {},
+    preview = {
+      filetypes = { "markdown", "codecompanion" },
+      ignore_buftypes = {},
+    },
   },
 },
 ```
