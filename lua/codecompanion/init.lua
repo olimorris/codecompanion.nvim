@@ -13,7 +13,7 @@ local CodeCompanion = {}
 ---@return nil|CodeCompanion.Inline
 CodeCompanion.inline = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
-  return require("codecompanion.strategies.inline").new({ context = context }):prompt(args.args)
+  return require("codecompanion.strategies.inline").new({ context = context }):prompt(args)
 end
 
 ---Run the prompt that the user initiated from the command line

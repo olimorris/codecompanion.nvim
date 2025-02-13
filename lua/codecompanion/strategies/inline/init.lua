@@ -51,13 +51,20 @@ local CONSTANTS = {
   -- var1: language/filetype
   -- var2: response
   SYSTEM_PROMPT = [[## CONTEXT
-You are a knowledgeable developer working in the Neovim text editor. You write %s code on behalf of a user.
+You are a knowledgeable developer working in the Neovim text editor. You write %s code on behalf of a user, directly into their active Neovim buffer.
 
 ## OBJECTIVE
 You must follow the user's prompt (enclosed within <user_prompt></user_prompt> tags) to the letter, ensuring that you output high quality, fully working code. Pay attention to any code that the user has shared with you as context.
 
 ## RESPONSE
 %s
+
+If you cannot answer the user's prompt, respond with the reason why, in one sentence, in %s and enclosed within error tags:
+```xml
+<response>
+  <error>Reason for not being able to answer the prompt</error>
+</response>
+```
 
 ### KEY CONSIDERATIONS
 - **Safety and Accuracy:** Validate all code carefully.
@@ -76,6 +83,7 @@ You must follow the user's prompt (enclosed within <user_prompt></user_prompt> t
 ```xml
 <response>
   <code><![CDATA[    print('Hello World')\]\]></code>
+  <language>python</language>
 </response>
 ```
 This would add `    print('Hello World')` to the user's Neovim buffer.]],
@@ -105,10 +113,11 @@ Respond to the user's prompt by putting your code and placement in XML. For exam
 ```xml
 <response>
   <code><![CDATA[    print('Hello World')\]\]></code>
+  <language>python</language>
   <placement>replace</placement>
 </response>
 ```
-This would **Replace** the user's current selection with `    print('Hello World')`.]],
+This would **Replace** the user's current selection in a buffer with `    print('Hello World')`.]],
 }
 
 ---Format code into a code block alongside a message
@@ -159,8 +168,6 @@ local Inline = {}
 ---@param args CodeCompanion.InlineArgs
 function Inline.new(args)
   log:trace("Initiating Inline with args: %s", args)
-
-  args = input.new(args)
 
   if args.opts and type(args.opts.pre_hook) == "function" then
     -- This is only for prompts coming from the prompt library
@@ -221,20 +228,21 @@ function Inline.new(args)
 end
 
 ---Prompt the LLM
----@param user_prompt? string
+---@param prompt? string|table
 ---@return nil
-function Inline:prompt(user_prompt)
+function Inline:prompt(prompt)
   log:trace("Starting Inline prompt")
 
-  local prompt = {}
+  local prompts = {}
 
   ---Add a prompt to the prompt table
-  ---@param input string The prompt to send to the LLM
+  ---@param user_prompt string The prompt to send to the LLM
   ---@param message? string The message to send alongside the input prompt
-  local function add_user_prompt(input, message)
-    table.insert(prompt, {
+  local function add_user_prompt(user_prompt, message)
+    table.insert(prompts, {
       role = config.constants.USER_ROLE,
-      content = message and (string.format(message, input)) or ("<user_prompt>" .. input .. "</user_prompt>"),
+      content = message and (string.format(message, user_prompt))
+        or ("<user_prompt>" .. user_prompt .. "</user_prompt>"),
       opts = {
         visible = true,
       },
@@ -242,12 +250,13 @@ function Inline:prompt(user_prompt)
   end
 
   -- Add system prompt first
-  table.insert(prompt, {
+  table.insert(prompts, {
     role = config.constants.SYSTEM_ROLE,
     content = string.format(
       CONSTANTS.SYSTEM_PROMPT,
       self.context.filetype,
-      (self.classification.placement and CONSTANTS.RESPONSE_WITHOUT_PLACEMENT or CONSTANTS.RESPONSE_WITH_PLACEMENT)
+      (self.classification.placement and CONSTANTS.RESPONSE_WITHOUT_PLACEMENT or CONSTANTS.RESPONSE_WITH_PLACEMENT),
+      config.opts.language
     ),
     opts = {
       tag = "system_tag",
@@ -263,25 +272,28 @@ function Inline:prompt(user_prompt)
     end
   end
 
+  -- Process the input to detect adapter, variable and prompt library usage
+  local user_prompt = input.new(self, prompt)
+
   -- Then add the user's prompt last
   if user_prompt then
     add_user_prompt(user_prompt)
   end
 
   -- From the prompt library, user's can explicitly ask to be prompted for input
-  if (self.opts and self.opts.user_prompt) or (not user_prompt and not self.prompts) then
+  if (self.opts and self.opts.user_prompt) or not user_prompt then
     local title = string.gsub(self.context.filetype, "^%l", string.upper)
-    vim.ui.input({ prompt = title .. " " .. config.display.action_palette.prompt }, function(input)
-      if not input then
+    vim.ui.input({ prompt = title .. " " .. config.display.action_palette.prompt }, function(i)
+      if not i then
         return
       end
 
-      log:info("User input received: %s", input)
-      add_user_prompt(input)
-      return self:submit(prompt)
+      log:info("User input received: %s", i)
+      add_user_prompt(i)
+      return self:submit(prompts)
     end)
   else
-    return self:submit(prompt)
+    return self:submit(prompts)
   end
 end
 
@@ -414,25 +426,37 @@ function Inline:done(output)
     return self:reset()
   end
 
-  local code, placement = self:parse_output(output)
-  if not code then
+  local xml = self:parse_output(output)
+  if not xml then
+    log:error("Failed to parse the output from the LLM")
+    return self:reset()
+  end
+  if xml and xml.error then
+    log:error(xml.error)
+    return self:reset()
+  end
+  if xml and not xml.code then
     log:error("No code returned from the LLM")
     return self:reset()
   end
 
-  placement = placement or self.classification.placement
+  local placement = xml and xml.placement or self.classification.placement
   log:debug("Placement: %s", placement)
-
-  if placement == "chat" then
-    return self:to_chat()
+  if not placement then
+    log:error("Can't determine placement")
+    return self:reset()
   end
 
+  if placement == "chat" then
+    self:reset()
+    return self:to_chat()
+  end
   self:place(placement)
 
   vim.schedule(function()
     self:start_diff()
     pcall(vim.cmd.undojoin)
-    self:output(code)
+    self:output(xml.code)
     self:reset()
   end)
 end
@@ -462,7 +486,7 @@ end
 
 ---Parse XML content using xml2lua
 ---@param content string
----@return string|nil, string|nil
+---@return table|nil
 local function parse_xml(content)
   local ok, xml = pcall(function()
     local handler = TreeHandler:new()
@@ -472,13 +496,13 @@ local function parse_xml(content)
   end)
 
   if not ok then
-    return nil, nil
+    return nil
   end
 
-  return xml.code, (xml.placement and string.lower(xml.placement))
+  return xml
 end
 
----Extract code from markdown using Tree-sitter
+---Extract a code block from markdown text
 ---@param content string
 ---@param bufnr number
 ---@return string|nil
@@ -506,25 +530,25 @@ local function extract_code_from_markdown(content, bufnr)
 end
 
 ---@param output string
----@return string|nil,string|nil
+---@return table|nil
 function Inline:parse_output(output)
   -- Try parsing as plain XML first
-  local code, placement = parse_xml(output)
-  if code then
-    log:debug("Parsed output: %s", code)
-    return code, placement
+  local xml = parse_xml(output)
+  if xml then
+    log:debug("Parsed output: %s", xml)
+    return xml
   end
 
   -- Fall back to Tree-sitter parsing
   local markdown_code = extract_code_from_markdown(output, self.bufnr)
   if markdown_code then
-    code, placement = parse_xml(markdown_code)
-    if code then
-      return code, placement
+    xml = parse_xml(markdown_code)
+    if xml then
+      return xml
     end
   end
 
-  return nil, nil
+  return nil
 end
 
 ---Write the output from the LLM to the buffer
@@ -631,8 +655,6 @@ function Inline:to_chat()
       table.remove(prompt, i)
     end
   end
-
-  self:reset()
 
   return require("codecompanion.strategies.chat").new({
     context = self.context,

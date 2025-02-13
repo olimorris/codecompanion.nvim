@@ -4,7 +4,22 @@ Inputs to the Inline Assistant are handled here
 ---@class CodeCompanion.InlineInput
 local Input = {}
 
-function Input.new(args) end
+---@param inline CodeCompanion.Inline
+---@param args string|table The arguments passed to the inline assistant
+function Input.new(inline, args)
+  if not args then
+    return
+  end
+
+  -- First word processing
+  -- The first word in the user prompt must be an adapter or a prompt library item
+
+  -- Check for an adapter
+
+  -- Check for a prompt library item
+
+  return args.args
+end
 
 -- If the user has supplied a slash command then we need to process it
 -- if string.sub(opts.args, 1, 1) == "/" then

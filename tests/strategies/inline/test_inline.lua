@@ -56,24 +56,24 @@ T["Inline"] = new_set({
         },
       })
     end,
-    post_case = function() end,
+    -- post_case = function() end,
   },
 })
 
 T["Inline"]["can parse XML output correctly"] = function()
-  local code, placement = inline:parse_output([[
+  local xml = inline:parse_output([[
     <response>
       <code>function test() end</code>
       <placement>add</placement>
     </response>
   ]])
 
-  h.eq("function test() end", code)
-  h.eq("add", placement)
+  h.eq("function test() end", xml.code)
+  h.eq("add", xml.placement)
 end
 
 T["Inline"]["can parse markdown output correctly"] = function()
-  local code, placement = inline:parse_output([[
+  local xml = inline:parse_output([[
 ```xml
 <response>
   <code>function test() end</code>
@@ -82,8 +82,8 @@ T["Inline"]["can parse markdown output correctly"] = function()
 ```
   ]])
 
-  h.eq("function test() end", code)
-  h.eq("add", placement)
+  h.eq("function test() end", xml.code)
+  h.eq("add", xml.placement)
 end
 
 T["Inline"]["handles different placements"] = function()
@@ -132,6 +132,28 @@ T["Inline"]["forms correct prompts"] = function()
     "For context, this is some code that I've selected in the buffer which is relevant to my prompt:\n\n```lua\nlocal x = 1\n```",
     formed_prompts[2].content
   )
+end
+
+T["Inline"]["generates correct prompt structure"] = function()
+  -- Capture the submitted prompts
+  local submitted_prompts = {}
+  function inline:submit(prompts)
+    submitted_prompts = prompts
+  end
+
+  -- Simulate running the user prompt through the command line
+  local user_prompt = {
+    args = "Test prompt",
+  }
+  inline:prompt(user_prompt)
+
+  -- Should be a system prompt and the user prompt
+  h.eq(#submitted_prompts, 2)
+
+  h.eq(submitted_prompts[1].role, "system")
+
+  h.eq(submitted_prompts[2].role, "user")
+  h.eq(submitted_prompts[2].content, "<user_prompt>Test prompt</user_prompt>")
 end
 
 return T
