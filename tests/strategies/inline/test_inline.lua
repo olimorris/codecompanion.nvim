@@ -72,6 +72,20 @@ T["Inline"]["can parse XML output correctly"] = function()
   h.eq("add", placement)
 end
 
+T["Inline"]["can parse markdown output correctly"] = function()
+  local code, placement = inline:parse_output([[
+```xml
+<response>
+  <code>function test() end</code>
+  <placement>add</placement>
+</response>
+```
+  ]])
+
+  h.eq("function test() end", code)
+  h.eq("add", placement)
+end
+
 T["Inline"]["handles different placements"] = function()
   -- Test 'add' placement
   inline:place("add")

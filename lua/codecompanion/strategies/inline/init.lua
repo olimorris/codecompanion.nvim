@@ -35,6 +35,7 @@ local TreeHandler = require("codecompanion.utils.xml.xmlhandler.tree")
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
+local input = require("codecompanion.strategies.inline.input")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
@@ -159,6 +160,8 @@ local Inline = {}
 function Inline.new(args)
   log:trace("Initiating Inline with args: %s", args)
 
+  args = input.new(args)
+
   if args.opts and type(args.opts.pre_hook) == "function" then
     -- This is only for prompts coming from the prompt library
     local bufnr = args.opts.pre_hook()
@@ -247,6 +250,7 @@ function Inline:prompt(user_prompt)
       (self.classification.placement and CONSTANTS.RESPONSE_WITHOUT_PLACEMENT or CONSTANTS.RESPONSE_WITH_PLACEMENT)
     ),
     opts = {
+      tag = "system_tag",
       visible = false,
     },
   })
@@ -254,7 +258,9 @@ function Inline:prompt(user_prompt)
   -- Followed by prompts from external sources
   local ext_prompts = self:make_ext_prompts()
   if ext_prompts then
-    prompt = vim.tbl_extend("force", prompt, ext_prompts)
+    for i = 1, #ext_prompts do
+      prompt[#prompt + 1] = ext_prompts[i]
+    end
   end
 
   -- Then add the user's prompt last
@@ -284,27 +290,25 @@ end
 ---the LLM in this method, checking conditions and expanding functions.
 ---@return table|nil
 function Inline:make_ext_prompts()
-  if not self.prompts then
-    return
-  end
-
   local prompts = {}
-  for _, prompt in ipairs(self.prompts) do
-    if prompt.opts and prompt.opts.contains_code and not config.can_send_code() then
-      goto continue
+  if self.prompts then
+    for _, prompt in ipairs(self.prompts) do
+      if prompt.opts and prompt.opts.contains_code and not config.can_send_code() then
+        goto continue
+      end
+      if prompt.condition and not prompt.condition(self.context) then
+        goto continue
+      end
+      if type(prompt.content) == "function" then
+        prompt.content = prompt.content(self.context)
+      end
+      table.insert(prompts, {
+        role = prompt.role,
+        content = prompt.content,
+        opts = prompt.opts or {},
+      })
+      ::continue::
     end
-    if prompt.condition and not prompt.condition(self.context) then
-      goto continue
-    end
-    if type(prompt.content) == "function" then
-      prompt.content = prompt.content(self.context)
-    end
-    table.insert(prompts, {
-      role = prompt.role,
-      content = prompt.content,
-      opts = prompt.opts or {},
-    })
-    ::continue::
   end
 
   -- Add any visual selections to the prompt
@@ -319,7 +323,7 @@ function Inline:make_ext_prompts()
           self.context.lines
         ),
         opts = {
-          tag = "visual_selection",
+          tag = "visual",
           visible = false,
         },
       })
@@ -362,6 +366,10 @@ function Inline:submit(prompt)
   -- log:debug("Prompts to submit: %s", self.classification.prompts)
   log:info("Inline request started")
 
+  -- Assign the prompts back to the inline class in case we need to revert to
+  -- the chat buffer to handle the request
+  self.prompts = prompt
+
   -- Inline editing only works with streaming off
   self.adapter.opts.stream = false
 
@@ -380,11 +388,13 @@ function Inline:submit(prompt)
           return error(err)
         end
 
-        if data and data.status == CONSTANTS.STATUS_SUCCESS then
-          local output = self.adapter.handlers.inline_output(self.adapter, data, self.context).output
-          return self:done(output)
-        else
-          return error(data.output)
+        if data then
+          data = self.adapter.handlers.inline_output(self.adapter, data, self.context)
+          if data.status == CONSTANTS.STATUS_SUCCESS then
+            return self:done(data.output)
+          else
+            return error(data.output)
+          end
         end
       end,
     }, {
@@ -409,7 +419,15 @@ function Inline:done(output)
     log:error("No code returned from the LLM")
     return self:reset()
   end
-  self:place(placement or self.classification.placement)
+
+  placement = placement or self.classification.placement
+  log:debug("Placement: %s", placement)
+
+  if placement == "chat" then
+    return self:to_chat()
+  end
+
+  self:place(placement)
 
   vim.schedule(function()
     self:start_diff()
@@ -442,26 +460,68 @@ function Inline:reset()
   api.nvim_clear_autocmds({ group = self.aug })
 end
 
----@param output string
----@return string|nil,string|nil
-function Inline:parse_output(output)
-  -- Try and parse the output as plain XML...
-  local xml_ok, xml = pcall(function()
+---Parse XML content using xml2lua
+---@param content string
+---@return string|nil, string|nil
+local function parse_xml(content)
+  local ok, xml = pcall(function()
     local handler = TreeHandler:new()
     local parser = xml2lua.parser(handler)
-    parser:parse(output)
+    parser:parse(content)
     return handler.root.response
   end)
 
-  if xml_ok then
-    log:debug("Parsed output: %s", xml.code)
-    return xml.code, (xml.placement and string.lower(xml.placement))
+  if not ok then
+    return nil, nil
   end
 
-  -- ...Before resorting to using Tree-sitter
-  if not xml_ok then
-    --TODO: Implement this
-    return output, output
+  return xml.code, (xml.placement and string.lower(xml.placement))
+end
+
+---Extract code from markdown using Tree-sitter
+---@param content string
+---@param bufnr number
+---@return string|nil
+local function extract_code_from_markdown(content, bufnr)
+  local parser = vim.treesitter.get_string_parser(content, "markdown")
+  local syntax_tree = parser:parse()
+  local root = syntax_tree[1]:root()
+
+  local query = vim.treesitter.query.parse(
+    "markdown",
+    [[
+            (fenced_code_block
+                (code_fence_content) @code)
+        ]]
+  )
+
+  local code = ""
+  for id, node in query:iter_captures(root, bufnr, 0, -1) do
+    if query.captures[id] == "code" then
+      code = code .. vim.treesitter.get_node_text(node, content)
+    end
+  end
+
+  return code ~= "" and code or nil
+end
+
+---@param output string
+---@return string|nil,string|nil
+function Inline:parse_output(output)
+  -- Try parsing as plain XML first
+  local code, placement = parse_xml(output)
+  if code then
+    log:debug("Parsed output: %s", code)
+    return code, placement
+  end
+
+  -- Fall back to Tree-sitter parsing
+  local markdown_code = extract_code_from_markdown(output, self.bufnr)
+  if markdown_code then
+    code, placement = parse_xml(markdown_code)
+    if code then
+      return code, placement
+    end
   end
 
   return nil, nil
@@ -556,30 +616,30 @@ function Inline:place(placement)
   return self
 end
 
----A user's inline prompt may need to be converted into a chat
+---Send a prompt to the chat if the placement is chat
 ---@return CodeCompanion.Chat
-function Inline:send_to_chat()
-  -- local prompt = self.classification.prompts
-  --
-  -- for i = #prompt, 1, -1 do
-  --   -- Remove all of the system prompts
-  --   if prompt[i].opts and prompt[i].opts.tag == "system_tag" then
-  --     table.remove(prompt, i)
-  --   end
-  --   -- Remove any visual selections as the chat buffer adds these from the context
-  --   if self.context.is_visual and (prompt[i].opts and prompt[i].opts.tag == "visual") then
-  --     table.remove(prompt, i)
-  --   end
-  -- end
-  --
-  -- api.nvim_clear_autocmds({ group = self.aug })
-  --
-  -- return require("codecompanion.strategies.chat").new({
-  --   context = self.context,
-  --   adapter = self.adapter,
-  --   messages = prompt,
-  --   auto_submit = true,
-  -- })
+function Inline:to_chat()
+  local prompt = self.prompts
+
+  for i = #prompt, 1, -1 do
+    -- Remove all of the system prompts
+    if prompt[i].opts and prompt[i].opts.tag == "system_tag" then
+      table.remove(prompt, i)
+    end
+    -- Remove any visual selections as the chat buffer adds these from the context
+    if self.context.is_visual and (prompt[i].opts and prompt[i].opts.tag == "visual") then
+      table.remove(prompt, i)
+    end
+  end
+
+  self:reset()
+
+  return require("codecompanion.strategies.chat").new({
+    context = self.context,
+    adapter = self.adapter,
+    messages = prompt,
+    auto_submit = true,
+  })
 end
 
 ---Start the diff process

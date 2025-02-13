@@ -163,7 +163,7 @@ return {
           return { status = "error", output = json }
         end
 
-        local choice = json.body.choices[1]
+        local choice = json.choices[1]
         if choice.message.content then
           return { status = "success", output = choice.message.content }
         end

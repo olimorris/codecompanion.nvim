@@ -73,10 +73,6 @@
       ],
       "files": [
         {
-          "description": "I've included an example test file below:",
-          "path": "tests/strategies/chat/test_references.lua"
-        },
-        {
           "description": "I've included the test helper file as well:",
           "path": "tests/helpers.lua"
         }
@@ -131,6 +127,10 @@
         {
           "description": "There are many entry points to make an inline edit. Most commonly is via the `:CodeCompanion` command:",
           "path": "${base_dir}/commands.lua"
+        },
+        {
+          "description": "Including a link to the test file:",
+          "path": "tests/strategies/inline/test_inline.lua"
         }
       ],
       "urls": [
