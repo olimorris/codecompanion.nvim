@@ -17,3 +17,4 @@
 
 - [ ] I've read the [contributing](https://github.com/olimorris/codecompanion.nvim/blob/main/CONTRIBUTING.md) guidelines and have adhered to them in this PR
 - [ ] I've updated the README and/or relevant docs pages
+- [ ] I've run `make docs` to update the vimdoc pages
