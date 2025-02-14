@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.2.4](https://github.com/olimorris/codecompanion.nvim/compare/v12.2.3...v12.2.4) (2025-02-14)
+
+
+### Bug Fixes
+
+* **chat:** [#915](https://github.com/olimorris/codecompanion.nvim/issues/915) parsing show_settings when InsertLeave is executed ([#916](https://github.com/olimorris/codecompanion.nvim/issues/916)) ([1103551](https://github.com/olimorris/codecompanion.nvim/commit/1103551e8ba5772522422017ca618a65d385db2c))
+
 ## [12.2.3](https://github.com/olimorris/codecompanion.nvim/compare/v12.2.2...v12.2.3) (2025-02-12)
 
 
