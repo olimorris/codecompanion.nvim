@@ -46,6 +46,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Creating Workflows            |codecompanion-extending-creating-workflows|
   - Creating Workspaces          |codecompanion-extending-creating-workspaces|
 
+==============================================================================
 1. Welcome                                             *codecompanion-welcome*
 
 
