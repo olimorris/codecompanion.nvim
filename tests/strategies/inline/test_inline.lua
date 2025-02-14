@@ -1,4 +1,3 @@
-local codecompanion = require("codecompanion")
 local h = require("tests.helpers")
 
 local new_set = MiniTest.new_set
@@ -6,57 +5,53 @@ local T = MiniTest.new_set()
 
 local inline
 
-local mock_adapter = {
-  name = "mock",
-  formatted_name = "Mock",
-  roles = {
-    llm = "assistant",
-    user = "user",
-  },
-  opts = {
-    stream = false,
-  },
-  url = "http://mock-url",
-  headers = {},
-  handlers = {
-    setup = function(self)
-      return true
-    end,
-    form_parameters = function(self, params, messages)
-      return params
-    end,
-    form_messages = function(self, messages)
-      return { messages = messages }
-    end,
-    inline_output = function(self, data, context)
-      return "<response>\n<code><![CDATA[function hello_world()\n  print('Hello World')\nend]]></code>\n<placement>add</placement>\n</response>"
-    end,
-  },
-  schema = {
-    model = {
-      default = "mock-model",
-      choices = {},
-    },
-  },
-}
-
 T["Inline"] = new_set({
   hooks = {
     pre_case = function()
-      inline = require("codecompanion.strategies.inline").new({
-        adapter = mock_adapter,
-        context = {
-          winnr = 0,
-          bufnr = 0,
-          filetype = "lua",
-          start_line = 1,
-          end_line = 1,
-          start_col = 0,
-          end_col = 0,
+      inline = h.setup_inline({
+        adapters = {
+          mock = {
+            name = "mock",
+            formatted_name = "Mock",
+            roles = {
+              llm = "assistant",
+              user = "user",
+            },
+            opts = {
+              stream = false,
+            },
+            url = "http://mock-url",
+            headers = {},
+            handlers = {
+              setup = function(self)
+                return true
+              end,
+              form_parameters = function(self, params, messages)
+                return params
+              end,
+              form_messages = function(self, messages)
+                return { messages = messages }
+              end,
+              inline_output = function(self, data, context)
+                return "<response>\n<code><![CDATA[function hello_world()\n  print('Hello World')\nend]]></code>\n<placement>add</placement>\n</response>"
+              end,
+            },
+            schema = {
+              model = {
+                default = "mock-model",
+                choices = {},
+              },
+            },
+          },
+        },
+        strategies = {
+          inline = {
+            adapter = "mock",
+          },
         },
       })
     end,
-    -- post_case = function() end,
+    post_case = function() end,
   },
 })
 
@@ -145,6 +140,7 @@ T["Inline"]["generates correct prompt structure"] = function()
   -- Simulate running the user prompt through the command line
   local user_prompt = {
     args = "Test prompt",
+    fargs = { "Test", "prompt" },
   }
   inline:prompt(user_prompt)
 
@@ -152,6 +148,31 @@ T["Inline"]["generates correct prompt structure"] = function()
   h.eq(submitted_prompts[1].role, "system")
   h.eq(submitted_prompts[2].role, "user")
   h.eq(submitted_prompts[2].content, "<user_prompt>Test prompt</user_prompt>")
+end
+
+T["Inline"]["the first word can be an adapter"] = function()
+  local submitted_prompts = {}
+
+  -- Mock the submit function
+  function inline:submit(prompts)
+    submitted_prompts = prompts
+  end
+
+  -- Adapter is the default
+  h.eq(inline.adapter.name, "mock")
+
+  -- Simulate running the user prompt through the command line
+  local user_prompt = {
+    args = "copilot print hello world",
+    fargs = { "copilot", "print", "hello", "world" },
+  }
+  inline:prompt(user_prompt)
+
+  -- Adapter has been changed
+  h.eq(inline.adapter.name, "copilot")
+
+  -- Adapter is removed from the prompt
+  h.eq(submitted_prompts[2].content, "<user_prompt>print hello world</user_prompt>")
 end
 
 return T

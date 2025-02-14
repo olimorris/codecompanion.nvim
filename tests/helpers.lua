@@ -75,6 +75,9 @@ Helpers.config = {
         },
       },
     },
+    inline = {
+      adapter = "foo",
+    },
   },
   prompt_library = {
     ["Test References"] = {
@@ -217,6 +220,25 @@ Helpers.teardown_chat_buffer = function()
   package.loaded["codecompanion.utils.foo"] = nil
   package.loaded["codecompanion.utils.bar"] = nil
   package.loaded["codecompanion.utils.bar_again"] = nil
+end
+
+Helpers.setup_inline = function(config)
+  local codecompanion = require("codecompanion")
+
+  config = vim.tbl_deep_extend("force", vim.deepcopy(Helpers.config), config or {})
+  codecompanion.setup(config)
+
+  return require("codecompanion.strategies.inline").new({
+    context = {
+      winnr = 0,
+      bufnr = 0,
+      filetype = "lua",
+      start_line = 1,
+      end_line = 1,
+      start_col = 0,
+      end_col = 0,
+    },
+  })
 end
 
 return Helpers

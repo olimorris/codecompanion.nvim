@@ -42,6 +42,7 @@ local util = require("codecompanion.utils")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local api = vim.api
+local fmt = string.format
 
 local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.inline",
@@ -51,7 +52,7 @@ local CONSTANTS = {
   -- var1: language/filetype
   -- var2: response
   SYSTEM_PROMPT = [[## CONTEXT
-You are a knowledgeable developer working in the Neovim text editor. You write %s code on behalf of a user, directly into their active Neovim buffer.
+You are a knowledgeable developer working in the Neovim text editor. You write %s code on behalf of a user (unless told otherwise), directly into their active Neovim buffer.
 
 ## OBJECTIVE
 You must follow the user's prompt (enclosed within <user_prompt></user_prompt> tags) to the letter, ensuring that you output high quality, fully working code. Pay attention to any code that the user has shared with you as context.
@@ -79,16 +80,20 @@ If you cannot answer the user's prompt, respond with the reason why, in one sent
 - Use actual line breaks (not `\n`).
 - Preserve all whitespace.]],
 
-  RESPONSE_WITHOUT_PLACEMENT = [[Respond to the user's prompt by returning your code in XML:
+  RESPONSE_WITHOUT_PLACEMENT = fmt(
+    [[Respond to the user's prompt by returning your code in XML:
 ```xml
 <response>
-  <code><![CDATA[    print('Hello World')\]\]></code>
+  <code>%s</code>
   <language>python</language>
 </response>
 ```
 This would add `    print('Hello World')` to the user's Neovim buffer.]],
+    "<![CDATA[    print('Hello World')]]>"
+  ),
 
-  RESPONSE_WITH_PLACEMENT = [[You are required to write code and to determine the placement of the code in relation to the user's current Neovim buffer:
+  RESPONSE_WITH_PLACEMENT = fmt(
+    [[You are required to write code and to determine the placement of the code in relation to the user's current Neovim buffer:
 
 ### PLACEMENT
 
@@ -112,12 +117,14 @@ Here are some example user prompts and how they would be placed:
 Respond to the user's prompt by putting your code and placement in XML. For example:
 ```xml
 <response>
-  <code><![CDATA[    print('Hello World')\]\]></code>
+  <code>%s</code>
   <language>python</language>
   <placement>replace</placement>
 </response>
 ```
 This would **Replace** the user's current selection in a buffer with `    print('Hello World')`.]],
+    "<![CDATA[    print('Hello World')]]>"
+  ),
 }
 
 ---Format code into a code block alongside a message
@@ -126,7 +133,7 @@ This would **Replace** the user's current selection in a buffer with `    print(
 ---@param code table
 ---@return string
 local function code_block(message, filetype, code)
-  return string.format(
+  return fmt(
     [[%s
 
 ```%s
@@ -192,7 +199,6 @@ function Inline.new(args)
 
   local self = setmetatable({
     id = id,
-    adapter = args.adapter or config.adapters[config.strategies.inline.adapter],
     aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. id, {
       clear = false,
     }),
@@ -209,14 +215,14 @@ function Inline.new(args)
     prompts = vim.deepcopy(args.prompts),
   }, { __index = Inline })
 
-  self.adapter = adapters.resolve(self.adapter)
+  self:set_adapter(args.adapter or config.adapters[config.strategies.inline.adapter])
   if not self.adapter then
     return log:error("No adapter found")
   end
 
   -- Check if the user has manually overridden the adapter
   if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
-    self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
+    self:set_adapter(config.adapters[vim.g.codecompanion_adapter])
   end
 
   if self.opts and self.opts.placement then
@@ -225,6 +231,13 @@ function Inline.new(args)
 
   log:debug("Inline instance created with ID %d", self.id)
   return self
+end
+
+---Set the adapter for the inline prompt
+---@param adapter CodeCompanion.Adapter
+---@return nil
+function Inline:set_adapter(adapter)
+  self.adapter = adapters.resolve(adapter)
 end
 
 ---Prompt the LLM
@@ -241,8 +254,7 @@ function Inline:prompt(prompt)
   local function add_user_prompt(user_prompt, message)
     table.insert(prompts, {
       role = config.constants.USER_ROLE,
-      content = message and (string.format(message, user_prompt))
-        or ("<user_prompt>" .. user_prompt .. "</user_prompt>"),
+      content = message and (fmt(message, user_prompt)) or ("<user_prompt>" .. user_prompt .. "</user_prompt>"),
       opts = {
         visible = true,
       },
@@ -252,7 +264,7 @@ function Inline:prompt(prompt)
   -- Add system prompt first
   table.insert(prompts, {
     role = config.constants.SYSTEM_ROLE,
-    content = string.format(
+    content = fmt(
       CONSTANTS.SYSTEM_PROMPT,
       self.context.filetype,
       (self.classification.placement and CONSTANTS.RESPONSE_WITHOUT_PLACEMENT or CONSTANTS.RESPONSE_WITH_PLACEMENT),
@@ -268,20 +280,22 @@ function Inline:prompt(prompt)
   local ext_prompts = self:make_ext_prompts()
   if ext_prompts then
     for i = 1, #ext_prompts do
-      prompt[#prompt + 1] = ext_prompts[i]
+      prompts[#prompt + 1] = ext_prompts[i]
     end
   end
 
   -- Process the input to detect adapter, variable and prompt library usage
-  local user_prompt = input.new(self, prompt)
+  if prompt then
+    local user_prompt = input.new(self, prompt)
 
-  -- Then add the user's prompt last
-  if user_prompt then
-    add_user_prompt(user_prompt)
+    -- Then add the user's prompt last
+    if user_prompt then
+      add_user_prompt(user_prompt)
+    end
   end
 
   -- From the prompt library, user's can explicitly ask to be prompted for input
-  if (self.opts and self.opts.user_prompt) or not user_prompt then
+  if (self.opts and self.opts.user_prompt) or (not prompt or prompt == "") then
     local title = string.gsub(self.context.filetype, "^%l", string.upper)
     vim.ui.input({ prompt = title .. " " .. config.display.action_palette.prompt }, function(i)
       if not i then
@@ -428,7 +442,6 @@ function Inline:done(output)
 
   local xml = self:parse_output(output)
   if not xml then
-    log:error("Failed to parse the output from the LLM")
     return self:reset()
   end
   if xml and xml.error then
@@ -496,6 +509,8 @@ local function parse_xml(content)
   end)
 
   if not ok then
+    log:debug("Tried to parse: %s", content)
+    log:debug("Failed XML parsing: %s", xml)
     return nil
   end
 
@@ -506,7 +521,9 @@ end
 ---@param content string
 ---@param bufnr number
 ---@return string|nil
-local function extract_code_from_markdown(content, bufnr)
+local function parse_with_treesitter(content, bufnr)
+  log:debug("Parsing markdown content with Tree-sitter")
+
   local parser = vim.treesitter.get_string_parser(content, "markdown")
   local syntax_tree = parser:parse()
   local root = syntax_tree[1]:root()
@@ -535,15 +552,16 @@ function Inline:parse_output(output)
   -- Try parsing as plain XML first
   local xml = parse_xml(output)
   if xml then
-    log:debug("Parsed output: %s", xml)
+    log:debug("Parsed XML:\n%s", xml)
     return xml
   end
 
   -- Fall back to Tree-sitter parsing
-  local markdown_code = extract_code_from_markdown(output, self.bufnr)
+  local markdown_code = parse_with_treesitter(output, self.bufnr)
   if markdown_code then
     xml = parse_xml(markdown_code)
     if xml then
+      log:debug("Parsed markdown XML:\n%s", xml)
       return xml
     end
   end
