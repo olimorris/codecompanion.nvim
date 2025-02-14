@@ -18,8 +18,9 @@ function M.chat_buffer_output(response, adapter)
   return output.output
 end
 
+-- This endpoint is always non-streaming
 function M.inline_buffer_output(response, adapter)
-  return adapter.handlers.inline_output(adapter, response[1].request.body).output
+  return adapter.handlers.inline_output(adapter, response[1].request).output
 end
 
 return M
