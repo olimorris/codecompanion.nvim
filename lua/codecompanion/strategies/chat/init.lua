@@ -16,7 +16,7 @@ The Chat Buffer - This is where all of the logic for conversing with an LLM sits
 ---@field id integer The unique identifier for the chat
 ---@field messages? table The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
----@field parser vim.treesitter.LanguageTree The Tree-sitter parser for the chat buffer
+---@field parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
 ---@field references CodeCompanion.Chat.References
 ---@field refs? table<CodeCompanion.Chat.Ref> References which are sent to the LLM e.g. buffers, slash command output
 ---@field settings? table The settings that are used in the adapter of the chat buffer
@@ -28,6 +28,7 @@ The Chat Buffer - This is where all of the logic for conversing with an LLM sits
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field watchers CodeCompanion.Watchers The buffer watcher instance
+---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
@@ -79,13 +80,13 @@ local function make_id(val)
 end
 
 local _cached_settings = {}
-local _yaml_parser
 
 ---Parse the chat buffer for settings
 ---@param bufnr integer
+---@param parser vim.treesitter.LanguageTree
 ---@param adapter? CodeCompanion.Adapter
 ---@return table
-local function ts_parse_settings(bufnr, adapter)
+local function ts_parse_settings(bufnr, parser, adapter)
   if _cached_settings[bufnr] then
     return _cached_settings[bufnr]
   end
@@ -99,12 +100,9 @@ local function ts_parse_settings(bufnr, adapter)
   end
 
   local settings = {}
-  if not _yaml_parser then
-    _yaml_parser = vim.treesitter.get_parser(bufnr, "yaml", { ignore_injections = false })
-  end
 
   local query = get_query("yaml", "chat")
-  local root = _yaml_parser:parse()[1]:root()
+  local root = parser:parse()[1]:root()
 
   local end_line = -1
   if adapter then
@@ -236,11 +234,21 @@ function Chat.new(args)
     clear = false,
   })
 
-  local ok, parser = pcall(vim.treesitter.get_parser, self.bufnr, "markdown")
+  -- Assign the parsers to the chat object for performance
+  local ok, parser, yaml_parser
+  ok, parser = pcall(vim.treesitter.get_parser, self.bufnr, "markdown")
   if not ok then
-    return log:error("Could not find the markdown Tree-sitter parser")
+    return log:error("Could not find the Markdown Tree-sitter parser")
   end
   self.parser = parser
+
+  if config.display.chat.show_settings then
+    ok, yaml_parser = pcall(vim.treesitter.get_parser, self.bufnr, "yaml", { ignore_injections = false })
+    if not ok then
+      return log:error("Could not find the Yaml Tree-sitter parser")
+    end
+    self.yaml_parser = yaml_parser
+  end
 
   self.references = require("codecompanion.strategies.chat.references").new({ chat = self })
   self.subscribers = require("codecompanion.strategies.chat.subscribers").new()
@@ -373,7 +381,7 @@ function Chat:set_autocmds()
       buffer = bufnr,
       desc = "Parse the settings in the CodeCompanion chat buffer for any errors",
       callback = function()
-        local settings = ts_parse_settings(bufnr, self.adapter)
+        local settings = ts_parse_settings(bufnr, self.yaml_parser, self.adapter)
 
         local errors = schema.validate(self.adapter.schema, settings, self.adapter)
         local node = settings.__ts_node
@@ -728,7 +736,7 @@ function Chat:submit(opts)
     self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
   end
 
-  local settings = ts_parse_settings(bufnr, self.adapter)
+  local settings = ts_parse_settings(bufnr, self.yaml_parser, self.adapter)
   settings = self.adapter:map_schema_to_params(settings)
 
   log:trace("Settings:\n%s", settings)
@@ -1110,7 +1118,7 @@ function Chat:debug()
     return
   end
 
-  return ts_parse_settings(self.bufnr, self.adapter), self.messages
+  return ts_parse_settings(self.bufnr, self.yaml_parser, self.adapter), self.messages
 end
 
 ---Returns the chat object(s) based on the buffer number
