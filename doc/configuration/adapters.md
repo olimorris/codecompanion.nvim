@@ -140,7 +140,7 @@ require("codecompanion").setup({
 
 ## Example: Using OpenAI Compatible Models
 
-To use any other OpenAI compatible models, change the URL in the env table, set an API key and define schema:
+To use any other OpenAI compatible models, change the URL in the env table, set an API key and define the schema:
 
 > [!NOTE]
 > The schema in this instance is provided only as an example and must be modified according to the requirements of the model you use. The options are chosen to show how to use different types of parameters.
