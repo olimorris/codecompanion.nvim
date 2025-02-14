@@ -19,11 +19,15 @@ The chat buffer uses markdown as its syntax and `H2` headers separate the user a
 ## Messages
 
 > [!TIP]
-> The message history can be modified via the debug window (`gd`) in the chat buffer
+> The message history and adapter settings can be modified via the debug window (`gd`) in the chat buffer
 
 It's important to note that some messages, such as system prompts or context provided via [Slash Commands](/usage/chat-buffer/slash-commands), will be hidden. This is to keep the chat buffer uncluttered from a UI perspective. Using the `gd` keymap opens up the debug window, which allows the user to see the full contents of the messages table which will be sent to the LLM on the next turn.
 
 The message history cannot be altered directly in the chat buffer. However, it can be modified in the debug window. This window is simply a Lua buffer which the user can edit as they wish. To persist any changes, the chat buffer keymaps for sending a message (defaults: `<CR>` or `<C-s>`) can be used.
+
+## Settings
+
+An adapters settings can also be changed via the debug window (`gd`). This allows you to modify an adapter's schema, changing things like the specific model and the temperature etc. Be sure to save the changes to the debug window to persist them to the chat buffer.
 
 ## Completion
 
