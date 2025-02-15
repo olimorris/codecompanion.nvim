@@ -147,19 +147,19 @@ function Client:request(payload, actions, opts)
   }
 
   if adapter.opts and adapter.opts.stream then
+    local has_started_steaming = false
+
     -- Turn off plenary's default compression
     request_opts["compressed"] = adapter.opts.compress or false
-
-    local streaming = false
 
     -- This will be called multiple times until the stream is finished
     request_opts["stream"] = self.opts.schedule(function(_, data)
       if data and data ~= "" then
-        if not streaming then
-          streaming = true
-          util.fire("RequestStreaming", opts)
-        end
         log:trace("Output data:\n%s", data)
+      end
+      if not has_started_steaming then
+        has_started_steaming = true
+        util.fire("RequestStreaming", opts)
       end
       cb(nil, data)
     end)

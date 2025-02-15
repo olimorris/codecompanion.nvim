@@ -589,7 +589,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
       },
     },
     ["Unit Tests"] = {
-      strategy = "chat",
+      strategy = "inline",
       description = "Generate unit tests for the selected code",
       opts = {
         index = 6,
@@ -599,6 +599,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
         short_name = "tests",
         auto_submit = true,
         user_prompt = false,
+        placement = "new",
         stop_context_insertion = true,
       },
       prompts = {
@@ -625,11 +626,13 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return fmt(
-              [[Please generate unit tests for this code from buffer %d:
+              [[<user_prompt>
+Please generate unit tests for this code from buffer %d:
 
 ```%s
 %s
 ```
+</user_prompt>
 ]],
               context.bufnr,
               context.filetype,

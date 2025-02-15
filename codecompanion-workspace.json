@@ -73,10 +73,6 @@
       ],
       "files": [
         {
-          "description": "I've included an example test file below:",
-          "path": "tests/strategies/chat/test_references.lua"
-        },
-        {
           "description": "I've included the test helper file as well:",
           "path": "tests/helpers.lua"
         }
@@ -103,6 +99,45 @@
         {
           "description": "Adapters must follow a schema. The validation and how schema values are extracted from the table schema is defined in:",
           "path": "${base_dir}/schema.lua"
+        }
+      ]
+    },
+    {
+      "name": "Inline",
+      "system_prompt": "In the CodeCompanion plugin, the inline strategy allows user's to prompt LLMs to write code directly into a Neovim buffer. To make the experience as smooth as possible, the user can just send a prompt like 'refactor this class' and the LLM will generate code to answer the question, alongside providing a determination on where to place the code. This is called the placement.",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "vars": {
+        "base_dir": "lua/codecompanion"
+      },
+      "files": [
+        {
+          "description": "This is the entry point for the inline strategy. All methods directly relating to the inline strategy reside here. I'm in the process of refactoring this which is where I will seek your guidance. You can see how it leverages adapters to connect to an LLM and receive the response before feeding it back into a Neovim buffer.",
+          "path": "${base_dir}/strategies/inline/init.lua"
+        },
+        {
+          "description": "Adapters are then passed to the http client which sends requests to LLMs via Curl. Note that inline adapters have streaming turned off.",
+          "path": "${base_dir}/http.lua"
+        },
+        {
+          "description": "I'm including an example adapter. In this case for OpenAI. You'll see that it has a handler called 'inline_output' which handles how the output is fed back to the inline strategy.",
+          "path": "${base_dir}/adapters/openai.lua"
+        },
+        {
+          "description": "There are many entry points to make an inline edit. Most commonly is via the `:CodeCompanion` command:",
+          "path": "${base_dir}/commands.lua"
+        },
+        {
+          "description": "Including a link to the test file:",
+          "path": "tests/strategies/inline/test_inline.lua"
+        }
+      ],
+      "urls": [
+        {
+          "auto_restore_cache": true,
+          "description": "This is the inline strategy file before I started the refactorng:",
+          "url": "https://raw.githubusercontent.com/olimorris/codecompanion.nvim/refs/heads/main/lua/codecompanion/strategies/inline/init.lua"
         }
       ]
     }

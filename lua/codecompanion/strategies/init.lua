@@ -229,7 +229,7 @@ function Strategies:inline()
       opts = opts,
       prompts = self.selected.prompts,
     })
-    :start()
+    :prompt()
 end
 
 ---Evaluate a set of prompts based on conditionals and context

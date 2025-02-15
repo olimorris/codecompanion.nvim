@@ -13,6 +13,14 @@ The Assistant has knowledge of your last conversation from a chat buffer. A prom
 
 For convenience, you can call prompts from the [prompt library](/configuration/prompt-library) via the Assistant such as `:'<,'>CodeCompanion /buffer what does this file do?`.
 
+## Tips
+
+To ensure you're getting the best output from the Inline Assistant, follow the tips below:
+
+### Send as much context as possible
+
+When interacting with users, I've observed that they leverage the Inline Assistant to write some code on their behalf by providing little to no context. For example: `"refactor this function"`. This can typically lead to substandard code because the LLM doesn't have any context of the buffer that you're working in or your overall objective. So be sure to leverage visual selections and use the variables when appropriate.
+
 ## Classification
 
 One of the challenges with inline editing is determining how the LLM's response should be handled in the buffer. If you've prompted the LLM to _"create a table of 5 common text editors"_ then you may wish for the response to be placed at the cursor's position in the current buffer. However, if you asked the LLM to _"refactor this function"_ then you'd expect the response to _replace_ a visual selection. The plugin uses the inline LLM you've specified in your config to determine if the response should:

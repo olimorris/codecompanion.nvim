@@ -137,28 +137,24 @@ return {
     ---Output the data from the API ready for inlining into the current buffer
     ---@param self CodeCompanion.Adapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
-    ---@param context table Useful context about the buffer to inline to
+    ---@param context? table Useful context about the buffer to inline to
     ---@return table|nil
     inline_output = function(self, data, context)
+      if self.opts.stream then
+        return log:error("Inline output is not supported for non-streaming models")
+      end
+
       if data and data ~= "" then
-        data = utils.clean_streamed_data(data)
-        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
+        local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
 
         if not ok then
-          return
+          return { status = "error", output = json }
         end
 
         local text = json.candidates[1].content.parts[1].text
-        local model = json.modelVersion
-
-        if model == "gemini-2.0-flash-exp" then
-          text = text:gsub("```", "")
-          if context then
-            text = text:gsub(context.filetype .. "\n", "")
-          end
+        if text then
+          return { status = "success", output = text }
         end
-
-        return text
       end
     end,
 
