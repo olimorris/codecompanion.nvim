@@ -116,13 +116,23 @@ T["Inline"]["forms correct prompts"] = function()
   inline.context.is_visual = true
   inline.context.lines = { "local x = 1" }
 
-  local formed_prompts = inline:make_ext_prompts()
-  h.eq(#formed_prompts, 2) -- One for the prompt, one for the visual selection
-  h.eq("test prompt", formed_prompts[1].content)
+  local user_prompt = {
+    args = "Test prompt",
+    fargs = { "Test", "prompt" },
+  }
+
+  inline:prompt(user_prompt)
+
+  h.eq(#inline.prompts, 4)
+  -- System prompt
+  h.expect_starts_with("## CONTEXT", inline.prompts[1].content)
+  -- Visual selection
   h.eq(
-    "For context, this is some code that I've selected in the buffer which is relevant to my prompt:\n\n```lua\nlocal x = 1\n```",
-    formed_prompts[2].content
+    "For context, this is the code that I've visually selected in the buffer, which is relevant to my prompt:\n\n```lua\nlocal x = 1\n```",
+    inline.prompts[3].content
   )
+  -- User prompt
+  h.eq("<user_prompt>Test prompt</user_prompt>", inline.prompts[#inline.prompts].content)
 end
 
 T["Inline"]["generates correct prompt structure"] = function()

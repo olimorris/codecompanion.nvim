@@ -99,7 +99,7 @@ This would add `    print('Hello World')` to the user's Neovim buffer.]],
 ### PLACEMENT
 
 Determine where to place your code in relation to the user's Neovim buffer. Your answer should be one of:
-1. **Replace**: where the user's current selection in the buffer is replaced with your code.
+1. **Replace**: where the user's current visual selection in the buffer is replaced with your code.
 2. **Add**: where your code is placed after the user's current cursor position in the buffer.
 3. **Before**: where your code is placed before the user's current cursor position in the buffer.
 4. **New**: where a new neovim buffer is created for your code.
@@ -281,7 +281,7 @@ function Inline:prompt(prompt)
   local ext_prompts = self:make_ext_prompts()
   if ext_prompts then
     for i = 1, #ext_prompts do
-      prompts[#prompt + 1] = ext_prompts[i]
+      prompts[#prompts + 1] = ext_prompts[i]
     end
   end
 
@@ -345,7 +345,7 @@ function Inline:make_ext_prompts()
       table.insert(prompts, {
         role = config.constants.USER_ROLE,
         content = code_block(
-          "For context, this is some code that I've selected in the buffer which is relevant to my prompt:",
+          "For context, this is the code that I've visually selected in the buffer, which is relevant to my prompt:",
           self.context.filetype,
           self.context.lines
         ),
