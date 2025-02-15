@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.2.5](https://github.com/olimorris/codecompanion.nvim/compare/v12.2.4...v12.2.5) (2025-02-15)
+
+
+### Bug Fixes
+
+* **chat:** debug window height and width asfunctions ([#926](https://github.com/olimorris/codecompanion.nvim/issues/926)) ([1d67908](https://github.com/olimorris/codecompanion.nvim/commit/1d67908153855bacc28a766ecb0903c68f14b2d8)), closes [#905](https://github.com/olimorris/codecompanion.nvim/issues/905)
+
 ## [12.2.4](https://github.com/olimorris/codecompanion.nvim/compare/v12.2.3...v12.2.4) (2025-02-14)
 
 
