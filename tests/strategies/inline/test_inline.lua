@@ -56,26 +56,22 @@ T["Inline"] = new_set({
 })
 
 T["Inline"]["can parse XML output correctly"] = function()
-  local xml = inline:parse_output([[
-    <response>
+  local xml = inline:parse_output([[<response>
       <code>function test() end</code>
       <placement>add</placement>
-    </response>
-  ]])
+    </response>]])
 
   h.eq("function test() end", xml.code)
   h.eq("add", xml.placement)
 end
 
 T["Inline"]["can parse markdown output correctly"] = function()
-  local xml = inline:parse_output([[
-```xml
+  local xml = inline:parse_output([[```xml
 <response>
   <code>function test() end</code>
   <placement>add</placement>
 </response>
-```
-  ]])
+```]])
 
   h.eq("function test() end", xml.code)
   h.eq("add", xml.placement)

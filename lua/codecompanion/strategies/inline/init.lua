@@ -73,7 +73,8 @@ If you cannot answer the user's prompt, respond with the reason why, in one sent
 - **XML schema:** Follow the XML schema exactly.
 
 ### OTHER POINTS TO NOTE
-- Ensure only XML is returned. No markdown, backticks, or other formatting.
+- Ensure only XML is returned.
+- Do not include triple backticks or code blocks in your response.
 - Do not include any explanations or prose.
 - Use proper indentation for the target language.
 - Include language-appropriate comments when needed.
@@ -509,8 +510,8 @@ local function parse_xml(content)
   end)
 
   if not ok then
-    log:debug("Tried to parse: %s", content)
-    log:debug("Failed XML parsing: %s", xml)
+    log:debug("Tried to parse:\n%s", content)
+    log:debug("XML could not be parsed:\n%s", xml)
     return nil
   end
 
@@ -519,31 +520,31 @@ end
 
 ---Extract a code block from markdown text
 ---@param content string
----@param bufnr number
 ---@return string|nil
-local function parse_with_treesitter(content, bufnr)
+local function parse_with_treesitter(content)
   log:debug("Parsing markdown content with Tree-sitter")
 
   local parser = vim.treesitter.get_string_parser(content, "markdown")
   local syntax_tree = parser:parse()
   local root = syntax_tree[1]:root()
 
-  local query = vim.treesitter.query.parse(
-    "markdown",
-    [[
-            (fenced_code_block
-                (code_fence_content) @code)
-        ]]
-  )
+  local query = vim.treesitter.query.parse("markdown", [[(code_fence_content) @code]])
 
-  local code = ""
-  for id, node in query:iter_captures(root, bufnr, 0, -1) do
+  local code = {}
+  for id, node in query:iter_captures(root, content, 0, -1) do
     if query.captures[id] == "code" then
-      code = code .. vim.treesitter.get_node_text(node, content)
+      local node_text = vim.treesitter.get_node_text(node, content)
+      -- Deepseek protection!!
+      node_text = node_text:gsub("```xml", "")
+      node_text = node_text:gsub("```", "")
+
+      table.insert(code, node_text)
     end
   end
 
-  return code ~= "" and code or nil
+  -- print(vim.inspect(code))
+
+  return vim.tbl_count(code) > 0 and table.concat(code, "") or nil
 end
 
 ---@param output string
@@ -557,7 +558,7 @@ function Inline:parse_output(output)
   end
 
   -- Fall back to Tree-sitter parsing
-  local markdown_code = parse_with_treesitter(output, self.bufnr)
+  local markdown_code = parse_with_treesitter(output)
   if markdown_code then
     xml = parse_xml(markdown_code)
     if xml then
@@ -566,7 +567,7 @@ function Inline:parse_output(output)
     end
   end
 
-  return nil
+  return log:error("Failed to parse the response")
 end
 
 ---Write the output from the LLM to the buffer
