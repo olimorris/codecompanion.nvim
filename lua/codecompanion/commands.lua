@@ -9,16 +9,6 @@
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 
-local prompt_library = vim
-  .iter(config.prompt_library)
-  :filter(function(_, v)
-    return v.opts and v.opts.short_name
-  end)
-  :map(function(_, v)
-    return "/" .. v.opts.short_name
-  end)
-  :totable()
-
 local adapters = vim
   .iter(config.adapters)
   :filter(function(k, _)
@@ -29,9 +19,7 @@ local adapters = vim
   end)
   :totable()
 
-local inline_subcommands = vim.list_extend(prompt_library, adapters)
-
-local chat_subcommands = adapters
+local chat_subcommands = vim.deepcopy(adapters)
 table.insert(chat_subcommands, "Toggle")
 table.insert(chat_subcommands, "Add")
 
@@ -47,7 +35,7 @@ return {
             return
           end
           opts.args = input
-          codecompanion.inline(opts)
+          return codecompanion.inline(opts)
         end)
       else
         codecompanion.inline(opts)
@@ -62,7 +50,7 @@ return {
       complete = function(arg_lead, cmdline, _)
         if cmdline:match("^['<,'>]*CodeCompanion[!]*%s+%w*$") then
           return vim
-            .iter(inline_subcommands)
+            .iter(adapters)
             :filter(function(key)
               return key:find(arg_lead) ~= nil
             end)

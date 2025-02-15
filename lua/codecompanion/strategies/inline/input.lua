@@ -6,14 +6,12 @@ local config = require("codecompanion.config")
 
 ---@class CodeCompanion.InlineInput
 ---@field adapter CodeCompanion.Adapter
----@field context table
 ---@field inline CodeCompanion.Inline
----@field prompt string[]
+---@field user_prompt? string The user's prompt
 local Input = {}
 
 ---@param inline CodeCompanion.Inline
 ---@param args string|table The arguments passed to the inline assistant
----@return string|nil
 function Input.new(inline, args)
   if not args then
     return
@@ -21,25 +19,27 @@ function Input.new(inline, args)
 
   local self = setmetatable({
     adapter = nil,
-    context = {},
     inline = inline,
-    prompt = args.fargs or {},
+    user_prompt = args.user_prompt,
   }, { __index = Input })
 
-  if not vim.tbl_isempty(self.prompt) then
-    -- The first word in the user prompt must be an adapter or a prompt library item
-    local adapter = config.adapters[self.prompt[1]]
+  if self.user_prompt then
+    local split = vim.split(self.user_prompt, " ")
+
+    -- The first word in the user prompt must be an adapter
+    local adapter = config.adapters[split[1]]
     if adapter then
       self.inline:set_adapter(adapter)
-      table.remove(self.prompt, 1) -- Remove the adapter name from the prompt
+      table.remove(split, 1)
     end
 
-    -- Move on to the next first word and see if it contains a prompt library item
+    -- Variables can occur anywhere in the user prompt
+
+    -- Finally, piece it together again
+    self.user_prompt = table.concat(split, " ")
   end
 
-  -- Now scan the whole prompt for any variables
-
-  return vim.trim(table.concat(self.prompt, " "))
+  return self
 end
 
 -- If the user has supplied a slash command then we need to process it

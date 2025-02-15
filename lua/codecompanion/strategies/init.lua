@@ -61,12 +61,13 @@ function Strategies.new(args)
   log:trace("Context: %s", args.context)
 
   return setmetatable({
+    called = {},
     context = args.context,
     selected = args.selected,
   }, { __index = Strategies })
 end
 
----@return CodeCompanion.Chat|nil
+---@param strategy string
 function Strategies:start(strategy)
   return self[strategy](self)
 end
@@ -222,14 +223,15 @@ function Strategies:inline()
     add_adapter(self, opts)
   end
 
-  return require("codecompanion.strategies.inline")
-    .new({
-      adapter = self.selected.adapter,
-      context = self.context,
-      opts = opts,
-      prompts = self.selected.prompts,
-    })
-    :prompt()
+  -- Allow us to test the inline strategy
+  self.called = require("codecompanion.strategies.inline").new({
+    adapter = self.selected.adapter,
+    context = self.context,
+    opts = opts,
+    prompts = self.selected.prompts,
+  })
+
+  return self.called:prompt()
 end
 
 ---Evaluate a set of prompts based on conditionals and context

@@ -242,20 +242,17 @@ function Inline:set_adapter(adapter)
 end
 
 ---Prompt the LLM
----@param prompt? string|table
+---@param user_prompt? string The prompt supplied by the user
 ---@return nil
-function Inline:prompt(prompt)
+function Inline:prompt(user_prompt)
   log:trace("Starting Inline prompt")
 
   local prompts = {}
 
-  ---Add a prompt to the prompt table
-  ---@param user_prompt string The prompt to send to the LLM
-  ---@param message? string The message to send alongside the input prompt
-  local function add_user_prompt(user_prompt, message)
+  local function add_prompt(message)
     table.insert(prompts, {
       role = config.constants.USER_ROLE,
-      content = message and (fmt(message, user_prompt)) or ("<user_prompt>" .. user_prompt .. "</user_prompt>"),
+      content = "<user_prompt>" .. message .. "</user_prompt>",
       opts = {
         visible = true,
       },
@@ -285,18 +282,13 @@ function Inline:prompt(prompt)
     end
   end
 
-  -- Process the input to detect adapter, variable and prompt library usage
-  if prompt then
-    local user_prompt = input.new(self, prompt)
-
-    -- Then add the user's prompt last
-    if user_prompt then
-      add_user_prompt(user_prompt)
-    end
+  -- Process the input to detect adapter and/or variables
+  if user_prompt then
+    add_prompt(input.new(self, { user_prompt = user_prompt }).user_prompt)
   end
 
   -- From the prompt library, user's can explicitly ask to be prompted for input
-  if (self.opts and self.opts.user_prompt) or (not prompt or prompt == "") then
+  if self.opts and self.opts.user_prompt then
     local title = string.gsub(self.context.filetype, "^%l", string.upper)
     vim.ui.input({ prompt = title .. " " .. config.display.action_palette.prompt }, function(i)
       if not i then
@@ -304,7 +296,7 @@ function Inline:prompt(prompt)
       end
 
       log:info("User input received: %s", i)
-      add_user_prompt(i)
+      add_prompt(i)
       return self:submit(prompts)
     end)
   else
@@ -541,8 +533,6 @@ local function parse_with_treesitter(content)
       table.insert(code, node_text)
     end
   end
-
-  -- print(vim.inspect(code))
 
   return vim.tbl_count(code) > 0 and table.concat(code, "") or nil
 end

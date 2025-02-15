@@ -116,12 +116,7 @@ T["Inline"]["forms correct prompts"] = function()
   inline.context.is_visual = true
   inline.context.lines = { "local x = 1" }
 
-  local user_prompt = {
-    args = "Test prompt",
-    fargs = { "Test", "prompt" },
-  }
-
-  inline:prompt(user_prompt)
+  inline:prompt("Test prompt")
 
   h.eq(#inline.prompts, 4)
   -- System prompt
@@ -143,12 +138,7 @@ T["Inline"]["generates correct prompt structure"] = function()
     submitted_prompts = prompts
   end
 
-  -- Simulate running the user prompt through the command line
-  local user_prompt = {
-    args = "Test prompt",
-    fargs = { "Test", "prompt" },
-  }
-  inline:prompt(user_prompt)
+  inline:prompt("Test prompt")
 
   h.eq(#submitted_prompts, 2) -- Should be a system prompt and the user prompt
   h.eq(submitted_prompts[1].role, "system")
@@ -167,18 +157,38 @@ T["Inline"]["the first word can be an adapter"] = function()
   -- Adapter is the default
   h.eq(inline.adapter.name, "mock")
 
-  -- Simulate running the user prompt through the command line
-  local user_prompt = {
-    args = "copilot print hello world",
-    fargs = { "copilot", "print", "hello", "world" },
-  }
-  inline:prompt(user_prompt)
+  inline:prompt("copilot print hello world")
 
   -- Adapter has been changed
   h.eq(inline.adapter.name, "copilot")
 
   -- Adapter is removed from the prompt
   h.eq(submitted_prompts[2].content, "<user_prompt>print hello world</user_prompt>")
+end
+
+T["Inline"]["can be called from the action palette"] = function()
+  local prompt = {
+    name = "test",
+    strategy = "inline",
+    prompts = {
+      {
+        role = "user",
+        content = "Action Palette test",
+      },
+    },
+  }
+
+  local strategy = require("codecompanion.strategies").new({
+    context = inline.context,
+    selected = prompt,
+  })
+  strategy:start("inline")
+
+  -- System prompt is added
+  h.eq(2, #strategy.called.prompts)
+
+  -- User prompt is added
+  h.eq("Action Palette test", strategy.called.prompts[2].content)
 end
 
 return T

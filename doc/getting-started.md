@@ -118,20 +118,11 @@ Tools can also be grouped together to form _Agents_, which are also accessed via
 > [!NOTE]
 > The diff provider in the video is [mini.diff](https://github.com/echasnovski/mini.diff)
 
-The Inline Assistant enables an LLM to write code directly into a Neovim buffer.
+The inline assistant enables an LLM to write code directly into a Neovim buffer.
 
-Run `:CodeCompanion <your prompt>` to call the Inline Assistant. The Assistant will evaluate the prompt and either write code or open a chat buffer. You can also make a visual selection and call the Assistant.
+Run `:CodeCompanion <your prompt>` to call the inline assistant. The assistant will evaluate the prompt and either write code or open a chat buffer. You can also make a visual selection and call the assistant.
 
-The Assistant has knowledge of your last conversation from a chat buffer. A prompt such as `:CodeCompanion add the new function here` will see the Assistant add a code block directly into the current buffer.
-
-For convenience, you can call prompts from the [prompt library](/configuration/prompt-library) via the Assistant such as `:'<,'>CodeCompanion /buffer what does this file do?`. The prompt library comes with the following defaults:
-
-- `/buffer` - Send the current buffer to the LLM alongside a prompt
-- `/commit` - Generate a commit message
-- `/explain` - Explain how selected code in a buffer works
-- `/fix` - Fix the selected code
-- `/lsp` - Explain the LSP diagnostics for the selected code
-- `/tests` - Generate unit tests for selected code
+Place holder for variables.
 
 ## Commands
 
@@ -143,7 +134,9 @@ Use CodeCompanion to create Neovim commands in command-line mode (`:h Command-li
   <img src="https://github.com/user-attachments/assets/0d427d6d-aa5f-405c-ba14-583830251740" alt="Action Palette">
 </p>
 
-Run `:CodeCompanionActions` to open the action palette, which gives you access to all functionality of the plugin. By default the plugin uses `vim.ui.select`, however, you can change the provider by altering the `display.action_palette.provider` config value to be `telescope` or `mini_pick`. You can also call the Telescope extension with `:Telescope codecompanion`.
+Run `:CodeCompanionActions` to open the action palette, which gives you access to the plugin's features, including your prompts from the [prompt library](/configuration/prompt-library).
+
+By default the plugin uses `vim.ui.select`, however, you can change the provider by altering the `display.action_palette.provider` config value to be `telescope` or `mini_pick`. You can also call the Telescope extension with `:Telescope codecompanion`.
 
 > [!NOTE]
 > Some actions and prompts will only be visible if you're in _Visual mode_.
@@ -159,8 +152,8 @@ The plugin has three core commands:
 
 However, there are multiple options available:
 
-- `CodeCompanion <your prompt>` - Prompt the inline assistant
-- `CodeCompanion /<prompt library>` - Use the [prompt library](configuration/prompt-library) with the inline assistant e.g. `/commit`
+- `CodeCompanion <prompt>` - Prompt the inline assistant
+- `CodeCompanion <adapter> <prompt>` - Prompt the inline assistant with a specific adapter
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
 - `CodeCompanionChat Toggle` - Toggle a chat buffer
