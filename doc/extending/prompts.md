@@ -75,6 +75,7 @@ To make this example complete, we can leverage a pre-hook to create a new buffer
     strategy = "inline",
     description = "Generate some boilerplate HTML",
     opts = {
+      ---@return number
       pre_hook = function()
         local bufnr = vim.api.nvim_create_buf(true, false)
         vim.api.nvim_set_current_buf(bufnr)

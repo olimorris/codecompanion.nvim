@@ -177,25 +177,6 @@ local Inline = {}
 function Inline.new(args)
   log:trace("Initiating Inline with args: %s", args)
 
-  if args.opts and type(args.opts.pre_hook) == "function" then
-    -- This is only for prompts coming from the prompt library
-    local bufnr = args.opts.pre_hook()
-
-    if type(bufnr) == "number" then
-      args.context.bufnr = bufnr
-      args.context.start_line = 1
-      args.context.start_col = 1
-    end
-  end
-
-  -- Share knowledge of the chat buffer
-  if not args.chat_context then
-    local last_chat = require("codecompanion").last_chat()
-    if last_chat then
-      args.chat_context = last_chat:get_messages()
-    end
-  end
-
   local id = math.random(10000000)
 
   local self = setmetatable({
@@ -612,8 +593,15 @@ function Inline:place(placement)
     pos.line = self.context.start_line - 1
     pos.col = math.max(0, self.context.start_col - 1)
   elseif placement == "new" then
-    local bufnr = api.nvim_create_buf(true, false)
-    util.set_option(bufnr, "filetype", self.context.filetype)
+    local bufnr
+    if self.opts and type(self.opts.pre_hook) == "function" then
+      -- This is only for prompts coming from the prompt library
+      bufnr = self.opts.pre_hook()
+      assert(type(bufnr) == "number", "No buffer number returned from the pre_hook function")
+    else
+      bufnr = api.nvim_create_buf(true, false)
+      util.set_option(bufnr, "filetype", self.context.filetype)
+    end
 
     -- TODO: This is duplicated from the chat strategy
     if config.display.inline.layout == "vertical" then

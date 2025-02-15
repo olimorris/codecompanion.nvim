@@ -9,7 +9,7 @@ local CodeCompanion = {}
 
 ---Run the inline assistant from the current Neovim buffer
 ---@param args table
----@return nil|CodeCompanion.Inline
+---@return nil
 CodeCompanion.inline = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
   return require("codecompanion.strategies.inline").new({ context = context }):prompt(args.args)
