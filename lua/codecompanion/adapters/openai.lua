@@ -156,8 +156,7 @@ return {
       end
 
       if data and data ~= "" then
-        data = utils.clean_streamed_data(data)
-        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
+        local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
 
         if not ok then
           return { status = "error", output = json }
