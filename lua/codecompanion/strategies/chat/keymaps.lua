@@ -447,15 +447,6 @@ M.change_adapter = {
     end
 
     local adapters = vim.deepcopy(config.adapters)
-    if config.display.chat.show_only_custom_adapters then
-        local custom_adapters = {}
-        for key, value in pairs(adapters) do
-            if type(value) == "function" then
-                custom_adapters[key] = value
-            end
-        end
-        adapters = custom_adapters
-    end
     local current_adapter = chat.adapter.name
     local current_model = vim.deepcopy(chat.adapter.schema.model.default)
 

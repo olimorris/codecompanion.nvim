@@ -26,6 +26,7 @@ local defaults = {
     -- OPTIONS ----------------------------------------------------------------
     opts = {
       allow_insecure = false, -- Allow insecure connections?
+      only_custom = false, -- Only use/show custom adapters
       proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
     },
   },
