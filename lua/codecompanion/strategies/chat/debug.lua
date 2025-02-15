@@ -205,28 +205,25 @@ function Debug:render()
     })
     :set()
 
-  local height, width
-
+  local window = vim.deepcopy(config.display.chat.window)
   if type(config.display.chat.debug_window.height) == "function" then
-    height = config.display.chat.debug_window.height()
+    window.height = config.display.chat.debug_window.height()
   else
-    height = config.display.chat.debug_window.height
+    window.height = config.display.chat.debug_window.height
   end
   if type(config.display.chat.debug_window.width) == "function" then
-    width = config.display.chat.debug_window.width()
+    window.width = config.display.chat.debug_window.width()
   else
-    width = config.display.chat.debug_window.width
+    window.width = config.display.chat.debug_window.width
   end
 
   ui.create_float(lines, {
     bufnr = self.bufnr,
     filetype = "lua",
-    height = height,
     ignore_keymaps = true,
     relative = "editor",
     title = "Debug Chat",
-    width = width,
-    window = config.display.chat.window,
+    window = window,
     opts = {
       wrap = true,
     },
