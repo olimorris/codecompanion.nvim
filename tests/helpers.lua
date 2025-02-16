@@ -77,6 +77,23 @@ Helpers.config = {
     },
     inline = {
       adapter = "foo",
+      variables = {
+        ["foo"] = {
+          callback = "tests.strategies.inline.variables.foo",
+          description = "foo",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["bar"] = {
+          callback = "tests.strategies.inline.variables.bar",
+          description = "bar",
+        },
+        ["baz"] = {
+          callback = "tests.strategies.inline.variables.baz",
+          description = "baz",
+        },
+      },
     },
   },
   prompt_library = {

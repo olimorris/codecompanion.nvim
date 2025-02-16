@@ -131,6 +131,8 @@ end
 ---@return string
 function Variables:replace(message, bufnr)
   for var, _ in pairs(self.vars) do
+    -- The buffer variable is unique because it can take parameters which need to be handled
+    -- TODO: If more variables have parameters in the future we'll extract this
     if var:match("^buffer") then
       message = require("codecompanion.strategies.chat.variables.buffer").replace(CONSTANTS.PREFIX, message, bufnr)
     else
