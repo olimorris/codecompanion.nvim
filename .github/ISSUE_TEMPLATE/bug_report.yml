@@ -66,7 +66,7 @@ body:
 
     - type: textarea
       attributes:
-        label: Repro
+        label: File to Reproduce
         description: Minimal `init.lua` to reproduce this issue. Save as `repro.lua` and run with `nvim -u repro.lua`
         value: |
           --[[
@@ -148,13 +148,13 @@ body:
           -- end
         render: lua
       validations:
-        required: false
+        required: true
 
     - type: checkboxes
       attributes:
-        label: Have you provided a `repo.lua` file?
-        description: This issue will be closed if we can't recreate it
+        label: Have you provided and tested with a repro.lua file?
+        description: This issue will be closed if I can't recreate it
         options:
-          - label: I have supplied a file to enable you to recreate this
+          - label: Yes, I have tested and provided a repro.lua file 
             required: true
 
