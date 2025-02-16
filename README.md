@@ -10,6 +10,8 @@
 <a href="https://github.com/olimorris/codecompanion.nvim/releases"><img src="https://img.shields.io/github/v/release/olimorris/codecompanion.nvim?style=for-the-badge"></a>
 </p>
 
+<p align="center">Powerful AI coding, natively in Neovim</p>
+
 <p align="center">New features are always announced <a href="https://github.com/olimorris/codecompanion.nvim/discussions/categories/announcements">here</a></p>
 
 ## :purple_heart: Sponsors
