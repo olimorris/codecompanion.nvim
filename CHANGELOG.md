@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.2.5...v12.3.0) (2025-02-16)
+
+
+### Features
+
+* **adapters:** can hide default adapters ([#925](https://github.com/olimorris/codecompanion.nvim/issues/925)) ([f4b72d7](https://github.com/olimorris/codecompanion.nvim/commit/f4b72d746eb9549747e5236649306f5c56c1ae5a))
+
 ## [12.2.5](https://github.com/olimorris/codecompanion.nvim/compare/v12.2.4...v12.2.5) (2025-02-15)
 
 
