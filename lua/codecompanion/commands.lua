@@ -1,13 +1,21 @@
----@class CodeCompanionCommandOpts:table
----@field desc string
-
----@class CodeCompanionCommand
+---@class CodeCompanion.Command
 ---@field cmd string
 ---@field callback fun(args:table)
----@field opts CodeCompanionCommandOpts
+---@field opts CodeCompanion.Command.Opts
+
+---@class CodeCompanion.Command.Opts:table
+---@field desc string
 
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
+
+-- Create the short name prompt library items table
+local prompts = vim.iter(config.prompt_library):fold({}, function(acc, key, value)
+  if value.opts and value.opts.short_name then
+    acc[value.opts.short_name] = value
+  end
+  return acc
+end)
 
 local adapters = vim
   .iter(config.adapters)
@@ -19,16 +27,34 @@ local adapters = vim
   end)
   :totable()
 
+local inline_subcommands = vim.deepcopy(adapters)
+vim.iter(prompts):each(function(k, _)
+  table.insert(inline_subcommands, "/" .. k)
+end)
+
 local chat_subcommands = vim.deepcopy(adapters)
 table.insert(chat_subcommands, "Toggle")
 table.insert(chat_subcommands, "Add")
 
----@type CodeCompanionCommand[]
+---@type CodeCompanion.Command[]
 return {
   {
     cmd = "CodeCompanion",
     callback = function(opts)
-      -- If the user calls the command with no prompt, then prompt them
+      -- Detect the user calling a prompt from the prompt library
+      if string.sub(opts.fargs[1], 1, 1) == "/" then
+        -- Get the prompt minus the slash
+        local prompt = string.sub(opts.fargs[1], 2)
+
+        if prompts[prompt] then
+          if #opts.fargs > 1 then
+            opts.user_prompt = table.concat(opts.fargs, " ", 2)
+          end
+          return codecompanion.prompt_library(prompts[prompt], opts)
+        end
+      end
+
+      -- If the user calls the command with no prompt, then ask for their input
       if #vim.trim(opts.args or "") == 0 then
         vim.ui.input({ prompt = config.display.action_palette.prompt }, function(input)
           if #vim.trim(input or "") == 0 then
@@ -50,7 +76,7 @@ return {
       complete = function(arg_lead, cmdline, _)
         if cmdline:match("^['<,'>]*CodeCompanion[!]*%s+%w*$") then
           return vim
-            .iter(adapters)
+            .iter(inline_subcommands)
             :filter(function(key)
               return key:find(arg_lead) ~= nil
             end)

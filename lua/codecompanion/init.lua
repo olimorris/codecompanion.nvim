@@ -15,6 +15,28 @@ CodeCompanion.inline = function(args)
   return require("codecompanion.strategies.inline").new({ context = context }):prompt(args.args)
 end
 
+---Initiate a prompt from the prompt library
+---@param prompt table The prompt to resolve from the command
+---@param args table The arguments that were passed to the command
+---@return nil
+CodeCompanion.prompt_library = function(prompt, args)
+  log:trace("Running inline prompt")
+  local context = context_utils.get(api.nvim_get_current_buf(), args)
+
+  -- A user may add a further prompt
+  if prompt.opts and prompt.opts.user_prompt and args.user_prompt then
+    log:trace("Adding custom user prompt")
+    prompt.opts.user_prompt = args.user_prompt
+  end
+
+  return require("codecompanion.strategies")
+    .new({
+      context = context,
+      selected = prompt,
+    })
+    :start(prompt.strategy)
+end
+
 ---Run a prompt from the prompt library
 ---@param name string
 ---@param args table?
