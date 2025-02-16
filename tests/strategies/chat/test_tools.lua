@@ -16,6 +16,30 @@ T["Tools"] = new_set({
   },
 })
 
+T["Tools"]["resolve"] = new_set()
+
+T["Tools"]["resolve"]["can resolve built-in tools"] = function()
+  local tool = tools.resolve({
+    callback = "strategies.chat.tools.editor",
+    description = "Update a buffer with the LLM's response",
+  })
+
+  h.eq(type(tool), "table")
+  h.eq("editor", tool.name)
+  h.eq(6, #tool.schema)
+end
+
+T["Tools"]["resolve"]["can resolve user's tools"] = function()
+  local tool = tools.resolve({
+    callback = vim.fn.getcwd() .. "/tests/stubs/foo.lua",
+    description = "Some foo function",
+  })
+
+  h.eq(type(tool), "table")
+  h.eq("foo", tool.name)
+  h.eq("This is the Foo tool", tool.cmds[1]())
+end
+
 T["Tools"][":parse"] = new_set()
 
 T["Tools"][":parse"]["a message with a tool"] = function()
