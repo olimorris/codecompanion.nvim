@@ -194,28 +194,6 @@ return {
         "mistral-small",
       },
     },
-    reasoning_effort = {
-      order = 2,
-      mapping = "parameters",
-      type = "string",
-      optional = true,
-      condition = function(schema)
-        local model = schema.model.default
-        if type(model) == "function" then
-          model = model()
-        end
-        if schema.model.choices[model] and schema.model.choices[model].opts then
-          return schema.model.choices[model].opts.can_reason
-        end
-      end,
-      default = "medium",
-      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
-      choices = {
-        "high",
-        "medium",
-        "low",
-      },
-    },
     temperature = {
       order = 3,
       mapping = "parameters",
@@ -283,34 +261,6 @@ return {
       desc = "Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.",
       validate = function(n)
         return n >= -2 and n <= 2, "Must be between -2 and 2"
-      end,
-    },
-    logit_bias = {
-      order = 9,
-      mapping = "parameters",
-      type = "map",
-      optional = true,
-      default = nil,
-      desc = "Modify the likelihood of specified tokens appearing in the completion. Maps tokens (specified by their token ID) to an associated bias value from -100 to 100. Use https://platform.openai.com/tokenizer to find token IDs.",
-      subtype_key = {
-        type = "integer",
-      },
-      subtype = {
-        type = "integer",
-        validate = function(n)
-          return n >= -100 and n <= 100, "Must be between -100 and 100"
-        end,
-      },
-    },
-    user = {
-      order = 10,
-      mapping = "parameters",
-      type = "string",
-      optional = true,
-      default = nil,
-      desc = "A unique identifier representing your end-user, which can help Mistral AI to monitor and detect abuse. Learn more.",
-      validate = function(u)
-        return u:len() < 100, "Cannot be longer than 100 characters"
       end,
     },
   },
