@@ -19,6 +19,7 @@ local defaults = {
     ollama = "ollama",
     openai = "openai",
     xai = "xai",
+    mistral = "mistral",
     -- NON-LLMs ---------------------------------------------------------------
     non_llms = {
       jina = "jina",
