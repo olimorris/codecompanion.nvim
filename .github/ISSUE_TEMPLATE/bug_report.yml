@@ -1,6 +1,6 @@
 name: Bug Report
-description: If you notice an aspect of the plugin isn't working as per the README, raise a bug report
-title: "[Bug]: TITLE DESCRIBING THE ISSUE"
+description: Raising a bug/issue with the plugin
+title: "[Bug]: "
 labels: ["bug"]
 assignees: olimorris
 
@@ -8,25 +8,66 @@ body:
     - type: markdown
       attributes:
         value: |
-          ## 1. Before Reporting
-          Please do the following steps before reporting an issue.
+          **Before** reporting an issue, make sure to read the [documentation](https://codecompanion.olimorris.dev)
+          and search [existing issues](https://github.com/olimorris/codecompanion/issues).
 
-          - Update the plugin to the latest version
-          - Read and follow the steps in the [troubleshooting](https://github.com/olimorris/codecompanion.nvim#toolbox-troubleshooting) section
+          Usage questions such as ***"How do I...?"*** belong in [Discussions](https://github.com/olimorris/codecompanion.nvim/discussions) and will be closed.
 
-    - type: markdown
+    - type: checkboxes
       attributes:
+        label: Did you check the docs and existing issues?
+        description: Make sure you checked all of the below before submitting an issue
+        options:
+          - label: I have read all the docs
+            required: true
+          - label: I have updated the plugin to the latest version before submitting this issue
+            required: true
+          - label: I have searched for existing issues/discussions
+            required: true
+          - label: I have searched the existing issues of plugins related to this issue
+            required: true
+
+    - type: input
+      attributes:
+        label: "Neovim version (nvim -v)"
+        placeholder: "0.8.0 commit db1b0ee3b30f"
+      validations:
+        required: true
+    - type: input
+      attributes:
+        label: "Operating system/version"
+        placeholder: "MacOS 11.5"
+      validations:
+        required: true
+
+    - type: textarea
+      attributes:
+        label: Describe the bug
+        description: A clear and concise description of what the bug is. Please include any related errors you see in Neovim.
+      validations:
+        required: true
+    - type: textarea
+      attributes:
+        label: Steps To Reproduce
+        description: Steps to reproduce the behavior.
+        placeholder: |
+          1.
+          2.
+          3.
+      validations:
+        required: true
+    - type: textarea
+      attributes:
+        label: Expected Behavior
+        description: A concise description of what you expected to happen.
+      validations:
+        required: true
+
+    - type: textarea
+      attributes:
+        label: Repro
+        description: Minimal `init.lua` to reproduce this issue. Save as `repro.lua` and run with `nvim -u repro.lua`
         value: |
-          ## 2. Test with a `minimal.lua` file
-          > [!IMPORTANT]
-          > This step enables me to recreate the issue you're facing. If you skip it, I'll likely close your issue.
-
-          - Firstly, use the minimal config below as a template
-          - Save the a `minimal.lua` file and add any additional plugins/configuration you may need:
-
-          ```lua
-          ---@diagnostic disable: missing-fields
-
           --[[
           NOTE: Set the config path to enable the copilot adapter to work.
           It will search the following paths for a token:
@@ -45,7 +86,7 @@ body:
               dependencies = {
                 { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
                 { "nvim-lua/plenary.nvim" },
-                -- Test with blink.cmp
+                -- Test with blink.cmp (delete if not required)
                 {
                   "saghen/blink.cmp",
                   lazy = false,
@@ -85,7 +126,7 @@ body:
           local ts_status, treesitter = pcall(require, "nvim-treesitter.configs")
           if ts_status then
             treesitter.setup({
-              ensure_installed = { "lua", "markdown", "markdown_inline", "yaml" },
+              ensure_installed = { "lua", "markdown", "markdown_inline", "yaml", "diff" },
               highlight = { enable = true },
             })
           end
@@ -104,104 +145,15 @@ body:
           --     }),
           --   })
           -- end
-          ```
-
-          - Once you've updated for your config, run Neovim with the minimal config:
-
-          ```sh
-          nvim --clean -u minimal.lua
-          ```
-
-          > [!NOTE]
-          > You may need to do this a couple of times for Treesitter to fully download and sync
-
-    - type: markdown
-      attributes:
-        value: |
-          ## 3. The Issue
-
-    - type: textarea
-      id: codecompanion-config
-      attributes:
-        label: Your `minimal.lua` config
-        description: Please paste the minimal.lua file you've created here. Please ensure you're able to recreate the issue with this file
-        placeholder: |
-          ```lua
-          -- Your minimal.lua config here
-          ```
-      validations:
-        required: true
-
-    - type: textarea
-      id: errors
-      attributes:
-        label: Error messages
-        description: Please paste any error messages you receive
-        placeholder: |
-          ```lua
-          -- Error messages here
-          ```
-      validations:
-        required: false
-
-    - type: textarea
-      id: logs
-      attributes:
-        label: Log output
-        description: Please paste the relevant output from the log located in `.repro/state/nvim/codecompanion/codecompanion.log`. **Please ensure you don't send over any credentials or API keys**
-        placeholder: |
-          ```txt
-          -- Paste log here
-          ```
-      validations:
-        required: true
-
-    - type: textarea
-      id: bug
-      attributes:
-        label: Describe the bug
-        description: Please describe the bug and include any screenshots/screencasts
-        placeholder: |
-          What I expect to happen:
-
-          What actually happens:
-
-      validations:
-        required: true
-
-    - type: textarea
-      id: reproduce
-      attributes:
-        label: Reproduce the bug
-        description: Please include the steps so I can try and reproduce the bug
-        placeholder: |
-          Steps to reproduce:
-          1.
-          2.
-          3.
-      validations:
-        required: true
-
-    - type: input
-      id: adapter
-      attributes:
-        label: Adapter and model
-        description: Please share the adapter and model you used
-        placeholder: |
-          Anthropic and claude-3.5-sonnet
+        render: lua
       validations:
         required: false
 
     - type: checkboxes
-      id: final-checks
       attributes:
-        label: Final checks
-        description: |
-          Before you submit, please make sure you have completed the following steps:
+        label: Have you provided a `repo.lua` file?
+        description: Make sure you checked all of the below before submitting an issue
         options:
-          - label: I have made sure this issue exists in the latest version of the plugin
+          - label: I have supplied a `repro.lua` file so you can recreate this
             required: true
-          - label: I have tested with the `minimal.lua` file from above and have shared this
-            required: true
-          - label: I have shared the contents of the log file
-            required: true
+
