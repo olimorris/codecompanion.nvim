@@ -8,11 +8,42 @@ local chat
 T["Workflows"] = new_set({
   hooks = {
     pre_case = function()
-      h.setup_chat_buffer()
+      -- h.setup_chat_buffer()
       chat = require("codecompanion.strategies")
         .new({
           context = { bufnr = 0, filetype = "lua" },
           selected = {
+            adapter = require("codecompanion.adapters").extend({
+              name = "TestAdapter",
+              url = "https://api.openai.com/v1/chat/completions",
+              roles = {
+                llm = "assistant",
+                user = "user",
+              },
+              headers = {
+                content_type = "application/json",
+              },
+              parameters = {
+                stream = true,
+              },
+              handlers = {
+                form_parameters = function()
+                  return {}
+                end,
+                form_messages = function()
+                  return {}
+                end,
+                is_complete = function()
+                  return false
+                end,
+              },
+              schema = {
+                model = {
+                  default = "gpt-3.5-turbo",
+                },
+              },
+            }),
+
             description = "Test Workflow",
             name = "Code workflow",
             strategy = "workflow",
