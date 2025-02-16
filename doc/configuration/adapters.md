@@ -215,3 +215,20 @@ require("codecompanion").setup({
   },
 }),
 ```
+
+## Hiding Default Adapters
+
+By default, the plugin shows all available adapters, including the defaults. If you prefer to only display the adapters defined in your user configuration, you can set the `show_defaults` option to `false`:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    opts = {
+      show_defaults = false,
+    },
+    -- Define your custom adapters here
+  },
+})
+```
+
+When `show_defaults` is set to `false`, only the adapters specified in your configuration will be used, hiding the default ones provided by the plugin.

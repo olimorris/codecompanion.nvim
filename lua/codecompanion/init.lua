@@ -245,7 +245,11 @@ M.setup = function(opts)
   -- Setup the plugin's config
   config.setup(opts)
   if opts and opts.adapters then
-    require("codecompanion.utils.adapters").extend(config.adapters, opts.adapters)
+    if config.adapters.opts.show_defaults then
+      config.adapters = require("codecompanion.utils.adapters").extend(config.adapters, opts.adapters)
+    else
+      config.adapters = vim.deepcopy(opts.adapters)
+    end
   end
 
   local cmds = require("codecompanion.commands")
