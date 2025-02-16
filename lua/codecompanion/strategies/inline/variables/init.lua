@@ -6,15 +6,18 @@ local CONSTANTS = {
 }
 
 ---@class CodeCompanion.Inline.Variables: CodeCompanion.Variables
----@field found table
+---@field config table
+---@field inline CodeCompanion.Inline
+---@field vars table
 ---@field prompt string
 local Variables = {}
 
 function Variables.new(args)
   local self = setmetatable({
-    found = {},
+    config = config.strategies.inline.variables,
+    inline = args.inline,
     prompt = args.prompt,
-    vars = config.strategies.inline.variables,
+    vars = {},
   }, { __index = Variables })
 
   return self
@@ -23,51 +26,43 @@ end
 ---Check a prompt for a variable
 ---@return CodeCompanion.Inline.Variables
 function Variables:find()
-  for var, _ in pairs(self.vars) do
+  for var, _ in pairs(self.config) do
     if self.prompt:match("%f[%w" .. CONSTANTS.PREFIX .. "]" .. CONSTANTS.PREFIX .. var .. "%f[%W]") then
-      table.insert(self.found, var)
+      table.insert(self.vars, var)
     end
   end
 
   return self
 end
 
----Replace a variable in a given prompt
+---Replace variables in the prompt
 ---@return CodeCompanion.Inline.Variables
 function Variables:replace()
-  for var, _ in pairs(self.vars) do
+  for var, _ in pairs(self.config) do
     self.prompt = vim.trim(self.prompt:gsub(CONSTANTS.PREFIX .. var .. " ", ""))
   end
   return self
 end
 
----Parse a message to detect if it references any variables
----@param inline CodeCompanion.Inline
----@param message table
----@return boolean
-function Variables:parse(inline, message)
-  local vars = self:find(message)
-  if vars then
-    for _, var in ipairs(vars) do
-      local var_config = self.vars[var]
-      log:debug("Variable found: %s", var)
-
-      var_config["name"] = var
-
-      if (var_config.opts and var_config.opts.contains_code) and not config.can_send_code() then
-        log:warn("Sending of code has been disabled")
-        goto continue
-      end
-
-      -- TODO: implement resolve
-
-      ::continue::
+---Add the variables to the inline class
+---@return nil
+function Variables:add()
+  -- Loop through the found variables
+  for _, var in ipairs(self.vars) do
+    if not self.config[var] then
+      return log:error("The variable `%s` is not defined in the config", var)
+    end
+    -- Resolve them
+    local ok, module = pcall(require, "codecompanion." .. self.config[var].callback)
+    if not ok then
+      return log:error("Could not find the callback for `%s`", var)
     end
 
-    return true
-  end
+    -- Call them
+    local output = module(self.inline.context)
 
-  return false
+    -- Add their output to the inline class
+  end
 end
 
 return Variables

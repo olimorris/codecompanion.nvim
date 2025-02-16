@@ -61,14 +61,14 @@ T["Inline Variables"]["can find variables"] = function()
   })
   vars:find()
 
-  h.eq({ "buffer" }, vars.found)
+  h.eq({ "buffer" }, vars.vars)
 
-  vars.found = {}
+  vars.vars = {}
   vars.prompt = "can you #buffer #chat print hello world?"
   vars:find()
 
-  table.sort(vars.found)
-  h.eq({ "buffer", "chat" }, vars.found)
+  table.sort(vars.vars)
+  h.eq({ "buffer", "chat" }, vars.vars)
 end
 
 T["Inline Variables"]["can remove variables from a prompt"] = function()
@@ -82,6 +82,15 @@ T["Inline Variables"]["can remove variables from a prompt"] = function()
   vars.prompt = "are you #buffer #chat working?"
   vars:replace()
   h.eq("are you working?", vars.prompt)
+end
+
+T["Inline Variables"]["can add variables to an inline class"] = function()
+  -- creat
+  local vars = require("codecompanion.strategies.inline.variables").new({
+    prompt = "can you print hello world?",
+  })
+  vars.vars = { "foo" }
+  vars:add()
 end
 
 return T
