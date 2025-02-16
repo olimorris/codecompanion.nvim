@@ -8,10 +8,11 @@ body:
     - type: markdown
       attributes:
         value: |
-          **Before** reporting an issue, make sure to read the [documentation](https://codecompanion.olimorris.dev)
-          and search [existing issues](https://github.com/olimorris/codecompanion/issues).
+          **Before** reporting an issue, make sure to read the [documentation](https://codecompanion.olimorris.dev) and search [existing issues](https://github.com/olimorris/codecompanion.nvim/issues).
 
           Usage questions such as ***"How do I...?"*** belong in [Discussions](https://github.com/olimorris/codecompanion.nvim/discussions) and will be closed.
+
+          Finally, if you don't supply a valid `repro.lua` file at the bottom of this page, your issue will be closed.
 
     - type: checkboxes
       attributes:
@@ -152,8 +153,8 @@ body:
     - type: checkboxes
       attributes:
         label: Have you provided a `repo.lua` file?
-        description: Make sure you checked all of the below before submitting an issue
+        description: This issue will be closed if we can't recreate it
         options:
-          - label: I have supplied a `repro.lua` file so you can recreate this
+          - label: I have supplied a file to enable you to recreate this
             required: true
 
