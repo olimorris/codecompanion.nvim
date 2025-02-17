@@ -274,11 +274,13 @@ function Inline:prompt(user_prompt)
     end
 
     -- 2. Check for any variables
-    local vars = variables.new({ inline = self, prompt = user_prompt }):find():replace():output()
-    if vars then
-      for _, var in ipairs(vars) do
+    local vars = variables.new({ inline = self, prompt = user_prompt })
+    local found = vars:find():replace():output()
+    if found then
+      for _, var in ipairs(found) do
         add_prompt(var, user_role, { visible = false })
       end
+      user_prompt = vars.prompt
     end
 
     -- 3. Add the user's prompt
@@ -295,9 +297,11 @@ function Inline:prompt(user_prompt)
 
       log:info("User input received: %s", input)
       add_prompt(_, "<user_prompt>" .. input .. "</user_prompt>")
+      self.prompts = prompts
       return self:submit(prompts)
     end)
   else
+    self.prompts = prompts
     return self:submit(prompts)
   end
 end
@@ -366,29 +370,7 @@ end
 ---@param prompt table The prompts to send to the LLM
 ---@return nil
 function Inline:submit(prompt)
-  -- Add the context from the chat buffer
-  -- if not vim.tbl_isempty(self.chat_context) then
-  --   local messages = adapter_utils.pluck_messages(self.chat_context, config.constants.LLM_ROLE)
-
-  -- if #messages > 0 then
-  --   table.insert(self.classification.prompts, {
-  --     role = config.constants.USER_ROLE,
-  --     content = "Here is the chat history from a conversation we had earlier. To answer my question, you _may_ need to use it:\n\n"
-  --       .. messages[#messages].content,
-  --     opts = {
-  --       tag = "chat_context",
-  --       visible = false,
-  --     },
-  --   })
-  -- end
-  -- end
-
-  -- log:debug("Prompts to submit: %s", self.classification.prompts)
   log:info("Inline request started")
-
-  -- Assign the prompts back to the inline class in case we need to revert to
-  -- the chat buffer to handle the request
-  self.prompts = prompt
 
   -- Inline editing only works with streaming off
   self.adapter.opts.stream = false

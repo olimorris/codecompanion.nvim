@@ -110,19 +110,12 @@ return {
       adapter = "foo",
       variables = {
         ["foo"] = {
-          callback = "tests.strategies.inline.variables.foo",
-          description = "foo",
-          opts = {
-            contains_code = true,
-          },
+          callback = vim.fn.getcwd() .. "/tests/strategies/inline/variables/foo.lua",
+          description = "My foo variable",
         },
         ["bar"] = {
           callback = "tests.strategies.inline.variables.bar",
           description = "bar",
-        },
-        ["baz"] = {
-          callback = "tests.strategies.inline.variables.baz",
-          description = "baz",
         },
       },
     },

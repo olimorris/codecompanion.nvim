@@ -9,7 +9,7 @@ local CONSTANTS = {
 ---@field config table
 ---@field inline CodeCompanion.Inline
 ---@field vars table
----@field prompt string
+---@field prompt string The user prompt to check for variables
 local Variables = {}
 
 function Variables.new(args)

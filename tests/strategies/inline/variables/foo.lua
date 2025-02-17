@@ -1,23 +1,16 @@
-local Variable = {}
+local Foo = {}
 
----@param args CodeCompanion.Variable
-function Variable.new(args)
-  local self = setmetatable({
-    Chat = args.Chat,
-    config = args.config,
-    params = args.params,
-  }, { __index = Variable })
-
-  return self
+---@param args table
+function Foo.new(args)
+  return setmetatable({
+    context = args.context,
+  }, { __index = Foo })
 end
 
----Return the contents of the current buffer that the chat was initiated from
----@return nil
-function Variable:output()
-  self.Chat:add_message({
-    role = "user",
-    content = "foo",
-  }, { tag = "variable", visible = false })
+---Fetch and output a foo
+---@return string
+function Foo:output()
+  return "The output from foo variable"
 end
 
-return Variable
+return Foo

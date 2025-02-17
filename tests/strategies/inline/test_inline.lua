@@ -110,9 +110,8 @@ end
 -- end
 
 T["Inline"]["the first word can be an adapter"] = function()
-  local submitted_prompts = {}
-
   -- Mock the submit function
+  local submitted_prompts = {}
   function inline:submit(prompts)
     submitted_prompts = prompts
   end
@@ -152,6 +151,19 @@ T["Inline"]["can be called from the action palette"] = function()
 
   -- User prompt is added
   h.eq("Action Palette test", strategy.called.prompts[2].content)
+end
+
+T["Inline"]["integration"] = function()
+  -- Mock the submit function
+  local submitted_prompts = {}
+  function inline:submit(prompts)
+    submitted_prompts = prompts
+  end
+
+  inline:prompt("#foo can you print hello world?")
+
+  h.eq("The output from foo variable", submitted_prompts[2].content)
+  h.eq("<user_prompt>can you print hello world?</user_prompt>", submitted_prompts[3].content)
 end
 
 return T
