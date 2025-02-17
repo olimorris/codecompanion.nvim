@@ -140,6 +140,8 @@ require("codecompanion").setup({
 
 When users introduce the agent `@my_agent` in the chat buffer, it can call the tools you listed (like `@my_tool`) to perform tasks on your code.
 
+The `callback` option for a tool can also be a [`CodeCompanion.Tool`](/extending/tools) object, which is a table with specific keys that defines the interface and workflow of the tool.
+
 ## Layout
 
 You can change the appearance of the chat buffer by changing the `display.chat.window` table in your configuration:
