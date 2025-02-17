@@ -63,6 +63,12 @@ body:
         description: A concise description of what you expected to happen.
       validations:
         required: true
+    - type: textarea
+      attributes:
+        label: Log output
+        description: Share the output from the log file. You can find this with `:checkhealth codecompanion`
+      validations:
+        required: false
 
     - type: textarea
       attributes:
@@ -121,6 +127,9 @@ body:
             },
           }
 
+          -- Leaving this comment in to see if the issue author notices ;-)
+          -- This is so I can tell if they've really tested with their own repro.lua file
+
           require("lazy.minit").repro({ spec = plugins })
 
           -- Setup Tree-sitter
@@ -155,6 +164,6 @@ body:
         label: Have you provided and tested with a repro.lua file?
         description: This issue will be closed if I can't recreate it
         options:
-          - label: Yes, I have tested and provided a repro.lua file 
+          - label: Yes, I have tested and provided a repro.lua file
             required: true
 
