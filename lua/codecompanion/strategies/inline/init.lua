@@ -421,7 +421,7 @@ function Inline:done(output)
     return self:reset()
   end
   if xml and xml.error then
-    log:error(xml.error)
+    log:error("[" .. self.adapter.formatted_name .. "] " .. xml.error)
     return self:reset()
   end
   if xml and not xml.code then

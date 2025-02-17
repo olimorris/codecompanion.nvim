@@ -1,3 +1,15 @@
+---@class CodeCompanion.Inline.Variable
+---@field config table
+---@field inline CodeCompanion.Inline
+---@field vars table
+---@field prompt string The user prompt to check for variables
+
+---@class CodeCompanion.Inline.Variables
+---@field context table
+
+---@class CodeCompanion.Inline.VariablesArgs
+---@field context table
+
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
@@ -5,11 +17,7 @@ local CONSTANTS = {
   PREFIX = "#",
 }
 
----@class CodeCompanion.Inline.Variables: CodeCompanion.Variables
----@field config table
----@field inline CodeCompanion.Inline
----@field vars table
----@field prompt string The user prompt to check for variables
+---@class CodeCompanion.Inline.Variable
 local Variables = {}
 
 function Variables.new(args)
@@ -24,7 +32,7 @@ function Variables.new(args)
 end
 
 ---Check a prompt for a variable
----@return CodeCompanion.Inline.Variables
+---@return CodeCompanion.Inline.Variable
 function Variables:find()
   for var, _ in pairs(self.config) do
     if self.prompt:match("%f[%w" .. CONSTANTS.PREFIX .. "]" .. CONSTANTS.PREFIX .. var .. "%f[%W]") then
@@ -36,7 +44,7 @@ function Variables:find()
 end
 
 ---Replace variables in the prompt
----@return CodeCompanion.Inline.Variables
+---@return CodeCompanion.Inline.Variable
 function Variables:replace()
   for var, _ in pairs(self.config) do
     self.prompt = vim.trim(self.prompt:gsub(CONSTANTS.PREFIX .. var .. " ", ""))
@@ -61,7 +69,7 @@ function Variables:output()
     -- Resolve them and add them to the outputs
     local ok, module = pcall(require, "codecompanion." .. callback)
     if ok then
-      var_output = module
+      var_output = module --[[@type CodeCompanion.Inline.Variables]]
       goto append
     end
 
@@ -71,12 +79,15 @@ function Variables:output()
       goto skip
     end
     if module then
-      var_output = module()
+      var_output = module() --[[@type CodeCompanion.Inline.Variables]]
     end
 
     ::append::
 
-    table.insert(outputs, var_output.new({ context = self.inline.context }):output())
+    local output = var_output.new({ context = self.inline.context }):output()
+    if output then
+      table.insert(outputs, output)
+    end
 
     ::skip::
   end
