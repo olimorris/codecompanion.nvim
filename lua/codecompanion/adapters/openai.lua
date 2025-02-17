@@ -159,6 +159,7 @@ return {
         local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
 
         if not ok then
+          log:error("Error decoding JSON: %s", data.body)
           return { status = "error", output = json }
         end
 

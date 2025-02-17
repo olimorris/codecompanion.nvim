@@ -1,13 +1,6 @@
 -- Taken from the awesome:
 -- https://github.com/S1M0N38/dante.nvim
 
-local config = require("codecompanion.config")
-
-local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
-
-local api = vim.api
-
 ---@class CodeCompanion.Diff
 ---@field bufnr number The buffer number of the original buffer
 ---@field cursor_pos number[] The position of the cursor in the original buffer
@@ -15,7 +8,6 @@ local api = vim.api
 ---@field contents string[] The contents of the original buffer
 ---@field winnr number The window number of the original buffer
 ---@field diff table The table containing the diff buffer and window
-local Diff = {}
 
 ---@class CodeCompanion.DiffArgs
 ---@field bufnr number
@@ -24,8 +16,16 @@ local Diff = {}
 ---@field contents string[]
 ---@field winnr number
 
+local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
+local util = require("codecompanion.utils")
+
+local api = vim.api
+
+---@class CodeCompanion.Diff
+local Diff = {}
+
 ---@param args CodeCompanion.DiffArgs
----@return CodeCompanion.Diff
 function Diff.new(args)
   local self = setmetatable({
     bufnr = args.bufnr,
@@ -44,7 +44,7 @@ function Diff.new(args)
 
   -- Get current properties
   local buf_opts = {
-    ft = (self.filetype == "C++" and "cpp" or self.filetype),
+    ft = util.safe_filetype(self.filetype),
   }
   local win_opts = {
     wrap = vim.wo.wrap,

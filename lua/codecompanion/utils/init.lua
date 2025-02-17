@@ -118,6 +118,16 @@ function M.replace_vars(msg, vars, mapping)
   return string.format(msg, unpack(replacements))
 end
 
+---Safely get the filetype
+---@param filetype string
+---@return string
+function M.safe_filetype(filetype)
+  if filetype == "C++" then
+    return "cpp"
+  end
+  return filetype
+end
+
 ---Set an option in Neovim
 ---@param bufnr integer
 ---@param opt string

@@ -42,7 +42,7 @@ return {
     cmd = "CodeCompanion",
     callback = function(opts)
       -- Detect the user calling a prompt from the prompt library
-      if string.sub(opts.fargs[1], 1, 1) == "/" then
+      if opts.fargs[1] and string.sub(opts.fargs[1], 1, 1) == "/" then
         -- Get the prompt minus the slash
         local prompt = string.sub(opts.fargs[1], 2)
 

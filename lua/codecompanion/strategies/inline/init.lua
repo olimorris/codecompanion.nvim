@@ -607,7 +607,8 @@ function Inline:place(placement)
       assert(type(bufnr) == "number", "No buffer number returned from the pre_hook function")
     else
       bufnr = api.nvim_create_buf(true, false)
-      util.set_option(bufnr, "filetype", self.context.filetype)
+      local ft = util.safe_filetype(self.context.filetype)
+      util.set_option(bufnr, "filetype", ft)
     end
 
     -- TODO: This is duplicated from the chat strategy
