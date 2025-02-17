@@ -4,22 +4,21 @@
   <img src="https://github.com/user-attachments/assets/21568a7f-aea8-4928-b3d4-f39c6566a23c" />
 </p>
 
-As per the [Getting Started](/getting-started.md#inline-assistant) guide, the Inline Assistant enables you to code directly into a Neovim buffer. Simply run `:CodeCompanion <your prompt>`.
-
-The Assistant has knowledge of your last conversation from a chat buffer. A prompt such as `:CodeCompanion add the new function here` will see the Assistant add a code block directly into the current buffer.
+As per the [Getting Started](/getting-started.md#inline-assistant) guide, the inline assistant enables you to code directly into a Neovim buffer. Simply run `:CodeCompanion <your prompt>`.
 
 > [!TIP]
-> To ensure the LLM has enough context the complete your request, it's recommended to use the `/buffer` prompt
+> To ensure the LLM has enough context the complete your request, it's recommended to use the `#buffer` variable
 
-For convenience, you can call prompts from the [prompt library](/configuration/prompt-library) via the Assistant such as `:'<,'>CodeCompanion /buffer what does this file do?`.
+For convenience, you can call prompts from the [prompt library](/configuration/prompt-library) via the assistant. For example, `:'<,'>CodeCompanion /tests` would ask the LLM to create some unit tests from the selected text.
 
-## Tips
+## Variables
 
-To ensure you're getting the best output from the Inline Assistant, follow the tips below:
+The inline assistant allows you to send context alongside your prompt via the notion of variables:
 
-### Send as much context as possible
+- `#buffer` shares the contents of the current buffer
+- `#chat` shares the LLMs messages from the last chat buffer
 
-When interacting with users, I've observed that they leverage the Inline Assistant to write some code on their behalf by providing little to no context. For example: `"refactor this function"`. This can typically lead to substandard code because the LLM doesn't have any context of the buffer that you're working in or your overall objective. So be sure to leverage visual selections and use the variables when appropriate.
+Simple include them anywhere as part of your prompt. For example `:CodeCompanion #buffer add a new method to this file`.
 
 ## Classification
 

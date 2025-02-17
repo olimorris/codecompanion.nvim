@@ -64,7 +64,8 @@ function Variables:output()
     end
 
     local var_output
-    local callback = self.config[var].callback
+    local var_config = self.config[var]
+    local callback = var_config.callback
 
     -- Resolve them and add them to the outputs
     local ok, module = pcall(require, "codecompanion." .. callback)
@@ -80,6 +81,11 @@ function Variables:output()
     end
     if module then
       var_output = module() --[[@type CodeCompanion.Inline.Variables]]
+    end
+
+    if (var_config.opts and var_config.opts.contains_code) and not config.can_send_code() then
+      log:warn("Sending of code has been disabled")
+      goto skip
     end
 
     ::append::
