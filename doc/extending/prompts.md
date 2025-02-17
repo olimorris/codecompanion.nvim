@@ -55,7 +55,7 @@ require("codecompanion").setup({
         },
         {
           role = "user",
-          content = "Please generate some HTML boilerplate for me. Return the code only and no markdown codeblocks",
+          content = "<user_prompt>Please generate some HTML boilerplate for me. Return the code only and no markdown codeblocks</user_prompt>",
         },
       },
     },
@@ -63,7 +63,7 @@ require("codecompanion").setup({
 })
 ```
 
-Nice! We've used some careful prompting to ensure that we get HTML boilerplate back from the LLM. Oh...and notice that I added a key map too!
+Nice! We've used some careful prompting to ensure that we get HTML boilerplate back from the LLM. Oh...and notice that I added a key map too! If you plan on using the `inline` classification, it's recommended to put your prompt within `<user_prompt></user_prompt>` tags to make it explicit to the LLM what your ask is.
 
 ### Leveraging pre-hooks
 

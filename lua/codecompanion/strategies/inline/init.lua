@@ -125,7 +125,12 @@ Respond to the user's prompt by putting your code and placement in XML. For exam
   <placement>replace</placement>
 </response>
 ```
-This would **Replace** the user's current selection in a buffer with `    print('Hello World')`.]],
+This would **Replace** the user's current selection in a buffer with `    print('Hello World')`.
+
+**Points to Note:**
+- If you determine the placement to be **Chat**, just respond with the placement. Do not answer the user's prompt.
+
+]],
     "<![CDATA[    print('Hello World')]]>"
   ),
 }
@@ -424,7 +429,7 @@ function Inline:done(output)
     log:error("[" .. self.adapter.formatted_name .. "] " .. xml.error)
     return self:reset()
   end
-  if xml and not xml.code then
+  if xml and not xml.code and xml.placement ~= "chat" then
     log:error("No code returned from the LLM")
     return self:reset()
   end
@@ -654,6 +659,9 @@ function Inline:to_chat()
       table.remove(prompt, i)
     end
   end
+
+  -- Turn streaming back on
+  self.adapter.opts.stream = true
 
   return require("codecompanion.strategies.chat").new({
     context = self.context,
