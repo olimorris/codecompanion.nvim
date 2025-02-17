@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.3.1...v12.4.0) (2025-02-17)
+
+
+### Features
+
+* **tools:** allow passing a table as the `callback` of a tool. ([#936](https://github.com/olimorris/codecompanion.nvim/issues/936)) ([689ea6e](https://github.com/olimorris/codecompanion.nvim/commit/689ea6edbcdf0d1d16a90d41d5fa96cbdac4633f))
+
 ## [12.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.3.0...v12.3.1) (2025-02-17)
 
 
