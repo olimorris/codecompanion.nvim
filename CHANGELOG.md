@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.3.0...v12.3.1) (2025-02-17)
+
+
+### Bug Fixes
+
+* **adapters:** `openai_compatible` no longer forces schema ([#914](https://github.com/olimorris/codecompanion.nvim/issues/914)) ([ba06239](https://github.com/olimorris/codecompanion.nvim/commit/ba0623998febc50859b172bfd7c8fe8bf180a22b)), closes [#918](https://github.com/olimorris/codecompanion.nvim/issues/918)
+
 ## [12.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.2.5...v12.3.0) (2025-02-16)
 
 
