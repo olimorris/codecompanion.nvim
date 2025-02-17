@@ -592,6 +592,10 @@ end
 function Tools.resolve(tool)
   local callback = tool.callback
 
+  if type(callback) == "table" then
+    return callback --[[@as CodeCompanion.Tool]]
+  end
+
   local ok, module = pcall(require, "codecompanion." .. callback)
   if ok then
     log:debug("[Tools] %s identified", callback)
