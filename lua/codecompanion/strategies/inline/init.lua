@@ -35,14 +35,16 @@ local TreeHandler = require("codecompanion.utils.xml.xmlhandler.tree")
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
-local input = require("codecompanion.strategies.inline.input")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
+local variables = require("codecompanion.strategies.inline.variables")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local api = vim.api
 local fmt = string.format
+
+local user_role = config.constants.USER_ROLE
 
 local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.inline",
@@ -230,13 +232,11 @@ function Inline:prompt(user_prompt)
 
   local prompts = {}
 
-  local function add_prompt(message)
+  local function add_prompt(content, role, opts)
     table.insert(prompts, {
-      role = config.constants.USER_ROLE,
-      content = "<user_prompt>" .. message .. "</user_prompt>",
-      opts = {
-        visible = true,
-      },
+      content = content,
+      role = role or user_role,
+      opts = opts or { visible = true },
     })
   end
 
@@ -263,21 +263,38 @@ function Inline:prompt(user_prompt)
     end
   end
 
-  -- Process the input to detect adapter and/or variables
   if user_prompt then
-    add_prompt(input.new(self, { user_prompt = user_prompt }).user_prompt)
+    -- 1. Check if the first word is an adapter
+    local split = vim.split(user_prompt, " ")
+    local adapter = config.adapters[split[1]]
+    if adapter then
+      self:set_adapter(adapter)
+      table.remove(split, 1)
+      user_prompt = table.concat(split, " ")
+    end
+
+    -- 2. Check for any variables
+    local vars = variables.new({ inline = self, prompt = user_prompt }):find():replace():output()
+    if vars then
+      for _, var in ipairs(vars) do
+        add_prompt(var, user_role, { visible = false })
+      end
+    end
+
+    -- 3. Add the user's prompt
+    add_prompt("<user_prompt>" .. user_prompt .. "</user_prompt>")
   end
 
   -- From the prompt library, user's can explicitly ask to be prompted for input
   if self.opts and self.opts.user_prompt then
     local title = string.gsub(self.context.filetype, "^%l", string.upper)
-    vim.ui.input({ prompt = title .. " " .. config.display.action_palette.prompt }, function(i)
-      if not i then
+    vim.ui.input({ prompt = title .. " " .. config.display.action_palette.prompt }, function(input)
+      if not input then
         return
       end
 
-      log:info("User input received: %s", i)
-      add_prompt(i)
+      log:info("User input received: %s", input)
+      add_prompt(_, "<user_prompt>" .. input .. "</user_prompt>")
       return self:submit(prompts)
     end)
   else
@@ -291,6 +308,7 @@ end
 ---@return table|nil
 function Inline:make_ext_prompts()
   local prompts = {}
+
   if self.prompts then
     for _, prompt in ipairs(self.prompts) do
       if prompt.opts and prompt.opts.contains_code and not config.can_send_code() then
@@ -316,7 +334,7 @@ function Inline:make_ext_prompts()
     if self.context.is_visual and not self.opts.stop_context_insertion then
       log:trace("Sending visual selection")
       table.insert(prompts, {
-        role = config.constants.USER_ROLE,
+        role = user_role,
         content = code_block(
           "For context, this is the code that I've visually selected in the buffer, which is relevant to my prompt:",
           self.context.filetype,
@@ -329,6 +347,8 @@ function Inline:make_ext_prompts()
       })
     end
   end
+
+  -- Add any variables to the prompt
 
   return prompts
 end

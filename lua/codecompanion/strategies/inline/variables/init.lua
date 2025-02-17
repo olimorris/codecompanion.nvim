@@ -44,25 +44,44 @@ function Variables:replace()
   return self
 end
 
----Add the variables to the inline class
----@return nil
-function Variables:add()
+---Add the variables to the inline class as prompts
+---@return table
+function Variables:output()
+  local outputs = {}
+
   -- Loop through the found variables
   for _, var in ipairs(self.vars) do
     if not self.config[var] then
-      return log:error("The variable `%s` is not defined in the config", var)
+      return log:error("[Variables] `%s` is not defined in the config", var)
     end
-    -- Resolve them
-    local ok, module = pcall(require, "codecompanion." .. self.config[var].callback)
+
+    local var_output
+    local callback = self.config[var].callback
+
+    -- Resolve them and add them to the outputs
+    local ok, module = pcall(require, "codecompanion." .. callback)
+    if ok then
+      var_output = module
+      goto append
+    end
+
+    ok, module = pcall(loadfile, callback)
     if not ok then
-      return log:error("Could not find the callback for `%s`", var)
+      log:error("[Variables] %s could not be resolved", var)
+      goto skip
+    end
+    if module then
+      var_output = module()
     end
 
-    -- Call them
-    local output = module(self.inline.context)
+    ::append::
 
-    -- Add their output to the inline class
+    table.insert(outputs, var_output.new({ context = self.inline.context }):output())
+
+    ::skip::
   end
+
+  return outputs
 end
 
 return Variables

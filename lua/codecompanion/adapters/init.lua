@@ -24,7 +24,7 @@ local log = require("codecompanion.utils.log")
 ---@field handlers.inline_output fun(self: CodeCompanion.Adapter, data: table, context: table): table|nil
 ---@field handlers.on_exit? fun(self: CodeCompanion.Adapter, data: table): table|nil
 ---@field handlers.teardown? fun(self: CodeCompanion.Adapter): any
----@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
+---@field schema? table Set of parameters for the generative AI service that the user can customise in the chat buffer
 
 ---Check if a variable starts with "cmd:"
 ---@param var string
@@ -257,10 +257,14 @@ end
 ---@param opts? table
 ---@return CodeCompanion.Adapter
 function Adapter.extend(adapter, opts)
+  local ok
   local adapter_config
 
   if type(adapter) == "string" then
-    adapter_config = require("codecompanion.adapters." .. adapter)
+    ok, adapter_config = pcall(require, "codecompanion.adapters." .. adapter)
+    if not ok then
+      adapter_config = config.adapters[adapter]
+    end
   elseif type(adapter) == "function" then
     adapter_config = adapter()
   else

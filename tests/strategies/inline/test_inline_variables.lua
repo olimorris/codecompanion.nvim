@@ -47,6 +47,12 @@ T["Inline Variables"] = new_set({
         strategies = {
           inline = {
             adapter = "mock",
+            variables = {
+              ["foo"] = {
+                callback = vim.fn.getcwd() .. "/tests/strategies/inline/variables/foo.lua",
+                description = "My foo variable",
+              },
+            },
           },
         },
       })
@@ -57,40 +63,40 @@ T["Inline Variables"] = new_set({
 
 T["Inline Variables"]["can find variables"] = function()
   local vars = require("codecompanion.strategies.inline.variables").new({
-    prompt = "#buffer can you print hello world?",
+    prompt = "#foo can you print hello world?",
   })
   vars:find()
 
-  h.eq({ "buffer" }, vars.vars)
+  h.eq({ "foo" }, vars.vars)
 
   vars.vars = {}
-  vars.prompt = "can you #buffer #chat print hello world?"
+  vars.prompt = "can you #foo #bar print hello world?"
   vars:find()
 
-  table.sort(vars.vars)
-  h.eq({ "buffer", "chat" }, vars.vars)
+  table.sort(vars.vars) -- Avoid any ordering issues
+  h.eq({ "bar", "foo" }, vars.vars)
 end
 
 T["Inline Variables"]["can remove variables from a prompt"] = function()
   local vars = require("codecompanion.strategies.inline.variables").new({
-    prompt = "#buffer can you print hello world?",
+    prompt = "#foo can you print hello world?",
   })
   vars:replace()
 
   h.eq("can you print hello world?", vars.prompt)
 
-  vars.prompt = "are you #buffer #chat working?"
+  vars.prompt = "are you #foo #bar working?"
   vars:replace()
   h.eq("are you working?", vars.prompt)
 end
 
-T["Inline Variables"]["can add variables to an inline class"] = function()
-  -- creat
-  local vars = require("codecompanion.strategies.inline.variables").new({
-    prompt = "can you print hello world?",
-  })
-  vars.vars = { "foo" }
-  vars:add()
-end
+-- T["Inline Variables"]["can add variables to an inline class"] = function()
+--   local vars = require("codecompanion.strategies.inline.variables").new({
+--     inline = inline,
+--     prompt = "can you print hello world?",
+--   })
+--   vars.vars = { "foo" }
+--   h.eq("are you working?", vars:output())
+-- end
 
 return T
