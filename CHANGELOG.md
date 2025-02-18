@@ -1,5 +1,17 @@
 # Changelog
 
+## [12.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.4.0...v12.5.0) (2025-02-18)
+
+
+### Features
+
+* **inline:** new and improved assistant ([#904](https://github.com/olimorris/codecompanion.nvim/issues/904)) ([3e4fb61](https://github.com/olimorris/codecompanion.nvim/commit/3e4fb6176a9c1df456795a22891f865a2f4ee56a))
+
+
+### Bug Fixes
+
+* **adapters:** `on_exit` is called when request is cancelled ([#942](https://github.com/olimorris/codecompanion.nvim/issues/942)) ([df2c5f6](https://github.com/olimorris/codecompanion.nvim/commit/df2c5f6abe7a8e14eb792cf633fafee826d892a2))
+
 ## [12.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.3.1...v12.4.0) (2025-02-17)
 
 
