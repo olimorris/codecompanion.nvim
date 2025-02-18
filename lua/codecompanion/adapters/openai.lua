@@ -172,10 +172,10 @@ return {
 
     ---Function to run when the request has completed. Useful to catch errors
     ---@param self CodeCompanion.Adapter
-    ---@param data table
+    ---@param data? table
     ---@return nil
     on_exit = function(self, data)
-      if data.status >= 400 then
+      if data and data.status >= 400 then
         log:error("Error: %s", data.body)
       end
     end,
