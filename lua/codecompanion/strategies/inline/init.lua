@@ -156,7 +156,7 @@ end
 ---Overwrite the given selection in the buffer with an empty string
 ---@param context table
 local function overwrite_selection(context)
-  log:trace("Overwriting selection: %s", context)
+  log:trace("[Inline] Overwriting selection: %s", context)
   if context.start_col > 0 then
     context.start_col = context.start_col - 1
   end
@@ -182,7 +182,7 @@ local Inline = {}
 
 ---@param args CodeCompanion.InlineArgs
 function Inline.new(args)
-  log:trace("Initiating Inline with args: %s", args)
+  log:trace("[Inline] Initiating with args: %s", args)
 
   local id = math.random(10000000)
 
@@ -206,7 +206,7 @@ function Inline.new(args)
 
   self:set_adapter(args.adapter or config.adapters[config.strategies.inline.adapter])
   if not self.adapter then
-    return log:error("No adapter found")
+    return log:error("[Inline] No adapter found")
   end
 
   -- Check if the user has manually overridden the adapter
@@ -218,7 +218,7 @@ function Inline.new(args)
     self.classification.placement = self.opts.placement
   end
 
-  log:debug("Inline instance created with ID %d", self.id)
+  log:debug("[Inline] Instance created with ID %d", self.id)
   return self
 end
 
@@ -233,7 +233,8 @@ end
 ---@param user_prompt? string The prompt supplied by the user
 ---@return nil
 function Inline:prompt(user_prompt)
-  log:trace("Starting Inline prompt")
+  log:trace("[Inline] Starting")
+  log:debug("[Inline] User prompt: %s", user_prompt)
 
   local prompts = {}
 
@@ -290,6 +291,7 @@ function Inline:prompt(user_prompt)
 
     -- 3. Add the user's prompt
     add_prompt("<user_prompt>" .. user_prompt .. "</user_prompt>")
+    log:debug("[Inline] Modified user prompt: %s", user_prompt)
   end
 
   -- From the prompt library, user's can explicitly ask to be prompted for input
@@ -300,7 +302,7 @@ function Inline:prompt(user_prompt)
         return
       end
 
-      log:info("User input received: %s", input)
+      log:info("[Inline] User input received: %s", input)
       add_prompt(_, "<user_prompt>" .. input .. "</user_prompt>")
       self.prompts = prompts
       return self:submit(prompts)
@@ -341,7 +343,7 @@ function Inline:make_ext_prompts()
   -- Add any visual selections to the prompt
   if config.can_send_code() then
     if self.context.is_visual and not self.opts.stop_context_insertion then
-      log:trace("Sending visual selection")
+      log:trace("[Inline] Sending visual selection")
       table.insert(prompts, {
         role = user_role,
         content = code_block(
@@ -356,8 +358,6 @@ function Inline:make_ext_prompts()
       })
     end
   end
-
-  -- Add any variables to the prompt
 
   return prompts
 end
@@ -375,7 +375,7 @@ end
 ---@param prompt table The prompts to send to the LLM
 ---@return nil
 function Inline:submit(prompt)
-  log:info("Inline request started")
+  log:info("[Inline] Request started")
 
   -- Inline editing only works with streaming off
   self.adapter.opts.stream = false
@@ -388,7 +388,7 @@ function Inline:submit(prompt)
     :request(self.adapter:map_roles(prompt), {
       callback = function(err, data)
         local function error(msg)
-          log:error("Inline request failed with error %s", msg)
+          log:error("[Inline] Request failed with error %s", msg)
         end
 
         if err then
@@ -415,29 +415,33 @@ end
 ---@return nil
 function Inline:done(output)
   util.fire("InlineFinished")
-  log:info("Inline request finished")
+  log:info("[Inline] Request finished")
+
+  local adapter_name = self.adapter.formatted_name
 
   if not output then
+    log:error("[%s] No output received", adapter_name)
     return self:reset()
   end
 
   local xml = self:parse_output(output)
   if not xml then
+    -- Logging is done in parse_output
     return self:reset()
   end
   if xml and xml.error then
-    log:error("[" .. self.adapter.formatted_name .. "] " .. xml.error)
+    log:error("[%s] %s", adapter_name, xml.error)
     return self:reset()
   end
   if xml and not xml.code and xml.placement ~= "chat" then
-    log:error("No code returned from the LLM")
+    log:error("[%s] Returned no code", adapter_name)
     return self:reset()
   end
 
   local placement = xml and xml.placement or self.classification.placement
-  log:debug("Placement: %s", placement)
+  log:debug("[Inline] Placement: %s", placement)
   if not placement then
-    log:error("Can't determine placement")
+    log:error("[%s] No placement returned", adapter_name)
     return self:reset()
   end
 
@@ -462,7 +466,7 @@ function Inline:setup_buffer()
   api.nvim_buf_set_keymap(self.context.bufnr, "n", "q", "", {
     desc = "Stop the request",
     callback = function()
-      log:trace("Cancelling the inline request")
+      log:trace("[Inline] Cancelling the request")
       if self.current_request then
         self:stop()
       end
@@ -490,8 +494,8 @@ local function parse_xml(content)
   end)
 
   if not ok then
-    log:debug("Tried to parse:\n%s", content)
-    log:debug("XML could not be parsed:\n%s", xml)
+    log:debug("[Inline] Tried to parse:\n%s", content)
+    log:debug("[Inline] XML could not be parsed:\n%s", xml)
     return nil
   end
 
@@ -502,7 +506,7 @@ end
 ---@param content string
 ---@return string|nil
 local function parse_with_treesitter(content)
-  log:debug("Parsing markdown content with Tree-sitter")
+  log:debug("[Inline] Parsing markdown content with Tree-sitter")
 
   local parser = vim.treesitter.get_string_parser(content, "markdown")
   local syntax_tree = parser:parse()
@@ -531,7 +535,7 @@ function Inline:parse_output(output)
   -- Try parsing as plain XML first
   local xml = parse_xml(output)
   if xml then
-    log:debug("Parsed XML:\n%s", xml)
+    log:debug("[Inline] Parsed XML:\n%s", xml)
     return xml
   end
 
@@ -540,12 +544,12 @@ function Inline:parse_output(output)
   if markdown_code then
     xml = parse_xml(markdown_code)
     if xml then
-      log:debug("Parsed markdown XML:\n%s", xml)
+      log:debug("[Inline] Parsed markdown XML:\n%s", xml)
       return xml
     end
   end
 
-  return log:error("Failed to parse the response")
+  return log:error("[Inline] Failed to parse the response")
 end
 
 ---Write the output from the LLM to the buffer
@@ -555,6 +559,8 @@ function Inline:output(output)
   local line = self.classification.pos.line - 1
   local col = self.classification.pos.col
   local bufnr = self.classification.pos.bufnr
+
+  log:debug("[Inline] Writing to buffer %s (row: %s, col: %s)", bufnr, line, col)
 
   local lines = vim.split(output, "\n")
 
@@ -599,6 +605,7 @@ function Inline:place(placement)
     self.context.start_line = self.context.start_line + 1
     pos.line = self.context.start_line - 1
     pos.col = math.max(0, self.context.start_col - 1)
+    pos.bufnr = self.context.bufnr
   elseif placement == "new" then
     local bufnr
     if self.opts and type(self.opts.pre_hook) == "function" then
@@ -649,6 +656,7 @@ end
 ---@return CodeCompanion.Chat
 function Inline:to_chat()
   local prompt = self.prompts
+  log:info("[Inline] Sending to chat")
 
   for i = #prompt, 1, -1 do
     -- Remove all of the system prompts
@@ -691,7 +699,7 @@ function Inline:start_diff()
   local provider = config.display.diff.provider
   local ok, diff = pcall(require, "codecompanion.providers.diff." .. provider)
   if not ok then
-    return log:error("Diff provider not found: %s", provider)
+    return log:error("[Inline] Diff provider not found: %s", provider)
   end
 
   ---@type CodeCompanion.Diff

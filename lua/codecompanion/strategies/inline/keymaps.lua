@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 
 local M = {}
 
@@ -18,6 +19,7 @@ M.accept_change = {
   desc = "Accept the change from the LLM",
   callback = function(inline)
     if inline.diff then
+      log:trace("[Inline] Accepting diff")
       inline.diff:accept()
       clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
     end
@@ -28,6 +30,7 @@ M.reject_change = {
   desc = "Reject the change from the LLM",
   callback = function(inline)
     if inline.diff then
+      log:trace("[Inline] Rejecting diff")
       inline.diff:reject()
       clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
     end
