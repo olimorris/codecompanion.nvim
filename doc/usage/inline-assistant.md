@@ -6,23 +6,23 @@
 
 As per the [Getting Started](/getting-started.md#inline-assistant) guide, the inline assistant enables you to code directly into a Neovim buffer. Simply run `:CodeCompanion <your prompt>`, or make a visual selection to send that as context to the LLM alongside your prompt.
 
-> [!TIP]
-> To ensure the LLM has enough context the complete your request, it's recommended to use the `#buffer` variable
-
 For convenience, you can call prompts from the [prompt library](/configuration/prompt-library) via the assistant. For example, `:'<,'>CodeCompanion /tests` would ask the LLM to create some unit tests from the selected text.
 
 ## Variables
+
+> [!TIP]
+> To ensure the LLM has enough context to complete a complex ask, it's recommended to use the `#buffer` variable
 
 The inline assistant allows you to send context alongside your prompt via the notion of variables:
 
 - `#buffer` - shares the contents of the current buffer
 - `#chat` - shares the LLM's messages from the last chat buffer
 
-Simply include them in your prompt. For example `:CodeCompanion #buffer add a new method to this file`. You can add your own custom variables as per the [configuration](/configuration/inline-assistant#variables).
+Simply include them in your prompt. For example `:CodeCompanion #buffer add a new method to this file`. Multiple variables can be sent as part of the same prompt. You can even add your own custom variables as per the [configuration](/configuration/inline-assistant#variables).
 
 ## Adapters
 
-You can specify a different adapter to that in the configuration (`strategies.inline.adapter`) when sending an inline prompt. Simply include the adapter name as the first word in the prompt. For example `:<','>CodeCompanion deepseek can you refactor this?`.
+You can specify a different adapter to that in the configuration (`strategies.inline.adapter`) when sending an inline prompt. Simply include the adapter name as the first word in the prompt. For example `:<','>CodeCompanion deepseek can you refactor this?`. This approach can also be combined with variables.
 
 ## Classification
 
