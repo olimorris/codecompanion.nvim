@@ -303,7 +303,7 @@ function Inline:prompt(user_prompt)
       end
 
       log:info("[Inline] User input received: %s", input)
-      add_prompt(_, "<user_prompt>" .. input .. "</user_prompt>")
+      add_prompt("<user_prompt>" .. input .. "</user_prompt>", user_role)
       self.prompts = prompts
       return self:submit(prompts)
     end)
