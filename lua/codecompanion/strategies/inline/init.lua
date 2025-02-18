@@ -368,6 +368,7 @@ function Inline:stop()
   if self.current_request then
     self.current_request:shutdown()
     self.current_request = nil
+    self.adapter.handlers.on_exit(self.adapter)
   end
 end
 

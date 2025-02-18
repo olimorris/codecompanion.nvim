@@ -950,6 +950,7 @@ function Chat:stop()
         job:shutdown()
       end)
     end
+    self.adapter.handlers.on_exit(self.adapter)
   end
 
   self.subscribers:stop()

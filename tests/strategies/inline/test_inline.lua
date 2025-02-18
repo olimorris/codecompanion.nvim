@@ -40,6 +40,22 @@ T["Inline"]["can parse markdown output correctly"] = function()
   h.eq("add", xml.placement)
 end
 
+T["Inline"]["can parse Ollama output correctly"] = function()
+  local xml = inline:parse_output(
+    "```xml\n<response>\n  <code><![CDATA[\n/**\n * Executes an action based on the current action type.\n */\n]]></code>\n  <language>php</language>\n  <placement>before</placement>\n</response>\n```"
+  )
+  h.eq(
+    [[
+
+/**
+ * Executes an action based on the current action type.
+ */
+]],
+    xml.code
+  )
+  h.eq("before", xml.placement)
+end
+
 T["Inline"]["handles different placements"] = function()
   -- Test 'add' placement
   inline:place("add")
@@ -93,21 +109,21 @@ T["Inline"]["forms correct prompts"] = function()
   h.eq("<user_prompt>Hello World</user_prompt>", inline.prompts[#inline.prompts].content)
 end
 
--- T["Inline"]["generates correct prompt structure"] = function()
---   local submitted_prompts = {}
---
---   -- Mock the submit function
---   function inline:submit(prompts)
---     submitted_prompts = prompts
---   end
---
---   inline:prompt("Test prompt")
---
---   h.eq(#submitted_prompts, 2) -- Should be a system prompt and the user prompt
---   h.eq(submitted_prompts[1].role, "system")
---   h.eq(submitted_prompts[2].role, "user")
---   h.eq(submitted_prompts[2].content, "<user_prompt>Test prompt</user_prompt>")
--- end
+T["Inline"]["generates correct prompt structure"] = function()
+  local submitted_prompts = {}
+
+  -- Mock the submit function
+  function inline:submit(prompts)
+    submitted_prompts = prompts
+  end
+
+  inline:prompt("Test prompt")
+
+  h.eq(#submitted_prompts, 2) -- Should be a system prompt and the user prompt
+  h.eq(submitted_prompts[1].role, "system")
+  h.eq(submitted_prompts[2].role, "user")
+  h.eq(submitted_prompts[2].content, "<user_prompt>Test prompt</user_prompt>")
+end
 
 T["Inline"]["the first word can be an adapter"] = function()
   -- Mock the submit function
