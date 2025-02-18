@@ -20,7 +20,7 @@ end
 ---The function to display the provider
 ---@return function
 function Telescope:display()
-  return function()
+  return function(_, map)
     local actions = require("telescope.actions")
     local action_state = require("telescope.actions.state")
 
@@ -39,7 +39,7 @@ function Telescope:display()
         end
       end)
     end)
-
+    map({'i', 'n'}, '<CR>', actions.select_default)
     return true
   end
 end
