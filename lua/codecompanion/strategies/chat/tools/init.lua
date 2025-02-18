@@ -363,7 +363,11 @@ function Tools:run()
             table.insert(strip_ansi(stdout), data)
           end)
         end,
-        on_stderr = function(err, _)
+        on_stderr = function(err, data)
+          vim.schedule(function()
+            table.insert(strip_ansi(stderr), data)
+          end)
+
           if err then
             vim.schedule(function()
               stderr = strip_ansi(err)
