@@ -434,12 +434,12 @@ function Inline:done(output)
     log:error("[%s] %s", adapter_name, xml.error)
     return self:reset()
   end
-  if xml and not xml.code and xml.placement ~= "chat" then
+  if xml and not xml.code and string.lower(xml.placement) ~= "chat" then
     log:error("[%s] Returned no code", adapter_name)
     return self:reset()
   end
 
-  local placement = xml and xml.placement or self.classification.placement
+  local placement = xml and string.lower(xml.placement) or string.lower(self.classification.placement)
   log:debug("[Inline] Placement: %s", placement)
   if not placement then
     log:error("[%s] No placement returned", adapter_name)
