@@ -1,5 +1,13 @@
 # Changelog
 
+## [12.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.5.0...v12.5.1) (2025-02-18)
+
+
+### Bug Fixes
+
+* **tools:** can now chain jobs effectively ([#945](https://github.com/olimorris/codecompanion.nvim/issues/945)) ([2bab6d7](https://github.com/olimorris/codecompanion.nvim/commit/2bab6d78a3c4b05e852c80cadb13fbc8b1e0c99f))
+* **tools:** make stderr capturing work for "streaming" output ([#943](https://github.com/olimorris/codecompanion.nvim/issues/943)) ([199824e](https://github.com/olimorris/codecompanion.nvim/commit/199824e89b0c459cc489d176aac60ce6c909d5a1))
+
 ## [12.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.4.0...v12.5.0) (2025-02-18)
 
 
