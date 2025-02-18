@@ -8,7 +8,7 @@ local function to_legendary_keymap(key, keymap)
   }
 end
 
----@param cmd CodeCompanionCommand
+---@param cmd CodeCompanion.Command
 local function to_legendary_cmd(cmd)
   return {
     cmd.cmd,

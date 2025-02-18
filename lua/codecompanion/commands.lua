@@ -1,20 +1,23 @@
-local context = require("codecompanion.utils.context")
-local log = require("codecompanion.utils.log")
+---@class CodeCompanion.Command
+---@field cmd string
+---@field callback fun(args:table)
+---@field opts CodeCompanion.Command.Opts
+
+---@class CodeCompanion.Command.Opts:table
+---@field desc string
 
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 
-local prompt_library = vim
-  .iter(config.prompt_library)
-  :filter(function(_, v)
-    return v.opts and v.opts.short_name
-  end)
-  :map(function(_, v)
-    return "/" .. v.opts.short_name
-  end)
-  :totable()
+-- Create the short name prompt library items table
+local prompts = vim.iter(config.prompt_library):fold({}, function(acc, key, value)
+  if value.opts and value.opts.short_name then
+    acc[value.opts.short_name] = value
+  end
+  return acc
+end)
 
-local chat_subcommands = vim
+local adapters = vim
   .iter(config.adapters)
   :filter(function(k, _)
     return k ~= "non_llms" and k ~= "opts"
@@ -24,71 +27,44 @@ local chat_subcommands = vim
   end)
   :totable()
 
+local inline_subcommands = vim.deepcopy(adapters)
+vim.iter(prompts):each(function(k, _)
+  table.insert(inline_subcommands, "/" .. k)
+end)
+
+local chat_subcommands = vim.deepcopy(adapters)
 table.insert(chat_subcommands, "Toggle")
 table.insert(chat_subcommands, "Add")
 
----@class CodeCompanionCommandOpts:table
----@field desc string
-
----@class CodeCompanionCommand
----@field cmd string
----@field callback fun(args:table)
----@field opts CodeCompanionCommandOpts
-
----@type CodeCompanionCommand[]
+---@type CodeCompanion.Command[]
 return {
   {
     cmd = "CodeCompanion",
     callback = function(opts)
-      local handler = function(opts)
-        if string.sub(opts.args, 1, 1) == "/" then
-          local user_prompt = nil
-          -- Remove the leading slash
-          local prompt = string.sub(opts.args, 2)
+      -- Detect the user calling a prompt from the prompt library
+      if opts.fargs[1] and string.sub(opts.fargs[1], 1, 1) == "/" then
+        -- Get the prompt minus the slash
+        local prompt = string.sub(opts.fargs[1], 2)
 
-          local user_prompt_pos = string.find(prompt, " ")
-
-          if user_prompt_pos then
-            -- Extract the user_prompt first
-            user_prompt = string.sub(prompt, user_prompt_pos + 1)
-            prompt = string.sub(prompt, 1, user_prompt_pos - 1)
-
-            log:trace("Prompt library call: %s", prompt)
-            log:trace("User prompt: %s", user_prompt)
+        if prompts[prompt] then
+          if #opts.fargs > 1 then
+            opts.user_prompt = table.concat(opts.fargs, " ", 2)
           end
-
-          local prompts = vim
-            .iter(config.prompt_library)
-            :filter(function(_, v)
-              return v.opts and v.opts.short_name and v.opts.short_name:lower() == prompt:lower()
-            end)
-            :map(function(k, v)
-              v.name = k
-              return v
-            end)
-            :nth(1)
-
-          if prompts then
-            if user_prompt then
-              opts.user_prompt = user_prompt
-            end
-            return codecompanion.run_inline_prompt(prompts, opts)
-          end
+          return codecompanion.prompt_library(prompts[prompt], opts)
         end
-
-        codecompanion.inline(opts)
       end
 
+      -- If the user calls the command with no prompt, then ask for their input
       if #vim.trim(opts.args or "") == 0 then
         vim.ui.input({ prompt = config.display.action_palette.prompt }, function(input)
           if #vim.trim(input or "") == 0 then
             return
           end
           opts.args = input
-          handler(opts)
+          return codecompanion.inline(opts)
         end)
       else
-        handler(opts)
+        codecompanion.inline(opts)
       end
     end,
     opts = {
@@ -100,7 +76,7 @@ return {
       complete = function(arg_lead, cmdline, _)
         if cmdline:match("^['<,'>]*CodeCompanion[!]*%s+%w*$") then
           return vim
-            .iter(prompt_library)
+            .iter(inline_subcommands)
             :filter(function(key)
               return key:find(arg_lead) ~= nil
             end)

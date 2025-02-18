@@ -42,9 +42,9 @@ require("codecompanion").setup({
     chat = {
       variables = {
         ["my_var"] = {
-          callback = function()
-            return "Your custom content here."
-          end,
+          ---Ensure the file matches the CodeCompanion.Variable class
+          ---@return string|fun(): nil
+          callback = "/Users/Oli/Code/my_var.lua",
           description = "Explain what my_var does",
           opts = {
             contains_code = false,

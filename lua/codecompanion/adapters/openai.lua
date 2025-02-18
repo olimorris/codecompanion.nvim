@@ -148,24 +148,24 @@ return {
     ---Output the data from the API ready for inlining into the current buffer
     ---@param self CodeCompanion.Adapter
     ---@param data string|table The streamed JSON data from the API, also formatted by the format_data handler
-    ---@param context table Useful context about the buffer to inline to
-    ---@return string|table|nil
+    ---@param context? table Useful context about the buffer to inline to
+    ---@return {status: string, output: table}|nil
     inline_output = function(self, data, context)
+      if self.opts.stream then
+        return log:error("Inline output is not supported for non-streaming models")
+      end
+
       if data and data ~= "" then
-        data = utils.clean_streamed_data(data)
-        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
+        local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
 
-        if ok then
-          --- Some third-party OpenAI forwarding services may have a return package with an empty json.choices.
-          if not json.choices or #json.choices == 0 then
-            return
-          end
+        if not ok then
+          log:error("Error decoding JSON: %s", data.body)
+          return { status = "error", output = json }
+        end
 
-          local choice = json.choices[1]
-          local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
-          if delta.content then
-            return delta.content
-          end
+        local choice = json.choices[1]
+        if choice.message.content then
+          return { status = "success", output = choice.message.content }
         end
       end
     end,

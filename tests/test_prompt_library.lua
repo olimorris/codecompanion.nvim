@@ -5,16 +5,7 @@ local T = MiniTest.new_set()
 
 local config
 
-T["Prompt Library"] = new_set({
-  hooks = {
-    pre_case = function()
-      require("codecompanion").setup(h.config)
-    end,
-    post_once = function()
-      h.teardown_chat_buffer()
-    end,
-  },
-})
+T["Prompt Library"] = new_set()
 
 T["Prompt Library"]["can add references"] = function()
   require("codecompanion").prompt("test_ref")

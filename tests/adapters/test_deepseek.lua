@@ -121,4 +121,8 @@ describe("DeepSeek adapter with NO STREAMING", function()
   it("can output data into a format for the chat buffer", function()
     h.eq(response[#response].output, adapter_helpers.chat_buffer_output(response, adapter))
   end)
+
+  it("can output data into a format for the inline assistant", function()
+    h.eq(response[#response].output.content, adapter_helpers.inline_buffer_output(response, adapter))
+  end)
 end)

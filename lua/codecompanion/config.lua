@@ -380,14 +380,28 @@ You now have access to specialized tools that empower you to assist users with s
           description = "Reject change",
         },
       },
-      prompts = {
-        -- The prompt to send to the LLM when a user initiates the inline strategy and it needs to convert to a chat
-        inline_to_chat = function(context)
-          return fmt(
-            [[I want you to act as an expert and senior developer in the %s language. I will ask you questions, perhaps giving you code examples, and I want you to advise me with explanations and code where necessary.]],
-            context.filetype
-          )
-        end,
+      variables = {
+        ["buffer"] = {
+          callback = "strategies.inline.variables.buffer",
+          description = "Share the current buffer with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["chat"] = {
+          callback = "strategies.inline.variables.chat",
+          description = "Share the currently open chat buffer with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
+        ["clipboard"] = {
+          callback = "strategies.inline.variables.clipboard",
+          description = "Share the contents of the clipboard with the LLM",
+          opts = {
+            contains_code = true,
+          },
+        },
       },
     },
     -- CMD STRATEGY -----------------------------------------------------------
@@ -590,7 +604,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
       },
     },
     ["Unit Tests"] = {
-      strategy = "chat",
+      strategy = "inline",
       description = "Generate unit tests for the selected code",
       opts = {
         index = 6,
@@ -600,6 +614,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
         short_name = "tests",
         auto_submit = true,
         user_prompt = false,
+        placement = "new",
         stop_context_insertion = true,
       },
       prompts = {
@@ -626,11 +641,13 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
             local code = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
 
             return fmt(
-              [[Please generate unit tests for this code from buffer %d:
+              [[<user_prompt>
+Please generate unit tests for this code from buffer %d:
 
 ```%s
 %s
 ```
+</user_prompt>
 ]],
               context.bufnr,
               context.filetype,
@@ -697,74 +714,6 @@ Use Markdown formatting and include the programming language name at the start o
           end,
           opts = {
             contains_code = true,
-          },
-        },
-      },
-    },
-    ["Buffer selection"] = {
-      strategy = "inline",
-      description = "Send the current buffer to the LLM as part of an inline prompt",
-      opts = {
-        index = 8,
-        modes = { "v" },
-        is_default = true,
-        is_slash_cmd = false,
-        short_name = "buffer",
-        auto_submit = true,
-        user_prompt = true,
-        stop_context_insertion = true,
-      },
-      prompts = {
-        {
-          role = constants.USER_ROLE,
-          content = function(context)
-            local buf_utils = require("codecompanion.utils.buffers")
-
-            return fmt(
-              [[Here is the content of a buffer, for context:
-
-```%s
-%s
-```
-
-NOTE: The cursor is currently on line %d, which is `%s`.
-
-
-]],
-              context.filetype,
-              buf_utils.get_content(context.bufnr),
-              context.cursor_pos[1],
-              vim.trim(buf_utils.get_line(context.bufnr, context.cursor_pos[1]))
-            )
-          end,
-          opts = {
-            contains_code = true,
-            visible = false,
-          },
-        },
-        {
-          role = constants.USER_ROLE,
-          condition = function(context)
-            return context.is_visual
-          end,
-          content = function(context)
-            local selection = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-
-            return fmt(
-              [[And this is some code that relates to my question:
-
-```%s
-%s
-```
-]],
-              context.filetype,
-              selection
-            )
-          end,
-          opts = {
-            contains_code = true,
-            visible = true,
-            tag = "visual",
           },
         },
       },

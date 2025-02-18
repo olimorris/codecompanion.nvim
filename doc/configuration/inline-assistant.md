@@ -31,6 +31,29 @@ require("codecompanion").setup({
 
 In this example, `<leader>a` (or `ga` on some keyboards) accepts inline changes, while `gr` rejects them.
 
+## Variables
+
+The plugin comes with a number of [variables](/usage/inline-assistant.html#variables) that can be used alongside your prompt. You can also add your own:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    inline = {
+      variables = {
+        ["my_new_var"] = {
+          ---@return string
+          callback = "/Users/Oli/Code/my_var.lua",
+          description = "My shiny new variable",
+          opts = {
+            contains_code = true,
+          },
+        },
+      }
+    }
+  }
+})
+```
+
 ## Layout
 
 If the inline prompt creates a new buffer, you can also customize if this should be output in a vertical/horizontal split or a new buffer:

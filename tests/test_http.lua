@@ -35,7 +35,7 @@ local adapter = {
 
 describe("Client", function()
   before_each(function()
-    codecompanion.setup()
+    -- codecompanion.setup()
     Client = require("codecompanion.http") -- Now that setup has been called, we can require the client
   end)
 
