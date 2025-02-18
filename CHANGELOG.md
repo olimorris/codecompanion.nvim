@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.5.2](https://github.com/olimorris/codecompanion.nvim/compare/v12.5.1...v12.5.2) (2025-02-18)
+
+
+### Bug Fixes
+
+* **inline:** ensure placement is in lower case ([#949](https://github.com/olimorris/codecompanion.nvim/issues/949)) ([04019d5](https://github.com/olimorris/codecompanion.nvim/commit/04019d5aefd70c7d44031c97e2f2126b6ed408af))
+
 ## [12.5.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.5.0...v12.5.1) (2025-02-18)
 
 
