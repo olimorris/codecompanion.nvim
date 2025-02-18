@@ -352,8 +352,7 @@ function Tools:run()
         end
       end
 
-      -- Delay executing the job to allow for output to be collated and processed
-      self.chat.current_tool = Job:new({
+      local new_job = Job:new({
         command = vim.fn.has("win32") == 1 and "cmd.exe" or "sh",
         args = { vim.fn.has("win32") == 1 and "/c" or "-c", table.concat(cmd.cmd or cmd, " ") },
         enable_recording = true,
@@ -418,7 +417,18 @@ function Tools:run()
             run(index + 1, data)
           end)
         end,
-      }):start()
+      })
+
+      if self.chat.current_tool then
+        -- Chain to the previous job if it exists
+        self.chat.current_tool:and_then_wrap(new_job)
+      else
+        -- Start first job directly
+        new_job:start()
+      end
+
+      -- Update current_tool reference
+      self.chat.current_tool = new_job
     end
   end
 
