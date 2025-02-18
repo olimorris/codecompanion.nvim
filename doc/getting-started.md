@@ -112,7 +112,7 @@ Tools can also be grouped together to form _Agents_, which are also accessed via
 ## Inline Assistant
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/21568a7f-aea8-4928-b3d4-f39c6566a23c" alt="Inline Assistant">
+  <video controls muted src="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee"></video>
 </p>
 
 > [!NOTE]

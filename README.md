@@ -52,6 +52,10 @@ Thank you to the following people:
     <h3>Agentic Workflows</h3>
     <video controls muted src="https://github.com/user-attachments/assets/31bae248-ae70-4395-9df1-67fc252475ca"></video>
   </p>
+  <p>
+    <h3>Inline Assistant</h3>
+    <video controls muted src="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee"></video>
+  </p>
 </div>
 
 <!-- panvimdoc-ignore-end -->
