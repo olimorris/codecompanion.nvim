@@ -184,7 +184,7 @@ end
 ---@param opts? table
 ---@return nil|string
 function SlashCommand:execute(SlashCommands, opts)
-  vim.ui.input({ prompt = "Enter a URL" }, function(url)
+  vim.ui.input({ prompt = "Enter a URL: " }, function(url)
     if url == "" or not url then
       return nil
     end
