@@ -847,7 +847,7 @@ end
 ---@param id string
 ---@param opts? table Options for the message
 function Chat:add_reference(data, source, id, opts)
-  opts = opts or { visible = false }
+  opts = opts or { reference = id, visible = false }
 
   self.references:add({ source = source, id = id })
   self:add_message(data, opts)
