@@ -113,6 +113,8 @@ require("codecompanion").setup({
 })
 ```
 
+Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](https://github.com/olimorris/codecompanion.nvim/discussions/958).
+
 > [!NOTE]
 > You can also point the callback to a lua file that resides within your own configuration
 
