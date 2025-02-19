@@ -841,6 +841,18 @@ function Chat:done(output)
   self:reset()
 end
 
+---Add a reference to the chat buffer (Useful for user's adding custom Slash Commands)
+---@param data { role: string, content: string }
+---@param source string
+---@param id string
+---@param opts? table Options for the message
+function Chat:add_reference(data, source, id, opts)
+  opts = opts or { reference = id, visible = false }
+
+  self.references:add({ source = source, id = id })
+  self:add_message(data, opts)
+end
+
 ---Reconcile the references table to the references in the chat buffer
 ---@return nil
 function Chat:check_references()
