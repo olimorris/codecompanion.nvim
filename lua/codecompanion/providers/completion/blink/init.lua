@@ -1,9 +1,12 @@
+--- @module 'blink.cmp'
+
 local completion = require("codecompanion.completion")
 
 local slash_commands = completion.slash_commands()
 local tools = completion.tools()
 local vars = completion.variables()
 
+--- @class blink.cmp.Source
 local M = {}
 
 function M.new()
@@ -19,9 +22,23 @@ function M:enabled()
 end
 
 function M:get_completions(ctx, callback)
+  local trigger_char = ctx.trigger.character or ctx.line:sub(ctx.bounds.start_col - 1, ctx.bounds.start_col - 1)
+
+  --- @type lsp.Range
+  local edit_range = {
+    start = {
+      line = ctx.bounds.line_number - 1,
+      character = ctx.bounds.start_col - 2,
+    },
+    ["end"] = {
+      line = ctx.bounds.line_number - 1,
+      character = ctx.bounds.start_col + ctx.bounds.length,
+    },
+  }
+
   -- Slash commands
-  if ctx.trigger.character == "/" then
-    return callback({
+  if trigger_char == "/" then
+    callback({
       context = ctx,
       is_incomplete_forward = false,
       is_incomplete_backward = false,
@@ -29,26 +46,29 @@ function M:get_completions(ctx, callback)
         .iter(slash_commands)
         :map(function(item)
           return {
-            label = item.label:sub(2),
-            ctx = ctx,
-            from_prompt_library = item.from_prompt_library,
-            config = item.config,
-            type = "slash_command",
             kind = vim.lsp.protocol.CompletionItemKind.Function,
-            insertText = "",
+            label = item.label:sub(2),
+            textEdit = {
+              newText = item.label,
+              range = edit_range,
+            },
             documentation = {
               kind = "plaintext",
               value = item.detail,
+            },
+            data = {
+              type = "slash_command",
+              from_prompt_library = item.from_prompt_library,
+              config = item.config,
             },
           }
         end)
         :totable(),
     })
-  end
 
   -- Variables
-  if ctx.trigger.character == "#" then
-    return callback({
+  elseif trigger_char == "#" then
+    callback({
       context = ctx,
       is_incomplete_forward = false,
       is_incomplete_backward = false,
@@ -56,23 +76,25 @@ function M:get_completions(ctx, callback)
         .iter(vars)
         :map(function(item)
           return {
-            label = item.label:sub(2),
-            type = "variable",
             kind = vim.lsp.protocol.CompletionItemKind.Variable,
-            insertText = item.label:sub(2),
+            label = item.label:sub(2),
+            textEdit = {
+              newText = item.label,
+              range = edit_range,
+            },
             documentation = {
               kind = "plaintext",
               value = item.detail,
             },
+            data = { type = "variable" },
           }
         end)
         :totable(),
     })
-  end
 
   -- Agents and tools
-  if ctx.trigger.character == "@" then
-    return callback({
+  elseif trigger_char == "@" then
+    callback({
       context = ctx,
       is_incomplete_forward = false,
       is_incomplete_backward = false,
@@ -80,48 +102,54 @@ function M:get_completions(ctx, callback)
         .iter(tools)
         :map(function(item)
           return {
-            label = item.label:sub(2),
-            type = "tool",
             kind = vim.lsp.protocol.CompletionItemKind.Struct,
-            insertText = item.label:sub(2),
+            label = item.label:sub(2),
+            textEdit = {
+              newText = item.label,
+              range = edit_range,
+            },
             documentation = {
               kind = "plaintext",
               value = item.detail,
             },
+            data = { type = "tool" },
           }
         end)
         :totable(),
     })
+
+  -- Nothing to show
+  else
+    callback()
   end
 end
 
 function M:execute(ctx, item)
-  if vim.tbl_contains({ "variable", "tool" }, item.type) then
+  if vim.tbl_contains({ "variable", "tool" }, item.data.type) then
     return
   end
 
-  local lines =
-    vim.api.nvim_buf_get_lines(item.ctx.bufnr, item.ctx.bounds.line_number - 1, item.ctx.bounds.line_number, true)
-
-  local end_col = item.ctx.bounds.end_col or item.ctx.bounds.start_col + 1
-
-  if lines and #lines == 1 and end_col > #lines[1] then
-    end_col = #lines[1]
-  end
-
+  -- Remove the text added by completion engine
   vim.api.nvim_buf_set_text(
-    item.ctx.bufnr,
-    item.ctx.bounds.line_number - 1,
-    item.ctx.bounds.start_col - 2,
-    item.ctx.bounds.line_number - 1,
-    end_col,
-    { "" }
+    ctx.bufnr,
+    item.textEdit.range.start.line,
+    item.textEdit.range.start.character,
+    item.textEdit.range.start.line,
+    item.textEdit.range.start.character + #item.textEdit.newText,
+    {}
   )
 
-  local chat = require("codecompanion").buf_get_chat(item.ctx.bufnr)
+  -- Slash commands expect the command info to be in the item directly
+  -- rather than in the data field, so we copy
+  local item = vim.deepcopy(item)
+  for k, v in pairs(item.data) do
+    item[k] = v
+  end
+
+  local chat = require("codecompanion").buf_get_chat(ctx.bufnr)
   completion.slash_commands_execute(item, chat)
 
-  vim.bo[item.ctx.bufnr].buflisted = false
+  vim.bo[ctx.bufnr].buflisted = false
 end
 
 return M
