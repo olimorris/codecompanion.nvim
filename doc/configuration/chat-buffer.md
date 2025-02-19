@@ -89,12 +89,23 @@ require("codecompanion").setup({
   strategies = {
     chat = {
       slash_commands = {
-        ["mycmd"] = {
-          description = "My fancy new command",
+        ["git_files"] = {
+          description = "List git files",
           ---@param chat CodeCompanion.Chat
           callback = function(chat)
-            return chat:add_buf_message({ content = "Just writing to the chat buffer" })
+            local handle = io.popen("git ls-files")
+            if handle ~= nil then
+              local result = handle:read("*a")
+              handle:close()
+              local id = "<git_files>"
+              chat:add_reference({ content = result }, "git", id, { reference = id, visible = false })
+            else
+              return vim.notify("No git files available", vim.log.levels.INFO, { title = "CodeCompanion" })
+            end
           end,
+          opts = {
+            contains_code = false,
+          },
         },
       },
     },
