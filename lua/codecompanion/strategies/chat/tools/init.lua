@@ -404,6 +404,11 @@ function Tools:run()
               output.error(cmd, strip_ansi(stderr))
               log:debug("[Tools] %s finished with stderr: %s", self.tool.name, stderr)
               stderr = {}
+              if code == 0 then
+                output.success(cmd, strip_ansi(stdout))
+                log:trace("[Tools] %s finished with output: %s", self.tool.name, stdout)
+                stdout = {}
+              end
             elseif not vim.tbl_isempty(stdout) then
               output.success(cmd, strip_ansi(stdout))
               log:trace("[Tools] %s finished with output: %s", self.tool.name, stdout)
