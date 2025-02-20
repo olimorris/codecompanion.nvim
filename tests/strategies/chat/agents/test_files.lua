@@ -47,11 +47,11 @@ This is line 5]],
 
   it("can edit a file", function()
     local path = "~/tmp/test.txt"
-    files.actions.edit({ path = path, search = "Hello World", replace = "Hello CodeCompanion" })
+    files.actions.edit({ path = path, search = "Hello World", replace = "Hello Code" })
 
     local file = io.open(vim.fs.normalize(path), "r")
     local contents = file:read("*a")
-    h.eq("Hello CodeCompanion", contents)
+    h.eq("Hello Code", contents)
     file:close()
   end)
 

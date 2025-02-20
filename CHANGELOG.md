@@ -1,5 +1,27 @@
 # Changelog
 
+## [12.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.6.1...v12.7.0) (2025-02-20)
+
+
+### Features
+
+* add reference handling to workflow processing ([#969](https://github.com/olimorris/codecompanion.nvim/issues/969)) ([4c9f120](https://github.com/olimorris/codecompanion.nvim/commit/4c9f120033c1c1b4c17536c2407c288d91d34e95))
+
+## [12.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.6.0...v12.6.1) (2025-02-20)
+
+
+### Bug Fixes
+
+* **tools:** add missing write flag attribute when editing files ([#966](https://github.com/olimorris/codecompanion.nvim/issues/966)) ([d5bc944](https://github.com/olimorris/codecompanion.nvim/commit/d5bc9441d55a9e6f81191ec96871ae4a48890997))
+
+## [12.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.5.2...v12.6.0) (2025-02-19)
+
+
+### Features
+
+* **chat:** easier to add refs from external sources ([#960](https://github.com/olimorris/codecompanion.nvim/issues/960)) ([b7b43f6](https://github.com/olimorris/codecompanion.nvim/commit/b7b43f62ede6814fc5ab90d464016c63546d22a9))
+* **tools:** when `stderr` is not empty, do not discard `stdout` when exit code is 0 ([#955](https://github.com/olimorris/codecompanion.nvim/issues/955)) ([d8de491](https://github.com/olimorris/codecompanion.nvim/commit/d8de491ebf2ed4bca7006ae33e6990ec3f8d60d0))
+
 ## [12.5.2](https://github.com/olimorris/codecompanion.nvim/compare/v12.5.1...v12.5.2) (2025-02-18)
 
 

@@ -1,8 +1,14 @@
 # Creating Adapters
 
+> [!TIP]
+> Does your LLM state that it is "OpenAI Compatible"? If so, good news, you can leverage the generic
+> `openai_compatible` adapter which extends from the `openai` adapter. Something we did with [xAI](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/xai.lua)
+
 In CodeCompanion, adapters are interfaces that act as a bridge between the plugin's functionality and an LLM. All adapters must follow the interface, below.
 
 This guide is intended to serve as a reference for anyone who wishes to contribute an adapter to the plugin or understand the inner workings of existing adapters.
+
+The plugin's in-built adapters can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters).
 
 ## The Interface
 
