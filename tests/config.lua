@@ -64,6 +64,14 @@ return {
             callback = "utils.bar_again",
             description = "Some bar_again function",
           },
+          ["func"] = {
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/tools/stubs/func.lua",
+            description = "Some function tool to test",
+          },
+          ["func_consecutive"] = {
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/tools/stubs/func_consecutive.lua",
+            description = "Consecutive function tool to test",
+          },
           opts = {
             system_prompt = [[My tool system prompt]],
           },

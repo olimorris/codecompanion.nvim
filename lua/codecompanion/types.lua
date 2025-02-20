@@ -104,7 +104,7 @@
 ---@field settings table
 ---@field tokens number
 
----@class CodeCompanion.Tool
+---@class CodeCompanion.Agent.Tool
 ---@field name string The name of the tool
 ---@field cmds table The commands to execute
 ---@field schema table The schema that the LLM must use in its response to execute a tool
@@ -112,22 +112,22 @@
 ---@field opts? table The options for the tool
 ---@field env? fun(schema: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
 ---@field handlers table Functions which can be called during the execution of the tool
----@field handlers.setup? fun(self: CodeCompanion.Tools): any Function used to setup the tool. Called before any commands
----@field handlers.approved? fun(self: CodeCompanion.Tools): boolean Function to call if an approval is needed before running a command
----@field handlers.on_exit? fun(self: CodeCompanion.Tools): any Function to call at the end of all of the commands
+---@field handlers.setup? fun(self: CodeCompanion.Agent): any Function used to setup the tool. Called before any commands
+---@field handlers.approved? fun(self: CodeCompanion.Agent): boolean Function to call if an approval is needed before running a command
+---@field handlers.on_exit? fun(self: CodeCompanion.Agent): any Function to call at the end of all of the commands
 ---@field output? table Functions which can be called after the command finishes
----@field output.rejected? fun(self: CodeCompanion.Tools, cmd: table): any Function to call if the user rejects running a command
----@field output.error? fun(self: CodeCompanion.Tools, cmd: table, error: table|string): any Function to call if the tool is unsuccessful
----@field output.success? fun(self: CodeCompanion.Tools, cmd: table, output: table|string): any Function to call if the tool is successful
+---@field output.rejected? fun(self: CodeCompanion.Agent, cmd: table): any Function to call if the user rejects running a command
+---@field output.error? fun(self: CodeCompanion.Agent, cmd: table, error: table|string): any Function to call if the tool is unsuccessful
+---@field output.success? fun(self: CodeCompanion.Agent, cmd: table, output: table|string): any Function to call if the tool is successful
 ---@field request table The request from the LLM to use the Tool
 
----@class CodeCompanion.Tools
+---@class CodeCompanion.Agent
 ---@field aug number The augroup for the tool
 ---@field bufnr number The buffer of the chat buffer
 ---@field chat CodeCompanion.Chat The chat buffer that initiated the tool
 ---@field extracted table The extracted tools from the LLM's response
 ---@field messages table The messages in the chat buffer
----@field tool CodeCompanion.Tool The current tool that's being run
+---@field tool CodeCompanion.Agent.Tool The current tool that's being run
 ---@field agent_config table The agent strategy from the config
 ---@field tools_ns integer The namespace for the virtual text that appears in the header
 
