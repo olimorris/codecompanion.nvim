@@ -65,15 +65,15 @@ return {
             description = "Some bar_again function",
           },
           ["func"] = {
-            callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/tools/stubs/func.lua",
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
             description = "Some function tool to test",
           },
           ["func_consecutive"] = {
-            callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/tools/stubs/func_consecutive.lua",
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_consecutive.lua",
             description = "Consecutive function tool to test",
           },
           ["func_error"] = {
-            callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/tools/stubs/func_error.lua",
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_error.lua",
             description = "Error function tool to test",
           },
           opts = {
