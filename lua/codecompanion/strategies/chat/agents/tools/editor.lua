@@ -102,9 +102,9 @@ return {
   name = "editor",
   cmds = {
     ---Ensure the final function returns the status and the output
-    ---@param self CodeCompanion.Agent The Tools object
+    ---@param self CodeCompanion.Agent.Tool The Tools object
     ---@param actions table The action object
-    ---@param input any The output from the previous function call
+    ---@param input? any The output from the previous function call
     ---@return { status: string, msg: string }
     function(self, actions, input)
       ---Run the action

@@ -1,4 +1,18 @@
-local Executor = require("codecompanion.strategies.chat.tools.executor")
+---@class CodeCompanion.Agent
+---@field agent_config table The agent strategy from the config
+---@field aug number The augroup for the tool
+---@field bufnr number The buffer of the chat buffer
+---@field constants table<string, string> The constants for the tool
+---@field chat CodeCompanion.Chat The chat buffer that initiated the tool
+---@field extracted table The extracted tools from the LLM's response
+---@field messages table The messages in the chat buffer
+---@field status string The status of the tool
+---@field stdout table The stdout of the tool
+---@field stderr table The stderr of the tool
+---@field tool CodeCompanion.Agent.Tool The current tool that's being run
+---@field tools_ns integer The namespace for the virtual text that appears in the header
+
+local Executor = require("codecompanion.strategies.chat.agents.executor")
 local TreeHandler = require("codecompanion.utils.xml.xmlhandler.tree")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
@@ -47,27 +61,30 @@ local function parse_xml(message)
 end
 
 ---@class CodeCompanion.Agent
-local Tools = {}
+local Agent = {}
 
 ---@param args table
-function Tools.new(args)
+function Agent.new(args)
   local self = setmetatable({
     aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. args.bufnr, { clear = true }),
     bufnr = args.bufnr,
     chat = {},
+    constants = CONSTANTS,
     extracted = {},
     messages = args.messages,
+    stdout = {},
+    stderr = {},
     tool = {},
     agent_config = config.strategies.chat.agents,
     tools_ns = api.nvim_create_namespace(CONSTANTS.NS_TOOLS),
-  }, { __index = Tools })
+  }, { __index = Agent })
 
   return self
 end
 
 ---Set the autocmds for the tool
 ---@return nil
-function Tools:set_autocmds()
+function Agent:set_autocmds()
   api.nvim_create_autocmd("User", {
     desc = "Handle responses from an Agent",
     group = self.aug,
@@ -116,7 +133,7 @@ end
 ---@param start_range number
 ---@param end_range number
 ---@return nil
-function Tools:parse_buffer(chat, start_range, end_range)
+function Agent:parse_buffer(chat, start_range, end_range)
   local query = vim.treesitter.query.get("markdown", "tools")
   local tree = chat.parser:parse({ start_range - 1, end_range - 1 })[1]
 
@@ -160,7 +177,7 @@ end
 ---@param chat CodeCompanion.Chat
 ---@param xml string The XML schema from the LLM's response
 ---@return nil
-function Tools:setup(chat, xml)
+function Agent:setup(chat, xml)
   self.chat = chat
 
   local ok, schema = pcall(parse_xml, xml)
@@ -172,10 +189,15 @@ function Tools:setup(chat, xml)
   ---Resolve and run the tool
   ---@param s table The tool's schema
   local function run_tool(s)
+    -- If an error occurred, don't run any more tools
+    if self.status == CONSTANTS.STATUS_ERROR then
+      return
+    end
+
     ---@type CodeCompanion.Tool|nil
     local resolved_tool
     ok, resolved_tool = pcall(function()
-      return Tools.resolve(self.agent_config.tools[s.tool._attr.name])
+      return Agent.resolve(self.agent_config.tools[s.tool._attr.name])
     end)
     if not ok or not resolved_tool then
       log:error("Couldn't resolve the tool(s) from the LLM's response")
@@ -203,16 +225,16 @@ function Tools:setup(chat, xml)
     vim.iter(schema.tool):each(function(tool)
       run_tool({ tool = tool })
     end)
-    return
+  else
+    return run_tool(schema)
   end
-  return run_tool(schema)
 end
 
 ---Look for tools in a given message
 ---@param chat CodeCompanion.Chat
 ---@param message table
 ---@return table?, table?
-function Tools:find(chat, message)
+function Agent:find(chat, message)
   if not message.content then
     return nil, nil
   end
@@ -264,7 +286,7 @@ end
 ---@param chat CodeCompanion.Chat
 ---@param message table
 ---@return boolean
-function Tools:parse(chat, message)
+function Agent:parse(chat, message)
   local tools, agents = self:find(chat, message)
 
   if tools or agents then
@@ -293,7 +315,7 @@ end
 ---Replace the tool tag in a given message
 ---@param message string
 ---@return string
-function Tools:replace(message)
+function Agent:replace(message)
   for tool, _ in pairs(self.agent_config.tools) do
     message = vim.trim(message:gsub(CONSTANTS.PREFIX .. tool, tool))
   end
@@ -306,16 +328,21 @@ end
 
 ---Reset the tool class
 ---@return nil
-function Tools:reset()
+function Agent:reset()
   api.nvim_buf_clear_namespace(self.bufnr, self.tools_ns, 0, -1)
   api.nvim_clear_autocmds({ group = self.aug })
+
   self.extracted = {}
+  self.status = CONSTANTS.STATUS_SUCCESS
+  self.stderr = {}
+  self.stdout = {}
+
   log:info("[Agent] Completed")
 end
 
 ---Fold any XML code blocks in the buffer
 ---@return nil
-function Tools:fold_xml()
+function Agent:fold_xml()
   local query = vim.treesitter.query.parse(
     "markdown",
     [[
@@ -351,7 +378,7 @@ end
 ---Add an error message to the chat buffer
 ---@param error string
 ---@return CodeCompanion.Agent
-function Tools:add_error_to_chat(error)
+function Agent:add_error_to_chat(error)
   self.chat:add_message({
     role = config.constants.USER_ROLE,
     content = error,
@@ -373,7 +400,7 @@ end
 ---Resolve a tool from the config
 ---@param tool table The tool from the config
 ---@return CodeCompanion.Tool|nil
-function Tools.resolve(tool)
+function Agent.resolve(tool)
   local callback = tool.callback
 
   if type(callback) == "table" then
@@ -398,4 +425,4 @@ function Tools.resolve(tool)
   end
 end
 
-return Tools
+return Agent

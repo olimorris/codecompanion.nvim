@@ -72,6 +72,10 @@ return {
             callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/tools/stubs/func_consecutive.lua",
             description = "Consecutive function tool to test",
           },
+          ["func_error"] = {
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/tools/stubs/func_error.lua",
+            description = "Error function tool to test",
+          },
           opts = {
             system_prompt = [[My tool system prompt]],
           },

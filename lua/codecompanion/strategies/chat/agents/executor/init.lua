@@ -1,5 +1,5 @@
-local CmdExecutor = require("codecompanion.strategies.chat.tools.executor.cmd")
-local FuncExecutor = require("codecompanion.strategies.chat.tools.executor.func")
+local CmdExecutor = require("codecompanion.strategies.chat.agents.executor.cmd")
+local FuncExecutor = require("codecompanion.strategies.chat.agents.executor.func")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
@@ -13,11 +13,6 @@ local util = require("codecompanion.utils")
 ---@field status string
 local Executor = {}
 
-local CONSTANTS = {
-  STATUS_ERROR = "error",
-  STATUS_SUCCESS = "success",
-}
-
 ---@param agent CodeCompanion.Agent
 ---@param tool CodeCompanion.Agent.Tool
 function Executor.new(agent, tool)
@@ -25,9 +20,6 @@ function Executor.new(agent, tool)
   local self = setmetatable({
     agent = agent,
     tool = tool,
-    status = CONSTANTS.STATUS_SUCCESS,
-    stderr = {},
-    stdout = {},
   }, { __index = Executor })
 
   self.handlers = {
@@ -81,7 +73,11 @@ end
 ---@return nil
 function Executor:execute(index, input)
   index = index or 1
-  if index > vim.tbl_count(self.tool.cmds) or self.status == CONSTANTS.STATUS_ERROR then
+  if
+    not self.tool.cmds
+    or index > vim.tbl_count(self.tool.cmds)
+    or self.agent.status == self.agent.constants.STATUS_ERROR
+  then
     return self:close()
   end
 
@@ -100,6 +96,27 @@ function Executor:requires_approval()
     or false
 end
 
+---Handle an error from a tool
+---@param action table
+---@param error string
+---@return nil
+function Executor:error(action, error)
+  self.agent.status = self.agent.constants.STATUS_ERROR
+  table.insert(self.agent.stderr, error)
+  self.output.error(action, error)
+  log:error("Error calling function in %s: %s", self.tool.name, error)
+  self:close()
+end
+
+---Handle a successful completion of a tool
+---@param action table
+---@param output string
+---@return nil
+function Executor:success(action, output)
+  table.insert(self.agent.stdout, output)
+  self.output.success(action, output)
+end
+
 ---Close the execution of the tool
 ---@return nil
 function Executor:close()
@@ -108,22 +125,10 @@ function Executor:close()
   util.fire("AgentFinished", {
     name = self.tool.name,
     bufnr = self.agent.bufnr,
-    status = self.status,
-    stderr = self.stderr,
-    stdout = self.stdout,
   })
-  self:reset()
 
   self.agent.chat.subscribers:process(self.agent.chat)
   vim.g.codecompanion_current_tool = nil
-end
-
----Reset the executor class
----@return nil
-function Executor:reset()
-  self.status = CONSTANTS.STATUS_SUCCESS
-  self.stderr = {}
-  self.stdout = {}
 end
 
 return Executor

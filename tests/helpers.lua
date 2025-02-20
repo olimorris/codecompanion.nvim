@@ -48,7 +48,7 @@ Helpers.setup_chat_buffer = function(config, adapter)
       description = "foo",
     },
   }
-  local tools = require("codecompanion.strategies.chat.tools").new({ bufnr = 1 })
+  local agent = require("codecompanion.strategies.chat.agents").new({ bufnr = 1 })
   local vars = require("codecompanion.strategies.chat.variables").new()
 
   package.loaded["codecompanion.utils.foo"] = {
@@ -81,7 +81,7 @@ Helpers.setup_chat_buffer = function(config, adapter)
     end,
   }
 
-  return chat, tools, vars
+  return chat, agent, vars
 end
 
 ---Mock the sending of a chat buffer to an LLM

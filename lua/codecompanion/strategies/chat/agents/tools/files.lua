@@ -156,7 +156,7 @@ return {
   actions = actions,
   cmds = {
     ---Execute the file commands
-    ---@param self CodeCompanion.Tools The Tools object
+    ---@param self CodeCompanion.Agent.Tool The Tools object
     ---@param action table The action object
     ---@param input any The output from the previous function call
     ---@return { status: string, msg: string }
@@ -384,7 +384,7 @@ Remember:
   end,
   handlers = {
     ---Approve the command to be run
-    ---@param self CodeCompanion.Tools The tool object
+    ---@param self CodeCompanion.Agent The tool object
     ---@param action table
     ---@return boolean
     approved = function(self, action)

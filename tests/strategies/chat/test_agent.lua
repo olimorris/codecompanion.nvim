@@ -3,12 +3,12 @@ local h = require("tests.helpers")
 local new_set = MiniTest.new_set
 local T = new_set()
 
-local chat, tools
+local chat, agent
 
-T["Tools"] = new_set({
+T["Agent"] = new_set({
   hooks = {
     pre_case = function()
-      chat, tools = h.setup_chat_buffer()
+      chat, agent = h.setup_chat_buffer()
     end,
     post_case = function()
       h.teardown_chat_buffer()
@@ -16,9 +16,9 @@ T["Tools"] = new_set({
   },
 })
 
--- T["Tools"]["resolve"] = new_set()
+-- T["Agent"]["resolve"] = new_set()
 --
--- T["Tools"]["resolve"]["can resolve built-in tools"] = function()
+-- T["Agent"]["resolve"]["can resolve built-in tools"] = function()
 --   local tool = tools.resolve({
 --     callback = "strategies.chat.tools.editor",
 --     description = "Update a buffer with the LLM's response",
@@ -29,7 +29,7 @@ T["Tools"] = new_set({
 --   h.eq(6, #tool.schema)
 -- end
 --
--- T["Tools"]["resolve"]["can resolve user's tools"] = function()
+-- T["Agent"]["resolve"]["can resolve user's tools"] = function()
 --   local tool = tools.resolve({
 --     callback = vim.fn.getcwd() .. "/tests/stubs/foo.lua",
 --     description = "Some foo function",
@@ -40,9 +40,9 @@ T["Tools"] = new_set({
 --   h.eq("This is the Foo tool", tool.cmds[1]())
 -- end
 --
--- T["Tools"][":parse"] = new_set()
+-- T["Agent"][":parse"] = new_set()
 --
--- T["Tools"][":parse"]["a message with a tool"] = function()
+-- T["Agent"][":parse"]["a message with a tool"] = function()
 --   table.insert(chat.messages, {
 --     role = "user",
 --     content = "@foo do some stuff",
@@ -54,7 +54,7 @@ T["Tools"] = new_set({
 --   h.eq("my foo system prompt", messages[#messages].content)
 -- end
 --
--- T["Tools"][":parse"]["a response from the LLM"] = function()
+-- T["Agent"][":parse"]["a response from the LLM"] = function()
 --   chat:add_buf_message({
 --     role = "user",
 --     content = "@foo do some stuff",
@@ -79,7 +79,7 @@ T["Tools"] = new_set({
 --   h.eq("This is from the foo tool", lines[#lines])
 -- end
 --
--- T["Tools"][":parse"]["a nested response from the LLM"] = function()
+-- T["Agent"][":parse"]["a nested response from the LLM"] = function()
 --   chat:add_buf_message({
 --     role = "user",
 --     content = "@foo @bar do some stuff",
@@ -107,19 +107,19 @@ T["Tools"] = new_set({
 --   h.eq("This is from the foo toolThis is from the bar tool", lines[#lines])
 -- end
 --
--- T["Tools"][":replace"] = new_set()
+-- T["Agent"][":replace"] = new_set()
 --
--- T["Tools"][":replace"]["should replace the tool in the message"] = function()
+-- T["Agent"][":replace"]["should replace the tool in the message"] = function()
 --   local message = "run the @foo tool"
 --   local result = tools:replace(message, "foo")
 --   h.eq("run the foo tool", result)
 -- end
 
-T["Tools"][":setup"] = new_set()
+T["Agent"][":setup"] = new_set()
 
-T["Tools"][":setup"]["can run functions"] = function()
+T["Agent"][":setup"]["can run functions"] = function()
   h.eq(vim.g.codecompanion_test, nil)
-  tools:setup(
+  agent:setup(
     chat,
     [[<tools>
   <tool name="func">
@@ -132,9 +132,9 @@ T["Tools"][":setup"]["can run functions"] = function()
   vim.g.codecompanion_test = nil
 end
 
-T["Tools"][":setup"]["can run consecutive functions"] = function()
+T["Agent"][":setup"]["can run consecutive functions and pass input"] = function()
   h.eq(vim.g.codecompanion_test, nil)
-  tools:setup(
+  agent:setup(
     chat,
     [[<tools>
   <tool name="func_consecutive">
@@ -144,11 +144,13 @@ T["Tools"][":setup"]["can run consecutive functions"] = function()
   )
   h.eq("Data 1 Data 1", vim.g.codecompanion_test)
   vim.g.codecompanion_test = nil
+  h.eq("Ran with success", vim.g.codecompanion_test_output)
+  vim.g.codecompanion_test_output = nil
 end
 
-T["Tools"][":setup"]["can run multiple, consecutive functions"] = function()
+T["Agent"][":setup"]["can run multiple, consecutive functions"] = function()
   h.eq(vim.g.codecompanion_test, nil)
-  tools:setup(
+  agent:setup(
     chat,
     [[<tools>
   <tool name="func_consecutive">
@@ -159,6 +161,26 @@ T["Tools"][":setup"]["can run multiple, consecutive functions"] = function()
   )
   h.eq("Data 2 Data 2", vim.g.codecompanion_test)
   vim.g.codecompanion_test = nil
+end
+
+T["Agent"][":setup"]["can handle errors in functions"] = function()
+  -- Stop this from clearing out stderr
+  function agent:reset()
+    return nil
+  end
+
+  agent:setup(
+    chat,
+    [[<tools>
+  <tool name="func_error">
+    <action type="type1"><data>Data 1</data></action>
+  </tool>
+</tools>]]
+  )
+
+  h.eq({ "Something went wrong" }, agent.stderr)
+  h.eq("<error>Something went wrong</error>", vim.g.codecompanion_test_output)
+  vim.g.codecompanion_test_output = nil
 end
 
 return T

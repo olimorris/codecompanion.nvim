@@ -1,4 +1,4 @@
-local files = require("codecompanion.strategies.chat.tools.files")
+local files = require("codecompanion.strategies.chat.agents.tools.files")
 
 local h = require("tests.helpers")
 

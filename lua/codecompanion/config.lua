@@ -58,25 +58,25 @@ local defaults = {
         },
         tools = {
           ["cmd_runner"] = {
-            callback = "strategies.chat.tools.cmd_runner",
+            callback = "strategies.chat.agents.tools.cmd_runner",
             description = "Run shell commands initiated by the LLM",
             opts = {
               user_approval = true,
             },
           },
           ["editor"] = {
-            callback = "strategies.chat.tools.editor",
+            callback = "strategies.chat.agents.tools.editor",
             description = "Update a buffer with the LLM's response",
           },
           ["files"] = {
-            callback = "strategies.chat.tools.files",
+            callback = "strategies.chat.agents.tools.files",
             description = "Update the file system with the LLM's response",
             opts = {
               user_approval = true,
             },
           },
           ["rag"] = {
-            callback = "strategies.chat.tools.rag",
+            callback = "strategies.chat.agents.tools.rag",
             description = "Supplement the LLM with real-time info from the internet",
             opts = {
               hide_output = true,

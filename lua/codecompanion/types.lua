@@ -121,16 +121,6 @@
 ---@field output.success? fun(self: CodeCompanion.Agent, cmd: table, output: table|string): any Function to call if the tool is successful
 ---@field request table The request from the LLM to use the Tool
 
----@class CodeCompanion.Agent
----@field aug number The augroup for the tool
----@field bufnr number The buffer of the chat buffer
----@field chat CodeCompanion.Chat The chat buffer that initiated the tool
----@field extracted table The extracted tools from the LLM's response
----@field messages table The messages in the chat buffer
----@field tool CodeCompanion.Agent.Tool The current tool that's being run
----@field agent_config table The agent strategy from the config
----@field tools_ns integer The namespace for the virtual text that appears in the header
-
 ---@class CodeCompanion.SlashCommand.Provider
 ---@field output function The function to call when a selection is made
 ---@field provider table The path to the provider
