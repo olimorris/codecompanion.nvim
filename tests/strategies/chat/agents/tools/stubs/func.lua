@@ -12,6 +12,11 @@ return {
       vim.g.codecompanion_test = (vim.g.codecompanion_test or "") .. spacer .. actions.data
     end,
   },
+  handlers = {
+    on_exit = function(self)
+      vim.g.codecompanion_test_exit = "Exited"
+    end,
+  },
   output = {
     success = function(self, cmd, output)
       vim.g.codecompanion_test_output = "Ran with success"

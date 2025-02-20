@@ -12,6 +12,9 @@ T["Agent"] = new_set({
     end,
     post_case = function()
       h.teardown_chat_buffer()
+      vim.g.codecompanion_test = nil
+      vim.g.codecompanion_test_exit = nil
+      vim.g.codecompanion_test_output = nil
     end,
   },
 })
@@ -118,6 +121,7 @@ end
 T["Agent"][":setup"] = new_set()
 
 T["Agent"][":setup"]["can run functions"] = function()
+  h.eq(vim.g.codecompanion_test_exit, nil)
   h.eq(vim.g.codecompanion_test, nil)
   agent:setup(
     chat,
@@ -128,8 +132,15 @@ T["Agent"][":setup"]["can run functions"] = function()
   </tool>
 </tools>]]
   )
+
+  -- Test that the function was called
   h.eq("Data 1 Data 2", vim.g.codecompanion_test)
-  vim.g.codecompanion_test = nil
+
+  -- Test that the on_exit handler was called
+  h.eq(vim.g.codecompanion_test_exit, "Exited")
+
+  -- Test `output.success` handler
+  h.eq("Ran with success", vim.g.codecompanion_test_output)
 end
 
 T["Agent"][":setup"]["can run consecutive functions and pass input"] = function()
@@ -142,10 +153,9 @@ T["Agent"][":setup"]["can run consecutive functions and pass input"] = function(
   </tool>
 </tools>]]
   )
+
+  -- Test that the function was called
   h.eq("Data 1 Data 1", vim.g.codecompanion_test)
-  vim.g.codecompanion_test = nil
-  h.eq("Ran with success", vim.g.codecompanion_test_output)
-  vim.g.codecompanion_test_output = nil
 end
 
 T["Agent"][":setup"]["can run multiple, consecutive functions"] = function()
@@ -159,12 +169,13 @@ T["Agent"][":setup"]["can run multiple, consecutive functions"] = function()
   </tool>
 </tools>]]
   )
+
+  -- Test that the function was called, overwriting the global variable
   h.eq("Data 2 Data 2", vim.g.codecompanion_test)
-  vim.g.codecompanion_test = nil
 end
 
 T["Agent"][":setup"]["can handle errors in functions"] = function()
-  -- Stop this from clearing out stderr
+  -- Prevent stderr from being cleared out
   function agent:reset()
     return nil
   end
@@ -178,9 +189,11 @@ T["Agent"][":setup"]["can handle errors in functions"] = function()
 </tools>]]
   )
 
+  -- Test that stderr is updated on the agent
   h.eq({ "Something went wrong" }, agent.stderr)
+
+  -- Test that the `output.error` handler was called
   h.eq("<error>Something went wrong</error>", vim.g.codecompanion_test_output)
-  vim.g.codecompanion_test_output = nil
 end
 
 return T
