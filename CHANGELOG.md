@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.6.0...v12.6.1) (2025-02-20)
+
+
+### Bug Fixes
+
+* **tools:** add missing write flag attribute when editing files ([#966](https://github.com/olimorris/codecompanion.nvim/issues/966)) ([d5bc944](https://github.com/olimorris/codecompanion.nvim/commit/d5bc9441d55a9e6f81191ec96871ae4a48890997))
+
 ## [12.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.5.2...v12.6.0) (2025-02-19)
 
 
