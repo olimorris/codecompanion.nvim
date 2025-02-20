@@ -176,6 +176,11 @@ function Strategies:workflow()
     context = self.context,
     messages = messages,
   })
+
+  if workflow.references then
+    add_ref(workflow, chat)
+  end
+
   table.remove(prompts, 1)
 
   -- Then when it completes we send the next batch and so on
