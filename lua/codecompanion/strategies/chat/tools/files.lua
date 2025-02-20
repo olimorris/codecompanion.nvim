@@ -83,11 +83,12 @@ local function edit(action)
     return util.notify(fmt("No data found in %s", action.path))
   end
 
-  if not content:find(vim.pesc(action.search)) then
+  local changed, substitutions_count = content:gsub(vim.pesc(action.search), vim.pesc(action.replace))
+  if substitutions_count == 0 then
     return util.notify(fmt("Could not find the search string in %s", action.path))
   end
 
-  p:write(content:gsub(vim.pesc(action.search), vim.pesc(action.replace)))
+  p:write(changed, "w")
 end
 
 ---Delete a file
