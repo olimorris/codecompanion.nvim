@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.6.1...v12.7.0) (2025-02-20)
+
+
+### Features
+
+* add reference handling to workflow processing ([#969](https://github.com/olimorris/codecompanion.nvim/issues/969)) ([4c9f120](https://github.com/olimorris/codecompanion.nvim/commit/4c9f120033c1c1b4c17536c2407c288d91d34e95))
+
 ## [12.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.6.0...v12.6.1) (2025-02-20)
 
 
