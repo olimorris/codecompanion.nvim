@@ -14,7 +14,7 @@ return {
   },
   handlers = {
     on_exit = function(self)
-      vim.g.codecompanion_test_exit = "Exited"
+      vim.g.codecompanion_test_exit = (vim.g.codecompanion_test_exit or "") .. "Exited"
     end,
   },
   output = {

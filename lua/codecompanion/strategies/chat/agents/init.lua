@@ -168,16 +168,16 @@ function Agent:parse_buffer(chat, start_range, end_range)
   if not vim.tbl_isempty(tools) then
     self.extracted = tools
     vim.iter(tools):each(function(t)
-      return self:setup(chat, t)
+      return self:execute(chat, t)
     end)
   end
 end
 
----Setup the tool in the chat buffer based on the LLM's response
+---Execute the tool in the chat buffer based on the LLM's response
 ---@param chat CodeCompanion.Chat
 ---@param xml string The XML schema from the LLM's response
 ---@return nil
-function Agent:setup(chat, xml)
+function Agent:execute(chat, xml)
   self.chat = chat
 
   local ok, schema = pcall(parse_xml, xml)

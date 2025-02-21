@@ -16,7 +16,7 @@ local Executor = {}
 ---@param agent CodeCompanion.Agent
 ---@param tool CodeCompanion.Agent.Tool
 function Executor.new(agent, tool)
-  log:debug("Creating new Executor for tool: %s", tool.name)
+  log:debug("Executor.new: %s", tool.name)
   local self = setmetatable({
     agent = agent,
     tool = tool,
@@ -73,6 +73,7 @@ end
 ---@return nil
 function Executor:execute(index, input)
   index = index or 1
+  log:debug("Executor:execute %s", index)
   if
     not self.tool.cmds
     or index > vim.tbl_count(self.tool.cmds)
@@ -101,6 +102,7 @@ end
 ---@param error string
 ---@return nil
 function Executor:error(action, error)
+  log:debug("Executor:error")
   self.agent.status = self.agent.constants.STATUS_ERROR
   table.insert(self.agent.stderr, error)
   self.output.error(action, error)
@@ -113,6 +115,7 @@ end
 ---@param output string
 ---@return nil
 function Executor:success(action, output)
+  log:debug("Executor:success")
   table.insert(self.agent.stdout, output)
   self.output.success(action, output)
 end
@@ -120,6 +123,7 @@ end
 ---Close the execution of the tool
 ---@return nil
 function Executor:close()
+  log:debug("Executor:close")
   self.handlers.on_exit()
 
   util.fire("AgentFinished", {
