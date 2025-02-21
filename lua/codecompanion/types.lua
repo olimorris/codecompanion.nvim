@@ -111,13 +111,13 @@
 ---@field system_prompt fun(schema: table): string The system prompt to the LLM explaining the tool and the schema
 ---@field opts? table The options for the tool
 ---@field env? fun(schema: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
----@field handlers table Functions which can be called during the execution of the tool
----@field handlers.setup? fun(self: CodeCompanion.Agent): any Function used to setup the tool. Called before any commands
+---@field handlers table Functions which handle the execution of a tool
 ---@field handlers.approved? fun(self: CodeCompanion.Agent): boolean Function to call if an approval is needed before running a command
----@field handlers.on_exit? fun(self: CodeCompanion.Agent): any Function to call at the end of all of the commands
----@field output? table Functions which can be called after the command finishes
+---@field handlers.on_exit? fun(self: CodeCompanion.Agent): any Function to call at the end of a group of commands or functions
+---@field handlers.setup? fun(self: CodeCompanion.Agent): any Function used to setup the tool. Called before any commands
+---@field output? table Functions which handle the output after every execution of a tool
+---@field output.error? fun(self: CodeCompanion.Agent, cmd: table, error: table|string): any Function called if a tool execution fails
 ---@field output.rejected? fun(self: CodeCompanion.Agent, cmd: table): any Function to call if the user rejects running a command
----@field output.error? fun(self: CodeCompanion.Agent, cmd: table, error: table|string): any Function to call if the tool is unsuccessful
 ---@field output.success? fun(self: CodeCompanion.Agent, cmd: table, output: table|string): any Function to call if the tool is successful
 ---@field request table The request from the LLM to use the Tool
 

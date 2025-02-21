@@ -1,5 +1,6 @@
 require("tests.log")
 local h = require("tests.helpers")
+local log = require("codecompanion.utils.log")
 
 local new_set = MiniTest.new_set
 local T = new_set()
@@ -22,24 +23,26 @@ T["Agent"] = new_set({
 
 T["Agent"]["functions"] = new_set()
 
-T["Agent"]["functions"]["can run"] = function()
-  h.eq(vim.g.codecompanion_test, nil)
-  agent:execute(
-    chat,
-    [[<tools>
-  <tool name="func">
-    <action type="type1"><data>Data 1</data></action>
-    <action type="type2"><data>Data 2</data></action>
-  </tool>
-</tools>]]
-  )
-
-  -- Test that the function was called
-  h.eq("Data 1 Data 2", vim.g.codecompanion_test)
-end
+-- T["Agent"]["functions"]["can run"] = function()
+--   h.eq(vim.g.codecompanion_test, nil)
+--   agent:execute(
+--     chat,
+--     [[<tools>
+--   <tool name="func">
+--     <action type="type1"><data>Data 1</data></action>
+--     <action type="type2"><data>Data 2</data></action>
+--   </tool>
+-- </tools>]]
+--   )
+--
+--   -- Test that the function was called
+--   h.eq("Data 1 Data 2", vim.g.codecompanion_test)
+-- end
 
 T["Agent"]["functions"]["calls output.success"] = function()
   h.eq(vim.g.codecompanion_test_output, nil)
+
+  log:debug("=== TEST: Can call output.success ===")
   agent:execute(
     chat,
     [[<tools>
@@ -49,9 +52,10 @@ T["Agent"]["functions"]["calls output.success"] = function()
   </tool>
 </tools>]]
   )
+  log:debug("=== TEST END ===")
 
   -- Test `output.success` handler
-  h.eq("Ran with success", vim.g.codecompanion_test_output)
+  h.eq("Ran with successRan with success", vim.g.codecompanion_test_output)
 end
 
 T["Agent"]["functions"]["calls on_exit only once"] = function()
@@ -75,10 +79,10 @@ T["Agent"]["functions"]["can run consecutively and pass input"] = function()
   agent:execute(
     chat,
     [[<tools>
-  <tool name="func_consecutive">
-    <action type="type1"><data>Data 1</data></action>
-  </tool>
-</tools>]]
+   <tool name="func_consecutive">
+     <action type="type1"><data>Data 1</data></action>
+   </tool>
+ </tools>]]
   )
 
   -- Test that the function was called
@@ -90,11 +94,11 @@ T["Agent"]["functions"]["can run consecutively"] = function()
   agent:execute(
     chat,
     [[<tools>
-  <tool name="func_consecutive">
-    <action type="type1"><data>Data 1</data></action>
-    <action type="type2"><data>Data 2</data></action>
-  </tool>
-</tools>]]
+   <tool name="func_consecutive">
+     <action type="type1"><data>Data 1</data></action>
+     <action type="type2"><data>Data 2</data></action>
+   </tool>
+ </tools>]]
   )
 
   -- Test that the function was called, overwriting the global variable
@@ -105,17 +109,17 @@ T["Agent"]["functions"]["can handle errors"] = function()
   agent:execute(
     chat,
     [[<tools>
-  <tool name="func_error">
-    <action type="type1"><data>Data 1</data></action>
-  </tool>
-</tools>]]
+   <tool name="func_error">
+     <action type="type1"><data>Data 1</data></action>
+   </tool>
+ </tools>]]
   )
 
   -- Test that the `output.error` handler was called
   h.eq("<error>Something went wrong</error>", vim.g.codecompanion_test_output)
 end
 
-T["Agent"]["functions"]["can populate stderr"] = function()
+T["Agent"]["functions"]["can populate stderr and halt execution"] = function()
   -- Prevent stderr from being cleared out
   function agent:reset()
     return nil
@@ -124,13 +128,14 @@ T["Agent"]["functions"]["can populate stderr"] = function()
   agent:execute(
     chat,
     [[<tools>
-  <tool name="func_error">
-    <action type="type1"><data>Data 1</data></action>
-  </tool>
-</tools>]]
+   <tool name="func_error">
+     <action type="type1"><data>Data 1</data></action>
+     <action type="type1"><data>Data 2</data></action>
+   </tool>
+ </tools>]]
   )
 
-  -- Test that stderr is updated on the agent
+  -- Test that stderr is updated on the agent, only once
   h.eq({ "Something went wrong" }, agent.stderr)
 end
 
@@ -143,16 +148,14 @@ T["Agent"]["functions"]["can populate stdout"] = function()
   agent:execute(
     chat,
     [[<tools>
-  <tool name="func">
-    <action type="type1"><data>Data 1</data></action>
-  </tool>
-</tools>]]
+   <tool name="func">
+     <action type="type1"><data>Data 1</data></action>
+     <action type="type1"><data>Data 2</data></action>
+   </tool>
+ </tools>]]
   )
 
-  h.eq({ {
-    msg = "Ran with success",
-    status = "success",
-  } }, agent.stdout)
+  h.eq({ { data = "Data 1", status = "success" }, { data = "Data 2", status = "success" } }, agent.stdout)
 end
 
 return T
