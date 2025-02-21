@@ -24,21 +24,21 @@ T["Agent"] = new_set({
 
 T["Agent"]["functions"] = new_set()
 
--- T["Agent"]["functions"]["can run"] = function()
---   h.eq(vim.g.codecompanion_test, nil)
---   agent:execute(
---     chat,
---     [[<tools>
---   <tool name="func">
---     <action type="type1"><data>Data 1</data></action>
---     <action type="type2"><data>Data 2</data></action>
---   </tool>
--- </tools>]]
---   )
---
---   -- Test that the function was called
---   h.eq("Data 1 Data 2", vim.g.codecompanion_test)
--- end
+T["Agent"]["functions"]["can run"] = function()
+  h.eq(vim.g.codecompanion_test, nil)
+  agent:execute(
+    chat,
+    [[<tools>
+  <tool name="func">
+    <action type="type1"><data>Data 1</data></action>
+    <action type="type2"><data>Data 2</data></action>
+  </tool>
+</tools>]]
+  )
+
+  -- Test that the function was called
+  h.eq("Data 1 Data 2", vim.g.codecompanion_test)
+end
 
 T["Agent"]["functions"]["calls output.success"] = function()
   h.eq(vim.g.codecompanion_test_output, nil)
