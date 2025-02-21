@@ -16,6 +16,7 @@ T["Agent"] = new_set({
       h.teardown_chat_buffer()
       vim.g.codecompanion_test = nil
       vim.g.codecompanion_test_exit = nil
+      vim.g.codecompanion_test_setup = nil
       vim.g.codecompanion_test_output = nil
     end,
   },
@@ -156,6 +157,22 @@ T["Agent"]["functions"]["can populate stdout"] = function()
   )
 
   h.eq({ { data = "Data 1", status = "success" }, { data = "Data 2", status = "success" } }, agent.stdout)
+end
+
+T["Agent"]["functions"]["calls handlers.setup once"] = function()
+  h.eq(nil, vim.g.codecompanion_test_setup)
+
+  agent:execute(
+    chat,
+    [[<tools>
+   <tool name="func">
+     <action type="type1"><data>Data 1</data></action>
+     <action type="type1"><data>Data 2</data></action>
+   </tool>
+ </tools>]]
+  )
+
+  h.eq("Setup", vim.g.codecompanion_test_setup)
 end
 
 return T
