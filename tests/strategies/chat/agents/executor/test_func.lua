@@ -22,7 +22,7 @@ T["Agent"] = new_set({
 
 T["Agent"]["functions"] = new_set()
 
-T["Agent"]["functions"]["can run functions"] = function()
+T["Agent"]["functions"]["can run"] = function()
   h.eq(vim.g.codecompanion_test, nil)
   agent:execute(
     chat,
@@ -38,7 +38,7 @@ T["Agent"]["functions"]["can run functions"] = function()
   h.eq("Data 1 Data 2", vim.g.codecompanion_test)
 end
 
-T["Agent"]["functions"]["calls output.success when running functions"] = function()
+T["Agent"]["functions"]["calls output.success"] = function()
   h.eq(vim.g.codecompanion_test_output, nil)
   agent:execute(
     chat,
@@ -54,7 +54,7 @@ T["Agent"]["functions"]["calls output.success when running functions"] = functio
   h.eq("Ran with success", vim.g.codecompanion_test_output)
 end
 
-T["Agent"]["functions"]["can call on_exit only once for functions"] = function()
+T["Agent"]["functions"]["calls on_exit only once"] = function()
   h.eq(vim.g.codecompanion_test_exit, nil)
   agent:execute(
     chat,
@@ -70,7 +70,7 @@ T["Agent"]["functions"]["can call on_exit only once for functions"] = function()
   h.eq(vim.g.codecompanion_test_exit, "Exited")
 end
 
-T["Agent"]["functions"]["can run consecutive functions and pass input"] = function()
+T["Agent"]["functions"]["can run consecutively and pass input"] = function()
   h.eq(vim.g.codecompanion_test, nil)
   agent:execute(
     chat,
@@ -85,7 +85,7 @@ T["Agent"]["functions"]["can run consecutive functions and pass input"] = functi
   h.eq("Data 1 Data 1", vim.g.codecompanion_test)
 end
 
-T["Agent"]["functions"]["can run multiple, consecutive functions"] = function()
+T["Agent"]["functions"]["can run consecutively"] = function()
   h.eq(vim.g.codecompanion_test, nil)
   agent:execute(
     chat,
@@ -101,7 +101,7 @@ T["Agent"]["functions"]["can run multiple, consecutive functions"] = function()
   h.eq("Data 1 Data 2 Data 1 Data 2", vim.g.codecompanion_test)
 end
 
-T["Agent"]["functions"]["can handle errors in functions"] = function()
+T["Agent"]["functions"]["can handle errors"] = function()
   agent:execute(
     chat,
     [[<tools>
@@ -115,7 +115,7 @@ T["Agent"]["functions"]["can handle errors in functions"] = function()
   h.eq("<error>Something went wrong</error>", vim.g.codecompanion_test_output)
 end
 
-T["Agent"]["functions"]["can populate stderr in functions"] = function()
+T["Agent"]["functions"]["can populate stderr"] = function()
   -- Prevent stderr from being cleared out
   function agent:reset()
     return nil
@@ -132,6 +132,27 @@ T["Agent"]["functions"]["can populate stderr in functions"] = function()
 
   -- Test that stderr is updated on the agent
   h.eq({ "Something went wrong" }, agent.stderr)
+end
+
+T["Agent"]["functions"]["can populate stdout"] = function()
+  -- Prevent stderr from being cleared out
+  function agent:reset()
+    return nil
+  end
+
+  agent:execute(
+    chat,
+    [[<tools>
+  <tool name="func">
+    <action type="type1"><data>Data 1</data></action>
+  </tool>
+</tools>]]
+  )
+
+  h.eq({ {
+    msg = "Ran with success",
+    status = "success",
+  } }, agent.stdout)
 end
 
 return T
