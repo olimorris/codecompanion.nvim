@@ -167,23 +167,19 @@ You must:
 
 ### `handlers`
 
-The `handlers` table consists of three methods.
+The _handlers_ table consists of three methods:
 
-The `setup` method is called before any of the `cmds` are called. This is useful if you wish to set the `cmds` dynamically on the tool itself, like in the `cmd_runner` tool.
-
-The `approved` method, which must return a boolean, contains logic to prompt the user for their approval prior to a command being executed. This is used in both the `files` and `cmd_runner` tool to allow the user to validate the actions the LLM is proposing to take.
-
-Finally, the `on_exit` method is called after all of the `cmds` have been executed.
+1. `setup` - Is called before any of the commands/functions are. This is useful if you wish to set the cmds dynamically on the tool itself, like in the _@cmd_runner_ tool.
+2. `approved` - Must return a boolean and contains logic to prompt the user for their approval prior to a command/function being executed. This is used in both the _@files and @cmd_runner tool to allow the user to validate the actions the LLM is proposing to take.
+3. `on_exit` - Is called after all of the commands/function have executed.
 
 ### `output`
 
-The `output` table consists of three methods.
+The _output_ table consists of three methods:
 
-The `rejected` method is called when a user rejects to approve the running of a command. This method is useful of informing the LLM of the rejection.
-
-The `error` method is called to notify the LLM of an error when executing a command.
-
-And finally, the `success` method is called to notify the LLM of a successful execution of a command.
+1. `rejected` - Is called when a user rejects the approval to run a command/function. This method is used to inform the LLM of the rejection.
+2. `error` - Is called when an error occurs whilst executing a command/function. It will only ever be called once as the whole execution for the group of commands/function is halted. This is a useful handler to use to notify the LLM of the failure.
+3. `success` - Is called after _every_ successful execution of a command/function. This can be a useful handler to use to notfiy the LLM of the success.
 
 ### `request`
 
