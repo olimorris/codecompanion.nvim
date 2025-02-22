@@ -434,15 +434,19 @@ function Inline:done(output)
     log:error("[%s] %s", adapter_name, xml.error)
     return self:reset()
   end
-  if xml and not xml.code and string.lower(xml.placement) ~= "chat" then
-    log:error("[%s] Returned no code", adapter_name)
+
+  -- There should always be a placement whether that's from the LLM or the user's prompt
+  local placement = xml and string.lower(xml.placement) or string.lower(self.classification.placement)
+  if not placement then
+    log:error("[%s] No placement returned", adapter_name)
     return self:reset()
   end
 
-  local placement = xml and string.lower(xml.placement) or string.lower(self.classification.placement)
   log:debug("[Inline] Placement: %s", placement)
-  if not placement then
-    log:error("[%s] No placement returned", adapter_name)
+
+  -- An LLM won't send code if it deems the placement should go to a chat buffer
+  if xml and not xml.code and placement ~= "chat" then
+    log:error("[%s] Returned no code", adapter_name)
     return self:reset()
   end
 
