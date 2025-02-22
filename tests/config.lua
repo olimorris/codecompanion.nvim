@@ -52,6 +52,10 @@ return {
       },
       agents = {
         tools = {
+          ["editor"] = {
+            callback = "strategies.chat.agents.tools.editor",
+            description = "Update a buffer with the LLM's response",
+          },
           ["foo"] = {
             callback = "utils.foo",
             description = "Some foo function",
