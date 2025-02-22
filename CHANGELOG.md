@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.7.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.7.0...v12.7.1) (2025-02-22)
+
+
+### Bug Fixes
+
+* **adapter:** variable substitution in 'raw'. ([#980](https://github.com/olimorris/codecompanion.nvim/issues/980)) ([6c628f5](https://github.com/olimorris/codecompanion.nvim/commit/6c628f56419ce8cca7b93cfaba89cde90a3a3a51))
+
 ## [12.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.6.1...v12.7.0) (2025-02-20)
 
 
