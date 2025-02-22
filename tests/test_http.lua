@@ -1,19 +1,25 @@
-local h = require("tests.helpers")
-
 local assert = require("luassert")
-local codecompanion = require("codecompanion")
 local stub = require("luassert.stub")
 
 local Client
 
 local adapter = {
   name = "TestAdapter",
-  url = "https://api.openai.com/v1/chat/completions",
+  url = "https://api.openai.com/v1/${url_value}/completions",
+  env = {
+    url_value = "chat",
+    header_value = "json",
+    raw_value = "RAW_VALUE",
+  },
   headers = {
-    content_type = "application/json",
+    content_type = "application/${header_value}",
   },
   parameters = {
     stream = true,
+  },
+  raw = {
+    "--arg1-${raw_value}",
+    "--arg2-${raw_value}",
   },
   handlers = {
     form_parameters = function()
@@ -64,5 +70,32 @@ describe("Client", function()
     Client.new({ adapter = adapter }):request({}, { callback = cb })
 
     assert.stub(mock_request).was_called(1)
+  end)
+
+  it("substitutes variables", function()
+    local mock_request = stub.new().returns(nil)
+
+    Client.static.opts = {
+      post = { default = mock_request },
+      encode = { default = stub.new().returns("{}") },
+    }
+
+    adapter = require("codecompanion.adapters").new(adapter)
+
+    Client.new({ adapter = adapter }):request({}, { callback = stub.new() })
+
+    assert.stub(mock_request).was_called(1)
+    local request_args = mock_request.calls[1].refs[1]
+
+    -- can substitute in 'url'
+    assert.equal(request_args.url, "https://api.openai.com/v1/chat/completions")
+
+    -- can substitute in 'headers'
+    assert.equal(request_args.headers.content_type, "application/json")
+
+    -- can substitute in 'raw'
+    local raw_args = request_args.raw
+    assert.equal(raw_args[#raw_args - 1], "--arg1-RAW_VALUE")
+    assert.equal(raw_args[#raw_args], "--arg2-RAW_VALUE")
   end)
 end)

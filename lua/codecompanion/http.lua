@@ -101,12 +101,16 @@ function Client:request(payload, actions, opts)
     table.insert(raw, "--no-buffer")
   end
 
+  if adapter.raw then
+    vim.list_extend(raw, adapter:set_env_vars(adapter.raw))
+  end
+
   local request_opts = {
     url = adapter:set_env_vars(adapter.url),
     headers = adapter:set_env_vars(adapter.headers),
     insecure = config.adapters.opts.allow_insecure,
     proxy = config.adapters.opts.proxy,
-    raw = adapter.raw or raw,
+    raw = raw,
     body = body_file.filename or "",
     -- This is called when the request is finished. It will only ever be called
     -- once, even if the endpoint is streaming.
