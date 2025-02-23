@@ -437,11 +437,11 @@ function Inline:done(output)
 
   -- There should always be a placement whether that's from the LLM or the user's prompt
   local placement = xml and xml.placement or self.classification.placement
-  placement = string.lower(placement)
   if not placement then
     log:error("[%s] No placement returned", adapter_name)
     return self:reset()
   end
+  placement = string.lower(placement)
 
   log:debug("[Inline] Placement: %s", placement)
 
