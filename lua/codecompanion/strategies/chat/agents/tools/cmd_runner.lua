@@ -5,26 +5,21 @@ commands in the same XML block. All commands must be approved by you.
 --]]
 
 local config = require("codecompanion.config")
-
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
----@class CmdRunner.ChatOpts
----@field cmd table|string The command that was executed
----@field output table|string The output of the command
----@field message? string An optional message
-
 ---Outputs a message to the chat buffer that initiated the tool
 ---@param msg string The message to output
----@param tool CodeCompanion.Tools The tools object
----@param opts CmdRunner.ChatOpts
+---@param tool CodeCompanion.Agent The tools object
+---@param opts {cmd: table, output: table|string, message?: string}
 local function to_chat(msg, tool, opts)
-  if type(opts.cmd) == "table" then
-    opts.cmd = table.concat(opts.cmd, " ")
+  local cmd
+  if opts and type(opts.cmd) == "table" then
+    cmd = table.concat(opts.cmd, " ")
   end
-  if type(opts.output) == "table" then
-    opts.output = table.concat(opts.output, "\n")
+  if opts and type(opts.output) == "table" then
+    opts.output = vim.iter(opts.output):flatten():join("\n")
   end
 
   local content
@@ -34,7 +29,7 @@ local function to_chat(msg, tool, opts)
 
 ]],
       msg,
-      opts.cmd
+      cmd
     )
   else
     content = string.format(
@@ -57,7 +52,7 @@ local function to_chat(msg, tool, opts)
   })
 end
 
----@class CodeCompanion.Tool
+---@class CodeCompanion.Agent.Tool
 return {
   name = "cmd_runner",
   cmds = {
@@ -161,9 +156,9 @@ return {
     )
   end,
   handlers = {
-    ---@param self CodeCompanion.Tools The tool object
-    setup = function(self)
-      local tool = self.tool --[[@type CodeCompanion.Tool]]
+    ---@param agent CodeCompanion.Agent The tool object
+    setup = function(agent)
+      local tool = agent.tool --[[@type CodeCompanion.Agent.Tool]]
       local action = tool.request.action
       local actions = vim.isarray(action) and action or { action }
 
@@ -177,10 +172,10 @@ return {
     end,
 
     ---Approve the command to be run
-    ---@param self CodeCompanion.Tools The tool object
+    ---@param agent CodeCompanion.Agent
     ---@param cmd table
     ---@return boolean
-    approved = function(self, cmd)
+    approved = function(agent, cmd)
       if vim.g.codecompanion_auto_tool_mode then
         log:info("[Cmd Runner Tool] Auto-approved running the command")
         return true
@@ -202,22 +197,30 @@ return {
 
   output = {
     ---Rejection message back to the LLM
-    rejected = function(self, cmd)
-      to_chat("I chose not to run", self, { cmd = cmd.cmd or cmd, output = "" })
+    ---@param agent CodeCompanion.Agent
+    ---@param cmd table
+    ---@return nil
+    rejected = function(agent, cmd)
+      to_chat("I chose not to run", agent, { cmd = cmd.cmd or cmd, output = "" })
     end,
 
-    ---@param self CodeCompanion.Tools The tools object
-    ---@param cmd table|string The command that was executed
-    ---@param stderr table|string
-    error = function(self, cmd, stderr)
-      to_chat("There was an error from", self, { cmd = cmd.cmd or cmd, output = stderr })
+    ---@param agent CodeCompanion.Agent
+    ---@param cmd table
+    ---@param stderr table
+    ---@param stdout? table
+    error = function(agent, cmd, stderr, stdout)
+      to_chat("There was an error from", agent, { cmd = cmd.cmd or cmd, output = stderr })
+
+      if stdout and not vim.tbl_isempty(stdout) then
+        to_chat("There was also some output from", agent, { cmd = cmd.cmd or cmd, output = stdout })
+      end
     end,
 
-    ---@param self CodeCompanion.Tools The tools object
+    ---@param agent CodeCompanion.Agent
     ---@param cmd table|string The command that was executed
-    ---@param stdout table|string
-    success = function(self, cmd, stdout)
-      to_chat("The output from", self, { cmd = cmd.cmd or cmd, output = stdout })
+    ---@param stdout table
+    success = function(agent, cmd, stdout)
+      to_chat("The output from", agent, { cmd = cmd.cmd or cmd, output = stdout })
     end,
   },
 }

@@ -424,12 +424,19 @@ Remember:
       log:info("[Files Tool] Approved the %s action", string.upper(action._attr.type))
       return true
     end,
+
+    ---@param self CodeCompanion.Agent The tool object
+    ---@return nil
     on_exit = function(self)
       log:debug("[Files Tool] on_exit handler executed")
       file = nil
     end,
   },
   output = {
+    ---@param self CodeCompanion.Agent The tool object
+    ---@param action table
+    ---@param output table
+    ---@return nil
     success = function(self, action, output)
       local type = action._attr.type
       local path = action.path
@@ -454,6 +461,10 @@ Remember:
       end
     end,
 
+    ---@param self CodeCompanion.Agent The tool object
+    ---@param action table
+    ---@param err string
+    ---@return nil
     error = function(self, action, err)
       log:debug("[Files Tool] error callback executed")
       return self.chat:add_buf_message({
@@ -470,6 +481,9 @@ Remember:
       })
     end,
 
+    ---@param self CodeCompanion.Agent The tool object
+    ---@param action table
+    ---@return nil
     rejected = function(self, action)
       return self.chat:add_buf_message({
         role = config.constants.USER_ROLE,

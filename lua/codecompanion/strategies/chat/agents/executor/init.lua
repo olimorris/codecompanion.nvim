@@ -6,6 +6,7 @@ local util = require("codecompanion.utils")
 
 ---@class CodeCompanion.Agent.Executor
 ---@field agent CodeCompanion.Agent
+---@field current_cmd_tool table The current cmd tool that's being executed
 ---@field handlers table<string, function>
 ---@field index number The index of the current command
 ---@field output table<string, function>
@@ -17,8 +18,10 @@ local Executor = {}
 ---@param tool CodeCompanion.Agent.Tool
 function Executor.new(agent, tool)
   log:debug("Executor.new: %s", tool.name)
+
   local self = setmetatable({
     agent = agent,
+    current_cmd_tool = {},
     tool = tool,
   }, { __index = Executor })
 
@@ -48,9 +51,9 @@ function Executor.new(agent, tool)
         self.tool.output.rejected(agent, cmd)
       end
     end,
-    error = function(cmd, error)
+    error = function(cmd, error, output)
       if self.tool.output and self.tool.output.error then
-        self.tool.output.error(agent, cmd, error)
+        self.tool.output.error(agent, cmd, error, output)
       end
     end,
     success = function(cmd, output)
@@ -86,7 +89,7 @@ function Executor:execute(index, input)
   if type(cmd) == "function" then
     return FuncExecutor.new(self, cmd, index):orchestrate(input)
   end
-  return CmdExecutor.new(self, cmd):execute()
+  return CmdExecutor.new(self, cmd):orchestrate()
 end
 
 ---Does the tool require approval before it can be executed?
@@ -99,25 +102,29 @@ end
 
 ---Handle an error from a tool
 ---@param action table
----@param error string
+---@param error? string
 ---@return nil
 function Executor:error(action, error)
   log:debug("Executor:error")
   self.agent.status = self.agent.constants.STATUS_ERROR
-  table.insert(self.agent.stderr, error)
-  self.output.error(action, error)
-  log:error("Error calling function in %s: %s", self.tool.name, error)
+  if error then
+    table.insert(self.agent.stderr, error)
+    log:error("Error running %s: %s", self.tool.name, error)
+  end
+  self.output.error(action, self.agent.stderr, self.agent.stdout)
   self:close()
 end
 
 ---Handle a successful completion of a tool
 ---@param action table
----@param output string
+---@param output? string
 ---@return nil
 function Executor:success(action, output)
   log:debug("Executor:success")
-  table.insert(self.agent.stdout, output)
-  self.output.success(action, output)
+  if output then
+    table.insert(self.agent.stdout, output)
+  end
+  self.output.success(action, self.agent.stdout)
 end
 
 ---Close the execution of the tool

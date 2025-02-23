@@ -9,8 +9,12 @@ return {
     end,
   },
   output = {
-    error = function(self, cmd, error)
-      vim.g.codecompanion_test_output = "<error>" .. error .. "</error>"
+    ---@param self CodeCompanion.Agent
+    ---@param cmd string
+    ---@param stderr table
+    ---@param stdout table
+    error = function(self, cmd, stderr, stdout)
+      vim.g.codecompanion_test_output = "<error>" .. table.concat(stderr, " ") .. "</error>"
     end,
   },
 }

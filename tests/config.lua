@@ -80,6 +80,10 @@ return {
             callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_error.lua",
             description = "Error function tool to test",
           },
+          ["cmd"] = {
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd.lua",
+            description = "Cmd tool",
+          },
           opts = {
             system_prompt = [[My tool system prompt]],
           },

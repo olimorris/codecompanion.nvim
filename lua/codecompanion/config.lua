@@ -541,7 +541,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
             opts = { auto_submit = true },
             -- Scope this prompt to the cmd_runner tool
             condition = function()
-              return vim.g.codecompanion_current_tool == "cmd_runner"
+              return _G.codecompanion_current_tool == "cmd_runner"
             end,
             -- Repeat until the tests pass, as indicated by the testing flag
             -- which the cmd_runner tool sets on the chat buffer
