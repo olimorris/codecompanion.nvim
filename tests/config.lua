@@ -52,6 +52,10 @@ return {
       },
       agents = {
         tools = {
+          ["editor"] = {
+            callback = "strategies.chat.agents.tools.editor",
+            description = "Update a buffer with the LLM's response",
+          },
           ["foo"] = {
             callback = "utils.foo",
             description = "Some foo function",
@@ -63,6 +67,22 @@ return {
           ["bar_again"] = {
             callback = "utils.bar_again",
             description = "Some bar_again function",
+          },
+          ["func"] = {
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
+            description = "Some function tool to test",
+          },
+          ["func_consecutive"] = {
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_consecutive.lua",
+            description = "Consecutive function tool to test",
+          },
+          ["func_error"] = {
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_error.lua",
+            description = "Error function tool to test",
+          },
+          ["cmd"] = {
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd.lua",
+            description = "Cmd tool",
           },
           opts = {
             system_prompt = [[My tool system prompt]],

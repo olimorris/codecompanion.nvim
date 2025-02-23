@@ -157,7 +157,7 @@ return {
   actions = actions,
   cmds = {
     ---Execute the file commands
-    ---@param self CodeCompanion.Tools The Tools object
+    ---@param self CodeCompanion.Agent.Tool The Tools object
     ---@param action table The action object
     ---@param input any The output from the previous function call
     ---@return { status: string, msg: string }
@@ -385,7 +385,7 @@ Remember:
   end,
   handlers = {
     ---Approve the command to be run
-    ---@param self CodeCompanion.Tools The tool object
+    ---@param self CodeCompanion.Agent The tool object
     ---@param action table
     ---@return boolean
     approved = function(self, action)
@@ -424,12 +424,19 @@ Remember:
       log:info("[Files Tool] Approved the %s action", string.upper(action._attr.type))
       return true
     end,
+
+    ---@param self CodeCompanion.Agent The tool object
+    ---@return nil
     on_exit = function(self)
       log:debug("[Files Tool] on_exit handler executed")
       file = nil
     end,
   },
   output = {
+    ---@param self CodeCompanion.Agent The tool object
+    ---@param action table
+    ---@param output table
+    ---@return nil
     success = function(self, action, output)
       local type = action._attr.type
       local path = action.path
@@ -454,6 +461,10 @@ Remember:
       end
     end,
 
+    ---@param self CodeCompanion.Agent The tool object
+    ---@param action table
+    ---@param err string
+    ---@return nil
     error = function(self, action, err)
       log:debug("[Files Tool] error callback executed")
       return self.chat:add_buf_message({
@@ -470,6 +481,9 @@ Remember:
       })
     end,
 
+    ---@param self CodeCompanion.Agent The tool object
+    ---@param action table
+    ---@return nil
     rejected = function(self, action)
       return self.chat:add_buf_message({
         role = config.constants.USER_ROLE,

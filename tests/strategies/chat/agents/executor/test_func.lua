@@ -1,0 +1,178 @@
+require("tests.log")
+local h = require("tests.helpers")
+local log = require("codecompanion.utils.log")
+
+local new_set = MiniTest.new_set
+local T = new_set()
+
+local chat, agent
+
+T["Agent"] = new_set({
+  hooks = {
+    pre_case = function()
+      chat, agent = h.setup_chat_buffer()
+    end,
+    post_case = function()
+      h.teardown_chat_buffer()
+      vim.g.codecompanion_test = nil
+      vim.g.codecompanion_test_exit = nil
+      vim.g.codecompanion_test_setup = nil
+      vim.g.codecompanion_test_output = nil
+    end,
+  },
+})
+
+T["Agent"]["functions"] = new_set()
+
+T["Agent"]["functions"]["can run"] = function()
+  h.eq(vim.g.codecompanion_test, nil)
+  agent:execute(
+    chat,
+    [[<tools>
+  <tool name="func">
+    <action type="type1"><data>Data 1</data></action>
+    <action type="type2"><data>Data 2</data></action>
+  </tool>
+</tools>]]
+  )
+
+  -- Test that the function was called
+  h.eq("Data 1 Data 2", vim.g.codecompanion_test)
+end
+
+T["Agent"]["functions"]["calls output.success"] = function()
+  h.eq(vim.g.codecompanion_test_output, nil)
+
+  log:debug("=== TEST: Can call output.success ===")
+  agent:execute(
+    chat,
+    [[<tools>
+  <tool name="func">
+    <action type="type1"><data>Data 1</data></action>
+    <action type="type2"><data>Data 2</data></action>
+  </tool>
+</tools>]]
+  )
+  log:debug("=== TEST END ===")
+
+  -- Test `output.success` handler
+  h.eq("Ran with successRan with success", vim.g.codecompanion_test_output)
+end
+
+T["Agent"]["functions"]["calls on_exit only once"] = function()
+  h.eq(vim.g.codecompanion_test_exit, nil)
+  agent:execute(
+    chat,
+    [[<tools>
+  <tool name="func">
+    <action type="type1"><data>Data 1</data></action>
+    <action type="type2"><data>Data 2</data></action>
+  </tool>
+</tools>]]
+  )
+
+  -- Test that the on_exit handler was called, once
+  h.eq(vim.g.codecompanion_test_exit, "Exited")
+end
+
+T["Agent"]["functions"]["can run consecutively and pass input"] = function()
+  h.eq(vim.g.codecompanion_test, nil)
+  agent:execute(
+    chat,
+    [[<tools>
+   <tool name="func_consecutive">
+     <action type="type1"><data>Data 1</data></action>
+   </tool>
+ </tools>]]
+  )
+
+  -- Test that the function was called
+  h.eq("Data 1 Data 1", vim.g.codecompanion_test)
+end
+
+T["Agent"]["functions"]["can run consecutively"] = function()
+  h.eq(vim.g.codecompanion_test, nil)
+  agent:execute(
+    chat,
+    [[<tools>
+   <tool name="func_consecutive">
+     <action type="type1"><data>Data 1</data></action>
+     <action type="type2"><data>Data 2</data></action>
+   </tool>
+ </tools>]]
+  )
+
+  -- Test that the function was called, overwriting the global variable
+  h.eq("Data 1 Data 2 Data 1 Data 2", vim.g.codecompanion_test)
+end
+
+T["Agent"]["functions"]["can handle errors"] = function()
+  agent:execute(
+    chat,
+    [[<tools>
+   <tool name="func_error">
+     <action type="type1"><data>Data 1</data></action>
+   </tool>
+ </tools>]]
+  )
+
+  -- Test that the `output.error` handler was called
+  h.eq("<error>Something went wrong</error>", vim.g.codecompanion_test_output)
+end
+
+T["Agent"]["functions"]["can populate stderr and halt execution"] = function()
+  -- Prevent stderr from being cleared out
+  function agent:reset()
+    return nil
+  end
+
+  agent:execute(
+    chat,
+    [[<tools>
+   <tool name="func_error">
+     <action type="type1"><data>Data 1</data></action>
+     <action type="type1"><data>Data 2</data></action>
+   </tool>
+ </tools>]]
+  )
+
+  -- Test that stderr is updated on the agent, only once
+  h.eq({ "Something went wrong" }, agent.stderr)
+end
+
+T["Agent"]["functions"]["can populate stdout"] = function()
+  -- Prevent stderr from being cleared out
+  function agent:reset()
+    return nil
+  end
+
+  agent:execute(
+    chat,
+    [[<tools>
+   <tool name="func">
+     <action type="type1"><data>Data 1</data></action>
+     <action type="type1"><data>Data 2</data></action>
+   </tool>
+ </tools>]]
+  )
+
+  h.eq({ { data = "Data 1", status = "success" }, { data = "Data 2", status = "success" } }, agent.stdout)
+end
+
+T["Agent"]["functions"]["calls handlers.setup once"] = function()
+  h.eq(nil, vim.g.codecompanion_test_setup)
+
+  agent:execute(
+    chat,
+    [[<tools>
+   <tool name="func">
+     <action type="type1"><data>Data 1</data></action>
+     <action type="type1"><data>Data 2</data></action>
+   </tool>
+ </tools>]]
+  )
+
+  h.eq("Setup", vim.g.codecompanion_test_setup)
+end
+
+return T

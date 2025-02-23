@@ -3,24 +3,27 @@ local h = require("tests.helpers")
 local new_set = MiniTest.new_set
 local T = new_set()
 
-local chat, tools
+local chat, agent
 
-T["Tools"] = new_set({
+T["Agent"] = new_set({
   hooks = {
     pre_case = function()
-      chat, tools = h.setup_chat_buffer()
+      chat, agent = h.setup_chat_buffer()
     end,
-    post_once = function()
+    post_case = function()
       h.teardown_chat_buffer()
+      vim.g.codecompanion_test = nil
+      vim.g.codecompanion_test_exit = nil
+      vim.g.codecompanion_test_output = nil
     end,
   },
 })
 
-T["Tools"]["resolve"] = new_set()
+T["Agent"]["resolve"] = new_set()
 
-T["Tools"]["resolve"]["can resolve built-in tools"] = function()
-  local tool = tools.resolve({
-    callback = "strategies.chat.tools.editor",
+T["Agent"]["resolve"]["can resolve built-in tools"] = function()
+  local tool = agent.resolve({
+    callback = "strategies.chat.agents.tools.editor",
     description = "Update a buffer with the LLM's response",
   })
 
@@ -29,8 +32,8 @@ T["Tools"]["resolve"]["can resolve built-in tools"] = function()
   h.eq(6, #tool.schema)
 end
 
-T["Tools"]["resolve"]["can resolve user's tools"] = function()
-  local tool = tools.resolve({
+T["Agent"]["resolve"]["can resolve user's tools"] = function()
+  local tool = agent.resolve({
     callback = vim.fn.getcwd() .. "/tests/stubs/foo.lua",
     description = "Some foo function",
   })
@@ -40,21 +43,21 @@ T["Tools"]["resolve"]["can resolve user's tools"] = function()
   h.eq("This is the Foo tool", tool.cmds[1]())
 end
 
-T["Tools"][":parse"] = new_set()
+T["Agent"][":parse"] = new_set()
 
-T["Tools"][":parse"]["a message with a tool"] = function()
+T["Agent"][":parse"]["a message with a tool"] = function()
   table.insert(chat.messages, {
     role = "user",
     content = "@foo do some stuff",
   })
-  tools:parse(chat, chat.messages[#chat.messages])
+  agent:parse(chat, chat.messages[#chat.messages])
   local messages = chat.messages
 
   h.eq("My tool system prompt", messages[#messages - 1].content)
   h.eq("my foo system prompt", messages[#messages].content)
 end
 
-T["Tools"][":parse"]["a response from the LLM"] = function()
+T["Agent"][":parse"]["a response from the LLM"] = function()
   chat:add_buf_message({
     role = "user",
     content = "@foo do some stuff",
@@ -72,14 +75,14 @@ T["Tools"][":parse"]["a response from the LLM"] = function()
 ```
 ]],
   })
-  chat.tools.chat = chat
-  chat.tools:parse_buffer(chat, 5, 100)
+  chat.agents.chat = chat
+  chat.agents:parse_buffer(chat, 5, 100)
 
   local lines = h.get_buf_lines(chat.bufnr)
   h.eq("This is from the foo tool", lines[#lines])
 end
 
-T["Tools"][":parse"]["a nested response from the LLM"] = function()
+T["Agent"][":parse"]["a nested response from the LLM"] = function()
   chat:add_buf_message({
     role = "user",
     content = "@foo @bar do some stuff",
@@ -100,18 +103,18 @@ T["Tools"][":parse"]["a nested response from the LLM"] = function()
 ```
 ]],
   })
-  chat.tools.chat = chat
-  chat.tools:parse_buffer(chat, 5, 100)
+  chat.agents.chat = chat
+  chat.agents:parse_buffer(chat, 5, 100)
 
   local lines = h.get_buf_lines(chat.bufnr)
   h.eq("This is from the foo toolThis is from the bar tool", lines[#lines])
 end
 
-T["Tools"][":replace"] = new_set()
+T["Agent"][":replace"] = new_set()
 
-T["Tools"][":replace"]["should replace the tool in the message"] = function()
+T["Agent"][":replace"]["should replace the tool in the message"] = function()
   local message = "run the @foo tool"
-  local result = tools:replace(message, "foo")
+  local result = agent:replace(message, "foo")
   h.eq("run the foo tool", result)
 end
 

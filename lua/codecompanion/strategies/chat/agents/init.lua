@@ -1,7 +1,20 @@
-local Job = require("plenary.job")
-local config = require("codecompanion.config")
+---@class CodeCompanion.Agent
+---@field agent_config table The agent strategy from the config
+---@field aug number The augroup for the tool
+---@field bufnr number The buffer of the chat buffer
+---@field constants table<string, string> The constants for the tool
+---@field chat CodeCompanion.Chat The chat buffer that initiated the tool
+---@field extracted table The extracted tools from the LLM's response
+---@field messages table The messages in the chat buffer
+---@field status string The status of the tool
+---@field stdout table The stdout of the tool
+---@field stderr table The stderr of the tool
+---@field tool CodeCompanion.Agent.Tool The current tool that's being run
+---@field tools_ns integer The namespace for the virtual text that appears in the header
 
+local Executor = require("codecompanion.strategies.chat.agents.executor")
 local TreeHandler = require("codecompanion.utils.xml.xmlhandler.tree")
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils")
@@ -47,28 +60,31 @@ local function parse_xml(message)
   return handler.root.tools
 end
 
----@class CodeCompanion.Tools
-local Tools = {}
+---@class CodeCompanion.Agent
+local Agent = {}
 
 ---@param args table
-function Tools.new(args)
+function Agent.new(args)
   local self = setmetatable({
     aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. args.bufnr, { clear = true }),
     bufnr = args.bufnr,
     chat = {},
+    constants = CONSTANTS,
     extracted = {},
     messages = args.messages,
+    stdout = {},
+    stderr = {},
     tool = {},
     agent_config = config.strategies.chat.agents,
     tools_ns = api.nvim_create_namespace(CONSTANTS.NS_TOOLS),
-  }, { __index = Tools })
+  }, { __index = Agent })
 
   return self
 end
 
 ---Set the autocmds for the tool
 ---@return nil
-function Tools:set_autocmds()
+function Agent:set_autocmds()
   api.nvim_create_autocmd("User", {
     desc = "Handle responses from an Agent",
     group = self.aug,
@@ -117,7 +133,7 @@ end
 ---@param start_range number
 ---@param end_range number
 ---@return nil
-function Tools:parse_buffer(chat, start_range, end_range)
+function Agent:parse_buffer(chat, start_range, end_range)
   local query = vim.treesitter.query.get("markdown", "tools")
   local tree = chat.parser:parse({ start_range - 1, end_range - 1 })[1]
 
@@ -152,16 +168,16 @@ function Tools:parse_buffer(chat, start_range, end_range)
   if not vim.tbl_isempty(tools) then
     self.extracted = tools
     vim.iter(tools):each(function(t)
-      return self:setup(chat, t)
+      return self:execute(chat, t)
     end)
   end
 end
 
----Setup the tool in the chat buffer based on the LLM's response
+---Execute the tool in the chat buffer based on the LLM's response
 ---@param chat CodeCompanion.Chat
 ---@param xml string The XML schema from the LLM's response
 ---@return nil
-function Tools:setup(chat, xml)
+function Agent:execute(chat, xml)
   self.chat = chat
 
   local ok, schema = pcall(parse_xml, xml)
@@ -173,10 +189,15 @@ function Tools:setup(chat, xml)
   ---Resolve and run the tool
   ---@param s table The tool's schema
   local function run_tool(s)
+    -- If an error occurred, don't run any more tools
+    if self.status == CONSTANTS.STATUS_ERROR then
+      return
+    end
+
     ---@type CodeCompanion.Tool|nil
     local resolved_tool
     ok, resolved_tool = pcall(function()
-      return Tools.resolve(self.agent_config.tools[s.tool._attr.name])
+      return Agent.resolve(self.agent_config.tools[s.tool._attr.name])
     end)
     if not ok or not resolved_tool then
       log:error("Couldn't resolve the tool(s) from the LLM's response")
@@ -195,7 +216,7 @@ function Tools:setup(chat, xml)
       util.replace_placeholders(self.tool.cmds, env)
     end
 
-    self:run()
+    return Executor.new(self, self.tool):execute()
   end
 
   -- This allows us to run multiple tools in a single response whether they're in
@@ -204,250 +225,16 @@ function Tools:setup(chat, xml)
     vim.iter(schema.tool):each(function(tool)
       run_tool({ tool = tool })
     end)
-    return
+  else
+    return run_tool(schema)
   end
-  return run_tool(schema)
-end
-
----Run the tool
----@return nil
-function Tools:run()
-  local stderr = {}
-  local stdout = {}
-  local status = CONSTANTS.STATUS_SUCCESS
-  _G.codecompanion_cancel_tool = false
-
-  local requires_approval = (
-    config.strategies.chat.agents.tools[self.tool.name].opts
-      and config.strategies.chat.agents.tools[self.tool.name].opts.user_approval
-    or false
-  )
-
-  local handlers = {
-    setup = function()
-      vim.g.codecompanion_current_tool = self.tool.name
-      if self.tool.handlers and self.tool.handlers.setup then
-        self.tool.handlers.setup(self)
-      end
-    end,
-    approved = function(cmd)
-      if self.tool.handlers and self.tool.handlers.approved then
-        return self.tool.handlers.approved(self, cmd)
-      end
-      return true
-    end,
-    on_exit = function()
-      if self.tool.handlers and self.tool.handlers.on_exit then
-        self.tool.handlers.on_exit(self)
-      end
-    end,
-  }
-
-  local output = {
-    rejected = function(cmd)
-      if self.tool.output and self.tool.output.rejected then
-        self.tool.output.rejected(self, cmd)
-      end
-    end,
-    error = function(cmd, error)
-      if self.tool.output and self.tool.output.error then
-        self.tool.output.error(self, cmd, error)
-      end
-    end,
-    success = function(cmd, output)
-      if self.tool.output and self.tool.output.success then
-        self.tool.output.success(self, cmd, output)
-      end
-    end,
-  }
-
-  ---Action to take when closing the job
-  local function close()
-    handlers.on_exit()
-
-    util.fire(
-      "AgentFinished",
-      { name = self.tool.name, bufnr = self.bufnr, status = status, stderr = stderr, stdout = stdout }
-    )
-
-    status = CONSTANTS.STATUS_SUCCESS
-    stderr = {}
-    stdout = {}
-
-    self.chat.subscribers:process(self.chat)
-    vim.g.codecompanion_current_tool = nil
-  end
-
-  ---Run the commands in the tool
-  ---@param index number
-  ---@param ... any
-  local function run(index, ...)
-    local function continue()
-      if not self.tool.cmds then
-        return false
-      end
-      if index >= vim.tbl_count(self.tool.cmds) or status == CONSTANTS.STATUS_ERROR then
-        return false
-      end
-      return true
-    end
-
-    local cmd = self.tool.cmds[index]
-    log:debug("[Tools] Running cmd: %s", self.tool.name)
-
-    ---Execute a function tool
-    local function execute_func(action, ...)
-      if requires_approval and not handlers.approved(action) then
-        output.rejected(action)
-        if not continue() then
-          return close()
-        end
-      end
-
-      local ok, data = pcall(function(...)
-        return cmd(self, action, ...)
-      end)
-      if not ok then
-        status = CONSTANTS.STATUS_ERROR
-        table.insert(stderr, data)
-        log:error("Error calling function in %s: %s", self.tool.name, data)
-        output.error(action, data)
-        return close()
-      end
-
-      if data.status == CONSTANTS.STATUS_ERROR then
-        status = CONSTANTS.STATUS_ERROR
-        table.insert(stderr, data.msg)
-        output.error(action, data.msg)
-      else
-        table.insert(stdout, data.msg)
-        output.success(action, data.msg)
-      end
-
-      if not continue() then
-        return close()
-      end
-
-      run(index + 1, output)
-    end
-
-    -- Tools that are setup as Lua functions
-    if type(cmd) == "function" then
-      local action = self.tool.request.action
-      if type(action) == "table" and type(action[1]) == "table" then
-        for _, a in ipairs(action) do
-          execute_func(a, ...)
-        end
-      else
-        execute_func(action, ...)
-      end
-    end
-
-    -- Tools that are setup as shell commands
-    if type(cmd) == "table" then
-      if requires_approval and not handlers.approved(cmd) then
-        output.rejected(cmd)
-        if not continue() then
-          return close()
-        end
-      end
-
-      local new_job = Job:new({
-        command = vim.fn.has("win32") == 1 and "cmd.exe" or "sh",
-        args = { vim.fn.has("win32") == 1 and "/c" or "-c", table.concat(cmd.cmd or cmd, " ") },
-        enable_recording = true,
-        cwd = vim.fn.getcwd(),
-        on_stdout = function(_, data)
-          vim.schedule(function()
-            table.insert(strip_ansi(stdout), data)
-          end)
-        end,
-        on_stderr = function(err, data)
-          vim.schedule(function()
-            table.insert(strip_ansi(stderr), data)
-          end)
-
-          if err then
-            vim.schedule(function()
-              stderr = strip_ansi(err)
-              status = CONSTANTS.STATUS_ERROR
-              log:error("Error running tool %s: %s", self.tool.name, err)
-              return close()
-            end)
-          end
-        end,
-        on_exit = function(data, code)
-          self.chat.current_tool = nil
-
-          -- Handle the LLM setting any flags
-          if cmd.flag then
-            self.chat.tool_flags = self.chat.tool_flags or {}
-            self.chat.tool_flags[cmd.flag] = (code == 0)
-          end
-
-          log:debug("[Tools] %s finished with code %s", self.tool.name, code)
-
-          vim.schedule(function()
-            if _G.codecompanion_cancel_tool then
-              stdout = strip_ansi(stdout)
-              stderr = strip_ansi(stderr)
-              return close()
-            end
-
-            if vim.tbl_isempty(stdout) and vim.tbl_isempty(stderr) then
-              if code == 0 then
-                output.success(cmd, "Tool finished successfully but with no output")
-              else
-                output.error(cmd, "Tool failed with code " .. code .. " and no output")
-              end
-            elseif not vim.tbl_isempty(stderr) then
-              output.error(cmd, strip_ansi(stderr))
-              log:debug("[Tools] %s finished with stderr: %s", self.tool.name, stderr)
-              stderr = {}
-              if code == 0 then
-                output.success(cmd, strip_ansi(stdout))
-                log:trace("[Tools] %s finished with output: %s", self.tool.name, stdout)
-                stdout = {}
-              end
-            elseif not vim.tbl_isempty(stdout) then
-              output.success(cmd, strip_ansi(stdout))
-              log:trace("[Tools] %s finished with output: %s", self.tool.name, stdout)
-              stdout = {}
-            end
-
-            if not continue() then
-              return close()
-            end
-
-            run(index + 1, data)
-          end)
-        end,
-      })
-
-      if self.chat.current_tool then
-        -- Chain to the previous job if it exists
-        self.chat.current_tool:and_then_wrap(new_job)
-      else
-        -- Start first job directly
-        new_job:start()
-      end
-
-      -- Update current_tool reference
-      self.chat.current_tool = new_job
-    end
-  end
-
-  util.fire("AgentStarted", { tool = self.tool.name, bufnr = self.bufnr })
-
-  handlers.setup()
-  return run(1)
 end
 
 ---Look for tools in a given message
 ---@param chat CodeCompanion.Chat
 ---@param message table
 ---@return table?, table?
-function Tools:find(chat, message)
+function Agent:find(chat, message)
   if not message.content then
     return nil, nil
   end
@@ -499,7 +286,7 @@ end
 ---@param chat CodeCompanion.Chat
 ---@param message table
 ---@return boolean
-function Tools:parse(chat, message)
+function Agent:parse(chat, message)
   local tools, agents = self:find(chat, message)
 
   if tools or agents then
@@ -528,7 +315,7 @@ end
 ---Replace the tool tag in a given message
 ---@param message string
 ---@return string
-function Tools:replace(message)
+function Agent:replace(message)
   for tool, _ in pairs(self.agent_config.tools) do
     message = vim.trim(message:gsub(CONSTANTS.PREFIX .. tool, tool))
   end
@@ -541,16 +328,21 @@ end
 
 ---Reset the tool class
 ---@return nil
-function Tools:reset()
+function Agent:reset()
   api.nvim_buf_clear_namespace(self.bufnr, self.tools_ns, 0, -1)
   api.nvim_clear_autocmds({ group = self.aug })
+
   self.extracted = {}
+  self.status = CONSTANTS.STATUS_SUCCESS
+  self.stderr = {}
+  self.stdout = {}
+
   log:info("[Agent] Completed")
 end
 
 ---Fold any XML code blocks in the buffer
 ---@return nil
-function Tools:fold_xml()
+function Agent:fold_xml()
   local query = vim.treesitter.query.parse(
     "markdown",
     [[
@@ -585,8 +377,8 @@ end
 
 ---Add an error message to the chat buffer
 ---@param error string
----@return CodeCompanion.Tools
-function Tools:add_error_to_chat(error)
+---@return CodeCompanion.Agent
+function Agent:add_error_to_chat(error)
   self.chat:add_message({
     role = config.constants.USER_ROLE,
     content = error,
@@ -608,7 +400,7 @@ end
 ---Resolve a tool from the config
 ---@param tool table The tool from the config
 ---@return CodeCompanion.Tool|nil
-function Tools.resolve(tool)
+function Agent.resolve(tool)
   local callback = tool.callback
 
   if type(callback) == "table" then
@@ -633,4 +425,4 @@ function Tools.resolve(tool)
   end
 end
 
-return Tools
+return Agent

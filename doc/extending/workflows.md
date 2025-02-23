@@ -133,7 +133,7 @@ Now let's look at how we trigger the automated reflection prompts:
         opts = { auto_submit = true },
         -- Scope this prompt to only run when the cmd_runner tool is active
         condition = function()
-          return vim.g.codecompanion_current_tool == "cmd_runner"
+          return _G.codecompanion_current_tool == "cmd_runner"
         end,
         -- Repeat until the tests pass, as indicated by the testing flag
         repeat_until = function(chat)
