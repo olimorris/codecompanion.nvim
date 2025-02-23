@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.7.2](https://github.com/olimorris/codecompanion.nvim/compare/v12.7.1...v12.7.2) (2025-02-23)
+
+
+### Bug Fixes
+
+* **inline:** setting placement from prompt library closes [#990](https://github.com/olimorris/codecompanion.nvim/issues/990) ([#991](https://github.com/olimorris/codecompanion.nvim/issues/991)) ([836dafc](https://github.com/olimorris/codecompanion.nvim/commit/836dafca125ec713f8a9379c69319f7889504824))
+
 ## [12.7.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.7.0...v12.7.1) (2025-02-22)
 
 
