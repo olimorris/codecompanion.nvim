@@ -1,4 +1,5 @@
 local Job = require("plenary.job")
+local handlers = require("codecompanion.strategies.chat.agents.executor.cmd_handlers")
 local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Agent.Executor.Cmd
@@ -42,51 +43,17 @@ function CmdExecutor:run(cmd)
   log:debug("CmdExecutor:run %s", cmd)
 
   local job = Job:new({
-    command = vim.fn.has("win32") == 1 and "cmd.exe" or "sh",
-    args = { vim.fn.has("win32") == 1 and "/c" or "-c", table.concat(cmd.cmd or cmd, " ") },
+    command = handlers.command(),
+    args = handlers.args(cmd),
     enable_recording = true,
     cwd = vim.fn.getcwd(),
     on_exit = function(data, code)
-      log:debug("CmdExecutor:run - on_exit")
-
-      self.executor.current_cmd_tool = nil
-
-      -- Flags can be inserted into the chat buffer to be picked up later
-      if cmd.flag then
-        self.executor.agent.chat.tool_flags = self.executor.agent.chat.tool_flags or {}
-        self.executor.agent.chat.tool_flags[cmd.flag] = (code == 0)
-      end
-
-      vim.schedule(function()
-        local ok, _ = pcall(function()
-          if _G.codecompanion_cancel_tool then
-            return self.executor:close()
-          end
-          if data then
-            if data._stderr_results then
-              table.insert(self.executor.agent.stderr, strip_ansi(data._stderr_results))
-            end
-            if data._stdout_results then
-              table.insert(self.executor.agent.stdout, strip_ansi(data._stdout_results))
-            end
-          end
-          if code == 0 then
-            self.executor:success(cmd)
-            return self.executor:close()
-          else
-            return self.executor:error(cmd, string.format("Command failed with code %s", code))
-          end
-        end)
-
-        if not ok then
-          log:error("Internal error running command: %s", cmd)
-        end
-      end)
+      handlers.on_exit(self, cmd, data, code)
     end,
   })
 
   if not vim.tbl_isempty(self.executor.current_cmd_tool) then
-    self.executor.current_cmd_tool:and_then(job)
+    self.executor.current_cmd_tool:and_then_wrap(job)
   else
     job:start()
   end

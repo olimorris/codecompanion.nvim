@@ -1,5 +1,8 @@
 local Helpers = {}
 
+--  Store original modules
+Helpers._original_modules = {}
+
 Helpers.expect = MiniTest.expect --[[@type function]]
 Helpers.eq = MiniTest.expect.equality --[[@type function]]
 Helpers.not_eq = MiniTest.expect.no_equality --[[@type function]]
@@ -16,8 +19,37 @@ Helpers.expect_starts_with = MiniTest.new_expectation( --[[@type function]]
   end
 )
 
-local function make_config()
-  -- Overwrite the config with the test config
+---Setup mock for a module
+---@param module_name string
+---@param mock_implementation table
+function Helpers.mock_module(module_name, mock_implementation)
+  Helpers._original_modules[module_name] = package.loaded[module_name]
+  package.loaded[module_name] = mock_implementation
+end
+
+---Restore original module
+---@param module_name string
+function Helpers.restore_module(module_name)
+  package.loaded[module_name] = Helpers._original_modules[module_name]
+  Helpers._original_modules[module_name] = nil
+end
+
+---Mock plenary.job specifically
+---@return nil
+function Helpers.mock_job()
+  local MockJob = require("tests.mocks.job")
+  Helpers.mock_module("plenary.job", MockJob)
+end
+
+---Restore plenary.job
+---@return nil
+function Helpers.restore_job()
+  Helpers.restore_module("plenary.job")
+end
+
+---Mock the plugin config
+---@return table
+local function mock_config()
   local config_module = require("codecompanion.config")
   config_module.setup = function(args)
     config_module.config = args or {}
@@ -28,9 +60,13 @@ local function make_config()
   return config_module
 end
 
+---Setup and mock a chat buffer
+---@param config? table
+---@param adapter? table
+---@return CodeCompanion.Chat, CodeCompanion.Agent, CodeCompanion.Variables
 Helpers.setup_chat_buffer = function(config, adapter)
   local test_config = vim.deepcopy(require("tests.config"))
-  local config_module = make_config()
+  local config_module = mock_config()
   config_module.setup(vim.tbl_deep_extend("force", test_config, config or {}))
 
   -- Extend the adapters
@@ -101,21 +137,26 @@ Helpers.send_to_llm = function(chat, message, callback)
 end
 
 ---Clean down the chat buffer if required
+---@return nil
 Helpers.teardown_chat_buffer = function()
-  -- package.loaded["codecompanion.utils.foo"] = nil
-  -- package.loaded["codecompanion.utils.bar"] = nil
-  -- package.loaded["codecompanion.utils.bar_again"] = nil
+  package.loaded["codecompanion.utils.foo"] = nil
+  package.loaded["codecompanion.utils.bar"] = nil
+  package.loaded["codecompanion.utils.bar_again"] = nil
 end
 
 ---Get the lines of a buffer
+---@param bufnr number
+---@return table
 Helpers.get_buf_lines = function(bufnr)
   return vim.api.nvim_buf_get_lines(bufnr, 0, -1, true)
 end
 
 ---Setup the inline buffer
+---@param config table
+---@return CodeCompanion.Inline
 Helpers.setup_inline = function(config)
   local test_config = vim.deepcopy(require("tests.config"))
-  local config_module = make_config()
+  local config_module = mock_config()
   config_module.setup(vim.tbl_deep_extend("force", test_config, config or {}))
 
   return require("codecompanion.strategies.inline").new({

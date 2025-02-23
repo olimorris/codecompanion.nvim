@@ -109,7 +109,7 @@ function Executor:error(action, error)
   self.agent.status = self.agent.constants.STATUS_ERROR
   if error then
     table.insert(self.agent.stderr, error)
-    log:error("Error running %s: %s", self.tool.name, error)
+    log:warn("Error with %s: %s", self.tool.name, error)
   end
   self.output.error(action, self.agent.stderr, self.agent.stdout)
   self:close()
@@ -131,6 +131,7 @@ end
 ---@return nil
 function Executor:close()
   log:debug("Executor:close")
+
   self.handlers.on_exit()
 
   util.fire("AgentFinished", {

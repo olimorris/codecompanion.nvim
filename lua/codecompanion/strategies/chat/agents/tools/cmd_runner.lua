@@ -17,6 +17,8 @@ local function to_chat(msg, tool, opts)
   local cmd
   if opts and type(opts.cmd) == "table" then
     cmd = table.concat(opts.cmd, " ")
+  else
+    cmd = opts.cmd
   end
   if opts and type(opts.output) == "table" then
     opts.output = vim.iter(opts.output):flatten():join("\n")
@@ -41,7 +43,7 @@ local function to_chat(msg, tool, opts)
 
 ]],
       msg,
-      opts.cmd,
+      cmd,
       opts.output
     )
   end
@@ -217,7 +219,7 @@ return {
     end,
 
     ---@param agent CodeCompanion.Agent
-    ---@param cmd table|string The command that was executed
+    ---@param cmd table The command that was executed
     ---@param stdout table
     success = function(agent, cmd, stdout)
       to_chat("The output from", agent, { cmd = cmd.cmd or cmd, output = stdout })

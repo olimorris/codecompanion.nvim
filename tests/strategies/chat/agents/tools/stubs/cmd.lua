@@ -4,7 +4,7 @@ return {
     return "my cmd system prompt"
   end,
   cmds = {
-    { [[make test]] },
+    { "echo", "Hello World" },
   },
   handlers = {
     -- Should only be called once
@@ -20,7 +20,6 @@ return {
     -- Should be called multiple times
     success = function(self, cmd, output)
       vim.g.codecompanion_test_output = (vim.g.codecompanion_test_output or "") .. "Ran with success"
-      return "stdout is populated!"
     end,
   },
 }
