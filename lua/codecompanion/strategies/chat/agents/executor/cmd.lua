@@ -47,7 +47,7 @@ function CmdExecutor:run(cmd)
     enable_recording = true,
     cwd = vim.fn.getcwd(),
     on_exit = function(data, code)
-      -- log:debug("CmdExecutor:run - on_exit")
+      log:debug("CmdExecutor:run - on_exit")
 
       self.executor.current_cmd_tool = nil
 
@@ -57,11 +57,7 @@ function CmdExecutor:run(cmd)
         self.executor.agent.chat.tool_flags[cmd.flag] = (code == 0)
       end
 
-      -- log:debug("[Tools] %s finished with code %s", self.cmd, code)
-
       vim.schedule(function()
-        -- We need to ensure we handle any errors that occur within the job
-        -- Otherwise, we'll end up with jobs which fail to shutdown
         local ok, _ = pcall(function()
           if _G.codecompanion_cancel_tool then
             return self.executor:close()
@@ -83,7 +79,7 @@ function CmdExecutor:run(cmd)
         end)
 
         if not ok then
-          log:error("Error running command: %s", cmd)
+          log:error("Internal error running command: %s", cmd)
         end
       end)
     end,
