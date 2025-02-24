@@ -3,17 +3,19 @@ local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Agent.Executor.Cmd
 ---@field executor CodeCompanion.Agent.Executor
----@field cmd table
+---@field cmds table
+---@field count number
 ---@field index number
 local CmdExecutor = {}
 
 ---@param executor CodeCompanion.Agent.Executor
----@param cmd table
+---@param cmds table
 ---@param index number
-function CmdExecutor.new(executor, cmd, index)
+function CmdExecutor.new(executor, cmds, index)
   return setmetatable({
     executor = executor,
-    cmd = cmd,
+    cmds = cmds,
+    count = vim.tbl_count(cmds),
     index = index,
   }, { __index = CmdExecutor })
 end
@@ -21,9 +23,11 @@ end
 ---Orchestrate the tool function
 ---@return nil
 function CmdExecutor:orchestrate()
-  log:debug("CmdExecutor:orchestrate %s", self.cmd)
+  log:debug("CmdExecutor:orchestrate %s", self.cmds)
 
-  self:run(self.cmd)
+  for i = self.index, self.count do
+    self:run(self.cmds[i], i)
+  end
 end
 
 ---Some commands output ANSI color codes so we need to strip them
@@ -38,8 +42,9 @@ end
 
 ---Run the tool's function
 ---@param cmd table
+---@param index number
 ---@return nil
-function CmdExecutor:run(cmd)
+function CmdExecutor:run(cmd, index)
   log:debug("CmdExecutor:run %s", cmd)
 
   local job = Job:new({
@@ -70,7 +75,10 @@ function CmdExecutor:run(cmd)
           end
           if code == 0 then
             self.executor:success(cmd)
-            return self.executor:close()
+            -- Don't trigger on_exit unless it's the last command
+            if index == self.count then
+              return self.executor:close()
+            end
           else
             return self.executor:error(cmd, string.format("Failed with code %s", code))
           end

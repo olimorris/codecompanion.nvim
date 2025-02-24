@@ -84,6 +84,10 @@ return {
             callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd.lua",
             description = "Cmd tool",
           },
+          ["cmd_consecutive"] = {
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd_consecutive.lua",
+            description = "Cmd tool",
+          },
           ["cmd_error"] = {
             callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd_error.lua",
             description = "Cmd tool",

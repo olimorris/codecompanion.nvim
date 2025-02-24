@@ -90,7 +90,7 @@ function Executor:execute(index, input)
     return FuncExecutor.new(self, cmd, index):orchestrate(input)
   end
 
-  return CmdExecutor.new(self, cmd):orchestrate()
+  return CmdExecutor.new(self, self.tool.cmds, index):orchestrate()
 end
 
 ---Does the tool require approval before it can be executed?
