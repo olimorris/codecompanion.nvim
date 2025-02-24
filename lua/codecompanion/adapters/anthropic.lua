@@ -41,6 +41,11 @@ return {
         self.parameters.stream = true
       end
 
+      -- Add the extended output header if enabled
+      if self.parameters.extended_output then
+        self.headers["anthropic-beta"] = "prompt-caching-2024-07-31,output-128k-2025-02-19"
+      end
+
       return true
     end,
 
@@ -50,6 +55,22 @@ return {
     ---@param messages table
     ---@return table
     form_parameters = function(self, params, messages)
+      -- Add thinking configuration if extended_thinking is enabled
+      if params.extended_thinking and params.thinking_budget then
+        params.thinking = {
+          type = "enabled",
+          budget_tokens = params.thinking_budget,
+        }
+      end
+      if params.extended_thinking then
+        params.temperature = 1
+      end
+
+      -- Remove our custom parameters that aren't part of the Anthropic API
+      params.extended_thinking = nil
+      params.extended_output = nil
+      params.thinking_budget = nil
+
       return params
     end,
 
@@ -175,9 +196,16 @@ return {
           if json.type == "message_start" then
             output.role = json.message.role
             output.content = ""
+          elseif json.type == "content_block_start" then
+            if json.content_block.type == "thinking" then
+              output.reasoning = ""
+            end
           elseif json.type == "content_block_delta" then
-            output.role = nil
-            output.content = json.delta.text
+            if json.delta.type == "thinking_delta" then
+              output.reasoning = json.delta.thinking
+            else
+              output.content = json.delta.text
+            end
           elseif json.type == "message" then
             output.role = json.role
             output.content = json.content[1].text
@@ -242,19 +270,46 @@ return {
         "claude-2.1",
       },
     },
-    max_tokens = {
+    extended_output = {
       order = 2,
+      mapping = "parameters",
+      type = "boolean",
+      optional = true,
+      default = false,
+      desc = "Enable larger output context (128k tokens). Only available with claude-3-7-sonnet-20250219.",
+    },
+    extended_thinking = {
+      order = 3,
+      mapping = "parameters",
+      type = "boolean",
+      optional = true,
+      default = false,
+      desc = "Enable extended thinking for more thorough reasoning. Requires thinking_budget to be set.",
+    },
+    thinking_budget = {
+      order = 4,
+      mapping = "parameters",
+      type = "number",
+      optional = true,
+      default = 16000,
+      desc = "The maximum number of tokens to use for thinking when extended_thinking is enabled. Must be less than max_tokens.",
+      validate = function(n)
+        return n > 0, "Must be greater than 0"
+      end,
+    },
+    max_tokens = {
+      order = 5,
       mapping = "parameters",
       type = "number",
       optional = true,
       default = 4096,
       desc = "The maximum number of tokens to generate before stopping. This parameter only specifies the absolute maximum number of tokens to generate. Different models have different maximum values for this parameter.",
       validate = function(n)
-        return n > 0 and n <= 8192, "Must be between 0 and 8192"
+        return n > 0 and n <= 32768, "Must be between 0 and 32768"
       end,
     },
     temperature = {
-      order = 3,
+      order = 6,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -265,7 +320,7 @@ return {
       end,
     },
     top_p = {
-      order = 4,
+      order = 7,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -276,7 +331,7 @@ return {
       end,
     },
     top_k = {
-      order = 5,
+      order = 8,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -287,7 +342,7 @@ return {
       end,
     },
     stop_sequences = {
-      order = 6,
+      order = 9,
       mapping = "parameters",
       type = "list",
       optional = true,
