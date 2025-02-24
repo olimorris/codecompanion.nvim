@@ -10,7 +10,7 @@ return {
     end,
     function(self, actions, input)
       local output = input .. " " .. actions.data
-      vim.g.codecompanion_test = output
+      _G._test_func = output
       return output
     end,
   },

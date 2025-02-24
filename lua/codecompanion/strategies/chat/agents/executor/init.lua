@@ -89,6 +89,7 @@ function Executor:execute(index, input)
   if type(cmd) == "function" then
     return FuncExecutor.new(self, cmd, index):orchestrate(input)
   end
+
   return CmdExecutor.new(self, cmd):orchestrate()
 end
 

@@ -44,7 +44,7 @@ local T = new_set({
 
 T["Agent @editor can update a buffer"] = function()
   child.lua(
-    string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.editor_xml").update(%s)]], bufnr)
+    string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").update(%s)]], bufnr)
   )
   child.lua([[
     _G.agent:execute(
@@ -60,7 +60,7 @@ end
 
 T["Agent @editor can add to a buffer"] = function()
   child.lua(
-    string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.editor_xml").add(%s)]], bufnr)
+    string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").add(%s)]], bufnr)
   )
   child.lua([[
     _G.agent:execute(
@@ -78,7 +78,7 @@ end
 
 T["Agent @editor can delete from a buffer"] = function()
   child.lua(
-    string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.editor_xml").delete(%s)]], bufnr)
+    string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").delete(%s)]], bufnr)
   )
 
   local lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)

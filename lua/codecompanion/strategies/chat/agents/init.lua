@@ -194,7 +194,7 @@ function Agent:execute(chat, xml)
       return
     end
 
-    ---@type CodeCompanion.Tool|nil
+    ---@type CodeCompanion.Agent.Tool|nil
     local resolved_tool
     ok, resolved_tool = pcall(function()
       return Agent.resolve(self.agent_config.tools[s.tool._attr.name])
@@ -399,12 +399,12 @@ end
 
 ---Resolve a tool from the config
 ---@param tool table The tool from the config
----@return CodeCompanion.Tool|nil
+---@return CodeCompanion.Agent.Tool|nil
 function Agent.resolve(tool)
   local callback = tool.callback
 
   if type(callback) == "table" then
-    return callback --[[@as CodeCompanion.Tool]]
+    return callback --[[@as CodeCompanion.Agent.Tool]]
   end
 
   local ok, module = pcall(require, "codecompanion." .. callback)

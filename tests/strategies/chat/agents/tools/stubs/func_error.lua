@@ -14,7 +14,7 @@ return {
     ---@param stderr table
     ---@param stdout table
     error = function(self, cmd, stderr, stdout)
-      vim.g.codecompanion_test_output = "<error>" .. table.concat(stderr, " ") .. "</error>"
+      _G._test_output = "<error>" .. table.concat(stderr, " ") .. "</error>"
     end,
   },
 }

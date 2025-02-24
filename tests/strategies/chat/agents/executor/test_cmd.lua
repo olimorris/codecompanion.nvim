@@ -8,23 +8,16 @@ local T = new_set({
     pre_case = function()
       child.restart({ "-u", "scripts/minimal_init.lua" })
 
-      -- Load helpers and set up environment in child process
+      -- Load helpers and set up the environment in the child process
       child.lua([[
         h = require('tests.helpers')
         chat, agent = h.setup_chat_buffer()
 
         -- Reset test globals
-        vim.g.codecompanion_test_setup = nil
-        vim.g.codecompanion_test_exit = nil
-        vim.g.codecompanion_test_output = nil
-
-        -- Set up mocks
-        h.mock_job()
-
-        -- Mock vim.schedule
-        vim.schedule = function(cb)
-          cb()
-        end
+        _G._test_setup = nil
+        _G._test_exit = nil
+        _G._test_order = nil
+        _G._test_output = nil
       ]])
     end,
     post_case = function()
@@ -37,33 +30,60 @@ local T = new_set({
 T["Agent"] = new_set()
 T["Agent"]["cmds"] = new_set()
 
-T["Agent"]["cmds"]["setup and on_exit handlers are called once"] = function()
+T["Agent"]["cmds"]["handlers and outputs are called"] = function()
   local tool = "'cmd'"
   child.lua(string.format(
     [[
-    local cmd_xml = require("tests.strategies.chat.agents.tools.stubs.cmd_xml")
-    local xml = cmd_xml.tool(%s)
+    local cmd_xml = require("tests.strategies.chat.agents.tools.stubs.xml.cmd_xml")
+    local xml = cmd_xml.load(%s)
     agent:execute(chat, xml)
-    vim.wait(10)
+    vim.wait(100)
   ]],
     tool
   ))
 
-  local setup = child.lua_get("vim.g.codecompanion_test_setup")
-  local exit = child.lua_get("vim.g.codecompanion_test_exit")
+  -- handlers.setup
+  h.eq("Setup", child.lua_get("_G._test_setup"))
+  -- output.success
+  h.eq("Hello World", child.lua_get("_G._test_output[1][1][1]"))
+  -- handlers.on_exit
+  h.eq("Exited", child.lua_get("_G._test_exit"))
 
-  h.eq(setup, "Setup")
-  h.eq(exit, "Exited")
+  -- Order of execution
+  h.eq("Setup->Success->Exit", child.lua_get("_G._test_order"))
 end
 
--- T["Agent"]["cmds"]["output.success is called"] = function()
---   agent:execute(
---     chat,
---     [[<tools>
---   <tool name="cmd"></tool>
--- </tools>]]
---   )
---   h.eq("Ran with success", vim.g.codecompanion_test_output)
--- end
+T["Agent"]["cmds"]["output.errors is called"] = function()
+  local tool = "'cmd_error'"
+  child.lua(string.format(
+    [[
+    local cmd_xml = require("tests.strategies.chat.agents.tools.stubs.xml.cmd_xml")
+    local xml = cmd_xml.load(%s)
+    agent:execute(chat, xml)
+    vim.wait(100)
+  ]],
+    tool
+  ))
+
+  -- output.error
+  h.eq("Error", child.lua_get("_G._test_output"))
+
+  -- Order of execution
+  h.eq("Error->Exit", child.lua_get("_G._test_order"))
+end
+
+-- Test that flags get inserted into a chat buffer
+T["Agent"]["cmds"]["can set test flags"] = function()
+  child.lua([[
+    local cmd_xml = require("tests.strategies.chat.agents.tools.stubs.xml.cmd_xml")
+    local xml = cmd_xml.test_flag()
+    agent:execute(chat, xml)
+    vim.wait(100)
+  ]])
+
+  h.eq({ testing = true }, child.lua_get("agent.chat.tool_flags"))
+end
+
+-- Test multiple commands
 
 return T
