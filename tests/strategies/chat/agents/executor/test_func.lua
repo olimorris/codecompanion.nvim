@@ -40,6 +40,9 @@ T["Agent"]["functions"]["can run"] = function()
     agent:execute(chat, xml)
   ]])
 
+  -- Test order
+  h.eq("Setup->Success->Success->Exit", child.lua_get([[_G._test_order]]))
+
   -- Test that the function was called
   h.eq("Data 1 Data 2", child.lua_get([[_G._test_func]]))
 end
@@ -83,6 +86,8 @@ T["Agent"]["functions"]["can run consecutively and pass input"] = function()
     tool
   ))
 
+  h.eq("Setup->Success->Success->Exit", child.lua_get([[_G._test_order]]))
+
   -- Test that the function was called
   h.eq("Data 1 Data 1", child.lua_get([[_G._test_func]]))
 end
@@ -100,6 +105,8 @@ T["Agent"]["functions"]["can run consecutively"] = function()
     tool
   ))
 
+  h.eq("Setup->Success->Success->Success->Success->Exit", child.lua_get([[_G._test_order]]))
+
   -- Test that the function was called, overwriting the global variable
   h.eq("Data 1 Data 2 Data 1 Data 2", child.lua_get([[_G._test_func]]))
 end
@@ -114,6 +121,8 @@ T["Agent"]["functions"]["can handle errors"] = function()
   ]],
     tool
   ))
+
+  h.eq("Setup->Error->Exit", child.lua_get([[_G._test_order]]))
 
   -- Test that the `output.error` handler was called
   h.eq("<error>Something went wrong</error>", child.lua_get([[_G._test_output]]))
@@ -153,18 +162,6 @@ T["Agent"]["functions"]["can populate stdout"] = function()
     { { data = "Data 1", status = "success" }, { data = "Data 2", status = "success" } },
     child.lua_get([[agent.stdout]])
   )
-end
-
-T["Agent"]["functions"]["calls handlers.setup once"] = function()
-  h.eq(vim.NIL, child.lua_get([[_G._test_setup]]))
-
-  child.lua([[
-    local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
-    local xml = func_xml.two_data_points()
-    agent:execute(chat, xml)
-  ]])
-
-  h.eq("Setup", child.lua_get([[_G._test_setup]]))
 end
 
 return T

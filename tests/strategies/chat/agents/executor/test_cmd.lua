@@ -68,7 +68,7 @@ T["Agent"]["cmds"]["output.errors is called"] = function()
   h.eq("Error->Exit", child.lua_get("_G._test_order"))
 end
 
-T["Agent"]["cmds"]["can set test flags"] = function()
+T["Agent"]["cmds"]["can set test flags on the chat object"] = function()
   child.lua([[
     local cmd_xml = require("tests.strategies.chat.agents.tools.stubs.xml.cmd_xml")
     local xml = cmd_xml.test_flag()
@@ -79,9 +79,7 @@ T["Agent"]["cmds"]["can set test flags"] = function()
   h.eq({ testing = true }, child.lua_get("agent.chat.tool_flags"))
 end
 
--- Test multiple commands
 T["Agent"]["cmds"]["can run multiple commands"] = function()
-  local tool = "'cmd_consecutive'"
   child.lua(string.format(
     [[
     local cmd_xml = require("tests.strategies.chat.agents.tools.stubs.xml.cmd_xml")
@@ -89,10 +87,12 @@ T["Agent"]["cmds"]["can run multiple commands"] = function()
     agent:execute(chat, xml)
     vim.wait(100)
   ]],
-    tool
+    "'cmd_consecutive'"
   ))
 
+  -- on_exit should only be called at the end
   h.eq("Setup->Success->Success->Exit", child.lua_get("_G._test_order"))
+  -- output.success should be called for each command
   h.eq({ { "Hello World" }, { "Hello CodeCompanion" } }, child.lua_get("_G._test_output[1]"))
 end
 
