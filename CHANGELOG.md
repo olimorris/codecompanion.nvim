@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.7.2...v12.8.0) (2025-02-24)
+
+
+### Features
+
+* **adapters:** add claude-3.7-sonnet and make default ([#996](https://github.com/olimorris/codecompanion.nvim/issues/996)) ([c207203](https://github.com/olimorris/codecompanion.nvim/commit/c207203a005baf0bd5bae3401ac202f568c60581))
+
 ## [12.7.2](https://github.com/olimorris/codecompanion.nvim/compare/v12.7.1...v12.7.2) (2025-02-23)
 
 
