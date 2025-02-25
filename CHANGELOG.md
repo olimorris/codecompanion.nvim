@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.12.0...v12.13.0) (2025-02-25)
+
+
+### Features
+
+* **adapters:** dynamically get available models from copilot endpoint ([#1012](https://github.com/olimorris/codecompanion.nvim/issues/1012)) ([d62c8e1](https://github.com/olimorris/codecompanion.nvim/commit/d62c8e16291e113c877db8c6adc9ec45835b9a66))
+
 ## [12.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.11.0...v12.12.0) (2025-02-25)
 
 
