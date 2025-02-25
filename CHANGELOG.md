@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.11.0...v12.12.0) (2025-02-25)
+
+
+### Features
+
+* **adapters:** add extended thinking and extended output for claude-3.7 ([#998](https://github.com/olimorris/codecompanion.nvim/issues/998)) ([a497adb](https://github.com/olimorris/codecompanion.nvim/commit/a497adb166fcfc29ef0a4fdad04bb0320e08e912))
+
 ## [12.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.10.1...v12.11.0) (2025-02-25)
 
 
