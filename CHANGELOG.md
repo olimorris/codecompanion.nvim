@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.10.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.10.0...v12.10.1) (2025-02-25)
+
+
+### Bug Fixes
+
+* **ollama:** allow users to customize the authorization header in get_models closes [#976](https://github.com/olimorris/codecompanion.nvim/issues/976) ([#985](https://github.com/olimorris/codecompanion.nvim/issues/985)) ([a4f1046](https://github.com/olimorris/codecompanion.nvim/commit/a4f1046e26e1ca537fcc21b881051c41f00e337c))
+
 ## [12.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.9.0...v12.10.0) (2025-02-25)
 
 
