@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.10.1...v12.11.0) (2025-02-25)
+
+
+### Features
+
+* **adapters:** add gemini-2.0-pro-exp-02-05 model option ([#1007](https://github.com/olimorris/codecompanion.nvim/issues/1007)) ([bef6d90](https://github.com/olimorris/codecompanion.nvim/commit/bef6d90a73652672c09b1b6323c8d5a0215020c0))
+
 ## [12.10.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.10.0...v12.10.1) (2025-02-25)
 
 
