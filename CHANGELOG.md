@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.8.1...v12.9.0) (2025-02-25)
+
+
+### Features
+
+* **adapters:** add claude-3.7-sonnet to copilot ([#1002](https://github.com/olimorris/codecompanion.nvim/issues/1002)) ([9729441](https://github.com/olimorris/codecompanion.nvim/commit/9729441037518c487a4a223165d463abcd1bdd67))
+
 ## [12.8.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.8.0...v12.8.1) (2025-02-25)
 
 
