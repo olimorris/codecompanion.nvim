@@ -33,6 +33,7 @@ return {
     ["anthropic-version"] = "2023-06-01",
     ["anthropic-beta"] = "prompt-caching-2024-07-31",
   },
+  temp = {},
   handlers = {
     ---@param self CodeCompanion.Adapter
     ---@return boolean
@@ -55,21 +56,15 @@ return {
     ---@param messages table
     ---@return table
     form_parameters = function(self, params, messages)
-      -- Add thinking configuration if extended_thinking is enabled
-      if params.extended_thinking and params.thinking_budget then
+      if self.temp.extended_thinking and self.temp.thinking_budget then
         params.thinking = {
           type = "enabled",
-          budget_tokens = params.thinking_budget,
+          budget_tokens = self.temp.thinking_budget,
         }
       end
-      if params.extended_thinking then
+      if self.temp.extended_thinking then
         params.temperature = 1
       end
-
-      -- Remove our custom parameters that aren't part of the Anthropic API
-      params.extended_thinking = nil
-      params.extended_output = nil
-      params.thinking_budget = nil
 
       return params
     end,
@@ -272,7 +267,7 @@ return {
     },
     extended_output = {
       order = 2,
-      mapping = "parameters",
+      mapping = "temp",
       type = "boolean",
       optional = true,
       default = false,
@@ -280,10 +275,10 @@ return {
     },
     extended_thinking = {
       order = 3,
-      mapping = "parameters",
+      mapping = "temp",
       type = "boolean",
       optional = true,
-      default = false,
+      default = true,
       desc = "Enable extended thinking for more thorough reasoning. Requires thinking_budget to be set.",
       condition = function(schema)
         local model = schema.model.default
@@ -294,7 +289,7 @@ return {
     },
     thinking_budget = {
       order = 4,
-      mapping = "parameters",
+      mapping = "temp",
       type = "number",
       optional = true,
       default = 16000,
@@ -314,7 +309,12 @@ return {
       mapping = "parameters",
       type = "number",
       optional = true,
-      default = 4096,
+      default = function(self)
+        if self.schema.extended_thinking and self.schema.extended_thinking.default then
+          return self.schema.thinking_budget.default + 1000
+        end
+        return 4096
+      end,
       desc = "The maximum number of tokens to generate before stopping. This parameter only specifies the absolute maximum number of tokens to generate. Different models have different maximum values for this parameter.",
       validate = function(n)
         return n > 0 and n <= 128000, "Must be between 0 and 128000"
