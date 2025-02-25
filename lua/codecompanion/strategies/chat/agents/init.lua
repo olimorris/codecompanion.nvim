@@ -34,16 +34,6 @@ local CONSTANTS = {
   PROCESSING_MSG = "Tool processing ...",
 }
 
----Some commands output ANSI color codes so we need to strip them
----@param tbl table
----@return table
-local function strip_ansi(tbl)
-  for i, v in ipairs(tbl) do
-    tbl[i] = v:gsub("\027%[[0-9;]*%a", "")
-  end
-  return tbl
-end
-
 ---Parse XML in a given message
 ---@param message string
 ---@return table
