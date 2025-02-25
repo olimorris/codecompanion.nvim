@@ -80,6 +80,14 @@ return {
             callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_error.lua",
             description = "Error function tool to test",
           },
+          ["func_integration"] = {
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_integration.lua",
+            description = "Some function tool to test",
+          },
+          ["func_integration_2"] = {
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_integration_2.lua",
+            description = "Some function tool to test",
+          },
           ["cmd"] = {
             callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd.lua",
             description = "Cmd tool",
@@ -90,6 +98,10 @@ return {
           },
           ["cmd_error"] = {
             callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd_error.lua",
+            description = "Cmd tool",
+          },
+          ["cmd_integration"] = {
+            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd_integration.lua",
             description = "Cmd tool",
           },
           ["mock_cmd_runner"] = {
