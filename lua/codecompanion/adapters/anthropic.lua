@@ -33,12 +33,18 @@ return {
     ["anthropic-version"] = "2023-06-01",
     ["anthropic-beta"] = "prompt-caching-2024-07-31",
   },
+  temp = {},
   handlers = {
     ---@param self CodeCompanion.Adapter
     ---@return boolean
     setup = function(self)
       if self.opts and self.opts.stream then
         self.parameters.stream = true
+      end
+
+      -- Add the extended output header if enabled
+      if self.temp.extended_output then
+        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "") .. "output-128k-2025-02-19"
       end
 
       return true
@@ -50,6 +56,16 @@ return {
     ---@param messages table
     ---@return table
     form_parameters = function(self, params, messages)
+      if self.temp.extended_thinking and self.temp.thinking_budget then
+        params.thinking = {
+          type = "enabled",
+          budget_tokens = self.temp.thinking_budget,
+        }
+      end
+      if self.temp.extended_thinking then
+        params.temperature = 1
+      end
+
       return params
     end,
 
@@ -175,9 +191,16 @@ return {
           if json.type == "message_start" then
             output.role = json.message.role
             output.content = ""
+          elseif json.type == "content_block_start" then
+            if json.content_block.type == "thinking" then
+              output.reasoning = ""
+            end
           elseif json.type == "content_block_delta" then
-            output.role = nil
-            output.content = json.delta.text
+            if json.delta.type == "thinking_delta" then
+              output.reasoning = json.delta.thinking
+            else
+              output.content = json.delta.text
+            end
           elseif json.type == "message" then
             output.role = json.role
             output.content = json.content[1].text
@@ -235,26 +258,70 @@ return {
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
       default = "claude-3-7-sonnet-20250219",
       choices = {
-        "claude-3-7-sonnet-20250219",
+        ["claude-3-7-sonnet-20250219"] = { opts = { can_reason = true } },
         "claude-3-5-sonnet-20241022",
         "claude-3-5-haiku-20241022",
         "claude-3-opus-20240229",
         "claude-2.1",
       },
     },
-    max_tokens = {
+    extended_output = {
       order = 2,
+      mapping = "temp",
+      type = "boolean",
+      optional = true,
+      default = false,
+      desc = "Enable larger output context (128k tokens). Only available with claude-3-7-sonnet-20250219.",
+    },
+    extended_thinking = {
+      order = 3,
+      mapping = "temp",
+      type = "boolean",
+      optional = true,
+      default = true,
+      desc = "Enable extended thinking for more thorough reasoning. Requires thinking_budget to be set.",
+      condition = function(schema)
+        local model = schema.model.default
+        if schema.model.choices[model] and schema.model.choices[model].opts then
+          return schema.model.choices[model].opts.can_reason
+        end
+      end,
+    },
+    thinking_budget = {
+      order = 4,
+      mapping = "temp",
+      type = "number",
+      optional = true,
+      default = 16000,
+      desc = "The maximum number of tokens to use for thinking when extended_thinking is enabled. Must be less than max_tokens.",
+      validate = function(n)
+        return n > 0, "Must be greater than 0"
+      end,
+      condition = function(schema)
+        local model = schema.model.default
+        if schema.model.choices[model] and schema.model.choices[model].opts then
+          return schema.model.choices[model].opts.can_reason
+        end
+      end,
+    },
+    max_tokens = {
+      order = 5,
       mapping = "parameters",
       type = "number",
       optional = true,
-      default = 4096,
+      default = function(self)
+        if self.schema.extended_thinking and self.schema.extended_thinking.default then
+          return self.schema.thinking_budget.default + 1000
+        end
+        return 4096
+      end,
       desc = "The maximum number of tokens to generate before stopping. This parameter only specifies the absolute maximum number of tokens to generate. Different models have different maximum values for this parameter.",
       validate = function(n)
-        return n > 0 and n <= 8192, "Must be between 0 and 8192"
+        return n > 0 and n <= 128000, "Must be between 0 and 128000"
       end,
     },
     temperature = {
-      order = 3,
+      order = 6,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -265,7 +332,7 @@ return {
       end,
     },
     top_p = {
-      order = 4,
+      order = 7,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -276,7 +343,7 @@ return {
       end,
     },
     top_k = {
-      order = 5,
+      order = 8,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -287,7 +354,7 @@ return {
       end,
     },
     stop_sequences = {
-      order = 6,
+      order = 9,
       mapping = "parameters",
       type = "list",
       optional = true,
