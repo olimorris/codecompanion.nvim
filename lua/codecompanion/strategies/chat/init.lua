@@ -1034,11 +1034,11 @@ function Chat:add_buf_message(data, opts)
   -- Add data to the chat buffer
   local function append_data()
     if data.reasoning then
-      has_been_reasoning = true
-      if new_response then
+      if not has_been_reasoning then
         table.insert(lines, "### Reasoning")
         table.insert(lines, "")
       end
+      has_been_reasoning = true
       write(data.reasoning)
     end
     if data.content then

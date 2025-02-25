@@ -1,5 +1,68 @@
 # Changelog
 
+## [12.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.11.0...v12.12.0) (2025-02-25)
+
+
+### Features
+
+* **adapters:** add extended thinking and extended output for claude-3.7 ([#998](https://github.com/olimorris/codecompanion.nvim/issues/998)) ([a497adb](https://github.com/olimorris/codecompanion.nvim/commit/a497adb166fcfc29ef0a4fdad04bb0320e08e912))
+
+## [12.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.10.1...v12.11.0) (2025-02-25)
+
+
+### Features
+
+* **adapters:** add gemini-2.0-pro-exp-02-05 model option ([#1007](https://github.com/olimorris/codecompanion.nvim/issues/1007)) ([bef6d90](https://github.com/olimorris/codecompanion.nvim/commit/bef6d90a73652672c09b1b6323c8d5a0215020c0))
+
+## [12.10.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.10.0...v12.10.1) (2025-02-25)
+
+
+### Bug Fixes
+
+* **ollama:** allow users to customize the authorization header in get_models closes [#976](https://github.com/olimorris/codecompanion.nvim/issues/976) ([#985](https://github.com/olimorris/codecompanion.nvim/issues/985)) ([a4f1046](https://github.com/olimorris/codecompanion.nvim/commit/a4f1046e26e1ca537fcc21b881051c41f00e337c))
+
+## [12.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.9.0...v12.10.0) (2025-02-25)
+
+
+### Features
+
+* **adapters:** add claude 3.7 thought to copilot adapter ([#1001](https://github.com/olimorris/codecompanion.nvim/issues/1001)) ([6e53570](https://github.com/olimorris/codecompanion.nvim/commit/6e535709234e07995bacae08f267c0823457f1c5))
+
+## [12.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.8.1...v12.9.0) (2025-02-25)
+
+
+### Features
+
+* **adapters:** add claude-3.7-sonnet to copilot ([#1002](https://github.com/olimorris/codecompanion.nvim/issues/1002)) ([9729441](https://github.com/olimorris/codecompanion.nvim/commit/9729441037518c487a4a223165d463abcd1bdd67))
+
+## [12.8.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.8.0...v12.8.1) (2025-02-25)
+
+
+### Bug Fixes
+
+* **adapters:** only try and replace str variables ([#999](https://github.com/olimorris/codecompanion.nvim/issues/999)) ([c5990b4](https://github.com/olimorris/codecompanion.nvim/commit/c5990b43d0801438aac4afaef7a779ff98297a85))
+
+## [12.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.7.2...v12.8.0) (2025-02-24)
+
+
+### Features
+
+* **adapters:** add claude-3.7-sonnet and make default ([#996](https://github.com/olimorris/codecompanion.nvim/issues/996)) ([c207203](https://github.com/olimorris/codecompanion.nvim/commit/c207203a005baf0bd5bae3401ac202f568c60581))
+
+## [12.7.2](https://github.com/olimorris/codecompanion.nvim/compare/v12.7.1...v12.7.2) (2025-02-23)
+
+
+### Bug Fixes
+
+* **inline:** setting placement from prompt library closes [#990](https://github.com/olimorris/codecompanion.nvim/issues/990) ([#991](https://github.com/olimorris/codecompanion.nvim/issues/991)) ([836dafc](https://github.com/olimorris/codecompanion.nvim/commit/836dafca125ec713f8a9379c69319f7889504824))
+
+## [12.7.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.7.0...v12.7.1) (2025-02-22)
+
+
+### Bug Fixes
+
+* **adapter:** variable substitution in 'raw'. ([#980](https://github.com/olimorris/codecompanion.nvim/issues/980)) ([6c628f5](https://github.com/olimorris/codecompanion.nvim/commit/6c628f56419ce8cca7b93cfaba89cde90a3a3a51))
+
 ## [12.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.6.1...v12.7.0) (2025-02-20)
 
 
