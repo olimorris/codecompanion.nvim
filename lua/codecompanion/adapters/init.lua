@@ -12,6 +12,7 @@ local log = require("codecompanion.utils.log")
 ---@field headers table The headers to pass to the request
 ---@field parameters table The parameters to pass to the request
 ---@field body table Additional body parameters to pass to the request
+---@field temp? table A table to store temporary values which are not passed to the request
 ---@field raw? table Any additional curl arguments to pass to the request
 ---@field opts? table Additional options for the adapter
 ---@field handlers table Functions which link the output from the request to CodeCompanion
@@ -105,6 +106,10 @@ end
 ---@param str string
 ---@return string
 local function replace_var(adapter, str)
+  if type(str) ~= "string" then
+    return str
+  end
+
   local pattern = "${(.-)}"
 
   local result = str:gsub(pattern, function(var)
