@@ -43,8 +43,8 @@ return {
       end
 
       -- Add the extended output header if enabled
-      if self.parameters.extended_output then
-        self.headers["anthropic-beta"] = "prompt-caching-2024-07-31,output-128k-2025-02-19"
+      if self.temp.extended_output then
+        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "") .. "output-128k-2025-02-19"
       end
 
       return true
