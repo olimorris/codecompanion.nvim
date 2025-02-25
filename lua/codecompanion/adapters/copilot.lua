@@ -123,6 +123,7 @@ local function get_and_authorize_token()
 end
 
 local _cached_adapter
+local _cached_available_models
 
 ---Reset the cached adapter
 ---@return nil
@@ -135,6 +136,10 @@ end
 ---@params opts? table
 ---@return table
 local function get_models(self, opts)
+  if _cached_available_models then
+    return _cached_available_models
+  end
+
   if not _cached_adapter then
     local adapter = require("codecompanion.adapters").resolve(self)
     if not adapter then
@@ -183,6 +188,8 @@ local function get_models(self, opts)
       models[model.id] = { opts = choice_opts }
     end
   end
+
+  _cached_available_models = models
 
   return models
 end
