@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.8.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.8.0...v12.8.1) (2025-02-25)
+
+
+### Bug Fixes
+
+* **adapters:** only try and replace str variables ([#999](https://github.com/olimorris/codecompanion.nvim/issues/999)) ([c5990b4](https://github.com/olimorris/codecompanion.nvim/commit/c5990b43d0801438aac4afaef7a779ff98297a85))
+
 ## [12.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.7.2...v12.8.0) (2025-02-24)
 
 
