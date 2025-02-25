@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.9.0...v12.10.0) (2025-02-25)
+
+
+### Features
+
+* **adapters:** add claude 3.7 thought to copilot adapter ([#1001](https://github.com/olimorris/codecompanion.nvim/issues/1001)) ([6e53570](https://github.com/olimorris/codecompanion.nvim/commit/6e535709234e07995bacae08f267c0823457f1c5))
+
 ## [12.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.8.1...v12.9.0) (2025-02-25)
 
 
