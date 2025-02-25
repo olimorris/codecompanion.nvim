@@ -33,8 +33,13 @@ local function get_models(self, opts)
   local headers = {
     ["content-type"] = "application/json",
   }
+
+  local auth_header = "Bearer "
+  if _cached_adapter.env_replaced.authorization then
+    auth_header = _cached_adapter.env_replaced.authorization .. " "
+  end
   if _cached_adapter.env_replaced.api_key then
-    headers["Authorization"] = "Bearer " .. _cached_adapter.env_replaced.api_key
+    headers["Authorization"] = auth_header .. _cached_adapter.env_replaced.api_key
   end
 
   local ok, response = pcall(function()
