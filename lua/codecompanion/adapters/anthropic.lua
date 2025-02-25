@@ -263,7 +263,7 @@ return {
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
       default = "claude-3-7-sonnet-20250219",
       choices = {
-        "claude-3-7-sonnet-20250219",
+        ["claude-3-7-sonnet-20250219"] = { opts = { can_reason = true } },
         "claude-3-5-sonnet-20241022",
         "claude-3-5-haiku-20241022",
         "claude-3-opus-20240229",
@@ -285,6 +285,12 @@ return {
       optional = true,
       default = false,
       desc = "Enable extended thinking for more thorough reasoning. Requires thinking_budget to be set.",
+      condition = function(schema)
+        local model = schema.model.default
+        if schema.model.choices[model] and schema.model.choices[model].opts then
+          return schema.model.choices[model].opts.can_reason
+        end
+      end,
     },
     thinking_budget = {
       order = 4,
@@ -295,6 +301,12 @@ return {
       desc = "The maximum number of tokens to use for thinking when extended_thinking is enabled. Must be less than max_tokens.",
       validate = function(n)
         return n > 0, "Must be greater than 0"
+      end,
+      condition = function(schema)
+        local model = schema.model.default
+        if schema.model.choices[model] and schema.model.choices[model].opts then
+          return schema.model.choices[model].opts.can_reason
+        end
       end,
     },
     max_tokens = {
