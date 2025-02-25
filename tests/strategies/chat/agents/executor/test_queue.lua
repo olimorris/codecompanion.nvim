@@ -29,14 +29,14 @@ T = new_set({
 })
 
 T["Agent"] = new_set()
-T["Agent"]["integration"] = new_set()
+T["Agent"]["queue"] = new_set()
 
-T["Agent"]["integration"]["can run func->cmd->func"] = function()
+T["Agent"]["queue"]["can queue functions and commands"] = function()
   h.eq(vim.NIL, child.lua_get([[_G._test_order]]))
 
   child.lua([[
-    local integration_test = require("tests.strategies.chat.agents.tools.stubs.xml.integration_xml")
-    local xml = integration_test.run()
+    local queue = require("tests.strategies.chat.agents.tools.stubs.xml.queue_xml")
+    local xml = queue.run()
     agent:execute(chat, xml)
     vim.wait(1000)
   ]])

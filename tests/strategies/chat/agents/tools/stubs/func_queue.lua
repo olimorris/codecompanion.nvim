@@ -1,5 +1,5 @@
 return {
-  name = "func_integrate",
+  name = "func_queue",
   system_prompt = function(schema)
     return "my func system prompt"
   end,

@@ -1,5 +1,5 @@
 return {
-  name = "cmd_integrate",
+  name = "cmd_queue",
   system_prompt = function(schema)
     return "my cmd system prompt"
   end,
