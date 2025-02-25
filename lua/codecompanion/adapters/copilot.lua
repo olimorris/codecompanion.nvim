@@ -145,7 +145,7 @@ local function get_models(self, opts)
   end
 
   get_and_authorize_token()
-  local url = "https://api.individual.githubcopilot.com"
+  local url = "https://api.githubcopilot.com"
   local headers = _cached_adapter.headers
   headers["Authorization"] = "Bearer " .. _github_token.token
 
