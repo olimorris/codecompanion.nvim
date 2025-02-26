@@ -29,6 +29,7 @@ The Chat Buffer - This is where all of the logic for conversing with an LLM sits
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field watchers CodeCompanion.Watchers The buffer watcher instance
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
+---@field saved_state? table The saved state of the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
@@ -980,6 +981,15 @@ function Chat:close()
     self:stop()
   end
 
+  self.saved_state = {
+    messages = self.messages,
+    settings = self.settings,
+    refs = self.refs,
+    cycle = self.cycle,
+    header_line = self.header_line,
+    last_role = self.last_role,
+  }
+
   if last_chat and last_chat.bufnr == self.bufnr then
     last_chat = nil
   end
@@ -1002,6 +1012,26 @@ function Chat:close()
   util.fire("ChatAdapter", { bufnr = self.bufnr, id = self.id, adapter = nil })
   util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
   self = nil
+end
+
+---Recover a closed chat buffer
+---@param state table The saved state of the chat buffer
+---@return CodeCompanion.Chat
+function Chat.recover(state)
+  local chat = Chat.new({
+    context = state.context,
+    from_prompt_library = state.from_prompt_library,
+    last_role = state.last_role,
+    messages = state.messages,
+    settings = state.settings,
+    refs = state.refs,
+    cycle = state.cycle,
+    header_line = state.header_line,
+  })
+
+  chat.saved_state = state
+
+  return chat
 end
 
 local has_been_reasoning = false

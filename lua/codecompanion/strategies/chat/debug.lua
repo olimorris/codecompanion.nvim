@@ -314,4 +314,14 @@ function Debug:close()
   api.nvim_buf_delete(self.bufnr, { force = true })
 end
 
+---Recover a closed chat buffer
+---@param state table The saved state of the chat buffer
+---@return CodeCompanion.Chat
+function Debug:recover(state)
+  local chat = require("codecompanion.strategies.chat.init").recover(state)
+  self.chat = chat
+  self.settings = state.settings
+  return self
+end
+
 return Debug

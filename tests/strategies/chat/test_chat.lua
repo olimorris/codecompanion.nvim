@@ -44,4 +44,31 @@ T["Chat"]["system prompt can be ignored"] = function()
   h.eq(nil, new_chat.messages[1])
 end
 
+T["Chat"]["recover method restores a closed chat buffer"] = function()
+  local state = {
+    messages = { { role = "user", content = "Hello" } },
+    settings = { key = "value" },
+    refs = {},
+    cycle = 1,
+    header_line = 1,
+    last_role = "user",
+  }
+
+  local recovered_chat = require("codecompanion.strategies.chat").recover(state)
+
+  h.eq("Hello", recovered_chat.messages[1].content)
+  h.eq("value", recovered_chat.settings.key)
+  h.eq(1, recovered_chat.cycle)
+  h.eq(1, recovered_chat.header_line)
+  h.eq("user", recovered_chat.last_role)
+end
+
+T["Chat"]["buffer state is saved before closing"] = function()
+  chat:add_buf_message({ role = "user", content = "Hello" })
+  chat:close()
+
+  h.eq("Hello", chat.saved_state.messages[1].content)
+  h.eq("default system prompt", chat.saved_state.messages[2].content)
+end
+
 return T
