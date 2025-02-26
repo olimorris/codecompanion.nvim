@@ -1,24 +1,154 @@
-# Contributing to CodeCompanion.nvim
+# Contributing to codecompanion.nvim
 
-Thank you for considering a contribution to this project!
+Thank you for considering contributing to CodeCompanion.nvim! This document provides guidelines and information to help you get started with contributing to the project.
 
-Before contributing a PR, please open up a discussion to talk about it further. Whilst I welcome contributions that improve the plugin, I want to refrain from adding features that will add little value and a lot of bloat as the plugin is already c. 9,000 LOC.
+## Before Contributing
 
-The plugin has recently adopted semantic versioning. As such, any PR which breaks the existing API is unlikely to merged.
+Before contributing a PR, please open up a discussion to talk about it. While I welcome contributions that improve the plugin, I want to refrain from adding features that add little value and a lot of bloat as the plugin is already quite large (approximately 9,000 LOC).
+
+The plugin has adopted semantic versioning. As such, any PR which breaks the existing API is unlikely to be merged.
 
 ## How to Contribute
 
-1. Open up a [discussion](https://github.com/olimorris/codecompanion.nvim/discussions).
+1. Open up a [discussion](https://github.com/olimorris/codecompanion.nvim/discussions) to propose your idea.
 2. Fork the repository and create your branch from `main`.
 3. Add your feature or fix to your branch.
 4. Ensure your code follows the project's coding style and conventions.
 5. Make sure your code has adequate test coverage and is well-documented.
 6. Open a pull request (PR) with a clear title and description.
 
-## Guidelines
+## Project Structure
 
-- **Feature Requests**: I encourage you to suggest new features! However, please note that I will only add features that align with my personal workflow. But feel free to open up a discussion with a view to a PR.
-- **Bug Fixes**: If you're submitting a PR to address a bug, please ensure you've raised this as an issue that can be recreated and tested.
-- **Responsibility**: If you add a feature, you are responsible for maintaining and bug fixing that feature going forward. The maintainers may provide guidance and support, but ultimate responsibility lies with the contributor.
-- **Code Quality**: I strive to maintain high code quality. Please ensure that your PR has corresponding tests.
-- **Communication**: If you have any questions or need clarification, feel free to open an issue or reach out to the maintainers.
+CodeCompanion.nvim is organized into several key directories:
+
+- `lua/codecompanion/`: Main plugin code
+  - `adapters/`: LLM adapters for different providers (OpenAI, Anthropic, etc.)
+  - `strategies/`: Core functionality components
+    - `chat/`: Chat buffer implementation
+    - `inline/`: Inline code editing functionality
+    - `cmd/`: Command-line interaction
+  - `providers/`: Utility providers for various functionalities
+  - `utils/`: Shared utility functions
+- `tests/`: Tests organized by component
+- `doc/`: Documentation files
+- `queries/`: TreeSitter queries for various languages
+
+## Development Environment
+
+### Prerequisites
+
+- Neovim 0.10.0+
+- [lua-language-server](https://github.com/LuaLS/lua-language-server) for LSP support
+- [stylua](https://github.com/JohnnyMorganz/StyLua) for Lua formatting
+
+### Setting Up for Development
+
+1. Clone your fork of the repository
+2. Create a minimal configuration for testing:
+
+```lua
+-- minimal.lua
+vim.env.LAZY_STDPATH = ".repro"
+load(vim.fn.system("curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua"))()
+
+local plugins = {
+  {
+    "your_username/codecompanion.nvim",
+    dev = true,
+    dependencies = {
+      { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
+      { "nvim-lua/plenary.nvim" },
+      -- Include any optional dependencies needed for your development
+    },
+    config = function()
+      require("codecompanion").setup({
+        opts = {
+          log_level = "DEBUG", -- For development
+        },
+        -- Your test configuration here
+      })
+    end,
+  },
+}
+
+require("lazy.minit").repro({ spec = plugins })
+```
+
+3. Launch Neovim with your minimal config: `nvim --clean -u minimal.lua`
+
+## Debugging and Logging
+
+### Logging
+
+CodeCompanion uses a hierarchical logging system that writes to a log file. You can configure the log level in your setup:
+
+```lua
+require("codecompanion").setup({
+  opts = {
+    log_level = "DEBUG", -- Options: ERROR, WARN, INFO, DEBUG, TRACE
+  }
+})
+```
+
+Log files are stored in Neovim's log directory, which can be found by running `:checkhealth codecompanion`.
+
+### Debug Functions
+
+When developing, you can use the built-in debug functions:
+
+- In chat buffers, press `gd` to open a debug window showing current messages and settings
+- Run `:checkhealth codecompanion` to verify your environment is set up correctly
+
+## Testing
+
+CodeCompanion uses [Mini.Test](https://github.com/echasnovski/mini.nvim/tree/main/lua/mini/test) for testing. To run the tests:
+
+```bash
+make test           # Run all tests
+make test_file FILE=path/to/test_file.lua  # Run a specific test file
+```
+
+When adding new features, please include tests in the appropriate test file under the `tests/` directory.
+
+## Code Style and Conventions
+
+- Use [stylua](https://github.com/JohnnyMorganz/StyLua) for formatting Lua code
+- Configuration is in `stylua.toml`
+- Run `make format` to format the code before submitting a PR
+- Type annotations are encouraged (see `lua/codecompanion/types.lua`)
+- Use meaningful docstrings for functions with the standard LuaDoc format
+
+## Building Documentation
+
+Documentation is built using [panvimdoc](https://github.com/kdheepak/panvimdoc):
+
+```bash
+make docs  # Generate plugin documentation
+```
+
+## Contribution Guidelines
+
+- **Feature Requests**: Please suggest new features, but note that only features that align with the maintainer's workflow may be accepted.
+- **Bug Fixes**: When submitting a PR for a bug, ensure you've first raised an issue that can be recreated.
+- **Responsibility**: If you add a feature, you are responsible for maintaining and bug fixing that feature going forward.
+- **Code Quality**: Strive to maintain high code quality with proper tests.
+- **Communication**: If you have questions, open an issue or reach out to the maintainers.
+
+## Common Issues and Troubleshooting
+
+When facing issues during development, try these steps:
+
+1. Check logs at the path shown by `:checkhealth codecompanion`
+2. Enable DEBUG or TRACE log level
+3. Test with a minimal configuration (see `minimal.lua` in the repository)
+4. Ensure all dependencies are properly installed
+
+## Pull Request Process
+
+1. Update documentation if you're changing behavior or adding features
+2. Update tests to cover your changes
+3. Format your code with `make format`
+4. Reference any related issues in your PR description
+5. The PR should be based on a prior discussion unless it's a straightforward bug fix
+
+Thank you for contributing to codecompanion.nvim!
