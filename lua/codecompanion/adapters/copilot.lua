@@ -178,9 +178,7 @@ local function get_models(self, opts)
 
       -- streaming support
       if model.capabilities.supports.streaming then
-        choice_opts.stream = true
-      else
-        choice_opts.stream = false
+        choice_opts.can_stream = true
       end
 
       models[model.id] = { opts = choice_opts }
@@ -235,12 +233,11 @@ return {
         choices = choices(self)
       end
       local model_opts = choices[model]
-      if model_opts and model_opts.opts then
-        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
-      end
 
-      if self.opts and self.opts.stream then
+      if (self.opts and self.opts.stream) and (model_opts and model_opts.opts and model_opts.opts.can_stream) then
         self.parameters.stream = true
+      else
+        self.parameters.stream = nil
       end
 
       return get_and_authorize_token()
