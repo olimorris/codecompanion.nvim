@@ -1,4 +1,4 @@
-# Contributing to codecompanion.nvim
+# Contributing to CodeCompanion.nvim
 
 Thank you for considering contributing to CodeCompanion.nvim! This document provides guidelines and information to help you get started with contributing to the project.
 
@@ -38,43 +38,33 @@ CodeCompanion.nvim is organized into several key directories:
 ### Prerequisites
 
 - Neovim 0.10.0+
-- [lua-language-server](https://github.com/LuaLS/lua-language-server) for LSP support
+- [lua-language-server](https://github.com/LuaLS/lua-language-server) for LSP support and type annotations
 - [stylua](https://github.com/JohnnyMorganz/StyLua) for Lua formatting
 
 ### Setting Up for Development
 
-1. Clone your fork of the repository
-2. Create a minimal configuration for testing:
+> This section explain how to setup the environment for development using lazy.nvim package manager. However you can use the package manager of your choice.
+
+1. Clone your fork of the repository.
+2. Define codecompanion configuration pointing to your local repository:
 
 ```lua
--- minimal.lua
-vim.env.LAZY_STDPATH = ".repro"
-load(vim.fn.system("curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua"))()
-
-local plugins = {
-  {
-    "your_username/codecompanion.nvim",
-    dev = true,
-    dependencies = {
-      { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
-      { "nvim-lua/plenary.nvim" },
-      -- Include any optional dependencies needed for your development
-    },
-    config = function()
-      require("codecompanion").setup({
-        opts = {
-          log_level = "DEBUG", -- For development
-        },
-        -- Your test configuration here
-      })
-    end,
+{
+  dir = "/full/path/to/local/codecompanion.nvim",
+  dev = true,
+  dependencies = {
+    { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
+    { "nvim-lua/plenary.nvim" },
+    -- Include any optional dependencies needed for your development
   },
+  opts = {
+    opts = {
+      log_level = "DEBUG", -- For development
+    },
+    -- The rest of your configuration
+  }
 }
-
-require("lazy.minit").repro({ spec = plugins })
 ```
-
-3. Launch Neovim with your minimal config: `nvim --clean -u minimal.lua`
 
 ## Debugging and Logging
 
@@ -115,8 +105,7 @@ When adding new features, please include tests in the appropriate test file unde
 - Use [stylua](https://github.com/JohnnyMorganz/StyLua) for formatting Lua code
 - Configuration is in `stylua.toml`
 - Run `make format` to format the code before submitting a PR
-- Type annotations are encouraged (see `lua/codecompanion/types.lua`)
-- Use meaningful docstrings for functions with the standard LuaDoc format
+- Type annotations are encouraged (see `lua/codecompanion/types.lua`) and [LuaCATS site](https://luals.github.io/wiki/annotations/)
 
 ## Building Documentation
 
@@ -130,7 +119,7 @@ make docs  # Generate plugin documentation
 
 - **Feature Requests**: Please suggest new features, but note that only features that align with the maintainer's workflow may be accepted.
 - **Bug Fixes**: When submitting a PR for a bug, ensure you've first raised an issue that can be recreated.
-- **Responsibility**: If you add a feature, you are responsible for maintaining and bug fixing that feature going forward.
+- **Responsibility**: If you add a feature, you are responsible for maintaining and bug fixing that feature going forward. The maintainers may provide guidance and support, but ultimate responsibility lies with the contributor.
 - **Code Quality**: Strive to maintain high code quality with proper tests.
 - **Communication**: If you have questions, open an issue or reach out to the maintainers.
 
@@ -151,4 +140,4 @@ When facing issues during development, try these steps:
 4. Reference any related issues in your PR description
 5. The PR should be based on a prior discussion unless it's a straightforward bug fix
 
-Thank you for contributing to codecompanion.nvim!
+Thank you for contributing to CodeCompanion.nvim!
