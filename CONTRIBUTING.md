@@ -89,6 +89,35 @@ When developing, you can use the built-in debug functions:
 - In chat buffers, press `gd` to open a debug window showing current messages and settings
 - Run `:checkhealth codecompanion` to verify your environment is set up correctly
 
+### Debug Requests with Proxy
+
+If you need to debug requests and responses sent to LLM providers, you can use the `proxy` option to forward requests to a proxy server.
+
+A simple proxy server can be set up using [mitmproxy](https://mitmproxy.org/).
+
+1. Follow the [mitmproxy installation guide](https://docs.mitmproxy.org/stable/overview-installation/) to install mitmproxy.
+2. Start mitmproxy with the web interface and listen on port 4141: `mitmweb --set listen_port=4141`
+3. Configure codecompanion to use the proxy server:
+
+```lua
+{
+  dir = "/full/path/to/local/codecompanion.nvim",
+  -- The rest of your configuration ...
+  opts = {
+    adapters = {
+      opts = {
+        allow_insecure = true,
+        proxy = "http://127.0.0.1:4141",
+      },
+    }
+    -- The rest of your configuration ...
+  }
+}
+```
+
+From now on, all requests will be forwarded to the proxy server.
+
+
 ## Testing
 
 CodeCompanion uses [Mini.Test](https://github.com/echasnovski/mini.nvim/tree/main/lua/mini/test) for testing. To run the tests:
