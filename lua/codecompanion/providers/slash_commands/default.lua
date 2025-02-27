@@ -1,5 +1,7 @@
+local Path = require("plenary.path")
 local buf = require("codecompanion.utils.buffers")
 local log = require("codecompanion.utils.log")
+local scan = require("plenary.scandir")
 
 local api = vim.api
 
@@ -19,22 +21,21 @@ end
 
 ---Find files in the current working directory. Designed to match the Telescope API
 function Default:find_files()
-  local check_git = vim.fn.system("git rev-parse --is-inside-work-tree")
-  if check_git == 1 then
-    return log:error(
-      "The default provider requires the repository to be git enabled. Please select an alternative provider."
-    )
+  local path = Path:new(vim.fn.getcwd())
+  if not path:is_dir() then
+    return {}
   end
 
-  local tracked_files = vim.fn.system(string.format("git -C %s ls-files", vim.fn.getcwd()))
-  local untracked_files =
-    vim.fn.system(string.format("git -C %s ls-files --others --exclude-standard", vim.fn.getcwd()))
-  local files = tracked_files .. "\n" .. untracked_files
+  local files = scan.scan_dir(path:absolute(), {
+    hidden = true, -- Include hidden files
+    depth = 10, -- Only direct children
+    add_dirs = false, -- Only files, not directories
+  })
 
   self.to_display = vim
-    .iter(vim.split(files, "\n"))
+    .iter(files)
     :map(function(f)
-      return { relative_path = f, path = vim.fn.getcwd() .. "/" .. f }
+      return { relative_path = f, path = f }
     end)
     :totable()
 
