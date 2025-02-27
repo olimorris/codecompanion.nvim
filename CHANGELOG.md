@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.14.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.13.3...v12.14.0) (2025-02-27)
+
+
+### Features
+
+* **slash_cmds:** remove git dependency for defualt provider ([#1042](https://github.com/olimorris/codecompanion.nvim/issues/1042)) ([a5c5a32](https://github.com/olimorris/codecompanion.nvim/commit/a5c5a3263ba825b7cd708597e541d2deac3c52f7))
+
 ## [12.13.3](https://github.com/olimorris/codecompanion.nvim/compare/v12.13.2...v12.13.3) (2025-02-27)
 
 
