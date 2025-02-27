@@ -118,7 +118,7 @@ A simple proxy server can be set up using [mitmproxy](https://mitmproxy.org/).
 From now on, all requests will be forwarded to the proxy server.
 <details>
 <summary>screenshot</summary>
-<img width="1506" alt="debug request with proxy screeshot" src="https://github.com/user-attachments/assets/60f31736-da83-4b80-bc61-341bb7fc82f7" />
+<img width="1506" alt="debug request with proxy screenshot" src="https://github.com/user-attachments/assets/60f31736-da83-4b80-bc61-341bb7fc82f7" />
 </details>
 
 With mitmproxy you can much more using custom scripts/hooks like simulating slower connections, patch requests, etc. Check out the [documentation](https://docs.mitmproxy.org/stable/addons-overview/) for more information.
