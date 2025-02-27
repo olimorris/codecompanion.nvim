@@ -141,12 +141,10 @@ local function get_models(self, opts)
   end
 
   if not _cached_adapter then
-    local adapter = require("codecompanion.adapters").resolve(self)
-    if not adapter then
-      log:error("Could not resolve Copilot adapter in the `get_models` function")
+    if not self then
       return {}
     end
-    _cached_adapter = adapter
+    _cached_adapter = self
   end
 
   get_and_authorize_token()
@@ -169,7 +167,7 @@ local function get_models(self, opts)
 
   local ok, json = pcall(vim.json.decode, response.body)
   if not ok then
-    log:error("Could not parse the response from " .. url .. "/models")
+    log:error("Error parsing the response from " .. url .. "/models.\nError: %s", response.body)
     return {}
   end
 
@@ -221,7 +219,7 @@ return {
     Authorization = "Bearer ${api_key}",
     ["Content-Type"] = "application/json",
     ["Copilot-Integration-Id"] = "vscode-chat",
-    ["editor-version"] = "Neovim/" .. vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
+    ["Editor-Version"] = "Neovim/" .. vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
   },
   handlers = {
     ---Check for a token before starting the request
