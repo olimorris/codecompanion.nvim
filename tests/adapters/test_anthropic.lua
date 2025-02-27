@@ -125,3 +125,28 @@ describe("Anthropic adapter with NO STREAMING", function()
     h.eq(response[#response].output.content, adapter_helpers.inline_buffer_output(response, adapter))
   end)
 end)
+
+describe("Anthropic Schema", function()
+  it("Non-Reasoning models have less tokens", function()
+    local non_reasoning = require("codecompanion.adapters").extend("anthropic", {
+      schema = {
+        model = {
+          default = "claude-3-5-sonnet-20241022",
+        },
+      },
+    })
+    local output = require("codecompanion.adapters").resolve(non_reasoning)
+    h.eq(4096, output.schema.max_tokens.default(non_reasoning))
+  end)
+  it("Reasoning models have more tokens", function()
+    local reasoning = require("codecompanion.adapters").extend("anthropic", {
+      schema = {
+        model = {
+          default = "claude-3-7-sonnet-20250219",
+        },
+      },
+    })
+    local output = require("codecompanion.adapters").resolve(reasoning)
+    h.eq(17000, output.schema.max_tokens.default(reasoning))
+  end)
+end)

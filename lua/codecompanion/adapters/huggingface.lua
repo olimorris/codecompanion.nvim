@@ -57,6 +57,7 @@ return {
     end,
   },
   schema = {
+    ---@type CodeCompanion.Schema
     model = {
       order = 1,
       mapping = "parameters",
@@ -70,6 +71,7 @@ return {
         "mistralai/Mistral-Nemo-Instruct-2407",
       },
     },
+    ---@type CodeCompanion.Schema
     temperature = {
       order = 2,
       mapping = "parameters",
@@ -81,6 +83,7 @@ return {
         return n >= 0 and n <= 2, "Must be between 0 and 2"
       end,
     },
+    ---@type CodeCompanion.Schema
     max_tokens = {
       order = 3,
       mapping = "parameters",
@@ -92,6 +95,7 @@ return {
         return n > 0, "Must be greater than 0"
       end,
     },
+    ---@type CodeCompanion.Schema
     top_p = {
       order = 4,
       mapping = "parameters",
@@ -104,6 +108,7 @@ return {
       end,
     },
     -- caveat to using the cache: https://huggingface.co/docs/api-inference/parameters#caching
+    ---@type CodeCompanion.Schema
     ["x-use-cache"] = {
       order = 5,
       mapping = "headers",
@@ -113,6 +118,7 @@ return {
       desc = "Whether to use the cache layer on the inference API...",
       choices = { "true", "false" },
     },
+    ---@type CodeCompanion.Schema
     ["x-wait-for-model"] = {
       order = 6,
       mapping = "headers",

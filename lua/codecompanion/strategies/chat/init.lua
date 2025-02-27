@@ -276,7 +276,7 @@ function Chat.new(args)
   util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = self.adapter.schema.model.default })
   util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
 
-  self:apply_settings(schema.get_default(self.adapter.schema, args.settings))
+  self:apply_settings(schema.get_default(self.adapter, args.settings))
 
   self.ui = require("codecompanion.strategies.chat.ui").new({
     adapter = self.adapter,
@@ -433,7 +433,7 @@ end
 ---@param settings? table
 ---@return nil
 function Chat:apply_settings(settings)
-  self.settings = settings or schema.get_default(self.adapter.schema)
+  self.settings = settings or schema.get_default(self.adapter)
 
   if not config.display.chat.show_settings then
     _cached_settings[self.bufnr] = self.settings

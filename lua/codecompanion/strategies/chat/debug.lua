@@ -144,7 +144,7 @@ function Debug:render()
         end)
 
         if type(val) == "function" then
-          val = val()
+          val = val(self.adapter)
         end
         if vim.tbl_count(models) > 1 then
           table.insert(lines, "  " .. key .. ' = "' .. val .. '", ' .. other_models)
@@ -157,6 +157,13 @@ function Debug:render()
         table.insert(lines, "  " .. key .. " = " .. tostring(val) .. ",")
       elseif type(val) == "string" then
         table.insert(lines, "  " .. key .. ' = "' .. val .. '",')
+      elseif type(val) == "function" then
+        local expanded_val = val(self.adapter)
+        if type(expanded_val) == "number" or type(expanded_val) == "boolean" then
+          table.insert(lines, "  " .. key .. " = " .. tostring(val(self.adapter)) .. ",")
+        else
+          table.insert(lines, "  " .. key .. ' = "' .. tostring(val(self.adapter)) .. '",')
+        end
       else
         table.insert(lines, "  " .. key .. " = " .. vim.inspect(val))
       end

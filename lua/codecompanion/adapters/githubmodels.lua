@@ -129,6 +129,7 @@ return {
     end,
   },
   schema = {
+    ---@type CodeCompanion.Schema
     model = {
       order = 1,
       mapping = "parameters",
@@ -147,19 +148,21 @@ return {
         "Codestral-2501",
       },
     },
+    ---@type CodeCompanion.Schema
     reasoning_effort = {
       order = 2,
       mapping = "parameters",
       type = "string",
       optional = true,
-      condition = function(schema)
-        local model = schema.model.default
+      condition = function(self)
+        local model = self.schema.model.default
         if type(model) == "function" then
           model = model()
         end
-        if schema.model.choices[model] and schema.model.choices[model].opts then
-          return schema.model.choices[model].opts.can_reason
+        if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
+          return self.schema.model.choices[model].opts.can_reason
         end
+        return false
       end,
       default = "medium",
       desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
@@ -169,13 +172,14 @@ return {
         "low",
       },
     },
+    ---@type CodeCompanion.Schema
     temperature = {
       order = 3,
       mapping = "parameters",
       type = "number",
       default = 0,
-      condition = function(schema)
-        local model = schema.model.default
+      condition = function(self)
+        local model = self.schema.model.default
         if type(model) == "function" then
           model = model()
         end
@@ -183,6 +187,7 @@ return {
       end,
       desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
     },
+    ---@type CodeCompanion.Schema
     max_tokens = {
       order = 4,
       mapping = "parameters",
@@ -190,13 +195,14 @@ return {
       default = 4096,
       desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
     },
+    ---@type CodeCompanion.Schema
     top_p = {
       order = 5,
       mapping = "parameters",
       type = "number",
       default = 1,
-      condition = function(schema)
-        local model = schema.model.default
+      condition = function(self)
+        local model = self.schema.model.default
         if type(model) == "function" then
           model = model()
         end
@@ -204,13 +210,14 @@ return {
       end,
       desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
     },
+    ---@type CodeCompanion.Schema
     n = {
       order = 6,
       mapping = "parameters",
       type = "number",
       default = 1,
-      condition = function(schema)
-        local model = schema.model.default
+      condition = function(self)
+        local model = self.schema.model.default
         if type(model) == "function" then
           model = model()
         end

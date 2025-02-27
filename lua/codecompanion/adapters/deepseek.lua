@@ -111,6 +111,7 @@ return {
     end,
   },
   schema = {
+    ---@type CodeCompanion.Schema
     model = {
       order = 1,
       mapping = "parameters",
@@ -123,6 +124,7 @@ return {
         "deepseek-chat",
       },
     },
+    ---@type CodeCompanion.Schema
     temperature = {
       order = 2,
       mapping = "parameters",
@@ -134,6 +136,7 @@ return {
         return n >= 0 and n <= 2, "Must be between 0 and 2"
       end,
     },
+    ---@type CodeCompanion.Schema
     top_p = {
       order = 3,
       mapping = "parameters",
@@ -145,6 +148,7 @@ return {
         return n >= 0 and n <= 1, "Must be between 0 and 1"
       end,
     },
+    ---@type CodeCompanion.Schema
     stop = {
       order = 4,
       mapping = "parameters",
@@ -159,6 +163,7 @@ return {
         return #l >= 1 and #l <= 16, "Must have between 1 and 16 elements"
       end,
     },
+    ---@type CodeCompanion.Schema
     max_tokens = {
       order = 5,
       mapping = "parameters",
@@ -170,6 +175,7 @@ return {
         return n > 0, "Must be greater than 0"
       end,
     },
+    ---@type CodeCompanion.Schema
     presence_penalty = {
       order = 6,
       mapping = "parameters",
@@ -181,6 +187,7 @@ return {
         return n >= -2 and n <= 2, "Must be between -2 and 2"
       end,
     },
+    ---@type CodeCompanion.Schema
     frequency_penalty = {
       order = 7,
       mapping = "parameters",
@@ -192,6 +199,7 @@ return {
         return n >= -2 and n <= 2, "Must be between -2 and 2"
       end,
     },
+    ---@type CodeCompanion.Schema
     logprobs = {
       order = 8,
       mapping = "parameters",
@@ -203,6 +211,7 @@ return {
         type = "integer",
       },
     },
+    ---@type CodeCompanion.Schema
     user = {
       order = 9,
       mapping = "parameters",

@@ -205,13 +205,13 @@ return {
       mapping = "parameters",
       type = "string",
       optional = true,
-      condition = function(schema)
-        local model = schema.model.default
+      condition = function(self)
+        local model = self.schema.model.default
         if type(model) == "function" then
           model = model()
         end
-        if schema.model.choices[model] and schema.model.choices[model].opts then
-          return schema.model.choices[model].opts.can_reason
+        if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
+          return self.schema.model.choices[model].opts.can_reason
         end
       end,
       default = "medium",

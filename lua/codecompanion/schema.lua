@@ -1,10 +1,12 @@
 ---@class CodeCompanion.Schema
+---@field default any The default value of the item
 ---@field type "string"|"number"|"integer"|"boolean"|"enum"|"list"|"map"
----@field mapping string
----@field order nil|integer
+---@field mapping? string Where to map the item to the request
+---@field order nil|integer The order to display the item when the full schema is shown
 ---@field optional nil|boolean
----@field choices nil|table
----@field desc string
+---@field choices nil|table|fun(self: CodeCompanion.Adapter): table<string>
+---@field desc string The description of the schema item
+---@field condition? nil|fun(self: CodeCompanion.Adapter): boolean
 ---@field validate? fun(value: any): boolean, nil|string
 
 local M = {}
@@ -12,12 +14,13 @@ local M = {}
 local islist = vim.islist or vim.tbl_islist
 
 ---Return the default values for a schema
----@param schema CodeCompanion.Schema
+---@param adapter CodeCompanion.Adapter
 ---@param defaults? table Any default values to use (will override schema defaults)
-M.get_default = function(schema, defaults)
+M.get_default = function(adapter, defaults)
+  local schema = adapter.schema
   local ret = {}
   for k, v in pairs(schema) do
-    if type(v.condition) == "function" and not v.condition(schema) then
+    if type(v.condition) == "function" and not v.condition(adapter) then
       goto continue
     end
 
@@ -25,6 +28,7 @@ M.get_default = function(schema, defaults)
       if defaults and defaults[k] ~= nil then
         ret[k] = defaults[k]
       else
+        -- Use the default value in the schema
         ret[k] = v.default
       end
     end
@@ -35,7 +39,7 @@ end
 
 ---@param schema CodeCompanion.Schema
 ---@param value any
----@param adapter? CodeCompanion.Adapter
+---@param adapter CodeCompanion.Adapter
 ---@return boolean
 ---@return nil|string
 local function validate_type(schema, value, adapter)
@@ -45,11 +49,7 @@ local function validate_type(schema, value, adapter)
   elseif ptype == "enum" then
     local choices = schema.choices
     if type(choices) == "function" then
-      if adapter then
-        choices = choices(adapter)
-      else
-        choices = choices()
-      end
+      choices = choices(adapter)
     end
     local valid = vim.tbl_contains(choices, value)
     if not valid and choices then
@@ -83,7 +83,7 @@ end
 
 ---@param schema CodeCompanion.Schema
 ---@param value any
----@param adapter? CodeCompanion.Adapter
+---@param adapter CodeCompanion.Adapter
 ---@return boolean
 ---@return nil|string
 local function validate_field(schema, value, adapter)
@@ -99,7 +99,7 @@ end
 
 ---@param schema CodeCompanion.Schema
 ---@param values table
----@param adapter? CodeCompanion.Adapter
+---@param adapter CodeCompanion.Adapter
 ---@return nil|table<string, string>
 M.validate = function(schema, values, adapter)
   local errors = {}
