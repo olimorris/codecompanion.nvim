@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.13.3](https://github.com/olimorris/codecompanion.nvim/compare/v12.13.2...v12.13.3) (2025-02-27)
+
+
+### Bug Fixes
+
+* **adapters:** openai_compatible hardcoded models endpoint closes [#1022](https://github.com/olimorris/codecompanion.nvim/issues/1022) ([#1038](https://github.com/olimorris/codecompanion.nvim/issues/1038)) ([4585695](https://github.com/olimorris/codecompanion.nvim/commit/4585695d2537ccc4cf9b14bc5559b6c29353a588))
+
 ## [12.13.2](https://github.com/olimorris/codecompanion.nvim/compare/v12.13.1...v12.13.2) (2025-02-27)
 
 
