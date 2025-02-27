@@ -170,6 +170,7 @@ return {
     end,
   },
   schema = {
+    ---@type CodeCompanion.Schema
     model = {
       order = 1,
       type = "enum",
@@ -183,6 +184,7 @@ return {
         "gemini-1.0-pro",
       },
     },
+    ---@type CodeCompanion.Schema
     maxOutputTokens = {
       order = 2,
       mapping = "body.generationConfig",
@@ -194,6 +196,7 @@ return {
         return n > 0, "Must be greater than 0"
       end,
     },
+    ---@type CodeCompanion.Schema
     temperature = {
       order = 3,
       mapping = "body.generationConfig",
@@ -205,6 +208,7 @@ return {
         return n >= 0 and n <= 2, "Must be between 0 and 2"
       end,
     },
+    ---@type CodeCompanion.Schema
     topP = {
       order = 4,
       mapping = "body.generationConfig",
@@ -216,6 +220,7 @@ return {
         return n > 0, "Must be greater than 0"
       end,
     },
+    ---@type CodeCompanion.Schema
     topK = {
       order = 5,
       mapping = "body.generationConfig",
@@ -227,6 +232,7 @@ return {
         return n > 0, "Must be greater than 0"
       end,
     },
+    ---@type CodeCompanion.Schema
     presencePenalty = {
       order = 6,
       mapping = "body.generationConfig",
@@ -235,6 +241,7 @@ return {
       default = nil,
       desc = "Presence penalty applied to the next token's logprobs if the token has already been seen in the response",
     },
+    ---@type CodeCompanion.Schema
     frequencyPenalty = {
       order = 7,
       mapping = "body.generationConfig",

@@ -54,6 +54,7 @@ return {
   schema = {
     -- See https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions
     -- model does not exist in the Azure OpenAI API, but this is used as the deployment in the URL.
+    ---@type CodeCompanion.Schema
     model = {
       order = 1,
       mapping = "parameters",
@@ -62,6 +63,7 @@ return {
       optional = false,
       -- schema.model.default should be populated by the user in their config
     },
+    ---@type CodeCompanion.Schema
     temperature = {
       order = 2,
       mapping = "parameters",
@@ -73,6 +75,7 @@ return {
         return n >= 0 and n <= 2, "Must be between 0 and 2"
       end,
     },
+    ---@type CodeCompanion.Schema
     top_p = {
       order = 3,
       mapping = "parameters",
@@ -84,6 +87,7 @@ return {
         return n >= 0 and n <= 1, "Must be between 0 and 1"
       end,
     },
+    ---@type CodeCompanion.Schema
     stop = {
       order = 4,
       mapping = "parameters",
@@ -98,6 +102,7 @@ return {
         return #l >= 1 and #l <= 4, "Must have between 1 and 4 elements"
       end,
     },
+    ---@type CodeCompanion.Schema
     max_tokens = {
       order = 5,
       mapping = "parameters",
@@ -109,6 +114,7 @@ return {
         return n > 0, "Must be greater than 0"
       end,
     },
+    ---@type CodeCompanion.Schema
     presence_penalty = {
       order = 6,
       mapping = "parameters",
@@ -120,6 +126,7 @@ return {
         return n >= -2 and n <= 2, "Must be between -2 and 2"
       end,
     },
+    ---@type CodeCompanion.Schema
     frequency_penalty = {
       order = 7,
       mapping = "parameters",
@@ -131,6 +138,7 @@ return {
         return n >= -2 and n <= 2, "Must be between -2 and 2"
       end,
     },
+    ---@type CodeCompanion.Schema
     logit_bias = {
       order = 8,
       mapping = "parameters",
@@ -148,6 +156,7 @@ return {
         end,
       },
     },
+    ---@type CodeCompanion.Schema
     user = {
       order = 9,
       mapping = "parameters",

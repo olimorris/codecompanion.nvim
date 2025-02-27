@@ -279,6 +279,7 @@ return {
     end,
   },
   schema = {
+    ---@type CodeCompanion.Schema
     model = {
       order = 1,
       mapping = "parameters",
@@ -290,6 +291,7 @@ return {
         return get_models(self)
       end,
     },
+    ---@type CodeCompanion.Schema
     reasoning_effort = {
       order = 2,
       mapping = "parameters",
@@ -303,13 +305,14 @@ return {
         "low",
       },
     },
+    ---@type CodeCompanion.Schema
     temperature = {
       order = 3,
       mapping = "parameters",
       type = "number",
       default = 0,
-      condition = function(schema)
-        local model = schema.model.default
+      condition = function(self)
+        local model = self.schema.model.default
         if type(model) == "function" then
           model = model()
         end
@@ -324,13 +327,14 @@ return {
       default = 15000,
       desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
     },
+    ---@type CodeCompanion.Schema
     top_p = {
       order = 5,
       mapping = "parameters",
       type = "number",
       default = 1,
-      condition = function(schema)
-        local model = schema.model.default
+      condition = function(self)
+        local model = self.schema.model.default
         if type(model) == "function" then
           model = model()
         end
@@ -338,13 +342,14 @@ return {
       end,
       desc = "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered. We generally recommend altering this or temperature but not both.",
     },
+    ---@type CodeCompanion.Schema
     n = {
       order = 6,
       mapping = "parameters",
       type = "number",
       default = 1,
-      condition = function(schema)
-        local model = schema.model.default
+      condition = function(self)
+        local model = self.schema.model.default
         if type(model) == "function" then
           model = model()
         end

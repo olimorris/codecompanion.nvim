@@ -208,6 +208,7 @@ return {
     end,
   },
   schema = {
+    ---@type CodeCompanion.Schema
     model = {
       order = 1,
       mapping = "parameters",
@@ -220,6 +221,7 @@ return {
         return get_models(self)
       end,
     },
+    ---@type CodeCompanion.Schema
     temperature = {
       order = 2,
       mapping = "parameters.options",
@@ -231,6 +233,7 @@ return {
         return n >= 0 and n <= 2, "Must be between 0 and 2"
       end,
     },
+    ---@type CodeCompanion.Schema
     num_ctx = {
       order = 3,
       mapping = "parameters.options",
@@ -242,6 +245,7 @@ return {
         return n > 0, "Must be a positive number"
       end,
     },
+    ---@type CodeCompanion.Schema
     mirostat = {
       order = 4,
       mapping = "parameters.options",
@@ -253,6 +257,7 @@ return {
         return n == 0 or n == 1 or n == 2, "Must be 0, 1, or 2"
       end,
     },
+    ---@type CodeCompanion.Schema
     mirostat_eta = {
       order = 5,
       mapping = "parameters.options",
@@ -264,6 +269,7 @@ return {
         return n > 0, "Must be a positive number"
       end,
     },
+    ---@type CodeCompanion.Schema
     mirostat_tau = {
       order = 6,
       mapping = "parameters.options",
@@ -275,6 +281,7 @@ return {
         return n > 0, "Must be a positive number"
       end,
     },
+    ---@type CodeCompanion.Schema
     repeat_last_n = {
       order = 7,
       mapping = "parameters.options",
@@ -286,6 +293,7 @@ return {
         return n >= -1, "Must be -1 or greater"
       end,
     },
+    ---@type CodeCompanion.Schema
     repeat_penalty = {
       order = 8,
       mapping = "parameters.options",
@@ -297,6 +305,7 @@ return {
         return n >= 0, "Must be a non-negative number"
       end,
     },
+    ---@type CodeCompanion.Schema
     seed = {
       order = 9,
       mapping = "parameters.options",
@@ -308,6 +317,7 @@ return {
         return n >= 0, "Must be a non-negative number"
       end,
     },
+    ---@type CodeCompanion.Schema
     stop = {
       order = 10,
       mapping = "parameters.options",
@@ -319,6 +329,7 @@ return {
         return s:len() > 0, "Cannot be an empty string"
       end,
     },
+    ---@type CodeCompanion.Schema
     tfs_z = {
       order = 11,
       mapping = "parameters.options",
@@ -330,6 +341,7 @@ return {
         return n >= 0, "Must be a non-negative number"
       end,
     },
+    ---@type CodeCompanion.Schema
     num_predict = {
       order = 12,
       mapping = "parameters.options",
@@ -341,6 +353,7 @@ return {
         return n >= -2, "Must be -2 or greater"
       end,
     },
+    ---@type CodeCompanion.Schema
     top_k = {
       order = 13,
       mapping = "parameters.options",
@@ -352,6 +365,7 @@ return {
         return n >= 0, "Must be a non-negative number"
       end,
     },
+    ---@type CodeCompanion.Schema
     top_p = {
       order = 14,
       mapping = "parameters.options",

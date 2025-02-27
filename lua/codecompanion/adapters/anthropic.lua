@@ -251,6 +251,7 @@ return {
     end,
   },
   schema = {
+    ---@type CodeCompanion.Schema
     model = {
       order = 1,
       mapping = "parameters",
@@ -265,6 +266,7 @@ return {
         "claude-2.1",
       },
     },
+    ---@type CodeCompanion.Schema
     extended_output = {
       order = 2,
       mapping = "temp",
@@ -272,18 +274,21 @@ return {
       optional = true,
       default = false,
       desc = "Enable larger output context (128k tokens). Only available with claude-3-7-sonnet-20250219.",
+      condition = function(self)
+        local model = self.schema.model.default
+        if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
+          return self.schema.model.choices[model].opts.can_reason
+        end
+        return false
+      end,
     },
+    ---@type CodeCompanion.Schema
     extended_thinking = {
       order = 3,
       mapping = "temp",
       type = "boolean",
       optional = true,
-      condition = function(schema)
-        local model = schema.model.default
-        if schema.model.choices[model] and schema.model.choices[model].opts then
-          return schema.model.choices[model].opts.can_reason
-        end
-      end,
+      desc = "Enable extended thinking for more thorough reasoning. Requires thinking_budget to be set.",
       default = function(self)
         local model = self.schema.model
         if
@@ -295,8 +300,15 @@ return {
         end
         return false
       end,
-      desc = "Enable extended thinking for more thorough reasoning. Requires thinking_budget to be set.",
+      condition = function(self)
+        local model = self.schema.model.default
+        if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
+          return self.schema.model.choices[model].opts.can_reason
+        end
+        return false
+      end,
     },
+    ---@type CodeCompanion.Schema
     thinking_budget = {
       order = 4,
       mapping = "temp",
@@ -307,24 +319,27 @@ return {
       validate = function(n)
         return n > 0, "Must be greater than 0"
       end,
-      condition = function(schema)
-        local model = schema.model.default
-        if schema.model.choices[model] and schema.model.choices[model].opts then
-          return schema.model.choices[model].opts.can_reason
+      condition = function(self)
+        local model = self.schema.model.default
+        if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
+          return self.schema.model.choices[model].opts.can_reason
         end
+        return false
       end,
     },
+    ---@type CodeCompanion.Schema
     max_tokens = {
       order = 5,
       mapping = "parameters",
       type = "number",
       optional = true,
       default = function(self)
-        local extended_thinking = self.schema.extended_thinking and self.schema.extended_thinking.default or false
-        if extended_thinking and type(extended_thinking) == "function" then
-          extended_thinking = extended_thinking(self)
-        end
-        if extended_thinking and type(extended_thinking) == "boolean" then
+        local model = self.schema.model.default
+        if
+          self.schema.model.choices[model]
+          and self.schema.model.choices[model].opts
+          and self.schema.model.choices[model].opts.can_reason
+        then
           return self.schema.thinking_budget.default + 1000
         end
         return 4096
@@ -334,6 +349,7 @@ return {
         return n > 0 and n <= 128000, "Must be between 0 and 128000"
       end,
     },
+    ---@type CodeCompanion.Schema
     temperature = {
       order = 6,
       mapping = "parameters",
@@ -345,6 +361,7 @@ return {
         return n >= 0 and n <= 1, "Must be between 0 and 1.0"
       end,
     },
+    ---@type CodeCompanion.Schema
     top_p = {
       order = 7,
       mapping = "parameters",
@@ -356,6 +373,7 @@ return {
         return n >= 0 and n <= 1, "Must be between 0 and 1"
       end,
     },
+    ---@type CodeCompanion.Schema
     top_k = {
       order = 8,
       mapping = "parameters",
@@ -367,6 +385,7 @@ return {
         return n >= 0, "Must be greater than 0"
       end,
     },
+    ---@type CodeCompanion.Schema
     stop_sequences = {
       order = 9,
       mapping = "parameters",

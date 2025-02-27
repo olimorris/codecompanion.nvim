@@ -443,8 +443,9 @@ temperature = {
   mapping = "parameters",
   type = "number",
   default = 0,
-  condition = function(schema)
-    local model = schema.model.default
+  ---@param self CodeCompanion.Adapter
+  condition = function(self)
+    local model = self.schema.model.default
     if type(model) == "function" then
       model = model()
     end
@@ -458,5 +459,5 @@ temperature = {
 },
 ```
 
-You'll see we've specified a function call for the `condition` key. We're simply checking that the model name doesn't being with `o1` as these models don't accept temperature as a parameter. You'll also see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2.
+You'll see we've specified a function call for the `condition` key. We're simply checking that the model name doesn't start with `o1` as these models don't accept temperature as a parameter. You'll also see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2.
 
