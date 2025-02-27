@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.13.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.13.0...v12.13.1) (2025-02-27)
+
+
+### Bug Fixes
+
+* **adapters:** max_tokens error with anthropic ([#1031](https://github.com/olimorris/codecompanion.nvim/issues/1031)) ([59c9109](https://github.com/olimorris/codecompanion.nvim/commit/59c91098f967ffd57f7ae90846a6f751d1c96d2d))
+
 ## [12.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.12.0...v12.13.0) (2025-02-25)
 
 
