@@ -278,14 +278,24 @@ return {
       mapping = "temp",
       type = "boolean",
       optional = true,
-      default = true,
-      desc = "Enable extended thinking for more thorough reasoning. Requires thinking_budget to be set.",
       condition = function(schema)
         local model = schema.model.default
         if schema.model.choices[model] and schema.model.choices[model].opts then
           return schema.model.choices[model].opts.can_reason
         end
       end,
+      default = function(self)
+        local model = self.schema.model
+        if
+          model.choices[model.default]
+          and model.choices[model.default].opts
+          and model.choices[model.default].opts.can_reason == true
+        then
+          return true
+        end
+        return false
+      end,
+      desc = "Enable extended thinking for more thorough reasoning. Requires thinking_budget to be set.",
     },
     thinking_budget = {
       order = 4,
@@ -310,7 +320,11 @@ return {
       type = "number",
       optional = true,
       default = function(self)
-        if self.schema.extended_thinking and self.schema.extended_thinking.default then
+        local extended_thinking = self.schema.extended_thinking and self.schema.extended_thinking.default or false
+        if extended_thinking and type(extended_thinking) == "function" then
+          extended_thinking = extended_thinking(self)
+        end
+        if extended_thinking and type(extended_thinking) == "boolean" then
           return self.schema.thinking_budget.default + 1000
         end
         return 4096
