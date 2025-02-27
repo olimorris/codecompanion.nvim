@@ -116,6 +116,10 @@ A simple proxy server can be set up using [mitmproxy](https://mitmproxy.org/).
 ```
 
 From now on, all requests will be forwarded to the proxy server.
+<details>
+<summary>screenshot</summary>
+<img width="1506" alt="debug request with proxy screeshot" src="https://github.com/user-attachments/assets/60f31736-da83-4b80-bc61-341bb7fc82f7" />
+</details>
 
 
 ## Testing
