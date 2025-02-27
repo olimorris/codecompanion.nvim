@@ -372,13 +372,16 @@ function Inline:stop()
   end
 end
 
+local _streaming = true
+
 ---Submit the prompts to the LLM to process
 ---@param prompt table The prompts to send to the LLM
 ---@return nil
 function Inline:submit(prompt)
   log:info("[Inline] Request started")
 
-  -- Inline editing only works with streaming off
+  -- Inline editing only works with streaming off - We should remember the current status
+  _streaming = self.adapter.opts.stream
   self.adapter.opts.stream = false
 
   -- Set keymaps and start diffing
@@ -483,6 +486,7 @@ end
 ---Reset the inline prompt class
 ---@return nil
 function Inline:reset()
+  self.adapter.opts.stream = _streaming
   self.current_request = nil
   api.nvim_buf_del_keymap(self.bufnr, "n", "q")
   api.nvim_clear_autocmds({ group = self.aug })
@@ -676,7 +680,7 @@ function Inline:to_chat()
   end
 
   -- Turn streaming back on
-  self.adapter.opts.stream = true
+  self.adapter.opts.stream = _streaming
 
   return require("codecompanion.strategies.chat").new({
     context = self.context,
