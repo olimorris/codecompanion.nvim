@@ -1,5 +1,13 @@
 # Changelog
 
+## [12.13.2](https://github.com/olimorris/codecompanion.nvim/compare/v12.13.1...v12.13.2) (2025-02-27)
+
+
+### Bug Fixes
+
+* **adapters:** dynamically getting copilot adapters when switching adapters ([c0a820e](https://github.com/olimorris/codecompanion.nvim/commit/c0a820e0184ac0714c608b06fd3822abe79492cb))
+* **adapters:** inline editing with copilot closes [#1036](https://github.com/olimorris/codecompanion.nvim/issues/1036) [#1027](https://github.com/olimorris/codecompanion.nvim/issues/1027) ([#1037](https://github.com/olimorris/codecompanion.nvim/issues/1037)) ([aae4ad7](https://github.com/olimorris/codecompanion.nvim/commit/aae4ad785dea43b1adfb2d0c0c6b546fe09c1819))
+
 ## [12.13.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.13.0...v12.13.1) (2025-02-27)
 
 
