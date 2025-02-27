@@ -27,9 +27,9 @@ function Default:find_files()
   end
 
   local files = scan.scan_dir(path:absolute(), {
-    hidden = true, -- Include hidden files
-    depth = 10, -- Only direct children
-    add_dirs = false, -- Only files, not directories
+    hidden = true,
+    depth = 10,
+    add_dirs = false,
   })
 
   self.to_display = vim
