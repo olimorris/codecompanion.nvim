@@ -229,10 +229,10 @@ return {
       local model = self.schema.model.default
       local choices = self.schema.model.choices
       if type(model) == "function" then
-        model = model()
+        model = model(self)
       end
       if type(choices) == "function" then
-        choices = choices()
+        choices = choices(self)
       end
       local model_opts = choices[model]
       if model_opts and model_opts.opts then
@@ -298,19 +298,6 @@ return {
       mapping = "parameters",
       type = "string",
       optional = true,
-      condition = function(schema)
-        local model = schema.model.default
-        local choices = schema.model.choices
-        if type(model) == "function" then
-          model = model()
-        end
-        if type(choices) == "function" then
-          choices = choices()
-        end
-        if choices[model] and choices[model].opts then
-          return choices[model].opts.can_reason
-        end
-      end,
       default = "medium",
       desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
       choices = {
