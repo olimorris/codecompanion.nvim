@@ -21,6 +21,7 @@ local function get_models(self, opts)
   if vim.tbl_isempty(_models) or config.display.chat.show_settings == false then
     adapter:get_env_vars()
     local url = adapter.env_replaced.url
+    local models_endpoint = adapter.env_replaced.models_endpoint
 
     local headers = {
       ["content-type"] = "application/json",
@@ -32,7 +33,7 @@ local function get_models(self, opts)
     local ok, response, json
 
     ok, response = pcall(function()
-      return curl.get(url .. "/v1/models", {
+      return curl.get(url .. models_endpoint, {
         sync = true,
         headers = headers,
         insecure = config.adapters.opts.allow_insecure,
@@ -82,6 +83,7 @@ return {
     api_key = "OPENAI_API_KEY",
     url = "http://localhost:11434",
     chat_url = "/v1/chat/completions",
+    models_endpoint = "/v1/models",
   },
   headers = {
     ["Content-Type"] = "application/json",
