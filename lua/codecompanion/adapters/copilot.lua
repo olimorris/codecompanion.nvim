@@ -141,12 +141,10 @@ local function get_models(self, opts)
   end
 
   if not _cached_adapter then
-    local adapter = require("codecompanion.adapters").resolve(self)
-    if not adapter then
-      log:error("Could not resolve Copilot adapter in the `get_models` function")
+    if not self then
       return {}
     end
-    _cached_adapter = adapter
+    _cached_adapter = self
   end
 
   get_and_authorize_token()
@@ -169,7 +167,7 @@ local function get_models(self, opts)
 
   local ok, json = pcall(vim.json.decode, response.body)
   if not ok then
-    log:error("Could not parse the response from " .. url .. "/models")
+    log:error("Error parsing the response from " .. url .. "/models.\nError: %s", response.body)
     return {}
   end
 
@@ -221,7 +219,7 @@ return {
     Authorization = "Bearer ${api_key}",
     ["Content-Type"] = "application/json",
     ["Copilot-Integration-Id"] = "vscode-chat",
-    ["editor-version"] = "Neovim/" .. vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
+    ["Editor-Version"] = "Neovim/" .. vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
   },
   handlers = {
     ---Check for a token before starting the request
@@ -231,10 +229,10 @@ return {
       local model = self.schema.model.default
       local choices = self.schema.model.choices
       if type(model) == "function" then
-        model = model()
+        model = model(self)
       end
       if type(choices) == "function" then
-        choices = choices()
+        choices = choices(self)
       end
       local model_opts = choices[model]
       if model_opts and model_opts.opts then
@@ -300,19 +298,6 @@ return {
       mapping = "parameters",
       type = "string",
       optional = true,
-      condition = function(schema)
-        local model = schema.model.default
-        local choices = schema.model.choices
-        if type(model) == "function" then
-          model = model()
-        end
-        if type(choices) == "function" then
-          choices = choices()
-        end
-        if choices[model] and choices[model].opts then
-          return choices[model].opts.can_reason
-        end
-      end,
       default = "medium",
       desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
       choices = {
