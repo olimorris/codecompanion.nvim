@@ -12,10 +12,10 @@ jobs:
       - uses: actions/stale@v9
         with:
           days-before-issue-stale: 7
-          days-before-issue-close: 3
           stale-issue-message: 'This issue is stale because it has been open for 7 days with no activity. Remove the stale label or comment or this will be closed in 3 days.'
+          days-before-issue-close: 3
           close-issue-message: 'This issue was closed because it was stalled for 3 days with no activity.'
           days-before-pr-stale: 14
-          days-before-pr-close: 3
           stale-pr-message: 'This PR is stale because it has been open for 14 days with no activity. Remove the stale label or comment or this will be closed in 3 days.'
+          days-before-pr-close: 3
           close-pr-message: 'This PR was closed because it was stalled for 3 days with no activity.'
