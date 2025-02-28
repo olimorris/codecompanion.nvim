@@ -29,7 +29,7 @@ Thank you to the following people:
 ## :sparkles: Features
 
 - :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
-- :electric_plug: Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs (or bring your own!)
+- :electric_plug: Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs (or [bring your own](https://codecompanion.olimorris.dev/extending/adapters.html))
 - :heart_hands: User contributed and supported [adapters](https://codecompanion.olimorris.dev/configuration/adapters.html#user-contributed-adapters)
 - :rocket: Inline transformations, code creation and refactoring
 - :robot: Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
@@ -49,7 +49,7 @@ Thank you to the following people:
   </p>
   <p>
     <h3>Using Agents and Tools</h3>
-    <video conrols muted src="https://github.com/user-attachments/assets/16bd6c17-bd70-41a1-83aa-7af45c166ae9"></video>
+    <video controls muted src="https://github.com/user-attachments/assets/16bd6c17-bd70-41a1-83aa-7af45c166ae9"></video>
   </p>
   <p>
     <h3>Agentic Workflows</h3>
@@ -63,9 +63,9 @@ Thank you to the following people:
 
 <!-- panvimdoc-ignore-end -->
 
-## :book: Documentation
+## :rocket: Getting Started
 
-Please visit the [documentation site](https://codecompanion.olimorris.dev) for information around installation, configuration and usage.
+Please visit the [docs](https://codecompanion.olimorris.dev) for information on installation, configuration and usage.
 
 ## :toolbox: Troubleshooting
 
