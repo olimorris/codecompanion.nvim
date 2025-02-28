@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.14.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.14.0...v12.14.1) (2025-02-28)
+
+
+### Bug Fixes
+
+* **ui:** render settings ([#1047](https://github.com/olimorris/codecompanion.nvim/issues/1047)) ([6bcebbf](https://github.com/olimorris/codecompanion.nvim/commit/6bcebbfaccb4fed649bf901bac3654373dece54c))
+
 ## [12.14.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.13.3...v12.14.0) (2025-02-27)
 
 
