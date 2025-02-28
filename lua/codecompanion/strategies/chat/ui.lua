@@ -257,7 +257,7 @@ function UI:render(context, messages, opts)
   if config.display.chat.show_settings then
     log:trace("Showing chat settings")
     lines = { "---" }
-    local keys = schema.get_ordered_keys(self.adapter.schema)
+    local keys = schema.get_ordered_keys(self.adapter)
     for _, key in ipairs(keys) do
       local setting = self.settings[key]
       if type(setting) == "function" then
