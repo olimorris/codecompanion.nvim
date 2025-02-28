@@ -114,11 +114,13 @@ M.validate = function(schema, values, adapter)
   end
 end
 
----@param schema CodeCompanion.Schema
+---Order the keys of the schema
+---@param adapter CodeCompanion.Adapter
 ---@return string[]
-M.get_ordered_keys = function(schema)
+M.get_ordered_keys = function(adapter)
+  local schema = adapter.schema
   for k, v in pairs(schema) do
-    if type(v.condition) == "function" and not v.condition(schema) then
+    if type(v.condition) == "function" and not v.condition(adapter) then
       schema[k] = nil
     end
   end
