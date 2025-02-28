@@ -10,7 +10,9 @@
 <a href="https://github.com/olimorris/codecompanion.nvim/releases"><img src="https://img.shields.io/github/v/release/olimorris/codecompanion.nvim?style=for-the-badge"></a>
 </p>
 
-<p align="center">Powerful AI coding, natively in Neovim</p>
+<p align="center">AI-powered coding, seamlessly in Neovim</p>
+
+<p align="center">Connect to any LLM with the <a href="https://codecompanion.olimorris.dev/getting-started.html">in-built</a> adapters, the <a href="https://codecompanion.olimorris.dev/configuration/adapters.html#user-contributed-adapters">community</a> adapters or by <a href="https://codecompanion.olimorris.dev/extending/adapters.html">building</a> your own</p>
 
 <p align="center">New features are always announced <a href="https://github.com/olimorris/codecompanion.nvim/discussions/categories/announcements">here</a></p>
 
@@ -64,7 +66,6 @@ Thank you to the following people:
 ## :book: Documentation
 
 Please visit the [documentation site](https://codecompanion.olimorris.dev) for information around installation, configuration and usage.
-
 
 ## :toolbox: Troubleshooting
 
