@@ -67,14 +67,16 @@ body:
     - type: markdown
       attributes:
         value: |
-          ### Reproduce
+          ## Reproduce
 
-          Please provide the necessary config so I can recreate this issue. Please use the template provided to you below:
+          Please provide the necessary config so I can recreate this issue. It's a big ask of my time as a single maintainer to investigate all possible issues that a user is experiencing.
+
+          Use the template `init.lua` file provided to you below. A minimal config will be created for you in your working directory under `.repro`.
 
     - type: textarea
       attributes:
-        label: File to Reproduce
-        description: Minimal `init.lua` to reproduce this issue. Save as `repro.lua` and run with `nvim -u repro.lua`
+        label: init.lua file
+        description: Minimal file to reproduce this issue. Save as `init.lua` and run with `nvim -u init.lua`
         value: |
           --[[
           NOTE: Set the config path to enable the copilot adapter to work.
@@ -163,7 +165,7 @@ body:
     - type: textarea
       attributes:
         label: Log output
-        description: Share the output from the log file at `.repro/state/nvim/codecompanion.log`
+        description: Share the output from the log file in your current working directory at `.repro/state/nvim/codecompanion.log`
       validations:
         required: false
 
