@@ -63,12 +63,13 @@ body:
         description: A concise description of what you expected to happen.
       validations:
         required: true
-    - type: textarea
+
+    - type: markdown
       attributes:
-        label: Log output
-        description: Share the output from the log file. You can find this with `:checkhealth codecompanion`
-      validations:
-        required: false
+        value: |
+          ### Reproduce
+
+          Please provide the necessary config so I can recreate this issue. Please use the template provided to you below:
 
     - type: textarea
       attributes:
@@ -159,10 +160,17 @@ body:
       validations:
         required: true
 
+    - type: textarea
+      attributes:
+        label: Log output
+        description: Share the output from the log file at `.repro/state/nvim/codecompanion.log`
+      validations:
+        required: false
+
     - type: checkboxes
       attributes:
         label: Have you provided and tested with a repro.lua file?
-        description: This issue will be closed if I can't recreate it
+        description: I'll close this issue with no reason if I can't recreate it
         options:
           - label: Yes, I have tested and provided a repro.lua file
             required: true
