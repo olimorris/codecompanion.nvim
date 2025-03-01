@@ -35,6 +35,7 @@ T["Agent"]["functions"]["can run"] = function()
   h.eq(vim.NIL, child.lua_get([[_G._test_func]]))
 
   child.lua([[
+    --require("tests.log")
     local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
     local xml = func_xml.two_data_points()
     agent:execute(chat, xml)
@@ -64,10 +65,10 @@ T["Agent"]["functions"]["calls on_exit only once"] = function()
   h.eq(vim.NIL, child.lua_get([[_G._test_exit]]))
 
   child.lua([[
-    local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
-    local xml = func_xml.two_data_points()
-    agent:execute(chat, xml)
-  ]])
+     local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
+     local xml = func_xml.two_data_points()
+     agent:execute(chat, xml)
+   ]])
 
   -- Test that the function was called
   h.eq("Exited", child.lua_get([[_G._test_exit]]))
@@ -79,10 +80,11 @@ T["Agent"]["functions"]["can run consecutively and pass input"] = function()
   local tool = "'func_consecutive'"
   child.lua(string.format(
     [[
-    local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
-    local xml = func_xml.one_data_point(%s)
-    agent:execute(chat, xml)
-  ]],
+     --require("tests.log")
+     local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
+     local xml = func_xml.one_data_point(%s)
+     agent:execute(chat, xml)
+   ]],
     tool
   ))
 
@@ -98,10 +100,10 @@ T["Agent"]["functions"]["can run consecutively"] = function()
   local tool = "'func_consecutive'"
   child.lua(string.format(
     [[
-    local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
-    local xml = func_xml.two_data_points(%s)
-    agent:execute(chat, xml)
-  ]],
+     local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
+     local xml = func_xml.two_data_points(%s)
+     agent:execute(chat, xml)
+   ]],
     tool
   ))
 
@@ -115,10 +117,10 @@ T["Agent"]["functions"]["can handle errors"] = function()
   local tool = "'func_error'"
   child.lua(string.format(
     [[
-    local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
-    local xml = func_xml.two_data_points(%s)
-    agent:execute(chat, xml)
-  ]],
+     local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
+     local xml = func_xml.two_data_points(%s)
+     agent:execute(chat, xml)
+   ]],
     tool
   ))
 
@@ -132,14 +134,14 @@ T["Agent"]["functions"]["can populate stderr and halt execution"] = function()
   local tool = "'func_error'"
   child.lua(string.format(
     [[
-    -- Prevent stderr from being cleared out
-    function agent:reset()
-      return nil
-    end
-    local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
-    local xml = func_xml.two_data_points(%s)
-    agent:execute(chat, xml)
-  ]],
+     -- Prevent stderr from being cleared out
+     function agent:reset()
+       return nil
+     end
+     local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
+     local xml = func_xml.two_data_points(%s)
+     agent:execute(chat, xml)
+   ]],
     tool
   ))
 
@@ -149,14 +151,14 @@ end
 
 T["Agent"]["functions"]["can populate stdout"] = function()
   child.lua([[
-    -- Prevent stdout from being cleared out
-    function agent:reset()
-      return nil
-    end
-    local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
-    local xml = func_xml.two_data_points()
-    agent:execute(chat, xml)
-  ]])
+     -- Prevent stdout from being cleared out
+     function agent:reset()
+       return nil
+     end
+     local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
+     local xml = func_xml.two_data_points()
+     agent:execute(chat, xml)
+   ]])
 
   h.eq(
     { { data = "Data 1", status = "success" }, { data = "Data 2", status = "success" } },

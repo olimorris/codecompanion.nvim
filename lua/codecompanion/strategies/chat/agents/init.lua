@@ -177,8 +177,9 @@ function Agent:execute(chat, xml)
   end
 
   ---Resolve and run the tool
+  ---@param executor CodeCompanion.Agent.Executor The executor instance
   ---@param s table The tool's schema
-  local function run_tool(s)
+  local function run_tool(executor, s)
     -- If an error occurred, don't run any more tools
     if self.status == CONSTANTS.STATUS_ERROR then
       return
@@ -206,18 +207,22 @@ function Agent:execute(chat, xml)
       util.replace_placeholders(self.tool.cmds, env)
     end
 
-    return Executor.new(self, self.tool):execute()
+    return executor.queue:push(self.tool)
   end
+
+  local executor = Executor.new(self)
 
   -- This allows us to run multiple tools in a single response whether they're in
   -- their own XML block or they're in an array within the <tools> tag
   if vim.isarray(schema.tool) then
     vim.iter(schema.tool):each(function(tool)
-      run_tool({ tool = tool })
+      run_tool(executor, { tool = tool })
     end)
   else
-    return run_tool(schema)
+    run_tool(executor, schema)
   end
+
+  return executor:execute()
 end
 
 ---Look for tools in a given message

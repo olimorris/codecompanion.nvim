@@ -1,5 +1,6 @@
 local CmdExecutor = require("codecompanion.strategies.chat.agents.executor.cmd")
 local FuncExecutor = require("codecompanion.strategies.chat.agents.executor.func")
+local Queue = require("codecompanion.strategies.chat.agents.executor.queue")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
@@ -11,36 +12,45 @@ local util = require("codecompanion.utils")
 ---@field index number The index of the current command
 ---@field output table<string, function>
 ---@field tool CodeCompanion.Agent.Tool
+---@field queue CodeCompanion.Agent.Executor.Queue
 ---@field status string
 local Executor = {}
 
 ---@param agent CodeCompanion.Agent
----@param tool CodeCompanion.Agent.Tool
-function Executor.new(agent, tool)
-  log:debug("Executor.new: %s", tool.name)
-
+function Executor.new(agent)
   local self = setmetatable({
     agent = agent,
     current_cmd_tool = {},
-    tool = tool,
+    id = math.random(10000000),
+    queue = Queue.new(),
   }, { __index = Executor })
 
+  _G.codecompanion_cancel_tool = false
+  -- util.fire("AgentStarted", { tool = tool.name, bufnr = agent.bufnr })
+  -- self.handlers.setup()
+
+  return self
+end
+
+---Add the tool's handlers to the executor
+---@return nil
+function Executor:setup_handlers()
   self.handlers = {
     setup = function()
       vim.g.codecompanion_current_tool = self.tool.name
       if self.tool.handlers and self.tool.handlers.setup then
-        self.tool.handlers.setup(agent)
+        self.tool.handlers.setup(self.agent)
       end
     end,
     approved = function(cmd)
       if self.tool.handlers and self.tool.handlers.approved then
-        return self.tool.handlers.approved(agent, cmd)
+        return self.tool.handlers.approved(self.agent, cmd)
       end
       return true
     end,
     on_exit = function()
       if self.tool.handlers and self.tool.handlers.on_exit then
-        self.tool.handlers.on_exit(agent)
+        self.tool.handlers.on_exit(self.agent)
       end
     end,
   }
@@ -48,49 +58,45 @@ function Executor.new(agent, tool)
   self.output = {
     rejected = function(cmd)
       if self.tool.output and self.tool.output.rejected then
-        self.tool.output.rejected(agent, cmd)
+        self.tool.output.rejected(self.agent, cmd)
       end
     end,
     error = function(cmd, error, output)
       if self.tool.output and self.tool.output.error then
-        self.tool.output.error(agent, cmd, error, output)
+        self.tool.output.error(self.agent, cmd, error, output)
       end
     end,
     success = function(cmd, output)
       if self.tool.output and self.tool.output.success then
-        self.tool.output.success(agent, cmd, output)
+        self.tool.output.success(self.agent, cmd, output)
       end
     end,
   }
-
-  _G.codecompanion_cancel_tool = false
-  util.fire("AgentStarted", { tool = tool.name, bufnr = agent.bufnr })
-  self.handlers.setup()
-
-  return self
 end
 
 ---Execute the tool command
----@param index? number The index of the command to execute
 ---@param input? any
 ---@return nil
-function Executor:execute(index, input)
-  index = index or 1
-  log:debug("Executor:execute %s", index)
-  if
-    not self.tool.cmds
-    or index > vim.tbl_count(self.tool.cmds)
-    or self.agent.status == self.agent.constants.STATUS_ERROR
-  then
-    return self:close()
+function Executor:execute(input)
+  if self.queue:is_empty() or self.agent.status == self.agent.constants.STATUS_ERROR then
+    log:debug("Executor:execute - Queue empty or error")
+    return
   end
 
-  local cmd = self.tool.cmds[index]
+  -- Get the next tool to run
+  self.tool = self.queue:pop()
+
+  -- Setup its handlers
+  self:setup_handlers()
+
+  local cmd = self.tool.cmds[1]
+  log:debug("Executor:execute - `%s` tool", self.tool.name)
+  self.handlers.setup()
+
   if type(cmd) == "function" then
-    return FuncExecutor.new(self, cmd, index):orchestrate(input)
+    return FuncExecutor.new(self, cmd, 1):orchestrate(input)
   end
-
-  return CmdExecutor.new(self, self.tool.cmds, index):orchestrate()
+  return CmdExecutor.new(self, self.tool.cmds, 1):orchestrate()
 end
 
 ---Does the tool require approval before it can be executed?

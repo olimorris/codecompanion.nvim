@@ -1,3 +1,4 @@
+local log = require("codecompanion.utils.log")
 return {
   name = "func_consecutive",
   system_prompt = function(schema)
@@ -6,9 +7,11 @@ return {
   cmds = {
     ---In production, we should be outputting as { status: string, data: any }
     function(self, actions, input)
+      log:debug("FIRST ACTION")
       return (input and (input .. " ") or "") .. actions.data
     end,
     function(self, actions, input)
+      log:debug("SECOND ACTION")
       local output = input .. " " .. actions.data
       _G._test_func = output
       return output

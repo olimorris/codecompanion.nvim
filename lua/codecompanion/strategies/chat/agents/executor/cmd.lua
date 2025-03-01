@@ -63,7 +63,7 @@ function CmdExecutor:run(cmd, index)
       end
 
       vim.schedule(function()
-        local ok, _ = pcall(function()
+        local ok, output = pcall(function()
           if _G.codecompanion_cancel_tool then
             return self.executor:close()
           end
@@ -77,7 +77,8 @@ function CmdExecutor:run(cmd, index)
             self.executor:success(cmd)
             -- Don't trigger on_exit unless it's the last command
             if index == self.count then
-              return self.executor:close()
+              self.executor:close()
+              return self.executor:execute()
             end
           else
             return self.executor:error(cmd, string.format("Failed with code %s", code))
@@ -85,7 +86,7 @@ function CmdExecutor:run(cmd, index)
         end)
 
         if not ok then
-          log:error("Internal error running command: %s", cmd)
+          log:error("Internal error running command %s: %s", cmd, output)
           return self.executor:error(cmd, "Internal error")
         end
       end)

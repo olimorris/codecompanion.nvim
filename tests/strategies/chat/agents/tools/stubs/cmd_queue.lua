@@ -23,7 +23,6 @@ return {
     success = function(self, cmd, output)
       _G._test_order = (_G._test_order or "") .. "->Cmd[Success]"
       _G._test_output = _G._test_output or {}
-      table.insert(_G._test_output, output)
     end,
   },
 }

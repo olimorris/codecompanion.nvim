@@ -23,26 +23,49 @@ end
 function FuncExecutor:orchestrate(input)
   log:debug("FuncExecutor:orchestrate %s", self.index)
   local action = self.executor.tool.request.action
-  if type(action) == "table" and type(action[1]) == "table" then
-    ---Process all actions in sequence without creating new execution chains
-    ---@param idx number The index
-    ---@param prev_input? any
-    ---@return nil
-    local function process_actions(idx, prev_input)
-      if idx > #action then
-        -- All actions processed, continue to next command
-        return self.executor:execute(self.index + 1, prev_input)
-      end
+  log:debug("Action: %s", action)
 
-      -- Allow the action to call the next action directly, without calling `Executor:execute`
-      self:run(self.func, action[idx], prev_input, function(output)
-        process_actions(idx + 1, output)
-      end)
+  if type(action) == "table" and vim.isarray(action) and action[1] ~= nil then
+    -- Handle multiple functions in the cmds array
+    self:process_action_array(action, input)
+  else
+    self:run(self.func, action, input, function(output)
+      self:proceed_to_next(output)
+    end)
+  end
+end
+
+---Process an array of actions sequentially
+---@param actions table Array of actions
+---@param input any Input for the first action
+---@return nil
+function FuncExecutor:process_action_array(actions, input)
+  local function process_actions(idx, prev_input)
+    if idx > #actions then
+      -- All actions processed, continue to next command
+      return self:proceed_to_next(prev_input)
     end
 
-    process_actions(1, input)
+    -- Process each action and chain them together
+    self:run(self.func, actions[idx], prev_input, function(output)
+      process_actions(idx + 1, output)
+    end)
+  end
+
+  process_actions(1, input)
+end
+
+---Move to the next function in the command chain or finish execution
+---@param output any The output from the previous function
+---@return nil
+function FuncExecutor:proceed_to_next(output)
+  if self.index < #self.executor.tool.cmds then
+    local next_func = self.executor.tool.cmds[self.index + 1]
+    local next_executor = FuncExecutor.new(self.executor, next_func, self.index + 1)
+    return next_executor:orchestrate(output)
   else
-    self:run(self.func, action, input)
+    self.executor:close()
+    return self.executor:execute(output)
   end
 end
 
@@ -65,8 +88,6 @@ function FuncExecutor:run(func, action, input, callback)
 
   if callback then
     callback(output)
-  else
-    return self.executor:execute(self.index + 1, output)
   end
 end
 
