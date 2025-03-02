@@ -173,7 +173,7 @@
         },
         {
           "description": "This is how the queue object can look. This is an example of a function tool, a command tool, followed by a function tool:",
-          "path": "tests/stubs/queue.lua"
+          "path": "tests/stubs/queue.txt"
         }
       ]
     }
