@@ -1,5 +1,12 @@
 # Changelog
 
+## [12.14.2](https://github.com/olimorris/codecompanion.nvim/compare/v12.14.1...v12.14.2) (2025-03-02)
+
+
+### Bug Fixes
+
+* **adapters:** replace vars on every request closes [#1052](https://github.com/olimorris/codecompanion.nvim/issues/1052) ([#1054](https://github.com/olimorris/codecompanion.nvim/issues/1054)) ([942fd80](https://github.com/olimorris/codecompanion.nvim/commit/942fd80b82d7059fa6fe494adea0b15168302e54))
+
 ## [12.14.1](https://github.com/olimorris/codecompanion.nvim/compare/v12.14.0...v12.14.1) (2025-02-28)
 
 
