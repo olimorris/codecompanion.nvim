@@ -61,7 +61,7 @@ local defaults = {
             callback = "strategies.chat.agents.tools.cmd_runner",
             description = "Run shell commands initiated by the LLM",
             opts = {
-              user_approval = true,
+              requires_approval = true,
             },
           },
           ["editor"] = {
@@ -72,7 +72,7 @@ local defaults = {
             callback = "strategies.chat.agents.tools.files",
             description = "Update the file system with the LLM's response",
             opts = {
-              user_approval = true,
+              requires_approval = true,
             },
           },
           ["rag"] = {

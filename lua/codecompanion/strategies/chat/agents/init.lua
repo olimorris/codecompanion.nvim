@@ -185,10 +185,13 @@ function Agent:execute(chat, xml)
       return
     end
 
+    local name = s.tool._attr.name
+    local tool_config = self.agent_config.tools[name]
+
     ---@type CodeCompanion.Agent.Tool|nil
     local resolved_tool
     ok, resolved_tool = pcall(function()
-      return Agent.resolve(self.agent_config.tools[s.tool._attr.name])
+      return Agent.resolve(tool_config)
     end)
     if not ok or not resolved_tool then
       log:error("Couldn't resolve the tool(s) from the LLM's response")
@@ -198,6 +201,8 @@ function Agent:execute(chat, xml)
     end
 
     self.tool = vim.deepcopy(resolved_tool)
+    self.tool.name = name
+    self.tool.opts = tool_config.opts and tool_config.opts or {}
     self.tool.request = s.tool
     self:fold_xml()
     self:set_autocmds()
@@ -222,7 +227,7 @@ function Agent:execute(chat, xml)
     run_tool(executor, schema)
   end
 
-  return executor:execute()
+  return executor:setup()
 end
 
 ---Look for tools in a given message

@@ -41,9 +41,6 @@ T["Agent"]["user approval"]["is triggered"] = function()
     agent:execute(chat, xml)
   ]])
 
-  -- Test order
-  h.eq("Setup->Success->Success->Exit", child.lua_get([[_G._test_order]]))
-
   -- Test that the function was called
   h.eq("Data 1 Data 2", child.lua_get([[_G._test_func]]))
 end

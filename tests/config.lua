@@ -92,7 +92,7 @@ return {
             callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
             description = "Some function tool to test but with approval",
             opts = {
-              user_approval = true,
+              requires_approval = true,
             },
           },
           ["cmd"] = {

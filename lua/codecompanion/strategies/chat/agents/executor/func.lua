@@ -65,7 +65,7 @@ function FuncExecutor:proceed_to_next(output)
     return next_executor:orchestrate(output)
   else
     self.executor:close()
-    return self.executor:execute(output)
+    return self.executor:setup(output)
   end
 end
 

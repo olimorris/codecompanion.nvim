@@ -172,29 +172,6 @@ return {
         table.insert(tool.cmds, entry)
       end
     end,
-
-    ---Approve the command to be run
-    ---@param agent CodeCompanion.Agent
-    ---@param cmd table
-    ---@return boolean
-    approved = function(agent, cmd)
-      if vim.g.codecompanion_auto_tool_mode then
-        log:info("[Cmd Runner Tool] Auto-approved running the command")
-        return true
-      end
-
-      local cmd_concat = table.concat(cmd.cmd or cmd, " ")
-
-      local msg = "Run command: `" .. cmd_concat .. "`?"
-      local ok, choice = pcall(vim.fn.confirm, msg, "No\nYes")
-      if not ok or choice ~= 2 then
-        log:info("[Cmd Runner Tool] Rejected running the command")
-        return false
-      end
-
-      log:info("[Cmd Runner Tool] Approved running the command")
-      return true
-    end,
   },
 
   output = {

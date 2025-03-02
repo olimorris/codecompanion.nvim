@@ -74,25 +74,53 @@ function Executor:setup_handlers()
   }
 end
 
----Execute the tool command
+---Setup the tool to be executed
 ---@param input? any
 ---@return nil
-function Executor:execute(input)
+function Executor:setup(input)
   if self.queue:is_empty() or self.agent.status == self.agent.constants.STATUS_ERROR then
-    log:debug("Executor:execute - Queue empty or error")
-    return
+    return log:debug("Executor:execute - Queue empty or error")
   end
 
   -- Get the next tool to run
   self.tool = self.queue:pop()
 
-  -- Setup its handlers
+  -- Setup the handlers
   self:setup_handlers()
+  self.handlers.setup() -- Call this early as cmd_runner needs to setup its cmds dynamically
 
+  -- Get the first command to run
   local cmd = self.tool.cmds[1]
+  log:debug("Executor:execute - %s", self.tool)
   log:debug("Executor:execute - `%s` tool", self.tool.name)
-  self.handlers.setup()
 
+  -- Check if the tool requires approval
+  if self.tool.opts and self.tool.opts.requires_approval then
+    log:debug("Executor:execute - Asking for approval")
+    local ok, choice = pcall(vim.fn.confirm, ("Run the tool %q?"):format(self.tool.name), "&Yes\n&No\n&Cancel")
+    if not ok or choice == 0 or choice == 3 then -- Esc or Cancel
+      log:debug("Executor:execute - Tool cancelled")
+      return self:close()
+    end
+    if choice == 1 then -- Yes
+      log:debug("Executor:execute - Tool approved")
+      self:execute(cmd, input)
+    end
+    if choice == 2 then -- No
+      log:debug("Executor:execute - Tool rejected")
+      self.output.rejected(cmd)
+      return self:setup()
+    end
+  else
+    self:execute(cmd, input)
+  end
+end
+
+---Execute the tool command
+---@param cmd string|function
+---@param input? any
+---@return nil
+function Executor:execute(cmd, input)
   if type(cmd) == "function" then
     return FuncExecutor.new(self, cmd, 1):orchestrate(input)
   end
@@ -116,7 +144,7 @@ function Executor:error(action, error)
   self.agent.status = self.agent.constants.STATUS_ERROR
   if error then
     table.insert(self.agent.stderr, error)
-    log:warn("Error with %s: %s", self.tool.name, error)
+    log:warn("Tool %s: %s", self.tool.name, error)
   end
   self.output.error(action, self.agent.stderr, self.agent.stdout)
   self:close()

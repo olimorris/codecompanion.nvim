@@ -78,7 +78,7 @@ function CmdExecutor:run(cmd, index)
             -- Don't trigger on_exit unless it's the last command
             if index == self.count then
               self.executor:close()
-              return self.executor:execute()
+              return self.executor:setup()
             end
           else
             return self.executor:error(cmd, string.format("Failed with code %s", code))
@@ -86,8 +86,7 @@ function CmdExecutor:run(cmd, index)
         end)
 
         if not ok then
-          log:error("Internal error running command %s: %s", cmd, output)
-          return self.executor:error(cmd, "Internal error")
+          return self.executor:error(cmd, string.format("Error whilst running command %s: %s", cmd, output))
         end
       end)
     end,
