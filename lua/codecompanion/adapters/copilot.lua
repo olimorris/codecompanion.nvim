@@ -125,12 +125,6 @@ end
 local _cached_adapter
 local _cached_available_models
 
----Reset the cached adapter
----@return nil
-local function reset()
-  _cached_adapter = nil
-end
-
 ---Get a list of available Copilot models
 ---@params self CodeCompanion.Adapter
 ---@params opts? table
@@ -274,7 +268,6 @@ return {
       return openai.handlers.inline_output(self, data, context)
     end,
     on_exit = function(self, data)
-      reset()
       return openai.handlers.on_exit(self, data)
     end,
   },
