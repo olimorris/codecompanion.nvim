@@ -111,5 +111,7 @@ buffer
 - [Aerial.nvim](https://github.com/stevearc/aerial.nvim) for the Tree-sitter parsing which inspired the symbols Slash
 Command
 - [Saghen](https://github.com/Saghen) for the fantastic docs inspiration from [blink.cmp](https://github.com/Saghen/blink.cmp)
+- [Catwell](https://github.com/catwell) for the [queue](https://github.com/catwell/cw-lua/blob/master/deque/deque.lua)
+inspiration that I use to stack agents and tools
 
 <!-- panvimdoc-ignore-end -->
