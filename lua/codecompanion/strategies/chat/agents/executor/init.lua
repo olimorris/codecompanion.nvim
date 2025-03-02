@@ -26,8 +26,6 @@ function Executor.new(agent)
   }, { __index = Executor })
 
   _G.codecompanion_cancel_tool = false
-  -- util.fire("AgentStarted", { tool = tool.name, bufnr = agent.bufnr })
-  -- self.handlers.setup()
 
   return self
 end
@@ -97,7 +95,12 @@ function Executor:setup(input)
   -- Check if the tool requires approval
   if self.tool.opts and self.tool.opts.requires_approval then
     log:debug("Executor:execute - Asking for approval")
-    local ok, choice = pcall(vim.fn.confirm, ("Run the tool %q?"):format(self.tool.name), "&Yes\n&No\n&Cancel")
+    local cmd_name = ""
+    if type(cmd) == "table" then
+      cmd_name = " with the cmd `" .. table.concat(cmd.cmd, " ") .. "`"
+    end
+    local prompt = ("Run the %q tool%s?"):format(self.tool.name, cmd_name)
+    local ok, choice = pcall(vim.fn.confirm, prompt, "&Yes\n&No\n&Cancel")
     if not ok or choice == 0 or choice == 3 then -- Esc or Cancel
       log:debug("Executor:execute - Tool cancelled")
       return self:close()
@@ -117,10 +120,11 @@ function Executor:setup(input)
 end
 
 ---Execute the tool command
----@param cmd string|function
+---@param cmd string|table|function
 ---@param input? any
 ---@return nil
 function Executor:execute(cmd, input)
+  util.fire("AgentStarted", { tool = self.tool.name, bufnr = self.agent.bufnr })
   if type(cmd) == "function" then
     return FuncExecutor.new(self, cmd, 1):orchestrate(input)
   end
@@ -166,14 +170,8 @@ end
 ---@return nil
 function Executor:close()
   log:debug("Executor:close")
-
   self.handlers.on_exit()
-
-  util.fire("AgentFinished", {
-    name = self.tool.name,
-    bufnr = self.agent.bufnr,
-  })
-
+  util.fire("AgentFinished", { name = self.tool.name, bufnr = self.agent.bufnr })
   self.agent.chat.subscribers:process(self.agent.chat)
   vim.g.codecompanion_current_tool = nil
 end

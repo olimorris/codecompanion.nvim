@@ -326,7 +326,7 @@ function Agent:replace(message)
   return message
 end
 
----Reset the tool class
+---Reset the Agent class
 ---@return nil
 function Agent:reset()
   api.nvim_buf_clear_namespace(self.bufnr, self.tools_ns, 0, -1)
