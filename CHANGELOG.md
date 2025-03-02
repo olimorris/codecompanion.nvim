@@ -1,5 +1,17 @@
 # Changelog
 
+## [12.15.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.14.2...v12.15.0) (2025-03-02)
+
+
+### Features
+
+* blink completions on invoke, without trigger char ([#872](https://github.com/olimorris/codecompanion.nvim/issues/872)) ([51abcf1](https://github.com/olimorris/codecompanion.nvim/commit/51abcf1b4cfeb84c160f7589384b13636fa27e95))
+
+
+### Bug Fixes
+
+* **slash_cmds:** add spacing to `/fetch` input ([#953](https://github.com/olimorris/codecompanion.nvim/issues/953)) ([5f3332b](https://github.com/olimorris/codecompanion.nvim/commit/5f3332bb86a5c6afefb11659db3d78c11350cb66))
+
 ## [12.14.2](https://github.com/olimorris/codecompanion.nvim/compare/v12.14.1...v12.14.2) (2025-03-02)
 
 
