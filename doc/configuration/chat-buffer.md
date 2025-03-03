@@ -119,23 +119,12 @@ Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](htt
 
 ## Agents and Tools
 
-Tools perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. You can group them into an Agent and both can be referenced with `@` when in the chat buffer:
+Tools perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` when in the chat buffer:
 
 ```lua
 require("codecompanion").setup({
   strategies = {
     chat = {
-      agents = {
-        ["my_agent"] = {
-          description = "A custom agent combining tools",
-          system_prompt = "Describe what the agent should do",
-          tools = {
-            "cmd_runner",
-            "editor",
-            -- Add your own tools or reuse existing ones
-          },
-        },
-      },
       tools = {
         ["my_tool"] = {
           description = "Run a custom task",
@@ -143,6 +132,17 @@ require("codecompanion").setup({
             -- Perform the custom task here
             return "Tool result"
           end,
+        },
+        groups = {
+          ["my_group"] = {
+            description = "A custom agent combining tools",
+            system_prompt = "Describe what the agent should do",
+            tools = {
+              "cmd_runner",
+              "editor",
+              -- Add your own tools or reuse existing ones
+            },
+          },
         },
       },
     },
@@ -160,14 +160,12 @@ Some tools, such as the [@cmd_runner](/usage/chat-buffer/agents.html#cmd-runner)
 require("codecompanion").setup({
   strategies = {
     chat = {
-      agents = {
-        tools = {
-          ["cmd_runner"] = {
-            opts = {
-              requires_approval = false,
-            },
+      tools = {
+        ["cmd_runner"] = {
+          opts = {
+            requires_approval = false,
           },
-        }
+        },
       }
     }
   }

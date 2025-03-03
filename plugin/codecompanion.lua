@@ -14,8 +14,8 @@ local api = vim.api
 api.nvim_set_hl(0, "CodeCompanionChatHeader", { link = "@markup.heading.2.markdown", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatSeparator", { link = "@punctuation.special.markdown", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatTokens", { link = "Comment", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatAgent", { link = "Constant", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatTool", { link = "Special", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatToolGroup", { link = "Constant", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
 api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
 
@@ -32,17 +32,17 @@ api.nvim_create_autocmd("FileType", {
         vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '{[^}]*}"')
       end
     end)
-    vim.iter(config.strategies.chat.agents.tools):each(function(name, _)
-      vim.cmd.syntax('match CodeCompanionChatTool "@' .. name .. '"')
-    end)
     vim
-      .iter(config.strategies.chat.agents)
+      .iter(config.strategies.chat.tools)
       :filter(function(name)
-        return name ~= "tools"
+        return name ~= "groups" and name ~= "opts"
       end)
       :each(function(name, _)
-        vim.cmd.syntax('match CodeCompanionChatAgent "@' .. name .. '"')
+        vim.cmd.syntax('match CodeCompanionChatTool "@' .. name .. '"')
       end)
+    vim.iter(config.strategies.chat.tools.groups):each(function(name, _)
+      vim.cmd.syntax('match CodeCompanionChatToolGroup "@' .. name .. '"')
+    end)
   end),
 })
 

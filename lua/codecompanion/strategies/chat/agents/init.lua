@@ -1,5 +1,5 @@
 ---@class CodeCompanion.Agent
----@field agent_config table The agent strategy from the config
+---@field tools_config table The agent strategy from the config
 ---@field aug number The augroup for the tool
 ---@field bufnr number The buffer of the chat buffer
 ---@field constants table<string, string> The constants for the tool
@@ -65,7 +65,7 @@ function Agent.new(args)
     stdout = {},
     stderr = {},
     tool = {},
-    agent_config = config.strategies.chat.agents,
+    tools_config = config.strategies.chat.tools,
     tools_ns = api.nvim_create_namespace(CONSTANTS.NS_TOOLS),
   }, { __index = Agent })
 
@@ -101,14 +101,14 @@ function Agent:set_autocmds()
           if self.tool.output and self.tool.output.errors then
             self.tool.output.errors(self, error)
           end
-          if self.agent_config.tools.opts.auto_submit_errors then
+          if self.tools_config.opts.auto_submit_errors then
             self.chat:submit()
           end
         end
 
         -- Handle any success
         if request.data.status == CONSTANTS.STATUS_SUCCESS then
-          if self.agent_config.tools.opts.auto_submit_success then
+          if self.tools_config.opts.auto_submit_success then
             self.chat:submit()
           end
         end
@@ -186,7 +186,7 @@ function Agent:execute(chat, xml)
     end
 
     local name = s.tool._attr.name
-    local tool_config = self.agent_config.tools[name]
+    local tool_config = self.tools_config[name]
 
     ---@type CodeCompanion.Agent.Tool|nil
     local resolved_tool
@@ -239,36 +239,31 @@ function Agent:find(chat, message)
     return nil, nil
   end
 
-  local agents = {}
+  local groups = {}
   local tools = {}
 
   local function is_found(tool)
     return message.content:match("%f[%w" .. CONSTANTS.PREFIX .. "]" .. CONSTANTS.PREFIX .. tool .. "%f[%W]")
   end
 
-  -- Process agents
-  vim
-    .iter(self.agent_config)
-    :filter(function(name)
-      return name ~= "tools"
-    end)
-    :each(function(agent)
-      if is_found(agent) then
-        table.insert(agents, agent)
+  -- Process groups
+  vim.iter(self.tools_config.groups):each(function(tool)
+    if is_found(tool) then
+      table.insert(groups, tool)
 
-        for _, tool in ipairs(self.agent_config[agent].tools) do
-          if not vim.tbl_contains(tools, tool) then
-            table.insert(tools, tool)
-          end
+      for _, t in ipairs(self.tools_config.groups[tool]) do
+        if not vim.tbl_contains(tools, t) then
+          table.insert(tools, t)
         end
       end
-    end)
+    end
+  end)
 
   -- Process tools
   vim
-    .iter(self.agent_config.tools)
+    .iter(self.tools_config)
     :filter(function(name)
-      return name ~= "opts"
+      return name ~= "opts" and name ~= "groups"
     end)
     :each(function(tool)
       if is_found(tool) and not vim.tbl_contains(tools, tool) then
@@ -280,28 +275,28 @@ function Agent:find(chat, message)
     return nil, nil
   end
 
-  return tools, agents
+  return tools, groups
 end
 
 ---@param chat CodeCompanion.Chat
 ---@param message table
 ---@return boolean
 function Agent:parse(chat, message)
-  local tools, agents = self:find(chat, message)
+  local tools, groups = self:find(chat, message)
 
-  if tools or agents then
+  if tools or groups then
     if tools and not vim.tbl_isempty(tools) then
       for _, tool in ipairs(tools) do
-        chat:add_tool(tool, self.agent_config.tools[tool])
+        chat:add_tool(tool, self.tools_config[tool])
       end
     end
 
-    if agents and not vim.tbl_isempty(agents) then
-      for _, agent in ipairs(agents) do
-        if self.agent_config[agent].system_prompt then
+    if groups and not vim.tbl_isempty(groups) then
+      for _, tool in ipairs(groups) do
+        if self.tools_config[tool].system_prompt then
           chat:add_message({
             role = config.constants.SYSTEM_ROLE,
-            content = self.agent_config[agent].system_prompt,
+            content = self.tools_config[tool].system_prompt,
           }, { tag = "tool", visible = false })
         end
       end
@@ -316,11 +311,13 @@ end
 ---@param message string
 ---@return string
 function Agent:replace(message)
-  for tool, _ in pairs(self.agent_config.tools) do
-    message = vim.trim(message:gsub(CONSTANTS.PREFIX .. tool, tool))
+  for tool, _ in pairs(self.tools_config) do
+    if tool ~= "opts" and tool ~= "groups" then
+      message = vim.trim(message:gsub(CONSTANTS.PREFIX .. tool, tool))
+    end
   end
-  for agent, _ in pairs(self.agent_config) do
-    message = vim.trim(message:gsub(CONSTANTS.PREFIX .. agent, ""))
+  for group, _ in pairs(self.tools_config.groups) do
+    message = vim.trim(message:gsub(CONSTANTS.PREFIX .. group, ""))
   end
 
   return message
@@ -390,7 +387,7 @@ function Agent:add_error_to_chat(error)
     content = "Please correct for the error message I've shared",
   })
 
-  if self.agent_config.opts and self.agent_config.opts.auto_submit_errors then
+  if self.tools_config.opts and self.tools_config.opts.auto_submit_errors then
     self.chat:submit()
   end
 

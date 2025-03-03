@@ -50,74 +50,82 @@ return {
         llm = "assistant",
         user = "foo",
       },
-      agents = {
-        tools = {
-          ["editor"] = {
-            callback = "strategies.chat.agents.tools.editor",
-            description = "Update a buffer with the LLM's response",
+      tools = {
+        ["editor"] = {
+          callback = "strategies.chat.agents.tools.editor",
+          description = "Update a buffer with the LLM's response",
+        },
+        ["foo"] = {
+          callback = "utils.foo",
+          description = "Some foo function",
+        },
+        ["bar"] = {
+          callback = "utils.bar",
+          description = "Some bar function",
+        },
+        ["bar_again"] = {
+          callback = "utils.bar_again",
+          description = "Some bar_again function",
+        },
+        ["func"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
+          description = "Some function tool to test",
+        },
+        ["func_consecutive"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_consecutive.lua",
+          description = "Consecutive function tool to test",
+        },
+        ["func_error"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_error.lua",
+          description = "Error function tool to test",
+        },
+        ["func_queue"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_queue.lua",
+          description = "Some function tool to test",
+        },
+        ["func_queue_2"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_queue_2.lua",
+          description = "Some function tool to test",
+        },
+        ["func_approval"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
+          description = "Some function tool to test but with approval",
+          opts = {
+            requires_approval = true,
           },
-          ["foo"] = {
-            callback = "utils.foo",
-            description = "Some foo function",
-          },
-          ["bar"] = {
-            callback = "utils.bar",
-            description = "Some bar function",
-          },
-          ["bar_again"] = {
-            callback = "utils.bar_again",
-            description = "Some bar_again function",
-          },
-          ["func"] = {
-            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
-            description = "Some function tool to test",
-          },
-          ["func_consecutive"] = {
-            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_consecutive.lua",
-            description = "Consecutive function tool to test",
-          },
-          ["func_error"] = {
-            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_error.lua",
-            description = "Error function tool to test",
-          },
-          ["func_queue"] = {
-            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_queue.lua",
-            description = "Some function tool to test",
-          },
-          ["func_queue_2"] = {
-            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_queue_2.lua",
-            description = "Some function tool to test",
-          },
-          ["func_approval"] = {
-            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
-            description = "Some function tool to test but with approval",
-            opts = {
-              requires_approval = true,
+        },
+        ["cmd"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd.lua",
+          description = "Cmd tool",
+        },
+        ["cmd_consecutive"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd_consecutive.lua",
+          description = "Cmd tool",
+        },
+        ["cmd_error"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd_error.lua",
+          description = "Cmd tool",
+        },
+        ["cmd_queue"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd_queue.lua",
+          description = "Cmd tool",
+        },
+        ["mock_cmd_runner"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/mock_cmd_runner.lua",
+          description = "Cmd tool",
+        },
+        groups = {
+          ["tool_group"] = {
+            description = "Tool Group",
+            system_prompt = "My tool group system prompt",
+            tools = {
+              "func",
+              "cmd",
             },
           },
-          ["cmd"] = {
-            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd.lua",
-            description = "Cmd tool",
-          },
-          ["cmd_consecutive"] = {
-            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd_consecutive.lua",
-            description = "Cmd tool",
-          },
-          ["cmd_error"] = {
-            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd_error.lua",
-            description = "Cmd tool",
-          },
-          ["cmd_queue"] = {
-            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd_queue.lua",
-            description = "Cmd tool",
-          },
-          ["mock_cmd_runner"] = {
-            callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/mock_cmd_runner.lua",
-            description = "Cmd tool",
-          },
-          opts = {
-            system_prompt = [[My tool system prompt]],
-          },
+        },
+        opts = {
+          system_prompt = [[My tool system prompt]],
         },
       },
       variables = {
