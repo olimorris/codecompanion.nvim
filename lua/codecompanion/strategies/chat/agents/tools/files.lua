@@ -384,67 +384,59 @@ Remember:
     )
   end,
   handlers = {
-    ---Approve the command to be run
-    ---@param self CodeCompanion.Agent The tool object
-    ---@param action table
-    ---@return boolean
-    approved = function(self, action)
-      if vim.g.codecompanion_auto_tool_mode then
-        log:info("[Files Tool] Auto-approved running the command")
-        return true
-      end
-
-      log:info("[Files Tool] Prompting for: %s", string.upper(action._attr.type))
-
-      local prompts = {
-        base = function(a)
-          return fmt("%s the file at `%s`?", string.upper(a._attr.type), vim.fn.fnamemodify(a.path, ":."))
-        end,
-        move = function(a)
-          return fmt(
-            "%s file from `%s` to `%s`?",
-            string.upper(a._attr.type),
-            vim.fn.fnamemodify(a.path, ":."),
-            vim.fn.fnamemodify(a.new_path, ":.")
-          )
-        end,
-      }
-
-      local prompt = prompts.base(action)
-      if action.new_path then
-        prompt = prompts.move(action)
-      end
-
-      local ok, choice = pcall(vim.fn.confirm, prompt, "No\nYes")
-      if not ok or choice ~= 2 then
-        log:info("[Files Tool] Rejected the %s action", string.upper(action._attr.type))
-        return false
-      end
-
-      log:info("[Files Tool] Approved the %s action", string.upper(action._attr.type))
-      return true
-    end,
-
-    ---@param self CodeCompanion.Agent The tool object
+    ---@param agent CodeCompanion.Agent The tool object
     ---@return nil
-    on_exit = function(self)
+    on_exit = function(agent)
       log:debug("[Files Tool] on_exit handler executed")
       file = nil
     end,
   },
   output = {
-    ---@param self CodeCompanion.Agent The tool object
+    ---The message which is shared with the user when asking for their approval
+    ---@param agent CodeCompanion.Agent
+    ---@param self CodeCompanion.Agent.Tool
+    ---@return string
+    prompt = function(agent, self)
+      local prompts = {}
+
+      local responses = {
+        create = "Create a file at %s?",
+        read = "Read %s?",
+        read_lines = "Read specific lines in %s?",
+        edit = "Edit %s?",
+        delete = "Delete %s?",
+        copy = "Copy %s?",
+        rename = "Rename %s to %s?",
+        move = "Move %s to %s?",
+      }
+
+      for _, action in ipairs(self.request.action) do
+        local path = vim.fn.fnamemodify(action.path, ":.")
+        local new_path = vim.fn.fnamemodify(action.new_path, ":.")
+        local type = string.lower(action._attr.type)
+
+        if type == "rename" or type == "move" then
+          table.insert(prompts, fmt(responses[type], path, new_path))
+        else
+          table.insert(prompts, fmt(responses[type], path))
+        end
+      end
+
+      return table.concat(prompts, "\n")
+    end,
+
+    ---@param agent CodeCompanion.Agent The tool object
     ---@param action table
     ---@param output table
     ---@return nil
-    success = function(self, action, output)
+    success = function(agent, action, output)
       local type = action._attr.type
       local path = action.path
       log:debug("[Files Tool] success callback executed")
       util.notify(fmt("The files tool executed successfully for the `%s` file", vim.fn.fnamemodify(path, ":t")))
 
       if file then
-        self.chat:add_message({
+        agent.chat:add_message({
           role = config.constants.USER_ROLE,
           content = fmt(
             [[The output from the %s action for file `%s` is:
@@ -461,13 +453,13 @@ Remember:
       end
     end,
 
-    ---@param self CodeCompanion.Agent The tool object
+    ---@param agent CodeCompanion.Agent The tool object
     ---@param action table
     ---@param err string
     ---@return nil
-    error = function(self, action, err)
+    error = function(agent, action, err)
       log:debug("[Files Tool] error callback executed")
-      return self.chat:add_buf_message({
+      return agent.chat:add_buf_message({
         role = config.constants.USER_ROLE,
         content = fmt(
           [[There was an error running the %s action:
@@ -481,11 +473,12 @@ Remember:
       })
     end,
 
-    ---@param self CodeCompanion.Agent The tool object
+    ---The action to take if the user rejects the command
+    ---@param agent CodeCompanion.Agent The tool object
     ---@param action table
     ---@return nil
-    rejected = function(self, action)
-      return self.chat:add_buf_message({
+    rejected = function(agent, action)
+      return agent.chat:add_buf_message({
         role = config.constants.USER_ROLE,
         content = fmt("I rejected the %s action.\n\n", string.upper(action._attr.type)),
       })

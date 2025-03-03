@@ -75,13 +75,6 @@ local defaults = {
               requires_approval = true,
             },
           },
-          ["rag"] = {
-            callback = "strategies.chat.agents.tools.rag",
-            description = "Supplement the LLM with real-time info from the internet",
-            opts = {
-              hide_output = true,
-            },
-          },
           opts = {
             auto_submit_errors = false, -- Send any errors to the LLM automatically?
             auto_submit_success = false, -- Send any successful output to the LLM automatically?

@@ -175,11 +175,12 @@ return {
   },
 
   output = {
-    ---The message to prompt the user for approval
+    ---The message which is shared with the user when asking for their approval
     ---@param agent CodeCompanion.Agent
-    ---@param cmds table
+    ---@param self CodeCompanion.Agent.Tool
     ---@return string
-    prompt = function(agent, cmds)
+    prompt = function(agent, self)
+      local cmds = self.cmds
       if vim.tbl_count(cmds) == 1 then
         return string.format("Run the command `%s`?", table.concat(cmds[1].cmd, " "))
       end

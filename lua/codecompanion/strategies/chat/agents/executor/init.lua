@@ -1,7 +1,6 @@
 local CmdExecutor = require("codecompanion.strategies.chat.agents.executor.cmd")
 local FuncExecutor = require("codecompanion.strategies.chat.agents.executor.func")
 local Queue = require("codecompanion.strategies.chat.agents.executor.queue")
-local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
@@ -97,7 +96,7 @@ function Executor:setup(input)
   if self.tool.opts and self.tool.opts.requires_approval and not vim.g.codecompanion_auto_tool_mode then
     log:debug("Executor:execute - Asking for approval")
 
-    local prompt = self.output.prompt(self.tool.cmds)
+    local prompt = self.output.prompt(self.tool)
     if prompt == nil or prompt == "" then
       prompt = ("Run the %q tool?"):format(self.tool.name)
     end
