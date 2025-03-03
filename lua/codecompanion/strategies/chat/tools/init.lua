@@ -95,14 +95,14 @@ function Tools:set_autocmds()
           if self.tool.output and self.tool.output.errors then
             self.tool.output.errors(self, error)
           end
-          if self.agent_config.tools.opts.auto_submit_errors then
+          if self.agent_config.tools.opts.auto_submit_errors and vim.g.codecompanion_auto_tool_mode then
             self.chat:submit()
           end
         end
 
         -- Handle any success
         if request.data.status == CONSTANTS.STATUS_SUCCESS then
-          if self.agent_config.tools.opts.auto_submit_success then
+          if self.agent_config.tools.opts.auto_submit_success and vim.g.codecompanion_auto_tool_mode then
             self.chat:submit()
           end
         end
@@ -598,7 +598,7 @@ function Tools:add_error_to_chat(error)
     content = "Please correct for the error message I've shared",
   })
 
-  if self.agent_config.opts and self.agent_config.opts.auto_submit_errors then
+  if self.agent_config.opts and self.agent_config.opts.auto_submit_errors and vim.g.codecompanion_auto_tool_mode then
     self.chat:submit()
   end
 
