@@ -223,20 +223,19 @@ You must:
 
 ### `handlers`
 
-The _handlers_ table consists of three methods:
+The _handlers_ table consists of two methods:
 
 1. `setup` - Is called before any of the commands/functions are. This is useful if you wish to set the cmds dynamically on the tool itself, like in the _@cmd_runner_ tool.
-2. `approved` - Must return a boolean and contains logic to prompt the user for their approval prior to a command/function being executed. This is used in both the _@files_ and _@cmd_runner_ tool to allow the user to validate the actions the LLM is proposing to take.
 3. `on_exit` - Is called after all of the commands/function have executed.
 
 ### `output`
 
-The _output_ table consists of three methods:
+The _output_ table consists of four methods:
 
 1. `success` - Is called after _every_ successful execution of a command/function. This can be a useful handler to use to notfiy the LLM of the success.
 2. `error` - Is called when an error occurs whilst executing a command/function. It will only ever be called once as the whole execution for the group of commands/function is halted. This is a useful handler to use to notify the LLM of the failure.
+3. `prompt` - Is called when user approval is required. It forms the message prompt which the user is asked to confirm or reject.
 3. `rejected` - Is called when a user rejects the approval to run a command/function. This method is used to inform the LLM of the rejection.
-
 
 ### `request`
 
