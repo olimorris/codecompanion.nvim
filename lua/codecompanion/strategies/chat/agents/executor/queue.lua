@@ -1,6 +1,6 @@
--- Simple Queue implementation
--- Based on deque by Pierre 'catwell' Chapuis
--- Ref: https://github.com/catwell/cw-lua/blob/master/deque/deque.lua
+---Simple queue implementation
+---Based on deque by Pierre 'catwell' Chapuis
+---Ref: https://github.com/catwell/cw-lua/blob/master/deque/deque.lua
 
 ---Add an item to the back of the queue
 ---@param self table

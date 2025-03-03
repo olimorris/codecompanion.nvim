@@ -40,12 +40,6 @@ function Executor:setup_handlers()
         self.tool.handlers.setup(self.agent)
       end
     end,
-    approved = function(cmd)
-      if self.tool.handlers and self.tool.handlers.approved then
-        return self.tool.handlers.approved(self.agent, cmd)
-      end
-      return true
-    end,
     on_exit = function()
       if self.tool.handlers and self.tool.handlers.on_exit then
         self.tool.handlers.on_exit(self.agent)
@@ -54,6 +48,11 @@ function Executor:setup_handlers()
   }
 
   self.output = {
+    prompt = function(cmds)
+      if self.tool.output and self.tool.output.prompt then
+        return self.tool.output.prompt(self.agent, cmds)
+      end
+    end,
     rejected = function(cmd)
       if self.tool.output and self.tool.output.rejected then
         self.tool.output.rejected(self.agent, cmd)
@@ -76,8 +75,11 @@ end
 ---@param input? any
 ---@return nil
 function Executor:setup(input)
-  if self.queue:is_empty() or self.agent.status == self.agent.constants.STATUS_ERROR then
-    return log:debug("Executor:execute - Queue empty or error")
+  if self.queue:is_empty() then
+    return log:debug("Executor:execute - Queue empty")
+  end
+  if self.agent.status == self.agent.constants.STATUS_ERROR then
+    return log:debug("Executor:execute - Error")
   end
 
   -- Get the next tool to run
@@ -89,17 +91,17 @@ function Executor:setup(input)
 
   -- Get the first command to run
   local cmd = self.tool.cmds[1]
-  log:debug("Executor:execute - %s", self.tool)
   log:debug("Executor:execute - `%s` tool", self.tool.name)
 
   -- Check if the tool requires approval
-  if self.tool.opts and self.tool.opts.requires_approval then
+  if self.tool.opts and self.tool.opts.requires_approval and not vim.g.codecompanion_auto_tool_mode then
     log:debug("Executor:execute - Asking for approval")
-    local cmd_name = ""
-    if type(cmd) == "table" then
-      cmd_name = " with the cmd `" .. table.concat(cmd.cmd, " ") .. "`"
+
+    local prompt = self.output.prompt(self.tool.cmds)
+    if prompt == nil or prompt == "" then
+      prompt = ("Run the %q tool?"):format(self.tool.name)
     end
-    local prompt = ("Run the %q tool%s?"):format(self.tool.name, cmd_name)
+
     local ok, choice = pcall(vim.fn.confirm, prompt, "&Yes\n&No\n&Cancel")
     if not ok or choice == 0 or choice == 3 then -- Esc or Cancel
       log:debug("Executor:execute - Tool cancelled")
@@ -129,14 +131,6 @@ function Executor:execute(cmd, input)
     return FuncExecutor.new(self, cmd, 1):orchestrate(input)
   end
   return CmdExecutor.new(self, self.tool.cmds, 1):orchestrate()
-end
-
----Does the tool require approval before it can be executed?
----@return boolean
-function Executor:requires_approval()
-  return config.strategies.chat.agents.tools[self.tool.name].opts
-      and config.strategies.chat.agents.tools[self.tool.name].opts.user_approval
-    or false
 end
 
 ---Handle an error from a tool

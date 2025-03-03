@@ -175,6 +175,21 @@ return {
   },
 
   output = {
+    ---The message to prompt the user for approval
+    ---@param agent CodeCompanion.Agent
+    ---@param cmds table
+    ---@return string
+    prompt = function(agent, cmds)
+      if vim.tbl_count(cmds) == 1 then
+        return string.format("Run the command `%s`?", table.concat(cmds[1].cmd, " "))
+      end
+
+      local individual_cmds = vim.tbl_map(function(c)
+        return table.concat(c.cmd, " ")
+      end, cmds)
+      return string.format("Run the following commands?\n\n%s", table.concat(individual_cmds, "\n"))
+    end,
+
     ---Rejection message back to the LLM
     ---@param agent CodeCompanion.Agent
     ---@param cmd table

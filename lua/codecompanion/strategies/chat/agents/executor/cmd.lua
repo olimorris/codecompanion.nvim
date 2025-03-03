@@ -30,7 +30,7 @@ function CmdExecutor:orchestrate()
   end
 end
 
----Some commands output ANSI color codes so we need to strip them
+---Some commands output ANSI color codes which don't render in the chat buffer
 ---@param tbl table
 ---@return table
 local function strip_ansi(tbl)
@@ -67,15 +67,18 @@ function CmdExecutor:run(cmd, index)
           if _G.codecompanion_cancel_tool then
             return self.executor:close()
           end
+
           if data and data._stderr_results then
+            self.executor.agent.stderr = {}
             table.insert(self.executor.agent.stderr, strip_ansi(data._stderr_results))
           end
           if data and data._stdout_results then
+            self.executor.agent.stdout = {}
             table.insert(self.executor.agent.stdout, strip_ansi(data._stdout_results))
           end
           if code == 0 then
             self.executor:success(cmd)
-            -- Don't trigger on_exit unless it's the last command
+            -- Don't trigger the on_exit handler unless it's the last command
             if index == self.count then
               self.executor:close()
               return self.executor:setup()

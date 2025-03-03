@@ -22,6 +22,7 @@ end
 ---@return nil
 function FuncExecutor:orchestrate(input)
   log:debug("FuncExecutor:orchestrate %s", self.index)
+
   local action = self.executor.tool.request.action
   log:debug("Action: %s", action)
 
