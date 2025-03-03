@@ -8,6 +8,62 @@ In the plugin, tools work by sharing a system prompt with an LLM. This instructs
 
 The plugin has a tools class `CodeCompanion.Agent.Tools` which will call tools such as the [@cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/cmd_runner.lua) or the [@editor](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/editor.lua). The calling of tools is orchestrated by the `CodeCompanion.Chat` class which parses an LLM's response and looks to identify any XML code blocks.
 
+## Architecture
+
+In order to create tools, you do not need to understand the underlying architecture. However, for those who are curious about the implementation, please see the diagram below:
+
+```mermaid
+sequenceDiagram
+    participant C as Chat Buffer
+    participant L as LLM
+    participant A as Agent
+    participant E as Tool Executor
+    participant T as Tool
+
+    C->>L: Prompt
+    L->>C: Response with Tool(s) request
+
+    C->>A: Parse response
+
+    loop For each detected tool
+        A<<->>T: Resolve Tool config
+        A->>A: Add Tool to queue
+    end
+
+    A->>E: Begin executing Tools
+
+    loop While queue not empty
+        E<<->>T: Fetch Tool implementation
+
+        E->>E: Setup handlers and output functions
+        T<<->>E: handlers.setup()
+
+        alt
+        Note over C,E: Some Tools require human approvals
+            E->>C: Prompt for approval
+            C->>E: User decision
+        end
+
+
+        alt
+        Note over E,T: If Tool runs with success
+            E<<->>T: output.success()
+            T-->>C: Update chat buffer
+        else
+        Note over E,T: If Tool runs with errors
+            E<<->>T: output.error()
+            T-->>C: Update chat buffer
+        end
+
+        Note over E,T: When Tool completes
+        E<<->>T: handlers.on_exit()
+    end
+
+    E-->>A: Fire autocmd
+
+    A->>A: reset()
+```
+
 ## Tool Types
 
 There are two types of tools within the plugin:

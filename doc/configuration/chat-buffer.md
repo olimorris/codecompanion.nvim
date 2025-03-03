@@ -154,6 +154,26 @@ When users introduce the agent `@my_agent` in the chat buffer, it can call the t
 
 The `callback` option for a tool can also be a [`CodeCompanion.Tool`](/extending/tools) object, which is a table with specific keys that defines the interface and workflow of the tool.
 
+Some tools, such as the [@cmd_runner](/usage/chat-buffer/agents.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      agents = {
+        tools = {
+          ["cmd_runner"] = {
+            opts = {
+              requires_approval = false,
+            },
+          },
+        }
+      }
+    }
+  }
+})
+```
+
 ## Layout
 
 You can change the appearance of the chat buffer by changing the `display.chat.window` table in your configuration:
