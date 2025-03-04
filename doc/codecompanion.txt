@@ -1,4 +1,4 @@
-*codecompanion.txt*       For NVIM v0.10.0       Last change: 2025 February 25
+*codecompanion.txt*         For NVIM v0.10.0        Last change: 2025 March 03
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -320,7 +320,6 @@ actions:
 - `@cmd_runner` - The LLM will run shell commands (subject to approval)
 - `@editor` - The LLM will edit code in a Neovim buffer
 - `@files` - The LLM will can work with files on the file system (subject to approval)
-- `@rag` - The LLM will browse and search the internet for real-time information to supplement its response
 
 Tools can also be grouped together to form `Agents`, which are also accessed
 via `@` in the chat buffer:
@@ -644,10 +643,11 @@ Many adapters allow model selection via the `schema.model.default` property:
 
 USER CONTRIBUTED ADAPTERS ~
 
-Thanks to the community for building and supporting the following adapters:
+Thanks to the community for building the following adapters:
 
 - Venice.ai <https://github.com/olimorris/codecompanion.nvim/discussions/972>
 - Fireworks.ai <https://github.com/olimorris/codecompanion.nvim/discussions/693>
+- OpenRouter <https://github.com/olimorris/codecompanion.nvim/discussions/1013>
 
 The section of the discussion forums which is dedicated to user created
 adapters can be found here
@@ -992,6 +992,29 @@ tools you listed (like `@my_tool`) to perform tasks on your code.
 The `callback` option for a tool can also be a |codecompanion-extending-tools|
 object, which is a table with specific keys that defines the interface and
 workflow of the tool.
+
+Some tools, such as the
+|codecompanion-usage-chat-buffer-agents.html-cmd-runner|, require the user to
+approve any commands before they’re executed. This can be changed by altering
+the config for each tool:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          agents = {
+            tools = {
+              ["cmd_runner"] = {
+                opts = {
+                  requires_approval = false,
+                },
+              },
+            }
+          }
+        }
+      }
+    })
+<
 
 
 LAYOUT ~
@@ -1481,7 +1504,7 @@ The |codecompanion-usage-chat-buffer-agents-cmd-runner| tool enables an LLM to
 execute commands on your machine. This can be useful if you wish the LLM to run
 a test suite on your behalf and give insight on failing cases. Simply tag the
 `@cmd_runner` in the chat buffer and ask it run your tests with a suitable
-command e.g. `pytest`.
+command e.g.� `pytest`.
 
 
 NAVIGATING BETWEEN RESPONSES IN THE CHAT BUFFER ~
@@ -1674,11 +1697,9 @@ examples such as web searching or code execution that have obvious benefits
 when using LLMs.
 
 In the plugin, tools are simply context and actions that are shared with an LLM
-via a `system` prompt. The LLM and the chat buffer act as an agent by
-orchestrating their use within Neovim. Tools give LLM’s knowledge and a
-defined schema which can be included in the response for the plugin to parse,
-execute and feedback on. Agents and tools can be added as a participant to the
-chat buffer by using the `@` key.
+via a `system` prompt. The LLM can act as an agent by requesting tools via the
+chat buffer which in turn orchestrates their use within Neovim. Agents and
+tools can be added as a participant to the chat buffer by using the `@` key.
 
 
   [!IMPORTANT] The agentic use of some tools in the plugin results in you, the
@@ -1687,19 +1708,39 @@ chat buffer by using the `@` key.
 
 HOW TOOLS WORK ~
 
-LLMs are instructured by the plugin to return a structured XML block which has
-been defined for each tool. The chat buffer parses the LLMs response and
-detects any tool use before calling the appropriate tool. The chat buffer will
-then be updated with the outcome. Depending on the tool, flags may be inserted
-on the chat buffer for later processing.
+When a tool is added to the chat buffer, the LLM is instructured by the plugin
+to return a structured XML block which has been defined for each tool. The chat
+buffer parses the LLMs response and detects any tool use before triggering the
+`agent/init.lua` file. The agent triggers off a series of events, which sees
+tool’s added to a queue and sequentially worked with their putput being
+shared back to the LLM via the chat buffer. Depending on the tool, flags may be
+inserted on the chat buffer for later processing.
+
+An outline of the architecture can be seen
+|codecompanion-extending-tools-architecture|.
+
+
+APPROVALS ~
+
+Some tools, such as the `@cmd_runner`, require the user to approve any actions
+before they can be executed. If the tool requires this a `vim.fn.confirm`
+dialog will prompt you for a response.
 
 
 @CMD_RUNNER ~
 
 The `@cmd_runner` tool enables an LLM to execute commands on your machine,
-subject to your authorization. A common example can be asking the LLM to run
-your test suite and provide feedback on any failures. Some commands do not
-write any data to stdout
+subject to your authorization. For example:
+
+>md
+    Can you use the @cmd_runner tool to run my test suite with `pytest`?
+<
+
+>md
+    Use the @cmd_runner tool to install any missing libraries in my project
+<
+
+Some commands do not write any data to stdout
 <https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)> which
 means the plugin can’t pass the output of the execution to the LLM. When this
 occurs, the tool will instead share the exit code.
@@ -1728,7 +1769,15 @@ An example of the XML that an LLM may generate for the tool:
 The `@editor` tool enables an LLM to modify the code in a Neovim buffer. If a
 buffer’s content has been shared with the LLM then the tool can be used to
 add, edit or delete specific lines. Consider pinning or watching a buffer to
-avoid manually re-sending a buffer’s content to the LLM.
+avoid manually re-sending a buffer’s content to the LLM:
+
+>md
+    Use the @editor tool refactor the code in #buffer{watch}
+<
+
+>md
+    Can you apply the suggested changes to the buffer with the @editor tool?
+<
 
 An example of the XML that an LLM may generate for the tool:
 
@@ -1810,13 +1859,6 @@ An example of the XML that an LLM may generate for the tool:
 <
 
 
-@RAG ~
-
-The `@rag` tool uses jina.ai <https://jina.ai> to parse a given URL’s content
-and convert it into plain text before sharing with the LLM. It also gives the
-LLM the ability to search the internet for information.
-
-
 @FULL_STACK_DEV ~
 
 The `@full_stack_dev` agent is a combination of the `@cmd_runner`, `@editor`
@@ -1824,6 +1866,15 @@ and `@files` tools.
 
 
 USEFUL TIPS ~
+
+
+COMBINING TOOLS
+
+Consider combining tools for complex tasks:
+
+>md
+    @full_stack_dev I want to play Snake. Can you create the game for me in Python and install any packages you need. Let's save it to ~/Code/Snake. When you've finished writing it, can you open it so I can play?
+<
 
 
 AUTOMATIC TOOL MODE
@@ -2512,7 +2563,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI’S API OUTPUT
+OPENAI�S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
@@ -3380,13 +3431,72 @@ In the plugin, tools work by sharing a system prompt with an LLM. This
 instructs them how to produce an XML markdown code block which can, in turn, be
 interpreted by the plugin to execute a command or function.
 
-The plugin has a tools class `CodeCompanion.Tools` which will call individual
-`CodeCompanion.Tool` such as the cmd_runner
+The plugin has a tools class `CodeCompanion.Agent.Tools` which will call tools
+such as the @cmd_runner
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/cmd_runner.lua>
-or the editor
+or the @editor
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/editor.lua>.
 The calling of tools is orchestrated by the `CodeCompanion.Chat` class which
 parses an LLM’s response and looks to identify any XML code blocks.
+
+
+ARCHITECTURE ~
+
+In order to create tools, you do not need to understand the underlying
+architecture. However, for those who are curious about the implementation,
+please see the diagram below:
+
+>mermaid
+    sequenceDiagram
+        participant C as Chat Buffer
+        participant L as LLM
+        participant A as Agent
+        participant E as Tool Executor
+        participant T as Tool
+    
+        C->>L: Prompt
+        L->>C: Response with Tool(s) request
+    
+        C->>A: Parse response
+    
+        loop For each detected tool
+            A<<->>T: Resolve Tool config
+            A->>A: Add Tool to queue
+        end
+    
+        A->>E: Begin executing Tools
+    
+        loop While queue not empty
+            E<<->>T: Fetch Tool implementation
+    
+            E->>E: Setup handlers and output functions
+            T<<->>E: handlers.setup()
+    
+            alt
+            Note over C,E: Some Tools require human approvals
+                E->>C: Prompt for approval
+                C->>E: User decision
+            end
+    
+    
+            alt
+            Note over E,T: If Tool runs with success
+                E<<->>T: output.success()
+                T-->>C: Update chat buffer
+            else
+            Note over E,T: If Tool runs with errors
+                E<<->>T: output.error()
+                T-->>C: Update chat buffer
+            end
+    
+            Note over E,T: When Tool completes
+            E<<->>T: handlers.on_exit()
+        end
+    
+        E-->>A: Fire autocmd
+    
+        A->>A: reset()
+<
 
 
 TOOL TYPES ~
@@ -3400,7 +3510,7 @@ They’re non-blocking, meaning you can carry out other activities in Neovim
 whilst they run. Useful for heavy/time-consuming tasks.
 
 
-2. **Function-based**: These tools, like the editor
+2. **Function-based**: These tools, like the @editor
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/editor.lua>
 one, execute Lua functions directly in Neovim within the main process.
 
@@ -3412,7 +3522,7 @@ THE INTERFACE ~
 Tools must implement the following interface:
 
 >lua
-    ---@class CodeCompanion.Tool
+    ---@class CodeCompanion.Agent.Tool
     ---@field name string The name of the tool
     ---@field cmds table The commands to execute
     ---@field schema table The schema that the LLM must use in its response to execute a tool
@@ -3502,7 +3612,7 @@ SCHEMA
 The schema represents the structure of the response that the LLM must follow in
 order to call the tool.
 
-In the `code_runner` tool, the schema is defined as a Lua table and then
+In the `@coderunner` tool, the schema was defined as a Lua table and then
 converted into XML in the chat buffer:
 
 >lua
@@ -3524,7 +3634,7 @@ You can setup environment variables that other functions can access in the
 `env` function. This function receives the parsed schema which is requested by
 the LLM when it follows the schema’s structure.
 
-For the Code Runner agent, the environment was setup as:
+For the `@coderunner` agent, the environment was setup as:
 
 >lua
     ---@param schema table
@@ -3552,7 +3662,7 @@ In the plugin, LLMs are given knowledge about a tool via a system prompt. This
 gives the LLM knowledge of the tool alongside the instructions (via the schema)
 required to execute it.
 
-For the Code Runner agent, the `system_prompt` table was:
+For the now archived `@coderunner` tool, the `system_prompt` table was:
 
 >lua
       system_prompt = function(schema)
@@ -3581,33 +3691,20 @@ For the Code Runner agent, the `system_prompt` table was:
 
 HANDLERS
 
-The `handlers` table consists of three methods.
+The `handlers` table consists of three methods:
 
-The `setup` method is called before any of the `cmds` are called. This is
-useful if you wish to set the `cmds` dynamically on the tool itself, like in
-the `cmd_runner` tool.
-
-The `approved` method, which must return a boolean, contains logic to prompt
-the user for their approval prior to a command being executed. This is used in
-both the `files` and `cmd_runner` tool to allow the user to validate the
-actions the LLM is proposing to take.
-
-Finally, the `on_exit` method is called after all of the `cmds` have been
-executed.
+1. `setup` - Is called before any of the commands/functions are. This is useful if you wish to set the cmds dynamically on the tool itself, like in the `@cmd_runner` tool.
+2. `approved` - Must return a boolean and contains logic to prompt the user for their approval prior to a command/function being executed. This is used in both the `@files` and `@cmd_runner` tool to allow the user to validate the actions the LLM is proposing to take.
+3. `on_exit` - Is called after all of the commands/function have executed.
 
 
 OUTPUT
 
-The `output` table consists of three methods.
+The `output` table consists of three methods:
 
-The `rejected` method is called when a user rejects to approve the running of a
-command. This method is useful of informing the LLM of the rejection.
-
-The `error` method is called to notify the LLM of an error when executing a
-command.
-
-And finally, the `success` method is called to notify the LLM of a successful
-execution of a command.
+1. `success` - Is called after `every` successful execution of a command/function. This can be a useful handler to use to notfiy the LLM of the success.
+2. `error` - Is called when an error occurs whilst executing a command/function. It will only ever be called once as the whole execution for the group of commands/function is halted. This is a useful handler to use to notify the LLM of the failure.
+3. `rejected` - Is called when a user rejects the approval to run a command/function. This method is used to inform the LLM of the rejection.
 
 
 REQUEST
@@ -3792,7 +3889,7 @@ Now let’s look at how we trigger the automated reflection prompts:
             opts = { auto_submit = true },
             -- Scope this prompt to only run when the cmd_runner tool is active
             condition = function()
-              return vim.g.codecompanion_current_tool == "cmd_runner"
+              return _G.codecompanion_current_tool == "cmd_runner"
             end,
             -- Repeat until the tests pass, as indicated by the testing flag
             repeat_until = function(chat)

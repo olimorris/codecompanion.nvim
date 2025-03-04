@@ -103,7 +103,6 @@ _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out a
 - `@cmd_runner` - The LLM will run shell commands (subject to approval)
 - `@editor` - The LLM will edit code in a Neovim buffer
 - `@files` -  The LLM will can work with files on the file system (subject to approval)
-- `@rag` - The LLM will browse and search the internet for real-time information to supplement its response
 
 Tools can also be grouped together to form _Agents_, which are also accessed via `@` in the chat buffer:
 

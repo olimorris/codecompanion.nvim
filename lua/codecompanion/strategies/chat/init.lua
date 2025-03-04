@@ -4,6 +4,7 @@ The Chat Buffer - This is where all of the logic for conversing with an LLM sits
 
 ---@class CodeCompanion.Chat
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
+---@field agents CodeCompanion.Agent The agent that calls tools available to the user
 ---@field aug number The ID for the autocmd group
 ---@field bufnr integer The buffer number of the chat
 ---@field context table The context of the buffer that the chat was initiated from
@@ -23,7 +24,6 @@ The Chat Buffer - This is where all of the logic for conversing with an LLM sits
 ---@field subscribers table The subscribers to the chat buffer
 ---@field tokens? nil|number The number of tokens in the chat
 ---@field tool_flags table Flags that external functions can update and subscribers can interact with
----@field tools? CodeCompanion.Tools The tools available to the user
 ---@field tools_in_use? nil|table The tools that are currently being used in the chat
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field variables? CodeCompanion.Variables The variables available to the user
@@ -252,7 +252,7 @@ function Chat.new(args)
 
   self.references = require("codecompanion.strategies.chat.references").new({ chat = self })
   self.subscribers = require("codecompanion.strategies.chat.subscribers").new()
-  self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
+  self.agents = require("codecompanion.strategies.chat.agents").new({ bufnr = self.bufnr, messages = self.messages })
   self.watchers = require("codecompanion.strategies.chat.watchers").new()
   self.variables = require("codecompanion.strategies.chat.variables").new()
 
@@ -616,7 +616,7 @@ function Chat:add_tool(tool, tool_config)
   if not self:has_tools() then
     self:add_message({
       role = config.constants.SYSTEM_ROLE,
-      content = config.strategies.chat.agents.tools.opts.system_prompt,
+      content = config.strategies.chat.tools.opts.system_prompt,
     }, { visible = false, reference = "tool_system_prompt", tag = "tool" })
   end
 
@@ -629,7 +629,7 @@ function Chat:add_tool(tool, tool_config)
 
   self.tools_in_use[tool] = true
 
-  local resolved = self.tools.resolve(tool_config)
+  local resolved = self.agents.resolve(tool_config)
   if resolved then
     self:add_message(
       { role = config.constants.SYSTEM_ROLE, content = resolved.system_prompt(resolved.schema) },
@@ -672,8 +672,8 @@ end
 ---@param message table
 ---@return nil
 function Chat:apply_tools_and_variables(message)
-  if self.tools:parse(self, message) then
-    message.content = self.tools:replace(message.content)
+  if self.agents:parse(self, message) then
+    message.content = self.agents:replace(message.content)
   end
   if self.variables:parse(self, message) then
     message.content = self.variables:replace(message.content, self.context.bufnr)
@@ -832,7 +832,7 @@ function Chat:done(output)
 
   -- If we're running any tooling, let them handle the subscriptions instead
   if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
-    self.tools:parse_buffer(self, assistant_range, self.header_line - 1)
+    self.agents:parse_buffer(self, assistant_range, self.header_line - 1)
   else
     self.subscribers:process(self)
   end

@@ -140,6 +140,42 @@
           "url": "https://raw.githubusercontent.com/olimorris/codecompanion.nvim/refs/heads/main/lua/codecompanion/strategies/inline/init.lua"
         }
       ]
+    },
+    {
+      "name": "Tools",
+      "system_prompt": "In the CodeCompanion plugin, tools can be leveraged by an LLM to execute lua functions or shell commands on the users machine. By responding with XML, CodeCompanion will pass the response, call the corresponding tool. This feature has been implemented via the agent/init.lua file, which passes all of the tools and adds them to a queue. Then those tools are run consecutively by the executor/init.lua file.",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "vars": {
+        "base_dir": "lua/codecompanion/strategies/chat/agents"
+      },
+      "files": [
+        {
+          "description": "This is the entry point for the agent. If XML is detected in an LLM's response then this file is triggered which in turns add tools to a queue before calling the executor",
+          "path": "${base_dir}/init.lua"
+        },
+        {
+          "description": "The executor file then runs the tools in the queue, whether they're functions or commands:",
+          "path": "${base_dir}/executor/init.lua"
+        },
+        {
+          "description": "This is how function tools are run:",
+          "path": "${base_dir}/executor/func.lua"
+        },
+        {
+          "description": "This is how command tools are run:",
+          "path": "${base_dir}/executor/cmd.lua"
+        },
+        {
+          "description": "This is the queue implementation",
+          "path": "${base_dir}/executor/queue.lua"
+        },
+        {
+          "description": "This is how the queue object can look. This is an example of a function tool, a command tool, followed by a function tool:",
+          "path": "tests/stubs/queue.txt"
+        }
+      ]
     }
   ]
 }

@@ -6,7 +6,63 @@ In CodeCompanion, tools offer pre-defined ways for LLMs to execute actions and a
 
 In the plugin, tools work by sharing a system prompt with an LLM. This instructs them how to produce an XML markdown code block which can, in turn, be interpreted by the plugin to execute a command or function.
 
-The plugin has a tools class `CodeCompanion.Tools` which will call individual `CodeCompanion.Tool` such as the [cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/cmd_runner.lua) or the [editor](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/editor.lua). The calling of tools is orchestrated by the `CodeCompanion.Chat` class which parses an LLM's response and looks to identify any XML code blocks.
+The plugin has a tools class `CodeCompanion.Agent.Tools` which will call tools such as the [@cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/cmd_runner.lua) or the [@editor](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/editor.lua). The calling of tools is orchestrated by the `CodeCompanion.Chat` class which parses an LLM's response and looks to identify any XML code blocks.
+
+## Architecture
+
+In order to create tools, you do not need to understand the underlying architecture. However, for those who are curious about the implementation, please see the diagram below:
+
+```mermaid
+sequenceDiagram
+    participant C as Chat Buffer
+    participant L as LLM
+    participant A as Agent
+    participant E as Tool Executor
+    participant T as Tool
+
+    C->>L: Prompt
+    L->>C: Response with Tool(s) request
+
+    C->>A: Parse response
+
+    loop For each detected tool
+        A<<->>T: Resolve Tool config
+        A->>A: Add Tool to queue
+    end
+
+    A->>E: Begin executing Tools
+
+    loop While queue not empty
+        E<<->>T: Fetch Tool implementation
+
+        E->>E: Setup handlers and output functions
+        T<<->>E: handlers.setup()
+
+        alt
+        Note over C,E: Some Tools require human approvals
+            E->>C: Prompt for approval
+            C->>E: User decision
+        end
+
+
+        alt
+        Note over E,T: If Tool runs with success
+            E<<->>T: output.success()
+            T-->>C: Update chat buffer
+        else
+        Note over E,T: If Tool runs with errors
+            E<<->>T: output.error()
+            T-->>C: Update chat buffer
+        end
+
+        Note over E,T: When Tool completes
+        E<<->>T: handlers.on_exit()
+    end
+
+    E-->>A: Fire autocmd
+
+    A->>A: reset()
+```
 
 ## Tool Types
 
@@ -14,14 +70,14 @@ There are two types of tools within the plugin:
 
 1. **Command-based**: These tools can execute a series of commands in the background using a [plenary.job](https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/job.lua). They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
 
-2. **Function-based**: These tools, like the [editor](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/editor.lua) one, execute Lua functions directly in Neovim within the main process.
+2. **Function-based**: These tools, like the [@editor](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/editor.lua) one, execute Lua functions directly in Neovim within the main process.
 
 ## The Interface
 
 Tools must implement the following interface:
 
 ```lua
----@class CodeCompanion.Tool
+---@class CodeCompanion.Agent.Tool
 ---@field name string The name of the tool
 ---@field cmds table The commands to execute
 ---@field schema table The schema that the LLM must use in its response to execute a tool
@@ -96,7 +152,7 @@ In this example, the first function will be called by the `CodeCompanion.Tools` 
 
 The schema represents the structure of the response that the LLM must follow in order to call the tool.
 
-In the `code_runner` tool, the schema is defined as a Lua table and then converted into XML in the chat buffer:
+In the _@coderunner_ tool, the schema was defined as a Lua table and then converted into XML in the chat buffer:
 
 ```lua
 schema = {
@@ -114,7 +170,7 @@ schema = {
 
 You can setup environment variables that other functions can access in the `env` function. This function receives the parsed schema which is requested by the LLM when it follows the schema's structure.
 
-For the Code Runner agent, the environment was setup as:
+For the _@coderunner_ agent, the environment was setup as:
 
 ```lua
 ---@param schema table
@@ -139,7 +195,7 @@ Note that a table has been returned that can then be used in other functions.
 
 In the plugin, LLMs are given knowledge about a tool via a system prompt. This gives the LLM knowledge of the tool alongside the instructions (via the schema) required to execute it.
 
-For the Code Runner agent, the `system_prompt` table was:
+For the now archived _@coderunner_ tool, the `system_prompt` table was:
 
 ````lua
   system_prompt = function(schema)
@@ -167,23 +223,19 @@ You must:
 
 ### `handlers`
 
-The `handlers` table consists of three methods.
+The _handlers_ table consists of two methods:
 
-The `setup` method is called before any of the `cmds` are called. This is useful if you wish to set the `cmds` dynamically on the tool itself, like in the `cmd_runner` tool.
-
-The `approved` method, which must return a boolean, contains logic to prompt the user for their approval prior to a command being executed. This is used in both the `files` and `cmd_runner` tool to allow the user to validate the actions the LLM is proposing to take.
-
-Finally, the `on_exit` method is called after all of the `cmds` have been executed.
+1. `setup` - Is called before any of the commands/functions are. This is useful if you wish to set the cmds dynamically on the tool itself, like in the _@cmd_runner_ tool.
+3. `on_exit` - Is called after all of the commands/function have executed.
 
 ### `output`
 
-The `output` table consists of three methods.
+The _output_ table consists of four methods:
 
-The `rejected` method is called when a user rejects to approve the running of a command. This method is useful of informing the LLM of the rejection.
-
-The `error` method is called to notify the LLM of an error when executing a command.
-
-And finally, the `success` method is called to notify the LLM of a successful execution of a command.
+1. `success` - Is called after _every_ successful execution of a command/function. This can be a useful handler to use to notfiy the LLM of the success.
+2. `error` - Is called when an error occurs whilst executing a command/function. It will only ever be called once as the whole execution for the group of commands/function is halted. This is a useful handler to use to notify the LLM of the failure.
+3. `prompt` - Is called when user approval is required. It forms the message prompt which the user is asked to confirm or reject.
+3. `rejected` - Is called when a user rejects the approval to run a command/function. This method is used to inform the LLM of the rejection.
 
 ### `request`
 

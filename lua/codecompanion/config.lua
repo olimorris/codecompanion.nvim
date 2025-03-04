@@ -46,46 +46,40 @@ local defaults = {
         ---@type string
         user = "Me",
       },
-      agents = {
-        ["full_stack_dev"] = {
-          description = "Full Stack Developer - Can run code, edit code and modify files",
-          system_prompt = "**DO NOT** make any assumptions about the dependencies that a user has installed. If you need to install any dependencies to fulfil the user's request, do so via the Command Runner tool. If the user doesn't specify a path, use their current working directory.",
-          tools = {
-            "cmd_runner",
-            "editor",
-            "files",
+      tools = {
+        groups = {
+          ["full_stack_dev"] = {
+            description = "Full Stack Developer - Can run code, edit code and modify files",
+            system_prompt = "**DO NOT** make any assumptions about the dependencies that a user has installed. If you need to install any dependencies to fulfil the user's request, do so via the Command Runner tool. If the user doesn't specify a path, use their current working directory.",
+            tools = {
+              "cmd_runner",
+              "editor",
+              "files",
+            },
           },
         },
-        tools = {
-          ["cmd_runner"] = {
-            callback = "strategies.chat.tools.cmd_runner",
-            description = "Run shell commands initiated by the LLM",
-            opts = {
-              user_approval = true,
-            },
-          },
-          ["editor"] = {
-            callback = "strategies.chat.tools.editor",
-            description = "Update a buffer with the LLM's response",
-          },
-          ["files"] = {
-            callback = "strategies.chat.tools.files",
-            description = "Update the file system with the LLM's response",
-            opts = {
-              user_approval = true,
-            },
-          },
-          ["rag"] = {
-            callback = "strategies.chat.tools.rag",
-            description = "Supplement the LLM with real-time info from the internet",
-            opts = {
-              hide_output = true,
-            },
-          },
+        ["cmd_runner"] = {
+          callback = "strategies.chat.agents.tools.cmd_runner",
+          description = "Run shell commands initiated by the LLM",
           opts = {
-            auto_submit_errors = false, -- Send any errors to the LLM automatically?
-            auto_submit_success = false, -- Send any successful output to the LLM automatically?
-            system_prompt = [[## Tools Access and Execution Guidelines
+            requires_approval = true,
+          },
+        },
+        ["editor"] = {
+          callback = "strategies.chat.agents.tools.editor",
+          description = "Update a buffer with the LLM's response",
+        },
+        ["files"] = {
+          callback = "strategies.chat.agents.tools.files",
+          description = "Update the file system with the LLM's response",
+          opts = {
+            requires_approval = true,
+          },
+        },
+        opts = {
+          auto_submit_errors = false, -- Send any errors to the LLM automatically?
+          auto_submit_success = false, -- Send any successful output to the LLM automatically?
+          system_prompt = [[## Tools Access and Execution Guidelines
 
 ### Overview
 You now have access to specialized tools that empower you to assist users with specific tasks. These tools are available only when explicitly requested by the user.
@@ -99,7 +93,6 @@ You now have access to specialized tools that empower you to assist users with s
   - If issuing commands of the same type, combine them within one `<tools></tools>` XML block with separate `<action></action>` entries.
   - If issuing commands for different tools, ensure they're wrapped in `<tool></tool>` tags within the `<tools></tools>` block.
 - **No Side Effects:** Tool invocations should not alter your core tasks or the general conversation structure.]],
-          },
         },
       },
       variables = {
@@ -541,7 +534,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
             opts = { auto_submit = true },
             -- Scope this prompt to the cmd_runner tool
             condition = function()
-              return vim.g.codecompanion_current_tool == "cmd_runner"
+              return _G.codecompanion_current_tool == "cmd_runner"
             end,
             -- Repeat until the tests pass, as indicated by the testing flag
             -- which the cmd_runner tool sets on the chat buffer

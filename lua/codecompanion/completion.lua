@@ -68,9 +68,9 @@ end
 ---Return the tools to be used for completion
 ---@return table
 function M.tools()
-  -- Add agents
+  -- Add groups
   local items = vim
-    .iter(config.strategies.chat.agents)
+    .iter(config.strategies.chat.tools.groups)
     :filter(function(label)
       return label ~= "tools"
     end)
@@ -87,9 +87,9 @@ function M.tools()
 
   -- Add tools
   vim
-    .iter(config.strategies.chat.agents.tools)
+    .iter(config.strategies.chat.tools)
     :filter(function(label)
-      return label ~= "opts"
+      return label ~= "opts" and label ~= "groups"
     end)
     :each(function(label, v)
       table.insert(items, {

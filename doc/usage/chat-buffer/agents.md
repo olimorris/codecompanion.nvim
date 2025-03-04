@@ -9,7 +9,7 @@
 
 As outlined by Andrew Ng in [Agentic Design Patterns Part 3, Tool Use](https://www.deeplearning.ai/the-batch/agentic-design-patterns-part-3-tool-use), LLMs can act as agents by leveraging external tools. Andrew notes some common examples such as web searching or code execution that have obvious benefits when using LLMs.
 
-In the plugin, tools are simply context and actions that are shared with an LLM via a `system` prompt. The LLM and the chat buffer act as an agent by orchestrating their use within Neovim. Tools give LLM's knowledge and a defined schema which can be included in the response for the plugin to parse, execute and feedback on. Agents and tools can be added as a participant to the chat buffer by using the `@` key.
+In the plugin, tools are simply context and actions that are shared with an LLM via a `system` prompt. The LLM can act as an agent by requesting tools via the chat buffer which in turn orchestrates their use within Neovim. Agents and tools can be added as a participant to the chat buffer by using the `@` key.
 
 > [!IMPORTANT]
 > The agentic use of some tools in the plugin results in you, the developer, acting as the human-in-the-loop and
@@ -17,11 +17,27 @@ In the plugin, tools are simply context and actions that are shared with an LLM 
 
 ## How Tools Work
 
-LLMs are instructured by the plugin to return a structured XML block which has been defined for each tool. The chat buffer parses the LLMs response and detects any tool use before calling the appropriate tool. The chat buffer will then be updated with the outcome. Depending on the tool, flags may be inserted on the chat buffer for later processing.
+When a tool is added to the chat buffer, the LLM is instructured by the plugin to return a structured XML block which has been defined for each tool. The chat buffer parses the LLMs response and detects any tool use before triggering the _agent/init.lua_ file. The agent triggers off a series of events, which sees tool's added to a queue and sequentially worked with their putput being shared back to the LLM via the chat buffer. Depending on the tool, flags may be inserted on the chat buffer for later processing.
+
+An outline of the architecture can be seen [here](/extending/tools#architecture).
+
+## Approvals
+
+Some tools, such as the _@cmd_runner_, require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response.
 
 ## @cmd_runner
 
-The _@cmd_runner_ tool enables an LLM to execute commands on your machine, subject to your authorization. A common example can be asking the LLM to run your test suite and provide feedback on any failures. Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) which means the plugin can't pass the output of the execution to the LLM. When this occurs, the tool will instead share the exit code.
+The _@cmd_runner_ tool enables an LLM to execute commands on your machine, subject to your authorization. For example:
+
+```md
+Can you use the @cmd_runner tool to run my test suite with `pytest`?
+```
+
+```md
+Use the @cmd_runner tool to install any missing libraries in my project
+```
+
+Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) which means the plugin can't pass the output of the execution to the LLM. When this occurs, the tool will instead share the exit code.
 
 The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its XML request. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for [workflows](/extending/workflows) to hook into.
 
@@ -40,7 +56,15 @@ An example of the XML that an LLM may generate for the tool:
 
 ## @editor
 
-The _@editor_ tool enables an LLM to modify the code in a Neovim buffer. If a buffer's content has been shared with the LLM then the tool can be used to add, edit or delete specific lines. Consider pinning or watching a buffer to avoid manually re-sending a buffer's content to the LLM.
+The _@editor_ tool enables an LLM to modify the code in a Neovim buffer. If a buffer's content has been shared with the LLM then the tool can be used to add, edit or delete specific lines. Consider pinning or watching a buffer to avoid manually re-sending a buffer's content to the LLM:
+
+```md
+Use the @editor tool refactor the code in #buffer{watch}
+```
+
+```md
+Can you apply the suggested changes to the buffer with the @editor tool?
+```
 
 An example of the XML that an LLM may generate for the tool:
 
@@ -117,15 +141,19 @@ An example of the XML that an LLM may generate for the tool:
 </tools>
 ```
 
-## @rag
-
-The _@rag_ tool uses [jina.ai](https://jina.ai) to parse a given URL's content and convert it into plain text before sharing with the LLM. It also gives the LLM the ability to search the internet for information.
-
 ## @full_stack_dev
 
 The _@full_stack_dev_ agent is a combination of the _@cmd_runner_, _@editor_ and _@files_ tools.
 
 ## Useful Tips
+
+### Combining Tools
+
+Consider combining tools for complex tasks:
+
+```md
+@full_stack_dev I want to play Snake. Can you create the game for me in Python and install any packages you need. Let's save it to ~/Code/Snake. When you've finished writing it, can you open it so I can play?
+```
 
 ### Automatic Tool Mode
 

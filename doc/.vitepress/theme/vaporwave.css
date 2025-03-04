@@ -91,3 +91,81 @@
   /* Override base background for dark mode */
   --vw-base-bg-mixer: 20%;
 }
+
+/* Mermaid */
+.mermaid * {
+  font-family: var(--vp-font-family-base) !important;
+  font-weight: var(--vp-font-weight-regular, 400) !important;
+}
+
+.mermaid .noteText,
+.mermaid .loopText {
+  font-size: 0.9em !important;
+}
+
+.mermaid .note {
+  fill: color-mix(in srgb, var(--vw-purple) 40%, var(--vw-base-bg)) !important;
+  stroke: var(--vw-purple) !important;
+}
+
+.mermaid .actor {
+  fill: color-mix(in srgb, var(--vw-blue) 20%, var(--vw-base-bg)) !important;
+  stroke: var(--vw-blue) !important;
+  font-weight: var(--vp-font-weight-medium, 500) !important;
+}
+
+.mermaid text.actor > tspan {
+  fill: var(--vw-base-fg) !important;
+  stroke: none !important;
+  font-weight: var(--vp-font-weight-medium, 500) !important;
+}
+
+.mermaid .messageText {
+  fill: var(--vw-base-fg) !important;
+  stroke: none !important;
+}
+
+.mermaid .messageLine0,
+.mermaid .messageLine1 {
+  stroke: var(--vw-green) !important;
+}
+
+.mermaid .sequenceNumber {
+  fill: var(--vw-base-bg) !important;
+}
+
+.mermaid .loopLine {
+  stroke: var(--vw-yellow) !important;
+}
+
+.mermaid .loopText > tspan {
+  fill: var(--vw-base-fg) !important;
+  stroke: none !important;
+}
+
+.mermaid .labelBox {
+  fill: color-mix(in srgb, var(--vw-yellow) 20%, var(--vw-base-bg)) !important;
+  stroke: var(--vw-yellow) !important;
+}
+
+.mermaid .labelText {
+  fill: var(--vw-base-fg) !important;
+}
+
+.mermaid line.divider {
+  stroke: var(--vw-purple) !important;
+}
+
+.mermaid .noteText > tspan {
+  fill: var(--vw-base-fg) !important;
+  stroke: none !important;
+  font-weight: var(--vp-font-weight-regular, 400) !important;
+}
+
+/* Adds styling for the activation boxes */
+.mermaid .activation0,
+.mermaid .activation1,
+.mermaid .activation2 {
+  fill: color-mix(in srgb, var(--vw-green) 20%, var(--vw-base-bg)) !important;
+  stroke: var(--vw-green) !important;
+}
