@@ -1,5 +1,16 @@
 # Changelog
 
+## [13.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.15.0...v13.0.0) (2025-03-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **tools:** add queue and streamline implementation ([#965](https://github.com/olimorris/codecompanion.nvim/issues/965))
+
+### Code Refactoring
+
+* **tools:** add queue and streamline implementation ([#965](https://github.com/olimorris/codecompanion.nvim/issues/965)) ([acd48ef](https://github.com/olimorris/codecompanion.nvim/commit/acd48eff972e334bb863c6b083db90c7fcb0b053))
+
 ## [12.15.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.14.2...v12.15.0) (2025-03-02)
 
 
