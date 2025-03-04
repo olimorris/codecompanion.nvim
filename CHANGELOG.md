@@ -1,5 +1,12 @@
 # Changelog
 
+## [13.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v13.0.0...v13.0.1) (2025-03-04)
+
+
+### Bug Fixes
+
+* **chat:** show tools and groups in helper window ([#1062](https://github.com/olimorris/codecompanion.nvim/issues/1062)) ([baa283e](https://github.com/olimorris/codecompanion.nvim/commit/baa283efe3ecf8d1d5183b10ac3cdfae2c9c8820))
+
 ## [13.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v12.15.0...v13.0.0) (2025-03-04)
 
 
