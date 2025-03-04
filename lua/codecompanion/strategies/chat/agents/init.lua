@@ -406,6 +406,10 @@ function Agent.resolve(tool)
     return callback --[[@as CodeCompanion.Agent.Tool]]
   end
 
+  if type(callback) == "function" then
+    return callback() --[[@as CodeCompanion.Agent.Tool]]
+  end
+
   local ok, module = pcall(require, "codecompanion." .. callback)
   if ok then
     log:debug("[Tools] %s identified", callback)
