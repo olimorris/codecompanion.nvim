@@ -206,6 +206,7 @@ require("codecompanion").setup({
         return " (" .. tokens .. " tokens)"
       end,
     },
+    follow = true, -- Scroll down and place the cursor at the end
   },
 }),
 ```
