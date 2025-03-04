@@ -8,6 +8,7 @@ local util = require("codecompanion.utils")
 ---@field agent CodeCompanion.Agent
 ---@field current_cmd_tool table The current cmd tool that's being executed
 ---@field handlers table<string, function>
+---@field id number The id of the agent
 ---@field index number The index of the current command
 ---@field output table<string, function>
 ---@field tool CodeCompanion.Agent.Tool
@@ -16,11 +17,12 @@ local util = require("codecompanion.utils")
 local Executor = {}
 
 ---@param agent CodeCompanion.Agent
-function Executor.new(agent)
+---@param id number
+function Executor.new(agent, id)
   local self = setmetatable({
     agent = agent,
     current_cmd_tool = {},
-    id = math.random(10000000),
+    id = id,
     queue = Queue.new(),
   }, { __index = Executor })
 
@@ -70,14 +72,20 @@ function Executor:setup_handlers()
   }
 end
 
+local function finalize_agent(self)
+  return util.fire("AgentFinished", { id = self.id, bufnr = self.agent.bufnr })
+end
+
 ---Setup the tool to be executed
 ---@param input? any
 ---@return nil
 function Executor:setup(input)
   if self.queue:is_empty() then
+    finalize_agent(self)
     return log:debug("Executor:execute - Queue empty")
   end
   if self.agent.status == self.agent.constants.STATUS_ERROR then
+    finalize_agent(self)
     return log:debug("Executor:execute - Error")
   end
 
@@ -104,6 +112,7 @@ function Executor:setup(input)
     local ok, choice = pcall(vim.fn.confirm, prompt, "&Yes\n&No\n&Cancel")
     if not ok or choice == 0 or choice == 3 then -- Esc or Cancel
       log:debug("Executor:execute - Tool cancelled")
+      finalize_agent(self)
       return self:close()
     end
     if choice == 1 then -- Yes
@@ -125,7 +134,7 @@ end
 ---@param input? any
 ---@return nil
 function Executor:execute(cmd, input)
-  util.fire("AgentStarted", { tool = self.tool.name, bufnr = self.agent.bufnr })
+  util.fire("ToolStarted", { id = self.id, tool = self.tool.name, bufnr = self.agent.bufnr })
   if type(cmd) == "function" then
     return FuncExecutor.new(self, cmd, 1):orchestrate(input)
   end
@@ -144,6 +153,7 @@ function Executor:error(action, error)
     log:warn("Tool %s: %s", self.tool.name, error)
   end
   self.output.error(action, self.agent.stderr, self.agent.stdout)
+  finalize_agent(self)
   self:close()
 end
 
@@ -164,7 +174,7 @@ end
 function Executor:close()
   log:debug("Executor:close")
   self.handlers.on_exit()
-  util.fire("AgentFinished", { name = self.tool.name, bufnr = self.agent.bufnr })
+  util.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.agent.bufnr })
   self.agent.chat.subscribers:process(self.agent.chat)
   vim.g.codecompanion_current_tool = nil
 end

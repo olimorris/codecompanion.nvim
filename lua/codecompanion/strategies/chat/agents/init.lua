@@ -215,7 +215,8 @@ function Agent:execute(chat, xml)
     return executor.queue:push(self.tool)
   end
 
-  local executor = Executor.new(self)
+  local id = math.random(10000000)
+  local executor = Executor.new(self, id)
 
   -- This allows us to run multiple tools in a single response whether they're in
   -- their own XML block or they're in an array within the <tools> tag
@@ -227,6 +228,7 @@ function Agent:execute(chat, xml)
     run_tool(executor, schema)
   end
 
+  util.fire("AgentStarted", { id = id, bufnr = self.bufnr })
   return executor:setup()
 end
 

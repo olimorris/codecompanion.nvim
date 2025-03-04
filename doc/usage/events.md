@@ -14,9 +14,11 @@ The events that you can access are:
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
 - `CodeCompanionChatPin` - Fired after a pinned reference has been updated in the messages table
+- `CodeCompanionAgentStarted` - Fired when an agent has been initiated to run tools
+- `CodeCompanionAgentFinished` - Fired when an agent has finished running all tools
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
-- `CodeCompanionAgentStarted` - Fired when an agent has been initiated in the chat
-- `CodeCompanionAgentFinished` - Fired when an agent has finished all tool executions
+- `CodeCompanionToolStarted` - Fired when a tool has started executing
+- `CodeCompanionToolFinished` - Fired when a tool has finished executing
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline strategy
 - `CodeCompanionInlineFinished` - Fired at the end of the Inline strategy
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
