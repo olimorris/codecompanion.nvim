@@ -1,5 +1,17 @@
 # Changelog
 
+## [13.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v13.0.1...v13.1.0) (2025-03-04)
+
+
+### Features
+
+* **tools:** callbacks can be functions ([#1065](https://github.com/olimorris/codecompanion.nvim/issues/1065)) ([dff8a1c](https://github.com/olimorris/codecompanion.nvim/commit/dff8a1c969b66987923c14a305a654ea51b5e2a6))
+
+
+### Bug Fixes
+
+* **chat:** references not being added with `show_header_separators` closes [#1067](https://github.com/olimorris/codecompanion.nvim/issues/1067) ([#1069](https://github.com/olimorris/codecompanion.nvim/issues/1069)) ([9cd4094](https://github.com/olimorris/codecompanion.nvim/commit/9cd4094e5ccc428faae487568aabeb4873393f1b))
+
 ## [13.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v13.0.0...v13.0.1) (2025-03-04)
 
 
