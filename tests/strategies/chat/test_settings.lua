@@ -1,33 +1,35 @@
-local h = require("tests.helpers")
-
+local expect = MiniTest.expect
 local new_set = MiniTest.new_set
 local T = new_set()
 
-local chat, _
-
-T["Settings"] = new_set({
+local child = MiniTest.new_child_neovim()
+T = new_set({
   hooks = {
     pre_case = function()
-      chat, _ = h.setup_chat_buffer({
-        display = {
-          chat = {
-            show_settings = true,
+      child.restart({ "-u", "scripts/minimal_init.lua" })
+
+      child.lua([[
+        _G.h = require('tests.helpers')
+        _G.chat, _ = h.setup_chat_buffer({
+          display = {
+            chat = {
+              show_settings = true,
+            },
           },
-        },
-      })
+        })
+        ]])
     end,
     post_case = function()
-      h.teardown_chat_buffer()
+      child.lua([[h.teardown_chat_buffer()]])
     end,
+    post_once = child.stop,
   },
 })
 
-T["Settings"]["Are rendered correctly"] = function()
-  local buffer = h.get_buf_lines(chat.bufnr)
+T["Settings"] = new_set()
 
-  h.eq("---", buffer[1])
-  h.eq("model: gpt-3.5-turbo", buffer[2])
-  h.eq("---", buffer[3])
+T["Settings"]["Are rendered correctly"] = function()
+  expect.reference_screenshot(child.get_screenshot())
 end
 
 return T
