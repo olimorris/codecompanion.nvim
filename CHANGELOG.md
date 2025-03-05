@@ -1,5 +1,12 @@
 # Changelog
 
+## [13.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v13.1.0...v13.2.0) (2025-03-05)
+
+
+### Features
+
+* **tools:** function tools can update the agent status + doc updates ([#1074](https://github.com/olimorris/codecompanion.nvim/issues/1074)) ([e59c1f0](https://github.com/olimorris/codecompanion.nvim/commit/e59c1f04983edac15f195bfc73cd90bf08a3565b))
+
 ## [13.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v13.0.1...v13.1.0) (2025-03-04)
 
 
