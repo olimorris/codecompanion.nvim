@@ -151,7 +151,7 @@ By default the plugin uses `vim.ui.select`, however, you can change the provider
 
 ## List of Commands
 
-The plugin has three core commands:
+The plugin has four core commands:
 
 - `CodeCompanion` - Open the inline assistant
 - `CodeCompanionChat` - Open a chat buffer
