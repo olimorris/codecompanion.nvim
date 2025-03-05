@@ -79,6 +79,10 @@ return {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_error.lua",
           description = "Error function tool to test",
         },
+        ["func_return_error"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_return_error.lua",
+          description = "Error function tool to test",
+        },
         ["func_queue"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_queue.lua",
           description = "Some function tool to test",

@@ -84,8 +84,11 @@ function FuncExecutor:run(func, action, input, callback)
   if not ok then
     return self.executor:error(action, output)
   end
+  if output.status == self.executor.agent.constants.STATUS_ERROR then
+    return self.executor:error(action, output.data or "An error occurred")
+  end
 
-  self.executor:success(action, output)
+  self.executor:success(action, output.data)
 
   if callback then
     callback(output)

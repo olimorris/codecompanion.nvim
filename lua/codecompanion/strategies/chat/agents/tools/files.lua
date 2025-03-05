@@ -6,10 +6,8 @@ in the same XML block. All actions must be approved by you.
 
 local Path = require("plenary.path")
 local config = require("codecompanion.config")
-
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
-local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local fmt = string.format
 local file = nil
@@ -151,7 +149,7 @@ local actions = {
   move = move,
 }
 
----@class CodeCompanion.Tool
+---@class CodeCompanion.Agent.Tool
 return {
   name = "files",
   actions = actions,
@@ -266,7 +264,7 @@ return {
       },
     },
   },
-  system_prompt = function(schema)
+  system_prompt = function(schema, xml2lua)
     return fmt(
       [[### Files Tool (`files`)
 

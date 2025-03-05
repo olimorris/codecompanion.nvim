@@ -93,26 +93,14 @@ function Agent:set_autocmds()
           { hl_group = "CodeCompanionVirtualText" }
         )
       elseif request.match == "CodeCompanionAgentFinished" then
-        -- Handle any errors
-        if request.data.status == CONSTANTS.STATUS_ERROR then
-          local error = request.data.stderr
-          log:error("Tool %s finished with error(s): %s", string.upper(self.tool.name), error)
-
-          if self.tool.output and self.tool.output.errors then
-            self.tool.output.errors(self, error)
-          end
-          if self.tools_config.opts.auto_submit_errors then
-            self.chat:submit()
-          end
+        if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then
+          self.chat:submit()
         end
-
-        -- Handle any success
-        if request.data.status == CONSTANTS.STATUS_SUCCESS then
-          if self.tools_config.opts.auto_submit_success then
-            self.chat:submit()
-          end
+        if self.status == CONSTANTS.STATUS_SUCCESS and self.tools_config.opts.auto_submit_success then
+          self.chat:submit()
         end
       end
+
       self:reset()
     end,
   })

@@ -130,6 +130,20 @@ T["Agent"]["functions"]["can handle errors"] = function()
   h.eq("<error>Something went wrong</error>", child.lua_get([[_G._test_output]]))
 end
 
+T["Agent"]["functions"]["can return errors"] = function()
+  child.lua([[
+     require("tests.log")
+     local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
+     local xml = func_xml.one_data_point("func_return_error")
+     agent:execute(chat, xml)
+   ]])
+
+  h.eq("Setup->Success->Error->Exit", child.lua_get([[_G._test_order]]))
+
+  -- Test that the `output.error` handler was called
+  h.eq("<error>This will throw an error</error>", child.lua_get([[_G._test_output]]))
+end
+
 T["Agent"]["functions"]["can populate stderr and halt execution"] = function()
   local tool = "'func_error'"
   child.lua(string.format(
@@ -160,10 +174,7 @@ T["Agent"]["functions"]["can populate stdout"] = function()
      agent:execute(chat, xml)
    ]])
 
-  h.eq(
-    { { data = "Data 1", status = "success" }, { data = "Data 2", status = "success" } },
-    child.lua_get([[agent.stdout]])
-  )
+  h.eq({ "Data 1", "Data 2" }, child.lua_get([[agent.stdout]]))
 end
 
 return T
