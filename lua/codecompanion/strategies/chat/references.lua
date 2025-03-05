@@ -4,6 +4,7 @@ Slash Commands or variables. References are displayed back to the user via
 the chat buffer, using block quotes and lists.
 --]]
 local config = require("codecompanion.config")
+local helpers = require("codecompanion.strategies.chat.helpers")
 
 local api = vim.api
 local user_role = config.strategies.chat.roles.user
@@ -58,9 +59,7 @@ local function ts_parse_buffer(chat)
     end
   end
 
-  if config.display.chat.show_header_separator then
-    role = vim.trim(role:gsub(config.display.chat.separator, ""))
-  end
+  role = helpers.format_role(role)
 
   if role_node and role == user_role then
     local start_row, _, end_row, _ = role_node:range()
@@ -251,10 +250,7 @@ function References:get_from_chat()
 
   for id, node in query:iter_captures(root, chat.bufnr, chat.header_line - 1, -1) do
     if query.captures[id] == "role" then
-      role = vim.treesitter.get_node_text(node, chat.bufnr)
-      if config.display.chat.show_header_separator then
-        role = vim.trim(role:gsub(config.display.chat.separator, ""))
-      end
+      role = helpers.format_role(vim.treesitter.get_node_text(node, chat.bufnr))
     elseif role == user_role and query.captures[id] == "ref" then
       local ref = vim.treesitter.get_node_text(node, chat.bufnr)
       -- Clean both pinned and watched icons

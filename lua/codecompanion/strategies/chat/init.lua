@@ -48,6 +48,7 @@ local client = require("codecompanion.http")
 local completion = require("codecompanion.completion")
 local config = require("codecompanion.config")
 local hash = require("codecompanion.utils.hash")
+local helpers = require("codecompanion.strategies.chat.helpers")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
@@ -143,10 +144,7 @@ local function ts_parse_messages(chat, start_range)
 
   for id, node in query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
     if query.captures[id] == "role" then
-      last_role = get_node_text(node, chat.bufnr)
-      if config.display.chat.show_header_separator then
-        last_role = vim.trim(last_role:gsub(config.display.chat.separator, ""))
-      end
+      last_role = helpers.format_role(get_node_text(node, chat.bufnr))
     elseif last_role == user_role and query.captures[id] == "content" then
       table.insert(content, get_node_text(node, chat.bufnr))
     end
