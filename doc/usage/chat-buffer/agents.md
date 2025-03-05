@@ -143,7 +143,7 @@ An example of the XML that an LLM may generate for the tool:
 
 ## @full_stack_dev
 
-The _@full_stack_dev_ agent is a combination of the _@cmd_runner_, _@editor_ and _@files_ tools.
+The plugin enables tools to be grouped together. The _@full_stack_dev_ agent is a combination of the _@cmd_runner_, _@editor_ and _@files_ tools.
 
 ## Useful Tips
 
