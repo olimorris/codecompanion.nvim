@@ -1,5 +1,12 @@
 # Changelog
 
+## [13.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v13.2.0...v13.2.1) (2025-03-05)
+
+
+### Bug Fixes
+
+* **chat:** can set system prompt dynamically when switching adapters closes [#1033](https://github.com/olimorris/codecompanion.nvim/issues/1033) ([#1077](https://github.com/olimorris/codecompanion.nvim/issues/1077)) ([b76a47a](https://github.com/olimorris/codecompanion.nvim/commit/b76a47a62383dcf22dd41839467ea37d2e82ee59))
+
 ## [13.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v13.1.0...v13.2.0) (2025-03-05)
 
 
