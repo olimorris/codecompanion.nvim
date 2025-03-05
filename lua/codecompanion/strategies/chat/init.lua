@@ -47,12 +47,12 @@ local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local completion = require("codecompanion.completion")
 local config = require("codecompanion.config")
-local schema = require("codecompanion.schema")
-
 local hash = require("codecompanion.utils.hash")
 local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
+local schema = require("codecompanion.schema")
 local util = require("codecompanion.utils")
+local xml2lua = require("codecompanion.utils.xml.xml2lua")
 local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
@@ -632,7 +632,7 @@ function Chat:add_tool(tool, tool_config)
   local resolved = self.agents.resolve(tool_config)
   if resolved then
     self:add_message(
-      { role = config.constants.SYSTEM_ROLE, content = resolved.system_prompt(resolved.schema) },
+      { role = config.constants.SYSTEM_ROLE, content = resolved.system_prompt(resolved.schema, xml2lua) },
       { visible = false, tag = "tool", reference = id }
     )
   end
