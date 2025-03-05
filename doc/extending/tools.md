@@ -126,6 +126,39 @@ cmds = {
 
 In this example, the plugin will execute `make test` followed by `echo hello`. After each command executes, the plugin will automatically send the output to a corresponding table on the agent file. If the command ran with success the output will be written to `stdout`, otherwise it will go to `stderr`. We'll be covering how you access that data in the output section below.
 
+It's also possible to pass in environment variables (from the `env` function) by use of ${} brackets. The now removed _@code_runner_ tool used them as below:
+
+```lua
+cmds = {
+    { "docker", "pull", "${lang}" },
+    {
+      "docker",
+      "run",
+      "--rm",
+      "-v",
+      "${temp_dir}:${temp_dir}",
+      "${lang}",
+      "${lang}",
+      "${temp_input}",
+    },
+  },
+},
+---@param xml table The values from the XML returned by the LLM
+env = function(xml)
+  local temp_input = vim.fn.tempname()
+  local temp_dir = temp_input:match("(.*/)")
+  local lang = xml.lang
+  local code = xml.code
+
+  return {
+    code = code,
+    lang = lang,
+    temp_dir = temp_dir,
+    temp_input = temp_input,
+  }
+end,
+```
+
 > [!IMPORTANT]
 > Using the `handlers.setup()` function, it's also possible to create commands dynamically like in the [@cmd_runner](/usage/chat-buffer/agents.html#cmd-runner) tool.
 
