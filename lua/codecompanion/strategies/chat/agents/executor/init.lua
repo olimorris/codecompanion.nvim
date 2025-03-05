@@ -72,8 +72,14 @@ function Executor:setup_handlers()
   }
 end
 
-local function finalize_agent(self)
-  return util.fire("AgentFinished", { id = self.id, bufnr = self.agent.bufnr })
+---@param self CodeCompanion.Agent.Executor
+---@param success? boolean if 'success' is nil, the status will be set to nil either
+local function finalize_agent(self, success)
+  local status = nil
+  if success ~= nil then
+    status = success and self.agent.constants.STATUS_SUCCESS or self.agent.constants.STATUS_ERROR
+  end
+  return util.fire("AgentFinished", { id = self.id, bufnr = self.agent.bufnr, status = status })
 end
 
 ---Setup the tool to be executed
@@ -81,11 +87,11 @@ end
 ---@return nil
 function Executor:setup(input)
   if self.queue:is_empty() then
-    finalize_agent(self)
+    finalize_agent(self, true)
     return log:debug("Executor:execute - Queue empty")
   end
   if self.agent.status == self.agent.constants.STATUS_ERROR then
-    finalize_agent(self)
+    finalize_agent(self, false)
     return log:debug("Executor:execute - Error")
   end
 
@@ -153,7 +159,7 @@ function Executor:error(action, error)
     log:warn("Tool %s: %s", self.tool.name, error)
   end
   self.output.error(action, self.agent.stderr, self.agent.stdout)
-  finalize_agent(self)
+  finalize_agent(self, false)
   self:close()
 end
 
