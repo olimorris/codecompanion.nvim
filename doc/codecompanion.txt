@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.10.0        Last change: 2025 March 03
+*codecompanion.txt*         For NVIM v0.10.0        Last change: 2025 March 05
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -380,7 +380,7 @@ provider by altering the `display.action_palette.provider` config value to be
 
 LIST OF COMMANDS              *codecompanion-getting-started-list-of-commands*
 
-The plugin has three core commands:
+The plugin has four core commands:
 
 - `CodeCompanion` - Open the inline assistant
 - `CodeCompanionChat` - Open a chat buffer
@@ -675,6 +675,7 @@ env table, the API key and altering the schema:
               url = "http[s]://open_compatible_ai_url", -- optional: default value is ollama url http://127.0.0.1:11434
               api_key = "OpenAI_API_KEY", -- optional: if your endpoint is authenticated
               chat_url = "/v1/chat/completions", -- optional: default value, override if different
+              models_endpoint = "/v1/models", -- optional: attaches to the end of the URL to form the endpoint to retrieve models
             },
             schema = {
               model = {
@@ -954,31 +955,28 @@ Credit to @lazymaniac <https://github.com/lazymaniac> for the inspiration
 AGENTS AND TOOLS ~
 
 Tools perform specific tasks (e.g., running shell commands, editing buffers,
-etc.) when invoked by an LLM. You can group them into an Agent and both can be
-referenced with `@` when in the chat buffer:
+etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can
+be referenced with `@` when in the chat buffer:
 
 >lua
     require("codecompanion").setup({
       strategies = {
         chat = {
-          agents = {
-            ["my_agent"] = {
-              description = "A custom agent combining tools",
-              system_prompt = "Describe what the agent should do",
-              tools = {
-                "cmd_runner",
-                "editor",
-                -- Add your own tools or reuse existing ones
-              },
-            },
-          },
           tools = {
             ["my_tool"] = {
               description = "Run a custom task",
-              callback = function(command)
-                -- Perform the custom task here
-                return "Tool result"
-              end,
+              callback = require("user.codecompanion.tools.my_tool")
+            },
+            groups = {
+              ["my_group"] = {
+                description = "A custom agent combining tools",
+                system_prompt = "Describe what the agent should do",
+                tools = {
+                  "cmd_runner",
+                  "editor",
+                  -- Add your own tools or reuse existing ones
+                },
+              },
             },
           },
         },
@@ -989,9 +987,10 @@ referenced with `@` when in the chat buffer:
 When users introduce the agent `@my_agent` in the chat buffer, it can call the
 tools you listed (like `@my_tool`) to perform tasks on your code.
 
-The `callback` option for a tool can also be a |codecompanion-extending-tools|
-object, which is a table with specific keys that defines the interface and
-workflow of the tool.
+A tool is a |codecompanion-extending-tools| table with specific keys that
+define the interface and workflow of the tool. The table can be resolved using
+the `callback` option. The `callback` option can be a table itself or either a
+function or a string that points to a luafile that return the table.
 
 Some tools, such as the
 |codecompanion-usage-chat-buffer-agents.html-cmd-runner|, require the user to
@@ -1002,14 +1001,12 @@ the config for each tool:
     require("codecompanion").setup({
       strategies = {
         chat = {
-          agents = {
-            tools = {
-              ["cmd_runner"] = {
-                opts = {
-                  requires_approval = false,
-                },
+          tools = {
+            ["cmd_runner"] = {
+              opts = {
+                requires_approval = false,
               },
-            }
+            },
           }
         }
       }
@@ -1465,8 +1462,8 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatHeader` - The headers in the chat buffer
 - `CodeCompanionChatSeparator` - Separator between headings in the chat buffer
 - `CodeCompanionChatTokens` - Virtual text in the chat buffer showing the token count
-- `CodeCompanionChatAgent` - Agents in the chat buffer
 - `CodeCompanionChatTool` - Tools in the chat buffer
+- `CodeCompanionChatToolGroups` - Tool groups in the chat buffer
 - `CodeCompanionChatVariable` - Variables in the chat buffer
 - `CodeCompanionVirtualText` - All other virtual text in the plugin
 
@@ -1861,8 +1858,8 @@ An example of the XML that an LLM may generate for the tool:
 
 @FULL_STACK_DEV ~
 
-The `@full_stack_dev` agent is a combination of the `@cmd_runner`, `@editor`
-and `@files` tools.
+The plugin enables tools to be grouped together. The `@full_stack_dev` agent is
+a combination of the `@cmd_runner`, `@editor` and `@files` tools.
 
 
 USEFUL TIPS ~
@@ -2043,9 +2040,11 @@ The events that you can access are:
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
 - `CodeCompanionChatPin` - Fired after a pinned reference has been updated in the messages table
+- `CodeCompanionAgentStarted` - Fired when an agent has been initiated to run tools
+- `CodeCompanionAgentFinished` - Fired when an agent has finished running all tools
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
-- `CodeCompanionAgentStarted` - Fired when an agent has been initiated in the chat
-- `CodeCompanionAgentFinished` - Fired when an agent has finished all tool executions
+- `CodeCompanionToolStarted` - Fired when a tool has started executing
+- `CodeCompanionToolFinished` - Fired when a tool has finished executing
 - `CodeCompanionInlineStarted` - Fired at the start of the Inline strategy
 - `CodeCompanionInlineFinished` - Fired at the end of the Inline strategy
 - `CodeCompanionRequestStarted` - Fired at the start of any API request
@@ -2928,8 +2927,9 @@ Let’s take a look at one more schema value:
       mapping = "parameters",
       type = "number",
       default = 0,
-      condition = function(schema)
-        local model = schema.model.default
+      ---@param self CodeCompanion.Adapter
+      condition = function(self)
+        local model = self.schema.model.default
         if type(model) == "function" then
           model = model()
         end
@@ -2944,7 +2944,7 @@ Let’s take a look at one more schema value:
 <
 
 You’ll see we’ve specified a function call for the `condition` key. We’re
-simply checking that the model name doesn’t being with `o1` as these models
+simply checking that the model name doesn’t start with `o1` as these models
 don’t accept temperature as a parameter. You’ll also see we’ve specified
 a function call for the `validate` key. We’re simply checking that the value
 of the temperature is between 0 and 2.
@@ -3420,24 +3420,13 @@ files for more complex examples.
 
 CREATING TOOLS                        *codecompanion-extending-creating-tools*
 
-In CodeCompanion, tools offer pre-defined ways for LLMs to execute actions and
-act as an Agent. Tools are added to chat buffers as participants. This guide
-walks you through the implementation of tools, enabling you to create your own.
-
-
-INTRODUCTION ~
+In CodeCompanion, tools offer pre-defined ways for LLMs to execute actions on
+your machine, acting as an Agent in the process. This guide walks you through
+the implementation of tools, enabling you to create your own.
 
 In the plugin, tools work by sharing a system prompt with an LLM. This
-instructs them how to produce an XML markdown code block which can, in turn, be
-interpreted by the plugin to execute a command or function.
-
-The plugin has a tools class `CodeCompanion.Agent.Tools` which will call tools
-such as the @cmd_runner
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/cmd_runner.lua>
-or the @editor
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/editor.lua>.
-The calling of tools is orchestrated by the `CodeCompanion.Chat` class which
-parses an LLM’s response and looks to identify any XML code blocks.
+instructs the LLM how to produce an XML markdown code block which can, in turn,
+be interpreted by the plugin to execute a command or function.
 
 
 ARCHITECTURE ~
@@ -3481,12 +3470,12 @@ please see the diagram below:
     
             alt
             Note over E,T: If Tool runs with success
+                T-->>A: Update stdout
                 E<<->>T: output.success()
-                T-->>C: Update chat buffer
             else
             Note over E,T: If Tool runs with errors
+                T-->>A: Update stderr
                 E<<->>T: output.error()
-                T-->>C: Update chat buffer
             end
     
             Note over E,T: When Tool completes
@@ -3499,150 +3488,110 @@ please see the diagram below:
 <
 
 
-TOOL TYPES ~
+BUILDING YOUR FIRST TOOL ~
 
-There are two types of tools within the plugin:
+Before we begin, it’s important to familiarise yourself with the directory
+structure of the agents and tools implementation:
 
-1. **Command-based**: These tools can execute a series of commands in the
-background using a plenary.job
-<https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/job.lua>.
-They’re non-blocking, meaning you can carry out other activities in Neovim
-whilst they run. Useful for heavy/time-consuming tasks.
+>
+    strategies/chat/agents
+    ├── init.lua
+    ├── executor/
+    │   ├── cmd.lua
+    │   ├── func.lua
+    │   ├── init.lua
+    │   ├── queue.lua
+    ├── tools/
+    │   ├── cmd_runner.lua
+    │   ├── editor.lua
+    │   ├── files.lua
+    │   ├── rag.lua
+<
+
+When a tool is detected, the chat buffer sends any output to the
+`agents/init.lua` file (I will commonly refer to that as the `“agent file”`
+throughout this document). The agent file then parses the output into XML,
+identifying the tool and duly executing it.
+
+There are two types of tools that CodeCompanion can leverage:
+
+1. **Command-based**: These tools can execute a series of commands in the background using a plenary.job <https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/job.lua>. They’re non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
+2. **Function-based**: These tools, like @editor <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/editor.lua>, execute Lua functions directly in Neovim within the main process, one after another.
+
+For the purposes of this section of the guide, we’ll be building a simple
+function-based calculator tool that an LLM can use to do basic maths.
 
 
-2. **Function-based**: These tools, like the @editor
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/editor.lua>
-one, execute Lua functions directly in Neovim within the main process.
+TOOL STRUCTURE
 
-
-
-
-THE INTERFACE ~
-
-Tools must implement the following interface:
+All tools must implement the following structure which the bulk of this guide
+will focus on explaining:
 
 >lua
     ---@class CodeCompanion.Agent.Tool
     ---@field name string The name of the tool
     ---@field cmds table The commands to execute
     ---@field schema table The schema that the LLM must use in its response to execute a tool
-    ---@field system_prompt fun(schema: table): string The system prompt to the LLM explaining the tool and the schema
+    ---@field system_prompt fun(schema: table, xml2lua: table): string The system prompt to the LLM explaining the tool and the schema
     ---@field opts? table The options for the tool
     ---@field env? fun(schema: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
-    ---@field handlers table Functions which can be called during the execution of the tool
-    ---@field handlers.setup? fun(self: CodeCompanion.Tools): any Function used to setup the tool. Called before any commands
-    ---@field handlers.approved? fun(self: CodeCompanion.Tools): boolean Function to call if an approval is needed before running a command
-    ---@field handlers.on_exit? fun(self: CodeCompanion.Tools): any Function to call at the end of all of the commands
-    ---@field output? table Functions which can be called after the command finishes
-    ---@field output.rejected? fun(self: CodeCompanion.Tools, cmd: table): any Function to call if the user rejects running a command
-    ---@field output.error? fun(self: CodeCompanion.Tools, cmd: table, error: table|string): any Function to call if the tool is unsuccessful
-    ---@field output.success? fun(self: CodeCompanion.Tools, cmd: table, output: table|string): any Function to call if the tool is successful
+    ---@field handlers table Functions which handle the execution of a tool
+    ---@field handlers.setup? fun(agent: CodeCompanion.Agent): any Function used to setup the tool. Called before any commands
+    ---@field handlers.on_exit? fun(agent: CodeCompanion.Agent): any Function to call at the end of a group of commands or functions
+    ---@field output? table Functions which handle the output after every execution of a tool
+    ---@field output.prompt fun(agent: CodeCompanion.Agent, self: CodeCompanion.Agent.Tool): string The message which is shared with the user when asking for their approval
+    ---@field output.rejected? fun(agent: CodeCompanion.Agent, cmd: table): any Function to call if the user rejects running a command
+    ---@field output.error? fun(agent: CodeCompanion.Agent, cmd: table, stderr: table, stdout?: table): any The function to call if an error occurs
+    ---@field output.success? fun(agent: CodeCompanion.Agent, cmd: table, stdout: table): any Function to call if the tool is successful
     ---@field request table The request from the LLM to use the Tool
 <
 
 
 CMDS
 
-The `cmds` table contains the list of commands or functions that will be
-executed by the `CodeCompanion.Tools` in succession.
-
 **Command-Based Tools**
 
 The `cmds` table is a collection of commands which the agent will execute one
 after another, asynchronously, using plenary.job
 <https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/job.lua>.
-It’s also possible to pass in environment variables (from the `env` function)
-by calling them in `${}` brackets.
-
-The now removed `code_runner` tool was setup as:
 
 >lua
     cmds = {
-      { "docker", "pull", "${lang}" },
-      {
-        "docker",
-        "run",
-        "--rm",
-        "-v",
-        "${temp_dir}:${temp_dir}",
-        "${lang}",
-        "${lang}",
-        "${temp_input}",
-      },
+      { "make", "test" },
+      { "echo", "hello" },
     }
 <
 
-In this example, the `CodeCompanion.Tools` class will call each table in order
-and replace the variables with output from the `env` function (more on that
-below).
+In this example, the plugin will execute `make test` followed by `echo hello`.
+After each command executes, the plugin will automatically send the output to a
+corresponding table on the agent file. If the command ran with success the
+output will be written to `stdout`, otherwise it will go to `stderr`. We’ll
+be covering how you access that data in the output section below.
 
-Using the `handlers.setup()` function, it’s also possible to create commands
-dynamically like in the `cmd_runner` tool.
-
-**Function-based Tools**
-
-Function-based tools use the `cmds` table to define functions that will be
-executed one after another:
+It’s also possible to pass in environment variables (from the `env` function)
+by use of ${} brackets. The now removed `@code_runner` tool used them as below:
 
 >lua
-      cmds = {
-        ---@param self CodeCompanion.Tools The Tools object
-        ---@param input any The output from the previous function call
-        function(self, input)
-          return "Hello, World"
-        end,
-        ---Ensure the final function returns the status and the output
-        ---@param self CodeCompanion.Tools The Tools object
-        ---@param input any The output from the previous function call
-        ---@return { status: string, msg: string }
-        function(self, input)
-         print(input) -- prints "Hello, World"
-        end,
-      }
-<
-
-In this example, the first function will be called by the `CodeCompanion.Tools`
-class and its output will be captured and passed onto the final function call.
-It should be noted that the last function call in the `cmds` block should
-return a table with the status (either `success` or `error`) and a msg.
-
-
-SCHEMA
-
-The schema represents the structure of the response that the LLM must follow in
-order to call the tool.
-
-In the `@coderunner` tool, the schema was defined as a Lua table and then
-converted into XML in the chat buffer:
-
->lua
-    schema = {
-      name = "code_runner",
-      parameters = {
-        inputs = {
-          lang = "python",
-          code = "print('Hello World')",
+    cmds = {
+        { "docker", "pull", "${lang}" },
+        {
+          "docker",
+          "run",
+          "--rm",
+          "-v",
+          "${temp_dir}:${temp_dir}",
+          "${lang}",
+          "${lang}",
+          "${temp_input}",
         },
       },
     },
-<
-
-
-ENV
-
-You can setup environment variables that other functions can access in the
-`env` function. This function receives the parsed schema which is requested by
-the LLM when it follows the schema’s structure.
-
-For the `@coderunner` agent, the environment was setup as:
-
->lua
-    ---@param schema table
-    env = function(schema)
+    ---@param xml table The values from the XML returned by the LLM
+    env = function(xml)
       local temp_input = vim.fn.tempname()
       local temp_dir = temp_input:match("(.*/)")
-      local lang = schema.parameters.inputs.lang
-      local code = schema.parameters.inputs.code
+      local lang = xml.lang
+      local code = xml.code
     
       return {
         code = code,
@@ -3650,67 +3599,467 @@ For the `@coderunner` agent, the environment was setup as:
         temp_dir = temp_dir,
         temp_input = temp_input,
       }
-    end
+    end,
 <
 
-Note that a table has been returned that can then be used in other functions.
+
+  [!IMPORTANT] Using the `handlers.setup()` function, it’s also possible to
+  create commands dynamically like in the
+  |codecompanion-usage-chat-buffer-agents.html-cmd-runner| tool.
+**Function-based Tools**
+
+Function-based tools use the `cmds` table to define functions that will be
+executed one after another. Each function has three parameters, itself, the
+actions request by the LLM and any input from a previous function call. For the
+purpose of our calculator example:
+
+>lua
+    cmds = {
+      ---@param self CodeCompanion.Agent.Tool The Tools object
+      ---@param actions table The action object
+      ---@param input? any The output from the previous function call
+      ---@return nil|{ status: string, msg: string }
+      function(self, actions, input)
+        -- Get the numbers and operation requested by the LLM
+        local num1 = tonumber(actions.num1)
+        local num2 = tonumber(actions.num2)
+        local operation = actions.operation
+    
+        -- Validate input
+        if not num1 then
+          return { status = "error", data = "First number is missing or invalid" }
+        end
+    
+        if not num2 then
+          return { status = "error", data = "Second number is missing or invalid" }
+        end
+    
+        if not operation then
+          return { status = "error", data = "Operation is missing" }
+        end
+    
+        -- Perform the calculation
+        local result
+        if operation == "add" then
+          result = num1 + num2
+        elseif operation == "subtract" then
+          result = num1 - num2
+        elseif operation == "multiply" then
+          result = num1 * num2
+        elseif operation == "divide" then
+          if num2 == 0 then
+            return { status = "error", data = "Cannot divide by zero" }
+          end
+          result = num1 / num2
+        else
+          return { status = "error", data = "Invalid operation: must be add, subtract, multiply, or divide" }
+        end
+    
+        return { status = "success", data = result }
+      end,
+    },
+<
+
+Similarly with command-based tools, the output is written to the `stdout` or
+`stderr` tables on the agent file. However, with function-based tools, the user
+must manually specify the outcome of the execution which in turn redirects the
+output to the correct table:
+
+>lua
+    return { status = "error", data = "Invalid operation: must be add, subtract, multiply, or divide" }
+<
+
+Will cause execution of the tool to stop and populate `stderr` on the agent
+file.
+
+>lua
+    return { status = "success", data = result }
+<
+
+Will populate the `stdout` table on the agent file and allow for execution to
+continue.
+
+
+SCHEMA
+
+The XML that the LLM has sent, is parsed and sent to the `actions` parameter of
+any function you’ve created in |codecompanion-extending-tools.html-cmds|, as
+a Lua table. If the LLM has done its job correctly, the Lua table should be the
+representation of what you’ve described in the schema.
+
+In summary, the schema represents the structure of the response that the LLM
+must follow in order to call the tool. The schema is structured in Lua before
+being converted into XML with the awesome xml2lua
+<https://github.com/manoelcampos/xml2lua> parser.
+
+For our basic calculator tool, which does an operation on two numbers, the
+schema could look something like:
+
+>lua
+    schema = {
+      _attr = { name = "calculator" },
+      action = {
+        num1 = "100",
+        num2 = "50",
+        operation = "multiply"
+      },
+    },
+<
 
 
 SYSTEM_PROMPT
 
-In the plugin, LLMs are given knowledge about a tool via a system prompt. This
-gives the LLM knowledge of the tool alongside the instructions (via the schema)
-required to execute it.
+In the plugin, LLMs are given knowledge about a tool and its schema via a
+system prompt. This method also informs the LLM on how to use the tool to
+achieve a desired outcome.
 
-For the now archived `@coderunner` tool, the `system_prompt` table was:
+For our calculator tool, our `system_prompt` could look something like:
 
 >lua
-      system_prompt = function(schema)
-        return string.format(
-          [[### You have gained access to a new tool!
+    ---@param schema table
+    ---@param xml2lua table
+    ---@return string
+    system_prompt = function(schema, xml2lua)
+      return string.format([[## Calculator Tool (`calculator`)
     
-    Name: Code Runner
-    Purpose: The tool enables you to execute any code that you've created
-    Why: This enables yourself and the user to validate that the code you've created is working as intended
-    Usage: To use this tool, you need to return an XML markdown code block (with backticks). Consider the following example which prints 'Hello World' in Python:
+    ### Purpose:
+    - To do a mathematical operation on two numbers.
+    
+    ### When to Use:
+    - Only invoke the calculator tool when the user specifically asks you
+    
+    ### Execution Format:
+    - Always return an XML markdown code block
+    
+    ### XML Schema:
+    Each tool invocation should adhere to this structure:
     
     ```xml
     %s
     ```
     
-    You must:
-    - Ensure the code you're executing will be able to parsed as valid XML
-    - Ensure the code you're executing is safe
-    - Ensure the code you're executing is concise
-    - Ensure the code you're executing is relevant to the conversation
-    - Ensure the code you're executing is not malicious]],
-          xml2lua.toXml(schema, "tool")
-        )
+    where:
+    - `num1` is the first number to do any calculations with
+    - `num2` is the second number to do any calculations with
+    - `operation` is the mathematical operation to do on the two numbers. It MUST be one of `add`, `subtract`, `multiply` or `divide`
+    
+    ### Reminder:
+    - Minimize extra explanations and focus on returning correct XML blocks.
+    - Always use the structure above for consistency.]],
+        xml2lua.toXml(schema, "tool")
+      )
+    end,
+<
+
+You’ll notice that the `system_prompt` function has two parameters:
+
+- The |codecompanion-extending-tools.html-schema| table that we created earlier
+- The xml2lua <https://github.com/manoelcampos/xml2lua> library that comes with the plugin
+
+Whilst the latter is not mandated for use in the system prompt, it’s the most
+optimum way of converting your schema to XML. You can see in the example above
+how we’re using it. As a result, the system prompt that will be sent to the
+LLM will be:
+
+>
+    ## Calculator Tool (`calculator`) - Enhanced Guidelines
+    
+    ### Purpose:
+    - To do a mathematical operation on two numbers.
+    
+    ### When to Use:
+    - Only invoke the calculator tool when the user specifically asks you
+    
+    ### Execution Format:
+    - Always return an XML markdown code block
+    
+    ### XML Schema:
+    Each tool invocation should adhere to this structure:
+    
+    ```xml
+    <tool name="calculator">
+      <action>
+        <num1>100</num1>
+        <num2>50</num2>
+        <operation>multiply</operation>
+      </action>
+    </tool>
+    ```
+    
+    where:
+    - `num1` is the first number to do any calculations with
+    - `num2` is the second number to do any calculations with
+    - `operation` is the mathematical operation to do on the two numbers. It MUST be one of `add`, `subtract`, `multiply` or `divide`
+    
+    ### Reminder:
+    - Minimize extra explanations and focus on returning correct XML blocks.
+    - Always use the structure above for consistency.
 <
 
 
 HANDLERS
 
-The `handlers` table consists of three methods:
+The `handlers` table contains two functions that are executed before and after
+a tool completes:
 
-1. `setup` - Is called before any of the commands/functions are. This is useful if you wish to set the cmds dynamically on the tool itself, like in the `@cmd_runner` tool.
-2. `approved` - Must return a boolean and contains logic to prompt the user for their approval prior to a command/function being executed. This is used in both the `@files` and `@cmd_runner` tool to allow the user to validate the actions the LLM is proposing to take.
-3. `on_exit` - Is called after all of the commands/function have executed.
+1. `setup` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @cmd_runner <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/agents/tools/cmd_runner.lua> tool.
+2. `on_exit` - Is called **after** everything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table.
+
+For the purposes of our calculator, let’s just return some notifications so
+you can see the agent and tool flow:
+
+>lua
+    handlers = {
+      setup = function(agent)
+        return vim.notify("setup function called", vim.log.levels.INFO)
+      end,
+      on_exit = function(agent)
+        return vim.notify("on_exit function called", vim.log.levels.INFO)
+      end,
+    },
+<
 
 
 OUTPUT
 
-The `output` table consists of three methods:
+The `output` table enables you to manage and format output from the execution
+of the |codecompanion-extending-tools.html-cmds|. It contains four functions:
 
-1. `success` - Is called after `every` successful execution of a command/function. This can be a useful handler to use to notfiy the LLM of the success.
-2. `error` - Is called when an error occurs whilst executing a command/function. It will only ever be called once as the whole execution for the group of commands/function is halted. This is a useful handler to use to notify the LLM of the failure.
-3. `rejected` - Is called when a user rejects the approval to run a command/function. This method is used to inform the LLM of the rejection.
+1. `success` - Is called after `every` successful execution of a command/function. This can be a useful way of notifying the LLM of the success.
+2. `error` - Is called when an error occurs whilst executing a command/function. It will only ever be called once as the whole execution of the |codecompanion-extending-tools.html-cmds| is halted. This can be a useful way of notifying the LLM of the failure.
+3. `prompt` - Is called when user approval to execute the |codecompanion-extending-tools.html-cmds| is required. It forms the message prompt which the user is asked to confirm or reject.
+4. `rejected` - Is called when a user rejects the approval to run the |codecompanion-extending-tools.html-cmds|. This method is used to inform the LLM of the rejection.
+
+Let’s consider how me might implement this for our calculator tool:
+
+>lua
+    output = {
+      ---@param agent CodeCompanion.Agent
+      ---@param cmd table The command that was executed
+      ---@param stdout table
+      success = function(agent, cmd, stdout)
+        local config = require("codecompanion.config")
+        return agent.chat:add_buf_message({
+          role = config.constants.USER_ROLE,
+          content = string.format("The output from the calculator was %d", tonumber(stdout[1]))
+        })
+      end,
+      error = function(agent)
+        return vim.notify("An error occurred", vim.log.levels.ERROR)
+      end,
+    },
+<
+
+
+RUNNING THE CALCULATOR TOOL
+
+If we put this all together in our config:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          tools = {
+            calculator = {
+              description = "Perform calculations",
+              callback = {
+                name = "calculator",
+                cmds = {
+                  function(self, actions, input)
+                    -- Get the numbers and operation requested by the LLM
+                    local num1 = tonumber(actions.num1)
+                    local num2 = tonumber(actions.num2)
+                    local operation = actions.operation
+    
+                    -- Validate input
+                    if not num1 then
+                      return { status = "error", data = "First number is missing or invalid" }
+                    end
+    
+                    if not num2 then
+                      return { status = "error", data = "Second number is missing or invalid" }
+                    end
+    
+                    if not operation then
+                      return { status = "error", data = "Operation is missing" }
+                    end
+    
+                    -- Perform the calculation
+                    local result
+                    if operation == "add" then
+                      result = num1 + num2
+                    elseif operation == "subtract" then
+                      result = num1 - num2
+                    elseif operation == "multiply" then
+                      result = num1 * num2
+                    elseif operation == "divide" then
+                      if num2 == 0 then
+                        return { status = "error", data = "Cannot divide by zero" }
+                      end
+                      result = num1 / num2
+                    else
+                      return {
+                        status = "error",
+                        data = "Invalid operation: must be add, subtract, multiply, or divide",
+                      }
+                    end
+    
+                    return { status = "success", data = result }
+                  end,
+                },
+                schema = {
+                  _attr = { name = "calculator" },
+                  action = {
+                    num1 = "100",
+                    num2 = "50",
+                    operation = "multiply",
+                  },
+                },
+                system_prompt = function(schema, xml2lua)
+                  return string.format(
+                    [[## Calculator Tool (`calculator`) - Enhanced Guidelines
+    
+    ### Purpose:
+    - To do a mathematical operation on two numbers.
+    
+    ### When to Use:
+    - Only invoke the calculator tool when the user specifically asks you
+    
+    ### Execution Format:
+    - Always return an XML markdown code block
+    
+    ### XML Schema:
+    Each tool invocation should adhere to this structure:
+    
+    ```xml
+    %s
+    ```
+    
+    where:
+    - `num1` is the first number to do any calculations on
+    - `num2` is the second number to do any calculations on
+    - `operation` is the mathematical operation to do on the two numbers. It MUST be one of `add`, `subtract`, `multiply` or `divide`
+    
+    ### Reminder:
+    - Minimize extra explanations and focus on returning correct XML blocks.
+    - Always use the structure above for consistency.]],
+                    xml2lua.toXml(schema, "tool")
+                  )
+                end,
+                handlers = {
+                  setup = function(agent)
+                    return vim.notify("setup function called", vim.log.levels.INFO)
+                  end,
+                  on_exit = function(agent)
+                    return vim.notify("on_exit function called", vim.log.levels.INFO)
+                  end,
+                },
+                output = {
+                  ---@param agent CodeCompanion.Agent
+                  ---@param cmd table The command that was executed
+                  ---@param stdout table
+                  success = function(agent, cmd, stdout)
+                    local config = require("codecompanion.config")
+                    return agent.chat:add_buf_message({
+                      role = config.constants.USER_ROLE,
+                      content = string.format("The output from the calculator was %d", tonumber(stdout[1])),
+                    })
+                  end,
+                  error = function(agent)
+                    return vim.notify("An error occurred", vim.log.levels.ERROR)
+                  end,
+                },
+              },
+            },
+          },
+        }
+      }
+    })
+<
+
+and with the prompt:
+
+>
+    @calculator what is 100*50?
+<
+
+You should see: `The output from the calculator was 5000`, in the chat buffer.
+
+
+ADDING IN USER APPROVALS
+
+A big concern for users when they create and deploy their own tools is `“what
+if an LLM does something I’m not aware of or I don’t approve?”`. To that
+end, CodeCompanion tries to make it easy for a user to be the "human in the
+loop" and approve tool use before execution.
+
+To enable this for any tool, simply add the `requires_approval = true` in a
+tool’s `opts` table:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          tools = {
+            calculator = {
+              description = "Perform calculations",
+              callback = "as above",
+              opts = {
+                requires_approval = true,
+              },
+            }
+          }
+        }
+      }
+    })
+<
+
+To account for the user being prompted for an approval, we can add a
+`output.prompt` to the tool:
+
+>lua
+    output = {
+      -- success and error functions remain the same ...
+    
+      ---The message which is shared with the user when asking for their approval
+      ---@param agent CodeCompanion.Agent
+      ---@param self CodeCompanion.Agent.Tool
+      ---@return string
+      prompt = function(agent, self)
+        return string.upper(self.request.action.operation) .. " " .. self.request.action.num1  .. " and " .. self.request.action.num2 .. "?"
+      end,
+    },
+<
+
+This will notify the user with the message: `MULTIPLY 100 and 50?`. The user
+can choose to proceed, reject or cancel. The latter will cancel any tools from
+running.
+
+You can also customize the output if a user rejects the approval:
+
+>lua
+    output = {
+      -- success, error and prompt functions remain the same ...
+    
+        ---Rejection message back to the LLM
+        ---@param agent CodeCompanion.Agent
+        ---@param cmd table
+        ---@return nil
+        rejected = function(agent, cmd)
+          local config = require("codecompanion.config")
+          return agent.chat:add_buf_message({
+            role = config.constants.USER_ROLE,
+            content = "The user rejected your request to run the calculator tool"
+          })
+      end,
+    },
+<
 
 
 REQUEST
 
-The request table is populated at runtime and contains the parsed XML that the
-LLM has requested to run.
+At runtime, CodeCompanion will take the LLMs XML request and add that to a
+`request` table on the tool itself to make it easy to access.
 
 
 CREATING WORKFLOWS                *codecompanion-extending-creating-workflows*
