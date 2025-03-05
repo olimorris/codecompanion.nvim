@@ -500,7 +500,8 @@ M.change_adapter = {
       local system_prompt = config.opts.system_prompt
       if type(system_prompt) == "function" then
         if chat.messages[1] and chat.messages[1].role == "system" then
-          chat.messages[1].content = system_prompt(chat.adapter)
+          local opts = { adapter = chat.adapter, language = config.opts.language }
+          chat.messages[1].content = system_prompt(opts)
         end
       end
 
