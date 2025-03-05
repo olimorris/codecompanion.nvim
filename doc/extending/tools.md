@@ -548,12 +548,14 @@ output = {
   ---@param self CodeCompanion.Agent.Tool
   ---@return string
   prompt = function(agent, self)
-    return "Calculate " .. self.request.action.num1 .. " " .. self.request.action.operation .. " " .. self.request.action.num2 .. "?"
+    return string.upper(self.request.action.operation) .. " " .. self.request.action.num1  .. " and " .. self.request.action.num2 .. "?"
   end,
 },
 ```
 
-You can also customize the output if a user does not approve the request:
+This will notify the user with the message: `MULTIPLY 100 and 50?`. The user can choose to proceed, reject or cancel. The latter will cancel any tools from running.
+
+You can also customize the output if a user rejects the approval:
 
 ```lua
 output = {
