@@ -72,6 +72,9 @@ function Executor:setup_handlers()
   }
 end
 
+---When an agent is finished, finalize it via an autocmd
+---@param self CodeCompanion.Agent.Executor
+---@return nil
 local function finalize_agent(self)
   return util.fire("AgentFinished", { id = self.id, bufnr = self.agent.bufnr })
 end
@@ -163,6 +166,7 @@ end
 ---@return nil
 function Executor:success(action, output)
   log:debug("Executor:success")
+  self.agent.status = self.agent.constants.STATUS_SUCCESS
   if output then
     table.insert(self.agent.stdout, output)
   end

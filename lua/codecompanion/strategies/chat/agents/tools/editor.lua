@@ -105,7 +105,7 @@ return {
     ---@param self CodeCompanion.Agent.Tool The Tools object
     ---@param actions table The action object
     ---@param input? any The output from the previous function call
-    ---@return { status: string, msg: string }
+    ---@return nil|{ status: string, msg: string }
     function(self, actions, input)
       ---Run the action
       ---@param action table
