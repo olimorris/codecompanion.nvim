@@ -505,13 +505,13 @@ where:
 })
 ````
 
-and with the prompt?
+and with the prompt:
 
 ```
 @calculator what is 100*50?
 ```
 
-You should see `The output from the calculator was 5000` in the chat buffer.
+You should see: `The output from the calculator was 5000`, in the chat buffer.
 
 ### Adding in User Approvals
 
