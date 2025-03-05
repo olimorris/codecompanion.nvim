@@ -108,17 +108,17 @@
 ---@field name string The name of the tool
 ---@field cmds table The commands to execute
 ---@field schema table The schema that the LLM must use in its response to execute a tool
----@field system_prompt fun(schema: table): string The system prompt to the LLM explaining the tool and the schema
+---@field system_prompt fun(schema: table, xml2lua: table): string The system prompt to the LLM explaining the tool and the schema
 ---@field opts? table The options for the tool
 ---@field env? fun(schema: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
 ---@field handlers table Functions which handle the execution of a tool
----@field handlers.approved? fun(self: CodeCompanion.Agent): boolean Function to call if an approval is needed before running a command
----@field handlers.on_exit? fun(self: CodeCompanion.Agent): any Function to call at the end of a group of commands or functions
----@field handlers.setup? fun(self: CodeCompanion.Agent): any Function used to setup the tool. Called before any commands
+---@field handlers.setup? fun(agent: CodeCompanion.Agent): any Function used to setup the tool. Called before any commands
+---@field handlers.on_exit? fun(agent: CodeCompanion.Agent): any Function to call at the end of a group of commands or functions
 ---@field output? table Functions which handle the output after every execution of a tool
----@field output.error? fun(self: CodeCompanion.Agent, cmd: table, error: table|string): any Function called if a tool execution fails
----@field output.rejected? fun(self: CodeCompanion.Agent, cmd: table): any Function to call if the user rejects running a command
----@field output.success? fun(self: CodeCompanion.Agent, cmd: table, output: table|string): any Function to call if the tool is successful
+---@field output.prompt fun(agent: CodeCompanion.Agent, self: CodeCompanion.Agent.Tool): string The message which is shared with the user when asking for their approval
+---@field output.rejected? fun(agent: CodeCompanion.Agent, cmd: table): any Function to call if the user rejects running a command
+---@field output.error? fun(agent: CodeCompanion.Agent, cmd: table, stderr: table, stdout?: table): any The function to call if an error occurs
+---@field output.success? fun(agent: CodeCompanion.Agent, cmd: table, stdout: table): any Function to call if the tool is successful
 ---@field request table The request from the LLM to use the Tool
 
 ---@class CodeCompanion.SlashCommand.Provider
