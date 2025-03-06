@@ -139,7 +139,7 @@ require("codecompanion").setup({
 }),
 ```
 
-## User Contributed Adapters
+## Community Adapters
 
 Thanks to the community for building the following adapters:
 
