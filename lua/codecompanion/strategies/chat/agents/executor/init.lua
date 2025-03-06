@@ -59,14 +59,14 @@ function Executor:setup_handlers()
         self.tool.output.rejected(self.agent, cmd)
       end
     end,
-    error = function(cmd, error, output)
+    error = function(cmd)
       if self.tool.output and self.tool.output.error then
-        self.tool.output.error(self.agent, cmd, error, output)
+        self.tool.output.error(self.agent, cmd, self.agent.stderr, self.agent.stdout or {})
       end
     end,
-    success = function(cmd, output)
+    success = function(cmd)
       if self.tool.output and self.tool.output.success then
-        self.tool.output.success(self.agent, cmd, output)
+        self.tool.output.success(self.agent, cmd, self.agent.stdout)
       end
     end,
   }
@@ -155,7 +155,7 @@ function Executor:error(action, error)
     table.insert(self.agent.stderr, error)
     log:warn("Tool %s: %s", self.tool.name, error)
   end
-  self.output.error(action, self.agent.stderr, self.agent.stdout)
+  self.output.error(action)
   finalize_agent(self)
   self:close()
 end
@@ -170,7 +170,7 @@ function Executor:success(action, output)
   if output then
     table.insert(self.agent.stdout, output)
   end
-  self.output.success(action, self.agent.stdout)
+  self.output.success(action)
 end
 
 ---Close the execution of the tool
