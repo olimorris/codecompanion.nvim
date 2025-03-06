@@ -473,12 +473,11 @@ Remember:
 
     ---The action to take if the user rejects the command
     ---@param agent CodeCompanion.Agent The tool object
-    ---@param action table
     ---@return nil
-    rejected = function(agent, action)
+    rejected = function(agent)
       return agent.chat:add_buf_message({
         role = config.constants.USER_ROLE,
-        content = fmt("I rejected the %s action.\n\n", string.upper(action._attr.type)),
+        content = "I rejected the running of the files tool",
       })
     end,
   },

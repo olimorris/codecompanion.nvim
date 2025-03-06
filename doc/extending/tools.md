@@ -563,9 +563,8 @@ output = {
 
     ---Rejection message back to the LLM
     ---@param agent CodeCompanion.Agent
-    ---@param cmd table
     ---@return nil
-    rejected = function(agent, cmd)
+    rejected = function(agent)
       local config = require("codecompanion.config")
       return agent.chat:add_buf_message({
         role = config.constants.USER_ROLE,
