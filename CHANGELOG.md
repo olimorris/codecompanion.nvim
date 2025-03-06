@@ -1,5 +1,12 @@
 # Changelog
 
+## [13.2.2](https://github.com/olimorris/codecompanion.nvim/compare/v13.2.1...v13.2.2) (2025-03-06)
+
+
+### Bug Fixes
+
+* **tools:** [@files](https://github.com/files) tool reject causes error ([#1082](https://github.com/olimorris/codecompanion.nvim/issues/1082)) ([e9e7b26](https://github.com/olimorris/codecompanion.nvim/commit/e9e7b26187e3574a41aa09330e6dd4bb28c1fa9e))
+
 ## [13.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v13.2.0...v13.2.1) (2025-03-05)
 
 
