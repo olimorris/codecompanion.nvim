@@ -1,5 +1,12 @@
 # Changelog
 
+## [13.2.3](https://github.com/olimorris/codecompanion.nvim/compare/v13.2.2...v13.2.3) (2025-03-06)
+
+
+### Bug Fixes
+
+* **chat:** update system prompt to avoid using h1 and h2 headers ([#1084](https://github.com/olimorris/codecompanion.nvim/issues/1084)) ([8f53a3a](https://github.com/olimorris/codecompanion.nvim/commit/8f53a3ab541545fdf325bb0dc3bec1de7207aab6))
+
 ## [13.2.2](https://github.com/olimorris/codecompanion.nvim/compare/v13.2.1...v13.2.2) (2025-03-06)
 
 
