@@ -1,0 +1,216 @@
+{
+  "name": "CodeCompanion.nvim",
+  "version": "1.0.0",
+  "workspace_spec": "1.0",
+  "system_prompt": "CodeCompanion.nvim is an AI-powered productivity tool integrated into Neovim, designed to enhance the development workflow by seamlessly interacting with various large language models (LLMs). It offers features like inline code transformations, code creation, refactoring, and supports multiple LLMs such as OpenAI, Anthropic, and Google Gemini, among others. With tools for variable management, agents, and custom workflows, CodeCompanion.nvim streamlines coding tasks and facilitates intelligent code assistance directly within the Neovim editor.",
+  "vars": {
+    "base_dir": "lua/codecompanion/strategies/chat"
+  },
+  "data": {
+    "chat-buffer-init": {
+      "type": "file",
+      "path": "${base_dir}/init.lua",
+      "description": "The `${filename}` file is the entry point for the chat strategy. All methods directly relating to the chat buffer reside here."
+    },
+    "chat-references": {
+      "type": "symbols",
+      "path": "${base_dir}/references.lua",
+      "description": "References are files, buffers, symbols or URLs that are shared with an LLM to provide additional context. The `${filename}` is where this logic sits and I've shared its symbolic outline below."
+    },
+    "chat-watchers": {
+      "type": "symbols",
+      "path": "${base_dir}/watchers.lua",
+      "description": "A watcher is when a user has toggled a specific buffer to be watched. When a message is sent to the LLM by the user, any changes made to the watched buffer are also sent, giving the LLM up to date context. The `${filename}` is where this logic sits and I've shared its symbolic outline below."
+    },
+    "strategies-init": {
+      "type": "file",
+      "path": "${base_dir}/init.lua",
+      "description": "The `${filename}` is where the workflow are initiated from."
+    },
+    "chat-subscribers": {
+      "type": "file",
+      "path": "${base_dir}/chat/subscribers.lua",
+      "description": "The `${filename}` is where the subscribers logic resides."
+    },
+    "chat-init": {
+      "type": "file",
+      "path": "${base_dir}/chat/init.lua",
+      "description": "The `${filename}` file is the entry point for the chat strategy, which is called the `chat buffer`. All methods directly relating to the chat buffer reside here."
+    },
+    "workflow-example": {
+      "type": "file",
+      "path": "tests/stubs/workflow.lua",
+      "description": "An example workflow can be seen below:"
+    },
+    "test-helpers": {
+      "type": "file",
+      "path": "tests/helpers.lua",
+      "description": "I've included the test helper file as well:"
+    },
+    "minitest-docs": {
+      "type": "url",
+      "path": "https://raw.githubusercontent.com/echasnovski/mini.nvim/refs/heads/main/TESTING.md",
+      "description": "Below is the Mini.Test documentation:",
+      "opts": {
+        "auto_restore_cache": true
+      }
+    },
+    "adapters-init": {
+      "type": "file",
+      "path": "${base_dir}/adapters/init.lua",
+      "description": "Each LLM has their own adapter. This allows for LLM settings to be generated from the schema table in an adapter before they're sent to the LLM via the http file."
+    },
+    "http-client": {
+      "type": "file",
+      "path": "${base_dir}/http.lua",
+      "description": "Adapters are then passed to the http client which sends requests to LLMs via Curl:"
+    },
+    "schema": {
+      "type": "file",
+      "path": "${base_dir}/schema.lua",
+      "description": "Adapters must follow a schema. The validation and how schema values are extracted from the table schema is defined in:"
+    },
+    "inline-init": {
+      "type": "file",
+      "path": "${base_dir}/strategies/inline/init.lua",
+      "description": "This is the entry point for the inline strategy. All methods directly relating to the inline strategy reside here. I'm in the process of refactoring this which is where I will seek your guidance. You can see how it leverages adapters to connect to an LLM and receive the response before feeding it back into a Neovim buffer."
+    },
+    "adapters-openai": {
+      "type": "file",
+      "path": "${base_dir}/adapters/openai.lua",
+      "description": "I'm including an example adapter. In this case for OpenAI. You'll see that it has a handler called 'inline_output' which handles how the output is fed back to the inline strategy."
+    },
+    "commands": {
+      "type": "file",
+      "path": "${base_dir}/commands.lua",
+      "description": "There are many entry points to make an inline edit. Most commonly is via the `:CodeCompanion` command:"
+    },
+    "inline-test": {
+      "type": "file",
+      "path": "tests/strategies/inline/test_inline.lua",
+      "description": "Including a link to the test file:"
+    },
+    "inline-original": {
+      "type": "url",
+      "path": "https://raw.githubusercontent.com/olimorris/codecompanion.nvim/refs/heads/main/lua/codecompanion/strategies/inline/init.lua",
+      "description": "This is the inline strategy file before I started the refactorng:",
+      "opts": {
+        "auto_restore_cache": true
+      }
+    },
+    "agents-init": {
+      "type": "file",
+      "path": "${base_dir}/strategies/chat/agents/init.lua",
+      "description": "This is the entry point for the agent. If XML is detected in an LLM's response then this file is triggered which in turns add tools to a queue before calling the executor"
+    },
+    "executor-init": {
+      "type": "file",
+      "path": "${base_dir}/strategies/chat/agents/executor/init.lua",
+      "description": "The executor file then runs the tools in the queue, whether they're functions or commands:"
+    },
+    "executor-func": {
+      "type": "file",
+      "path": "${base_dir}/strategies/chat/agents/executor/func.lua",
+      "description": "This is how function tools are run:"
+    },
+    "executor-cmd": {
+      "type": "file",
+      "path": "${base_dir}/strategies/chat/agents/executor/cmd.lua",
+      "description": "This is how command tools are run:"
+    },
+    "executor-queue": {
+      "type": "file",
+      "path": "${base_dir}/strategies/chat/agents/executor/queue.lua",
+      "description": "This is the queue implementation"
+    },
+    "queue-example": {
+      "type": "file",
+      "path": "tests/stubs/queue.txt",
+      "description": "This is how the queue object can look. This is an example of a function tool, a command tool, followed by a function tool:"
+    }
+  },
+  "groups": [
+    {
+      "name": "Chat Buffer",
+      "system_prompt": "I've grouped a number of files together into a group I'm calling \"${group_name}\". The chat buffer is a Neovim buffer which allows a user to interact with an LLM. The buffer is formatted as Markdown with a user's content residing under a H2 header. The user types their message, saves the buffer and the plugin then uses Tree-sitter to parse the buffer, extracting the contents and sending to an adapter which connects to the user's chosen LLM. The response back from the LLM is streamed into the buffer under another H2 header. The user is then free to respond back to the LLM.\n\nBelow are the relevant files which we will be discussing:\n\n${group_files}",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "vars": {
+        "base_dir": "lua/codecompanion/strategies/chat"
+      },
+      "data": ["chat-buffer-init", "chat-references", "chat-watchers"]
+    },
+    {
+      "name": "Workflows",
+      "system_prompt": "Within the plugin, workflows are a way for users to be able to automatically send or chain multiple prompts, sequentially, to an LLM. They do this by \"subscribing\" to a chat buffer.\n\nFocus on:\n 1. How workflows integrate with the chat buffer\n2. How they can be refactored\n3. How they can work better with the chat buffer itself.\n\nThe files to analyze are:\n${group_files}",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "vars": {
+        "base_dir": "lua/codecompanion/strategies"
+      },
+      "data": [
+        "strategies-init",
+        "chat-subscribers",
+        "chat-init",
+        "workflow-example"
+      ]
+    },
+    {
+      "name": "Tests",
+      "system_prompt": "The plugin uses a testing framework called Mini.Test. The tests are written in Lua and are located in the `tests` directory. The tests are run using the `make test` command. The tests are written in a BDD style and are used to ensure the plugin is functioning as expected.",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "data": ["test-helpers", "minitest-docs"]
+    },
+    {
+      "name": "Adapters",
+      "system_prompt": "In the CodeCompanion plugin, adapters are used to connect to LLMs. The adapters contain various options for the LLM's endpoint alongside a defined schema for properties such as the model, temperature, top k, top p etc. The adapters also contain various handler functions which define how messages which are sent to the LLM should be formatted alongside how output from the LLM should be received and displayed in the chat buffer. The adapters are defined in the `adapters` directory.",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "vars": {
+        "base_dir": "lua/codecompanion"
+      },
+      "data": ["adapters-init", "http-client", "schema"]
+    },
+    {
+      "name": "Inline",
+      "system_prompt": "In the CodeCompanion plugin, the inline strategy allows user's to prompt LLMs to write code directly into a Neovim buffer. To make the experience as smooth as possible, the user can just send a prompt like 'refactor this class' and the LLM will generate code to answer the question, alongside providing a determination on where to place the code. This is called the placement.",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "vars": {
+        "base_dir": "lua/codecompanion"
+      },
+      "data": [
+        "inline-init",
+        "http-client",
+        "adapters-openai",
+        "commands",
+        "inline-test",
+        "inline-original"
+      ]
+    },
+    {
+      "name": "Tools",
+      "system_prompt": "In the CodeCompanion plugin, tools can be leveraged by an LLM to execute lua functions or shell commands on the users machine. By responding with XML, CodeCompanion will pass the response, call the corresponding tool. This feature has been implemented via the agent/init.lua file, which passes all of the tools and adds them to a queue. Then those tools are run consecutively by the executor/init.lua file.",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "vars": {
+        "base_dir": "lua/codecompanion/strategies/chat/agents"
+      },
+      "data": [
+        "agents-init",
+        "executor-init",
+        "executor-func",
+        "executor-cmd",
+        "executor-queue",
+        "queue-example"
+      ]
+    }
+  ]
+}
