@@ -883,6 +883,7 @@ This is the code, for context:
       token_count = function(tokens, adapter) -- The function to display the token count
         return " (" .. tokens .. " tokens)"
       end,
+      follow = true, -- Scroll down and place the cursor at the end
     },
     diff = {
       enabled = true,
