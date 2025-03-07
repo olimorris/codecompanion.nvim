@@ -2,28 +2,43 @@
   "name": "CodeCompanion.nvim",
   "version": "1.0.0",
   "workspace_spec": "1.0",
-  "description": "test",
+  "system_prompt": "Workspace system prompt",
+  "data": {
+    "stub-go": {
+      "type": "file",
+      "path": "tests/stubs/stub.go",
+      "description": "Test description for the file ${filename} located at ${path}"
+    },
+    "stub-txt": {
+      "type": "file",
+      "path": "tests/stubs/stub.txt"
+    },
+    "stub-lua": {
+      "type": "symbols",
+      "path": "tests/stubs/stub.lua",
+      "description": "Test symbol description for the file ${filename} located at ${path}"
+    },
+    "stub-py": {
+      "type": "symbols",
+      "path": "tests/stubs/stub.py"
+    },
+    "test2-stub-go": {
+      "type": "file",
+      "path": "tests/stubs/stub.go",
+      "description": "A test description"
+    },
+    "test3-stub-go": {
+      "type": "file",
+      "path": "tests/stubs/stub.go",
+      "description": "A test description"
+    }
+  },
   "groups": [
     {
       "name": "Test",
       "description": "This is a test group",
-      "vars": {
-        "base_dir": "tests/stubs"
-      },
-      "files": [
-        {
-          "description": "Test description for the file ${filename} located at ${path}",
-          "path": "${base_dir}/stub.go"
-        },
-        "${base_dir}/stub.txt"
-      ],
-      "symbols": [
-        {
-          "description": "Test symbol description for the file ${filename} located at ${path}",
-          "path": "${base_dir}/stub.lua"
-        },
-        "${base_dir}/stub.py"
-      ]
+      "system_prompt": "Test group system prompt",
+      "data": ["stub-go", "stub-lua"]
     },
     {
       "name": "Test 2",
@@ -31,15 +46,7 @@
       "opts": {
         "remove_config_system_prompt": true
       },
-      "vars": {
-        "base_dir": "tests/stubs"
-      },
-      "files": [
-        {
-          "description": "A test description",
-          "path": "${base_dir}/stub.go"
-        }
-      ]
+      "data": ["test2-stub-go"]
     },
     {
       "name": "Test 3",
@@ -48,15 +55,7 @@
       "opts": {
         "remove_config_system_prompt": true
       },
-      "vars": {
-        "base_dir": "tests/stubs"
-      },
-      "files": [
-        {
-          "description": "A test description",
-          "path": "${base_dir}/stub.go"
-        }
-      ]
+      "data": ["test3-stub-go"]
     }
   ]
 }
