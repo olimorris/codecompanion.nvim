@@ -3,10 +3,9 @@ local h = require("tests.helpers")
 
 local workspace_json = vim.json.decode(table.concat(vim.fn.readfile("tests/stubs/workspace.json"), ""))
 
-local new_set = MiniTest.new_set
-local T = new_set()
-
 local child = MiniTest.new_child_neovim()
+local new_set = MiniTest.new_set
+
 T = new_set({
   hooks = {
     pre_case = function()
@@ -47,7 +46,6 @@ end
 
 T["Workspace"]["system prompts are added in the correct order along with a group description"] = function()
   child.lua([[
-  --require("tests.log")
   _G.set_workspace()
   ]])
 
@@ -65,9 +63,20 @@ T["Workspace"]["system prompts are added in the correct order along with a group
   h.eq(workspace_json.groups[1].description, messages[4].content)
 end
 
+T["Workspace"]["can remove the default system prompt"] = function()
+  child.lua([[
+  _G.set_workspace()
+  _G.wks:output("Test 2")
+  ]])
+
+  local messages = child.lua_get([[_G.chat.messages]])
+
+  h.eq(workspace_json.system_prompt, messages[1].content)
+  h.eq(workspace_json.groups[2].system_prompt, messages[2].content)
+end
+
 T["Workspace"]["files and symbols are added to the chat"] = function()
   child.lua([[
-  --require("tests.log")
   _G.set_workspace()
   ]])
 
@@ -88,32 +97,26 @@ T["Workspace"]["files and symbols are added to the chat"] = function()
   )
 end
 
--- T["Workspace"]["can remove the default system prompt"] = function()
---   set_workspace()
---   wks:output("Test 2")
---
---   h.eq("system", chat.messages[1].role)
---   h.eq("Testing to remove the default system prompt", chat.messages[1].content)
---   h.eq("user", chat.messages[2].role)
--- end
---
--- T["Workspace"]["can add system prompts"] = function()
---   set_workspace("tests/stubs/workspace_system_prompt.json")
---   wks:output("Test")
---
---   h.eq("system", chat.messages[1].role)
---   h.eq("High level system prompt", chat.messages[1].content)
--- end
---
--- T["Workspace"]["top-level prompts are not duplicated and are ordered correctly"] = function()
---   set_workspace("tests/stubs/workspace_multiple.json")
---   wks:output("Test 1")
---   wks:output("Test 2")
---
---   h.eq("High level system prompt", chat.messages[1].content)
---   h.eq("Group prompt 1", chat.messages[2].content)
---   h.eq("Group prompt 2", chat.messages[3].content)
---   h.expect_starts_with("A test description", chat.messages[4].content)
--- end
+T["Workspace"]["top-level prompts are not duplicated and are ordered correctly"] = function()
+  workspace_json = vim.json.decode(table.concat(vim.fn.readfile("tests/stubs/workspace_multiple.json"), ""))
+
+  child.lua([[
+  _G.set_workspace("tests/stubs/workspace_multiple.json")
+  ]])
+
+  child.lua([[
+  _G.wks:output("Test 1")
+  _G.wks:output("Test 2")
+  ]])
+
+  local messages = child.lua_get([[_G.chat.messages]])
+
+  h.eq(workspace_json.system_prompt, messages[1].content)
+  h.eq("Group prompt 1", messages[2].content)
+  h.eq("Group prompt 2", messages[3].content)
+  h.expect_starts_with("A test description", messages[4].content)
+end
+
+-- Test for variable replacement
 
 return T

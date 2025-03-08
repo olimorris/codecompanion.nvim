@@ -3,6 +3,31 @@
   "version": "1.0.0",
   "workspace_spec": "1.0",
   "system_prompt": "Workspace system prompt",
+  "groups": [
+    {
+      "name": "Test",
+      "description": "This is a test group",
+      "system_prompt": "Test group system prompt",
+      "data": ["stub-go", "stub-lua"]
+    },
+    {
+      "name": "Test 2",
+      "system_prompt": "Testing to remove the default system prompt",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "data": ["test2-stub-go"]
+    },
+    {
+      "name": "Test 3",
+      "description": "system prompt test",
+      "system_prompt": "This is a system prompt ${workspace_description}",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "data": ["test3-stub-go"]
+    }
+  ],
   "data": {
     "stub-go": {
       "type": "file",
@@ -32,30 +57,5 @@
       "path": "tests/stubs/stub.go",
       "description": "A test description"
     }
-  },
-  "groups": [
-    {
-      "name": "Test",
-      "description": "This is a test group",
-      "system_prompt": "Test group system prompt",
-      "data": ["stub-go", "stub-lua"]
-    },
-    {
-      "name": "Test 2",
-      "system_prompt": "Testing to remove the default system prompt",
-      "opts": {
-        "remove_config_system_prompt": true
-      },
-      "data": ["test2-stub-go"]
-    },
-    {
-      "name": "Test 3",
-      "description": "system prompt test",
-      "system_prompt": "This is a system prompt ${workspace_description}",
-      "opts": {
-        "remove_config_system_prompt": true
-      },
-      "data": ["test3-stub-go"]
-    }
-  ]
+  }
 }
