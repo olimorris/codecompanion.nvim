@@ -112,11 +112,42 @@ T["Workspace"]["top-level prompts are not duplicated and are ordered correctly"]
   local messages = child.lua_get([[_G.chat.messages]])
 
   h.eq(workspace_json.system_prompt, messages[1].content)
-  h.eq("Group prompt 1", messages[2].content)
-  h.eq("Group prompt 2", messages[3].content)
-  h.expect_starts_with("A test description", messages[4].content)
+  h.eq(workspace_json.groups[1].system_prompt, messages[2].content)
+  h.eq(workspace_json.groups[2].system_prompt, messages[3].content)
+  h.expect_starts_with(workspace_json.data["test1-file"].description, messages[4].content)
 end
 
--- Test for variable replacement
+T["Workspace"]["variables can be fetched from top level and at a group level"] = function()
+  workspace_json = vim.json.decode(table.concat(vim.fn.readfile("tests/stubs/workspace_vars.json"), ""))
+
+  child.lua([[
+  _G.set_workspace("tests/stubs/workspace_vars.json")
+  ]])
+
+  child.lua([[
+  _G.wks:output("Test")
+  ]])
+
+  local messages = child.lua_get([[_G.chat.messages]])
+
+  h.eq(workspace_json.vars.var_description, messages[4].content)
+  h.expect_starts_with(workspace_json.vars.var_hello, messages[5].content)
+end
+
+T["Workspace"]["variables at the group level take priority"] = function()
+  workspace_json = vim.json.decode(table.concat(vim.fn.readfile("tests/stubs/workspace_vars.json"), ""))
+
+  child.lua([[
+  _G.set_workspace("tests/stubs/workspace_vars.json")
+  ]])
+
+  child.lua([[
+  _G.wks:output("Test 2")
+  ]])
+
+  local messages = child.lua_get([[_G.chat.messages]])
+
+  h.eq(workspace_json.groups[2].vars.var_hello, messages[4].content)
+end
 
 return T

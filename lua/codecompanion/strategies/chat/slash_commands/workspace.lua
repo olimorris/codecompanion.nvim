@@ -38,19 +38,44 @@ local function get_file_list(group, workspace)
   return table.concat(items, "\n")
 end
 
+local replaced_vars = {}
+
 ---Replace variables in a string
 ---@param workspace table
 ---@param group table
 ---@param str string
 ---@return string
 local function replace_vars(workspace, group, str)
-  local builtin = {
-    group_name = group.name,
-    group_files = get_file_list(group, workspace),
-    workspace_description = workspace.description,
-    workspace_name = workspace.name,
-  }
-  return util.replace_placeholders(str, builtin)
+  -- Allow users to make changes without restarting Neovim by using workspace version
+  local name = workspace.name .. (workspace.version or "")
+
+  if replaced_vars[name] then
+    return util.replace_placeholders(str, replaced_vars[name])
+  end
+
+  -- Begin caching
+  replaced_vars[name] = {}
+
+  -- Vars from the top level can be overwritten, so they come first
+  if workspace.vars then
+    vim.iter(workspace.vars):each(function(k, v)
+      replaced_vars[name][k] = v
+    end)
+  end
+
+  if group.vars then
+    vim.iter(group.vars):each(function(k, v)
+      replaced_vars[name][k] = v
+    end)
+  end
+
+  -- Add the builtin group level and workspace vars
+  replaced_vars[name]["group_name"] = group.name
+  replaced_vars[name]["group_files"] = get_file_list(group, workspace)
+  replaced_vars[name]["workspace_description"] = workspace.description
+  replaced_vars[name]["workspace_name"] = workspace.name
+
+  return util.replace_placeholders(str, replaced_vars[name])
 end
 
 ---Add the description of the group to the chat buffer
@@ -144,7 +169,8 @@ function SlashCommand:add_item_from_data(group, item)
       filename = vim.fn.fnamemodify(path, ":t"),
       path = path,
     }
-    description = util.replace_placeholders(description, builtin)
+    -- Replace variables from the user's custom declarations as well as the builtin ones
+    description = util.replace_placeholders(replace_vars(self.workspace, group, description), builtin)
   end
 
   -- Extract options if present
