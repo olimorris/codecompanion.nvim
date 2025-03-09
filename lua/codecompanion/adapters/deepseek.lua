@@ -89,7 +89,7 @@ return {
             if delta.role then
               output.role = delta.role
             end
-            if self.opts.can_reason and delta.reasoning_content then
+            if delta.reasoning_content then
               output.reasoning = delta.reasoning_content
             end
             if delta.content then
