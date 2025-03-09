@@ -875,6 +875,7 @@ This is the code, for context:
           wrap = true,
         },
       },
+      auto_scroll = true, -- Automatically scroll down and place the cursor at the end
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
 
       show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
@@ -890,7 +891,6 @@ This is the code, for context:
       token_count = function(tokens, adapter) -- The function to display the token count
         return " (" .. tokens .. " tokens)"
       end,
-      follow = true, -- Scroll down and place the cursor at the end
     },
     diff = {
       enabled = true,

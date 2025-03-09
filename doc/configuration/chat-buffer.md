@@ -206,7 +206,6 @@ require("codecompanion").setup({
         return " (" .. tokens .. " tokens)"
       end,
     },
-    follow = true, -- Scroll down and place the cursor at the end
   },
 }),
 ```
@@ -292,6 +291,21 @@ As the Chat Buffer uses markdown as its syntax, you can use popular rendering pl
 },
 ```
 
+### Auto scrolling
+
+By default, the page scrolls down automatically as the response streams, with the cursor placed at the end.
+This can be distracting if you are focusing on the earlier content while the page scrolls up away during a long response.
+You can disable this behavior using a flag:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      auto_scroll = false
+    },
+  },
+}),
+```
 ## Additional Options
 
 There are also a number of other options that you can customize:
