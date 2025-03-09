@@ -855,7 +855,7 @@ This is the code, for context:
         height = 0.8,
         width = 0.45,
         relative = "editor",
-        full_height = false,
+        full_height = true,
         opts = {
           breakindent = true,
           cursorcolumn = false,
