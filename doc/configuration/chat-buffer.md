@@ -199,6 +199,7 @@ require("codecompanion").setup({
         height = 0.8,
         width = 0.45,
         relative = "editor",
+        full_height = false -- when set to true, code companion window will open using full editor height
         opts = {
           breakindent = true,
           cursorcolumn = false,

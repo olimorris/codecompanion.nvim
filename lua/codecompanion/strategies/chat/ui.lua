@@ -93,10 +93,19 @@ function UI:open()
     self.winnr = api.nvim_open_win(self.bufnr, true, win_opts)
   elseif window.layout == "vertical" then
     local position = window.position
+    local full_height = window.full_height
     if position == nil or (position ~= "left" and position ~= "right") then
       position = vim.opt.splitright:get() and "right" or "left"
     end
-    vim.cmd("vsplit")
+    if full_height then
+      if position == "left" then
+        vim.cmd("topleft vsplit")
+      else
+        vim.cmd("botright vsplit")
+      end
+    else
+      vim.cmd("vsplit")
+    end
     if position == "left" and vim.opt.splitright:get() then
       vim.cmd("wincmd h")
     end
