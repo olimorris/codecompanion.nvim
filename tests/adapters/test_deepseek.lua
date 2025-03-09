@@ -8,46 +8,16 @@ local h = require("tests.helpers")
 describe("DeepSeek adapter", function()
   before_each(function()
     adapter = require("codecompanion.adapters").resolve("deepseek")
-
     ---------------------------------------------------------- STREAMING OUTPUT
     messages = { {
       content = "Explain Ruby in two words",
       role = "user",
     } }
-
-    response = {
-      {
-        request = [[data: {"id":"chatcmpl-90DdmqMKOKpqFemxX0OhTVdH042gu","object":"chat.completion.chunk","created":1709839462,"model":"deepseek-chat","system_fingerprint":"fp_70b2088885","choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}]}]],
-        output = {
-          content = "",
-          role = "assistant",
-        },
-      },
-      {
-        request = [[data: {"id":"chatcmpl-90DdmqMKOKpqFemxX0OhTVdH042gu","object":"chat.completion.chunk","created":1709839462,"model":"deepseek-chat","system_fingerprint":"fp_70b2088885","choices":[{"index":0,"delta":{"content":"Programming"},"logprobs":null,"finish_reason":null}]}]],
-        output = {
-          content = "Programming",
-        },
-      },
-      {
-        request = [[data: {"id":"chatcmpl-90DdmqMKOKpqFemxX0OhTVdH042gu","object":"chat.completion.chunk","created":1709839462,"model":"deepseek-chat","system_fingerprint":"fp_70b2088885","choices":[{"index":0,"delta":{"content":" language"},"logprobs":null,"finish_reason":null}]}]],
-        output = {
-          content = " language",
-        },
-      },
-    }
     -------------------------------------------------------------------- // END
   end)
 
   it("can form messages to be sent to the API", function()
     h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
-  end)
-
-  it("can output streamed data into a format for the chat buffer", function()
-    h.eq({
-      content = "Programming language",
-      role = "assistant",
-    }, adapter_helpers.chat_buffer_output(response, adapter))
   end)
 
   it("merges consecutive messages with the same role", function()
@@ -88,6 +58,28 @@ describe("DeepSeek adapter", function()
     }
 
     h.eq(expected, adapter.handlers.form_messages(adapter, input))
+  end)
+
+  it("can output streamed data into a format for the chat buffer", function()
+    local lines = vim.fn.readfile("tests/adapters/stubs/deepseek_streaming_output.txt")
+    local output = ""
+    for _, line in ipairs(lines) do
+      output = output .. (adapter.handlers.chat_output(adapter, line).output.content or "")
+    end
+    h.eq(
+      "Dynamic. Expressive.\n\nNext, you might ask about Ruby's key features or how it compares to other languages.",
+      output
+    )
+  end)
+
+  it("can handle reasoning content when streaming", function()
+    -- adapter.handlers.setup(adapter)
+    local lines = vim.fn.readfile("tests/adapters/stubs/deepseek_streaming_output.txt")
+    local output = ""
+    for _, line in ipairs(lines) do
+      output = output .. (adapter.handlers.chat_output(adapter, line).output.reasoning or "")
+    end
+    h.expect_starts_with("Okay, the user wants me to explain Ruby in two words. ", output)
   end)
 end)
 
