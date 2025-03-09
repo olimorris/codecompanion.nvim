@@ -1,8 +1,8 @@
 {
-  "name": "Testing System Prompts",
+  "name": "Workspace Example - When combining multiple workspace files",
   "version": "1.0.0",
   "workspace_spec": "1.0",
-  "system_prompt": "High level system prompt",
+  "system_prompt": "Workspace Multiple Example Prompt",
   "groups": [
     {
       "name": "Test 1",
@@ -13,12 +13,7 @@
       "vars": {
         "base_dir": "tests/stubs"
       },
-      "files": [
-        {
-          "description": "A test description",
-          "path": "${base_dir}/stub.go"
-        }
-      ]
+      "data": ["test1-file"]
     },
     {
       "name": "Test 2",
@@ -29,12 +24,19 @@
       "vars": {
         "base_dir": "tests/stubs"
       },
-      "files": [
-        {
-          "description": "A test description",
-          "path": "${base_dir}/stub.go"
-        }
-      ]
+      "data": ["test2-file"]
     }
-  ]
+  ],
+  "data": {
+    "test1-file": {
+      "type": "file",
+      "path": "${base_dir}/stub.go",
+      "description": "A test description"
+    },
+    "test2-file": {
+      "type": "file",
+      "path": "${base_dir}/stub.go",
+      "description": "A test description"
+    }
+  }
 }
