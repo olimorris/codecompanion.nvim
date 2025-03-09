@@ -1,5 +1,12 @@
 # Changelog
 
+## [13.2.4](https://github.com/olimorris/codecompanion.nvim/compare/v13.2.3...v13.2.4) (2025-03-09)
+
+
+### Bug Fixes
+
+* **deepseek:** reasoning output closes [#1091](https://github.com/olimorris/codecompanion.nvim/issues/1091) ([#1095](https://github.com/olimorris/codecompanion.nvim/issues/1095)) ([bcdfa2b](https://github.com/olimorris/codecompanion.nvim/commit/bcdfa2b15232058964c53856cfbf736988ba0066))
+
 ## [13.2.3](https://github.com/olimorris/codecompanion.nvim/compare/v13.2.2...v13.2.3) (2025-03-06)
 
 
