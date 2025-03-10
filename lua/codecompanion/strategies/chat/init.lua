@@ -741,9 +741,6 @@ function Chat:submit(opts)
   log:trace("Messages:\n%s", self.messages)
   log:info("Chat request started")
 
-  if not config.display.chat.auto_scroll then
-    vim.cmd("stopinsert")
-  end
   self.ui:lock_buf()
 
   self:set_range(2) -- this accounts for the LLM header
@@ -1073,12 +1070,10 @@ function Chat:add_buf_message(data, opts)
       self.ui:lock_buf()
     end
 
-    if config.display.chat.auto_scroll then
-      if cursor_moved and self.ui:is_active() then
-        self.ui:follow()
-      elseif not self.ui:is_active() then
-        self.ui:follow()
-      end
+    if cursor_moved and self.ui:is_active() then
+      self.ui:follow()
+    elseif not self.ui:is_active() then
+      self.ui:follow()
     end
   end
 
