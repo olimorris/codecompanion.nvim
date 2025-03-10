@@ -199,6 +199,7 @@ require("codecompanion").setup({
         height = 0.8,
         width = 0.45,
         relative = "editor",
+        full_height = true, -- when set to false, vsplit will be used to open the chat buffer vs. botright/topleft vsplit
         opts = {
           breakindent = true,
           cursorcolumn = false,
