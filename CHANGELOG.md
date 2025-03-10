@@ -5,7 +5,8 @@
 
 ### Features
 
-* allow for full height chat windows when opening ([0e75d3b](https://github.com/olimorris/codecompanion.nvim/commit/0e75d3b9768e6a139bb2d51a1d05a6e2691171a8))
+* **ui** allow for full height chat windows when opening ([0e75d3b](https://github.com/olimorris/codecompanion.nvim/commit/0e75d3b9768e6a139bb2d51a1d05a6e2691171a8))
+* **chat** toggle for auto-scrolling in chat buffer ([481aad8](https://github.com/olimorris/codecompanion.nvim/commit/481aad839cecbc7d9e8fe54e276bdc556f62d69e))
 
 ## [13.2.4](https://github.com/olimorris/codecompanion.nvim/compare/v13.2.3...v13.2.4) (2025-03-09)
 
