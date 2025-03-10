@@ -71,7 +71,7 @@ function FuncExecutor:proceed_to_next(output)
 end
 
 ---Run the tool's function
----@param func fun(self: CodeCompanion.Agent, actions: table, input: any)
+---@param func fun(self: CodeCompanion.Agent, actions: table, input: any):{status:"success"|"error", data:any}?
 ---@param action table
 ---@param input? any
 ---@param callback? fun(output: any)

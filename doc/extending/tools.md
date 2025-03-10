@@ -171,7 +171,7 @@ cmds = {
   ---@param self CodeCompanion.Agent.Tool The Tools object
   ---@param actions table The action object
   ---@param input? any The output from the previous function call
-  ---@return nil|{ status: string, msg: string }
+  ---@return nil|{ status: "success"|"error", data: any }
   function(self, actions, input)
     -- Get the numbers and operation requested by the LLM
     local num1 = tonumber(actions.num1)
