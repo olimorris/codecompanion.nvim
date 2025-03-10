@@ -5,7 +5,8 @@
   "system_prompt": "Workspace system prompt",
   "vars": {
     "var_description": "This is a test description",
-    "var_hello": "Hello World"
+    "var_hello": "Hello World",
+    "test_path": "tests/stubs"
   },
   "groups": [
     {
@@ -22,6 +23,12 @@
       "description": "${var_hello}",
       "system_prompt": "Test group system prompt",
       "data": ["stub-lua"]
+    },
+    {
+      "name": "Test 3",
+      "description": "My description",
+      "system_prompt": "Test group system prompt",
+      "data": ["stub-txt"]
     }
   ],
   "data": {
@@ -33,6 +40,11 @@
     "stub-lua": {
       "type": "symbols",
       "path": "tests/stubs/stub.lua",
+      "description": "Test symbol description for the file ${filename} located at ${path}"
+    },
+    "stub-txt": {
+      "type": "file",
+      "path": "${test_path}/stub.txt",
       "description": "Test symbol description for the file ${filename} located at ${path}"
     }
   }

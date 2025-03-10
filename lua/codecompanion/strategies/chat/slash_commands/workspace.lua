@@ -38,44 +38,34 @@ local function get_file_list(group, workspace)
   return table.concat(items, "\n")
 end
 
-local replaced_vars = {}
-
 ---Replace variables in a string
 ---@param workspace table
 ---@param group table
 ---@param str string
 ---@return string
 local function replace_vars(workspace, group, str)
-  -- Allow users to make changes without restarting Neovim by using workspace version
-  local name = workspace.name .. (workspace.version or "")
-
-  if replaced_vars[name] then
-    return util.replace_placeholders(str, replaced_vars[name])
-  end
-
-  -- Begin caching
-  replaced_vars[name] = {}
+  local replaced_vars = {}
 
   -- Vars from the top level can be overwritten, so they come first
   if workspace.vars then
     vim.iter(workspace.vars):each(function(k, v)
-      replaced_vars[name][k] = v
+      replaced_vars[k] = v
     end)
   end
 
   if group.vars then
     vim.iter(group.vars):each(function(k, v)
-      replaced_vars[name][k] = v
+      replaced_vars[k] = v
     end)
   end
 
   -- Add the builtin group level and workspace vars
-  replaced_vars[name]["group_name"] = group.name
-  replaced_vars[name]["group_files"] = get_file_list(group, workspace)
-  replaced_vars[name]["workspace_description"] = workspace.description
-  replaced_vars[name]["workspace_name"] = workspace.name
+  replaced_vars["group_name"] = group.name
+  replaced_vars["group_files"] = get_file_list(group, workspace)
+  replaced_vars["workspace_description"] = workspace.description
+  replaced_vars["workspace_name"] = workspace.name
 
-  return util.replace_placeholders(str, replaced_vars[name])
+  return util.replace_placeholders(str, replaced_vars)
 end
 
 ---Add the description of the group to the chat buffer
@@ -149,17 +139,14 @@ end
 ---Add an item from the data section to the chat buffer
 ---@param group table
 ---@param item string
-function SlashCommand:add_item_from_data(group, item)
+function SlashCommand:add_item(group, item)
   local resource = self.workspace.data[item]
   if not resource then
     return log:warn("Could not find '%s' in the workspace file", item)
   end
 
   -- Apply group variables to path
-  local path = resource.path
-  if group.vars then
-    path = util.replace_placeholders(path, group.vars)
-  end
+  local path = replace_vars(self.workspace, group, resource.path)
 
   -- Apply built-in variables to description
   local description = resource.description
@@ -245,38 +232,10 @@ function SlashCommand:output(selected_group, opts)
   end
 
   if group.data and self.workspace.data then
-    for _, data_key in ipairs(group.data) do
-      self:add_item_from_data(group, data_key)
+    for _, data_item in ipairs(group.data) do
+      self:add_item(group, data_item)
     end
   end
-end
-
----Add an item from the group to the chat buffer
----@param group table
----@param item_type string
----@param item { path: string, description: string, opts: table? } | string
-function SlashCommand:add_item(group, item_type, item)
-  -- Replace any variables in the path
-  local path = item.path or item
-  if group.vars then
-    path = util.replace_placeholders(path, group.vars)
-  end
-
-  -- Replace any built-in variables
-  local builtin = {
-    cwd = vim.fn.getcwd(),
-    filename = vim.fn.fnamemodify(path, ":t"),
-    path = path,
-  }
-  if item.description then
-    item.description = util.replace_placeholders(item.description, builtin)
-  end
-
-  return slash_commands.references(
-    self.Chat,
-    item_type,
-    { path = path, description = item.description, opts = item.opts }
-  )
 end
 
 return SlashCommand

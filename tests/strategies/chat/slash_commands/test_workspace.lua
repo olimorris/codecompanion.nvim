@@ -150,4 +150,20 @@ T["Workspace"]["variables at the group level take priority"] = function()
   h.eq(workspace_json.groups[2].vars.var_hello, messages[4].content)
 end
 
+T["Workspace"]["variables are replaced in paths"] = function()
+  workspace_json = vim.json.decode(table.concat(vim.fn.readfile("tests/stubs/workspace_vars.json"), ""))
+
+  child.lua([[
+  _G.set_workspace("tests/stubs/workspace_vars.json")
+  ]])
+
+  child.lua([[
+  _G.wks:output("Test 3")
+  ]])
+
+  local messages = child.lua_get([[_G.chat.messages]])
+
+  h.expect_contains("Some text", messages[5].content)
+end
+
 return T
