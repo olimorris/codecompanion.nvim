@@ -158,13 +158,13 @@ return {
     ---@param self CodeCompanion.Agent.Tool The Tools object
     ---@param action table The action object
     ---@param input any The output from the previous function call
-    ---@return { status: string, msg: string }
+    ---@return nil|{ status: "success"|"error", data: any }
     function(self, action, input)
       local ok, data = pcall(actions[action._attr.type], action)
       if not ok then
-        return { status = "error", msg = data }
+        return { status = "error", data = "Could not run the Files tool" }
       end
-      return { status = "success", msg = nil }
+      return { status = "success", data = nil }
     end,
   },
   schema = {
