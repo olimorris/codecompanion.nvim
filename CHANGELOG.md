@@ -1,5 +1,12 @@
 # Changelog
 
+## [13.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v13.3.0...v13.3.1) (2025-03-11)
+
+
+### Bug Fixes
+
+* **tool:** output handler can be any type ([#1106](https://github.com/olimorris/codecompanion.nvim/issues/1106)) ([8823590](https://github.com/olimorris/codecompanion.nvim/commit/8823590f3cb251eb09315682bb3f40abf212969b))
+
 ## [13.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v13.2.4...v13.3.0) (2025-03-10)
 
 
