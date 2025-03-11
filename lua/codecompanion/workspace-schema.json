@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CodeCompanion Workspace Configuration",
+  "description": "Schema for CodeCompanion.nvim workspace configuration files",
+  "type": "object",
+  "required": [
+    "name",
+    "version",
+    "workspace_spec",
+    "system_prompt",
+    "groups",
+    "data"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the workspace"
+    },
+    "version": {
+      "type": "string",
+      "description": "Version of the workspace configuration"
+    },
+    "workspace_spec": {
+      "type": "string",
+      "description": "Version of the workspace specification format"
+    },
+    "system_prompt": {
+      "type": "string",
+      "description": "Default system prompt used across the workspace"
+    },
+    "groups": {
+      "type": "array",
+      "description": "Collection of file groups for context organization",
+      "items": {
+        "type": "object",
+        "required": ["name", "system_prompt", "data"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the group"
+          },
+          "system_prompt": {
+            "type": "string",
+            "description": "System prompt specific to this group"
+          },
+          "opts": {
+            "type": "object",
+            "description": "Group-specific options",
+            "properties": {
+              "remove_config_system_prompt": {
+                "type": "boolean",
+                "description": "Whether to remove the config system prompt for this group"
+              }
+            }
+          },
+          "data": {
+            "type": "array",
+            "description": "List of data IDs to include in this group",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "data": {
+      "type": "object",
+      "description": "Data entries referenced by groups",
+      "patternProperties": {
+        "^.*$": {
+          "type": "object",
+          "required": ["type", "path", "description"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["file", "symbols", "url"],
+              "description": "Type of resource"
+            },
+            "path": {
+              "type": "string",
+              "description": "Path to the resource"
+            },
+            "description": {
+              "type": "string",
+              "description": "Description of the resource"
+            },
+            "opts": {
+              "type": "object",
+              "description": "Optional settings for the resource",
+              "properties": {
+                "auto_restore_cache": {
+                  "type": "boolean",
+                  "description": "Whether to automatically restore cached data"
+                }
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
