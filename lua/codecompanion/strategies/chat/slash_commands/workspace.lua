@@ -139,7 +139,7 @@ end
 ---Add an item from the data section to the chat buffer
 ---@param group table
 ---@param item string
-function SlashCommand:add_item(group, item)
+function SlashCommand:add_to_chat(group, item)
   local resource = self.workspace.data[item]
   if not resource then
     return log:warn("Could not find '%s' in the workspace file", item)
@@ -233,7 +233,7 @@ function SlashCommand:output(selected_group, opts)
 
   if group.data and self.workspace.data then
     for _, data_item in ipairs(group.data) do
-      self:add_item(group, data_item)
+      self:add_to_chat(group, data_item)
     end
   end
 end
