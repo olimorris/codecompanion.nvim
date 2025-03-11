@@ -146,12 +146,12 @@ end
 
 ---Handle an error from a tool
 ---@param action table
----@param error? string
+---@param error? any
 ---@return nil
 function Executor:error(action, error)
   log:debug("Executor:error")
   self.agent.status = self.agent.constants.STATUS_ERROR
-  if error then
+  if type(error) == "string" then
     table.insert(self.agent.stderr, error)
     log:warn("Tool %s: %s", self.tool.name, error)
   end
@@ -162,12 +162,12 @@ end
 
 ---Handle a successful completion of a tool
 ---@param action table
----@param output? string
+---@param output? any
 ---@return nil
 function Executor:success(action, output)
   log:debug("Executor:success")
   self.agent.status = self.agent.constants.STATUS_SUCCESS
-  if output then
+  if type(output) == "string" then
     table.insert(self.agent.stdout, output)
   end
   self.output.success(action)
