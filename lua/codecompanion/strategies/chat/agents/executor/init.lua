@@ -167,10 +167,8 @@ end
 function Executor:success(action, output)
   log:debug("Executor:success")
   self.agent.status = self.agent.constants.STATUS_SUCCESS
-  if type(output) == "string" then
+  if output then
     table.insert(self.agent.stdout, output)
-  elseif type(output) == "table" then
-    vim.list_extend(self.agent.stdout, output)
   end
   self.output.success(action)
 end
