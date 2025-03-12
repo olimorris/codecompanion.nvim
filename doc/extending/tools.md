@@ -164,16 +164,18 @@ end,
 
 **Function-based Tools**
 
-Function-based tools use the `cmds` table to define functions that will be executed one after another. Each function has three parameters, itself, the actions request by the LLM and any input from a previous function call. For the purpose of our calculator example:
+Function-based tools use the `cmds` table to define functions that will be executed one after another. Each function has three parameters, itself, the actions request by the LLM, any input from a previous function call and a `output_handler` callback for async execution. 
+For the purpose of our calculator example:
 
 ```lua
 cmds = {
   ---@param self CodeCompanion.Agent.Tool The Tools object
   ---@param actions table The action object
   ---@param input? any The output from the previous function call
+  ---@param output_handler fun(output: { status: "success"|"error", data: any })? callback for async tool
   ---@return nil|{ status: "success"|"error", data: any }
-  function(self, actions, input)
-    -- Get the numbers and operation requested by the LLM
+  function(self, actions, input, output_handler)
+-- Get the numbers and operation requested by the LLM
     local num1 = tonumber(actions.num1)
     local num2 = tonumber(actions.num2)
     local operation = actions.operation
@@ -212,6 +214,23 @@ cmds = {
   end,
 },
 ```
+For a synchronous tool, you only need to `return` the result table as demonstrated.
+However, if you need to invoke some asynchronous actions in the tool, you can use the `output_handler` to submit any results to the executor:
+```lua
+cmds = {
+  function(agent, actions, input, output_handler)
+    -- this is for demonstration only
+    vim.lsp.client.request(lsp_method, lsp_param, function(err, result, _, _)
+      agent.chat:add_message({role = "user", content = vim.json.encode(result)})
+      output_handler({status = "success", data = result})
+    end, buf_nr)
+  end
+}
+```
+Note that:
+
+1. the `output_handler` will be called only once. Subsequent calls will be discarded;
+2. a synchronous tool should **return** the results and avoid calling `output_handler`, whereas an asynchronous tool should call the `output_handler` and return `nil`.
 
 Similarly with command-based tools, the output is written to the `stdout` or `stderr` tables on the agent file. However, with function-based tools, the user must manually specify the outcome of the execution which in turn redirects the output to the correct table:
 
