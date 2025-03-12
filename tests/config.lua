@@ -91,6 +91,14 @@ return {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_queue_2.lua",
           description = "Some function tool to test",
         },
+        ["func_async_1"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_async_1.lua",
+          description = "Some function tool to test",
+        },
+        ["func_async_2"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_async_2.lua",
+          description = "Some function tool to test",
+        },
         ["func_approval"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
           description = "Some function tool to test but with approval",
