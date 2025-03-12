@@ -1,5 +1,12 @@
 # Changelog
 
+## [13.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v13.4.0...v13.5.0) (2025-03-12)
+
+
+### Features
+
+* **tools:** function-based tools can be async ([#1107](https://github.com/olimorris/codecompanion.nvim/issues/1107)) ([97636b9](https://github.com/olimorris/codecompanion.nvim/commit/97636b902ac20c665b0b3d9d5b2c62c16676e136))
+
 ## [13.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v13.3.1...v13.4.0) (2025-03-12)
 
 
