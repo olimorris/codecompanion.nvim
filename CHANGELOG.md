@@ -1,5 +1,17 @@
 # Changelog
 
+## [13.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v13.3.1...v13.4.0) (2025-03-12)
+
+
+### Features
+
+* **chat:** hide system prompts by default ([#1113](https://github.com/olimorris/codecompanion.nvim/issues/1113)) ([161aaba](https://github.com/olimorris/codecompanion.nvim/commit/161aaba38b06bf76f03a35c92ae809f819b88766))
+
+
+### Bug Fixes
+
+* **prompts:** do not ignore user prompt ([#1110](https://github.com/olimorris/codecompanion.nvim/issues/1110)) ([5ee7873](https://github.com/olimorris/codecompanion.nvim/commit/5ee7873342e254828963930e5c9e922c8d978211))
+
 ## [13.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v13.3.0...v13.3.1) (2025-03-11)
 
 
