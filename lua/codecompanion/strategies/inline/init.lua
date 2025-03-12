@@ -390,7 +390,10 @@ function Inline:submit(prompt)
   self.current_request = client
     .new({ adapter = self.adapter:map_schema_to_params(), user_args = { event = "InlineStarted" } })
     :request(self.adapter:map_roles(prompt), {
-      callback = function(err, data)
+      ---@param err string
+      ---@param data table
+      ---@param adapter CodeCompanion.Adapter The modified adapter from the http client
+      callback = function(err, data, adapter)
         local function error(msg)
           log:error("[Inline] Request failed with error %s", msg)
         end
@@ -400,7 +403,7 @@ function Inline:submit(prompt)
         end
 
         if data then
-          data = self.adapter.handlers.inline_output(self.adapter, data, self.context)
+          data = self.adapter.handlers.inline_output(adapter, data, self.context)
           if data.status == CONSTANTS.STATUS_SUCCESS then
             return self:done(data.output)
           else
