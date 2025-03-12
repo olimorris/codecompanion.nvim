@@ -39,7 +39,7 @@ T["Agent"]["queue"]["can queue multiple async functions"] = function()
     local queue = require("tests.strategies.chat.agents.tools.stubs.xml.async_queue_xml")
     local xml = queue.run()
     agent:execute(chat, xml)
-    vim.wait(3000)
+    vim.wait(2100)
   ]])
 
   -- Test order
@@ -59,7 +59,7 @@ T["Agent"]["queue"]["can queue async function with sync function"] = function()
     local queue = require("tests.strategies.chat.agents.tools.stubs.xml.mixed_queue_xml")
     local xml = queue.run()
     agent:execute(chat, xml)
-    vim.wait(3000)
+    vim.wait(1100)
   ]])
 
   -- Test order
