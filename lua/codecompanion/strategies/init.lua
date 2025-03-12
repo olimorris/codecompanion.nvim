@@ -256,6 +256,9 @@ function Strategies.evaluate_prompts(prompts, context)
     end)
     :map(function(prompt)
       local content = type(prompt.content) == "function" and prompt.content(context) or prompt.content
+      if prompt.role == config.constants.SYSTEM_ROLE and not prompt.opts then
+        prompt.opts = { visible = false }
+      end
       return {
         role = prompt.role or "",
         content = content,
