@@ -123,7 +123,7 @@ function Strategies:chat()
         return create_chat(opts.user_prompt)
       end
 
-      vim.ui.input({
+      return vim.ui.input({
         prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " " .. config.display.action_palette.prompt,
       }, function(input)
         if not input then
