@@ -164,7 +164,8 @@ end,
 
 **Function-based Tools**
 
-Function-based tools use the `cmds` table to define functions that will be executed one after another. Each function has three parameters, itself, the actions request by the LLM, any input from a previous function call and a `output_handler` callback for async execution. 
+Function-based tools use the `cmds` table to define functions that will be executed one after another. Each function has four parameters, itself, the actions request by the LLM, any input from a previous function call and a `output_handler` callback for async execution. 
+The `output_handler` handles the result for an asynchronous tool. For a synchronous tool (like the calculator) you can ignore it.
 For the purpose of our calculator example:
 
 ```lua
@@ -215,7 +216,7 @@ cmds = {
 },
 ```
 For a synchronous tool, you only need to `return` the result table as demonstrated.
-However, if you need to invoke some asynchronous actions in the tool, you can use the `output_handler` to submit any results to the executor:
+However, if you need to invoke some asynchronous actions in the tool, you can use the `output_handler` to submit any results to the executor, which will then invoke `output` functions to handle the results:
 ```lua
 cmds = {
   function(agent, actions, input, output_handler)
@@ -230,7 +231,8 @@ cmds = {
 Note that:
 
 1. the `output_handler` will be called only once. Subsequent calls will be discarded;
-2. a synchronous tool should **return** the results and avoid calling `output_handler`, whereas an asynchronous tool should call the `output_handler` and return `nil`.
+2. A tool function should EITHER return the result table (synchronous), OR call the `output_handler` with the result table as the only argument (asynchronous), but not both. 
+If a function tries to both return the result and call the `output_handler`, the result will be undefined because there's no guarantee which output will be handled first.
 
 Similarly with command-based tools, the output is written to the `stdout` or `stderr` tables on the agent file. However, with function-based tools, the user must manually specify the outcome of the execution which in turn redirects the output to the correct table:
 
