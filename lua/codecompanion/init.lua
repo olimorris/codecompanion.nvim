@@ -218,6 +218,21 @@ CodeCompanion.actions = function(args)
   return require("codecompanion.actions").launch(context, args)
 end
 
+---Return the JSON schema for the workspace file
+---@return string|nil
+CodeCompanion.workspace_schema = function()
+  -- Credit: https://github.com/romgrk/fzy-lua-native/blob/master/lua/init.lua
+  local dirname = string.sub(debug.getinfo(1).source, 2, string.len("/init.lua") * -1)
+
+  local ok, file = pcall(function()
+    return require("plenary.path"):new(dirname .. "workspace-schema.json"):read()
+  end)
+
+  if ok then
+    return file
+  end
+end
+
 ---Setup the plugin
 ---@param opts? table
 ---@return nil
