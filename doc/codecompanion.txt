@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.10.0        Last change: 2025 March 05
+*codecompanion.txt*         For NVIM v0.10.0        Last change: 2025 March 12
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -641,7 +641,7 @@ Many adapters allow model selection via the `schema.model.default` property:
 <
 
 
-USER CONTRIBUTED ADAPTERS ~
+COMMUNITY ADAPTERS ~
 
 Thanks to the community for building the following adapters:
 
@@ -1045,6 +1045,7 @@ You can change the appearance of the chat buffer by changing the
             height = 0.8,
             width = 0.45,
             relative = "editor",
+            full_height = true, -- when set to false, vsplit will be used to open the chat buffer vs. botright/topleft vsplit
             opts = {
               breakindent = true,
               cursorcolumn = false,
@@ -1161,6 +1162,24 @@ plugins to improve the UI:
         },
       },
     },
+<
+
+
+AUTO SCROLLING
+
+By default, the page scrolls down automatically as the response streams, with
+the cursor placed at the end. This can be distracting if you are focusing on
+the earlier content while the page scrolls up away during a long response. You
+can disable this behavior using a flag:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          auto_scroll = false
+        },
+      },
+    }),
 <
 
 
@@ -1501,7 +1520,7 @@ The |codecompanion-usage-chat-buffer-agents-cmd-runner| tool enables an LLM to
 execute commands on your machine. This can be useful if you wish the LLM to run
 a test suite on your behalf and give insight on failing cases. Simply tag the
 `@cmd_runner` in the chat buffer and ask it run your tests with a suitable
-command e.g.� `pytest`.
+command e.g. `pytest`.
 
 
 NAVIGATING BETWEEN RESPONSES IN THE CHAT BUFFER ~
@@ -1717,11 +1736,16 @@ An outline of the architecture can be seen
 |codecompanion-extending-tools-architecture|.
 
 
-APPROVALS ~
+COMMUNITY TOOLS ~
 
-Some tools, such as the `@cmd_runner`, require the user to approve any actions
-before they can be executed. If the tool requires this a `vim.fn.confirm`
-dialog will prompt you for a response.
+There is also a thriving ecosystem of user created tools:
+
+- VectorCode <https://github.com/Davidyz/VectorCode/tree/main> - A code repository indexing tool to supercharge your LLM experience
+- mcphub.nvim <https://github.com/ravitemer/mcphub.nvim> - A powerful Neovim plugin for managing MCP (Model Context Protocol) servers
+
+The section of the discussion forums which is dedicated to user created tools
+can be found here
+<https://github.com/olimorris/codecompanion.nvim/discussions/categories/tools>.
 
 
 @CMD_RUNNER ~
@@ -1860,6 +1884,13 @@ An example of the XML that an LLM may generate for the tool:
 
 The plugin enables tools to be grouped together. The `@full_stack_dev` agent is
 a combination of the `@cmd_runner`, `@editor` and `@files` tools.
+
+
+APPROVALS ~
+
+Some tools, such as the `@cmd_runner`, require the user to approve any actions
+before they can be executed. If the tool requires this a `vim.fn.confirm`
+dialog will prompt you for a response.
 
 
 USEFUL TIPS ~
@@ -2562,7 +2593,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI�S API OUTPUT
+OPENAI’S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
@@ -3618,7 +3649,7 @@ purpose of our calculator example:
       ---@param self CodeCompanion.Agent.Tool The Tools object
       ---@param actions table The action object
       ---@param input? any The output from the previous function call
-      ---@return nil|{ status: string, msg: string }
+      ---@return nil|{ status: "success"|"error", data: any }
       function(self, actions, input)
         -- Get the numbers and operation requested by the LLM
         local num1 = tonumber(actions.num1)
@@ -4043,9 +4074,8 @@ You can also customize the output if a user rejects the approval:
     
         ---Rejection message back to the LLM
         ---@param agent CodeCompanion.Agent
-        ---@param cmd table
         ---@return nil
-        rejected = function(agent, cmd)
+        rejected = function(agent)
           local config = require("codecompanion.config")
           return agent.chat:add_buf_message({
             role = config.constants.USER_ROLE,
