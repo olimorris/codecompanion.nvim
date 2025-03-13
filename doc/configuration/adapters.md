@@ -300,5 +300,3 @@ require("codecompanion").setup({
   },
 })
 ```
-
-When `show_defaults` is set to `false`, only the adapters specified in your configuration will be used, hiding the default ones provided by the plugin.
