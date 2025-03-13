@@ -175,6 +175,6 @@ When building your workspace file, you can create a `vars` object which contains
 
 The plugin comes with an [Action Palette](/usage/action-palette.html#default-prompts) prompt to help you generate a workspace file. It will open up a chat buffer and add the workspace JSON schema as part of a prompt. It will also determine if you have a workspace file in your current working directory, and if you do, the prompts will be altered to ask the LLM to help you in adding a group, rather than generating a whole workspace file.
 
-Whilst this approach is helpful, you'll still need to manually share a lot of context for the LLM to be able to understand the intricacies of your codebase. A more optimal way is to leverage [VectorCode](https://github.com/Davidyz/VectorCode). The prompt will determine if you have this installed and add it to the prompt as a tool.
+Whilst this approach is helpful, you'll still need to manually share a lot of context for the LLM to be able to understand the intricacies of your codebase. A more optimal way is to leverage [VectorCode](https://github.com/Davidyz/VectorCode). The prompt will determine if you have this installed and add it to the chat as a tool.
 
 Remember, the key objective with a workspace file is to rapidly share context with an LLM, making it's response more accurate and more useful.
