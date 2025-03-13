@@ -21,9 +21,14 @@ When a tool is added to the chat buffer, the LLM is instructured by the plugin t
 
 An outline of the architecture can be seen [here](/extending/tools#architecture).
 
-## Approvals
+## Community Tools
 
-Some tools, such as the _@cmd_runner_, require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response.
+There is also a thriving ecosystem of user created tools:
+
+- [VectorCode](https://github.com/Davidyz/VectorCode/tree/main) - A code repository indexing tool to supercharge your LLM experience
+- [mcphub.nvim](https://github.com/ravitemer/mcphub.nvim) - A powerful Neovim plugin for managing MCP (Model Context Protocol) servers
+
+The section of the discussion forums which is dedicated to user created tools can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions/categories/tools).
 
 ## @cmd_runner
 
@@ -144,6 +149,10 @@ An example of the XML that an LLM may generate for the tool:
 ## @full_stack_dev
 
 The plugin enables tools to be grouped together. The _@full_stack_dev_ agent is a combination of the _@cmd_runner_, _@editor_ and _@files_ tools.
+
+## Approvals
+
+Some tools, such as the _@cmd_runner_, require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response.
 
 ## Useful Tips
 

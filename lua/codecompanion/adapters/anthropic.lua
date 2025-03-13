@@ -47,6 +47,13 @@ return {
         self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "") .. "output-128k-2025-02-19"
       end
 
+      -- Make sure the individual model options are set
+      local model = self.schema.model.default
+      local model_opts = self.schema.model.choices[model]
+      if model_opts and model_opts.opts then
+        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
+      end
+
       return true
     end,
 

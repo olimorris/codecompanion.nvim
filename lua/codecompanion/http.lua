@@ -69,7 +69,7 @@ function Client:request(payload, actions, opts)
   if handlers and handlers.setup then
     local ok = handlers.setup(adapter)
     if not ok then
-      return
+      return log:error("Failed to setup adapter")
     end
   end
 
@@ -130,7 +130,7 @@ function Client:request(payload, actions, opts)
       vim.schedule(function()
         if (not adapter.opts.stream) and data and data ~= "" then
           log:trace("Output data:\n%s", data)
-          cb(nil, data)
+          cb(nil, data, adapter)
         end
         if handlers and handlers.on_exit then
           handlers.on_exit(adapter, data)
@@ -177,7 +177,7 @@ function Client:request(payload, actions, opts)
         has_started_steaming = true
         util.fire("RequestStreaming", opts)
       end
-      cb(nil, data)
+      cb(nil, data, adapter)
     end)
   end
 

@@ -24,6 +24,6 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           commit-message: "docs: update sponsors in README.md"
-          title: "Update Sponsors in README"
+          title: "docs: update sponsors in README.md"
           labels: "ignore-for-release"
           delete-branch: true

@@ -158,13 +158,13 @@ return {
     ---@param self CodeCompanion.Agent.Tool The Tools object
     ---@param action table The action object
     ---@param input any The output from the previous function call
-    ---@return { status: string, msg: string }
+    ---@return nil|{ status: "success"|"error", data: any }
     function(self, action, input)
       local ok, data = pcall(actions[action._attr.type], action)
       if not ok then
-        return { status = "error", msg = data }
+        return { status = "error", data = "Could not run the Files tool" }
       end
-      return { status = "success", msg = nil }
+      return { status = "success", data = nil }
     end,
   },
   schema = {
@@ -473,12 +473,11 @@ Remember:
 
     ---The action to take if the user rejects the command
     ---@param agent CodeCompanion.Agent The tool object
-    ---@param action table
     ---@return nil
-    rejected = function(agent, action)
+    rejected = function(agent)
       return agent.chat:add_buf_message({
         role = config.constants.USER_ROLE,
-        content = fmt("I rejected the %s action.\n\n", string.upper(action._attr.type)),
+        content = "I rejected the running of the files tool",
       })
     end,
   },

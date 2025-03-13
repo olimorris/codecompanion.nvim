@@ -2,11 +2,6 @@
 
 Please see the plugin author's own [config](https://github.com/olimorris/dotfiles/blob/main/.config/nvim/lua/plugins/coding.lua) for a complete reference of how to setup CodeCompanion.
 
-<p>
-<video controls muted src="https://github.com/user-attachments/assets/16bd6c17-bd70-41a1-83aa-7af45c166ae9"></video>
-</p>
-
-
 ## Configuring an Adapter
 
 > [!NOTE]

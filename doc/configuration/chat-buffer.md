@@ -199,6 +199,7 @@ require("codecompanion").setup({
         height = 0.8,
         width = 0.45,
         relative = "editor",
+        full_height = true, -- when set to false, vsplit will be used to open the chat buffer vs. botright/topleft vsplit
         opts = {
           breakindent = true,
           cursorcolumn = false,
@@ -306,6 +307,21 @@ As the Chat Buffer uses markdown as its syntax, you can use popular rendering pl
 },
 ```
 
+### Auto scrolling
+
+By default, the page scrolls down automatically as the response streams, with the cursor placed at the end.
+This can be distracting if you are focusing on the earlier content while the page scrolls up away during a long response.
+You can disable this behavior using a flag:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      auto_scroll = false
+    },
+  },
+}),
+```
 ## Additional Options
 
 There are also a number of other options that you can customize:

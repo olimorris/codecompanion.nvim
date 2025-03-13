@@ -71,27 +71,43 @@ function FuncExecutor:proceed_to_next(output)
 end
 
 ---Run the tool's function
----@param func fun(self: CodeCompanion.Agent, actions: table, input: any)
+---@param func fun(self: CodeCompanion.Agent, actions: table, input: any, output_handler: fun(msg:{status:"success"|"error", data:any}):any):{status:"success"|"error", data:any}?
 ---@param action table
 ---@param input? any
 ---@param callback? fun(output: any)
 ---@return nil
 function FuncExecutor:run(func, action, input, callback)
   log:debug("FuncExecutor:run")
+
+  local tool_finished = false
+  ---@param msg {status:"success"|"error", data:any}
+  local function output_handler(msg)
+    if tool_finished then
+      log:warn("output_handler for tool %s is called more than once.", self.executor.tool.name)
+      return
+    end
+    tool_finished = true
+    if msg.status == self.executor.agent.constants.STATUS_ERROR then
+      return self.executor:error(action, msg.data or "An error occurred")
+    end
+
+    self.executor:success(action, msg.data)
+
+    if callback then
+      callback(msg)
+    end
+  end
+
   local ok, output = pcall(function()
-    return func(self.executor.agent, action, input)
+    return func(self.executor.agent, action, input, output_handler)
   end)
   if not ok then
     return self.executor:error(action, output)
   end
-  if output.status == self.executor.agent.constants.STATUS_ERROR then
-    return self.executor:error(action, output.data or "An error occurred")
-  end
 
-  self.executor:success(action, output.data)
-
-  if callback then
-    callback(output)
+  if output ~= nil then
+    -- otherwise async and should be called from within the func
+    output_handler(output)
   end
 end
 

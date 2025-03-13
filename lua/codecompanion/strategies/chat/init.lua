@@ -741,9 +741,13 @@ function Chat:submit(opts)
   log:trace("Messages:\n%s", self.messages)
   log:info("Chat request started")
 
+  if not config.display.chat.auto_scroll then
+    vim.cmd("stopinsert")
+  end
   self.ui:lock_buf()
 
   self:set_range(2) -- this accounts for the LLM header
+
   local output = {}
   log:info("ELAPSED TIME: %s", log:time())
   self.current_request = client
@@ -751,7 +755,8 @@ function Chat:submit(opts)
     :request(self.adapter:map_roles(vim.deepcopy(self.messages)), {
       ---@param err { message: string, stderr: string }
       ---@param data table
-      callback = function(err, data)
+      ---@param adapter CodeCompanion.Adapter The modified adapter from the http client
+      callback = function(err, data, adapter)
         if err and err.stderr ~= "{}" then
           self.status = CONSTANTS.STATUS_ERROR
           log:error("Error: %s", err.stderr)
@@ -759,14 +764,14 @@ function Chat:submit(opts)
         end
 
         if data then
-          if self.adapter.features.tokens then
-            local tokens = self.adapter.handlers.tokens(self.adapter, data)
+          if adapter.features.tokens then
+            local tokens = self.adapter.handlers.tokens(adapter, data)
             if tokens then
               self.ui.tokens = tokens
             end
           end
 
-          local result = self.adapter.handlers.chat_output(self.adapter, data)
+          local result = self.adapter.handlers.chat_output(adapter, data)
           if result and result.status then
             self.status = result.status
             if self.status == CONSTANTS.STATUS_SUCCESS then
@@ -1070,10 +1075,12 @@ function Chat:add_buf_message(data, opts)
       self.ui:lock_buf()
     end
 
-    if cursor_moved and self.ui:is_active() then
-      self.ui:follow()
-    elseif not self.ui:is_active() then
-      self.ui:follow()
+    if config.display.chat.auto_scroll then
+      if cursor_moved and self.ui:is_active() then
+        self.ui:follow()
+      elseif not self.ui:is_active() then
+        self.ui:follow()
+      end
     end
   end
 

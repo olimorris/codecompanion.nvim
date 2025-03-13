@@ -1,5 +1,60 @@
 # Changelog
 
+## [13.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v13.4.0...v13.5.0) (2025-03-12)
+
+
+### Features
+
+* **tools:** function-based tools can be async ([#1107](https://github.com/olimorris/codecompanion.nvim/issues/1107)) ([97636b9](https://github.com/olimorris/codecompanion.nvim/commit/97636b902ac20c665b0b3d9d5b2c62c16676e136))
+
+## [13.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v13.3.1...v13.4.0) (2025-03-12)
+
+
+### Features
+
+* **chat:** hide system prompts by default ([#1113](https://github.com/olimorris/codecompanion.nvim/issues/1113)) ([161aaba](https://github.com/olimorris/codecompanion.nvim/commit/161aaba38b06bf76f03a35c92ae809f819b88766))
+
+
+### Bug Fixes
+
+* **prompts:** do not ignore user prompt ([#1110](https://github.com/olimorris/codecompanion.nvim/issues/1110)) ([5ee7873](https://github.com/olimorris/codecompanion.nvim/commit/5ee7873342e254828963930e5c9e922c8d978211))
+
+## [13.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v13.3.0...v13.3.1) (2025-03-11)
+
+
+### Bug Fixes
+
+* **tool:** output handler can be any type ([#1106](https://github.com/olimorris/codecompanion.nvim/issues/1106)) ([8823590](https://github.com/olimorris/codecompanion.nvim/commit/8823590f3cb251eb09315682bb3f40abf212969b))
+
+## [13.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v13.2.4...v13.3.0) (2025-03-10)
+
+
+### Features
+
+* **ui** allow for full height chat windows when opening ([0e75d3b](https://github.com/olimorris/codecompanion.nvim/commit/0e75d3b9768e6a139bb2d51a1d05a6e2691171a8))
+* **chat** toggle for auto-scrolling in chat buffer ([481aad8](https://github.com/olimorris/codecompanion.nvim/commit/481aad839cecbc7d9e8fe54e276bdc556f62d69e))
+
+## [13.2.4](https://github.com/olimorris/codecompanion.nvim/compare/v13.2.3...v13.2.4) (2025-03-09)
+
+
+### Bug Fixes
+
+* **deepseek:** reasoning output closes [#1091](https://github.com/olimorris/codecompanion.nvim/issues/1091) ([#1095](https://github.com/olimorris/codecompanion.nvim/issues/1095)) ([bcdfa2b](https://github.com/olimorris/codecompanion.nvim/commit/bcdfa2b15232058964c53856cfbf736988ba0066))
+
+## [13.2.3](https://github.com/olimorris/codecompanion.nvim/compare/v13.2.2...v13.2.3) (2025-03-06)
+
+
+### Bug Fixes
+
+* **chat:** update system prompt to avoid using h1 and h2 headers ([#1084](https://github.com/olimorris/codecompanion.nvim/issues/1084)) ([8f53a3a](https://github.com/olimorris/codecompanion.nvim/commit/8f53a3ab541545fdf325bb0dc3bec1de7207aab6))
+
+## [13.2.2](https://github.com/olimorris/codecompanion.nvim/compare/v13.2.1...v13.2.2) (2025-03-06)
+
+
+### Bug Fixes
+
+* **tools:** [@files](https://github.com/files) tool reject causes error ([#1082](https://github.com/olimorris/codecompanion.nvim/issues/1082)) ([e9e7b26](https://github.com/olimorris/codecompanion.nvim/commit/e9e7b26187e3574a41aa09330e6dd4bb28c1fa9e))
+
 ## [13.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v13.2.0...v13.2.1) (2025-03-05)
 
 
