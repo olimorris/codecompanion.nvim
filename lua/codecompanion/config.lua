@@ -497,7 +497,7 @@ You now have access to specialized tools that empower you to assist users with s
       strategy = "workflow",
       description = "Use a workflow to repeatedly edit then test code",
       opts = {
-        index = 4,
+        index = 5,
         is_default = true,
         short_name = "et",
       },
@@ -550,7 +550,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
       strategy = "chat",
       description = "Explain how code in a buffer works",
       opts = {
-        index = 5,
+        index = 6,
         is_default = true,
         is_slash_cmd = false,
         modes = { "v" },
@@ -600,7 +600,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
       strategy = "inline",
       description = "Generate unit tests for the selected code",
       opts = {
-        index = 6,
+        index = 7,
         is_default = true,
         is_slash_cmd = false,
         modes = { "v" },
@@ -657,7 +657,7 @@ Please generate unit tests for this code from buffer %d:
       strategy = "chat",
       description = "Fix the selected code",
       opts = {
-        index = 7,
+        index = 8,
         is_default = true,
         is_slash_cmd = false,
         modes = { "v" },
@@ -821,6 +821,76 @@ This is the code, for context:
           opts = {
             contains_code = true,
           },
+        },
+      },
+    },
+    ["Workspace File"] = {
+      strategy = "chat",
+      description = "Generate a Workspace file/group",
+      opts = {
+        index = 11,
+        ignore_system_prompt = true,
+        is_default = true,
+        short_name = "workspace",
+      },
+      references = {
+        {
+          type = "file",
+          path = {
+            vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json"),
+          },
+        },
+      },
+      prompts = {
+        {
+          role = constants.SYSTEM_ROLE,
+          opts = { visible = false },
+          content = function()
+            local schema = require("codecompanion").workspace_schema()
+            return fmt(
+              [[## CONTEXT
+
+A workspace is a JSON configuration file that organizes your codebase into related groups to help LLMs understand your project structure. Each group contains files, symbols, or URLs that provide context about specific functionality or features.
+
+The workspace file follows this structure:
+
+```json
+%s
+```
+
+## OBJECTIVE
+
+Create or modify a workspace file that effectively organizes the user's codebase to provide optimal context for LLM interactions.
+
+## RESPONSE
+
+You must create or modify a workspace file through a series of prompts over multiple turns:
+
+1. First, ask the user about the project's overall purpose and structure if not already known
+2. Then ask the user to identify key functional groups in your codebase
+3. For each group, ask the user select relevant files, symbols, or URLs to include. Or, use your own knowledge to identify them
+4. Generate the workspace JSON structure based on the input
+5. Review and refine the workspace configuration together with the user]],
+              schema
+            )
+          end,
+        },
+        {
+          role = constants.USER_ROLE,
+          content = function()
+            local prompt = ""
+            if vim.fn.filereadable(vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json")) == 1 then
+              prompt = [[Can you help me add a group to an existing workspace file?]]
+            else
+              prompt = [[Can you help me create a workspace file?]]
+            end
+
+            local ok, _ = pcall(require, "vectorcode")
+            if ok then
+              prompt = prompt .. " Use the @vectorcode tool to help identify groupings of files"
+            end
+            return prompt
+          end,
         },
       },
     },

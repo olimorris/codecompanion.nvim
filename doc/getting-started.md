@@ -1,5 +1,7 @@
 # Getting Started
 
+Please see the plugin author's own [config](https://github.com/olimorris/dotfiles/blob/main/.config/nvim/lua/plugins/coding.lua) for a complete reference of how to setup CodeCompanion.
+
 ## Configuring an Adapter
 
 > [!NOTE]

@@ -17,6 +17,7 @@ The plugin also defines a number of prompts in the form of the prompt library:
 - `Explain LSP Diagnostics`  - Explain the LSP diagnostics for the selected code
 - `Unit Tests` - Generate unit tests for selected code
 - `Generate a Commit Message` - Generate a commit message
+- `Workspace File` - Generating a new workspace file and/or creating a group
 
 > [!INFO]
 > These can also be called via the cmd line for example `:CodeCompanion /explain`

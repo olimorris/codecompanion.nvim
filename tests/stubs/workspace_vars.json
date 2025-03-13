@@ -1,0 +1,50 @@
+{
+  "name": "CodeCompanion.nvim",
+  "version": "1.0.0",
+  "system_prompt": "Workspace system prompt",
+  "vars": {
+    "var_description": "This is a test description",
+    "var_hello": "Hello World",
+    "test_path": "tests/stubs"
+  },
+  "groups": [
+    {
+      "name": "Test",
+      "description": "${var_description}",
+      "system_prompt": "Test group system prompt",
+      "data": ["stub-go", "stub-lua"]
+    },
+    {
+      "name": "Test 2",
+      "vars": {
+        "var_hello": "Hello CodeCompanion"
+      },
+      "description": "${var_hello}",
+      "system_prompt": "Test group system prompt",
+      "data": ["stub-lua"]
+    },
+    {
+      "name": "Test 3",
+      "description": "My description",
+      "system_prompt": "Test group system prompt",
+      "data": ["stub-txt"]
+    }
+  ],
+  "data": {
+    "stub-go": {
+      "type": "file",
+      "path": "tests/stubs/stub.go",
+      "description": "${var_hello}"
+    },
+    "stub-lua": {
+      "type": "symbols",
+      "path": "tests/stubs/stub.lua",
+      "description": "Test symbol description for the file ${filename} located at ${path}"
+    },
+    "stub-txt": {
+      "type": "file",
+      "path": "${test_path}/stub.txt",
+      "description": "Test symbol description for the file ${filename} located at ${path}"
+    }
+  }
+}

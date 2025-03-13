@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CodeCompanion.nvim workspace configuration file",
+  "description": "Schema for a CodeCompanion.nvim workspace configuration file. A workspace is a collection of groups which relate to functionality in a codebase",
+  "type": "object",
+  "required": ["name", "version", "system_prompt", "groups", "data"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the workspace"
+    },
+    "version": {
+      "type": "string",
+      "description": "Version of the workspace file. Allows teams to know if there have been any changes to the file"
+    },
+    "system_prompt": {
+      "type": "string",
+      "description": "The default system prompt that's sent to an LLM when a workspace group is selected"
+    },
+    "vars": {
+      "type": "object",
+      "description": "Variables that can be used within groups and data objects. Variables can be referenced using ${variable_name} syntax.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "groups": {
+      "type": "array",
+      "description": "A group is a collection of objects from the data object in this schema, which relate to features and functionality in the codebase",
+      "items": {
+        "type": "object",
+        "required": ["name", "system_prompt", "data"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the group"
+          },
+          "system_prompt": {
+            "type": "string",
+            "description": "The system prompt specific to the group that is shared with an LLM when the group is selected"
+          },
+          "opts": {
+            "type": "object",
+            "description": "Group-specific options",
+            "properties": {
+              "remove_config_system_prompt": {
+                "type": "boolean",
+                "description": "Remove CodeCompanion's default system prompt when this group is selected?"
+              }
+            }
+          },
+          "data": {
+            "type": "array",
+            "description": "List of data IDs which make up the group",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "data": {
+      "type": "object",
+      "description": "Objects in the codebase that are referenced in groups",
+      "patternProperties": {
+        "^.*$": {
+          "type": "object",
+          "required": ["type", "path", "description"],
+          "properties": {
+            "type": {
+              "enum": ["file", "symbols", "url"],
+              "description": "A file shares the whole contents of an object in the codebase. A symbol shares a symbolic outline (via Tree-sitter) of an object in the codebase. A url shares the entire contents of a webpage."
+            },
+            "path": {
+              "type": "string",
+              "description": "Path to the resource. Could be a filepath in the case of a file or symbol type. Or a url in the case of a url type"
+            },
+            "description": {
+              "type": "string",
+              "description": "Description of the data object"
+            },
+            "opts": {
+              "type": "object",
+              "description": "Optional settings for the data object",
+              "properties": {
+                "auto_restore_cache": {
+                  "type": "boolean",
+                  "description": "If the object is a URL, should its  cached data be automatically restored?"
+                }
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

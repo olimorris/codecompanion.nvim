@@ -12,19 +12,19 @@ local CONSTANTS = {
 }
 
 ---Output a list of files in the group
+---@param group table
+---@param workspace table
 ---@return string
-local function get_file_list(group)
+local function get_file_list(group, workspace)
   local items = {}
 
-  if group.files then
-    vim.iter(group.files):each(function(file)
-      table.insert(items, "- " .. (file.path or file))
-    end)
-  end
-  if group.symbols then
-    vim.iter(group.symbols):each(function(symbol)
-      table.insert(items, "- " .. (symbol.path or symbol))
-    end)
+  if group.data and workspace and workspace.data then
+    for _, item in ipairs(group.data) do
+      local resource = workspace.data[item]
+      if resource and resource.path then
+        table.insert(items, "- " .. resource.path)
+      end
+    end
   end
 
   if vim.tbl_count(items) == 0 then
@@ -44,13 +44,26 @@ end
 ---@param str string
 ---@return string
 local function replace_vars(workspace, group, str)
-  local builtin = {
-    group_name = group.name,
-    group_files = get_file_list(group),
-    workspace_description = workspace.description,
-    workspace_name = workspace.name,
-  }
-  return util.replace_placeholders(str, builtin)
+  local replaced_vars = {}
+
+  -- Vars from the top level can be overwritten, so they come first
+  if workspace.vars then
+    vim.iter(workspace.vars):each(function(k, v)
+      replaced_vars[k] = v
+    end)
+  end
+
+  if group.vars then
+    vim.iter(group.vars):each(function(k, v)
+      replaced_vars[k] = v
+    end)
+  end
+
+  -- Add the builtin group level and workspace vars
+  replaced_vars["workspace_name"] = workspace.name
+  replaced_vars["group_name"] = group.name
+
+  return util.replace_placeholders(str, replaced_vars)
 end
 
 ---Add the description of the group to the chat buffer
@@ -121,6 +134,36 @@ function SlashCommand:read_workspace_file(path)
   return json
 end
 
+---Add an item from the data section to the chat buffer
+---@param group table
+---@param item string
+function SlashCommand:add_to_chat(group, item)
+  local resource = self.workspace.data[item]
+  if not resource then
+    return log:warn("Could not find '%s' in the workspace file", item)
+  end
+
+  -- Apply group variables to path
+  local path = replace_vars(self.workspace, group, resource.path)
+
+  -- Apply built-in variables to description
+  local description = resource.description
+  if description then
+    local builtin = {
+      cwd = vim.fn.getcwd(),
+      filename = vim.fn.fnamemodify(path, ":t"),
+      path = path,
+    }
+    -- Replace variables from the user's custom declarations as well as the builtin ones
+    description = util.replace_placeholders(replace_vars(self.workspace, group, description), builtin)
+  end
+
+  -- Extract options if present
+  local opts = resource.opts or {}
+
+  return slash_commands.references(self.Chat, resource.type, { path = path, description = description, opts = opts })
+end
+
 ---Execute the slash command
 ---@param SlashCommands CodeCompanion.SlashCommands
 ---@param opts? table
@@ -170,9 +213,10 @@ function SlashCommand:output(selected_group, opts)
   if self.workspace.system_prompt then
     self.Chat:add_system_prompt(
       replace_vars(self.workspace, group, self.workspace.system_prompt),
-      { index = 1, visible = false, tag = self.workspace.name .. " // Workspace" }
+      { visible = false, tag = self.workspace.name .. " // Workspace" }
     )
   end
+
   if group.system_prompt then
     self.Chat:add_system_prompt(
       replace_vars(self.workspace, group, group.system_prompt),
@@ -185,61 +229,11 @@ function SlashCommand:output(selected_group, opts)
     add_group_description(self.Chat, self.workspace, group)
   end
 
-  -- Add files
-  if group.files and vim.tbl_count(group.files) > 0 then
-    vim.iter(group.files):each(function(file)
-      self:add_item(group, "file", file)
-    end)
+  if group.data and self.workspace.data then
+    for _, data_item in ipairs(group.data) do
+      self:add_to_chat(group, data_item)
+    end
   end
-
-  -- Add symbols
-  if group.symbols and vim.tbl_count(group.symbols) > 0 then
-    vim.iter(group.symbols):each(function(file)
-      self:add_item(group, "symbols", file)
-    end)
-  end
-
-  -- Add URLs
-  if group.urls and vim.tbl_count(group.urls) > 0 then
-    vim.iter(group.urls):each(function(url)
-      url.path = url.url
-      url.description = url.description
-      --TODO: Refactor this...we're adding to an options table to then strip it away in slash_commands/init.lua
-      url.opts = {
-        ignore_cache = url.ignore_cache,
-        auto_restore_cache = url.auto_restore_cache,
-      }
-      self:add_item(group, "url", url)
-    end)
-  end
-end
-
----Add an item from the group to the chat buffer
----@param group table
----@param item_type string
----@param item { path: string, description: string, opts: table? } | string
-function SlashCommand:add_item(group, item_type, item)
-  -- Replace any variables in the path
-  local path = item.path or item
-  if group.vars then
-    path = util.replace_placeholders(path, group.vars)
-  end
-
-  -- Replace any built-in variables
-  local builtin = {
-    cwd = vim.fn.getcwd(),
-    filename = vim.fn.fnamemodify(path, ":t"),
-    path = path,
-  }
-  if item.description then
-    item.description = util.replace_placeholders(item.description, builtin)
-  end
-
-  return slash_commands.references(
-    self.Chat,
-    item_type,
-    { path = path, description = item.description, opts = item.opts }
-  )
 end
 
 return SlashCommand
