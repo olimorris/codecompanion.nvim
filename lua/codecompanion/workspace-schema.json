@@ -17,6 +17,13 @@
       "type": "string",
       "description": "The default system prompt that's sent to an LLM when a workspace group is selected"
     },
+    "vars": {
+      "type": "object",
+      "description": "Variables that can be used within groups and data objects. Variables can be referenced using ${variable_name} syntax.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
     "groups": {
       "type": "array",
       "description": "A group is a collection of objects from the data object in this schema, which relate to features and functionality in the codebase",

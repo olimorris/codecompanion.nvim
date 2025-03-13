@@ -824,9 +824,9 @@ This is the code, for context:
         },
       },
     },
-    ["Workspace file"] = {
+    ["Workspace File"] = {
       strategy = "chat",
-      description = "Generate a Workspace file",
+      description = "Generate a Workspace file/group",
       opts = {
         index = 11,
         ignore_system_prompt = true,
@@ -879,7 +879,6 @@ You must create or modify a workspace file through a series of prompts over mult
           role = constants.USER_ROLE,
           content = function()
             local prompt = ""
-
             if vim.fn.filereadable(vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json")) == 1 then
               prompt = [[Can you help me add a group to an existing workspace file?]]
             else
@@ -890,7 +889,6 @@ You must create or modify a workspace file through a series of prompts over mult
             if ok then
               prompt = prompt .. " Use the @vectorcode tool to help identify groupings of files"
             end
-
             return prompt
           end,
         },

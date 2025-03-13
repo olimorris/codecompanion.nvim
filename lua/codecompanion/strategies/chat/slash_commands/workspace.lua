@@ -60,10 +60,8 @@ local function replace_vars(workspace, group, str)
   end
 
   -- Add the builtin group level and workspace vars
-  replaced_vars["group_name"] = group.name
-  replaced_vars["group_files"] = get_file_list(group, workspace)
-  replaced_vars["workspace_description"] = workspace.description
   replaced_vars["workspace_name"] = workspace.name
+  replaced_vars["group_name"] = group.name
 
   return util.replace_placeholders(str, replaced_vars)
 end

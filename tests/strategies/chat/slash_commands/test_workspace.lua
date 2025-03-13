@@ -163,7 +163,29 @@ T["Workspace"]["variables are replaced in paths"] = function()
 
   local messages = child.lua_get([[_G.chat.messages]])
 
+  -- stub-txt is resolved
   h.expect_contains("Some text", messages[5].content)
 end
+
+-- T["Workspace"]["same data isn't inserted twice"] = function()
+--   workspace_json = vim.json.decode(table.concat(vim.fn.readfile("tests/stubs/workspace_vars.json"), ""))
+--
+--   child.lua([[
+--   _G.set_workspace("tests/stubs/workspace.json")
+--   ]])
+--
+--   child.lua([[
+--   _G.wks:output("Test")
+--   _G.wks:output("Test 4")
+--   ]])
+--
+--   local messages = child.lua_get([[_G.chat.messages]])
+--
+--   h.eq("This is a test group", messages[5].content)
+--   h.expect_contains("stub.lua", messages[7].content)
+--
+--   h.eq("Test for adding the same file twice", messages[8].content)
+--   h.eq("stubs.lua", messages[9].content)
+-- end
 
 return T

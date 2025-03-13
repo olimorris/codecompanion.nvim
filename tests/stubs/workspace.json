@@ -26,6 +26,12 @@
         "remove_config_system_prompt": true
       },
       "data": ["test3-stub-go"]
+    },
+    {
+      "name": "Test 4",
+      "description": "Test for adding the same file twice",
+      "system_prompt": "Some other system prompt",
+      "data": ["stub-lua"]
     }
   ],
   "data": {

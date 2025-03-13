@@ -1,7 +1,6 @@
 {
   "name": "CodeCompanion.nvim",
   "version": "1.0.0",
-  "workspace_spec": "1.0",
   "system_prompt": "Workspace system prompt",
   "vars": {
     "var_description": "This is a test description",
