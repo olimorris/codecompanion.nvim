@@ -1,5 +1,16 @@
 # Changelog
 
+## [14.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v13.5.0...v14.0.0) (2025-03-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **workspaces:** new workspace file format ([#1089](https://github.com/olimorris/codecompanion.nvim/issues/1089))
+
+### Features
+
+* **workspaces:** new workspace file format ([#1089](https://github.com/olimorris/codecompanion.nvim/issues/1089)) ([3f7fd62](https://github.com/olimorris/codecompanion.nvim/commit/3f7fd6292b9d43d38e9760f43b581652210b0349))
+
 ## [13.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v13.4.0...v13.5.0) (2025-03-12)
 
 
