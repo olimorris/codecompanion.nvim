@@ -1,0 +1,8 @@
+{"model":"qwen2.5-coder:latest","created_at":"2025-03-14T13:12:49.130407Z","message":{"role":"assistant","content":"Dynamic"},"done":false}
+{"model":"qwen2.5-coder:latest","created_at":"2025-03-14T13:12:49.168411Z","message":{"role":"assistant","content":" and"},"done":false}
+{"model":"qwen2.5-coder:latest","created_at":"2025-03-14T13:12:49.20766Z","message":{"role":"assistant","content":" object"},"done":false}
+{"model":"qwen2.5-coder:latest","created_at":"2025-03-14T13:12:49.245434Z","message":{"role":"assistant","content":"-oriented"},"done":false}
+{"model":"qwen2.5-coder:latest","created_at":"2025-03-14T13:12:49.283642Z","message":{"role":"assistant","content":" programming"},"done":false}
+{"model":"qwen2.5-coder:latest","created_at":"2025-03-14T13:12:49.320824Z","message":{"role":"assistant","content":" language"},"done":false}
+{"model":"qwen2.5-coder:latest","created_at":"2025-03-14T13:12:49.360991Z","message":{"role":"assistant","content":"."},"done":false}
+{"model":"qwen2.5-coder:latest","created_at":"2025-03-14T13:12:49.399283Z","message":{"role":"assistant","content":""},"done_reason":"stop","done":true,"total_duration":5045336083,"load_duration":578057875,"prompt_eval_count":401,"prompt_eval_duration":3971000000,"eval_count":8,"eval_duration":270000000}

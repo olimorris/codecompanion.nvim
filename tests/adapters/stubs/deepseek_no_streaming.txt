@@ -1,0 +1,30 @@
+{
+  "id": "chatcmpl-ADx5bEkzrSB6WjrnB9ce1ofWcaOAq",
+  "object": "chat.completion",
+  "created": 1727888767,
+  "model": "deepseek-chat",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Elegant simplicity.",
+        "refusal": null
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 343,
+    "completion_tokens": 3,
+    "total_tokens": 346,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  },
+  "system_fingerprint": "fp_5796ac6771"
+}

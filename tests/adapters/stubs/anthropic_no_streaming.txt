@@ -1,0 +1,20 @@
+{
+  "id": "msg_01NcyMmvGYa32CRkwFJLFZ42",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-3-5-sonnet-20241022",
+  "content": [
+    {
+      "type": "text",
+      "text": "Dynamic elegance\\n\\nWould you like me to explain what makes Ruby both dynamic and elegant?"
+    }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 439,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 21
+  }
+}

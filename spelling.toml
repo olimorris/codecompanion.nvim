@@ -1,5 +1,5 @@
 [files]
-extend-exclude = [ "CHANGELOG.md" ]
+extend-exclude = [ "CHANGELOG.md", "tests/adapters/stubs" ]
 
 [default.extend-words]
 noet = "noet"
