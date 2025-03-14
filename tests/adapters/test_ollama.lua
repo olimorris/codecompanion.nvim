@@ -52,6 +52,7 @@ T["Ollama adapter"]["No Streaming"]["can output for the chat buffer"] = function
   local data = vim.fn.readfile("tests/adapters/stubs/ollama_no_streaming.txt")
   data = table.concat(data, "\n")
 
+  -- Match the format of the actual request
   local json = { body = data }
 
   h.eq("**Object-oriented**\\n**Dynamic**", adapter.handlers.chat_output(adapter, json).output.content)

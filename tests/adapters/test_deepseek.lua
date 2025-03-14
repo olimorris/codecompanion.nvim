@@ -107,7 +107,7 @@ T["DeepSeek adapter"]["No Streaming"]["can output for the inline assistant"] = f
   local data = vim.fn.readfile("tests/adapters/stubs/deepseek_no_streaming.txt")
   data = table.concat(data, "\n")
 
-  -- JSON object needs the body key
+  -- Match the format of the actual request
   local json = { body = data }
 
   h.eq("Elegant simplicity.", adapter.handlers.inline_output(adapter, json).output)

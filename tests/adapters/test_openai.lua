@@ -52,14 +52,17 @@ T["OpenAI adapter"]["No Streaming"]["can output for the chat buffer"] = function
   local data = vim.fn.readfile("tests/adapters/stubs/openai_no_streaming.txt")
   data = table.concat(data, "\n")
 
-  h.eq("Elegant simplicity.", adapter.handlers.chat_output(adapter, data).output.content)
+  -- Match the format of the actual request
+  local json = { body = data }
+
+  h.eq("Elegant simplicity.", adapter.handlers.chat_output(adapter, json).output.content)
 end
 
 T["OpenAI adapter"]["No Streaming"]["can output for the inline assistant"] = function()
   local data = vim.fn.readfile("tests/adapters/stubs/openai_no_streaming.txt")
   data = table.concat(data, "\n")
 
-  -- JSON object needs the body key
+  -- Match the format of the actual request
   local json = { body = data }
 
   h.eq("Elegant simplicity.", adapter.handlers.inline_output(adapter, json).output)

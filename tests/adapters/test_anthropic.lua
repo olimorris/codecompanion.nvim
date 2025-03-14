@@ -102,6 +102,7 @@ T["Anthropic adapter"]["No Streaming"]["can output for the chat buffer"] = funct
   local data = vim.fn.readfile("tests/adapters/stubs/anthropic_no_streaming.txt")
   data = table.concat(data, "\n")
 
+  -- Match the format of the actual request
   local json = { body = data }
 
   h.expect_starts_with("Dynamic elegance", adapter.handlers.chat_output(adapter, json).output.content)
@@ -111,7 +112,7 @@ T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant"] = 
   local data = vim.fn.readfile("tests/adapters/stubs/anthropic_no_streaming.txt")
   data = table.concat(data, "\n")
 
-  -- JSON object needs the body key
+  -- Match the format of the actual request
   local json = { body = data }
 
   h.expect_starts_with("Dynamic elegance", adapter.handlers.inline_output(adapter, json).output)
