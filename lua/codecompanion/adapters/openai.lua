@@ -148,9 +148,8 @@ return {
     ---Output the data from the API ready for inlining into the current buffer
     ---@param self CodeCompanion.Adapter
     ---@param data string|table The streamed JSON data from the API, also formatted by the format_data handler
-    ---@param context? table Useful context about the buffer to inline to
     ---@return {status: string, output: table}|nil
-    inline_output = function(self, data, context)
+    inline_output = function(self, data)
       if self.opts.stream then
         return log:error("Inline output is not supported for non-streaming models")
       end
