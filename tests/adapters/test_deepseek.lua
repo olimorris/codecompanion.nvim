@@ -2,15 +2,15 @@ local h = require("tests.helpers")
 local adapter
 
 local new_set = MiniTest.new_set
-T = new_set({
+T = new_set()
+
+T["DeepSeek adapter"] = new_set({
   hooks = {
     pre_case = function()
       adapter = require("codecompanion.adapters").resolve("deepseek")
     end,
   },
 })
-
-T["DeepSeek adapter"] = new_set()
 
 T["DeepSeek adapter"]["it can form messages to be sent to the API"] = function()
   local messages = { {
@@ -97,19 +97,18 @@ T["DeepSeek adapter"]["No Streaming"] = new_set({
 })
 
 T["DeepSeek adapter"]["No Streaming"]["can output for the chat buffer"] = function()
-  local lines = vim.fn.readfile("tests/adapters/stubs/deepseek_no_streaming.txt")
-  lines = table.concat(lines, "\n")
+  local data = vim.fn.readfile("tests/adapters/stubs/deepseek_no_streaming.txt")
+  data = table.concat(data, "\n")
 
-  h.eq("Elegant simplicity.", adapter.handlers.chat_output(adapter, lines).output.content)
+  h.eq("Elegant simplicity.", adapter.handlers.chat_output(adapter, data).output.content)
 end
 
 T["DeepSeek adapter"]["No Streaming"]["can output for the inline assistant"] = function()
   local data = vim.fn.readfile("tests/adapters/stubs/deepseek_no_streaming.txt")
   data = table.concat(data, "\n")
 
-  local json = {
-    body = data,
-  }
+  -- JSON object needs the body key
+  local json = { body = data }
 
   h.eq("Elegant simplicity.", adapter.handlers.inline_output(adapter, json).output)
 end
