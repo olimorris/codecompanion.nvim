@@ -86,6 +86,28 @@ T["Anthropic adapter"]["Streaming"]["can output streamed data into the chat buff
   h.expect_starts_with("Dynamic elegance", output)
 end
 
+T["Anthropic adapter"]["Streaming"]["can process reasoning output"] = function()
+  local output = {
+    content = "",
+    reasoning = "",
+  }
+  local lines = vim.fn.readfile("tests/adapters/stubs/anthopic_reasoning_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.chat_output(adapter, line)
+    if chat_output then
+      if chat_output.output.reasoning then
+        output.reasoning = output.reasoning .. chat_output.output.reasoning
+      end
+      if chat_output.output.content then
+        output.content = output.content .. chat_output.output.content
+      end
+    end
+  end
+
+  h.expect_starts_with("**Elegant simplicity**", output.content)
+  h.expect_starts_with("The user is asking me to describe the Ruby programming language", output.reasoning)
+end
+
 T["Anthropic adapter"]["No Streaming"] = new_set({
   hooks = {
     pre_case = function()
