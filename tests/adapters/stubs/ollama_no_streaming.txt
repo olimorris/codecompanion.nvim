@@ -1,0 +1,16 @@
+{
+  "model": "llama3.1:latest",
+  "created_at": "2025-02-09T21:59:27.81386Z",
+  "message": {
+    "role": "assistant",
+    "content": "**Object-oriented**\\n**Dynamic**"
+  },
+  "done_reason": "stop",
+  "done": true,
+  "total_duration": 833897208,
+  "load_duration": 36003125,
+  "prompt_eval_count": 391,
+  "prompt_eval_duration": 567000000,
+  "eval_count": 8,
+  "eval_duration": 228000000
+}

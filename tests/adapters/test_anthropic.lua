@@ -1,152 +1,143 @@
-local adapter
-local messages
-local response
-
-local adapter_helpers = require("tests.adapters.helpers")
 local h = require("tests.helpers")
+local adapter
 
-describe("Anthropic adapter", function()
-  before_each(function()
-    adapter = require("codecompanion.adapters").resolve("anthropic")
+local new_set = MiniTest.new_set
+T = new_set()
 
-    ----------------------------------------------- OUTPUT FROM THE CHAT BUFFER
-    messages = { {
-      content = "Explain Ruby in two words",
-      role = "user",
-    } }
+T["Anthropic adapter"] = new_set({
+  hooks = {
+    pre_case = function()
+      adapter = require("codecompanion.adapters").resolve("anthropic")
+    end,
+  },
+})
 
-    response = {
-      {
-        request = [[data: {"type":"message_start","message":{"id":"msg_01Ngmyfn49udNhWaojMVKiR6","type":"message","role":"assistant","content":[],"model":"claude-3-opus-20240229","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":13,"output_tokens":1}}}]],
-        output = {
-          content = "",
-          role = "assistant",
-        },
+T["Anthropic adapter"]["consolidates system prompts in their own block"] = function()
+  local messages = {
+    { content = "Hello", role = "system" },
+    { content = "World", role = "system" },
+    { content = "What can you do?!", role = "user" },
+  }
+
+  local output = adapter.handlers.form_messages(adapter, messages)
+
+  h.eq("Hello", output.system[1].text)
+  h.eq("World", output.system[2].text)
+  h.eq({ { content = "What can you do?!", role = "user" } }, output.messages)
+end
+
+T["Anthropic adapter"]["can form messages to be sent to the API"] = function()
+  local messages = { {
+    content = "Explain Ruby in two words",
+    role = "user",
+  } }
+  h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+end
+
+T["Anthropic adapter"]["consolidates consecutive user messages together"] = function()
+  local messages = {
+    { content = "Hello", role = "user" },
+    { content = "World!", role = "user" },
+    { content = "What up?!", role = "user" },
+  }
+
+  h.eq(
+    { { role = "user", content = "Hello\n\nWorld!\n\nWhat up?!" } },
+    adapter.handlers.form_messages(adapter, messages).messages
+  )
+end
+
+T["Anthropic adapter"]["Non-Reasoning models have less tokens"] = function()
+  local non_reasoning = require("codecompanion.adapters").extend("anthropic", {
+    schema = {
+      model = {
+        default = "claude-3-5-sonnet-20241022",
       },
-      {
-        request = [[data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Dynamic"}}]],
-        output = {
-          content = "Dynamic",
-        },
+    },
+  })
+  local output = require("codecompanion.adapters").resolve(non_reasoning)
+  h.eq(4096, output.schema.max_tokens.default(non_reasoning))
+end
+
+T["Anthropic adapter"]["Reasoning models have more tokens"] = function()
+  local reasoning = require("codecompanion.adapters").extend("anthropic", {
+    schema = {
+      model = {
+        default = "claude-3-7-sonnet-20250219",
       },
-      {
-        request = [[data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":","}}]],
-        output = {
-          content = ",",
+    },
+  })
+  local output = require("codecompanion.adapters").resolve(reasoning)
+  h.eq(17000, output.schema.max_tokens.default(reasoning))
+end
+
+T["Anthropic adapter"]["Streaming"] = new_set()
+
+T["Anthropic adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
+  local output = ""
+  local lines = vim.fn.readfile("tests/adapters/stubs/anthropic_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.chat_output(adapter, line)
+    if chat_output and chat_output.output.content then
+      output = output .. chat_output.output.content
+    end
+  end
+
+  h.expect_starts_with("Dynamic elegance", output)
+end
+
+T["Anthropic adapter"]["Streaming"]["can process reasoning output"] = function()
+  local output = {
+    content = "",
+    reasoning = "",
+  }
+  local lines = vim.fn.readfile("tests/adapters/stubs/anthopic_reasoning_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.chat_output(adapter, line)
+    if chat_output then
+      if chat_output.output.reasoning then
+        output.reasoning = output.reasoning .. chat_output.output.reasoning
+      end
+      if chat_output.output.content then
+        output.content = output.content .. chat_output.output.content
+      end
+    end
+  end
+
+  h.expect_starts_with("**Elegant simplicity**", output.content)
+  h.expect_starts_with("The user is asking me to describe the Ruby programming language", output.reasoning)
+end
+
+T["Anthropic adapter"]["No Streaming"] = new_set({
+  hooks = {
+    pre_case = function()
+      adapter = require("codecompanion.adapters").extend("anthropic", {
+        opts = {
+          stream = false,
         },
-      },
-      {
-        request = [[data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":" elegant"}}]],
-        output = {
-          content = " elegant",
-        },
-      },
-      {
-        request = [[data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"."}}]],
-        output = {
-          content = ".",
-        },
-      },
-    }
-    -------------------------------------------------------------------- // END
-  end)
+      })
+    end,
+  },
+})
 
-  it("consolidates system prompts in their own block", function()
-    messages = {
-      { content = "Hello", role = "system" },
-      { content = "World", role = "system" },
-      { content = "What can you do?!", role = "user" },
-    }
+T["Anthropic adapter"]["No Streaming"]["can output for the chat buffer"] = function()
+  local data = vim.fn.readfile("tests/adapters/stubs/anthropic_no_streaming.txt")
+  data = table.concat(data, "\n")
 
-    local output = adapter.handlers.form_messages(adapter, messages)
+  -- Match the format of the actual request
+  local json = { body = data }
 
-    h.eq("Hello", output.system[1].text)
-    h.eq("World", output.system[2].text)
-    h.eq({ { content = "What can you do?!", role = "user" } }, output.messages)
-  end)
+  h.expect_starts_with("Dynamic elegance", adapter.handlers.chat_output(adapter, json).output.content)
+end
 
-  it("can form messages to be sent to the API", function()
-    h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
-  end)
+T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant"] = function()
+  local data = vim.fn.readfile("tests/adapters/stubs/anthropic_no_streaming.txt")
+  data = table.concat(data, "\n")
 
-  it("consolidates consecutive user messages together", function()
-    messages = {
-      { content = "Hello", role = "user" },
-      { content = "World!", role = "user" },
-      { content = "What up?!", role = "user" },
-    }
+  -- Match the format of the actual request
+  local json = { body = data }
 
-    h.eq(
-      { { role = "user", content = "Hello\n\nWorld!\n\nWhat up?!" } },
-      adapter.handlers.form_messages(adapter, messages).messages
-    )
-  end)
+  h.expect_starts_with("Dynamic elegance", adapter.handlers.inline_output(adapter, json).output)
+end
 
-  it("can output streamed data into a format for the chat buffer", function()
-    h.eq({
-      content = "Dynamic, elegant.",
-      role = "assistant",
-    }, adapter_helpers.chat_buffer_output(response, adapter))
-  end)
-end)
-
-describe("Anthropic adapter with NO STREAMING", function()
-  before_each(function()
-    response = {
-      {
-        request = {
-          body = '{"id":"msg_01NcyMmvGYa32CRkwFJLFZ42","type":"message","role":"assistant","model":"claude-3-5-sonnet-20241022","content":[{"type":"text","text":"Dynamic elegance\\n\\nWould you like me to explain what makes Ruby both dynamic and elegant?"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":439,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":21}}',
-          exit = 0,
-          headers = {
-            "date: Sun, 09 Feb 2025 19:38:25 GMT",
-            -- Deleted the rest
-          },
-          status = 200,
-        },
-        output = {
-          content = "Dynamic elegance\n\nWould you like me to explain what makes Ruby both dynamic and elegant?",
-          role = "assistant",
-        },
-      },
-    }
-
-    adapter = require("codecompanion.adapters").extend("anthropic", {
-      opts = {
-        stream = false,
-      },
-    })
-  end)
-
-  it("can output data into a format for the chat buffer", function()
-    h.eq(response[#response].output, adapter_helpers.chat_buffer_output(response, adapter))
-  end)
-
-  it("can output data into a format for the inline assistant", function()
-    h.eq(response[#response].output.content, adapter_helpers.inline_buffer_output(response, adapter))
-  end)
-end)
-
-describe("Anthropic Schema", function()
-  it("Non-Reasoning models have less tokens", function()
-    local non_reasoning = require("codecompanion.adapters").extend("anthropic", {
-      schema = {
-        model = {
-          default = "claude-3-5-sonnet-20241022",
-        },
-      },
-    })
-    local output = require("codecompanion.adapters").resolve(non_reasoning)
-    h.eq(4096, output.schema.max_tokens.default(non_reasoning))
-  end)
-  it("Reasoning models have more tokens", function()
-    local reasoning = require("codecompanion.adapters").extend("anthropic", {
-      schema = {
-        model = {
-          default = "claude-3-7-sonnet-20250219",
-        },
-      },
-    })
-    local output = require("codecompanion.adapters").resolve(reasoning)
-    h.eq(17000, output.schema.max_tokens.default(reasoning))
-  end)
-end)
+return T

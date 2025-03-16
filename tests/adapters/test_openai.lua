@@ -1,88 +1,71 @@
-local adapter
-local messages
-local response
-
-local adapter_helpers = require("tests.adapters.helpers")
 local h = require("tests.helpers")
+local adapter
 
-describe("OpenAI adapter", function()
-  before_each(function()
-    adapter = require("codecompanion.adapters").resolve("openai")
+local new_set = MiniTest.new_set
+T = new_set()
 
-    ---------------------------------------------------------- STREAMING OUTPUT
-    messages = { {
-      content = "Explain Ruby in two words",
-      role = "user",
-    } }
+T["OpenAI adapter"] = new_set({
+  hooks = {
+    pre_case = function()
+      adapter = require("codecompanion.adapters").resolve("openai")
+    end,
+  },
+})
 
-    response = {
-      {
-        request = [[data: {"id":"chatcmpl-90DdmqMKOKpqFemxX0OhTVdH042gu","object":"chat.completion.chunk","created":1709839462,"model":"gpt-4-0125-preview","system_fingerprint":"fp_70b2088885","choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}]}]],
-        output = {
-          content = "",
-          role = "assistant",
+T["OpenAI adapter"]["it can form messages to be sent to the API"] = function()
+  local messages = { {
+    content = "Explain Ruby in two words",
+    role = "user",
+  } }
+
+  h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+end
+
+T["OpenAI adapter"]["Streaming"] = new_set()
+
+T["OpenAI adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
+  local output = ""
+  local lines = vim.fn.readfile("tests/adapters/stubs/openai_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.chat_output(adapter, line)
+    if chat_output and chat_output.output.content then
+      output = output .. chat_output.output.content
+    end
+  end
+
+  h.expect_starts_with("Dynamic, Flexible", output)
+end
+
+T["OpenAI adapter"]["No Streaming"] = new_set({
+  hooks = {
+    pre_case = function()
+      adapter = require("codecompanion.adapters").extend("openai", {
+        opts = {
+          stream = false,
         },
-      },
-      {
-        request = [[data: {"id":"chatcmpl-90DdmqMKOKpqFemxX0OhTVdH042gu","object":"chat.completion.chunk","created":1709839462,"model":"gpt-4-0125-preview","system_fingerprint":"fp_70b2088885","choices":[{"index":0,"delta":{"content":"Programming"},"logprobs":null,"finish_reason":null}]}]],
-        output = {
-          content = "Programming",
-        },
-      },
-      {
-        request = [[data: {"id":"chatcmpl-90DdmqMKOKpqFemxX0OhTVdH042gu","object":"chat.completion.chunk","created":1709839462,"model":"gpt-4-0125-preview","system_fingerprint":"fp_70b2088885","choices":[{"index":0,"delta":{"content":" language"},"logprobs":null,"finish_reason":null}]}]],
-        output = {
-          content = " language",
-        },
-      },
-    }
-    -------------------------------------------------------------------- // END
-  end)
+      })
+    end,
+  },
+})
 
-  it("can form messages to be sent to the API", function()
-    h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
-  end)
+T["OpenAI adapter"]["No Streaming"]["can output for the chat buffer"] = function()
+  local data = vim.fn.readfile("tests/adapters/stubs/openai_no_streaming.txt")
+  data = table.concat(data, "\n")
 
-  it("can output streamed data into a format for the chat buffer", function()
-    h.eq(
-      { content = "Programming language", role = "assistant" },
-      adapter_helpers.chat_buffer_output(response, adapter)
-    )
-  end)
-end)
+  -- Match the format of the actual request
+  local json = { body = data }
 
-describe("OpenAI adapter with NO STREAMING", function()
-  before_each(function()
-    response = {
-      {
-        request = {
-          body = '{\n  "id": "chatcmpl-ADx5bEkzrSB6WjrnB9ce1ofWcaOAq",\n  "object": "chat.completion",\n  "created": 1727888767,\n  "model": "gpt-4o-2024-05-13",\n  "choices": [\n    {\n      "index": 0,\n      "message": {\n        "role": "assistant",\n        "content": "Elegant simplicity.",\n        "refusal": null\n      },\n      "logprobs": null,\n      "finish_reason": "stop"\n    }\n  ],\n  "usage": {\n    "prompt_tokens": 343,\n    "completion_tokens": 3,\n    "total_tokens": 346,\n    "prompt_tokens_details": {\n      "cached_tokens": 0\n    },\n    "completion_tokens_details": {\n      "reasoning_tokens": 0\n    }\n  },\n  "system_fingerprint": "fp_5796ac6771"\n}',
-          exit = 0,
-          headers = {
-            "date: Wed, 02 Oct 2024 17:06:07 GMT",
-            "content-type: application/json",
-          },
-          status = 200,
-        },
-        output = {
-          content = "Elegant simplicity.",
-          role = "assistant",
-        },
-      },
-    }
+  h.eq("Elegant simplicity.", adapter.handlers.chat_output(adapter, json).output.content)
+end
 
-    adapter = require("codecompanion.adapters").extend("openai", {
-      opts = {
-        stream = false,
-      },
-    })
-  end)
+T["OpenAI adapter"]["No Streaming"]["can output for the inline assistant"] = function()
+  local data = vim.fn.readfile("tests/adapters/stubs/openai_no_streaming.txt")
+  data = table.concat(data, "\n")
 
-  it("can output data into a format for the chat buffer", function()
-    h.eq(response[#response].output, adapter_helpers.chat_buffer_output(response, adapter))
-  end)
+  -- Match the format of the actual request
+  local json = { body = data }
 
-  it("can output data into a format for the inline assistant", function()
-    h.eq(response[#response].output.content, adapter_helpers.inline_buffer_output(response, adapter))
-  end)
-end)
+  h.eq("Elegant simplicity.", adapter.handlers.inline_output(adapter, json).output)
+end
+
+return T
