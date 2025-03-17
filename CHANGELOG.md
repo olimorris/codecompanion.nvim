@@ -1,5 +1,13 @@
 # Changelog
 
+## [14.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.1.0...v14.1.1) (2025-03-17)
+
+
+### Bug Fixes
+
+* **adapters:** add mistral to the config ([#1133](https://github.com/olimorris/codecompanion.nvim/issues/1133)) ([fbb0e1d](https://github.com/olimorris/codecompanion.nvim/commit/fbb0e1d0ccdd2eaa16ea9ba0f94ca8e4c64f5b97))
+* **completion:** disable default execute implementation for blink.cmp ([#1137](https://github.com/olimorris/codecompanion.nvim/issues/1137)) ([b88684d](https://github.com/olimorris/codecompanion.nvim/commit/b88684d97af444947cedaeda9cc7ba0205b0d3b4))
+
 ## [14.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.0.1...v14.1.0) (2025-03-17)
 
 
