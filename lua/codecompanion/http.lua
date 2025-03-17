@@ -81,6 +81,7 @@ function Client:request(payload, actions, opts)
       handlers.form_parameters and handlers.form_parameters(adapter, adapter:set_env_vars(adapter.parameters), payload)
         or {},
       handlers.form_messages and handlers.form_messages(adapter, payload) or {},
+      handlers.form_tools and handlers.form_tools(adapter, payload) or {},
       adapter.body and adapter.body or {},
       handlers.set_body and handlers.set_body(adapter, payload) or {}
     )

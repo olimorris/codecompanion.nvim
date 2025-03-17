@@ -603,19 +603,10 @@ end
 
 ---Add the given tool to the chat buffer
 ---@param tool string The name of the tool
----@param tool_config table The tool from the config
 ---@return CodeCompanion.Chat
-function Chat:add_tool(tool, tool_config)
+function Chat:add_tool(tool)
   if self.tools_in_use[tool] then
     return self
-  end
-
-  -- Add the overarching agent system prompt first
-  if not self:has_tools() then
-    self:add_message({
-      role = config.constants.SYSTEM_ROLE,
-      content = config.strategies.chat.tools.opts.system_prompt,
-    }, { visible = false, reference = "tool_system_prompt", tag = "tool" })
   end
 
   local id = "<tool>" .. tool .. "</tool>"
@@ -626,14 +617,6 @@ function Chat:add_tool(tool, tool_config)
   })
 
   self.tools_in_use[tool] = true
-
-  local resolved = self.agents.resolve(tool_config)
-  if resolved then
-    self:add_message(
-      { role = config.constants.SYSTEM_ROLE, content = resolved.system_prompt(resolved.schema, xml2lua) },
-      { visible = false, tag = "tool", reference = id }
-    )
-  end
 
   util.fire("ChatToolAdded", { bufnr = self.bufnr, id = self.id, tool = tool })
 

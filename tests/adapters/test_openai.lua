@@ -21,6 +21,41 @@ T["OpenAI adapter"]["it can form messages to be sent to the API"] = function()
   h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
 end
 
+T["OpenAI adapter"]["it can form tools to be sent to the API"] = function()
+  local tools = [[{
+    "type": "function",
+    "function": {
+        "name": "get_weather",
+        "description": "Retrieves current weather for the given location.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "location": {
+                    "type": "string",
+                    "description": "City and country e.g. Bogotá, Colombia"
+                },
+                "units": {
+                    "type": "string",
+                    "enum": [
+                        "celsius",
+                        "fahrenheit"
+                    ],
+                    "description": "Units the temperature will be returned in."
+                }
+            },
+            "required": [
+                "location",
+                "units"
+            ],
+            "additionalProperties": false
+        },
+        "strict": true
+    }
+}]]
+
+  h.eq({ tools = tools }, adapter.handlers.form_tools(adapter, tools))
+end
+
 T["OpenAI adapter"]["Streaming"] = new_set()
 
 T["OpenAI adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()

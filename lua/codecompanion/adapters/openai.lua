@@ -11,6 +11,7 @@ return {
   },
   opts = {
     stream = true,
+    tools = true,
   },
   features = {
     text = true,
@@ -75,6 +76,18 @@ return {
         :totable()
 
       return { messages = messages }
+    end,
+
+    ---Provides the schemas of the tools that are available to the LLM to call
+    ---@param self CodeCompanion.Adapter
+    ---@param tools table
+    ---@return table|nil
+    form_tools = function(self, tools)
+      if not self.opts.tools then
+        return
+      end
+
+      return { tools = tools }
     end,
 
     ---Returns the number of tokens generated from the LLM
