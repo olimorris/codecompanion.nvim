@@ -18,7 +18,7 @@ CodeCompanion is a productivity tool which streamlines how you develop with LLMs
 ## Features
 
 - :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
-- :electric_plug: Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs out of the box (or bring your own!)
+- :electric_plug: Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs out of the box (or bring your own!)
 - :heart_hands: User contributed and supported [adapters](configuration/adapters.html#user-contributed-adapters)
 - :rocket: Inline transformations, code creation and refactoring
 - :robot: Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
@@ -37,11 +37,12 @@ The plugin uses [adapters](configuration/adapters) to connect to LLMs. Out of th
 - DeepSeek (`deepseek`) - Requires an API key
 - Gemini (`gemini`) - Requires an API key
 - HuggingFace (`huggingface`) - Requires an API key
+- Mistral AI (`mistral`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
 - Azure OpenAI (`azure_openai`) - Requires an Azure OpenAI service with a model deployment
 - xAI (`xai`) - Requires an API key
 
-The plugin utilises objects called Strategies. These are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
+The plugin utilises objects called _strategies_. These are the different ways that a user can interact with the plugin. The _chat_ strategy harnesses a buffer to allow direct conversation with the LLM. The _inline_ strategy allows for output from the LLM to be written directly into a pre-existing Neovim buffer.
 
 The plugin allows you to specify adapters for each strategy and also for each [prompt library](configuration/prompt-library) entry.
