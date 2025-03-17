@@ -1,5 +1,12 @@
 # Changelog
 
+## [14.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.0.1...v14.1.0) (2025-03-17)
+
+
+### Features
+
+* **adapters:** add Mistral adapter ([#1118](https://github.com/olimorris/codecompanion.nvim/issues/1118)) ([e4754bb](https://github.com/olimorris/codecompanion.nvim/commit/e4754bb2501685721daa50ed843fb98af9d01725))
+
 ## [14.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.0.0...v14.0.1) (2025-03-17)
 
 
