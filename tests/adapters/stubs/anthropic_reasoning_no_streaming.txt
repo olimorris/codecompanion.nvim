@@ -1,0 +1,25 @@
+{
+    "id": "msg_01E8dn8F4cQnubyzya7krnk5",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-3-7-sonnet-20250219",
+    "content": [
+        {
+            "type": "thinking",
+            "thinking": "The user wants me to print \"hello world\". This is a simple request for code that doesn't involve modifying existing code. I'll write a simple Lua script to print \"hello world\".\n\nFor placement, since the user is asking for new code without specifying any modification to existing code, I'll go with \"Add\" which will place the code after the current cursor position.\n\n```lua\nprint(\"hello world\")\n```\n\nThis is a simple Lua print statement that will output \"hello world\" to the console when executed.\n\nSo my response will have:\n- The Lua code to print \"hello world\"\n- Language: lua (since we're working in Neovim and the default scripting language is Lua)\n- Placement: add (to add after current cursor position)",
+            "signature": "ErUBCkYIARgCIkC1DIhbTgtP1FcWn80wkzhIUz85xM9q/PwzzvPONsaG0XS6tz0lKNMWFncS+9+Oosq44qqkQK+t7AAxqez3IvVREgxss/LY/WOq0Q49T40aDBnMb9grvbcwRWi7/SIwdTPV8wcSgjAM2Lq8evJuIdnRXtus5ywge/3FmvQlUzm2TljIrrpnLe9bZ0h33zSOKh3OkPR2Y5DWawl/eW8vgX1cHX9XrHlEUv0vIcyevA=="
+        },
+        {
+            "type": "text",
+            "text": "<response>\\n  <code>hello world</code>\\n  <language>lua</language>\\n  <placement>add</placement>\\n</response>"
+        }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "usage": {
+        "input_tokens": 900,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 226
+    }
+}

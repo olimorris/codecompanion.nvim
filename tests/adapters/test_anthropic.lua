@@ -91,7 +91,7 @@ T["Anthropic adapter"]["Streaming"]["can process reasoning output"] = function()
     content = "",
     reasoning = "",
   }
-  local lines = vim.fn.readfile("tests/adapters/stubs/anthopic_reasoning_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/stubs/anthropic_reasoning_streaming.txt")
   for _, line in ipairs(lines) do
     local chat_output = adapter.handlers.chat_output(adapter, line)
     if chat_output then
@@ -130,7 +130,7 @@ T["Anthropic adapter"]["No Streaming"]["can output for the chat buffer"] = funct
   h.expect_starts_with("Dynamic elegance", adapter.handlers.chat_output(adapter, json).output.content)
 end
 
-T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant"] = function()
+T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant with non reasoning models"] = function()
   local data = vim.fn.readfile("tests/adapters/stubs/anthropic_no_streaming.txt")
   data = table.concat(data, "\n")
 
@@ -138,6 +138,26 @@ T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant"] = 
   local json = { body = data }
 
   h.expect_starts_with("Dynamic elegance", adapter.handlers.inline_output(adapter, json).output)
+end
+
+T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant with reasoning models"] = function()
+  adapter = require("codecompanion.adapters").extend("anthropic", {
+    opts = {
+      stream = false,
+      can_reason = true,
+    },
+  })
+
+  local data = vim.fn.readfile("tests/adapters/stubs/anthropic_reasoning_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  -- Match the format of the actual request
+  local json = { body = data }
+
+  h.eq(
+    [[<response>\n  <code>hello world</code>\n  <language>lua</language>\n  <placement>add</placement>\n</response>]],
+    adapter.handlers.inline_output(adapter, json).output
+  )
 end
 
 return T
