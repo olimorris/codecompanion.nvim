@@ -1,5 +1,12 @@
 # Changelog
 
+## [14.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.0.0...v14.0.1) (2025-03-17)
+
+
+### Bug Fixes
+
+* **anthropic:** inline editing closes [#1127](https://github.com/olimorris/codecompanion.nvim/issues/1127) ([#1130](https://github.com/olimorris/codecompanion.nvim/issues/1130)) ([bc89f11](https://github.com/olimorris/codecompanion.nvim/commit/bc89f118f1991e9be24c784f72f57f373aa6f84b))
+
 ## [14.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v13.5.0...v14.0.0) (2025-03-13)
 
 
