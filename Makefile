@@ -22,7 +22,7 @@ docs: deps/panvimdoc
 
 format:
 	@echo Formatting...
-	@stylua lua/ -f ./stylua.toml
+	@stylua tests/ lua/ -f ./stylua.toml
 
 test: deps
 	@echo Testing...
