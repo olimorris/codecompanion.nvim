@@ -1,5 +1,19 @@
 # Changelog
 
+## [14.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.1.1...v14.2.0) (2025-03-18)
+
+
+### Features
+
+* **adapters:** add caching to adapters that make http calls to model endpoints ([#1145](https://github.com/olimorris/codecompanion.nvim/issues/1145)) ([9e779b2](https://github.com/olimorris/codecompanion.nvim/commit/9e779b2a4abfc154ba09f3a2d25bc684a413cefd))
+* **adapters:** add support for novita ([#1136](https://github.com/olimorris/codecompanion.nvim/issues/1136)) ([d55dc41](https://github.com/olimorris/codecompanion.nvim/commit/d55dc41e380fffcf3f799d8ed7257ff7a6d51521))
+
+
+### Bug Fixes
+
+* **adapters:** anthropic inline editing ([#1142](https://github.com/olimorris/codecompanion.nvim/issues/1142)) ([ad99cda](https://github.com/olimorris/codecompanion.nvim/commit/ad99cdaca4df56bb3db5ac0a17b423740ce0396d))
+* **blink:** add support to blink newer than 0.13.1 ([#1139](https://github.com/olimorris/codecompanion.nvim/issues/1139)) ([3ee07d6](https://github.com/olimorris/codecompanion.nvim/commit/3ee07d6805d85ddd9c97715af5bc79c8e7f2adb1))
+
 ## [14.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.1.0...v14.1.1) (2025-03-17)
 
 
