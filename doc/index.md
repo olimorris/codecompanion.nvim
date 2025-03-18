@@ -18,7 +18,7 @@ CodeCompanion is a productivity tool which streamlines how you develop with LLMs
 ## Features
 
 - :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
-- :electric_plug: Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs out of the box (or bring your own!)
+- :electric_plug: Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs out of the box (or bring your own!)
 - :heart_hands: User contributed and supported [adapters](configuration/adapters.html#user-contributed-adapters)
 - :rocket: Inline transformations, code creation and refactoring
 - :robot: Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
@@ -38,6 +38,7 @@ The plugin uses [adapters](configuration/adapters) to connect to LLMs. Out of th
 - Gemini (`gemini`) - Requires an API key
 - HuggingFace (`huggingface`) - Requires an API key
 - Mistral AI (`mistral`) - Requires an API key
+- Novita (`novita`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
 - Azure OpenAI (`azure_openai`) - Requires an Azure OpenAI service with a model deployment
