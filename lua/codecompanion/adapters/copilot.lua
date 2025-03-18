@@ -4,6 +4,11 @@ local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
 
+local _cache_expires
+local _cache_file = vim.fn.tempname()
+local _cached_adapter
+local _cached_models
+
 ---@alias CopilotOAuthToken string|nil
 local _oauth_token
 
@@ -122,9 +127,6 @@ local function get_and_authorize_token()
   return true
 end
 
-local _cached_adapter
-local _cached_available_models
-
 ---Reset the cached adapter
 ---@return nil
 local function reset()
@@ -136,8 +138,8 @@ end
 ---@params opts? table
 ---@return table
 local function get_models(self, opts)
-  if _cached_available_models then
-    return _cached_available_models
+  if _cached_models and _cache_expires > os.time() then
+    return _cached_models
   end
 
   if not _cached_adapter then
@@ -185,7 +187,8 @@ local function get_models(self, opts)
     end
   end
 
-  _cached_available_models = models
+  _cached_models = models
+  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.opts.cache_for)
 
   return models
 end
