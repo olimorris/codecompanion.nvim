@@ -72,11 +72,11 @@ T["Agent"][":parse"]["a nested response from the LLM"] = function() end
 T["Agent"][":replace"] = new_set()
 T["Agent"][":replace"]["should replace the tool in the message"] = function()
   child.lua([[
-    local message = "run the @foo tool"
-    _G.result = _G.agent:replace(message, "foo")
+    local message = "run the @editor tool"
+    _G.result = _G.agent:replace(message, "editor")
   ]])
 
-  h.eq("run the foo tool", child.lua_get("_G.result"))
+  h.eq("run the editor tool", child.lua_get("_G.result"))
 end
 
 return T
