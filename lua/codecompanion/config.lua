@@ -27,7 +27,7 @@ local defaults = {
     -- OPTIONS ----------------------------------------------------------------
     opts = {
       allow_insecure = false, -- Allow insecure connections?
-      cache_for = 1800, -- Cache adapter modesl for this long (seconds)
+      cache_for = 1800, -- Cache adapter models for this long (seconds)
       show_defaults = true, -- Show default adapters
       proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
     },
