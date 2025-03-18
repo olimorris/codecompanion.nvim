@@ -138,7 +138,7 @@ end
 ---@params opts? table
 ---@return table
 local function get_models(self, opts)
-  if _cached_models and _cache_expires > os.time() then
+  if _cached_models and _cache_expires and _cache_expires > os.time() then
     return _cached_models
   end
 
