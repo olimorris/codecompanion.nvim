@@ -1,7 +1,7 @@
 local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
 
---@class DeepSeek.Adapter: CodeCompanion.Adapter
+---@class DeepSeek.Adapter: CodeCompanion.Adapter
 return {
   name = "deepseek",
   formatted_name = "DeepSeek",
