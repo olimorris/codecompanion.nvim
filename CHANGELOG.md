@@ -1,5 +1,12 @@
 # Changelog
 
+## [14.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.2.0...v14.2.1) (2025-03-18)
+
+
+### Bug Fixes
+
+* **adapters:** ensure cache_expires is set ([#1146](https://github.com/olimorris/codecompanion.nvim/issues/1146)) ([5d6e3c5](https://github.com/olimorris/codecompanion.nvim/commit/5d6e3c5ad3436e1d0baca6588e96426e11f105e2))
+
 ## [14.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.1.1...v14.2.0) (2025-03-18)
 
 
