@@ -188,7 +188,7 @@ local function get_models(self, opts)
   end
 
   _cached_models = models
-  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.opts.cache_for)
+  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.opts.cache_models_for)
 
   return models
 end

@@ -70,7 +70,7 @@ local function get_models(self, opts)
     table.insert(_cached_models, model.id)
   end
 
-  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.opts.cache_for)
+  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.opts.cache_models_for)
 
   return models(opts)
 end
