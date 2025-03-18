@@ -1,4 +1,38 @@
+local Path = require("plenary.path")
+
 local M = {}
+
+---Refresh when we should next check the model cache
+---@param file string
+---@param cache_for number
+---@return number
+function M.refresh_cache(file, cache_for)
+  local time = os.time() + cache_for
+  Path.new(file):write(time, "w")
+  return time
+end
+
+---Return when the model cache expires
+---@param file string
+---@return number
+function M.cache_expires(file, cache_for)
+  local ok, expires = pcall(function()
+    return Path.new(file):read()
+  end)
+  if not ok then
+    expires = M.refresh_cache(file, cache_for)
+  end
+  expires = tonumber(expires)
+  assert(expires, "Could not get the cache expiry time")
+  return expires
+end
+
+---Check if the cache has expired
+---@param file string
+---@return boolean
+function M.cache_expired(file)
+  return os.time() > M.cache_expires(file)
+end
 
 ---Extend a default adapter
 ---@param base_tbl table

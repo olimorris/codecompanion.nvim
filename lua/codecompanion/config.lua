@@ -17,6 +17,7 @@ local defaults = {
     githubmodels = "githubmodels",
     huggingface = "huggingface",
     novita = "novita",
+    mistral = "mistral",
     ollama = "ollama",
     openai = "openai",
     xai = "xai",
@@ -27,8 +28,9 @@ local defaults = {
     -- OPTIONS ----------------------------------------------------------------
     opts = {
       allow_insecure = false, -- Allow insecure connections?
-      show_defaults = true, -- Show default adapters
+      cache_models_for = 1800, -- Cache adapter models for this long (seconds)
       proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
+      show_defaults = true, -- Show default adapters
     },
   },
   constants = constants,
