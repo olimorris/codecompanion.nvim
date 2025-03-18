@@ -1,8 +1,6 @@
 return {
   name = "func_queue_2",
-  system_prompt = function(schema)
-    return "my func system prompt"
-  end,
+  system_prompt = "my func system prompt",
   cmds = {
     ---@return { status: string, data: any }
     function(self, actions, input)

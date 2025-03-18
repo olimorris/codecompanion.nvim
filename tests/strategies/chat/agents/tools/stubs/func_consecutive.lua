@@ -1,9 +1,7 @@
 local log = require("codecompanion.utils.log")
 return {
   name = "func_consecutive",
-  system_prompt = function(schema)
-    return "my func system prompt"
-  end,
+  system_prompt = "my func system prompt",
   cmds = {
     ---In production, we should be outputting as { status: string, data: any }
     function(self, actions, input)

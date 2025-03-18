@@ -10,7 +10,7 @@ T = new_set({
 
       -- Load helpers and set up the environment in the child process
       child.lua([[
-        require("tests.log")
+        --require("tests.log")
         h = require('tests.helpers')
         chat, agent = h.setup_chat_buffer()
 
