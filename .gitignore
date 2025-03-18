@@ -45,6 +45,7 @@ luac.out
 # vitepress
 doc/.vitepress/dist
 doc/.vitepress/cache
+doc/tags*
 
 .direnv/
 .testenv/
