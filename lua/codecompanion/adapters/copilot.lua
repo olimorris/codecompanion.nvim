@@ -151,7 +151,7 @@ local function get_models(self, opts)
 
   get_and_authorize_token()
   local url = "https://api.githubcopilot.com"
-  local headers = _cached_adapter.headers
+  local headers = vim.deepcopy(_cached_adapter.headers)
   headers["Authorization"] = "Bearer " .. _github_token.token
 
   local ok, response = pcall(function()
