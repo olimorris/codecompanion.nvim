@@ -108,7 +108,7 @@
 ---@field name string The name of the tool
 ---@field cmds table The commands to execute
 ---@field schema table The schema that the LLM must use in its response to execute a tool
----@field system_prompt fun(schema: table):string|string The system prompt to the LLM explaining the tool and the schema
+---@field system_prompt string | fun(schema: table): string The system prompt to the LLM explaining the tool and the schema
 ---@field opts? table The options for the tool
 ---@field env? fun(schema: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
 ---@field handlers table Functions which handle the execution of a tool
