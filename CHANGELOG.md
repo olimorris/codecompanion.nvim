@@ -1,5 +1,13 @@
 # Changelog
 
+## [14.2.2](https://github.com/olimorris/codecompanion.nvim/compare/v14.2.1...v14.2.2) (2025-03-19)
+
+
+### Bug Fixes
+
+* **adapters:** copilot token issue when changing adapter closes [#1149](https://github.com/olimorris/codecompanion.nvim/issues/1149) ([#1155](https://github.com/olimorris/codecompanion.nvim/issues/1155)) ([0cc0541](https://github.com/olimorris/codecompanion.nvim/commit/0cc054199c20416da45bdbcadd10b3a9ea748557))
+* **adapters:** remove `tfs_z` from Ollama schema ([#1152](https://github.com/olimorris/codecompanion.nvim/issues/1152)) ([52e2969](https://github.com/olimorris/codecompanion.nvim/commit/52e296963a0a8e6414c0ec72f6bc687b16f2eca7))
+
 ## [14.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.2.0...v14.2.1) (2025-03-18)
 
 
