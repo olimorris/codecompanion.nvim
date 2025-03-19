@@ -747,49 +747,52 @@ function Chat:submit(opts)
 
   self:set_range(2) -- this accounts for the LLM header
 
+  local payload = {
+    messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
+    tools = {},
+  }
+
   local output = {}
   log:info("ELAPSED TIME: %s", log:time())
-  self.current_request = client
-    .new({ adapter = settings })
-    :request(self.adapter:map_roles(vim.deepcopy(self.messages)), {
-      ---@param err { message: string, stderr: string }
-      ---@param data table
-      ---@param adapter CodeCompanion.Adapter The modified adapter from the http client
-      callback = function(err, data, adapter)
-        if err and err.stderr ~= "{}" then
-          self.status = CONSTANTS.STATUS_ERROR
-          log:error("Error: %s", err.stderr)
-          return self:done(output)
-        end
+  self.current_request = client.new({ adapter = settings }):request(payload, {
+    ---@param err { message: string, stderr: string }
+    ---@param data table
+    ---@param adapter CodeCompanion.Adapter The modified adapter from the http client
+    callback = function(err, data, adapter)
+      if err and err.stderr ~= "{}" then
+        self.status = CONSTANTS.STATUS_ERROR
+        log:error("Error: %s", err.stderr)
+        return self:done(output)
+      end
 
-        if data then
-          if adapter.features.tokens then
-            local tokens = self.adapter.handlers.tokens(adapter, data)
-            if tokens then
-              self.ui.tokens = tokens
-            end
-          end
-
-          local result = self.adapter.handlers.chat_output(adapter, data)
-          if result and result.status then
-            self.status = result.status
-            if self.status == CONSTANTS.STATUS_SUCCESS then
-              if result.output.role then
-                result.output.role = config.constants.LLM_ROLE
-              end
-              table.insert(output, result.output.content)
-              self:add_buf_message(result.output)
-            elseif self.status == CONSTANTS.STATUS_ERROR then
-              log:error("Error: %s", result.output)
-              return self:done(output)
-            end
+      if data then
+        if adapter.features.tokens then
+          local tokens = self.adapter.handlers.tokens(adapter, data)
+          if tokens then
+            self.ui.tokens = tokens
           end
         end
-      end,
-      done = function()
-        self:done(output)
-      end,
-    }, { bufnr = bufnr, strategy = "chat" })
+
+        local result = self.adapter.handlers.chat_output(adapter, data)
+        if result and result.status then
+          self.status = result.status
+          if self.status == CONSTANTS.STATUS_SUCCESS then
+            if result.output.role then
+              result.output.role = config.constants.LLM_ROLE
+            end
+            table.insert(output, result.output.content)
+            self:add_buf_message(result.output)
+          elseif self.status == CONSTANTS.STATUS_ERROR then
+            log:error("Error: %s", result.output)
+            return self:done(output)
+          end
+        end
+      end
+    end,
+    done = function()
+      self:done(output)
+    end,
+  }, { bufnr = bufnr, strategy = "chat" })
 end
 
 ---Increment the cycle count in the chat buffer

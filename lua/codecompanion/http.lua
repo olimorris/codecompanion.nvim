@@ -53,7 +53,8 @@ end
 ---@field callback fun(err: nil|string, chunk: nil|table) Callback function, executed when the request has finished or is called multiple times if the request is streaming
 ---@field done? fun() Function to run when the request is complete
 
----@param payload table The payload to be sent to the endpoint
+---Send a HTTP request
+---@param payload { messages: table, tools: table|nil } The payload to be sent to the endpoint
 ---@param actions CodeCompanion.Adapter.RequestActions
 ---@param opts? table Options that can be passed to the request
 ---@return table|nil The Plenary job
@@ -78,10 +79,11 @@ function Client:request(payload, actions, opts)
   local body = self.opts.encode(
     vim.tbl_extend(
       "keep",
-      handlers.form_parameters and handlers.form_parameters(adapter, adapter:set_env_vars(adapter.parameters), payload)
+      handlers.form_parameters
+          and handlers.form_parameters(adapter, adapter:set_env_vars(adapter.parameters), payload.messages)
         or {},
-      handlers.form_messages and handlers.form_messages(adapter, payload) or {},
-      handlers.form_tools and handlers.form_tools(adapter, payload) or {},
+      handlers.form_messages and handlers.form_messages(adapter, payload.messages) or {},
+      handlers.form_tools and handlers.form_tools(adapter, payload.tools) or {},
       adapter.body and adapter.body or {},
       handlers.set_body and handlers.set_body(adapter, payload) or {}
     )
