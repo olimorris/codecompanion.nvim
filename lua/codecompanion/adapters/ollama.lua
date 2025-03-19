@@ -330,18 +330,6 @@ return {
       end,
     },
     ---@type CodeCompanion.Schema
-    tfs_z = {
-      order = 11,
-      mapping = "parameters.options",
-      type = "number",
-      optional = true,
-      default = 1.0,
-      desc = "Tail free sampling is used to reduce the impact of less probable tokens from the output. A higher value (e.g., 2.0) will reduce the impact more, while a value of 1.0 disables this setting. (default: 1)",
-      validate = function(n)
-        return n >= 0, "Must be a non-negative number"
-      end,
-    },
-    ---@type CodeCompanion.Schema
     num_predict = {
       order = 12,
       mapping = "parameters.options",
