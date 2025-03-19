@@ -137,7 +137,7 @@ Now let's look at how we trigger the automated reflection prompts:
         end,
         -- Repeat until the tests pass, as indicated by the testing flag
         repeat_until = function(chat)
-          return chat.tool_flags.testing == true
+          return chat.tools.flags.testing == true
         end,
         content = "The tests have failed. Can you edit the buffer and run the test suite again?",
       },

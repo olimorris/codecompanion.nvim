@@ -23,8 +23,7 @@ The Chat Buffer - This is where all of the logic for conversing with an LLM sits
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field tokens? nil|number The number of tokens in the chat
----@field tool_flags table Flags that external functions can update and subscribers can interact with
----@field tools_in_use? nil|table The tools that are currently being used in the chat
+---@field tools CodeCompanion.Chat.Tools Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field watchers CodeCompanion.Watchers The buffer watcher instance
@@ -53,7 +52,6 @@ local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
 local util = require("codecompanion.utils")
-local xml2lua = require("codecompanion.utils.xml.xml2lua")
 local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
@@ -216,8 +214,6 @@ function Chat.new(args)
     opts = args,
     refs = {},
     status = "",
-    tool_flags = {},
-    tools_in_use = {},
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
@@ -251,6 +247,7 @@ function Chat.new(args)
   self.references = require("codecompanion.strategies.chat.references").new({ chat = self })
   self.subscribers = require("codecompanion.strategies.chat.subscribers").new()
   self.agents = require("codecompanion.strategies.chat.agents").new({ bufnr = self.bufnr, messages = self.messages })
+  self.tools = require("codecompanion.strategies.chat.tools").new({ chat = self })
   self.watchers = require("codecompanion.strategies.chat.watchers").new()
   self.variables = require("codecompanion.strategies.chat.variables").new()
 
@@ -595,50 +592,6 @@ function Chat:parse_msg_for_vars(message)
   return self
 end
 
----Determine if the chat buffer has any tools in use
----@return boolean
-function Chat:has_tools()
-  return not vim.tbl_isempty(self.tools_in_use)
-end
-
----Add the given tool to the chat buffer
----@param tool string The name of the tool
----@param tool_config table The tool from the config
----@return CodeCompanion.Chat
-function Chat:add_tool(tool, tool_config)
-  if self.tools_in_use[tool] then
-    return self
-  end
-
-  local id = "<tool>" .. tool .. "</tool>"
-  self.references:add({
-    source = "tool",
-    name = "tool",
-    id = id,
-  })
-
-  self.tools_in_use[tool] = true
-
-  -- Add the tool's system prompt
-  local resolved = self.agents.resolve(tool_config)
-  if resolved and resolved.system_prompt then
-    local system_prompt
-    if type(resolved.system_prompt) == "function" then
-      system_prompt = resolved.system_prompt(resolved.schema)
-    elseif type(resolved.system_prompt) == "string" then
-      system_prompt = tostring(resolved.system_prompt)
-    end
-    self:add_message(
-      { role = config.constants.SYSTEM_ROLE, content = system_prompt },
-      { visible = false, tag = "tool", reference = id }
-    )
-  end
-
-  util.fire("ChatToolAdded", { bufnr = self.bufnr, id = self.id, tool = tool })
-
-  return self
-end
-
 ---Add a message to the message table
 ---@param data { role: string, content: string }
 ---@param opts? table Options for the message
@@ -749,7 +702,7 @@ function Chat:submit(opts)
 
   local payload = {
     messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
-    tools = {},
+    tools = self.tools_in_use,
   }
 
   local output = {}
@@ -836,7 +789,7 @@ function Chat:done(output)
   self.references:render()
 
   -- If we're running any tooling, let them handle the subscriptions instead
-  if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
+  if self.status == CONSTANTS.STATUS_SUCCESS and self.tools:loaded() then
     self.agents:parse_buffer(self, assistant_range, self.header_line - 1)
   else
     self.subscribers:process(self)
@@ -1125,7 +1078,7 @@ function Chat:clear()
   self.header_line = 1
   self.messages = {}
   self.refs = {}
-  self.tools_in_use = {}
+  self.tools.tools_in_use = {}
 
   log:trace("Clearing chat buffer")
   self.ui:render(self.context, self.messages, self.opts):set_intro_msg()

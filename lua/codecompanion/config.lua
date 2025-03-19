@@ -532,7 +532,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
             -- Repeat until the tests pass, as indicated by the testing flag
             -- which the cmd_runner tool sets on the chat buffer
             repeat_until = function(chat)
-              return chat.tool_flags.testing == true
+              return chat.tools.flags.testing == true
             end,
             content = "The tests have failed. Can you edit the buffer and run the test suite again?",
           },

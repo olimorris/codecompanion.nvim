@@ -71,7 +71,7 @@ T["Workflows"] = new_set({
                   -- Repeat until the tests pass, as indicated by the testing flag
                   -- which the cmd_runner tool sets on the chat buffer
                   repeat_until = function(chat)
-                    return chat.tool_flags.testing == true
+                    return chat.tools.flags.testing == true
                   end,
                   content = "The tests have failed",
                 },
@@ -113,7 +113,7 @@ T["Workflows"]["prompts are sequentially added to the chat buffer"] = function()
   h.eq("The tests have failed", h.get_buf_lines(chat.bufnr)[#h.get_buf_lines(chat.bufnr)])
 
   -- Now let's mock a passing test
-  chat.tool_flags.testing = true
+  chat.tools.flags.testing = true
   h.send_to_llm(chat, "Calling a tool...", function()
     _G.codecompanion_current_tool = nil
   end)
