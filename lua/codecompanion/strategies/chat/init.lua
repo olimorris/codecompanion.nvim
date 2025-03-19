@@ -622,6 +622,9 @@ function Chat:add_tool(tool, tool_config)
   -- Add the tool's system prompt
   local resolved = self.agents.resolve(tool_config)
   if resolved and resolved.system_prompt then
+    if type(resolved.system_prompt) == "function" then
+      resolved.system_prompt = resolved.system_prompt(resolved.schema)
+    end
     self:add_message(
       { role = config.constants.SYSTEM_ROLE, content = resolved.system_prompt },
       { visible = false, tag = "tool", reference = id }
