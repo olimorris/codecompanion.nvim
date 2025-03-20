@@ -7,6 +7,7 @@ local M = {}
 ---@param cache_for number
 ---@return number
 function M.refresh_cache(file, cache_for)
+  cache_for = cache_for or 1800
   local time = os.time() + cache_for
   Path.new(file):write(time, "w")
   return time
@@ -16,6 +17,7 @@ end
 ---@param file string
 ---@return number
 function M.cache_expires(file, cache_for)
+  cache_for = cache_for or 1800
   local ok, expires = pcall(function()
     return Path.new(file):read()
   end)
