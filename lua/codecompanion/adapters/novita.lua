@@ -1,40 +1,19 @@
 local Curl = require("plenary.curl")
-local Path = require("plenary.path")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
+local utils = require("codecompanion.utils.adapters")
 
+local _cache_expires
+local _cache_file = vim.fn.tempname()
 local _cached_models
-local model_cache = vim.fn.tempname()
-
----Refresh when we should next check the model cache
----@return number
-local function refresh_cache()
-  local time = os.time() + 30 * 60
-  Path.new(model_cache):write(time, "w")
-  return time
-end
-
----Return when the model cache expires
----@return number
-local function cache_expires()
-  local ok, expires = pcall(function()
-    return Path.new(model_cache):read()
-  end)
-  if not ok then
-    expires = refresh_cache()
-  end
-  expires = tonumber(expires)
-  assert(expires, "Could not get the cache expiry time")
-  return expires
-end
 
 ---Get a list of available models
 ---@params self CodeCompanion.Adapter
 ---@params opts? table
 ---@return table
 local function get_models(self, opts)
-  if _cached_models and cache_expires() > os.time() then
+  if _cached_models and _cache_expires and _cache_expires > os.time() then
     return _cached_models
   end
 
@@ -66,7 +45,7 @@ local function get_models(self, opts)
   end
 
   _cached_models = models
-  refresh_cache()
+  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.opts.cache_models_for)
 
   return models
 end
