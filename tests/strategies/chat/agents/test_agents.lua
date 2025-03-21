@@ -66,6 +66,19 @@ T["Agent"][":parse"]["add a tool's system prompt to chat buffer"] = function()
   h.eq("my func system prompt", child.lua_get([[_G.chat.messages[3].content]]))
 end
 
+T["Agent"][":parse"]["adds a tool's schema"] = function()
+  child.lua([[
+    local chat = _G.chat
+    table.insert(chat.messages, {
+      role = "user",
+      content = "@func do some stuff",
+    })
+    _G.agent:parse(chat, chat.messages[#chat.messages])
+  ]])
+
+  h.eq({ func = { name = "func" } }, child.lua_get([[_G.chat.tools.schemas]]))
+end
+
 T["Agent"][":parse"]["a response from the LLM"] = function() end
 T["Agent"][":parse"]["a nested response from the LLM"] = function() end
 

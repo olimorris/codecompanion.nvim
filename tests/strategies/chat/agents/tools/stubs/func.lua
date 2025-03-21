@@ -12,6 +12,9 @@ return {
       return { status = "success", data = actions.data }
     end,
   },
+  schema = {
+    name = "func",
+  },
   handlers = {
     -- Should only be called once
     setup = function(self)
