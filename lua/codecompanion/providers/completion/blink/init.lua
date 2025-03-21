@@ -124,20 +124,31 @@ function M:get_completions(ctx, callback)
   end
 end
 
-function M:execute(ctx, item, callback)
+function M:execute(ctx, item, callback, default_implementation)
   if vim.tbl_contains({ "variable", "tool" }, item.data.type) then
+    -- TODO: remove type check once blink.cmp 0.14+ is released
+    if type(default_implementation) == "function" then
+      vim.lsp.util.apply_text_edits({ item.textEdit }, ctx.bufnr, "utf-8")
+      vim.bo[ctx.bufnr].buflisted = false
+    end
+
     return callback()
   end
 
   -- Clear keyword
-  vim.api.nvim_buf_set_text(
-    ctx.bufnr,
-    item.textEdit.range.start.line,
-    item.textEdit.range.start.character,
-    item.textEdit.range.start.line,
-    item.textEdit.range.start.character + #item.textEdit.newText,
-    {}
-  )
+  -- TODO: use only the former implementation once blink.cmp 0.14+ is released
+  if type(default_implementation) == "function" then
+    vim.lsp.util.apply_text_edits({ { newText = "", range = item.textEdit.range } }, ctx.bufnr, "utf-8")
+  else
+    vim.api.nvim_buf_set_text(
+      ctx.bufnr,
+      item.textEdit.range.start.line,
+      item.textEdit.range.start.character,
+      item.textEdit.range.start.line,
+      item.textEdit.range.start.character + #item.textEdit.newText,
+      {}
+    )
+  end
   vim.bo[ctx.bufnr].buflisted = false
 
   -- Slash commands expect the command info to be in the item directly
