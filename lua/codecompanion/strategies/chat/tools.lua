@@ -5,6 +5,7 @@ Methods for handling interactions between the chat buffer and tools
 ---@class CodeCompanion.Chat.Tools
 ---@field chat CodeCompanion.Chat
 ---@field flags table Flags that external functions can update and subscribers can interact with
+---@field schemas table<string, table> The config for the tools in use
 ---@field tools_in_use table<string, boolean>
 
 ---@class CodeCompanion.Chat.Tools
@@ -21,10 +22,42 @@ function Tools.new(args)
   local self = setmetatable({
     chat = args.chat,
     flags = {},
+    schemas = {},
     tools_in_use = {},
   }, { __index = Tools })
 
   return self
+end
+
+---Add a reference to the tool in the chat buffer
+---@param chat CodeCompanion.Chat The chat buffer
+---@param id string The id of the tool
+---@return nil
+local function add_reference(chat, id)
+  chat.references:add({
+    source = "tool",
+    name = "tool",
+    id = id,
+  })
+end
+
+---Add the tool's system prompt to the chat buffer
+---@param chat CodeCompanion.Chat The chat buffer
+---@param tool table the resolved tool
+---@return nil
+local function add_system_prompt(chat, tool)
+  if tool and tool.system_prompt then
+    local system_prompt
+    if type(tool.system_prompt) == "function" then
+      system_prompt = tool.system_prompt(tool.schema)
+    elseif type(tool.system_prompt) == "string" then
+      system_prompt = tostring(tool.system_prompt)
+    end
+    chat:add_message(
+      { role = config.constants.SYSTEM_ROLE, content = system_prompt },
+      { visible = false, tag = "tool", reference = "<tool>" .. tool.name .. "</tool>" }
+    )
+  end
 end
 
 ---Add the given tool to the chat buffer
@@ -32,35 +65,19 @@ end
 ---@param tool_config table The tool from the config
 ---@return nil
 function Tools:add(tool, tool_config)
-  if self.tools_in_use[tool] then
+  local resolved_tool = self.chat.agents.resolve(tool_config)
+  if not resolved_tool or self.tools_in_use[tool] then
     return
   end
 
   local id = "<tool>" .. tool .. "</tool>"
-  self.chat.references:add({
-    source = "tool",
-    name = "tool",
-    id = id,
-  })
-
-  self.tools_in_use[tool] = true
-
-  -- Add the tool's system prompt
-  local resolved = self.chat.agents.resolve(tool_config)
-  if resolved and resolved.system_prompt then
-    local system_prompt
-    if type(resolved.system_prompt) == "function" then
-      system_prompt = resolved.system_prompt(resolved.schema)
-    elseif type(resolved.system_prompt) == "string" then
-      system_prompt = tostring(resolved.system_prompt)
-    end
-    self.chat:add_message(
-      { role = config.constants.SYSTEM_ROLE, content = system_prompt },
-      { visible = false, tag = "tool", reference = id }
-    )
-  end
+  add_reference(self.chat, id)
+  add_system_prompt(self.chat, resolved_tool)
+  self.schemas[tool] = resolved_tool.schema
 
   util.fire("ChatToolAdded", { bufnr = self.chat.bufnr, id = self.chat.id, tool = tool })
+
+  self.tools_in_use[tool] = true
 
   return self
 end

@@ -80,14 +80,21 @@ return {
 
     ---Provides the schemas of the tools that are available to the LLM to call
     ---@param self CodeCompanion.Adapter
-    ---@param tools table
+    ---@param tools table<string, table>
     ---@return table|nil
     form_tools = function(self, tools)
       if not self.opts.tools then
         return
       end
 
-      return { tools = tools }
+      local transformed = {}
+      for _, tool in pairs(tools) do
+        for _, schema in pairs(tool) do
+          table.insert(transformed, schema)
+        end
+      end
+
+      return { tools = transformed }
     end,
 
     ---Returns the number of tokens generated from the LLM

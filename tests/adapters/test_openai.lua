@@ -22,38 +22,63 @@ T["OpenAI adapter"]["it can form messages to be sent to the API"] = function()
 end
 
 T["OpenAI adapter"]["it can form tools to be sent to the API"] = function()
-  local tools = [[{
-    "type": "function",
-    "function": {
-        "name": "get_weather",
-        "description": "Retrieves current weather for the given location.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "location": {
-                    "type": "string",
-                    "description": "City and country e.g. Bogotá, Colombia"
-                },
-                "units": {
-                    "type": "string",
-                    "enum": [
-                        "celsius",
-                        "fahrenheit"
-                    ],
-                    "description": "Units the temperature will be returned in."
-                }
+  local tools = {
+    {
+      weather = {
+        ["function"] = {
+          description = "Retrieves current weather for the given location.",
+          name = "get_weather",
+          parameters = {
+            additionalProperties = false,
+            properties = {
+              location = {
+                description = "City and country e.g. Bogotá, Colombia",
+                type = "string",
+              },
+              units = {
+                description = "Units the temperature will be returned in.",
+                enum = { "celsius", "fahrenheit" },
+                type = "string",
+              },
             },
-            "required": [
-                "location",
-                "units"
-            ],
-            "additionalProperties": false
+            required = { "location", "units" },
+            type = "object",
+          },
+          strict = true,
         },
-        "strict": true
-    }
-}]]
+        type = "function",
+      },
+    },
+  }
 
-  h.eq({ tools = tools }, adapter.handlers.form_tools(adapter, tools))
+  h.eq({
+    tools = {
+      {
+        ["function"] = {
+          description = "Retrieves current weather for the given location.",
+          name = "get_weather",
+          parameters = {
+            additionalProperties = false,
+            properties = {
+              location = {
+                description = "City and country e.g. Bogotá, Colombia",
+                type = "string",
+              },
+              units = {
+                description = "Units the temperature will be returned in.",
+                enum = { "celsius", "fahrenheit" },
+                type = "string",
+              },
+            },
+            required = { "location", "units" },
+            type = "object",
+          },
+          strict = true,
+        },
+        type = "function",
+      },
+    },
+  }, adapter.handlers.form_tools(adapter, tools))
 end
 
 T["OpenAI adapter"]["Streaming"] = new_set()

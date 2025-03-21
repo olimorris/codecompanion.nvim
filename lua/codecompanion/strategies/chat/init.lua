@@ -702,7 +702,7 @@ function Chat:submit(opts)
 
   local payload = {
     messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
-    tools = self.tools_in_use,
+    tools = { self.tools.schemas },
   }
 
   local output = {}

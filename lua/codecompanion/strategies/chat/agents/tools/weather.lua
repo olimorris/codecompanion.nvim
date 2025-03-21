@@ -8,36 +8,36 @@ return {
       }
     end,
   },
-  schema = [[{
-    "type": "function",
-    "function": {
-        "name": "get_weather",
-        "description": "Retrieves current weather for the given location.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "location": {
-                    "type": "string",
-                    "description": "City and country e.g. Bogotá, Colombia"
-                },
-                "units": {
-                    "type": "string",
-                    "enum": [
-                        "celsius",
-                        "fahrenheit"
-                    ],
-                    "description": "Units the temperature will be returned in."
-                }
+  schema = {
+    type = "function",
+    ["function"] = {
+      name = "get_weather",
+      description = "Retrieves current weather for the given location.",
+      parameters = {
+        type = "object",
+        properties = {
+          location = {
+            type = "string",
+            description = "City and country e.g. Bogotá, Colombia",
+          },
+          units = {
+            type = "string",
+            enum = {
+              "celsius",
+              "fahrenheit",
             },
-            "required": [
-                "location",
-                "units"
-            ],
-            "additionalProperties": false
+            description = "Units the temperature will be returned in.",
+          },
         },
-        "strict": true
-    }
-}]],
+        required = {
+          "location",
+          "units",
+        },
+        additionalProperties = false,
+      },
+      strict = true,
+    },
+  },
   output = {
     ---@param agent CodeCompanion.Agent
     ---@param cmd table The command that was executed
