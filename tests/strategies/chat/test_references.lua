@@ -104,6 +104,36 @@ T["References"]["Can be deleted"] = function()
   h.eq(has_ref_message, true, "Message with second reference should still be present")
 end
 
+T["References"]["Tools and their schema can be deleted"] = function()
+  -- Add messages
+  chat.messages = {
+    {
+      role = "user",
+      content = "Whats the @weather like in London? Also adding a @func tool too.",
+    },
+  }
+
+  local initial_count = #chat.messages
+  h.eq(1, initial_count, "Should start with 1 messages")
+  h.eq(0, vim.tbl_count(chat.refs), "Should have 0 references")
+
+  chat:submit()
+
+  h.eq(2, vim.tbl_count(chat.refs), "Should have 2 reference")
+  h.expect_tbl_contains("<tool>weather</tool>", chat.tools.schemas)
+  h.expect_tbl_contains("<tool>func</tool>", chat.tools.schemas)
+
+  -- Mock the get_from_chat method to pretend that the user has deleted the weather tool
+  chat.references.get_from_chat = function()
+    return { "<tool>func</tool>" }
+  end
+
+  chat:check_references()
+  h.eq({ { "<tool>func</tool>", {
+    name = "func",
+  } } }, chat.tools.schemas)
+end
+
 T["References"]["Can be pinned"] = function()
   local icon = config.display.chat.icons.pinned_buffer
 

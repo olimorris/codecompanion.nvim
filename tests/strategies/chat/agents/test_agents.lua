@@ -76,7 +76,7 @@ T["Agent"][":parse"]["adds a tool's schema"] = function()
     _G.agent:parse(chat, chat.messages[#chat.messages])
   ]])
 
-  h.eq({ func = { name = "func" } }, child.lua_get([[_G.chat.tools.schemas]]))
+  h.eq({ ["<tool>func</tool>"] = { name = "func" } }, child.lua_get([[_G.chat.tools.schemas]]))
 end
 
 T["Agent"][":parse"]["a response from the LLM"] = function() end

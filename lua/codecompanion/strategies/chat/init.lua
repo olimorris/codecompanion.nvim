@@ -852,6 +852,17 @@ function Chat:check_references()
       return not vim.tbl_contains(to_remove, ref.id)
     end)
     :totable()
+
+  -- Clear any tool's schemas
+  self.tools.schemas = vim
+    .iter(self.tools.schemas)
+    :filter(function(tool_schemas)
+      if vim.tbl_contains(to_remove, tool_schemas) then
+        return false
+      end
+      return true
+    end)
+    :totable()
 end
 
 ---Add updated content from the pins to the chat buffer

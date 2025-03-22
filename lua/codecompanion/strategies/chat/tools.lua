@@ -44,8 +44,9 @@ end
 ---Add the tool's system prompt to the chat buffer
 ---@param chat CodeCompanion.Chat The chat buffer
 ---@param tool table the resolved tool
+---@param id string The id of the tool
 ---@return nil
-local function add_system_prompt(chat, tool)
+local function add_system_prompt(chat, tool, id)
   if tool and tool.system_prompt then
     local system_prompt
     if type(tool.system_prompt) == "function" then
@@ -55,9 +56,18 @@ local function add_system_prompt(chat, tool)
     end
     chat:add_message(
       { role = config.constants.SYSTEM_ROLE, content = system_prompt },
-      { visible = false, tag = "tool", reference = "<tool>" .. tool.name .. "</tool>" }
+      { visible = false, tag = "tool", reference = id }
     )
   end
+end
+
+---Add the tool's schema to the chat buffer
+---@param self CodeCompanion.Chat.Tools The tools object
+---@param tool table The resolved tool
+---@param id string The id of the tool
+---@return nil
+local function add_schema(self, tool, id)
+  self.schemas[id] = tool.schema
 end
 
 ---Add the given tool to the chat buffer
@@ -72,8 +82,8 @@ function Tools:add(tool, tool_config)
 
   local id = "<tool>" .. tool .. "</tool>"
   add_reference(self.chat, id)
-  add_system_prompt(self.chat, resolved_tool)
-  self.schemas[tool] = resolved_tool.schema
+  add_system_prompt(self.chat, resolved_tool, id)
+  add_schema(self, resolved_tool, id)
 
   util.fire("ChatToolAdded", { bufnr = self.chat.bufnr, id = self.chat.id, tool = tool })
 
