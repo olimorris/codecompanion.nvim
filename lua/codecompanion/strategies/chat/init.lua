@@ -657,11 +657,9 @@ function Chat:submit(opts)
     return log:debug("Chat request already in progress")
   end
 
-  log:time()
   opts = opts or {}
 
   local bufnr = self.bufnr
-
   local message = ts_parse_messages(self, self.header_line)
 
   -- Check if any watched buffers have changes
@@ -689,24 +687,23 @@ function Chat:submit(opts)
   local settings = ts_parse_settings(bufnr, self.yaml_parser, self.adapter)
   settings = self.adapter:map_schema_to_params(settings)
 
-  log:trace("Settings:\n%s", settings)
-  log:trace("Messages:\n%s", self.messages)
-  log:info("Chat request started")
-
   if not config.display.chat.auto_scroll then
     vim.cmd("stopinsert")
   end
   self.ui:lock_buf()
 
-  self:set_range(2) -- this accounts for the LLM header
+  self:set_editable_area(2) -- this accounts for the LLM header
 
   local payload = {
     messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
     tools = { self.tools.schemas },
   }
 
+  log:trace("Settings:\n%s", settings)
+  log:trace("Messages:\n%s", self.messages)
+  log:info("Chat request started")
+
   local output = {}
-  log:info("ELAPSED TIME: %s", log:time())
   self.current_request = client.new({ adapter = settings }):request(payload, {
     ---@param err { message: string, stderr: string }
     ---@param data table
@@ -754,10 +751,10 @@ function Chat:increment_cycle()
   self.cycle = self.cycle + 1
 end
 
----Set the last edited range in the chat buffer
+---Set the editable area. This allows us to scope the Tree-sitter queries to a specific area
 ---@param modifier? number
 ---@return nil
-function Chat:set_range(modifier)
+function Chat:set_editable_area(modifier)
   modifier = modifier or 0
   self.header_line = api.nvim_buf_line_count(self.bufnr) + modifier
 end
@@ -784,7 +781,7 @@ function Chat:done(output)
   self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
   local assistant_range = self.header_line
-  self:set_range(-2)
+  self:set_editable_area(-2)
   self.ui:display_tokens(self.parser, self.header_line)
   self.references:render()
 
