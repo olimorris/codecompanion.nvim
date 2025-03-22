@@ -1,8 +1,6 @@
 return {
   name = "func_async_1",
-  system_prompt = function(schema)
-    return "my func system prompt"
-  end,
+  system_prompt = "my func system prompt",
   cmds = {
     function(self, actions, input, cb)
       local spacer = ""

@@ -132,7 +132,7 @@ end
 
 T["Agent"]["functions"]["can return errors"] = function()
   child.lua([[
-     require("tests.log")
+     --require("tests.log")
      local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
      local xml = func_xml.one_data_point("func_return_error")
      agent:execute(chat, xml)

@@ -1,8 +1,6 @@
 return {
   name = "cmd",
-  system_prompt = function(schema)
-    return "my cmd system prompt"
-  end,
+  system_prompt = "my cmd system prompt",
   cmds = {
     { "echo", "Hello World" },
   },

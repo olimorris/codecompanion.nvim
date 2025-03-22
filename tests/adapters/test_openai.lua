@@ -21,6 +21,66 @@ T["OpenAI adapter"]["it can form messages to be sent to the API"] = function()
   h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
 end
 
+T["OpenAI adapter"]["it can form tools to be sent to the API"] = function()
+  local tools = {
+    {
+      weather = {
+        ["function"] = {
+          description = "Retrieves current weather for the given location.",
+          name = "get_weather",
+          parameters = {
+            additionalProperties = false,
+            properties = {
+              location = {
+                description = "City and country e.g. Bogotá, Colombia",
+                type = "string",
+              },
+              units = {
+                description = "Units the temperature will be returned in.",
+                enum = { "celsius", "fahrenheit" },
+                type = "string",
+              },
+            },
+            required = { "location", "units" },
+            type = "object",
+          },
+          strict = true,
+        },
+        type = "function",
+      },
+    },
+  }
+
+  h.eq({
+    tools = {
+      {
+        ["function"] = {
+          description = "Retrieves current weather for the given location.",
+          name = "get_weather",
+          parameters = {
+            additionalProperties = false,
+            properties = {
+              location = {
+                description = "City and country e.g. Bogotá, Colombia",
+                type = "string",
+              },
+              units = {
+                description = "Units the temperature will be returned in.",
+                enum = { "celsius", "fahrenheit" },
+                type = "string",
+              },
+            },
+            required = { "location", "units" },
+            type = "object",
+          },
+          strict = true,
+        },
+        type = "function",
+      },
+    },
+  }, adapter.handlers.form_tools(adapter, tools))
+end
+
 T["OpenAI adapter"]["Streaming"] = new_set()
 
 T["OpenAI adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()

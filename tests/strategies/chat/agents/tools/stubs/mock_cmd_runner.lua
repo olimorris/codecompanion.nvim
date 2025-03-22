@@ -1,8 +1,6 @@
 return {
   name = "mock_cmd_runner",
-  system_prompt = function(schema)
-    return "my cmd system prompt"
-  end,
+  system_prompt = "my func system prompt",
   cmds = {},
   handlers = {
     ---@param agent CodeCompanion.Agent The tool object

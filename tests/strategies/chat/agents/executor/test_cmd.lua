@@ -76,7 +76,7 @@ T["Agent"]["cmds"]["can set test flags on the chat object"] = function()
     vim.wait(100)
   ]])
 
-  h.eq({ testing = true }, child.lua_get("agent.chat.tool_flags"))
+  h.eq({ testing = true }, child.lua_get("agent.chat.tools.flags"))
 end
 
 T["Agent"]["cmds"]["can run multiple commands"] = function()

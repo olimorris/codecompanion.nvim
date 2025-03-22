@@ -1,8 +1,6 @@
 return {
   name = "func",
-  system_prompt = function(schema)
-    return "my func system prompt"
-  end,
+  system_prompt = "my func system prompt",
   cmds = {
     ---@return { status: string, data: any }
     function(self, actions, input)
@@ -13,6 +11,9 @@ return {
       _G._test_func = (_G._test_func or "") .. spacer .. actions.data
       return { status = "success", data = actions.data }
     end,
+  },
+  schema = {
+    name = "func",
   },
   handlers = {
     -- Should only be called once

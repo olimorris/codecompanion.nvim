@@ -55,17 +55,9 @@ return {
           callback = "strategies.chat.agents.tools.editor",
           description = "Update a buffer with the LLM's response",
         },
-        ["foo"] = {
-          callback = "utils.foo",
-          description = "Some foo function",
-        },
-        ["bar"] = {
-          callback = "utils.bar",
-          description = "Some bar function",
-        },
-        ["bar_again"] = {
-          callback = "utils.bar_again",
-          description = "Some bar_again function",
+        ["weather"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/weather.lua",
+          description = "Get the latest weather",
         },
         ["func"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
@@ -137,7 +129,7 @@ return {
           },
         },
         opts = {
-          system_prompt = [[My tool system prompt]],
+          system_prompt = "My tool system prompt",
         },
       },
       variables = {
