@@ -90,23 +90,29 @@ require("codecompanion").setup({
     chat = {
       slash_commands = {
         ["git_files"] = {
-          description = "List git files",
-          ---@param chat CodeCompanion.Chat
-          callback = function(chat)
-            local handle = io.popen("git ls-files")
-            if handle ~= nil then
-              local result = handle:read("*a")
-              handle:close()
-              chat:add_reference({ content = result }, "git", "<git_files>")
-            else
-              return vim.notify("No git files available", vim.log.levels.INFO, { title = "CodeCompanion" })
-            end
-          end,
-          opts = {
-            contains_code = false,
-          },
+            description = "List git files",
+            ---@param chat CodeCompanion.Chat
+            callback = function(chat)
+                local handle = vim.system({ "git", "ls-files" }, { text = true })
+                local result = handle:wait()
+                if result.code ~= 0 then
+                    return vim.notify(
+                        "No git files available",
+                        vim.log.levels.INFO,
+                        { title = "CodeCompanion" }
+                    )
+                end
+                --- @type string
+                local str = string.format(
+                    "Here is the result of running command `git ls-files` locally, you can use it as a data: \n```sh\n%s\n```",
+                    result.stdout
+                )
+                chat:add_reference({ role = "user", content = str }, "git", "<git_files>")
+            end,
+            opts = {
+                contains_code = false,
+            },
         },
-      },
     },
   },
 })
