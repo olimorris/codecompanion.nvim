@@ -5,8 +5,8 @@ Methods for handling interactions between the chat buffer and tools
 ---@class CodeCompanion.Chat.Tools
 ---@field chat CodeCompanion.Chat
 ---@field flags table Flags that external functions can update and subscribers can interact with
+---@field in_use table<string, boolean> Tools that are in use on the chat buffer
 ---@field schemas table<string, table> The config for the tools in use
----@field tools_in_use table<string, boolean>
 
 ---@class CodeCompanion.Chat.Tools
 local Tools = {}
@@ -22,8 +22,8 @@ function Tools.new(args)
   local self = setmetatable({
     chat = args.chat,
     flags = {},
+    in_use = {},
     schemas = {},
-    tools_in_use = {},
   }, { __index = Tools })
 
   return self
@@ -76,7 +76,7 @@ end
 ---@return nil
 function Tools:add(tool, tool_config)
   local resolved_tool = self.chat.agents.resolve(tool_config)
-  if not resolved_tool or self.tools_in_use[tool] then
+  if not resolved_tool or self.in_use[tool] then
     return
   end
 
@@ -87,7 +87,7 @@ function Tools:add(tool, tool_config)
 
   util.fire("ChatToolAdded", { bufnr = self.chat.bufnr, id = self.chat.id, tool = tool })
 
-  self.tools_in_use[tool] = true
+  self.in_use[tool] = true
 
   return self
 end
@@ -95,7 +95,15 @@ end
 ---Determine if the chat buffer has any tools in use
 ---@return boolean
 function Tools:loaded()
-  return not vim.tbl_isempty(self.tools_in_use)
+  return not vim.tbl_isempty(self.in_use)
+end
+
+---Clear the tools
+---@return nil
+function Tools:clear()
+  self.flags = {}
+  self.in_use = {}
+  self.schemas = {}
 end
 
 return Tools

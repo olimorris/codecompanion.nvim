@@ -27,7 +27,7 @@ T["OpenAI adapter"]["it can form tools to be sent to the API"] = function()
       weather = {
         ["function"] = {
           description = "Retrieves current weather for the given location.",
-          name = "get_weather",
+          name = "weather",
           parameters = {
             additionalProperties = false,
             properties = {
@@ -56,7 +56,7 @@ T["OpenAI adapter"]["it can form tools to be sent to the API"] = function()
       {
         ["function"] = {
           description = "Retrieves current weather for the given location.",
-          name = "get_weather",
+          name = "weather",
           parameters = {
             additionalProperties = false,
             properties = {
@@ -108,11 +108,11 @@ T["OpenAI adapter"]["Streaming"]["can process tool executions"] = function()
       arguments = '{"location":"London, UK","units":"celsius"}',
       ["function"] = {
         arguments = "",
-        name = "get_weather",
+        name = "weather",
       },
       id = "call_KGiXAhOpQf7HtQuihqxyl4wn",
       index = 0,
-      name = "get_weather",
+      name = "weather",
       type = "function",
     },
   }, tools)

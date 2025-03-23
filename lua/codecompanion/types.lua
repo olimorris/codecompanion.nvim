@@ -119,7 +119,7 @@
 ---@field output.rejected? fun(agent: CodeCompanion.Agent, cmd: table): any Function to call if the user rejects running a command
 ---@field output.error? fun(agent: CodeCompanion.Agent, cmd: table, stderr: table, stdout?: table): any The function to call if an error occurs
 ---@field output.success? fun(agent: CodeCompanion.Agent, cmd: table, stdout: table): any Function to call if the tool is successful
----@field request table The request from the LLM to use the Tool
+---@field args table The arguments sent over by the LLM when making the request
 
 ---@class CodeCompanion.SlashCommand.Provider
 ---@field output function The function to call when a selection is made

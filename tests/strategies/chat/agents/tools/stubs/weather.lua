@@ -1,17 +1,22 @@
+local log = require("codecompanion.utils.log")
 return {
   name = "weather",
   cmds = {
-    function(city)
+    ---@param self CodeCompanion.Agent.Tool The Tools object
+    ---@param args table The action object
+    ---@param input? any The output from the previous function call
+    function(self, args, input)
+      _G.weather_output = "The weather in " .. args.location .. " is 75° " .. args.units
       return {
         status = "success",
-        data = "The weather in " .. city .. " is 75°F",
+        data = _G.weather_output,
       }
     end,
   },
   schema = {
     type = "function",
     ["function"] = {
-      name = "get_weather",
+      name = "weather",
       description = "Retrieves current weather for the given location.",
       parameters = {
         type = "object",

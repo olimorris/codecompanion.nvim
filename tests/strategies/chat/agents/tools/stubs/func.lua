@@ -3,13 +3,13 @@ return {
   system_prompt = "my func system prompt",
   cmds = {
     ---@return { status: string, data: any }
-    function(self, actions, input)
+    function(self, args, input)
       local spacer = ""
       if _G._test_func then
         spacer = " "
       end
-      _G._test_func = (_G._test_func or "") .. spacer .. actions.data
-      return { status = "success", data = actions.data }
+      _G._test_func = (_G._test_func or "") .. spacer .. args.data
+      return { status = "success", data = args.data }
     end,
   },
   schema = {

@@ -4,13 +4,13 @@ return {
   system_prompt = "my func system prompt",
   cmds = {
     ---In production, we should be outputting as { status: string, data: any }
-    function(self, actions, input)
+    function(self, args, input)
       log:debug("FIRST ACTION")
-      return (input and (input .. " ") or "") .. actions.data
+      return (input and (input .. " ") or "") .. args.data
     end,
-    function(self, actions, input)
+    function(self, args, input)
       log:debug("SECOND ACTION")
-      local output = input .. " " .. actions.data
+      local output = input .. " " .. args.data
       _G._test_func = output
       return output
     end,

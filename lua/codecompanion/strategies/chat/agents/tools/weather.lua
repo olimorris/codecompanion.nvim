@@ -1,17 +1,20 @@
 return {
   name = "weather",
   cmds = {
-    function(city)
+    ---@param self CodeCompanion.Agent.Tool The Tools object
+    ---@param args table The action object
+    ---@param input? any The output from the previous function call
+    function(self, args, input)
       return {
         status = "success",
-        data = "The weather in " .. city .. " is 75°F",
+        data = "The weather in " .. args.location .. " is 75° " .. args.units,
       }
     end,
   },
   schema = {
     type = "function",
     ["function"] = {
-      name = "get_weather",
+      name = "weather",
       description = "Retrieves current weather for the given location.",
       parameters = {
         type = "object",
@@ -43,7 +46,10 @@ return {
     ---@param cmd table The command that was executed
     ---@param stdout table
     success = function(agent, cmd, stdout)
-      print("Weather: " .. stdout[1])
+      return agent.chat:add_buf_message({
+        role = "user",
+        content = stdout[1],
+      })
     end,
   },
 }

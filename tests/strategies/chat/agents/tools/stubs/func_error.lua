@@ -2,7 +2,7 @@ return {
   name = "func_error",
   system_prompt = "my func system prompt",
   cmds = {
-    function(self, actions, input)
+    function(self, args, input)
       return error("Something went wrong")
     end,
   },

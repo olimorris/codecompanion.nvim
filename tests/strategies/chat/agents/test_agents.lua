@@ -79,8 +79,34 @@ T["Agent"][":parse"]["adds a tool's schema"] = function()
   h.eq({ ["<tool>func</tool>"] = { name = "func" } }, child.lua_get([[_G.chat.tools.schemas]]))
 end
 
-T["Agent"][":parse"]["a response from the LLM"] = function() end
-T["Agent"][":parse"]["a nested response from the LLM"] = function() end
+T["Agent"][":execute"] = new_set()
+T["Agent"][":execute"]["a response from the LLM"] = function()
+  child.lua([[
+    --require("tests.log")
+    local tools = {
+      [0] = {
+        arguments = '{"location":"London, UK","units":"celsius"}',
+        ["function"] = {
+          arguments = "",
+          name = "weather",
+        },
+        id = "call_KGiXAhOpQf7HtQuihqxyl4wn",
+        index = 0,
+        name = "weather",
+        type = "function",
+      },
+    }
+
+    local chat = _G.chat
+    _G.agent:execute(chat, tools)
+  ]])
+
+  local output = child.lua_get([[_G.weather_output]])
+
+  h.eq("The weather in London, UK is 75° celsius", output)
+end
+
+T["Agent"][":execute"]["a nested response from the LLM"] = function() end
 
 T["Agent"][":replace"] = new_set()
 T["Agent"][":replace"]["should replace the tool in the message"] = function()

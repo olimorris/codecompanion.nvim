@@ -621,7 +621,7 @@ end
 ---Apply any tools or variables that a user has tagged in their message
 ---@param message table
 ---@return nil
-function Chat:apply_tools_and_variables(message)
+function Chat:replace_vars_and_tools(message)
   if self.agents:parse(self, message) then
     message.content = self.agents:replace(message.content)
   end
@@ -675,7 +675,7 @@ function Chat:submit(opts)
   end
   message = self.references:clear(self.messages[#self.messages])
 
-  self:apply_tools_and_variables(message)
+  self:replace_vars_and_tools(message)
   self:check_references()
   self:add_pins()
 
@@ -692,7 +692,7 @@ function Chat:submit(opts)
   end
   self.ui:lock_buf()
 
-  self:set_editable_area(2) -- this accounts for the LLM header
+  self:set_textarea(2) -- this accounts for the LLM header
 
   local payload = {
     messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
@@ -752,10 +752,10 @@ function Chat:increment_cycle()
   self.cycle = self.cycle + 1
 end
 
----Set the editable area. This allows us to scope the Tree-sitter queries to a specific area
+---Set the editable text area. This allows us to scope the Tree-sitter queries to a specific area
 ---@param modifier? number
 ---@return nil
-function Chat:set_editable_area(modifier)
+function Chat:set_textarea(modifier)
   modifier = modifier or 0
   self.header_line = api.nvim_buf_line_count(self.bufnr) + modifier
 end
@@ -784,20 +784,18 @@ function Chat:done(output, tools)
     for _, tool in pairs(tools) do
       self:add_buf_message({ role = config.constants.LLM_ROLE, content = "> Running the `" .. tool.name .. "` tool" })
     end
+    self.agents:execute(self, tools)
   end
 
   self:increment_cycle()
   self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
-  local assistant_range = self.header_line
-  self:set_editable_area(-2)
+  self:set_textarea(-2)
   self.ui:display_tokens(self.parser, self.header_line)
   self.references:render()
 
   -- If we're running any tooling, let them handle the subscriptions instead
-  if self.status == CONSTANTS.STATUS_SUCCESS and self.tools:loaded() then
-    self.agents:parse_buffer(self, assistant_range, self.header_line - 1)
-  else
+  if not self.tools:loaded() then
     self.subscribers:process(self)
   end
 
@@ -864,6 +862,7 @@ function Chat:check_references()
     .iter(self.tools.schemas)
     :filter(function(tool_schemas)
       if vim.tbl_contains(to_remove, tool_schemas) then
+        -- TODO: Remove from tools_in_use
         return false
       end
       return true
@@ -1095,7 +1094,8 @@ function Chat:clear()
   self.header_line = 1
   self.messages = {}
   self.refs = {}
-  self.tools.tools_in_use = {}
+
+  self.tools:clear()
 
   log:trace("Clearing chat buffer")
   self.ui:render(self.context, self.messages, self.opts):set_intro_msg()
