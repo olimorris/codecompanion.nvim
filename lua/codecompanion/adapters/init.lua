@@ -22,7 +22,7 @@ local log = require("codecompanion.utils.log")
 ---@field handlers.form_messages fun(self: CodeCompanion.Adapter, messages: table): table
 ---@field handlers.form_tools fun(self: CodeCompanion.Adapter, tools: table): table
 ---@field handlers.tokens? fun(self: CodeCompanion.Adapter, data: table): number|nil
----@field handlers.chat_output fun(self: CodeCompanion.Adapter, data: table): table|nil
+---@field handlers.chat_output fun(self: CodeCompanion.Adapter, data: table, tools: table): table|nil
 ---@field handlers.inline_output fun(self: CodeCompanion.Adapter, data: table, context: table): table|nil
 ---@field handlers.on_exit? fun(self: CodeCompanion.Adapter, data: table): table|nil
 ---@field handlers.teardown? fun(self: CodeCompanion.Adapter): any

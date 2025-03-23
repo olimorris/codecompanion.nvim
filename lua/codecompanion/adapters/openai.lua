@@ -119,8 +119,9 @@ return {
     ---Output the data from the API ready for insertion into the chat buffer
     ---@param self CodeCompanion.Adapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
+    ---@param tools? table The table to write any tool output to
     ---@return table|nil [status: string, output: table]
-    chat_output = function(self, data)
+    chat_output = function(self, data, tools)
       local output = {}
 
       if data and data ~= "" then
@@ -130,16 +131,6 @@ return {
         if ok and json.choices and #json.choices > 0 then
           local choice = json.choices[1]
 
-          if choice.finish_reason then
-            local reason = choice.finish_reason
-            if reason ~= "stop" and reason ~= "" then
-              return {
-                status = "error",
-                output = "The stream was stopped with the a finish_reason of '" .. reason .. "'",
-              }
-            end
-          end
-
           local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
 
           if delta then
@@ -147,6 +138,17 @@ return {
               output.role = delta.role
             else
               output.role = nil
+            end
+
+            if delta.tool_calls and tools then
+              for _, tool_call in ipairs(delta.tool_calls) do
+                local index = tool_call.index
+                if not vim.tbl_contains(vim.tbl_keys(tools), index) then
+                  tools[index] = tool_call
+                  tools[index]["name"] = tool_call["function"]["name"]
+                end
+                tools[index]["arguments"] = (tools[index]["arguments"] or "") .. tool_call["function"]["arguments"]
+              end
             end
 
             -- Some providers may return empty content

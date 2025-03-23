@@ -704,6 +704,7 @@ function Chat:submit(opts)
   log:info("Chat request started")
 
   local output = {}
+  local tools = {}
   self.current_request = client.new({ adapter = settings }):request(payload, {
     ---@param err { message: string, stderr: string }
     ---@param data table
@@ -723,7 +724,7 @@ function Chat:submit(opts)
           end
         end
 
-        local result = self.adapter.handlers.chat_output(adapter, data)
+        local result = self.adapter.handlers.chat_output(adapter, data, tools)
         if result and result.status then
           self.status = result.status
           if self.status == CONSTANTS.STATUS_SUCCESS then
@@ -740,7 +741,7 @@ function Chat:submit(opts)
       end
     end,
     done = function()
-      self:done(output)
+      self:done(output, tools)
     end,
   }, { bufnr = bufnr, strategy = "chat" })
 end
@@ -761,8 +762,9 @@ end
 
 ---Method to call after the response from the LLM is received
 ---@param output? table The output from the LLM
+---@param tools? table The tools from the LLM
 ---@return nil
-function Chat:done(output)
+function Chat:done(output, tools)
   self.current_request = nil
 
   -- Commonly, a status may not be set if the message exceeds a token limit
@@ -775,6 +777,13 @@ function Chat:done(output)
       role = config.constants.LLM_ROLE,
       content = vim.trim(table.concat(output, "")),
     })
+  end
+
+  if tools and not vim.tbl_isempty(tools) then
+    self:add_buf_message({ role = config.constants.LLM_ROLE, content = "" })
+    for _, tool in pairs(tools) do
+      self:add_buf_message({ role = config.constants.LLM_ROLE, content = "> Running the `" .. tool.name .. "` tool" })
+    end
   end
 
   self:increment_cycle()
