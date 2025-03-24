@@ -3,6 +3,7 @@ local Path = require("plenary.path")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
+local json = require("codecompanion.utils.json")
 
 ---@class CodeCompanion.Client
 ---@field adapter CodeCompanion.Adapter
@@ -16,7 +17,7 @@ Client.static = {}
 Client.static.opts = {
   post = { default = Curl.post },
   get = { default = Curl.get },
-  encode = { default = vim.json.encode },
+  encode = { default = json.encode },
   schedule = { default = vim.schedule_wrap },
 }
 
