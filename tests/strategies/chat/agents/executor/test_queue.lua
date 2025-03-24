@@ -36,9 +36,23 @@ T["Agent"]["queue"]["can queue functions and commands"] = function()
   h.eq(vim.NIL, child.lua_get([[_G._test_order]]))
 
   child.lua([[
-    local queue = require("tests.strategies.chat.agents.tools.stubs.xml.queue_xml")
-    local xml = queue.run()
-    agent:execute(chat, xml)
+    local tools = {
+      [0] = {
+        arguments = '{"data": "Data 1"}',
+        index = 0,
+        name = "func_queue",
+      },
+      [1] = {
+        index = 1,
+        name = "cmd_queue",
+      },
+      [2] = {
+        arguments = '{"data": "Data 2"}',
+        index = 1,
+        name = "func_queue_2",
+      },
+    }
+    agent:execute(chat, tools)
     vim.wait(1000)
   ]])
 

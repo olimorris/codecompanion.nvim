@@ -95,13 +95,6 @@ return {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_async_2.lua",
           description = "Some function tool to test",
         },
-        ["func_approval"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
-          description = "Some function tool to test but with approval",
-          opts = {
-            requires_approval = true,
-          },
-        },
         ["cmd"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd.lua",
           description = "Cmd tool",

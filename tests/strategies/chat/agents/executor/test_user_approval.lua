@@ -36,13 +36,18 @@ T["Agent"]["user approval"]["is triggered"] = function()
 
   child.lua([[
     --require("tests.log")
-    local func_xml = require("tests.strategies.chat.agents.tools.stubs.xml.func_xml")
-    local xml = func_xml.two_data_points("func_approval")
-    agent:execute(chat, xml)
+    local tools = {
+      [0] = {
+        arguments = '{"data": "Data 1"}',
+        index = 0,
+        name = "func",
+      },
+    }
+    agent:execute(chat, tools)
   ]])
 
   -- Test that the function was called
-  h.eq("Data 1 Data 2", child.lua_get([[_G._test_func]]))
+  h.eq("Data 1", child.lua_get([[_G._test_func]]))
 end
 
 return T

@@ -107,7 +107,6 @@ function Agent:execute(chat, tools)
     local name = tool.name
     local tool_config = self.tools_config[name]
 
-    ---@type CodeCompanion.Agent.Tool|nil
     local ok, resolved_tool = pcall(function()
       return Agent.resolve(tool_config)
     end)
@@ -119,7 +118,9 @@ function Agent:execute(chat, tools)
     self.tool = vim.deepcopy(resolved_tool)
 
     self.tool.name = name
-    self.tool.args = vim.json.decode(tool.arguments)
+    if tool.arguments then
+      self.tool.args = vim.json.decode(tool.arguments)
+    end
     self.tool.opts = tool_config.opts and tool_config.opts or {}
     log:info("Tools: %s", self.tool)
     self:set_autocmds()

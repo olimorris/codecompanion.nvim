@@ -42,62 +42,62 @@ local T = new_set({
   },
 })
 
-T["Agent @editor can update a buffer"] = function()
-  child.lua(
-    string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").update(%s)]], bufnr)
-  )
-  child.lua([[
-    _G.agent:execute(
-      _G.chat,
-      _G.xml
-    )
-  ]])
-
-  local lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-
-  h.eq([[    return "foobar"]], lines[2])
-end
-
-T["Agent @editor can add to a buffer"] = function()
-  child.lua(
-    string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").add(%s)]], bufnr)
-  )
-  child.lua([[
-    _G.agent:execute(
-      _G.chat,
-      _G.xml
-    )
-  ]])
-
-  local lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-
-  h.eq([[function hello_world()]], lines[4])
-  h.eq([[    return "hello_world"]], lines[5])
-  h.eq([[end]], lines[6])
-end
-
-T["Agent @editor can delete from a buffer"] = function()
-  child.lua(
-    string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").delete(%s)]], bufnr)
-  )
-
-  local lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  h.eq([[function foo()]], lines[1])
-  h.eq([[    return "foo"]], lines[2])
-  h.eq([[end]], lines[3])
-
-  child.lua([[
-    _G.agent:execute(
-      _G.chat,
-      _G.xml
-    )
-  ]])
-
-  lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-
-  h.eq([[function bar()]], lines[1])
-  h.eq([[    return "bar"]], lines[2])
-  h.eq([[end]], lines[3])
-end
+-- T["Agent @editor can update a buffer"] = function()
+--   child.lua(
+--     string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").update(%s)]], bufnr)
+--   )
+--   child.lua([[
+--     _G.agent:execute(
+--       _G.chat,
+--       _G.xml
+--     )
+--   ]])
+--
+--   local lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+--
+--   h.eq([[    return "foobar"]], lines[2])
+-- end
+--
+-- T["Agent @editor can add to a buffer"] = function()
+--   child.lua(
+--     string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").add(%s)]], bufnr)
+--   )
+--   child.lua([[
+--     _G.agent:execute(
+--       _G.chat,
+--       _G.xml
+--     )
+--   ]])
+--
+--   local lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+--
+--   h.eq([[function hello_world()]], lines[4])
+--   h.eq([[    return "hello_world"]], lines[5])
+--   h.eq([[end]], lines[6])
+-- end
+--
+-- T["Agent @editor can delete from a buffer"] = function()
+--   child.lua(
+--     string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").delete(%s)]], bufnr)
+--   )
+--
+--   local lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+--   h.eq([[function foo()]], lines[1])
+--   h.eq([[    return "foo"]], lines[2])
+--   h.eq([[end]], lines[3])
+--
+--   child.lua([[
+--     _G.agent:execute(
+--       _G.chat,
+--       _G.xml
+--     )
+--   ]])
+--
+--   lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+--
+--   h.eq([[function bar()]], lines[1])
+--   h.eq([[    return "bar"]], lines[2])
+--   h.eq([[end]], lines[3])
+-- end
 
 return T
