@@ -41,7 +41,6 @@ T["Agent"]["functions"]["can run"] = function()
         arguments = '{"data": "Data 1"}',
         index = 0,
         name = "func",
-        type = "function",
       },
     }
     agent:execute(chat, tools)
@@ -63,13 +62,11 @@ T["Agent"]["functions"]["can run functions of the same name consecutively"] = fu
         arguments = '{"data": "Data 1"}',
         index = 0,
         name = "func",
-        type = "function",
       },
       [1] = {
         arguments = '{"data": "Data 2"}',
         index = 1,
         name = "func",
-        type = "function",
       },
     }
     agent:execute(chat, tools)
@@ -82,6 +79,32 @@ T["Agent"]["functions"]["can run functions of the same name consecutively"] = fu
   h.eq("Data 1 Data 2", child.lua_get([[_G._test_func]]))
 end
 
+T["Agent"]["functions"]["can run functions of a different name consecutively"] = function()
+  h.eq(vim.NIL, child.lua_get([[_G._test_func]]))
+
+  child.lua([[
+    local tools = {
+      [0] = {
+        arguments = '{"data": "Data 1"}',
+        index = 0,
+        name = "func",
+      },
+      [1] = {
+        arguments = '{"data": "Data 2"}',
+        index = 1,
+        name = "func2",
+      },
+    }
+    agent:execute(chat, tools)
+  ]])
+
+  -- Test order
+  h.eq("Setup->Success->Exit->Setup->Success->Exit", child.lua_get([[_G._test_order]]))
+
+  -- Test that the tools were called
+  h.eq("Data 1 Data 2", child.lua_get([[_G._test_func]]))
+end
+
 T["Agent"]["functions"]["calls output.success"] = function()
   h.eq(vim.NIL, child.lua_get([[_G._test_output]]))
 
@@ -91,45 +114,13 @@ T["Agent"]["functions"]["calls output.success"] = function()
         arguments = '{"data": "Data 1"}',
         index = 0,
         name = "func",
-        type = "function",
-      },
-      [1] = {
-        arguments = '{"data": "Data 2"}',
-        index = 1,
-        name = "func",
-        type = "function",
       },
     }
     agent:execute(chat, tools)
   ]])
 
   -- Test that the function was called
-  h.eq("Ran with successRan with success", child.lua_get([[_G._test_output]]))
-end
-
-T["Agent"]["functions"]["calls on_exit only once"] = function()
-  h.eq(vim.NIL, child.lua_get([[_G._test_exit]]))
-
-  child.lua([[
-    local tools = {
-      [0] = {
-        arguments = '{"data": "Data 1"}',
-        index = 0,
-        name = "func",
-        type = "function",
-      },
-      [1] = {
-        arguments = '{"data": "Data 2"}',
-        index = 1,
-        name = "func",
-        type = "function",
-      },
-    }
-    agent:execute(chat, tools)
-   ]])
-
-  -- Test that the function was called
-  h.eq("Exited", child.lua_get([[_G._test_exit]]))
+  h.eq("Ran with success", child.lua_get([[_G._test_output]]))
 end
 
 T["Agent"]["functions"]["can pass input to the next function"] = function()
@@ -141,7 +132,6 @@ T["Agent"]["functions"]["can pass input to the next function"] = function()
         arguments = '{"data": "Data 1"}',
         index = 0,
         name = "func_consecutive",
-        type = "function",
       },
     }
     agent:execute(chat, tools)
@@ -149,7 +139,7 @@ T["Agent"]["functions"]["can pass input to the next function"] = function()
 
   h.eq("Setup->Success->Success->Exit", child.lua_get([[_G._test_order]]))
 
-  -- Test that the function was called
+  -- Test that the functions was called
   h.eq("Data 1 Data 1", child.lua_get([[_G._test_func]]))
 end
 
@@ -160,7 +150,6 @@ T["Agent"]["functions"]["can handle errors"] = function()
         arguments = '{"data": "Data 1"}',
         index = 0,
         name = "func_error",
-        type = "function",
       },
     }
     agent:execute(chat, tools)
@@ -179,7 +168,6 @@ T["Agent"]["functions"]["can return errors"] = function()
         arguments = '{"data": "Data 1"}',
         index = 0,
         name = "func_return_error",
-        type = "function",
       },
     }
     agent:execute(chat, tools)
@@ -202,7 +190,6 @@ T["Agent"]["functions"]["can populate stderr and halt execution"] = function()
         arguments = '{"data": "Data 1"}',
         index = 0,
         name = "func_error",
-        type = "function",
       },
     }
     agent:execute(chat, tools)
@@ -223,13 +210,11 @@ T["Agent"]["functions"]["can populate stdout"] = function()
         arguments = '{"data": "Data 1"}',
         index = 0,
         name = "func",
-        type = "function",
       },
       [1] = {
         arguments = '{"data": "Data 2"}',
         index = 1,
         name = "func",
-        type = "function",
       },
     }
     agent:execute(chat, tools)
