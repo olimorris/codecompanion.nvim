@@ -780,10 +780,21 @@ function Chat:done(output, tools)
   end
 
   if tools and not vim.tbl_isempty(tools) then
-    self:add_buf_message({ role = config.constants.LLM_ROLE, content = "" })
+    local tool_messages = { "" } -- Include a line break at the start
+    local total = vim.tbl_count(tools)
+    local current = 1
+
     for _, tool in pairs(tools) do
-      self:add_buf_message({ role = config.constants.LLM_ROLE, content = "> Running the `" .. tool.name .. "` tool" })
+      local line_break = (current < total) and "\n" or ""
+      table.insert(tool_messages, "> Running the `" .. tool.name .. "` tool" .. line_break)
+      current = current + 1
     end
+
+    self:add_buf_message({
+      role = config.constants.LLM_ROLE,
+      content = table.concat(tool_messages, ""),
+    })
+
     self.agents:execute(self, tools)
   end
 

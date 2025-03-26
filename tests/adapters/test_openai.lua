@@ -96,7 +96,7 @@ T["OpenAI adapter"]["Streaming"]["can output streamed data into the chat buffer"
   h.expect_starts_with("Dynamic, Flexible", output)
 end
 
-T["OpenAI adapter"]["Streaming"]["can process tool executions"] = function()
+T["OpenAI adapter"]["Streaming"]["can process tools"] = function()
   local tools = {}
   local lines = vim.fn.readfile("tests/adapters/stubs/openai_tools_streaming.txt")
   for _, line in ipairs(lines) do
@@ -104,7 +104,7 @@ T["OpenAI adapter"]["Streaming"]["can process tool executions"] = function()
   end
 
   local tool_output = {
-    [0] = {
+    ["0"] = {
       arguments = '{"location":"London, UK","units":"celsius"}',
       name = "weather",
     },
@@ -135,7 +135,7 @@ T["OpenAI adapter"]["No Streaming"]["can output for the chat buffer"] = function
   h.eq("Elegant simplicity.", adapter.handlers.chat_output(adapter, json).output.content)
 end
 
-T["OpenAI adapter"]["No Streaming"]["can process tool executions"] = function()
+T["OpenAI adapter"]["No Streaming"]["can process tools"] = function()
   local data = vim.fn.readfile("tests/adapters/stubs/openai_tools_no_streaming.txt")
   data = table.concat(data, "\n")
 

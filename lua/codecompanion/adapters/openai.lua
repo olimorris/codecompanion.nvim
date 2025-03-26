@@ -143,7 +143,7 @@ return {
             if self.opts.tools and delta.tool_calls and tools then
               for _, tool in ipairs(delta.tool_calls) do
                 if self.opts.stream then
-                  local index = tool.index
+                  local index = tostring(tool.index)
                   if not vim.tbl_contains(vim.tbl_keys(tools), index) then
                     tools[index] = {
                       name = tool["function"]["name"],
