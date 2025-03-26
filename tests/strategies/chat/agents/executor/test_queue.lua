@@ -39,16 +39,13 @@ T["Agent"]["queue"]["can queue functions and commands"] = function()
     local tools = {
       [0] = {
         arguments = '{"data": "Data 1"}',
-        index = 0,
         name = "func_queue",
       },
       [1] = {
-        index = 1,
         name = "cmd_queue",
       },
       [2] = {
         arguments = '{"data": "Data 2"}',
-        index = 1,
         name = "func_queue_2",
       },
     }

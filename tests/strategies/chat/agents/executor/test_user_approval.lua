@@ -39,7 +39,6 @@ T["Agent"]["user approval"]["is triggered"] = function()
     local tools = {
       [0] = {
         arguments = '{"data": "Data 1"}',
-        index = 0,
         name = "func",
       },
     }

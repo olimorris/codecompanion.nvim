@@ -39,7 +39,6 @@ T["Agent"]["functions"]["can run"] = function()
     local tools = {
       [0] = {
         arguments = '{"data": "Data 1"}',
-        index = 0,
         name = "func",
       },
     }
@@ -60,12 +59,10 @@ T["Agent"]["functions"]["can run functions of the same name consecutively"] = fu
     local tools = {
       [0] = {
         arguments = '{"data": "Data 1"}',
-        index = 0,
         name = "func",
       },
       [1] = {
         arguments = '{"data": "Data 2"}',
-        index = 1,
         name = "func",
       },
     }
@@ -86,12 +83,10 @@ T["Agent"]["functions"]["can run functions of a different name consecutively"] =
     local tools = {
       [0] = {
         arguments = '{"data": "Data 1"}',
-        index = 0,
         name = "func",
       },
       [1] = {
         arguments = '{"data": "Data 2"}',
-        index = 1,
         name = "func2",
       },
     }
@@ -112,7 +107,6 @@ T["Agent"]["functions"]["calls output.success"] = function()
     local tools = {
       [0] = {
         arguments = '{"data": "Data 1"}',
-        index = 0,
         name = "func",
       },
     }
@@ -130,7 +124,6 @@ T["Agent"]["functions"]["can pass input to the next function"] = function()
     local tools = {
       [0] = {
         arguments = '{"data": "Data 1"}',
-        index = 0,
         name = "func_consecutive",
       },
     }
@@ -148,7 +141,6 @@ T["Agent"]["functions"]["can handle errors"] = function()
     local tools = {
       [0] = {
         arguments = '{"data": "Data 1"}',
-        index = 0,
         name = "func_error",
       },
     }
@@ -166,7 +158,6 @@ T["Agent"]["functions"]["can return errors"] = function()
     local tools = {
       [0] = {
         arguments = '{"data": "Data 1"}',
-        index = 0,
         name = "func_return_error",
       },
     }
@@ -188,7 +179,6 @@ T["Agent"]["functions"]["can populate stderr and halt execution"] = function()
     local tools = {
       [0] = {
         arguments = '{"data": "Data 1"}',
-        index = 0,
         name = "func_error",
       },
     }
@@ -208,12 +198,10 @@ T["Agent"]["functions"]["can populate stdout"] = function()
     local tools = {
       [0] = {
         arguments = '{"data": "Data 1"}',
-        index = 0,
         name = "func",
       },
       [1] = {
         arguments = '{"data": "Data 2"}',
-        index = 1,
         name = "func",
       },
     }

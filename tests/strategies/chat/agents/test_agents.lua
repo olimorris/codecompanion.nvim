@@ -86,14 +86,7 @@ T["Agent"][":execute"]["a response from the LLM"] = function()
     local tools = {
       [0] = {
         arguments = '{"location":"London, UK","units":"celsius"}',
-        ["function"] = {
-          arguments = "",
-          name = "weather",
-        },
-        id = "call_KGiXAhOpQf7HtQuihqxyl4wn",
-        index = 0,
         name = "weather",
-        type = "function",
       },
     }
 

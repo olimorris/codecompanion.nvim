@@ -34,7 +34,6 @@ T["Agent"]["cmds"]["handlers and outputs are called"] = function()
   child.lua([[
     local tool = {
       [0] = {
-        index = 0,
         name = "cmd",
       },
     }
@@ -57,7 +56,6 @@ T["Agent"]["cmds"]["output.errors is called"] = function()
   child.lua([[
     local tool = {
       [0] = {
-        index = 0,
         name = "cmd_error",
       },
     }
@@ -76,7 +74,6 @@ T["Agent"]["cmds"]["can run multiple commands"] = function()
   child.lua([[
     local tool = {
       [0] = {
-        index = 0,
         name = "cmd_consecutive",
       },
     }
@@ -98,7 +95,6 @@ T["Agent"]["cmds"]["can set test flags on the chat object"] = function()
     local tool = {
       [0] = {
         arguments = '{"cmds": "ls", "flag": "testing"}',
-        index = 0,
         name = "mock_cmd_runner",
       },
     }
