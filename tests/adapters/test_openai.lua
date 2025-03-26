@@ -103,19 +103,14 @@ T["OpenAI adapter"]["Streaming"]["can process tool executions"] = function()
     adapter.handlers.chat_output(adapter, line, tools)
   end
 
-  h.eq({
+  local tool_output = {
     [0] = {
       arguments = '{"location":"London, UK","units":"celsius"}',
-      ["function"] = {
-        arguments = "",
-        name = "weather",
-      },
-      id = "call_KGiXAhOpQf7HtQuihqxyl4wn",
-      index = 0,
       name = "weather",
-      type = "function",
     },
-  }, tools)
+  }
+
+  h.eq(tool_output, tools)
 end
 
 T["OpenAI adapter"]["No Streaming"] = new_set({
@@ -138,6 +133,29 @@ T["OpenAI adapter"]["No Streaming"]["can output for the chat buffer"] = function
   local json = { body = data }
 
   h.eq("Elegant simplicity.", adapter.handlers.chat_output(adapter, json).output.content)
+end
+
+T["OpenAI adapter"]["No Streaming"]["can process tool executions"] = function()
+  local data = vim.fn.readfile("tests/adapters/stubs/openai_tools_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  local tools = {}
+
+  -- Match the format of the actual request
+  local json = { body = data }
+  adapter.handlers.chat_output(adapter, json, tools)
+
+  local tool_output = {
+    call_HVrmLOHM2Ybd6K7vQj4x8NdQ = {
+      arguments = '{"location": "Paris, France", "units": "celsius"}',
+      name = "weather",
+    },
+    call_VGkXa0hqNLEe2HSgMO1EpOe6 = {
+      arguments = '{"location": "London, United Kingdom", "units": "celsius"}',
+      name = "weather",
+    },
+  }
+  h.eq(tool_output, tools)
 end
 
 T["OpenAI adapter"]["No Streaming"]["can output for the inline assistant"] = function()

@@ -83,7 +83,7 @@ return {
     ---@param tools table<string, table>
     ---@return table|nil
     form_tools = function(self, tools)
-      if not self.opts.tools then
+      if not self.opts.tools or not tools then
         return
       end
 
@@ -140,14 +140,23 @@ return {
               output.role = nil
             end
 
-            if delta.tool_calls and tools then
-              for _, tool_call in ipairs(delta.tool_calls) do
-                local index = tool_call.index
-                if not vim.tbl_contains(vim.tbl_keys(tools), index) then
-                  tools[index] = tool_call
-                  tools[index]["name"] = tool_call["function"]["name"]
+            if self.opts.tools and delta.tool_calls and tools then
+              for _, tool in ipairs(delta.tool_calls) do
+                if self.opts.stream then
+                  local index = tool.index
+                  if not vim.tbl_contains(vim.tbl_keys(tools), index) then
+                    tools[index] = {
+                      name = tool["function"]["name"],
+                      arguments = "",
+                    }
+                  end
+                  tools[index]["arguments"] = (tools[index]["arguments"] or "") .. tool["function"]["arguments"]
+                else
+                  tools[tool.id] = {
+                    name = tool["function"]["name"],
+                    arguments = tool["function"]["arguments"],
+                  }
                 end
-                tools[index]["arguments"] = (tools[index]["arguments"] or "") .. tool_call["function"]["arguments"]
               end
             end
 
