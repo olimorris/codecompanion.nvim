@@ -21,7 +21,7 @@ return {
         properties = {
           location = {
             type = "string",
-            description = "City and country e.g. Bogotá, Colombia",
+            description = "The city and state, e.g. San Francisco, CA",
           },
           units = {
             type = "string",
