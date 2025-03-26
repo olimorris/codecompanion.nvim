@@ -786,7 +786,7 @@ function Chat:done(output, tools)
 
     for _, tool in pairs(tools) do
       local line_break = (current < total) and "\n" or ""
-      table.insert(tool_messages, "> Running the `" .. tool.name .. "` tool" .. line_break)
+      table.insert(tool_messages, "> Called the `" .. tool.name .. "` tool" .. line_break)
       current = current + 1
     end
 
