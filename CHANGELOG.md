@@ -1,5 +1,12 @@
 # Changelog
 
+## [14.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.2.2...v14.3.0) (2025-03-27)
+
+
+### Features
+
+* **inline:** vars can now be callbacks closes [#1175](https://github.com/olimorris/codecompanion.nvim/issues/1175)  ([#1176](https://github.com/olimorris/codecompanion.nvim/issues/1176)) ([ccbaf20](https://github.com/olimorris/codecompanion.nvim/commit/ccbaf205d2d842dbef4c9ad9532576cf08fd4b1f))
+
 ## [14.2.2](https://github.com/olimorris/codecompanion.nvim/compare/v14.2.1...v14.2.2) (2025-03-19)
 
 
