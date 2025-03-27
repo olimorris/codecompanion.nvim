@@ -67,6 +67,18 @@ function Variables:output()
     local var_config = self.config[var]
     local callback = var_config.callback
 
+    if type(callback) == "function" then
+      local ok, output = pcall(callback, self)
+      if not ok then
+        log:error("[Variables] %s could not be resolved: %s", var, output)
+      else
+        if output then
+          table.insert(outputs, output)
+        end
+      end
+      goto skip
+    end
+
     -- Resolve them and add them to the outputs
     local ok, module = pcall(require, "codecompanion." .. callback)
     if ok then
