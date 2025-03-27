@@ -22,7 +22,7 @@ function Variable:output()
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = self.config.callback(),
+    content = self.config.callback(self),
   }, { reference = id, tag = "variable", visible = false })
 
   self.Chat.references:add({

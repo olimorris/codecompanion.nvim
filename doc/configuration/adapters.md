@@ -19,6 +19,9 @@ require("codecompanion").setup({
     inline = {
       adapter = "copilot",
     },
+    cmd = {
+      adapter = "deepseek",
+    }
   },
 }),
 ```

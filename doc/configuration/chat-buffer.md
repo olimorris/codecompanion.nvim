@@ -97,7 +97,7 @@ require("codecompanion").setup({
             if handle ~= nil then
               local result = handle:read("*a")
               handle:close()
-              chat:add_reference({ content = result }, "git", "<git_files>")
+              chat:add_reference({ role = "user", content = result }, "git", "<git_files>")
             else
               return vim.notify("No git files available", vim.log.levels.INFO, { title = "CodeCompanion" })
             end
