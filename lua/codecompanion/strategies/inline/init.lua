@@ -389,7 +389,7 @@ function Inline:submit(prompt)
 
   self.current_request = client
     .new({ adapter = self.adapter:map_schema_to_params(), user_args = { event = "InlineStarted" } })
-    :request(self.adapter:map_roles(prompt), {
+    :request({ messages = self.adapter:map_roles(prompt) }, {
       ---@param err string
       ---@param data table
       ---@param adapter CodeCompanion.Adapter The modified adapter from the http client

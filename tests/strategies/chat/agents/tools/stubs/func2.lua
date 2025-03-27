@@ -1,6 +1,6 @@
 return {
-  name = "func",
-  system_prompt = "my func system prompt",
+  name = "func2",
+  system_prompt = "my func2 system prompt",
   cmds = {
     ---@return { status: string, data: any }
     function(self, args, input)
@@ -13,13 +13,13 @@ return {
     end,
   },
   schema = {
-    name = "func",
+    name = "func2",
   },
   handlers = {
     -- Should only be called once
     setup = function(self)
-      _G._test_order = (_G._test_order or "") .. "Setup"
-      _G._test_setup = (_G._test_setup or "") .. "Setup"
+      _G._test_order = (_G._test_order or "") .. "->Setup"
+      _G._test_setup = (_G._test_setup or "") .. "->Setup"
     end,
     -- Should only be called once
     on_exit = function(self)

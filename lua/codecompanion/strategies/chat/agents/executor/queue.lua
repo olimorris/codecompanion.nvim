@@ -2,6 +2,13 @@
 ---Based on deque by Pierre 'catwell' Chapuis
 ---Ref: https://github.com/catwell/cw-lua/blob/master/deque/deque.lua
 
+---Get the next item from the front of the queue without removing it
+---@param self table
+---@return any|nil The next item or nil if queue is empty
+local peek = function(self)
+  return self[self.head + 1]
+end
+
 ---Add an item to the back of the queue
 ---@param self table
 ---@param x any
@@ -52,6 +59,7 @@ local contents = function(self)
 end
 
 local methods = {
+  peek = peek,
   push = push,
   pop = pop,
   count = count,
@@ -69,6 +77,7 @@ end
 ---@class CodeCompanion.Agent.Executor.Queue
 ---@field head number Internal head pointer
 ---@field tail number Internal tail pointer
+---@field peek fun(self: CodeCompanion.Agent.Executor.Queue) Get the next item from the front of the queue without removing it
 ---@field push fun(self: CodeCompanion.Agent.Executor.Queue, x: any): nil Add an item to the back of the queue
 ---@field pop fun(self: CodeCompanion.Agent.Executor.Queue): any|nil Remove and return an item from the front of the queue
 ---@field count fun(self: CodeCompanion.Agent.Executor.Queue): number Get the number of items in the queue

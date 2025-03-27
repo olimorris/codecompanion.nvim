@@ -4,7 +4,7 @@ local new_set = MiniTest.new_set
 local T = MiniTest.new_set()
 
 local child = MiniTest.new_child_neovim()
-T["Messages"] = new_set({
+T["Tools"] = new_set({
   hooks = {
     pre_case = function()
       child.restart({ "-u", "scripts/minimal_init.lua" })
@@ -22,7 +22,7 @@ T["Messages"] = new_set({
   },
 })
 
-T["Messages"]["Can be parsed in the chat buffer"] = function()
+T["Tools"][""] = function()
   child.lua([[
     _G.chat:add_buf_message({ role = "user", content = "Hello World" })
   ]])

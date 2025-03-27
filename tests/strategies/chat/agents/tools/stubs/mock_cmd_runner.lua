@@ -1,23 +1,19 @@
 return {
   name = "mock_cmd_runner",
-  system_prompt = function(schema)
-    return "my cmd system prompt"
-  end,
+  system_prompt = "my func system prompt",
   cmds = {},
   handlers = {
     ---@param agent CodeCompanion.Agent The tool object
     setup = function(agent)
       local tool = agent.tool --[[@type CodeCompanion.Agent.Tool]]
-      local action = tool.request.action
-      local actions = vim.isarray(action) and action or { action }
+      local args = tool.args
 
-      for _, act in ipairs(actions) do
-        local entry = { cmd = vim.split(act.command, " ") }
-        if act.flag then
-          entry.flag = act.flag
-        end
-        table.insert(tool.cmds, entry)
+      local entry = { cmd = vim.split(args.cmds, " ") }
+      if args.flag then
+        entry.flag = args.flag
       end
+
+      table.insert(tool.cmds, entry)
     end,
 
     -- Should only be called once
