@@ -22,63 +22,10 @@ T["OpenAI adapter"]["it can form messages to be sent to the API"] = function()
 end
 
 T["OpenAI adapter"]["it can form tools to be sent to the API"] = function()
-  local tools = {
-    {
-      weather = {
-        ["function"] = {
-          description = "Retrieves current weather for the given location.",
-          name = "weather",
-          parameters = {
-            additionalProperties = false,
-            properties = {
-              location = {
-                description = "City and country e.g. Bogotá, Colombia",
-                type = "string",
-              },
-              units = {
-                description = "Units the temperature will be returned in.",
-                enum = { "celsius", "fahrenheit" },
-                type = "string",
-              },
-            },
-            required = { "location", "units" },
-            type = "object",
-          },
-          strict = true,
-        },
-        type = "function",
-      },
-    },
-  }
+  local weather = require("tests/strategies/chat/agents/tools/stubs/weather").schema
+  local tools = { weather = { weather } }
 
-  h.eq({
-    tools = {
-      {
-        ["function"] = {
-          description = "Retrieves current weather for the given location.",
-          name = "weather",
-          parameters = {
-            additionalProperties = false,
-            properties = {
-              location = {
-                description = "City and country e.g. Bogotá, Colombia",
-                type = "string",
-              },
-              units = {
-                description = "Units the temperature will be returned in.",
-                enum = { "celsius", "fahrenheit" },
-                type = "string",
-              },
-            },
-            required = { "location", "units" },
-            type = "object",
-          },
-          strict = true,
-        },
-        type = "function",
-      },
-    },
-  }, adapter.handlers.form_tools(adapter, tools))
+  h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
 end
 
 T["OpenAI adapter"]["Streaming"] = new_set()
