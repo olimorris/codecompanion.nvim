@@ -4,7 +4,7 @@ local M = {}
 ---REF: https://docs.anthropic.com/en/docs/build-with-claude/tool-use/overview#example-simple-tool-definition
 ---@param schema table
 ---@return table
-M.openai_to_anthropic = function(schema)
+M.to_anthropic = function(schema)
   local function_def = schema["function"]
 
   return {

@@ -1,4 +1,5 @@
 local h = require("tests.helpers")
+local transform = require("codecompanion.utils.tool_transformers")
 local adapter
 
 local new_set = MiniTest.new_set
@@ -32,6 +33,13 @@ T["Anthropic adapter"]["can form messages to be sent to the API"] = function()
     role = "user",
   } }
   h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+end
+
+T["Anthropic adapter"]["it can form tools to be sent to the API"] = function()
+  local weather = require("tests/strategies/chat/agents/tools/stubs/weather").schema
+  local tools = { weather = { weather } }
+
+  h.eq({ tools = { transform.to_anthropic(weather) } }, adapter.handlers.form_tools(adapter, tools))
 end
 
 T["Anthropic adapter"]["consolidates consecutive user messages together"] = function()
@@ -86,6 +94,27 @@ T["Anthropic adapter"]["Streaming"]["can output streamed data into the chat buff
   h.expect_starts_with("Dynamic elegance", output)
 end
 
+T["Anthropic adapter"]["Streaming"]["can process tools"] = function()
+  local tools = {}
+  local lines = vim.fn.readfile("tests/adapters/stubs/anthropic_tools_streaming.txt")
+  for _, line in ipairs(lines) do
+    adapter.handlers.chat_output(adapter, line, tools)
+  end
+
+  local tool_output = {
+    ["1"] = {
+      arguments = '{"location": "London, UK", "units": "celsius"}',
+      name = "weather",
+    },
+    ["2"] = {
+      arguments = '{"location": "Paris, France", "units": "celsius"}',
+      name = "weather",
+    },
+  }
+
+  h.eq(tool_output, tools)
+end
+
 T["Anthropic adapter"]["Streaming"]["can process reasoning output"] = function()
   local output = {
     content = "",
@@ -138,6 +167,35 @@ T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant with
   local json = { body = data }
 
   h.expect_starts_with("Dynamic elegance", adapter.handlers.inline_output(adapter, json).output)
+end
+
+T["Anthropic adapter"]["No Streaming"]["can process tools"] = function()
+  local data = vim.fn.readfile("tests/adapters/stubs/anthropic_tools_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  local tools = {}
+
+  -- Match the format of the actual request
+  local json = { body = data }
+  adapter.handlers.chat_output(adapter, json, tools)
+
+  local tool_output = {
+    toolu_01TSJjnB81vBBT8dhP3tTCaM = {
+      arguments = {
+        location = "London, UK",
+        units = "celsius",
+      },
+      name = "weather",
+    },
+    toolu_01UEd4jZFvj5gdqyL1L7QTqg = {
+      arguments = {
+        location = "Paris, France",
+        units = "celsius",
+      },
+      name = "weather",
+    },
+  }
+  h.eq(tool_output, tools)
 end
 
 T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant with reasoning models"] = function()

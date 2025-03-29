@@ -1,5 +1,5 @@
 local h = require("tests.helpers")
-local transformers = require("codecompanion.utils.tool_transformers")
+local transform = require("codecompanion.utils.tool_transformers")
 
 local new_set = MiniTest.new_set
 T = new_set()
@@ -13,7 +13,7 @@ T["Transformers"]["can transform to Anthropic schema"] = function()
   local anthropic = vim.fn.readfile("tests/adapters/stubs/transformers/anthropic.txt")
   anthropic = vim.json.decode(table.concat(anthropic, "\n"))
 
-  local output = transformers.openai_to_anthropic(openai)
+  local output = transform.to_anthropic(openai)
 
   h.eq(output, anthropic)
 end
