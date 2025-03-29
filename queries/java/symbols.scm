@@ -29,8 +29,3 @@
   name: (identifier) @name
   (#set! "kind" "Enum")) @symbol
 
-(field_declaration
-  declarator: (variable_declarator
-    name: (identifier) @name)
-  (#set! "kind" "Field")) @symbol
-
