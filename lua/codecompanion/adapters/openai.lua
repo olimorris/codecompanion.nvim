@@ -154,7 +154,7 @@ return {
                 else
                   tools[tool.id] = {
                     name = tool["function"]["name"],
-                    arguments = tool["function"]["arguments"],
+                    arguments = vim.json.decode(tool["function"]["arguments"]),
                   }
                 end
               end

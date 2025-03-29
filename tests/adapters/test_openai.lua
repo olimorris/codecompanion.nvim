@@ -94,11 +94,17 @@ T["OpenAI adapter"]["No Streaming"]["can process tools"] = function()
 
   local tool_output = {
     call_HVrmLOHM2Ybd6K7vQj4x8NdQ = {
-      arguments = '{"location": "Paris, France", "units": "celsius"}',
+      arguments = {
+        location = "Paris, France",
+        units = "celsius",
+      },
       name = "weather",
     },
     call_VGkXa0hqNLEe2HSgMO1EpOe6 = {
-      arguments = '{"location": "London, United Kingdom", "units": "celsius"}',
+      arguments = {
+        location = "London, United Kingdom",
+        units = "celsius",
+      },
       name = "weather",
     },
   }
