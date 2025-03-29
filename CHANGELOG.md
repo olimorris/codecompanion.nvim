@@ -1,5 +1,12 @@
 # Changelog
 
+## [14.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.4.0...v14.5.0) (2025-03-29)
+
+
+### Features
+
+* **symbols:** add Java support ([#1182](https://github.com/olimorris/codecompanion.nvim/issues/1182)) ([36ffd9c](https://github.com/olimorris/codecompanion.nvim/commit/36ffd9cd335afdc668e7bcc91ac6ae65149a4b2b))
+
 ## [14.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.3.0...v14.4.0) (2025-03-27)
 
 
