@@ -7,7 +7,7 @@ return {
     function(self, args, input)
       return {
         status = "success",
-        data = "The weather in " .. args.location .. " is 75° " .. args.units,
+        data = "The weather in " .. args.location .. " is 15° " .. args.units,
       }
     end,
   },
@@ -48,7 +48,7 @@ return {
     success = function(agent, cmd, stdout)
       return agent.chat:add_buf_message({
         role = "user",
-        content = stdout[1],
+        content = stdout[#stdout] .. ". ",
       })
     end,
   },
