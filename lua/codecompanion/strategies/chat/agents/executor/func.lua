@@ -46,9 +46,6 @@ function FuncExecutor:proceed_to_next(output)
 
       -- Don't call setup or exit if the next tool is the same
       if next_tool and next_tool.name == current_name then
-        -- self.executor:success(self.executor.tool.args)
-
-        -- Pop the next tool and continue execution directly
         self.executor.tool = self.executor.queue:pop()
         local next_func = self.executor.tool.cmds[1]
         local next_executor = FuncExecutor.new(self.executor, next_func, 1)
@@ -71,6 +68,7 @@ function FuncExecutor:run(func, action, input, callback)
   log:debug("FuncExecutor:run")
 
   local tool_finished = false
+
   ---@param msg {status:"success"|"error", data:any}
   local function output_handler(msg)
     if tool_finished then
