@@ -119,7 +119,12 @@ function Agent:execute(chat, tools)
 
     self.tool.name = name
     if tool.arguments then
-      self.tool.args = vim.json.decode(tool.arguments)
+      self.tool.args = tool.arguments
+      -- For some Copilot models, the args are a JSON string
+      local ok, args = pcall(vim.json.decode, tool.arguments)
+      if ok then
+        self.tool.args = args
+      end
     end
     self.tool.opts = tool_config.opts and tool_config.opts or {}
     log:info("Tools: %s", self.tool)

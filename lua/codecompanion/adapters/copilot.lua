@@ -182,6 +182,9 @@ local function get_models(self, opts)
       if model.capabilities.supports.streaming then
         choice_opts.can_stream = true
       end
+      if model.capabilities.supports.tool_calls then
+        choice_opts.can_use_tools = true
+      end
 
       models[model.id] = { opts = choice_opts }
     end
@@ -203,6 +206,7 @@ return {
   },
   opts = {
     stream = true,
+    tools = true,
   },
   features = {
     text = true,
@@ -242,6 +246,9 @@ return {
       else
         self.parameters.stream = nil
       end
+      if (self.opts and self.opts.tools) and (model_opts and model_opts.opts and not model_opts.opts.can_use_tools) then
+        self.opts.tools = false
+      end
 
       return get_and_authorize_token()
     end,
@@ -252,6 +259,9 @@ return {
     end,
     form_messages = function(self, messages)
       return openai.handlers.form_messages(self, messages)
+    end,
+    form_tools = function(self, tools)
+      return openai.handlers.form_tools(self, tools)
     end,
     tokens = function(self, data)
       if data and data ~= "" then
@@ -270,8 +280,8 @@ return {
         end
       end
     end,
-    chat_output = function(self, data)
-      return openai.handlers.chat_output(self, data)
+    chat_output = function(self, data, tools)
+      return openai.handlers.chat_output(self, data, tools)
     end,
     inline_output = function(self, data, context)
       return openai.handlers.inline_output(self, data, context)

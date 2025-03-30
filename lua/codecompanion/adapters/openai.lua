@@ -140,6 +140,13 @@ return {
               output.role = nil
             end
 
+            -- Some providers may return empty content
+            if delta.content then
+              output.content = delta.content
+            else
+              output.content = ""
+            end
+
             if self.opts.tools and delta.tool_calls and tools then
               for _, tool in ipairs(delta.tool_calls) do
                 if self.opts.stream then
@@ -150,7 +157,7 @@ return {
                       arguments = "",
                     }
                   end
-                  tools[index]["arguments"] = (tools[index]["arguments"] or "") .. tool["function"]["arguments"]
+                  tools[index]["arguments"] = (tools[index]["arguments"] or "") .. (tool["function"]["arguments"] or "")
                 else
                   tools[tool.id] = {
                     name = tool["function"]["name"],
@@ -158,13 +165,6 @@ return {
                   }
                 end
               end
-            end
-
-            -- Some providers may return empty content
-            if delta.content then
-              output.content = delta.content
-            else
-              output.content = ""
             end
 
             return {

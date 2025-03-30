@@ -760,6 +760,19 @@ function Chat:set_textarea(modifier)
   self.header_line = api.nvim_buf_line_count(self.bufnr) + modifier
 end
 
+---Get the number of LLM messages in the current cycle
+---@param messages table
+---@param cycle number
+---@return table
+local function messages_in_cycle(messages, cycle)
+  return vim.tbl_count(vim
+    .iter(messages)
+    :filter(function(msg)
+      return msg.cycle == cycle and msg.role == config.constants.LLM_ROLE and msg.content ~= ""
+    end)
+    :totable())
+end
+
 ---Method to call after the response from the LLM is received
 ---@param output? table The output from the LLM
 ---@param tools? table The tools from the LLM
@@ -780,7 +793,15 @@ function Chat:done(output, tools)
   end
 
   if tools and not vim.tbl_isempty(tools) then
-    local tool_messages = { "" } -- Include a line break at the start
+    -- Some LLMs return a message prior to the tool call so we separate the two
+    if messages_in_cycle(self.messages, self.cycle) > 0 then
+      self:add_buf_message({
+        role = config.constants.LLM_ROLE,
+        content = "\n\n",
+      })
+    end
+
+    local tool_messages = {}
     local total = vim.tbl_count(tools)
     local current = 1
 
