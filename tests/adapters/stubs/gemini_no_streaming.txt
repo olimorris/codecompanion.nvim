@@ -1,34 +1,20 @@
 {
-  "candidates": [
-    {
-      "content": {
-        "parts": [
-          {
-            "text": "Elegant, dynamic.\nWhat can I help you with next?\n"
-          }
-        ],
-        "role": "model"
-      },
-      "finishReason": "STOP",
-      "avgLogprobs": -0.15357250826699392
-    }
-  ],
-  "usageMetadata": {
-    "promptTokenCount": 405,
-    "candidatesTokenCount": 14,
-    "totalTokenCount": 419,
-    "promptTokensDetails": [
-      {
-        "modality": "TEXT",
-        "tokenCount": 405
-      }
+    "choices": [
+        {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+                "content": "Elegant, dynamic.\\n\\nNext question?\\n",
+                "role": "assistant"
+            }
+        }
     ],
-    "candidatesTokensDetails": [
-      {
-        "modality": "TEXT",
-        "tokenCount": 14
-      }
-    ]
-  },
-  "modelVersion": "gemini-2.0-flash"
+    "created": 1743460357,
+    "model": "gemini-2.0-flash",
+    "object": "chat.completion",
+    "usage": {
+        "completion_tokens": 9,
+        "prompt_tokens": 419,
+        "total_tokens": 428
+    }
 }

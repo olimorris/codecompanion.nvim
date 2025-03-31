@@ -29,109 +29,23 @@ T["Gemini adapter"]["can form messages to be sent to the API"] = function()
   }
 
   local output = {
-    system_instruction = {
-      role = "user",
-      parts = {
-        { text = "Follow the user's request" },
-        { text = "Respond in code" },
-      },
-    },
-    contents = {
+    messages = {
       {
+        content = "Follow the user's request",
+        role = "system",
+      },
+      {
+        content = "Respond in code",
+        role = "system",
+      },
+      {
+        content = "Explain Ruby in two words",
         role = "user",
-        parts = {
-          { text = "Explain Ruby in two words" },
-        },
       },
     },
   }
 
   h.eq(output, adapter.handlers.form_messages(adapter, messages))
-end
-
-T["Gemini adapter"]["can form messages with system prompt"] = function()
-  local messages_with_system = {
-    {
-      content = "You are a helpful assistant",
-      role = "system",
-      id = 1,
-      cycle = 1,
-      opts = { visible = false },
-    },
-    {
-      content = "hello",
-      id = 2,
-      opts = { visible = true },
-      role = "user",
-    },
-    {
-      content = "Hi, how can I help?",
-      id = 3,
-      opts = { visible = true },
-      role = "llm",
-    },
-  }
-
-  local output = {
-    system_instruction = {
-      role = "user",
-      parts = {
-        { text = "You are a helpful assistant" },
-      },
-    },
-    contents = {
-      {
-        role = "user",
-        parts = {
-          { text = "hello" },
-        },
-      },
-      {
-        role = "user",
-        parts = {
-          { text = "Hi, how can I help?" },
-        },
-      },
-    },
-  }
-
-  h.eq(output, adapter.handlers.form_messages(adapter, messages_with_system))
-end
-
-T["Gemini adapter"]["can form messages without system prompt"] = function()
-  local messages_without_system = {
-    {
-      content = "hello",
-      id = 1,
-      opts = { visible = true },
-      role = "user",
-    },
-    {
-      content = "Hi, how can I help?",
-      id = 2,
-      opts = { visible = true },
-      role = "llm",
-    },
-  }
-
-  local output = {
-    contents = {
-      {
-        role = "user",
-        parts = {
-          { text = "hello" },
-        },
-      },
-      {
-        role = "user",
-        parts = {
-          { text = "Hi, how can I help?" },
-        },
-      },
-    },
-  }
-
-  h.eq(output, adapter.handlers.form_messages(adapter, messages_without_system))
 end
 
 T["Gemini adapter"]["Streaming"] = new_set()
@@ -146,7 +60,7 @@ T["Gemini adapter"]["Streaming"]["can output streamed data into the chat buffer"
     end
   end
 
-  h.expect_starts_with("Interpreted, versatile.", output)
+  h.expect_starts_with("Elegant, dynamic", output)
 end
 
 T["Gemini adapter"]["No Streaming"] = new_set({
