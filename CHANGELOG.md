@@ -1,5 +1,24 @@
 # Changelog
 
+## [14.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.4.0...v14.5.0) (2025-03-29)
+
+
+### Features
+
+* **symbols:** add Java support ([#1182](https://github.com/olimorris/codecompanion.nvim/issues/1182)) ([36ffd9c](https://github.com/olimorris/codecompanion.nvim/commit/36ffd9cd335afdc668e7bcc91ac6ae65149a4b2b))
+
+## [14.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.3.0...v14.4.0) (2025-03-27)
+
+
+### Features
+
+* **adapters:** add gemini 2.5 pro option ([#1180](https://github.com/olimorris/codecompanion.nvim/issues/1180)) ([f134b6c](https://github.com/olimorris/codecompanion.nvim/commit/f134b6c8f35ea1df4fa45d4f50319554178308fb))
+
+
+### Bug Fixes
+
+* **blink:** cursor put at wrong position after accepting ([#1179](https://github.com/olimorris/codecompanion.nvim/issues/1179)) ([f83641b](https://github.com/olimorris/codecompanion.nvim/commit/f83641ba9e3a8993afb03a856701623c746a05b8))
+
 ## [14.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.2.2...v14.3.0) (2025-03-27)
 
 

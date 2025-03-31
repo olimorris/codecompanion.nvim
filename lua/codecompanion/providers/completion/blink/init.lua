@@ -126,10 +126,8 @@ end
 
 function M:execute(ctx, item, callback, default_implementation)
   if vim.tbl_contains({ "variable", "tool" }, item.data.type) then
-    -- TODO: remove type check once blink.cmp 0.14+ is released
     if type(default_implementation) == "function" then
-      vim.lsp.util.apply_text_edits({ item.textEdit }, ctx.bufnr, "utf-8")
-      vim.bo[ctx.bufnr].buflisted = false
+      default_implementation()
     end
 
     return callback()
