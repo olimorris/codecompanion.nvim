@@ -45,12 +45,7 @@ function FuncExecutor:proceed_to_next(output)
       local current_name = self.executor.tool.name
 
       -- Option to only use the handlers once for successive executions of the same tool
-      if
-        next_tool
-        and next_tool.name == current_name
-        and next_tool.settings
-        and next_tool.settings.use_handlers_once
-      then
+      if next_tool and next_tool.name == current_name and next_tool.opts and next_tool.opts.use_handlers_once then
         self.executor.tool = self.executor.queue:pop()
         local next_func = self.executor.tool.cmds[1]
         local next_executor = FuncExecutor.new(self.executor, next_func, 1)

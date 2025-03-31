@@ -1,6 +1,6 @@
 return {
   name = "func_handlers_once",
-  settings = {
+  opts = {
     use_handlers_once = true,
   },
   system_prompt = "my func system prompt",
