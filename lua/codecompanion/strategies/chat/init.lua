@@ -793,7 +793,7 @@ function Chat:done(output, tools)
   end
 
   if tools and not vim.tbl_isempty(tools) then
-    -- Some LLMs return a message prior to the tool call so we separate the two
+    -- Some LLMs return a message prior to the tool call so visually separate them
     if messages_in_cycle(self.messages, self.cycle) > 0 then
       self:add_buf_message({
         role = config.constants.LLM_ROLE,
