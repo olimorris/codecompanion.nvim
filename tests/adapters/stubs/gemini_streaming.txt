@@ -1,2 +1,5 @@
-data: {"candidates": [{"content": {"parts": [{"text": "Inter"}],"role": "model"}}],"usageMetadata": {"promptTokenCount": 442,"totalTokenCount": 442,"promptTokensDetails": [{"modality": "TEXT","tokenCount": 442}]},"modelVersion": "gemini-2.0-flash"}
-data: {"candidates": [{"content": {"parts": [{"text": "preted, versatile.\n\nWhat else can I help you with?\n"}],"role": "model"},"finishReason": "STOP"}],"usageMetadata": {"promptTokenCount": 438,"candidatesTokenCount": 16,"totalTokenCount": 454,"promptTokensDetails": [{"modality": "TEXT","tokenCount": 438}],"candidatesTokensDetails": [{"modality": "TEXT","tokenCount": 16}]},"modelVersion": "gemini-2.0-flash"}
+data: {"choices":[{"delta":{"content":"Elegant","role":"assistant"},"index":0}],"created":1743460109,"model":"gemini-2.0-flash","object":"chat.completion.chunk","usage":{"completion_tokens":0,"prompt_tokens":425,"total_tokens":425}}
+Tokens: 425
+data: {"choices":[{"delta":{"content":", dynamic.\n\nNext question?\n","role":"assistant"},"finish_reason":"stop","index":0}],"created":1743460109,"model":"gemini-2.0-flash","object":"chat.completion.chunk","usage":{"completion_tokens":9,"prompt_tokens":419,"total_tokens":428}}
+Tokens: 428
+data: [DONE]
