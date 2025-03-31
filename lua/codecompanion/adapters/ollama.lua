@@ -82,6 +82,7 @@ return {
   },
   opts = {
     stream = true,
+    tools = true,
   },
   features = {
     text = true,
@@ -122,6 +123,25 @@ return {
       return { messages = messages }
     end,
 
+    ---Provides the schemas of the tools that are available to the LLM to call
+    ---@param self CodeCompanion.Adapter
+    ---@param tools table<string, table>
+    ---@return table|nil
+    form_tools = function(self, tools)
+      if not self.opts.tools or not tools then
+        return
+      end
+
+      local transformed = {}
+      for _, tool in pairs(tools) do
+        for _, schema in pairs(tool) do
+          table.insert(transformed, schema)
+        end
+      end
+
+      return { tools = transformed }
+    end,
+
     ---Returns the number of tokens generated from the LLM
     ---@param self CodeCompanion.Adapter
     ---@param data table The data from the LLM
@@ -144,8 +164,9 @@ return {
     ---Output the data from the API ready for insertion into the chat buffer
     ---@param self CodeCompanion.Adapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data callback
+    ---@param tools? table The table to write any tool output to
     ---@return table|nil
-    chat_output = function(self, data)
+    chat_output = function(self, data, tools)
       local output = {}
 
       if data and data ~= "" then
@@ -163,6 +184,18 @@ return {
         if message.content then
           output.content = message.content
           output.role = message.role or nil
+        end
+
+        if tools and message.tool_calls then
+          for i, tool in ipairs(message.tool_calls) do
+            local index = tostring(tool["function"]["index"] or (i - 1))
+            if not vim.tbl_contains(vim.tbl_keys(tools), index) then
+              tools[index] = {
+                name = tool["function"]["name"],
+                arguments = tool["function"]["arguments"],
+              }
+            end
+          end
         end
 
         return {
