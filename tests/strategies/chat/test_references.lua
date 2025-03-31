@@ -33,7 +33,7 @@ T["References"]["Can be added to the UI of the chat buffer"] = function()
   chat:submit()
 
   local buffer = h.get_buf_lines(chat.bufnr)
-  h.eq("> Sharing:", buffer[3])
+  h.eq("> Context:", buffer[3])
   h.eq("> - testing", buffer[4])
   h.eq("> - testing again", buffer[5])
 end
@@ -185,7 +185,7 @@ T["References"]["Can be pinned"] = function()
 
   local buffer = h.get_buf_lines(chat.bufnr)
 
-  h.eq("> Sharing:", buffer[3])
+  h.eq("> Context:", buffer[3])
   h.eq(string.format("> - %s<buf>pinned example</buf>", icon), buffer[8])
   h.eq("> - <buf>unpinned example</buf>", buffer[9])
 
@@ -237,7 +237,7 @@ T["References"]["Render"] = function()
   }
   chat.references:render()
 
-  h.eq(h.get_buf_lines(chat.bufnr), { "## foo", "", "> Sharing:", "> -  <buf>pinned example</buf>", "", "" })
+  h.eq(h.get_buf_lines(chat.bufnr), { "## foo", "", "> Context:", "> -  <buf>pinned example</buf>", "", "" })
 end
 
 T["References"]["can be cleared from messages"] = function()
@@ -252,7 +252,7 @@ T["References"]["can be cleared from messages"] = function()
 
   local message = {
     role = "user",
-    content = "> Sharing:\n> -  <buf>pinned example</buf>\n\nHello, World",
+    content = "> Context:\n> -  <buf>pinned example</buf>\n\nHello, World",
   }
 
   h.eq("Hello, World", chat.references:clear(message).content)
