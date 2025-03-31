@@ -1,5 +1,8 @@
 return {
-  name = "func",
+  name = "func_handlers_once",
+  settings = {
+    use_handlers_once = true,
+  },
   system_prompt = "my func system prompt",
   cmds = {
     ---@return { status: string, data: any }

@@ -70,6 +70,31 @@ T["Agent"]["functions"]["can run functions of the same name consecutively"] = fu
   ]])
 
   -- Test order
+  h.eq("Setup->Success->ExitSetup->Success->Exit", child.lua_get([[_G._test_order]]))
+
+  -- Test that the function was called
+  h.eq("Data 1 Data 2", child.lua_get([[_G._test_func]]))
+end
+
+T["Agent"]["functions"]["can run functions of the same name consecutively and not reuse handlers"] = function()
+  h.eq(vim.NIL, child.lua_get([[_G._test_func]]))
+
+  child.lua([[
+    --require("tests.log")
+    local tools = {
+      [0] = {
+        arguments = '{"data": "Data 1"}',
+        name = "func_handlers_once",
+      },
+      [1] = {
+        arguments = '{"data": "Data 2"}',
+        name = "func_handlers_once",
+      },
+    }
+    agent:execute(chat, tools)
+  ]])
+
+  -- Test order
   h.eq("Setup->Success->Success->Exit", child.lua_get([[_G._test_order]]))
 
   -- Test that the function was called
