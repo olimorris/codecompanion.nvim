@@ -127,7 +127,6 @@ function Agent:execute(chat, tools)
       end
     end
     self.tool.opts = vim.tbl_extend("force", self.tool.opts or {}, tool_config.opts or {})
-    log:info("Tools: %s", self.tool)
     self:set_autocmds()
 
     if self.tool.env then
