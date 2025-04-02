@@ -148,9 +148,9 @@ return {
             end
 
             if self.opts.tools and delta.tool_calls and tools then
-              for _, tool in ipairs(delta.tool_calls) do
+              for i, tool in ipairs(delta.tool_calls) do
                 if self.opts.stream then
-                  local index = tostring(tool.index)
+                  local index = tool.index and tostring(tool.index) or tostring(i)
                   if not vim.tbl_contains(vim.tbl_keys(tools), index) then
                     tools[index] = {
                       name = tool["function"]["name"],
@@ -159,7 +159,8 @@ return {
                   end
                   tools[index]["arguments"] = (tools[index]["arguments"] or "") .. (tool["function"]["arguments"] or "")
                 else
-                  tools[tool.id] = {
+                  local id = (tool.id and tool.id ~= "") and tostring(tool.id) or tostring(i)
+                  tools[id] = {
                     name = tool["function"]["name"],
                     arguments = vim.json.decode(tool["function"]["arguments"]),
                   }
