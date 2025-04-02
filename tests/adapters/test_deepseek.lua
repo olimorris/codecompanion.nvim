@@ -62,6 +62,14 @@ T["DeepSeek adapter"]["merges system messages together at the start of the messa
 end
 
 T["DeepSeek adapter"]["it can form tools to be sent to the API"] = function()
+  adapter = require("codecompanion.adapters").extend("deepseek", {
+    schema = {
+      model = {
+        default = "deepseek-chat",
+      },
+    },
+  })
+
   local weather = require("tests/strategies/chat/agents/tools/stubs/weather").schema
   local tools = { weather = { weather } }
 
