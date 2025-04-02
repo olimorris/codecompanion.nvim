@@ -61,6 +61,13 @@ T["DeepSeek adapter"]["merges system messages together at the start of the messa
   h.eq(expected, adapter.handlers.form_messages(adapter, input))
 end
 
+T["DeepSeek adapter"]["it can form tools to be sent to the API"] = function()
+  local weather = require("tests/strategies/chat/agents/tools/stubs/weather").schema
+  local tools = { weather = { weather } }
+
+  h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
+end
+
 T["DeepSeek adapter"]["Streaming"] = new_set()
 
 T["DeepSeek adapter"]["Streaming"]["can output streamed data into a format for the chat buffer"] = function()
@@ -84,6 +91,27 @@ T["DeepSeek adapter"]["Streaming"]["can handle reasoning content when streaming"
   h.expect_starts_with("Okay, the user wants me to explain Ruby in two words. ", output)
 end
 
+T["DeepSeek adapter"]["Streaming"]["can process tools"] = function()
+  local tools = {}
+  local lines = vim.fn.readfile("tests/adapters/stubs/deepseek_tools_streaming.txt")
+  for _, line in ipairs(lines) do
+    adapter.handlers.chat_output(adapter, line, tools)
+  end
+
+  local tool_output = {
+    ["0"] = {
+      arguments = '{"location": "London", "units": "celsius"}',
+      name = "weather",
+    },
+    ["1"] = {
+      arguments = '{"location": "Paris", "units": "celsius"}',
+      name = "weather",
+    },
+  }
+
+  h.eq(tool_output, tools)
+end
+
 T["DeepSeek adapter"]["No Streaming"] = new_set({
   hooks = {
     pre_case = function()
@@ -101,6 +129,36 @@ T["DeepSeek adapter"]["No Streaming"]["can output for the chat buffer"] = functi
   data = table.concat(data, "\n")
 
   h.eq("Elegant simplicity.", adapter.handlers.chat_output(adapter, data).output.content)
+end
+
+T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
+  local data = vim.fn.readfile("tests/adapters/stubs/deepseek_tools_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  local tools = {}
+
+  -- Match the format of the actual request
+  local json = { body = data }
+  adapter.handlers.chat_output(adapter, json, tools)
+
+  local tool_output = {
+    ["call_0_74655864-c1ab-455f-88c5-921aa7b6281c"] = {
+      arguments = {
+        location = "London",
+        units = "celsius",
+      },
+      name = "weather",
+    },
+    ["call_1_759f62c3-f8dc-475f-9558-8211fc0a133c"] = {
+      arguments = {
+        location = "Paris",
+        units = "celsius",
+      },
+      name = "weather",
+    },
+  }
+
+  h.eq(tool_output, tools)
 end
 
 T["DeepSeek adapter"]["No Streaming"]["can output for the inline assistant"] = function()
