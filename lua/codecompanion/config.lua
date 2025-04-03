@@ -963,7 +963,15 @@ You must create or modify a workspace file through a series of prompts over mult
       enabled = true,
       close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
       layout = "vertical", -- vertical|horizontal split for default provider
-      opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
+      opts = {
+        "internal",
+        "filler",
+        "closeoff",
+        "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
+        "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
+        "followwrap",
+        "linematch:120",
+      },
       provider = "default", -- default|mini_diff
     },
     inline = {
