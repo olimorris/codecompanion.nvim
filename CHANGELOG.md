@@ -1,5 +1,13 @@
 # Changelog
 
+## [14.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.5.0...v14.6.0) (2025-04-03)
+
+
+### Features
+
+* **diff:** improve default diff settings ([#1189](https://github.com/olimorris/codecompanion.nvim/issues/1189)) ([30da620](https://github.com/olimorris/codecompanion.nvim/commit/30da620ad79de0e6616b59e4f6d9c77f2d08f081))
+* improve Telescope as action palette provider ([#1195](https://github.com/olimorris/codecompanion.nvim/issues/1195)) ([4fe008e](https://github.com/olimorris/codecompanion.nvim/commit/4fe008e43700bf45b5fbe8a22b0c32eee0d9dc75))
+
 ## [14.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.4.0...v14.5.0) (2025-03-29)
 
 
