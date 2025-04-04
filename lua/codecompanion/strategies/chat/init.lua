@@ -792,8 +792,9 @@ function Chat:done(output, tools)
     })
   end
 
+  -- Add the tool calls to in the LLM section
   if tools and not vim.tbl_isempty(tools) then
-    -- Some LLMs return a message prior to the tool call so visually separate them
+    -- Some LLMs return a message prior to the tool call so separate them with line breaks
     if messages_in_cycle(self.messages, self.cycle) > 0 then
       self:add_buf_message({
         role = config.constants.LLM_ROLE,
@@ -815,8 +816,6 @@ function Chat:done(output, tools)
       role = config.constants.LLM_ROLE,
       content = table.concat(tool_messages, ""),
     })
-
-    self.agents:execute(self, tools)
   end
 
   self:increment_cycle()
@@ -825,6 +824,11 @@ function Chat:done(output, tools)
   self:set_textarea(-2)
   self.ui:display_tokens(self.parser, self.header_line)
   self.references:render()
+
+  -- Now execute the calls
+  if tools and not vim.tbl_isempty(tools) then
+    self.agents:execute(self, tools)
+  end
 
   -- If we're running any tooling, let them handle the subscriptions instead
   if not self.tools:loaded() then
