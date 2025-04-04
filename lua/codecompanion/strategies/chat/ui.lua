@@ -235,7 +235,7 @@ function UI:render(context, messages, opts)
 
   local function add_messages_to_buf(msgs)
     for i, msg in ipairs(msgs) do
-      if msg.role ~= config.constants.SYSTEM_ROLE or (msg.opts and msg.opts.visible ~= false) then
+      if msg.role ~= config.constants.SYSTEM_ROLE and (msg.opts and msg.opts.visible ~= false) then
         -- For workflow prompts: Ensure main user role doesn't get spaced
         if i > 1 and self.last_role ~= msg.role and msg.role ~= config.constants.USER_ROLE then
           spacer()
