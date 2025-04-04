@@ -1,5 +1,12 @@
 # Changelog
 
+## [14.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.6.0...v14.6.1) (2025-04-04)
+
+
+### Bug Fixes
+
+* **ui:** respect opts.visible for non-"system" roles ([#1204](https://github.com/olimorris/codecompanion.nvim/issues/1204)) ([ef9cdc6](https://github.com/olimorris/codecompanion.nvim/commit/ef9cdc6f7a04d99b74988af70d0e724ec32cf236))
+
 ## [14.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.5.0...v14.6.0) (2025-04-03)
 
 
