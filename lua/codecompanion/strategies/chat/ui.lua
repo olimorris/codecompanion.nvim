@@ -248,7 +248,8 @@ function UI:render(context, messages, opts)
           self:set_header(lines, set_llm_role(self.roles.llm, self.adapter))
         end
 
-        for _, text in ipairs(vim.split(msg.content, "\n", { plain = true, trimempty = true })) do
+        local trimempty = not (msg.role == "user" and msg.content == "")
+        for _, text in ipairs(vim.split(msg.content, "\n", { plain = true, trimempty = trimempty })) do
           table.insert(lines, text)
         end
 
