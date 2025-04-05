@@ -1,5 +1,17 @@
 # Changelog
 
+## [14.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.6.1...v14.7.0) (2025-04-05)
+
+
+### Features
+
+* **tools:** system_prompt in tool groups can be a function ([#1210](https://github.com/olimorris/codecompanion.nvim/issues/1210)) ([825f5ea](https://github.com/olimorris/codecompanion.nvim/commit/825f5eabc2e62f8a3d100f5246cd02a301681295))
+
+
+### Bug Fixes
+
+* **prompt_library:** don't trim empty lines with user role content ([#1211](https://github.com/olimorris/codecompanion.nvim/issues/1211)) ([5a18f89](https://github.com/olimorris/codecompanion.nvim/commit/5a18f8910dbae5b153045f7be2051a042a11e764))
+
 ## [14.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.6.0...v14.6.1) (2025-04-04)
 
 
