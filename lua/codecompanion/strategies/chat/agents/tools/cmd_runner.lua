@@ -165,7 +165,6 @@ return {
     ---@param cmd table The command that was executed
     ---@param stdout table
     success = function(agent, cmd, stdout)
-      -- _G.output = stdout
       to_chat("The output from", agent, cmd, { output = stdout })
     end,
   },
