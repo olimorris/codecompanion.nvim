@@ -1,3 +1,4 @@
+local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
 
@@ -11,6 +12,7 @@ return {
   },
   opts = {
     stream = true,
+    tools = true,
   },
   features = {
     text = true,
@@ -35,6 +37,18 @@ return {
     end,
     form_parameters = function(self, params, messages)
       return openai.handlers.form_parameters(self, params, messages)
+    end,
+    form_tools = function(self, tools)
+      local model = self.schema.model.default
+      local model_opts = self.schema.model.choices[model]
+
+      if model_opts.opts and model_opts.opts.can_use_tools == false then
+        if vim.tbl_count(tools) > 0 then
+          log:warn("Tools are not supported for this model")
+        end
+        return
+      end
+      return openai.handlers.form_tools(self, tools)
     end,
 
     ---Set the format of the role and content for the messages from the chat buffer
@@ -72,8 +86,9 @@ return {
     ---Output the data from the API ready for insertion into the chat buffer
     ---@param self CodeCompanion.Adapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
+    ---@param tools? table The table to write any tool output to
     ---@return { status: string, output: { role: string, content: string, reasoning: string? } } | nil
-    chat_output = function(self, data)
+    chat_output = function(self, data, tools)
       local output = {}
 
       if data and data ~= "" then
@@ -94,6 +109,25 @@ return {
             end
             if delta.content then
               output.content = (output.content or "") .. delta.content
+            end
+            if self.opts.tools and delta.tool_calls and tools then
+              for _, tool in ipairs(delta.tool_calls) do
+                if self.opts.stream then
+                  local index = tostring(tool.index)
+                  if not vim.tbl_contains(vim.tbl_keys(tools), index) then
+                    tools[index] = {
+                      name = tool["function"]["name"],
+                      arguments = "",
+                    }
+                  end
+                  tools[index]["arguments"] = (tools[index]["arguments"] or "") .. (tool["function"]["arguments"] or "")
+                else
+                  tools[tool.id] = {
+                    name = tool["function"]["name"],
+                    arguments = vim.json.decode(tool["function"]["arguments"]),
+                  }
+                end
+              end
             end
             return {
               status = "success",
@@ -120,8 +154,8 @@ return {
       ---@type string|fun(): string
       default = "deepseek-reasoner",
       choices = {
-        ["deepseek-reasoner"] = { opts = { can_reason = true } },
-        "deepseek-chat",
+        ["deepseek-reasoner"] = { opts = { can_reason = true, can_use_tools = false } },
+        ["deepseek-chat"] = { opts = { can_use_tools = true } },
       },
     },
     ---@type CodeCompanion.Schema

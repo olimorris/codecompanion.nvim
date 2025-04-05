@@ -55,20 +55,20 @@ return {
           callback = "strategies.chat.agents.tools.editor",
           description = "Update a buffer with the LLM's response",
         },
-        ["foo"] = {
-          callback = "utils.foo",
-          description = "Some foo function",
-        },
-        ["bar"] = {
-          callback = "utils.bar",
-          description = "Some bar function",
-        },
-        ["bar_again"] = {
-          callback = "utils.bar_again",
-          description = "Some bar_again function",
+        ["weather"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/weather.lua",
+          description = "Get the latest weather",
         },
         ["func"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
+          description = "Some function tool to test",
+        },
+        ["func_handlers_once"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_handlers_once.lua",
+          description = "Some function tool to test",
+        },
+        ["func2"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func2.lua",
           description = "Some function tool to test",
         },
         ["func_consecutive"] = {
@@ -98,13 +98,6 @@ return {
         ["func_async_2"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_async_2.lua",
           description = "Some function tool to test",
-        },
-        ["func_approval"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
-          description = "Some function tool to test but with approval",
-          opts = {
-            requires_approval = true,
-          },
         },
         ["cmd"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd.lua",
@@ -137,7 +130,7 @@ return {
           },
         },
         opts = {
-          system_prompt = [[My tool system prompt]],
+          system_prompt = "My tool system prompt",
         },
       },
       variables = {

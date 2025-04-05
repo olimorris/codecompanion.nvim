@@ -11,6 +11,7 @@ return {
   },
   opts = {
     stream = true,
+    tools = true,
   },
   features = {
     text = true,
@@ -77,6 +78,25 @@ return {
       return { messages = messages }
     end,
 
+    ---Provides the schemas of the tools that are available to the LLM to call
+    ---@param self CodeCompanion.Adapter
+    ---@param tools table<string, table>
+    ---@return table|nil
+    form_tools = function(self, tools)
+      if not self.opts.tools or not tools then
+        return
+      end
+
+      local transformed = {}
+      for _, tool in pairs(tools) do
+        for _, schema in pairs(tool) do
+          table.insert(transformed, schema)
+        end
+      end
+
+      return { tools = transformed }
+    end,
+
     ---Returns the number of tokens generated from the LLM
     ---@param self CodeCompanion.Adapter
     ---@param data table The data from the LLM
@@ -99,8 +119,9 @@ return {
     ---Output the data from the API ready for insertion into the chat buffer
     ---@param self CodeCompanion.Adapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
+    ---@param tools? table The table to write any tool output to
     ---@return table|nil [status: string, output: table]
-    chat_output = function(self, data)
+    chat_output = function(self, data, tools)
       local output = {}
 
       if data and data ~= "" then
@@ -109,16 +130,6 @@ return {
 
         if ok and json.choices and #json.choices > 0 then
           local choice = json.choices[1]
-
-          if choice.finish_reason then
-            local reason = choice.finish_reason
-            if reason ~= "stop" and reason ~= "" then
-              return {
-                status = "error",
-                output = "The stream was stopped with the a finish_reason of '" .. reason .. "'",
-              }
-            end
-          end
 
           local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
 
@@ -134,6 +145,27 @@ return {
               output.content = delta.content
             else
               output.content = ""
+            end
+
+            if self.opts.tools and delta.tool_calls and tools then
+              for i, tool in ipairs(delta.tool_calls) do
+                if self.opts.stream then
+                  local index = tool.index and tostring(tool.index) or tostring(i)
+                  if not vim.tbl_contains(vim.tbl_keys(tools), index) then
+                    tools[index] = {
+                      name = tool["function"]["name"],
+                      arguments = "",
+                    }
+                  end
+                  tools[index]["arguments"] = (tools[index]["arguments"] or "") .. (tool["function"]["arguments"] or "")
+                else
+                  local id = (tool.id and tool.id ~= "") and tostring(tool.id) or tostring(i)
+                  tools[id] = {
+                    name = tool["function"]["name"],
+                    arguments = vim.json.decode(tool["function"]["arguments"]),
+                  }
+                end
+              end
             end
 
             return {

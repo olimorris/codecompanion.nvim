@@ -1,5 +1,6 @@
 local log = require("codecompanion.utils.log")
 local tokens = require("codecompanion.utils.tokens")
+local transform = require("codecompanion.utils.tool_transformers")
 local utils = require("codecompanion.utils.adapters")
 
 local input_tokens = 0
@@ -19,9 +20,10 @@ return {
     vision = true,
   },
   opts = {
-    stream = true,
     cache_breakpoints = 4, -- Cache up to this many messages
     cache_over = 300, -- Cache any message which has this many tokens or more
+    stream = true,
+    tools = true,
   },
   url = "https://api.anthropic.com/v1/messages",
   env = {
@@ -144,6 +146,25 @@ return {
       return { system = system, messages = messages }
     end,
 
+    ---Provides the schemas of the tools that are available to the LLM to call
+    ---@param self CodeCompanion.Adapter
+    ---@param tools table<string, table>
+    ---@return table|nil
+    form_tools = function(self, tools)
+      if not self.opts.tools or not tools then
+        return
+      end
+
+      local transformed = {}
+      for _, tool in pairs(tools) do
+        for _, schema in pairs(tool) do
+          table.insert(transformed, transform.to_anthropic(schema))
+        end
+      end
+
+      return { tools = transformed }
+    end,
+
     ---Returns the number of tokens generated from the LLM
     ---@param self CodeCompanion.Adapter
     ---@param data table The data from the LLM
@@ -175,8 +196,9 @@ return {
     ---Output the data from the API ready for insertion into the chat buffer
     ---@param self CodeCompanion.Adapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
-    ---@return table|nil
-    chat_output = function(self, data)
+    ---@param tools? table The table to write any tool output to
+    ---@return table|nil [status: string, output: table]
+    chat_output = function(self, data, tools)
       local output = {}
 
       if self.opts.stream then
@@ -202,15 +224,39 @@ return {
             if json.content_block.type == "thinking" then
               output.reasoning = ""
             end
+            if json.content_block.type == "tool_use" and tools then
+              tools[tostring(json.index)] = {
+                name = json.content_block.name,
+                arguments = "",
+              }
+            end
           elseif json.type == "content_block_delta" then
             if json.delta.type == "thinking_delta" then
               output.reasoning = json.delta.thinking
             else
               output.content = json.delta.text
+              if json.delta.partial_json then
+                local index = tostring(json.index)
+                if tools then
+                  tools[index].arguments = tools[index].arguments .. json.delta.partial_json
+                end
+              end
             end
           elseif json.type == "message" then
             output.role = json.role
-            output.content = json.content[1].text
+            -- output.content = json.content[1].text
+            for _, content in ipairs(json.content) do
+              if content.type == "text" then
+                output.content = (output.content or "") .. content.text
+              elseif content.type == "thinking" then
+                output.reasoning = content.text
+              elseif content.type == "tool_use" and tools then
+                tools[content.id] = {
+                  name = content.name,
+                  arguments = content.input,
+                }
+              end
+            end
           end
 
           return {

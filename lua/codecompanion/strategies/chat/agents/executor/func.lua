@@ -23,37 +23,12 @@ end
 function FuncExecutor:orchestrate(input)
   log:debug("FuncExecutor:orchestrate %s", self.index)
 
-  local action = self.executor.tool.request.action
-  log:debug("Action: %s", action)
+  local args = self.executor.tool.args
+  log:debug("Args: %s", args)
 
-  if type(action) == "table" and vim.isarray(action) and action[1] ~= nil then
-    -- Handle multiple functions in the cmds array
-    self:process_action_array(action, input)
-  else
-    self:run(self.func, action, input, function(output)
-      self:proceed_to_next(output)
-    end)
-  end
-end
-
----Process an array of actions sequentially
----@param actions table Array of actions
----@param input any Input for the first action
----@return nil
-function FuncExecutor:process_action_array(actions, input)
-  local function process_actions(idx, prev_input)
-    if idx > #actions then
-      -- All actions processed, continue to next command
-      return self:proceed_to_next(prev_input)
-    end
-
-    -- Process each action and chain them together
-    self:run(self.func, actions[idx], prev_input, function(output)
-      process_actions(idx + 1, output)
-    end)
-  end
-
-  process_actions(1, input)
+  self:run(self.func, args, input, function(output)
+    self:proceed_to_next(output)
+  end)
 end
 
 ---Move to the next function in the command chain or finish execution
@@ -65,9 +40,22 @@ function FuncExecutor:proceed_to_next(output)
     local next_executor = FuncExecutor.new(self.executor, next_func, self.index + 1)
     return next_executor:orchestrate(output)
   else
-    self.executor:close()
-    return self.executor:setup(output)
+    if not self.executor.queue:is_empty() then
+      local next_tool = self.executor.queue:peek()
+      local current_name = self.executor.tool.name
+
+      -- Option to only use the handlers once for successive executions of the same tool
+      if next_tool and next_tool.name == current_name and next_tool.opts and next_tool.opts.use_handlers_once then
+        self.executor.tool = self.executor.queue:pop()
+        local next_func = self.executor.tool.cmds[1]
+        local next_executor = FuncExecutor.new(self.executor, next_func, 1)
+        return next_executor:orchestrate(output)
+      end
+    end
   end
+
+  self.executor:close()
+  return self.executor:setup(output)
 end
 
 ---Run the tool's function
@@ -80,6 +68,7 @@ function FuncExecutor:run(func, action, input, callback)
   log:debug("FuncExecutor:run")
 
   local tool_finished = false
+
   ---@param msg {status:"success"|"error", data:any}
   local function output_handler(msg)
     if tool_finished then
