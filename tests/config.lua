@@ -51,6 +51,10 @@ return {
         user = "foo",
       },
       tools = {
+        ["cmd_runner"] = {
+          callback = "strategies.chat.agents.tools.cmd_runner",
+          description = "Run shell commands initiated by the LLM",
+        },
         ["editor"] = {
           callback = "strategies.chat.agents.tools.editor",
           description = "Update a buffer with the LLM's response",
