@@ -283,10 +283,15 @@ function Agent:parse(chat, message)
 
     if groups and not vim.tbl_isempty(groups) then
       for _, group in ipairs(groups) do
-        if self.tools_config.groups[group].system_prompt then
+        local schema = self.tools_config.groups[group]
+        local system_prompt = schema.system_prompt
+        if type(system_prompt) == "function" then
+          system_prompt = system_prompt(schema)
+        end
+        if system_prompt then
           chat:add_message({
             role = config.constants.SYSTEM_ROLE,
-            content = self.tools_config.groups[group].system_prompt,
+            content = system_prompt,
           }, { tag = "tool", visible = false })
         end
       end
