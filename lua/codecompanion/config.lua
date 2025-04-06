@@ -130,7 +130,7 @@ You now have access to specialized tools that empower you to assist users with s
           description = "Insert open buffers",
           opts = {
             contains_code = true,
-            provider = default_providers.pick_provider, -- default|telescope|mini_pick|fzf_lua
+            provider = default_providers.pick_provider, -- default|telescope|mini_pick|fzf_lua|snacks
           },
         },
         ["fetch"] = {
@@ -146,7 +146,7 @@ You now have access to specialized tools that empower you to assist users with s
           opts = {
             contains_code = true,
             max_lines = 1000,
-            provider = default_providers.pick_provider, -- default|telescope|mini_pick|fzf_lua
+            provider = default_providers.pick_provider, -- default|telescope|mini_pick|fzf_lua|snacks
           },
         },
         ["help"] = {
@@ -170,7 +170,7 @@ You now have access to specialized tools that empower you to assist users with s
           description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
-            provider = default_providers.pick_provider, -- default|telescope|mini_pick|fzf_lua
+            provider = default_providers.pick_provider,  -- default|telescope|mini_pick|fzf_lua|snacks
           },
         },
         ["terminal"] = {
