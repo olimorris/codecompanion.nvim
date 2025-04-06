@@ -71,9 +71,9 @@ Sharing context with an LLM is crucial in order to generate useful responses. In
 
 In order to allow for references to self-update, they can be _pinned_ (for files and buffers) or _watched_ (for buffers).
 
-File and buffer references can be _pinned_ to a chat buffer with the `gp` keymap. Pinning results in the content from the object being reloaded and shared with the LLM on every turn. The advantage of this is that the LLM will always receive a fresh copy of the source data regardless of any changes. This can be useful if you're working with agents and tools. However, please note that this can consume a lot of tokens.
+File and buffer references can be _pinned_ to a chat buffer with the `gp` keymap (when your cursor is on the line of the shared buffer in the "> Sharing section). Pinning results in the content from the object being reloaded and shared with the LLM on every turn. The advantage of this is that the LLM will always receive a fresh copy of the source data regardless of any changes. This can be useful if you're working with agents and tools. However, please note that this can consume a lot of tokens.
 
-Buffer references can be _watched_ via the `gw` keymap. Watching, whilst similar to pinning, is a more token-conscious way of keeping the LLM up to date on the contents of a buffer. Watchers track changes (adds, edits, deletes) in the underlying buffer and update the LLM on each turn, with only those changes.
+Buffer references can be _watched_ via the `gw` keymap (when your cursor is on the line of the shared buffer in the "> Sharing section). Watching, whilst similar to pinning, is a more token-conscious way of keeping the LLM up to date on the contents of a buffer. Watchers track changes (adds, edits, deletes) in the underlying buffer and update the LLM on each turn, with only those changes.
 
 If a reference is added by mistake, it can be removed from the chat buffer by simply deleting it from the `Sharing` blockquote. On the next turn, all context related to that reference will be removed from the message history.
 
