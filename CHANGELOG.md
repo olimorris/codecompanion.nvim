@@ -1,5 +1,12 @@
 # Changelog
 
+## [14.7.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.7.0...v14.7.1) (2025-04-06)
+
+
+### Bug Fixes
+
+* **chat:** `:CodeCompanionChat` now works ([#1219](https://github.com/olimorris/codecompanion.nvim/issues/1219)) ([593f2c5](https://github.com/olimorris/codecompanion.nvim/commit/593f2c5e4ead3247e5daca37bf673d0a6fcb1759))
+
 ## [14.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.6.1...v14.7.0) (2025-04-05)
 
 
