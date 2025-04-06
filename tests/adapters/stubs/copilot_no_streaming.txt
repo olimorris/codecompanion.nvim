@@ -1,0 +1,19 @@
+{
+    "choices": [
+        {
+            "finish_reason": "stop",
+            "message": {
+                "content": "**Dynamic elegance.**\\n\\nWhat specific aspect of Ruby would you like to explore further?",
+                "role": "assistant"
+            }
+        }
+    ],
+    "created": 1743854866,
+    "id": "3c93a892-b53c-4740-aefb-9c0dbd60745d",
+    "model": "Claude 3.7 Sonnet",
+    "usage": {
+        "completion_tokens": 21,
+        "prompt_tokens": 455,
+        "total_tokens": 476
+    }
+}

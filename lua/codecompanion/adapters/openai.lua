@@ -122,59 +122,83 @@ return {
     ---@param tools? table The table to write any tool output to
     ---@return table|nil [status: string, output: table]
     chat_output = function(self, data, tools)
-      local output = {}
+      -- Helper functions
+      ---Process a tool call in streaming mode
+      local function process_streamed_tool_call(tools_table, tool, index)
+        local idx = tool.index and tostring(tool.index) or tostring(index)
+        if not vim.tbl_contains(vim.tbl_keys(tools_table), idx) then
+          tools_table[idx] = {
+            name = tool["function"]["name"],
+            arguments = "",
+          }
+        end
+        tools_table[idx]["arguments"] = (tools_table[idx]["arguments"] or "") .. (tool["function"]["arguments"] or "")
+      end
 
-      if data and data ~= "" then
-        local data_mod = utils.clean_streamed_data(data)
-        local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
+      ---Process a tool call in non-streaming mode
+      local function process_nonstreamed_tool_call(tools_table, tool, index)
+        local id = (tool.id and tool.id ~= "") and tostring(tool.id) or tostring(index)
+        tools_table[id] = {
+          name = tool["function"]["name"],
+          arguments = vim.json.decode(tool["function"]["arguments"]),
+        }
+      end
 
-        if ok and json.choices and #json.choices > 0 then
-          local choice = json.choices[1]
-
+      ---Process tool calls from all choices
+      local function process_tool_calls(choices)
+        for _, choice in ipairs(choices) do
           local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
 
-          if delta then
-            if delta.role then
-              output.role = delta.role
-            else
-              output.role = nil
-            end
-
-            -- Some providers may return empty content
-            if delta.content then
-              output.content = delta.content
-            else
-              output.content = ""
-            end
-
-            if self.opts.tools and delta.tool_calls and tools then
-              for i, tool in ipairs(delta.tool_calls) do
-                if self.opts.stream then
-                  local index = tool.index and tostring(tool.index) or tostring(i)
-                  if not vim.tbl_contains(vim.tbl_keys(tools), index) then
-                    tools[index] = {
-                      name = tool["function"]["name"],
-                      arguments = "",
-                    }
-                  end
-                  tools[index]["arguments"] = (tools[index]["arguments"] or "") .. (tool["function"]["arguments"] or "")
-                else
-                  local id = (tool.id and tool.id ~= "") and tostring(tool.id) or tostring(i)
-                  tools[id] = {
-                    name = tool["function"]["name"],
-                    arguments = vim.json.decode(tool["function"]["arguments"]),
-                  }
-                end
+          if delta and delta.tool_calls and #delta.tool_calls > 0 then
+            for i, tool in ipairs(delta.tool_calls) do
+              if self.opts.stream then
+                process_streamed_tool_call(tools, tool, i)
+              else
+                process_nonstreamed_tool_call(tools, tool, i)
               end
             end
-
-            return {
-              status = "success",
-              output = output,
-            }
           end
         end
       end
+
+      ---Process message content from a choice
+      local function process_message_content(choice)
+        local output = {}
+        local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
+
+        if not delta then
+          return nil
+        end
+
+        output.role = delta.role or nil
+        output.content = delta.content or ""
+
+        return {
+          status = "success",
+          output = output,
+        }
+      end
+
+      -- Main function logic
+      if not data or data == "" then
+        return nil
+      end
+
+      -- Handle both streamed data and structured response
+      local data_mod = type(data) == "table" and data.body or utils.clean_streamed_data(data)
+      local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
+
+      if not ok or not json.choices or #json.choices == 0 then
+        return nil
+      end
+
+      -- Process tools from all choices
+      if self.opts.tools and tools then
+        process_tool_calls(json.choices)
+      end
+
+      -- Process the first choice for content
+      return process_message_content(json.choices[1])
     end,
 
     ---Output the data from the API ready for inlining into the current buffer
