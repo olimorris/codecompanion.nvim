@@ -15,6 +15,45 @@ local function mock_config()
   return config_module
 end
 
+---Set up the CodeCompanion plugin with test configuration
+---@return nil
+Helpers.setup_plugin = function()
+  local test_config = require("tests.config")
+  test_config.strategies.chat.adapter = "test_adapter"
+
+  local codecompanion = require("codecompanion")
+  codecompanion.setup(test_config)
+  return codecompanion
+end
+
+---Mock the submit function of a chat to avoid actual API calls
+---@param response string The mocked response content
+---@param status? string The status to set (default: "success")
+---@return function The original submit function for restoration
+Helpers.mock_submit = function(response, status)
+  local original_submit = require("codecompanion.strategies.chat").submit
+
+  require("codecompanion.strategies.chat").submit = function(self)
+    -- Mock submission instead of calling actual API
+    self:add_buf_message({
+      role = "llm",
+      content = response or "This is a mocked response",
+    })
+    self.status = status or "success"
+    self:done({ response or "Mocked response" })
+    return true
+  end
+
+  return original_submit
+end
+
+---Restore the original submit function
+---@param original function The original submit function to restore
+---@return nil
+Helpers.restore_submit = function(original)
+  require("codecompanion.strategies.chat").submit = original
+end
+
 ---Setup and mock a chat buffer
 ---@param config? table
 ---@param adapter? table
