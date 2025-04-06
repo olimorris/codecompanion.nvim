@@ -1,5 +1,7 @@
 local fmt = string.format
 
+local default_providers = require("codecompanion.config.default_providers")
+
 local constants = {
   LLM_ROLE = "llm",
   USER_ROLE = "user",
@@ -128,7 +130,7 @@ You now have access to specialized tools that empower you to assist users with s
           description = "Insert open buffers",
           opts = {
             contains_code = true,
-            provider = "default", -- default|telescope|mini_pick|fzf_lua
+            provider = default_providers.pick_provider,
           },
         },
         ["fetch"] = {
@@ -144,7 +146,7 @@ You now have access to specialized tools that empower you to assist users with s
           opts = {
             contains_code = true,
             max_lines = 1000,
-            provider = "default", -- default|telescope|mini_pick|fzf_lua
+            provider = default_providers.pick_provider,
           },
         },
         ["help"] = {
@@ -153,7 +155,7 @@ You now have access to specialized tools that empower you to assist users with s
           opts = {
             contains_code = false,
             max_lines = 128, -- Maximum amount of lines to of the help file to send (NOTE: Each vimdoc line is typically 10 tokens)
-            provider = "telescope", -- telescope|mini_pick|fzf_lua
+            provider = default_providers.help_provider,
           },
         },
         ["now"] = {
@@ -168,7 +170,7 @@ You now have access to specialized tools that empower you to assist users with s
           description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
-            provider = "default", -- default|telescope|mini_pick|fzf_lua
+            provider = default_providers.pick_provider,
           },
         },
         ["terminal"] = {
@@ -904,7 +906,7 @@ You must create or modify a workspace file through a series of prompts over mult
       width = 95,
       height = 10,
       prompt = "Prompt ", -- Prompt used for interactive LLM calls
-      provider = "default", -- default|telescope|mini_pick
+      provider = default_providers.action_palette_provider,
       opts = {
         show_default_actions = true, -- Show the default actions in the action palette?
         show_default_prompt_library = true, -- Show the default prompt library in the action palette?
@@ -972,7 +974,7 @@ You must create or modify a workspace file through a series of prompts over mult
         "followwrap",
         "linematch:120",
       },
-      provider = "default", -- default|mini_diff
+      provider = default_providers.diff_provider
     },
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?
