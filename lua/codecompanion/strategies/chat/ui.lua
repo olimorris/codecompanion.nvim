@@ -242,6 +242,9 @@ function UI:render(context, messages, opts)
         end
 
         if msg.role == config.constants.USER_ROLE and last_set_role ~= config.constants.USER_ROLE then
+          if last_set_role ~= nil then
+            spacer()
+          end
           self:set_header(lines, self.roles.user)
         end
         if msg.role == config.constants.LLM_ROLE and last_set_role ~= config.constants.LLM_ROLE then
