@@ -1,6 +1,6 @@
 local fmt = string.format
 
-local default_providers = require("codecompanion.config.default_providers")
+local default_providers = require("codecompanion.default_providers")
 
 local constants = {
   LLM_ROLE = "llm",
