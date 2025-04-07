@@ -21,7 +21,7 @@ local T = new_set({
   },
 })
 
-T["cmd_runner"] = function()
+T["cmd_runner tool"] = function()
   child.lua([[
     --require("tests.log")
     local tool = {
