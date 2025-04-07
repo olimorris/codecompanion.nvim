@@ -72,7 +72,7 @@ require("codecompanion").setup({
           callback = "strategies.chat.slash_commands.file",
           description = "Select a file using Telescope",
           opts = {
-            provider = "telescope", -- Other options include 'default', 'mini_pick', 'fzf_lua', snacks
+            provider = "telescope", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks". If not specified, the plugin will autodetect installed providers.
             contains_code = true,
           },
         },
