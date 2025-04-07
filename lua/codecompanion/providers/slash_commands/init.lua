@@ -17,6 +17,8 @@ local default_pick_provider = get_default_pick_provider()
 local function get_default_help_provider()
   if pcall(require, "telescope") then
     return "telescope"
+  elseif pcall(require, "snacks") then
+    return "snacks"
   elseif pcall(require, "mini.pick") then
     return "mini_pick"
   elseif pcall(require, "fzf-lua") then

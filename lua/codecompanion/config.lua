@@ -1,6 +1,6 @@
 local fmt = string.format
 
-local default_providers = require("codecompanion.default_providers")
+local default_providers = require("codecompanion.providers.slash_commands")
 
 local constants = {
   LLM_ROLE = "llm",
@@ -155,7 +155,7 @@ You now have access to specialized tools that empower you to assist users with s
           opts = {
             contains_code = false,
             max_lines = 128, -- Maximum amount of lines to of the help file to send (NOTE: Each vimdoc line is typically 10 tokens)
-            provider = default_providers.help_provider, -- telescope|mini_pick|fzf_lua
+            provider = default_providers.help_provider, -- telescope|mini_pick|fzf_lua|snacks
           },
         },
         ["now"] = {
