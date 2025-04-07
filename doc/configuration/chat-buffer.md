@@ -60,7 +60,7 @@ require("codecompanion").setup({
 
 Slash Commands (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.
 
-The plugin supports providers like `telescope`, `mini_pick`, `fzf_lua` and `snacks` (as in snacks.nvim). Please see the [Chat Buffer](/usage/chat-buffer/index) usage section for full details:
+The plugin supports providers like `telescope`, `mini_pick`, `fzf_lua` and `snacks` (as in snacks.nvim). By default, the plugin will automatically detect if you have any of those plugins installed and duly select them. Failing that, the in-build `default` provider will be used. Please see the [Chat Buffer](/usage/chat-buffer/index) usage section for full details:
 
 ```lua
 require("codecompanion").setup({
@@ -72,7 +72,7 @@ require("codecompanion").setup({
           callback = "strategies.chat.slash_commands.file",
           description = "Select a file using Telescope",
           opts = {
-            provider = "telescope", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks". If not specified, the plugin will autodetect installed providers.
+            provider = "telescope", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks"
             contains_code = true,
           },
         },
@@ -81,6 +81,7 @@ require("codecompanion").setup({
   },
 })
 ```
+
 
 You can also add your own slash commands:
 
