@@ -122,9 +122,10 @@ function Agent:execute(chat, tools)
       self.tool.args = tool.arguments
       -- For some Copilot models, the args are a JSON string
       local ok, args = pcall(vim.json.decode, tool.arguments)
-      if ok then
-        self.tool.args = args
+      if not ok then
+        return log:error("Couldn't decode the tool arguments: %s", args)
       end
+      self.tool.args = args
     end
     self.tool.opts = vim.tbl_extend("force", self.tool.opts or {}, tool_config.opts or {})
     self:set_autocmds()

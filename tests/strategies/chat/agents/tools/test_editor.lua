@@ -15,6 +15,7 @@ local T = new_set({
       -- Setup the buffer
       bufnr = child.lua([[
     local bufnr = vim.api.nvim_create_buf(false, true)
+    _G.bufnr = bufnr
     vim.bo[bufnr].readonly = false
 
     local lines = {
@@ -42,62 +43,21 @@ local T = new_set({
   },
 })
 
--- T["Agent @editor can update a buffer"] = function()
---   child.lua(
---     string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").update(%s)]], bufnr)
---   )
---   child.lua([[
---     _G.agent:execute(
---       _G.chat,
---       _G.xml
---     )
---   ]])
---
---   local lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
---
---   h.eq([[    return "foobar"]], lines[2])
--- end
---
--- T["Agent @editor can add to a buffer"] = function()
---   child.lua(
---     string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").add(%s)]], bufnr)
---   )
---   child.lua([[
---     _G.agent:execute(
---       _G.chat,
---       _G.xml
---     )
---   ]])
---
---   local lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
---
---   h.eq([[function hello_world()]], lines[4])
---   h.eq([[    return "hello_world"]], lines[5])
---   h.eq([[end]], lines[6])
--- end
---
--- T["Agent @editor can delete from a buffer"] = function()
---   child.lua(
---     string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").delete(%s)]], bufnr)
---   )
---
---   local lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
---   h.eq([[function foo()]], lines[1])
---   h.eq([[    return "foo"]], lines[2])
---   h.eq([[end]], lines[3])
---
---   child.lua([[
---     _G.agent:execute(
---       _G.chat,
---       _G.xml
---     )
---   ]])
---
---   lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
---
---   h.eq([[function bar()]], lines[1])
---   h.eq([[    return "bar"]], lines[2])
---   h.eq([[end]], lines[3])
--- end
+T["editor tool"] = function()
+  child.lua([[
+    --require("tests.log")
+    local tool = {
+      [0] = {
+        name = "editor",
+        arguments = string.format('{"action": "update", "buffer": %s, "code": "function hello_world()\\n  return \\"Hello, World!\\"\\nend", "start_line": 1, "end_line": 3}', _G.bufnr),
+      },
+    }
+    agent:execute(chat, tool)
+    vim.wait(200)
+  ]])
+
+  local output = child.lua_get("vim.api.nvim_buf_get_lines(_G.bufnr, 0, -1, true)")
+  h.eq("function hello_world()", output[1])
+end
 
 return T

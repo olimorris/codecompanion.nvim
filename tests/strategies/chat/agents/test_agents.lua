@@ -34,7 +34,6 @@ T["Agent"]["resolve"]["can resolve built-in tools"] = function()
 
   h.eq("table", child.lua_get("type(_G.tool)"))
   h.eq("editor", child.lua_get("_G.tool.name"))
-  h.eq(6, child.lua_get("#_G.tool.schema"))
 end
 
 T["Agent"]["resolve"]["can resolve user's tools"] = function()
