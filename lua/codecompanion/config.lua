@@ -170,7 +170,7 @@ You now have access to specialized tools that empower you to assist users with s
           description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
-            provider = default_providers.pick_provider,  -- default|telescope|mini_pick|fzf_lua|snacks
+            provider = default_providers.pick_provider, -- default|telescope|mini_pick|fzf_lua|snacks
           },
         },
         ["terminal"] = {
@@ -974,7 +974,7 @@ You must create or modify a workspace file through a series of prompts over mult
         "followwrap",
         "linematch:120",
       },
-      provider = default_providers.diff_provider -- default|mini_diff
+      provider = default_providers.diff_provider, -- default|mini_diff
     },
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?
