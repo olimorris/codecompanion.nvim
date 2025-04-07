@@ -1,5 +1,12 @@
 # Changelog
 
+## [14.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.7.1...v14.8.0) (2025-04-07)
+
+
+### Features
+
+* **slash_cmds:** auto select providers based on installed plugins ([#1216](https://github.com/olimorris/codecompanion.nvim/issues/1216)) ([78b260c](https://github.com/olimorris/codecompanion.nvim/commit/78b260c1df2d37f7c91790685e0db82b338760e2))
+
 ## [14.7.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.7.0...v14.7.1) (2025-04-06)
 
 
