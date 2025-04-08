@@ -1,5 +1,13 @@
 # Changelog
 
+## [14.8.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.8.0...v14.8.1) (2025-04-08)
+
+
+### Bug Fixes
+
+* **tools:** be more explicit about the xml schema ([95bb7a5](https://github.com/olimorris/codecompanion.nvim/commit/95bb7a579b1e9455c855f59bd4b6bb2ca860aee3))
+* **tools:** be more explicit about the xml schema in files tool ([#1232](https://github.com/olimorris/codecompanion.nvim/issues/1232)) ([95bb7a5](https://github.com/olimorris/codecompanion.nvim/commit/95bb7a579b1e9455c855f59bd4b6bb2ca860aee3))
+
 ## [14.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.7.1...v14.8.0) (2025-04-07)
 
 
