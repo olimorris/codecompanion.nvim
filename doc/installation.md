@@ -18,7 +18,7 @@ The plugin can be installed with the plugin manager of your choice:
 ```lua
 {
   "olimorris/codecompanion.nvim",
-  config = true,
+  opts = {},
   dependencies = {
     "nvim-lua/plenary.nvim",
     "nvim-treesitter/nvim-treesitter",
