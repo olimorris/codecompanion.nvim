@@ -78,11 +78,13 @@ T["Gemini adapter"]["Streaming"]["can process tools"] = function()
   end
 
   local tool_output = {
-    ["1"] = {
+    {
+      _index = 1,
       arguments = '{"units":"celsius","location":"London"}',
       name = "weather",
     },
-    ["2"] = {
+    {
+      _index = 2,
       arguments = '{"units":"celsius","location":"Paris"}',
       name = "weather",
     },
@@ -124,14 +126,18 @@ T["Gemini adapter"]["No Streaming"]["can process tools"] = function()
   adapter.handlers.chat_output(adapter, json, tools)
 
   local tool_output = {
-    ["1"] = {
+    {
+      _id = "",
+      _index = 1,
       arguments = {
         location = "London, UK",
         units = "celsius",
       },
       name = "weather",
     },
-    ["2"] = {
+    {
+      _id = "",
+      _index = 2,
       arguments = {
         location = "Paris, France",
         units = "celsius",

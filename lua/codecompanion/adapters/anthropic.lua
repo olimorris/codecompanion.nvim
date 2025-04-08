@@ -225,36 +225,47 @@ return {
               output.reasoning = ""
             end
             if json.content_block.type == "tool_use" and tools then
-              tools[tostring(json.index)] = {
+              utils.ensure_array(tools)
+
+              table.insert(tools, {
                 name = json.content_block.name,
                 arguments = "",
-              }
+                _index = json.index,
+              })
             end
           elseif json.type == "content_block_delta" then
             if json.delta.type == "thinking_delta" then
               output.reasoning = json.delta.thinking
             else
               output.content = json.delta.text
-              if json.delta.partial_json then
-                local index = tostring(json.index)
-                if tools then
-                  tools[index].arguments = tools[index].arguments .. json.delta.partial_json
+              if json.delta.partial_json and tools then
+                for i, tool in ipairs(tools) do
+                  if tool._index == json.index then
+                    tools[i].arguments = (tools[i].arguments or "") .. json.delta.partial_json
+                    break
+                  end
                 end
               end
             end
           elseif json.type == "message" then
             output.role = json.role
-            -- output.content = json.content[1].text
-            for _, content in ipairs(json.content) do
+
+            if tools then
+              utils.ensure_array(tools)
+            end
+
+            for i, content in ipairs(json.content) do
               if content.type == "text" then
                 output.content = (output.content or "") .. content.text
               elseif content.type == "thinking" then
                 output.reasoning = content.text
               elseif content.type == "tool_use" and tools then
-                tools[content.id] = {
+                table.insert(tools, {
                   name = content.name,
                   arguments = content.input,
-                }
+                  _id = content.id,
+                  _index = i,
+                })
               end
             end
           end

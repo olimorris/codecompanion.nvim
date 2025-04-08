@@ -7,6 +7,7 @@ T = new_set()
 T["DeepSeek adapter"] = new_set({
   hooks = {
     pre_case = function()
+      require("codecompanion")
       adapter = require("codecompanion.adapters").resolve("deepseek")
     end,
   },
@@ -107,11 +108,13 @@ T["DeepSeek adapter"]["Streaming"]["can process tools"] = function()
   end
 
   local tool_output = {
-    ["0"] = {
+    {
+      _index = 0,
       arguments = '{"location": "London", "units": "celsius"}',
       name = "weather",
     },
-    ["1"] = {
+    {
+      _index = 1,
       arguments = '{"location": "Paris", "units": "celsius"}',
       name = "weather",
     },
@@ -150,14 +153,18 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
   adapter.handlers.chat_output(adapter, json, tools)
 
   local tool_output = {
-    ["call_0_74655864-c1ab-455f-88c5-921aa7b6281c"] = {
+    {
+      _id = "call_0_74655864-c1ab-455f-88c5-921aa7b6281c",
+      _index = 0,
       arguments = {
         location = "London",
         units = "celsius",
       },
       name = "weather",
     },
-    ["call_1_759f62c3-f8dc-475f-9558-8211fc0a133c"] = {
+    {
+      _id = "call_1_759f62c3-f8dc-475f-9558-8211fc0a133c",
+      _index = 1,
       arguments = {
         location = "Paris",
         units = "celsius",

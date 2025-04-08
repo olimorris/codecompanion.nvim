@@ -37,7 +37,7 @@ T["Agent"]["user approval"]["is triggered"] = function()
   child.lua([[
     --require("tests.log")
     local tools = {
-      [0] = {
+      {
         arguments = '{"data": "Data 1"}',
         name = "func",
       },

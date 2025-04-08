@@ -83,7 +83,7 @@ T["Agent"][":execute"]["a response from the LLM"] = function()
   child.lua([[
     --require("tests.log")
     local tools = {
-      [0] = {
+      {
         arguments = '{"location":"London, UK","units":"celsius"}',
         name = "weather",
       },

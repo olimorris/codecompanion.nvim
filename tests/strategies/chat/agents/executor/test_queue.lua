@@ -37,14 +37,14 @@ T["Agent"]["queue"]["can queue functions and commands"] = function()
 
   child.lua([[
     local tools = {
-      [0] = {
+      {
         arguments = '{"data": "Data 1"}',
         name = "func_queue",
       },
-      [1] = {
+      {
         name = "cmd_queue",
       },
-      [2] = {
+      {
         arguments = '{"data": "Data 2"}',
         name = "func_queue_2",
       },

@@ -37,14 +37,14 @@ T["Agent"]["queue"]["can queue multiple async functions"] = function()
 
   child.lua([[
     local tools = {
-      [0] = {
+      {
         arguments = '{"data": "Data 1"}',
         name = "func_async_1",
       },
-      [1] = {
+      {
         name = "cmd_queue",
       },
-      [2] = {
+      {
         arguments = '{"data": "Data 2"}',
         name = "func_async_2",
       },
@@ -68,11 +68,11 @@ T["Agent"]["queue"]["can queue async function with sync function"] = function()
 
   child.lua([[
     local tools = {
-      [0] = {
+      {
         arguments = '{"data": "Data 1"}',
         name = "func_queue",
       },
-      [1] = {
+      {
         arguments = '{"data": "Data 2"}',
         name = "func_async_2",
       },
@@ -90,4 +90,5 @@ T["Agent"]["queue"]["can queue async function with sync function"] = function()
   -- Test that the function was called
   h.eq("Data 1 Data 2", child.lua_get([[_G._test_func]]))
 end
+
 return T

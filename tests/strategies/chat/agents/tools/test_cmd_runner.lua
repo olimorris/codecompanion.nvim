@@ -25,7 +25,7 @@ T["cmd_runner tool"] = function()
   child.lua([[
     --require("tests.log")
     local tool = {
-      [0] = {
+      {
         name = "cmd_runner",
         arguments = '{"cmd": "echo hello world"}',
       },

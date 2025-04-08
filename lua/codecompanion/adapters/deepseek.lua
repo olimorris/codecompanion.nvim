@@ -100,35 +100,47 @@ return {
           local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
 
           if delta then
-            output.role = nil
-            if delta.role then
-              output.role = delta.role
-            end
-            if delta.reasoning_content then
-              output.reasoning = delta.reasoning_content
-            end
+            output.role = delta.role
+            output.reasoning = delta.reasoning_content
             if delta.content then
               output.content = (output.content or "") .. delta.content
             end
+
+            -- Process tools
             if self.opts.tools and delta.tool_calls and tools then
+              utils.ensure_array(tools)
+
               for _, tool in ipairs(delta.tool_calls) do
                 if self.opts.stream then
-                  local index = tostring(tool.index)
-                  if not vim.tbl_contains(vim.tbl_keys(tools), index) then
-                    tools[index] = {
-                      name = tool["function"]["name"],
-                      arguments = "",
-                    }
+                  local index = tool.index
+                  local found = false
+
+                  for i, existing_tool in ipairs(tools) do
+                    if existing_tool._index == index then
+                      tools[i].arguments = (tools[i].arguments or "") .. (tool["function"]["arguments"] or "")
+                      found = true
+                      break
+                    end
                   end
-                  tools[index]["arguments"] = (tools[index]["arguments"] or "") .. (tool["function"]["arguments"] or "")
+
+                  if not found then
+                    table.insert(tools, {
+                      name = tool["function"]["name"],
+                      arguments = tool["function"]["arguments"] or "",
+                      _index = index,
+                    })
+                  end
                 else
-                  tools[tool.id] = {
+                  table.insert(tools, {
                     name = tool["function"]["name"],
                     arguments = vim.json.decode(tool["function"]["arguments"]),
-                  }
+                    _id = tool.id,
+                    _index = tool.index,
+                  })
                 end
               end
             end
+
             return {
               status = "success",
               output = output,

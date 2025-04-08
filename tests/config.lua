@@ -246,6 +246,7 @@ return {
       },
       intro_message = "Hello",
     },
+    diff = { enabled = false },
   },
   opts = {
     system_prompt = "default system prompt",

@@ -187,13 +187,29 @@ return {
         end
 
         if tools and message.tool_calls then
-          for i, tool in ipairs(message.tool_calls) do
-            local index = tostring(tool["function"]["index"] or (i - 1))
-            if not vim.tbl_contains(vim.tbl_keys(tools), index) then
-              tools[index] = {
+          utils.ensure_array(tools)
+
+          for _, tool in ipairs(message.tool_calls) do
+            local index = tool["function"]["index"]
+            local found = false
+
+            if index ~= nil then
+              for i, existing_tool in ipairs(tools) do
+                if existing_tool._index == index then
+                  tools[i].name = tool["function"]["name"]
+                  tools[i].arguments = tool["function"]["arguments"]
+                  found = true
+                  break
+                end
+              end
+            end
+
+            if not found then
+              table.insert(tools, {
                 name = tool["function"]["name"],
                 arguments = tool["function"]["arguments"],
-              }
+                _index = tool["function"]["index"],
+              })
             end
           end
         end

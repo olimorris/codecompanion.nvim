@@ -2,6 +2,38 @@ local Path = require("plenary.path")
 
 local M = {}
 
+---Ensure a table is a proper array (with sequential integer keys starting from 1)
+---@param tbl table The table to convert
+---@return table The same table converted to an array
+function M.ensure_array(tbl)
+  local islist = vim.islist or vim.tbl_islist
+
+  if islist(tbl) then
+    return tbl
+  end
+
+  if vim.tbl_count(tbl) == 0 then
+    return tbl
+  end
+
+  -- Convert to array
+  local array = {}
+  for _, v in pairs(tbl) do
+    table.insert(array, v)
+  end
+
+  -- Clear original table and refill with array values
+  for k in pairs(tbl) do
+    tbl[k] = nil
+  end
+
+  for i, v in ipairs(array) do
+    tbl[i] = v
+  end
+
+  return tbl
+end
+
 ---Refresh when we should next check the model cache
 ---@param file string
 ---@param cache_for number

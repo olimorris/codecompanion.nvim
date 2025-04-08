@@ -122,30 +122,61 @@ return {
     ---@param tools? table The table to write any tool output to
     ---@return table|nil [status: string, output: table]
     chat_output = function(self, data, tools)
-      -- Helper functions
       ---Process a tool call in streaming mode
-      local function process_streamed_tool_call(tools_table, tool, index)
-        local idx = tool.index and tostring(tool.index) or tostring(index)
-        if not vim.tbl_contains(vim.tbl_keys(tools_table), idx) then
-          tools_table[idx] = {
-            name = tool["function"]["name"],
-            arguments = "",
-          }
+      ---@param tools_array table The array to store tool calls
+      ---@param tool table The tool call to process
+      ---@param index number The index of the tool call
+      ---@return nil
+      local function process_streamed_tool_call(tools_array, tool, index)
+        local tool_index = tool.index and tonumber(tool.index) or index
+
+        -- Find the tool in our array if it already exists
+        local found = false
+        for i, existing_tool in ipairs(tools_array) do
+          if existing_tool._index == tool_index then
+            -- Append to arguments if this is a continuation of a stream
+            tools_array[i].arguments = (tools_array[i].arguments or "") .. (tool["function"]["arguments"] or "")
+            found = true
+            break
+          end
         end
-        tools_table[idx]["arguments"] = (tools_table[idx]["arguments"] or "") .. (tool["function"]["arguments"] or "")
+
+        -- If not found, add a new tool entry
+        if not found then
+          table.insert(tools_array, {
+            name = tool["function"]["name"],
+            arguments = tool["function"]["arguments"] or "",
+            _index = tool_index, -- Store index as metadata for sorting/identification
+          })
+        end
       end
 
       ---Process a tool call in non-streaming mode
-      local function process_nonstreamed_tool_call(tools_table, tool, index)
-        local id = (tool.id and tool.id ~= "") and tostring(tool.id) or tostring(index)
-        tools_table[id] = {
+      ---@param tools_array table The array to store tool calls
+      ---@param tool table The tool call to process
+      ---@param index number The index of the tool call
+      ---@return nil
+      local function process_nonstreamed_tool_call(tools_array, tool, index)
+        -- Just add each tool to the array in the order they appear
+        table.insert(tools_array, {
           name = tool["function"]["name"],
           arguments = vim.json.decode(tool["function"]["arguments"]),
-        }
+          _id = tool.id, -- Store ID as metadata if needed
+          _index = index, -- Store index as metadata
+        })
       end
 
       ---Process tool calls from all choices
+      ---@param choices table The choices from the API response
+      ---@return nil
       local function process_tool_calls(choices)
+        if not tools then
+          return
+        end
+
+        -- Ensure tools is an array
+        utils.ensure_array(tools)
+
         for _, choice in ipairs(choices) do
           local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
 
@@ -162,6 +193,8 @@ return {
       end
 
       ---Process message content from a choice
+      ---@param choice table The choice from the API response
+      ---@return table|nil
       local function process_message_content(choice)
         local output = {}
         local delta = (self.opts and self.opts.stream) and choice.delta or choice.message

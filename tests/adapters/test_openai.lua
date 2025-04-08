@@ -51,7 +51,8 @@ T["OpenAI adapter"]["Streaming"]["can process tools"] = function()
   end
 
   local tool_output = {
-    ["0"] = {
+    {
+      _index = 0,
       arguments = '{"location":"London, UK","units":"celsius"}',
       name = "weather",
     },
@@ -93,16 +94,20 @@ T["OpenAI adapter"]["No Streaming"]["can process tools"] = function()
   adapter.handlers.chat_output(adapter, json, tools)
 
   local tool_output = {
-    call_HVrmLOHM2Ybd6K7vQj4x8NdQ = {
+    {
+      _id = "call_VGkXa0hqNLEe2HSgMO1EpOe6",
+      _index = 1,
       arguments = {
-        location = "Paris, France",
+        location = "London, United Kingdom",
         units = "celsius",
       },
       name = "weather",
     },
-    call_VGkXa0hqNLEe2HSgMO1EpOe6 = {
+    {
+      _id = "call_HVrmLOHM2Ybd6K7vQj4x8NdQ",
+      _index = 2,
       arguments = {
-        location = "London, United Kingdom",
+        location = "Paris, France",
         units = "celsius",
       },
       name = "weather",

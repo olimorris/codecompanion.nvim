@@ -35,9 +35,8 @@ T["Agent"]["functions"]["can run"] = function()
   h.eq(vim.NIL, child.lua_get([[_G._test_func]]))
 
   child.lua([[
-    --require("tests.log")
     local tools = {
-      [0] = {
+      {
         arguments = '{"data": "Data 1"}',
         name = "func",
       },
@@ -56,12 +55,13 @@ T["Agent"]["functions"]["can run functions of the same name consecutively"] = fu
   h.eq(vim.NIL, child.lua_get([[_G._test_func]]))
 
   child.lua([[
+    require("tests.log")
     local tools = {
-      [0] = {
+      {
         arguments = '{"data": "Data 1"}',
         name = "func",
       },
-      [1] = {
+       {
         arguments = '{"data": "Data 2"}',
         name = "func",
       },
@@ -82,11 +82,11 @@ T["Agent"]["functions"]["can run functions of the same name consecutively and no
   child.lua([[
     --require("tests.log")
     local tools = {
-      [0] = {
+      {
         arguments = '{"data": "Data 1"}',
         name = "func_handlers_once",
       },
-      [1] = {
+      {
         arguments = '{"data": "Data 2"}',
         name = "func_handlers_once",
       },
@@ -106,11 +106,11 @@ T["Agent"]["functions"]["can run functions of a different name consecutively"] =
 
   child.lua([[
     local tools = {
-      [0] = {
+      {
         arguments = '{"data": "Data 1"}',
         name = "func",
       },
-      [1] = {
+      {
         arguments = '{"data": "Data 2"}',
         name = "func2",
       },
@@ -130,7 +130,7 @@ T["Agent"]["functions"]["calls output.success"] = function()
 
   child.lua([[
     local tools = {
-      [0] = {
+      {
         arguments = '{"data": "Data 1"}',
         name = "func",
       },
@@ -147,7 +147,7 @@ T["Agent"]["functions"]["can pass input to the next function"] = function()
 
   child.lua([[
     local tools = {
-      [0] = {
+      {
         arguments = '{"data": "Data 1"}',
         name = "func_consecutive",
       },
@@ -164,7 +164,7 @@ end
 T["Agent"]["functions"]["can handle errors"] = function()
   child.lua([[
     local tools = {
-      [0] = {
+      {
         arguments = '{"data": "Data 1"}',
         name = "func_error",
       },
@@ -181,7 +181,7 @@ end
 T["Agent"]["functions"]["can return errors"] = function()
   child.lua([[
     local tools = {
-      [0] = {
+      {
         arguments = '{"data": "Data 1"}',
         name = "func_return_error",
       },
@@ -202,7 +202,7 @@ T["Agent"]["functions"]["can populate stderr and halt execution"] = function()
        return nil
      end
     local tools = {
-      [0] = {
+      {
         arguments = '{"data": "Data 1"}',
         name = "func_error",
       },
@@ -221,11 +221,11 @@ T["Agent"]["functions"]["can populate stdout"] = function()
        return nil
      end
     local tools = {
-      [0] = {
+      {
         arguments = '{"data": "Data 1"}',
         name = "func",
       },
-      [1] = {
+      {
         arguments = '{"data": "Data 2"}',
         name = "func",
       },

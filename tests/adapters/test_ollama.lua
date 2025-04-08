@@ -7,6 +7,7 @@ T = new_set()
 T["Ollama adapter"] = new_set({
   hooks = {
     pre_case = function()
+      require("codecompanion")
       adapter = require("codecompanion.adapters").resolve("ollama")
     end,
   },
@@ -51,14 +52,15 @@ T["Ollama adapter"]["Streaming"]["can process tools"] = function()
   end
 
   local tool_output = {
-    ["0"] = {
+    {
       arguments = {
         location = "London, UK",
         units = "celsius",
       },
       name = "weather",
     },
-    ["1"] = {
+    {
+      _index = 1,
       arguments = {
         location = "Paris, FR",
         units = "fahrenheit",
@@ -103,14 +105,14 @@ T["Ollama adapter"]["No Streaming"]["can process tools"] = function()
   adapter.handlers.chat_output(adapter, json, tools)
 
   local tool_output = {
-    ["0"] = {
+    {
       arguments = {
         location = "London, UK",
         units = "celsius",
       },
       name = "weather",
     },
-    ["1"] = {
+    {
       arguments = {
         location = "Paris, FR",
         units = "fahrenheit",

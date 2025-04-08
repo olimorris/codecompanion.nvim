@@ -8,6 +8,7 @@ T = new_set()
 T["Anthropic adapter"] = new_set({
   hooks = {
     pre_case = function()
+      local codecompanion = require("codecompanion")
       adapter = require("codecompanion.adapters").resolve("anthropic")
     end,
   },
@@ -102,11 +103,13 @@ T["Anthropic adapter"]["Streaming"]["can process tools"] = function()
   end
 
   local tool_output = {
-    ["1"] = {
+    {
+      _index = 1,
       arguments = '{"location": "London, UK", "units": "celsius"}',
       name = "weather",
     },
-    ["2"] = {
+    {
+      _index = 2,
       arguments = '{"location": "Paris, France", "units": "celsius"}',
       name = "weather",
     },
@@ -180,14 +183,18 @@ T["Anthropic adapter"]["No Streaming"]["can process tools"] = function()
   adapter.handlers.chat_output(adapter, json, tools)
 
   local tool_output = {
-    toolu_01TSJjnB81vBBT8dhP3tTCaM = {
+    {
+      _id = "toolu_01TSJjnB81vBBT8dhP3tTCaM",
+      _index = 2,
       arguments = {
         location = "London, UK",
         units = "celsius",
       },
       name = "weather",
     },
-    toolu_01UEd4jZFvj5gdqyL1L7QTqg = {
+    {
+      _id = "toolu_01UEd4jZFvj5gdqyL1L7QTqg",
+      _index = 3,
       arguments = {
         location = "Paris, France",
         units = "celsius",

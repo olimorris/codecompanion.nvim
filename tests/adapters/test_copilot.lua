@@ -51,7 +51,8 @@ T["Copilot adapter"]["Streaming"]["can process tools"] = function()
   end
 
   local tool_output = {
-    ["0"] = {
+    {
+      _index = 0,
       arguments = '{"location": "London, UK", "units": "celsius"}',
       name = "weather",
     },
@@ -96,7 +97,9 @@ T["Copilot adapter"]["No Streaming"]["can process tools"] = function()
   adapter.handlers.chat_output(adapter, json, tools)
 
   local tool_output = {
-    ["tooluse_0QuujwyeSCGpbfteXu-sHw"] = {
+    {
+      _id = "tooluse_0QuujwyeSCGpbfteXu-sHw",
+      _index = 1,
       arguments = {
         location = "London, UK",
         units = "celsius",

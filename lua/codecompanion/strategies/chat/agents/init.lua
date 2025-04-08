@@ -141,7 +141,7 @@ function Agent:execute(chat, tools)
   local id = math.random(10000000)
   local executor = Executor.new(self, id)
 
-  for _, tool in pairs(tools) do
+  for _, tool in ipairs(tools) do
     run_tool(executor, tool)
   end
 

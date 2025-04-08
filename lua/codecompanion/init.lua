@@ -3,6 +3,7 @@ local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
+_G.svim = vim.fn.has("nvim-0.11") == 1 and vim or require("codecompanion.compat")
 
 ---@class CodeCompanion
 local CodeCompanion = {}
