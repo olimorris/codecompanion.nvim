@@ -1,6 +1,9 @@
 # Getting Started
 
-Please see the plugin author's own [config](https://github.com/olimorris/dotfiles/blob/main/.config/nvim/lua/plugins/coding.lua) for a complete reference of how to setup CodeCompanion.
+Please see the author's own [config](https://github.com/olimorris/dotfiles/blob/main/.config/nvim/lua/plugins/coding.lua) for a complete reference of how to setup the plugin.
+
+> [!IMPORTANT]
+> The default adapter in CodeCompanion is [GitHub Copilot](https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/asking-github-copilot-questions-in-your-ide). If you have [copilot.vim](https://github.com/github/copilot.vim) or [copilot.lua](https://github.com/zbirenbaum/copilot.lua) installed then expect CodeCompanion to work out of the box.
 
 ## Configuring an Adapter
 

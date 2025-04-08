@@ -485,7 +485,7 @@ end
 local function has_tag(tag, messages)
   return vim.tbl_contains(
     vim.tbl_map(function(msg)
-      return msg.opts.tag
+      return msg.opts and msg.opts.tag
     end, messages),
     tag
   )

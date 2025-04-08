@@ -12,17 +12,21 @@ local function wrap_text_to_table(text, max_line_length)
   local lines = {}
 
   for line in (text .. "\n"):gmatch("(.-)\n") do
-    local tmp_line = ""
-    for word in line:gmatch("%S+") do
-      if #tmp_line + #word + (tmp_line == "" and 0 or 1) > max_line_length then
-        table.insert(lines, tmp_line)
-        tmp_line = word
-      else
-        tmp_line = tmp_line == "" and word or tmp_line .. " " .. word
+    if line == "" then
+      table.insert(lines, "")
+    else
+      local tmp_line = ""
+      for word in line:gmatch("%S+") do
+        if #tmp_line + #word + (tmp_line == "" and 0 or 1) > max_line_length then
+          table.insert(lines, tmp_line)
+          tmp_line = word
+        else
+          tmp_line = tmp_line == "" and word or tmp_line .. " " .. word
+        end
       end
-    end
-    if tmp_line ~= "" then
-      table.insert(lines, tmp_line)
+      if tmp_line ~= "" then
+        table.insert(lines, tmp_line)
+      end
     end
   end
 
@@ -33,6 +37,7 @@ local action_previewer = previewers.new_buffer_previewer({
   define_preview = function(self, entry)
     local width = vim.api.nvim_win_get_width(self.state.winid)
     entry.preview_command(entry, self.state.bufnr, width)
+    vim.api.nvim_buf_set_option(self.state.bufnr, "filetype", "markdown")
   end,
 })
 

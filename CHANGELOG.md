@@ -1,5 +1,31 @@
 # Changelog
 
+## [14.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.7.1...v14.8.0) (2025-04-07)
+
+
+### Features
+
+* **slash_cmds:** auto select providers based on installed plugins ([#1216](https://github.com/olimorris/codecompanion.nvim/issues/1216)) ([78b260c](https://github.com/olimorris/codecompanion.nvim/commit/78b260c1df2d37f7c91790685e0db82b338760e2))
+
+## [14.7.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.7.0...v14.7.1) (2025-04-06)
+
+
+### Bug Fixes
+
+* **chat:** `:CodeCompanionChat` now works ([#1219](https://github.com/olimorris/codecompanion.nvim/issues/1219)) ([593f2c5](https://github.com/olimorris/codecompanion.nvim/commit/593f2c5e4ead3247e5daca37bf673d0a6fcb1759))
+
+## [14.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.6.1...v14.7.0) (2025-04-05)
+
+
+### Features
+
+* **tools:** system_prompt in tool groups can be a function ([#1210](https://github.com/olimorris/codecompanion.nvim/issues/1210)) ([825f5ea](https://github.com/olimorris/codecompanion.nvim/commit/825f5eabc2e62f8a3d100f5246cd02a301681295))
+
+
+### Bug Fixes
+
+* **prompt_library:** don't trim empty lines with user role content ([#1211](https://github.com/olimorris/codecompanion.nvim/issues/1211)) ([5a18f89](https://github.com/olimorris/codecompanion.nvim/commit/5a18f8910dbae5b153045f7be2051a042a11e764))
+
 ## [14.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.6.0...v14.6.1) (2025-04-04)
 
 

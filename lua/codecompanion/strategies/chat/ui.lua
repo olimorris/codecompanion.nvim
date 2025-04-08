@@ -235,7 +235,7 @@ function UI:render(context, messages, opts)
 
   local function add_messages_to_buf(msgs)
     for i, msg in ipairs(msgs) do
-      if msg.role ~= config.constants.SYSTEM_ROLE and (msg.opts and msg.opts.visible ~= false) then
+      if msg.role ~= config.constants.SYSTEM_ROLE or (msg.opts and msg.opts.visible ~= false) then
         -- For workflow prompts: Ensure main user role doesn't get spaced
         if i > 1 and self.last_role ~= msg.role and msg.role ~= config.constants.USER_ROLE then
           spacer()
@@ -248,7 +248,8 @@ function UI:render(context, messages, opts)
           self:set_header(lines, set_llm_role(self.roles.llm, self.adapter))
         end
 
-        for _, text in ipairs(vim.split(msg.content, "\n", { plain = true, trimempty = true })) do
+        local trimempty = not (msg.role == "user" and msg.content == "")
+        for _, text in ipairs(vim.split(msg.content, "\n", { plain = true, trimempty = trimempty })) do
           table.insert(lines, text)
         end
 

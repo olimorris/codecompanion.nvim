@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.10.0        Last change: 2025 March 12
+*codecompanion.txt*         For NVIM v0.10.0        Last change: 2025 April 06
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -58,7 +58,7 @@ LLMs, in Neovim.
 FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
--  Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs out of the box (or bring your own!)
+-  Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs out of the box (or bring your own!)
 -  User contributed and supported |codecompanion-configuration-adapters.html-user-contributed-adapters|
 -  Inline transformations, code creation and refactoring
 -  Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
@@ -79,12 +79,14 @@ of the box, the plugin supports:
 - DeepSeek (`deepseek`) - Requires an API key
 - Gemini (`gemini`) - Requires an API key
 - HuggingFace (`huggingface`) - Requires an API key
+- Mistral AI (`mistral`) - Requires an API key
+- Novita (`novita`) - Requires an API key
 - Ollama (`ollama`) - Both local and remotely hosted
 - OpenAI (`openai`) - Requires an API key
 - Azure OpenAI (`azure_openai`) - Requires an Azure OpenAI service with a model deployment
 - xAI (`xai`) - Requires an API key
 
-The plugin utilises objects called Strategies. These are the different ways
+The plugin utilises objects called `strategies`. These are the different ways
 that a user can interact with the plugin. The `chat` strategy harnesses a
 buffer to allow direct conversation with the LLM. The `inline` strategy allows
 for output from the LLM to be written directly into a pre-existing Neovim
@@ -199,6 +201,10 @@ troubleshoot, running it with `nvim --clean -u minimal.lua`.
 
 ==============================================================================
 3. Getting Started                             *codecompanion-getting-started*
+
+Please see the plugin author’s own config
+<https://github.com/olimorris/dotfiles/blob/main/.config/nvim/lua/plugins/coding.lua>
+for a complete reference of how to setup CodeCompanion.
 
 
 WITH AN ADAPTER                *codecompanion-getting-started-with-an-adapter*
@@ -513,6 +519,9 @@ You can change the default adapter as follows:
         inline = {
           adapter = "copilot",
         },
+        cmd = {
+          adapter = "deepseek",
+        }
       },
     }),
 <
@@ -818,9 +827,6 @@ can set the `show_defaults` option to `false`:
     })
 <
 
-When `show_defaults` is set to `false`, only the adapters specified in your
-configuration will be used, hiding the default ones provided by the plugin.
-
 
 CHAT BUFFER                          *codecompanion-configuration-chat-buffer*
 
@@ -930,7 +936,7 @@ You can also add your own slash commands:
                 if handle ~= nil then
                   local result = handle:read("*a")
                   handle:close()
-                  chat:add_reference({ content = result }, "git", "<git_files>")
+                  chat:add_reference({ role = "user", content = result }, "git", "<git_files>")
                 else
                   return vim.notify("No git files available", vim.log.levels.INFO, { title = "CodeCompanion" })
                 end
@@ -1559,6 +1565,7 @@ The plugin also defines a number of prompts in the form of the prompt library:
 - `Explain LSP Diagnostics` - Explain the LSP diagnostics for the selected code
 - `Unit Tests` - Generate unit tests for selected code
 - `Generate a Commit Message` - Generate a commit message
+- `Workspace File` - Generating a new workspace file and/or creating a group
 
 
   [!INFO] These can also be called via the cmd line for example `:CodeCompanion
@@ -1668,13 +1675,15 @@ In order to allow for references to self-update, they can be `pinned` (for
 files and buffers) or `watched` (for buffers).
 
 File and buffer references can be `pinned` to a chat buffer with the `gp`
-keymap. Pinning results in the content from the object being reloaded and
-shared with the LLM on every turn. The advantage of this is that the LLM will
-always receive a fresh copy of the source data regardless of any changes. This
-can be useful if you’re working with agents and tools. However, please note
-that this can consume a lot of tokens.
+keymap (when your cursor is on the line of the shared buffer in the “>
+Sharing section). Pinning results in the content from the object being reloaded
+and shared with the LLM on every turn. The advantage of this is that the LLM
+will always receive a fresh copy of the source data regardless of any changes.
+This can be useful if you’re working with agents and tools. However, please
+note that this can consume a lot of tokens.
 
-Buffer references can be `watched` via the `gw` keymap. Watching, whilst
+Buffer references can be `watched` via the `gw` keymap (when your cursor is on
+the line of the shared buffer in the “> Sharing section). Watching, whilst
 similar to pinning, is a more token-conscious way of keeping the LLM up to date
 on the contents of a buffer. Watchers track changes (adds, edits, deletes) in
 the underlying buffer and update the LLM on each turn, with only those changes.
@@ -2004,7 +2013,11 @@ essence, a context management system for your repository.
 Whilst LLMs are incredibly powerful, they have no knowledge of the
 architectural decisions yourself or your team have made on a project. They have
 no context as to why you’ve selected the dependencies that you have. And,
-they can’t see how your codebase has evolved over time.
+they can’t see how your codebase has evolved over time. To help you create
+your own workspace file, leverage the
+|codecompanion-usage-action-palette.html-default-prompts| prompt in the action
+palette and install the amazing VectorCode
+<https://github.com/Davidyz/VectorCode/tree/main> tool.
 
 Please see the |codecompanion-extending-workspace| guide to learn how to build
 your own.
@@ -2430,9 +2443,10 @@ CREATING ADAPTERS                  *codecompanion-extending-creating-adapters*
 
 
   [!TIP] Does your LLM state that it is "OpenAI Compatible"? If so, good news,
-  you can leverage the generic `openai_compatible` adapter which extends from the
-  `openai` adapter. Something we did with xAI
+  you can extend from the `openai` adapter or use the `openai_compatible` one.
+  Something we did with the xAI
   <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/xai.lua>
+  adapter
 In CodeCompanion, adapters are interfaces that act as a bridge between the
 plugin’s functionality and an LLM. All adapters must follow the interface,
 below.
@@ -3640,18 +3654,21 @@ by use of ${} brackets. The now removed `@code_runner` tool used them as below:
 **Function-based Tools**
 
 Function-based tools use the `cmds` table to define functions that will be
-executed one after another. Each function has three parameters, itself, the
-actions request by the LLM and any input from a previous function call. For the
-purpose of our calculator example:
+executed one after another. Each function has four parameters, itself, the
+actions request by the LLM, any input from a previous function call and a
+`output_handler` callback for async execution. The `output_handler` handles the
+result for an asynchronous tool. For a synchronous tool (like the calculator)
+you can ignore it. For the purpose of our calculator example:
 
 >lua
     cmds = {
       ---@param self CodeCompanion.Agent.Tool The Tools object
       ---@param actions table The action object
       ---@param input? any The output from the previous function call
+      ---@param output_handler fun(output: { status: "success"|"error", data: any })? callback for async tool
       ---@return nil|{ status: "success"|"error", data: any }
-      function(self, actions, input)
-        -- Get the numbers and operation requested by the LLM
+      function(self, actions, input, output_handler)
+    -- Get the numbers and operation requested by the LLM
         local num1 = tonumber(actions.num1)
         local num2 = tonumber(actions.num2)
         local operation = actions.operation
@@ -3690,6 +3707,29 @@ purpose of our calculator example:
       end,
     },
 <
+
+For a synchronous tool, you only need to `return` the result table as
+demonstrated. However, if you need to invoke some asynchronous actions in the
+tool, you can use the `output_handler` to submit any results to the executor,
+which will then invoke `output` functions to handle the results:
+
+>lua
+    cmds = {
+      function(agent, actions, input, output_handler)
+        -- this is for demonstration only
+        vim.lsp.client.request(lsp_method, lsp_param, function(err, result, _, _)
+          agent.chat:add_message({role = "user", content = vim.json.encode(result)})
+          output_handler({status = "success", data = result})
+        end, buf_nr)
+      end
+    }
+<
+
+Note that:
+
+1. the `output_handler` will be called only once. Subsequent calls will be discarded;
+2. A tool function should EITHER return the result table (synchronous), OR call the `output_handler` with the result table as the only argument (asynchronous), but not both.
+If a function tries to both return the result and call the `output_handler`, the result will be undefined because there’s no guarantee which output will be handled first.
 
 Similarly with command-based tools, the output is written to the `stdout` or
 `stderr` tables on the agent file. However, with function-based tools, the user
@@ -4355,118 +4395,109 @@ sits in a `codecompanion-workspace.json` file in the root of the current
 working directory. For the purposes of this guide, the file will be referred to
 as the `workspace file`.
 
+For the origin of workspaces in CodeCompanion, and why I settled on this
+design, please see the original
+<https://github.com/olimorris/codecompanion.nvim/discussions/705> announcement.
+
 
 STRUCTURE ~
 
-Below is an example workspace file for this plugin:
+The workspace file primarily consists of a groups array and data objects. A
+group defines a specific feature or functionality within the code base, which
+is made up of a number of individual data objects. These objects are simply a
+reference to code, which could be in the form of a file, a symbolic outline, or
+a URL.
+
+The exact JSON schema for a workspace file can be seen here
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/workspace-schema.json>
+and below is an extract of CodeCompanion’s own workspace file:
 
 >json
     {
       "name": "CodeCompanion.nvim",
       "version": "1.0.0",
-      "workspace_spec": "1.0",
-      "description": "An example workspace file",
-      "system_prompt": "CodeCompanion.nvim is an AI-powered productivity tool integrated into Neovim, designed to enhance the development workflow by seamlessly interacting with various large language models (LLMs). It offers features like inline code transformations, code creation, refactoring, and supports multiple LLMs such as OpenAI, Anthropic, and Google Gemini, among others. With tools for variable management, agents, and custom workflows, CodeCompanion.nvim streamlines coding tasks and facilitates intelligent code assistance directly within the Neovim editor",
+      "system_prompt": "CodeCompanion.nvim is an AI-powered productivity tool integrated into Neovim, designed to enhance the development workflow by seamlessly interacting with various large language models (LLMs). It offers features like inline code transformations, code creation, refactoring, and supports multiple LLMs such as OpenAI, Anthropic, and Google Gemini, among others. With tools for variable management, agents, and custom workflows, CodeCompanion.nvim streamlines coding tasks and facilitates intelligent code assistance directly within the Neovim editor.",
       "groups": [
         {
           "name": "Chat Buffer",
-          "system_prompt": "...",
+          "system_prompt": "I've grouped a number of files together into a group I'm calling \"${group_name}\". The chat buffer is a Neovim buffer which allows a user to interact with an LLM. The buffer is formatted as Markdown with a user's content residing under a H2 header. The user types their message, saves the buffer and the plugin then uses Tree-sitter to parse the buffer, extracting the contents and sending to an adapter which connects to the user's chosen LLM. The response back from the LLM is streamed into the buffer under another H2 header. The user is then free to respond back to the LLM.\n\nBelow are the relevant files which we will be discussing:\n\n${group_files}",
           "opts": {
             "remove_config_system_prompt": true
           },
-          "files": [
-            {
-              "description": "...",
-              "path": "..."
-            }
-          ],
-          "symbols": [
-            {
-              "description": "...",
-              "path": "..."
-            },
-          ]
+          "data": ["chat-buffer-init", "chat-references", "chat-watchers"]
         },
-      ]
+      ],
+      "data": {
+        "chat-buffer-init": {
+          "type": "file",
+          "path": "lua/codecompanion/strategies/chat/init.lua",
+          "description": "The `${filename}` file is the entry point for the chat strategy. All methods directly relating to the chat buffer reside here."
+        },
+        "chat-references": {
+          "type": "symbols",
+          "path": "lua/codecompanion/strategies/chat/references.lua",
+          "description": "References are files, buffers, symbols or URLs that are shared with an LLM to provide additional context. The `${filename}` is where this logic sits and I've shared its symbolic outline below."
+        },
+        "chat-watchers": {
+          "type": "symbols",
+          "path": "lua/codecompanion/strategies/chat/watchers.lua",
+          "description": "A watcher is when a user has toggled a specific buffer to be watched. When a message is sent to the LLM by the user, any changes made to the watched buffer are also sent, giving the LLM up to date context. The `${filename}` is where this logic sits and I've shared its symbolic outline below."
+        },
+      }
     }
 <
 
-- The `description` value contains the high-level description of the workspace file. This is **not** sent to the LLM by default
-- The `system_prompt` value contains text that will be sent to the LLM as a system prompt
-- The `remove_config_system_prompt` key ensures the plugin’s default system prompt (as defined in the user’s config) is
-    removed from the chat buffer
-- The `groups` array contains the grouping of files and symbols that can be shared with the LLM. In this example we just have one group, the `Chat Buffer`
-- The `version` and `workspace_spec` are currently unused
+- The `system_prompt` value contains the prompt that will be sent to the LLM as a system prompt
+- The `groups` array contains the grouping of data that will be shared with the LLM.
+- The `data` object contains the files that will be shared as part of the group
 
-
-  [!INFO] When a user selects a group to load, the workspace slash command will
-  iterate through the group adding the description first and then sequentially
-  adding the files and symbols. For the latter two, their description is added
-  first, before their content.
-
-SYSTEM PROMPTS
-
-Currently, workspaces allow for system prompts to exist at the top-level of the
-workspace file and at a group level. The plugin will always insert top-level
-system prompts at the first index in the messages table in the chat buffer. Any
-group system prompts will be added afterwards.
+When a user leverages the workspace slash command in the chat buffer, the
+high-level system prompt is added as a message, followed by the system prompt
+from the group. After that, the individual items in the data array on the group
+are added along with their descriptions as a regular user prompt.
 
 
 GROUPS ~
 
 Groups are the core of the workspace file. They are where logical groupings of
-files and/or symbols are defined. Exploring the `Chat Buffer` group in detail:
+data are defined. Exploring the `Chat Buffer` group in detail:
 
 >json
     {
       "name": "Chat Buffer",
       "system_prompt": "I've grouped a number of files together into a group I'm calling \"${group_name}\". The chat buffer is a Neovim buffer which allows a user to interact with an LLM. The buffer is formatted as Markdown with a user's content residing under a H2 header. The user types their message, saves the buffer and the plugin then uses Tree-sitter to parse the buffer, extracting the contents and sending to an adapter which connects to the user's chosen LLM. The response back from the LLM is streamed into the buffer under another H2 header. The user is then free to respond back to the LLM.\n\nBelow are the relevant files which we will be discussing:\n\n${group_files}",
-      "description": "You could also add a description here which will be added as a user prompt",
       "opts": {
         "remove_config_system_prompt": true
       },
-      "vars": {
-        "base_dir": "lua/codecompanion/strategies/chat"
-      },
-      "files": [
-        {
-          "description": "The `${filename}` file is the entry point for the chat strategy. All methods directly relating to the chat buffer reside here.",
-          "path": "${base_dir}/init.lua"
-        }
-      ],
-      "symbols": [
-        {
-          "description": "References are files, buffers, symbols or URLs that are shared with an LLM to provide additional context. The `${filename}` is where this logic sits and I've shared its symbolic outline below.",
-          "path": "${base_dir}/references.lua"
-        },
-        {
-          "description": "A watcher is when a user has toggled a specific buffer to be watched. When a message is sent to the LLM by the user, any changes made to the watched buffer are also sent, giving the LLM up to date context. The `${filename}` is where this logic sits and I've shared its symbolic outline below.",
-          "path": "${base_dir}/watchers.lua"
-        }
-      ],
-      "urls": [
-        {
-          "ignore_cache": false,
-          "description": "The plugin uses Mini.test for its testing. Below is the Mini.Test documentation:",
-          "url": "https://raw.githubusercontent.com/echasnovski/mini.nvim/refs/heads/main/TESTING.md"
-        },
-        {
-          "auto_restore_cache": true,
-          "description": "I've also included a link to my README:",
-          "url": "https://raw.githubusercontent.com/olimorris/codecompanion.nvim/refs/heads/main/doc/codecompanion.txt"
-        }
-      ],
+      "data": ["chat-buffer-init", "chat-references", "chat-watchers"]
     }
 <
 
 There’s a lot going on in there:
 
 - Firstly, the `system_prompt` within the group is a way of adding to the main, workspace system prompt
-- The `${group_name}` variable provides the name of the current group
-- The `${group_files}` variable contains a list of all the files and symbols in the group
-- The `vars` object is a way of creating variables that can be referenced throughout the files and symbols arrays
-- Each object in the files/symbols array can be a string which defaults to a path, or can be an object containing a
-    description and the path
+- The `remove_config_system_prompt` is a way of telling the plugin to exclude its own, default system prompt
+
+Let’s also explore one of the `data` objects in detail:
+
+>json
+    {
+      "data": {
+        "chat-buffer-init": {
+          "type": "file",
+          "path": "lua/codecompanion/strategies/chat/init.lua",
+          "description": "The `${filename}` file is the entry point for the chat strategy. All methods directly relating to the chat buffer reside here."
+        }
+      }
+    }
+<
+
+- We’re specifying a |codecompanion-extending-workspace.html-data-types| of `file` which is explained in more detail below. The type can be one of `file`, `symbols` or `url`
+- We’re outlining the `path` to the file within the current working directory
+- We’re providing description which gets sent alongside the contents of the file as part of a user prompt. We’re also leveraging a `${filename}` variable which is explained in more detail in the |codecompanion-extending-workspace.html-variables| section below
+
+
+DATA TYPES ~
 
 
 FILES
@@ -4502,18 +4533,81 @@ the `fetch` slash command adapter retrieves the data. The plugin:
     - `"ignore_cache": true` to never use cache
     - `"auto_restore_cache": true` to always use cache without prompting
 
+An example of using the configuration options:
+
+>json
+    {
+      "minitest-docs": {
+        "type": "url",
+        "path": "https://raw.githubusercontent.com/echasnovski/mini.nvim/refs/heads/main/TESTING.md",
+        "description": "Below is the Mini.Test documentation:",
+        "opts": {
+          "auto_restore_cache": true
+        }
+      }
+    }
+<
+
 
 VARIABLES ~
 
 A list of all the variables available in workspace files:
 
-- `${workspace_description}` - The description at the top of the workspace file
 - `${workspace_name}` - The name of the workspace file
 - `${group_name}` - The name of the group that is being processed by the slash command
-- `${group_files}` - A list of all the files and symbols in the group
 - `${filename}` - The name of the current file/symbol that is being processed
-- `${cwd}` - The current working directory of the workspace file
-- `${path}` - The path to the current file/symbol
+- `${cwd}` - The current working directory
+- `${path}` - The path to the current file/symbol/url
+
+When building your workspace file, you can create a `vars` object which
+contains custom variables for use elsewhere in file. For example:
+
+>json
+    {
+      "name": "CodeCompanion.nvim",
+      "version": "1.0.0",
+      "system_prompt": "Workspace system prompt",
+      "vars": {
+        "test_desc": "This is a test description",
+        "stubs": "tests/stubs"
+      },
+      "groups": [
+        {
+          "name": "Test",
+          "description": "${test_desc}",
+          "system_prompt": "Test group system prompt",
+          "data": ["stub-go"]
+        }
+      ],
+      "data": {
+        "stub-go": {
+          "type": "file",
+          "path": "${stubs}/example.go",
+          "description": "An example Go file"
+        },
+      }
+    }
+<
+
+
+GENERATING A WORKSPACE FILE ~
+
+The plugin comes with an
+|codecompanion-usage-action-palette.html-default-prompts| prompt to help you
+generate a workspace file. It will open up a chat buffer and add the workspace
+JSON schema as part of a prompt. It will also determine if you have a workspace
+file in your current working directory, and if you do, the prompts will be
+altered to ask the LLM to help you in adding a group, rather than generating a
+whole workspace file.
+
+Whilst this approach is helpful, you’ll still need to manually share a lot of
+context for the LLM to be able to understand the intricacies of your codebase.
+A more optimal way is to leverage VectorCode
+<https://github.com/Davidyz/VectorCode>. The prompt will determine if you have
+this installed and add it to the chat as a tool.
+
+Remember, the key objective with a workspace file is to rapidly share context
+with an LLM, making it’s response more accurate and more useful.
 
 Generated by panvimdoc <https://github.com/kdheepak/panvimdoc>
 
