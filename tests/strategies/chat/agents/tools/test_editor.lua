@@ -1,43 +1,42 @@
 local h = require("tests.helpers")
 
+local expect = MiniTest.expect
 local new_set = MiniTest.new_set
-
-local bufnr
 
 local child = MiniTest.new_child_neovim()
 local T = new_set({
   hooks = {
     pre_case = function()
       child.restart({ "-u", "scripts/minimal_init.lua" })
-      child.lua([[vim.g.codecompanion_auto_tool_mode = true]])
       child.lua([[_G.chat, _G.agent = require("tests.helpers").setup_chat_buffer()]])
 
       -- Setup the buffer
-      bufnr = child.lua([[
-    local bufnr = vim.api.nvim_create_buf(false, true)
-    _G.bufnr = bufnr
-    vim.bo[bufnr].readonly = false
+      child.lua([[
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      _G.bufnr = bufnr
+      vim.bo[bufnr].readonly = false
+      vim.bo[bufnr].buftype = "nofile"
 
-    local lines = {
-      "function foo()",
-      '    return "foo"',
-      "end",
-      "",
-      "function bar()",
-      '    return "bar"',
-      "end",
-      "",
-      "function baz()",
-      '    return "baz"',
-      "end",
-    }
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, true, lines)
+      local lines = {
+        "function foo()",
+        '    return "foo"',
+        "end",
+        "",
+        "function bar()",
+        '    return "bar"',
+        "end",
+        "",
+        "function baz()",
+        '    return "baz"',
+        "end",
+      }
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, true, lines)
 
-    return bufnr
+      return bufnr
   ]])
     end,
     post_case = function()
-      _G.xml = nil
+      _G.bufnr = nil
     end,
     post_once = child.stop,
   },
@@ -45,19 +44,25 @@ local T = new_set({
 
 T["editor tool"] = function()
   child.lua([[
-    --require("tests.log")
     local tool = {
-      [0] = {
+      {
         name = "editor",
-        arguments = string.format('{"action": "update", "buffer": %s, "code": "function hello_world()\\n  return \\"Hello, World!\\"\\nend", "start_line": 1, "end_line": 3}', _G.bufnr),
+        arguments = string.format('{"action": "delete", "buffer": %s, "start_line": 1, "end_line": 4}', _G.bufnr),
+      },
+      {
+        name = "editor",
+        arguments = string.format('{"action": "add", "buffer": %s, "code": "function hello_world()\\n  return \\"Hello, World!\\"\\nend\\n", "start_line": 1}', _G.bufnr),
+      },
+      {
+        name = "editor",
+        arguments = string.format('{"action": "update", "buffer": %s, "code": "function hello_oli()\\n  return \\"Hello, Oli!\\"\\nend", "start_line": 5, "end_line": 7}', _G.bufnr),
       },
     }
     agent:execute(chat, tool)
-    vim.wait(200)
+    vim.cmd("buffer " .. _G.bufnr)
   ]])
 
-  local output = child.lua_get("vim.api.nvim_buf_get_lines(_G.bufnr, 0, -1, true)")
-  h.eq("function hello_world()", output[1])
+  expect.reference_screenshot(child.get_screenshot())
 end
 
 return T
