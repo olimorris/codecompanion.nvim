@@ -53,12 +53,44 @@ T["OpenAI adapter"]["Streaming"]["can process tools"] = function()
   local tool_output = {
     {
       _index = 0,
-      arguments = '{"location":"London, UK","units":"celsius"}',
-      name = "weather",
+      ["function"] = {
+        arguments = '{"location": "London", "units": "celsius"}',
+        name = "weather",
+      },
+      id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+      type = "function",
+    },
+    {
+      _index = 1,
+      ["function"] = {
+        arguments = '{"location": "Paris", "units": "celsius"}',
+        name = "weather",
+      },
+      id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+      type = "function",
     },
   }
 
   h.eq(tool_output, tools)
+
+  local formatted_tools = {
+    {
+      arguments = {
+        location = "London",
+        units = "celsius",
+      },
+      name = "weather",
+    },
+    {
+      arguments = {
+        location = "Paris",
+        units = "celsius",
+      },
+      name = "weather",
+    },
+  }
+
+  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["OpenAI adapter"]["No Streaming"] = new_set({
@@ -95,8 +127,28 @@ T["OpenAI adapter"]["No Streaming"]["can process tools"] = function()
 
   local tool_output = {
     {
-      _id = "call_VGkXa0hqNLEe2HSgMO1EpOe6",
       _index = 1,
+      ["function"] = {
+        arguments = '{"location": "London, United Kingdom", "units": "celsius"}',
+        name = "weather",
+      },
+      id = "call_VGkXa0hqNLEe2HSgMO1EpOe6",
+      type = "function",
+    },
+    {
+      _index = 2,
+      ["function"] = {
+        arguments = '{"location": "Paris, France", "units": "celsius"}',
+        name = "weather",
+      },
+      id = "call_HVrmLOHM2Ybd6K7vQj4x8NdQ",
+      type = "function",
+    },
+  }
+  h.eq(tool_output, tools)
+
+  local formatted_tools = {
+    {
       arguments = {
         location = "London, United Kingdom",
         units = "celsius",
@@ -104,8 +156,6 @@ T["OpenAI adapter"]["No Streaming"]["can process tools"] = function()
       name = "weather",
     },
     {
-      _id = "call_HVrmLOHM2Ybd6K7vQj4x8NdQ",
-      _index = 2,
       arguments = {
         location = "Paris, France",
         units = "celsius",
@@ -113,7 +163,8 @@ T["OpenAI adapter"]["No Streaming"]["can process tools"] = function()
       name = "weather",
     },
   }
-  h.eq(tool_output, tools)
+
+  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["OpenAI adapter"]["No Streaming"]["can output for the inline assistant"] = function()

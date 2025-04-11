@@ -53,6 +53,26 @@ T["Ollama adapter"]["Streaming"]["can process tools"] = function()
 
   local tool_output = {
     {
+      ["function"] = {
+        arguments = '{"units":"celsius","location":"London, UK"}',
+        name = "weather",
+      },
+      type = "function",
+    },
+    {
+      ["function"] = {
+        arguments = '{"units":"fahrenheit","location":"Paris, FR"}',
+        name = "weather",
+      },
+      type = "function",
+    },
+  }
+
+  h.expect_json_equals(tool_output[1]["function"]["arguments"], tools[1]["function"]["arguments"])
+  h.expect_json_equals(tool_output[2]["function"]["arguments"], tools[2]["function"]["arguments"])
+
+  local formatted_tools = {
+    {
       arguments = {
         location = "London, UK",
         units = "celsius",
@@ -60,7 +80,6 @@ T["Ollama adapter"]["Streaming"]["can process tools"] = function()
       name = "weather",
     },
     {
-      _index = 1,
       arguments = {
         location = "Paris, FR",
         units = "fahrenheit",
@@ -69,7 +88,7 @@ T["Ollama adapter"]["Streaming"]["can process tools"] = function()
     },
   }
 
-  h.eq(tool_output, tools)
+  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["Ollama adapter"]["No Streaming"] = new_set({
@@ -106,6 +125,26 @@ T["Ollama adapter"]["No Streaming"]["can process tools"] = function()
 
   local tool_output = {
     {
+      ["function"] = {
+        arguments = '{"location":"London, UK","units":"celsius"}',
+        name = "weather",
+      },
+      type = "function",
+    },
+    {
+      ["function"] = {
+        arguments = '{"location":"Paris, FR","units":"fahrenheit"}',
+        name = "weather",
+      },
+      type = "function",
+    },
+  }
+
+  h.expect_json_equals(tool_output[1]["function"]["arguments"], tools[1]["function"]["arguments"])
+  h.expect_json_equals(tool_output[2]["function"]["arguments"], tools[2]["function"]["arguments"])
+
+  local formatted_tools = {
+    {
       arguments = {
         location = "London, UK",
         units = "celsius",
@@ -121,7 +160,7 @@ T["Ollama adapter"]["No Streaming"]["can process tools"] = function()
     },
   }
 
-  h.eq(tool_output, tools)
+  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["Ollama adapter"]["No Streaming"]["can output for the inline assistant"] = function()

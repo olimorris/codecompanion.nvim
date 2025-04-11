@@ -53,12 +53,28 @@ T["Copilot adapter"]["Streaming"]["can process tools"] = function()
   local tool_output = {
     {
       _index = 0,
-      arguments = '{"location": "London, UK", "units": "celsius"}',
-      name = "weather",
+      ["function"] = {
+        arguments = '{"location": "London, UK", "units": "celsius"}',
+        name = "weather",
+      },
+      id = "tooluse_ZnSMh7lhSxWDIuVBKd_vLg",
+      type = "function",
     },
   }
 
   h.eq(tool_output, tools)
+
+  local formatted_tools = {
+    {
+      arguments = {
+        location = "London, UK",
+        units = "celsius",
+      },
+      name = "weather",
+    },
+  }
+
+  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["Copilot adapter"]["No Streaming"] = new_set({
@@ -98,8 +114,19 @@ T["Copilot adapter"]["No Streaming"]["can process tools"] = function()
 
   local tool_output = {
     {
-      _id = "tooluse_0QuujwyeSCGpbfteXu-sHw",
       _index = 1,
+      ["function"] = {
+        arguments = '{"location":"London, UK","units":"celsius"}',
+        name = "weather",
+      },
+      id = "tooluse_0QuujwyeSCGpbfteXu-sHw",
+      type = "function",
+    },
+  }
+  h.eq(tool_output, tools)
+
+  local formatted_tools = {
+    {
       arguments = {
         location = "London, UK",
         units = "celsius",
@@ -107,7 +134,8 @@ T["Copilot adapter"]["No Streaming"]["can process tools"] = function()
       name = "weather",
     },
   }
-  h.eq(tool_output, tools)
+
+  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["Copilot adapter"]["No Streaming"]["can output for the inline assistant"] = function()

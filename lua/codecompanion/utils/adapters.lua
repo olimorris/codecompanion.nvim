@@ -6,7 +6,7 @@ local M = {}
 ---@param tbl table The table to convert
 ---@return table The same table converted to an array
 function M.ensure_array(tbl)
-  local islist = vim.islist or vim.tbl_islist
+  local islist = vim.islist or vim.tbl_islist ---@type function
 
   if islist(tbl) then
     return tbl

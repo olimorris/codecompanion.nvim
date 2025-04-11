@@ -7,7 +7,7 @@ return {
     function(self, args, input)
       return {
         status = "success",
-        data = "The weather in " .. args.location .. " is 15° " .. args.units,
+        data = "**Tool Output**: The weather in " .. args.location .. " is 15° " .. args.units,
       }
     end,
   },

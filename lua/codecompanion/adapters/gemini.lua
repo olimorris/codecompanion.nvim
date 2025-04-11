@@ -45,6 +45,9 @@ return {
     chat_output = function(self, data, tools)
       return openai.handlers.chat_output(self, data, tools)
     end,
+    tools_output = function(self, tools)
+      return openai.handlers.tools_output(self, tools)
+    end,
     inline_output = function(self, data, context)
       return openai.handlers.inline_output(self, data, context)
     end,

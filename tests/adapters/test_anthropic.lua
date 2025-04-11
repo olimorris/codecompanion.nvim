@@ -105,17 +105,44 @@ T["Anthropic adapter"]["Streaming"]["can process tools"] = function()
   local tool_output = {
     {
       _index = 1,
-      arguments = '{"location": "London, UK", "units": "celsius"}',
-      name = "weather",
+      ["function"] = {
+        arguments = '{"location": "London, UK", "units": "celsius"}',
+        name = "weather",
+      },
+      id = "toolu_01QRThyzKt6NibK3m1DjUTkE",
+      type = "function",
     },
     {
       _index = 2,
-      arguments = '{"location": "Paris, France", "units": "celsius"}',
-      name = "weather",
+      ["function"] = {
+        arguments = '{"location": "Paris, France", "units": "celsius"}',
+        name = "weather",
+      },
+      id = "toolu_015A1zQUwKw1YE3CYvRRUdXZ",
+      type = "function",
     },
   }
 
   h.eq(tool_output, tools)
+
+  local formatted_tools = {
+    {
+      arguments = {
+        location = "London, UK",
+        units = "celsius",
+      },
+      name = "weather",
+    },
+    {
+      arguments = {
+        location = "Paris, France",
+        units = "celsius",
+      },
+      name = "weather",
+    },
+  }
+
+  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["Anthropic adapter"]["Streaming"]["can process reasoning output"] = function()
@@ -184,8 +211,30 @@ T["Anthropic adapter"]["No Streaming"]["can process tools"] = function()
 
   local tool_output = {
     {
-      _id = "toolu_01TSJjnB81vBBT8dhP3tTCaM",
       _index = 2,
+      ["function"] = {
+        arguments = '{"location": "London, UK", "units": "celsius"}',
+        name = "weather",
+      },
+      id = "toolu_01TSJjnB81vBBT8dhP3tTCaM",
+      type = "function",
+    },
+    {
+      _index = 3,
+      ["function"] = {
+        arguments = '{"location": "Paris, France", "units": "celsius"}',
+        name = "weather",
+      },
+      id = "toolu_01UEd4jZFvj5gdqyL1L7QTqg",
+      type = "function",
+    },
+  }
+
+  h.expect_json_equals(tool_output[1]["function"]["arguments"], tools[1]["function"]["arguments"])
+  h.expect_json_equals(tool_output[2]["function"]["arguments"], tools[2]["function"]["arguments"])
+
+  local formatted_tools = {
+    {
       arguments = {
         location = "London, UK",
         units = "celsius",
@@ -193,8 +242,6 @@ T["Anthropic adapter"]["No Streaming"]["can process tools"] = function()
       name = "weather",
     },
     {
-      _id = "toolu_01UEd4jZFvj5gdqyL1L7QTqg",
-      _index = 3,
       arguments = {
         location = "Paris, France",
         units = "celsius",
@@ -202,7 +249,8 @@ T["Anthropic adapter"]["No Streaming"]["can process tools"] = function()
       name = "weather",
     },
   }
-  h.eq(tool_output, tools)
+
+  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant with reasoning models"] = function()

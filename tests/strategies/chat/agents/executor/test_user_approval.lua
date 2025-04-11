@@ -38,7 +38,7 @@ T["Agent"]["user approval"]["is triggered"] = function()
     --require("tests.log")
     local tools = {
       {
-        arguments = '{"data": "Data 1"}',
+        arguments = { data = "Data 1" },
         name = "func",
       },
     }

@@ -225,12 +225,14 @@ return {
               output.reasoning = ""
             end
             if json.content_block.type == "tool_use" and tools then
-              utils.ensure_array(tools)
-
               table.insert(tools, {
-                name = json.content_block.name,
-                arguments = "",
                 _index = json.index,
+                id = json.content_block.id,
+                type = "function",
+                ["function"] = {
+                  name = json.content_block.name,
+                  arguments = "",
+                },
               })
             end
           elseif json.type == "content_block_delta" then
@@ -241,7 +243,8 @@ return {
               if json.delta.partial_json and tools then
                 for i, tool in ipairs(tools) do
                   if tool._index == json.index then
-                    tools[i].arguments = (tools[i].arguments or "") .. json.delta.partial_json
+                    tools[i]["function"]["arguments"] = (tools[i]["function"]["arguments"] or "")
+                      .. json.delta.partial_json
                     break
                   end
                 end
@@ -250,10 +253,6 @@ return {
           elseif json.type == "message" then
             output.role = json.role
 
-            if tools then
-              utils.ensure_array(tools)
-            end
-
             for i, content in ipairs(json.content) do
               if content.type == "text" then
                 output.content = (output.content or "") .. content.text
@@ -261,10 +260,16 @@ return {
                 output.reasoning = content.text
               elseif content.type == "tool_use" and tools then
                 table.insert(tools, {
-                  name = content.name,
-                  arguments = content.input,
-                  _id = content.id,
                   _index = i,
+                  id = content.id,
+                  type = "function",
+                  ["function"] = {
+                    name = content.name,
+                    -- So we decode the JSON string to then encode it again...Why??
+                    -- We do this because we need to tell the LLM at a later date
+                    -- that it called this function with these args, correctly
+                    arguments = vim.json.encode(content.input),
+                  },
                 })
               end
             end
@@ -276,6 +281,43 @@ return {
           }
         end
       end
+    end,
+
+    ---Output the tools into the required format for use by the agent
+    ---@param self CodeCompanion.Adapter
+    ---@param tools table The raw tools collected by chat_output
+    ---@return table|nil Processed tools ready for use in the agent system
+    tools_output = function(self, tools)
+      if not tools or vim.tbl_isempty(tools) then
+        return nil
+      end
+
+      local processed_tools = {}
+
+      for _, tool in ipairs(tools) do
+        if tool["function"] then
+          local processed_tool = {
+            name = tool["function"]["name"],
+          }
+
+          -- Convert JSON string arguments to Lua tables
+          if tool["function"]["arguments"] and type(tool["function"]["arguments"]) == "string" then
+            local ok, parsed = pcall(vim.json.decode, tool["function"]["arguments"])
+            if ok then
+              processed_tool.arguments = parsed
+            else
+              log:warn("Failed to parse tool arguments: %s", tool["function"]["arguments"])
+              processed_tool.arguments = tool["function"]["arguments"]
+            end
+          else
+            processed_tool.arguments = tool["function"]["arguments"]
+          end
+
+          table.insert(processed_tools, processed_tool)
+        end
+      end
+
+      return processed_tools
     end,
 
     ---Output the data from the API ready for inlining into the current buffer

@@ -122,97 +122,6 @@ return {
     ---@param tools? table The table to write any tool output to
     ---@return table|nil [status: string, output: table]
     chat_output = function(self, data, tools)
-      ---Process a tool call in streaming mode
-      ---@param tools_array table The array to store tool calls
-      ---@param tool table The tool call to process
-      ---@param index number The index of the tool call
-      ---@return nil
-      local function process_streamed_tool_call(tools_array, tool, index)
-        local tool_index = tool.index and tonumber(tool.index) or index
-
-        -- Find the tool in our array if it already exists
-        local found = false
-        for i, existing_tool in ipairs(tools_array) do
-          if existing_tool._index == tool_index then
-            -- Append to arguments if this is a continuation of a stream
-            tools_array[i].arguments = (tools_array[i].arguments or "") .. (tool["function"]["arguments"] or "")
-            found = true
-            break
-          end
-        end
-
-        -- If not found, add a new tool entry
-        if not found then
-          table.insert(tools_array, {
-            name = tool["function"]["name"],
-            arguments = tool["function"]["arguments"] or "",
-            _index = tool_index, -- Store index as metadata for sorting/identification
-          })
-        end
-      end
-
-      ---Process a tool call in non-streaming mode
-      ---@param tools_array table The array to store tool calls
-      ---@param tool table The tool call to process
-      ---@param index number The index of the tool call
-      ---@return nil
-      local function process_nonstreamed_tool_call(tools_array, tool, index)
-        -- Just add each tool to the array in the order they appear
-        table.insert(tools_array, {
-          name = tool["function"]["name"],
-          arguments = vim.json.decode(tool["function"]["arguments"]),
-          _id = tool.id, -- Store ID as metadata if needed
-          _index = index, -- Store index as metadata
-        })
-      end
-
-      ---Process tool calls from all choices
-      ---@param choices table The choices from the API response
-      ---@return nil
-      local function process_tool_calls(choices)
-        if not tools then
-          return
-        end
-
-        -- Ensure tools is an array
-        utils.ensure_array(tools)
-
-        for _, choice in ipairs(choices) do
-          local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
-
-          if delta and delta.tool_calls and #delta.tool_calls > 0 then
-            for i, tool in ipairs(delta.tool_calls) do
-              if self.opts.stream then
-                process_streamed_tool_call(tools, tool, i)
-              else
-                process_nonstreamed_tool_call(tools, tool, i)
-              end
-            end
-          end
-        end
-      end
-
-      ---Process message content from a choice
-      ---@param choice table The choice from the API response
-      ---@return table|nil
-      local function process_message_content(choice)
-        local output = {}
-        local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
-
-        if not delta then
-          return nil
-        end
-
-        output.role = delta.role or nil
-        output.content = delta.content or ""
-
-        return {
-          status = "success",
-          output = output,
-        }
-      end
-
-      -- Main function logic
       if not data or data == "" then
         return nil
       end
@@ -225,13 +134,107 @@ return {
         return nil
       end
 
-      -- Process tools from all choices
+      -- Process tool calls from all choices
       if self.opts.tools and tools then
-        process_tool_calls(json.choices)
+        for _, choice in ipairs(json.choices) do
+          local delta = self.opts.stream and choice.delta or choice.message
+
+          if delta and delta.tool_calls and #delta.tool_calls > 0 then
+            for i, tool in ipairs(delta.tool_calls) do
+              if self.opts.stream then
+                local tool_index = tool.index and tonumber(tool.index) or i
+
+                local found = false
+                for _, existing_tool in ipairs(tools) do
+                  if existing_tool._index == tool_index then
+                    -- Append to arguments if this is a continuation of a stream
+                    if tool["function"] and tool["function"]["arguments"] then
+                      existing_tool["function"]["arguments"] = (existing_tool["function"]["arguments"] or "")
+                        .. tool["function"]["arguments"]
+                    end
+                    found = true
+                    break
+                  end
+                end
+
+                if not found then
+                  table.insert(tools, {
+                    _index = tool_index,
+                    id = tool.id,
+                    type = tool.type,
+                    ["function"] = {
+                      name = tool["function"]["name"],
+                      arguments = tool["function"]["arguments"] or "",
+                    },
+                  })
+                end
+              else
+                table.insert(tools, {
+                  _index = i,
+                  id = tool.id,
+                  type = tool.type,
+                  ["function"] = {
+                    name = tool["function"]["name"],
+                    arguments = tool["function"]["arguments"],
+                  },
+                })
+              end
+            end
+          end
+        end
       end
 
-      -- Process the first choice for content
-      return process_message_content(json.choices[1])
+      -- Process message content from the first choice
+      local choice = json.choices[1]
+      local delta = self.opts.stream and choice.delta or choice.message
+
+      if not delta then
+        return nil
+      end
+
+      local output = {}
+      output.role = delta.role or nil
+      output.content = delta.content or ""
+
+      return {
+        status = "success",
+        output = output,
+      }
+    end,
+
+    ---Output the tools into the required format for use by the agent
+    ---@param self CodeCompanion.Adapter
+    ---@param tools table The raw tools collected by chat_output
+    ---@return table|nil Processed tools ready for use in the agent system
+    tools_output = function(self, tools)
+      if not tools or vim.tbl_isempty(tools) then
+        return nil
+      end
+
+      local processed_tools = {}
+
+      for _, tool in ipairs(tools) do
+        if tool["function"] then
+          local processed_tool = {
+            name = tool["function"]["name"],
+          }
+
+          -- Convert JSON string arguments to Lua tables
+          if tool["function"]["arguments"] and type(tool["function"]["arguments"]) == "string" then
+            local ok, parsed = pcall(vim.json.decode, tool["function"]["arguments"])
+            if not ok then
+              return log:warn("Failed to parse tool arguments: %s", tool["function"]["arguments"])
+            end
+            processed_tool.arguments = parsed
+          else
+            processed_tool.arguments = tool["function"]["arguments"]
+          end
+
+          table.insert(processed_tools, processed_tool)
+        end
+      end
+
+      return processed_tools
     end,
 
     ---Output the data from the API ready for inlining into the current buffer

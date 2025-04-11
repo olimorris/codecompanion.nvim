@@ -27,7 +27,9 @@ T["cmd_runner tool"] = function()
     local tool = {
       {
         name = "cmd_runner",
-        arguments = '{"cmd": "echo hello world"}',
+        arguments = {
+          cmd = "echo hello world",
+        },
       },
     }
     agent:execute(chat, tool)

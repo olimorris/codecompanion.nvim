@@ -108,8 +108,6 @@ return {
 
             -- Process tools
             if self.opts.tools and delta.tool_calls and tools then
-              utils.ensure_array(tools)
-
               for _, tool in ipairs(delta.tool_calls) do
                 if self.opts.stream then
                   local index = tool.index
@@ -117,7 +115,8 @@ return {
 
                   for i, existing_tool in ipairs(tools) do
                     if existing_tool._index == index then
-                      tools[i].arguments = (tools[i].arguments or "") .. (tool["function"]["arguments"] or "")
+                      tools[i]["function"].arguments = (tools[i]["function"].arguments or "")
+                        .. (tool["function"]["arguments"] or "")
                       found = true
                       break
                     end
@@ -125,17 +124,22 @@ return {
 
                   if not found then
                     table.insert(tools, {
-                      name = tool["function"]["name"],
-                      arguments = tool["function"]["arguments"] or "",
+                      ["function"] = {
+                        name = tool["function"]["name"],
+                        arguments = tool["function"]["arguments"] or "",
+                      },
+                      type = "function",
                       _index = index,
                     })
                   end
                 else
                   table.insert(tools, {
-                    name = tool["function"]["name"],
-                    arguments = vim.json.decode(tool["function"]["arguments"]),
-                    _id = tool.id,
                     _index = tool.index,
+                    ["function"] = {
+                      name = tool["function"]["name"],
+                      arguments = tool["function"]["arguments"],
+                    },
+                    type = "function",
                   })
                 end
               end
@@ -148,6 +152,9 @@ return {
           end
         end
       end
+    end,
+    tools_output = function(self, tools)
+      return openai.handlers.tools_output(self, tools)
     end,
     inline_output = function(self, data, context)
       return openai.handlers.inline_output(self, data, context)

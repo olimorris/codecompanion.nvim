@@ -84,8 +84,11 @@ T["Agent"][":execute"]["a response from the LLM"] = function()
     --require("tests.log")
     local tools = {
       {
-        arguments = '{"location":"London, UK","units":"celsius"}',
         name = "weather",
+        arguments = {
+          location = "London, UK",
+          units = "celsius",
+        },
       },
     }
 

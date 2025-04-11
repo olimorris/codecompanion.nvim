@@ -94,8 +94,11 @@ T["Agent"]["cmds"]["can set test flags on the chat object"] = function()
   child.lua([[
     local tool = {
       {
-        arguments = '{"cmds": "ls", "flag": "testing"}',
         name = "mock_cmd_runner",
+        arguments = {
+          cmds = "ls",
+          flag = "testing",
+        }
       },
     }
     agent:execute(chat, tool)

@@ -47,15 +47,31 @@ T["editor tool"] = function()
     local tool = {
       {
         name = "editor",
-        arguments = string.format('{"action": "delete", "buffer": %s, "start_line": 1, "end_line": 4}', _G.bufnr),
+        arguments = {
+          action = "delete",
+          buffer = _G.bufnr,
+          start_line = 1,
+          end_line = 4,
+        }
       },
       {
         name = "editor",
-        arguments = string.format('{"action": "add", "buffer": %s, "code": "function hello_world()\\n  return \\"Hello, World!\\"\\nend\\n", "start_line": 1}', _G.bufnr),
+        arguments = {
+          action = "add",
+          buffer = _G.bufnr,
+          code = "function hello_world()\n  return \"Hello, World!\"\nend\n",
+          start_line = 1,
+        }
       },
       {
         name = "editor",
-        arguments = string.format('{"action": "update", "buffer": %s, "code": "function hello_oli()\\n  return \\"Hello, Oli!\\"\\nend", "start_line": 5, "end_line": 7}', _G.bufnr),
+        arguments = {
+          action = "update",
+          buffer = _G.bufnr,
+          code = "function hello_oli()\n  return \"Hello, Oli!\"\nend",
+          start_line = 5,
+          end_line = 7,
+        }
       },
     }
     agent:execute(chat, tool)

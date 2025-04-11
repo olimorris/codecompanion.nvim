@@ -80,17 +80,44 @@ T["Gemini adapter"]["Streaming"]["can process tools"] = function()
   local tool_output = {
     {
       _index = 1,
-      arguments = '{"units":"celsius","location":"London"}',
-      name = "weather",
+      ["function"] = {
+        arguments = '{"units":"celsius","location":"London"}',
+        name = "weather",
+      },
+      id = "",
+      type = "function",
     },
     {
       _index = 2,
-      arguments = '{"units":"celsius","location":"Paris"}',
-      name = "weather",
+      ["function"] = {
+        arguments = '{"units":"celsius","location":"Paris"}',
+        name = "weather",
+      },
+      id = "",
+      type = "function",
     },
   }
 
   h.eq(tool_output, tools)
+
+  local formatted_tools = {
+    {
+      arguments = {
+        location = "London",
+        units = "celsius",
+      },
+      name = "weather",
+    },
+    {
+      arguments = {
+        location = "Paris",
+        units = "celsius",
+      },
+      name = "weather",
+    },
+  }
+
+  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["Gemini adapter"]["No Streaming"] = new_set({
@@ -127,8 +154,28 @@ T["Gemini adapter"]["No Streaming"]["can process tools"] = function()
 
   local tool_output = {
     {
-      _id = "",
       _index = 1,
+      ["function"] = {
+        arguments = '{"location":"London, UK","units":"celsius"}',
+        name = "weather",
+      },
+      id = "",
+      type = "function",
+    },
+    {
+      _index = 2,
+      ["function"] = {
+        arguments = '{"units":"celsius","location":"Paris, France"}',
+        name = "weather",
+      },
+      id = "",
+      type = "function",
+    },
+  }
+  h.eq(tool_output, tools)
+
+  local formatted_tools = {
+    {
       arguments = {
         location = "London, UK",
         units = "celsius",
@@ -136,8 +183,6 @@ T["Gemini adapter"]["No Streaming"]["can process tools"] = function()
       name = "weather",
     },
     {
-      _id = "",
-      _index = 2,
       arguments = {
         location = "Paris, France",
         units = "celsius",
@@ -145,7 +190,8 @@ T["Gemini adapter"]["No Streaming"]["can process tools"] = function()
       name = "weather",
     },
   }
-  h.eq(tool_output, tools)
+
+  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["Gemini adapter"]["No Streaming"]["can output for the inline assistant"] = function()

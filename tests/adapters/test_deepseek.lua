@@ -110,17 +110,42 @@ T["DeepSeek adapter"]["Streaming"]["can process tools"] = function()
   local tool_output = {
     {
       _index = 0,
-      arguments = '{"location": "London", "units": "celsius"}',
-      name = "weather",
+      ["function"] = {
+        arguments = '{"location": "London", "units": "celsius"}',
+        name = "weather",
+      },
+      type = "function",
     },
     {
       _index = 1,
-      arguments = '{"location": "Paris", "units": "celsius"}',
-      name = "weather",
+      ["function"] = {
+        arguments = '{"location": "Paris", "units": "celsius"}',
+        name = "weather",
+      },
+      type = "function",
     },
   }
 
   h.eq(tool_output, tools)
+
+  local formatted_tools = {
+    {
+      arguments = {
+        location = "London",
+        units = "celsius",
+      },
+      name = "weather",
+    },
+    {
+      arguments = {
+        location = "Paris",
+        units = "celsius",
+      },
+      name = "weather",
+    },
+  }
+
+  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["DeepSeek adapter"]["No Streaming"] = new_set({
@@ -154,8 +179,27 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
 
   local tool_output = {
     {
-      _id = "call_0_74655864-c1ab-455f-88c5-921aa7b6281c",
       _index = 0,
+      ["function"] = {
+        arguments = '{"location": "London", "units": "celsius"}',
+        name = "weather",
+      },
+      type = "function",
+    },
+    {
+      _index = 1,
+      ["function"] = {
+        arguments = '{"location": "Paris", "units": "celsius"}',
+        name = "weather",
+      },
+      type = "function",
+    },
+  }
+
+  h.eq(tool_output, tools)
+
+  local formatted_tools = {
+    {
       arguments = {
         location = "London",
         units = "celsius",
@@ -163,8 +207,6 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
       name = "weather",
     },
     {
-      _id = "call_1_759f62c3-f8dc-475f-9558-8211fc0a133c",
-      _index = 1,
       arguments = {
         location = "Paris",
         units = "celsius",
@@ -173,7 +215,7 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
     },
   }
 
-  h.eq(tool_output, tools)
+  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["DeepSeek adapter"]["No Streaming"]["can output for the inline assistant"] = function()
