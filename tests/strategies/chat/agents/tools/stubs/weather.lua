@@ -44,10 +44,11 @@ return {
     },
   },
   output = {
+    ---@param self CodeCompanion.Agent.Tool
     ---@param agent CodeCompanion.Agent
     ---@param cmd table The command that was executed
     ---@param stdout table
-    success = function(agent, cmd, stdout)
+    success = function(self, agent, cmd, stdout)
       print("Weather: " .. stdout[1])
     end,
   },

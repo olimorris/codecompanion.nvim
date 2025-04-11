@@ -81,13 +81,17 @@ end
 T["Agent"][":execute"] = new_set()
 T["Agent"][":execute"]["a response from the LLM"] = function()
   child.lua([[
-    --require("tests.log")
+    require("tests.log")
     local tools = {
       {
-        name = "weather",
-        arguments = {
-          location = "London, UK",
-          units = "celsius",
+        id = 1,
+        type = "function",
+        ["function"] = {
+          name = "weather",
+          arguments = {
+            location = "London, UK",
+            units = "celsius",
+          },
         },
       },
     }

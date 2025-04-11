@@ -71,6 +71,8 @@ return {
           return {
             role = m.role,
             content = m.content,
+            tool_calls = m.tool_calls,
+            tool_call_id = m.tool_call_id,
           }
         end)
         :totable()
@@ -202,41 +204,6 @@ return {
       }
     end,
 
-    ---Output the tools into the required format for use by the agent
-    ---@param self CodeCompanion.Adapter
-    ---@param tools table The raw tools collected by chat_output
-    ---@return table|nil Processed tools ready for use in the agent system
-    tools_output = function(self, tools)
-      if not tools or vim.tbl_isempty(tools) then
-        return nil
-      end
-
-      local processed_tools = {}
-
-      for _, tool in ipairs(tools) do
-        if tool["function"] then
-          local processed_tool = {
-            name = tool["function"]["name"],
-          }
-
-          -- Convert JSON string arguments to Lua tables
-          if tool["function"]["arguments"] and type(tool["function"]["arguments"]) == "string" then
-            local ok, parsed = pcall(vim.json.decode, tool["function"]["arguments"])
-            if not ok then
-              return log:warn("Failed to parse tool arguments: %s", tool["function"]["arguments"])
-            end
-            processed_tool.arguments = parsed
-          else
-            processed_tool.arguments = tool["function"]["arguments"]
-          end
-
-          table.insert(processed_tools, processed_tool)
-        end
-      end
-
-      return processed_tools
-    end,
-
     ---Output the data from the API ready for inlining into the current buffer
     ---@param self CodeCompanion.Adapter
     ---@param data string|table The streamed JSON data from the API, also formatted by the format_data handler
@@ -261,6 +228,29 @@ return {
         end
       end
     end,
+    tools = {
+      ---Format the tool call output
+      ---@param self CodeCompanion.Adapter
+      ---@param tools table The raw tools collected by chat_output
+      ---@return table|nil Processed tools ready for use in the agent system
+      format = function(self, tools)
+        return tools
+      end,
+
+      ---Output the LLM's tool call so we can include it in the messages
+      ---@param self CodeCompanion.Adapter
+      ---@param tool_call {id: string, function: table, name: string}
+      ---@param output string
+      ---@return table
+      output_tool_call = function(self, tool_call, output)
+        ---Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
+        return {
+          role = "tool",
+          tool_call_id = tool_call.id,
+          content = output,
+        }
+      end,
+    },
 
     ---Function to run when the request has completed. Useful to catch errors
     ---@param self CodeCompanion.Adapter

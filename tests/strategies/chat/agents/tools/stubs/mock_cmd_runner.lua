@@ -4,16 +4,15 @@ return {
   cmds = {},
   handlers = {
     ---@param agent CodeCompanion.Agent The tool object
-    setup = function(agent)
-      local tool = agent.tool --[[@type CodeCompanion.Agent.Tool]]
-      local args = tool.args
+    setup = function(self, agent)
+      local args = self.args
 
       local entry = { cmd = vim.split(args.cmds, " ") }
       if args.flag then
         entry.flag = args.flag
       end
 
-      table.insert(tool.cmds, entry)
+      table.insert(self.cmds, entry)
     end,
 
     -- Should only be called once
@@ -24,7 +23,7 @@ return {
   },
   output = {
     -- Should only be called once
-    error = function(self, cmd, stderr, stdout)
+    error = function(self, agent, cmd, stderr, stdout)
       _G._test_output = (_G._test_output or "") .. "Error"
       _G._test_order = (_G._test_order or "") .. "Error"
     end,

@@ -38,15 +38,21 @@ T["Agent"]["queue"]["can queue multiple async functions"] = function()
   child.lua([[
     local tools = {
       {
-        arguments = { data = "Data 1" },
-        name = "func_async_1",
+        ["function"] = {
+          arguments = { data = "Data 1" },
+          name = "func_async_1",
+        },
       },
       {
-        name = "cmd_queue",
+        ["function"] = {
+          name = "cmd_queue",
+        },
       },
       {
-        arguments = { data = "Data 2" },
-        name = "func_async_2",
+        ["function"] = {
+          arguments = { data = "Data 2" },
+          name = "func_async_2",
+        },
       },
     }
     agent:execute(chat, tools)
@@ -69,12 +75,16 @@ T["Agent"]["queue"]["can queue async function with sync function"] = function()
   child.lua([[
     local tools = {
       {
-        arguments = { data = "Data 1" },
-        name = "func_queue",
+        ["function"] = {
+          arguments = { data = "Data 1" },
+          name = "func_queue",
+        },
       },
       {
-        arguments = { data = "Data 2" },
-        name = "func_async_2",
+        ["function"] = {
+          arguments = { data = "Data 2" },
+          name = "func_async_2",
+        },
       },
     }
     agent:execute(chat, tools)

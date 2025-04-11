@@ -8,12 +8,12 @@ return {
   },
   handlers = {
     -- Should only be called once
-    setup = function(self)
+    setup = function(self, agent)
       _G._test_order = (_G._test_order or "") .. "Setup"
       _G._test_setup = (_G._test_setup or "") .. "Setup"
     end,
     -- Should only be called once
-    on_exit = function(self)
+    on_exit = function(self, agent)
       _G._test_order = (_G._test_order or "") .. "->Exit"
       _G._test_exit = (_G._test_exit or "") .. "Exited"
     end,
@@ -24,7 +24,7 @@ return {
     ---@param cmd string
     ---@param stderr table
     ---@param stdout table
-    error = function(self, cmd, stderr, stdout)
+    error = function(self, agent, cmd, stderr, stdout)
       _G._test_order = (_G._test_order or "") .. "->Error"
       _G._test_output = "<error>" .. table.concat(stderr, " ") .. "</error>"
     end,

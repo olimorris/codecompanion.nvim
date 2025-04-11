@@ -38,8 +38,10 @@ T["Agent"]["user approval"]["is triggered"] = function()
     --require("tests.log")
     local tools = {
       {
-        arguments = { data = "Data 1" },
-        name = "func",
+        ["function"] = {
+          arguments = { data = "Data 1" },
+          name = "func",
+        },
       },
     }
     agent:execute(chat, tools)

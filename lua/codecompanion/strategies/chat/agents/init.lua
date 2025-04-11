@@ -104,22 +104,31 @@ function Agent:execute(chat, tools)
       return
     end
 
-    local name = tool.name
+    local name = tool["function"].name
     local tool_config = self.tools_config[name]
 
     local ok, resolved_tool = pcall(function()
       return Agent.resolve(tool_config)
     end)
     if not ok or not resolved_tool then
-      log:error("Couldn't resolve the tool(s) from the LLM's response")
-      return
+      return log:error("Couldn't resolve the tool(s) from the LLM's response %s", resolved_tool)
     end
 
     self.tool = vim.deepcopy(resolved_tool)
 
     self.tool.name = name
-    if tool.arguments then
-      self.tool.args = tool.arguments
+    self.tool.function_call = tool
+    if tool["function"].arguments then
+      local args = tool["function"].arguments
+      -- For some adapter's that aren't streaming, the args are strings rather than tables
+      if type(args) == "string" then
+        local ok, decoded = pcall(vim.json.decode, args)
+        if not ok then
+          return log:error("Couldn't decode the tool arguments: %s", args)
+        end
+        args = decoded
+      end
+      self.tool.args = args
     end
     self.tool.opts = vim.tbl_extend("force", self.tool.opts or {}, tool_config.opts or {})
     self:set_autocmds()
@@ -301,7 +310,7 @@ function Agent.resolve(tool)
   -- Try loading the tool from the user's config
   ok, module = pcall(loadfile, callback)
   if not ok then
-    return log:error("[Tools] %s could not be resolved", callback)
+    return error()
   end
 
   if module then

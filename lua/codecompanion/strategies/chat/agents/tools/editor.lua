@@ -95,7 +95,7 @@ local function add(args)
   return { status = "success", data = nil }
 end
 
----@class CodeCompanion.Agent.Tool
+---@class CodeCompanion.Tool.Editor: CodeCompanion.Agent.Tool
 return {
   name = "editor",
   opts = {
@@ -103,7 +103,7 @@ return {
   },
   cmds = {
     ---Ensure the final function returns the status and the output
-    ---@param self CodeCompanion.Agent.Tool The Tools object
+    ---@param self CodeCompanion.Tool.Editor The Editor tool
     ---@param args table The arguments from the LLM's tool call
     ---@param input? any The output from the previous function call
     ---@return nil|{ status: "success"|"error", data: string }
@@ -247,10 +247,20 @@ return {
 - Ensure that the code you write is syntactically correct and valid and that indentations are correct.
 ]]),
   handlers = {
+    ---@param self CodeCompanion.Tool.Editor
     ---@param agent CodeCompanion.Agent
-    on_exit = function(agent)
+    on_exit = function(self, agent)
       deltas = {}
       diff_started = false
+    end,
+  },
+  output = {
+    ---@param self CodeCompanion.Tool.Editor
+    ---@param agent CodeCompanion.Agent
+    ---@param cmd table The command that was executed
+    ---@param stdout table
+    success = function(self, agent, cmd, stdout)
+      return agent.chat:add_tool_message(self, "EDITED", "Edited")
     end,
   },
 }

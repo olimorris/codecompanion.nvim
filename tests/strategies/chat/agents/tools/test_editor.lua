@@ -44,33 +44,46 @@ local T = new_set({
 
 T["editor tool"] = function()
   child.lua([[
+    require("tests.log")
     local tool = {
       {
-        name = "editor",
-        arguments = {
-          action = "delete",
-          buffer = _G.bufnr,
-          start_line = 1,
-          end_line = 4,
-        }
+        id = 1,
+        type = "function",
+        ["function"] = {
+          name = "editor",
+          arguments = {
+            action = "delete",
+            buffer = _G.bufnr,
+            start_line = 1,
+            end_line = 4,
+          },
+        },
       },
       {
-        name = "editor",
-        arguments = {
-          action = "add",
-          buffer = _G.bufnr,
-          code = "function hello_world()\n  return \"Hello, World!\"\nend\n",
-          start_line = 1,
-        }
+        id = 2,
+        type = "function",
+        ["function"] = {
+          name = "editor",
+          arguments = {
+            action = "add",
+            buffer = _G.bufnr,
+            code = "function hello_world()\n  return \"Hello, World!\"\nend\n",
+            start_line = 1,
+          }
+        },
       },
       {
-        name = "editor",
-        arguments = {
-          action = "update",
-          buffer = _G.bufnr,
-          code = "function hello_oli()\n  return \"Hello, Oli!\"\nend",
-          start_line = 5,
-          end_line = 7,
+        id = 3,
+        type = "function",
+        ["function"] = {
+          name = "editor",
+          arguments = {
+            action = "update",
+            buffer = _G.bufnr,
+            code = "function hello_oli()\n  return \"Hello, Oli!\"\nend",
+            start_line = 5,
+            end_line = 7,
+          }
         }
       },
     }

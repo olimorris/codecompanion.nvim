@@ -26,9 +26,9 @@ T["cmd_runner tool"] = function()
     --require("tests.log")
     local tool = {
       {
-        name = "cmd_runner",
-        arguments = {
-          cmd = "echo hello world",
+        ["function"] = {
+          name = "cmd_runner",
+          arguments = '{"cmd": "echo hello world"}',
         },
       },
     }

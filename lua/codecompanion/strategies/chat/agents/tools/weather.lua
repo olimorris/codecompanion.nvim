@@ -43,14 +43,14 @@ return {
     },
   },
   output = {
+    ---@param self CodeCompanion.Agent.Tool
     ---@param agent CodeCompanion.Agent
     ---@param cmd table The command that was executed
     ---@param stdout table
-    success = function(agent, cmd, stdout)
-      return agent.chat:add_buf_message({
-        role = "user",
-        content = stdout[#stdout] .. ". ",
-      })
+    success = function(self, agent, cmd, stdout)
+      local output = stdout[#stdout]
+
+      agent.chat:add_tool_message(self, "Ran the weather tool " .. output, output)
     end,
   },
 }

@@ -119,41 +119,42 @@ return {
   ),
   handlers = {
     ---@param agent CodeCompanion.Agent The tool object
-    setup = function(agent)
-      local tool = agent.tool --[[@type CodeCompanion.Agent.Tool]]
-      local args = tool.args
+    setup = function(self, agent)
+      local args = self.args
 
       local cmd = { cmd = vim.split(args.cmd, " ") }
       if args.flag then
         cmd.flag = args.flag
       end
 
-      table.insert(tool.cmds, cmd)
+      table.insert(self.cmds, cmd)
     end,
   },
 
   output = {
     ---The message which is shared with the user when asking for their approval
+    ---@param self CodeCompanion.Tool.Editor
     ---@param agent CodeCompanion.Agent
-    ---@param self CodeCompanion.Agent.Tool
     ---@return string
-    prompt = function(agent, self)
+    prompt = function(self, agent)
       return string.format("Run the command `%s`?", table.concat(self.cmds[1].cmd, " "))
     end,
 
+    ---@param self CodeCompanion.Tool.Editor
     ---Rejection message back to the LLM
     ---@param agent CodeCompanion.Agent
     ---@param cmd table
     ---@return nil
-    rejected = function(agent, cmd)
+    rejected = function(self, agent, cmd)
       to_chat("I chose not to run", agent, cmd, { output = "" })
     end,
 
+    ---@param self CodeCompanion.Tool.Editor
     ---@param agent CodeCompanion.Agent
     ---@param cmd table
     ---@param stderr table
     ---@param stdout? table
-    error = function(agent, cmd, stderr, stdout)
+    error = function(self, agent, cmd, stderr, stdout)
       to_chat("There was an error from", agent, cmd, { output = stderr })
 
       if stdout and not vim.tbl_isempty(stdout) then
@@ -161,10 +162,11 @@ return {
       end
     end,
 
+    ---@param self CodeCompanion.Tool.Editor
     ---@param agent CodeCompanion.Agent
     ---@param cmd table The command that was executed
     ---@param stdout table
-    success = function(agent, cmd, stdout)
+    success = function(self, agent, cmd, stdout)
       to_chat("The output from", agent, cmd, { output = stdout })
     end,
   },

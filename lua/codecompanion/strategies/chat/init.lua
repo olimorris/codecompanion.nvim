@@ -593,7 +593,7 @@ function Chat:parse_msg_for_vars(message)
 end
 
 ---Add a message to the message table
----@param data { role: string, content: string }
+---@param data { role: string, content: string, tool_calls?: table }
 ---@param opts? table Options for the message
 ---@return CodeCompanion.Chat
 function Chat:add_message(data, opts)
@@ -605,6 +605,7 @@ function Chat:add_message(data, opts)
   local message = {
     role = data.role,
     content = data.content,
+    tool_calls = data.tool_calls,
   }
   message.id = make_id(message)
   message.cycle = self.cycle
@@ -773,6 +774,26 @@ local function messages_in_cycle(messages, cycle)
     :totable())
 end
 
+---Ready the chat buffer for the next round of conversation
+---@param chat CodeCompanion.Chat
+---@return nil
+local function ready_chat_buffer(chat)
+  chat:increment_cycle()
+  chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
+
+  chat:set_textarea(-2)
+  chat.ui:display_tokens(chat.parser, chat.header_line)
+  chat.references:render()
+
+  -- If we're running any tooling, let them handle the subscriptions instead
+  if not chat.tools:loaded() then
+    chat.subscribers:process(chat)
+  end
+
+  log:info("Chat request finished")
+  chat:reset()
+end
+
 ---Method to call after the response from the LLM is received
 ---@param output? table The output from the LLM
 ---@param tools? table The tools from the LLM
@@ -785,58 +806,31 @@ function Chat:done(output, tools)
     return self:reset()
   end
 
-  if output and not vim.tbl_isempty(output) then
-    self:add_message({
-      role = config.constants.LLM_ROLE,
-      content = vim.trim(table.concat(output, "")),
-    })
-  end
+  local has_tools = tools and not vim.tbl_isempty(tools)
+  local has_output = output and not vim.tbl_isempty(output)
 
-  -- Add the tool calls to in the LLM section
-  if tools and not vim.tbl_isempty(tools) then
-    -- Some LLMs return a message prior to the tool call so separate them with line breaks
-    if messages_in_cycle(self.messages, self.cycle) > 0 then
-      self:add_buf_message({
+  -- Handle LLM output text
+  if has_output then
+    local content = vim.trim(table.concat(output, ""))
+    if content ~= "" then
+      self:add_message({
         role = config.constants.LLM_ROLE,
-        content = "\n\n",
+        content = content,
       })
     end
+  end
 
-    local tool_messages = {}
-    local total = vim.tbl_count(tools)
-    local current = 1
-
-    for _, tool in pairs(tools) do
-      local line_break = (current < total) and "\n" or ""
-      table.insert(tool_messages, "> Called the `" .. tool.name .. "` tool" .. line_break)
-      current = current + 1
-    end
-
-    self:add_buf_message({
+  if has_tools then
+    self:add_message({
       role = config.constants.LLM_ROLE,
-      content = table.concat(tool_messages, ""),
+      tool_calls = self.adapter.handlers.tools.format(self.adapter, tools),
     })
-  end
-
-  self:increment_cycle()
-  self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
-
-  self:set_textarea(-2)
-  self.ui:display_tokens(self.parser, self.header_line)
-  self.references:render()
-
-  -- Now execute the calls
-  if tools and not vim.tbl_isempty(tools) then
     self.agents:execute(self, tools)
+    --- Maybe implement async wait here
+    return ready_chat_buffer(self)
   end
 
-  -- If we're running any tooling, let them handle the subscriptions instead
-  if not self.tools:loaded() then
-    self.subscribers:process(self)
-  end
-
-  log:info("Chat request finished")
-  self:reset()
+  ready_chat_buffer(self)
 end
 
 ---Add a reference to the chat buffer (Useful for user's adding custom Slash Commands)
@@ -1101,6 +1095,24 @@ function Chat:add_buf_message(data, opts)
     append_data()
     update_buffer()
   end
+end
+
+---Add the output from a tool to the message history and a message to the UI
+---@param tool table The Tool that was executed
+---@param output string The output from the tool
+---@param message? string A message to display in the UI that overrides the tool output
+---@return nil
+function Chat:add_tool_message(tool, output, message)
+  local tool_call = tool.function_call
+
+  -- Add the tool call to the messages table
+  table.insert(self.messages, self.adapter.handlers.tools.output_tool_call(self.adapter, tool_call, output))
+
+  -- Add a notification to the UI
+  self:add_buf_message({
+    role = config.constants.LLM_ROLE,
+    content = message and message or output,
+  })
 end
 
 ---When a request has finished, reset the chat buffer

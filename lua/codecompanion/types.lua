@@ -107,6 +107,7 @@
 ---@class CodeCompanion.Agent.Tool
 ---@field name string The name of the tool
 ---@field cmds table The commands to execute
+---@field function_call table The function call from the LLM
 ---@field schema table The schema that the LLM must use in its response to execute a tool
 ---@field system_prompt string | fun(schema: table): string The system prompt to the LLM explaining the tool and the schema
 ---@field opts? table The options for the tool

@@ -28,6 +28,24 @@ T["OpenAI adapter"]["it can form tools to be sent to the API"] = function()
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
 end
 
+T["OpenAI adapter"]["can output tool call"] = function()
+  local output = "The weather in London is 15 degrees"
+  local tool_call = {
+    ["function"] = {
+      arguments = '{"location": "London", "units": "celsius"}',
+      name = "weather",
+    },
+    id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+    type = "function",
+  }
+
+  h.eq({
+    content = output,
+    role = "tool",
+    tool_call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+  }, adapter.handlers.tools.output_tool_call(adapter, tool_call, output))
+end
+
 T["OpenAI adapter"]["Streaming"] = new_set()
 
 T["OpenAI adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
@@ -72,25 +90,6 @@ T["OpenAI adapter"]["Streaming"]["can process tools"] = function()
   }
 
   h.eq(tool_output, tools)
-
-  local formatted_tools = {
-    {
-      arguments = {
-        location = "London",
-        units = "celsius",
-      },
-      name = "weather",
-    },
-    {
-      arguments = {
-        location = "Paris",
-        units = "celsius",
-      },
-      name = "weather",
-    },
-  }
-
-  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["OpenAI adapter"]["No Streaming"] = new_set({
@@ -146,25 +145,6 @@ T["OpenAI adapter"]["No Streaming"]["can process tools"] = function()
     },
   }
   h.eq(tool_output, tools)
-
-  local formatted_tools = {
-    {
-      arguments = {
-        location = "London, United Kingdom",
-        units = "celsius",
-      },
-      name = "weather",
-    },
-    {
-      arguments = {
-        location = "Paris, France",
-        units = "celsius",
-      },
-      name = "weather",
-    },
-  }
-
-  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["OpenAI adapter"]["No Streaming"]["can output for the inline assistant"] = function()

@@ -31,6 +31,15 @@ return {
         is_complete = function()
           return false
         end,
+        tools = {
+          output_tool_call = function(_, tool)
+            return {
+              id = tool.id,
+              type = tool.type,
+              arguments = tool.arguments,
+            }
+          end,
+        },
       },
       schema = {
         model = {
