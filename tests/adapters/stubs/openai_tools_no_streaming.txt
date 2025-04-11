@@ -1,0 +1,54 @@
+{
+  "id": "chatcmpl-BF08aF2GiBCfQZwquYr1F7MMgv4ae",
+  "object": "chat.completion",
+  "created": 1742915148,
+  "model": "gpt-4o-2024-08-06",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_VGkXa0hqNLEe2HSgMO1EpOe6",
+            "type": "function",
+            "function": {
+              "name": "weather",
+              "arguments": "{\"location\": \"London, United Kingdom\", \"units\": \"celsius\"}"
+            }
+          },
+          {
+            "id": "call_HVrmLOHM2Ybd6K7vQj4x8NdQ",
+            "type": "function",
+            "function": {
+              "name": "weather",
+              "arguments": "{\"location\": \"Paris, France\", \"units\": \"celsius\"}"
+            }
+          }
+        ],
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 461,
+    "completion_tokens": 58,
+    "total_tokens": 519,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_90d33c15d4"
+}

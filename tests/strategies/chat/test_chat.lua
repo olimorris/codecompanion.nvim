@@ -79,4 +79,6 @@ T["Chat"]["chat buffer is initialized"] = function()
   expect.reference_screenshot(child.get_screenshot())
 end
 
+T["Chat"]["can be submitted"] = function() end
+
 return T

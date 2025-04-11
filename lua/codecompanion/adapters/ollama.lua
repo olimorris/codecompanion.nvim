@@ -82,6 +82,7 @@ return {
   },
   opts = {
     stream = true,
+    tools = true,
   },
   features = {
     text = true,
@@ -122,6 +123,25 @@ return {
       return { messages = messages }
     end,
 
+    ---Provides the schemas of the tools that are available to the LLM to call
+    ---@param self CodeCompanion.Adapter
+    ---@param tools table<string, table>
+    ---@return table|nil
+    form_tools = function(self, tools)
+      if not self.opts.tools or not tools then
+        return
+      end
+
+      local transformed = {}
+      for _, tool in pairs(tools) do
+        for _, schema in pairs(tool) do
+          table.insert(transformed, schema)
+        end
+      end
+
+      return { tools = transformed }
+    end,
+
     ---Returns the number of tokens generated from the LLM
     ---@param self CodeCompanion.Adapter
     ---@param data table The data from the LLM
@@ -144,8 +164,9 @@ return {
     ---Output the data from the API ready for insertion into the chat buffer
     ---@param self CodeCompanion.Adapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data callback
+    ---@param tools? table The table to write any tool output to
     ---@return table|nil
-    chat_output = function(self, data)
+    chat_output = function(self, data, tools)
       local output = {}
 
       if data and data ~= "" then
@@ -165,6 +186,21 @@ return {
           output.role = message.role or nil
         end
 
+        if tools and message.tool_calls then
+          for _, tool in ipairs(message.tool_calls) do
+            table.insert(tools, {
+              type = "function",
+              ["function"] = {
+                name = tool["function"]["name"],
+                -- So we decode the JSON string to then encode it again...Why??
+                -- We do this because we need to tell the LLM at a later date
+                -- that it called this function with these args, correctly
+                arguments = vim.json.encode(tool["function"]["arguments"]),
+              },
+            })
+          end
+        end
+
         return {
           status = "success",
           output = output,
@@ -172,6 +208,43 @@ return {
       end
 
       return nil
+    end,
+
+    ---Output the tools into the required format for use by the agent
+    ---@param self CodeCompanion.Adapter
+    ---@param tools table The raw tools collected by chat_output
+    ---@return table|nil Processed tools ready for use in the agent system
+    tools_output = function(self, tools)
+      if not tools or vim.tbl_isempty(tools) then
+        return nil
+      end
+
+      local processed_tools = {}
+
+      for _, tool in ipairs(tools) do
+        if tool["function"] then
+          local processed_tool = {
+            name = tool["function"]["name"],
+          }
+
+          -- Convert JSON string arguments to Lua tables
+          if tool["function"]["arguments"] and type(tool["function"]["arguments"]) == "string" then
+            local ok, parsed = pcall(vim.json.decode, tool["function"]["arguments"])
+            if ok then
+              processed_tool.arguments = parsed
+            else
+              log:warn("Failed to parse tool arguments: %s", tool["function"]["arguments"])
+              processed_tool.arguments = tool["function"]["arguments"]
+            end
+          else
+            processed_tool.arguments = tool["function"]["arguments"]
+          end
+
+          table.insert(processed_tools, processed_tool)
+        end
+      end
+
+      return processed_tools
     end,
 
     ---Output the data from the API ready for inlining into the current buffer

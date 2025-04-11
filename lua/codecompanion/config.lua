@@ -81,23 +81,13 @@ local defaults = {
             requires_approval = true,
           },
         },
+        ["weather"] = {
+          callback = "strategies.chat.agents.tools.weather",
+          description = "Get the latest weather",
+        },
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
           auto_submit_success = false, -- Send any successful output to the LLM automatically?
-          system_prompt = [[## Tools Access and Execution Guidelines
-
-### Overview
-You now have access to specialized tools that empower you to assist users with specific tasks. These tools are available only when explicitly requested by the user.
-
-### General Rules
-- **User-Triggered:** Only use a tool when the user explicitly indicates that a specific tool should be employed (e.g., phrases like "run command" for the cmd_runner).
-- **Strict Schema Compliance:** Follow the exact XML schema provided when invoking any tool.
-- **XML Format:** Always wrap your responses in a markdown code block designated as XML and within the `<tools></tools>` tags.
-- **Valid XML Required:** Ensure that the constructed XML is valid and well-formed.
-- **Multiple Commands:**
-  - If issuing commands of the same type, combine them within one `<tools></tools>` XML block with separate `<action></action>` entries.
-  - If issuing commands for different tools, ensure they're wrapped in `<tool></tool>` tags within the `<tools></tools>` block.
-- **No Side Effects:** Tool invocations should not alter your core tasks or the general conversation structure.]],
         },
       },
       variables = {
@@ -544,7 +534,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
             -- Repeat until the tests pass, as indicated by the testing flag
             -- which the cmd_runner tool sets on the chat buffer
             repeat_until = function(chat)
-              return chat.tool_flags.testing == true
+              return chat.tools.flags.testing == true
             end,
             content = "The tests have failed. Can you edit the buffer and run the test suite again?",
           },

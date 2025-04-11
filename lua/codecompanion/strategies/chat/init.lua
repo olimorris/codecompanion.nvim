@@ -23,8 +23,7 @@ The Chat Buffer - This is where all of the logic for conversing with an LLM sits
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field tokens? nil|number The number of tokens in the chat
----@field tool_flags table Flags that external functions can update and subscribers can interact with
----@field tools_in_use? nil|table The tools that are currently being used in the chat
+---@field tools CodeCompanion.Chat.Tools Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field watchers CodeCompanion.Watchers The buffer watcher instance
@@ -53,7 +52,6 @@ local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
 local util = require("codecompanion.utils")
-local xml2lua = require("codecompanion.utils.xml.xml2lua")
 local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
@@ -216,8 +214,6 @@ function Chat.new(args)
     opts = args,
     refs = {},
     status = "",
-    tool_flags = {},
-    tools_in_use = {},
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
@@ -251,6 +247,7 @@ function Chat.new(args)
   self.references = require("codecompanion.strategies.chat.references").new({ chat = self })
   self.subscribers = require("codecompanion.strategies.chat.subscribers").new()
   self.agents = require("codecompanion.strategies.chat.agents").new({ bufnr = self.bufnr, messages = self.messages })
+  self.tools = require("codecompanion.strategies.chat.tools").new({ chat = self })
   self.watchers = require("codecompanion.strategies.chat.watchers").new()
   self.variables = require("codecompanion.strategies.chat.variables").new()
 
@@ -595,53 +592,8 @@ function Chat:parse_msg_for_vars(message)
   return self
 end
 
----Determine if the chat buffer has any tools in use
----@return boolean
-function Chat:has_tools()
-  return not vim.tbl_isempty(self.tools_in_use)
-end
-
----Add the given tool to the chat buffer
----@param tool string The name of the tool
----@param tool_config table The tool from the config
----@return CodeCompanion.Chat
-function Chat:add_tool(tool, tool_config)
-  if self.tools_in_use[tool] then
-    return self
-  end
-
-  -- Add the overarching agent system prompt first
-  if not self:has_tools() then
-    self:add_message({
-      role = config.constants.SYSTEM_ROLE,
-      content = config.strategies.chat.tools.opts.system_prompt,
-    }, { visible = false, reference = "tool_system_prompt", tag = "tool" })
-  end
-
-  local id = "<tool>" .. tool .. "</tool>"
-  self.references:add({
-    source = "tool",
-    name = "tool",
-    id = id,
-  })
-
-  self.tools_in_use[tool] = true
-
-  local resolved = self.agents.resolve(tool_config)
-  if resolved then
-    self:add_message(
-      { role = config.constants.SYSTEM_ROLE, content = resolved.system_prompt(resolved.schema, xml2lua) },
-      { visible = false, tag = "tool", reference = id }
-    )
-  end
-
-  util.fire("ChatToolAdded", { bufnr = self.bufnr, id = self.id, tool = tool })
-
-  return self
-end
-
 ---Add a message to the message table
----@param data { role: string, content: string }
+---@param data { role: string, content: string, tool_calls?: table }
 ---@param opts? table Options for the message
 ---@return CodeCompanion.Chat
 function Chat:add_message(data, opts)
@@ -653,6 +605,7 @@ function Chat:add_message(data, opts)
   local message = {
     role = data.role,
     content = data.content,
+    tool_calls = data.tool_calls,
   }
   message.id = make_id(message)
   message.cycle = self.cycle
@@ -669,7 +622,7 @@ end
 ---Apply any tools or variables that a user has tagged in their message
 ---@param message table
 ---@return nil
-function Chat:apply_tools_and_variables(message)
+function Chat:replace_vars_and_tools(message)
   if self.agents:parse(self, message) then
     message.content = self.agents:replace(message.content)
   end
@@ -705,11 +658,9 @@ function Chat:submit(opts)
     return log:debug("Chat request already in progress")
   end
 
-  log:time()
   opts = opts or {}
 
   local bufnr = self.bufnr
-
   local message = ts_parse_messages(self, self.header_line)
 
   -- Check if any watched buffers have changes
@@ -725,7 +676,7 @@ function Chat:submit(opts)
   end
   message = self.references:clear(self.messages[#self.messages])
 
-  self:apply_tools_and_variables(message)
+  self:replace_vars_and_tools(message)
   self:check_references()
   self:add_pins()
 
@@ -737,60 +688,63 @@ function Chat:submit(opts)
   local settings = ts_parse_settings(bufnr, self.yaml_parser, self.adapter)
   settings = self.adapter:map_schema_to_params(settings)
 
-  log:trace("Settings:\n%s", settings)
-  log:trace("Messages:\n%s", self.messages)
-  log:info("Chat request started")
-
   if not config.display.chat.auto_scroll then
     vim.cmd("stopinsert")
   end
   self.ui:lock_buf()
 
-  self:set_range(2) -- this accounts for the LLM header
+  self:set_textarea(2) -- this accounts for the LLM header
+
+  local payload = {
+    messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
+    tools = { self.tools.schemas },
+  }
+
+  log:trace("Settings:\n%s", settings)
+  log:trace("Messages:\n%s", self.messages)
+  log:info("Chat request started")
 
   local output = {}
-  log:info("ELAPSED TIME: %s", log:time())
-  self.current_request = client
-    .new({ adapter = settings })
-    :request(self.adapter:map_roles(vim.deepcopy(self.messages)), {
-      ---@param err { message: string, stderr: string }
-      ---@param data table
-      ---@param adapter CodeCompanion.Adapter The modified adapter from the http client
-      callback = function(err, data, adapter)
-        if err and err.stderr ~= "{}" then
-          self.status = CONSTANTS.STATUS_ERROR
-          log:error("Error: %s", err.stderr)
-          return self:done(output)
-        end
+  local tools = {}
+  self.current_request = client.new({ adapter = settings }):request(payload, {
+    ---@param err { message: string, stderr: string }
+    ---@param data table
+    ---@param adapter CodeCompanion.Adapter The modified adapter from the http client
+    callback = function(err, data, adapter)
+      if err and err.stderr ~= "{}" then
+        self.status = CONSTANTS.STATUS_ERROR
+        log:error("Error: %s", err.stderr)
+        return self:done(output)
+      end
 
-        if data then
-          if adapter.features.tokens then
-            local tokens = self.adapter.handlers.tokens(adapter, data)
-            if tokens then
-              self.ui.tokens = tokens
-            end
-          end
-
-          local result = self.adapter.handlers.chat_output(adapter, data)
-          if result and result.status then
-            self.status = result.status
-            if self.status == CONSTANTS.STATUS_SUCCESS then
-              if result.output.role then
-                result.output.role = config.constants.LLM_ROLE
-              end
-              table.insert(output, result.output.content)
-              self:add_buf_message(result.output)
-            elseif self.status == CONSTANTS.STATUS_ERROR then
-              log:error("Error: %s", result.output)
-              return self:done(output)
-            end
+      if data then
+        if adapter.features.tokens then
+          local tokens = self.adapter.handlers.tokens(adapter, data)
+          if tokens then
+            self.ui.tokens = tokens
           end
         end
-      end,
-      done = function()
-        self:done(output)
-      end,
-    }, { bufnr = bufnr, strategy = "chat" })
+
+        local result = self.adapter.handlers.chat_output(adapter, data, tools)
+        if result and result.status then
+          self.status = result.status
+          if self.status == CONSTANTS.STATUS_SUCCESS then
+            if result.output.role then
+              result.output.role = config.constants.LLM_ROLE
+            end
+            table.insert(output, result.output.content)
+            self:add_buf_message(result.output)
+          elseif self.status == CONSTANTS.STATUS_ERROR then
+            log:error("Error: %s", result.output)
+            return self:done(output)
+          end
+        end
+      end
+    end,
+    done = function()
+      self:done(output, tools)
+    end,
+  }, { bufnr = bufnr, strategy = "chat" })
 end
 
 ---Increment the cycle count in the chat buffer
@@ -799,18 +753,52 @@ function Chat:increment_cycle()
   self.cycle = self.cycle + 1
 end
 
----Set the last edited range in the chat buffer
+---Set the editable text area. This allows us to scope the Tree-sitter queries to a specific area
 ---@param modifier? number
 ---@return nil
-function Chat:set_range(modifier)
+function Chat:set_textarea(modifier)
   modifier = modifier or 0
   self.header_line = api.nvim_buf_line_count(self.bufnr) + modifier
 end
 
+---Get the number of LLM messages in the current cycle
+---@param messages table
+---@param cycle number
+---@return table
+local function messages_in_cycle(messages, cycle)
+  return vim.tbl_count(vim
+    .iter(messages)
+    :filter(function(msg)
+      return msg.cycle == cycle and msg.role == config.constants.LLM_ROLE and msg.content ~= ""
+    end)
+    :totable())
+end
+
+---Ready the chat buffer for the next round of conversation
+---@param chat CodeCompanion.Chat
+---@return nil
+local function ready_chat_buffer(chat)
+  chat:increment_cycle()
+  chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
+
+  chat:set_textarea(-2)
+  chat.ui:display_tokens(chat.parser, chat.header_line)
+  chat.references:render()
+
+  -- If we're running any tooling, let them handle the subscriptions instead
+  if not chat.tools:loaded() then
+    chat.subscribers:process(chat)
+  end
+
+  log:info("Chat request finished")
+  chat:reset()
+end
+
 ---Method to call after the response from the LLM is received
 ---@param output? table The output from the LLM
+---@param tools? table The tools from the LLM
 ---@return nil
-function Chat:done(output)
+function Chat:done(output, tools)
   self.current_request = nil
 
   -- Commonly, a status may not be set if the message exceeds a token limit
@@ -818,30 +806,31 @@ function Chat:done(output)
     return self:reset()
   end
 
-  if output and not vim.tbl_isempty(output) then
+  local has_tools = tools and not vim.tbl_isempty(tools)
+  local has_output = output and not vim.tbl_isempty(output)
+
+  -- Handle LLM output text
+  if has_output then
+    local content = vim.trim(table.concat(output, ""))
+    if content ~= "" then
+      self:add_message({
+        role = config.constants.LLM_ROLE,
+        content = content,
+      })
+    end
+  end
+
+  if has_tools then
     self:add_message({
       role = config.constants.LLM_ROLE,
-      content = vim.trim(table.concat(output, "")),
+      tool_calls = self.adapter.handlers.tools.format(self.adapter, tools),
     })
+    self.agents:execute(self, tools)
+    --- Maybe implement async wait here
+    return ready_chat_buffer(self)
   end
 
-  self:increment_cycle()
-  self:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
-
-  local assistant_range = self.header_line
-  self:set_range(-2)
-  self.ui:display_tokens(self.parser, self.header_line)
-  self.references:render()
-
-  -- If we're running any tooling, let them handle the subscriptions instead
-  if self.status == CONSTANTS.STATUS_SUCCESS and self:has_tools() then
-    self.agents:parse_buffer(self, assistant_range, self.header_line - 1)
-  else
-    self.subscribers:process(self)
-  end
-
-  log:info("Chat request finished")
-  self:reset()
+  ready_chat_buffer(self)
 end
 
 ---Add a reference to the chat buffer (Useful for user's adding custom Slash Commands)
@@ -895,6 +884,18 @@ function Chat:check_references()
     .iter(self.refs)
     :filter(function(ref)
       return not vim.tbl_contains(to_remove, ref.id)
+    end)
+    :totable()
+
+  -- Clear any tool's schemas
+  self.tools.schemas = vim
+    .iter(self.tools.schemas)
+    :filter(function(tool_schemas)
+      if vim.tbl_contains(to_remove, tool_schemas) then
+        -- TODO: Remove from tools_in_use
+        return false
+      end
+      return true
     end)
     :totable()
 end
@@ -1096,6 +1097,24 @@ function Chat:add_buf_message(data, opts)
   end
 end
 
+---Add the output from a tool to the message history and a message to the UI
+---@param tool table The Tool that was executed
+---@param output string The output from the tool
+---@param message? string A message to display in the UI that overrides the tool output
+---@return nil
+function Chat:add_tool_message(tool, output, message)
+  local tool_call = tool.function_call
+
+  -- Add the tool call to the messages table
+  table.insert(self.messages, self.adapter.handlers.tools.output_tool_call(self.adapter, tool_call, output))
+
+  -- Add a notification to the UI
+  self:add_buf_message({
+    role = config.constants.LLM_ROLE,
+    content = message and message or output,
+  })
+end
+
 ---When a request has finished, reset the chat buffer
 ---@return nil
 function Chat:reset()
@@ -1123,7 +1142,8 @@ function Chat:clear()
   self.header_line = 1
   self.messages = {}
   self.refs = {}
-  self.tools_in_use = {}
+
+  self.tools:clear()
 
   log:trace("Clearing chat buffer")
   self.ui:render(self.context, self.messages, self.opts):set_intro_msg()
