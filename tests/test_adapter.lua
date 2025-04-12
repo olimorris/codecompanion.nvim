@@ -163,6 +163,23 @@ describe("Adapter", function()
     }, utils.merge_messages(messages))
   end)
 
+  it("can consolidate system messages", function()
+    local messages = {
+      { role = "system", content = "This is a system prompt" },
+      { role = "user", content = "Foo" },
+      { role = "assistant", content = "Bar" },
+      { role = "system", content = "This is ANOTHER system prompt" },
+      { role = "user", content = "Baz" },
+    }
+
+    h.eq({
+      { role = "system", content = "This is a system prompt This is ANOTHER system prompt" },
+      { role = "user", content = "Foo" },
+      { role = "assistant", content = "Bar" },
+      { role = "user", content = "Baz" },
+    }, utils.merge_system_messages(messages))
+  end)
+
   it("can be used to remove groups of messages", function()
     local messages = {
       { role = "system", content = "This is a system prompt" },

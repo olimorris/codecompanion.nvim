@@ -133,6 +133,34 @@ function M.merge_messages(messages)
   end)
 end
 
+---Consolidate system messages into a single message
+---@param messages table
+---@return table
+function M.merge_system_messages(messages)
+  local contents = vim
+    .iter(messages)
+    :filter(function(msg)
+      return msg.role == "system"
+    end)
+    :map(function(msg)
+      return msg.content
+    end)
+    :totable()
+  local system_contents = table.concat(contents, " ")
+
+  local cleaned_messages = vim
+    .iter(messages)
+    :filter(function(msg)
+      return msg.role ~= "system"
+    end)
+    :totable()
+
+  if #contents > 0 then
+    table.insert(cleaned_messages, 1, { role = "system", content = system_contents })
+  end
+  return cleaned_messages
+end
+
 ---Clean streaming data to be parsed as JSON. Typically streaming endpoints
 ---return invalid JSON such as `data: { "id": 12345}`
 ---@param data string | { body: string }
