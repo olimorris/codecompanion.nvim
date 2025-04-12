@@ -260,7 +260,7 @@ return {
     ---@param cmd table The command that was executed
     ---@param stdout table
     success = function(self, agent, cmd, stdout)
-      return agent.chat:add_tool_message(self, "EDITED", "Edited")
+      return agent.chat:add_tool_output(self, "EDITED", "Edited")
     end,
   },
 }

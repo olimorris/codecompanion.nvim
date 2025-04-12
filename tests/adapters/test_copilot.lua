@@ -63,18 +63,6 @@ T["Copilot adapter"]["Streaming"]["can process tools"] = function()
   }
 
   h.eq(tool_output, tools)
-
-  local formatted_tools = {
-    {
-      arguments = {
-        location = "London, UK",
-        units = "celsius",
-      },
-      name = "weather",
-    },
-  }
-
-  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["Copilot adapter"]["No Streaming"] = new_set({
@@ -124,18 +112,6 @@ T["Copilot adapter"]["No Streaming"]["can process tools"] = function()
     },
   }
   h.eq(tool_output, tools)
-
-  local formatted_tools = {
-    {
-      arguments = {
-        location = "London, UK",
-        units = "celsius",
-      },
-      name = "weather",
-    },
-  }
-
-  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["Copilot adapter"]["No Streaming"]["can output for the inline assistant"] = function()

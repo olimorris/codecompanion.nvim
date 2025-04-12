@@ -38,7 +38,20 @@ T["cmd_runner tool"] = function()
 
   local output = child.lua_get("vim.api.nvim_buf_get_lines(chat.bufnr, 0, -1, true)")
   h.eq(
-    { "## foo", "", "The output from the command `echo hello world`:", "", "```txt", "hello world", "```", "", "" },
+    {
+      "## foo",
+      "",
+      "",
+      "",
+      "## assistant",
+      "",
+      "",
+      "The output from the command `echo hello world` was:",
+      "",
+      "```txt",
+      "hello world",
+      "```",
+    },
     output
   )
 end

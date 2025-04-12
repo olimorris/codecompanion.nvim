@@ -8,6 +8,7 @@ return {
   roles = {
     llm = "assistant",
     user = "user",
+    tool = "tool",
   },
   opts = {
     stream = true,
@@ -229,11 +230,12 @@ return {
       end
     end,
     tools = {
-      ---Format the tool call output
+      ---Format the tool calls from the LLM
       ---@param self CodeCompanion.Adapter
       ---@param tools table The raw tools collected by chat_output
-      ---@return table|nil Processed tools ready for use in the agent system
+      ---@return table
       format = function(self, tools)
+        -- Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
         return tools
       end,
 
@@ -243,11 +245,13 @@ return {
       ---@param output string
       ---@return table
       output_tool_call = function(self, tool_call, output)
-        ---Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
+        -- Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
         return {
-          role = "tool",
+          role = self.roles.tool or "tool",
           tool_call_id = tool_call.id,
           content = output,
+          -- Chat Buffer option: To tell the chat buffer that this shouldn't be visible
+          opts = { visible = false },
         }
       end,
     },

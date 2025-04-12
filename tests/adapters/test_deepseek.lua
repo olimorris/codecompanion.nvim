@@ -127,25 +127,6 @@ T["DeepSeek adapter"]["Streaming"]["can process tools"] = function()
   }
 
   h.eq(tool_output, tools)
-
-  local formatted_tools = {
-    {
-      arguments = {
-        location = "London",
-        units = "celsius",
-      },
-      name = "weather",
-    },
-    {
-      arguments = {
-        location = "Paris",
-        units = "celsius",
-      },
-      name = "weather",
-    },
-  }
-
-  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["DeepSeek adapter"]["No Streaming"] = new_set({
@@ -197,25 +178,6 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
   }
 
   h.eq(tool_output, tools)
-
-  local formatted_tools = {
-    {
-      arguments = {
-        location = "London",
-        units = "celsius",
-      },
-      name = "weather",
-    },
-    {
-      arguments = {
-        location = "Paris",
-        units = "celsius",
-      },
-      name = "weather",
-    },
-  }
-
-  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
 end
 
 T["DeepSeek adapter"]["No Streaming"]["can output for the inline assistant"] = function()

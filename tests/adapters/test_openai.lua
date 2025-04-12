@@ -12,11 +12,37 @@ T["OpenAI adapter"] = new_set({
   },
 })
 
-T["OpenAI adapter"]["it can form messages to be sent to the API"] = function()
+T["OpenAI adapter"]["it can form messages"] = function()
   local messages = { {
     content = "Explain Ruby in two words",
     role = "user",
   } }
+
+  h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+end
+
+T["OpenAI adapter"]["it can form messages with tools"] = function()
+  local messages = {
+    {
+      role = "assistant",
+      tool_calls = {
+        {
+          id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+          ["function"] = {
+            name = "weather",
+            arguments = '{"location": "London", "units": "celsius"}',
+          },
+        },
+        {
+          id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+          ["function"] = {
+            name = "weather",
+            arguments = '{"location": "Paris", "units": "celsius"}',
+          },
+        },
+      },
+    },
+  }
 
   h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
 end
@@ -41,6 +67,9 @@ T["OpenAI adapter"]["can output tool call"] = function()
 
   h.eq({
     content = output,
+    opts = {
+      visible = false,
+    },
     role = "tool",
     tool_call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
   }, adapter.handlers.tools.output_tool_call(adapter, tool_call, output))

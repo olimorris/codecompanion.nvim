@@ -1099,19 +1099,20 @@ end
 
 ---Add the output from a tool to the message history and a message to the UI
 ---@param tool table The Tool that was executed
----@param output string The output from the tool
----@param message? string A message to display in the UI that overrides the tool output
+---@param for_llm string The output to share with the LLM
+---@param for_user? string The output to share with the user. If empty will use the LLM's output
 ---@return nil
-function Chat:add_tool_message(tool, output, message)
+function Chat:add_tool_output(tool, for_llm, for_user)
   local tool_call = tool.function_call
 
   -- Add the tool call to the messages table
-  table.insert(self.messages, self.adapter.handlers.tools.output_tool_call(self.adapter, tool_call, output))
+  table.insert(self.messages, self.adapter.handlers.tools.output_tool_call(self.adapter, tool_call, for_llm))
 
   -- Add a notification to the UI
+  for_user = for_user or for_llm
   self:add_buf_message({
     role = config.constants.LLM_ROLE,
-    content = message and message or output,
+    content = "\n" .. for_user,
   })
 end
 

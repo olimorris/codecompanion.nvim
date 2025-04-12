@@ -1,54 +1,10 @@
-local log = require("codecompanion.utils.log")
 --[[
-*Command Runner Tool*
-This tool is used to run shell commands on your system
+  *Command Runner Tool*
+  This tool is used to run shell commands on your system
 --]]
-
-local config = require("codecompanion.config")
 local util = require("codecompanion.utils")
 
----Outputs a message to the chat buffer that initiated the tool
----@param msg string The message to output
----@param agent CodeCompanion.Agent The tools object
----@param cmd table The command that was executed
----@param opts {cmd: table, output: table|string, message?: string}
-local function to_chat(msg, agent, cmd, opts)
-  local cmds = table.concat(cmd.cmd, " ")
-  if opts and type(opts.output) == "table" then
-    opts.output = vim.iter(opts.output):flatten():join("\n")
-  end
-
-  local content
-  if opts.output == "" then
-    content = string.format(
-      [[%s the command `%s`.
-
-]],
-      msg,
-      cmds
-    )
-  else
-    content = string.format(
-      [[%s the command `%s`:
-
-```txt
-%s
-```
-
-]],
-      msg,
-      cmds,
-      opts.output
-    )
-  end
-
-  return agent.chat:add_buf_message({
-    role = config.constants.USER_ROLE,
-    content = content,
-  })
-end
-
----@class CodeCompanion.Agent.Tool
+---@class CodeCompanion.Tool.CmdRunner: CodeCompanion.Agent.Tool
 return {
   name = "cmd_runner",
   cmds = {
@@ -118,6 +74,7 @@ return {
     vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch
   ),
   handlers = {
+    ---@param self CodeCompanion.Tool.CmdRunner
     ---@param agent CodeCompanion.Agent The tool object
     setup = function(self, agent)
       local args = self.args
@@ -132,42 +89,82 @@ return {
   },
 
   output = {
-    ---The message which is shared with the user when asking for their approval
-    ---@param self CodeCompanion.Tool.Editor
+    ---Prompt the user to approve the execution of the command
+    ---@param self CodeCompanion.Tool.CmdRunner
     ---@param agent CodeCompanion.Agent
     ---@return string
     prompt = function(self, agent)
       return string.format("Run the command `%s`?", table.concat(self.cmds[1].cmd, " "))
     end,
 
-    ---@param self CodeCompanion.Tool.Editor
     ---Rejection message back to the LLM
+    ---@param self CodeCompanion.Tool.CmdRunner
     ---@param agent CodeCompanion.Agent
     ---@param cmd table
     ---@return nil
     rejected = function(self, agent, cmd)
-      to_chat("I chose not to run", agent, cmd, { output = "" })
+      agent.chat:add_tool_output(
+        self,
+        string.format("The user rejected the execution of the command `%s`?", table.concat(self.cmds[1].cmd, " "))
+      )
     end,
 
-    ---@param self CodeCompanion.Tool.Editor
+    ---@param self CodeCompanion.Tool.CmdRunner
     ---@param agent CodeCompanion.Agent
     ---@param cmd table
-    ---@param stderr table
-    ---@param stdout? table
+    ---@param stderr table The error output from the command
+    ---@param stdout? table The output from the command
     error = function(self, agent, cmd, stderr, stdout)
-      to_chat("There was an error from", agent, cmd, { output = stderr })
+      local chat = agent.chat
+      local cmds = table.concat(cmd.cmd, " ")
+      local errors = vim.iter(stderr):flatten():join("\n")
+
+      local error_output = string.format(
+        [[There was an error running the `%s` command:
+
+```txt
+%s
+```]],
+        cmds,
+        errors
+      )
+      chat:add_tool_output(self, error_output)
 
       if stdout and not vim.tbl_isempty(stdout) then
-        to_chat("There was also some output from", agent, cmd, { output = stdout })
+        local output = string.format(
+          [[
+There was also some output from the command:
+
+```txt
+%s
+```]],
+          vim.iter(stdout):flatten():join("\n")
+        )
+
+        chat:add_tool_output(self, output)
       end
     end,
 
-    ---@param self CodeCompanion.Tool.Editor
+    ---@param self CodeCompanion.Tool.CmdRunner
     ---@param agent CodeCompanion.Agent
     ---@param cmd table The command that was executed
-    ---@param stdout table
+    ---@param stdout table The output from the command
     success = function(self, agent, cmd, stdout)
-      to_chat("The output from", agent, cmd, { output = stdout })
+      local chat = agent.chat
+      if stdout and vim.tbl_isempty(stdout) then
+        return chat:add_tool_output(self, "There was no output from the cmd_runner tool")
+      end
+      local output = vim.iter(stdout[#stdout]):flatten():join("\n")
+      local message = string.format(
+        [[The output from the command `%s` was:
+
+```txt
+%s
+```]],
+        table.concat(cmd.cmd, " "),
+        output
+      )
+      chat:add_tool_output(self, message)
     end,
   },
 }

@@ -24,6 +24,8 @@ local log = require("codecompanion.utils.log")
 ---@field handlers.tokens? fun(self: CodeCompanion.Adapter, data: table): number|nil
 ---@field handlers.chat_output fun(self: CodeCompanion.Adapter, data: table, tools: table): table|nil
 ---@field handlers.inline_output fun(self: CodeCompanion.Adapter, data: table, context: table): table|nil
+---@field handlers.tools.format fun(self: CodeCompanion.Adapter, tools: table): table
+---@field handlers.tools.output_tool_call fun(self: CodeCompanion.Adapter, tool_call: table, output: string): table
 ---@field handlers.on_exit? fun(self: CodeCompanion.Adapter, data: table): table|nil
 ---@field handlers.teardown? fun(self: CodeCompanion.Adapter): any
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
