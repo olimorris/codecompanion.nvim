@@ -72,7 +72,7 @@ T["OpenAI adapter"]["can output tool call"] = function()
     },
     role = "tool",
     tool_call_id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
-  }, adapter.handlers.tools.output_tool_call(adapter, tool_call, output))
+  }, adapter.handlers.tools.output_response(adapter, tool_call, output))
 end
 
 T["OpenAI adapter"]["Streaming"] = new_set()

@@ -32,7 +32,7 @@ return {
           return false
         end,
         tools = {
-          output_tool_call = function(_, tool)
+          output_response = function(_, tool)
             return {
               id = tool.id,
               type = tool.type,

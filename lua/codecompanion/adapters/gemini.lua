@@ -46,11 +46,11 @@ return {
       return openai.handlers.chat_output(self, data, tools)
     end,
     tools = {
-      format = function(self, tools)
-        return openai.handlers.tools.format(self, tools)
+      format_tool_calls = function(self, tools)
+        return openai.handlers.tools.format_tool_calls(self, tools)
       end,
-      output_tool_call = function(self, tool_call, output)
-        return openai.handlers.tools.output_tool_call(self, tool_call, output)
+      output_response = function(self, tool_call, output)
+        return openai.handlers.tools.output_response(self, tool_call, output)
       end,
     },
     inline_output = function(self, data, context)

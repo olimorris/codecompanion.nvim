@@ -120,14 +120,43 @@ end
 
 ---Merge consecutive messages with the same role, together
 ---@param messages table
+---@param allowed_keys? table Additional keys to preserve beyond role and content-
+---@param ignored_roles? table Roles that should not be merged even if consecutive
 ---@return table
-function M.merge_messages(messages)
+function M.merge_messages(messages, allowed_keys, ignored_roles)
+  allowed_keys = allowed_keys or { "tool_calls", "tool_call_id" }
+  ignored_roles = ignored_roles or { "tool" }
+
+  local no_merge = {}
+  for _, role in ipairs(ignored_roles) do
+    no_merge[role] = true
+  end
+
   return vim.iter(messages):fold({}, function(acc, msg)
     local last = acc[#acc]
-    if last and last.role == msg.role then
+    if last and last.role == msg.role and not no_merge[msg.role] then
       last.content = last.content .. "\n\n" .. msg.content
+      -- Preserve other fields from the message
+      for _, key in ipairs(allowed_keys) do
+        if msg[key] then
+          last[key] = msg[key]
+        end
+      end
     else
-      table.insert(acc, { role = msg.role, content = msg.content })
+      -- Create a new entry with all necessary fields
+      local new_entry = {
+        role = msg.role,
+        content = msg.content,
+      }
+
+      -- Copy other allowed fields
+      for _, key in ipairs(allowed_keys) do
+        if msg[key] then
+          new_entry[key] = msg[key]
+        end
+      end
+
+      table.insert(acc, new_entry)
     end
     return acc
   end)

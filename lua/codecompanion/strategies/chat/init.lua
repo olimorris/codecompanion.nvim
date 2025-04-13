@@ -823,7 +823,7 @@ function Chat:done(output, tools)
   if has_tools then
     self:add_message({
       role = config.constants.LLM_ROLE,
-      tool_calls = self.adapter.handlers.tools.format(self.adapter, tools),
+      tool_calls = self.adapter.handlers.tools.format_tool_calls(self.adapter, tools),
     })
     self.agents:execute(self, tools)
     --- Maybe implement async wait here
@@ -1106,7 +1106,7 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   local tool_call = tool.function_call
 
   -- Add the tool call to the messages table
-  table.insert(self.messages, self.adapter.handlers.tools.output_tool_call(self.adapter, tool_call, for_llm))
+  table.insert(self.messages, self.adapter.handlers.tools.output_response(self.adapter, tool_call, for_llm))
 
   -- Add a notification to the UI
   for_user = for_user or for_llm

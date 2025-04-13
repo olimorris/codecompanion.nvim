@@ -120,6 +120,19 @@ return {
     ---@return table
     form_messages = function(self, messages)
       messages = utils.merge_messages(messages)
+      messages = utils.merge_system_messages(messages)
+
+      -- Ensure that all messages have a content field
+      messages = vim
+        .iter(messages)
+        :map(function(msg)
+          if not msg.content then
+            msg.content = ""
+          end
+          return msg
+        end)
+        :totable()
+
       return { messages = messages }
     end,
 
@@ -181,12 +194,12 @@ return {
 
         local message = json.message
 
-        if message.content then
+        if message and message.content then
           output.content = message.content
           output.role = message.role or nil
         end
 
-        if tools and message.tool_calls then
+        if tools and message and message.tool_calls then
           for _, tool in ipairs(message.tool_calls) do
             table.insert(tools, {
               type = "function",
@@ -210,42 +223,57 @@ return {
       return nil
     end,
 
-    ---Output the tools into the required format for use by the agent
-    ---@param self CodeCompanion.Adapter
-    ---@param tools table The raw tools collected by chat_output
-    ---@return table|nil Processed tools ready for use in the agent system
-    tools_output = function(self, tools)
-      if not tools or vim.tbl_isempty(tools) then
-        return nil
-      end
+    tools = {
+      ---Format the LLM's tool calls for inclusion back in the request
+      ---@param self CodeCompanion.Adapter
+      ---@param tools table The tools that were called
+      ---@return table
+      format_tool_calls = function(self, tools)
+        -- Source: https://github.com/ollama/ollama/blob/main/docs/api.md#response-16
+        local processed_tools = {}
 
-      local processed_tools = {}
+        for _, tool in ipairs(tools) do
+          if tool["function"] then
+            local processed_tool = {
+              name = tool["function"]["name"],
+            }
 
-      for _, tool in ipairs(tools) do
-        if tool["function"] then
-          local processed_tool = {
-            name = tool["function"]["name"],
-          }
-
-          -- Convert JSON string arguments to Lua tables
-          if tool["function"]["arguments"] and type(tool["function"]["arguments"]) == "string" then
-            local ok, parsed = pcall(vim.json.decode, tool["function"]["arguments"])
-            if ok then
-              processed_tool.arguments = parsed
+            -- Convert JSON string arguments to Lua tables
+            if tool["function"]["arguments"] and type(tool["function"]["arguments"]) == "string" then
+              local ok, parsed = pcall(vim.json.decode, tool["function"]["arguments"])
+              if ok then
+                processed_tool.arguments = parsed
+              else
+                log:warn("Failed to parse tool arguments: %s", tool["function"]["arguments"])
+                processed_tool.arguments = tool["function"]["arguments"]
+              end
             else
-              log:warn("Failed to parse tool arguments: %s", tool["function"]["arguments"])
               processed_tool.arguments = tool["function"]["arguments"]
             end
-          else
-            processed_tool.arguments = tool["function"]["arguments"]
+
+            table.insert(processed_tools, processed_tool)
           end
-
-          table.insert(processed_tools, processed_tool)
         end
-      end
 
-      return processed_tools
-    end,
+        return processed_tools
+      end,
+
+      ---Output the LLM's tool call so we can include it in the messages
+      ---@param self CodeCompanion.Adapter
+      ---@param tool_call {id: string, function: table, name: string} The tool call request from the LLM
+      ---@param output string The output from the tool call
+      ---@return table
+      output_response = function(self, tool_call, output)
+        -- Source: https://github.com/ollama/ollama/blob/main/docs/api.md#parameters-1
+        return {
+          role = self.roles.tool or "tool",
+          tool_call_id = tool_call.id,
+          content = output,
+          -- Chat Buffer option: To tell the chat buffer that this shouldn't be visible
+          opts = { visible = false },
+        }
+      end,
+    },
 
     ---Output the data from the API ready for inlining into the current buffer
     ---@param self CodeCompanion.Adapter

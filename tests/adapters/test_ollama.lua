@@ -22,6 +22,45 @@ T["Ollama adapter"]["it can form messages to be sent to the API"] = function()
   h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
 end
 
+T["Ollama adapter"]["it can form messages with tools"] = function()
+  local messages = {
+    {
+      role = "user",
+      content = "What's the weather like in London and Paris?",
+    },
+    {
+      role = "llm",
+      content = "",
+      tool_calls = {
+        {
+          ["function"] = {
+            arguments = '{"location":"London, UK","units":"fahrenheit"}',
+            name = "weather",
+          },
+          type = "function",
+        },
+        {
+          ["function"] = {
+            arguments = '{"location":"Paris, France","units":"fahrenheit"}',
+            name = "weather",
+          },
+          type = "function",
+        },
+      },
+    },
+    {
+      role = "tool",
+      content = "Ran the weather tool **Tool Output**: The weather in London, UK is 15° fahrenheit",
+    },
+    {
+      role = "tool",
+      content = "Ran the weather tool **Tool Output**: The weather in Paris, France is 15° fahrenheit",
+    },
+  }
+
+  h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+end
+
 T["Ollama adapter"]["it can form tools to be sent to the API"] = function()
   local weather = require("tests/strategies/chat/agents/tools/stubs/weather").schema
   local tools = { weather = { weather } }
@@ -88,7 +127,7 @@ T["Ollama adapter"]["Streaming"]["can process tools"] = function()
     },
   }
 
-  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
+  h.eq(formatted_tools, adapter.handlers.tools.format_tool_calls(adapter, tools))
 end
 
 T["Ollama adapter"]["No Streaming"] = new_set({
@@ -160,7 +199,7 @@ T["Ollama adapter"]["No Streaming"]["can process tools"] = function()
     },
   }
 
-  h.eq(formatted_tools, adapter.handlers.tools_output(adapter, tools))
+  h.eq(formatted_tools, adapter.handlers.tools.format_tool_calls(adapter, tools))
 end
 
 T["Ollama adapter"]["No Streaming"]["can output for the inline assistant"] = function()

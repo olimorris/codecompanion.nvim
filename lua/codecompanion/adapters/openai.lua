@@ -230,11 +230,11 @@ return {
       end
     end,
     tools = {
-      ---Format the tool calls from the LLM
+      ---Format the LLM's tool calls for inclusion back in the request
       ---@param self CodeCompanion.Adapter
       ---@param tools table The raw tools collected by chat_output
       ---@return table
-      format = function(self, tools)
+      format_tool_calls = function(self, tools)
         -- Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
         return tools
       end,
@@ -244,7 +244,7 @@ return {
       ---@param tool_call {id: string, function: table, name: string}
       ---@param output string
       ---@return table
-      output_tool_call = function(self, tool_call, output)
+      output_response = function(self, tool_call, output)
         -- Source: https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls
         return {
           role = self.roles.tool or "tool",
