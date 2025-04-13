@@ -48,6 +48,7 @@ local providers = {
       source = "files",
       prompt = snacks.title,
       confirm = snacks:display(),
+      main = { file = false },
     })
   end,
 
