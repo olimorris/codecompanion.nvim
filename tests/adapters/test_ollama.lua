@@ -30,7 +30,6 @@ T["Ollama adapter"]["it can form messages with tools"] = function()
     },
     {
       role = "llm",
-      content = "",
       tool_calls = {
         {
           ["function"] = {
@@ -58,7 +57,11 @@ T["Ollama adapter"]["it can form messages with tools"] = function()
     },
   }
 
-  h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+  -- Ensure that a content field is added to the messages
+  local correct_messages = vim.deepcopy(messages)
+  correct_messages[2].content = ""
+
+  h.eq({ messages = correct_messages }, adapter.handlers.form_messages(adapter, messages))
 end
 
 T["Ollama adapter"]["it can form tools to be sent to the API"] = function()
