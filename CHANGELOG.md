@@ -1,5 +1,12 @@
 # Changelog
 
+## [14.9.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.9.0...v14.9.1) (2025-04-13)
+
+
+### Bug Fixes
+
+* **snacks:** focus on chat window after closing picker ([#1248](https://github.com/olimorris/codecompanion.nvim/issues/1248)) ([bd6bd19](https://github.com/olimorris/codecompanion.nvim/commit/bd6bd199bc019037613cb64bcdb70e6b8952c038))
+
 ## [14.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.8.1...v14.9.0) (2025-04-13)
 
 
