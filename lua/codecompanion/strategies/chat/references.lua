@@ -78,6 +78,9 @@ end
 ---@param ref CodeCompanion.Chat.Ref
 ---@param row integer
 local function add(chat, ref, row)
+  if not ref.opts.visible then
+    return
+  end
   local lines = {}
 
   table.insert(lines, string.format("> - %s", ref.id))
@@ -121,6 +124,11 @@ function References:add(ref)
     -- Ensure both properties exist with defaults
     ref.opts.pinned = ref.opts.pinned or false
     ref.opts.watched = ref.opts.watched or false
+    ref.opts.visible = ref.opts.visible
+
+    if ref.opts.visible == nil then
+      ref.opts.visible = config.display.chat.show_references
+    end
     table.insert(self.Chat.refs, ref)
     -- If it's a buffer reference and it's being watched, start watching
     if ref.bufnr and ref.opts.watched then

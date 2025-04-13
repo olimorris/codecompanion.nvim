@@ -1,5 +1,27 @@
 # Changelog
 
+## [14.9.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.9.0...v14.9.1) (2025-04-13)
+
+
+### Bug Fixes
+
+* **snacks:** focus on chat window after closing picker ([#1248](https://github.com/olimorris/codecompanion.nvim/issues/1248)) ([bd6bd19](https://github.com/olimorris/codecompanion.nvim/commit/bd6bd199bc019037613cb64bcdb70e6b8952c038))
+
+## [14.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.8.1...v14.9.0) (2025-04-13)
+
+
+### Features
+
+* **ui:** allow toggling the visibility of individual references. ([#1245](https://github.com/olimorris/codecompanion.nvim/issues/1245)) ([cc25e49](https://github.com/olimorris/codecompanion.nvim/commit/cc25e49e33de63064026a7ad0295e517a8f11391))
+
+## [14.8.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.8.0...v14.8.1) (2025-04-08)
+
+
+### Bug Fixes
+
+* **tools:** be more explicit about the xml schema ([95bb7a5](https://github.com/olimorris/codecompanion.nvim/commit/95bb7a579b1e9455c855f59bd4b6bb2ca860aee3))
+* **tools:** be more explicit about the xml schema in files tool ([#1232](https://github.com/olimorris/codecompanion.nvim/issues/1232)) ([95bb7a5](https://github.com/olimorris/codecompanion.nvim/commit/95bb7a579b1e9455c855f59bd4b6bb2ca860aee3))
+
 ## [14.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.7.1...v14.8.0) (2025-04-07)
 
 

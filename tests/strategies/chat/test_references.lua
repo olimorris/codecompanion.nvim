@@ -194,6 +194,7 @@ T["References"]["Can be pinned"] = function()
       id = "<buf>pinned example</buf>",
       opts = {
         pinned = true,
+        visible = true,
         watched = false,
       },
       path = "tests.stubs.file.txt",
@@ -203,6 +204,7 @@ T["References"]["Can be pinned"] = function()
       id = "<buf>unpinned example</buf>",
       opts = {
         pinned = false,
+        visible = true,
         watched = false,
       },
       path = "test2",

@@ -82,6 +82,7 @@
 ---@field opts? table
 ---@field opts.pinned? boolean Whether this reference is pinned
 ---@field opts.watched? boolean Whether this reference is being watched for changes
+---@field opts.visible? boolean Whether this reference should be shown in the chat UI
 ---@field bufnr? number The buffer number if this is a buffer reference
 
 ---@class CodeCompanion.Chat.UI
