@@ -1,5 +1,12 @@
 # Changelog
 
+## [14.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.8.1...v14.9.0) (2025-04-13)
+
+
+### Features
+
+* **ui:** allow toggling the visibility of individual references. ([#1245](https://github.com/olimorris/codecompanion.nvim/issues/1245)) ([cc25e49](https://github.com/olimorris/codecompanion.nvim/commit/cc25e49e33de63064026a7ad0295e517a8f11391))
+
 ## [14.8.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.8.0...v14.8.1) (2025-04-08)
 
 
