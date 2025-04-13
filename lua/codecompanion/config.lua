@@ -1021,6 +1021,7 @@ You must:
 - Avoid using H1 and H2 headers in your responses.
 - Use actual line breaks in your responses; only use "\n" when you want a literal backslash followed by 'n'.
 - All non-code text responses must be written in the %s language indicated.
+- Only run tools when explictly asked to do so or when the user has given you permission to do so.
 
 When given a task:
 1. Think step-by-step and, unless the user requests otherwise or the task is very simple, describe your plan in detailed pseudocode.
