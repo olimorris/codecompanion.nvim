@@ -48,14 +48,85 @@ T["DeepSeek adapter"]["merges system messages together at the start of the messa
     { role = "user", content = "User1" },
     { role = "system", content = "System Prompt 2" },
     { role = "system", content = "System Prompt 3" },
-    { role = "assistant", content = "Assistant1" },
   }
 
   local expected = {
     messages = {
-      { role = "system", content = "System Prompt 1\n\nSystem Prompt 2\n\nSystem Prompt 3" },
-      { role = "user", content = "User1" },
-      { role = "assistant", content = "Assistant1" },
+      {
+        content = "System Prompt 1 System Prompt 2\n\nSystem Prompt 3",
+        role = "system",
+      },
+      {
+        content = "User1",
+        role = "user",
+      },
+    },
+  }
+
+  h.eq(expected, adapter.handlers.form_messages(adapter, input))
+end
+
+T["DeepSeek adapter"]["it can form messages with tools"] = function()
+  local input = {
+    { role = "system", content = "System Prompt 1" },
+    { role = "user", content = "User1" },
+    { role = "system", content = "System Prompt 2" },
+    { role = "system", content = "System Prompt 3" },
+    {
+      role = "llm",
+      tool_calls = {
+        {
+          ["function"] = {
+            arguments = '{"location":"London, UK","units":"fahrenheit"}',
+            name = "weather",
+          },
+          id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
+          type = "function",
+        },
+        {
+          ["function"] = {
+            arguments = '{"location":"Paris, France","units":"fahrenheit"}',
+            name = "weather",
+          },
+          id = "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea",
+          type = "function",
+        },
+      },
+    },
+  }
+
+  local expected = {
+    messages = {
+      {
+        content = "System Prompt 1 System Prompt 2\n\nSystem Prompt 3",
+        role = "system",
+      },
+      {
+        content = "User1",
+        role = "user",
+      },
+      {
+        content = "",
+        role = "llm",
+        tool_calls = {
+          {
+            ["function"] = {
+              arguments = '{"location":"London, UK","units":"fahrenheit"}',
+              name = "weather",
+            },
+            id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
+            type = "function",
+          },
+          {
+            ["function"] = {
+              arguments = '{"location":"Paris, France","units":"fahrenheit"}',
+              name = "weather",
+            },
+            id = "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea",
+            type = "function",
+          },
+        },
+      },
     },
   }
 
@@ -114,6 +185,7 @@ T["DeepSeek adapter"]["Streaming"]["can process tools"] = function()
         arguments = '{"location": "London", "units": "celsius"}',
         name = "weather",
       },
+      id = "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea",
       type = "function",
     },
     {
@@ -122,12 +194,15 @@ T["DeepSeek adapter"]["Streaming"]["can process tools"] = function()
         arguments = '{"location": "Paris", "units": "celsius"}',
         name = "weather",
       },
+      id = "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
       type = "function",
     },
   }
 
   h.eq(tool_output, tools)
 end
+
+-- No streaming ---------------------------------------------------------------
 
 T["DeepSeek adapter"]["No Streaming"] = new_set({
   hooks = {
@@ -165,6 +240,7 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
         arguments = '{"location": "London", "units": "celsius"}',
         name = "weather",
       },
+      id = "call_0_74655864-c1ab-455f-88c5-921aa7b6281c",
       type = "function",
     },
     {
@@ -173,6 +249,7 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
         arguments = '{"location": "Paris", "units": "celsius"}',
         name = "weather",
       },
+      id = "call_1_759f62c3-f8dc-475f-9558-8211fc0a133c",
       type = "function",
     },
   }

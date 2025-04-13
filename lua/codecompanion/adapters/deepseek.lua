@@ -56,31 +56,21 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
-      -- Extract and merge system messages
-      local system_messages = vim
-        .iter(messages)
-        :filter(function(msg)
-          return msg.role == "system"
-        end)
-        :totable()
-      system_messages = utils.merge_messages(system_messages)
+      messages = utils.merge_messages(messages)
+      messages = utils.merge_system_messages(messages)
 
-      -- Remove system messages then merge messages with the same role
+      -- Ensure that all messages have a content field
       messages = vim
         .iter(messages)
-        :filter(function(msg)
-          return msg.role ~= "system"
-        end)
         :map(function(msg)
-          return {
-            role = msg.role,
-            content = msg.content,
-          }
+          if not msg.content then
+            msg.content = ""
+          end
+          return msg
         end)
         :totable()
-      messages = utils.merge_messages(messages)
 
-      return { messages = vim.list_extend(system_messages, messages) }
+      return { messages = messages }
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
@@ -128,6 +118,7 @@ return {
                         name = tool["function"]["name"],
                         arguments = tool["function"]["arguments"] or "",
                       },
+                      id = tool.id,
                       type = "function",
                       _index = index,
                     })
@@ -139,6 +130,7 @@ return {
                       name = tool["function"]["name"],
                       arguments = tool["function"]["arguments"],
                     },
+                    id = tool.id,
                     type = "function",
                   })
                 end
@@ -157,11 +149,12 @@ return {
       return openai.handlers.inline_output(self, data, context)
     end,
     tools = {
-      format = function(self, tools)
-        return openai.handlers.tools.format(self, tools)
+      -- Ref: https://api-docs.deepseek.com/guides/function_calling
+      format_tool_calls = function(self, tools)
+        return openai.handlers.tools.format_tool_calls(self, tools)
       end,
-      output_tool_call = function(self, tool_call, output)
-        return openai.handlers.tools.output_tool_call(self, tool_call, output)
+      output_response = function(self, tool_call, output)
+        return openai.handlers.tools.output_response(self, tool_call, output)
       end,
     },
     on_exit = function(self, data)
