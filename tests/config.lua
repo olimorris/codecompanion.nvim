@@ -253,7 +253,7 @@ return {
           wrap = true,
         },
       },
-      intro_message = "Hello",
+      intro_message = "", -- Keep this blank or it messes up the screenshot tests
     },
     diff = { enabled = false },
   },

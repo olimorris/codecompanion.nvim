@@ -49,7 +49,8 @@ return {
     ---@param cmd table The command that was executed
     ---@param stdout table
     success = function(self, agent, cmd, stdout)
-      print("Weather: " .. stdout[1])
+      local output = stdout[#stdout]
+      agent.chat:add_tool_output(self, "Ran the weather tool " .. output, output)
     end,
   },
 }
