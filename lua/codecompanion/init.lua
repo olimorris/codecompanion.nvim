@@ -234,6 +234,32 @@ CodeCompanion.workspace_schema = function()
   end
 end
 
+---Check if a feature is available in the plugin's current version
+---@param feature? string|table
+---@return boolean|table
+CodeCompanion.has = function(feature)
+  local features = {
+    "chat",
+    "inline-assistant",
+    "cmd",
+    "prompt-library",
+    "xml-tools",
+  }
+
+  if type(feature) == "string" then
+    return vim.tbl_contains(features, feature)
+  end
+  if type(feature) == "table" then
+    for _, f in ipairs(feature) do
+      if not vim.tbl_contains(features, f) then
+        return false
+      end
+    end
+    return true
+  end
+  return features
+end
+
 ---Setup the plugin
 ---@param opts? table
 ---@return nil
