@@ -1,97 +1,97 @@
-local adapter
-local messages
-local response
-
-local adapter_helpers = require("tests.adapters.helpers")
 local h = require("tests.helpers")
+local adapter
 
-describe("Mistral adapter", function()
-  before_each(function()
-    adapter = require("codecompanion.adapters").resolve("mistral")
+local new_set = MiniTest.new_set
+T = new_set()
 
-    ---------------------------------------------------------- STREAMING OUTPUT
-    messages = { {
-      content = "Explain Ruby in two words",
-      role = "user",
-    } }
+T["Mistral adapter"] = new_set({
+  hooks = {
+    pre_case = function()
+      adapter = require("codecompanion.adapters").resolve("mistral")
+    end,
+  },
+})
 
-    response = {
-      {
-        request = [[data: {"id":"73d5e2bca442421e9c8c93ada114f58c","object":"chat.completion.chunk","created":1741809159,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}]],
-        output = {
-          content = "",
-          role = "assistant",
-        },
-      },
-      {
-        request = [[data: {"id":"73d5e2bca442421e9c8c93ada114f58c","object":"chat.completion.chunk","created":1741809159,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":"Dynamic"},"finish_reason":null}]}]],
-        output = {
-          content = "Dynamic",
-        },
-      },
-      {
-        request = [[data: {"id":"73d5e2bca442421e9c8c93ada114f58c","object":"chat.completion.chunk","created":1741809159,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":" Typ"},"finish_reason":null}]}]],
-        output = {
-          content = " Typ",
-        },
-      },
-      {
-        request = [[data: {"id":"73d5e2bca442421e9c8c93ada114f58c","object":"chat.completion.chunk","created":1741809159,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":"ing"},"finish_reason":null}]}]],
-        output = {
-          content = "ing",
-        },
-      },
-      {
-        request = [[data: {"id":"73d5e2bca442421e9c8c93ada114f58c","object":"chat.completion.chunk","created":1741809159,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":""},"finish_reason":"stop"}],"usage":{"prompt_tokens":399,"total_tokens":402,"completion_tokens":3}}]],
-        output = {
-          content = "",
-        },
-      },
-    }
-    -------------------------------------------------------------------- // END
-  end)
+T["Mistral adapter"]["it can form messages"] = function()
+  local messages = { {
+    content = "Explain Ruby in two words",
+    role = "user",
+  } }
 
-  it("can form messages to be sent to the API", function()
-    h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
-  end)
+  h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+end
 
-  it("can output streamed data into a format for the chat buffer", function()
-    h.eq({ content = "Dynamic Typing", role = "assistant" }, adapter_helpers.chat_buffer_output(response, adapter))
-  end)
-end)
-
-describe("Mistral adapter with NO STREAMING", function()
-  before_each(function()
-    response = {
-      {
-        request = {
-          body = '{"id":"b48d82f02a6f469e984ee0dc438e99a2","object":"chat.completion","created":1741809694,"model":"mistral-small-latest","choices":[{"index":0,"message":{"role":"assistant","tool_calls":null,"content":"Dynamic Typing"},"finish_reason":"stop"}],"usage":{"prompt_tokens":399,"total_tokens":402,"completion_tokens":3}}',
-          exit = 0,
-          headers = {
-            "date: Wed, 12 Mar 2025 20:01:35 GMT",
-            "content-type: application/json",
+T["Mistral adapter"]["it can form messages with tools"] = function()
+  local messages = {
+    {
+      role = "assistant",
+      tool_calls = {
+        {
+          id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+          ["function"] = {
+            name = "weather",
+            arguments = '{"location": "London", "units": "celsius"}',
           },
-          status = 200,
         },
-        output = {
-          content = "Dynamic Typing",
-          role = "assistant",
+        {
+          id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
+          ["function"] = {
+            name = "weather",
+            arguments = '{"location": "Paris", "units": "celsius"}',
+          },
         },
       },
-    }
+    },
+  }
 
-    adapter = require("codecompanion.adapters").extend("mistral", {
-      opts = {
-        stream = false,
-      },
-    })
-  end)
+  h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+end
 
-  it("can output data into a format for the chat buffer", function()
-    h.eq(response[#response].output, adapter_helpers.chat_buffer_output(response, adapter))
-  end)
+T["Mistral adapter"]["Streaming"] = new_set()
 
-  it("can output data into a format for the inline assistant", function()
-    h.eq(response[#response].output.content, adapter_helpers.inline_buffer_output(response, adapter))
-  end)
-end)
+T["Mistral adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
+  local output = ""
+  local lines = vim.fn.readfile("tests/adapters/stubs/mistral_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.chat_output(adapter, line)
+    if chat_output and chat_output.output.content then
+      output = output .. chat_output.output.content
+    end
+  end
+
+  h.expect_starts_with("Dynamic Language", output)
+end
+
+T["Mistral adapter"]["No Streaming"] = new_set({
+  hooks = {
+    pre_case = function()
+      adapter = require("codecompanion.adapters").extend("mistral", {
+        opts = {
+          stream = false,
+        },
+      })
+    end,
+  },
+})
+
+T["Mistral adapter"]["No Streaming"]["can output for the chat buffer"] = function()
+  local data = vim.fn.readfile("tests/adapters/stubs/mistral_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  -- Match the format of the actual request
+  local json = { body = data }
+
+  h.eq("Dynamic Language", adapter.handlers.chat_output(adapter, json).output.content)
+end
+
+T["Mistral adapter"]["No Streaming"]["can output for the inline assistant"] = function()
+  local data = vim.fn.readfile("tests/adapters/stubs/mistral_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  -- Match the format of the actual request
+  local json = { body = data }
+
+  h.eq("Dynamic Language", adapter.handlers.inline_output(adapter, json).output)
+end
+
+return T
