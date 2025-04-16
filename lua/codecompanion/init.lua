@@ -243,7 +243,7 @@ CodeCompanion.has = function(feature)
     "inline-assistant",
     "cmd",
     "prompt-library",
-    "xml-tools",
+    "function-calling",
   }
 
   if type(feature) == "string" then
