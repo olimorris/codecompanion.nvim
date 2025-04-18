@@ -30,6 +30,7 @@ T["Test tools in chat buffer"] = new_set({
     { "copilot", "openai_tools" },
     { "gemini", "openai_tools" },
     -- Others
+    { "anthropic", "anthropic_tools" },
     { "deepseek", "deepseek_tools" },
     { "ollama", "ollama_tools" },
   },

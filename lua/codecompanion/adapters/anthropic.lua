@@ -6,6 +6,24 @@ local utils = require("codecompanion.utils.adapters")
 local input_tokens = 0
 local output_tokens = 0
 
+---Remove any keys from the message that are not allowed by the API
+---@param message table The message to filter
+---@return table The filtered message
+local function filter_out_messages(message)
+  local allowed = {
+    "role",
+    "content",
+    "tool_calls",
+  }
+
+  for key, _ in pairs(message) do
+    if not vim.tbl_contains(allowed, key) then
+      message[key] = nil
+    end
+  end
+  return message
+end
+
 ---@class Anthropic.Adapter: CodeCompanion.Adapter
 return {
   name = "anthropic",
@@ -44,16 +62,22 @@ return {
         self.parameters.stream = true
       end
 
-      -- Add the extended output header if enabled
-      if self.temp.extended_output then
-        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "") .. "output-128k-2025-02-19"
-      end
-
       -- Make sure the individual model options are set
       local model = self.schema.model.default
       local model_opts = self.schema.model.choices[model]
       if model_opts and model_opts.opts then
         self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
+      end
+
+      -- Add the extended output header if enabled
+      if self.temp.extended_output then
+        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "") .. "output-128k-2025-02-19"
+      end
+
+      -- Ref: https://docs.anthropic.com/en/docs/build-with-claude/tool-use/token-efficient-tool-use
+      if self.opts.has_token_efficient_tools then
+        self.headers["anthropic-beta"] = (self.headers["anthropic-beta"] .. "," or "")
+          .. "token-efficient-tools-2025-02-19"
       end
 
       return true
@@ -83,7 +107,7 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
-      -- Extract and format system messages
+      -- 1. Extract and format system messages
       local system = vim
         .iter(messages)
         :filter(function(msg)
@@ -99,42 +123,75 @@ return {
         :totable()
       system = next(system) and system or nil
 
-      -- Remove system messages and merge user/assistant messages
-      messages = utils.merge_messages(vim
+      -- 2. Remove any system messages from the regular messages
+      messages = vim
         .iter(messages)
         :filter(function(msg)
           return msg.role ~= "system"
         end)
-        :totable())
+        :totable()
 
-      local breakpoints_used = 0
+      -- 3–6. Clean up, role‐convert, and handle tool calls in one pass
+      messages = vim.tbl_map(function(message)
+        -- 3. Remove disallowed keys
+        message = filter_out_messages(message)
 
-      -- As per: https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
-      -- Anthropic now supports caching. We cache any message that exceeds the
-      -- opts.cache_over number up to the limit of the opts.cache_breakpoints
-      -- which is currently set at 4 (by Anthropic themselves). Cache user
-      -- messages first in ascending order as these will likely contain
-      -- files and/or buffers and hence be the subject of questions.
-      for i = #messages, 1, -1 do
-        local message = messages[i]
+        -- 4. Turn string content into { { type="text", text } }
         if
-          message.role == self.roles.user
-          and tokens.calculate(message.content) >= self.opts.cache_over
-          and breakpoints_used < self.opts.cache_breakpoints
+          (message.role == self.roles.user or message.role == self.roles.llm)
+          and type(message.content) == "string"
         then
           message.content = {
-            {
-              type = "text",
-              text = message.content,
-              cache_control = { type = "ephemeral" },
-            },
+            { type = "text", text = message.content },
           }
-          breakpoints_used = breakpoints_used + 1
+        end
+
+        -- 5. Treat 'tool' role as user
+        if message.role == "tool" then
+          message.role = self.roles.user
+        end
+
+        -- 6. Convert any LLM tool_calls into content blocks
+        if message.role == self.roles.llm and message.tool_calls and vim.tbl_count(message.tool_calls) > 0 then
+          message.content = message.content or {}
+          for _, call in ipairs(message.tool_calls) do
+            table.insert(message.content, {
+              type = "tool_use",
+              id = call.id,
+              name = call["function"].name,
+              input = vim.json.decode(call["function"].arguments),
+            })
+          end
+          message.tool_calls = nil
+        end
+
+        return message
+      end, messages)
+
+      -- 7. Merge consecutive messages with the same role
+      messages = utils.merge_messages(messages)
+
+      -- 8+. Cache large messages per opts.cache_over / cache_breakpoints
+      local breakpoints_used = 0
+      for i = #messages, 1, -1 do
+        local msgs = messages[i]
+        if msgs.role == self.roles.user then
+          -- Loop through the content
+          for _, msg in ipairs(msgs.content) do
+            if msg.type ~= "text" or msg.text == "" then
+              goto continue
+            end
+            if
+              tokens.calculate(msg.text) >= self.opts.cache_over and breakpoints_used < self.opts.cache_breakpoints
+            then
+              msg.cache_control = { type = "ephemeral" }
+              breakpoints_used = breakpoints_used + 1
+            end
+            ::continue::
+          end
         end
       end
-
-      -- If we have any spare breakpoints, we cache the system prompts
-      if (system and next(system) ~= nil) and breakpoints_used < self.opts.cache_breakpoints then
+      if system and breakpoints_used < self.opts.cache_breakpoints then
         for _, prompt in ipairs(system) do
           if breakpoints_used < self.opts.cache_breakpoints then
             prompt.cache_control = { type = "ephemeral" }
@@ -283,43 +340,6 @@ return {
       end
     end,
 
-    ---Output the tools into the required format for use by the agent
-    ---@param self CodeCompanion.Adapter
-    ---@param tools table The raw tools collected by chat_output
-    ---@return table|nil Processed tools ready for use in the agent system
-    tools_output = function(self, tools)
-      if not tools or vim.tbl_isempty(tools) then
-        return nil
-      end
-
-      local processed_tools = {}
-
-      for _, tool in ipairs(tools) do
-        if tool["function"] then
-          local processed_tool = {
-            name = tool["function"]["name"],
-          }
-
-          -- Convert JSON string arguments to Lua tables
-          if tool["function"]["arguments"] and type(tool["function"]["arguments"]) == "string" then
-            local ok, parsed = pcall(vim.json.decode, tool["function"]["arguments"])
-            if ok then
-              processed_tool.arguments = parsed
-            else
-              log:warn("Failed to parse tool arguments: %s", tool["function"]["arguments"])
-              processed_tool.arguments = tool["function"]["arguments"]
-            end
-          else
-            processed_tool.arguments = tool["function"]["arguments"]
-          end
-
-          table.insert(processed_tools, processed_tool)
-        end
-      end
-
-      return processed_tools
-    end,
-
     ---Output the data from the API ready for inlining into the current buffer
     ---@param self CodeCompanion.Adapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
@@ -349,6 +369,39 @@ return {
       end
     end,
 
+    tools = {
+      ---Format the LLM's tool calls for inclusion back in the request
+      ---@param self CodeCompanion.Adapter
+      ---@param tools table The raw tools collected by chat_output
+      ---@return table|nil
+      format_tool_calls = function(self, tools)
+        -- Source: https://docs.anthropic.com/en/docs/build-with-claude/tool-use/overview
+        return tools
+      end,
+
+      ---Output the LLM's tool call so we can include it in the messages
+      ---@param self CodeCompanion.Adapter
+      ---@param tool_call {id: string, function: table, name: string}
+      ---@param output string
+      ---@return table
+      output_response = function(self, tool_call, output)
+        return {
+          -- The role should actually be "user" but we set it to "tool" so that
+          -- in the form_messages handler it's easier to identify and merge
+          -- with other user messages.
+          role = "tool",
+          content = {
+            type = "tool_result",
+            tool_use_id = tool_call.id,
+            content = output,
+            is_error = false,
+          },
+          -- Chat Buffer option: To tell the chat buffer that this shouldn't be visible
+          opts = { visible = false },
+        }
+      end,
+    },
+
     ---Function to run when the request has completed. Useful to catch errors
     ---@param self CodeCompanion.Adapter
     ---@param data? table
@@ -368,7 +421,7 @@ return {
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
       default = "claude-3-7-sonnet-20250219",
       choices = {
-        ["claude-3-7-sonnet-20250219"] = { opts = { can_reason = true } },
+        ["claude-3-7-sonnet-20250219"] = { opts = { can_reason = true, has_token_efficient_tools = true } },
         "claude-3-5-sonnet-20241022",
         "claude-3-5-haiku-20241022",
         "claude-3-opus-20240229",

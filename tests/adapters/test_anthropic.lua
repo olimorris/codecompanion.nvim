@@ -17,23 +17,179 @@ T["Anthropic adapter"] = new_set({
 T["Anthropic adapter"]["consolidates system prompts in their own block"] = function()
   local messages = {
     { content = "Hello", role = "system" },
-    { content = "World", role = "system" },
     { content = "What can you do?!", role = "user" },
+    { content = "World", role = "system" },
   }
 
   local output = adapter.handlers.form_messages(adapter, messages)
 
   h.eq("Hello", output.system[1].text)
   h.eq("World", output.system[2].text)
-  h.eq({ { content = "What can you do?!", role = "user" } }, output.messages)
+  h.eq({
+    {
+      content = {
+        {
+          type = "text",
+          text = "What can you do?!",
+        },
+      },
+      role = "user",
+    },
+  }, output.messages)
 end
 
 T["Anthropic adapter"]["can form messages to be sent to the API"] = function()
-  local messages = { {
-    content = "Explain Ruby in two words",
-    role = "user",
-  } }
-  h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
+  local input = {
+    {
+      content = "Explain Ruby in two words",
+      role = "user",
+      opts = {
+        visible = true,
+      },
+      cycle = 1,
+      id = 1849003275,
+      some_made_up_thing = true,
+    },
+  }
+
+  h.eq({
+    messages = {
+      {
+        content = {
+          {
+            type = "text",
+            text = "Explain Ruby in two words",
+          },
+        },
+        role = "user",
+      },
+    },
+  }, adapter.handlers.form_messages(adapter, input))
+end
+
+T["Anthropic adapter"]["can form messages with tools to be sent to the API"] = function()
+  local input = {
+    {
+      content = "What's the weather like in London and Paris?",
+      role = "user",
+    },
+    {
+      content = "<thinking>To answer this question, I will: 1. Use the get_weather tool to get the current weather in San Francisco. 2. Use the get_time tool to get the current time in the America/Los_Angeles timezone, which covers London, UK.</thinking>",
+      role = "assistant",
+    },
+    {
+      role = "assistant",
+      tool_calls = {
+        {
+          _index = 1,
+          ["function"] = {
+            arguments = '{"location": "London, UK", "units": "celsius"}',
+            name = "weather",
+          },
+          id = "toolu_01A09q90qw90lq917835lq9",
+          type = "function",
+        },
+      },
+    },
+    {
+      role = "assistant",
+      tool_calls = {
+        {
+          _index = 1,
+          ["function"] = {
+            arguments = '{"location": "Paris, France", "units": "celsius"}',
+            name = "weather",
+          },
+          id = "toolu_01A09q90qw90lq917835lq8",
+          type = "function",
+        },
+      },
+    },
+    {
+      role = "tool",
+      content = {
+        type = "tool_result",
+        content = "The weather in London is 15 degrees celsius",
+        tool_use_id = "toolu_01A09q90qw90lq917835lq9",
+        is_error = false,
+      },
+    },
+    {
+      role = "tool",
+      content = {
+        type = "tool_result",
+        content = "The weather in Paris is 15 degrees celsius",
+        tool_use_id = "toolu_01A09q90qw90lq917835lq8",
+        is_error = false,
+      },
+    },
+    {
+      role = "user",
+      content = "Thanks for the info!",
+    },
+  }
+
+  local output = {
+    {
+      content = {
+        {
+          text = "What's the weather like in London and Paris?",
+          type = "text",
+        },
+      },
+      role = "user",
+    },
+    {
+      content = {
+        {
+          text = "<thinking>To answer this question, I will: 1. Use the get_weather tool to get the current weather in San Francisco. 2. Use the get_time tool to get the current time in the America/Los_Angeles timezone, which covers London, UK.</thinking>",
+          type = "text",
+        },
+        {
+          id = "toolu_01A09q90qw90lq917835lq9",
+          input = {
+            location = "London, UK",
+            units = "celsius",
+          },
+          name = "weather",
+          type = "tool_use",
+        },
+        {
+          id = "toolu_01A09q90qw90lq917835lq8",
+          input = {
+            location = "Paris, France",
+            units = "celsius",
+          },
+          name = "weather",
+          type = "tool_use",
+        },
+      },
+      role = "assistant",
+    },
+    {
+      content = {
+        {
+          content = "The weather in London is 15 degrees celsius",
+          is_error = false,
+          tool_use_id = "toolu_01A09q90qw90lq917835lq9",
+          type = "tool_result",
+        },
+        {
+          content = "The weather in Paris is 15 degrees celsius",
+          is_error = false,
+          tool_use_id = "toolu_01A09q90qw90lq917835lq8",
+          type = "tool_result",
+        },
+        {
+          text = "Thanks for the info!",
+          type = "text",
+        },
+      },
+      role = "user",
+    },
+  }
+
+  h.eq({ messages = output }, adapter.handlers.form_messages(adapter, input))
 end
 
 T["Anthropic adapter"]["it can form tools to be sent to the API"] = function()
@@ -51,7 +207,25 @@ T["Anthropic adapter"]["consolidates consecutive user messages together"] = func
   }
 
   h.eq(
-    { { role = "user", content = "Hello\n\nWorld!\n\nWhat up?!" } },
+    {
+      {
+        content = {
+          {
+            text = "Hello",
+            type = "text",
+          },
+          {
+            text = "World!",
+            type = "text",
+          },
+          {
+            text = "What up?!",
+            type = "text",
+          },
+        },
+        role = "user",
+      },
+    },
     adapter.handlers.form_messages(adapter, messages).messages
   )
 end

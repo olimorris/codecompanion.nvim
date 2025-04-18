@@ -132,30 +132,65 @@ function M.merge_messages(messages, allowed_keys, ignored_roles)
     no_merge[role] = true
   end
 
+  local islist = vim.islist or vim.tbl_islist
+
   return vim.iter(messages):fold({}, function(acc, msg)
     local last = acc[#acc]
     if last and last.role == msg.role and not no_merge[msg.role] then
-      last.content = last.content .. "\n\n" .. msg.content
-      -- Preserve other fields from the message
+      local a, b = last.content, msg.content
+      -- both strings: concatenate
+      if type(a) == "string" and type(b) == "string" then
+        last.content = a .. "\n\n" .. b
+      -- both tables: flatten b into a
+      elseif type(a) == "table" and type(b) == "table" then
+        -- ensure lists
+        if not islist(a) then
+          a = { a }
+        end
+        if not islist(b) then
+          b = { b }
+        end
+        for _, item in ipairs(b) do
+          table.insert(a, item)
+        end
+        last.content = a
+      -- mixed types: coerce to list and flatten
+      else
+        local list = {}
+        if type(a) == "table" then
+          for _, v in ipairs(a) do
+            table.insert(list, v)
+          end
+        else
+          table.insert(list, a)
+        end
+        if type(b) == "table" then
+          for _, v in ipairs(b) do
+            table.insert(list, v)
+          end
+        else
+          table.insert(list, b)
+        end
+        last.content = list
+      end
+
+      -- preserve other allowed fields
       for _, key in ipairs(allowed_keys) do
         if msg[key] then
           last[key] = msg[key]
         end
       end
     else
-      -- Create a new entry with all necessary fields
+      -- new entry
       local new_entry = {
         role = msg.role,
         content = msg.content,
       }
-
-      -- Copy other allowed fields
       for _, key in ipairs(allowed_keys) do
         if msg[key] then
           new_entry[key] = msg[key]
         end
       end
-
       table.insert(acc, new_entry)
     end
     return acc
