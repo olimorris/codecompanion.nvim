@@ -1,0 +1,35 @@
+{
+    "choices": [
+        {
+            "finish_reason": "tool_calls",
+            "message": {
+                "content": "I'll check the current weather for both London and Paris for you.",
+                "role": "assistant"
+            }
+        },
+        {
+            "finish_reason": "tool_calls",
+            "message": {
+                "role": "assistant",
+                "tool_calls": [
+                    {
+                        "function": {
+                            "arguments": "{\"location\":\"London, UK\",\"units\":\"celsius\"}",
+                            "name": "weather"
+                        },
+                        "id": "tooluse_0QuujwyeSCGpbfteXu-sHw",
+                        "type": "function"
+                    }
+                ]
+            }
+        }
+    ],
+    "created": 1743889717,
+    "id": "dcc4a669-b0fa-43fe-b631-aab3ae206fc9",
+    "model": "Claude 3.7 Sonnet",
+    "usage": {
+        "completion_tokens": 85,
+        "prompt_tokens": 900,
+        "total_tokens": 985
+    }
+}

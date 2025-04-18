@@ -108,8 +108,9 @@
 ---@class CodeCompanion.Agent.Tool
 ---@field name string The name of the tool
 ---@field cmds table The commands to execute
+---@field function_call table The function call from the LLM
 ---@field schema table The schema that the LLM must use in its response to execute a tool
----@field system_prompt fun(schema: table, xml2lua: table): string The system prompt to the LLM explaining the tool and the schema
+---@field system_prompt string | fun(schema: table): string The system prompt to the LLM explaining the tool and the schema
 ---@field opts? table The options for the tool
 ---@field env? fun(schema: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
 ---@field handlers table Functions which handle the execution of a tool
@@ -120,7 +121,7 @@
 ---@field output.rejected? fun(agent: CodeCompanion.Agent, cmd: table): any Function to call if the user rejects running a command
 ---@field output.error? fun(agent: CodeCompanion.Agent, cmd: table, stderr: table, stdout?: table): any The function to call if an error occurs
 ---@field output.success? fun(agent: CodeCompanion.Agent, cmd: table, stdout: table): any Function to call if the tool is successful
----@field request table The request from the LLM to use the Tool
+---@field args table The arguments sent over by the LLM when making the request
 
 ---@class CodeCompanion.SlashCommand.Provider
 ---@field output function The function to call when a selection is made

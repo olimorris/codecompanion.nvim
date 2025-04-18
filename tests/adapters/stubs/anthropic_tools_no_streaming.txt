@@ -1,0 +1,38 @@
+{
+    "id": "msg_01S7aVBPCkDFcwTmyXJLwyBb",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-3-5-sonnet-20241022",
+    "content": [
+        {
+            "type": "text",
+            "text": "I'll check both cities and set the units to Celsius as that's commonly used in Europe."
+        },
+        {
+            "type": "tool_use",
+            "id": "toolu_01TSJjnB81vBBT8dhP3tTCaM",
+            "name": "weather",
+            "input": {
+                "location": "London, UK",
+                "units": "celsius"
+            }
+        },
+        {
+            "type": "tool_use",
+            "id": "toolu_01UEd4jZFvj5gdqyL1L7QTqg",
+            "name": "weather",
+            "input": {
+                "location": "Paris, France",
+                "units": "celsius"
+            }
+        }
+    ],
+    "stop_reason": "tool_use",
+    "stop_sequence": null,
+    "usage": {
+        "input_tokens": 916,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 144
+    }
+}

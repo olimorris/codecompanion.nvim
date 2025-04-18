@@ -38,35 +38,35 @@ function Executor:setup_handlers()
     setup = function()
       vim.g.codecompanion_current_tool = self.tool.name
       if self.tool.handlers and self.tool.handlers.setup then
-        self.tool.handlers.setup(self.agent)
+        self.tool.handlers.setup(self.tool, self.agent)
       end
     end,
     on_exit = function()
       if self.tool.handlers and self.tool.handlers.on_exit then
-        self.tool.handlers.on_exit(self.agent)
+        self.tool.handlers.on_exit(self.tool, self.agent)
       end
     end,
   }
 
   self.output = {
-    prompt = function(cmds)
+    prompt = function()
       if self.tool.output and self.tool.output.prompt then
-        return self.tool.output.prompt(self.agent, cmds)
+        return self.tool.output.prompt(self.tool, self.agent)
       end
     end,
     rejected = function(cmd)
       if self.tool.output and self.tool.output.rejected then
-        self.tool.output.rejected(self.agent, cmd)
+        self.tool.output.rejected(self.tool, self.agent, cmd)
       end
     end,
     error = function(cmd)
       if self.tool.output and self.tool.output.error then
-        self.tool.output.error(self.agent, cmd, self.agent.stderr, self.agent.stdout or {})
+        self.tool.output.error(self.tool, self.agent, cmd, self.agent.stderr, self.agent.stdout or {})
       end
     end,
     success = function(cmd)
       if self.tool.output and self.tool.output.success then
-        self.tool.output.success(self.agent, cmd, self.agent.stdout)
+        self.tool.output.success(self.tool, self.agent, cmd, self.agent.stdout)
       end
     end,
   }
@@ -107,7 +107,7 @@ function Executor:setup(input)
   if self.tool.opts and self.tool.opts.requires_approval and not vim.g.codecompanion_auto_tool_mode then
     log:debug("Executor:execute - Asking for approval")
 
-    local prompt = self.output.prompt(self.tool)
+    local prompt = self.output.prompt()
     if prompt == nil or prompt == "" then
       prompt = ("Run the %q tool?"):format(self.tool.name)
     end

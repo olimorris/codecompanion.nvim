@@ -1,0 +1,11 @@
+data: {"choices":[{"index":0,"delta":{"content":"**","role":"assistant"}}],"created":1743854806,"id":"6c775603-b296-4559-8e7c-f035c9f50ec6","model":"claude-3.7-sonnet"}
+data: {"choices":[{"index":0,"delta":{"content":"Elegant","role":"assistant"}}],"created":1743854806,"id":"6c775603-b296-4559-8e7c-f035c9f50ec6","model":"claude-3.7-sonnet"}
+data: {"choices":[{"index":0,"delta":{"content":" simpl","role":"assistant"}}],"created":1743854806,"id":"6c775603-b296-4559-8e7c-f035c9f50ec6","model":"claude-3.7-sonnet"}
+data: {"choices":[{"index":0,"delta":{"content":"icity.**\n\nWhat","role":"assistant"}}],"created":1743854806,"id":"6c775603-b296-4559-8e7c-f035c9f50ec6","model":"claude-3.7-sonnet"}
+data: {"choices":[{"index":0,"delta":{"content":" aspects","role":"assistant"}}],"created":1743854806,"id":"6c775603-b296-4559-8e7c-f035c9f50ec6","model":"claude-3.7-sonnet"}
+data: {"choices":[{"index":0,"delta":{"content":" of Ruby woul","role":"assistant"}}],"created":1743854806,"id":"6c775603-b296-4559-8e7c-f035c9f50ec6","model":"claude-3.7-sonnet"}
+data: {"choices":[{"index":0,"delta":{"content":"d you like","role":"assistant"}}],"created":1743854806,"id":"6c775603-b296-4559-8e7c-f035c9f50ec6","model":"claude-3.7-sonnet"}
+data: {"choices":[{"index":0,"delta":{"content":" me to explain in","role":"assistant"}}],"created":1743854806,"id":"6c775603-b296-4559-8e7c-f035c9f50ec6","model":"claude-3.7-sonnet"}
+data: {"choices":[{"index":0,"delta":{"content":" more","role":"assistant"}}],"created":1743854806,"id":"6c775603-b296-4559-8e7c-f035c9f50ec6","model":"claude-3.7-sonnet"}
+data: {"choices":[{"index":0,"delta":{"content":" detail?","role":"assistant"}}],"created":1743854806,"id":"6c775603-b296-4559-8e7c-f035c9f50ec6","model":"claude-3.7-sonnet"}
+data: {"choices":[{"finish_reason":"stop","index":0,"delta":{"content":null}}],"created":1743854806,"id":"6c775603-b296-4559-8e7c-f035c9f50ec6","usage":{"completion_tokens":22,"prompt_tokens":394,"total_tokens":416},"model":"claude-3.7-sonnet"}

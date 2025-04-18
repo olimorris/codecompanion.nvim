@@ -81,36 +81,6 @@ Helpers.setup_chat_buffer = function(config, adapter)
   local agent = require("codecompanion.strategies.chat.agents").new({ bufnr = 1 })
   local vars = require("codecompanion.strategies.chat.variables").new()
 
-  package.loaded["codecompanion.utils.foo"] = {
-    name = "foo",
-    cmds = {
-      function(self, actions, input)
-        self.chat:add_buf_message({ role = "user", content = "This is from the foo tool" })
-        return { status = "success", msg = "" }
-      end,
-    },
-    system_prompt = function()
-      return "my foo system prompt"
-    end,
-  }
-  package.loaded["codecompanion.utils.bar"] = {
-    name = "bar",
-    cmds = {
-      function(self, actions, input)
-        self.chat:add_buf_message({ role = "user", content = "This is from the bar tool" })
-        return { status = "success", msg = "" }
-      end,
-    },
-    system_prompt = function()
-      return "my bar system prompt"
-    end,
-  }
-  package.loaded["codecompanion.utils.bar_again"] = {
-    system_prompt = function()
-      return "baz"
-    end,
-  }
-
   return chat, agent, vars
 end
 

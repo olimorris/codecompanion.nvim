@@ -4,16 +4,11 @@ local api = vim.api
 local M = {}
 
 ---Calculate the number of tokens in a message
----@param message string The text to calculate the number of tokens for
+---@param message table The messages table
 ---@return number The number of tokens in the message
 function M.calculate(message)
   local tokens = 0
-
   local current_token = ""
-
-  if message == "" or string.sub(message, 1, 2) == "# " then
-    return tokens
-  end
 
   for char in message:gmatch(".") do
     if char == " " or char == "\n" then

@@ -86,7 +86,7 @@ local function add(chat, ref, row)
   table.insert(lines, string.format("> - %s", ref.id))
 
   if vim.tbl_count(chat.refs) == 1 then
-    table.insert(lines, 1, "> Sharing:")
+    table.insert(lines, 1, "> Context:")
     table.insert(lines, "")
   end
 
@@ -191,7 +191,7 @@ function References:render()
   local start_row = chat.header_line + 1
 
   local lines = {}
-  table.insert(lines, "> Sharing:")
+  table.insert(lines, "> Context:")
 
   for _, ref in pairs(chat.refs) do
     if not ref then

@@ -32,9 +32,14 @@ T["Agent"]["cmds"] = new_set()
 
 T["Agent"]["cmds"]["handlers and outputs are called"] = function()
   child.lua([[
-    local cmd_xml = require("tests.strategies.chat.agents.tools.stubs.xml.cmd_xml")
-    local xml = cmd_xml.load()
-    agent:execute(chat, xml)
+    local tool = {
+      {
+        ["function"] = {
+          name = "cmd",
+        },
+      },
+    }
+    agent:execute(chat, tool)
     vim.wait(100)
   ]])
 
@@ -50,16 +55,17 @@ T["Agent"]["cmds"]["handlers and outputs are called"] = function()
 end
 
 T["Agent"]["cmds"]["output.errors is called"] = function()
-  local tool = "'cmd_error'"
-  child.lua(string.format(
-    [[
-    local cmd_xml = require("tests.strategies.chat.agents.tools.stubs.xml.cmd_xml")
-    local xml = cmd_xml.load(%s)
-    agent:execute(chat, xml)
+  child.lua([[
+    local tool = {
+      {
+        ["function"] = {
+          name = "cmd_error",
+        },
+      },
+    }
+    agent:execute(chat, tool)
     vim.wait(100)
-  ]],
-    tool
-  ))
+  ]])
 
   -- output.error
   h.eq("Error", child.lua_get("_G._test_output"))
@@ -68,22 +74,16 @@ T["Agent"]["cmds"]["output.errors is called"] = function()
   h.eq("Error->Exit", child.lua_get("_G._test_order"))
 end
 
-T["Agent"]["cmds"]["can set test flags on the chat object"] = function()
-  child.lua([[
-    local cmd_xml = require("tests.strategies.chat.agents.tools.stubs.xml.cmd_xml")
-    local xml = cmd_xml.test_flag()
-    agent:execute(chat, xml)
-    vim.wait(100)
-  ]])
-
-  h.eq({ testing = true }, child.lua_get("agent.chat.tool_flags"))
-end
-
 T["Agent"]["cmds"]["can run multiple commands"] = function()
   child.lua([[
-    local cmd_xml = require("tests.strategies.chat.agents.tools.stubs.xml.cmd_xml")
-    local xml = cmd_xml.load("cmd_consecutive")
-    agent:execute(chat, xml)
+    local tool = {
+      {
+        ["function"] = {
+          name = "cmd_consecutive",
+        },
+      },
+    }
+    agent:execute(chat, tool)
     vim.wait(100)
   ]])
 
@@ -94,6 +94,23 @@ T["Agent"]["cmds"]["can run multiple commands"] = function()
   h.eq({ { "Hello World" } }, child.lua_get("_G._test_output[1]"))
   h.eq({ { "Hello CodeCompanion" } }, child.lua_get("_G._test_output[2]"))
   h.eq(vim.NIL, child.lua_get("_G._test_output[3]"))
+end
+
+T["Agent"]["cmds"]["can set test flags on the chat object"] = function()
+  child.lua([[
+    local tool = {
+      {
+        ["function"] = {
+          name = "mock_cmd_runner",
+          arguments = '{"cmds": "ls", "flag": "testing"}',
+        }
+      },
+    }
+    agent:execute(chat, tool)
+    vim.wait(100)
+  ]])
+
+  h.eq({ testing = true }, child.lua_get("agent.chat.tools.flags"))
 end
 
 return T
