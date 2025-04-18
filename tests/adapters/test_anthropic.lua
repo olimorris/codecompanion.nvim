@@ -206,28 +206,25 @@ T["Anthropic adapter"]["consolidates consecutive user messages together"] = func
     { content = "What up?!", role = "user" },
   }
 
-  h.eq(
+  h.eq({
     {
-      {
-        content = {
-          {
-            text = "Hello",
-            type = "text",
-          },
-          {
-            text = "World!",
-            type = "text",
-          },
-          {
-            text = "What up?!",
-            type = "text",
-          },
+      content = {
+        {
+          text = "Hello",
+          type = "text",
         },
-        role = "user",
+        {
+          text = "World!",
+          type = "text",
+        },
+        {
+          text = "What up?!",
+          type = "text",
+        },
       },
+      role = "user",
     },
-    adapter.handlers.form_messages(adapter, messages).messages
-  )
+  }, adapter.handlers.form_messages(adapter, messages).messages)
 end
 
 T["Anthropic adapter"]["Non-Reasoning models have less tokens"] = function()
