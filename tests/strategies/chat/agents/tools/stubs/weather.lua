@@ -6,7 +6,7 @@ return {
     ---@param args table The action object
     ---@param input? any The output from the previous function call
     function(self, args, input)
-      _G.weather_output = "The weather in " .. args.location .. " is 75° " .. args.units
+      _G.weather_output = "The weather in " .. args.location .. " is 15° " .. args.units
       return {
         status = "success",
         data = _G.weather_output,

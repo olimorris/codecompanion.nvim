@@ -14,6 +14,11 @@ T = new_set({
         config = require("tests.config")
       ]])
     end,
+    post_case = function()
+      child.lua([[
+        _G.chat = nil
+      ]])
+    end,
     post_once = child.stop,
   },
 })
@@ -21,18 +26,18 @@ T = new_set({
 T["Test tools in chat buffer"] = new_set({
   parametrize = {
     -- OpenAI type adapters first
-    { "openai", "openai_tools_streaming.txt" },
-    { "copilot", "openai_tools_streaming.txt" },
-    { "gemini", "openai_tools_streaming.txt" },
+    { "openai", "openai_tools" },
+    { "copilot", "openai_tools" },
+    { "gemini", "openai_tools" },
     -- Others
-    { "deepseek", "deepseek_tools_streaming.txt" },
-    { "ollama", "ollama_tools_streaming.txt" },
+    { "deepseek", "deepseek_tools" },
+    { "ollama", "ollama_tools" },
   },
 })
 
 T["Test tools in chat buffer"]["with different adapters"] = function(adapter, file)
-  local response = "tests/adapters/stubs/" .. file
-  local output = "tests/adapters/stubs/output/" .. file
+  local response = "tests/adapters/stubs/" .. file .. "_streaming.txt"
+  local output = "tests/adapters/stubs/output/" .. file .. ".txt"
 
   -- Setup the chat with the specified adapter
   child.lua(string.format(
@@ -86,7 +91,11 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
     response
   ))
 
-  local messages = child.lua_get([[_G.chat.adapter.handlers.form_messages(_G.chat.adapter, _G.chat.messages)]])
+  local messages = child.lua([[
+    -- Make sure we replace the roles with the adapter ones. This breaks up the Anthropic test otherwise
+    local messages = _G.chat.adapter:map_roles(vim.deepcopy(_G.chat.messages))
+    return _G.chat.adapter.handlers.form_messages(_G.chat.adapter, messages)
+  ]])
   local reference = vim.json.decode(table.concat(vim.fn.readfile(output), "\n"))
 
   h.eq(messages, reference)

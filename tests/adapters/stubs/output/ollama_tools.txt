@@ -26,14 +26,14 @@
                     "name": "weather"
                 }
             ],
-            "role": "llm"
+            "role": "assistant"
         },
         {
-            "content": "Ran the weather tool The weather in London, UK is 75° celsius",
+            "content": "Ran the weather tool The weather in London, UK is 15° celsius",
             "role": "tool"
         },
         {
-            "content": "Ran the weather tool The weather in Paris, FR is 75° fahrenheit",
+            "content": "Ran the weather tool The weather in Paris, FR is 15° fahrenheit",
             "role": "tool"
         }
     ]

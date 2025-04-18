@@ -102,7 +102,7 @@ T["Agent"][":execute"]["a response from the LLM"] = function()
 
   local output = child.lua_get([[_G.weather_output]])
 
-  h.eq("The weather in London, UK is 75° celsius", output)
+  h.eq("The weather in London, UK is 15° celsius", output)
 end
 
 T["Agent"][":execute"]["a nested response from the LLM"] = function() end
