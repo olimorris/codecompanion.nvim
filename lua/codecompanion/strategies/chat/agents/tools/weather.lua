@@ -11,7 +11,7 @@ return {
       }
     end,
   },
-  system_prompt = "The weather tool must only be called once for each location",
+  system_prompt = "Use the weather tool to get the current weather for a single location.",
   schema = {
     type = "function",
     ["function"] = {
