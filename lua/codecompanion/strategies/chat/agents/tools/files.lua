@@ -274,7 +274,7 @@ return {
 
 3. **Key Points**:
   - **Only use when you deem it necessary**. The user has the final control on these operations through an approval mechanism.
-  - Ensure XML is **valid and follows the schema**
+  - Ensure XML is **valid and follows the schema of the provided xml files below**. Using the exact same tags is crucial: for example use <contents> in plural instead of <content>.
   - **Include indentation** in the file's content
   - **Don't escape** special characters
   - **Wrap contents in a CDATA block**, the contents could contain characters reserved by XML
