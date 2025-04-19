@@ -46,7 +46,12 @@ local function preview_command(entry, bufnr, width)
       end
     end
     preview = preview or entry.value.description
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, true, wrap_text_to_table(preview, width))
+    if preview == "[No messages]" then
+      preview = vim.api.nvim_buf_get_lines(entry.value.bufnr, 0, -1, false)
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, true, preview)
+    else
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, true, wrap_text_to_table(preview, width))
+    end
   end)
 end
 
