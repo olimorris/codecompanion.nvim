@@ -64,6 +64,7 @@ return {
             name = data.name,
             strategy = "chat",
             description = data.description,
+            bufnr = data.chat.bufnr,
             callback = function()
               codecompanion.close_last_chat()
               data.chat.ui:open()
