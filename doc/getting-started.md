@@ -155,7 +155,7 @@ The plugin has four core commands:
 
 - `CodeCompanion` - Open the inline assistant
 - `CodeCompanionChat` - Open a chat buffer
-- `CodeCompanionCmd` - Generate a command in the command-liine
+- `CodeCompanionCmd` - Generate a command in the command-line
 - `CodeCompanionActions` - Open the _Action Palette_
 
 However, there are multiple options available:
