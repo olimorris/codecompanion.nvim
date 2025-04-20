@@ -149,7 +149,12 @@ function Agent:execute(chat, tools)
   end
 
   util.fire("AgentStarted", { id = id, bufnr = self.bufnr })
-  return executor:setup()
+  xpcall(function()
+    executor:setup()
+  end, function(err)
+    log:error("Agent execution error:\n%s", err)
+    util.fire("CodeCompanionAgentFinished")
+  end)
 end
 
 ---Look for tools in a given message
@@ -262,6 +267,7 @@ function Agent:reset()
   self.stderr = {}
   self.stdout = {}
 
+  self.chat:tools_done()
   log:info("[Agent] Completed")
 end
 

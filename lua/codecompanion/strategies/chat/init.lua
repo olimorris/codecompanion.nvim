@@ -794,6 +794,13 @@ local function ready_chat_buffer(chat)
   chat:reset()
 end
 
+---Method to fire when all the tools are done
+---@param self CodeCompanion.Chat
+---@return nil
+function Chat:tools_done()
+  return ready_chat_buffer(self)
+end
+
 ---Method to call after the response from the LLM is received
 ---@param output? table The output from the LLM
 ---@param tools? table The tools from the LLM
@@ -825,9 +832,7 @@ function Chat:done(output, tools)
       role = config.constants.LLM_ROLE,
       tool_calls = self.adapter.handlers.tools.format_tool_calls(self.adapter, tools),
     })
-    self.agents:execute(self, tools)
-    --- Maybe implement async wait here
-    return ready_chat_buffer(self)
+    return self.agents:execute(self, tools)
   end
 
   ready_chat_buffer(self)
