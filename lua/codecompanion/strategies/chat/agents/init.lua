@@ -153,7 +153,7 @@ function Agent:execute(chat, tools)
     executor:setup()
   end, function(err)
     log:error("Agent execution error:\n%s", err)
-    util.fire("CodeCompanionAgentFinished")
+    util.fire("AgentFinished", { id = id, bufnr = self.bufnr })
   end)
 end
 
