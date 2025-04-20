@@ -7,8 +7,19 @@ T = new_set()
 T["Ollama adapter"] = new_set({
   hooks = {
     pre_case = function()
-      require("codecompanion")
-      adapter = require("codecompanion.adapters").resolve("ollama")
+      adapter = require("codecompanion.adapters").extend("ollama", {
+        schema = {
+          model = {
+            default = "llama3.1:latest",
+          },
+          choices = {
+            "llama3.1:latest",
+          },
+          num_ctx = {
+            default = 20000,
+          },
+        },
+      })
     end,
   },
 })
