@@ -30,7 +30,15 @@ return {
     ---@return boolean
     setup = function(self)
       local model = self.schema.model.default
-      local model_opts = self.schema.model.choices[model]
+      if type(model) == "function" then
+        model = model(self)
+      end
+      local choices = self.schema.model.choices
+      if type(choices) == "function" then
+        choices = choices(self)
+      end
+
+      local model_opts = choices[model]
       if model_opts and model_opts.opts then
         self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
       end
@@ -61,7 +69,7 @@ return {
         :map(function(m)
           local model = self.schema.model.default
           if type(model) == "function" then
-            model = model()
+            model = model(self)
           end
           if vim.startswith(model, "o1") and m.role == "system" then
             m.role = self.roles.user

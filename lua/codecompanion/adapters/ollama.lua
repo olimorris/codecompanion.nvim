@@ -1,15 +1,9 @@
 local config = require("codecompanion.config")
 local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.adapters")
+local openai = require("codecompanion.adapters.openai")
 
 local _cached_adapter
-
----Reset the cached adapter
----@return nil
-local function reset()
-  _cached_adapter = nil
-end
 
 ---Get a list of available Ollama models
 ---@params self CodeCompanion.Adapter
@@ -88,123 +82,32 @@ return {
     tokens = true,
     vision = false,
   },
-  url = "${url}/api/chat",
+  url = "${url}/v1/chat/completions",
   env = {
     url = "http://localhost:11434",
   },
   handlers = {
-    ---@param self CodeCompanion.Adapter
-    ---@return boolean
+    --- Use the OpenAI adapter for the bulk of the work
     setup = function(self)
-      self.parameters.stream = false
-      if self.opts and self.opts.stream then
-        self.parameters.stream = true
-      end
-
-      return true
+      return openai.handlers.setup(self)
     end,
-
-    ---Set the parameters
-    ---@param self CodeCompanion.Adapter
-    ---@param params table
-    ---@param messages table
-    ---@return table
-    form_parameters = function(self, params, messages)
-      return params
-    end,
-
-    ---Set the format of the role and content for the messages from the chat buffer
-    ---@param self CodeCompanion.Adapter
-    ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
-    ---@return table
-    form_messages = function(self, messages)
-      messages = utils.merge_messages(messages)
-      return { messages = messages }
-    end,
-
-    ---Returns the number of tokens generated from the LLM
-    ---@param self CodeCompanion.Adapter
-    ---@param data table The data from the LLM
-    ---@return number|nil
     tokens = function(self, data)
-      if data then
-        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
-
-        if not ok then
-          return
-        end
-
-        if json.eval_count then
-          log:debug("Done! %s", json.eval_count)
-          return json.eval_count
-        end
-      end
+      return openai.handlers.tokens(self, data)
     end,
-
-    ---Output the data from the API ready for insertion into the chat buffer
-    ---@param self CodeCompanion.Adapter
-    ---@param data table The streamed JSON data from the API, also formatted by the format_data callback
-    ---@return table|nil
+    form_parameters = function(self, params, messages)
+      return openai.handlers.form_parameters(self, params, messages)
+    end,
+    form_messages = function(self, messages)
+      return openai.handlers.form_messages(self, messages)
+    end,
     chat_output = function(self, data)
-      local output = {}
-
-      if data and data ~= "" then
-        if not self.opts.stream then
-          data = data.body
-        end
-        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
-
-        if not ok then
-          return { status = "error" }
-        end
-
-        local message = json.message
-
-        if message.content then
-          output.content = message.content
-          output.role = message.role or nil
-        end
-
-        return {
-          status = "success",
-          output = output,
-        }
-      end
-
-      return nil
+      return openai.handlers.chat_output(self, data)
     end,
-
-    ---Output the data from the API ready for inlining into the current buffer
-    ---@param self CodeCompanion.Adapter
-    ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
-    ---@param context table Useful context about the buffer to inline to
-    ---@return table|nil
     inline_output = function(self, data, context)
-      if self.opts.stream then
-        return log:error("Inline output is not supported for non-streaming models")
-      end
-
-      if data and data ~= "" then
-        local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
-
-        if not ok then
-          log:error("Error decoding JSON: %s", data.body)
-          return { status = "error", output = json }
-        end
-
-        return { status = "success", output = json.message.content }
-      end
+      return openai.handlers.inline_output(self, data, context)
     end,
-
-    ---Function to run when the request has completed. Useful to catch errors
-    ---@param self CodeCompanion.Adapter
-    ---@param data? table
-    ---@return nil
     on_exit = function(self, data)
-      reset()
-      if data and data.status >= 400 then
-        log:error("Error: %s", data.body)
-      end
+      return openai.handlers.on_exit(self, data)
     end,
   },
   schema = {
