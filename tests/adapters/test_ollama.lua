@@ -83,7 +83,7 @@ T["Ollama adapter"]["Streaming"]["can output streamed data into the chat buffer"
     end
   end
 
-  h.eq("Dynamic and object-oriented programming language.", output)
+  h.eq("**Dynamic Object-Oriented**", output)
 end
 
 T["Ollama adapter"]["Streaming"]["can process tools"] = function()
@@ -152,7 +152,7 @@ T["Ollama adapter"]["No Streaming"]["can output for the chat buffer"] = function
   -- Match the format of the actual request
   local json = { body = data }
 
-  h.eq("**Object-oriented**\\n**Dynamic**", adapter.handlers.chat_output(adapter, json).output.content)
+  h.eq("Dynamic Scripting language", adapter.handlers.chat_output(adapter, json).output.content)
 end
 
 T["Ollama adapter"]["No Streaming"]["can process tools"] = function()
@@ -212,7 +212,7 @@ T["Ollama adapter"]["No Streaming"]["can output for the inline assistant"] = fun
   -- Match the format of the actual request
   local json = { body = data }
 
-  h.eq("**Object-oriented**\\n**Dynamic**", adapter.handlers.inline_output(adapter, json).output)
+  h.eq("Dynamic Scripting language", adapter.handlers.inline_output(adapter, json).output)
 end
 
 return T

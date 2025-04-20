@@ -1,15 +1,9 @@
 local config = require("codecompanion.config")
 local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.adapters")
+local openai = require("codecompanion.adapters.openai")
 
 local _cached_adapter
-
----Reset the cached adapter
----@return nil
-local function reset()
-  _cached_adapter = nil
-end
 
 ---Get a list of available Ollama models
 ---@params self CodeCompanion.Adapter
@@ -89,223 +83,32 @@ return {
     tokens = true,
     vision = false,
   },
-  url = "${url}/api/chat",
+  url = "${url}/v1/chat/completions",
   env = {
     url = "http://localhost:11434",
   },
   handlers = {
-    ---@param self CodeCompanion.Adapter
-    ---@return boolean
+    --- Use the OpenAI adapter for the bulk of the work
     setup = function(self)
-      self.parameters.stream = false
-      if self.opts and self.opts.stream then
-        self.parameters.stream = true
-      end
-
-      return true
+      return openai.handlers.setup(self)
     end,
-
-    ---Set the parameters
-    ---@param self CodeCompanion.Adapter
-    ---@param params table
-    ---@param messages table
-    ---@return table
-    form_parameters = function(self, params, messages)
-      return params
-    end,
-
-    ---Set the format of the role and content for the messages from the chat buffer
-    ---@param self CodeCompanion.Adapter
-    ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
-    ---@return table
-    form_messages = function(self, messages)
-      messages = utils.merge_messages(messages)
-      messages = utils.merge_system_messages(messages)
-
-      -- Ensure that all messages have a content field
-      messages = vim
-        .iter(messages)
-        :map(function(msg)
-          if not msg.content then
-            msg.content = ""
-          end
-          return msg
-        end)
-        :totable()
-
-      return { messages = messages }
-    end,
-
-    ---Provides the schemas of the tools that are available to the LLM to call
-    ---@param self CodeCompanion.Adapter
-    ---@param tools table<string, table>
-    ---@return table|nil
-    form_tools = function(self, tools)
-      if not self.opts.tools or not tools then
-        return
-      end
-
-      local transformed = {}
-      for _, tool in pairs(tools) do
-        for _, schema in pairs(tool) do
-          table.insert(transformed, schema)
-        end
-      end
-
-      return { tools = transformed }
-    end,
-
-    ---Returns the number of tokens generated from the LLM
-    ---@param self CodeCompanion.Adapter
-    ---@param data table The data from the LLM
-    ---@return number|nil
     tokens = function(self, data)
-      if data then
-        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
-
-        if not ok then
-          return
-        end
-
-        if json.eval_count then
-          log:debug("Done! %s", json.eval_count)
-          return json.eval_count
-        end
-      end
+      return openai.handlers.tokens(self, data)
     end,
-
-    ---Output the data from the API ready for insertion into the chat buffer
-    ---@param self CodeCompanion.Adapter
-    ---@param data table The streamed JSON data from the API, also formatted by the format_data callback
-    ---@param tools? table The table to write any tool output to
-    ---@return table|nil
-    chat_output = function(self, data, tools)
-      local output = {}
-
-      if data and data ~= "" then
-        if not self.opts.stream then
-          data = data.body
-        end
-        local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
-
-        if not ok then
-          return { status = "error" }
-        end
-
-        local message = json.message
-
-        if message and message.content then
-          output.content = message.content
-          output.role = message.role or nil
-        end
-
-        if tools and message and message.tool_calls then
-          for _, tool in ipairs(message.tool_calls) do
-            table.insert(tools, {
-              type = "function",
-              ["function"] = {
-                name = tool["function"]["name"],
-                -- So we decode the JSON string to then encode it again...Why??
-                -- We do this because we need to tell the LLM at a later date
-                -- that it called this function with these args, correctly
-                arguments = vim.json.encode(tool["function"]["arguments"]),
-              },
-            })
-          end
-        end
-
-        return {
-          status = "success",
-          output = output,
-        }
-      end
-
-      return nil
+    form_parameters = function(self, params, messages)
+      return openai.handlers.form_parameters(self, params, messages)
     end,
-
-    tools = {
-      ---Format the LLM's tool calls for inclusion back in the request
-      ---@param self CodeCompanion.Adapter
-      ---@param tools table The tools that were called
-      ---@return table
-      format_tool_calls = function(self, tools)
-        -- Source: https://github.com/ollama/ollama/blob/main/docs/api.md#response-16
-        local processed_tools = {}
-
-        for _, tool in ipairs(tools) do
-          if tool["function"] then
-            local processed_tool = {
-              name = tool["function"]["name"],
-            }
-
-            -- Convert JSON string arguments to Lua tables
-            if tool["function"]["arguments"] and type(tool["function"]["arguments"]) == "string" then
-              local ok, parsed = pcall(vim.json.decode, tool["function"]["arguments"])
-              if ok then
-                processed_tool.arguments = parsed
-              else
-                log:warn("Failed to parse tool arguments: %s", tool["function"]["arguments"])
-                processed_tool.arguments = tool["function"]["arguments"]
-              end
-            else
-              processed_tool.arguments = tool["function"]["arguments"]
-            end
-
-            table.insert(processed_tools, processed_tool)
-          end
-        end
-
-        return processed_tools
-      end,
-
-      ---Output the LLM's tool call so we can include it in the messages
-      ---@param self CodeCompanion.Adapter
-      ---@param tool_call {id: string, function: table, name: string} The tool call request from the LLM
-      ---@param output string The output from the tool call
-      ---@return table
-      output_response = function(self, tool_call, output)
-        -- Source: https://github.com/ollama/ollama/blob/main/docs/api.md#parameters-1
-        return {
-          role = self.roles.tool or "tool",
-          tool_call_id = tool_call.id,
-          content = output,
-          -- Chat Buffer option: To tell the chat buffer that this shouldn't be visible
-          opts = { visible = false },
-        }
-      end,
-    },
-
-    ---Output the data from the API ready for inlining into the current buffer
-    ---@param self CodeCompanion.Adapter
-    ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
-    ---@param context table Useful context about the buffer to inline to
-    ---@return table|nil
+    form_messages = function(self, messages)
+      return openai.handlers.form_messages(self, messages)
+    end,
+    chat_output = function(self, data)
+      return openai.handlers.chat_output(self, data)
+    end,
     inline_output = function(self, data, context)
-      if self.opts.stream then
-        return log:error("Inline output is not supported for non-streaming models")
-      end
-
-      if data and data ~= "" then
-        local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
-
-        if not ok then
-          log:error("Error decoding JSON: %s", data.body)
-          return { status = "error", output = json }
-        end
-
-        return { status = "success", output = json.message.content }
-      end
+      return openai.handlers.inline_output(self, data, context)
     end,
-
-    ---Function to run when the request has completed. Useful to catch errors
-    ---@param self CodeCompanion.Adapter
-    ---@param data? table
-    ---@return nil
     on_exit = function(self, data)
-      reset()
-      if data and data.status >= 400 then
-        log:error("Error: %s", data.body)
-      end
+      return openai.handlers.on_exit(self, data)
     end,
   },
   schema = {
