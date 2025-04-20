@@ -294,6 +294,8 @@ T["Anthropic adapter"]["Streaming"]["can process tools"] = function()
     },
   }
 
+  tools = adapter.handlers.tools.format_tool_calls(adapter, tools)
+
   h.eq(tool_output, tools)
 end
 
@@ -381,6 +383,8 @@ T["Anthropic adapter"]["No Streaming"]["can process tools"] = function()
       type = "function",
     },
   }
+
+  tools = adapter.handlers.tools.format_tool_calls(adapter, tools)
 
   h.expect_json_equals(tool_output[1]["function"]["arguments"], tools[1]["function"]["arguments"])
   h.expect_json_equals(tool_output[2]["function"]["arguments"], tools[2]["function"]["arguments"])

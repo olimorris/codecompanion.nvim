@@ -282,14 +282,12 @@ return {
               output.reasoning = ""
             end
             if json.content_block.type == "tool_use" and tools then
+              -- Source: https://docs.anthropic.com/en/docs/build-with-claude/tool-use/overview#single-tool-example
               table.insert(tools, {
                 _index = json.index,
                 id = json.content_block.id,
-                type = "function",
-                ["function"] = {
-                  name = json.content_block.name,
-                  arguments = "",
-                },
+                name = json.content_block.name,
+                input = "",
               })
             end
           elseif json.type == "content_block_delta" then
@@ -300,8 +298,7 @@ return {
               if json.delta.partial_json and tools then
                 for i, tool in ipairs(tools) do
                   if tool._index == json.index then
-                    tools[i]["function"]["arguments"] = (tools[i]["function"]["arguments"] or "")
-                      .. json.delta.partial_json
+                    tools[i].input = tools[i].input .. json.delta.partial_json
                     break
                   end
                 end
@@ -319,14 +316,9 @@ return {
                 table.insert(tools, {
                   _index = i,
                   id = content.id,
-                  type = "function",
-                  ["function"] = {
-                    name = content.name,
-                    -- So we decode the JSON string to then encode it again...Why??
-                    -- We do this because we need to tell the LLM at a later date
-                    -- that it called this function with these args, correctly
-                    arguments = vim.json.encode(content.input),
-                  },
+                  name = content.name,
+                  -- Encode the input as JSON to match the partial JSON which comes encoded
+                  input = vim.json.encode(content.input),
                 })
               end
             end
@@ -375,8 +367,21 @@ return {
       ---@param tools table The raw tools collected by chat_output
       ---@return table|nil
       format_tool_calls = function(self, tools)
-        -- Source: https://docs.anthropic.com/en/docs/build-with-claude/tool-use/overview
-        return tools
+        -- Convert to the OpenAI format
+        local formatted = {}
+        for _, tool in ipairs(tools) do
+          local formatted_tool = {
+            _index = tool._index,
+            id = tool.id,
+            type = "function",
+            ["function"] = {
+              name = tool.name,
+              arguments = tool.input,
+            },
+          }
+          table.insert(formatted, formatted_tool)
+        end
+        return formatted
       end,
 
       ---Output the LLM's tool call so we can include it in the messages

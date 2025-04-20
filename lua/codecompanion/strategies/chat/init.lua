@@ -818,7 +818,7 @@ function Chat:done(output, tools)
 
   -- Handle LLM output text
   if has_output then
-    local content = vim.trim(table.concat(output, ""))
+    local content = vim.trim(table.concat(output or {}, "")) -- No idea why the LSP freaks out that this isn't a table
     if content ~= "" then
       self:add_message({
         role = config.constants.LLM_ROLE,
@@ -828,9 +828,10 @@ function Chat:done(output, tools)
   end
 
   if has_tools then
+    tools = self.adapter.handlers.tools.format_tool_calls(self.adapter, tools)
     self:add_message({
       role = config.constants.LLM_ROLE,
-      tool_calls = self.adapter.handlers.tools.format_tool_calls(self.adapter, tools),
+      tool_calls = tools,
     })
     return self.agents:execute(self, tools)
   end
