@@ -1,5 +1,6 @@
 local h = require("tests.helpers")
 
+local expect = MiniTest.expect
 local new_set = MiniTest.new_set
 
 local child = MiniTest.new_child_neovim()
@@ -36,21 +37,7 @@ T["cmd_runner tool"] = function()
     vim.wait(200)
   ]])
 
-  local output = child.lua_get("vim.api.nvim_buf_get_lines(chat.bufnr, 0, -1, true)")
-  h.eq({
-    "## foo",
-    "",
-    "",
-    "",
-    "## assistant",
-    "",
-    "",
-    "The output from the command `echo hello world` was:",
-    "",
-    "```txt",
-    "hello world",
-    "```",
-  }, output)
+  expect.reference_screenshot(child.get_screenshot())
 end
 
 return T
