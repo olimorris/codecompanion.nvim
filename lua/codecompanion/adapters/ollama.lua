@@ -76,7 +76,7 @@ return {
   },
   opts = {
     stream = true,
-    tools = true,
+    tools = false,
   },
   features = {
     text = true,
@@ -101,9 +101,20 @@ return {
     form_messages = function(self, messages)
       return openai.handlers.form_messages(self, messages)
     end,
+    -- form_tools = function(self, tools)
+    --   return openai.handlers.form_tools(self, tools)
+    -- end,
     chat_output = function(self, data)
       return openai.handlers.chat_output(self, data)
     end,
+    -- tools = {
+    --   format_tool_calls = function(self, tools)
+    --     return openai.handlers.tools.format_tool_calls(self, tools)
+    --   end,
+    --   output_response = function(self, tool_call, output)
+    --     return openai.handlers.tools.output_response(self, tool_call, output)
+    --   end,
+    -- },
     inline_output = function(self, data, context)
       return openai.handlers.inline_output(self, data, context)
     end,
