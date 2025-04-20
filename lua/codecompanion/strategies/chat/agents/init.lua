@@ -98,7 +98,7 @@ function Agent:execute(chat, tools)
   ---Resolve and run the tool
   ---@param executor CodeCompanion.Agent.Executor The executor instance
   ---@param tool table The tool to run
-  local function run_tool(executor, tool)
+  local function enqueue_tool(executor, tool)
     -- If an error occurred, don't run any more tools
     if self.status == CONSTANTS.STATUS_ERROR then
       return
@@ -145,7 +145,7 @@ function Agent:execute(chat, tools)
   local executor = Executor.new(self, id)
 
   for _, tool in ipairs(tools) do
-    run_tool(executor, tool)
+    enqueue_tool(executor, tool)
   end
 
   util.fire("AgentStarted", { id = id, bufnr = self.bufnr })
