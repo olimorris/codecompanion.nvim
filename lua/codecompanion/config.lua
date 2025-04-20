@@ -26,6 +26,7 @@ local defaults = {
     -- NON-LLMs ---------------------------------------------------------------
     non_llms = {
       jina = "jina",
+      tavily = "tavily",
     },
     -- OPTIONS ----------------------------------------------------------------
     opts = {
@@ -80,6 +81,13 @@ local defaults = {
           description = "Update the file system with the LLM's response",
           opts = {
             requires_approval = true,
+          },
+        },
+        ["web_search"] = {
+          callback = "strategies.chat.agents.tools.web_search",
+          description = "Search the web for information",
+          opts = {
+            adapter = "tavily",
           },
         },
         opts = {
