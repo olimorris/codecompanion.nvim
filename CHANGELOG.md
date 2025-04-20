@@ -1,5 +1,12 @@
 # Changelog
 
+## [14.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.9.1...v14.10.0) (2025-04-20)
+
+
+### Features
+
+* **adapters:** move ollama adapter to OpenAI endpoint ([79b2697](https://github.com/olimorris/codecompanion.nvim/commit/79b26971e4215e07d225c0d180248753de0036ff))
+
 ## [14.9.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.9.0...v14.9.1) (2025-04-13)
 
 
