@@ -34,7 +34,7 @@ return {
         search_depth = data.search_depth or "advanced",
         chunks_per_source = data.chunks_per_source or 3,
         max_results = data.max_results or 3,
-        time_range = data.time_range or nil,
+        time_range = data.time_range or nil, -- day, week, month, year
         include_answer = data.include_answer or false,
         include_raw_content = data.include_raw_content or false,
       }
@@ -44,6 +44,21 @@ return {
       end
 
       return body
+    end,
+    chat_output = function(_, data)
+      if data.results == nil or #data.results == 0 then
+        return log:error("No results found")
+      end
+
+      local output = {}
+      for _, result in ipairs(data.results) do
+        local title = result.title or ""
+        local url = result.url or ""
+        local content = result.content or ""
+        table.insert(output, string.format("**Title: %s**\nURL: %s\nContent: %s\n\n", title, url, content))
+      end
+
+      return { content = table.concat(output, "") }
     end,
   },
 }

@@ -3,17 +3,9 @@ local client = require("codecompanion.http")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
-local function tavily_result_to_string(results)
-  local output = {}
-  for _, result in ipairs(results) do
-    local title = result.title or ""
-    local url = result.url or ""
-    local content = result.content or ""
-    table.insert(output, string.format("**Title: %s**\nURL: %s\nContent: %s\n\n", title, url, content))
-  end
-  return table.concat(output, "")
-end
-
+---@param action { query: string }
+---@param adapter CodeCompanion.Adapter
+---@param agent CodeCompanion.Agent
 local function websearch(action, adapter, agent)
   log:debug('Web Search Tool: Searching for "%s"', action.query)
 
@@ -35,15 +27,10 @@ local function websearch(action, adapter, agent)
             return log:error("Could not parse the JSON response")
           end
           if data.status == 200 then
-            local content = ""
-
-            if adapter.name == "tavily" then
-              content = tavily_result_to_string(body.results)
-            end
-
+            local output = adapter.handlers.chat_output(adapter, body)
             return agent.chat:add_buf_message({
               role = config.constants.LLM_ROLE,
-              content = content,
+              content = output.content,
             })
           else
             return log:error("Error %s - %s", data.status, body)
