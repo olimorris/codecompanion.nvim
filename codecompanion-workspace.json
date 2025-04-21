@@ -102,6 +102,11 @@
       "path": "lua/codecompanion/strategies/chat/init.lua",
       "description": "The `${filename}` file is the entry point for the chat strategy, which is called the `chat buffer`. All methods directly relating to the chat buffer reside here."
     },
+    "chat-messages": {
+      "type": "file",
+      "path": "tests/stubs/messages.lua",
+      "description": "This is an example of what the messages table looks like. This is the table which contains all of the user and LLM messages that are sent to the LLM. It also includes output from the tools that the LLM has requested to run. The role is the person that has sent the message. Content is the message itself. Cycle is a way of grouping messages together in a turn where a turn is defined as a user message and a LLM message (sometimes a tool message too"
+    },
     "workflow-example": {
       "type": "file",
       "path": "tests/stubs/workflow.lua",
