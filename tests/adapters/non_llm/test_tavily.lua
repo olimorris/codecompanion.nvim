@@ -1,33 +1,39 @@
 local assert = require("luassert")
 local h = require("tests.helpers")
+local log = require("codecompanion.utils.log")
 local match = require("luassert.match")
 local spy = require("luassert.spy")
-
-local log_mock = {
-  error = function(_, msg)
-    return msg
-  end,
-}
-
-package.loaded["codecompanion.utils.log"] = log_mock
 local tavily_adapter = require("codecompanion.adapters.non_llm.tavily")
 
+local original_log_error = log.error
+local mock_log_error = function(_, msg)
+  return msg
+end
+
 describe("Tavily adapter", function()
+  local log_error_spy
+
   before_each(function()
-    spy.on(log_mock, "error")
     tavily_adapter.opts = {}
+
+    log.error = mock_log_error
+    log_error_spy = spy.on(log, "error")
+  end)
+
+  after_each(function()
+    log.error = original_log_error
   end)
 
   describe("set_body handler", function()
     it("should return error when query is nil", function()
       local result = tavily_adapter.handlers.set_body(tavily_adapter, {})
-      assert.spy(log_mock.error).was.called_with(log_mock, match.is_string())
+      assert.spy(log_error_spy).was.called_with(log, match.is_string())
       assert.is.string(result)
     end)
 
     it("should return error when query is empty", function()
       local result = tavily_adapter.handlers.set_body(tavily_adapter, { query = "" })
-      assert.spy(log_mock.error).was.called_with(match._, match.is_string())
+      assert.spy(log_error_spy).was.called_with(match._, match.is_string())
       assert.is.string(result)
     end)
 
@@ -80,13 +86,13 @@ describe("Tavily adapter", function()
   describe("chat_output handler", function()
     it("should return error when results are nil", function()
       local result = tavily_adapter.handlers.chat_output(tavily_adapter, {})
-      assert.spy(log_mock.error).was.called_with(log_mock, match.is_string())
+      assert.spy(log_error_spy).was.called_with(log, match.is_string())
       assert.is.string(result)
     end)
 
     it("should return error when results are empty", function()
       local result = tavily_adapter.handlers.chat_output(tavily_adapter, { results = {} })
-      assert.spy(log_mock.error).was.called_with(log_mock, match.is_string())
+      assert.spy(log_error_spy).was.called_with(log, match.is_string())
       assert.is.string(result)
     end)
 

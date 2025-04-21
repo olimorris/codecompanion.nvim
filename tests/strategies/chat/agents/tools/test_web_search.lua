@@ -1,4 +1,5 @@
 local assert = require("luassert")
+local client = require("codecompanion.http")
 local h = require("tests.helpers")
 local match = require("luassert.match")
 local spy = require("luassert.spy")
@@ -13,25 +14,31 @@ local client_mock = {
   end),
 }
 
-package.loaded["codecompanion.http"] = client_mock
+local mock_adapter
+
+local original_pcall = _G.pcall
+local original_new = client.new
+
+local mock_pcall = function(_)
+  return true, mock_adapter
+end
+
 local web_search = require("codecompanion.strategies.chat.agents.tools.web_search")
 
 describe("Web Search Tool", function()
-  local mock_adapter
-
   before_each(function()
     mock_adapter = {
       name = "mock_adapter",
     }
+
+    _G.pcall = mock_pcall
+    client.new = client_mock.new
   end)
 
-  local original_pcall = _G.pcall
-  _G.pcall = function(require_func, module_path)
-    if require_func == require and module_path:match("^codecompanion%.adapters%.non_llm%.") then
-      return true, mock_adapter
-    end
-    return original_pcall(require_func, module_path)
-  end
+  after_each(function()
+    _G.pcall = original_pcall
+    client.new = original_new
+  end)
 
   it("makes a HTTP request", function()
     local mock_agent = {
@@ -57,9 +64,5 @@ describe("Web Search Tool", function()
     assert.spy(client_mock.new).was.called_with(match.is_table())
     h.eq(new_call.adapter, mock_adapter)
     h.eq(request_call.query, mock_agent.tool.request.action.query)
-  end)
-
-  after_each(function()
-    _G.pcall = original_pcall
   end)
 end)
