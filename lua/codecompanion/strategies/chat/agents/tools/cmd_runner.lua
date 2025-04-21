@@ -22,9 +22,14 @@ return {
             type = "string",
             description = "The command to run, e.g. `pytest` or `make test`",
           },
+          flag = {
+            type = { "string", "null" },
+            description = 'If the user asks you to run a test or a test suite, set this to "testing"',
+          },
         },
         required = {
           "cmd",
+          "flag",
         },
         additionalProperties = false,
       },
