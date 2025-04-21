@@ -247,6 +247,9 @@ function Chat.new(args)
 
       return bufnr
     end,
+    _chat_has_reasoning = false,
+    _tool_output_header_printed = false,
+    _tool_output_has_llm_response = false,
   }, { __index = Chat })
 
   self.bufnr = self.create_buf()
@@ -747,6 +750,7 @@ function Chat:submit(opts)
             end
             table.insert(output, result.output.content)
             self:add_buf_message(result.output)
+            self._tool_output_has_llm_response = true
           elseif self.status == CONSTANTS.STATUS_ERROR then
             log:error("Error: %s", result.output)
             return self:done(output)
@@ -1056,17 +1060,34 @@ function Chat:add_buf_message(data, opts)
 
   -- Add data to the chat buffer
   local function append_data()
+    -- Tool output
+    if opts and opts.tag == "tool_output" then
+      if not self._tool_output_header_printed then
+        self._tool_output_header_printed = true
+        if self._tool_output_has_llm_response then
+          table.insert(lines, "")
+          table.insert(lines, "")
+        end
+        table.insert(lines, "### Tool Output")
+      end
+      table.insert(lines, "")
+      return write(data.content or "")
+    end
+
+    -- Reasoning output
     if data.reasoning then
-      if not has_been_reasoning then
+      if not self._chat_has_reasoning then
         table.insert(lines, "### Reasoning")
         table.insert(lines, "")
       end
-      has_been_reasoning = true
+      self._chat_has_reasoning = true
       write(data.reasoning)
     end
+
+    -- Regular output
     if data.content then
-      if has_been_reasoning then
-        has_been_reasoning = false
+      if self._chat_has_reasoning then
+        self._chat_has_reasoning = false -- LLMs *should* do reasoning first then output after
         table.insert(lines, "")
         table.insert(lines, "")
         table.insert(lines, "### Response")
@@ -1138,13 +1159,16 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   for_user = for_user or for_llm
   self:add_buf_message({
     role = config.constants.LLM_ROLE,
-    content = "\n" .. for_user,
-  })
+    content = for_user,
+  }, { tag = "tool_output" })
 end
 
 ---When a request has finished, reset the chat buffer
 ---@return nil
 function Chat:reset()
+  self._chat_has_reasoning = false
+  self._tool_output_header_printed = false
+  self._tool_output_has_llm_response = false
   self.status = ""
   self.ui:unlock_buf()
 end
