@@ -88,6 +88,10 @@ local defaults = {
           description = "Search the web for information",
           opts = {
             adapter = "tavily",
+            opts = {
+              time_range = "month",
+              search_depth = "advanced",
+            },
           },
         },
         opts = {

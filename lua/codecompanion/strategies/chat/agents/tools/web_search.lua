@@ -99,7 +99,6 @@ return {
       if not ok then
         return log:error("Failed to load the adapter for the web_search Tool")
       end
-
       if type(adapter) == "function" then
         adapter = adapter()
       end
@@ -107,6 +106,12 @@ return {
       adapter = adapters.resolve(adapter)
       if not adapter then
         return log:error("Failed to load the adapter for the fetch Slash Command")
+      end
+
+      local opts = agent.tool.opts.opts or {}
+      adapter.opts = adapter.opts or {}
+      for k, v in pairs(opts) do
+        adapter.opts[k] = v
       end
 
       table.insert(tool.cmds, action)

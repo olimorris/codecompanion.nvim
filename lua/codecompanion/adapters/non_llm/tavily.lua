@@ -23,20 +23,22 @@ return {
     },
   },
   handlers = {
-    set_body = function(_, data)
+    -- https://docs.tavily.com/documentation/api-reference/endpoint/search
+    set_body = function(adapter, data)
       if data.query == nil or data.query == "" then
-        return log:error("Query is required")
+        return log:error("Search query is required")
       end
 
+      adapter.opts = adapter.opts or {}
       local body = {
         query = data.query,
-        topic = data.topic or "general",
-        search_depth = data.search_depth or "advanced",
-        chunks_per_source = data.chunks_per_source or 3,
-        max_results = data.max_results or 3,
-        time_range = data.time_range or nil, -- day, week, month, year
-        include_answer = data.include_answer or false,
-        include_raw_content = data.include_raw_content or false,
+        topic = adapter.opts.topic or "general", -- general, news
+        search_depth = adapter.opts.search_depth or "advanced", -- basic, advanced
+        chunks_per_source = adapter.opts.chunks_per_source or 3,
+        max_results = adapter.opts.max_results or 3,
+        time_range = adapter.opts.time_range or nil, -- day, week, month, year
+        include_answer = adapter.opts.include_answer or false,
+        include_raw_content = adapter.opts.include_raw_content or false,
       }
 
       if data.topic == "news" then
