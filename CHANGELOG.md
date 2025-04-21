@@ -1,5 +1,12 @@
 # Changelog
 
+## [14.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.10.1...v14.11.0) (2025-04-21)
+
+
+### Features
+
+* **action_palette:** preview open chats in telescope ([#1269](https://github.com/olimorris/codecompanion.nvim/issues/1269)) ([98a8d56](https://github.com/olimorris/codecompanion.nvim/commit/98a8d56e8cfc8e18396f03d6ebb2a44488eb477c))
+
 ## [14.10.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.10.0...v14.10.1) (2025-04-21)
 
 
