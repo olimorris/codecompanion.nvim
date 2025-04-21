@@ -174,6 +174,7 @@ local function ts_parse_messages(chat, start_range)
     end
   end
 
+  content = helpers.strip_references(content)
   if not vim.tbl_isempty(content) then
     return { content = vim.trim(table.concat(content, "\n\n")) }
   end
