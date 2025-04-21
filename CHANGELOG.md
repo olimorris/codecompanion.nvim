@@ -1,5 +1,12 @@
 # Changelog
 
+## [14.10.1](https://github.com/olimorris/codecompanion.nvim/compare/v14.10.0...v14.10.1) (2025-04-21)
+
+
+### Bug Fixes
+
+* **adapters:** model choice in azure openai closes [#1273](https://github.com/olimorris/codecompanion.nvim/issues/1273) ([#1274](https://github.com/olimorris/codecompanion.nvim/issues/1274)) ([4dd516a](https://github.com/olimorris/codecompanion.nvim/commit/4dd516ae6880b612073849f78ece5f67c854c44d))
+
 ## [14.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.9.1...v14.10.0) (2025-04-20)
 
 
