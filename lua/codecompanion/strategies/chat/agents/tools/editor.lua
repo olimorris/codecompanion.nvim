@@ -261,13 +261,14 @@ return {
     ---@param cmd table The command that was executed
     ---@param stdout table
     success = function(self, agent, cmd, stdout)
+      local chat = agent.chat
       local args = self.args
       local buf = args.buffer
 
       if args.action == "delete" then
         local count = args.end_line - args.start_line + 1
         local short = fmt("**Editor Tool:** Deleted %d line(s) in buffer %d", count, buf)
-        return agent.chat:add_tool_output(self, short)
+        return chat:add_tool_output(self, short)
       end
 
       local lines = vim.split(args.code or "", "\n", { plain = true, trimempty = false })
@@ -277,7 +278,7 @@ return {
       local ft = vim.bo[buf].filetype
       local full = fmt("%s:\n```%s\n%s\n```", short, ft, table.concat(lines, "\n"))
 
-      return agent.chat:add_tool_output(self, full, short)
+      return chat:add_tool_output(self, full, short)
     end,
   },
 }
