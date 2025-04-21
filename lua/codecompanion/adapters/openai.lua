@@ -38,9 +38,8 @@ return {
         choices = choices(self)
       end
 
-      local model_opts = choices[model]
-      if model_opts and model_opts.opts then
-        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
+      if choices and choices[model] and choices[model].opts then
+        self.opts = vim.tbl_deep_extend("force", self.opts, choices[model].opts)
       end
 
       if self.opts and self.opts.stream then
