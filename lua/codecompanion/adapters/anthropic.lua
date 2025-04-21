@@ -402,7 +402,7 @@ return {
             is_error = false,
           },
           -- Chat Buffer option: To tell the chat buffer that this shouldn't be visible
-          opts = { tag = tool_call.id, visible = false },
+          opts = { visible = false },
         }
       end,
     },

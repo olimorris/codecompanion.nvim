@@ -78,13 +78,26 @@ local function make_id(val)
   return hash.hash(val)
 end
 
----Find a message in the table that has a specific tag
----@param messages table
+---Determine if a tag exists in the messages table
 ---@param tag string
+---@param messages table
+---@return boolean
+local function has_tag(tag, messages)
+  return vim.tbl_contains(
+    vim.tbl_map(function(msg)
+      return msg.opts and msg.opts.tag
+    end, messages),
+    tag
+  )
+end
+
+---Find a message in the table that has a specific tag
+---@param id string
+---@param messages table
 ---@return table|nil
-local function find_tagged_message(messages, tag)
+local function find_tool_call(id, messages)
   for _, msg in ipairs(messages) do
-    if msg.opts and msg.opts.tag and msg.opts.tag == tag then
+    if msg.tool_call_id and msg.tool_call_id == id then
       return msg
     end
   end
@@ -503,7 +516,7 @@ function Chat:add_system_prompt(prompt, opts)
   opts = opts or { visible = false, tag = "from_config" }
 
   -- Don't add the same system prompt twice
-  if find_tagged_message(self.messages, opts.tag) then
+  if has_tag(opts.tag, self.messages) then
     return self
   end
 
@@ -1114,7 +1127,7 @@ function Chat:add_tool_output(tool, for_llm, for_user)
 
   local output = self.adapter.handlers.tools.output_response(self.adapter, tool_call, for_llm)
 
-  local existing = find_tagged_message(self.messages, tool_call.id)
+  local existing = find_tool_call(tool_call.id, self.messages)
   if existing then
     existing.content = existing.content .. "\n\n" .. output.content
   else

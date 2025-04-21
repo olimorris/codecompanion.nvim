@@ -68,7 +68,6 @@ T["OpenAI adapter"]["can output tool call"] = function()
   h.eq({
     content = output,
     opts = {
-      tag = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
       visible = false,
     },
     role = "tool",

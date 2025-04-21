@@ -258,7 +258,7 @@ return {
           role = self.roles.tool or "tool",
           tool_call_id = tool_call.id,
           content = output,
-          opts = { tag = tool_call.id, visible = false },
+          opts = { visible = false },
         }
       end,
     },
