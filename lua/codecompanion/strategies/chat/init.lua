@@ -78,6 +78,19 @@ local function make_id(val)
   return hash.hash(val)
 end
 
+---Find a message in the table that has a specific tag
+---@param messages table
+---@param tag string
+---@return table|nil
+local function find_tagged_message(messages, tag)
+  for _, msg in ipairs(messages) do
+    if msg.opts and msg.opts.tag and msg.opts.tag == tag then
+      return msg
+    end
+  end
+  return nil
+end
+
 local _cached_settings = {}
 
 ---Parse the chat buffer for settings
@@ -478,19 +491,6 @@ function Chat:complete_models(request, callback)
   callback({ items = items, isIncomplete = false })
 end
 
----Determine if a tag exists in the messages table
----@param tag string
----@param messages table
----@return boolean
-local function has_tag(tag, messages)
-  return vim.tbl_contains(
-    vim.tbl_map(function(msg)
-      return msg.opts and msg.opts.tag
-    end, messages),
-    tag
-  )
-end
-
 ---Set the system prompt in the chat buffer
 ---@params prompt? string
 ---@params opts? table
@@ -503,7 +503,7 @@ function Chat:add_system_prompt(prompt, opts)
   opts = opts or { visible = false, tag = "from_config" }
 
   -- Don't add the same system prompt twice
-  if has_tag(opts.tag, self.messages) then
+  if find_tagged_message(self.messages, opts.tag) then
     return self
   end
 
@@ -1110,9 +1110,16 @@ end
 ---@return nil
 function Chat:add_tool_output(tool, for_llm, for_user)
   local tool_call = tool.function_call
+  log:debug("Tool output: %s", tool_call)
 
-  -- Add the tool call to the messages table
-  table.insert(self.messages, self.adapter.handlers.tools.output_response(self.adapter, tool_call, for_llm))
+  local output = self.adapter.handlers.tools.output_response(self.adapter, tool_call, for_llm)
+
+  local existing = find_tagged_message(self.messages, tool_call.id)
+  if existing then
+    existing.content = existing.content .. "\n\n" .. output.content
+  else
+    table.insert(self.messages, output)
+  end
 
   -- Add a notification to the UI
   for_user = for_user or for_llm

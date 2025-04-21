@@ -32,11 +32,15 @@ return {
           return false
         end,
         tools = {
-          output_response = function(_, tool)
+          format_tool_calls = function(self, tools)
+            return tools
+          end,
+          output_response = function(self, tool_call, output)
             return {
-              id = tool.id,
-              type = tool.type,
-              arguments = tool.arguments,
+              role = "tool",
+              tool_call_id = tool_call.id,
+              content = output,
+              opts = { tag = tool_call.id, visible = false },
             }
           end,
         },

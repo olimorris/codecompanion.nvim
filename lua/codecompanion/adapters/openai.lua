@@ -258,8 +258,7 @@ return {
           role = self.roles.tool or "tool",
           tool_call_id = tool_call.id,
           content = output,
-          -- Chat Buffer option: To tell the chat buffer that this shouldn't be visible
-          opts = { visible = false },
+          opts = { tag = tool_call.id, visible = false },
         }
       end,
     },
