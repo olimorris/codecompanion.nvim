@@ -29,7 +29,7 @@ local function websearch(action, adapter, agent)
           if data.status == 200 then
             local output = adapter.handlers.chat_output(adapter, body)
             return agent.chat:add_buf_message({
-              role = config.constants.LLM_ROLE,
+              role = config.constants.USER_ROLE,
               content = output.content,
             })
           else

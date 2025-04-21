@@ -89,7 +89,7 @@ local defaults = {
           opts = {
             adapter = "tavily",
             opts = {
-              time_range = "month",
+              time_range = "year",
               search_depth = "advanced",
             },
           },
