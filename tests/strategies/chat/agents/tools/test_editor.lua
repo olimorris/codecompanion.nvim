@@ -44,8 +44,8 @@ local T = new_set({
 
 T["editor tool"] = function()
   child.lua([[
-    require("tests.log")
-    local tool = {
+    --require("tests.log")
+    local tools = {
       {
         id = 1,
         type = "function",
@@ -87,7 +87,7 @@ T["editor tool"] = function()
         }
       },
     }
-    agent:execute(chat, tool)
+    agent:execute(_G.chat, tools)
     vim.cmd("buffer " .. _G.bufnr)
   ]])
 
