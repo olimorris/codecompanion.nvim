@@ -7,7 +7,8 @@ T = new_set({
   hooks = {
     pre_case = function()
       child.restart({ "-u", "scripts/minimal_init.lua" })
-
+      child.o.statusline = ""
+      child.o.laststatus = 0
       child.lua([[
         _G.h = require('tests.helpers')
         _G.chat, _ = h.setup_chat_buffer({

@@ -8,6 +8,8 @@ local T = new_set({
   hooks = {
     pre_case = function()
       child.restart({ "-u", "scripts/minimal_init.lua" })
+      child.o.statusline = ""
+      child.o.laststatus = 0
       child.lua([[_G.chat, _G.agent = require("tests.helpers").setup_chat_buffer()]])
 
       -- Setup the buffer
