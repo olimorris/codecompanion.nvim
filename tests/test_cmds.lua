@@ -8,6 +8,8 @@ T = new_set({
   hooks = {
     pre_once = function()
       child.restart({ "-u", "scripts/minimal_init.lua" })
+      child.o.statusline = ""
+      child.o.laststatus = 0
       child.lua([[
         h = require('tests.helpers')
         h.setup_plugin()
