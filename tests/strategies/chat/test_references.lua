@@ -177,7 +177,7 @@ T["References"]["Can be pinned"] = function()
   h.eq(chat.refs[1].opts.pinned, true, "Reference is pinned")
 
   chat:submit()
-  h.eq(#chat.messages, 5, "There are four messages")
+  h.eq(#chat.messages, 4, "There are four messages")
   h.eq(chat.messages[#chat.messages].content, "Basic Slash Command")
 
   chat.status = "success"
