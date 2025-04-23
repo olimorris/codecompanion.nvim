@@ -174,7 +174,7 @@ local function ts_parse_messages(chat, start_range)
     end
   end
 
-  content = helpers.strip_references(content)
+  content = helpers.strip_references(content) -- If users send a blank message to the LLM, sometimes references are included
   if not vim.tbl_isempty(content) then
     return { content = vim.trim(table.concat(content, "\n\n")) }
   end
@@ -710,7 +710,7 @@ function Chat:submit(opts)
   end
   self.ui:lock_buf()
 
-  self:set_textarea(2) -- this accounts for the LLM header
+  self:set_text_editing_area(2) -- this accounts for the LLM header
 
   local payload = {
     messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
@@ -774,7 +774,7 @@ end
 ---Set the editable text area. This allows us to scope the Tree-sitter queries to a specific area
 ---@param modifier? number
 ---@return nil
-function Chat:set_textarea(modifier)
+function Chat:set_text_editing_area(modifier)
   modifier = modifier or 0
   self.header_line = api.nvim_buf_line_count(self.bufnr) + modifier
 end
@@ -799,7 +799,7 @@ local function ready_chat_buffer(chat)
   chat:increment_cycle()
   chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
-  chat:set_textarea(-2)
+  chat:set_text_editing_area(-2)
   chat.ui:display_tokens(chat.parser, chat.header_line)
   chat.references:render()
 
