@@ -125,7 +125,7 @@ return {
       local errors = vim.iter(stderr):flatten():join("\n")
 
       local error_output = string.format(
-        [[There was an error running the `%s` command:
+        [[**Cmd Runner Tool**: There was an error running the `%s` command:
 
 ```txt
 %s
@@ -137,8 +137,7 @@ return {
 
       if stdout and not vim.tbl_isempty(stdout) then
         local output = string.format(
-          [[
-There was also some output from the command:
+          [[**Cmd Runner Tool**: There was also some output from the command:
 
 ```txt
 %s
@@ -161,7 +160,7 @@ There was also some output from the command:
       end
       local output = vim.iter(stdout[#stdout]):flatten():join("\n")
       local message = string.format(
-        [[The output from the command `%s` was:
+        [[**Cmd Runner Tool**: The output from the command `%s` was:
 
 ```txt
 %s
