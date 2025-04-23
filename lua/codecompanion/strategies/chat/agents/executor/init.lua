@@ -36,7 +36,7 @@ end
 function Executor:setup_handlers()
   self.handlers = {
     setup = function()
-      vim.g.codecompanion_current_tool = self.tool.name
+      _G.codecompanion_current_tool = self.tool.name
       if self.tool.handlers and self.tool.handlers.setup then
         self.tool.handlers.setup(self.tool, self.agent)
       end
@@ -176,11 +176,12 @@ end
 ---Close the execution of the tool
 ---@return nil
 function Executor:close()
+  local chat = self.agent.chat
   log:debug("Executor:close")
   self.handlers.on_exit()
   util.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.agent.bufnr })
-  self.agent.chat.subscribers:process(self.agent.chat)
-  vim.g.codecompanion_current_tool = nil
+  chat.subscribers:process(chat)
+  _G.codecompanion_current_tool = nil
 end
 
 return Executor
