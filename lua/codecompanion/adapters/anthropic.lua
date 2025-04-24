@@ -107,6 +107,8 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
+      local has_tools = false
+
       -- 1. Extract and format system messages
       local system = vim
         .iter(messages)
@@ -146,13 +148,17 @@ return {
           }
         end
 
+        if message.tool_calls and vim.tbl_count(message.tool_calls) > 0 then
+          has_tools = true
+        end
+
         -- 5. Treat 'tool' role as user
         if message.role == "tool" then
           message.role = self.roles.user
         end
 
         -- 6. Convert any LLM tool_calls into content blocks
-        if message.role == self.roles.llm and message.tool_calls and vim.tbl_count(message.tool_calls) > 0 then
+        if has_tools and message.role == self.roles.llm and message.tool_calls then
           message.content = message.content or {}
           for _, call in ipairs(message.tool_calls) do
             table.insert(message.content, {
@@ -171,7 +177,29 @@ return {
       -- 7. Merge consecutive messages with the same role
       messages = utils.merge_messages(messages)
 
-      -- 8+. Cache large messages per opts.cache_over / cache_breakpoints
+      -- 8. Ensure that any consecutive tool results are merged
+      if has_tools then
+        for _, m in ipairs(messages) do
+          if m.role == self.roles.user and m.content then
+            local consolidated = {}
+            for _, block in ipairs(m.content) do
+              if block.type == "tool_result" then
+                local prev = consolidated[#consolidated]
+                if prev and prev.type == "tool_result" and prev.tool_use_id == block.tool_use_id then
+                  prev.content = prev.content .. block.content
+                else
+                  table.insert(consolidated, block)
+                end
+              else
+                table.insert(consolidated, block)
+              end
+            end
+            m.content = consolidated
+          end
+        end
+      end
+
+      -- 9+. Cache large messages per opts.cache_over / cache_breakpoints
       local breakpoints_used = 0
       for i = #messages, 1, -1 do
         local msgs = messages[i]

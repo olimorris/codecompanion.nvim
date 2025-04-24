@@ -118,6 +118,16 @@ T["Anthropic adapter"]["can form messages with tools to be sent to the API"] = f
       role = "tool",
       content = {
         type = "tool_result",
+        content = ". So enjoy it!",
+        tool_use_id = "toolu_01A09q90qw90lq917835lq9",
+        is_error = false,
+      },
+    },
+
+    {
+      role = "tool",
+      content = {
+        type = "tool_result",
         content = "The weather in Paris is 15 degrees celsius",
         tool_use_id = "toolu_01A09q90qw90lq917835lq8",
         is_error = false,
@@ -169,7 +179,7 @@ T["Anthropic adapter"]["can form messages with tools to be sent to the API"] = f
     {
       content = {
         {
-          content = "The weather in London is 15 degrees celsius",
+          content = "The weather in London is 15 degrees celsius. So enjoy it!",
           is_error = false,
           tool_use_id = "toolu_01A09q90qw90lq917835lq9",
           type = "tool_result",
