@@ -63,7 +63,10 @@ return {
       messages = vim
         .iter(messages)
         :map(function(msg)
-          if not msg.content then
+          local content = msg.content
+          if content and type(content) == "table" then
+            msg.content = table.concat(content, "\n")
+          elseif not content then
             msg.content = ""
           end
           return msg

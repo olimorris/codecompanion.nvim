@@ -66,6 +66,29 @@ T["DeepSeek adapter"]["merges system messages together at the start of the messa
   h.eq(expected, adapter.handlers.form_messages(adapter, input))
 end
 
+T["DeepSeek adapter"]["ensures message content is a string and not a list"] = function()
+  -- Ref: https://github.com/BerriAI/litellm/issues/6642
+  local input = {
+    { role = "user", content = "Describe Ruby in two words" },
+    { role = "assistant", content = { "Elegant, Simple." } },
+  }
+
+  local expected = {
+    messages = {
+      {
+        content = "Describe Ruby in two words",
+        role = "user",
+      },
+      {
+        content = "Elegant, Simple.",
+        role = "assistant",
+      },
+    },
+  }
+
+  h.eq(expected, adapter.handlers.form_messages(adapter, input))
+end
+
 T["DeepSeek adapter"]["it can form messages with tools"] = function()
   local input = {
     { role = "system", content = "System Prompt 1" },
