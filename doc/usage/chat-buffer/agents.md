@@ -1,7 +1,7 @@
 # Using Agents and Tools
 
-> [!TIP]
-> More information on how agents and tools work and how you can create your own can be found in the [Creating Tools](/extending/tools.md) guide.
+> [!IMPORTANT]
+> Not all LLMs support function calling and the use of tools. Please see the [Compatibility](/compatibility) guide for more information.
 
 <p align="center">
 <img src="https://github.com/user-attachments/assets/f4a5d52a-0de5-422d-a054-f7e97bb76f62" />
@@ -13,11 +13,13 @@ In the plugin, tools are simply context and actions that are shared with an LLM 
 
 > [!IMPORTANT]
 > The agentic use of some tools in the plugin results in you, the developer, acting as the human-in-the-loop and
-> approving their use. I intend on making this easier in the coming releases
+> approving their use.
 
 ## How Tools Work
 
-When a tool is added to the chat buffer, the LLM is instructured by the plugin to return a structured XML block which has been defined for each tool. The chat buffer parses the LLMs response and detects any tool use before triggering the _agent/init.lua_ file. The agent triggers off a series of events, which sees tool's added to a queue and sequentially worked with their putput being shared back to the LLM via the chat buffer. Depending on the tool, flags may be inserted on the chat buffer for later processing.
+Tools make use of an LLM's [function calling](https://platform.openai.com/docs/guides/function-calling) ability. All tools in CodeCompanion follow OpenAI's function calling specification, [here](https://platform.openai.com/docs/guides/function-calling#defining-functions).
+
+When a tool is added to the chat buffer, the LLM is instructured by the plugin to return a structured JSON schema which has been defined for each tool. The chat buffer parses the LLMs response and detects the tool use before triggering the _agent/init.lua_ file. The agent triggers off a series of events, which sees tool's added to a queue and sequentially worked with their putput being shared back to the LLM via the chat buffer. Depending on the tool, flags may be inserted on the chat buffer for later processing.
 
 An outline of the architecture can be seen [here](/extending/tools#architecture).
 
@@ -44,20 +46,7 @@ Use the @cmd_runner tool to install any missing libraries in my project
 
 Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) which means the plugin can't pass the output of the execution to the LLM. When this occurs, the tool will instead share the exit code.
 
-The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its XML request. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for [workflows](/extending/workflows) to hook into.
-
-An example of the XML that an LLM may generate for the tool:
-
-```xml
-<tools>
-  <tool name="cmd_runner">
-    <action>
-      <command><![CDATA[make test]]></command>
-      <flag>testing</flag>
-    </action>
-  </tool>
-</tools>
-```
+The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its request. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for [workflows](/extending/workflows) to hook into.
 
 ## @editor
 
@@ -69,37 +58,6 @@ Use the @editor tool refactor the code in #buffer{watch}
 
 ```md
 Can you apply the suggested changes to the buffer with the @editor tool?
-```
-
-An example of the XML that an LLM may generate for the tool:
-
-```xml
-<tools>
-  <tool name="editor">
-    <action type="add">
-      <code><![CDATA[
-    def transfer(self, amount, account):
-        pass
-      ]]></code>
-      <buffer>3</buffer>
-      <line>15</line>
-    </action>
-    <action type="delete">
-      <buffer>3</buffer>
-      <start_line>17</start_line>
-      <end_line>18</end_line>
-    </action>
-    <action type="update">
-      <code><![CDATA[
-    def deposit(self, amount):
-        print(f"Depositing {amount}")
-      ]]></code>
-      <buffer>3</buffer>
-      <start_line>11</start_line>
-      <end_line>12</end_line>
-    </action>
-  </tool>
-</tools>
 ```
 
 ## @files
@@ -117,34 +75,6 @@ The _@files_ tool leverages the [Plenary.Path](https://github.com/nvim-lua/plena
 - Renaming a file
 - Copying a file
 - Moving a file
-
-An example of the XML that an LLM may generate for the tool:
-
-```xml
-<tools>
-  <tool name="files">
-    <action type="create">
-      <contents><![CDATA[
-<example>
-  <title>Sample XML</title>
-  <description>This is an example XML file for the files tool.</description>
-  <items>
-    <item>
-      <name>Item 1</name>
-      <value>Value 1</value>
-    </item>
-    <item>
-      <name>Item 2</name>
-      <value>Value 2</value>
-    </item>
-  </items>
-</example>
-      ]]></contents>
-      <path>/Users/Oli/Code/Python/benchmarking/exercises/practice/bank-account/example.xml</path>
-    </action>
-  </tool>
-</tools>
-```
 
 ## @full_stack_dev
 

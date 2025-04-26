@@ -62,6 +62,7 @@ export default withMermaid(
         { text: "Introduction", link: "/" },
         { text: "Installation", link: "/installation" },
         { text: "Getting Started", link: "/getting-started" },
+        { text: "Compatibility", link: "/compatibility" },
         {
           text: "Configuration",
           collapsed: true,
