@@ -76,6 +76,20 @@ return {
             m.role = self.roles.user
           end
 
+          -- Ensure tool_calls are clean
+          if m.tool_calls then
+            m.tool_calls = vim
+              .iter(m.tool_calls)
+              :map(function(tool_call)
+                return {
+                  id = tool_call.id,
+                  ["function"] = tool_call["function"],
+                  type = tool_call.type,
+                }
+              end)
+              :totable()
+          end
+
           return {
             role = m.role,
             content = m.content,

@@ -16,7 +16,6 @@
                         "name": "weather"
                     },
                     "id": "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
-                    "_index": 0,
                     "type": "function"
                 },
                 {
@@ -25,7 +24,6 @@
                         "name": "weather"
                     },
                     "id": "call_a9oyUMlFhnX8HvqzlfIx5Uek",
-                    "_index": 1,
                     "type": "function"
                 }
             ],
