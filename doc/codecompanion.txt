@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.10.0        Last change: 2025 April 06
+*codecompanion.txt*         For NVIM v0.10.0        Last change: 2025 April 26
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -120,7 +120,7 @@ LAZY.NVIM ~
 >lua
     {
       "olimorris/codecompanion.nvim",
-      config = true,
+      opts = {},
       dependencies = {
         "nvim-lua/plenary.nvim",
         "nvim-treesitter/nvim-treesitter",
@@ -202,10 +202,16 @@ troubleshoot, running it with `nvim --clean -u minimal.lua`.
 ==============================================================================
 3. Getting Started                             *codecompanion-getting-started*
 
-Please see the plugin author’s own config
+Please see the author’s own config
 <https://github.com/olimorris/dotfiles/blob/main/.config/nvim/lua/plugins/coding.lua>
-for a complete reference of how to setup CodeCompanion.
+for a complete reference of how to setup the plugin.
 
+
+  [!IMPORTANT] The default adapter in CodeCompanion is GitHub Copilot
+  <https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/asking-github-copilot-questions-in-your-ide>.
+  If you have copilot.vim <https://github.com/github/copilot.vim> or copilot.lua
+  <https://github.com/zbirenbaum/copilot.lua> installed then expect CodeCompanion
+  to work out of the box.
 
 WITH AN ADAPTER                *codecompanion-getting-started-with-an-adapter*
 
@@ -390,7 +396,7 @@ The plugin has four core commands:
 
 - `CodeCompanion` - Open the inline assistant
 - `CodeCompanionChat` - Open a chat buffer
-- `CodeCompanionCmd` - Generate a command in the command-liine
+- `CodeCompanionCmd` - Generate a command in the command-line
 - `CodeCompanionActions` - Open the `Action Palette`
 
 However, there are multiple options available:
@@ -483,7 +489,7 @@ You can change the appearance of the chat buffer by changing the
           width = 95,
           height = 10,
           prompt = "Prompt ", -- Prompt used for interactive LLM calls
-          provider = "default", -- default|telescope|mini_pick
+          provider = "default", -- Can be "default", "telescope", or "mini_pick". If not specified, the plugin will autodetect installed providers.
           opts = {
             show_default_actions = true, -- Show the default actions in the action palette?
             show_default_prompt_library = true, -- Show the default prompt library in the action palette?
@@ -898,7 +904,9 @@ Slash Commands (invoked with `/`) let you dynamically insert context into the
 chat buffer, such as file contents or date/time.
 
 The plugin supports providers like `telescope`, `mini_pick`, `fzf_lua` and
-`snacks` (as in snacks.nvim). Please see the
+`snacks` (as in snacks.nvim). By default, the plugin will automatically detect
+if you have any of those plugins installed and duly select them. Failing that,
+the in-build `default` provider will be used. Please see the
 |codecompanion-usage-chat-buffer-index| usage section for full details:
 
 >lua
@@ -911,7 +919,7 @@ The plugin supports providers like `telescope`, `mini_pick`, `fzf_lua` and
               callback = "strategies.chat.slash_commands.file",
               description = "Select a file using Telescope",
               opts = {
-                provider = "telescope", -- Other options include 'default', 'mini_pick', 'fzf_lua', snacks
+                provider = "telescope", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks"
                 contains_code = true,
               },
             },
@@ -2041,13 +2049,10 @@ The `#buffer` variable shares the full contents from the buffer that the user
 was last in when they initiated `:CodeCompanionChat`. To select another buffer,
 use the `/buffer` slash command. These buffers can be
 |codecompanion-usage-chat-buffer-index-references| to enable updated content to
-be automatically shared with the LLM.
+be automatically shared with the LLM:
 
-It’s also possible to pass parameters to the `#buffer` variable:
-
-- `#buffer:23-30` - To send lines 23 to 30 of the current buffer the LLM
-- `#buffer:pin` - To pin the current buffer
-- `#buffer:watch` - To watch the current buffer
+- `#buffer{pin}` - To pin the current buffer
+- `#buffer{watch}` - To watch the current buffer
 
 
 #LSP ~
@@ -2229,108 +2234,16 @@ Below are some examples of how you can customize the UI related to
 CodeCompanion.
 
 
-FIDGET.NVIM PROGRESS BY @JESSEVDP ~
+PROGRESS UPDATES WITH FIDGET.NVIM BY @JESSEVDP ~
 
-As per the discussions
-<https://github.com/olimorris/codecompanion.nvim/discussions/813>:
+As per the discussion over at #813
+<https://github.com/olimorris/codecompanion.nvim/discussions/813>
 
->lua
-    -- lua/plugins/codecompanion.lua
-    
-    return {
-      {
-        "olimorris/codecompanion.nvim",
-        dependencies = {
-          -- ...
-          "j-hui/fidget.nvim"
-        },
-        opts = {
-          strategies = {
-            -- ...
-          },
-        },
-        init = function()
-          require("plugins.codecompanion.fidget-spinner"):init()
-        end,
-      },
-    }
-<
 
->lua
-    -- lua/plugins/codecompanion/fidget-spinner.lua
-    
-    local progress = require("fidget.progress")
-    
-    local M = {}
-    
-    function M:init()
-      local group = vim.api.nvim_create_augroup("CodeCompanionFidgetHooks", {})
-    
-      vim.api.nvim_create_autocmd({ "User" }, {
-        pattern = "CodeCompanionRequestStarted",
-        group = group,
-        callback = function(request)
-          local handle = M:create_progress_handle(request)
-          M:store_progress_handle(request.data.id, handle)
-        end,
-      })
-    
-      vim.api.nvim_create_autocmd({ "User" }, {
-        pattern = "CodeCompanionRequestFinished",
-        group = group,
-        callback = function(request)
-          local handle = M:pop_progress_handle(request.data.id)
-          if handle then
-            M:report_exit_status(handle, request)
-            handle:finish()
-          end
-        end,
-      })
-    end
-    
-    M.handles = {}
-    
-    function M:store_progress_handle(id, handle)
-      M.handles[id] = handle
-    end
-    
-    function M:pop_progress_handle(id)
-      local handle = M.handles[id]
-      M.handles[id] = nil
-      return handle
-    end
-    
-    function M:create_progress_handle(request)
-      return progress.handle.create({
-        title = " Requesting assistance (" .. request.data.strategy .. ")",
-        message = "In progress...",
-        lsp_client = {
-          name = M:llm_role_title(request.data.adapter),
-        },
-      })
-    end
-    
-    function M:llm_role_title(adapter)
-      local parts = {}
-      table.insert(parts, adapter.formatted_name)
-      if adapter.model and adapter.model ~= "" then
-        table.insert(parts, "(" .. adapter.model .. ")")
-      end
-      return table.concat(parts, " ")
-    end
-    
-    function M:report_exit_status(handle, request)
-      if request.data.status == "success" then
-        handle.message = "Completed"
-      elseif request.data.status == "error" then
-        handle.message = " Error"
-      else
-        handle.message = "󰜺 Cancelled"
-      end
-    end
-    
-    return M
-<
+INLINE SPINNER WITH FIDGET.NVIM BY @YUHUA99 ~
+
+As per the comment on #640
+<https://github.com/olimorris/codecompanion.nvim/discussions/640#discussioncomment-12866279>
 
 
 LUALINE.NVIM INTEGRATION ~
