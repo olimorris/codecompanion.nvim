@@ -151,9 +151,16 @@ return {
 
           if delta and delta.tool_calls and #delta.tool_calls > 0 then
             for i, tool in ipairs(delta.tool_calls) do
-              if self.opts.stream then
-                local tool_index = tool.index and tonumber(tool.index) or i
+              local tool_index = tool.index and tonumber(tool.index) or i
 
+              -- Some endpoints like Gemini do not set this (why?!)
+              -- We need this to ensure the #tool_calls = #tool_responses
+              local id = tool.id
+              if not id or id == "" then
+                id = string.format("call_%d", tool_index)
+              end
+
+              if self.opts.stream then
                 local found = false
                 for _, existing_tool in ipairs(tools) do
                   if existing_tool._index == tool_index then
@@ -170,7 +177,7 @@ return {
                 if not found then
                   table.insert(tools, {
                     _index = tool_index,
-                    id = tool.id,
+                    id = id,
                     type = tool.type,
                     ["function"] = {
                       name = tool["function"]["name"],
@@ -181,7 +188,7 @@ return {
               else
                 table.insert(tools, {
                   _index = i,
-                  id = tool.id,
+                  id = id,
                   type = tool.type,
                   ["function"] = {
                     name = tool["function"]["name"],
