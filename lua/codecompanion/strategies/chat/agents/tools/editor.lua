@@ -198,23 +198,29 @@ return {
           action = {
             type = "string",
             enum = { "add", "update", "delete" },
-            description = "The action to perform in the buffer",
+            description = "Action to perform: 'add', 'update', or 'delete'.",
           },
           buffer = {
             type = "integer",
-            description = "The buffer number to perform the action on",
+            description = "Neovim buffer number",
           },
           code = {
-            type = { "string", "null" },
-            description = "The code to input to the buffer for add or update actions. Not needed for the delete action.",
+            anyOf = {
+              { type = "string" },
+              { type = "null" },
+            },
+            description = "String of code to add/update; set to `null` when deleting.",
           },
           start_line = {
             type = "integer",
-            description = "The line number in the buffer where the action is initiated from. Specifying 7 will result in code being added, deleted or updated from line 7.",
+            description = "1‑based start line where the action begins.",
           },
           end_line = {
-            type = { "integer", "null" },
-            description = "The line number in the buffer where the action runs up to. Specifying line 9 will result in code being deleted or updated up to and including line 9. This is not needed for the add action",
+            anyOf = {
+              { type = "integer" },
+              { type = "null" },
+            },
+            description = "1‑based inclusive end line; set to `null` for add actions.",
           },
         },
         required = {

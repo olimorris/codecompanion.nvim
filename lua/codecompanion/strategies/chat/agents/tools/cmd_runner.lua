@@ -23,8 +23,11 @@ return {
             description = "The command to run, e.g. `pytest` or `make test`",
           },
           flag = {
-            type = { "string", "null" },
-            description = 'If the user asks you to run a test or a test suite, set this to "testing"',
+            anyOf = {
+              { type = "string" },
+              { type = "null" },
+            },
+            description = 'If running tests, set to `"testing"`; null otherwise',
           },
         },
         required = {
