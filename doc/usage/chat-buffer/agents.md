@@ -1,7 +1,7 @@
 # Using Agents and Tools
 
 > [!IMPORTANT]
-> Not all LLMs support function calling and the use of tools. Please see the [Compatibility](/compatibility) guide for more information.
+> Not all LLMs support function calling and the use of tools. Please see the [compatibility](#compatibility) section for more information.
 
 <p align="center">
 <img src="https://github.com/user-attachments/assets/f4a5d52a-0de5-422d-a054-f7e97bb76f62" />
