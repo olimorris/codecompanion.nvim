@@ -1148,6 +1148,8 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   log:debug("Tool output: %s", tool_call)
 
   local output = self.adapter.handlers.tools.output_response(self.adapter, tool_call, for_llm)
+  output.cycle = self.cycle
+  output.id = make_id({ role = output.role, content = output.content })
 
   local existing = find_tool_call(tool_call.id, self.messages)
   if existing then
