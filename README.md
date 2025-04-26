@@ -46,11 +46,7 @@ Thank you to the following people:
     <video controls muted src="https://github.com/user-attachments/assets/aa109f1d-0ec9-4f08-bd9a-df99da03b9a4"></video>
   </p>
   <p>
-    <h3>Using Agents and Tools</h3>
-    <video controls muted src="https://github.com/user-attachments/assets/16bd6c17-bd70-41a1-83aa-7af45c166ae9"></video>
-  </p>
-  <p>
-    <h3>Agentic Workflows</h3>
+    <h3>Tools + Agentic Workflows</h3>
     <video controls muted src="https://github.com/user-attachments/assets/31bae248-ae70-4395-9df1-67fc252475ca"></video>
   </p>
   <p>
@@ -102,7 +98,7 @@ I am open to contributions but they will be implemented at my discretion. Feel f
 ## :clap: Acknowledgements
 
 - [Steven Arcangeli](https://github.com/stevearc) for his genius creation of the chat buffer and his feedback early on
-- [Manoel Campos](https://github.com/manoelcampos) for the [xml2lua](https://github.com/manoelcampos/xml2lua) library that's used in the tools implementation
+- [Manoel Campos](https://github.com/manoelcampos) for the [xml2lua](https://github.com/manoelcampos/xml2lua) library that's used in the inline assistant implementation
 - [Dante.nvim](https://github.com/S1M0N38/dante.nvim) for the beautifully simple diff implementation
 - [Wtf.nvim](https://github.com/piersolenski/wtf.nvim) for the LSP assistant action
 - [CopilotChat.nvim](https://github.com/CopilotC-Nvim/CopilotChat.nvim) for the rendering and usability of the chat
