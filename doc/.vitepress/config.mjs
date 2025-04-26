@@ -113,6 +113,7 @@ export default withMermaid(
             { text: "Creating Tools", link: "/extending/tools" },
             { text: "Creating Workflows", link: "/extending/workflows" },
             { text: "Creating Workspaces", link: "/extending/workspace" },
+            { text: "Creating Extensions", link: "/extending/extensions" },
           ],
         },
       ],
