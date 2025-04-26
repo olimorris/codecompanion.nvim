@@ -81,10 +81,6 @@ local defaults = {
             requires_approval = true,
           },
         },
-        ["weather"] = {
-          callback = "strategies.chat.agents.tools.weather",
-          description = "Get the latest weather",
-        },
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
           auto_submit_success = false, -- Send any successful output to the LLM automatically?
