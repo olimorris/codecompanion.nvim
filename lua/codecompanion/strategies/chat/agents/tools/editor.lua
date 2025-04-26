@@ -238,7 +238,7 @@ return {
   system_prompt = string.format([[# Editor Tool (`editor`)
 
 ## CONTEXT
-- You have access to a editor tool running within CodeCompanion, in Neovim.
+- You have access to an editor tool running within CodeCompanion, in Neovim.
 - You can use it to add, edit or delete code in a Neovim buffer, via a buffer number that the user has provided to you.
 - You can specify line numbers to add, edit or delete code and CodeCompanion will carry out the action in the buffer, on your behalf.
 
@@ -252,6 +252,9 @@ return {
 - This tool can be called multiple times to make multiple changes to the same buffer.
 - If the user has not provided you with a buffer number, you must ask them for one.
 - Ensure that the code you write is syntactically correct and valid and that indentations are correct.
+
+## POINTS TO NOTE
+- This tool can be used alongside other tools within CodeCompanion
 ]]),
   handlers = {
     ---@param self CodeCompanion.Tool.Editor

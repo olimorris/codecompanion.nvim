@@ -72,6 +72,9 @@ return {
   3. Suggest safer alternatives when available
 - If unsure about a command's safety, decline to run it and explain your concerns
 
+## POINTS TO NOTE
+- This tool can be used alongside other tools within CodeCompanion
+
 ## USER ENVIRONMENT
 - Shell: %s
 - Operating System: %s
