@@ -97,20 +97,21 @@ All tools must implement the following structure which the bulk of this guide wi
 ```lua
 ---@class CodeCompanion.Agent.Tool
 ---@field name string The name of the tool
+---@field args table The arguments sent over by the LLM when making the function call
 ---@field cmds table The commands to execute
+---@field function_call table The function call from the LLM
 ---@field schema table The schema that the LLM must use in its response to execute a tool
----@field system_prompt fun(schema: table, xml2lua: table): string The system prompt to the LLM explaining the tool and the schema
+---@field system_prompt string | fun(schema: table): string The system prompt to the LLM explaining the tool and the schema
 ---@field opts? table The options for the tool
 ---@field env? fun(schema: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
 ---@field handlers table Functions which handle the execution of a tool
----@field handlers.setup? fun(agent: CodeCompanion.Agent): any Function used to setup the tool. Called before any commands
----@field handlers.on_exit? fun(agent: CodeCompanion.Agent): any Function to call at the end of a group of commands or functions
+---@field handlers.setup? fun(self: CodeCompanion.Agent.Tool, agent: CodeCompanion.Agent): any Function used to setup the tool. Called before any commands
+---@field handlers.on_exit? fun(self: CodeCompanion.Agent.Tool, agent: CodeCompanion.Agent): any Function to call at the end of a group of commands or functions
 ---@field output? table Functions which handle the output after every execution of a tool
----@field output.prompt fun(agent: CodeCompanion.Agent, self: CodeCompanion.Agent.Tool): string The message which is shared with the user when asking for their approval
----@field output.rejected? fun(agent: CodeCompanion.Agent, cmd: table): any Function to call if the user rejects running a command
----@field output.error? fun(agent: CodeCompanion.Agent, cmd: table, stderr: table, stdout?: table): any The function to call if an error occurs
----@field output.success? fun(agent: CodeCompanion.Agent, cmd: table, stdout: table): any Function to call if the tool is successful
----@field request table The request from the LLM to use the Tool
+---@field output.prompt fun(self: CodeCompanion.Agent.Tool, agent: CodeCompanion.Agent): string The message which is shared with the user when asking for their approval
+---@field output.rejected? fun(self: CodeCompanion.Agent.Tool, agent: CodeCompanion.Agent, cmd: table): any Function to call if the user rejects running a command
+---@field output.error? fun(self: CodeCompanion.Agent.Tool, agent: CodeCompanion.Agent, cmd: table, stderr: table, stdout?: table): any The function to call if an error occurs
+---@field output.success? fun(self: CodeCompanion.Agent.Tool, agent: CodeCompanion.Agent, cmd: table, stdout: table): any Function to call if the tool is successful
 ```
 
 ### `cmds`
@@ -145,12 +146,13 @@ cmds = {
     },
   },
 },
----@param xml table The values from the XML returned by the LLM
-env = function(xml)
+---@param self CodeCompanion.Agent.Tool
+---@return table
+env = function(self)
   local temp_input = vim.fn.tempname()
   local temp_dir = temp_input:match("(.*/)")
-  local lang = xml.lang
-  local code = xml.code
+  local lang = self.args.lang
+  local code = self.args.code
 
   return {
     code = code,
@@ -172,16 +174,15 @@ For the purpose of our calculator example:
 
 ```lua
 cmds = {
-  ---@param self CodeCompanion.Agent.Tool The Tools object
-  ---@param actions table The action object
+  ---@param self CodeCompanion.Tool.Calculator The Calculator tool
+  ---@param args table The arguments from the LLM's tool call
   ---@param input? any The output from the previous function call
-  ---@param output_handler fun(output: { status: "success"|"error", data: any })? callback for async tool
-  ---@return nil|{ status: "success"|"error", data: any }
-  function(self, actions, input, output_handler)
--- Get the numbers and operation requested by the LLM
-    local num1 = tonumber(actions.num1)
-    local num2 = tonumber(actions.num2)
-    local operation = actions.operation
+  ---@return nil|{ status: "success"|"error", data: string }
+  function(self, args, input)
+    -- Get the numbers and operation requested by the LLM
+    local num1 = tonumber(args.num1)
+    local num2 = tonumber(args.num2)
+    local operation = args.operation
 
     -- Validate input
     if not num1 then
@@ -217,22 +218,25 @@ cmds = {
   end,
 },
 ```
+
 For a synchronous tool, you only need to `return` the result table as demonstrated.
 However, if you need to invoke some asynchronous actions in the tool, you can use the `output_handler` to submit any results to the executor, which will then invoke `output` functions to handle the results:
+
 ```lua
 cmds = {
-  function(agent, actions, input, output_handler)
-    -- this is for demonstration only
+  function(self, args, input, output_handler)
+    -- This is for demonstration only
     vim.lsp.client.request(lsp_method, lsp_param, function(err, result, _, _)
-      agent.chat:add_message({role = "user", content = vim.json.encode(result)})
-      output_handler({status = "success", data = result})
+      self.agent.chat:add_message({ role = "user", content = vim.json.encode(result) })
+      output_handler({ status = "success", data = result })
     end, buf_nr)
   end
 }
 ```
+
 Note that:
 
-1. the `output_handler` will be called only once. Subsequent calls will be discarded;
+1. The `output_handler` will be called only once. Subsequent calls will be discarded;
 2. A tool function should EITHER return the result table (synchronous), OR call the `output_handler` with the result table as the only argument (asynchronous), but not both.
 If a function tries to both return the result and call the `output_handler`, the result will be undefined because there's no guarantee which output will be handled first.
 
@@ -252,106 +256,67 @@ Will populate the `stdout` table on the agent file and allow for execution to co
 
 ### `schema`
 
-The XML that the LLM has sent, is parsed and sent to the `actions` parameter of any function you've created in [cmds](/extending/tools.html#cmds), as a Lua table. If the LLM has done its job correctly, the Lua table should be the representation of what you've described in the schema.
+The function call that the LLM has sent, is parsed and sent to the `args` parameter of any function you've created in [cmds](/extending/tools.html#cmds), as a JSON object which is then converted to Lua via `vim.json.decode`. If the LLM has done its job correctly, the Lua table should be the representation of what you've described in the schema. In summary, the schema represents the structure of the response that the LLM must follow in order to call the tool.
 
-In summary, the schema represents the structure of the response that the LLM must follow in order to call the tool. The schema is structured in Lua before being converted into XML with the awesome [xml2lua](https://github.com/manoelcampos/xml2lua) parser.
-
-For our basic calculator tool, which does an operation on two numbers, the schema could look something like:
+For a tool to function correctly, your tool requires an [OpenAI compatible](https://platform.openai.com/docs/guides/function-calling?api-mode=chat) schema. For our basic calculator tool, which does an operation on two numbers, the schema could look something like:
 
 ```lua
 schema = {
-  _attr = { name = "calculator" },
-  action = {
-    num1 = "100",
-    num2 = "50",
-    operation = "multiply"
+  type = "function",
+  ["function"] = {
+    name = "calculator",
+    description = "Perform simple mathematical operations on a user's machine",
+    parameters = {
+      type = "object",
+      properties = {
+        num1 = {
+          type = "integer",
+          description = "The first number in the calculation",
+        },
+        num2 = {
+          type = "integer",
+          description = "The second number in the calculation",
+        },
+        operation = {
+          type = "string",
+          enum = { "add", "subtract", "multiply", "divide" },
+          description = "The mathematical operation to perform on the two numbers",
+        },
+      },
+      required = {
+        "num1",
+        "num2",
+        "operation"
+      },
+      additionalProperties = false,
+    },
+    strict = true,
   },
 },
 ```
 
 ### `system_prompt`
 
-In the plugin, LLMs are given knowledge about a tool and its schema via a system prompt. This method also informs the LLM on how to use the tool to achieve a desired outcome.
+In the plugin, LLMs are given knowledge about a tool and how it can be used via a system prompt. This method also informs the LLM on how to use the tool to achieve a desired outcome.
 
 For our calculator tool, our `system_prompt` could look something like:
 
 ````lua
----@param schema table
----@param xml2lua table
----@return string
-system_prompt = function(schema, xml2lua)
-  return string.format([[## Calculator Tool (`calculator`)
+system_prompt = [[## Calculator Tool (`calculator`)
 
-### Purpose:
-- To do a mathematical operation on two numbers.
+## CONTEXT
+- You have access to a calculator tool running within CodeCompanion, in Neovim.
+- You can use it to add, subtract, multiply or divide two numbers.
 
-### When to Use:
-- Only invoke the calculator tool when the user specifically asks you
+### OBJECTIVE
+- Do a mathematical operation on two numbers when the user asks
 
-### Execution Format:
-- Always return an XML markdown code block
-
-### XML Schema:
-Each tool invocation should adhere to this structure:
-
-```xml
-%s
-```
-
-where:
-- `num1` is the first number to do any calculations with
-- `num2` is the second number to do any calculations with
-- `operation` is the mathematical operation to do on the two numbers. It MUST be one of `add`, `subtract`, `multiply` or `divide`
-
-### Reminder:
-- Minimize extra explanations and focus on returning correct XML blocks.
-- Always use the structure above for consistency.]],
-    xml2lua.toXml(schema, "tool")
-  )
-end,
-````
-
-You'll notice that the `system_prompt` function has two parameters:
-
-- The [schema](/extending/tools.html#schema) table that we created earlier
-- The [xml2lua](https://github.com/manoelcampos/xml2lua) library that comes with the plugin
-
-Whilst the latter is not mandated for use in the system prompt, it's the most optimum way of converting your schema to XML. You can see in the example above how we're using it. As a result, the system prompt that will be sent to the LLM will be:
-
-````
-## Calculator Tool (`calculator`) - Enhanced Guidelines
-
-### Purpose:
-- To do a mathematical operation on two numbers.
-
-### When to Use:
-- Only invoke the calculator tool when the user specifically asks you
-
-### Execution Format:
-- Always return an XML markdown code block
-
-### XML Schema:
-Each tool invocation should adhere to this structure:
-
-```xml
-<tool name="calculator">
-  <action>
-    <num1>100</num1>
-    <num2>50</num2>
-    <operation>multiply</operation>
-  </action>
-</tool>
-```
-
-where:
-- `num1` is the first number to do any calculations with
-- `num2` is the second number to do any calculations with
-- `operation` is the mathematical operation to do on the two numbers. It MUST be one of `add`, `subtract`, `multiply` or `divide`
-
-### Reminder:
+### RESPONSE
 - Minimize extra explanations and focus on returning correct XML blocks.
 - Always use the structure above for consistency.
+]],
 ````
+
 
 ### `handlers`
 
@@ -364,14 +329,21 @@ For the purposes of our calculator, let's just return some notifications so you 
 
 ```lua
 handlers = {
-  setup = function(agent)
+  ---@param self CodeCompanion.Tool.Calculator
+  ---@param agent CodeCompanion.Agent The tool object
+  setup = function(self, agent)
     return vim.notify("setup function called", vim.log.levels.INFO)
   end,
-  on_exit = function(agent)
+  ---@param self CodeCompanion.Tool.Calculator
+  ---@param agent CodeCompanion.Agent
+  on_exit = function(self, agent)
     return vim.notify("on_exit function called", vim.log.levels.INFO)
   end,
 },
 ```
+
+> [!TIP]
+> The chat buffer can be accessed via `agent.chat` in the handler and output tables
 
 ### `output`
 
@@ -386,17 +358,20 @@ Let's consider how me might implement this for our calculator tool:
 
 ```lua
 output = {
+  ---@param self CodeCompanion.Tool.Calculator
   ---@param agent CodeCompanion.Agent
   ---@param cmd table The command that was executed
   ---@param stdout table
-  success = function(agent, cmd, stdout)
-    local config = require("codecompanion.config")
-    return agent.chat:add_buf_message({
-      role = config.constants.USER_ROLE,
-      content = string.format("The output from the calculator was %d", tonumber(stdout[1]))
-    })
+  success = function(self, agent, cmd, stdout)
+    local chat = agent.chat
+    return chat:add_tool_output(self, tostring(stdout[1]))
   end,
-  error = function(agent)
+  ---@param self CodeCompanion.Tool.Calculator
+  ---@param agent CodeCompanion.Agent
+  ---@param cmd table
+  ---@param stderr table The error output from the command
+  ---@param stdout? table The output from the command
+  error = function(self, agent, cmd, stderr, stdout)
     return vim.notify("An error occurred", vim.log.levels.ERROR)
   end,
 },
@@ -416,11 +391,15 @@ require("codecompanion").setup({
           callback = {
             name = "calculator",
             cmds = {
-              function(self, actions, input)
+              ---@param self CodeCompanion.Tool.Calculator The Calculator tool
+              ---@param args table The arguments from the LLM's tool call
+              ---@param input? any The output from the previous function call
+              ---@return nil|{ status: "success"|"error", data: string }
+              function(self, args, input)
                 -- Get the numbers and operation requested by the LLM
-                local num1 = tonumber(actions.num1)
-                local num2 = tonumber(actions.num2)
-                local operation = actions.operation
+                local num1 = tonumber(args.num1)
+                local num2 = tonumber(args.num2)
+                local operation = args.operation
 
                 -- Validate input
                 if not num1 then
@@ -458,65 +437,79 @@ require("codecompanion").setup({
                 return { status = "success", data = result }
               end,
             },
+            system_prompt = [[## Calculator Tool (`calculator`)
+
+## CONTEXT
+- You have access to a calculator tool running within CodeCompanion, in Neovim.
+- You can use it to add, subtract, multiply or divide two numbers.
+
+### OBJECTIVE
+- Do a mathematical operation on two numbers when the user asks
+
+### RESPONSE
+- Minimize extra explanations and focus on returning correct XML blocks.
+- Always use the structure above for consistency.
+]],
+
             schema = {
-              _attr = { name = "calculator" },
-              action = {
-                num1 = "100",
-                num2 = "50",
-                operation = "multiply",
+              type = "function",
+              ["function"] = {
+                name = "calculator",
+                description = "Perform simple mathematical operations on a user's machine",
+                parameters = {
+                  type = "object",
+                  properties = {
+                    num1 = {
+                      type = "integer",
+                      description = "The first number in the calculation",
+                    },
+                    num2 = {
+                      type = "integer",
+                      description = "The second number in the calculation",
+                    },
+                    operation = {
+                      type = "string",
+                      enum = { "add", "subtract", "multiply", "divide" },
+                      description = "The mathematical operation to perform on the two numbers",
+                    },
+                  },
+                  required = {
+                    "num1",
+                    "num2",
+                    "operation",
+                  },
+                  additionalProperties = false,
+                },
+                strict = true,
               },
             },
-            system_prompt = function(schema, xml2lua)
-              return string.format(
-                [[## Calculator Tool (`calculator`) - Enhanced Guidelines
-
-### Purpose:
-- To do a mathematical operation on two numbers.
-
-### When to Use:
-- Only invoke the calculator tool when the user specifically asks you
-
-### Execution Format:
-- Always return an XML markdown code block
-
-### XML Schema:
-Each tool invocation should adhere to this structure:
-
-```xml
-%s
-```
-
-where:
-- `num1` is the first number to do any calculations on
-- `num2` is the second number to do any calculations on
-- `operation` is the mathematical operation to do on the two numbers. It MUST be one of `add`, `subtract`, `multiply` or `divide`
-
-### Reminder:
-- Minimize extra explanations and focus on returning correct XML blocks.
-- Always use the structure above for consistency.]],
-                xml2lua.toXml(schema, "tool")
-              )
-            end,
             handlers = {
-              setup = function(agent)
+              ---@param self CodeCompanion.Tool.Calculator
+              ---@param agent CodeCompanion.Agent The tool object
+              setup = function(self, agent)
                 return vim.notify("setup function called", vim.log.levels.INFO)
               end,
-              on_exit = function(agent)
+              ---@param self CodeCompanion.Tool.Calculator
+              ---@param agent CodeCompanion.Agent
+              on_exit = function(self, agent)
                 return vim.notify("on_exit function called", vim.log.levels.INFO)
               end,
             },
             output = {
+              ---@param self CodeCompanion.Tool.Calculator
               ---@param agent CodeCompanion.Agent
               ---@param cmd table The command that was executed
               ---@param stdout table
-              success = function(agent, cmd, stdout)
-                local config = require("codecompanion.config")
-                return agent.chat:add_buf_message({
-                  role = config.constants.USER_ROLE,
-                  content = string.format("The output from the calculator was %d", tonumber(stdout[1])),
-                })
+              success = function(self, agent, cmd, stdout)
+                local chat = agent.chat
+                return chat:add_tool_output(self, tostring(stdout[1]))
               end,
-              error = function(agent)
+              ---@param self CodeCompanion.Tool.Calculator
+              ---@param agent CodeCompanion.Agent
+              ---@param cmd table
+              ---@param stderr table The error output from the command
+              ---@param stdout? table The output from the command
+              error = function(self, agent, cmd, stderr, stdout)
                 return vim.notify("An error occurred", vim.log.levels.ERROR)
               end,
             },
@@ -531,10 +524,10 @@ where:
 and with the prompt:
 
 ```
-@calculator what is 100*50?
+Use the @calculator tool for 100*50
 ```
 
-You should see: `The output from the calculator was 5000`, in the chat buffer.
+You should see: `5000`, in the chat buffer.
 
 ### Adding in User Approvals
 
@@ -567,16 +560,19 @@ output = {
   -- success and error functions remain the same ...
 
   ---The message which is shared with the user when asking for their approval
+  ---@param self CodeCompanion.Tool.Calculator
   ---@param agent CodeCompanion.Agent
-  ---@param self CodeCompanion.Agent.Tool
   ---@return string
-  prompt = function(agent, self)
-    return string.upper(self.request.action.operation) .. " " .. self.request.action.num1  .. " and " .. self.request.action.num2 .. "?"
+  prompt = function(self, agent)
+    return string.format(
+      "Perform the calculation `%s`?",
+      self.args.num1 .. " " .. self.args.operation .. " " .. self.args.num2
+    )
   end,
 },
 ```
 
-This will notify the user with the message: `MULTIPLY 100 and 50?`. The user can choose to proceed, reject or cancel. The latter will cancel any tools from running.
+This will notify the user with the message: `Perform the calculation 100 multiply 50?`. The user can choose to proceed, reject or cancel. The latter will cancel any tools from running.
 
 You can also customize the output if a user rejects the approval:
 
@@ -584,19 +580,14 @@ You can also customize the output if a user rejects the approval:
 output = {
   -- success, error and prompt functions remain the same ...
 
-    ---Rejection message back to the LLM
-    ---@param agent CodeCompanion.Agent
-    ---@return nil
-    rejected = function(agent)
-      local config = require("codecompanion.config")
-      return agent.chat:add_buf_message({
-        role = config.constants.USER_ROLE,
-        content = "The user rejected your request to run the calculator tool"
-      })
+  ---Rejection message back to the LLM
+  ---@param self CodeCompanion.Tool.Calculator
+  ---@param agent CodeCompanion.Agent
+  ---@param cmd table
+  ---@return nil
+  rejected = function(self, agent, cmd)
+    agent.chat:add_tool_output(self, "The user declined to run the calculator tool")
   end,
 },
 ```
 
-### `request`
-
-At runtime, CodeCompanion will take the LLMs XML request and add that to a `request` table on the tool itself to make it easy to access.
