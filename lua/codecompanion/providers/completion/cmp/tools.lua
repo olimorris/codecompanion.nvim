@@ -21,7 +21,7 @@ function source:get_keyword_pattern()
 end
 
 function source:complete(params, callback)
-  local items = require("codecompanion.completion").tools()
+  local items = require("codecompanion.providers.completion").tools()
   local agent_kind = require("cmp").lsp.CompletionItemKind.Struct
   local tool_kind = require("cmp").lsp.CompletionItemKind.Snippet
 
