@@ -1,5 +1,12 @@
 # Changelog
 
+## [14.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.12.0...v14.13.0) (2025-04-27)
+
+
+### Features
+
+* **chat_buffer:** hide grouped tools in completion menu ([#1295](https://github.com/olimorris/codecompanion.nvim/issues/1295)) ([8380ee8](https://github.com/olimorris/codecompanion.nvim/commit/8380ee85fcd63a6752c545ed46fb9a2455f49527))
+
 ## [14.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.11.0...v14.12.0) (2025-04-26)
 
 
