@@ -57,7 +57,7 @@
     },
     {
       "name": "Tools",
-      "system_prompt": "In the CodeCompanion plugin, tools can be leveraged by an LLM to execute lua functions or shell commands on the users machine. By responding with XML, CodeCompanion will pass the response, call the corresponding tool. This feature has been implemented via the agent/init.lua file, which passes all of the tools and adds them to a queue. Then those tools are run consecutively by the executor/init.lua file.",
+      "system_prompt": "In the CodeCompanion plugin, tools can be leveraged by an LLM to execute lua functions or shell commands on the users machine. CodeCompanion uses an LLM's native function calling to receive a response in JSON, parse the response and call the corresponding tool. This feature has been implemented via the agent/init.lua file, which passes all of the tools and adds them to a queue. Then those tools are run consecutively by the executor/init.lua file.",
       "opts": {
         "remove_config_system_prompt": true
       },
@@ -172,7 +172,7 @@
     "agents-init": {
       "type": "file",
       "path": "lua/codecompanion/strategies/chat/agents/init.lua",
-      "description": "This is the entry point for the agent. If XML is detected in an LLM's response then this file is triggered which in turns add tools to a queue before calling the executor"
+      "description": "This is the entry point for the agent. If an LLM's response includes a function call (or tool call) then this file is triggered which in turns add tools to a queue before calling the executor"
     },
     "executor-init": {
       "type": "file",
