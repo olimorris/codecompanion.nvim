@@ -81,7 +81,7 @@ strategies/chat/agents
 │   ├── rag.lua
 ```
 
-When a tool is detected, the chat buffer sends any output to the `agents/init.lua` file (I will commonly refer to that as the _"agent file"_ throughout this document). The agent file then parses the output into XML, identifying the tool and duly executing it.
+When a tool is detected, the chat buffer sends any output to the `agents/init.lua` file (I will commonly refer to that as the _"agent file"_ throughout this document). The agent file then parses the response from the LLM, identifying the tool and duly executing it.
 
 There are two types of tools that CodeCompanion can leverage:
 
@@ -312,7 +312,6 @@ system_prompt = [[## Calculator Tool (`calculator`)
 - Do a mathematical operation on two numbers when the user asks
 
 ### RESPONSE
-- Minimize extra explanations and focus on returning correct XML blocks.
 - Always use the structure above for consistency.
 ]],
 ````
@@ -447,7 +446,6 @@ require("codecompanion").setup({
 - Do a mathematical operation on two numbers when the user asks
 
 ### RESPONSE
-- Minimize extra explanations and focus on returning correct XML blocks.
 - Always use the structure above for consistency.
 ]],
 
