@@ -52,7 +52,7 @@ export default withMermaid(
             },
             {
               text: "Contributing",
-              link: "https://github.com/olimorris/codecompanion.nvim/blob/main/.github/contributing.md",
+              link: "https://github.com/olimorris/codecompanion.nvim/blob/main/CONTRIBUTING.md",
             },
           ],
         },

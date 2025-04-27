@@ -17,6 +17,30 @@ The plugin has adopted semantic versioning. As such, any PR which breaks the exi
 5. Make sure your code has adequate test coverage and is well-documented.
 6. Open a pull request (PR) with a clear title and description.
 
+## Tips for Contributing
+
+The best way to contribute to CodeCompanion is to use CodeCompanion to help you add a feature or squash a bug. Below are some useful tips to enable you to get started as quickly as possible.
+
+### Read the Docs
+
+They're located [here](https://codecompanion.olimorris.dev) and are regularly updated.
+
+### Use Workspaces
+
+CodeCompanion makes use of [workspaces](https://codecompanion.olimorris.dev/usage/chat-buffer/slash-commands.html#workspace), which allow groups of files and context, to be shared with an LLM more easily:
+
+<img src="https://github.com/user-attachments/assets/a04e9b2d-bfc6-4f03-84fe-77c0f5cb92f2">
+
+This allows the LLM to understand exactly what CodeCompanion does and how it functions. Multiple workspaces can be loaded into a chat buffer as well.
+
+### Use VectorCode
+
+[VectorCode](https://github.com/Davidyz/VectorCode/tree/main) is a repository indexing tool and makes it very easy to intelligently share relevant parts of a codebase with an LLM. Once installed and the CodeCompanion codebase has been indexed, you can add the VectorCode tool to a chat buffer and the LLM can begin calling it.
+
+### Refer to the Tests
+
+CodeCompanion has [c. 200 tests](https://github.com/olimorris/codecompanion.nvim/tree/main/tests) that have been carefully crafted to give great test coverage and to act as a second source of documentation. The [testing](#testing) section has more on how you can create your own tests.
+
 ## Project Structure
 
 CodeCompanion.nvim is organized into several key directories:
@@ -126,14 +150,25 @@ With mitmproxy you can much more using custom scripts/hooks like simulating slow
 
 ## Testing
 
-CodeCompanion uses [Mini.Test](https://github.com/echasnovski/mini.nvim/tree/main/lua/mini/test) for testing. To run the tests:
+CodeCompanion uses the awesome [Mini.Test](https://github.com/echasnovski/mini.nvim/blob/main/TESTING.md) for all its tests. To run the full suite of tests, call:
 
 ```bash
-make test           # Run all tests
-make test_file FILE=path/to/test_file.lua  # Run a specific test file
+make test
+```
+
+or to run a specific test file:
+
+```bash
+FILE=tests/adapters/test_openai.lua make test_file
 ```
 
 When adding new features, please include tests in the appropriate test file under the `tests/` directory.
+
+### Testing Tips
+
+Trying to understand the CodeCompanion codebase and then having to learn how to create tests can feel onerous. So to make this process easier, it's recommended to load the `test` workspace into your chat buffer to give your LLM knowledge of how Mini.Test works.
+
+It can also be useful to share an example [test file](https://github.com/olimorris/codecompanion.nvim/blob/main/tests/adapters/test_openai.lua) with an LLM too.
 
 ## Code Style and Conventions
 
