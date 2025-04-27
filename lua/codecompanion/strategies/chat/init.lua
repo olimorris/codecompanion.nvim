@@ -45,7 +45,7 @@ The Chat Buffer - This is where all of the logic for conversing with an LLM sits
 
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
-local completion = require("codecompanion.completion")
+local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
 local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.strategies.chat.helpers")

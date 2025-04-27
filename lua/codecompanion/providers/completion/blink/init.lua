@@ -1,6 +1,6 @@
 --- @module 'blink.cmp'
 
-local completion = require("codecompanion.completion")
+local completion = require("codecompanion.providers.completion")
 
 local slash_commands = completion.slash_commands()
 local tools = completion.tools()

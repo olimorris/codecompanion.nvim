@@ -1,5 +1,5 @@
 local async = require("plenary.async")
-local completion = require("codecompanion.completion")
+local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
 local ts = require("codecompanion.utils.treesitter")
 local ui = require("codecompanion.utils.ui")
