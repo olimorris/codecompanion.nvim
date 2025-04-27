@@ -11,10 +11,13 @@
 
 ## Screenshots
 
-<!-- Add screenshots of the changes if applicable. -->
+<!-- Add screenshots of the changes if applicable, to help visualize the change. -->
 
 ## Checklist
 
 - [ ] I've read the [contributing](https://github.com/olimorris/codecompanion.nvim/blob/main/CONTRIBUTING.md) guidelines and have adhered to them in this PR
+- [ ] I've updated `CodeCompanion.has` in the [init.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/init.lua#L239) file for my new feature
+- [ ] I've added
+[test](https://github.com/olimorris/codecompanion.nvim/blob/main/CONTRIBUTING.md#testing) coverage for this fix/feature
 - [ ] I've updated the README and/or relevant docs pages
 - [ ] I've run `make docs` to update the vimdoc pages
