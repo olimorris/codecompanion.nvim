@@ -78,7 +78,6 @@ strategies/chat/agents
 │   ├── cmd_runner.lua
 │   ├── editor.lua
 │   ├── files.lua
-│   ├── rag.lua
 ```
 
 When a tool is detected, the chat buffer sends any output to the `agents/init.lua` file (I will commonly refer to that as the _"agent file"_ throughout this document). The agent file then parses the response from the LLM, identifying the tool and duly executing it.

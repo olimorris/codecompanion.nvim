@@ -3482,7 +3482,6 @@ structure of the agents and tools implementation:
     │   ├── cmd_runner.lua
     │   ├── editor.lua
     │   ├── files.lua
-    │   ├── rag.lua
 <
 
 When a tool is detected, the chat buffer sends any output to the
