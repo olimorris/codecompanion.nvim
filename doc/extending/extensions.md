@@ -11,30 +11,24 @@ Extensions are configured in your CodeCompanion setup:
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
-    "author/my-extension.nvim" -- Your extension
+    "author/codecompanion_history.nvim" -- history extension
   }
 }
 
 -- Configure in your setup
 require("codecompanion").setup({
   extensions = {
-    my_extension = {
-      enabled = true, -- Optional, defaults to true
+    codecompanion_history = {
+      enabled = true, -- defaults to true
       opts = {
-        -- Extension specific options
+        history_file = vim.fn.stdpath("data") .. "/codecompanion_chats.json",
+        max_history = 10, -- maximum number of chats to keep
       }
     }
   }
 })
 ```
 
-Once configured, extension exports are accessible via:
-
-```lua
-local codecompanion = require("codecompanion")
--- Use exported functions
-codecompanion.extensions.my_extension.some_function()
-```
 
 ## Creating Extensions
 
@@ -67,46 +61,43 @@ end
 
 -- Optional: Functions exposed via codecompanion.extensions.your_extension
 Extension.exports = {
-  some_function = function() end
+  clear_history = function() end
 }
 
 return Extension
 ```
 
-### Adding Chat Functionality
+### Extending Chat Functionality
 
-A common use case is extending chat functionality. You have access to the chat buffer in callbacks:
+A common pattern is to add keymaps, slash_commands, tools to the codecompanion.config object inside setup function.
 
 ```lua
+---This is called on codecompanion setup.
+---You can access config via require("codecompanion.config") and chat via require("codecompanion.chat").last_chat() etc
 function Extension.setup(opts)
   -- Add action to chat keymaps
   local chat_keymaps = require("codecompanion.config").strategies.chat.keymaps
   
-  chat_keymaps.my_action = {
+  chat_keymaps.open_saved_chats = {
     modes = {
-      n = opts.keymap or "gm",  -- Allow configurable keymap
+      n = opts.keymap or "gh", 
     },
-    description = "My Chat Action",
+    description = "Open Saved Chats",
     callback = function(chat)
-      -- Chat buffer methods available:
-      local messages = chat:get_messages()   -- Get chat messages
-      local current = chat.current_request   -- Current request
-      
-      -- Add message to chat
-      chat:add_buf_message({
-        role = "user",
-        content = "My message"
-      })
-      
-      -- Check if tools are being used
-      if chat:has_tools() then
-        -- Tool functionality available
-      end
+        -- Implementation of opening saved chats
+        vim.notify("Opening saved chats for " .. chat.id)
     end
   }
 end
 ```
 
+Once configured, extension exports are accessible via:
+
+```lua
+local codecompanion = require("codecompanion")
+-- Use exported functions
+codecompanion.extensions.codecompanion_history.clear_history()
+```
 
 ## Local Extensions
 
@@ -155,6 +146,20 @@ The callback can be:
 - A function returning the extension table
 - The extension table directly 
 - A string path to a module that returns the extension
+
+## Dynamic registration
+
+Extensions can also be added dynamically using 
+
+```lua
+require("codecompanion").register_extension("codecompanion_history", {
+    callback = {
+        setup = function()
+        end,
+        exports = {}
+    },
+})
+```
 
 ## Best Practices
 

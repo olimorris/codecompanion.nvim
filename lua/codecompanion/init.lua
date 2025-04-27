@@ -11,6 +11,13 @@ local CodeCompanion = {
   extensions = _extensions.manager,
 }
 
+CodeCompanion.register_extension = function(name, schema)
+  local ok, ext_error = pcall(_extensions.load_extension, name, schema)
+  if not ok then
+    log:error("Error loading extension %s: %s", name, ext_error)
+  end
+end
+
 ---Run the inline assistant from the current Neovim buffer
 ---@param args table
 ---@return nil
