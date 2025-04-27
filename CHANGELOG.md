@@ -1,5 +1,20 @@
 # Changelog
 
+## [14.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.12.0...v14.13.0) (2025-04-27)
+
+
+### Features
+
+* **chat_buffer:** hide grouped tools in completion menu ([#1295](https://github.com/olimorris/codecompanion.nvim/issues/1295)) ([8380ee8](https://github.com/olimorris/codecompanion.nvim/commit/8380ee85fcd63a6752c545ed46fb9a2455f49527))
+
+## [14.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.11.0...v14.12.0) (2025-04-26)
+
+
+### Features
+
+* **events:** add context to event data payload ([03f55cb](https://github.com/olimorris/codecompanion.nvim/commit/03f55cb3dc0735ae9846bd420fa51ff36bb21fae))
+* **events:** add context to InlineStarted event data payload ([#1293](https://github.com/olimorris/codecompanion.nvim/issues/1293)) ([03f55cb](https://github.com/olimorris/codecompanion.nvim/commit/03f55cb3dc0735ae9846bd420fa51ff36bb21fae))
+
 ## [14.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.10.1...v14.11.0) (2025-04-21)
 
 

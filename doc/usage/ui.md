@@ -20,6 +20,14 @@ As per the discussion over at [#813](https://github.com/olimorris/codecompanion.
 
 As per the comment on [#640](https://github.com/olimorris/codecompanion.nvim/discussions/640#discussioncomment-12866279)
 
+## [Status column extmarks with the inline assistant](https://github.com/olimorris/codecompanion.nvim/discussions/1297) by [@lucobellic](https://github.com/lucobellic)
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/1daa7409-414e-4f4c-91fe-cd9c3ed0640e" />
+</p>
+
+As per the discussion over at [#1297](https://github.com/olimorris/codecompanion.nvim/discussions/1297)
+
 ## [Lualine.nvim](https://github.com/nvim-lualine/lualine.nvim) integration
 
 The plugin can be integrated with lualine.nvim to show an icon in the statusline when a request is being sent to an LLM:

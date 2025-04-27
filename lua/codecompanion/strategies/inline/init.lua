@@ -413,6 +413,7 @@ function Inline:submit(prompt)
       end,
     }, {
       bufnr = self.bufnr,
+      context = self.context or {},
       strategy = "inline",
     })
 end
