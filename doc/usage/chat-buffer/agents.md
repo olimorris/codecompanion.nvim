@@ -100,7 +100,7 @@ The plugin allows you to run tools on autopilot. This automatically approves any
 
 ## Compatibility
 
-Below is a list of the status of various adapters and models in the plugin:
+Below is the tool use status of various adapters and models in CodeCompanion:
 
 | Adapter           | Model                      | Supported          | Notes                            |
 |-------------------|----------------------------| :----------------: |----------------------------------|
@@ -126,8 +126,8 @@ Below is a list of the status of various adapters and models in the plugin:
 | Huggingface       | All                        | :x:                | Not supported yet                |
 | Mistral           | All                        | :x:                | Not supported yet                |
 | Novita            | All                        | :x:                | Not supported yet                |
-| Ollama            | All                        | :x:                | Doesn't support function calling |
-| OpenAI Compatible | All                        | :grey_question:    | Unable to test                   |
+| Ollama            | All                        | :x:                | Is currently [broken](https://github.com/ollama/ollama/issues/9632) |
+| OpenAI Compatible | All                        | :grey_question:    | Not tested                       |
 | OpenAI            | gpt-3.5-turbo              | :white_check_mark: |                                  |
 | OpenAI            | gpt-4                      | :white_check_mark: |                                  |
 | OpenAI            | gpt-4o                     | :white_check_mark: |                                  |
@@ -135,5 +135,5 @@ Below is a list of the status of various adapters and models in the plugin:
 | OpenAI            | o1-2024-12-17              | :white_check_mark: |                                  |
 | OpenAI            | o1-mini-2024-09-12         | :x:                | Doesn't support function calling |
 | OpenAI            | o3-mini-2025-01-31         | :white_check_mark: |                                  |
-| xAI               | All                        | :x:                |                                  |
+| xAI               | All                        | :x:                | Not supported yet                |
 
