@@ -88,8 +88,8 @@ function M.tools()
   -- Add tools
   vim
     .iter(config.strategies.chat.tools)
-    :filter(function(label)
-      return label ~= "opts" and label ~= "groups"
+    :filter(function(label, value)
+      return label ~= "opts" and label ~= "groups" and value.visible ~= false
     end)
     :each(function(label, v)
       table.insert(items, {
