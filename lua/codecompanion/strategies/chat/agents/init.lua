@@ -134,7 +134,7 @@ function Agent:execute(chat, tools)
     self:set_autocmds()
 
     if self.tool.env then
-      local env = type(self.tool.env) == "function" and self.tool.env(tool) or {}
+      local env = type(self.tool.env) == "function" and self.tool.env(vim.deepcopy(self.tool)) or {}
       util.replace_placeholders(self.tool.cmds, env)
     end
 
