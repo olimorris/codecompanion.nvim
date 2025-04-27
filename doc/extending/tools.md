@@ -588,3 +588,18 @@ output = {
 },
 ```
 
+## Other Tips
+
+### `use_handlers_once`
+
+If an LLM calls multiple tools in the same response, it's possible that the same tool may be called in succession. If you'd like to ensure that the handler functions (`setup` and `on_exit`) are only called once, you can set this in the `opts` table in the tool itself:
+
+```lua
+return {
+  name = "editor",
+  opts = {
+    use_handlers_once = true,
+  },
+  -- More code follows...
+}
+```

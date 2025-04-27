@@ -4044,6 +4044,27 @@ You can also customize the output if a user rejects the approval:
 <
 
 
+OTHER TIPS ~
+
+
+USE_HANDLERS_ONCE
+
+If an LLM calls multiple tools in the same response, it’s possible that the
+same tool may be called in succession. If you’d like to ensure that the
+handler functions (`setup` and `on_exit`) are only called once, you can set
+this in the `opts` table in the tool itself:
+
+>lua
+    return {
+      name = "editor",
+      opts = {
+        use_handlers_once = true,
+      },
+      -- More code follows...
+    }
+<
+
+
 CREATING WORKFLOWS                *codecompanion-extending-creating-workflows*
 
 Workflows in CodeCompanion, are successive prompts which can be automatically
