@@ -129,7 +129,7 @@ function Agent:execute(chat, tools)
           log:error("Couldn't decode the tool arguments: %s", args)
           self.chat:add_tool_output(
             self.tool,
-            string.format("You made an error in calling the %s tool: `%s`", name, err),
+            string.format('You made an error in calling the %s tool: "%s"', name, err),
             string.format("**%s Tool Error**: %s", util.capitalize(name), err)
           )
           return util.fire("AgentFinished", { bufnr = self.bufnr })
