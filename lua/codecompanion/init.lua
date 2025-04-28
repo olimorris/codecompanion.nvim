@@ -258,6 +258,7 @@ CodeCompanion.has = function(feature)
     "cmd",
     "prompt-library",
     "xml-tools",
+    "extensions",
   }
 
   if type(feature) == "string" then
