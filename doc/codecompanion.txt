@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.10.0        Last change: 2025 April 26
+*codecompanion.txt*         For NVIM v0.10.0        Last change: 2025 April 28
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -9,6 +9,7 @@ Table of Contents                            *codecompanion-table-of-contents*
 2. Installation                                   |codecompanion-installation|
   - Requirements                     |codecompanion-installation-requirements|
   - Installation                     |codecompanion-installation-installation|
+  - Installing Extensions   |codecompanion-installation-installing-extensions|
   - Completion                         |codecompanion-installation-completion|
   - Help                                     |codecompanion-installation-help|
 3. Getting Started                             |codecompanion-getting-started|
@@ -170,6 +171,46 @@ follow the master branch:
 >lua
     { "nvim-lua/plenary.nvim", branch = "master" },
 <
+
+
+INSTALLING EXTENSIONS       *codecompanion-installation-installing-extensions*
+
+CodeCompanion supports extensions that add additional functionality to the
+plugin. For example, to install and set up the mcphub extension using
+lazy.nvim:
+
+1. Install the extension:
+
+>lua
+    {
+      "olimorris/codecompanion.nvim",
+      dependencies = {
+        -- Add mcphub.nvim as a dependency
+        "ravitemer/mcphub.nvim" 
+      }
+    }
+<
+
+1. Add extension to your config with additional options:
+
+>lua
+    -- Configure in your setup
+    require("codecompanion").setup({
+      extensions = {
+        mcphub = {
+          callback = "mcphub.extensions.codecompanion",
+          opts = {
+            make_vars = true,       
+            make_slash_commands = true,
+            show_result_in_chat = true  
+          }
+        }
+      }
+    })
+<
+
+Visit the |codecompanion-extending-extensions| to learn more about available
+extensions and how to create your own.
 
 
 COMPLETION                             *codecompanion-installation-completion*
