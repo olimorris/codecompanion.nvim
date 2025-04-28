@@ -127,7 +127,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | Mistral           | All                        | :x:                | Not supported yet                |
 | Novita            | All                        | :x:                | Not supported yet                |
 | Ollama            | All                        | :x:                | Is currently [broken](https://github.com/ollama/ollama/issues/9632) |
-| OpenAI Compatible | All                        | :grey_question:    | Not tested                       |
+| OpenAI Compatible | All                        | :x:                | Dependant on the model           |
 | OpenAI            | gpt-3.5-turbo              | :white_check_mark: |                                  |
 | OpenAI            | gpt-4                      | :white_check_mark: |                                  |
 | OpenAI            | gpt-4o                     | :white_check_mark: |                                  |
