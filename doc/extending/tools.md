@@ -375,6 +375,21 @@ output = {
 },
 ```
 
+The `add_tool_output` method is designed to make it as easy as possible for tool authors to update the message history on the chat buffer:
+
+```lua
+---Add the output from a tool to the message history and a message to the UI
+---@param tool table The Tool that was executed
+---@param for_llm string The output to share with the LLM
+---@param for_user? string The output to share with the user. If empty will use the LLM's output
+---@return nil
+function Chat:add_tool_output(tool, for_llm, for_user)
+  -- Omitted for brevity
+end
+```
+
+The `for_llm` parameter is the string message that will be shared with the LLM as part of the message history in the chat buffer, this is not made visible to the user. The `for_user` parameter allows tool authors to customize the visible output in the chat buffer, but if this is nil then the `for_llm` string is used.
+
 ### Running the Calculator tool
 
 If we put this all together in our config:
