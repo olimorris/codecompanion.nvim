@@ -11,8 +11,12 @@ local CodeCompanion = {
   extensions = _extensions.manager,
 }
 
-CodeCompanion.register_extension = function(name, schema)
-  local ok, ext_error = pcall(_extensions.load_extension, name, schema)
+---Register an extension with setup and exports
+---@param name string The name of the extension
+---@param extension CodeCompanion.Extension The extension implementation
+---@return nil
+CodeCompanion.register_extension = function(name, extension)
+  local ok, ext_error = pcall(_extensions.register_extension, name, extension)
   if not ok then
     log:error("Error loading extension %s: %s", name, ext_error)
   end

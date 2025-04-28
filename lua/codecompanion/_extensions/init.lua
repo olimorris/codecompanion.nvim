@@ -1,21 +1,29 @@
+---@class CodeCompanion.Extension
+---@field setup fun(opts: table): any Function called when extension is loaded
+---@field exports? table Optional table of functions exposed via codecompanion.extensions.name
+
 ---@class CodeCompanion.Extensions
+---@field _exports table<string,table> Extension exports storage
 local Extensions = {
-  ---@type table<string,any> Extension exports
   _exports = {},
 }
 
+---@type table
 Extensions.manager = setmetatable({}, {
   __index = function(_, key)
-    return Extensions._exports[key] or {}
+    -- Return nil for missing extensions instead of empty table
+    return Extensions._exports[key]
   end,
 })
+
 ---Resolves extension from "codecompanion._extensions.<name>" from the runtimepath including third-party extensions
 ---Can also provide a path to a local extension in the config
 ---@param name string The name of the extension
----@param callback string | table | function T
----@return table|nil
+---@param callback string|table|function? Optional callback for external extensions
+---@return CodeCompanion.Extension|nil
 function Extensions.resolve(name, callback)
   local extension
+
   --if callback is given, resolve from string or function
   if callback then
     if type(callback) == "string" then
@@ -31,20 +39,32 @@ function Extensions.resolve(name, callback)
     -- Load the extension from the runtimepath
     extension = require("codecompanion._extensions." .. name)
   end
-  -- Check if the extension is a table and has a setup function
+
+  -- Basic validation
   if type(extension) ~= "table" then
     error("Codecompanion extension " .. name .. " is not a table")
   end
   if type(extension.setup) ~= "function" then
     error("Codecompanion extension " .. name .. " does not have a setup function")
   end
+
   return extension
+end
+
+---Register an extension directly
+---@param name string The name of the extension
+---@param extension CodeCompanion.Extension The extension implementation
+---@return nil
+function Extensions.register_extension(name, extension)
+  return Extensions.load_extension(name, {
+    callback = extension,
+  })
 end
 
 ---Resolve extension from given path or from runtimepath and loads it
 ---@param name string The name of the extension
----@param schema {enabled?: boolean, opts?: table, callback?: table | function } The extension config
----@return table | nil
+---@param schema {opts?: table, callback?: string|table|function} The extension config
+---@return CodeCompanion.Extension|nil
 function Extensions.load_extension(name, schema)
   schema = schema or {}
   local ext = Extensions.resolve(name, schema.callback)
