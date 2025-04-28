@@ -81,7 +81,7 @@ end
 T["Agent"][":execute"] = new_set()
 T["Agent"][":execute"]["a response from the LLM"] = function()
   child.lua([[
-    require("tests.log")
+    --require("tests.log")
     local tools = {
       {
         id = 1,
@@ -103,6 +103,30 @@ T["Agent"][":execute"]["a response from the LLM"] = function()
   local output = child.lua_get([[_G.weather_output]])
 
   h.eq("The weather in London, UK is 15° celsius", output)
+end
+
+T["Agent"][":execute"]["a malformed response from the LLM is handled"] = function()
+  child.lua([[
+    --require("tests.log")
+    local tools = {
+      {
+        id = 1,
+        type = "function",
+        ["function"] = {
+          name = "weather",
+          -- Add an extra } at the end of the arguments
+          arguments = '{\"location\": \"London, UK\", \"units\": \"celsius\"}}'
+        },
+      },
+    }
+
+    local chat = _G.chat
+    _G.agent:execute(chat, tools)
+  ]])
+
+  local output = child.lua_get([[chat.messages[#chat.messages].content]])
+
+  h.expect_starts_with("You made an error in calling the weather tool:", output)
 end
 
 T["Agent"][":execute"]["a nested response from the LLM"] = function() end

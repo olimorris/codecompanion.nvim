@@ -122,10 +122,18 @@ function Agent:execute(chat, tools)
       local args = tool["function"].arguments
       -- For some adapter's that aren't streaming, the args are strings rather than tables
       if type(args) == "string" then
-        local ok, decoded = pcall(vim.json.decode, args)
-        if not ok then
-          return log:error("Couldn't decode the tool arguments: %s", args)
-        end
+        local decoded
+        xpcall(function()
+          decoded = vim.json.decode(args)
+        end, function(err)
+          log:error("Couldn't decode the tool arguments: %s", args)
+          self.chat:add_tool_output(
+            self.tool,
+            string.format("You made an error in calling the %s tool: `%s`", name, err),
+            string.format("**%s Tool Error**: %s", util.capitalize(name), err)
+          )
+          return util.fire("AgentFinished", { bufnr = self.bufnr })
+        end)
         args = decoded
       end
       self.tool.args = args
