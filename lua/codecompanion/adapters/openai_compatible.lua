@@ -123,6 +123,9 @@ return {
     form_messages = function(self, messages)
       return openai.handlers.form_messages(self, messages)
     end,
+    form_tools = function(self, tools)
+      return openai.handlers.form_tools(self, tools)
+    end,
     chat_output = function(self, data, tools)
       return openai.handlers.chat_output(self, data, tools)
     end,
