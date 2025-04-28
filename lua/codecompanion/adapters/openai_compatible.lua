@@ -123,8 +123,11 @@ return {
     form_messages = function(self, messages)
       return openai.handlers.form_messages(self, messages)
     end,
-    chat_output = function(self, data)
-      return openai.handlers.chat_output(self, data)
+    chat_output = function(self, data, tools)
+      return openai.handlers.chat_output(self, data, tools)
+    end,
+    inline_output = function(self, data, context)
+      return openai.handlers.inline_output(self, data, context)
     end,
     tools = {
       format_tool_calls = function(self, tools)
@@ -134,10 +137,6 @@ return {
         return openai.handlers.tools.output_response(self, tool_call, output)
       end,
     },
-
-    inline_output = function(self, data, context)
-      return openai.handlers.inline_output(self, data, context)
-    end,
     on_exit = function(self, data)
       return openai.handlers.on_exit(self, data)
     end,
