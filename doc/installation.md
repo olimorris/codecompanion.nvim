@@ -65,6 +65,42 @@ As per [#377](https://github.com/olimorris/codecompanion.nvim/issues/377), if yo
 { "nvim-lua/plenary.nvim", branch = "master" },
 ```
 
+## Installing Extensions
+
+CodeCompanion supports extensions that add additional functionality to the plugin. For example, to install and set up the mcphub extension using lazy.nvim:
+
+1. Install the extension:
+
+```lua
+{
+  "olimorris/codecompanion.nvim",
+  dependencies = {
+    -- Add mcphub.nvim as a dependency
+    "ravitemer/mcphub.nvim" 
+  }
+}
+```
+
+2. Add extension to your config with additional options:
+
+```lua
+-- Configure in your setup
+require("codecompanion").setup({
+  extensions = {
+    mcphub = {
+      callback = "mcphub.extensions.codecompanion",
+      opts = {
+        make_vars = true,       
+        make_slash_commands = true,
+        show_result_in_chat = true  
+      }
+    }
+  }
+})
+```
+
+Visit the [extensions documentation](extending/extensions) to learn more about available extensions and how to create your own.
+
 ## Completion
 
 Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
@@ -82,4 +118,3 @@ The plugin also supports [native completion](usage/chat-buffer/index#completion)
 ## Help
 
 If you're having trouble installing the plugin, as a first step, run `:checkhealth codecompanion` to check that plugin is installed correctly. After that, consider using the [minimal.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua)  file to troubleshoot, running it with `nvim --clean -u minimal.lua`.
-
