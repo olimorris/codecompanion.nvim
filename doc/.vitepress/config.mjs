@@ -117,6 +117,13 @@ export default withMermaid(
             { text: "Creating Extensions", link: "/extending/extensions" },
           ],
         },
+        {
+          text: "Community Extensions",
+          collapsed: true,
+          items: [
+            { text: "MCP Hub", link: "/extensions/mcphub" },
+          ]
+        },
       ],
 
       editLink: {
