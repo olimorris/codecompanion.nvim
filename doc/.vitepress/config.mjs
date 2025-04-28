@@ -76,6 +76,7 @@ export default withMermaid(
             },
             { text: "Prompt Library", link: "/configuration/prompt-library" },
             { text: "System Prompt", link: "/configuration/system-prompt" },
+            { text: "Extensions", link: "/configuration/extensions" },
             { text: "Others", link: "/configuration/others" },
           ],
         },
