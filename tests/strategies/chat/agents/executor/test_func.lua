@@ -57,7 +57,7 @@ T["Agent"]["functions"]["can run functions of the same name consecutively"] = fu
   h.eq(vim.NIL, child.lua_get([[_G._test_func]]))
 
   child.lua([[
-    require("tests.log")
+    --require("tests.log")
     local tools = {
       {
         ["function"] = {
