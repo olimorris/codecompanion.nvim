@@ -1158,7 +1158,12 @@ function Chat:add_tool_output(tool, for_llm, for_user)
     table.insert(self.messages, output)
   end
 
-  -- Add a notification to the UI
+  -- Allow tools to pass in an empty string to end the processing
+  if for_user == "" then
+    return
+  end
+
+  -- Update the contents of the chat buffer
   for_user = for_user or for_llm
   self:add_buf_message({
     role = config.constants.LLM_ROLE,
