@@ -173,6 +173,14 @@ You now have access to specialized tools that empower you to assist users with s
             provider = default_providers.pick_provider, -- default|telescope|mini_pick|fzf_lua|snacks
           },
         },
+        ["system_prompts"] = {
+          callback = "strategies.chat.slash_commands.system_prompts",
+          description = "Select a pre-configured system prompt",
+          opts = {
+            contains_code = false,
+            provider = default_providers.help_provider, -- telescope|mini_pick|fzf_lua|snacks
+          },
+        },
         ["terminal"] = {
           callback = "strategies.chat.slash_commands.terminal",
           description = "Insert terminal output",
