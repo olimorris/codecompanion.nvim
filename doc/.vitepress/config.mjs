@@ -107,7 +107,7 @@ export default withMermaid(
         },
         {
           text: "Extending the Plugin",
-          collapsed: false,
+          collapsed: true,
           items: [
             { text: "Creating Adapters", link: "/extending/adapters" },
             { text: "Creating Prompts", link: "/extending/prompts" },
