@@ -42,15 +42,15 @@ Thank you to the following people:
 
 <div align="center">
   <p>
-    <h3>The Chat Buffer</h3> - <a href="https://github.com/user-attachments/assets/aa109f1d-0ec9-4f08-bd9a-df99da03b9a4">Link</a>
+    <h3><a href="https://github.com/user-attachments/assets/aa109f1d-0ec9-4f08-bd9a-df99da03b9a4">The Chat Buffer</a></h3>
     <video controls muted src="https://github.com/user-attachments/assets/aa109f1d-0ec9-4f08-bd9a-df99da03b9a4"></video>
   </p>
   <p>
-    <h3>Tools + Agentic Workflows</h3> - <a href="https://github.com/user-attachments/assets/362b7cfd-e794-4d9c-9a74-90d5e2a87a32">Link</a>
+    <h3><a href="https://github.com/user-attachments/assets/362b7cfd-e794-4d9c-9a74-90d5e2a87a32">Tools + Agentic Workflows</a></h3>
     <video controls muted src="https://github.com/user-attachments/assets/362b7cfd-e794-4d9c-9a74-90d5e2a87a32"></video>
   </p>
   <p>
-    <h3>Inline Assistant</h3> - <a href="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee">Link</a>
+    <h3><a href="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee">Inline Assistant</a></h3>
     <video controls muted src="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee"></video>
   </p>
 </div>
