@@ -13,6 +13,7 @@ doc/configuration/chat-buffer.md
 doc/configuration/inline-assistant.md
 doc/configuration/prompt-library.md
 doc/configuration/system-prompt.md
+doc/configuration/extensions.md
 doc/configuration/others.md
 ```
 
@@ -37,4 +38,5 @@ doc/extending/prompts.md
 doc/extending/tools.md
 doc/extending/workflows.md
 doc/extending/workspace.md
+doc/extending/extensions.md
 ```
