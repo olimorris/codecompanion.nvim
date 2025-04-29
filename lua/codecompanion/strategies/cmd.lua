@@ -45,29 +45,31 @@ function Cmd:start()
     table.insert(messages, p)
   end)
 
-  client.new({ adapter = self.adapter:map_schema_to_params() }):request(self.adapter:map_roles(messages), {
-    ---@param err string
-    ---@param data table
-    ---@param adapter CodeCompanion.Adapter The modified adapter from the http client
-    callback = function(err, data, adapter)
-      if err then
-        return log:error(err)
-      end
-
-      if data then
-        local result = self.adapter.handlers.chat_output(adapter, data)
-        if result and result.output and result.output.content then
-          local content = result.output.content
-          content:gsub("^%s*(.-)%s*$", "%1")
-          vim.api.nvim_feedkeys(content, "n", false)
+  client
+    .new({ adapter = self.adapter:map_schema_to_params() })
+    :request({ messages = self.adapter:map_roles(messages) }, {
+      ---@param err string
+      ---@param data table
+      ---@param adapter CodeCompanion.Adapter The modified adapter from the http client
+      callback = function(err, data, adapter)
+        if err then
+          return log:error(err)
         end
-      end
-    end,
-    done = function() end,
-  }, {
-    bufnr = self.context.bufnr,
-    strategy = "cmd",
-  })
+
+        if data then
+          local result = self.adapter.handlers.chat_output(adapter, data)
+          if result and result.output and result.output.content then
+            local content = result.output.content
+            content:gsub("^%s*(.-)%s*$", "%1")
+            vim.api.nvim_feedkeys(content, "n", false)
+          end
+        end
+      end,
+      done = function() end,
+    }, {
+      bufnr = self.context.bufnr,
+      strategy = "cmd",
+    })
 end
 
 return Cmd

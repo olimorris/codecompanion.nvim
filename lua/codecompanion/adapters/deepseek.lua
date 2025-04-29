@@ -1,3 +1,4 @@
+local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
 
@@ -11,6 +12,7 @@ return {
   },
   opts = {
     stream = true,
+    tools = true,
   },
   features = {
     text = true,
@@ -36,44 +38,50 @@ return {
     form_parameters = function(self, params, messages)
       return openai.handlers.form_parameters(self, params, messages)
     end,
+    form_tools = function(self, tools)
+      local model = self.schema.model.default
+      local model_opts = self.schema.model.choices[model]
+
+      if model_opts.opts and model_opts.opts.can_use_tools == false then
+        if vim.tbl_count(tools) > 0 then
+          log:warn("Tools are not supported for this model")
+        end
+        return
+      end
+      return openai.handlers.form_tools(self, tools)
+    end,
 
     ---Set the format of the role and content for the messages from the chat buffer
     ---@param self CodeCompanion.Adapter
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
-      -- Extract and merge system messages
-      local system_messages = vim
-        .iter(messages)
-        :filter(function(msg)
-          return msg.role == "system"
-        end)
-        :totable()
-      system_messages = utils.merge_messages(system_messages)
+      messages = utils.merge_messages(messages)
+      messages = utils.merge_system_messages(messages)
 
-      -- Remove system messages then merge messages with the same role
+      -- Ensure that all messages have a content field
       messages = vim
         .iter(messages)
-        :filter(function(msg)
-          return msg.role ~= "system"
-        end)
         :map(function(msg)
-          return {
-            role = msg.role,
-            content = msg.content,
-          }
+          local content = msg.content
+          if content and type(content) == "table" then
+            msg.content = table.concat(content, "\n")
+          elseif not content then
+            msg.content = ""
+          end
+          return msg
         end)
         :totable()
-      messages = utils.merge_messages(messages)
 
-      return { messages = vim.list_extend(system_messages, messages) }
+      return { messages = messages }
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
     ---@param self CodeCompanion.Adapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
+    ---@param tools? table The table to write any tool output to
     ---@return { status: string, output: { role: string, content: string, reasoning: string? } } | nil
-    chat_output = function(self, data)
+    chat_output = function(self, data, tools)
       local output = {}
 
       if data and data ~= "" then
@@ -85,16 +93,53 @@ return {
           local delta = (self.opts and self.opts.stream) and choice.delta or choice.message
 
           if delta then
-            output.role = nil
-            if delta.role then
-              output.role = delta.role
-            end
-            if delta.reasoning_content then
-              output.reasoning = delta.reasoning_content
-            end
+            output.role = delta.role
+            output.reasoning = delta.reasoning_content
             if delta.content then
               output.content = (output.content or "") .. delta.content
             end
+
+            -- Process tools
+            if self.opts.tools and delta.tool_calls and tools then
+              for _, tool in ipairs(delta.tool_calls) do
+                if self.opts.stream then
+                  local index = tool.index
+                  local found = false
+
+                  for i, existing_tool in ipairs(tools) do
+                    if existing_tool._index == index then
+                      tools[i]["function"].arguments = (tools[i]["function"].arguments or "")
+                        .. (tool["function"]["arguments"] or "")
+                      found = true
+                      break
+                    end
+                  end
+
+                  if not found then
+                    table.insert(tools, {
+                      ["function"] = {
+                        name = tool["function"]["name"],
+                        arguments = tool["function"]["arguments"] or "",
+                      },
+                      id = tool.id,
+                      type = "function",
+                      _index = index,
+                    })
+                  end
+                else
+                  table.insert(tools, {
+                    _index = tool.index,
+                    ["function"] = {
+                      name = tool["function"]["name"],
+                      arguments = tool["function"]["arguments"],
+                    },
+                    id = tool.id,
+                    type = "function",
+                  })
+                end
+              end
+            end
+
             return {
               status = "success",
               output = output,
@@ -106,6 +151,15 @@ return {
     inline_output = function(self, data, context)
       return openai.handlers.inline_output(self, data, context)
     end,
+    tools = {
+      -- Ref: https://api-docs.deepseek.com/guides/function_calling
+      format_tool_calls = function(self, tools)
+        return openai.handlers.tools.format_tool_calls(self, tools)
+      end,
+      output_response = function(self, tool_call, output)
+        return openai.handlers.tools.output_response(self, tool_call, output)
+      end,
+    },
     on_exit = function(self, data)
       return openai.handlers.on_exit(self, data)
     end,
@@ -120,8 +174,8 @@ return {
       ---@type string|fun(): string
       default = "deepseek-reasoner",
       choices = {
-        ["deepseek-reasoner"] = { opts = { can_reason = true } },
-        "deepseek-chat",
+        ["deepseek-reasoner"] = { opts = { can_reason = true, can_use_tools = false } },
+        ["deepseek-chat"] = { opts = { can_use_tools = true } },
       },
     },
     ---@type CodeCompanion.Schema

@@ -1,0 +1,48 @@
+{
+    "id": "40419635-f2ee-443c-987a-28d3d4096a9f",
+    "object": "chat.completion",
+    "created": 1743533364,
+    "model": "deepseek-chat",
+    "choices": [
+        {
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "index": 0,
+                        "id": "call_0_74655864-c1ab-455f-88c5-921aa7b6281c",
+                        "type": "function",
+                        "function": {
+                            "name": "weather",
+                            "arguments": "{\"location\": \"London\", \"units\": \"celsius\"}"
+                        }
+                    },
+                    {
+                        "index": 1,
+                        "id": "call_1_759f62c3-f8dc-475f-9558-8211fc0a133c",
+                        "type": "function",
+                        "function": {
+                            "name": "weather",
+                            "arguments": "{\"location\": \"Paris\", \"units\": \"celsius\"}"
+                        }
+                    }
+                ]
+            },
+            "logprobs": null,
+            "finish_reason": "tool_calls"
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 564,
+        "completion_tokens": 49,
+        "total_tokens": 613,
+        "prompt_tokens_details": {
+            "cached_tokens": 384
+        },
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 180
+    },
+    "system_fingerprint": "fp_3d5141a69a_prod0225"
+}

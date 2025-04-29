@@ -1,8 +1,6 @@
 return {
   name = "cmd",
-  system_prompt = function(schema)
-    return "my cmd system prompt"
-  end,
+  system_prompt = "my cmd system prompt",
   cmds = {
     { "echo", "Hello World" },
   },
@@ -20,7 +18,7 @@ return {
   },
   output = {
     -- Should only be called once
-    success = function(self, cmd, output)
+    success = function(self, agent, cmd, output)
       _G._test_order = (_G._test_order or "") .. "->Success"
       _G._test_output = _G._test_output or {}
       table.insert(_G._test_output, output)

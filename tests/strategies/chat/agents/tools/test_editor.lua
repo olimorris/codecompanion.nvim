@@ -1,103 +1,99 @@
 local h = require("tests.helpers")
 
+local expect = MiniTest.expect
 local new_set = MiniTest.new_set
-
-local bufnr
 
 local child = MiniTest.new_child_neovim()
 local T = new_set({
   hooks = {
     pre_case = function()
       child.restart({ "-u", "scripts/minimal_init.lua" })
-      child.lua([[vim.g.codecompanion_auto_tool_mode = true]])
+      child.o.statusline = ""
+      child.o.laststatus = 0
       child.lua([[_G.chat, _G.agent = require("tests.helpers").setup_chat_buffer()]])
 
       -- Setup the buffer
-      bufnr = child.lua([[
-    local bufnr = vim.api.nvim_create_buf(false, true)
-    vim.bo[bufnr].readonly = false
+      child.lua([[
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      _G.bufnr = bufnr
+      vim.bo[bufnr].readonly = false
+      vim.bo[bufnr].buftype = "nofile"
 
-    local lines = {
-      "function foo()",
-      '    return "foo"',
-      "end",
-      "",
-      "function bar()",
-      '    return "bar"',
-      "end",
-      "",
-      "function baz()",
-      '    return "baz"',
-      "end",
-    }
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, true, lines)
+      local lines = {
+        "function foo()",
+        '    return "foo"',
+        "end",
+        "",
+        "function bar()",
+        '    return "bar"',
+        "end",
+        "",
+        "function baz()",
+        '    return "baz"',
+        "end",
+      }
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, true, lines)
 
-    return bufnr
+      return bufnr
   ]])
     end,
     post_case = function()
-      _G.xml = nil
+      _G.bufnr = nil
     end,
     post_once = child.stop,
   },
 })
 
-T["Agent @editor can update a buffer"] = function()
-  child.lua(
-    string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").update(%s)]], bufnr)
-  )
+T["editor tool"] = function()
   child.lua([[
-    _G.agent:execute(
-      _G.chat,
-      _G.xml
-    )
+    --require("tests.log")
+    local tools = {
+      {
+        id = 1,
+        type = "function",
+        ["function"] = {
+          name = "editor",
+          arguments = {
+            action = "delete",
+            buffer = _G.bufnr,
+            start_line = 1,
+            end_line = 4,
+          },
+        },
+      },
+      {
+        id = 2,
+        type = "function",
+        ["function"] = {
+          name = "editor",
+          arguments = {
+            action = "add",
+            buffer = _G.bufnr,
+            code = "function hello_world()\n  return \"Hello, World!\"\nend\n",
+            start_line = 1,
+          }
+        },
+      },
+      {
+        id = 3,
+        type = "function",
+        ["function"] = {
+          name = "editor",
+          arguments = {
+            action = "update",
+            buffer = _G.bufnr,
+            code = "function hello_oli()\n  return \"Hello, Oli!\"\nend",
+            start_line = 5,
+            end_line = 7,
+          }
+        }
+      },
+    }
+    agent:execute(_G.chat, tools)
+    vim.cmd("buffer " .. _G.bufnr)
   ]])
 
-  local lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-
-  h.eq([[    return "foobar"]], lines[2])
-end
-
-T["Agent @editor can add to a buffer"] = function()
-  child.lua(
-    string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").add(%s)]], bufnr)
-  )
-  child.lua([[
-    _G.agent:execute(
-      _G.chat,
-      _G.xml
-    )
-  ]])
-
-  local lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-
-  h.eq([[function hello_world()]], lines[4])
-  h.eq([[    return "hello_world"]], lines[5])
-  h.eq([[end]], lines[6])
-end
-
-T["Agent @editor can delete from a buffer"] = function()
-  child.lua(
-    string.format([[    _G.xml = require("tests.strategies.chat.agents.tools.stubs.xml.editor_xml").delete(%s)]], bufnr)
-  )
-
-  local lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  h.eq([[function foo()]], lines[1])
-  h.eq([[    return "foo"]], lines[2])
-  h.eq([[end]], lines[3])
-
-  child.lua([[
-    _G.agent:execute(
-      _G.chat,
-      _G.xml
-    )
-  ]])
-
-  lines = child.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-
-  h.eq([[function bar()]], lines[1])
-  h.eq([[    return "bar"]], lines[2])
-  h.eq([[end]], lines[3])
+  expect.reference_screenshot(child.get_screenshot())
 end
 
 return T

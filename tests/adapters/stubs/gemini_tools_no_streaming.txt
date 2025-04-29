@@ -1,0 +1,37 @@
+{
+    "choices": [
+        {
+            "finish_reason": "tool_calls",
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "tool_calls": [
+                    {
+                        "function": {
+                            "arguments": "{\"location\":\"London, UK\",\"units\":\"celsius\"}",
+                            "name": "weather"
+                        },
+                        "id": "",
+                        "type": "function"
+                    },
+                    {
+                        "function": {
+                            "arguments": "{\"units\":\"celsius\",\"location\":\"Paris, France\"}",
+                            "name": "weather"
+                        },
+                        "id": "",
+                        "type": "function"
+                    }
+                ]
+            }
+        }
+    ],
+    "created": 1743631193,
+    "model": "gemini-2.0-flash",
+    "object": "chat.completion",
+    "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 62,
+        "total_tokens": 78
+    }
+}

@@ -13,12 +13,10 @@
 ---@field tools_ns integer The namespace for the virtual text that appears in the header
 
 local Executor = require("codecompanion.strategies.chat.agents.executor")
-local TreeHandler = require("codecompanion.utils.xml.xmlhandler.tree")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils")
-local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local api = vim.api
 
@@ -33,22 +31,6 @@ local CONSTANTS = {
 
   PROCESSING_MSG = "Tool processing ...",
 }
-
----Parse XML in a given message
----@param message string
----@return table
-local function parse_xml(message)
-  log:trace("Trying to parse: %s", message)
-
-  local handler = TreeHandler:new()
-  local parser = xml2lua.parser(handler)
-  -- parser.options.stripWS = nil
-  parser:parse(message)
-
-  log:trace("Parsed xml: %s", handler.root)
-
-  return handler.root.tools
-end
 
 ---@class CodeCompanion.Agent
 local Agent = {}
@@ -106,97 +88,61 @@ function Agent:set_autocmds()
   })
 end
 
----Parse a chat buffer for tools
----@param chat CodeCompanion.Chat
----@param start_range number
----@param end_range number
----@return nil
-function Agent:parse_buffer(chat, start_range, end_range)
-  local query = vim.treesitter.query.get("markdown", "tools")
-  local tree = chat.parser:parse({ start_range - 1, end_range - 1 })[1]
-
-  local llm = {}
-  for id, node in query:iter_captures(tree:root(), chat.bufnr, start_range - 1, end_range - 1) do
-    if query.captures[id] == "content" then
-      table.insert(llm, vim.treesitter.get_node_text(node, chat.bufnr))
-    end
-  end
-
-  if vim.tbl_isempty(llm) then
-    return
-  end
-
-  -- NOTE: Only work with the last response from the LLM
-  local response = llm[#llm]
-
-  local parser = vim.treesitter.get_string_parser(response, "markdown")
-  tree = parser:parse()[1]
-
-  local tools = {}
-  for id, node in query:iter_captures(tree:root(), response, 0, -1) do -- NOTE: Keep this scoped to 0,-1
-    if query.captures[id] == "tool" then
-      local tool = vim.treesitter.get_node_text(node, response)
-      tool = tool:gsub("^`+", ""):gsub("```$", "")
-      table.insert(tools, vim.trim(tool))
-    end
-  end
-
-  log:trace("[Tools] Detected: %s", tools)
-
-  if not vim.tbl_isempty(tools) then
-    self.extracted = tools
-    vim.iter(tools):each(function(t)
-      return self:execute(chat, t)
-    end)
-  end
-end
-
 ---Execute the tool in the chat buffer based on the LLM's response
 ---@param chat CodeCompanion.Chat
----@param xml string The XML schema from the LLM's response
+---@param tools table The tools requested by the LLM
 ---@return nil
-function Agent:execute(chat, xml)
+function Agent:execute(chat, tools)
   self.chat = chat
-
-  local ok, schema = pcall(parse_xml, xml)
-  if not ok then
-    self:add_error_to_chat(string.format("The XML schema couldn't be processed:\n\n%s", schema)):reset()
-    return log:error("Error parsing XML schema: %s", schema)
-  end
 
   ---Resolve and run the tool
   ---@param executor CodeCompanion.Agent.Executor The executor instance
-  ---@param s table The tool's schema
-  local function run_tool(executor, s)
+  ---@param tool table The tool to run
+  local function enqueue_tool(executor, tool)
     -- If an error occurred, don't run any more tools
     if self.status == CONSTANTS.STATUS_ERROR then
       return
     end
 
-    local name = s.tool._attr.name
+    local name = tool["function"].name
     local tool_config = self.tools_config[name]
 
-    ---@type CodeCompanion.Agent.Tool|nil
-    local resolved_tool
-    ok, resolved_tool = pcall(function()
+    local ok, resolved_tool = pcall(function()
       return Agent.resolve(tool_config)
     end)
     if not ok or not resolved_tool then
-      log:error("Couldn't resolve the tool(s) from the LLM's response")
-      log:info("XML:\n%s", xml)
-      log:info("Schema:\n%s", s)
-      return
+      return log:error("Couldn't resolve the tool(s) from the LLM's response %s", resolved_tool)
     end
 
     self.tool = vim.deepcopy(resolved_tool)
+
     self.tool.name = name
-    self.tool.opts = tool_config.opts and tool_config.opts or {}
-    self.tool.request = s.tool
-    self:fold_xml()
+    self.tool.function_call = tool
+    if tool["function"].arguments then
+      local args = tool["function"].arguments
+      -- For some adapter's that aren't streaming, the args are strings rather than tables
+      if type(args) == "string" then
+        local decoded
+        xpcall(function()
+          decoded = vim.json.decode(args)
+        end, function(err)
+          log:error("Couldn't decode the tool arguments: %s", args)
+          self.chat:add_tool_output(
+            self.tool,
+            string.format('You made an error in calling the %s tool: "%s"', name, err),
+            string.format("**%s Tool Error**: %s", util.capitalize(name), err)
+          )
+          return util.fire("AgentFinished", { bufnr = self.bufnr })
+        end)
+        args = decoded
+      end
+      self.tool.args = args
+    end
+    self.tool.opts = vim.tbl_extend("force", self.tool.opts or {}, tool_config.opts or {})
     self:set_autocmds()
 
     if self.tool.env then
-      local env = type(self.tool.env) == "function" and self.tool.env(s.tool) or {}
+      local env = type(self.tool.env) == "function" and self.tool.env(vim.deepcopy(self.tool)) or {}
       util.replace_placeholders(self.tool.cmds, env)
     end
 
@@ -206,18 +152,17 @@ function Agent:execute(chat, xml)
   local id = math.random(10000000)
   local executor = Executor.new(self, id)
 
-  -- This allows us to run multiple tools in a single response whether they're in
-  -- their own XML block or they're in an array within the <tools> tag
-  if vim.isarray(schema.tool) then
-    vim.iter(schema.tool):each(function(tool)
-      run_tool(executor, { tool = tool })
-    end)
-  else
-    run_tool(executor, schema)
+  for _, tool in ipairs(tools) do
+    enqueue_tool(executor, tool)
   end
 
   util.fire("AgentStarted", { id = id, bufnr = self.bufnr })
-  return executor:setup()
+  xpcall(function()
+    executor:setup()
+  end, function(err)
+    log:error("Agent execution error:\n%s", err)
+    util.fire("AgentFinished", { id = id, bufnr = self.bufnr })
+  end)
 end
 
 ---Look for tools in a given message
@@ -268,6 +213,7 @@ function Agent:find(chat, message)
   return tools, groups
 end
 
+---Parse a user message looking for a tool
 ---@param chat CodeCompanion.Chat
 ---@param message table
 ---@return boolean
@@ -277,7 +223,7 @@ function Agent:parse(chat, message)
   if tools or groups then
     if tools and not vim.tbl_isempty(tools) then
       for _, tool in ipairs(tools) do
-        chat:add_tool(tool, self.tools_config[tool])
+        chat.tools:add(tool, self.tools_config[tool])
       end
     end
 
@@ -329,42 +275,8 @@ function Agent:reset()
   self.stderr = {}
   self.stdout = {}
 
+  self.chat:tools_done()
   log:info("[Agent] Completed")
-end
-
----Fold any XML code blocks in the buffer
----@return nil
-function Agent:fold_xml()
-  local query = vim.treesitter.query.parse(
-    "markdown",
-    [[
-(
- fenced_code_block
- (info_string) @lang
- (code_fence_content) @code
- (#eq? @lang "xml")
-)
-  ]]
-  )
-
-  local parser = vim.treesitter.get_parser(self.bufnr, "markdown")
-  local tree = parser:parse()[1]
-
-  vim.o.foldmethod = "manual"
-
-  for _, matches, _ in query:iter_matches(tree:root(), self.bufnr) do
-    local nodes = matches[2] -- The second capture is always the code block
-    local code_node = type(nodes) == "table" and nodes[1] or nodes
-
-    if code_node then
-      local start_row, _, end_row, _ = code_node:range()
-      if start_row < end_row then
-        api.nvim_buf_call(self.bufnr, function()
-          vim.cmd(string.format("%d,%dfold", start_row, end_row))
-        end)
-      end
-    end
-  end
 end
 
 ---Add an error message to the chat buffer
@@ -412,7 +324,7 @@ function Agent.resolve(tool)
   -- Try loading the tool from the user's config
   ok, module = pcall(loadfile, callback)
   if not ok then
-    return log:error("[Tools] %s could not be resolved", callback)
+    return error()
   end
 
   if module then

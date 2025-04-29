@@ -84,20 +84,6 @@ local defaults = {
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
           auto_submit_success = false, -- Send any successful output to the LLM automatically?
-          system_prompt = [[## Tools Access and Execution Guidelines
-
-### Overview
-You now have access to specialized tools that empower you to assist users with specific tasks. These tools are available only when explicitly requested by the user.
-
-### General Rules
-- **User-Triggered:** Only use a tool when the user explicitly indicates that a specific tool should be employed (e.g., phrases like "run command" for the cmd_runner).
-- **Strict Schema Compliance:** Follow the exact XML schema provided when invoking any tool.
-- **XML Format:** Always wrap your responses in a markdown code block designated as XML and within the `<tools></tools>` tags.
-- **Valid XML Required:** Ensure that the constructed XML is valid and well-formed.
-- **Multiple Commands:**
-  - If issuing commands of the same type, combine them within one `<tools></tools>` XML block with separate `<action></action>` entries.
-  - If issuing commands for different tools, ensure they're wrapped in `<tool></tool>` tags within the `<tools></tools>` block.
-- **No Side Effects:** Tool invocations should not alter your core tasks or the general conversation structure.]],
         },
       },
       variables = {
@@ -544,7 +530,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
             -- Repeat until the tests pass, as indicated by the testing flag
             -- which the cmd_runner tool sets on the chat buffer
             repeat_until = function(chat)
-              return chat.tool_flags.testing == true
+              return chat.tools.flags.testing == true
             end,
             content = "The tests have failed. Can you edit the buffer and run the test suite again?",
           },
@@ -1012,7 +998,7 @@ You must create or modify a workspace file through a series of prompts over mult
 Your core tasks include:
 - Answering general programming questions.
 - Explaining how the code in a Neovim buffer works.
-- Reviewing the selected code in a Neovim buffer.
+- Reviewing the selected code from a Neovim buffer.
 - Generating unit tests for the selected code.
 - Proposing fixes for problems in the selected code.
 - Scaffolding code for a new workspace.
@@ -1030,15 +1016,17 @@ You must:
 - Avoid including line numbers in code blocks.
 - Avoid wrapping the whole response in triple backticks.
 - Only return code that's directly relevant to the task at hand. You may omit code that isn’t necessary for the solution.
-- Avoid using H1 and H2 headers in your responses.
+- Avoid using H1, H2 or H3 headers in your responses as these are reserved for the user.
 - Use actual line breaks in your responses; only use "\n" when you want a literal backslash followed by 'n'.
 - All non-code text responses must be written in the %s language indicated.
+- Multiple, different tools can be called as part of the same response.
 
 When given a task:
 1. Think step-by-step and, unless the user requests otherwise or the task is very simple, describe your plan in detailed pseudocode.
 2. Output the final code in a single code block, ensuring that only relevant code is included.
 3. End your response with a short suggestion for the next user turn that directly supports continuing the conversation.
-4. Provide exactly one complete reply per conversation turn.]],
+4. Provide exactly one complete reply per conversation turn.
+5. If necessary, execute multiple tools in a single turn.]],
         language
       )
     end,

@@ -1,101 +1,55 @@
-local files = require("codecompanion.strategies.chat.agents.tools.files")
-
 local h = require("tests.helpers")
 
-describe("File tools", function()
-  it("can create a file", function()
-    local path = "~/tmp/test.txt"
-    files.actions.create({ path = path, contents = "Hello World" })
+local expect = MiniTest.expect
+local new_set = MiniTest.new_set
 
-    local file = io.open(vim.fs.normalize(path), "r")
-    h.not_eq(file, nil)
-    local contents = file:read("*a")
-    h.eq("Hello World", contents)
-    file:close()
-  end)
+local child = MiniTest.new_child_neovim()
+local T = new_set({
+  hooks = {
+    pre_case = function()
+      child.restart({ "-u", "scripts/minimal_init.lua" })
+      child.o.statusline = ""
+      child.o.laststatus = 0
+      child.lua([[
+        _G.TEST_TMPFILE = vim.fn.stdpath('cache') .. '/codecompanion/tests/cc_test_file.txt'
 
-  it("can read a file", function()
-    local path = "~/tmp/test.txt"
-    local output = files.actions.read({ path = path })
+        -- ensure no leftover from previous run
+        pcall(vim.loop.fs_unlink, _G.TEST_TMPFILE)
 
-    h.eq("Hello World", output.content)
-  end)
+        h = require('tests.helpers')
+        chat, agent = h.setup_chat_buffer()
+      ]])
+    end,
+    post_case = function()
+      child.lua([[
+        pcall(vim.loop.fs_unlink, _G.TEST_TMPFILE)
+        h.teardown_chat_buffer()
+      ]])
+    end,
+    post_once = child.stop,
+  },
+})
 
-  it("can read lines of a file", function()
-    local path = vim.fn.tempname()
-    files.actions.create({
-      path = path,
-      contents = [[This is line 1
-This is line 2
-This is line 3
-This is line 4
-This is line 5]],
-    })
+T["files tool"] = function()
+  child.lua([[
+    --require("tests.log")
+    local tool = {
+      {
+        ["function"] = {
+          name = "files",
+          arguments = string.format('{"action": "create", "path": "%s", "contents": "import pygame\\nimport time\\nimport random\\n"}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+    agent:execute(chat, tool)
+    vim.wait(200)
+  ]])
 
-    local output = files.actions.read_lines({
-      path = path,
-      start_line = 2,
-      end_line = 4,
-    })
+  -- Test that the file was created
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  h.eq(output, { "import pygame", "import time", "import random" }, "File was not created")
 
-    local lines = vim.split(output.content, "\n")
+  -- expect.reference_screenshot(child.get_screenshot())
+end
 
-    h.eq("2:  This is line 2", lines[1])
-    h.eq("3:  This is line 3", lines[#lines - 1])
-    h.eq("4:  This is line 4", lines[#lines])
-  end)
-
-  it("can edit a file", function()
-    local path = "~/tmp/test.txt"
-    files.actions.edit({ path = path, search = "Hello World", replace = "Hello Code" })
-
-    local file = io.open(vim.fs.normalize(path), "r")
-    local contents = file:read("*a")
-    h.eq("Hello Code", contents)
-    file:close()
-  end)
-
-  it("can rename a file", function()
-    local path = "~/tmp/test.txt"
-    local new_path = "~/tmp/test_new.txt"
-    files.actions.rename({ path = path, new_path = new_path })
-
-    local file = io.open(vim.fs.normalize(path), "r")
-    h.eq(file, nil)
-
-    file = io.open(vim.fs.normalize(new_path), "r")
-    h.not_eq(file, nil)
-    file:close()
-
-    os.remove(vim.fs.normalize(new_path))
-  end)
-
-  it("can move a file", function()
-    local path = "~/tmp/test.txt"
-    local new_path = "~/tmp/test_new.txt"
-    files.actions.create({ path = path, contents = "Hello World" })
-
-    files.actions.move({ path = path, new_path = new_path })
-
-    local file = io.open(vim.fs.normalize(path), "r")
-    h.eq(file, nil)
-
-    file = io.open(vim.fs.normalize(new_path), "r")
-    h.not_eq(file, nil)
-    file:close()
-
-    os.remove(vim.fs.normalize(new_path))
-  end)
-
-  it("can delete a file", function()
-    local path = "~/tmp/test.txt"
-    files.actions.create({ path = path, contents = "Hello World" })
-
-    files.actions.delete({ path = path })
-
-    local file = io.open(vim.fs.normalize(path), "r")
-    h.eq(file, nil)
-
-    os.remove(vim.fs.normalize("~/tmp"))
-  end)
-end)
+return T

@@ -1,219 +1,180 @@
 --[[
-*Command Runner Tool*
-This tool is used to run shell commands on your system. It can handle multiple
-commands in the same XML block. All commands must be approved by you.
+  *Command Runner Tool*
+  This tool is used to run shell commands on your system
 --]]
-
-local config = require("codecompanion.config")
 local util = require("codecompanion.utils")
 
----Outputs a message to the chat buffer that initiated the tool
----@param msg string The message to output
----@param agent CodeCompanion.Agent The tools object
----@param opts {cmd: table, output: table|string, message?: string}
-local function to_chat(msg, agent, opts)
-  local cmd
-  if opts and type(opts.cmd) == "table" then
-    cmd = table.concat(opts.cmd, " ")
-  else
-    cmd = opts.cmd
-  end
-  if opts and type(opts.output) == "table" then
-    opts.output = vim.iter(opts.output):flatten():join("\n")
-  end
-
-  local content
-  if opts.output == "" then
-    content = string.format(
-      [[%s the command `%s`.
-
-]],
-      msg,
-      cmd
-    )
-  else
-    content = string.format(
-      [[%s the command `%s`:
-
-```txt
-%s
-```
-
-]],
-      msg,
-      cmd,
-      opts.output
-    )
-  end
-
-  return agent.chat:add_buf_message({
-    role = config.constants.USER_ROLE,
-    content = content,
-  })
-end
-
----@class CodeCompanion.Agent.Tool
+---@class CodeCompanion.Tool.CmdRunner: CodeCompanion.Agent.Tool
 return {
   name = "cmd_runner",
   cmds = {
-    -- Dynamically populate this table via the setup function
+    -- This is dynamically populated via the setup function
   },
   schema = {
-    {
-      tool = {
-        _attr = { name = "cmd_runner" },
-        action = {
-          command = "<![CDATA[gem install rspec]]>",
-        },
-      },
-    },
-    {
-      tool = { name = "cmd_runner" },
-      action = {
-        {
-          command = "<![CDATA[gem install rspec]]>",
-        },
-        {
-          command = "<![CDATA[gem install rubocop]]>",
-        },
-      },
-    },
-    {
-      tool = {
-        _attr = { name = "cmd_runner" },
-        action = {
-          flag = "testing",
-          command = "<![CDATA[make test]]>",
-        },
-      },
-    },
-  },
-  system_prompt = function(schema, xml2lua)
-    return string.format(
-      [[## Command Runner Tool (`cmd_runner`) – Enhanced Guidelines
-
-### Purpose:
-- Execute safe, validated shell commands on the user's system when explicitly requested.
-
-### When to Use:
-- Only invoke the command runner when the user specifically asks.
-- Use this tool strictly for command execution; file operations must be handled with the designated Files Tool.
-
-### Execution Format:
-- Always return an XML markdown code block.
-- Each shell command execution should:
-  - Be wrapped in a CDATA section to protect special characters.
-  - Follow the XML schema exactly.
-- If several commands need to run sequentially, combine them in one XML block with separate <action> entries.
-
-### XML Schema:
-- The XML must be valid. Each tool invocation should adhere to this structure:
-
-```xml
-%s
-```
-
-- Combine multiple shell commands in one response if needed and they will be executed sequentially:
-
-```xml
-%s
-```
-
-- If the user asks you to run tests or a test suite, be sure to include a testing flag so the Neovim editor is aware:
-
-```xml
-%s
-```
-
-### Key Considerations
-- **Safety First:** Ensure every command is safe and validated.
-- **User Environment Awareness:**
-  - **Shell**: %s
-  - **Operating System**: %s
-  - **Neovim Version**: %s
-- **User Oversight:** The user retains full control with an approval mechanism before execution.
-- **Extensibility:** If environment details aren’t available (e.g., language version details), output the command first along with a request for more information.
-
-### Reminder
-- Minimize explanations and focus on returning precise XML blocks with CDATA-wrapped commands.
-- Follow this structure each time to ensure consistency and reliability.]],
-      xml2lua.toXml({ tools = { schema[1] } }), -- Regular
-      xml2lua.toXml({ -- Multiple
-        tools = {
-          tool = {
-            _attr = { name = "cmd_runner" },
-            action = {
-              schema[2].action[1],
-              schema[2].action[2],
+    type = "function",
+    ["function"] = {
+      name = "cmd_runner",
+      description = "Run shell commands on the user's system, sharing the output with the user before then sharing with you.",
+      parameters = {
+        type = "object",
+        properties = {
+          cmd = {
+            type = "string",
+            description = "The command to run, e.g. `pytest` or `make test`",
+          },
+          flag = {
+            anyOf = {
+              { type = "string" },
+              { type = "null" },
             },
+            description = 'If running tests, set to `"testing"`; null otherwise',
           },
         },
-      }),
-      xml2lua.toXml({ tools = { schema[3] } }), -- Testing flag
-      vim.o.shell,
-      util.os(),
-      vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch
-    )
-  end,
-  handlers = {
-    ---@param agent CodeCompanion.Agent The tool object
-    setup = function(agent)
-      local tool = agent.tool --[[@type CodeCompanion.Agent.Tool]]
-      local action = tool.request.action
-      local actions = vim.isarray(action) and action or { action }
+        required = {
+          "cmd",
+          "flag",
+        },
+        additionalProperties = false,
+      },
+      strict = true,
+    },
+  },
+  system_prompt = string.format(
+    [[# Command Runner Tool (`cmd_runner`)
 
-      for _, act in ipairs(actions) do
-        local entry = { cmd = vim.split(act.command, " ") }
-        if act.flag then
-          entry.flag = act.flag
-        end
-        table.insert(tool.cmds, entry)
+## CONTEXT
+- You have access to a command runner tool running within CodeCompanion, in Neovim.
+- You can use it to run shell commands on the user's system.
+- You may be asked to run a specific command or to determine the appropriate command to fulfil the user's request.
+- All tool executions take place in the current working directory %s.
+
+## OBJECTIVE
+- Follow the tool's schema.
+- Respond with a single command, per tool execution.
+
+## RESPONSE
+- Only invoke this tool when the user specifically asks.
+- If the user asks you to run a specific command, do so to the letter, paying great attention.
+- Use this tool strictly for command execution; but file operations must NOT be executed in this tool unless the user explicitly approves.
+- To run multiple commands, you will need to call this tool multiple times.
+
+## SAFETY RESTRICTIONS
+- Never execute the following dangerous commands under any circumstances:
+  - `rm -rf /` or any variant targeting root directories
+  - `rm -rf ~` or any command that could wipe out home directories
+  - `rm -rf .` without specific context and explicit user confirmation
+  - Any command with `:(){:|:&};:` or similar fork bombs
+  - Any command that would expose sensitive information (keys, tokens, passwords)
+  - Commands that intentionally create infinite loops
+- For any destructive operation (delete, overwrite, etc.), always:
+  1. Warn the user about potential consequences
+  2. Request explicit confirmation before execution
+  3. Suggest safer alternatives when available
+- If unsure about a command's safety, decline to run it and explain your concerns
+
+## POINTS TO NOTE
+- This tool can be used alongside other tools within CodeCompanion
+
+## USER ENVIRONMENT
+- Shell: %s
+- Operating System: %s
+- Neovim Version: %s]],
+    vim.fn.getcwd(),
+    vim.o.shell,
+    util.os(),
+    vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch
+  ),
+  handlers = {
+    ---@param self CodeCompanion.Tool.CmdRunner
+    ---@param agent CodeCompanion.Agent The tool object
+    setup = function(self, agent)
+      local args = self.args
+
+      local cmd = { cmd = vim.split(args.cmd, " ") }
+      if args.flag then
+        cmd.flag = args.flag
       end
+
+      table.insert(self.cmds, cmd)
     end,
   },
 
   output = {
-    ---The message which is shared with the user when asking for their approval
+    ---Prompt the user to approve the execution of the command
+    ---@param self CodeCompanion.Tool.CmdRunner
     ---@param agent CodeCompanion.Agent
-    ---@param self CodeCompanion.Agent.Tool
     ---@return string
-    prompt = function(agent, self)
-      local cmds = self.cmds
-      if vim.tbl_count(cmds) == 1 then
-        return string.format("Run the command `%s`?", table.concat(cmds[1].cmd, " "))
-      end
-
-      local individual_cmds = vim.tbl_map(function(c)
-        return table.concat(c.cmd, " ")
-      end, cmds)
-      return string.format("Run the following commands?\n\n%s", table.concat(individual_cmds, "\n"))
+    prompt = function(self, agent)
+      return string.format("Run the command `%s`?", table.concat(self.cmds[1].cmd, " "))
     end,
 
     ---Rejection message back to the LLM
+    ---@param self CodeCompanion.Tool.CmdRunner
     ---@param agent CodeCompanion.Agent
     ---@param cmd table
     ---@return nil
-    rejected = function(agent, cmd)
-      to_chat("I chose not to run", agent, { cmd = cmd.cmd or cmd, output = "" })
+    rejected = function(self, agent, cmd)
+      agent.chat:add_tool_output(
+        self,
+        string.format("The user rejected the execution of the command `%s`?", table.concat(self.cmds[1].cmd, " "))
+      )
     end,
 
+    ---@param self CodeCompanion.Tool.CmdRunner
     ---@param agent CodeCompanion.Agent
     ---@param cmd table
-    ---@param stderr table
-    ---@param stdout? table
-    error = function(agent, cmd, stderr, stdout)
-      to_chat("There was an error from", agent, { cmd = cmd.cmd or cmd, output = stderr })
+    ---@param stderr table The error output from the command
+    ---@param stdout? table The output from the command
+    error = function(self, agent, cmd, stderr, stdout)
+      local chat = agent.chat
+      local cmds = table.concat(cmd.cmd, " ")
+      local errors = vim.iter(stderr):flatten():join("\n")
+
+      local error_output = string.format(
+        [[**Cmd Runner Tool**: There was an error running the `%s` command:
+
+```txt
+%s
+```]],
+        cmds,
+        errors
+      )
+      chat:add_tool_output(self, error_output)
 
       if stdout and not vim.tbl_isempty(stdout) then
-        to_chat("There was also some output from", agent, { cmd = cmd.cmd or cmd, output = stdout })
+        local output = string.format(
+          [[**Cmd Runner Tool**: There was also some output from the command:
+
+```txt
+%s
+```]],
+          vim.iter(stdout):flatten():join("\n")
+        )
+
+        chat:add_tool_output(self, output)
       end
     end,
 
+    ---@param self CodeCompanion.Tool.CmdRunner
     ---@param agent CodeCompanion.Agent
     ---@param cmd table The command that was executed
-    ---@param stdout table
-    success = function(agent, cmd, stdout)
-      to_chat("The output from", agent, { cmd = cmd.cmd or cmd, output = stdout })
+    ---@param stdout table The output from the command
+    success = function(self, agent, cmd, stdout)
+      local chat = agent.chat
+      if stdout and vim.tbl_isempty(stdout) then
+        return chat:add_tool_output(self, "There was no output from the cmd_runner tool")
+      end
+      local output = vim.iter(stdout[#stdout]):flatten():join("\n")
+      local message = string.format(
+        [[**Cmd Runner Tool**: The output from the command `%s` was:
+
+```txt
+%s
+```]],
+        table.concat(cmd.cmd, " "),
+        output
+      )
+      chat:add_tool_output(self, message)
     end,
   },
 }

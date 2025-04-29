@@ -4,44 +4,22 @@ local api = vim.api
 local M = {}
 
 ---Calculate the number of tokens in a message
----@param message string The text to calculate the number of tokens for
+---@param message string The messages string
 ---@return number The number of tokens in the message
 function M.calculate(message)
-  local tokens = 0
-
-  local current_token = ""
-
-  if message == "" or string.sub(message, 1, 2) == "# " then
-    return tokens
-  end
-
-  for char in message:gmatch(".") do
-    if char == " " or char == "\n" then
-      if current_token ~= "" then
-        tokens = tokens + 1
-        current_token = ""
-      end
-    else
-      current_token = current_token .. char
-    end
-  end
-
-  if current_token ~= "" then
-    tokens = tokens + 1
-  end
-
-  return tokens
+  -- heuristic: 1 token ≈ 4 characters
+  local len = #message
+  return math.ceil(len / 4)
 end
 
+---Get the total number of tokens in a list of messages
 ---@param messages table The messages to calculate the number of tokens for.
 ---@return number The number of tokens in the messages.
 function M.get_tokens(messages)
   local tokens = 0
-
   for _, message in ipairs(messages) do
     tokens = tokens + M.calculate(message.content)
   end
-
   return tokens
 end
 

@@ -1,0 +1,5 @@
+data: {"id":"609ed73391344458b86b2d4f04a6b03b","object":"chat.completion.chunk","created":1744790136,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null,"logprobs":null}]}
+data: {"id":"609ed73391344458b86b2d4f04a6b03b","object":"chat.completion.chunk","created":1744790136,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":"Dynamic"},"finish_reason":null,"logprobs":null}]}
+data: {"id":"609ed73391344458b86b2d4f04a6b03b","object":"chat.completion.chunk","created":1744790136,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":" Language"},"finish_reason":null,"logprobs":null}]}
+data: {"id":"609ed73391344458b86b2d4f04a6b03b","object":"chat.completion.chunk","created":1744790136,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":""},"finish_reason":"stop","logprobs":null}],"usage":{"prompt_tokens":421,"total_tokens":424,"completion_tokens":3}}
+data: [DONE]

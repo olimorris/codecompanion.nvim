@@ -10,7 +10,7 @@ T = new_set({
 
       -- Load helpers and set up the environment in the child process
       child.lua([[
-        require("tests.log")
+        --require("tests.log")
         h = require('tests.helpers')
         chat, agent = h.setup_chat_buffer()
 
@@ -36,9 +36,26 @@ T["Agent"]["queue"]["can queue multiple async functions"] = function()
   h.eq(vim.NIL, child.lua_get([[_G._test_order]]))
 
   child.lua([[
-    local queue = require("tests.strategies.chat.agents.tools.stubs.xml.async_queue_xml")
-    local xml = queue.run()
-    agent:execute(chat, xml)
+    local tools = {
+      {
+        ["function"] = {
+          arguments = { data = "Data 1" },
+          name = "func_async_1",
+        },
+      },
+      {
+        ["function"] = {
+          name = "cmd_queue",
+        },
+      },
+      {
+        ["function"] = {
+          arguments = { data = "Data 2" },
+          name = "func_async_2",
+        },
+      },
+    }
+    agent:execute(chat, tools)
     vim.wait(2100)
   ]])
 
@@ -56,9 +73,21 @@ T["Agent"]["queue"]["can queue async function with sync function"] = function()
   h.eq(vim.NIL, child.lua_get([[_G._test_order]]))
 
   child.lua([[
-    local queue = require("tests.strategies.chat.agents.tools.stubs.xml.mixed_queue_xml")
-    local xml = queue.run()
-    agent:execute(chat, xml)
+    local tools = {
+      {
+        ["function"] = {
+          arguments = { data = "Data 1" },
+          name = "func_queue",
+        },
+      },
+      {
+        ["function"] = {
+          arguments = { data = "Data 2" },
+          name = "func_async_2",
+        },
+      },
+    }
+    agent:execute(chat, tools)
     vim.wait(1100)
   ]])
 
@@ -71,4 +100,5 @@ T["Agent"]["queue"]["can queue async function with sync function"] = function()
   -- Test that the function was called
   h.eq("Data 1 Data 2", child.lua_get([[_G._test_func]]))
 end
+
 return T

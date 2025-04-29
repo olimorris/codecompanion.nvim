@@ -1,26 +1,25 @@
 return {
   name = "func",
-  system_prompt = function(schema)
-    return "my func system prompt"
-  end,
+  system_prompt = "my func system prompt",
   cmds = {
     ---@return { status: string, data: any }
-    function(self, actions, input)
+    function(self, args, input)
       local spacer = ""
       if _G._test_func then
         spacer = " "
       end
-      _G._test_func = (_G._test_func or "") .. spacer .. actions.data
-      return { status = "success", data = actions.data }
+      _G._test_func = (_G._test_func or "") .. spacer .. args.data
+      return { status = "success", data = args.data }
     end,
   },
+  schema = {
+    name = "func",
+  },
   handlers = {
-    -- Should only be called once
     setup = function(self)
       _G._test_order = (_G._test_order or "") .. "Setup"
       _G._test_setup = (_G._test_setup or "") .. "Setup"
     end,
-    -- Should only be called once
     on_exit = function(self)
       _G._test_order = (_G._test_order or "") .. "->Exit"
       _G._test_exit = (_G._test_exit or "") .. "Exited"

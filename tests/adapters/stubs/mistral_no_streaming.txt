@@ -1,0 +1,23 @@
+{
+    "id": "d7897f7feff54a3cac5581469ccbc220",
+    "object": "chat.completion",
+    "created": 1744790414,
+    "model": "mistral-small-latest",
+    "choices": [
+        {
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "tool_calls": null,
+                "content": "Dynamic Language"
+            },
+            "finish_reason": "stop",
+            "logprobs": null
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 421,
+        "total_tokens": 424,
+        "completion_tokens": 3
+    }
+}
