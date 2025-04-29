@@ -36,5 +36,5 @@ require("codecompanion").setup({
 })
 ```
 
-Visit the [creating extensions guide](extending/extensions) to learn more about available extensions and how to create your own.
+Visit the creating [extensions](/extending/extensions) guide to learn more about available extensions and how to create your own.
 
