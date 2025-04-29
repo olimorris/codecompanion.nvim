@@ -69,6 +69,9 @@
     var(--vw-green) 25%,
     var(--vw-base-bg)
   );
+
+  /* even‑row stripes */
+  --vp-c-bg-soft: color-mix(in srgb, var(--vw-blue) 5%, var(--vp-c-bg));
 }
 
 .dark {
@@ -90,6 +93,12 @@
 
   /* Override base background for dark mode */
   --vw-base-bg-mixer: 20%;
+
+  .vp-doc table th,
+  .vp-doc table td {
+    border: 1px solid color-mix(in srgb, var(--vw-green) 40%, var(--vp-c-bg)) !important;
+  }
+  --vp-c-bg-soft: color-mix(in srgb, var(--vp-c-bg-alt) 80%, var(--vp-c-bg));
 }
 
 /* Mermaid */

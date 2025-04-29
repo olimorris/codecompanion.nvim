@@ -31,6 +31,19 @@ return {
         is_complete = function()
           return false
         end,
+        tools = {
+          format_tool_calls = function(self, tools)
+            return tools
+          end,
+          output_response = function(self, tool_call, output)
+            return {
+              role = "tool",
+              tool_call_id = tool_call.id,
+              content = output,
+              opts = { tag = tool_call.id, visible = false },
+            }
+          end,
+        },
       },
       schema = {
         model = {
@@ -51,24 +64,32 @@ return {
         user = "foo",
       },
       tools = {
+        ["cmd_runner"] = {
+          callback = "strategies.chat.agents.tools.cmd_runner",
+          description = "Run shell commands initiated by the LLM",
+        },
         ["editor"] = {
           callback = "strategies.chat.agents.tools.editor",
           description = "Update a buffer with the LLM's response",
         },
-        ["foo"] = {
-          callback = "utils.foo",
-          description = "Some foo function",
+        ["files"] = {
+          callback = "strategies.chat.agents.tools.files",
+          description = "Update the file system with the LLM's response",
         },
-        ["bar"] = {
-          callback = "utils.bar",
-          description = "Some bar function",
-        },
-        ["bar_again"] = {
-          callback = "utils.bar_again",
-          description = "Some bar_again function",
+        ["weather"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/weather.lua",
+          description = "Get the latest weather",
         },
         ["func"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
+          description = "Some function tool to test",
+        },
+        ["func_handlers_once"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_handlers_once.lua",
+          description = "Some function tool to test",
+        },
+        ["func2"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func2.lua",
           description = "Some function tool to test",
         },
         ["func_consecutive"] = {
@@ -98,13 +119,6 @@ return {
         ["func_async_2"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_async_2.lua",
           description = "Some function tool to test",
-        },
-        ["func_approval"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
-          description = "Some function tool to test but with approval",
-          opts = {
-            requires_approval = true,
-          },
         },
         ["cmd"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd.lua",
@@ -137,7 +151,7 @@ return {
           },
         },
         opts = {
-          system_prompt = [[My tool system prompt]],
+          system_prompt = "My tool system prompt",
         },
       },
       variables = {
@@ -247,8 +261,9 @@ return {
           wrap = true,
         },
       },
-      intro_message = "Hello",
+      intro_message = "", -- Keep this blank or it messes up the screenshot tests
     },
+    diff = { enabled = false },
   },
   opts = {
     system_prompt = "default system prompt",

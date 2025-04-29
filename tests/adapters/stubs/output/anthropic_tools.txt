@@ -1,0 +1,66 @@
+{
+    "messages": [
+        {
+            "content": [
+                {
+                    "type": "text",
+                    "text": "What's the weather like in London and Paris?"
+                }
+            ],
+            "role": "user"
+        },
+        {
+            "content": [
+                {
+                    "type": "text",
+                    "text": "I'll check the weather for both cities using Celsius units."
+                },
+                {
+                    "name": "weather",
+                    "input": {
+                        "units": "celsius",
+                        "location": "London, UK"
+                    },
+                    "type": "tool_use",
+                    "id": "toolu_01QRThyzKt6NibK3m1DjUTkE"
+                },
+                {
+                    "name": "weather",
+                    "input": {
+                        "units": "celsius",
+                        "location": "Paris, France"
+                    },
+                    "type": "tool_use",
+                    "id": "toolu_015A1zQUwKw1YE3CYvRRUdXZ"
+                }
+            ],
+            "role": "assistant"
+        },
+        {
+            "content": [
+                {
+                    "content": "Ran the weather tool The weather in London, UK is 15° celsius",
+                    "type": "tool_result",
+                    "tool_use_id": "toolu_01QRThyzKt6NibK3m1DjUTkE",
+                    "is_error": false
+                },
+                {
+                    "content": "Ran the weather tool The weather in Paris, France is 15° celsius",
+                    "type": "tool_result",
+                    "tool_use_id": "toolu_015A1zQUwKw1YE3CYvRRUdXZ",
+                    "is_error": false
+                }
+            ],
+            "role": "user"
+        }
+    ],
+    "system": [
+        {
+        "cache_control": {
+          "type": "ephemeral"
+        },
+        "text": "default system prompt",
+        "type": "text"
+        }
+    ]
+}

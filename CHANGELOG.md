@@ -1,5 +1,17 @@
 # Changelog
 
+## [15.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.13.0...v15.0.0) (2025-04-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* **tools:** move to function calling ([#1141](https://github.com/olimorris/codecompanion.nvim/issues/1141))
+
+### Features
+
+* add extensions api ([#1290](https://github.com/olimorris/codecompanion.nvim/issues/1290)) ([96bda85](https://github.com/olimorris/codecompanion.nvim/commit/96bda85c8bc77ac7a8f0b1a431c38e2c4103ad90))
+* **tools:** move to function calling ([#1141](https://github.com/olimorris/codecompanion.nvim/issues/1141)) ([4fdf370](https://github.com/olimorris/codecompanion.nvim/commit/4fdf3707f6d8492b34629580935220c13dcac490))
+
 ## [14.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.12.0...v14.13.0) (2025-04-27)
 
 

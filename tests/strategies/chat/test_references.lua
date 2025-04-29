@@ -33,7 +33,7 @@ T["References"]["Can be added to the UI of the chat buffer"] = function()
   chat:submit()
 
   local buffer = h.get_buf_lines(chat.bufnr)
-  h.eq("> Sharing:", buffer[3])
+  h.eq("> Context:", buffer[3])
   h.eq("> - testing", buffer[4])
   h.eq("> - testing again", buffer[5])
 end
@@ -104,6 +104,36 @@ T["References"]["Can be deleted"] = function()
   h.eq(has_ref_message, true, "Message with second reference should still be present")
 end
 
+T["References"]["Tools and their schema can be deleted"] = function()
+  -- Add messages
+  chat.messages = {
+    {
+      role = "user",
+      content = "Whats the @weather like in London? Also adding a @func tool too.",
+    },
+  }
+
+  local initial_count = #chat.messages
+  h.eq(1, initial_count, "Should start with 1 messages")
+  h.eq(0, vim.tbl_count(chat.refs), "Should have 0 references")
+
+  chat:submit()
+
+  h.eq(2, vim.tbl_count(chat.refs), "Should have 2 reference")
+  h.expect_tbl_contains("<tool>weather</tool>", chat.tools.schemas)
+  h.expect_tbl_contains("<tool>func</tool>", chat.tools.schemas)
+
+  -- Mock the get_from_chat method to pretend that the user has deleted the weather tool
+  chat.references.get_from_chat = function()
+    return { "<tool>func</tool>" }
+  end
+
+  chat:check_references()
+  h.eq({ { "<tool>func</tool>", {
+    name = "func",
+  } } }, chat.tools.schemas)
+end
+
 T["References"]["Can be pinned"] = function()
   local icon = config.display.chat.icons.pinned_buffer
 
@@ -147,7 +177,7 @@ T["References"]["Can be pinned"] = function()
   h.eq(chat.refs[1].opts.pinned, true, "Reference is pinned")
 
   chat:submit()
-  h.eq(#chat.messages, 5, "There are four messages")
+  h.eq(#chat.messages, 4, "There are four messages")
   h.eq(chat.messages[#chat.messages].content, "Basic Slash Command")
 
   chat.status = "success"
@@ -155,7 +185,7 @@ T["References"]["Can be pinned"] = function()
 
   local buffer = h.get_buf_lines(chat.bufnr)
 
-  h.eq("> Sharing:", buffer[3])
+  h.eq("> Context:", buffer[3])
   h.eq(string.format("> - %s<buf>pinned example</buf>", icon), buffer[8])
   h.eq("> - <buf>unpinned example</buf>", buffer[9])
 
@@ -209,7 +239,7 @@ T["References"]["Render"] = function()
   }
   chat.references:render()
 
-  h.eq(h.get_buf_lines(chat.bufnr), { "## foo", "", "> Sharing:", "> -  <buf>pinned example</buf>", "", "" })
+  h.eq(h.get_buf_lines(chat.bufnr), { "## foo", "", "> Context:", "> -  <buf>pinned example</buf>", "", "" })
 end
 
 T["References"]["can be cleared from messages"] = function()
@@ -224,7 +254,7 @@ T["References"]["can be cleared from messages"] = function()
 
   local message = {
     role = "user",
-    content = "> Sharing:\n> -  <buf>pinned example</buf>\n\nHello, World",
+    content = "> Context:\n> -  <buf>pinned example</buf>\n\nHello, World",
   }
 
   h.eq("Hello, World", chat.references:clear(message).content)

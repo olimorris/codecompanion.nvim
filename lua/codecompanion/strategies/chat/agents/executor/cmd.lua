@@ -58,8 +58,8 @@ function CmdExecutor:run(cmd, index)
 
       -- Flags can be inserted into the chat buffer to be picked up later
       if cmd.flag then
-        self.executor.agent.chat.tool_flags = self.executor.agent.chat.tool_flags or {}
-        self.executor.agent.chat.tool_flags[cmd.flag] = (code == 0)
+        self.executor.agent.chat.tools.flags = self.executor.agent.chat.tools.flags or {}
+        self.executor.agent.chat.tools.flags[cmd.flag] = (code == 0)
       end
 
       vim.schedule(function()
