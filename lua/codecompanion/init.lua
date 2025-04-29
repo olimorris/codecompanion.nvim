@@ -1,3 +1,4 @@
+local _extensions = require("codecompanion._extensions")
 local config = require("codecompanion.config")
 local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
@@ -6,7 +7,21 @@ local api = vim.api
 _G.svim = vim.fn.has("nvim-0.11") == 1 and vim or require("codecompanion.compat")
 
 ---@class CodeCompanion
-local CodeCompanion = {}
+local CodeCompanion = {
+  ---@type table Access to extension exports via extensions.foo
+  extensions = _extensions.manager,
+}
+
+---Register an extension with setup and exports
+---@param name string The name of the extension
+---@param extension CodeCompanion.Extension The extension implementation
+---@return nil
+CodeCompanion.register_extension = function(name, extension)
+  local ok, ext_error = pcall(_extensions.register_extension, name, extension)
+  if not ok then
+    log:error("Error loading extension %s: %s", name, ext_error)
+  end
+end
 
 ---Run the inline assistant from the current Neovim buffer
 ---@param args table
@@ -244,6 +259,7 @@ CodeCompanion.has = function(feature)
     "cmd",
     "prompt-library",
     "function-calling",
+    "extensions",
   }
 
   if type(feature) == "string" then
@@ -297,6 +313,16 @@ CodeCompanion.setup = function(opts)
       },
     },
   }))
+
+  -- Setup extensions
+  for name, schema in pairs(config.extensions) do
+    if schema.enabled ~= false then
+      local ok, ext_error = pcall(_extensions.load_extension, name, schema)
+      if not ok then
+        log:error("Error loading extension %s: %s", name, ext_error)
+      end
+    end
+  end
 end
 
 return CodeCompanion

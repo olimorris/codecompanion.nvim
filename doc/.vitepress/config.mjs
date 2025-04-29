@@ -76,6 +76,7 @@ export default withMermaid(
             },
             { text: "Prompt Library", link: "/configuration/prompt-library" },
             { text: "System Prompt", link: "/configuration/system-prompt" },
+            { text: "Extensions", link: "/configuration/extensions" },
             { text: "Others", link: "/configuration/others" },
           ],
         },
@@ -113,7 +114,15 @@ export default withMermaid(
             { text: "Creating Tools", link: "/extending/tools" },
             { text: "Creating Workflows", link: "/extending/workflows" },
             { text: "Creating Workspaces", link: "/extending/workspace" },
+            { text: "Creating Extensions", link: "/extending/extensions" },
           ],
+        },
+        {
+          text: "Community Extensions",
+          collapsed: true,
+          items: [
+            { text: "MCP Hub", link: "/extensions/mcphub" },
+          ]
         },
       ],
 

@@ -967,6 +967,8 @@ You must create or modify a workspace file through a series of prompts over mult
       layout = "vertical", -- vertical|horizontal|buffer
     },
   },
+  -- EXTENSIONS ------------------------------------------------------
+  extensions = {},
   -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
     log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
