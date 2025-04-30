@@ -1,5 +1,13 @@
 # Changelog
 
+## [15.0.3](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.2...v15.0.3) (2025-04-30)
+
+
+### Bug Fixes
+
+* **references:** don't remove tools by checking chat refs while auto_submitting ([#1320](https://github.com/olimorris/codecompanion.nvim/issues/1320)) ([b2a0aa2](https://github.com/olimorris/codecompanion.nvim/commit/b2a0aa2aa71e0f401099ed88f35cc94e0163aeea))
+* **tools:** file tool now outputs content to the LLM ([#1321](https://github.com/olimorris/codecompanion.nvim/issues/1321)) ([50ce548](https://github.com/olimorris/codecompanion.nvim/commit/50ce548b099318d6c14c56949d4a3f3a4693b7b1))
+
 ## [15.0.2](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.1...v15.0.2) (2025-04-30)
 
 
