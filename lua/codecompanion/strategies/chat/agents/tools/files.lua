@@ -83,7 +83,6 @@ local function edit(action)
   if not content then
     return util.notify(fmt("No data found in %s", action.path))
   end
-
   if not action.search or not action.replace then
     return util.notify(fmt("Couldn't edit the file %s", action.path))
   end
@@ -328,12 +327,29 @@ return {
     ---@param stdout table The output from the command
     success = function(self, agent, cmd, stdout)
       local chat = agent.chat
-
       local args = self.args
-      chat:add_tool_output(
-        self,
+
+      local output =
         fmt([[**Files Tool**: The %s action for `%s` was successful]], string.upper(args.action), args.path)
-      )
+
+      local llm_output
+      if args.action == "read" or args.action == "read_lines" then
+        llm_output = fmt(
+          [[**Files Tool**: The %s action for `%s` was successful. The file's contents are:
+
+```%s
+%s
+```]],
+          string.upper(args.action),
+          args.path,
+          file and file.filetype,
+          file and file.content
+        )
+      else
+        llm_output = output
+      end
+
+      chat:add_tool_output(self, llm_output, output)
     end,
 
     ---@param self CodeCompanion.Tool.Files
