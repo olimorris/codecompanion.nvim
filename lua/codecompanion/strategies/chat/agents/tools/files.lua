@@ -75,16 +75,23 @@ local function edit(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
 
+  if action.contents and action.contents ~= "" then
+    return p:write(action.contents, "w")
+  end
+
   local content = p:read()
   if not content then
     return util.notify(fmt("No data found in %s", action.path))
+  end
+
+  if not action.search or not action.replace then
+    return util.notify(fmt("Couldn't edit the file %s", action.path))
   end
 
   local changed, substitutions_count = content:gsub(vim.pesc(action.search), vim.pesc(action.replace))
   if substitutions_count == 0 then
     return util.notify(fmt("Could not find the search string in %s", action.path))
   end
-
   p:write(changed, "w")
 end
 
@@ -268,6 +275,7 @@ return {
 
 ## POINTS TO NOTE
 - This tool can be used alongside other tools within CodeCompanion
+- To edit a file, you can provide a search and replace string, or provide the entire file contents.
 ]],
   handlers = {
     ---@param agent CodeCompanion.Agent The tool object
@@ -337,6 +345,7 @@ return {
       local chat = agent.chat
       local args = self.args
       local errors = vim.iter(stderr):flatten():join("\n")
+      log:debug("[Files Tool] Error output: %s", stderr)
 
       local error_output = fmt(
         [[**Files Tool**: There was an error running the %s command:
