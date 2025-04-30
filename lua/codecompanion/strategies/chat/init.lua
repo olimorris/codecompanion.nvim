@@ -652,7 +652,7 @@ end
 ---@param message table
 ---@return boolean
 function Chat:has_user_messages(message)
-  if vim.tbl_isempty(message) then
+  if message and message.content == "" then
     local has_user_messages = vim
       .iter(self.messages)
       :filter(function(msg)
@@ -663,6 +663,8 @@ function Chat:has_user_messages(message)
     if #has_user_messages == 0 then
       return false
     end
+    -- Allow users to submit a blank message if they have at least one message in the chat buffer
+    return true
   end
   return true
 end
@@ -684,7 +686,7 @@ function Chat:submit(opts)
   self.watchers:check_for_changes(self)
 
   if not self:has_user_messages(message) then
-    return log:info("No messages to submit")
+    return log:warn("No messages to submit")
   end
 
   --- Only send the user's last message if we're not regenerating the response
