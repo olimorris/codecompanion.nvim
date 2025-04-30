@@ -343,7 +343,7 @@ function Chat.new(args)
   self.ui:open():render(self.context, self.messages, args)
 
   -- Set the header line for the chat buffer
-  if args.messages and #args.messages > 0 then
+  if args.messages and vim.tbl_count(args.messages) > 0 then
     local header_line = ts_parse_headers(self)
     self.header_line = header_line and (header_line + 1) or 1
   end
