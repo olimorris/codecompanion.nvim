@@ -206,6 +206,34 @@ return {
     },
   },
   prompt_library = {
+    ["Demo"] = {
+      strategy = "chat",
+      description = "Demo prompt",
+      opts = {
+        short_name = "demo",
+      },
+      prompts = {
+        {
+          role = "system",
+          content = "This is some system message",
+          opts = {
+            visible = false,
+          },
+        },
+        {
+          role = "user",
+          content = "Hi",
+        },
+        {
+          role = "llm",
+          content = "What can I do?\n",
+        },
+        {
+          role = "user",
+          content = "",
+        },
+      },
+    },
     ["Test References"] = {
       strategy = "chat",
       description = "Add some references",

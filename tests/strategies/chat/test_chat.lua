@@ -12,6 +12,7 @@ T = new_set({
       child.o.statusline = ""
       child.o.laststatus = 0
       child.lua([[
+        codecompanion = require("codecompanion")
         h = require('tests.helpers')
         _G.chat, _G.agent = h.setup_chat_buffer()
         ]])
@@ -78,6 +79,21 @@ end
 T["Chat"]["chat buffer is initialized"] = function()
   child.lua([[require("codecompanion").chat()]])
   expect.reference_screenshot(child.get_screenshot())
+end
+
+T["Chat"]["loading from the prompt library sets the correct header_line"] = function()
+  local output = child.lua([[
+    require("tests.log")
+    -- Load the demo prompt from the prompt library
+    codecompanion.prompt("demo")
+    -- Get the chat object
+    local bufnr = vim.api.nvim_get_current_buf()
+    local chat = codecompanion.buf_get_chat(bufnr)
+    return chat.header_line
+  ]])
+
+  expect.reference_screenshot(child.get_screenshot())
+  h.eq(10, output)
 end
 
 return T
