@@ -1,5 +1,12 @@
 # Changelog
 
+## [15.0.2](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.1...v15.0.2) (2025-04-30)
+
+
+### Bug Fixes
+
+* **tools:** files tool can now edit files ([#1317](https://github.com/olimorris/codecompanion.nvim/issues/1317)) ([668fecc](https://github.com/olimorris/codecompanion.nvim/commit/668fecc61777e62a65d624cc88f2a8468ac4cd39))
+
 ## [15.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.0...v15.0.1) (2025-04-30)
 
 
