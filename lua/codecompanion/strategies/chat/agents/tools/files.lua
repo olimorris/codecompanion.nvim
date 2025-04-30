@@ -260,21 +260,19 @@ return {
 
 ## CONTEXT
 - You are connected to a Neovim instance via CodeCompanion.
-- You can create, read, read specific lines, edit, delete, rename, copy, or move files on disk.
-- Every action requires explicit approval from the user.
+- Using this tool you can create a file, read a file's contents, read specific lines from a file, edit a file, delete a file, rename a file, copy a file, or move files, on a user's disk.
+- CodeCompanion asks the user for approval before this tool executes, so you do not need to ask for permission.
 
 ## OBJECTIVE
-- Only invoke this tool when the user explicitly requests a file operation.
-- Do not perform any destructive actions without prior user confirmation.
-- Return a single JSON-based function call matching the schema.
+- Invoke this tool when specific file operations are required.
 
 ## RESPONSE
-- Only invoke this tool when the user specifically asks.
-- Use this tool strictly for file operations.
+- Return a single JSON-based function call matching the schema.
 
 ## POINTS TO NOTE
-- This tool can be used alongside other tools within CodeCompanion
+- This tool can be used alongside other tools within CodeCompanion.
 - To edit a file, you can provide a search and replace string, or provide the entire file contents.
+- Be careful when using search and replace as this will overwrite the contents in the search string.
 ]],
   handlers = {
     ---@param agent CodeCompanion.Agent The tool object
