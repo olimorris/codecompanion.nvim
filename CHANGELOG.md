@@ -1,5 +1,12 @@
 # Changelog
 
+## [15.0.5](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.4...v15.0.5) (2025-04-30)
+
+
+### Bug Fixes
+
+* **chat:** header line when used with prompt library closes [#1319](https://github.com/olimorris/codecompanion.nvim/issues/1319) ([#1327](https://github.com/olimorris/codecompanion.nvim/issues/1327)) ([77ff03d](https://github.com/olimorris/codecompanion.nvim/commit/77ff03d4ce89ca3b4ec06033df4106d11eb536ad))
+
 ## [15.0.4](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.3...v15.0.4) (2025-04-30)
 
 
