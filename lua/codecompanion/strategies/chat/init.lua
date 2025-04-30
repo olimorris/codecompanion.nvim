@@ -696,7 +696,11 @@ function Chat:submit(opts)
   message = self.references:clear(self.messages[#self.messages])
 
   self:replace_vars_and_tools(message)
-  self:check_references()
+
+  local tools_config = config.strategies.chat.tools
+  if not tools_config.opts.auto_submit_success and not tools_config.opts.auto_submit_errors then
+    self:check_references()
+  end
   self:add_pins()
 
   -- Check if the user has manually overridden the adapter
