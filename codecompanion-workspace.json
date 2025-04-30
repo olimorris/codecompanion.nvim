@@ -120,7 +120,7 @@
     "test-screenshot-example": {
       "type": "file",
       "path": "tests/adapters/test_tools_in_chat_buffer.lua",
-      "description": "I've included an example test file that highlights the capability of mini.test and the approach I've taken to testing in CodeCompanion. Whilst I'm not a fan of using screenshots for all tests, in this case it was useful as it made up part of a much larger integraton test."
+      "description": "I've included an example test file that highlights the capability of mini.test and the approach I've taken to testing in CodeCompanion. Whilst I'm not a fan of using screenshots for all tests, in this case it was useful as it made up part of a much larger integration test."
     },
     "minitest-docs": {
       "type": "url",
