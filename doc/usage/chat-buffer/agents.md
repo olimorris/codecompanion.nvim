@@ -117,7 +117,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | Copilot           | claude-3-7-sonnet          | :white_check_mark: |                                  |
 | Copilot           | claude-3-7-sonnet-thought  | :x:                | Doesn't support function calling |
 | Copilot           | gemini-2.0-flash-001       | :x:                |                                  |
-| Copilot           | gemini-2.5-pro             | :x:                |                                  |
+| Copilot           | gemini-2.5-pro             | :white_check_mark: |                                  |
 | DeepSeek          | deepseek-chat              | :white_check_mark: |                                  |
 | DeepSeek          | deepseek-reasoner          | :x:                | Doesn't support function calling |
 | Gemini            | Gemini-2.0-flash           | :white_check_mark: |                                  |

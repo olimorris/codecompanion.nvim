@@ -158,6 +158,10 @@ function References:clear(message)
     return message or nil
   end
 
+  if message and message.content == "" then
+    return message
+  end
+
   local parser = vim.treesitter.get_string_parser(message.content, "markdown")
   local query = vim.treesitter.query.get("markdown", "reference")
   local root = parser:parse()[1]:root()
