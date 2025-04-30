@@ -84,8 +84,6 @@ function Agent:set_autocmds()
             self.chat:submit()
           end
         end)
-      else
-        self:reset()
       end
     end,
   })
