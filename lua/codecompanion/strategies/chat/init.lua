@@ -182,6 +182,30 @@ local function ts_parse_messages(chat, start_range)
   return { content = "" }
 end
 
+---Parse the chat buffer for the last header
+---@param chat CodeCompanion.Chat
+---@return number|nil
+local function ts_parse_headers(chat)
+  local query = get_query("markdown", "chat")
+
+  local tree = chat.parser:parse({ 0, -1 })[1]
+  local root = tree:root()
+
+  local last_match = nil
+  for id, node in query:iter_captures(root, chat.bufnr) do
+    if query.captures[id] == "role_only" then
+      local role = helpers.format_role(get_node_text(node, chat.bufnr))
+      if role == user_role then
+        last_match = node
+      end
+    end
+  end
+
+  if last_match then
+    return last_match:range()
+  end
+end
+
 ---Parse the chat buffer for a code block
 ---returns the code block that the cursor is in or the last code block
 ---@param chat CodeCompanion.Chat
@@ -317,6 +341,12 @@ function Chat.new(args)
 
   self.close_last_chat()
   self.ui:open():render(self.context, self.messages, args)
+
+  -- Set the header line for the chat buffer
+  if args.messages and vim.tbl_count(args.messages) > 0 then
+    local header_line = ts_parse_headers(self)
+    self.header_line = header_line and (header_line + 1) or 1
+  end
 
   if vim.tbl_isempty(self.messages) then
     self.ui:set_intro_msg()
