@@ -11,8 +11,8 @@ The Chat Buffer - This is where all of the logic for conversing with an LLM sits
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
----@field header_line number The line number that any Tree-sitter parsing should start from
----@field from_prompt_library? boolean Whether the chat was initiated from the prompt library-
+---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
+---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field header_ns integer The namespace for the virtual text that appears in the header
 ---@field id integer The unique identifier for the chat
 ---@field messages? table The messages in the chat buffer
