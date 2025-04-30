@@ -686,7 +686,7 @@ function Chat:submit(opts)
   self.watchers:check_for_changes(self)
 
   if not self:has_user_messages(message) then
-    return log:warn("No messages to submit")
+    return log:info("No messages to submit")
   end
 
   --- Only send the user's last message if we're not regenerating the response
