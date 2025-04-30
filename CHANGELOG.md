@@ -1,5 +1,12 @@
 # Changelog
 
+## [15.0.1](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.0...v15.0.1) (2025-04-30)
+
+
+### Bug Fixes
+
+* **refs:** can handle blank messages closes [#1311](https://github.com/olimorris/codecompanion.nvim/issues/1311) ([#1314](https://github.com/olimorris/codecompanion.nvim/issues/1314)) ([c3d2326](https://github.com/olimorris/codecompanion.nvim/commit/c3d2326ec1f1ef9f1a6867d478f3be4930fcdf7d))
+
 ## [15.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v14.13.0...v15.0.0) (2025-04-29)
 
 
