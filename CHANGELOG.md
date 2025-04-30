@@ -1,5 +1,12 @@
 # Changelog
 
+## [15.0.4](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.3...v15.0.4) (2025-04-30)
+
+
+### Bug Fixes
+
+* **ui:** add blank line before user role ([#1225](https://github.com/olimorris/codecompanion.nvim/issues/1225)) ([ddda7e8](https://github.com/olimorris/codecompanion.nvim/commit/ddda7e8208856df8c7d32c7fcf6276962ebbb437))
+
 ## [15.0.3](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.2...v15.0.3) (2025-04-30)
 
 
