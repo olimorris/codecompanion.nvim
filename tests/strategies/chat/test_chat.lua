@@ -93,7 +93,7 @@ T["Chat"]["loading from the prompt library sets the correct header_line"] = func
   ]])
 
   expect.reference_screenshot(child.get_screenshot())
-  h.eq(10, output)
+  h.eq(9, output)
 end
 
 return T

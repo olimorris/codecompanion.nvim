@@ -193,19 +193,16 @@ local function ts_parse_headers(chat)
 
   local last_match = nil
   for id, node in query:iter_captures(root, chat.bufnr) do
-    if query.captures[id] == "role" then
+    if query.captures[id] == "role_only" then
       local role = helpers.format_role(get_node_text(node, chat.bufnr))
-      log:info("Role: %s", role)
       if role == user_role then
         last_match = node
       end
     end
   end
 
-  -- log:info("RANGE %s", last_match:range())
-
   if last_match then
-    return 0
+    return last_match:range()
   end
 end
 
@@ -348,7 +345,7 @@ function Chat.new(args)
   -- Set the header line for the chat buffer
   if args.messages and #args.messages > 0 then
     local header_line = ts_parse_headers(self)
-    self.header_line = header_line and header_line + 1 or 1
+    self.header_line = header_line and (header_line + 1) or 1
   end
 
   if vim.tbl_isempty(self.messages) then
