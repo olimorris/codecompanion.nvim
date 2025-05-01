@@ -75,15 +75,16 @@ function Agent:set_autocmds()
           { hl_group = "CodeCompanionVirtualText" }
         )
       elseif request.match == "CodeCompanionAgentFinished" then
-        if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then
-          self.chat:submit()
-        end
-        if self.status == CONSTANTS.STATUS_SUCCESS and self.tools_config.opts.auto_submit_success then
-          self.chat:submit()
-        end
+        vim.schedule(function()
+          self:reset()
+          if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then
+            self.chat:submit()
+          end
+          if self.status == CONSTANTS.STATUS_SUCCESS and self.tools_config.opts.auto_submit_success then
+            self.chat:submit()
+          end
+        end)
       end
-
-      self:reset()
     end,
   })
 end
