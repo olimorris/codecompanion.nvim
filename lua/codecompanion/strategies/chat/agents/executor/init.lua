@@ -84,12 +84,12 @@ end
 ---@return nil
 function Executor:setup(input)
   if self.queue:is_empty() then
-    finalize_agent(self)
-    return log:debug("Executor:execute - Queue empty")
+    log:debug("Executor:execute - Queue empty")
+    return finalize_agent(self)
   end
   if self.agent.status == self.agent.constants.STATUS_ERROR then
-    finalize_agent(self)
-    return log:debug("Executor:execute - Error")
+    log:debug("Executor:execute - Error")
+    return finalize_agent(self)
   end
 
   -- Get the next tool to run
