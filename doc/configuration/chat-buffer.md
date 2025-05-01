@@ -170,6 +170,31 @@ require("codecompanion").setup({
 })
 ```
 
+## Prompt Decorator
+
+It can be useful to decorate your prompt with additional information, prior to sending to an LLM. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags alongside sharing `<attachment></attachment>` tags. This can also be achieved in CodeCompanion:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      opts = {
+        ---Decorate the user message before it's sent to the LLM
+        ---@param message string
+        ---@param adapter CodeCompanion.Adapter
+        ---@param context table
+        ---@return string
+        prompt_decorator = function(message, adapter, context)
+          return string.format([[<prompt>%s</prompt>]], message)
+        end,
+      }
+    }
+  }
+})
+```
+
+The decorator function also has access to the adapter in the chat buffer alongside the [context](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/utils/context.lua#L121-L137) table (which refreshes when a user toggles the chat buffer).
+
 ## Layout
 
 You can change the appearance of the chat buffer by changing the `display.chat.window` table in your configuration:

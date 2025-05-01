@@ -712,6 +712,11 @@ function Chat:submit(opts)
   local bufnr = self.bufnr
   local message = ts_parse_messages(self, self.header_line)
 
+  if config.strategies.chat.opts and config.strategies.chat.opts.prompt_decorator then
+    message.content =
+      config.strategies.chat.opts.prompt_decorator(message.content, adapters.make_safe(self.adapter), self.context)
+  end
+
   -- Check if any watched buffers have changes
   self.watchers:check_for_changes(self)
 
