@@ -251,8 +251,13 @@ function UI:render(context, messages, opts)
           self:set_header(lines, set_llm_role(self.roles.llm, self.adapter))
         end
 
+        if msg.opts and msg.opts.tag == "tool_output" then
+          table.insert(lines, "### Tool Output")
+          table.insert(lines, "")
+        end
+
         local trimempty = not (msg.role == "user" and msg.content == "")
-        for _, text in ipairs(vim.split(msg.content, "\n", { plain = true, trimempty = trimempty })) do
+        for _, text in ipairs(vim.split(msg.content or "", "\n", { plain = true, trimempty = trimempty })) do
           table.insert(lines, text)
         end
 
