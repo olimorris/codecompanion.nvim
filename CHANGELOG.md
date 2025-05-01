@@ -1,5 +1,12 @@
 # Changelog
 
+## [15.0.6](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.5...v15.0.6) (2025-05-01)
+
+
+### Bug Fixes
+
+* **tools:** auto_submitting processes requests in order ([#1325](https://github.com/olimorris/codecompanion.nvim/issues/1325)) ([0d910ae](https://github.com/olimorris/codecompanion.nvim/commit/0d910ae6ddb4af6e5e2c34838760da241999cd3f))
+
 ## [15.0.5](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.4...v15.0.5) (2025-04-30)
 
 

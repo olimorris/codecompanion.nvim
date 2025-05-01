@@ -83,7 +83,7 @@ end
 
 T["Chat"]["loading from the prompt library sets the correct header_line"] = function()
   local output = child.lua([[
-    require("tests.log")
+    --require("tests.log")
     -- Load the demo prompt from the prompt library
     codecompanion.prompt("demo")
     -- Get the chat object
