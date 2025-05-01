@@ -129,9 +129,9 @@ T["References"]["Tools and their schema can be deleted"] = function()
   end
 
   chat:check_references()
-  h.eq({ { "<tool>func</tool>", {
+  h.eq({ ["<tool>func</tool>"] = {
     name = "func",
-  } } }, chat.tools.schemas)
+  } }, chat.tools.schemas)
 end
 
 T["References"]["Can be pinned"] = function()

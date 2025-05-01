@@ -947,17 +947,12 @@ function Chat:check_references()
     end)
     :totable()
 
-  -- Clear any tool's schemas
-  self.tools.schemas = vim
-    .iter(self.tools.schemas)
-    :filter(function(tool_schemas)
-      if vim.tbl_contains(to_remove, tool_schemas) then
-        -- TODO: Remove from tools_in_use
-        return false
-      end
-      return true
-    end)
-    :totable()
+  for id, _ in pairs(self.tools.schemas) do
+    if vim.tbl_contains(to_remove, id) then
+      self.tools.schemas[id] = nil
+      self.tools.in_use[id] = nil
+    end
+  end
 end
 
 ---Add updated content from the pins to the chat buffer
