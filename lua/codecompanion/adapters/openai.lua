@@ -171,7 +171,7 @@ return {
               -- We need this to ensure the #tool_calls = #tool_responses
               local id = tool.id
               if not id or id == "" then
-                id = string.format("call_%d", tool_index)
+                id = string.format("call_%d", i)
               end
 
               if self.opts.stream then
