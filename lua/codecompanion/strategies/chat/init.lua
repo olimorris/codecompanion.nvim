@@ -842,9 +842,10 @@ local function ready_chat_buffer(chat)
   chat.references:render()
 
   -- If we're running any tooling, let them handle the subscriptions instead
-  if not chat.tools:loaded() then
-    chat.subscribers:process(chat)
-  end
+  -- if not chat.tools:loaded() then
+  --   chat.subscribers:process(chat)
+  -- end
+  chat.subscribers:process(chat)
 
   log:info("Chat request finished")
   chat:reset()
