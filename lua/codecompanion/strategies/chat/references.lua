@@ -158,7 +158,8 @@ function References:clear(message)
     return message or nil
   end
 
-  if message and message.content == "" then
+  -- Ensure we don't try and parse a message that doesn't exist
+  if (message and message.content == "") or not message.content then
     return message
   end
 

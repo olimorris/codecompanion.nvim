@@ -1,5 +1,12 @@
 # Changelog
 
+## [15.0.7](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.6...v15.0.7) (2025-05-01)
+
+
+### Bug Fixes
+
+* **refs:** do not parse non-existent message ([#1332](https://github.com/olimorris/codecompanion.nvim/issues/1332)) ([c7aeeab](https://github.com/olimorris/codecompanion.nvim/commit/c7aeeaba79c48234f3be61d04f77fe88cf2a7025))
+
 ## [15.0.6](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.5...v15.0.6) (2025-05-01)
 
 
