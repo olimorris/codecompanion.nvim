@@ -787,7 +787,9 @@ function Chat:submit(opts)
             end
             table.insert(output, result.output.content)
             self:add_buf_message(result.output)
-            self._tool_output_has_llm_response = true
+            if result.output.content ~= "" and not self._tool_output_has_llm_response then
+              self._tool_output_has_llm_response = true
+            end
           elseif self.status == CONSTANTS.STATUS_ERROR then
             log:error("Error: %s", result.output)
             return self:done(output)
