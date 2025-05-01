@@ -323,7 +323,6 @@ function Chat.new(args)
     id = self.id,
   })
   util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = self.adapter.schema.model.default })
-  util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
 
   self:apply_settings(schema.get_default(self.adapter, args.settings))
 
@@ -367,6 +366,7 @@ function Chat.new(args)
 
   last_chat = self
 
+  util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
   if args.auto_submit then
     self:submit()
   end
