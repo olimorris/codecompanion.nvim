@@ -888,6 +888,9 @@ function Chat:done(output, tools)
     self:add_message({
       role = config.constants.LLM_ROLE,
       tool_calls = tools,
+      opts = {
+        visible = false,
+      },
     })
     return self.agents:execute(self, tools)
   end
@@ -1183,6 +1186,10 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   local output = self.adapter.handlers.tools.output_response(self.adapter, tool_call, for_llm)
   output.cycle = self.cycle
   output.id = make_id({ role = output.role, content = output.content })
+  output.opts = vim.tbl_extend("force", output.opts or {}, {
+    tag = "tool_output",
+    visible = true,
+  })
 
   local existing = find_tool_call(tool_call.id, self.messages)
   if existing then
