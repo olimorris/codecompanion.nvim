@@ -1248,6 +1248,7 @@ function Chat:clear()
   log:trace("Clearing chat buffer")
   self.ui:render(self.context, self.messages, self.opts):set_intro_msg()
   self:add_system_prompt()
+  util.fire("ChatCleared", { bufnr = self.bufnr, id = self.id })
 end
 
 ---Display the chat buffer's settings and messages
