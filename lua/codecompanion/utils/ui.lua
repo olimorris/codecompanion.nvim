@@ -1,5 +1,5 @@
-local utils = require("codecompanion.utils")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 
