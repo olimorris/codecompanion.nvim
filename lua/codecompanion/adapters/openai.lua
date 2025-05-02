@@ -168,10 +168,9 @@ return {
               local tool_index = tool.index and tonumber(tool.index) or i
 
               -- Some endpoints like Gemini do not set this (why?!)
-              -- We need this to ensure the #tool_calls = #tool_responses
               local id = tool.id
               if not id or id == "" then
-                id = string.format("call_%d", i)
+                id = string.format("call_%s_%d", json.created, i)
               end
 
               if self.opts.stream then
