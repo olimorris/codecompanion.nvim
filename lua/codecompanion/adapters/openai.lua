@@ -170,7 +170,7 @@ return {
               -- Some endpoints like Gemini do not set this (why?!)
               local id = tool.id
               if not id or id == "" then
-                id = string.format("call_%s_%d", json.created, i)
+                id = string.format("call_%s_%s", json.created, i)
               end
 
               if self.opts.stream then
