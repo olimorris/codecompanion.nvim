@@ -9,7 +9,6 @@ local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
 local fmt = string.format
-local file = nil
 
 ---Create a file and it's surrounding folders
 ---@param action table The action object
@@ -23,15 +22,17 @@ end
 
 ---Read the contents of file
 ---@param action table The action object
----@return table<string, string>
+---@return string
 local function read(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
-  file = {
-    content = p:read(),
-    filetype = vim.fn.fnamemodify(p.filename, ":e"),
-  }
-  return file
+
+  local output = fmt([[The file's contents are:
+
+```%s
+%s
+```]], vim.fn.fnamemodify(p.filename, ":e"), p.read())
+  return output
 end
 
 local function parseBlock(block)
@@ -173,13 +174,13 @@ return {
     ---@param self CodeCompanion.Tool.Editor The Editor tool
     ---@param args table The arguments from the LLM's tool call
     ---@param input? any The output from the previous function call
-    ---@return nil|{ status: "success"|"error", data: string }
+    ---@return { status: "success"|"error", data: string }
     function(self, args, input)
-      local ok, _ = pcall(actions[string.upper(args.action)], args)
+      local ok, data = pcall(actions[string.upper(args.action)], args)
       if not ok then
-        return { status = "error", data = "Could not run the Files tool" }
+        return { status = "error", data = data }
       end
-      return { status = "success", data = "The tool ran successfully!" }
+      return { status = "success", data = data }
     end,
   },
   schema = {
@@ -295,7 +296,6 @@ NOTE: We DO NOT use line numbers in this diff format, as the context is enough t
     ---@return nil
     on_exit = function(agent)
       log:debug("[Files Tool] on_exit handler executed")
-      file = nil
     end,
   },
   output = {
@@ -328,28 +328,10 @@ NOTE: We DO NOT use line numbers in this diff format, as the context is enough t
     success = function(self, agent, cmd, stdout)
       local chat = agent.chat
       local args = self.args
-
-      local output =
+      local llm_output = vim.iter(stdout):flatten():join("\n")
+      local user_output =
           fmt([[**Files Tool**: The %s action for `%s` was successful]], string.upper(args.action), args.path)
-
-      local llm_output
-      if string.upper(args.action) == "READ" then
-        llm_output = fmt(
-          [[**Files Tool**: The %s action for `%s` was successful. The file's contents are:
-
-```%s
-%s
-```]],
-          string.upper(args.action),
-          args.path,
-          file and file.filetype,
-          file and file.content
-        )
-      else
-        llm_output = output
-      end
-
-      chat:add_tool_output(self, llm_output, output)
+      chat:add_tool_output(self, llm_output, user_output)
     end,
 
     ---@param self CodeCompanion.Tool.Files
