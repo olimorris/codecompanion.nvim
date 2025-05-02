@@ -339,6 +339,7 @@ local defaults = {
         },
       },
       opts = {
+        blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
         register = "+", -- The register to use for yanking code
         yank_jump_delay_ms = 400, -- Delay in milliseconds before jumping back from the yanked code
       },

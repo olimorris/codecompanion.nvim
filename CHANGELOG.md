@@ -1,5 +1,12 @@
 # Changelog
 
+## [15.0.8](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.7...v15.0.8) (2025-05-02)
+
+
+### Bug Fixes
+
+* **tools:** multiple bug fixes ([07f7518](https://github.com/olimorris/codecompanion.nvim/commit/07f75181d716a07d683ca66afb8f4dc6b6acbdd3))
+
 ## [15.0.7](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.6...v15.0.7) (2025-05-01)
 
 
