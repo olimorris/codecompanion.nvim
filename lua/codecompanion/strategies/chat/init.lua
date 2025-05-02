@@ -739,7 +739,8 @@ function Chat:submit(opts)
   end
 
   local settings = ts_parse_settings(bufnr, self.yaml_parser, self.adapter)
-  settings = self.adapter:map_schema_to_params(settings)
+  self:apply_settings(settings)
+  local mapped_settings = self.adapter:map_schema_to_params(settings)
 
   if not config.display.chat.auto_scroll then
     vim.cmd("stopinsert")
@@ -753,13 +754,13 @@ function Chat:submit(opts)
     tools = (not vim.tbl_isempty(self.tools.schemas) and { self.tools.schemas }),
   }
 
-  log:trace("Settings:\n%s", settings)
+  log:trace("Settings:\n%s", mapped_settings)
   log:trace("Messages:\n%s", self.messages)
   log:info("Chat request started")
 
   local output = {}
   local tools = {}
-  self.current_request = client.new({ adapter = settings }):request(payload, {
+  self.current_request = client.new({ adapter = mapped_settings }):request(payload, {
     ---@param err { message: string, stderr: string }
     ---@param data table
     ---@param adapter CodeCompanion.Adapter The modified adapter from the http client
