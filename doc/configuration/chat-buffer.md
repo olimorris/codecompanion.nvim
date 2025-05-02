@@ -172,7 +172,7 @@ require("codecompanion").setup({
 
 ## Prompt Decorator
 
-It can be useful to decorate your prompt with additional information, prior to sending to an LLM. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags alongside sharing `<attachment></attachment>` tags. This can also be achieved in CodeCompanion:
+It can be useful to decorate your prompt, prior to sending to an LLM, with additional information. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags presumably to differentiate the user's ask from additional context. This can also be achieved in CodeCompanion:
 
 ```lua
 require("codecompanion").setup({
