@@ -171,7 +171,8 @@ return {
               -- We need this to ensure the #tool_calls = #tool_responses
               local id = tool.id
               if not id or id == "" then
-                id = string.format("call_%d", tool_index)
+                -- HACK: append `json.created` to avoid `tool_call_id` collisions
+                id = string.format("call_%d_%d", tool_index, (json.created or 0))
               end
 
               if self.opts.stream then

@@ -84,7 +84,7 @@ T["Gemini adapter"]["Streaming"]["can process tools"] = function()
         arguments = '{"units":"celsius","location":"London"}',
         name = "weather",
       },
-      id = "call_1",
+      id = "call_1_1743628522",
       type = "function",
     },
     {
@@ -93,7 +93,7 @@ T["Gemini adapter"]["Streaming"]["can process tools"] = function()
         arguments = '{"units":"celsius","location":"Paris"}',
         name = "weather",
       },
-      id = "call_2",
+      id = "call_2_1743628522",
       type = "function",
     },
   }
@@ -140,7 +140,7 @@ T["Gemini adapter"]["No Streaming"]["can process tools"] = function()
         arguments = '{"location":"London, UK","units":"celsius"}',
         name = "weather",
       },
-      id = "call_1",
+      id = "call_1_1743631193",
       type = "function",
     },
     {
@@ -149,7 +149,7 @@ T["Gemini adapter"]["No Streaming"]["can process tools"] = function()
         arguments = '{"units":"celsius","location":"Paris, France"}',
         name = "weather",
       },
-      id = "call_2",
+      id = "call_2_1743631193",
       type = "function",
     },
   }
