@@ -37,7 +37,7 @@ T["files tool"] = function()
       {
         ["function"] = {
           name = "files",
-          arguments = string.format('{"action": "create", "path": "%s", "contents": "import pygame\\nimport time\\nimport random\\n"}', _G.TEST_TMPFILE)
+          arguments = string.format('{"action": "CREATE", "path": "%s", "contents": "import pygame\\nimport time\\nimport random\\n"}', _G.TEST_TMPFILE)
         },
       },
     }
@@ -50,6 +50,29 @@ T["files tool"] = function()
   h.eq(output, { "import pygame", "import time", "import random" }, "File was not created")
 
   -- expect.reference_screenshot(child.get_screenshot())
+end
+
+T["files tool update"] = function()
+  child.lua([[
+      -- create initial file
+      local initial = "line1\nline2\nline3"
+      local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+      assert(ok == 0)
+      local tool = {
+        {
+          ["function"] = {
+            name = "files",
+            arguments = string.format('{"action": "UPDATE", "path": "%s", "contents": "*** Begin Patch\\nline1\\n-line2\\n+new_line2\\nline3\\n*** End Patch"}', _G.TEST_TMPFILE)
+          },
+        },
+      }
+      agent:execute(chat, tool)
+      vim.wait(200)
+    ]])
+
+  -- Test that the file was updated
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  h.eq(output, { "line1", "new_line2", "line3" }, "File was not updated")
 end
 
 return T

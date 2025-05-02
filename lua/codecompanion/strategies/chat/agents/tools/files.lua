@@ -21,7 +21,7 @@ local function create(action)
   p:write(action.contents or "", "w")
 end
 
----Read the contents of af ile
+---Read the contents of file
 ---@param action table The action object
 ---@return table<string, string>
 local function read(action)
@@ -34,64 +34,117 @@ local function read(action)
   return file
 end
 
----Read the contents of a file between specific lines
----@param action table The action object
----@return nil
-local function read_lines(action)
-  local p = Path:new(action.path)
-  p.filename = p:expand()
-
-  -- Read requested lines
-  local extracted = {}
-  local current_line = 0
-
-  local lines = p:iter()
-
-  -- Parse line numbers
-  local start_line = tonumber(action.start_line) or 1
-  local end_line = tonumber(action.end_line) or #lines
-
-  for line in lines do
-    current_line = current_line + 1
-    if current_line >= start_line and current_line <= end_line then
-      table.insert(extracted, current_line .. ":  " .. line)
-    end
-    if current_line > end_line then
-      break
+local function parseBlock(block)
+  local focus, pre, old, new, post = {}, {}, {}, {}, {}
+  local phase = "focus_pre"
+  for _, line in ipairs(vim.split(block, "\n", { plain = true })) do
+    if phase == "focus_pre" and vim.startswith(line, "@@") then
+      focus[#focus + 1] = vim.trim(line:sub(3))
+    elseif phase == "focus_pre" and line:sub(1, 1) == "-" then
+      phase = "hunk"
+      old[#old + 1] = line:sub(2)
+    elseif phase == "focus_pre" and line:sub(1, 1) == "+" then
+      phase = "hunk"
+      new[#new + 1] = line:sub(2)
+    elseif phase == "focus_pre" then
+      pre[#pre + 1] = line
+    elseif phase == "hunk" and line:sub(1, 1) == "-" then
+      old[#old + 1] = line:sub(2)
+    elseif phase == "hunk" and line:sub(1, 1) == "+" then
+      new[#new + 1] = line:sub(2)
+    elseif phase == "hunk" then
+      post[#post + 1] = line
     end
   end
-
-  file = {
-    content = table.concat(extracted, "\n"),
-    filetype = vim.fn.fnamemodify(p.filename, ":e"),
+  return {
+    focus = focus,
+    pre = pre,
+    old = old,
+    new = new,
+    post = post
   }
-  return file
+end
+
+local function matchesLines(haystack, pos, needle)
+  for i, needleLine in ipairs(needle) do
+    if haystack[pos + i - 1] ~= needleLine then
+      return false
+    end
+  end
+  return true
+end
+
+local function hasFocus(lines, beforePos, focus)
+  local start = 1
+  for _, line in ipairs(focus) do
+    local found = false
+    for k = start, beforePos - 1 do
+      if lines[k] == line then
+        start = k
+        found = true
+        break
+      end
+    end
+    if not found then return false end
+  end
+  return true
+end
+
+local function applyChange(lines, change)
+  for i = 1, #lines do
+    if hasFocus(lines, i, change.focus) and matchesLines(lines, i - #change.pre, change.pre) and matchesLines(lines, i, change.old) and matchesLines(lines, i + #change.old, change.post) then
+      local new_lines = {}
+      -- before diff
+      for k = 1, i - 1 do
+        new_lines[#new_lines + 1] = lines[k]
+      end
+      -- new lines
+      for _, ln in ipairs(change.new) do
+        new_lines[#new_lines + 1] = ln
+      end
+      -- remaining lines
+      for k = i + #change.old, #lines do
+        new_lines[#new_lines + 1] = lines[k]
+      end
+      return new_lines
+    end
+  end
 end
 
 ---Edit the contents of a file
 ---@param action table The action object
 ---@return nil
-local function edit(action)
+local function update(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
 
-  if action.contents and action.contents ~= "" then
-    return p:write(action.contents, "w")
+  -- 1. extract raw patch
+  local raw = action.contents or ""
+  local patch = raw:match("^%*%*%* Begin Patch%s*(.-)%s*%*%*%* End Patch$")
+  if not patch then
+    error("Invalid patch format: missing Begin/End markers")
   end
 
+  -- 2. read file into lines
   local content = p:read()
-  if not content then
-    return util.notify(fmt("No data found in %s", action.path))
-  end
-  if not action.search or not action.replace then
-    return util.notify(fmt("Couldn't edit the file %s", action.path))
+  local lines = vim.split(content, "\n", { plain = true })
+
+  -- 3. split into blocks
+  local blocks = vim.split(patch, "\n\n", { plain = true })
+  for _, blk in ipairs(blocks) do
+    -- 4. parse changes
+    local change = parseBlock(blk)
+    -- 5. apply changes
+    local new_lines = applyChange(lines, change)
+    if new_lines == nil then
+      error(fmt("Diff block not found:\n\n%s", blk))
+    else
+      lines = new_lines
+    end
   end
 
-  local changed, substitutions_count = content:gsub(vim.pesc(action.search), vim.pesc(action.replace))
-  if substitutions_count == 0 then
-    return util.notify(fmt("Could not find the search string in %s", action.path))
-  end
-  p:write(changed, "w")
+  -- 6. write back
+  p:write(table.concat(lines, "\n"), "w")
 end
 
 ---Delete a file
@@ -103,55 +156,12 @@ local function delete(action)
   p:rm()
 end
 
----Rename a file
----@param action table The action object
----@return nil
-local function rename(action)
-  local p = Path:new(action.path)
-  p.filename = p:expand()
-
-  local new_p = Path:new(action.new_path)
-  new_p.filename = new_p:expand()
-
-  p:rename({ new_name = new_p.filename })
-end
-
----Copy a file
----@param action table The action object
----@return nil
-local function copy(action)
-  local p = Path:new(action.path)
-  p.filename = p:expand()
-
-  local new_p = Path:new(action.new_path)
-  new_p.filename = new_p:expand()
-
-  p:copy({ destination = new_p.filename, parents = true })
-end
-
----Move a file
----@param action table The action object
----@return nil
-local function move(action)
-  local p = Path:new(action.path)
-  p.filename = p:expand()
-
-  local new_p = Path:new(action.new_path)
-  new_p.filename = new_p:expand()
-
-  p:copy({ destination = new_p.filename, parents = true })
-  p:rm()
-end
 
 local actions = {
-  create = create,
-  read = read,
-  read_lines = read_lines,
-  edit = edit,
-  delete = delete,
-  rename = rename,
-  copy = copy,
-  move = move,
+  CREATE = create,
+  READ = read,
+  UPDATE = update,
+  DELETE = delete,
 }
 
 ---@class CodeCompanion.Tool.Files: CodeCompanion.Agent.Tool
@@ -165,7 +175,7 @@ return {
     ---@param input? any The output from the previous function call
     ---@return nil|{ status: "success"|"error", data: string }
     function(self, args, input)
-      local ok, _ = pcall(actions[args.action], args)
+      local ok, _ = pcall(actions[string.upper(args.action)], args)
       if not ok then
         return { status = "error", data = "Could not run the Files tool" }
       end
@@ -176,21 +186,17 @@ return {
     type = "function",
     ["function"] = {
       name = "files",
-      description = "Create/read/update/delete/rename/copy/move files on disk (user approval required)",
+      description = "CREATE/READ/UPDATE/DELETE files on disk (user approval required)",
       parameters = {
         type = "object",
         properties = {
           action = {
             type = "string",
             enum = {
-              "create",
-              "read",
-              "read_lines",
-              "edit",
-              "delete",
-              "rename",
-              "copy",
-              "move",
+              "CREATE",
+              "READ",
+              "UPDATE",
+              "DELETE",
             },
             description = "Type of file operation to perform.",
           },
@@ -203,53 +209,14 @@ return {
               { type = "string" },
               { type = "null" },
             },
-            description = "Contents for create/edit; set to `null` otherwise.",
-          },
-          start_line = {
-            anyOf = {
-              { type = "integer" },
-              { type = "null" },
-            },
-            description = "1‑based start line for read_lines; `null` otherwise.",
-          },
-          end_line = {
-            anyOf = {
-              { type = "integer" },
-              { type = "null" },
-            },
-            description = "1‑based end line for read_lines; `null` otherwise.",
-          },
-          search = {
-            anyOf = {
-              { type = "string" },
-              { type = "null" },
-            },
-            description = "Search pattern for edit; `null` otherwise.",
-          },
-          replace = {
-            anyOf = {
-              { type = "string" },
-              { type = "null" },
-            },
-            description = "Replacement text for edit; `null` otherwise.",
-          },
-          new_path = {
-            anyOf = {
-              { type = "string" },
-              { type = "null" },
-            },
-            description = "Destination path for rename/copy/move; `null` otherwise.",
+            description =
+            "Contents of new file in the case of CREATE action. V4A diff-patch in case of UPDATE action. `null` in case of READ or DELETE.",
           },
         },
         required = {
           "action",
           "path",
           "contents",
-          "start_line",
-          "end_line",
-          "search",
-          "replace",
-          "new_path",
         },
         additionalProperties = false,
       },
@@ -258,21 +225,70 @@ return {
   },
   system_prompt = [[# Files Tool (`files`)
 
-## CONTEXT
+## Context
+
 - You are connected to a Neovim instance via CodeCompanion.
-- Using this tool you can create a file, read a file's contents, read specific lines from a file, edit a file, delete a file, rename a file, copy a file, or move files, on a user's disk.
+- Use this `files` tool to CREATE / READ / UPDATE or DELETE a file.
 - CodeCompanion asks the user for approval before this tool executes, so you do not need to ask for permission.
 
-## OBJECTIVE
-- Invoke this tool when specific file operations are required.
+## Instructions
 
-## RESPONSE
-- Return a single JSON-based function call matching the schema.
+- You can use this tool to create new files, read existing files, update files, or delete some files.
+- The `path` references should always only be relative, NEVER ABSOLUTE.
+- In the case of `READ` or `DELETE` actions, the `contents` should be `null`.
+- In the case of the `CREATE` action, the `contents` will be placed as it is in the new file.
+- In the case of the `UPDATE` action, the `contents` should be in the V4A diff format as detailed below.
 
-## POINTS TO NOTE
+### Diff format of `contents` for `UPDATE` action
+
+The `UPDATE` action effectively allows you to execute a diff/patch against a file. The format of the diff specification is unique to this task, so pay careful attention to these instructions. To use the `UPDATE` action, you should pass a message of the following structure as "contents":
+
+*** Begin Patch
+[YOUR_PATCH]
+*** End Patch
+
+Where [YOUR_PATCH] is the actual content of your patch, specified in the following V4A diff format.
+
+For each snippet of code that needs to be changed, repeat the following:
+[context_before] -> See below for further instructions on context.
+- [old_code] -> Precede the old code with a minus sign.
++ [new_code] -> Precede the new, replacement code with a plus sign.
+[context_after] -> See below for further instructions on context.
+
+For instructions on [context_before] and [context_after]:
+- By default, show 3 lines of code immediately above and 3 lines immediately below each change. If a change is within 3 lines of a previous change, do NOT duplicate the first change's [context_after] lines in the second change's [context_before] lines.
+- If 3 lines of context is insufficient to uniquely identify the snippet of code within the file, use the @@ operator to indicate the class or function to which the snippet belongs. For instance, we might have:
+@@ class BaseClass
+[3 lines of pre-context]
+- [old_code]
++ [new_code]
+[3 lines of post-context]
+
+- If a code block is repeated so many times in a class or function such that even a single @@ statement and 3 lines of context cannot uniquely identify the snippet of code, you can use multiple `@@` statements to jump to the right context. For instance:
+
+@@ class BaseClass
+@@ 	def method():
+[3 lines of pre-context]
+- [old_code]
++ [new_code]
+[3 lines of post-context]
+
+NOTE: We DO NOT use line numbers in this diff format, as the context is enough to uniquely identify code. An example of a message that you might pass as "input" to this function, in order to apply a patch, is shown below.
+
+*** Begin Patch
+@@ class BaseClass
+@@     def search():
+-        pass
++        raise NotImplementedError()
+
+@@ class Subclass
+@@     def search():
+-        pass
++        raise NotImplementedError()
+
+*** End Patch
+
 - This tool can be used alongside other tools within CodeCompanion.
-- To edit a file, you can provide a search and replace string, or provide the entire file contents.
-- Be careful when using search and replace as this will overwrite the contents in the search string.
 ]],
   handlers = {
     ---@param agent CodeCompanion.Agent The tool object
@@ -291,31 +307,17 @@ return {
       local prompts = {}
 
       local responses = {
-        create = "Create a file at %s?",
-        read = "Read %s?",
-        read_lines = "Read specific lines in %s?",
-        edit = "Edit %s?",
-        delete = "Delete %s?",
-        copy = "Copy %s?",
-        rename = "Rename %s to %s?",
-        move = "Move %s to %s?",
+        CREATE = "Create a file at %s?",
+        READ = "Read %s?",
+        UPDATE = "Edit %s?",
+        DELETE = "Delete %s?",
       }
 
       local args = self.args
       local path = vim.fn.fnamemodify(args.path, ":.")
       local action = string.lower(args.action)
 
-      local new_path
-      if args.new_path then
-        new_path = vim.fn.fnamemodify(args.new_path, ":.")
-      end
-
-      if action == "rename" or action == "move" then
-        table.insert(prompts, fmt(responses[action], path, new_path))
-      else
-        table.insert(prompts, fmt(responses[action], path))
-      end
-
+      table.insert(prompts, fmt(responses[action], path))
       return table.concat(prompts, "\n")
     end,
 
@@ -328,10 +330,10 @@ return {
       local args = self.args
 
       local output =
-        fmt([[**Files Tool**: The %s action for `%s` was successful]], string.upper(args.action), args.path)
+          fmt([[**Files Tool**: The %s action for `%s` was successful]], string.upper(args.action), args.path)
 
       local llm_output
-      if args.action == "read" or args.action == "read_lines" then
+      if args.action == "READ" then
         llm_output = fmt(
           [[**Files Tool**: The %s action for `%s` was successful. The file's contents are:
 
