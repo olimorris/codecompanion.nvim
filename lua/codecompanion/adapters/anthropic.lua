@@ -138,11 +138,17 @@ return {
         -- 3. Remove disallowed keys
         message = filter_out_messages(message)
 
-        -- 4. Turn string content into { { type="text", text } }
+        -- 4. Turn string content into { { type = "text", text } }
         if
           (message.role == self.roles.user or message.role == self.roles.llm)
           and type(message.content) == "string"
         then
+          -- Anthropic doesn't allow the user to submit an empty prompt. But
+          -- this can be necessary to prompt the LLM to analyze any tool
+          -- calls and their output
+          if message.role == self.roles.user and message.content == "" then
+            message.content = "<prompt></prompt>"
+          end
           message.content = {
             { type = "text", text = message.content },
           }
