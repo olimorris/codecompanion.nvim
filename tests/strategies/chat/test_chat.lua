@@ -101,8 +101,8 @@ T["Chat"]["prompt decorator is applied prior to sending to the LLM"] = function(
   local output = child.lua(string.format(
     [[
       local config = require("codecompanion.config")
-      config.strategies.chat.opts.prompt_decorator = function(prompt)
-        return "<prompt>" .. prompt .. "</prompt>"
+      config.strategies.chat.opts.prompt_decorator = function(message)
+        return "<prompt>" .. message .. "</prompt>"
       end
       _G.chat:add_buf_message({
         role = "user",
