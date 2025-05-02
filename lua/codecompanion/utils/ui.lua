@@ -1,3 +1,4 @@
+local utils = require("codecompanion.utils")
 local log = require("codecompanion.utils.log")
 
 local api = vim.api
@@ -15,7 +16,11 @@ M.create_float = function(lines, opts)
 
   local bufnr = opts.bufnr or api.nvim_create_buf(false, true)
 
-  require("codecompanion.utils").set_option(bufnr, "filetype", opts.filetype or "codecompanion")
+  utils.set_option(bufnr, "filetype", opts.filetype or "codecompanion")
+
+  if opts.syntax then
+    utils.set_option(bufnr, "syntax", opts.syntax)
+  end
 
   local winnr = api.nvim_open_win(bufnr, true, {
     relative = opts.relative or "cursor",
