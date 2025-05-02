@@ -715,6 +715,10 @@ function Chat:submit(opts)
 
   -- Allow users to send a blank message to the LLM
   if not opts.regenerate then
+    local chat_opts = config.strategies.chat.opts
+    if message and message.content and chat_opts and chat_opts.prompt_decorator then
+      message.content = chat_opts.prompt_decorator(message.content, adapters.make_safe(self.adapter), self.context)
+    end
     self:add_message({
       role = config.constants.USER_ROLE,
       content = (message and message.content or config.strategies.chat.opts.blank_prompt),
