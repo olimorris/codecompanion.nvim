@@ -315,7 +315,7 @@ NOTE: We DO NOT use line numbers in this diff format, as the context is enough t
 
       local args = self.args
       local path = vim.fn.fnamemodify(args.path, ":.")
-      local action = string.lower(args.action)
+      local action = string.upper(args.action)
 
       table.insert(prompts, fmt(responses[action], path))
       return table.concat(prompts, "\n")
@@ -333,7 +333,7 @@ NOTE: We DO NOT use line numbers in this diff format, as the context is enough t
           fmt([[**Files Tool**: The %s action for `%s` was successful]], string.upper(args.action), args.path)
 
       local llm_output
-      if args.action == "READ" then
+      if string.upper(args.action) == "READ" then
         llm_output = fmt(
           [[**Files Tool**: The %s action for `%s` was successful. The file's contents are:
 
