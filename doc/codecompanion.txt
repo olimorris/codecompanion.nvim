@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.10.0        Last change: 2025 April 29
+*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 03
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -249,11 +249,6 @@ Please see the author’s own config
 <https://github.com/olimorris/dotfiles/blob/main/.config/nvim/lua/plugins/coding.lua>
 for a complete reference of how to setup the plugin.
 
-  [!IMPORTANT] The default adapter in CodeCompanion is GitHub Copilot
-  <https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/asking-github-copilot-questions-in-your-ide>.
-  If you have copilot.vim <https://github.com/github/copilot.vim> or copilot.lua
-  <https://github.com/zbirenbaum/copilot.lua> installed then expect CodeCompanion
-  to work out of the box.
 
   [!IMPORTANT] The default adapter in CodeCompanion is GitHub Copilot
   <https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/asking-github-copilot-questions-in-your-ide>.
@@ -1076,6 +1071,39 @@ the config for each tool:
 <
 
 
+PROMPT DECORATOR ~
+
+It can be useful to decorate your prompt, prior to sending to an LLM, with
+additional information. For example, the GitHub Copilot prompt in VS Code,
+wraps a user’s prompt between `<prompt></prompt>` tags presumably to
+differentiate the user’s ask from additional context. This can also be
+achieved in CodeCompanion:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          opts = {
+            ---Decorate the user message before it's sent to the LLM
+            ---@param message string
+            ---@param adapter CodeCompanion.Adapter
+            ---@param context table
+            ---@return string
+            prompt_decorator = function(message, adapter, context)
+              return string.format([[<prompt>%s</prompt>]], message)
+            end,
+          }
+        }
+      }
+    })
+<
+
+The decorator function also has access to the adapter in the chat buffer
+alongside the context
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/utils/context.lua#L121-L137>
+table (which refreshes when a user toggles the chat buffer).
+
+
 LAYOUT ~
 
 You can change the appearance of the chat buffer by changing the
@@ -1526,8 +1554,8 @@ lazy.nvim:
     })
 <
 
-Visit the |codecompanion-extending-extensions| to learn more about available
-extensions and how to create your own.
+Visit the creating |codecompanion-extending-extensions| guide to learn more
+about available extensions and how to create your own.
 
 
 OTHER OPTIONS                      *codecompanion-configuration-other-options*
