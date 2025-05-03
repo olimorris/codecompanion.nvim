@@ -1,4 +1,4 @@
-# VectorCode Extension
+# VectorCode
 
 [VectorCode](https://github.com/Davidyz/VectorCode) is a code repository
 indexing tool that allows you to easily perform semantic search on your local
