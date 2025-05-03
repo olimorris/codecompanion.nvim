@@ -62,6 +62,11 @@ local function parse_changes(patch)
       if focus_name and #focus_name > 0 then
         change.focus[#change.focus + 1] = focus_name
       end
+    elseif line == "" and is_inside_edits then
+      -- it is a new change block
+      table.insert(changes, change)
+      change = get_new_change()
+      is_inside_edits = false
     elseif not is_inside_edits and line:sub(1, 1) == "-" then
       is_inside_edits = true
       change.old[#change.old + 1] = line:sub(2)
@@ -137,7 +142,7 @@ local function update(action)
 
   -- 1. extract raw patch
   local raw = action.contents or ""
-  local patch = raw:match("^%*%*%* Begin Patch%s*(.-)%s*%*%*%* End Patch$")
+  local patch = raw:match("^*** Begin Patch\n(.-)\n*** End Patch$")
   if not patch then
     error("Invalid patch format: missing Begin/End markers")
   end
