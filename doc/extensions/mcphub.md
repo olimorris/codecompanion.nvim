@@ -25,8 +25,6 @@ First, install the MCP Hub Neovim plugin:
 
 For detailed MCP Hub configuration options, please refer to the [documentation](https://github.com/ravitemer/mcphub.nvim#installation).
 
-## CodeCompanion Setup
-
 Next, register MCP Hub as an extension in your CodeCompanion configuration:
 
 ```lua
