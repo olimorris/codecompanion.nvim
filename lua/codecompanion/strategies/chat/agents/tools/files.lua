@@ -35,7 +35,7 @@ local function read(action)
   return output
 end
 
-local function parseBlock(block)
+local function parse_block(block)
   local focus, pre, old, new, post = {}, {}, {}, {}, {}
   local phase = "focus_pre"
   for _, line in ipairs(vim.split(block, "\n", { plain = true })) do
@@ -69,20 +69,20 @@ local function parseBlock(block)
   }
 end
 
-local function matchesLines(haystack, pos, needle)
-  for i, needleLine in ipairs(needle) do
-    if haystack[pos + i - 1] ~= needleLine then
+local function matches_lines(haystack, pos, needle)
+  for i, needle_line in ipairs(needle) do
+    if haystack[pos + i - 1] ~= needle_line then
       return false
     end
   end
   return true
 end
 
-local function hasFocus(lines, beforePos, focus)
+local function has_focus(lines, before_pos, focus)
   local start = 1
   for _, line in ipairs(focus) do
     local found = false
-    for k = start, beforePos - 1 do
+    for k = start, before_pos - 1 do
       if lines[k] == line then
         start = k
         found = true
@@ -94,9 +94,9 @@ local function hasFocus(lines, beforePos, focus)
   return true
 end
 
-local function applyChange(lines, change)
+local function apply_change(lines, change)
   for i = 1, #lines do
-    if hasFocus(lines, i, change.focus) and matchesLines(lines, i - #change.pre, change.pre) and matchesLines(lines, i, change.old) and matchesLines(lines, i + #change.old, change.post) then
+    if has_focus(lines, i, change.focus) and matches_lines(lines, i - #change.pre, change.pre) and matches_lines(lines, i, change.old) and matches_lines(lines, i + #change.old, change.post) then
       local new_lines = {}
       -- before diff
       for k = 1, i - 1 do
@@ -137,9 +137,9 @@ local function update(action)
   local blocks = vim.split(patch, "\n\n", { plain = true })
   for _, blk in ipairs(blocks) do
     -- 4. parse changes
-    local change = parseBlock(blk)
+    local change = parse_block(blk)
     -- 5. apply changes
-    local new_lines = applyChange(lines, change)
+    local new_lines = apply_change(lines, change)
     if new_lines == nil then
       error(fmt("Diff block not found:\n\n%s", blk))
     else
