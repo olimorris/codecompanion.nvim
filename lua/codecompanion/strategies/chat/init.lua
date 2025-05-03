@@ -832,9 +832,7 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return nil
 local function ready_chat_buffer(chat)
-  local last_sender = chat.messages[#chat.messages].role
-
-  if last_sender ~= config.constants.USER_ROLE then
+  if chat.last_role ~= config.constants.USER_ROLE then
     chat:increment_cycle()
     chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
