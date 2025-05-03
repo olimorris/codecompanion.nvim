@@ -35,7 +35,13 @@ This allows the LLM to understand exactly what CodeCompanion does and how it fun
 
 ### Use VectorCode
 
-[VectorCode](https://github.com/Davidyz/VectorCode/tree/main) is a repository indexing tool and makes it very easy to intelligently share relevant parts of a codebase with an LLM. Once installed and the CodeCompanion codebase has been indexed, you can add the VectorCode tool to a chat buffer and the LLM can begin calling it.
+[VectorCode](https://github.com/Davidyz/VectorCode/tree/main) is a repository indexing tool and makes it very easy to intelligently share relevant parts of a codebase with an LLM. Follow the installation instructions [here](https://codecompanion.olimorris.dev/extensions/vectorcode.html#installation) including how to add it as a CodeCompanion extension.
+
+Once installed, you can begin to index the CodeCompanion repository that you've cloned. Simply run `vectorcode vectorise -r` and you should see output similar to:
+
+![Image](https://github.com/user-attachments/assets/9fb7ef65-3a3f-4e56-9d75-f4e2e1f71aea)
+
+You can then proceed to using VectorCode as per the [usage](https://codecompanion.olimorris.dev/extensions/vectorcode.html#usage) instructions in the chat buffer.
 
 ### Refer to the Tests
 
