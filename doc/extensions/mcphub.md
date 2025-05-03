@@ -1,4 +1,4 @@
-# MCP Hub Extension
+# MCP Hub
 
 [MCP Hub](https://github.com/ravitemer/mcphub.nvim) is a powerful extension that adds [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) support to CodeCompanion, allowing you to use MCP tools and resources in your chat interactions.
 
@@ -66,7 +66,7 @@ When `make_slash_commands = true`, MCP prompts become available as slash command
 - Format: `/mcp:prompt_name`
 - Arguments are handled via vim.ui.input
 
-![image](https://github.com/user-attachments/assets/678a06a5-ada9-4bb5-8f49-6e58549c8f32) 
+![image](https://github.com/user-attachments/assets/678a06a5-ada9-4bb5-8f49-6e58549c8f32)
 
 ![image](https://github.com/user-attachments/assets/f1fa305a-5d48-4119-b3e6-e13a9176da07)
 

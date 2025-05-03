@@ -190,6 +190,9 @@ return {
           },
         },
       },
+      opts = {
+        blank_prompt = "",
+      },
     },
     inline = {
       adapter = "foo",

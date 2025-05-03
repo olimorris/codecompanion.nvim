@@ -75,7 +75,7 @@ function Agent:set_autocmds()
           { hl_group = "CodeCompanionVirtualText" }
         )
       elseif request.match == "CodeCompanionAgentFinished" then
-        vim.schedule(function()
+        return vim.schedule(function()
           self:reset()
           if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then
             self.chat:submit()
@@ -140,7 +140,6 @@ function Agent:execute(chat, tools)
       self.tool.args = args
     end
     self.tool.opts = vim.tbl_extend("force", self.tool.opts or {}, tool_config.opts or {})
-    self:set_autocmds()
 
     if self.tool.env then
       local env = type(self.tool.env) == "function" and self.tool.env(vim.deepcopy(self.tool)) or {}
@@ -156,6 +155,7 @@ function Agent:execute(chat, tools)
   for _, tool in ipairs(tools) do
     enqueue_tool(executor, tool)
   end
+  self:set_autocmds()
 
   util.fire("AgentStarted", { id = id, bufnr = self.bufnr })
   xpcall(function()

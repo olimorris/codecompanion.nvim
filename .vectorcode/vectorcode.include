@@ -1,4 +1,4 @@
-doc/**
-lua/**
+doc/*.md
+lua/**/*.lua
 queries/**
 tests/**

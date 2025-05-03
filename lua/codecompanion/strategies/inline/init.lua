@@ -701,6 +701,10 @@ function Inline:start_diff()
     return
   end
 
+  if self.classification.placement == "new" then
+    return
+  end
+
   keymaps
     .new({
       bufnr = self.context.bufnr,

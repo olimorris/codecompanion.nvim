@@ -179,11 +179,15 @@ return {
     ---@param input? any The output from the previous function call
     ---@return { status: "success"|"error", data: string }
     function(self, args, input)
-      local ok, data = pcall(actions[string.upper(args.action)], args)
-      if not ok then
-        return { status = "error", data = data }
+      args.action = string.upper(args.action)
+      if not actions[args.action] then
+        return { status = "error", data = fmt("Unknown action: %s", args.action) }
       end
-      return { status = "success", data = data }
+      local ok, outcome = pcall(actions[args.action], args)
+      if not ok then
+        return { status = "error", data = outcome }
+      end
+      return { status = "success", data = outcome }
     end,
   },
   schema = {
@@ -318,7 +322,7 @@ NOTE: We DO NOT use line numbers in this diff format, as the context is enough t
 
       local args = self.args
       local path = vim.fn.fnamemodify(args.path, ":.")
-      local action = string.upper(args.action)
+      local action = args.action
 
       table.insert(prompts, fmt(responses[action], path))
       return table.concat(prompts, "\n")
@@ -333,7 +337,7 @@ NOTE: We DO NOT use line numbers in this diff format, as the context is enough t
       local args = self.args
       local llm_output = vim.iter(stdout):flatten():join("\n")
       local user_output =
-          fmt([[**Files Tool**: The %s action for `%s` was successful]], string.upper(args.action), args.path)
+          fmt([[**Files Tool**: The %s action for `%s` was successful]], args.action, args.path)
       chat:add_tool_output(self, llm_output, user_output)
     end,
 
@@ -354,7 +358,7 @@ NOTE: We DO NOT use line numbers in this diff format, as the context is enough t
 ```txt
 %s
 ```]],
-        string.upper(args.action),
+        args.action,
         errors
       )
       chat:add_tool_output(self, error_output)
