@@ -1,0 +1,39 @@
+*** Begin Patch
+@@
+-            <div class="flex-row gap-8">
+-              <button type="button"
+-                      x-show="i == ({{ messages }}.length - 1) && !$store.app.isAnswering"
+-                      class="no-style smaller ink-600"
+-                      @click="$store.app.regenerateResponse()">
+-                <span class="icon-arrows-cw smaller"></span>
+-                Regenerate
+-              </button>
+-            </div>
++            <div class="flex-row gap-8">
++              <button type="button"
++                      x-show="i == ({{ messages }}.length - 1) && !$store.app.isAnswering"
++                      class="no-style smaller ink-600"
++                      @click="$store.app.regenerateResponse()">
++                <span class="icon-arrows-cw smaller"></span>
++                Regenerate
++              </button>
++              <button type="button"
++                      class="no-style smaller ink-600"
++                      :class="{'selected-feedback': $store.app.feedback[i] === 'good'}"
++                      x-show="i <= ({{ messages }}.length - 1) && !$store.app.isAnswering && !$store.app.feedback[i]"
++                      @click="$store.app.sendFeedback(i, 'good')"
++                      aria-label="Good response">
++                👍🏽
++              </button>
++              <button type="button"
++                      class="no-style smaller ink-600"
++                      :class="{'selected-feedback': $store.app.feedback[i] === 'bad'}"
++                      x-show="i <= ({{ messages }}.length - 1) && !$store.app.isAnswering && !$store.app.feedback[i]"
++                      @click="$store.app.sendFeedback(i, 'bad')"
++                      aria-label="Bad response">
++                👎🏽
++              </button>
++              <span x-show="$store.app.feedback[i] === 'good'">👍🏽</span>
++              <span x-show="$store.app.feedback[i] === 'bad'">👎🏽</span>
++            </div>
+*** End Patch

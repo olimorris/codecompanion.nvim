@@ -1,0 +1,112 @@
+<ul class="container no-style overflow-expand flex-column gap-12"
+    x-show="{{ messages }}.length">
+  <template x-for="(message, i) in {{ messages }}" :key="i">
+    <li>
+      <template x-if="message.role === 'user'">
+        <div class="flex-row gap-12">
+          <div class="avatar icon-user"></div>
+          <div class="flex-column mute">
+            <p class="font-weight-500 margin-0">You</p>
+            <div x-html="marked.parse(message.content)"></div>
+          </div>
+        </div>
+      </template>
+      <template x-if="message.role === 'assistant'">
+        <div class="flex-row gap-12">
+          <div class="avatar icon-chat-ai"></div>
+          <article class="card flex-column gap-12">
+            <p class="font-weight-500 margin-0">Stocks-AI</p>
+            <template x-for="(content, j) in message.content" :key="j">
+              <div>
+                <template x-if="typeof content === 'string'">
+                  <div x-html="marked.parse(content)"></div>
+                </template>
+                <template x-if="Array.isArray(content)">
+                  <details :open="j == (message.content.length - 1)">
+                    <summary class="no-style flex-row flex-space-between flex-align-center">
+                      <div class="icon-sources">
+                        <span x-text="j == (message.content.length - 1) ? 'Reading' : 'Sources'"
+                              :class="{'loading-text': j == (message.content.length - 1) && $store.app.isAnswering}"></span>
+                      </div>
+                      <div class="mute">
+                        <span x-text="`${content.length} Documents`"></span>
+                        <span class="icon-down"></span>
+                      </div>
+                    </summary>
+                    <div class="flex-row gap-8 flex-wrap margin-top-12">
+                      <template x-for="(toolCall, k) in content" :key="k">
+                        <div class="font-size-14">
+                          <div x-show="toolCall.public_path && toolCall.info" class="button-group">
+                            <a class="button"
+                               :href="toolCall.public_path"
+                               target="_blank"
+                               x-text="toolCall.name"
+                               rel="noopener noreferrer"></a>
+                            <details>
+                              <summary class="button last-button icon-info" aria-label="Info"></summary>
+                              <div x-text="toolCall.info" class="tooltip"></div>
+                            </details>
+                          </div>
+                          <a x-show="toolCall.public_path && !toolCall.info"
+                             class="button"
+                             :href="toolCall.public_path"
+                             target="_blank"
+                             x-text="toolCall.name"
+                             rel="noopener noreferrer"></a>
+                          <details x-show="!toolCall.public_path && toolCall.info">
+                            <summary class="button">
+                              <span x-text="toolCall.name"></span>
+                              <span class="icon-info"></span>
+                            </summary>
+                            <div x-text="toolCall.info" class="tooltip"></div>
+                          </details>
+                        </div>
+                      </template>
+                    </div>
+                  </details>
+                </template>
+              </div>
+            </template>
+            <div class="flex-row gap-8">
+              <button type="button"
+                      x-show="i == ({{ messages }}.length - 1) && !$store.app.isAnswering"
+                      class="no-style smaller ink-600"
+                      @click="$store.app.regenerateResponse()">
+                <span class="icon-arrows-cw smaller"></span>
+                Regenerate
+              </button>
+              <button type="button"
+                      class="no-style smaller ink-600"
+                      :class="{'selected-feedback': $store.app.feedback[i] === 'good'}"
+                      x-show="i <= ({{ messages }}.length - 1) && !$store.app.isAnswering && !$store.app.feedback[i]"
+                      @click="$store.app.sendFeedback(i, 'good')"
+                      aria-label="Good response">
+                👍🏽
+              </button>
+              <button type="button"
+                      class="no-style smaller ink-600"
+                      :class="{'selected-feedback': $store.app.feedback[i] === 'bad'}"
+                      x-show="i <= ({{ messages }}.length - 1) && !$store.app.isAnswering && !$store.app.feedback[i]"
+                      @click="$store.app.sendFeedback(i, 'bad')"
+                      aria-label="Bad response">
+                👎🏽
+              </button>
+              <span x-show="$store.app.feedback[i] === 'good'">👍🏽</span>
+              <span x-show="$store.app.feedback[i] === 'bad'">👎🏽</span>
+            </div>
+          </article>
+        </div>
+      </template>
+    </li>
+  </template>
+  <li x-show="$store.app.isAnswering"
+      class="loading-text text-align-center mute">answering</li>
+  <li x-show="$store.app.error" class="text-align-center">
+    <p x-text="$store.app.error" class="error-message"></p>
+    <button type="button"
+            class="button padding-8"
+            @click="$store.app.resetChat()">
+      <span class="icon-arrows-cw"></span> Clear chat
+    </button>
+  </li>
+</ul>

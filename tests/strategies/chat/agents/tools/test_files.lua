@@ -75,4 +75,30 @@ T["files tool update"] = function()
   h.eq(output, { "line1", "new_line2", "line3" }, "File was not updated")
 end
 
+T["files tool update from fixtures"] = function()
+  child.lua([[
+      -- read initial file from fixture
+      local initial = table.concat(vim.fn.readfile("tests/fixtures/files-input-1.html"), "\n")
+      local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+      assert(ok == 0)
+      -- read contents for the tool from fixtures
+      local patch_contents = table.concat(vim.fn.readfile("tests/fixtures/files-diff-1.patch"), "\n")
+      local tool = {
+        {
+          ["function"] = {
+            name = "files",
+            arguments = string.format('{"action": "UPDATE", "path": "%s", "contents": "%s"}', _G.TEST_TMPFILE, patch_contents)
+          },
+        },
+      }
+      agent:execute(chat, tool)
+      vim.wait(200)
+    ]])
+
+  -- Test that the file was updated as per the output fixture
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-1.html')")
+  h.eq(output, expected, "File was not updated according to fixtures")
+end
+
 return T
