@@ -200,20 +200,19 @@ T["References"]["Can be pinned"] = function()
   h.eq(child.lua_get([[#_G.chat.messages]]), 2, "There are three messages")
   h.eq(child.lua_get([[_G.chat.refs[1].opts.pinned]]), true, "Reference is pinned")
 
-  child.lua([[_G.chat:submit()]])
-
-  h.eq(child.lua_get([[#_G.chat.messages]]), 4, "There are four messages")
-  h.eq(child.lua_get([[_G.chat.messages[#_G.chat.messages].content]]), "Basic Slash Command")
-
   child.lua([[
     -- Mock the submit
     _G.chat:add_buf_message({
       role = "llm",
       content = "Ooooh. I'm not sure. They probably do a lot!",
     })
+    _G.chat:submit()
     _G.chat.status = "success"
     _G.chat:done({ content = "This is a mocked response" })
   ]])
+
+  h.eq(child.lua_get([[#_G.chat.messages]]), 4, "There are four messages")
+  h.eq(child.lua_get([[_G.chat.messages[#_G.chat.messages].content]]), "Basic Slash Command")
 
   local buffer = child.lua_get([[h.get_buf_lines(_G.chat.bufnr)]])
 
