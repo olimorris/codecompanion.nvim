@@ -168,10 +168,9 @@ return {
               local tool_index = tool.index and tonumber(tool.index) or i
 
               -- Some endpoints like Gemini do not set this (why?!)
-              -- We need this to ensure the #tool_calls = #tool_responses
               local id = tool.id
               if not id or id == "" then
-                id = string.format("call_%d", tool_index)
+                id = string.format("call_%s_%s", json.created, i)
               end
 
               if self.opts.stream then
@@ -300,12 +299,13 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
-      default = "gpt-4o",
+      default = "gpt-4.1",
       choices = {
+        ["o4-mini-2025-04-16"] = { opts = { can_reason = true } },
         ["o3-mini-2025-01-31"] = { opts = { can_reason = true } },
-        ["o1-2024-12-17"] = { opts = { stream = false } },
-        ["o1-preview"] = { opts = { stream = true } },
-        ["o1-mini-2024-09-12"] = { opts = { stream = true } },
+        ["o3-2025-04-16"] = { opts = { can_reason = true } },
+        ["o1-2024-12-17"] = { opts = { can_reason = true } },
+        "gpt-4.1",
         "gpt-4o",
         "gpt-4o-mini",
         "gpt-4-turbo-preview",

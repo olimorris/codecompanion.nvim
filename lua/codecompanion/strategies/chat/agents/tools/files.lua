@@ -165,11 +165,11 @@ return {
     ---@param input? any The output from the previous function call
     ---@return nil|{ status: "success"|"error", data: string }
     function(self, args, input)
-      local ok, _ = pcall(actions[args.action], args)
+      local ok, outcome = pcall(actions[args.action], args)
       if not ok then
-        return { status = "error", data = "Could not run the Files tool" }
+        return { status = "error", data = fmt("Error running the files tool: %s", outcome) }
       end
-      return { status = "success", data = "The tool ran successfully!" }
+      return { status = "success", data = "Files tool ran successfully!" }
     end,
   },
   schema = {

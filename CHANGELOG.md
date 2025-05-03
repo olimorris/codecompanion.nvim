@@ -1,5 +1,21 @@
 # Changelog
 
+## [15.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.8...v15.1.0) (2025-05-02)
+
+
+### Features
+
+* **chat:** decorate your prompts ([080e8c9](https://github.com/olimorris/codecompanion.nvim/commit/080e8c9324ce40dd6b5e9aaf4ea27450707a55a7))
+* **gemini:** add gemini-2.5-flash ([#1347](https://github.com/olimorris/codecompanion.nvim/issues/1347)) ([b4d96cb](https://github.com/olimorris/codecompanion.nvim/commit/b4d96cbdca7ddc7870b0db0aded898ce9e6ea709))
+* **openai:** update models ([#1346](https://github.com/olimorris/codecompanion.nvim/issues/1346)) ([b114cd1](https://github.com/olimorris/codecompanion.nvim/commit/b114cd1c24e784ef6ad0af9770bc141f5b81affd))
+
+## [15.0.8](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.7...v15.0.8) (2025-05-02)
+
+
+### Bug Fixes
+
+* **tools:** multiple bug fixes ([07f7518](https://github.com/olimorris/codecompanion.nvim/commit/07f75181d716a07d683ca66afb8f4dc6b6acbdd3))
+
 ## [15.0.7](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.6...v15.0.7) (2025-05-01)
 
 
