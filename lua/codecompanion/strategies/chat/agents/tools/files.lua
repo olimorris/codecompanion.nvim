@@ -31,7 +31,7 @@ local function read(action)
 
 ```%s
 %s
-```]], vim.fn.fnamemodify(p.filename, ":e"), p.read())
+```]], vim.fn.fnamemodify(p.filename, ":e"), p:read())
   return output
 end
 
@@ -158,7 +158,7 @@ local function update(action)
   for _, change in ipairs(changes) do
     local new_lines = apply_change(lines, change)
     if new_lines == nil then
-      error(fmt("Diff block not found:\n\n%s", change))
+      error(fmt("Diff block not found:\n\n%s", patch))
     else
       lines = new_lines
     end
@@ -370,7 +370,7 @@ NOTE: We DO NOT use line numbers in this diff format, as the context is enough t
       log:debug("[Files Tool] Error output: %s", stderr)
 
       local error_output = fmt(
-        [[**Files Tool**: There was an error running the %s command:
+        [[**Files Tool**: There was an error running the %s action:
 
 ```txt
 %s

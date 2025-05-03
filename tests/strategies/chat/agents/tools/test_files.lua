@@ -156,4 +156,28 @@ T["files tool update empty lines"] = function()
   h.eq(output, expected, "File was not updated according to fixtures")
 end
 
+T["files tool read"] = function()
+  child.lua([[
+    -- Create a test file with known contents
+    local contents = { "alpha", "beta", "gamma" }
+    local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE)
+    assert(ok == 0)
+    local tool = {
+      {
+        ["function"] = {
+          name = "files",
+          arguments = string.format('{"action": "READ", "path": "%s", "contents": null}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+    agent:execute(chat, tool)
+    vim.wait(200)
+  ]])
+
+  local output = child.lua_get("chat.messages[#chat.messages].content")
+  h.eq("alpha", string.match(output, "alpha"))
+  h.eq("beta", string.match(output, "beta"))
+  h.eq("gamma", string.match(output, "gamma"))
+end
+
 return T
