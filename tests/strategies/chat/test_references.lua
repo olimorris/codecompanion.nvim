@@ -279,6 +279,25 @@ T["References"]["Render"] = function()
   )
 end
 
+T["References"]["Render invisible"] = function()
+  child.lua([[
+    _G.chat.refs = {
+      {
+        id = "<buf>pinned example</buf>",
+        path = "tests.stubs.file.txt",
+        source = "tests.strategies.chat.slash_commands.basic",
+        opts = {
+          visible = false,
+          pinned = true,
+        },
+      },
+    }
+    _G.chat.references:render()
+  ]])
+
+  h.eq({ "## foo", "", "" }, child.lua_get([[h.get_buf_lines(_G.chat.bufnr)]]))
+end
+
 T["References"]["can be cleared from messages"] = function()
   child.lua([[
     _G.chat.references:add({
