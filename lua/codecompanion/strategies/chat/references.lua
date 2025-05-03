@@ -194,7 +194,7 @@ function References:render()
   table.insert(lines, "> Context:")
 
   for _, ref in pairs(chat.refs) do
-    if not ref then
+    if not ref or (ref.opts and ref.opts.visible == false) then
       goto continue
     end
     if ref.opts and ref.opts.pinned then
@@ -205,6 +205,10 @@ function References:render()
       table.insert(lines, string.format("> - %s", ref.id))
     end
     ::continue::
+  end
+  if #lines == 1 then
+    -- no ref added
+    return
   end
   table.insert(lines, "")
 
