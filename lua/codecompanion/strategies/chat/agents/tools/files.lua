@@ -35,38 +35,51 @@ local function read(action)
   return output
 end
 
-local function parse_block(block)
-  local focus, pre, old, new, post = {}, {}, {}, {}, {}
-  local phase = "focus_pre"
-  for _, line in ipairs(vim.split(block, "\n", { plain = true })) do
-    if phase == "focus_pre" and vim.startswith(line, "@@") then
-      local ref = vim.trim(line:sub(3))
-      if ref and #ref > 0 then
-        focus[#focus + 1] = ref
+local function get_new_change()
+  return {
+    focus = {},
+    pre = {},
+    old = {},
+    new = {},
+    post = {}
+  }
+end
+
+local function parse_changes(patch)
+  local changes = {}
+  local change = get_new_change()
+  local is_inside_edits = false
+  for _, line in ipairs(vim.split(patch, "\n", { plain = true })) do
+    if vim.startswith(line, '@@') then
+      if is_inside_edits then
+        -- it is a new change block
+        table.insert(changes, change)
+        change = get_new_change()
+        is_inside_edits = false
       end
-    elseif phase == "focus_pre" and line:sub(1, 1) == "-" then
-      phase = "hunk"
-      old[#old + 1] = line:sub(2)
-    elseif phase == "focus_pre" and line:sub(1, 1) == "+" then
-      phase = "hunk"
-      new[#new + 1] = line:sub(2)
-    elseif phase == "focus_pre" then
-      pre[#pre + 1] = line
-    elseif phase == "hunk" and line:sub(1, 1) == "-" then
-      old[#old + 1] = line:sub(2)
-    elseif phase == "hunk" and line:sub(1, 1) == "+" then
-      new[#new + 1] = line:sub(2)
-    elseif phase == "hunk" then
-      post[#post + 1] = line
+      -- focus name can be empty too to signify new blocks
+      local focus_name = vim.trim(line:sub(3))
+      if focus_name and #focus_name > 0 then
+        change.focus[#change.focus + 1] = focus_name
+      end
+    elseif not is_inside_edits and line:sub(1, 1) == "-" then
+      is_inside_edits = true
+      change.old[#change.old + 1] = line:sub(2)
+    elseif not is_inside_edits and line:sub(1, 1) == "+" then
+      is_inside_edits = true
+      change.new[#change.new + 1] = line:sub(2)
+    elseif not is_inside_edits then
+      change.pre[#change.pre + 1] = line
+    elseif is_inside_edits and line:sub(1, 1) == "-" then
+      change.old[#change.old + 1] = line:sub(2)
+    elseif is_inside_edits and line:sub(1, 1) == "+" then
+      change.new[#change.new + 1] = line:sub(2)
+    elseif is_inside_edits then
+      change.post[#change.post + 1] = line
     end
   end
-  return {
-    focus = focus,
-    pre = pre,
-    old = old,
-    new = new,
-    post = post
-  }
+  table.insert(changes, change)
+  return changes
 end
 
 local function matches_lines(haystack, pos, needle)
@@ -133,21 +146,20 @@ local function update(action)
   local content = p:read()
   local lines = vim.split(content, "\n", { plain = true })
 
-  -- 3. split into blocks
-  local blocks = vim.split(patch, "\n\n", { plain = true })
-  for _, blk in ipairs(blocks) do
-    -- 4. parse changes
-    local change = parse_block(blk)
-    -- 5. apply changes
+  -- 3. parse changes
+  local changes = parse_changes(patch)
+
+  -- 4. apply changes
+  for _, change in ipairs(changes) do
     local new_lines = apply_change(lines, change)
     if new_lines == nil then
-      error(fmt("Diff block not found:\n\n%s", blk))
+      error(fmt("Diff block not found:\n\n%s", change))
     else
       lines = new_lines
     end
   end
 
-  -- 6. write back
+  -- 5. write back
   p:write(table.concat(lines, "\n"), "w")
 end
 
