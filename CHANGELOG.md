@@ -1,5 +1,12 @@
 # Changelog
 
+## [15.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v15.1.0...v15.1.1) (2025-05-03)
+
+
+### Bug Fixes
+
+* **inline:** "new" placement doesn't create diffview ([#1343](https://github.com/olimorris/codecompanion.nvim/issues/1343)) ([9ab6ac1](https://github.com/olimorris/codecompanion.nvim/commit/9ab6ac1126d89f74b9882e4343eb1397e4b052da))
+
 ## [15.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.0.8...v15.1.0) (2025-05-02)
 
 
