@@ -206,18 +206,23 @@ T["References"]["Can be pinned"] = function()
   h.eq(child.lua_get([[_G.chat.messages[#_G.chat.messages].content]]), "Basic Slash Command")
 
   child.lua([[
+    -- Mock the submit
+    _G.chat:add_buf_message({
+      role = "llm",
+      content = "Ooooh. I'm not sure. They probably do a lot!",
+    })
     _G.chat.status = "success"
-    _G.chat:done({ content = "Some data" })
+    _G.chat:done({ content = "This is a mocked response" })
   ]])
 
   local buffer = child.lua_get([[h.get_buf_lines(_G.chat.bufnr)]])
 
-  h.eq("> Context:", buffer[3])
+  h.eq("> Context:", buffer[15])
   h.eq(
     string.format("> - %s<buf>pinned example</buf>", child.lua_get([[config.display.chat.icons.pinned_buffer]])),
-    buffer[8]
+    buffer[16]
   )
-  h.eq("> - <buf>unpinned example</buf>", buffer[9])
+  h.eq("> - <buf>unpinned example</buf>", buffer[17])
 
   h.eq({
     {
