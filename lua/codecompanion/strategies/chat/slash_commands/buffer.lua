@@ -51,7 +51,7 @@ local providers = {
       source = "buffers",
       prompt = snacks.title,
       confirm = snacks:display(),
-      main = { file = false },
+      main = { file = false , float = true },
     })
   end,
 
