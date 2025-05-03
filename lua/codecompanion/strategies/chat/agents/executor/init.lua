@@ -112,36 +112,32 @@ function Executor:setup(input)
       prompt = ("Run the %q tool?"):format(self.tool.name)
     end
 
-    vim.ui.select(
-      { "Yes", "No", "Cancel" },
-      {
-        prompt = prompt,
-        format_item = function(item)
-          if item == "Yes" then
-            return "Yes"
-          elseif item == "No" then
-            return "No"
-          else
-            return "Cancel"
-          end
-        end,
-      },
-      function(choice)
-       if not choice or choice == "Cancel" then -- No selection or cancelled 
-          log:debug("Executor:execute - Tool cancelled")
-          finalize_agent(self)
-          self:close()
-          return
-        elseif choice == "Yes" then -- Selected yes
-          log:debug("Executor:execute - Tool approved")
-          self:execute(cmd, input)
-        elseif choice == "No" then -- Selected no
-          log:debug("Executor:execute - Tool rejected")
-          self.output.rejected(cmd)
-          self:setup()
+    vim.ui.select({ "Yes", "No", "Cancel" }, {
+      prompt = prompt,
+      format_item = function(item)
+        if item == "Yes" then
+          return "Yes"
+        elseif item == "No" then
+          return "No"
+        else
+          return "Cancel"
         end
+      end,
+    }, function(choice)
+      if not choice or choice == "Cancel" then -- No selection or cancelled
+        log:debug("Executor:execute - Tool cancelled")
+        finalize_agent(self)
+        self:close()
+        return
+      elseif choice == "Yes" then -- Selected yes
+        log:debug("Executor:execute - Tool approved")
+        self:execute(cmd, input)
+      elseif choice == "No" then -- Selected no
+        log:debug("Executor:execute - Tool rejected")
+        self.output.rejected(cmd)
+        self:setup()
       end
-    )
+    end)
   else
     self:execute(cmd, input)
   end
