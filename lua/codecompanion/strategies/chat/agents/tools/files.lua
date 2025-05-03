@@ -40,7 +40,10 @@ local function parseBlock(block)
   local phase = "focus_pre"
   for _, line in ipairs(vim.split(block, "\n", { plain = true })) do
     if phase == "focus_pre" and vim.startswith(line, "@@") then
-      focus[#focus + 1] = vim.trim(line:sub(3))
+      local ref = vim.trim(line:sub(3))
+      if ref and #ref > 0 then
+        focus[#focus + 1] = ref
+      end
     elseif phase == "focus_pre" and line:sub(1, 1) == "-" then
       phase = "hunk"
       old[#old + 1] = line:sub(2)

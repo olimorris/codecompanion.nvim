@@ -78,16 +78,17 @@ end
 T["files tool update from fixtures"] = function()
   child.lua([[
       -- read initial file from fixture
-      local initial = table.concat(vim.fn.readfile("tests/fixtures/files-input-1.html"), "\n")
-      local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE)
+      local initial = vim.fn.readfile("tests/fixtures/files-input-1.html")
+      local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE)
       assert(ok == 0)
       -- read contents for the tool from fixtures
       local patch_contents = table.concat(vim.fn.readfile("tests/fixtures/files-diff-1.patch"), "\n")
+      local arguments = vim.json.encode({ action = "UPDATE", path = _G.TEST_TMPFILE, contents = patch_contents })
       local tool = {
         {
           ["function"] = {
             name = "files",
-            arguments = string.format('{"action": "UPDATE", "path": "%s", "contents": "%s"}', _G.TEST_TMPFILE, patch_contents)
+            arguments = arguments
           },
         },
       }
