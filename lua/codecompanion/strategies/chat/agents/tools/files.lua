@@ -142,7 +142,7 @@ local function update(action)
 
   -- 1. extract raw patch
   local raw = action.contents or ""
-  local patch = raw:match("^*** Begin Patch\n(.-)\n*** End Patch$")
+  local patch = raw:match("%*%*%* Begin Patch%s+(.-)%s+%*%*%* End Patch")
   if not patch then
     error("Invalid patch format: missing Begin/End markers")
   end
