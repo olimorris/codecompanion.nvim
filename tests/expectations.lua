@@ -5,6 +5,19 @@ H.eq = MiniTest.expect.equality --[[@type function]]
 H.not_eq = MiniTest.expect.no_equality --[[@type function]]
 
 --[[@type function]]
+H.expect_truthy = MiniTest.new_expectation(
+  "value is truthy",
+  -- Predicate: returns true if value is not false and not nil
+  function(value)
+    return value ~= false and value ~= nil
+  end,
+  -- Fail context: explains why it failed
+  function(value)
+    return string.format("\nExpected value to be truthy (not false or nil), but got:\n%s", vim.inspect(value))
+  end
+)
+
+--[[@type function]]
 H.expect_starts_with = MiniTest.new_expectation(
   "string starts with",
   function(pattern, str)

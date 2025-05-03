@@ -152,9 +152,11 @@ T["References"]["Tools and their schema can be deleted"] = function()
     _G.chat:check_references()
   ]])
 
-  h.eq({ { "<tool>func</tool>", {
-    name = "func",
-  } } }, child.lua_get([[chat.tools.schemas]]))
+  h.eq({
+    ["<tool>func</tool>"] = {
+      name = "func",
+    },
+  }, child.lua_get([[chat.tools.schemas]]))
 end
 
 T["References"]["Can be pinned"] = function()
@@ -345,6 +347,65 @@ T["References"]["file references always have a relative id"] = function()
 
   h.expect_starts_with("Here is the updated content", child.lua_get([[_G.chat.messages[#_G.chat.messages].content]]))
   h.eq("<file>tests/stubs/file.txt</file>", child.lua_get([[_G.chat.messages[#_G.chat.messages].opts.reference]]))
+end
+
+T["References"]["Correctly removes tool schema and usage flag on reference deletion"] = function()
+  -- 1. Add multiple tools via a message containing agent triggers
+  child.lua([[
+    -- Add a user message that triggers multiple tool agents
+    local message = {
+      role = config.constants.USER_ROLE,
+      content = "Whats the @weather like in London? Also adding a @func tool too.",
+    }
+    _G.chat:add_message(message) -- Add to message history
+
+    -- Simulate the pre-submit processing that adds tools based on agents
+    _G.chat:replace_vars_and_tools(message) -- This calls agents:parse -> tools:add
+    _G.chat:check_references() -- Sync the refs table initially
+  ]])
+
+  -- 2. Verify initial state (both tools present)
+  local initial_schemas = child.lua_get([[_G.chat.tools.schemas]])
+  local initial_refs_count = child.lua_get([[#_G.chat.refs]])
+  local initial_in_use = child.lua_get([[_G.chat.tools.in_use]])
+
+  h.eq(2, vim.tbl_count(initial_schemas), "Should have 2 schemas initially")
+  h.expect_truthy(initial_schemas["<tool>weather</tool>"], "Weather schema should exist")
+  h.expect_truthy(initial_schemas["<tool>func</tool>"], "Func schema should exist")
+  h.eq(2, initial_refs_count, "Should have 2 references initially")
+  h.eq({ weather = true, func = true }, initial_in_use, "Both tools should be in use initially")
+
+  -- 3. Simulate deleting the 'weather' tool reference by mocking get_from_chat
+  child.lua([[
+    -- Mock get_from_chat to simulate user deleting the weather tool reference from the buffer UI
+    _G.chat.references.get_from_chat = function()
+      -- This function should return a list of reference IDs *currently* found in the buffer
+      return { "<tool>func</tool>" } -- Simulate only the func tool reference remaining
+    end
+
+    -- Run the check_references function which contains the fix
+    _G.chat:check_references()
+  ]])
+
+  -- 4. Verify final state (only 'func' tool remains)
+  local final_schemas = child.lua_get([[_G.chat.tools.schemas]])
+  local final_refs_count = child.lua_get([[#_G.chat.refs]])
+  local final_in_use = child.lua_get([[_G.chat.tools.in_use]])
+
+  -- Define the expected final state for the schemas map
+  -- Only the func schema and still in a map keyed by ID
+  local expected_final_schema_map = {
+    ["<tool>func</tool>"] = { name = "func" },
+  }
+  -- Define the expected final state for the in_use table
+  local expected_final_in_use = {
+    func = true, -- Only func should remain marked as in use
+  }
+
+  h.eq(1, vim.tbl_count(final_schemas), "Should have 1 schema after deletion")
+  h.eq(expected_final_schema_map, final_schemas, "Schema map should only contain func tool, keyed by ID")
+  h.eq(1, final_refs_count, "Should have 1 reference after deletion")
+  h.eq(expected_final_in_use, final_in_use, "Only func tool should be marked in use after deletion")
 end
 
 return T
