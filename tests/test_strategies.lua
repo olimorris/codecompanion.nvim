@@ -104,19 +104,5 @@ describe("Chat Strategy", function()
         },
       },
     }
-    -- local Strategy = require("codecompanion.strategies")
-    --   .new({
-    --     context = { bufnr = 1, filetype = "lua", mode = "n" },
-    --     selected = item,
-    --   })
-    --   :start(item.strategy)
-
-    -- local messages = Strategy:get_messages()
-    --
-    -- assert.equals("system", messages[#messages - 1].role)
-    -- assert.equals("My system prompt", messages[#messages - 1].content)
-    --
-    -- assert.equals("user", messages[#messages].role)
-    -- assert.equals("My user prompt", messages[#messages].content)
   end)
 end)

@@ -22,7 +22,7 @@ end
 function source:complete(request, callback)
   local chat = require("codecompanion").buf_get_chat(0)
   if chat then
-    chat:complete_models(request, callback)
+    chat:complete_models(callback)
   else
     callback({ items = {}, isIncomplete = false })
   end
