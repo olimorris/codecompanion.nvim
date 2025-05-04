@@ -507,6 +507,9 @@ M.change_adapter = {
 
       -- Select a model
       local models = chat.adapter.schema.model.choices
+      if not config.adapters.opts.show_model_choices then
+        models = { chat.adapter.schema.model.default }
+      end
       if type(models) == "function" then
         models = models(chat.adapter)
       end
