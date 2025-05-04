@@ -1,5 +1,13 @@
 # Changelog
 
+## [15.1.4](https://github.com/olimorris/codecompanion.nvim/compare/v15.1.3...v15.1.4) (2025-05-04)
+
+
+### Bug Fixes
+
+* **snacks:** focus on floating chat windows after closing picker ([#1359](https://github.com/olimorris/codecompanion.nvim/issues/1359)) ([6090826](https://github.com/olimorris/codecompanion.nvim/commit/60908265b78145c7c8595d81b36792bc01cd56e5))
+* **tools:** tool groups are replaced properly in the chat buffer ([#1364](https://github.com/olimorris/codecompanion.nvim/issues/1364)) ([9402ae3](https://github.com/olimorris/codecompanion.nvim/commit/9402ae373f23269f1baef8ccc32578c128cbf2ed))
+
 ## [15.1.3](https://github.com/olimorris/codecompanion.nvim/compare/v15.1.2...v15.1.3) (2025-05-04)
 
 
