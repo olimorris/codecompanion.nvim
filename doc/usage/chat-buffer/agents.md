@@ -78,7 +78,12 @@ The _@files_ tool leverages the [Plenary.Path](https://github.com/nvim-lua/plena
 
 ## @full_stack_dev
 
-The plugin enables tools to be grouped together. The _@full_stack_dev_ agent is a combination of the _@cmd_runner_, _@editor_ and _@files_ tools.
+The plugin enables tools to be grouped together. The _@full_stack_dev_ agent is a combination of the _@cmd_runner_, _@editor_ and _@files_ tools:
+
+```md
+Let's use the @full_stack_dev tools to create a new app
+```
+
 
 ## Approvals
 

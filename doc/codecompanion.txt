@@ -1656,8 +1656,7 @@ RUN TESTS FROM THE CHAT BUFFER ~
 The |codecompanion-usage-chat-buffer-agents-cmd-runner| tool enables an LLM to
 execute commands on your machine. This can be useful if you wish the LLM to run
 a test suite on your behalf and give insight on failing cases. Simply tag the
-`@cmd_runner` in the chat buffer and ask it run your tests with a suitable
-command e.g. `pytest`.
+`@cmd_runner` in the chat buffer and ask it run your tests.
 
 
 NAVIGATING BETWEEN RESPONSES IN THE CHAT BUFFER ~
@@ -1955,7 +1954,11 @@ disk:
 @FULL_STACK_DEV ~
 
 The plugin enables tools to be grouped together. The `@full_stack_dev` agent is
-a combination of the `@cmd_runner`, `@editor` and `@files` tools.
+a combination of the `@cmd_runner`, `@editor` and `@files` tools:
+
+>md
+    Let's use the @full_stack_dev tools to create a new app
+<
 
 
 APPROVALS ~
@@ -2659,7 +2662,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI’S API OUTPUT
+OPENAI�S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
