@@ -48,38 +48,29 @@ end
 local function parse_changes(patch)
   local changes = {}
   local change = get_new_change()
-  local is_inside_edits = false
   for _, line in ipairs(vim.split(patch, "\n", { plain = true })) do
     if vim.startswith(line, '@@') then
-      if is_inside_edits then
-        -- it is a new change block
+      if #change.old > 0 or #change.new > 0 then
+        -- @@ after any edits is a new change block
         table.insert(changes, change)
         change = get_new_change()
-        is_inside_edits = false
       end
       -- focus name can be empty too to signify new blocks
       local focus_name = vim.trim(line:sub(3))
       if focus_name and #focus_name > 0 then
         change.focus[#change.focus + 1] = focus_name
       end
-    elseif line == "" and is_inside_edits then
-      -- it is a new change block
+    elseif line == "" and (#change.old > 0 or #change.new > 0) then
+      -- line breaks after edits are new blocks
       table.insert(changes, change)
       change = get_new_change()
-      is_inside_edits = false
-    elseif not is_inside_edits and line:sub(1, 1) == "-" then
-      is_inside_edits = true
+    elseif line:sub(1, 1) == "-" then
       change.old[#change.old + 1] = line:sub(2)
-    elseif not is_inside_edits and line:sub(1, 1) == "+" then
-      is_inside_edits = true
+    elseif line:sub(1, 1) == "+" then
       change.new[#change.new + 1] = line:sub(2)
-    elseif not is_inside_edits then
+    elseif #change.old == 0 and #change.new == 0 then
       change.pre[#change.pre + 1] = line
-    elseif is_inside_edits and line:sub(1, 1) == "-" then
-      change.old[#change.old + 1] = line:sub(2)
-    elseif is_inside_edits and line:sub(1, 1) == "+" then
-      change.new[#change.new + 1] = line:sub(2)
-    elseif is_inside_edits then
+    elseif #change.old > 0 or #change.new > 0 then
       change.post[#change.post + 1] = line
     end
   end
