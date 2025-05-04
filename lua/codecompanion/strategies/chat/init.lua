@@ -832,16 +832,18 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return nil
 local function ready_chat_buffer(chat)
-  chat:increment_cycle()
-  chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
+  if chat.last_role ~= config.constants.USER_ROLE then
+    chat:increment_cycle()
+    chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
-  chat:set_text_editing_area(-2)
-  chat.ui:display_tokens(chat.parser, chat.header_line)
-  chat.references:render()
+    chat:set_text_editing_area(-2)
+    chat.ui:display_tokens(chat.parser, chat.header_line)
+    chat.references:render()
 
-  -- If we're running any tooling, let them handle the subscriptions instead
-  if not chat.tools:loaded() then
-    chat.subscribers:process(chat)
+    -- If we're running any tooling, let them handle the subscriptions instead
+    if not chat.tools:loaded() then
+      chat.subscribers:process(chat)
+    end
   end
 
   log:info("Chat request finished")
@@ -1067,8 +1069,6 @@ function Chat:close()
   util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
   self = nil
 end
-
-local has_been_reasoning = false
 
 ---Add a message directly to the chat buffer. This will be visible to the user
 ---@param data table

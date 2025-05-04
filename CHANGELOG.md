@@ -1,5 +1,12 @@
 # Changelog
 
+## [15.1.2](https://github.com/olimorris/codecompanion.nvim/compare/v15.1.1...v15.1.2) (2025-05-03)
+
+
+### Bug Fixes
+
+* **chat:** prevent double references in the chat buffer ([#1348](https://github.com/olimorris/codecompanion.nvim/issues/1348)) ([aafbb62](https://github.com/olimorris/codecompanion.nvim/commit/aafbb62c5ceb3f019610fb0e9ed3c04305b59a23))
+
 ## [15.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v15.1.0...v15.1.1) (2025-05-03)
 
 
