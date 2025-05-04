@@ -84,12 +84,12 @@ end
 ---@return nil
 function Executor:setup(input)
   if self.queue:is_empty() then
-    finalize_agent(self)
-    return log:debug("Executor:execute - Queue empty")
+    log:debug("Executor:execute - Queue empty")
+    return finalize_agent(self)
   end
   if self.agent.status == self.agent.constants.STATUS_ERROR then
-    finalize_agent(self)
-    return log:debug("Executor:execute - Error")
+    log:debug("Executor:execute - Error")
+    return finalize_agent(self)
   end
 
   -- Get the next tool to run
@@ -112,21 +112,32 @@ function Executor:setup(input)
       prompt = ("Run the %q tool?"):format(self.tool.name)
     end
 
-    local ok, choice = pcall(vim.fn.confirm, prompt, "&Yes\n&No\n&Cancel")
-    if not ok or choice == 0 or choice == 3 then -- Esc or Cancel
-      log:debug("Executor:execute - Tool cancelled")
-      finalize_agent(self)
-      return self:close()
-    end
-    if choice == 1 then -- Yes
-      log:debug("Executor:execute - Tool approved")
-      self:execute(cmd, input)
-    end
-    if choice == 2 then -- No
-      log:debug("Executor:execute - Tool rejected")
-      self.output.rejected(cmd)
-      return self:setup()
-    end
+    vim.ui.select({ "Yes", "No", "Cancel" }, {
+      prompt = prompt,
+      format_item = function(item)
+        if item == "Yes" then
+          return "Yes"
+        elseif item == "No" then
+          return "No"
+        else
+          return "Cancel"
+        end
+      end,
+    }, function(choice)
+      if not choice or choice == "Cancel" then -- No selection or cancelled
+        log:debug("Executor:execute - Tool cancelled")
+        finalize_agent(self)
+        self:close()
+        return
+      elseif choice == "Yes" then -- Selected yes
+        log:debug("Executor:execute - Tool approved")
+        self:execute(cmd, input)
+      elseif choice == "No" then -- Selected no
+        log:debug("Executor:execute - Tool rejected")
+        self.output.rejected(cmd)
+        self:setup()
+      end
+    end)
   else
     self:execute(cmd, input)
   end

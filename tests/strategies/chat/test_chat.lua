@@ -96,4 +96,25 @@ T["Chat"]["loading from the prompt library sets the correct header_line"] = func
   h.eq(9, output)
 end
 
+T["Chat"]["prompt decorator is applied prior to sending to the LLM"] = function()
+  local prompt = "Testing out the prompt decorator"
+  local output = child.lua(string.format(
+    [[
+      local config = require("codecompanion.config")
+      config.strategies.chat.opts.prompt_decorator = function(message)
+        return "<prompt>" .. message .. "</prompt>"
+      end
+      _G.chat:add_buf_message({
+        role = "user",
+        content = "%s",
+      })
+      _G.chat:submit()
+      return _G.chat.messages[#_G.chat.messages].content
+  ]],
+    prompt
+  ))
+
+  h.eq("<prompt>" .. prompt .. "</prompt>", output)
+end
+
 return T

@@ -156,7 +156,7 @@ end
 ---Parse the chat buffer for the last message
 ---@param chat CodeCompanion.Chat
 ---@param start_range number
----@return { content: string }
+---@return { content: string }|nil
 local function ts_parse_messages(chat, start_range)
   local query = get_query("markdown", "chat")
 
@@ -179,7 +179,7 @@ local function ts_parse_messages(chat, start_range)
     return { content = vim.trim(table.concat(content, "\n\n")) }
   end
 
-  return { content = "" }
+  return nil
 end
 
 ---Parse the chat buffer for the last header
@@ -679,22 +679,16 @@ function Chat:replace_vars_and_tools(message)
 end
 
 ---Are there any user messages in the chat buffer?
----@param message table
 ---@return boolean
-function Chat:has_user_messages(message)
-  if message and message.content == "" then
-    local has_user_messages = vim
-      .iter(self.messages)
-      :filter(function(msg)
-        return msg.role == config.constants.USER_ROLE
-      end)
-      :totable()
-
-    if #has_user_messages == 0 then
-      return false
-    end
-    -- Allow users to submit a blank message if they have at least one message in the chat buffer
-    return true
+function Chat:has_user_messages()
+  local has_user_messages = vim
+    .iter(self.messages)
+    :filter(function(msg)
+      return msg.role == config.constants.USER_ROLE
+    end)
+    :totable()
+  if #has_user_messages == 0 then
+    return false
   end
   return true
 end
@@ -712,26 +706,32 @@ function Chat:submit(opts)
   local bufnr = self.bufnr
   local message = ts_parse_messages(self, self.header_line)
 
-  -- Check if any watched buffers have changes
+  if not message and not self:has_user_messages() then
+    return log:warn("No messages to submit")
+  end
+
+  -- Check if any watched buffers have changes and add to the chat buffer before any user messages
   self.watchers:check_for_changes(self)
 
-  if not self:has_user_messages(message) then
-    return log:info("No messages to submit")
+  -- Allow users to send a blank message to the LLM
+  if not opts.regenerate then
+    local chat_opts = config.strategies.chat.opts
+    if message and message.content and chat_opts and chat_opts.prompt_decorator then
+      message.content = chat_opts.prompt_decorator(message.content, adapters.make_safe(self.adapter), self.context)
+    end
+    self:add_message({
+      role = config.constants.USER_ROLE,
+      content = (message and message.content or config.strategies.chat.opts.blank_prompt),
+    })
   end
 
-  --- Only send the user's last message if we're not regenerating the response
-  if not opts.regenerate and not vim.tbl_isempty(message) and message.content ~= "" then
-    self:add_message({ role = config.constants.USER_ROLE, content = message.content })
-  end
-  message = self.references:clear(self.messages[#self.messages])
-
-  self:replace_vars_and_tools(message)
-
-  local tools_config = config.strategies.chat.tools
-  if not tools_config.opts.auto_submit_success and not tools_config.opts.auto_submit_errors then
+  -- NOTE: Sometimes the last message is a tool call so we need to account for that
+  if message then
+    message = self.references:clear(self.messages[#self.messages])
+    self:replace_vars_and_tools(message)
     self:check_references()
+    self:add_pins()
   end
-  self:add_pins()
 
   -- Check if the user has manually overridden the adapter
   if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
@@ -835,18 +835,19 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return nil
 local function ready_chat_buffer(chat)
-  chat:increment_cycle()
-  chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
+  if chat.last_role ~= config.constants.USER_ROLE then
+    chat:increment_cycle()
+    chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
-  chat:set_text_editing_area(-2)
-  chat.ui:display_tokens(chat.parser, chat.header_line)
-  chat.references:render()
+    chat:set_text_editing_area(-2)
+    chat.ui:display_tokens(chat.parser, chat.header_line)
+    chat.references:render()
 
-  -- If we're running any tooling, let them handle the subscriptions instead
-  -- if not chat.tools:loaded() then
-  --   chat.subscribers:process(chat)
-  -- end
-  chat.subscribers:process(chat)
+    -- If we're running any tooling, let them handle the subscriptions instead
+    if not chat.tools:loaded() then
+      chat.subscribers:process(chat)
+    end
+  end
 
   log:info("Chat request finished")
   chat:reset()
@@ -954,12 +955,22 @@ function Chat:check_references()
     end)
     :totable()
 
-  for id, _ in pairs(self.tools.schemas) do
-    if vim.tbl_contains(to_remove, id) then
-      self.tools.schemas[id] = nil
-      self.tools.in_use[id] = nil
+  -- Clear any tool's schemas
+  local schemas_to_keep = {}
+  local tools_in_use_to_keep = {}
+  for id, schema in pairs(self.tools.schemas) do
+    if not vim.tbl_contains(to_remove, id) then
+      schemas_to_keep[id] = schema
+      local tool_name = id:match("<tool>(.*)</tool>")
+      if tool_name and self.tools.in_use[tool_name] then
+        tools_in_use_to_keep[tool_name] = true
+      end
+    else
+      log:debug("Removing tool schema and usage flag for ID: %s", id) -- Optional logging
     end
   end
+  self.tools.schemas = schemas_to_keep
+  self.tools.in_use = tools_in_use_to_keep
 end
 
 ---Add updated content from the pins to the chat buffer
@@ -1069,8 +1080,6 @@ function Chat:close()
   util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
   self = nil
 end
-
-local has_been_reasoning = false
 
 ---Add a message directly to the chat buffer. This will be visible to the user
 ---@param data table
