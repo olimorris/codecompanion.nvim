@@ -802,6 +802,7 @@ function Chat:submit(opts)
       self:done(output, tools)
     end,
   }, { bufnr = bufnr, strategy = "chat" })
+  util.fire("ChatSubmitted", { bufnr = self.bufnr, id = self.id })
 end
 
 ---Increment the cycle count in the chat buffer
