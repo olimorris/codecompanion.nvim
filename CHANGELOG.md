@@ -1,5 +1,21 @@
 # Changelog
 
+## [15.1.4](https://github.com/olimorris/codecompanion.nvim/compare/v15.1.3...v15.1.4) (2025-05-04)
+
+
+### Bug Fixes
+
+* **snacks:** focus on floating chat windows after closing picker ([#1359](https://github.com/olimorris/codecompanion.nvim/issues/1359)) ([6090826](https://github.com/olimorris/codecompanion.nvim/commit/60908265b78145c7c8595d81b36792bc01cd56e5))
+* **tools:** tool groups are replaced properly in the chat buffer ([#1364](https://github.com/olimorris/codecompanion.nvim/issues/1364)) ([9402ae3](https://github.com/olimorris/codecompanion.nvim/commit/9402ae373f23269f1baef8ccc32578c128cbf2ed))
+
+## [15.1.3](https://github.com/olimorris/codecompanion.nvim/compare/v15.1.2...v15.1.3) (2025-05-04)
+
+
+### Bug Fixes
+
+* **chat:** various chat buffer fixes ([#1336](https://github.com/olimorris/codecompanion.nvim/issues/1336)) ([1e2f69a](https://github.com/olimorris/codecompanion.nvim/commit/1e2f69a9a65bd716cf897393e7af65fc74907ed8))
+* **tools:** tools can now be deleted as references ([#1357](https://github.com/olimorris/codecompanion.nvim/issues/1357)) ([7d0938c](https://github.com/olimorris/codecompanion.nvim/commit/7d0938c1dc117c9c63569a388b9d091ee884d2ce))
+
 ## [15.1.2](https://github.com/olimorris/codecompanion.nvim/compare/v15.1.1...v15.1.2) (2025-05-03)
 
 

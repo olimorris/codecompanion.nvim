@@ -12,7 +12,7 @@ The [editor](/usage/chat-buffer/agents#editor) tool, combined with the `#buffer`
 
 ## Run tests from the chat buffer
 
-The [cmd_runner](/usage/chat-buffer/agents#cmd-runner) tool enables an LLM to execute commands on your machine. This can be useful if you wish the LLM to run a test suite on your behalf and give insight on failing cases. Simply tag the `@cmd_runner` in the chat buffer and ask it run your tests with a suitable command e.g. `pytest`.
+The [cmd_runner](/usage/chat-buffer/agents#cmd-runner) tool enables an LLM to execute commands on your machine. This can be useful if you wish the LLM to run a test suite on your behalf and give insight on failing cases. Simply tag the `@cmd_runner` in the chat buffer and ask it run your tests.
 
 ## Navigating between responses in the chat buffer
 
