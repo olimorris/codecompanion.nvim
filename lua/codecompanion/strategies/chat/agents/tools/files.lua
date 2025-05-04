@@ -35,10 +35,10 @@ local function read(action)
   return output
 end
 
-local function get_new_change()
+local function get_new_change(focus, pre)
   return {
-    focus = {},
-    pre = {},
+    focus = focus or {},
+    pre = pre or {},
     old = {},
     new = {},
     post = {}
@@ -65,8 +65,18 @@ local function parse_changes(patch)
       table.insert(changes, change)
       change = get_new_change()
     elseif line:sub(1, 1) == "-" then
+      if #change.post > 0 then
+        -- edits after post edit lines are new block of changes with same focus
+        table.insert(changes, change)
+        change = get_new_change(change.focus, change.post)
+      end
       change.old[#change.old + 1] = line:sub(2)
     elseif line:sub(1, 1) == "+" then
+      if #change.post > 0 then
+        -- edits after post edit lines are new block of changes with same focus
+        table.insert(changes, change)
+        change = get_new_change(change.focus, change.post)
+      end
       change.new[#change.new + 1] = line:sub(2)
     elseif #change.old == 0 and #change.new == 0 then
       change.pre[#change.pre + 1] = line
