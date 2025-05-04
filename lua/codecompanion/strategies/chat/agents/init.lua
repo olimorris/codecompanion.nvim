@@ -259,7 +259,8 @@ function Agent:replace(message)
     end
   end
   for group, _ in pairs(self.tools_config.groups) do
-    message = vim.trim(message:gsub(CONSTANTS.PREFIX .. group, ""))
+    local tools = table.concat(self.tools_config.groups[group].tools, ", ")
+    message = vim.trim(message:gsub(CONSTANTS.PREFIX .. group, tools))
   end
 
   return message
