@@ -791,7 +791,9 @@ function Chat:submit(opts)
     })
   end
 
-  -- NOTE: Sometimes the last message is a tool call so we need to account for that
+  -- NOTE: There are instances when submit is called with no user message. Such
+  -- as in the case of tools auto-submitting responses. References should be
+  -- excluded and we can do this by checking for user messages.
   if message then
     message = self.references:clear(self.messages[#self.messages])
     self.replace_vars_and_tools(self, message)
