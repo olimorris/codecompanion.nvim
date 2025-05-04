@@ -823,6 +823,7 @@ function Chat:submit(opts)
 
   log:trace("Settings:\n%s", settings)
   log:trace("Messages:\n%s", self.messages)
+  log:trace("Tools:\n%s", payload.tools)
   log:info("Chat request started")
 
   local output = {}
