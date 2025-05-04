@@ -530,7 +530,6 @@ function Chat.new(args)
     id = self.id,
   })
   util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = self.adapter.schema.model.default })
-  util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
 
   self:apply_settings(schema.get_default(self.adapter, args.settings))
 
@@ -577,6 +576,7 @@ function Chat.new(args)
 
   last_chat = self
 
+  util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
   if args.auto_submit then
     self:submit()
   end
@@ -807,7 +807,8 @@ function Chat:submit(opts)
   end
 
   local settings = ts_parse_settings(bufnr, self.yaml_parser, self.adapter)
-  settings = self.adapter:map_schema_to_params(settings)
+  self:apply_settings(settings)
+  local mapped_settings = self.adapter:map_schema_to_params(settings)
 
   if not config.display.chat.auto_scroll then
     vim.cmd("stopinsert")
@@ -821,14 +822,14 @@ function Chat:submit(opts)
     tools = (not vim.tbl_isempty(self.tools.schemas) and { self.tools.schemas }),
   }
 
-  log:trace("Settings:\n%s", settings)
+  log:trace("Settings:\n%s", mapped_settings)
   log:trace("Messages:\n%s", self.messages)
   log:trace("Tools:\n%s", payload.tools)
   log:info("Chat request started")
 
   local output = {}
   local tools = {}
-  self.current_request = client.new({ adapter = settings }):request(payload, {
+  self.current_request = client.new({ adapter = mapped_settings }):request(payload, {
     ---@param err { message: string, stderr: string }
     ---@param data table
     ---@param adapter CodeCompanion.Adapter The modified adapter from the http client
@@ -856,7 +857,9 @@ function Chat:submit(opts)
             end
             table.insert(output, result.output.content)
             self:add_buf_message(result.output)
-            self._tool_output_has_llm_response = true
+            if result.output.content ~= "" and not self._tool_output_has_llm_response then
+              self._tool_output_has_llm_response = true
+            end
           elseif self.status == CONSTANTS.STATUS_ERROR then
             log:error("Error: %s", result.output)
             return self:done(output)
@@ -868,6 +871,7 @@ function Chat:submit(opts)
       self:done(output, tools)
     end,
   }, { bufnr = bufnr, strategy = "chat" })
+  util.fire("ChatSubmitted", { bufnr = self.bufnr, id = self.id })
 end
 
 ---Method to fire when all the tools are done
@@ -908,6 +912,9 @@ function Chat:done(output, tools)
     self:add_message({
       role = config.constants.LLM_ROLE,
       tool_calls = tools,
+      opts = {
+        visible = false,
+      },
     })
     return self.agents:execute(self, tools)
   end
@@ -1180,6 +1187,10 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   local output = self.adapter.handlers.tools.output_response(self.adapter, tool_call, for_llm)
   output.cycle = self.cycle
   output.id = make_id({ role = output.role, content = output.content })
+  output.opts = vim.tbl_extend("force", output.opts or {}, {
+    tag = "tool_output",
+    visible = true,
+  })
 
   local existing = find_tool_call(tool_call.id, self.messages)
   if existing then
@@ -1231,6 +1242,7 @@ function Chat:clear()
   log:trace("Clearing chat buffer")
   self.ui:render(self.context, self.messages, self.opts):set_intro_msg()
   self:add_system_prompt()
+  util.fire("ChatCleared", { bufnr = self.bufnr, id = self.id })
 end
 
 ---Display the chat buffer's settings and messages
