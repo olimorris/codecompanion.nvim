@@ -183,19 +183,6 @@ local function make_id(val)
   return hash.hash(val)
 end
 
----Apply any tools or variables that a user has tagged in their message
----@param chat CodeCompanion.Chat
----@param message table
----@return nil
-local function replace_vars_and_tools(chat, message)
-  if chat.agents:parse(chat, message) then
-    message.content = chat.agents:replace(message.content)
-  end
-  if chat.variables:parse(chat, message) then
-    message.content = chat.variables:replace(message.content, chat.context.bufnr)
-  end
-end
-
 ---Set the editable text area. This allows us to scope the Tree-sitter queries to a specific area
 ---@param chat CodeCompanion.Chat
 ---@param modifier? number
@@ -760,6 +747,18 @@ function Chat:add_message(data, opts)
   return self
 end
 
+---Apply any tools or variables that a user has tagged in their message
+---@param message table
+---@return nil
+function Chat:replace_vars_and_tools(message)
+  if self.agents:parse(self, message) then
+    message.content = self.agents:replace(message.content)
+  end
+  if self.variables:parse(self, message) then
+    message.content = self.variables:replace(message.content, self.context.bufnr)
+  end
+end
+
 ---Submit the chat buffer's contents to the LLM
 ---@param opts? table
 ---@return nil
@@ -795,7 +794,7 @@ function Chat:submit(opts)
   -- NOTE: Sometimes the last message is a tool call so we need to account for that
   if message then
     message = self.references:clear(self.messages[#self.messages])
-    replace_vars_and_tools(self, message)
+    self.replace_vars_and_tools(self, message)
     self:check_references()
     add_pins(self)
   end
