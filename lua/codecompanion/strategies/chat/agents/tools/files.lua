@@ -92,14 +92,9 @@ local function matches_lines(haystack, pos, needle, opts)
   opts = opts or {}
   for i, needle_line in ipairs(needle) do
     local hayline = haystack[pos + i - 1]
-    -- spacing after +/- in diffs is not standard
-    -- python differ specifies a single space
-    -- while gnu udiff uses no spaces
-    -- we support both versions
     local is_same = hayline and (
       (hayline == needle_line)
-      or (opts.allow_single_space and ' ' .. hayline == needle_line)
-      or (opts.allow_double_space and '  ' .. hayline == needle_line)
+      or (opts.trim_spaces and vim.trim(hayline) == vim.trim(needle_line))
     )
     if not is_same then
       return false
@@ -108,12 +103,13 @@ local function matches_lines(haystack, pos, needle, opts)
   return true
 end
 
-local function has_focus(lines, before_pos, focus)
+local function has_focus(lines, before_pos, focus, opts)
+  opts = opts or {}
   local start = 1
   for _, focus_line in ipairs(focus) do
     local found = false
     for k = start, before_pos - 1 do
-      if focus_line == lines[k] or focus_line == ' ' .. lines[k] then
+      if focus_line == lines[k] or (opts.trim_spaces and vim.trim(focus_line) == vim.trim(lines[k])) then
         start = k
         found = true
         break
@@ -124,13 +120,14 @@ local function has_focus(lines, before_pos, focus)
   return true
 end
 
-local function apply_change(lines, change)
+local function apply_change(lines, change, opts)
+  opts = opts or {}
   for i = 1, #lines do
     local line_matches_change = (
-      has_focus(lines, i, change.focus)
-      and matches_lines(lines, i - #change.pre, change.pre, { allow_single_space = true, allow_double_space = true })
-      and matches_lines(lines, i, change.old, { allow_single_space = true })
-      and matches_lines(lines, i + #change.old, change.post, { allow_single_space = true, allow_double_space = true })
+      has_focus(lines, i, change.focus, opts)
+      and matches_lines(lines, i - #change.pre, change.pre, opts)
+      and matches_lines(lines, i, change.old, opts)
+      and matches_lines(lines, i + #change.old, change.post, opts)
     )
     if line_matches_change then
       local new_lines = {}
@@ -139,14 +136,20 @@ local function apply_change(lines, change)
         new_lines[#new_lines + 1] = lines[k]
       end
       -- add new lines
-      -- the diff can have an extra space in start
-      -- remove that if the deletes had an extra space too
-      local has_space = false
-      if #change.old > 0 and change.old[1] == ' ' .. lines[i] then
-        has_space = true
+      local fix_spaces
+      -- infer adjustment of spaces from the delete line
+      if opts.trim_spaces and #change.old > 0 then
+        if change.old[1] == ' ' .. lines[i] then
+          -- diff patch added and extra space on left
+          fix_spaces = function(ln) return ln:sub(2) end
+        elseif #change.old[1] < #lines[i] then
+          -- diff removed spaces on left
+          local prefix = string.rep(" ", #lines[i] - #change.old[1])
+          fix_spaces = function(ln) return prefix .. ln end
+        end
       end
       for _, ln in ipairs(change.new) do
-        if has_space then ln = ln:sub(2) end
+        if fix_spaces then ln = fix_spaces(ln) end
         new_lines[#new_lines + 1] = ln
       end
       -- add remaining lines
@@ -182,6 +185,17 @@ local function update(action)
   -- 4. apply changes
   for _, change in ipairs(changes) do
     local new_lines = apply_change(lines, change)
+    if new_lines == nil then
+      -- try applying patch in flexible spaces mode
+      -- there is no standardised way to of spaces in diffs
+      -- python differ specifies a single space after +/-
+      -- while gnu udiff uses no spaces
+      --
+      -- and LLM models (especially Claude) sometimes strip
+      -- long spaces on the left in case of large nestings (eg html)
+      -- trim_spaces mode solves all of these
+      new_lines = apply_change(lines, change, { trim_spaces = true })
+    end
     if new_lines == nil then
       error(fmt("Diff block not found:\n\n%s", patch))
     else

@@ -1,6 +1,5 @@
 local h = require("tests.helpers")
 
-local expect = MiniTest.expect
 local new_set = MiniTest.new_set
 
 local child = MiniTest.new_child_neovim()
@@ -169,7 +168,7 @@ T["files tool update from fixtures"] = function()
   -- Test that the file was updated as per the output fixture
   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-1.html')")
-  h.eq(output, expected, "File was not updated according to fixtures")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
 
 T["files tool update multiple @@"] = function()
@@ -196,7 +195,7 @@ T["files tool update multiple @@"] = function()
   -- Test that the file was updated as per the output fixture
   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-2.html')")
-  h.eq(output, expected, "File was not updated according to fixtures")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
 
 T["files tool update empty lines"] = function()
@@ -223,7 +222,7 @@ T["files tool update empty lines"] = function()
   -- Test that the file was updated as per the output fixture
   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-3.html')")
-  h.eq(output, expected, "File was not updated according to fixtures")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
 
 T["files tool update multiple continuation"] = function()
@@ -250,7 +249,7 @@ T["files tool update multiple continuation"] = function()
   -- Test that the file was updated as per the output fixture
   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-4.html')")
-  h.eq(output, expected, "File was not updated according to fixtures")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
 
 T["files tool update spaces"] = function()
@@ -277,7 +276,34 @@ T["files tool update spaces"] = function()
   -- Test that the file was updated as per the output fixture
   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-4.html')")
-  h.eq(output, expected, "File was not updated according to fixtures")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
+end
+
+T["files tool update html spaces flexible"] = function()
+  child.lua([[
+      -- read initial file from fixture
+      local initial = vim.fn.readfile("tests/fixtures/files-input-5.html")
+      local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE)
+      assert(ok == 0)
+      -- read contents for the tool from fixtures
+      local patch_contents = table.concat(vim.fn.readfile("tests/fixtures/files-diff-5.patch"), "\n")
+      local arguments = vim.json.encode({ action = "UPDATE", path = _G.TEST_TMPFILE, contents = patch_contents })
+      local tool = {
+        {
+          ["function"] = {
+            name = "files",
+            arguments = arguments
+          },
+        },
+      }
+      agent:execute(chat, tool)
+      vim.wait(200)
+    ]])
+
+  -- Test that the file was updated as per the output fixture
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-5.html')")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
 
 return T
