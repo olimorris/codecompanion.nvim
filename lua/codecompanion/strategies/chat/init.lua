@@ -950,16 +950,21 @@ function Chat:check_references()
     :totable()
 
   -- Clear any tool's schemas
-  self.tools.schemas = vim
-    .iter(self.tools.schemas)
-    :filter(function(tool_schemas)
-      if vim.tbl_contains(to_remove, tool_schemas) then
-        -- TODO: Remove from tools_in_use
-        return false
+  local schemas_to_keep = {}
+  local tools_in_use_to_keep = {}
+  for id, schema in pairs(self.tools.schemas) do
+    if not vim.tbl_contains(to_remove, id) then
+      schemas_to_keep[id] = schema
+      local tool_name = id:match("<tool>(.*)</tool>")
+      if tool_name and self.tools.in_use[tool_name] then
+        tools_in_use_to_keep[tool_name] = true
       end
-      return true
-    end)
-    :totable()
+    else
+      log:debug("Removing tool schema and usage flag for ID: %s", id) -- Optional logging
+    end
+  end
+  self.tools.schemas = schemas_to_keep
+  self.tools.in_use = tools_in_use_to_keep
 end
 
 ---Add updated content from the pins to the chat buffer
