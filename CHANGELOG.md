@@ -1,5 +1,13 @@
 # Changelog
 
+## [15.1.3](https://github.com/olimorris/codecompanion.nvim/compare/v15.1.2...v15.1.3) (2025-05-04)
+
+
+### Bug Fixes
+
+* **chat:** various chat buffer fixes ([#1336](https://github.com/olimorris/codecompanion.nvim/issues/1336)) ([1e2f69a](https://github.com/olimorris/codecompanion.nvim/commit/1e2f69a9a65bd716cf897393e7af65fc74907ed8))
+* **tools:** tools can now be deleted as references ([#1357](https://github.com/olimorris/codecompanion.nvim/issues/1357)) ([7d0938c](https://github.com/olimorris/codecompanion.nvim/commit/7d0938c1dc117c9c63569a388b9d091ee884d2ce))
+
 ## [15.1.2](https://github.com/olimorris/codecompanion.nvim/compare/v15.1.1...v15.1.2) (2025-05-03)
 
 
