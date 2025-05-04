@@ -88,9 +88,20 @@ local function parse_changes(patch)
   return changes
 end
 
-local function matches_lines(haystack, pos, needle)
+local function matches_lines(haystack, pos, needle, opts)
+  opts = opts or {}
   for i, needle_line in ipairs(needle) do
-    if haystack[pos + i - 1] ~= needle_line then
+    local hayline = haystack[pos + i - 1]
+    -- spacing after +/- in diffs is not standard
+    -- python differ specifies a single space
+    -- while gnu udiff uses no spaces
+    -- we support both versions
+    local is_same = hayline and (
+      (hayline == needle_line)
+      or (opts.allow_single_space and ' ' .. hayline == needle_line)
+      or (opts.allow_double_space and '  ' .. hayline == needle_line)
+    )
+    if not is_same then
       return false
     end
   end
@@ -99,10 +110,10 @@ end
 
 local function has_focus(lines, before_pos, focus)
   local start = 1
-  for _, line in ipairs(focus) do
+  for _, focus_line in ipairs(focus) do
     local found = false
     for k = start, before_pos - 1 do
-      if lines[k] == line then
+      if focus_line == lines[k] or focus_line == ' ' .. lines[k] then
         start = k
         found = true
         break
@@ -115,17 +126,30 @@ end
 
 local function apply_change(lines, change)
   for i = 1, #lines do
-    if has_focus(lines, i, change.focus) and matches_lines(lines, i - #change.pre, change.pre) and matches_lines(lines, i, change.old) and matches_lines(lines, i + #change.old, change.post) then
+    local line_matches_change = (
+      has_focus(lines, i, change.focus)
+      and matches_lines(lines, i - #change.pre, change.pre, { allow_single_space = true, allow_double_space = true })
+      and matches_lines(lines, i, change.old, { allow_single_space = true })
+      and matches_lines(lines, i + #change.old, change.post, { allow_single_space = true, allow_double_space = true })
+    )
+    if line_matches_change then
       local new_lines = {}
-      -- before diff
+      -- add lines before diff
       for k = 1, i - 1 do
         new_lines[#new_lines + 1] = lines[k]
       end
-      -- new lines
+      -- add new lines
+      -- the diff can have an extra space in start
+      -- remove that if the deletes had an extra space too
+      local has_space = false
+      if #change.old > 0 and change.old[1] == ' ' .. lines[i] then
+        has_space = true
+      end
       for _, ln in ipairs(change.new) do
+        if has_space then ln = ln:sub(2) end
         new_lines[#new_lines + 1] = ln
       end
-      -- remaining lines
+      -- add remaining lines
       for k = i + #change.old, #lines do
         new_lines[#new_lines + 1] = lines[k]
       end

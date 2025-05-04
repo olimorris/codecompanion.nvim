@@ -30,7 +30,7 @@ local T = new_set({
   },
 })
 
-T["files tool"] = function()
+T["files tool create action"] = function()
   child.lua([[
     --require("tests.log")
     local tool = {
@@ -52,7 +52,54 @@ T["files tool"] = function()
   -- expect.reference_screenshot(child.get_screenshot())
 end
 
-T["files tool update"] = function()
+T["files tool read action"] = function()
+  child.lua([[
+    -- Create a test file with known contents
+    local contents = { "alpha", "beta", "gamma" }
+    local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE)
+    assert(ok == 0)
+    local tool = {
+      {
+        ["function"] = {
+          name = "files",
+          arguments = string.format('{"action": "READ", "path": "%s", "contents": null}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+    agent:execute(chat, tool)
+    vim.wait(200)
+  ]])
+
+  local output = child.lua_get("chat.messages[#chat.messages].content")
+  h.eq("alpha", string.match(output, "alpha"))
+  h.eq("beta", string.match(output, "beta"))
+  h.eq("gamma", string.match(output, "gamma"))
+end
+
+T["files tool delete action"] = function()
+  child.lua([[
+    -- Create a test file to delete
+    local contents = { "to be deleted" }
+    local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE)
+    assert(ok == 0)
+    local tool = {
+      {
+        ["function"] = {
+          name = "files",
+          arguments = string.format('{"action": "DELETE", "path": "%s"}', _G.TEST_TMPFILE)
+        },
+      },
+    }
+    agent:execute(chat, tool)
+    vim.wait(200)
+  ]])
+
+  -- Test that the file was deleted
+  local deleted = child.lua_get("vim.loop.fs_stat(_G.TEST_TMPFILE) == nil")
+  h.eq(deleted, true, "File was not deleted")
+end
+
+T["files tool update action"] = function()
   child.lua([[
       -- create initial file
       local initial = "line1\nline2\nline3"
@@ -206,28 +253,31 @@ T["files tool update multiple continuation"] = function()
   h.eq(output, expected, "File was not updated according to fixtures")
 end
 
-T["files tool read"] = function()
+T["files tool update spaces"] = function()
   child.lua([[
-    -- Create a test file with known contents
-    local contents = { "alpha", "beta", "gamma" }
-    local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE)
-    assert(ok == 0)
-    local tool = {
-      {
-        ["function"] = {
-          name = "files",
-          arguments = string.format('{"action": "READ", "path": "%s", "contents": null}', _G.TEST_TMPFILE)
+      -- read initial file from fixture
+      local initial = vim.fn.readfile("tests/fixtures/files-input-4.html")
+      local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE)
+      assert(ok == 0)
+      -- read contents for the tool from fixtures
+      local patch_contents = table.concat(vim.fn.readfile("tests/fixtures/files-diff-4.2.patch"), "\n")
+      local arguments = vim.json.encode({ action = "UPDATE", path = _G.TEST_TMPFILE, contents = patch_contents })
+      local tool = {
+        {
+          ["function"] = {
+            name = "files",
+            arguments = arguments
+          },
         },
-      },
-    }
-    agent:execute(chat, tool)
-    vim.wait(200)
-  ]])
+      }
+      agent:execute(chat, tool)
+      vim.wait(200)
+    ]])
 
-  local output = child.lua_get("chat.messages[#chat.messages].content")
-  h.eq("alpha", string.match(output, "alpha"))
-  h.eq("beta", string.match(output, "beta"))
-  h.eq("gamma", string.match(output, "gamma"))
+  -- Test that the file was updated as per the output fixture
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-4.html')")
+  h.eq(output, expected, "File was not updated according to fixtures")
 end
 
 return T
