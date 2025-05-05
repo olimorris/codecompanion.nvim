@@ -294,7 +294,7 @@ return {
 ## Instructions for Usage
 
 - You must provide the `action`, `path` and `contents` to use this tool.
-- The `action` can be one of `CREATE` / `READ` / `UPDATE` / `DELETE`.
+- The `action` can be one of `CREATE`, `READ`, `UPDATE`, or `DELETE`.
 - The `path` must be a relative path. It should NEVER BE AN ABSOLUTE PATH.
 - The `contents` should be `null` for the `READ` action. Use the `READ` action to read the contents of a file.
 - The `contents` should be `null` for the `DELETE` action. Use the `DELETE` action to remove any file.
@@ -302,6 +302,8 @@ return {
 - The `contents` must be in the diff format given below in the case of the `UPDATE` action. Use the `UPDATE` action to make changes to an existing file.
 
 ### Format of `contents` for the `UPDATE` action
+
+The format of diff and `contents` in `UPDATE` action is a bit different. Pay a close attention to the following details for its implementation.
 
 The `contents` of the `UPDATE` action must be in this format:
 
@@ -355,10 +357,8 @@ This format is a bit similar to the `git diff` format; the difference is that `@
     ---The message which is shared with the user when asking for their approval
     ---@param self CodeCompanion.Agent.Tool
     ---@param agent CodeCompanion.Agent
-    ---@return string
+    ---@return nil|string
     prompt = function(self, agent)
-      local prompts = {}
-
       local responses = {
         CREATE = "Create a file at %s?",
         READ = "Read %s?",
@@ -370,8 +370,9 @@ This format is a bit similar to the `git diff` format; the difference is that `@
       local path = vim.fn.fnamemodify(args.path, ":.")
       local action = args.action
 
-      table.insert(prompts, fmt(responses[action], path))
-      return table.concat(prompts, "\n")
+      if action and path and responses[string.upper(action)] then
+        return fmt(responses[string.upper(action)], path)
+      end
     end,
 
     ---@param self CodeCompanion.Tool.Files
