@@ -4,9 +4,7 @@ This tool can be used make edits to files on disk.
 --]]
 
 local Path = require("plenary.path")
-local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
 
 local fmt = string.format
 
@@ -289,70 +287,63 @@ return {
   },
   system_prompt = [[# Files Tool (`files`)
 
-## Context
+- This tool is connected to the Neovim instance via CodeCompanion.
+- Use this tool to CREATE / READ / UPDATE or DELETE files.
+- You do not need to ask for permission to use this tool to perform CRUD actions. CodeCompanion will ask for those permissions automatically while executing the actions.
 
-- You are connected to a Neovim instance via CodeCompanion.
-- Use this `files` tool to CREATE / READ / UPDATE or DELETE a file.
-- CodeCompanion asks the user for approval before this tool executes, so you do not need to ask for permission.
+## Instructions for Usage
 
-## Instructions
+- You must provide the `action`, `path` and `contents` to use this tool.
+- The `action` can be one of `CREATE` / `READ` / `UPDATE` / `DELETE`.
+- The `path` must be a relative path. It should NEVER BE AN ABSOLUTE PATH.
+- The `contents` should be `null` for the `READ` action. Use the `READ` action to read the contents of a file.
+- The `contents` should be `null` for the `DELETE` action. Use the `DELETE` action to remove any file.
+- The `contents` will be the actual contents to write in the file in case of the `CREATE` action. Use the `CREATE` action to create a new file.
+- The `contents` must be in the diff format given below in the case of the `UPDATE` action. Use the `UPDATE` action to make changes to an existing file.
 
-- You can use this tool to create new files, read existing files, update files, or delete some files.
-- The `path` references should always only be relative, NEVER ABSOLUTE.
-- In the case of `READ` or `DELETE` actions, the `contents` should be `null`.
-- In the case of the `CREATE` action, the `contents` will be placed as it is in the new file.
-- In the case of the `UPDATE` action, the `contents` should be in the V4A diff format as detailed below.
+### Format of `contents` for the `UPDATE` action
 
-### Diff format of `contents` for `UPDATE` action
-
-The `UPDATE` action effectively allows you to execute a diff/patch against a file. The format of the diff specification is unique to this task, so pay careful attention to these instructions. To use the `UPDATE` action,  the "contents" should be in this format:
-
-*** Begin Patch
-[DIFF-PATCH]
-*** End Patch
-
-Where [DIFF-PATCH] is specified in the following V4A diff format.
-
-For each snippet of code that needs to be changed, repeat the following:
-[context_before] -> See below for further instructions on context.
--[old_code] -> Precede the old code with a minus sign.
-+[new_code] -> Precede the new, replacement code with a plus sign.
-[context_after] -> See below for further instructions on context.
-
-For instructions on [context_before] and [context_after]:
-- By default, show 3 lines of code immediately above and 3 lines immediately below each change. If a change is within 3 lines of a previous change, do NOT duplicate the first change's [context_after] lines in the second change's [context_before] lines.
-- If 3 lines of context is insufficient to uniquely identify the snippet of code within the file, use the @@ operator to indicate the class or function to which the snippet belongs. For instance, we might have:
-@@class BaseClass
-[3 lines of pre-context]
--[old_code]
-+[new_code]
-[3 lines of post-context]
-
-- If a code block is repeated so many times in a class or function such that even a single @@ statement and 3 lines of context cannot uniquely identify the snippet of code, you can use multiple `@@` statements to jump to the right context. For instance:
-
-@@class BaseClass
-@@	def method():
-[3 lines of pre-context]
--[old_code]
-+[new_code]
-[3 lines of post-context]
-
-NOTE: We DO NOT use line numbers in this diff format, as the context is enough to uniquely identify code. An example of a message that you might pass as "input" to this function, in order to apply a patch, is shown below.
+The `contents` of the `UPDATE` action must be in this format:
 
 *** Begin Patch
-@@class BaseClass
-@@    def search():
--        pass
-+        raise NotImplementedError()
-
-@@class Subclass
-@@    def search():
--        pass
-+        raise NotImplementedError()
+[PATCH]
 *** End Patch
 
-- This tool can be used alongside other tools within CodeCompanion.
-]],
+The `[PATCH]` is the series of diffs to be applied for each change in the file. Multiple blocks of diffs should be separated by an empty line or `@@[identifier]` detailed below. Each diff should be in this format:
+
+[3 lines of pre-context]
+-[old code]
++[new code]
+[3 lines of post-context]
+
+The context blocks are 3 lines of existing code, immediately before and after the edit, without a `+` or `-` sign. Lines with the `+` or `-` are the actual edits to be made in the file. The linked context lines next to the edits are enough to locate the lines to edit. We DO NOT USE line numbers anywhere in the contents.
+
+You can use `@@[identifier]` to define a larger context in case the immediately before and after context is not sufficient to locate the edits. Example:
+
+@@class BaseClass(models.Model):
+[3 lines of pre-context]
+-	pass
++	raise NotImplementedError()
+[3 lines of post-context]
+
+You can also use multiple `@@[identifiers]` to provide the right context if a single `@@` is not sufficient.
+
+Example of `contents`:
+
+*** Begin Patch
+@@class BaseClass(models.Model):
+@@	def search():
+-		pass
++		raise NotImplementedError()
+
+@@class Subclass(BaseClass):
+@@	def search():
+-		pass
++		raise NotImplementedError()
+*** End Patch
+
+
+This format is a bit similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.]],
   handlers = {
     ---@param agent CodeCompanion.Agent The tool object
     ---@return nil
