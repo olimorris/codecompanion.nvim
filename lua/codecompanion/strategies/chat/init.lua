@@ -819,7 +819,7 @@ function Chat:submit(opts)
 
   local payload = {
     messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
-    tools = (not vim.tbl_isempty(self.tools.schemas) and { self.tools.schemas }),
+    tools = (not vim.tbl_isempty(self.tools.schemas) and { self.tools.schemas } or {}),
   }
 
   log:trace("Settings:\n%s", mapped_settings)
