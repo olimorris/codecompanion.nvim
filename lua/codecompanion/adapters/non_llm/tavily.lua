@@ -41,12 +41,13 @@ return {
         include_raw_content = adapter.opts.include_raw_content or false,
       }
 
-      if data.topic == "news" then
-        body.days = data.days or 7
+      if adapter.opts.topic == "news" then
+        body.days = adapter.opts.days or 7
       end
 
       return body
     end,
+    --- @return string|nil
     chat_output = function(_, data)
       if data.results == nil or #data.results == 0 then
         return log:error("No results found")
@@ -60,7 +61,7 @@ return {
         table.insert(output, string.format("**Title: %s**\nURL: %s\nContent: %s\n\n", title, url, content))
       end
 
-      return { content = table.concat(output, "") }
+      return table.concat(output, "")
     end,
   },
 }

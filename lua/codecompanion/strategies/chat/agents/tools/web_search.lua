@@ -1,103 +1,39 @@
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
-local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local fmt = string.format
 
----@param action { query: string }
----@param adapter CodeCompanion.Adapter
----@param agent CodeCompanion.Agent
-local function websearch(action, adapter, agent)
-  log:debug('Web Search Tool: Searching for "%s"', action.query)
-
-  return client
-    .new({
-      adapter = adapter,
-    })
-    :request({
-      query = action.query,
-    }, {
-      callback = function(err, data)
-        if err then
-          return log:error("Failed to fetch the URL, with error %s", err)
-        end
-
-        if data then
-          local ok, body = pcall(vim.json.decode, data.body)
-          if not ok then
-            return log:error("Could not parse the JSON response")
-          end
-          if data.status == 200 then
-            local output = adapter.handlers.chat_output(adapter, body)
-            return agent.chat:add_buf_message({
-              role = config.constants.USER_ROLE,
-              content = output.content,
-            })
-          else
-            return log:error("Error %s - %s", data.status, body)
-          end
-        end
-      end,
-    })
-end
-
----@class CodeCompanion.Agent.Tool
+---@class CodeCompanion.Tool.WebSearch: CodeCompanion.Agent.Tool
 return {
   name = "web_search",
-  cmds = {},
-  schema = {
-    {
-      tool = {
-        _attr = { name = "web_search" },
-        action = {
-          query = "<![CDATA[Neovim latest version]]>",
-        },
-      },
-    },
-  },
-  system_prompt = function(schema, xml2lua)
-    return string.format(
-      [[## Web Search Tool (`web_search`) – Enhanced Guidelines
+  cmds = {
+    ---@param self CodeCompanion.Agent The Editor tool
+    ---@param args table The arguments from the LLM's tool call
+    ---@param cb function Callback for asynchronous calls
+    ---@return nil|{ status: "success"|"error", data: string }
+    function(self, args, _, cb)
+      if not self.tool then
+        log:error("There is no tool configured for the Agent")
+        return cb({ status = "error" })
+      end
 
-### Purpose:
-- Search for recent information on the web to provide relevant context to the LLM.
+      local opts = self.tool.opts
 
-### When to Use:
-- Search for the query the users asks and include it inside the CDATA block.
-- Do not include the "web_search" call in the query.
-- Use this tool strictly for web search.
+      if not opts then
+        log:error("There is no adapter configured for the `web_search` Tool")
+        return cb({ status = "error" })
+      end
 
-### Execution Format:
-- Always return an XML markdown code block.
-- Each search query should:
-  - Be wrapped in a CDATA section to protect special characters.
-  - Follow the XML schema exactly.
+      if not args then
+        log:error("There was no search query provided for the `web_search` Tool")
+        return cb({ status = "error" })
+      end
 
-### XML Schema:
-- The XML must be valid. Each tool invocation should adhere to this structure:
-
-```xml
-%s
-```
-
-### Key Considerations
-- **Safety First:** Ensure every search query is safe and validated.
-
-### Reminder
-- Minimize explanations and focus on returning precise XML blocks with CDATA-wrapped commands.
-- Follow this structure each time to ensure consistency and reliability.]],
-      xml2lua.toXml({ tools = { schema[1] } })
-    )
-  end,
-  handlers = {
-    ---@param agent CodeCompanion.Agent The tool object
-    setup = function(agent)
-      local tool = agent.tool --[[@type CodeCompanion.Agent.Tool]]
-      local action = tool.request.action
-
-      local ok, adapter = pcall(require, "codecompanion.adapters.non_llm." .. agent.tool.opts.adapter)
+      local ok, adapter = pcall(require, "codecompanion.adapters.non_llm." .. opts.adapter)
 
       if not ok then
-        return log:error("Failed to load the adapter for the web_search Tool")
+        log:error("Failed to load the adapter for the web_search Tool")
+        return cb({ status = "error" })
       end
       if type(adapter) == "function" then
         adapter = adapter()
@@ -105,18 +41,124 @@ return {
 
       adapter = adapters.resolve(adapter)
       if not adapter then
-        return log:error("Failed to load the adapter for the fetch Slash Command")
+        log:error("Failed to load the adapter for the web_search Tool")
+        return cb({ status = "error" })
       end
 
-      local opts = agent.tool.opts.opts or {}
       adapter.opts = adapter.opts or {}
-      for k, v in pairs(opts) do
+      for k, v in pairs(opts.opts) do
         adapter.opts[k] = v
       end
 
-      table.insert(tool.cmds, action)
+      client
+        .new({
+          adapter = adapter,
+        })
+        :request({
+          url = adapter.url,
+          query = args.query,
+        }, {
+          callback = function(err, data)
+            if err then
+              log:error("Web Search Tool failed to fetch the URL, with error %s", err)
+              return cb({ status = "error", data = "Web Search Tool failed to fetch the URL, with error " .. err })
+            end
 
-      return websearch(action, adapter, agent)
+            if data then
+              local http_ok, body = pcall(vim.json.decode, data.body)
+              if not http_ok then
+                log:error("Web Search Tool Could not parse the JSON response")
+                return cb({ status = "error", data = "Web Search Tool Could not parse the JSON response" })
+              end
+              if data.status == 200 then
+                local output = adapter.handlers.chat_output(adapter, body)
+                return cb({ status = "success", data = output })
+              else
+                log:error("Error %s - %s", data.status, body)
+                return cb({ status = "error", data = fmt("Web Search Tool Error %s - %s", data.status, body) })
+              end
+            else
+              log:error("Error no data %s - %s", data.status)
+              return cb({
+                status = "error",
+                data = fmt("Web Search Tool Error: No data received, status %s", data and data.status or "unknown"),
+              })
+            end
+          end,
+        })
+    end,
+  },
+  schema = {
+    type = "function",
+    ["function"] = {
+      name = "web_search",
+      description = "Search for recent information on the web",
+      parameters = {
+        type = "object",
+        properties = {
+          query = {
+            type = "string",
+            description = "Search query optimized for keyword searching.",
+          },
+        },
+        required = { "query" },
+        additionalProperties = false,
+      },
+      strict = true,
+    },
+  },
+  system_prompt = [[# Web Search Tool (`web_search`)
+
+## CONTEXT
+- You are connected to a Neovim instance via CodeCompanion.
+- Using this tool you can search for recent information on the web.
+- The user will allow this tool to be executed, so you do not need to ask for permission.
+
+## OBJECTIVE
+- Invoke this tool when up to date information is required.
+
+## RESPONSE
+- Return a single JSON-based function call matching the schema.
+
+## POINTS TO NOTE
+- This tool can be used alongside other tools within CodeCompanion.
+- To make a web search, you can provide a search string optimized for keyword searching.
+- Carefully craft your websearch to retrieve relevant and up to date information.
+]],
+  output = {
+    ---@param self CodeCompanion.Tool.Files
+    ---@param agent CodeCompanion.Agent
+    success = function(self, agent, cmd, output)
+      local chat = agent.chat
+
+      local content = output
+      if type(content) == "table" then
+        content = table.concat(content, "")
+      end
+
+      local query_output = fmt(
+        [[**Query**: "%s"
+
+%s]],
+        cmd.query,
+        content
+      )
+
+      chat:add_tool_output(self, content, query_output)
+    end,
+
+    ---@param self CodeCompanion.Tool.Files
+    ---@param agent CodeCompanion.Agent
+    ---@param stderr table The error output from the command
+    error = function(self, agent, _, stderr, _)
+      local chat = agent.chat
+      local args = self.args
+      log:debug("[Web Search Tool] Error output: %s", stderr)
+
+      local error_output =
+        fmt([[**Web Search Tool**: There was an error for the following query: `%s`]], string.upper(args.query))
+
+      chat:add_tool_output(self, error_output)
     end,
   },
 }
