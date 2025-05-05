@@ -13,7 +13,7 @@ end
 ---Get the default Diff provider
 ---@return string
 local function diff_providers()
-  if pcall(require, "mini_diff") then
+  if pcall(require, "mini.diff") then
     return "mini_diff"
   else
     return "default"
