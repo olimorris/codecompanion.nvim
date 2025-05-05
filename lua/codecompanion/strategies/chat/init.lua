@@ -744,6 +744,8 @@ function Chat:add_message(data, opts)
     table.insert(self.messages, message)
   end
 
+  self.last_role = data.role
+
   return self
 end
 
