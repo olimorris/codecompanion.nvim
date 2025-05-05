@@ -47,7 +47,8 @@ end
 local function parse_changes(patch)
   local changes = {}
   local change = get_new_change()
-  for _, line in ipairs(vim.split(patch, "\n", { plain = true })) do
+  local lines = vim.split(patch, "\n", { plain = true })
+  for i, line in ipairs(lines) do
     if vim.startswith(line, '@@') then
       if #change.old > 0 or #change.new > 0 then
         -- @@ after any edits is a new change block
@@ -59,8 +60,10 @@ local function parse_changes(patch)
       if focus_name and #focus_name > 0 then
         change.focus[#change.focus + 1] = focus_name
       end
-    elseif line == "" and (#change.old > 0 or #change.new > 0) then
-      -- line breaks after edits are new blocks
+    elseif line == "" and lines[i + 1] and lines[i + 1]:match("^@@") then
+      -- empty lines can be part of pre/post context
+      -- we treat empty lines as new change block and not as post context
+      -- only when the the next line uses @@ identifier
       table.insert(changes, change)
       change = get_new_change()
     elseif line:sub(1, 1) == "-" then
@@ -311,7 +314,7 @@ The `contents` of the `UPDATE` action must be in this format:
 [PATCH]
 *** End Patch
 
-The `[PATCH]` is the series of diffs to be applied for each change in the file. Multiple blocks of diffs should be separated by an empty line or `@@[identifier]` detailed below. Each diff should be in this format:
+The `[PATCH]` is the series of diffs to be applied for each change in the file. Multiple blocks of diffs should be separated by an empty line and `@@[identifier]` detailed below. Each diff should be in this format:
 
 [3 lines of pre-context]
 -[old code]
