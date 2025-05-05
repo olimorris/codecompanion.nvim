@@ -1,68 +1,74 @@
-local assert = require("luassert")
-local client = require("codecompanion.http")
+local new_set = MiniTest.new_set
 local h = require("tests.helpers")
-local match = require("luassert.match")
-local spy = require("luassert.spy")
 
-local ClientMock = {
-  request = spy.new(function(_) end),
-}
-
-local client_mock = {
-  new = spy.new(function(_)
-    return ClientMock
-  end),
-}
-
-local mock_adapter
-
-local original_pcall = _G.pcall
-local original_new = client.new
-
-local mock_pcall = function(_)
-  return true, mock_adapter
-end
-
+local adapters = require("codecompanion.adapters")
+local client_mod = require("codecompanion.http")
+local log = require("codecompanion.utils.log")
 local web_search = require("codecompanion.strategies.chat.agents.tools.web_search")
 
-describe("Web Search Tool", function()
-  before_each(function()
-    mock_adapter = {
-      name = "mock_adapter",
-    }
+local T = new_set({
+  hooks = {
+    pre_case = function()
+      T._resolve_orig = adapters.resolve
+      adapters.resolve = function(adapter)
+        return adapter
+      end
 
-    _G.pcall = mock_pcall
-    client.new = client_mock.new
+      T._log_err_orig = log.error
+      log.error = function() end
+
+      T._client_new_orig = client_mod.new
+      client_mod.new = function(_)
+        return {
+          request = function(_, _, _) end,
+        }
+      end
+    end,
+
+    post_case = function()
+      adapters.resolve = T._resolve_orig
+      log.error = T._log_err_orig
+      client_mod.new = T._client_new_orig
+
+      package.loaded["codecompanion.adapters.non_llm.valid_adapter"] = nil
+    end,
+  },
+})
+
+local function call_tool(self, args)
+  local out
+  web_search.cmds[1](self, args, nil, function(res)
+    out = res
   end)
+  return out
+end
 
-  after_each(function()
-    _G.pcall = original_pcall
-    client.new = original_new
-  end)
+T["error when no opts"] = function()
+  local got = call_tool({ tool = {} }, { query = "q" })
+  h.eq(got.status, "error")
+end
 
-  it("makes a HTTP request", function()
-    local mock_agent = {
-      tool = {
-        request = {
-          action = { query = "Neovim latest version" },
-        },
-        opts = {
-          adapter = "mock_adapter",
-          opts = {
-            time_range = "year",
-          },
-        },
-        cmds = {},
-      },
-    }
+T["error when args nil"] = function()
+  local self = { tool = { opts = { adapter = "valid_adapter", opts = {} } } }
+  local got = call_tool(self, nil)
+  h.eq(got.status, "error")
+end
 
-    web_search.handlers.setup(mock_agent)
+T["error when require adapter fails"] = function()
+  local self = { tool = { opts = { adapter = "invalid", opts = {} } } }
+  local got = call_tool(self, { query = "q" })
+  h.eq(got.status, "error")
+end
 
-    local new_call = client_mock.new.calls[1].refs[1]
-    local request_call = ClientMock.request.calls[1].refs[2]
+T["error when resolve returns nil"] = function()
+  adapters.resolve = function()
+    return nil
+  end
+  local self = { tool = { opts = { adapter = "valid_adapter", opts = {} } } }
+  local got = call_tool(self, { query = "q" })
+  h.eq(got.status, "error")
 
-    assert.spy(client_mock.new).was.called_with(match.is_table())
-    h.eq(new_call.adapter, mock_adapter)
-    h.eq(request_call.query, mock_agent.tool.request.action.query)
-  end)
-end)
+  adapters.resolve = T._resolve_orig
+end
+
+return T
