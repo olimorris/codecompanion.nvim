@@ -233,7 +233,7 @@ return {
     ---@param input? any The output from the previous function call
     ---@return { status: "success"|"error", data: string }
     function(self, args, input)
-      args.action = string.upper(args.action)
+      args.action = args.action and string.upper(args.action)
       if not actions[args.action] then
         return { status = "error", data = fmt("Unknown action: %s", args.action) }
       end
@@ -255,12 +255,12 @@ return {
           action = {
             type = "string",
             enum = {
-              "CREATE",
-              "READ",
-              "UPDATE",
-              "DELETE",
+              CREATE = "Create a new file.",
+              READ = "Read an existing file.",
+              UPDATE = "Update an existing file.",
+              DELETE = "Delete an existing file.",
             },
-            description = "Type of file operation to perform.",
+            description = "Type of file action to perform.",
           },
           path = {
             type = "string",
@@ -272,7 +272,7 @@ return {
               { type = "null" },
             },
             description =
-            "Contents of new file in the case of CREATE action. V4A diff-patch in case of UPDATE action. `null` in case of READ or DELETE.",
+            "Contents of new file in the case of CREATE action; patch in the specified format for UPDATE action. `null` in the case of READ or DELETE actions.",
           },
         },
         required = {
@@ -330,7 +330,7 @@ You can use `@@[identifier]` to define a larger context in case the immediately 
 
 You can also use multiple `@@[identifiers]` to provide the right context if a single `@@` is not sufficient.
 
-Example of `contents`:
+Example of `contents` with multiple blocks of changes and `@@` identifiers:
 
 *** Begin Patch
 @@class BaseClass(models.Model):
@@ -344,8 +344,42 @@ Example of `contents`:
 +		raise NotImplementedError()
 *** End Patch
 
+This format is a bit similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.
 
-This format is a bit similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.]],
+## Examples
+
+These are few complete examples of the responses from this tool:
+
+```
+// CREATE
+{
+  "action": "CREATE",
+  "path": "src/main.py",
+  "contents": "print('Hello')\n"
+}
+
+// READ
+{
+  "action": "READ",
+  "path": "src/main.py",
+  "contents": null
+}
+
+// UPDATE
+{
+  "action": "UPDATE",
+  "path": "src/main.py",
+  "contents": "*** Begin Patch\n@@def greet():\n-    pass\n+    print('Hello')\n*** End Patch"
+}
+
+// DELETE
+{
+  "action": "DELETE",
+  "path": "src/main.py",
+  "contents": null
+}
+```
+]],
   handlers = {
     ---@param agent CodeCompanion.Agent The tool object
     ---@return nil
