@@ -150,17 +150,23 @@ function Client:request(payload, actions, opts)
           opts.status = "error"
         end
 
-        util.fire("RequestFinished", opts)
+        if not opts.silent then
+          util.fire("RequestFinished", opts)
+        end
         cleanup(opts.status)
         if self.user_args.event then
-          util.fire("RequestFinished" .. (self.user_args.event or ""), opts)
+          if not opts.silent then
+            util.fire("RequestFinished" .. (self.user_args.event or ""), opts)
+          end
         end
       end)
     end,
     on_error = function(err)
       vim.schedule(function()
         actions.callback(err, nil)
-        return util.fire("RequestFinished", opts)
+        if not opts.silent then
+          util.fire("RequestFinished", opts)
+        end
       end)
     end,
   }
@@ -178,7 +184,9 @@ function Client:request(payload, actions, opts)
       end
       if not has_started_steaming then
         has_started_steaming = true
-        util.fire("RequestStreaming", opts)
+        if not opts.silent then
+          util.fire("RequestStreaming", opts)
+        end
       end
       cb(nil, data, adapter)
     end)
@@ -201,13 +209,17 @@ function Client:request(payload, actions, opts)
       or "",
   }
 
-  util.fire("RequestStarted", opts)
+  if not opts.silent then
+    util.fire("RequestStarted", opts)
+  end
 
   if job and job.args then
     log:debug("Request:\n%s", job.args)
   end
   if self.user_args.event then
-    util.fire("RequestStarted" .. (self.user_args.event or ""), opts)
+    if not opts.silent then
+      util.fire("RequestStarted" .. (self.user_args.event or ""), opts)
+    end
   end
 
   return job

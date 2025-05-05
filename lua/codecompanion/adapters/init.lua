@@ -272,6 +272,9 @@ function Adapter.extend(adapter, opts)
     ok, adapter_config = pcall(require, "codecompanion.adapters." .. adapter)
     if not ok then
       adapter_config = config.adapters[adapter]
+      if type(adapter_config) == "function" then
+        adapter_config = adapter_config()
+      end
     end
   elseif type(adapter) == "function" then
     adapter_config = adapter()
