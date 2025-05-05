@@ -1,5 +1,21 @@
 # Changelog
 
+## [15.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.1.4...v15.2.0) (2025-05-05)
+
+
+### Features
+
+* **adapters:** can automatically choose default model when switching adapters ([#1369](https://github.com/olimorris/codecompanion.nvim/issues/1369)) ([90e82ab](https://github.com/olimorris/codecompanion.nvim/commit/90e82abf4d65b64b0986a5be0981ba13e84eee8b))
+
+
+### Bug Fixes
+
+* **adapters:** improve resolving adapters ([#1367](https://github.com/olimorris/codecompanion.nvim/issues/1367)) ([2c296ba](https://github.com/olimorris/codecompanion.nvim/commit/2c296ba17c4bc581eee11fc90683e5b130f65d89))
+* **chat:** tools should be empty table if not used ([#1373](https://github.com/olimorris/codecompanion.nvim/issues/1373)) ([3f72bac](https://github.com/olimorris/codecompanion.nvim/commit/3f72bacfd74fc4e4b4ea07257e61ec6fb3fb004f)), closes [#1371](https://github.com/olimorris/codecompanion.nvim/issues/1371)
+* **providers:** use mini.diff by default if available ([#1368](https://github.com/olimorris/codecompanion.nvim/issues/1368)) ([127a2c1](https://github.com/olimorris/codecompanion.nvim/commit/127a2c1614df2e8565a98e83e3567980c32d9876))
+* **tools:** call subscribers after an LLM response ([#1365](https://github.com/olimorris/codecompanion.nvim/issues/1365)) ([8dc896a](https://github.com/olimorris/codecompanion.nvim/commit/8dc896af23c1e086aee13fe7c850eab365ad337e))
+* **workflows:** ensure references are rendered ([#1376](https://github.com/olimorris/codecompanion.nvim/issues/1376)) ([598a444](https://github.com/olimorris/codecompanion.nvim/commit/598a4443e2906a382bc182e5558371ea2dd3df64))
+
 ## [15.1.4](https://github.com/olimorris/codecompanion.nvim/compare/v15.1.3...v15.1.4) (2025-05-04)
 
 
