@@ -255,10 +255,10 @@ return {
           action = {
             type = "string",
             enum = {
-              CREATE = "Create a new file.",
-              READ = "Read an existing file.",
-              UPDATE = "Update an existing file.",
-              DELETE = "Delete an existing file.",
+              "CREATE",
+              "READ",
+              "UPDATE",
+              "DELETE",
             },
             description = "Type of file action to perform.",
           },
@@ -267,10 +267,7 @@ return {
             description = "Path of the target file.",
           },
           contents = {
-            anyOf = {
-              { type = "string" },
-              { type = "null" },
-            },
+            type = { "string", "null" },
             description =
             "Contents of new file in the case of CREATE action; patch in the specified format for UPDATE action. `null` in the case of READ or DELETE actions.",
           },
