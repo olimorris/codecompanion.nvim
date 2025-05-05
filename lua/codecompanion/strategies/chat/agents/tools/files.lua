@@ -10,12 +10,13 @@ local fmt = string.format
 
 ---Create a file and it's surrounding folders
 ---@param action table The action object
----@return nil
+---@return string
 local function create(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
   p:touch({ parents = true })
   p:write(action.contents or "", "w")
+  return "Successfully created " .. action.path
 end
 
 ---Read the contents of file
@@ -161,7 +162,7 @@ end
 
 ---Edit the contents of a file
 ---@param action table The action object
----@return nil
+---@return string
 local function update(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
@@ -203,15 +204,17 @@ local function update(action)
 
   -- 5. write back
   p:write(table.concat(lines, "\n"), "w")
+  return "Successfully updated " .. action.path
 end
 
 ---Delete a file
 ---@param action table The action object
----@return nil
+---@return string
 local function delete(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
   p:rm()
+  return "Removed " .. action.path
 end
 
 
