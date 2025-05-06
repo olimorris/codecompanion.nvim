@@ -1,5 +1,17 @@
 # Changelog
 
+## [15.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.2.0...v15.3.0) (2025-05-06)
+
+
+### Features
+
+* **action_palette:** Add snacks.nvim as provider ([#1380](https://github.com/olimorris/codecompanion.nvim/issues/1380)) ([5b4a004](https://github.com/olimorris/codecompanion.nvim/commit/5b4a004ea082a0608aa98bb9041f79e56676cfeb))
+
+
+### Bug Fixes
+
+* **openai:** do not send empty tools array ([#1381](https://github.com/olimorris/codecompanion.nvim/issues/1381)) ([33364a0](https://github.com/olimorris/codecompanion.nvim/commit/33364a070f06e3d8cf5276ac409c58de4f922716))
+
 ## [15.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.1.4...v15.2.0) (2025-05-05)
 
 
