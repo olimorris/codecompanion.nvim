@@ -52,6 +52,11 @@ end
 ---@return nil
 function M.slash_commands_execute(selected, chat)
   if selected.from_prompt_library then
+    if selected.config.references then
+      -- TODO: Clear previous slash command references?
+      strategy.add_ref(selected.config, chat)
+    end
+
     local prompts = strategy.evaluate_prompts(selected.config.prompts, selected.context)
     vim.iter(prompts):each(function(prompt)
       if prompt.role == config.constants.SYSTEM_ROLE then
