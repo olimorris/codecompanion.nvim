@@ -263,57 +263,47 @@ local function ts_parse_settings(bufnr, parser, adapter)
   return settings
 end
 
----Parse the chat buffer for the last message
----@param chat CodeCompanion.Chat
----@param start_range number
----@return { content: string }|nil
-local function ts_parse_messages(chat, start_range)
-  local query = get_query("markdown", "chat")
-
-  local tree = chat.parser:parse({ start_range - 1, -1 })[1]
-  local root = tree:root()
-
-  local content = {}
-  local last_role = nil
-
-  for id, node in query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
-    if query.captures[id] == "role" then
-      last_role = helpers.format_role(get_node_text(node, chat.bufnr))
-    elseif last_role == chat.ui.resolved_roles.user and query.captures[id] == "content" then
-      table.insert(content, get_node_text(node, chat.bufnr))
-    end
-  end
-
-  content = helpers.strip_references(content) -- If users send a blank message to the LLM, sometimes references are included
-  if not vim.tbl_isempty(content) then
-    return { content = vim.trim(table.concat(content, "\n\n")) }
-  end
-
-  return nil
-end
-
----Parse the chat buffer for the last header
+--- Get the last user header line from the buffer
 ---@param chat CodeCompanion.Chat
 ---@return number|nil
-local function ts_parse_headers(chat)
-  local query = get_query("markdown", "chat")
-
-  local tree = chat.parser:parse({ 0, -1 })[1]
-  local root = tree:root()
-
-  local last_match = nil
-  for id, node in query:iter_captures(root, chat.bufnr) do
-    if query.captures[id] == "role_only" then
-      local role = helpers.format_role(get_node_text(node, chat.bufnr))
-      if role == chat.ui.resolved_roles.user then
-        last_match = node
-      end
+local function parse_user_line_from_buf(chat)
+  local lines = api.nvim_buf_get_lines(chat.bufnr, 0, -1, false)
+  local user_role_line = nil
+  for i = #lines, 1, -1 do
+    if lines[i]:match("^## " .. vim.pesc(chat.ui.resolved_roles.user)) then
+      user_role_line = i
+      break
     end
   end
-
-  if last_match then
-    return last_match:range()
+  if not user_role_line then
+    vim.notify("Couldn't find user line: ## " .. chat.ui.resolved_roles.user, vim.log.levels.WARN)
+    return nil
   end
+  return user_role_line
+end
+
+---Get the user message from the buffer
+---@param chat CodeCompanion.Chat
+---@return { content: string } | nil
+local function parse_user_message_from_buf(chat)
+  local lines = api.nvim_buf_get_lines(chat.bufnr, 0, -1, false)
+  local content = {}
+  local content_line = nil
+  -- Starting from the header_line, skip any lines that are empty or start with a >
+  for i = chat.header_line + 1, #lines do
+    if lines[i] and vim.trim(lines[i]) ~= "" and not vim.startswith(lines[i], ">") then
+      content_line = i
+      break
+    end
+  end
+  if not content_line then
+    return nil
+  end
+  content = vim.list_slice(lines, content_line, #lines)
+  if not vim.tbl_isempty(content) then
+    return { content = vim.trim(table.concat(content, "\n")) }
+  end
+  return nil
 end
 
 ---Parse the chat buffer for a code block
@@ -550,9 +540,8 @@ function Chat.new(args)
 
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then
-    ---@cast self CodeCompanion.Chat
-    local header_line = ts_parse_headers(self)
-    self.header_line = header_line and (header_line + 1) or 1
+    local user_role_line = parse_user_line_from_buf(self --[[@as CodeCompanion.Chat]])
+    self.header_line = user_role_line or 1
   end
 
   if vim.tbl_isempty(self.messages) then
@@ -770,7 +759,7 @@ function Chat:submit(opts)
   opts = opts or {}
 
   local bufnr = self.bufnr
-  local message = ts_parse_messages(self, self.header_line)
+  local message = parse_user_message_from_buf(self)
 
   if not message and not has_user_messages(self) then
     return log:warn("No messages to submit")

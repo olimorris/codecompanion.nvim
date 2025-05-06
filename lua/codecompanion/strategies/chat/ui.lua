@@ -246,7 +246,7 @@ function UI:render(context, messages, opts)
 
         if msg.opts and msg.opts.tag == "tool_output" then
           table.insert(lines, "### Tool Output")
-          table.insert(lines, "")
+          spacer()
         end
 
         local trimempty = not (msg.role == "user" and msg.content == "")
@@ -259,7 +259,12 @@ function UI:render(context, messages, opts)
 
         -- The Chat:Submit method will parse the last message and it to the messages table
         if i == #msgs then
-          table.remove(msgs, i)
+          if msgs[i].role ~= config.constants.USER_ROLE then
+            self:set_header(lines, config.constants.USER_ROLE)
+            spacer()
+          else
+            table.remove(msgs, i)
+          end
         end
       end
     end
