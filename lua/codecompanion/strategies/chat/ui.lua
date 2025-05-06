@@ -298,11 +298,11 @@ function UI:render(context, messages, opts)
   -- If the user has visually selected some text, add that to the chat buffer
   if context and context.is_visual and not opts.stop_context_insertion then
     log:trace("Adding visual selection to chat buffer")
-    table.insert(lines, "```" .. context.filetype)
+    table.insert(lines, "````" .. context.filetype)
     for _, line in ipairs(context.lines) do
       table.insert(lines, line)
     end
-    table.insert(lines, "```")
+    table.insert(lines, "````")
   end
 
   self:unlock_buf()
