@@ -34,7 +34,7 @@
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field context? table Context of the buffer that the chat was initiated from
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
----@field ignore_system_prompt? table Do not send the default system prompt with the request
+---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
 ---@field last_role? string The role of the last response in the chat buffer
 ---@field messages? table The messages to display in the chat buffer
 ---@field settings? table The settings that are used in the adapter of the chat buffer
@@ -819,7 +819,7 @@ function Chat:submit(opts)
 
   local payload = {
     messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
-    tools = (not vim.tbl_isempty(self.tools.schemas) and { self.tools.schemas }),
+    tools = (not vim.tbl_isempty(self.tools.schemas) and { self.tools.schemas } or {}),
   }
 
   log:trace("Settings:\n%s", mapped_settings)

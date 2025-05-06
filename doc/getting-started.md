@@ -24,6 +24,7 @@ require("codecompanion").setup({
   },
 }),
 ```
+
 In the example above, we're using the Anthropic adapter for both the chat and inline strategies.
 
 Because most LLMs require an API key you'll need to share that with the adapter. By default, adapters will look in your environment for a `*_API_KEY` where `*` is the name of the adapter such as `ANTHROPIC` or `OPENAI`. However, you can extend the adapter and change the API key like so:
@@ -144,7 +145,7 @@ Use CodeCompanion to create Neovim commands in command-line mode (`:h Command-li
 
 Run `:CodeCompanionActions` to open the action palette, which gives you access to the plugin's features, including your prompts from the [prompt library](/configuration/prompt-library).
 
-By default the plugin uses `vim.ui.select`, however, you can change the provider by altering the `display.action_palette.provider` config value to be `telescope` or `mini_pick`. You can also call the Telescope extension with `:Telescope codecompanion`.
+By default the plugin uses `vim.ui.select`, however, you can change the provider by altering the `display.action_palette.provider` config value to be `telescope`, `mini_pick`  or `snacks`. You can also call the Telescope extension with `:Telescope codecompanion`.
 
 > [!NOTE]
 > Some actions and prompts will only be visible if you're in _Visual mode_.
@@ -183,4 +184,3 @@ vim.cmd([[cab cc CodeCompanion]])
 
 > [!NOTE]
 > You can also assign prompts from the library to specific mappings. See the [prompt library](configuration/prompt-library#assigning-prompts-to-a-keymap) section for more information.
-

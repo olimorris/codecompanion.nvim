@@ -6,9 +6,11 @@
 
 By default, CodeCompanion provides a "chat" strategy that uses a dedicated Neovim buffer for conversational interaction with your chosen LLM. This buffer can be customized according to your preferences.
 
+Please refer to the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L42-L392) file for a full list of all configuration options.
+
 ## Keymaps
 
-You can define or override the default keymaps to send messages, regenerate responses, close the buffer, etc. Example:
+You can define or override the [default keymaps](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178) to send messages, regenerate responses, close the buffer, etc. Example:
 
 ```lua
 require("codecompanion").setup({
@@ -32,7 +34,7 @@ The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing 
 
 ## Variables
 
-Variables are placeholders inserted into the chat buffer (using `#`). They provide contextual code or information about the current Neovim state. For instance, the built-in `#buffer` variable sends the current buffer’s contents to the LLM.
+[Variables](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90) are placeholders inserted into the chat buffer (using `#`). They provide contextual code or information about the current Neovim state. For instance, the built-in `#buffer` variable sends the current buffer’s contents to the LLM.
 
 You can even define your own variables to share specific content:
 
@@ -58,7 +60,7 @@ require("codecompanion").setup({
 
 ## Slash Commands
 
-Slash Commands (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.
+[Slash Commands](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114) (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.
 
 The plugin supports providers like `telescope`, `mini_pick`, `fzf_lua` and `snacks` (as in snacks.nvim). By default, the plugin will automatically detect if you have any of those plugins installed and duly select them. Failing that, the in-build `default` provider will be used. Please see the [Chat Buffer](/usage/chat-buffer/index) usage section for full details:
 
@@ -120,7 +122,7 @@ Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](htt
 
 ## Agents and Tools
 
-Tools perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` when in the chat buffer:
+[Tools](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55) perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` when in the chat buffer:
 
 ```lua
 require("codecompanion").setup({
@@ -197,7 +199,7 @@ The decorator function also has access to the adapter in the chat buffer alongsi
 
 ## Layout
 
-You can change the appearance of the chat buffer by changing the `display.chat.window` table in your configuration:
+You can change the [appearance](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L903) of the chat buffer by changing the `display.chat.window` table in your configuration:
 
 ```lua
 require("codecompanion").setup({

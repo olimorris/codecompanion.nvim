@@ -110,6 +110,9 @@ return {
       if not self.opts.tools or not tools then
         return
       end
+      if vim.tbl_count(tools) == 0 then
+        return
+      end
 
       local transformed = {}
       for _, tool in pairs(tools) do
