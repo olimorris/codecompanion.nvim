@@ -5,6 +5,8 @@ local function action_palette_providers()
     return "telescope"
   elseif pcall(require, "mini.pick") then
     return "mini_pick"
+  elseif pcall(require, "snacks") then
+    return "snacks"
   else
     return "default"
   end
