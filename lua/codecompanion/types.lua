@@ -95,6 +95,7 @@
 ---@field winnr number
 ---@field settings table
 ---@field tokens number
+---@field resolved_roles table
 
 ---@class CodeCompanion.Chat.UIArgs
 ---@field adapter CodeCompanion.Adapter

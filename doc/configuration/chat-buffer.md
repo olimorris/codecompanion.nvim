@@ -295,8 +295,10 @@ require("codecompanion").setup({
         end,
 
         ---The header name for your messages
-        ---@type string
-        user = "Me",
+        ---@type string|fun(adapter: CodeCompanion.Adapter): string
+        user = function(adapter)
+			return vim.env.USER:gsub("^%l", string.upper)
+        end,
       }
     }
   }
@@ -304,8 +306,6 @@ require("codecompanion").setup({
 ```
 
 By default, the LLM's responses will be placed under a header such as `CodeCompanion (DeepSeek)`, leveraging the current adapter in the chat buffer. This option can be in the form of a string or a function that returns a string. If you opt for a function, the first parameter will always be the adapter from the chat buffer.
-
-The user role is currently only available as a string.
 
 ### Markdown Rendering
 

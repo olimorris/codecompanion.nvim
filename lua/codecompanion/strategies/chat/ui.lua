@@ -20,17 +20,6 @@ local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.chat.ui",
 }
 
----Set the LLM role based on the adapter
----@param role string|function
----@param adapter table
----@return string
-local function set_llm_role(role, adapter)
-  if type(role) == "function" then
-    return role(adapter)
-  end
-  return role
-end
-
 ---@class CodeCompanion.Chat.UI
 local UI = {}
 
@@ -42,6 +31,7 @@ function UI.new(args)
     header_ns = api.nvim_create_namespace(CONSTANTS.NS_HEADER),
     id = args.id,
     roles = args.roles,
+    resolved_roles = {},
     settings = args.settings,
     tokens = args.tokens,
     winnr = args.winnr,
@@ -60,8 +50,20 @@ function UI.new(args)
       api.nvim_buf_clear_namespace(self.bufnr, ns_id, 0, -1)
     end,
   })
+  self:resolve_roles()
 
   return self
+end
+
+function UI:resolve_roles()
+  local function get_role(role)
+    if type(role) == "function" then
+      return role(self.adapter)
+    end
+    return role
+  end
+  self.resolved_roles.user = get_role(self.roles.user)
+  self.resolved_roles.llm = get_role(self.roles.llm)
 end
 
 ---Open/create the chat window
@@ -197,10 +199,6 @@ end
 ---@return string
 function UI:format_header(role)
   local header = "## " .. role
-  if config.display.chat.show_header_separator then
-    header = string.format("%s %s", header, config.display.chat.separator)
-  end
-
   return header
 end
 
@@ -209,12 +207,7 @@ end
 ---@param role string The role of the user to display in the header
 ---@return nil
 function UI:set_header(tbl, role)
-  -- If the role is the LLM then we need to swap this out for a user func
-  if type(role) == "function" then
-    role = set_llm_role(role, self.adapter)
-  end
-
-  table.insert(tbl, self:format_header(role))
+  table.insert(tbl, self:format_header(self.resolved_roles[role]))
   table.insert(tbl, "")
 end
 
@@ -245,10 +238,10 @@ function UI:render(context, messages, opts)
           if last_set_role ~= nil then
             spacer()
           end
-          self:set_header(lines, self.roles.user)
+          self:set_header(lines, config.constants.USER_ROLE)
         end
         if msg.role == config.constants.LLM_ROLE and last_set_role ~= config.constants.LLM_ROLE then
-          self:set_header(lines, set_llm_role(self.roles.llm, self.adapter))
+          self:set_header(lines, config.constants.LLM_ROLE)
         end
 
         if msg.opts and msg.opts.tag == "tool_output" then
@@ -290,7 +283,7 @@ function UI:render(context, messages, opts)
 
   if vim.tbl_isempty(messages) then
     log:trace("Setting the header for the chat buffer")
-    self:set_header(lines, self.roles.user)
+    self:set_header(lines, config.constants.USER_ROLE)
     spacer()
   else
     log:trace("Setting the messages in the chat buffer")
@@ -325,18 +318,18 @@ function UI:render_headers()
 
   local separator = config.display.chat.separator
   local lines = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
-  local llm_role = set_llm_role(self.roles.llm, self.adapter)
+  local llm_role = self.resolved_roles.llm
+  local user_role = self.resolved_roles.user
 
   for line, content in ipairs(lines) do
-    if content:match("^## " .. vim.pesc(self.roles.user)) or content:match("^## " .. vim.pesc(llm_role)) then
-      local col = vim.fn.strwidth(content) - vim.fn.strwidth(separator)
+    if content:match("^## " .. vim.pesc(user_role)) or content:match("^## " .. vim.pesc(llm_role)) then
+      local col = vim.fn.strwidth(content) + 1
 
       api.nvim_buf_set_extmark(self.bufnr, self.header_ns, line - 1, col, {
         virt_text_win_col = col,
         virt_text = { { string.rep(separator, vim.go.columns), "CodeCompanionChatSeparator" } },
         priority = 100,
       })
-
       -- Set the highlight group for the header
       api.nvim_buf_set_extmark(self.bufnr, self.header_ns, line - 1, 0, {
         end_col = col + 1,

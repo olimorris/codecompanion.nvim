@@ -279,7 +279,7 @@ local function ts_parse_messages(chat, start_range)
   for id, node in query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
     if query.captures[id] == "role" then
       last_role = helpers.format_role(get_node_text(node, chat.bufnr))
-    elseif last_role == user_role and query.captures[id] == "content" then
+    elseif last_role == chat.ui.resolved_roles.user and query.captures[id] == "content" then
       table.insert(content, get_node_text(node, chat.bufnr))
     end
   end
@@ -305,7 +305,7 @@ local function ts_parse_headers(chat)
   for id, node in query:iter_captures(root, chat.bufnr) do
     if query.captures[id] == "role_only" then
       local role = helpers.format_role(get_node_text(node, chat.bufnr))
-      if role == user_role then
+      if role == chat.ui.resolved_roles.user then
         last_match = node
       end
     end
@@ -1089,11 +1089,12 @@ function Chat:add_buf_message(data, opts)
 
   -- Add a new header to the chat buffer
   local function new_role()
+    self.ui:resolve_roles()
     new_response = true
     self.last_role = data.role
     table.insert(lines, "")
     table.insert(lines, "")
-    self.ui:set_header(lines, config.strategies.chat.roles[data.role])
+    self.ui:set_header(lines, data.role)
   end
 
   -- Add data to the chat buffer
