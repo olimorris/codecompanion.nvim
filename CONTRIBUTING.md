@@ -51,17 +51,17 @@ CodeCompanion has [c. 200 tests](https://github.com/olimorris/codecompanion.nvim
 
 CodeCompanion.nvim is organized into several key directories:
 
-- `lua/codecompanion/`: Main plugin code
-  - `adapters/`: LLM adapters for different providers (OpenAI, Anthropic, etc.)
-  - `strategies/`: Core functionality components
+- `lua/codecompanion/`:
+  - `adapters/`: Adapters for different LLM providers (OpenAI, Anthropic, etc.)
+  - `strategies/`:
     - `chat/`: Chat buffer implementation
     - `inline/`: Inline code editing functionality
-    - `cmd/`: Command-line interaction
-  - `providers/`: Utility providers for various functionalities
-  - `utils/`: Shared utility functions
-- `tests/`: Tests organized by component
-- `doc/`: Documentation files
-- `queries/`: TreeSitter queries for various languages
+    - `cmd/`: Command-line editing
+  - `providers/`: Integration of providers (e.g. Snacks.nvim, Telescope.nvim)
+  - `utils/`: Utility functions
+- `doc/`: The documentation for the CodeCompanion site and vim docs
+- `queries/`: Tree-sitter queries for various languages
+- `tests/`: Various tests for the plugin
 
 ## Development Environment
 
@@ -76,7 +76,7 @@ CodeCompanion.nvim is organized into several key directories:
 > This section explain how to setup the environment for development using lazy.nvim package manager. However you can use the package manager of your choice.
 
 1. Clone your fork of the repository.
-2. Define codecompanion configuration pointing to your local repository:
+2. Define CodeCompanion configuration pointing to your local repository:
 
 ```lua
 {
@@ -112,12 +112,9 @@ require("codecompanion").setup({
 
 Log files are stored in Neovim's log directory, which can be found by running `:checkhealth codecompanion`.
 
-### Debug Functions
+### Debug Chat
 
-When developing, you can use the built-in debug functions:
-
-- In chat buffers, press `gd` to open a debug window showing current messages and settings
-- Run `:checkhealth codecompanion` to verify your environment is set up correctly
+When developing, you can debug the message history in the chat buffer by pressing `gd` to open a debug window. This shows the current messages (from yourself and the LLM) alongside any adapter settings.
 
 ### Debug Requests with Proxy
 
@@ -127,7 +124,7 @@ A simple proxy server can be set up using [mitmproxy](https://mitmproxy.org/).
 
 1. Follow the [mitmproxy installation guide](https://docs.mitmproxy.org/stable/overview-installation/) to install mitmproxy.
 2. Start mitmproxy with the web interface and listen on port 4141: `mitmweb --set listen_port=4141`
-3. Configure codecompanion to use the proxy server:
+3. Configure CodeCompanion to use the proxy server:
 
 ```lua
 {
@@ -188,32 +185,5 @@ It can also be useful to share an example [test file](https://github.com/olimorr
 Documentation is built using [panvimdoc](https://github.com/kdheepak/panvimdoc):
 
 ```bash
-make docs  # Generate plugin documentation
+make docs
 ```
-
-## Contribution Guidelines
-
-- **Feature Requests**: Please suggest new features, but note that only features that align with the maintainer's workflow may be accepted.
-- **Bug Fixes**: When submitting a PR for a bug, ensure you've first raised an issue that can be recreated.
-- **Responsibility**: If you add a feature, you are responsible for maintaining and bug fixing that feature going forward. The maintainers may provide guidance and support, but ultimate responsibility lies with the contributor.
-- **Code Quality**: Strive to maintain high code quality with proper tests.
-- **Communication**: If you have questions, open an issue or reach out to the maintainers.
-
-## Common Issues and Troubleshooting
-
-When facing issues during development, try these steps:
-
-1. Check logs at the path shown by `:checkhealth codecompanion`
-2. Enable DEBUG or TRACE log level
-3. Test with a minimal configuration (see `minimal.lua` in the repository)
-4. Ensure all dependencies are properly installed
-
-## Pull Request Process
-
-1. Update documentation if you're changing behavior or adding features
-2. Update tests to cover your changes
-3. Format your code with `make format`
-4. Reference any related issues in your PR description
-5. The PR should be based on a prior discussion unless it's a straightforward bug fix
-
-Thank you for contributing to CodeCompanion.nvim!
