@@ -522,7 +522,7 @@ LAYOUT ~
   [!NOTE] The Action Palette also supports Telescope.nvim
   <https://github.com/nvim-telescope/telescope.nvim>, mini.pick
   <https://github.com/echasnovski/mini.pick> and snacks.nvim
-  <https://github.com/folke/snacks.nvi>
+  <https://github.com/folke/snacks.nvim>
 You can change the appearance of the chat buffer by changing the
 `display.action_palette` table in your configuration:
 
@@ -2072,6 +2072,8 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   Gemini        Gemini-2.5-pro-exp-03-25                  
 
+  Gemini        gemini-2.5-flash-preview                  
+
   GitHub Models All                                       Not supported yet
 
   Huggingface   All                                       Not supported yet
@@ -2086,6 +2088,8 @@ Below is the tool use status of various adapters and models in CodeCompanion:
   Compatible                                              
 
   OpenAI        gpt-3.5-turbo                             
+
+  OpenAI        gpt-4.1                                   
 
   OpenAI        gpt-4                                     
 
