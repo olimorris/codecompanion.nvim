@@ -191,8 +191,11 @@ function Executor:close()
   log:debug("Executor:close")
   self.handlers.on_exit()
   util.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.agent.bufnr })
-  chat.subscribers:process(chat)
-  _G.codecompanion_current_tool = nil
+
+  vim.schedule(function()
+    chat.subscribers:process(chat)
+    _G.codecompanion_current_tool = nil -- This must come last
+  end)
 end
 
 return Executor

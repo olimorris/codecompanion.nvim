@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 04
+*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 06
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -426,8 +426,8 @@ to the plugin’s features, including your prompts from the
 
 By default the plugin uses `vim.ui.select`, however, you can change the
 provider by altering the `display.action_palette.provider` config value to be
-`telescope` or `mini_pick`. You can also call the Telescope extension with
-`:Telescope codecompanion`.
+`telescope`, `mini_pick` or `snacks`. You can also call the Telescope extension
+with `:Telescope codecompanion`.
 
 
   [!NOTE] Some actions and prompts will only be visible if you’re in `Visual
@@ -520,8 +520,9 @@ LAYOUT ~
 
 
   [!NOTE] The Action Palette also supports Telescope.nvim
-  <https://github.com/nvim-telescope/telescope.nvim> and mini.pick
-  <https://github.com/echasnovski/mini.pick>
+  <https://github.com/nvim-telescope/telescope.nvim>, mini.pick
+  <https://github.com/echasnovski/mini.pick> and snacks.nvim
+  <https://github.com/folke/snacks.nvim>
 You can change the appearance of the chat buffer by changing the
 `display.action_palette` table in your configuration:
 
@@ -532,7 +533,7 @@ You can change the appearance of the chat buffer by changing the
           width = 95,
           height = 10,
           prompt = "Prompt ", -- Prompt used for interactive LLM calls
-          provider = "default", -- Can be "default", "telescope", or "mini_pick". If not specified, the plugin will autodetect installed providers.
+          provider = "default", -- Can be "default", "telescope", "mini_pick" or "snacks". If not specified, the plugin will autodetect installed providers.
           opts = {
             show_default_actions = true, -- Show the default actions in the action palette?
             show_default_prompt_library = true, -- Show the default prompt library in the action palette?
@@ -877,17 +878,45 @@ can set the `show_defaults` option to `false`:
 <
 
 
+CONTROLLING MODEL CHOICES ~
+
+When switching between adapters, the plugin typically displays all available
+model choices for the selected adapter. If you want to simplify the interface
+and have the default model automatically chosen (without showing any model
+selection UI), you can set the `show_model_choices` option to `false`:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        opts = {
+          show_model_choices = false,
+        },
+        -- Define your custom adapters here
+      },
+    })
+<
+
+With `show_model_choices = false`, the default model (as defined in the
+adapter’s schema) will be automatically selected when changing adapters, and
+no model selection will be shown to the user.
+
+
 CHAT BUFFER                          *codecompanion-configuration-chat-buffer*
 
 By default, CodeCompanion provides a "chat" strategy that uses a dedicated
 Neovim buffer for conversational interaction with your chosen LLM. This buffer
 can be customized according to your preferences.
 
+Please refer to the config.lua
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L42-L392>
+file for a full list of all configuration options.
+
 
 KEYMAPS ~
 
-You can define or override the default keymaps to send messages, regenerate
-responses, close the buffer, etc. Example:
+You can define or override the default keymaps
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178>
+to send messages, regenerate responses, close the buffer, etc. Example:
 
 >lua
     require("codecompanion").setup({
@@ -913,10 +942,12 @@ in both normal and insert modes.
 
 VARIABLES ~
 
-Variables are placeholders inserted into the chat buffer (using `#`). They
-provide contextual code or information about the current Neovim state. For
-instance, the built-in `#buffer` variable sends the current buffer’s contents
-to the LLM.
+Variables
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L90>
+are placeholders inserted into the chat buffer (using `#`). They provide
+contextual code or information about the current Neovim state. For instance,
+the built-in `#buffer` variable sends the current buffer’s contents to the
+LLM.
 
 You can even define your own variables to share specific content:
 
@@ -943,8 +974,10 @@ You can even define your own variables to share specific content:
 
 SLASH COMMANDS ~
 
-Slash Commands (invoked with `/`) let you dynamically insert context into the
-chat buffer, such as file contents or date/time.
+Slash Commands
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114>
+(invoked with `/`) let you dynamically insert context into the chat buffer,
+such as file contents or date/time.
 
 The plugin supports providers like `telescope`, `mini_pick`, `fzf_lua` and
 `snacks` (as in snacks.nvim). By default, the plugin will automatically detect
@@ -1011,9 +1044,11 @@ Credit to @lazymaniac <https://github.com/lazymaniac> for the inspiration
 
 AGENTS AND TOOLS ~
 
-Tools perform specific tasks (e.g., running shell commands, editing buffers,
-etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can
-be referenced with `@` when in the chat buffer:
+Tools
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55>
+perform specific tasks (e.g., running shell commands, editing buffers, etc.)
+when invoked by an LLM. Multiple tools can be grouped together. Both can be
+referenced with `@` when in the chat buffer:
 
 >lua
     require("codecompanion").setup({
@@ -1106,8 +1141,10 @@ table (which refreshes when a user toggles the chat buffer).
 
 LAYOUT ~
 
-You can change the appearance of the chat buffer by changing the
-`display.chat.window` table in your configuration:
+You can change the appearance
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L903>
+of the chat buffer by changing the `display.chat.window` table in your
+configuration:
 
 >lua
     require("codecompanion").setup({
@@ -2035,6 +2072,8 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   Gemini        Gemini-2.5-pro-exp-03-25                  
 
+  Gemini        gemini-2.5-flash-preview                  
+
   GitHub Models All                                       Not supported yet
 
   Huggingface   All                                       Not supported yet
@@ -2049,6 +2088,8 @@ Below is the tool use status of various adapters and models in CodeCompanion:
   Compatible                                              
 
   OpenAI        gpt-3.5-turbo                             
+
+  OpenAI        gpt-4.1                                   
 
   OpenAI        gpt-4                                     
 

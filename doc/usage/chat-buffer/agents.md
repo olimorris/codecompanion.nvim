@@ -127,6 +127,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | DeepSeek          | deepseek-reasoner          | :x:                | Doesn't support function calling |
 | Gemini            | Gemini-2.0-flash           | :white_check_mark: |                                  |
 | Gemini            | Gemini-2.5-pro-exp-03-25   | :white_check_mark: |                                  |
+| Gemini            | gemini-2.5-flash-preview   | :white_check:mark: |                                  |
 | GitHub Models     | All                        | :x:                | Not supported yet                |
 | Huggingface       | All                        | :x:                | Not supported yet                |
 | Mistral           | All                        | :x:                | Not supported yet                |
@@ -134,6 +135,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | Ollama            | All                        | :x:                | Is currently [broken](https://github.com/ollama/ollama/issues/9632) |
 | OpenAI Compatible | All                        | :x:                | Dependant on the model           |
 | OpenAI            | gpt-3.5-turbo              | :white_check_mark: |                                  |
+| OpenAI            | gpt-4.1                    | :white_check_mark: |                                  |
 | OpenAI            | gpt-4                      | :white_check_mark: |                                  |
 | OpenAI            | gpt-4o                     | :white_check_mark: |                                  |
 | OpenAI            | gpt-4o-mini                | :white_check_mark: |                                  |
