@@ -10,26 +10,25 @@ local log = require("codecompanion.utils.log")
 
 local function wrap_text_to_table(text, max_line_length)
   local lines = {}
-
   for line in (text .. "\n"):gmatch("(.-)\n") do
     if line == "" then
       table.insert(lines, "")
     else
-      local tmp_line = ""
-      for word in line:gmatch("%S+") do
-        if #tmp_line + #word + (tmp_line == "" and 0 or 1) > max_line_length then
-          table.insert(lines, tmp_line)
-          tmp_line = word
+      local indent, content = line:match("^(%s*)(.*)$")
+      local tmp = indent
+      for word in content:gmatch("%S+") do
+        if #tmp + #word + (#tmp > #indent and 1 or 0) > max_line_length then
+          table.insert(lines, tmp)
+          tmp = indent .. word
         else
-          tmp_line = tmp_line == "" and word or tmp_line .. " " .. word
+          tmp = (#tmp == #indent) and (indent .. word) or (tmp .. " " .. word)
         end
       end
-      if tmp_line ~= "" then
-        table.insert(lines, tmp_line)
+      if tmp ~= indent then
+        table.insert(lines, tmp)
       end
     end
   end
-
   return lines
 end
 
