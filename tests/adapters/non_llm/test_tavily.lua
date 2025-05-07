@@ -102,14 +102,14 @@ end
 
 T["chat_output handler"] = new_set()
 
-T["chat_output handler"]["should return error when results are nil"] = function()
+T["chat_output handler"]["should return empty table when results are nil"] = function()
   local res = adapter.handlers.chat_output(adapter, {})
-  h.eq(type(res.error) == "function", true)
+  h.eq(res, {})
 end
 
-T["chat_output handler"]["should return error when results are empty"] = function()
+T["chat_output handler"]["should return empty table when results are empty"] = function()
   local res = adapter.handlers.chat_output(adapter, { results = {} })
-  h.eq(type(res.error) == "function", true)
+  h.eq(res, {})
 end
 
 T["chat_output handler"]["should format results correctly"] = function()
@@ -120,14 +120,10 @@ T["chat_output handler"]["should format results correctly"] = function()
     },
   }
 
-  local expected = table.concat({
-    "**Title: Title 1**\n",
-    "URL: https://example.com/1\n",
-    "Content: Content 1\n\n",
-    "**Title: Title 2**\n",
-    "URL: https://example.com/2\n",
-    "Content: Content 2\n\n",
-  }, "")
+  local expected = {
+    "**Title: Title 1**\nURL: https://example.com/1\nContent: Content 1\n\n",
+    "**Title: Title 2**\nURL: https://example.com/2\nContent: Content 2\n\n",
+  }
 
   local res = adapter.handlers.chat_output(adapter, data)
   h.eq(res, expected)
@@ -142,17 +138,11 @@ T["chat_output handler"]["should handle missing fields"] = function()
     },
   }
 
-  local expected = table.concat({
-    "**Title: **\n",
-    "URL: https://example.com/1\n",
-    "Content: Content 1\n\n",
-    "**Title: Title 2**\n",
-    "URL: \n",
-    "Content: Content 2\n\n",
-    "**Title: Title 3**\n",
-    "URL: https://example.com/3\n",
-    "Content: \n\n",
-  }, "")
+  local expected = {
+    "**Title: **\nURL: https://example.com/1\nContent: Content 1\n\n",
+    "**Title: Title 2**\nURL: \nContent: Content 2\n\n",
+    "**Title: Title 3**\nURL: https://example.com/3\nContent: \n\n",
+  }
 
   local res = adapter.handlers.chat_output(adapter, data)
   h.eq(res, expected)

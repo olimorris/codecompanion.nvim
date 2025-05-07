@@ -128,21 +128,18 @@ return {
   output = {
     ---@param self CodeCompanion.Tool.Files
     ---@param agent CodeCompanion.Agent
+    ---@param output string[][] -- The chat_output returned from the adapter will be in the first position in the table
     success = function(self, agent, cmd, output)
       local chat = agent.chat
 
-      local content = output
-      if type(content) == "table" then
-        content = table.concat(content, "")
+      local length = #output
+      local content = ""
+      if type(output[1]) == "table" then
+        content = table.concat(output[1], "")
+        length = #output[1]
       end
 
-      local query_output = fmt(
-        [[**Query**: "%s"
-
-%s]],
-        cmd.query,
-        content
-      )
+      local query_output = fmt([[**Web Search Tool**: Returned %d results for the query "%s"]], length, cmd.query)
 
       chat:add_tool_output(self, content, query_output)
     end,

@@ -91,7 +91,7 @@ local defaults = {
             opts = {
               search_depth = "advanced",
               topic = "general",
-              chunks_per_source = 1,
+              chunks_per_source = 3,
               max_results = 5,
             },
           },

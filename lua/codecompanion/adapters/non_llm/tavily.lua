@@ -47,10 +47,11 @@ return {
 
       return body
     end,
-    --- @return string|nil
+    --- @return string[]
     chat_output = function(_, data)
       if data.results == nil or #data.results == 0 then
-        return log:error("No results found")
+        log:error("No results found")
+        return {}
       end
 
       local output = {}
@@ -61,7 +62,7 @@ return {
         table.insert(output, string.format("**Title: %s**\nURL: %s\nContent: %s\n\n", title, url, content))
       end
 
-      return table.concat(output, "")
+      return output
     end,
   },
 }
