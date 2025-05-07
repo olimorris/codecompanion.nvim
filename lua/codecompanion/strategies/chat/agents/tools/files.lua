@@ -308,7 +308,10 @@ return {
             description = "Path of the target file.",
           },
           contents = {
-            type = { "string", "null" },
+            anyOf = {
+              { type = "string" },
+              { type = "null" },
+            },
             description =
             "Contents of new file in the case of CREATE action; patch in the specified format for UPDATE action. `null` in the case of READ or DELETE actions.",
           },
