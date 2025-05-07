@@ -333,4 +333,31 @@ T["files tool update html line breaks"] = function()
   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
 
+T["files tool update lua dashes"] = function()
+  child.lua([[
+      -- read initial file from fixture
+      local initial = vim.fn.readfile("tests/fixtures/files-input-7.lua")
+      local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE)
+      assert(ok == 0)
+      -- read contents for the tool from fixtures
+      local patch_contents = table.concat(vim.fn.readfile("tests/fixtures/files-diff-7.patch"), "\n")
+      local arguments = vim.json.encode({ action = "UPDATE", path = _G.TEST_TMPFILE, contents = patch_contents })
+      local tool = {
+        {
+          ["function"] = {
+            name = "files",
+            arguments = arguments
+          },
+        },
+      }
+      agent:execute(chat, tool)
+      vim.wait(200)
+    ]])
+
+  -- Test that the file was updated as per the output fixture
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-7.lua')")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
+end
+
 return T

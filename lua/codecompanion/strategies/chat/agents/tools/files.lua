@@ -8,19 +8,24 @@ local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 
+---@class Action The arguments from the LLM's tool call
+---@field action string CREATE / READ / UPDATE / DELETE action to perform
+---@field path string path of the file to perform action on
+---@field contents string diff in case of UPDATE; raw contents in case of CREATE
+
 ---Create a file and it's surrounding folders
----@param action table The action object
+---@param action Action The arguments from the LLM's tool call
 ---@return string
 local function create(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
   p:touch({ parents = true })
   p:write(action.contents or "", "w")
-  return "Successfully created " .. action.path
+  return fmt("The CREATE action for `%s` was successful", action.path)
 end
 
 ---Read the contents of file
----@param action table The action object
+---@param action Action The arguments from the LLM's tool call
 ---@return string
 local function read(action)
   local p = Path:new(action.path)
@@ -34,6 +39,16 @@ local function read(action)
   return output
 end
 
+---@class Change
+---@field focus table list of lines before changes for larger context
+---@field pre table list of unchanged lines just before edits
+---@field old table list of lines to be removed
+---@field new table list of lines to be added
+---@field post table list of unchanged lines just after edits
+--- Returns an new (empty) change table instance
+---@param focus table list of focus lines, used to create a new change set with similar focus
+---@param pre table list of pre lines to extend an existing change set
+---@return Change
 local function get_new_change(focus, pre)
   return {
     focus = focus or {},
@@ -44,6 +59,9 @@ local function get_new_change(focus, pre)
   }
 end
 
+--- Returns list of Change objects parsed from the patch provided by LLMs
+---@param patch string patch contents to be parsed
+---@return Change[]
 local function parse_changes(patch)
   local changes = {}
   local change = get_new_change()
@@ -90,6 +108,14 @@ local function parse_changes(patch)
   return changes
 end
 
+---@class MatchOptions
+---@field trim_spaces boolean trim spaces while comparing lines
+--- returns whether the given lines (needle) match the lines in the file we are editing at the given line number
+---@param haystack string[] list of lines in the file we are updating
+---@param pos number the line number where we are checking the match
+---@param needle string[] list of lines we are trying to match
+---@param opts? MatchOptions options for matching strategy
+---@return boolean true of the given lines match at the given line number in haystack
 local function matches_lines(haystack, pos, needle, opts)
   opts = opts or {}
   for i, needle_line in ipairs(needle) do
@@ -105,6 +131,11 @@ local function matches_lines(haystack, pos, needle, opts)
   return true
 end
 
+--- returns whether the given line number (before_pos) is after the focus lines
+---@param lines string[] list of lines in the file we are updating
+---@param before_pos number current line number before which the focus lines should appear
+---@param opts? MatchOptions options for matching strategy
+---@return boolean true of the given line number is after the focus lines
 local function has_focus(lines, before_pos, focus, opts)
   opts = opts or {}
   local start = 1
@@ -122,6 +153,11 @@ local function has_focus(lines, before_pos, focus, opts)
   return true
 end
 
+--- returns new list of lines with the applied changes
+---@param lines string[] list of lines in the file we are updating
+---@param change Change change to be applied on the lines
+---@param opts? MatchOptions options for matching strategy
+---@return string[]|nil list of updated lines after change
 local function apply_change(lines, change, opts)
   opts = opts or {}
   for i = 1, #lines do
@@ -164,7 +200,7 @@ local function apply_change(lines, change, opts)
 end
 
 ---Edit the contents of a file
----@param action table The action object
+---@param action Action The arguments from the LLM's tool call
 ---@return string
 local function update(action)
   local p = Path:new(action.path)
@@ -207,17 +243,17 @@ local function update(action)
 
   -- 5. write back
   p:write(table.concat(lines, "\n"), "w")
-  return "Successfully updated " .. action.path
+  return fmt("The UPDATE action for `%s` was successful", action.path)
 end
 
 ---Delete a file
----@param action table The action object
+---@param action table The arguments from the LLM's tool call
 ---@return string
 local function delete(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
   p:rm()
-  return "Removed " .. action.path
+  return fmt("The DELETE action for `%s` was successful", action.path)
 end
 
 
@@ -231,7 +267,6 @@ local actions = {
 ---@class CodeCompanion.Tool.Files: CodeCompanion.Agent.Tool
 return {
   name = "files",
-  actions = actions,
   cmds = {
     ---Execute the file commands
     ---@param self CodeCompanion.Tool.Editor The Editor tool
@@ -314,14 +349,18 @@ The `contents` of the `UPDATE` action must be in this format:
 [PATCH]
 *** End Patch
 
-The `[PATCH]` is the series of diffs to be applied for each change in the file. Multiple blocks of diffs should be separated by an empty line and `@@[identifier]` detailed below. Each diff should be in this format:
+The `[PATCH]` is the series of diffs to be applied for each change in the file. Each diff should be in this format:
 
 [3 lines of pre-context]
 -[old code]
 +[new code]
 [3 lines of post-context]
 
-The context blocks are 3 lines of existing code, immediately before and after the edit, without a `+` or `-` sign. Lines with the `+` or `-` are the actual edits to be made in the file. The linked context lines next to the edits are enough to locate the lines to edit. We DO NOT USE line numbers anywhere in the contents.
+The context blocks are 3 lines of existing code, immediately before and after the modified lines of code. Lines to be modified should be prefixed with a `+` or `-` sign. Unchanged lines used for context starting with a `-` (such as comments in Lua) can be prefixed with a space ` `.
+
+Multiple blocks of diffs should be separated by an empty line and `@@[identifier]` detailed below.
+
+The linked context lines next to the edits are enough to locate the lines to edit. DO NOT USE line numbers anywhere in the contents.
 
 You can use `@@[identifier]` to define a larger context in case the immediately before and after context is not sufficient to locate the edits. Example:
 
