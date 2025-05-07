@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 06
+*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 07
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -522,7 +522,7 @@ LAYOUT ~
   [!NOTE] The Action Palette also supports Telescope.nvim
   <https://github.com/nvim-telescope/telescope.nvim>, mini.pick
   <https://github.com/echasnovski/mini.pick> and snacks.nvim
-  <https://github.com/folke/snacks.nvi>
+  <https://github.com/folke/snacks.nvim>
 You can change the appearance of the chat buffer by changing the
 `display.action_palette` table in your configuration:
 
@@ -2699,7 +2699,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI�S API OUTPUT
+OPENAI’S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
