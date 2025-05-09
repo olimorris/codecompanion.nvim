@@ -10,8 +10,10 @@ The [History extension](https://github.com/ravitemer/codecompanion-history.nvim)
 
 ## Features
 
-- 💾 Automatic chat session saving with context preservation
-- 🎯 Smart title generation for chats 
+- 💾 Flexible chat saving:
+  - Automatic session saving (can be disabled)
+  - Manual save with dedicated keymap
+- 🎯 Smart title generation for chats
 - 🔄 Continue from where you left
 - 📚 Browse saved chats with preview
 - 🔍 Multiple picker interfaces
@@ -67,12 +69,16 @@ require("codecompanion").setup({
                 continue_last_chat = false,
                 ---When chat is cleared with `gx` delete the chat from history
                 delete_on_clearing_chat = false,
-                -- Picker interface ("telescope" or "default")
+                -- Picker interface ("telescope" or "snacks" or "default")
                 picker = "telescope",
                 ---Enable detailed logging for history extension
                 enable_logging = false,
                 ---Directory path to save the chats
                 dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
+                -- Save all chats by default
+                auto_save = true,
+                -- Keymap to save the current chat manually
+                save_chat_keymap = "sc",
             }
         }
     }
@@ -88,6 +94,7 @@ require("codecompanion").setup({
 #### ⌨️ Chat Buffer Keymaps
 
 - `gh` - Open history browser (customizable via `opts.keymap`)
+- `sc` - Save current chat manually (customizable via `opts.save_chat_keymap`)
 
 #### 📚 History Browser
 
@@ -125,3 +132,6 @@ delete_chat(save_id: string): boolean
 
 - Visit [codecompanion-history.nvim](https://github.com/ravitemer/codecompanion-history.nvim) to see how it works.
 - Found a bug? [Raise an issue](https://github.com/ravitemer/codecompanion-history.nvim/issues).
+
+
+
