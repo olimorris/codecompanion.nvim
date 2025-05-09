@@ -156,7 +156,7 @@ A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys th
 
 ### Approvals
 
-Some tools, such as the [@cmd_runner](/usage/chat-buffer/agents.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
+Some tools, such as [@cmd_runner](/usage/chat-buffer/agents.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
 
 ```lua
 require("codecompanion").setup({
@@ -173,6 +173,8 @@ require("codecompanion").setup({
   }
 })
 ```
+
+You can also force any tool to require your approval by adding in `opts.requires_approval = true`.
 
 ### Auto Submit Tool Output (Recursion)
 

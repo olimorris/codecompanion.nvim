@@ -1087,10 +1087,9 @@ function or a string that points to a luafile that return the table.
 
 APPROVALS
 
-Some tools, such as the
-|codecompanion-usage-chat-buffer-agents.html-cmd-runner|, require the user to
-approve any commands before they’re executed. This can be changed by altering
-the config for each tool:
+Some tools, such as |codecompanion-usage-chat-buffer-agents.html-cmd-runner|,
+require the user to approve any commands before they’re executed. This can be
+changed by altering the config for each tool:
 
 >lua
     require("codecompanion").setup({
@@ -1107,6 +1106,9 @@ the config for each tool:
       }
     })
 <
+
+You can also force any tool to require your approval by adding in
+`opts.requires_approval = true`.
 
 
 AUTO SUBMIT TOOL OUTPUT (RECURSION)
