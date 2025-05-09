@@ -142,7 +142,7 @@ local defaults = {
           opts = {
             contains_code = false,
             max_lines = 128, -- Maximum amount of lines to of the help file to send (NOTE: Each vimdoc line is typically 10 tokens)
-            provider = providers.help, -- telescope|snacks|mini_pick|fzf_lua|telescope
+            provider = providers.help, -- telescope|snacks|mini_pick|fzf_lua
           },
         },
         ["now"] = {
