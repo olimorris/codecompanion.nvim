@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 06
+*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 09
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -522,7 +522,7 @@ LAYOUT ~
   [!NOTE] The Action Palette also supports Telescope.nvim
   <https://github.com/nvim-telescope/telescope.nvim>, mini.pick
   <https://github.com/echasnovski/mini.pick> and snacks.nvim
-  <https://github.com/folke/snacks.nvi>
+  <https://github.com/folke/snacks.nvim>
 You can change the appearance of the chat buffer by changing the
 `display.action_palette` table in your configuration:
 
@@ -1084,10 +1084,12 @@ define the interface and workflow of the tool. The table can be resolved using
 the `callback` option. The `callback` option can be a table itself or either a
 function or a string that points to a luafile that return the table.
 
-Some tools, such as the
-|codecompanion-usage-chat-buffer-agents.html-cmd-runner|, require the user to
-approve any commands before they’re executed. This can be changed by altering
-the config for each tool:
+
+APPROVALS
+
+Some tools, such as |codecompanion-usage-chat-buffer-agents.html-cmd-runner|,
+require the user to approve any commands before they’re executed. This can be
+changed by altering the config for each tool:
 
 >lua
     require("codecompanion").setup({
@@ -1098,6 +1100,30 @@ the config for each tool:
               opts = {
                 requires_approval = false,
               },
+            },
+          }
+        }
+      }
+    })
+<
+
+You can also force any tool to require your approval by adding in
+`opts.requires_approval = true`.
+
+
+AUTO SUBMIT TOOL OUTPUT (RECURSION)
+
+When a tool executes, it can be useful to automatically send its output back to
+the LLM. This can be achieved by the following options in your configuration:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          tools = {
+            opts = {
+              auto_submit_errors = false, -- Send any errors to the LLM automatically?
+              auto_submit_success = false, -- Send any successful output to the LLM automatically?
             },
           }
         }
@@ -2072,6 +2098,8 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   Gemini        Gemini-2.5-pro-exp-03-25                  
 
+  Gemini        gemini-2.5-flash-preview                  
+
   GitHub Models All                                       Not supported yet
 
   Huggingface   All                                       Not supported yet
@@ -2082,10 +2110,12 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   Ollama        All                                       Is currently broken
 
-  OpenAI        All                                       Dependant on the model
-  Compatible                                              
+  OpenAI        All                                       Dependent on the model
+  Compatible                                              and provider
 
   OpenAI        gpt-3.5-turbo                             
+
+  OpenAI        gpt-4.1                                   
 
   OpenAI        gpt-4                                     
 
