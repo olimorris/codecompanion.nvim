@@ -31,11 +31,15 @@ local function read(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
 
-  local output = fmt([[The file's contents are:
+  local output = fmt(
+    [[The file's contents are:
 
 ```%s
 %s
-```]], vim.fn.fnamemodify(p.filename, ":e"), p:read())
+```]],
+    vim.fn.fnamemodify(p.filename, ":e"),
+    p:read()
+  )
   return output
 end
 
@@ -55,7 +59,7 @@ local function get_new_change(focus, pre)
     pre = pre or {},
     old = {},
     new = {},
-    post = {}
+    post = {},
   }
 end
 
@@ -67,7 +71,7 @@ local function parse_changes(patch)
   local change = get_new_change()
   local lines = vim.split(patch, "\n", { plain = true })
   for i, line in ipairs(lines) do
-    if vim.startswith(line, '@@') then
+    if vim.startswith(line, "@@") then
       if #change.old > 0 or #change.new > 0 then
         -- @@ after any edits is a new change block
         table.insert(changes, change)
@@ -120,10 +124,8 @@ local function matches_lines(haystack, pos, needle, opts)
   opts = opts or {}
   for i, needle_line in ipairs(needle) do
     local hayline = haystack[pos + i - 1]
-    local is_same = hayline and (
-      (hayline == needle_line)
-      or (opts.trim_spaces and vim.trim(hayline) == vim.trim(needle_line))
-    )
+    local is_same = hayline
+      and ((hayline == needle_line) or (opts.trim_spaces and vim.trim(hayline) == vim.trim(needle_line)))
     if not is_same then
       return false
     end
@@ -148,7 +150,9 @@ local function has_focus(lines, before_pos, focus, opts)
         break
       end
     end
-    if not found then return false end
+    if not found then
+      return false
+    end
   end
   return true
 end
@@ -177,17 +181,23 @@ local function apply_change(lines, change, opts)
       local fix_spaces
       -- infer adjustment of spaces from the delete line
       if opts.trim_spaces and #change.old > 0 then
-        if change.old[1] == ' ' .. lines[i] then
+        if change.old[1] == " " .. lines[i] then
           -- diff patch added and extra space on left
-          fix_spaces = function(ln) return ln:sub(2) end
+          fix_spaces = function(ln)
+            return ln:sub(2)
+          end
         elseif #change.old[1] < #lines[i] then
           -- diff removed spaces on left
           local prefix = string.rep(" ", #lines[i] - #change.old[1])
-          fix_spaces = function(ln) return prefix .. ln end
+          fix_spaces = function(ln)
+            return prefix .. ln
+          end
         end
       end
       for _, ln in ipairs(change.new) do
-        if fix_spaces then ln = fix_spaces(ln) end
+        if fix_spaces then
+          ln = fix_spaces(ln)
+        end
         new_lines[#new_lines + 1] = ln
       end
       -- add remaining lines
@@ -256,7 +266,6 @@ local function delete(action)
   return fmt("The DELETE action for `%s` was successful", action.path)
 end
 
-
 local actions = {
   CREATE = create,
   READ = read,
@@ -312,8 +321,7 @@ return {
               { type = "string" },
               { type = "null" },
             },
-            description =
-            "Contents of new file in the case of CREATE action; patch in the specified format for UPDATE action. `null` in the case of READ or DELETE actions.",
+            description = "Contents of new file in the case of CREATE action; patch in the specified format for UPDATE action. `null` in the case of READ or DELETE actions.",
           },
         },
         required = {
@@ -462,8 +470,7 @@ These are few complete examples of the responses from this tool:
       local chat = agent.chat
       local args = self.args
       local llm_output = vim.iter(stdout):flatten():join("\n")
-      local user_output =
-          fmt([[**Files Tool**: The %s action for `%s` was successful]], args.action, args.path)
+      local user_output = fmt([[**Files Tool**: The %s action for `%s` was successful]], args.action, args.path)
       chat:add_tool_output(self, llm_output, user_output)
     end,
 

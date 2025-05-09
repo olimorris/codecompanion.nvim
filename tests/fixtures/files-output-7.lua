@@ -45,8 +45,8 @@ local function factorial(n)
 end
 
 return {
-  greet     = greet,
-  add       = add,
-  count     = count,
+  greet = greet,
+  add = add,
+  count = count,
   factorial = factorial,
 }

@@ -6,8 +6,8 @@ H.not_eq = MiniTest.expect.no_equality --[[@type function]]
 
 --[[@type function]]
 H.eq_info = MiniTest.new_expectation(
--- this exactly like H.eq
--- but it also takes in 3rd argument for better error message
+  -- this exactly like H.eq
+  -- but it also takes in 3rd argument for better error message
   "values are equal",
   -- Predicate: returns true if are equal (equality as in minitest)
   function(left, right)
@@ -15,7 +15,7 @@ H.eq_info = MiniTest.new_expectation(
   end,
   -- Fail context: explains why it failed
   function(left, right, msg)
-    return string.format('Left:  %s\nRight: %s\nMsg: %s', vim.inspect(left), vim.inspect(right), msg)
+    return string.format("Left:  %s\nRight: %s\nMsg: %s", vim.inspect(left), vim.inspect(right), msg)
   end
 )
 
