@@ -15,6 +15,7 @@ local log = require("codecompanion.utils.log")
 ---@field temp? table A table to store temporary values which are not passed to the request
 ---@field raw? table Any additional curl arguments to pass to the request
 ---@field opts? table Additional options for the adapter
+---@field model? { name: string, opts: table } The model to use for the request
 ---@field handlers table Functions which link the output from the request to CodeCompanion
 ---@field handlers.setup? fun(self: CodeCompanion.Adapter): boolean
 ---@field handlers.set_body? fun(self: CodeCompanion.Adapter, data: table): table|nil
@@ -287,6 +288,33 @@ function Adapter.extend(adapter, opts)
   return Adapter.new(adapter_config)
 end
 
+---Set the model on the adapter for convenience
+---@param adapter CodeCompanion.Adapter
+---@return CodeCompanion.Adapter
+function Adapter.set_model(adapter)
+  -- Set the model dictionary as a convenience for the user. This can be string
+  -- or function values. If they're functions, these are likely to make http
+  -- requests to obtain a list of available models. This is expensive, so
+  -- we dont't execute them here. Instead, let the user decide when to.
+  if adapter.schema and adapter.schema.model then
+    adapter.model = {}
+    local model = adapter.schema.model.default
+    local choices = adapter.schema.model.choices
+
+    if type(model) == "function" then
+      adapter.model.name = model()
+    else
+      adapter.model.name = model
+    end
+
+    if type(choices) == "table" then
+      adapter.model.opts = choices[model]
+    end
+  end
+
+  return adapter
+end
+
 ---Resolve an adapter from deep within the plugin...somewhere
 ---@param adapter? CodeCompanion.Adapter|string|function
 ---@return CodeCompanion.Adapter
@@ -294,14 +322,14 @@ function Adapter.resolve(adapter)
   adapter = adapter or config.adapters[config.strategies.chat.adapter]
 
   if type(adapter) == "table" then
-    return Adapter.new(adapter)
+    adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
-    return Adapter.extend(adapter)
+    adapter = Adapter.extend(adapter)
   elseif type(adapter) == "function" then
-    return adapter()
+    adapter = adapter()
   end
 
-  return adapter
+  return adapter.set_model(adapter)
 end
 
 ---Make an adapter safe for serialization
@@ -310,6 +338,7 @@ end
 function Adapter.make_safe(adapter)
   return {
     name = adapter.name,
+    model = adapter.model,
     formatted_name = adapter.formatted_name,
     features = adapter.features,
     url = adapter.url,
