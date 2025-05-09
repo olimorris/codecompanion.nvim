@@ -154,6 +154,8 @@ When users introduce the agent `@my_agent` in the chat buffer, it can call the t
 
 A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys that define the interface and workflow of the tool. The table can be resolved using the `callback` option. The `callback` option can be a table itself or either a function or a string that points to a luafile that return the table.
 
+### Approvals
+
 Some tools, such as the [@cmd_runner](/usage/chat-buffer/agents.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
 
 ```lua
@@ -170,6 +172,26 @@ require("codecompanion").setup({
     }
   }
 })
+```
+
+### Auto Submit Tool Output (Recursion)
+
+When a tool executes, it can be useful to automatically send its output back to the LLM. This can be achieved by the following options in your configuration:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      tools = {
+        opts = {
+          auto_submit_errors = false, -- Send any errors to the LLM automatically?
+          auto_submit_success = false, -- Send any successful output to the LLM automatically?
+        },
+      }
+    }
+  }
+})
+
 ```
 
 ## Prompt Decorator

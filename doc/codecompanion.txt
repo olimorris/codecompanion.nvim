@@ -1084,6 +1084,9 @@ define the interface and workflow of the tool. The table can be resolved using
 the `callback` option. The `callback` option can be a table itself or either a
 function or a string that points to a luafile that return the table.
 
+
+APPROVALS
+
 Some tools, such as the
 |codecompanion-usage-chat-buffer-agents.html-cmd-runner|, require the user to
 approve any commands before they’re executed. This can be changed by altering
@@ -1098,6 +1101,27 @@ the config for each tool:
               opts = {
                 requires_approval = false,
               },
+            },
+          }
+        }
+      }
+    })
+<
+
+
+AUTO SUBMIT TOOL OUTPUT (RECURSION)
+
+When a tool executes, it can be useful to automatically send its output back to
+the LLM. This can be achieved by the following options in your configuration:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          tools = {
+            opts = {
+              auto_submit_errors = false, -- Send any errors to the LLM automatically?
+              auto_submit_success = false, -- Send any successful output to the LLM automatically?
             },
           }
         }
@@ -2084,8 +2108,8 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   Ollama        All                                       Is currently broken
 
-  OpenAI        All                                       Dependant on the model
-  Compatible                                              
+  OpenAI        All                                       Dependent on the model
+  Compatible                                              and provider
 
   OpenAI        gpt-3.5-turbo                             
 
@@ -2703,7 +2727,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI’S API OUTPUT
+OPENAI�S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
