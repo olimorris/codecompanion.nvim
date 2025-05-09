@@ -129,6 +129,32 @@ T["Agent"][":execute"]["a malformed response from the LLM is handled"] = functio
   h.expect_starts_with("You made an error in calling the weather tool:", output)
 end
 
+T["Agent"][":execute"]["a missing tool is handled"] = function()
+  child.lua([[
+    local tools = {
+      {
+        id = 1,
+        type = "function",
+        ["function"] = {
+          name = "missing_tool",
+          arguments = {
+          },
+        },
+      },
+    }
+
+    local chat = _G.chat
+    chat.tools.in_use = {
+      weather = true
+    }
+    _G.agent:execute(chat, tools)
+  ]])
+
+  local output = child.lua_get([[chat.messages[#chat.messages].content]])
+  h.expect_starts_with("Tool `missing_tool` not found", output)
+  h.eq(true, output:find("`weather`") ~= nil)
+end
+
 T["Agent"][":execute"]["a nested response from the LLM"] = function() end
 
 T["Agent"][":replace"] = new_set()
