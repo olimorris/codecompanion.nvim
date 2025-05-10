@@ -1,6 +1,5 @@
 local h = require("tests.helpers")
 
-local expect = MiniTest.expect
 local new_set = MiniTest.new_set
 
 local child = MiniTest.new_child_neovim()
@@ -179,6 +178,40 @@ T["Adapter"]["will not set environment variables if it doesn't need to"] = funct
   ]])
 
   h.eq(child.lua_get([[_G.test_adapter2.parameters]]), params)
+end
+
+T["Adapter"]["can update a model on the adapter"] = function()
+  local result = child.lua([[
+    local adapter = require("codecompanion.adapters").extend(test_adapter)
+    return adapter.resolve(adapter).model
+  ]])
+
+  h.eq({ name = "gpt-4-0125-preview" }, result)
+
+  result = child.lua([[
+    require("tests.log")
+    local adapter = require("codecompanion.adapters").extend("openai", {
+      schema = {
+        model = {
+          default = "o4-mini-2025-04-16",
+          choices = {
+            ["o4-mini-2025-04-16"] = { opts = { can_reason = true } },
+            ["o3-mini-2025-01-31"] = { opts = { can_reason = true } },
+            ["o3-2025-04-16"] = { opts = { can_reason = true } },
+            ["o1-2024-12-17"] = { opts = { can_reason = true } },
+          }
+        }
+      }
+    })
+    return adapter.resolve(adapter).model
+  ]])
+
+  h.eq({
+    name = "o4-mini-2025-04-16",
+    opts = {
+      can_reason = true,
+    },
+  }, result)
 end
 
 T["Adapter"]["utils"] = new_set()
