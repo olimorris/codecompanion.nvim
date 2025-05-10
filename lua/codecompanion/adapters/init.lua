@@ -308,7 +308,7 @@ function Adapter.set_model(adapter)
     end
 
     if type(choices) == "table" then
-      adapter.model.opts = choices[model]
+      adapter.model.opts = (choices[model] and choices[model].opts) and choices[model].opts
     end
   end
 
