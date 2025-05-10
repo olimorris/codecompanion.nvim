@@ -598,8 +598,24 @@ M.auto_tool_mode = {
 
 M.goto_file_under_cursor = {
   desc = "Open the file under cursor in a new tab.",
-  callback = function(_)
-    local file_name = vim.fn.expand("<cfile>")
+  ---@param chat CodeCompanion.Chat
+  callback = function(chat)
+    local file_name
+    if vim.fn.mode() == "n" then
+      file_name = vim.fn.expand("<cfile>")
+    elseif string.lower(vim.fn.mode()):find("^.?v%a?") then
+      -- one of the visual selection mode
+      local start_pos = vim.fn.getpos("v")
+      local end_pos = vim.fn.getpos(".")
+      if start_pos[1] > end_pos[1] or (start_pos[1] == end_pos[1] and start_pos[2] > end_pos[2]) then
+        start_pos, end_pos = end_pos, start_pos
+      end
+      local lines =
+        vim.api.nvim_buf_get_text(chat.bufnr, start_pos[2] - 1, start_pos[3] - 1, end_pos[2] - 1, end_pos[3], {})
+      if lines then
+        file_name = table.concat(lines)
+      end
+    end
     if type(file_name) == "string" then
       file_name = vim.fs.normalize(file_name)
     else
