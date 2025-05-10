@@ -124,17 +124,9 @@ return {
       desc = "Presence penalty applied to the next token's logprobs if the token has already been seen in the response",
     },
     ---@type CodeCompanion.Schema
-    frequency_penalty = {
-      order = 6,
-      mapping = "parameters",
-      type = "number",
-      optional = true,
-      default = nil,
-      desc = "Frequency penalty applied to the next token's logprobs, multiplied by the number of times each token has been seen in the response so far.",
-    },
     ---@type CodeCompanion.Schema
     reasoning_effort = {
-      order = 7,
+      order = 6,
       mapping = "parameters",
       type = "string",
       optional = true,
