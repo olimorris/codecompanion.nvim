@@ -180,6 +180,20 @@ return {
         },
       },
       slash_commands = {
+        ["buffer"] = {
+          callback = "strategies.chat.slash_commands.buffer",
+          description = "Insert open buffers",
+          keymap = {
+            modes = {
+              i = "<C-b>",
+              n = { "<C-b>" },
+            },
+          },
+          opts = {
+            contains_code = true,
+            provider = "default",
+          },
+        },
         ["file"] = {
           callback = "strategies.chat.slash_commands.file",
           description = "Insert a file",
