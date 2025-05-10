@@ -124,7 +124,7 @@ Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](htt
 
 ### Keymaps
 
-Slash Commands can also be called via keymaps, in the chat buffer. Simply add a `keymap` table to the Slash Command you'd like to call. For example:
+Slash Commands can also be called via keymaps, in the chat buffer. Simply add a `keymaps` table to the Slash Command you'd like to call. For example:
 
 ```lua
 require("codecompanion").setup({
@@ -132,7 +132,7 @@ require("codecompanion").setup({
     chat = {
       slash_commands = {
         ["buffer"] = {
-          keymap = {
+          keymaps = {
             modes = {
               i = "<C-b>",
               n = { "<C-b>", "gb" },

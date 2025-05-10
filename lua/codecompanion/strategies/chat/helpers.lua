@@ -31,11 +31,11 @@ end
 function M.slash_command_keymaps(slash_commands)
   local keymaps = {}
   for k, v in pairs(slash_commands) do
-    if v.keymap then
+    if v.keymaps then
       keymaps[k] = {}
       keymaps[k].description = v.description
       keymaps[k].callback = "keymaps." .. k
-      keymaps[k].modes = v.keymap.modes
+      keymaps[k].modes = v.keymaps.modes
     end
   end
 
