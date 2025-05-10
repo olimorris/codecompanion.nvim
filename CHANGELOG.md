@@ -1,5 +1,12 @@
 # Changelog
 
+## [15.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v15.3.0...v15.3.1) (2025-05-10)
+
+
+### Bug Fixes
+
+* **deepseek:** inline prompt to chat causes error ([#1406](https://github.com/olimorris/codecompanion.nvim/issues/1406)) ([c912e2d](https://github.com/olimorris/codecompanion.nvim/commit/c912e2d72a91629f554142af3e9a648e54112ca4)), closes [#1405](https://github.com/olimorris/codecompanion.nvim/issues/1405)
+
 ## [15.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.2.0...v15.3.0) (2025-05-06)
 
 

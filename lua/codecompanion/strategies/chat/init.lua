@@ -604,6 +604,7 @@ function Chat:apply_model(model)
   end
 
   self.adapter.schema.model.default = model
+  self.adapter = adapters.set_model(self.adapter)
 
   return self
 end
