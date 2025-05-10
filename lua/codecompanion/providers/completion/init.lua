@@ -53,7 +53,6 @@ end
 function M.slash_commands_execute(selected, chat)
   if selected.from_prompt_library then
     if selected.config.references then
-      -- TODO: Clear previous slash command references?
       strategy.add_ref(selected.config, chat)
     end
 
