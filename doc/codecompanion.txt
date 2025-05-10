@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 09
+*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 10
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -615,6 +615,9 @@ If you do not want to store secrets in plain text, prefix commands with `cmd:`:
   [!NOTE] In this example, we’re using the 1Password CLI to extract the OpenAI
   API Key. You could also use gpg as outlined here
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
+Environment variables can also be functions and as a parameter, they receive a
+copy of the adapter itself.
+
 
 ADAPTER SETTINGS ~
 

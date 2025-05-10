@@ -63,6 +63,8 @@ require("codecompanion").setup({
 > [!NOTE]
 > In this example, we're using the 1Password CLI to extract the OpenAI API Key. You could also use gpg as outlined [here](https://github.com/olimorris/codecompanion.nvim/discussions/601)
 
+Environment variables can also be functions and as a parameter, they receive a copy of the adapter itself.
+
 ## Configuring Adapter Settings
 
 LLMs have many settings such as model, temperature and max_tokens. In an adapter, these sit within a schema table and can be configured during setup:
