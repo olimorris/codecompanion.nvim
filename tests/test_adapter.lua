@@ -180,6 +180,21 @@ T["Adapter"]["will not set environment variables if it doesn't need to"] = funct
   h.eq(child.lua_get([[_G.test_adapter2.parameters]]), params)
 end
 
+T["Adapter"]["environment variables can be functions"] = function()
+  local result = child.lua([[
+    local adapter = require("codecompanion.adapters").extend("openai", {
+      env = {
+        api_key = function()
+          return "test_api_key"
+        end,
+      }
+    })
+    return adapter:get_env_vars().env_replaced.api_key
+  ]])
+
+  h.eq("test_api_key", result)
+end
+
 T["Adapter"]["can update a model on the adapter"] = function()
   local result = child.lua([[
     local adapter = require("codecompanion.adapters").extend(test_adapter)
@@ -189,7 +204,6 @@ T["Adapter"]["can update a model on the adapter"] = function()
   h.eq({ name = "gpt-4-0125-preview" }, result)
 
   result = child.lua([[
-    require("tests.log")
     local adapter = require("codecompanion.adapters").extend("openai", {
       schema = {
         model = {
