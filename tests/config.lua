@@ -186,7 +186,7 @@ return {
           keymap = {
             modes = {
               i = "<C-b>",
-              n = { "<C-b>" },
+              n = { "<C-b>", "gb" },
             },
           },
           opts = {

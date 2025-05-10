@@ -34,7 +34,7 @@ T["Slash Command Keymaps"]["can be obtained from the config"] = function()
       description = "Insert open buffers",
       modes = {
         i = "<C-b>",
-        n = { "<C-b>" },
+        n = { "<C-b>", "gb" },
       },
     },
   }, result)
