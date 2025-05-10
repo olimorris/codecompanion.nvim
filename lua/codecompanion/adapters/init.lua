@@ -288,7 +288,7 @@ function Adapter.extend(adapter, opts)
   return Adapter.new(adapter_config)
 end
 
----Set the model on the adapter for convenience
+---Set the model name and options on the adapter for convenience
 ---@param adapter CodeCompanion.Adapter
 ---@return CodeCompanion.Adapter
 function Adapter.set_model(adapter)
