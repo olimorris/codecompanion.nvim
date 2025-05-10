@@ -1,17 +1,20 @@
 local new_set = MiniTest.new_set
 local h = require("tests.helpers")
 
-local adapters = require("codecompanion.adapters")
 local client_mod = require("codecompanion.http")
 local log = require("codecompanion.utils.log")
+local non_llm_adapters = require("codecompanion.adapters.non_llm")
 local web_search = require("codecompanion.strategies.chat.agents.tools.web_search")
 
 local T = new_set({
   hooks = {
     pre_case = function()
-      T._resolve_orig = adapters.resolve
-      adapters.resolve = function(adapter)
-        return adapter
+      T._resolve_orig = non_llm_adapters.resolve
+      non_llm_adapters.resolve = function(adapter)
+        if adapter == "invalid" then
+          return nil
+        end
+        return {}
       end
 
       T._log_err_orig = log.error
@@ -26,7 +29,7 @@ local T = new_set({
     end,
 
     post_case = function()
-      adapters.resolve = T._resolve_orig
+      non_llm_adapters.resolve = T._resolve_orig
       log.error = T._log_err_orig
       client_mod.new = T._client_new_orig
 
@@ -55,20 +58,27 @@ T["error when args nil"] = function()
 end
 
 T["error when require adapter fails"] = function()
-  local self = { tool = { opts = { adapter = "invalid", opts = {} } } }
+  local config = require("codecompanion.config")
+  local original_tavily = config.adapters.non_llm.tavily
+
+  config.adapters.non_llm.tavily = "invalid"
+
+  local self = { tool = { opts = { adapter = "valid_adapter", opts = {} } } }
   local got = call_tool(self, { query = "q" })
   h.eq(got.status, "error")
+
+  config.adapters.non_llm.tavily = original_tavily
 end
 
 T["error when resolve returns nil"] = function()
-  adapters.resolve = function()
+  non_llm_adapters.resolve = function()
     return nil
   end
   local self = { tool = { opts = { adapter = "valid_adapter", opts = {} } } }
   local got = call_tool(self, { query = "q" })
   h.eq(got.status, "error")
 
-  adapters.resolve = T._resolve_orig
+  non_llm_adapters.resolve = T._resolve_orig
 end
 
 return T

@@ -18,8 +18,6 @@ return {
         return cb({ status = "error" })
       end
 
-      args.query = string.gsub(args.query, "%f[%w_]web_search%f[^%w_]", "", 1)
-
       local opts = self.tool.opts
 
       if not opts then
@@ -31,6 +29,8 @@ return {
         log:error("There was no search query provided for the `web_search` Tool")
         return cb({ status = "error" })
       end
+
+      args.query = string.gsub(args.query, "%f[%w_]web_search%f[^%w_]", "", 1)
 
       local adapter = non_llm_adapters.resolve(config.adapters.non_llm.tavily)
 
