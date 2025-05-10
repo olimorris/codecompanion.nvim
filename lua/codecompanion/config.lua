@@ -24,7 +24,7 @@ local defaults = {
     openai = "openai",
     xai = "xai",
     -- NON-LLMs ---------------------------------------------------------------
-    non_llms = {
+    non_llm = {
       jina = "jina",
       tavily = "tavily",
     },
