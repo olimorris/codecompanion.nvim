@@ -1,5 +1,12 @@
 # Changelog
 
+## [15.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.3.1...v15.4.0) (2025-05-10)
+
+
+### Features
+
+* **chat:** call slash commands with keymaps ([#1412](https://github.com/olimorris/codecompanion.nvim/issues/1412)) ([598af68](https://github.com/olimorris/codecompanion.nvim/commit/598af68b53394cfd43f7a098dcd463da86c5dc3f))
+
 ## [15.3.1](https://github.com/olimorris/codecompanion.nvim/compare/v15.3.0...v15.3.1) (2025-05-10)
 
 
