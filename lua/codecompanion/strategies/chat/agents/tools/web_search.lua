@@ -1,6 +1,7 @@
-local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local non_llm_adapters = require("codecompanion.adapters.non_llm")
 local fmt = string.format
 
 ---@class CodeCompanion.Tool.WebSearch: CodeCompanion.Agent.Tool
@@ -17,6 +18,8 @@ return {
         return cb({ status = "error" })
       end
 
+      args.query = string.gsub(args.query, "%f[%w_]web_search%f[^%w_]", "", 1)
+
       local opts = self.tool.opts
 
       if not opts then
@@ -29,17 +32,8 @@ return {
         return cb({ status = "error" })
       end
 
-      local ok, adapter = pcall(require, "codecompanion.adapters.non_llm." .. opts.adapter)
+      local adapter = non_llm_adapters.resolve(config.adapters.non_llm.tavily)
 
-      if not ok then
-        log:error("Failed to load the adapter for the web_search Tool")
-        return cb({ status = "error" })
-      end
-      if type(adapter) == "function" then
-        adapter = adapter()
-      end
-
-      adapter = adapters.resolve(adapter)
       if not adapter then
         log:error("Failed to load the adapter for the web_search Tool")
         return cb({ status = "error" })
