@@ -183,7 +183,7 @@ return {
         ["buffer"] = {
           callback = "strategies.chat.slash_commands.buffer",
           description = "Insert open buffers",
-          keymap = {
+          keymaps = {
             modes = {
               i = "<C-b>",
               n = { "<C-b>", "gb" },
