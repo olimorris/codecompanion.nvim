@@ -120,6 +120,9 @@ function Client:request(payload, actions, opts)
     vim.list_extend(raw, adapter:set_env_vars(adapter.raw))
   end
 
+  -- form data
+  local form = handlers.set_form and handlers.set_form(adapter, payload) or {}
+
   local request_opts = {
     url = adapter:set_env_vars(adapter.url),
     headers = adapter:set_env_vars(adapter.headers),
@@ -127,6 +130,7 @@ function Client:request(payload, actions, opts)
     proxy = config.adapters.opts.proxy,
     raw = raw,
     body = body_file.filename or "",
+    form = form,
     -- This is called when the request is finished. It will only ever be called
     -- once, even if the endpoint is streaming.
     callback = function(data)
@@ -170,6 +174,10 @@ function Client:request(payload, actions, opts)
       end)
     end,
   }
+
+  -- allow the adapter to modify the http request before it is sent
+  request_opts = handlers.modify_request_opts and handlers.modify_request_opts(self, payload, request_opts)
+    or request_opts
 
   if adapter.opts and adapter.opts.stream then
     local has_started_steaming = false
