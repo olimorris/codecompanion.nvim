@@ -596,4 +596,20 @@ M.auto_tool_mode = {
   end,
 }
 
+M.goto_file_under_cursor = {
+  desc = "Open the file under cursor in a new tab.",
+  callback = function(_)
+    local file_name = vim.fn.expand("<cfile>")
+    if type(file_name) == "string" then
+      file_name = vim.fs.normalize(file_name)
+    else
+      return
+    end
+    local stat = vim.uv.fs_stat(file_name)
+    if stat and stat.type == "file" then
+      vim.cmd("tabnew " .. file_name)
+    end
+  end,
+}
+
 return M

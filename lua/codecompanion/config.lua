@@ -359,6 +359,12 @@ local defaults = {
           callback = "keymaps.auto_tool_mode",
           description = "Toggle automatic tool mode",
         },
+        goto_file_under_cursor = {
+          modes = { n = "gR" },
+          index = 19,
+          callback = "keymaps.goto_file_under_cursor",
+          description = "Open the file under cursor in a new tab.",
+        },
       },
       opts = {
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
