@@ -69,7 +69,7 @@ return {
       desc = "The model that will complete your prompt. See https://ai.google.dev/gemini-api/docs/models/gemini#model-variations for additional details and options.",
       default = "gemini-2.5-flash-preview-04-17",
       choices = {
-        "gemini-2.5-flash-preview-04-17",
+        ["gemini-2.5-flash-preview-04-17"] = { opts = { can_reason = true } },
         "gemini-2.5-pro-exp-03-25",
         "gemini-2.0-flash",
         "gemini-2.0-pro-exp-02-05",
@@ -79,7 +79,7 @@ return {
       },
     },
     ---@type CodeCompanion.Schema
-    maxOutputTokens = {
+    max_tokens = {
       order = 2,
       mapping = "parameters",
       type = "integer",
@@ -103,7 +103,7 @@ return {
       end,
     },
     ---@type CodeCompanion.Schema
-    topP = {
+    top_p = {
       order = 4,
       mapping = "parameters",
       type = "integer",
@@ -115,20 +115,8 @@ return {
       end,
     },
     ---@type CodeCompanion.Schema
-    topK = {
+    presence_penalty = {
       order = 5,
-      mapping = "parameters",
-      type = "integer",
-      optional = true,
-      default = nil,
-      desc = "The maximum number of tokens to consider when sampling",
-      validate = function(n)
-        return n > 0, "Must be greater than 0"
-      end,
-    },
-    ---@type CodeCompanion.Schema
-    presencePenalty = {
-      order = 6,
       mapping = "parameters",
       type = "number",
       optional = true,
@@ -136,13 +124,37 @@ return {
       desc = "Presence penalty applied to the next token's logprobs if the token has already been seen in the response",
     },
     ---@type CodeCompanion.Schema
-    frequencyPenalty = {
-      order = 7,
+    frequency_penalty = {
+      order = 6,
       mapping = "parameters",
       type = "number",
       optional = true,
       default = nil,
       desc = "Frequency penalty applied to the next token's logprobs, multiplied by the number of times each token has been seen in the response so far.",
+    },
+    ---@type CodeCompanion.Schema
+    reasoning_effort = {
+      order = 7,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      condition = function(self)
+        local model = self.schema.model.default
+        if type(model) == "function" then
+          model = model()
+        end
+        if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
+          return self.schema.model.choices[model].opts.can_reason
+        end
+      end,
+      default = "medium",
+      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
+      choices = {
+        "high",
+        "medium",
+        "low",
+        "none",
+      },
     },
   },
 }
