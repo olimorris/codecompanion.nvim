@@ -268,9 +268,14 @@ end
 function Adapter.extend(adapter, opts)
   local ok
   local adapter_config
+  opts = opts or {}
 
   if type(adapter) == "string" then
-    ok, adapter_config = pcall(require, "codecompanion.adapters." .. adapter)
+    local subfolder = opts.subfolder or ""
+    if subfolder ~= "" and subfolder:sub(-1) ~= "." then
+      subfolder = subfolder .. "."
+    end
+    ok, adapter_config = pcall(require, "codecompanion.adapters." .. subfolder .. adapter)
     if not ok then
       adapter_config = config.adapters[adapter]
       if type(adapter_config) == "function" then
@@ -317,14 +322,16 @@ end
 
 ---Resolve an adapter from deep within the plugin...somewhere
 ---@param adapter? CodeCompanion.Adapter|string|function
+---@param opts? table
 ---@return CodeCompanion.Adapter
-function Adapter.resolve(adapter)
+function Adapter.resolve(adapter, opts)
   adapter = adapter or config.adapters[config.strategies.chat.adapter]
+  opts = opts or {}
 
   if type(adapter) == "table" then
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
-    adapter = Adapter.extend(adapter)
+    adapter = Adapter.extend(adapter, opts)
   elseif type(adapter) == "function" then
     adapter = adapter()
   end

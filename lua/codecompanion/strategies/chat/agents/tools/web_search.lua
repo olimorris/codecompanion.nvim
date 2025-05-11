@@ -1,7 +1,7 @@
+local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local non_llm_adapters = require("codecompanion.adapters.non_llm")
 local fmt = string.format
 
 ---@class CodeCompanion.Tool.WebSearch: CodeCompanion.Agent.Tool
@@ -32,7 +32,7 @@ return {
 
       args.query = string.gsub(args.query, "%f[%w_]web_search%f[^%w_]", "", 1)
 
-      local adapter = non_llm_adapters.resolve(config.adapters.non_llm.tavily)
+      local adapter = adapters.resolve(config.adapters.non_llm.tavily, { subfolder = "non_llm" })
 
       if not adapter then
         log:error("Failed to load the adapter for the web_search Tool")
