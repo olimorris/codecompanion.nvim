@@ -301,12 +301,9 @@ function Adapter.set_model(adapter)
     local model = adapter.schema.model.default
     local choices = adapter.schema.model.choices
 
-    if type(model) == "function" then
-      adapter.model.name = model()
-    else
+    if type(model) == "string" then
       adapter.model.name = model
     end
-
     if type(choices) == "table" then
       adapter.model.opts = (choices[model] and choices[model].opts) and choices[model].opts
     end
