@@ -64,6 +64,7 @@ vim.diagnostic.config(diagnostic_config, config.ERROR_NS)
 -- Setup completion for blink.cmp and cmp
 local has_cmp, cmp = pcall(require, "cmp")
 local has_blink, blink = pcall(require, "blink.cmp")
+local has_coc = vim.fn.exists("*coc#rpc#ready") == 1
 if has_blink then
   pcall(function()
     local add_provider = blink.add_source_provider or blink.add_provider
@@ -94,6 +95,17 @@ elseif has_cmp and not has_blink then
       { name = "codecompanion_tools" },
       { name = "codecompanion_variables" },
     }, cmp.get_config().sources),
+  })
+elseif has_coc then
+  local completion = require("codecompanion.providers.completion.coc")
+  _G.codecompanion_coc_init = completion.init
+  _G.codecompanion_coc_complete = completion.complete
+  vim.api.nvim_create_autocmd("VimEnter", {
+    callback = completion.ensure_autoload_file
+  })
+  vim.api.nvim_create_autocmd("FileType", {
+    pattern = "codecompanion",
+    callback = completion.ensure_buffer_attached
   })
 end
 
