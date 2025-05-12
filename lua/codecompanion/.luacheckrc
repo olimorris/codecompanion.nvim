@@ -1,3 +1,0 @@
-read_globals = {
-  "vim",
-}

@@ -39,11 +39,6 @@ return {
         return cb({ status = "error" })
       end
 
-      adapter.opts = adapter.opts or {}
-      for k, v in pairs(opts.opts) do
-        adapter.opts[k] = v
-      end
-
       client
         .new({
           adapter = adapter,

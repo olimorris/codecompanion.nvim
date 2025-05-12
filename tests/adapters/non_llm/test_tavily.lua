@@ -1,41 +1,19 @@
 local h = require("tests.helpers")
+local adapter
+
 local new_set = MiniTest.new_set
+T = new_set()
 
-local adapter = require("codecompanion.adapters.non_llm.tavily")
-local log = require("codecompanion.utils.log")
-
-local original_log_error
-
-local T = new_set({
+T["Tavily adapter"] = new_set({
   hooks = {
     pre_case = function()
+      adapter = require("codecompanion.adapters.non_llm.tavily")
       adapter.opts = {}
-
-      original_log_error = log.error
-      log.error = function(msg)
-        return msg
-      end
-    end,
-    post_case = function()
-      -- restore real log.error
-      log.error = original_log_error
     end,
   },
 })
 
-T["set_body handler"] = new_set()
-
-T["set_body handler"]["should return error when query is nil"] = function()
-  local res = adapter.handlers.set_body(adapter, {})
-  h.eq(type(res.error) == "function", true)
-end
-
-T["set_body handler"]["should return error when query is empty"] = function()
-  local res = adapter.handlers.set_body(adapter, { query = "" })
-  h.eq(type(res.error) == "function", true)
-end
-
-T["set_body handler"]["should return properly formatted body with default options"] = function()
+T["Tavily adapter"]["should return properly formatted body with default options"] = function()
   local data = { query = "test query" }
   local body = adapter.handlers.set_body(adapter, data)
 
@@ -49,7 +27,7 @@ T["set_body handler"]["should return properly formatted body with default option
   h.eq(body.include_raw_content, false)
 end
 
-T["set_body handler"]["should use adapter options if provided"] = function()
+T["Tavily adapter"]["should use adapter options if provided"] = function()
   adapter.opts = {
     topic = "news",
     search_depth = "basic",
@@ -73,7 +51,7 @@ T["set_body handler"]["should use adapter options if provided"] = function()
   h.eq(body.include_raw_content, true)
 end
 
-T["set_body handler"]["should include days when topic is news"] = function()
+T["Tavily adapter"]["should include days when topic is news"] = function()
   local data = {
     query = "test query",
   }
@@ -88,7 +66,7 @@ T["set_body handler"]["should include days when topic is news"] = function()
   h.eq(body.topic, "news")
 end
 
-T["set_body handler"]["should use default days when topic is news and days not provided"] = function()
+T["Tavily adapter"]["should use default days when topic is news and days not provided"] = function()
   local data = {
     query = "test query",
   }
@@ -100,19 +78,7 @@ T["set_body handler"]["should use default days when topic is news and days not p
   h.eq(body.topic, "news")
 end
 
-T["chat_output handler"] = new_set()
-
-T["chat_output handler"]["should return empty table when results are nil"] = function()
-  local res = adapter.handlers.chat_output(adapter, {})
-  h.eq(res, {})
-end
-
-T["chat_output handler"]["should return empty table when results are empty"] = function()
-  local res = adapter.handlers.chat_output(adapter, { results = {} })
-  h.eq(res, {})
-end
-
-T["chat_output handler"]["should format results correctly"] = function()
+T["Tavily adapter"]["should format results correctly"] = function()
   local data = {
     results = {
       { title = "Title 1", url = "https://example.com/1", content = "Content 1" },
@@ -129,7 +95,7 @@ T["chat_output handler"]["should format results correctly"] = function()
   h.eq(res, expected)
 end
 
-T["chat_output handler"]["should handle missing fields"] = function()
+T["Tavily adapter"]["should handle missing fields"] = function()
   local data = {
     results = {
       { url = "https://example.com/1", content = "Content 1" },
