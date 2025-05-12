@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 
 local M = {}
 
@@ -22,6 +23,23 @@ function M.strip_references(messages)
     -- we do not increment i, since removing shifts everything down
   end
   return messages
+end
+
+---Get the keymaps from the slash commands
+---@param slash_commands table
+---@return table
+function M.slash_command_keymaps(slash_commands)
+  local keymaps = {}
+  for k, v in pairs(slash_commands) do
+    if v.keymaps then
+      keymaps[k] = {}
+      keymaps[k].description = v.description
+      keymaps[k].callback = "keymaps." .. k
+      keymaps[k].modes = v.keymaps.modes
+    end
+  end
+
+  return keymaps
 end
 
 return M

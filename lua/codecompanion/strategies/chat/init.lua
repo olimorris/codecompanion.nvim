@@ -570,6 +570,18 @@ function Chat.new(args)
       :set()
   end
 
+  local slash_command_keymaps = helpers.slash_command_keymaps(config.strategies.chat.slash_commands)
+  if vim.tbl_count(slash_command_keymaps) > 0 then
+    keymaps
+      .new({
+        bufnr = self.bufnr,
+        callbacks = require("codecompanion.strategies.chat.slash_commands.keymaps"),
+        data = self,
+        keymaps = slash_command_keymaps,
+      })
+      :set()
+  end
+
   ---@cast self CodeCompanion.Chat
   self:add_system_prompt()
   set_autocmds(self)

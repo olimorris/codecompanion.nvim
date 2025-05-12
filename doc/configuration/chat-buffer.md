@@ -62,7 +62,9 @@ require("codecompanion").setup({
 
 [Slash Commands](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114) (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.
 
-The plugin supports providers like `telescope`, `mini_pick`, `fzf_lua` and `snacks` (as in snacks.nvim). By default, the plugin will automatically detect if you have any of those plugins installed and duly select them. Failing that, the in-build `default` provider will be used. Please see the [Chat Buffer](/usage/chat-buffer/index) usage section for full details:
+The plugin supports providers like [telescope](https://github.com/nvim-telescope/telescope.nvim), [mini_pick](https://github.com/echasnovski/mini.pick), [fzf_lua](https://github.com/ibhagwan/fzf-lua) and [snacks.nvim](https://github.com/folke/snacks.nvim). By default, the plugin will automatically detect if you have any of those plugins installed and duly set them as the default provider. Failing that, the in-built `default` provider will be used. Please see the [Chat Buffer](/usage/chat-buffer/index) usage section for information on how to use Slash Commands.
+
+You can configure Slash Commands with:
 
 ```lua
 require("codecompanion").setup({
@@ -119,6 +121,30 @@ Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](htt
 
 > [!NOTE]
 > You can also point the callback to a lua file that resides within your own configuration
+
+### Keymaps
+
+Slash Commands can also be called via keymaps, in the chat buffer. Simply add a `keymaps` table to the Slash Command you'd like to call. For example:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      slash_commands = {
+        ["buffer"] = {
+          keymaps = {
+            modes = {
+              i = "<C-b>",
+              n = { "<C-b>", "gb" },
+            },
+          },
+        },
+      },
+    },
+  },
+})
+
+```
 
 ## Agents and Tools
 
