@@ -100,6 +100,7 @@ elseif has_coc then
   local completion = require("codecompanion.providers.completion.coc")
   _G.codecompanion_coc_init = completion.init
   _G.codecompanion_coc_complete = completion.complete
+  _G.codecompanion_coc_execute = completion.execute
   vim.api.nvim_create_autocmd("VimEnter", {
     callback = completion.ensure_autoload_file
   })
