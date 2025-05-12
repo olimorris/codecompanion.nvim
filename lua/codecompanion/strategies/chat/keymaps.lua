@@ -604,7 +604,7 @@ M.goto_file_under_cursor = {
     if vim.fn.mode() == "n" then
       file_name = vim.fn.expand("<cfile>")
     elseif string.lower(vim.fn.mode()):find("^.?v%a?") then
-      -- one of the visual selection mode
+      -- one of the visual selection modes
       local start_pos = vim.fn.getpos("v")
       local end_pos = vim.fn.getpos(".")
       if start_pos[1] > end_pos[1] or (start_pos[1] == end_pos[1] and start_pos[2] > end_pos[2]) then
@@ -621,10 +621,23 @@ M.goto_file_under_cursor = {
     else
       return
     end
+
     local stat = vim.uv.fs_stat(file_name)
-    if stat and stat.type == "file" then
-      vim.cmd("tabnew " .. file_name)
+    if stat == nil or stat.type ~= "file" then
+      return
     end
+    local action = nil
+    local user_action = config.opts.goto_file_action
+    if type(user_action) == "string" then
+      action = function(fname)
+        vim.cmd(user_action .. " " .. fname)
+      end
+    elseif type(user_action) == "function" then
+      action = user_action
+    else
+      error(string.format("%s is not a valid jump action!", vim.inspect(user_action)))
+    end
+    action(file_name)
   end,
 }
 
