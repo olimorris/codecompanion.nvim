@@ -11,30 +11,38 @@ end
 
 local completion = require("codecompanion.providers.completion")
 
-local function get_completion_items(tbl)
-  local result = {}
-  for _, item in ipairs(tbl) do
-    table.insert(result, {
-      word = item.label:sub(2),
-      abbr = item.label,
-      info = item.detail,
-    })
+local function format_complete_items(opt, complete_items)
+  for _, item in ipairs(complete_items) do
+    item.word = item.label:sub(2)
+    item.abbr = item.label
+    item.label = nil -- necessary for coc matching
+    item.context = {
+      bufnr = opt.bufnr,
+      input = opt.input,
+      cursor = { row = opt.linenr, col = opt.colnr },
+    }
   end
-  return result
+  return complete_items
 end
 
 function M.complete(opt)
-  local result
+  local complete_items
   if opt.triggerCharacter == "@" then
-    result = get_completion_items(completion.tools())
+    complete_items = format_complete_items(opt, completion.tools())
   elseif opt.triggerCharacter == "#" then
-    result = get_completion_items(completion.variables())
+    complete_items = format_complete_items(opt, completion.variables())
   elseif opt.triggerCharacter == "/" then
-    result = get_completion_items(completion.slash_commands())
+    complete_items = format_complete_items(opt, completion.slash_commands())
   else
-    result = {}
+    complete_items = {}
   end
-  return result
+  return complete_items
+end
+
+function M.execute(opt)
+  opt.label = opt.abbr -- necessary for command execution
+  local chat = require("codecompanion").buf_get_chat(opt.bufnr)
+  completion.slash_commands_execute(opt, chat)
 end
 
 -- Activates coc for a non-attached buffer.
@@ -53,6 +61,10 @@ endfunction
 
 function! coc#source#codecompanion#complete(opt, cb) abort
   return a:cb(v:lua.codecompanion_coc_complete(a:opt))
+endfunction
+
+function! coc#source#codecompanion#on_complete(opt) abort
+  return a:cb(v:lua.codecompanion_coc_execute(a:opt))
 endfunction
 ]],
 }
