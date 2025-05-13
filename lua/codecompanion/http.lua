@@ -103,7 +103,7 @@ function Client:request(payload, actions, opts)
   if form then
     for name, content in pairs(form) do
       -- first check that content isn't already referencing a file with leading "@" or "<" character
-      if content:sub(1, 1) ~= "@" and content.sub(1, 1) ~= "<" then
+      if content:sub(1, 1) ~= "@" and content:sub(1, 1) ~= "<" then
         -- make a temporary file
         local form_file = Path.new(vim.fn.tempname())
         form_file:write(vim.split(content, "\n"), "w")
@@ -112,6 +112,8 @@ function Client:request(payload, actions, opts)
 
         -- add the entry for curl
         form_filenames[name] = "<" .. form_file.filename
+      else
+        form_filenames[name] = content
       end
     end
   end
