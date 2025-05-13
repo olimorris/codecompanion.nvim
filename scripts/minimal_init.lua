@@ -1,3 +1,8 @@
+-- Add the current directory (.) to Lua's search path
+-- The pattern './?.lua' allows require('mod') to find ./mod.lua
+-- The pattern './?/init.lua' allows require('mod') to find ./mod/init.lua
+package.path = package.path .. ";./?.lua;./?/init.lua"
+
 vim.cmd([[let &rtp.=','.getcwd()]])
 
 vim.cmd("set rtp+=./deps/plenary.nvim")
