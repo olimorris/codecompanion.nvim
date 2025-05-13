@@ -32,6 +32,7 @@ Let's take a look at the interface of an adapter as per the `adapter.lua` file:
 ---@field handlers.form_messages fun()
 ---@field handlers.chat_output fun()
 ---@field handlers.inline_output fun()
+---@field handlers.modify_request_opts? fun(self: CodeCompanion.Adapter, data: table, request_opts: table): table|nil Function which lets the adapter modify the http request parameters before the request is sent
 ---@field handlers.on_exit? fun()
 ---@field handlers.teardown? fun()
 ---@field schema table Set of parameters for the LLM that the user can customise in the chat buffer
@@ -459,4 +460,3 @@ temperature = {
 ```
 
 You'll see we've specified a function call for the `condition` key. We're simply checking that the model name doesn't start with `o1` as these models don't accept temperature as a parameter. You'll also see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2.
-
