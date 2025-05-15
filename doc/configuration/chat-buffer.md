@@ -160,12 +160,13 @@ require("codecompanion").setup({
           callback = require("user.codecompanion.tools.my_tool")
         },
         groups = {
-          ["my_group"] = {
+          ["my_agent"] = {
             description = "A custom agent combining tools",
             system_prompt = "Describe what the agent should do",
             tools = {
               "cmd_runner",
               "editor",
+              "my_tool",
               -- Add your own tools or reuse existing ones
             },
           },
