@@ -41,7 +41,7 @@ When given a task:
 
 ## Changing the System Prompt
 
-The default system prompt cant be changed with:
+The default system prompt can be changed with:
 
 ```lua
 require("codecompanion").setup({
