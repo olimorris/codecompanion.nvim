@@ -19,6 +19,8 @@ local log = require("codecompanion.utils.log")
 ---@field handlers table Functions which link the output from the request to CodeCompanion
 ---@field handlers.setup? fun(self: CodeCompanion.Adapter): boolean
 ---@field handlers.set_body? fun(self: CodeCompanion.Adapter, data: table): table|nil
+---@field handlers.set_form? fun(self: CodeCompanion.Adapter, data: table): table|nil # Function which lets the adapter modify the form data sent in the http request
+---@field handlers.modify_request_opts? fun(self: CodeCompanion.Adapter, data: table, request_opts: table): table|nil Function which lets the adapter modify the http request parameters before the request is sent
 ---@field handlers.form_parameters fun(self: CodeCompanion.Adapter, params: table, messages: table): table
 ---@field handlers.form_messages fun(self: CodeCompanion.Adapter, messages: table): table
 ---@field handlers.form_tools fun(self: CodeCompanion.Adapter, tools: table): table

@@ -94,9 +94,38 @@ function Client:request(payload, actions, opts)
 
   log:info("Request body file: %s", body_file.filename)
 
+  ---@type table|nil
+  local form = handlers.set_form and handlers.set_form(adapter, payload) or nil
+
+  local form_files = {} -- keep track of files so they can be deleted
+  local form_filenames = {} -- final { form_name = "<filename" } table for curl
+  -- add temporary files for each form entry
+  if form then
+    for name, content in pairs(form) do
+      -- first check that content isn't already referencing a file with leading "@" or "<" character
+      if content:sub(1, 1) ~= "@" and content:sub(1, 1) ~= "<" then
+        -- make a temporary file
+        local form_file = Path.new(vim.fn.tempname())
+        form_file:write(vim.split(content, "\n"), "w")
+        form_files[name] = form_file
+        log:info("Request form: %s: %s", name, form_file.filename)
+
+        -- add the entry for curl
+        form_filenames[name] = "<" .. form_file.filename
+      else
+        form_filenames[name] = content
+      end
+    end
+  end
+
   local function cleanup(status)
     if vim.tbl_contains({ "ERROR", "INFO" }, config.opts.log_level) and status ~= "error" then
       body_file:rm()
+
+      -- cleanup the form temp files
+      for _, form_file in pairs(form_files) do
+        form_file:rm()
+      end
     end
   end
 
@@ -127,6 +156,7 @@ function Client:request(payload, actions, opts)
     proxy = config.adapters.opts.proxy,
     raw = raw,
     body = body_file.filename or "",
+    form = form and form_filenames or nil,
     -- This is called when the request is finished. It will only ever be called
     -- once, even if the endpoint is streaming.
     callback = function(data)
@@ -170,6 +200,10 @@ function Client:request(payload, actions, opts)
       end)
     end,
   }
+
+  -- allow the adapter to modify the http request before it is sent
+  request_opts = handlers.modify_request_opts and handlers.modify_request_opts(self, payload, request_opts)
+    or request_opts
 
   if adapter.opts and adapter.opts.stream then
     local has_started_steaming = false
