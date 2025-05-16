@@ -44,7 +44,7 @@ Can you use the @cmd_runner tool to run my test suite with `pytest`?
 Use the @cmd_runner tool to install any missing libraries in my project
 ```
 
-Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) which means the plugin can't pass the output of the execution to the LLM. When this occurs, the tool will instead share the exit code.
+Some commands do not write any data to [stdout](<https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)>) which means the plugin can't pass the output of the execution to the LLM. When this occurs, the tool will instead share the exit code.
 
 The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its request. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for [workflows](/extending/workflows) to hook into.
 
@@ -84,7 +84,6 @@ The plugin enables tools to be grouped together. The _@full_stack_dev_ agent is 
 Let's use the @full_stack_dev tools to create a new app
 ```
 
-
 ## Approvals
 
 Some tools, such as the _@cmd_runner_, require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response.
@@ -101,45 +100,45 @@ Consider combining tools for complex tasks:
 
 ### Automatic Tool Mode
 
-The plugin allows you to run tools on autopilot. This automatically approves any tool use instead of prompting the user, disables any diffs, and automatically saves any buffers that the agent has edited. Simply set the global variable `vim.g.codecompanion_auto_tool_mode` to enable this or set it to `nil` to undo this. Alternatively, the keymap `gta` will toggle  the feature whist from the chat buffer.
+The plugin allows you to run tools on autopilot. This automatically approves any tool use instead of prompting the user, disables any diffs, and automatically saves any buffers that the agent has edited. Simply set the global variable `vim.g.codecompanion_auto_tool_mode` to enable this or set it to `nil` to undo this. Alternatively, the keymap `gta` will toggle the feature whist from the chat buffer.
 
 ## Compatibility
 
 Below is the tool use status of various adapters and models in CodeCompanion:
 
-| Adapter           | Model                      | Supported          | Notes                            |
-|-------------------|----------------------------| :----------------: |----------------------------------|
-| Anthropic         | claude-3-opus-20240229     | :white_check_mark: |                                  |
-| Anthropic         | claude-3-5-haiku-20241022  | :white_check_mark: |                                  |
-| Anthropic         | claude-3-5-sonnet-20241022 | :white_check_mark: |                                  |
-| Anthropic         | claude-3-7-sonnet-20250219 | :white_check_mark: |                                  |
-| Copilot           | gpt-4o                     | :white_check_mark: |                                  |
-| Copilot           | gpt-4.1                    | :white_check_mark: |                                  |
-| Copilot           | o1                         | :white_check_mark: |                                  |
-| Copilot           | o3-mini                    | :white_check_mark: |                                  |
-| Copilot           | o4-mini                    | :white_check_mark: |                                  |
-| Copilot           | claude-3-5-sonnet          | :white_check_mark: |                                  |
-| Copilot           | claude-3-7-sonnet          | :white_check_mark: |                                  |
-| Copilot           | claude-3-7-sonnet-thought  | :x:                | Doesn't support function calling |
-| Copilot           | gemini-2.0-flash-001       | :x:                |                                  |
-| Copilot           | gemini-2.5-pro             | :white_check_mark: |                                  |
-| DeepSeek          | deepseek-chat              | :white_check_mark: |                                  |
-| DeepSeek          | deepseek-reasoner          | :x:                | Doesn't support function calling |
-| Gemini            | Gemini-2.0-flash           | :white_check_mark: |                                  |
-| Gemini            | Gemini-2.5-pro-exp-03-25   | :white_check_mark: |                                  |
-| Gemini            | gemini-2.5-flash-preview   | :white_check_mark: |                                  |
-| GitHub Models     | All                        | :x:                | Not supported yet                |
-| Huggingface       | All                        | :x:                | Not supported yet                |
-| Mistral           | All                        | :x:                | Not supported yet                |
-| Novita            | All                        | :x:                | Not supported yet                |
-| Ollama            | All                        | :x:                | Is currently [broken](https://github.com/ollama/ollama/issues/9632) |
-| OpenAI Compatible | All                        | :exclamation:                | Dependent on the model and provider          |
-| OpenAI            | gpt-3.5-turbo              | :white_check_mark: |                                  |
-| OpenAI            | gpt-4.1                    | :white_check_mark: |                                  |
-| OpenAI            | gpt-4                      | :white_check_mark: |                                  |
-| OpenAI            | gpt-4o                     | :white_check_mark: |                                  |
-| OpenAI            | gpt-4o-mini                | :white_check_mark: |                                  |
-| OpenAI            | o1-2024-12-17              | :white_check_mark: |                                  |
-| OpenAI            | o1-mini-2024-09-12         | :x:                | Doesn't support function calling |
-| OpenAI            | o3-mini-2025-01-31         | :white_check_mark: |                                  |
-| xAI               | All                        | :x:                | Not supported yet                |
+| Adapter           | Model                      |     Supported      | Notes                                                               |
+| ----------------- | -------------------------- | :----------------: | ------------------------------------------------------------------- |
+| Anthropic         | claude-3-opus-20240229     | :white_check_mark: |                                                                     |
+| Anthropic         | claude-3-5-haiku-20241022  | :white_check_mark: |                                                                     |
+| Anthropic         | claude-3-5-sonnet-20241022 | :white_check_mark: |                                                                     |
+| Anthropic         | claude-3-7-sonnet-20250219 | :white_check_mark: |                                                                     |
+| Copilot           | gpt-4o                     | :white_check_mark: |                                                                     |
+| Copilot           | gpt-4.1                    | :white_check_mark: |                                                                     |
+| Copilot           | o1                         | :white_check_mark: |                                                                     |
+| Copilot           | o3-mini                    | :white_check_mark: |                                                                     |
+| Copilot           | o4-mini                    | :white_check_mark: |                                                                     |
+| Copilot           | claude-3-5-sonnet          | :white_check_mark: |                                                                     |
+| Copilot           | claude-3-7-sonnet          | :white_check_mark: |                                                                     |
+| Copilot           | claude-3-7-sonnet-thought  |        :x:         | Doesn't support function calling                                    |
+| Copilot           | gemini-2.0-flash-001       |        :x:         |                                                                     |
+| Copilot           | gemini-2.5-pro             | :white_check_mark: |                                                                     |
+| DeepSeek          | deepseek-chat              | :white_check_mark: |                                                                     |
+| DeepSeek          | deepseek-reasoner          |        :x:         | Doesn't support function calling                                    |
+| Gemini            | Gemini-2.0-flash           | :white_check_mark: |                                                                     |
+| Gemini            | Gemini-2.5-pro-exp-03-25   | :white_check_mark: |                                                                     |
+| Gemini            | gemini-2.5-flash-preview   | :white_check_mark: |                                                                     |
+| GitHub Models     | All                        |        :x:         | Not supported yet                                                   |
+| Huggingface       | All                        |        :x:         | Not supported yet                                                   |
+| Mistral           | All                        |        :x:         | Not supported yet                                                   |
+| Novita            | All                        |        :x:         | Not supported yet                                                   |
+| Ollama            | All                        |        :x:         | Is currently [broken](https://github.com/ollama/ollama/issues/9632) |
+| OpenAI Compatible | All                        |   :exclamation:    | Dependent on the model and provider                                 |
+| OpenAI            | gpt-3.5-turbo              | :white_check_mark: |                                                                     |
+| OpenAI            | gpt-4.1                    | :white_check_mark: |                                                                     |
+| OpenAI            | gpt-4                      | :white_check_mark: |                                                                     |
+| OpenAI            | gpt-4o                     | :white_check_mark: |                                                                     |
+| OpenAI            | gpt-4o-mini                | :white_check_mark: |                                                                     |
+| OpenAI            | o1-2024-12-17              | :white_check_mark: |                                                                     |
+| OpenAI            | o1-mini-2024-09-12         |        :x:         | Doesn't support function calling                                    |
+| OpenAI            | o3-mini-2025-01-31         | :white_check_mark: |                                                                     |
+| xAI               | grok-3                     |   :exclamation:    | Doesn't support strict mode                                         |

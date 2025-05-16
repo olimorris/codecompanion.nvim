@@ -2164,7 +2164,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   OpenAI        o3-mini-2025-01-31                        
 
-  xAI           All                                       Not supported yet
+  xAI           grok-3                                    Doesn't support strict mode
   --------------------------------------------------------------------------------
 
 SLASH COMMANDS                            *codecompanion-usage-slash-commands*
