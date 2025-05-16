@@ -115,18 +115,8 @@ return {
       end,
     },
     ---@type CodeCompanion.Schema
-    presence_penalty = {
-      order = 5,
-      mapping = "parameters",
-      type = "number",
-      optional = true,
-      default = nil,
-      desc = "Presence penalty applied to the next token's logprobs if the token has already been seen in the response",
-    },
-    ---@type CodeCompanion.Schema
-    ---@type CodeCompanion.Schema
     reasoning_effort = {
-      order = 6,
+      order = 5,
       mapping = "parameters",
       type = "string",
       optional = true,
