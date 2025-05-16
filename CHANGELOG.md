@@ -1,5 +1,12 @@
 # Changelog
 
+## [15.4.2](https://github.com/olimorris/codecompanion.nvim/compare/v15.4.1...v15.4.2) (2025-05-16)
+
+
+### Bug Fixes
+
+* **inline:** don't modify prompts going to the chat buffer ([#1447](https://github.com/olimorris/codecompanion.nvim/issues/1447)) ([a3b2b63](https://github.com/olimorris/codecompanion.nvim/commit/a3b2b633c6e17f0a891713c724285843c9706e1e))
+
 ## [15.4.1](https://github.com/olimorris/codecompanion.nvim/compare/v15.4.0...v15.4.1) (2025-05-11)
 
 
