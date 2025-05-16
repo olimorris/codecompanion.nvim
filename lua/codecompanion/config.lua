@@ -160,6 +160,14 @@ local defaults = {
             provider = providers.pickers, -- telescope|snacks|mini_pick|fzf_lua|default
           },
         },
+        ["system_prompts"] = {
+          callback = "strategies.chat.slash_commands.system_prompts",
+          description = "Select a pre-configured system prompt",
+          opts = {
+            contains_code = false,
+            provider = default_providers.help_provider, -- telescope|mini_pick|fzf_lua|snacks
+          },
+        },
         ["terminal"] = {
           callback = "strategies.chat.slash_commands.terminal",
           description = "Insert terminal output",

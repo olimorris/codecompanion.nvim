@@ -38,10 +38,7 @@ end
 function SlashCommands:set_provider(SlashCommand, providers)
   if SlashCommand.config.opts and SlashCommand.config.opts.provider then
     if not providers[SlashCommand.config.opts.provider] then
-      return log:error(
-        "Provider for the symbols slash command could not be found: %s",
-        SlashCommand.config.opts.provider
-      )
+      return log:error("Provider for the slash command could not be found: %s", SlashCommand.config.opts.provider)
     end
     return providers[SlashCommand.config.opts.provider](SlashCommand) --[[@type function]]
   end
