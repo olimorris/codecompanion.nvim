@@ -3,6 +3,8 @@
 local function action_palette_providers()
   if pcall(require, "telescope") then
     return "telescope"
+  elseif pcall(require, "fzf-lua") then
+    return "fzf_lua"
   elseif pcall(require, "mini.pick") then
     return "mini_pick"
   elseif pcall(require, "snacks") then
@@ -29,10 +31,10 @@ local function help_providers()
     return "telescope"
   elseif pcall(require, "snacks") then
     return "snacks"
-  elseif pcall(require, "mini.pick") then
-    return "mini_pick"
   elseif pcall(require, "fzf-lua") then
     return "fzf_lua"
+  elseif pcall(require, "mini.pick") then
+    return "mini_pick"
   else
     return "telescope" -- @todo: warn
   end
@@ -45,10 +47,10 @@ local function pick_providers()
     return "telescope"
   elseif pcall(require, "snacks") then
     return "snacks"
-  elseif pcall(require, "mini.pick") then
-    return "mini_pick"
   elseif pcall(require, "fzf-lua") then
     return "fzf_lua"
+  elseif pcall(require, "mini.pick") then
+    return "mini_pick"
   else
     return "default"
   end
