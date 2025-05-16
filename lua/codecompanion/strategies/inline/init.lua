@@ -305,11 +305,11 @@ function Inline:prompt(user_prompt)
       log:info("[Inline] User input received: %s", input)
       add_prompt("<user_prompt>" .. input .. "</user_prompt>", user_role)
       self.prompts = prompts
-      return self:submit(prompts)
+      return self:submit(vim.deepcopy(prompts))
     end)
   else
     self.prompts = prompts
-    return self:submit(prompts)
+    return self:submit(vim.deepcopy(prompts))
   end
 end
 
