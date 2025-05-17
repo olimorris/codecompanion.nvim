@@ -145,6 +145,14 @@ local defaults = {
             provider = providers.help, -- telescope|snacks|mini_pick|fzf_lua
           },
         },
+        ["image"] = {
+          callback = "strategies.chat.slash_commands.image",
+          description = "Insert an image",
+          opts = {
+            image_dirs = {}, -- Directories on disk to search for images
+            provider = providers.pickers, -- telescope|snacks|mini_pick|fzf_lua|default
+          },
+        },
         ["now"] = {
           callback = "strategies.chat.slash_commands.now",
           description = "Insert the current date and time",

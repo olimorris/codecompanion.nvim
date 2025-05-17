@@ -258,7 +258,30 @@ return {
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
-      return openai.handlers.form_messages(self, messages)
+      local messages = openai.handlers.form_messages(self, messages).messages
+
+      -- Process any images
+      -- messages = vim
+      --   .iter(messages)
+      --   :map(function(m)
+      --     if m.opts and m.opts.tag == "image" then
+      --       self.headers["Copilot-Vision-Request"] = true
+      --       m.content = {
+      --         type = "image_url",
+      --         url = m.content,
+      --       }
+      --     end
+      --
+      --     return {
+      --       role = m.role,
+      --       content = m.content,
+      --       tool_calls = m.tool_calls,
+      --       tool_call_id = m.tool_call_id,
+      --     }
+      --   end)
+      --   :totable()
+
+      return { messages = messages }
     end,
     form_tools = function(self, tools)
       return openai.handlers.form_tools(self, tools)
