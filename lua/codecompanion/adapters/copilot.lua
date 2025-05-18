@@ -178,12 +178,14 @@ local function get_models(self, opts)
     if model.model_picker_enabled and model.capabilities.type == "chat" then
       local choice_opts = {}
 
-      -- streaming support
       if model.capabilities.supports.streaming then
         choice_opts.can_stream = true
       end
       if model.capabilities.supports.tool_calls then
         choice_opts.can_use_tools = true
+      end
+      if model.capabilities.supports.vision then
+        choice_opts.has_vision = true
       end
 
       models[model.id] = { opts = choice_opts }
@@ -207,11 +209,11 @@ return {
   opts = {
     stream = true,
     tools = true,
+    vision = true,
   },
   features = {
     text = true,
     tokens = true,
-    vision = false,
   },
   url = "https://api.githubcopilot.com/chat/completions",
   env = {
@@ -248,6 +250,9 @@ return {
       end
       if (self.opts and self.opts.tools) and (model_opts and model_opts.opts and not model_opts.opts.can_use_tools) then
         self.opts.tools = false
+      end
+      if (self.opts and self.opts.vision) and (model_opts and model_opts.opts and not model_opts.opts.has_vision) then
+        self.opts.vision = false
       end
 
       return get_and_authorize_token()

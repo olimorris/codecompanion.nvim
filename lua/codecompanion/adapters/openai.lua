@@ -13,11 +13,11 @@ return {
   opts = {
     stream = true,
     tools = true,
+    vision = true,
   },
   features = {
     text = true,
     tokens = true,
-    vision = true,
   },
   url = "https://api.openai.com/v1/chat/completions",
   env = {
@@ -42,12 +42,17 @@ return {
 
       if choices and choices[model] and choices[model].opts then
         self.opts = vim.tbl_deep_extend("force", self.opts, choices[model].opts)
+
+        if not choices[model].opts.has_vision then
+          self.opts.vision = false
+        end
       end
 
       if self.opts and self.opts.stream then
         self.parameters.stream = true
         self.parameters.stream_options = { include_usage = true }
       end
+
       return true
     end,
 
@@ -92,7 +97,13 @@ return {
           end
 
           -- Process any images
-          if m.opts and m.opts.tag == "image" and m.opts.base64 then
+          if
+            (self.opts and self.opts.vision)
+            and m.opts
+            and m.opts.tag == "image"
+            and m.opts.base64
+            and m.opts.mimetype
+          then
             self.headers["Copilot-Vision-Request"] = "true"
             m.content = {
               {
@@ -318,14 +329,14 @@ return {
       ---@type string|fun(): string
       default = "gpt-4.1",
       choices = {
-        ["o4-mini-2025-04-16"] = { opts = { can_reason = true } },
+        ["o4-mini-2025-04-16"] = { opts = { has_vision = true, can_reason = true } },
         ["o3-mini-2025-01-31"] = { opts = { can_reason = true } },
-        ["o3-2025-04-16"] = { opts = { can_reason = true } },
-        ["o1-2024-12-17"] = { opts = { can_reason = true } },
-        "gpt-4.1",
-        "gpt-4o",
-        "gpt-4o-mini",
-        "gpt-4-turbo-preview",
+        ["o3-2025-04-16"] = { opts = { has_vision = true, can_reason = true } },
+        ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
+        ["gpt-4.1"] = { opts = { has_vision = true } },
+        ["gpt-4o"] = { opts = { has_vision = true } },
+        ["gpt-4o-mini"] = { opts = { has_vision = true } },
+        ["gpt-4-turbo-preview"] = { opts = { has_vision = true } },
         "gpt-4",
         "gpt-3.5-turbo",
       },

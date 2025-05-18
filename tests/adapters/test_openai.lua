@@ -21,7 +21,7 @@ T["OpenAI adapter"]["it can form messages"] = function()
   h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
 end
 
-T["OpenAI adapter"]["it can form images to be sent to the API"] = function()
+T["OpenAI adapter"]["it can form messages with images"] = function()
   local messages = {
     {
       content = "How are you?",
