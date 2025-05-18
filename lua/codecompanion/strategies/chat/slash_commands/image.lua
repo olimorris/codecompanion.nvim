@@ -161,7 +161,11 @@ local choice = {
       local loc = vim.fn.tempname()
       local response
       local curl_ok, curl_payload = pcall(function()
-        response = Curl.get(url, { output = loc })
+        response = Curl.get(url, {
+          insecure = config.adapters.opts.allow_insecure,
+          proxy = config.adapters.opts.proxy,
+          output = loc,
+        })
       end)
       if not curl_ok then
         vim.loop.fs_unlink(loc)
