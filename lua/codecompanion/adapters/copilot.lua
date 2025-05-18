@@ -258,43 +258,7 @@ return {
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
-      -- Extract any images from the messages table
-      local images = {}
-      vim.iter(messages):each(function(m)
-        if m.opts and m.opts.tag == "image" and m.opts.base64 then
-          images[m.content] = {
-            base64 = m.opts.base64,
-            mimetype = m.opts.mimetype,
-          }
-        end
-      end)
-
-      messages = openai.handlers.form_messages(self, messages).messages
-
-      if vim.tbl_count(images) > 0 then
-        self.headers["Copilot-Vision-Request"] = "true"
-
-        -- Now replace the images to conform to the Copilot API
-        messages = vim
-          .iter(messages)
-          :map(function(m)
-            local image = images[m.content]
-            if image then
-              m.content = {
-                {
-                  type = "image_url",
-                  image_url = {
-                    url = string.format("data:%s;base64,%s", image.mimetype, image.base64),
-                  },
-                },
-              }
-            end
-            return m
-          end)
-          :totable()
-      end
-
-      return { messages = messages }
+      return openai.handlers.form_messages(self, messages)
     end,
     form_tools = function(self, tools)
       return openai.handlers.form_tools(self, tools)

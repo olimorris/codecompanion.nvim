@@ -65,13 +65,14 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
+      local model = self.schema.model.default
+      if type(model) == "function" then
+        model = model(self)
+      end
+
       messages = vim
         .iter(messages)
         :map(function(m)
-          local model = self.schema.model.default
-          if type(model) == "function" then
-            model = model(self)
-          end
           if vim.startswith(model, "o1") and m.role == "system" then
             m.role = self.roles.user
           end
@@ -88,6 +89,19 @@ return {
                 }
               end)
               :totable()
+          end
+
+          -- Process any images
+          if m.opts and m.opts.tag == "image" and m.opts.base64 then
+            self.headers["Copilot-Vision-Request"] = "true"
+            m.content = {
+              {
+                type = "image_url",
+                image_url = {
+                  url = string.format("data:%s;base64,%s", m.opts.mimetype, m.opts.base64),
+                },
+              },
+            }
           end
 
           return {
