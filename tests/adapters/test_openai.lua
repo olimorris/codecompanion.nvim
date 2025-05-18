@@ -32,10 +32,9 @@ T["OpenAI adapter"]["it can form messages with images"] = function()
       role = "assistant",
     },
     {
-      content = "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+      content = "somefakebase64encoding",
       role = "user",
       opts = {
-        base64 = "abc123",
         mimetype = "image/jpg",
         reference = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
         tag = "image",
@@ -62,7 +61,7 @@ T["OpenAI adapter"]["it can form messages with images"] = function()
         {
           type = "image_url",
           image_url = {
-            url = "data:image/jpg;base64,abc123",
+            url = "data:image/jpg;base64,somefakebase64encoding",
           },
         },
       },

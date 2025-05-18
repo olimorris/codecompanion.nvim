@@ -97,19 +97,13 @@ return {
           end
 
           -- Process any images
-          if
-            (self.opts and self.opts.vision)
-            and m.opts
-            and m.opts.tag == "image"
-            and m.opts.base64
-            and m.opts.mimetype
-          then
+          if (self.opts and self.opts.vision) and m.opts and m.opts.tag == "image" and m.opts.mimetype then
             self.headers["Copilot-Vision-Request"] = "true"
             m.content = {
               {
                 type = "image_url",
                 image_url = {
-                  url = string.format("data:%s;base64,%s", m.opts.mimetype, m.opts.base64),
+                  url = string.format("data:%s;base64,%s", m.opts.mimetype, m.content),
                 },
               },
             }

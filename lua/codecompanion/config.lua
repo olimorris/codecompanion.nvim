@@ -149,7 +149,8 @@ local defaults = {
           callback = "strategies.chat.slash_commands.image",
           description = "Insert an image",
           opts = {
-            image_dirs = {}, -- Directories on disk to search for images
+            dirs = {}, -- Directories to search for images
+            filetypes = { "png", "jpg", "jpeg", "gif", "webp" }, -- Images to search for
             provider = providers.pickers, -- telescope|snacks|mini_pick|fzf_lua|default
           },
         },

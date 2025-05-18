@@ -54,9 +54,20 @@ local function pick_providers()
   end
 end
 
+---Get the default image providers
+---@return string
+local function image_providers()
+  if pcall(require, "snacks") then
+    return "snacks"
+  else
+    return "default"
+  end
+end
+
 return {
   action_palette = action_palette_providers(),
   diff = diff_providers(),
   help = help_providers(),
+  images = image_providers(),
   pickers = pick_providers(),
 }

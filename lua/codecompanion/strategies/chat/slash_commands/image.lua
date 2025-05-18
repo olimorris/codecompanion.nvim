@@ -8,6 +8,77 @@ local CONSTANTS = {
   PROMPT = "Select an image(s)",
 }
 
+---Encode a given file to base64
+---@param filepath string The path to the file to encode.
+---@return string?, string?
+local function get_base64_from_file(filepath)
+  if vim.fn.executable("base64") == 0 then
+    return nil, "Could not find the `base64` command."
+  end
+
+  local args
+  local uname_info = vim.loop.os_uname()
+  if uname_info and uname_info.sysname == "Darwin" then
+    args = { "-i", filepath }
+  elseif uname_info and uname_info.sysname == "Linux" then
+    args = { "-w", "0", filepath }
+  else
+    args = { filepath }
+  end
+
+  local job = Job:new({
+    command = "base64",
+    args = args,
+    enable_recording = true,
+  })
+
+  local sync_ok, sync_payload = pcall(function()
+    job:sync(5000)
+  end)
+
+  if not sync_ok then
+    return nil, "base64 encoding failed or timed out: " .. tostring(sync_payload)
+  end
+
+  if job.code == 0 then
+    local stdout_results = job:result()
+    local b64_content = nil
+    if stdout_results and #stdout_results > 0 then
+      b64_content = table.concat(stdout_results, "")
+      b64_content = vim.trim(b64_content)
+    end
+    if b64_content and #b64_content > 0 then
+      return b64_content, nil
+    else
+      return nil, "base64 encoding produced empty output."
+    end
+  else
+    local stderr_msg = ""
+    if job:stderr_result() and #(job:stderr_result()) > 0 then
+      stderr_msg = ": " .. table.concat(job:stderr_result(), " ")
+    end
+    return nil, "Could not base64 encode image (code " .. tostring(job.code) .. ")" .. stderr_msg
+  end
+end
+
+---Get the mimetype from the given file
+---@param filepath string The path to the file
+---@return string
+local function get_mimetype(filepath)
+  local map = {
+    gif = "image/gif",
+    jpg = "image/jpeg",
+    jpeg = "image/jpeg",
+    png = "image/png",
+    webp = "image/webp",
+  }
+
+  local extension = vim.fn.fnamemodify(filepath, ":e")
+  extension = extension:lower()
+
+  return map[extension]
+end
+
 local providers = {
   ---The default provider
   ---@param SlashCommand CodeCompanion.SlashCommand
@@ -35,99 +106,50 @@ local providers = {
       title = CONSTANTS.PROMPT .. ": ",
       output = function(selection)
         return SlashCommand:output({
-          bufnr = selection.buf,
-          name = vim.fn.bufname(selection.buf),
+          relative_path = selection.file,
           path = selection.file,
         })
       end,
     })
 
-    snacks.provider.picker.pick({
-      source = "buffers",
-      prompt = snacks.title,
+    local dirs = { vim.fn.getcwd() } -- Always search the current working directory
+
+    local image_dirs = config.strategies.chat.slash_commands.image.opts.dirs
+    if image_dirs and vim.tbl_count(image_dirs) > 0 then
+      vim.list_extend(dirs, image_dirs)
+    end
+
+    local ft = nil
+    local filetypes = config.strategies.chat.slash_commands.image.opts.filetypes
+    if filetypes and vim.tbl_count(filetypes) > 0 then
+      ft = filetypes
+    end
+
+    snacks.provider.picker.pick("files", {
       confirm = snacks:display(),
+      dirs = dirs,
+      ft = ft,
       main = { file = false, float = true },
+      prompt = snacks.title,
     })
-  end,
-
-  ---The Telescope provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  telescope = function(SlashCommand)
-    local telescope = require("codecompanion.providers.slash_commands.telescope")
-    telescope = telescope.new({
-      title = CONSTANTS.PROMPT,
-      output = function(selection)
-        return SlashCommand:output({
-          bufnr = selection.bufnr,
-          name = selection.filename,
-          path = selection.path,
-        })
-      end,
-    })
-
-    telescope.provider.buffers({
-      prompt_title = telescope.title,
-      ignore_current_buffer = true, -- Ignore the codecompanion buffer when selecting buffers
-      attach_mappings = telescope:display(),
-    })
-  end,
-
-  ---The Mini.Pick provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  mini_pick = function(SlashCommand)
-    local mini_pick = require("codecompanion.providers.slash_commands.mini_pick")
-    mini_pick = mini_pick.new({
-      title = CONSTANTS.PROMPT,
-      output = function(selected)
-        return SlashCommand:output(selected)
-      end,
-    })
-
-    mini_pick.provider.builtin.buffers(
-      { include_current = false },
-      mini_pick:display(function(selected)
-        return {
-          bufnr = selected.bufnr,
-          name = selected.text,
-          path = selected.text,
-        }
-      end)
-    )
-  end,
-
-  ---The fzf-lua provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  fzf_lua = function(SlashCommand)
-    local fzf = require("codecompanion.providers.slash_commands.fzf_lua")
-    fzf = fzf.new({
-      title = CONSTANTS.PROMPT,
-      output = function(selected)
-        return SlashCommand:output(selected)
-      end,
-    })
-
-    fzf.provider.buffers(fzf:display(function(selected, opts)
-      local file = fzf.provider.path.entry_to_file(selected, opts)
-      return {
-        bufnr = file.bufnr,
-        name = file.path,
-        path = file.bufname,
-      }
-    end))
   end,
 }
 
 -- The different choices the user has to insert an image via a slash command
 local choice = {
-  ---Share the URL of an image
-  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---Load the file picker
+  ---@param SlashCommand CodeCompanion.SlashCommand.Image
+  ---@param SlashCommands CodeCompanion.SlashCommands
   ---@return nil
-  URL = function(SlashCommand)
-    return vim.ui.input({ prompt = "Enter the URL: " }, function(input)
-      if #vim.trim(input or "") == 0 then
+  File = function(SlashCommand, SlashCommands)
+    return SlashCommands:set_provider(SlashCommand, providers)
+  end,
+  ---Share the URL of an image
+  ---@param SlashCommand CodeCompanion.SlashCommand.Image
+  ---@return nil
+  URL = function(SlashCommand, _)
+    return vim.ui.input({ prompt = "Enter the URL: " }, function(url)
+      if #vim.trim(url or "") == 0 then
         return
       end
 
@@ -139,10 +161,10 @@ local choice = {
       local loc = vim.fn.tempname()
       local response
       local curl_ok, curl_payload = pcall(function()
-        response = Curl.get(input, { output = loc })
+        response = Curl.get(url, { output = loc })
       end)
       if not curl_ok then
-        vim.loop.fs_unlink(loc) -- Clean up temp file if it was created
+        vim.loop.fs_unlink(loc)
         return util.notify("Failed to execute curl: " .. tostring(curl_payload), vim.log.levels.ERROR)
       end
 
@@ -171,45 +193,11 @@ local choice = {
         end
       end
 
-      -- Determine the user's OS to set the correct args
-      local args
-      local uname_info = vim.loop.os_uname()
-      if uname_info and uname_info.sysname == "Darwin" then -- macOS
-        args = { "-i", loc }
-      elseif uname_info and uname_info.sysname == "Linux" then -- Linux
-        args = { "-w", "0", loc }
-      else
-        args = { loc }
-      end
-
-      -- Base64 encode the image
-      local job = Job:new({
-        command = "base64",
-        args = args,
-        on_exit = function(data, code)
-          vim.schedule(function()
-            if code == 0 then
-              local base64_content = nil
-              if data._stdout_results and #data._stdout_results > 0 then
-                base64_content = table.concat(data._stdout_results, "")
-                base64_content = vim.trim(base64_content)
-              end
-
-              local selected = {
-                source = "image_url",
-                path = input,
-                mimetype = mimetype,
-                base64 = base64_content,
-              }
-              return SlashCommand:output(selected)
-            else
-              util.notify("Could not base64 encode the image", vim.log.levels.ERROR)
-            end
-            vim.loop.fs_unlink(loc)
-          end)
-        end,
+      return SlashCommand:output({
+        id = url,
+        path = loc,
+        mimetype = mimetype,
       })
-      job:start()
     end)
   end,
 }
@@ -238,7 +226,7 @@ function SlashCommand:execute(SlashCommands)
     if not selected then
       return
     end
-    return choice[selected](self)
+    return choice[selected](self, SlashCommands)
   end)
 end
 
@@ -247,20 +235,30 @@ end
 ---@param opts? table
 ---@return nil
 function SlashCommand:output(selected, opts)
-  local id = "<image>" .. selected.path .. "</image>"
-  local image = selected.path
+  local id = "<image>" .. (selected.id or selected.path) .. "</image>"
 
-  self.Chat:add_message({
-    role = config.constants.USER_ROLE,
-    content = image,
-  }, { reference = id, base64 = selected.base64, mimetype = selected.mimetype, tag = "image", visible = false })
+  local b64_content, b64_err = get_base64_from_file(selected.path)
+  if b64_err then
+    return util.notify(b64_err, vim.log.levels.ERROR)
+  end
 
-  self.Chat.references:add({
-    bufnr = selected.bufnr,
-    id = id,
-    path = selected.path,
-    source = "codecompanion.strategies.chat.slash_commands.image",
-  })
+  if not selected.mimetype then
+    selected.mimetype = get_mimetype(selected.path)
+  end
+
+  if b64_content then
+    self.Chat:add_message({
+      role = config.constants.USER_ROLE,
+      content = b64_content,
+    }, { reference = id, mimetype = selected.mimetype, tag = "image", visible = false })
+
+    self.Chat.references:add({
+      bufnr = selected.bufnr,
+      id = id,
+      path = selected.path,
+      source = "codecompanion.strategies.chat.slash_commands.image",
+    })
+  end
 end
 
 return SlashCommand
