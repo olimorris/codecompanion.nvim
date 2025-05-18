@@ -224,6 +224,7 @@ T["Adapter"]["can update a model on the adapter"] = function()
     name = "o4-mini-2025-04-16",
     opts = {
       can_reason = true,
+      has_vision = true,
     },
   }, result)
 end
