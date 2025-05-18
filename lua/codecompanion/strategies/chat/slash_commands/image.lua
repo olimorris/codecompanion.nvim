@@ -3,9 +3,13 @@ local Job = require("plenary.job")
 local config = require("codecompanion.config")
 local util = require("codecompanion.utils")
 
+local dirs = { vim.fn.getcwd() } -- Always search the cwd for images
+
 local CONSTANTS = {
   NAME = "Image",
   PROMPT = "Select an image(s)",
+  IMAGE_DIRS = config.strategies.chat.slash_commands.image.opts.dirs,
+  IMAGE_TYPES = config.strategies.chat.slash_commands.image.opts.filetypes,
 }
 
 ---Encode a given file to base64
@@ -112,17 +116,13 @@ local providers = {
       end,
     })
 
-    local dirs = { vim.fn.getcwd() } -- Always search the current working directory
-
-    local image_dirs = config.strategies.chat.slash_commands.image.opts.dirs
-    if image_dirs and vim.tbl_count(image_dirs) > 0 then
-      vim.list_extend(dirs, image_dirs)
+    if CONSTANTS.IMAGE_DIRS and vim.tbl_count(CONSTANTS.IMAGE_DIRS) > 0 then
+      vim.list_extend(dirs, CONSTANTS.IMAGE_DIRS)
     end
 
     local ft = nil
-    local filetypes = config.strategies.chat.slash_commands.image.opts.filetypes
-    if filetypes and vim.tbl_count(filetypes) > 0 then
-      ft = filetypes
+    if CONSTANTS.IMAGE_TYPES and vim.tbl_count(CONSTANTS.IMAGE_TYPES) > 0 then
+      ft = CONSTANTS.IMAGE_TYPES
     end
 
     snacks.provider.picker.pick("files", {

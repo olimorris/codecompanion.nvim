@@ -150,8 +150,8 @@ local defaults = {
           description = "Insert an image",
           opts = {
             dirs = {}, -- Directories to search for images
-            filetypes = { "png", "jpg", "jpeg", "gif", "webp" }, -- Images to search for
-            provider = providers.pickers, -- telescope|snacks|mini_pick|fzf_lua|default
+            filetypes = { "png", "jpg", "jpeg", "gif", "webp" }, -- Filetypes to search for
+            provider = providers.pickers, -- snacks|default
           },
         },
         ["now"] = {
