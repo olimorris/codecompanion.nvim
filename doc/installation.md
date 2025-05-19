@@ -67,24 +67,22 @@ As per [#377](https://github.com/olimorris/codecompanion.nvim/issues/377), if yo
 
 ## Installing Extensions
 
-CodeCompanion supports extensions that add additional functionality to the plugin. For example, to install and set up the mcphub extension using lazy.nvim:
+CodeCompanion supports extensions that add additional functionality to the plugin. Below is an example which installs and configures the [MCP Hub](extensions/mcphub.html) extension:
 
-1. Install the extension:
+1. Install with:
 
 ```lua
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
-    -- Add mcphub.nvim as a dependency
     "ravitemer/mcphub.nvim" 
   }
 }
 ```
 
-2. Add extension to your config with additional options:
+2. Configure with additional options:
 
 ```lua
--- Configure in your setup
 require("codecompanion").setup({
   extensions = {
     mcphub = {
