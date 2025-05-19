@@ -55,4 +55,22 @@ function M.encode(filepath)
   end
 end
 
+---Get the mimetype from the given file
+---@param filepath string The path to the file
+---@return string
+function M.get_mimetype(filepath)
+  local map = {
+    gif = "image/gif",
+    jpg = "image/jpeg",
+    jpeg = "image/jpeg",
+    png = "image/png",
+    webp = "image/webp",
+  }
+
+  local extension = vim.fn.fnamemodify(filepath, ":e")
+  extension = extension:lower()
+
+  return map[extension]
+end
+
 return M

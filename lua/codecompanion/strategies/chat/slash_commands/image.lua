@@ -1,5 +1,4 @@
 local Curl = require("plenary.curl")
-local base64 = require("codecompanion.utils.base64")
 local config = require("codecompanion.config")
 local util = require("codecompanion.utils")
 
@@ -9,24 +8,6 @@ local CONSTANTS = {
   IMAGE_DIRS = config.strategies.chat.slash_commands.image.opts.dirs,
   IMAGE_TYPES = config.strategies.chat.slash_commands.image.opts.filetypes,
 }
-
----Get the mimetype from the given file
----@param filepath string The path to the file
----@return string
-local function get_mimetype(filepath)
-  local map = {
-    gif = "image/gif",
-    jpg = "image/jpeg",
-    jpeg = "image/jpeg",
-    png = "image/png",
-    webp = "image/webp",
-  }
-
-  local extension = vim.fn.fnamemodify(filepath, ":e")
-  extension = extension:lower()
-
-  return map[extension]
-end
 
 ---Prepares image search directories and filetypes for a single invocation.
 ---@return table, table|nil Returns search_dirs and filetypes
@@ -194,30 +175,7 @@ end
 ---@param opts? table
 ---@return nil
 function SlashCommand:output(selected, opts)
-  local id = "<image>" .. (selected.id or selected.path) .. "</image>"
-
-  local b64_content, b64_err = base64.encode(selected.path)
-  if b64_err then
-    return util.notify(b64_err, vim.log.levels.ERROR)
-  end
-
-  if not selected.mimetype then
-    selected.mimetype = get_mimetype(selected.path)
-  end
-
-  if b64_content then
-    self.Chat:add_message({
-      role = config.constants.USER_ROLE,
-      content = b64_content,
-    }, { reference = id, mimetype = selected.mimetype, tag = "image", visible = false })
-
-    self.Chat.references:add({
-      bufnr = selected.bufnr,
-      id = id,
-      path = selected.path,
-      source = "codecompanion.strategies.chat.slash_commands.image",
-    })
-  end
+  return require("codecompanion.strategies.chat.helpers").add_image(self.Chat, selected)
 end
 
 return SlashCommand

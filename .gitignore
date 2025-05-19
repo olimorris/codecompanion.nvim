@@ -47,6 +47,7 @@ doc/.vitepress/dist
 doc/.vitepress/cache
 doc/tags*
 
+assets/
 .direnv/
 .testenv/
 .repro/
