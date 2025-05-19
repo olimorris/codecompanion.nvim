@@ -40,6 +40,8 @@ return {
         choices = choices(self)
       end
 
+      self.opts.vision = false
+
       if choices and choices[model] and choices[model].opts then
         self.opts = vim.tbl_deep_extend("force", self.opts, choices[model].opts)
 
@@ -97,16 +99,21 @@ return {
           end
 
           -- Process any images
-          if (self.opts and self.opts.vision) and m.opts and m.opts.tag == "image" and m.opts.mimetype then
-            self.headers["Copilot-Vision-Request"] = "true"
-            m.content = {
-              {
-                type = "image_url",
-                image_url = {
-                  url = string.format("data:%s;base64,%s", m.opts.mimetype, m.content),
+          if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+            if self.opts and self.opts.vision then
+              self.headers["Copilot-Vision-Request"] = "true"
+              m.content = {
+                {
+                  type = "image_url",
+                  image_url = {
+                    url = string.format("data:%s;base64,%s", m.opts.mimetype, m.content),
+                  },
                 },
-              },
-            }
+              }
+            else
+              -- Remove the message if vision is not supported
+              return nil
+            end
           end
 
           return {
