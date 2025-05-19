@@ -316,12 +316,14 @@ end
 ---@param adapter? CodeCompanion.Adapter|string|function
 ---@return CodeCompanion.Adapter
 function Adapter.resolve(adapter)
-  adapter = adapter or config.adapters[config.strategies.chat.adapter]
+  adapter = adapter or config.strategies.chat.adapter
 
   if type(adapter) == "table" then
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
+    local name = adapter
     adapter = Adapter.extend(adapter)
+    adapter.name = name
   elseif type(adapter) == "function" then
     adapter = adapter()
   end
