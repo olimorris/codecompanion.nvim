@@ -35,13 +35,13 @@ return {
   features = {
     tokens = true,
     text = true,
-    vision = true,
   },
   opts = {
     cache_breakpoints = 4, -- Cache up to this many messages
     cache_over = 300, -- Cache any message which has this many tokens or more
     stream = true,
     tools = true,
+    vision = false,
   },
   url = "https://api.anthropic.com/v1/messages",
   env = {

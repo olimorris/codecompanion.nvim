@@ -77,11 +77,11 @@ return {
   opts = {
     stream = true,
     tools = false,
+    vision = false,
   },
   features = {
     text = true,
     tokens = true,
-    vision = false,
   },
   url = "${url}/v1/chat/completions",
   env = {
