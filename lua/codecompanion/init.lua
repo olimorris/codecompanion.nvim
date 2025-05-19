@@ -260,6 +260,7 @@ CodeCompanion.has = function(feature)
     "prompt-library",
     "function-calling",
     "extensions",
+    "custom-http-clients",
   }
 
   if type(feature) == "string" then
