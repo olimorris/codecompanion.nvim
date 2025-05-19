@@ -113,6 +113,7 @@ function Executor:setup(input)
     end
 
     vim.ui.select({ "Yes", "No", "Cancel" }, {
+      kind = "codecompanion.nvim",
       prompt = prompt,
       format_item = function(item)
         if item == "Yes" then
