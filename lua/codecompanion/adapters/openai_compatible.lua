@@ -1,5 +1,5 @@
 local config = require("codecompanion.config")
-local curl = require("plenary.curl")
+local curl = require("codecompanion.http").curl --[[@type function]]
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
@@ -48,7 +48,7 @@ local function get_models(self, opts)
   local ok, response, json
 
   ok, response = pcall(function()
-    return curl.get(url .. models_endpoint, {
+    return curl().get(url .. models_endpoint, {
       sync = true,
       headers = headers,
       insecure = config.adapters.opts.allow_insecure,

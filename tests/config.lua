@@ -53,6 +53,7 @@ return {
     },
     opts = {
       allow_insecure = false,
+      curl = "plenary.curl",
       proxy = nil,
     },
   },

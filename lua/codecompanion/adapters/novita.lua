@@ -1,4 +1,4 @@
-local Curl = require("plenary.curl")
+local curl = require("codecompanion.http").curl --[[@type function]]
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
@@ -20,7 +20,7 @@ local function get_models(self, opts)
   local url = "https://api.novita.ai/v3/openai/models"
 
   local ok, response = pcall(function()
-    return Curl.get(url, {
+    return curl().get(url, {
       sync = true,
       insecure = config.adapters.opts.allow_insecure,
       proxy = config.adapters.opts.proxy,

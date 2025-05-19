@@ -1,28 +1,46 @@
-local Curl = require("plenary.curl")
 local Path = require("plenary.path")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
+local _curl_lib = nil
+
+---Get the Curl library to use to make http requests
+---@return table|nil,string|nil The Curl library
+local function get_curl_lib()
+  local curl_lib = config.adapters.opts.curl or "plenary.curl"
+
+  local ok, module = pcall(require, curl_lib)
+  if ok then
+    return module, nil
+  end
+
+  -- Try loading the library from the user's config
+  ok, module = pcall(loadfile, curl_lib)
+  if not ok then
+    return nil, "Could not load Curl library: " .. module
+  end
+  if module then
+    return module(), nil
+  end
+end
+
 ---@class CodeCompanion.Client
 ---@field adapter CodeCompanion.Adapter
+---@field Curl table The Curl library used to make requests
 ---@field static table
 ---@field opts nil|table
 ---@field user_args nil|table
 local Client = {}
 Client.static = {}
 
--- This makes it easier to mock during testing
-Client.static.opts = {
-  post = { default = Curl.post },
-  get = { default = Curl.get },
-  encode = { default = vim.json.encode },
-  schedule = { default = vim.schedule_wrap },
-}
-
-local function transform_static(opts)
+---Transforms the static options for the client.
+---@param client table The client instance.
+---@param opts? table An optional table of options to override the defaults.
+---@return table A new table with the transformed static options.
+local function transform_static(client, opts)
   local ret = {}
-  for k, v in pairs(Client.static.opts) do
+  for k, v in pairs(client.static.opts) do
     if opts and opts[k] ~= nil then
       ret[k] = opts[k]
     else
@@ -38,15 +56,34 @@ end
 ---@field user_args nil|table
 
 ---@param args CodeCompanion.ClientArgs
----@return table
+---@return table|nil
 function Client.new(args)
   args = args or {}
 
-  return setmetatable({
+  local curl_lib, err = get_curl_lib()
+  if err then
+    return log:error("%s", err)
+  end
+
+  local self = setmetatable({
     adapter = args.adapter,
-    opts = args.opts or transform_static(args.opts),
+    Curl = curl_lib,
     user_args = args.user_args or {},
   }, { __index = Client })
+
+  -- Make it easier to mock during testing
+  if vim.tbl_count(self.static) == 0 then
+    self.static.opts = {
+      post = { default = self.Curl.post },
+      get = { default = self.Curl.get },
+      encode = { default = vim.json.encode },
+      schedule = { default = vim.schedule_wrap },
+    }
+  end
+
+  self.opts = args.opts or transform_static(self, args.opts)
+
+  return self
 end
 
 ---@class CodeCompanion.Adapter.RequestActions
@@ -223,6 +260,22 @@ function Client:request(payload, actions, opts)
   end
 
   return job
+end
+
+---Returns the Curl library used to make requests
+---@return table|nil
+function Client.curl()
+  if _curl_lib then
+    return _curl_lib
+  end
+
+  local curl_lib, err = get_curl_lib()
+  if err then
+    return log:error("%s", err)
+  end
+
+  _curl_lib = curl_lib
+  return _curl_lib
 end
 
 return Client

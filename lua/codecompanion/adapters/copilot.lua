@@ -1,5 +1,5 @@
 local config = require("codecompanion.config")
-local curl = require("plenary.curl")
+local curl = require("codecompanion.http").curl --[[@type function]]
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
@@ -93,7 +93,7 @@ local function authorize_token()
 
   log:debug("Authorizing GitHub Copilot token")
 
-  local request = curl.get("https://api.github.com/copilot_internal/v2/token", {
+  local request = curl().get("https://api.github.com/copilot_internal/v2/token", {
     headers = {
       Authorization = "Bearer " .. _oauth_token,
       ["Accept"] = "application/json",
@@ -155,7 +155,7 @@ local function get_models(self, opts)
   headers["Authorization"] = "Bearer " .. _github_token.token
 
   local ok, response = pcall(function()
-    return curl.get(url .. "/models", {
+    return curl().get(url .. "/models", {
       sync = true,
       headers = headers,
       insecure = config.adapters.opts.allow_insecure,
