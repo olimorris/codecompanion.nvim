@@ -66,6 +66,13 @@ function SlashCommands:execute(item, chat)
     return log:error("Slash command not found: %s", label)
   end
 
+  if callback.enabled then
+    local enabled, err = callback.enabled(chat)
+    if enabled == false then
+      return log:warn(err)
+    end
+  end
+
   return callback
     .new({
       Chat = chat,

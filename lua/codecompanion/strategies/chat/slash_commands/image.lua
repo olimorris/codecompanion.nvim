@@ -178,4 +178,11 @@ function SlashCommand:output(selected, opts)
   return require("codecompanion.strategies.chat.helpers").add_image(self.Chat, selected)
 end
 
+---Is the slash command enabled?
+---@param chat CodeCompanion.Chat
+---@return boolean,string|nil
+function SlashCommand.enabled(chat)
+  return chat.adapter.opts.vision, "The image Slash Command is not enabled for this adapter"
+end
+
 return SlashCommand

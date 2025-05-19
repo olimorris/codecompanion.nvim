@@ -13,11 +13,11 @@ return {
   opts = {
     stream = true,
     tools = true,
+    vision = false,
   },
   features = {
     text = true,
     tokens = true,
-    vision = true,
   },
   url = "https://api.deepseek.com/chat/completions",
   env = {
