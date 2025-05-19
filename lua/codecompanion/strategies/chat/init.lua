@@ -1013,6 +1013,7 @@ function Chat:check_images(message)
     -- Add the images to the chat buffer
     helpers.add_image(self, image)
 
+    -- Remove the image reference from the message
     local to_remove = string.format("[Image](%s)", image.path)
     message.content = vim.trim(message.content:gsub(vim.pesc(to_remove), "image"))
   end
