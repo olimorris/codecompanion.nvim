@@ -76,11 +76,8 @@ end
 ---Get the default image providers
 ---@return string
 local function image_providers()
-  if pcall(require, "snacks") then
-    return "snacks"
-  else
-    return "default"
-  end
+  local providers = { "snacks" }
+  return find_provider(providers, configs, "default")
 end
 
 return {
