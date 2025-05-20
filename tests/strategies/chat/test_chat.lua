@@ -145,7 +145,7 @@ T["Chat"]["images are replaced in text and base64 encoded"] = function()
 
   h.eq({
     mimetype = "image/png",
-    reference = "<image>/Users/Oli/Code/Neovim/codecompanion.nvim/tests/stubs/logo.png</image>",
+    reference = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fn.getcwd()),
     tag = "image",
     visible = false,
   }, message.opts)
