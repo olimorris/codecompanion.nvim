@@ -67,6 +67,73 @@ T["Anthropic adapter"]["can form messages to be sent to the API"] = function()
   }, adapter.handlers.form_messages(adapter, input))
 end
 
+T["Anthropic adapter"]["it can form messages with images"] = function()
+  local messages = {
+    {
+      content = "How are you?",
+      role = "user",
+    },
+    {
+      content = "I am fine, thanks. How can I help?",
+      role = "assistant",
+    },
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      opts = {
+        mimetype = "image/jpg",
+        reference = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
+        tag = "image",
+        visible = false,
+      },
+    },
+    {
+      content = "What is this an image of?",
+      role = "user",
+    },
+  }
+
+  local expected = {
+    {
+      content = {
+        {
+          type = "text",
+          text = "How are you?",
+        },
+      },
+      role = "user",
+    },
+    {
+      content = {
+        {
+          type = "text",
+          text = "I am fine, thanks. How can I help?",
+        },
+      },
+      role = "assistant",
+    },
+    {
+      content = {
+        {
+          type = "image",
+          source = {
+            type = "base64",
+            media_type = "image/jpg",
+            data = "somefakebase64encoding",
+          },
+        },
+        {
+          type = "text",
+          text = "What is this an image of?",
+        },
+      },
+      role = "user",
+    },
+  }
+
+  h.eq(expected, adapter.handlers.form_messages(adapter, messages).messages)
+end
+
 T["Anthropic adapter"]["can form messages with tools to be sent to the API"] = function()
   local input = {
     {
