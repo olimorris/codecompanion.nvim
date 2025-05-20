@@ -27,13 +27,13 @@ The message history cannot be altered directly in the chat buffer. However, it c
 
 ## Settings
 
-An adapters settings can also be changed via the debug window (`gd`). This allows you to modify an adapter's schema, changing things like the specific model and the temperature etc. Be sure to save the changes to the debug window to persist them to the chat buffer.
+An adapter's settings can also be changed via the debug window (`gd`). This allows you to modify an adapter's schema, changing things like the specific model and the temperature etc. Be sure to save the changes to the debug window to persist them to the chat buffer.
 
-## Completion
+## Chat Buffer Completion
 
 <img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" />
 
-The plugin supports multiple completion plugins out of the box. By default, the plugin will look to setup [blink.cmp](https://github.com/Saghen/blink.cmp) before trying to setup [nvim-cmp](https://github.com/hrsh7th/nvim-cmp). If you don't use a completion plugin, then you can use native completions with no setup, invoking them with `<C-_>` from within the chat buffer.
+The plugin supports multiple completion plugins out of the box, in the chat buffer. By default, the plugin will look to setup [blink.cmp](https://github.com/Saghen/blink.cmp) before trying to setup [nvim-cmp](https://github.com/hrsh7th/nvim-cmp). If you don't use a completion plugin, then you can use native completions with no setup, invoking them with `<C-_>` from within the chat buffer.
 
 ## Keymaps
 
@@ -60,22 +60,22 @@ The keymaps available to the user in normal mode are:
 - `{` to move to the previous chat
 - `}` to move to the next chat
 
-## References
+## References / Context
 
-<img src="https://github.com/user-attachments/assets/1b44afe1-13f8-4c0f-9199-cb32439eb09e" />
+<img src="https://github.com/user-attachments/assets/e8a31214-ccba-407f-a8e4-32ba185a3ecd" />
 
-Sharing context with an LLM is crucial in order to generate useful responses. In the plugin, references are defined as output that is shared with a chat buffer via a _Variable_, _Slash Command_ or _Agent/Tool_. They appear in a blockquote entitled `Sharing`. In essence, this is context that you're sharing with an LLM.
+Sharing context with an LLM is crucial in order to generate useful responses. In the plugin, references are defined as output that is shared with a chat buffer via a _Variable_, _Slash Command_ or _Agent/Tool_. They appear in a blockquote entitled `Context`. In essence, this is context that you're sharing with an LLM.
 
 > [!IMPORTANT]
 > References contain the data of an object at a point in time. By default, they **are not** self-updating
 
 In order to allow for references to self-update, they can be _pinned_ (for files and buffers) or _watched_ (for buffers).
 
-File and buffer references can be _pinned_ to a chat buffer with the `gp` keymap (when your cursor is on the line of the shared buffer in the "> Sharing section). Pinning results in the content from the object being reloaded and shared with the LLM on every turn. The advantage of this is that the LLM will always receive a fresh copy of the source data regardless of any changes. This can be useful if you're working with agents and tools. However, please note that this can consume a lot of tokens.
+File and buffer references can be _pinned_ to a chat buffer with the `gp` keymap (when your cursor is on the line of the shared buffer in the "> Context section). Pinning results in the content from the object being reloaded and shared with the LLM on every turn. The advantage of this is that the LLM will always receive a fresh copy of the source data regardless of any changes. This can be useful if you're working with agents and tools. However, please note that this can consume a lot of tokens.
 
-Buffer references can be _watched_ via the `gw` keymap (when your cursor is on the line of the shared buffer in the "> Sharing section). Watching, whilst similar to pinning, is a more token-conscious way of keeping the LLM up to date on the contents of a buffer. Watchers track changes (adds, edits, deletes) in the underlying buffer and update the LLM on each turn, with only those changes.
+Buffer references can be _watched_ via the `gw` keymap (when your cursor is on the line of the shared buffer in the "> Context section). Watching, whilst similar to pinning, is a more token-conscious way of keeping the LLM up to date on the contents of a buffer. Watchers track changes (adds, edits, deletes) in the underlying buffer and update the LLM on each turn, with only those changes.
 
-If a reference is added by mistake, it can be removed from the chat buffer by simply deleting it from the `Sharing` blockquote. On the next turn, all context related to that reference will be removed from the message history.
+If a reference is added by mistake, it can be removed from the chat buffer by simply deleting it from the `Context` blockquote. On the next turn, all context related to that reference will be removed from the message history.
 
 Finally, it's important to note that all LLM endpoints require the sending of previous messages that make up the conversation. So even though you've shared a reference once, many messages ago, the LLM will always have that context to refer to.
 
