@@ -117,7 +117,7 @@ local defaults = {
           description = "Insert open buffers",
           opts = {
             contains_code = true,
-            provider = providers.pickers, -- telescope|snacks|mini_pick|fzf_lua|default
+            provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
         ["fetch"] = {
@@ -133,7 +133,7 @@ local defaults = {
           opts = {
             contains_code = true,
             max_lines = 1000,
-            provider = providers.pickers, -- telescope|snacks|mini_pick|fzf_lua|default
+            provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
         ["help"] = {
@@ -142,7 +142,7 @@ local defaults = {
           opts = {
             contains_code = false,
             max_lines = 128, -- Maximum amount of lines to of the help file to send (NOTE: Each vimdoc line is typically 10 tokens)
-            provider = providers.help, -- telescope|snacks|mini_pick|fzf_lua
+            provider = providers.help, -- telescope|fzf_lua|mini_pick|snacks
           },
         },
         ["image"] = {
@@ -166,7 +166,7 @@ local defaults = {
           description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
-            provider = providers.pickers, -- telescope|snacks|mini_pick|fzf_lua|default
+            provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
         ["terminal"] = {

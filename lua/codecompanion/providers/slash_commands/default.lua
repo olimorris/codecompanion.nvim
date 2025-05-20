@@ -108,6 +108,7 @@ end
 ---@return function
 function Default:display()
   return vim.ui.select(self.to_display, {
+    kind = "codecompanion.nvim",
     prompt = self.title,
     format_item = function(item)
       return self.to_format(item)

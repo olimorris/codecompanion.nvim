@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 10
+*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 19
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -178,25 +178,23 @@ follow the master branch:
 INSTALLING EXTENSIONS       *codecompanion-installation-installing-extensions*
 
 CodeCompanion supports extensions that add additional functionality to the
-plugin. For example, to install and set up the mcphub extension using
-lazy.nvim:
+plugin. Below is an example which installs and configures the
+|codecompanion-extensions-mcphub.html| extension:
 
-1. Install the extension:
+1. Install with:
 
 >lua
     {
       "olimorris/codecompanion.nvim",
       dependencies = {
-        -- Add mcphub.nvim as a dependency
         "ravitemer/mcphub.nvim" 
       }
     }
 <
 
-1. Add extension to your config with additional options:
+1. Configure with additional options:
 
 >lua
-    -- Configure in your setup
     require("codecompanion").setup({
       extensions = {
         mcphub = {
@@ -520,7 +518,8 @@ LAYOUT ~
 
 
   [!NOTE] The Action Palette also supports Telescope.nvim
-  <https://github.com/nvim-telescope/telescope.nvim>, mini.pick
+  <https://github.com/nvim-telescope/telescope.nvim>, fzf_lua
+  <https://github.com/ibhagwan/fzf-lua>, mini.pick
   <https://github.com/echasnovski/mini.pick> and snacks.nvim
   <https://github.com/folke/snacks.nvim>
 You can change the appearance of the chat buffer by changing the
@@ -533,7 +532,7 @@ You can change the appearance of the chat buffer by changing the
           width = 95,
           height = 10,
           prompt = "Prompt ", -- Prompt used for interactive LLM calls
-          provider = "default", -- Can be "default", "telescope", "mini_pick" or "snacks". If not specified, the plugin will autodetect installed providers.
+          provider = "default", -- Can be "default", "telescope", "fzf_lua", "mini_pick" or "snacks". If not specified, the plugin will autodetect installed providers.
           opts = {
             show_default_actions = true, -- Show the default actions in the action palette?
             show_default_prompt_library = true, -- Show the default prompt library in the action palette?
@@ -1054,7 +1053,7 @@ Credit to @lazymaniac <https://github.com/lazymaniac> for the inspiration
 KEYMAPS
 
 Slash Commands can also be called via keymaps, in the chat buffer. Simply add a
-`keymap` table to the Slash Command you’d like to call. For example:
+`keymaps` table to the Slash Command you’d like to call. For example:
 
 >lua
     require("codecompanion").setup({
@@ -1062,7 +1061,7 @@ Slash Commands can also be called via keymaps, in the chat buffer. Simply add a
         chat = {
           slash_commands = {
             ["buffer"] = {
-              keymap = {
+              keymaps = {
                 modes = {
                   i = "<C-b>",
                   n = { "<C-b>", "gb" },
@@ -1591,7 +1590,7 @@ The plugin comes with the following system prompt:
 
 CHANGING THE SYSTEM PROMPT ~
 
-The default system prompt cant be changed with:
+The default system prompt can be changed with:
 
 >lua
     require("codecompanion").setup({
@@ -2763,7 +2762,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI�S API OUTPUT
+OPENAI’S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>

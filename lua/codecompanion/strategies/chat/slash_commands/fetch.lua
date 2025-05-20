@@ -153,6 +153,7 @@ end
 ---@return nil
 local function load_from_cache(chat, url, hash, adapter, opts, cb)
   return vim.ui.select({ "Yes", "No" }, {
+    kind = "codecompanion.nvim",
     prompt = "Load the URL from the cache?",
   }, function(choice)
     if not choice then

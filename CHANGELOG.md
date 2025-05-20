@@ -1,5 +1,26 @@
 # Changelog
 
+## [15.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.4.2...v15.5.0) (2025-05-20)
+
+
+### Features
+
+* **action_palette:** add `fzf_lua` provider ([#1443](https://github.com/olimorris/codecompanion.nvim/issues/1443)) ([03caa41](https://github.com/olimorris/codecompanion.nvim/commit/03caa41555d6615006d0ac8f6fcfee317cb967f0))
+
+
+### Bug Fixes
+
+* **adapters:** resolve adapters with correct name ([#1459](https://github.com/olimorris/codecompanion.nvim/issues/1459)) ([0beb918](https://github.com/olimorris/codecompanion.nvim/commit/0beb9183954ae1afa2e1f5a91812706764d1a743))
+* **adapters:** resolve not using custom adapter ([#1461](https://github.com/olimorris/codecompanion.nvim/issues/1461)) ([b79b33a](https://github.com/olimorris/codecompanion.nvim/commit/b79b33a58304cd386f72ee0ab159824fa21321c6))
+* **ui:** include `kind` option in all `vim.ui.select` calls ([#1456](https://github.com/olimorris/codecompanion.nvim/issues/1456)) ([9d8fc51](https://github.com/olimorris/codecompanion.nvim/commit/9d8fc51a1923333de683ebf85c633fd003ad2b9b))
+
+## [15.4.2](https://github.com/olimorris/codecompanion.nvim/compare/v15.4.1...v15.4.2) (2025-05-16)
+
+
+### Bug Fixes
+
+* **inline:** don't modify prompts going to the chat buffer ([#1447](https://github.com/olimorris/codecompanion.nvim/issues/1447)) ([a3b2b63](https://github.com/olimorris/codecompanion.nvim/commit/a3b2b633c6e17f0a891713c724285843c9706e1e))
+
 ## [15.4.1](https://github.com/olimorris/codecompanion.nvim/compare/v15.4.0...v15.4.1) (2025-05-11)
 
 
