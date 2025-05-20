@@ -75,7 +75,7 @@ CodeCompanion supports extensions that add additional functionality to the plugi
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
-    "ravitemer/mcphub.nvim" 
+    "ravitemer/mcphub.nvim"
   }
 }
 ```
@@ -88,9 +88,9 @@ require("codecompanion").setup({
     mcphub = {
       callback = "mcphub.extensions.codecompanion",
       opts = {
-        make_vars = true,       
+        make_vars = true,
         make_slash_commands = true,
-        show_result_in_chat = true  
+        show_result_in_chat = true
       }
     }
   }
@@ -101,7 +101,7 @@ Visit the [extensions documentation](extending/extensions) to learn more about a
 
 ## Completion in the Chat Buffer
 
-When in the [Chat Buffer](usage/chat-buffer), completion can be used to more easily add [variables](usage/chat-buffer/variables), [slash commands](usage/chat-buffer/slash-commands) and [tools](usage/chat-buffer/agents). Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
+When in the [Chat Buffer](usage/chat-buffer/index), completion can be used to more easily add [variables](usage/chat-buffer/variables), [slash commands](usage/chat-buffer/slash-commands) and [tools](usage/chat-buffer/agents). Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
 
 ```lua
 sources = {
