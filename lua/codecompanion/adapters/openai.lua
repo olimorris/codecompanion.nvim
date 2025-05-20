@@ -35,17 +35,17 @@ return {
       if type(model) == "function" then
         model = model(self)
       end
-      local choices = self.schema.model.choices
-      if type(choices) == "function" then
-        choices = choices(self)
+      local model_opts = self.schema.model.choices
+      if type(model_opts) == "function" then
+        model_opts = model_opts(self)
       end
 
       self.opts.vision = false
 
-      if choices and choices[model] and choices[model].opts then
-        self.opts = vim.tbl_deep_extend("force", self.opts, choices[model].opts)
+      if model_opts and model_opts[model] and model_opts[model].opts then
+        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts[model].opts)
 
-        if not choices[model].opts.has_vision then
+        if not model_opts[model].opts.has_vision then
           self.opts.vision = false
         end
       end
@@ -101,7 +101,9 @@ return {
           -- Process any images
           if m.opts and m.opts.tag == "image" and m.opts.mimetype then
             if self.opts and self.opts.vision then
-              self.headers["Copilot-Vision-Request"] = "true"
+              if self.name == "copilot" then
+                self.headers["Copilot-Vision-Request"] = "true"
+              end
               m.content = {
                 {
                   type = "image_url",
