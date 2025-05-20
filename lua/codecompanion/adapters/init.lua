@@ -321,9 +321,8 @@ function Adapter.resolve(adapter)
   if type(adapter) == "table" then
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
-    local name = adapter
-    adapter = Adapter.extend(adapter)
-    adapter.name = name
+    local user_adapter = config.adapters[adapter]
+    adapter = Adapter.extend(user_adapter or adapter, { name = adapter })
   elseif type(adapter) == "function" then
     adapter = adapter()
   end
