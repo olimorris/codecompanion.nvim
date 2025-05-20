@@ -180,7 +180,7 @@ end
 
 ---Is the slash command enabled?
 ---@param chat CodeCompanion.Chat
----@return boolean,string|nil
+---@return boolean,string
 function SlashCommand.enabled(chat)
   return chat.adapter.opts.vision, "The image Slash Command is not enabled for this adapter"
 end

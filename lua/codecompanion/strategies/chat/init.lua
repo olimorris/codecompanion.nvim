@@ -323,7 +323,7 @@ local function ts_parse_images(chat, start_range)
   local ts_query = vim.treesitter.query.parse(
     "markdown_inline",
     [[
-((inline_link) @link_node)
+((inline_link) @link)
   ]]
   )
   local parser = vim.treesitter.get_parser(chat.bufnr, "markdown_inline")
@@ -333,25 +333,21 @@ local function ts_parse_images(chat, start_range)
 
   local links = {}
 
-  for id, link_node_capture in ts_query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
+  for id, node in ts_query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
     local capture_name = ts_query.captures[id]
-    if capture_name == "link_node" then
+    if capture_name == "link" then
       local link_label_text = nil
       local link_dest_text = nil
 
-      for child in link_node_capture:iter_children() do
+      for child in node:iter_children() do
         local child_type = child:type()
 
         if child_type == "link_text" then
-          local ok, text = pcall(vim.treesitter.get_node_text, child, chat.bufnr)
-          if ok then
-            link_label_text = text
-          end
+          local text = vim.treesitter.get_node_text(child, chat.bufnr)
+          link_label_text = text
         elseif child_type == "link_destination" then
-          local ok, text = pcall(vim.treesitter.get_node_text, child, chat.bufnr)
-          if ok then
-            link_dest_text = text
-          end
+          local text = vim.treesitter.get_node_text(child, chat.bufnr)
+          link_dest_text = text
         end
       end
 
