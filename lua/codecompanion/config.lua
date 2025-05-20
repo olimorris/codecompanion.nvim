@@ -151,7 +151,7 @@ local defaults = {
           opts = {
             dirs = {}, -- Directories to search for images
             filetypes = { "png", "jpg", "jpeg", "gif", "webp" }, -- Filetypes to search for
-            provider = providers.pickers, -- snacks|default
+            provider = providers.images, -- snacks|default
           },
         },
         ["now"] = {
