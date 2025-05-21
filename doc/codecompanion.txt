@@ -10,7 +10,8 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Requirements                     |codecompanion-installation-requirements|
   - Installation                     |codecompanion-installation-installation|
   - Installing Extensions   |codecompanion-installation-installing-extensions|
-  - Completion in the Chat Buffer|codecompanion-installation-completion-in-the-chat-buffer|
+  - Additional s                     |codecompanion-installation-additional-s|
+  - Completion                         |codecompanion-installation-completion|
   - Help                                     |codecompanion-installation-help|
 3. Getting Started                             |codecompanion-getting-started|
   - With an Adapter            |codecompanion-getting-started-with-an-adapter|
@@ -62,12 +63,13 @@ FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
 -  Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs out of the box (or bring your own!)
--  User contributed and supported |codecompanion-configuration-adapters.html-user-contributed-adapters|
--  Inline transformations, code creation and refactoring
--  Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
--  Built in prompt library for common tasks like advice on LSP errors and code explanations
--  Create your own custom prompts, Variables and Slash Commands
--  Have multiple chats open at the same time
+-  User contributed and supported |codecompanion-configuration-adapters-community-adapters|
+-  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
+-  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-agents| and |codecompanion-usage-workflows| to improve LLM output
+-  Built in |codecompanion-usage-action-palette.html| for common tasks like advice on LSP errors and code explanations
+-  Create your own |codecompanion-extending-prompts|, Variables and Slash Commands
+-  Have |codecompanion-usage-introduction-quickly-accessing-a-chat-buffer| open at the same time
+-  Support for |codecompanion-usage-chat-buffer--images-vision| as input
 -  Async execution for fast performance
 
 
@@ -103,14 +105,15 @@ The plugin allows you to specify adapters for each strategy and also for each
 2. Installation                                   *codecompanion-installation*
 
 
-  [!IMPORTANT] The plugin requires the markdown Tree-sitter parser to be
-  installed with `:TSInstall markdown`
+  [!IMPORTANT] The plugin requires the markdown and markdown_inline Tree-sitter
+  parsers to be installed with `:TSInstall markdown markdown_inline`
 
 REQUIREMENTS                         *codecompanion-installation-requirements*
 
 - The `curl` library
 - Neovim 0.10.0 or greater
 - `(Optional)` An API key for your chosen LLM
+- `(Optional)` The `base64` library for image/vision support
 
 
 INSTALLATION                         *codecompanion-installation-installation*
@@ -213,7 +216,65 @@ Visit the |codecompanion-extending-extensions| to learn more about available
 extensions and how to create your own.
 
 
-COMPLETION IN THE CHAT BUFFER*codecompanion-installation-completion-in-the-chat-buffer*
+ADDITIONAL S                         *codecompanion-installation-additional-s*
+
+CodeCompanion integrates with a number of other plugins to make your AI coding
+experience more enjoyable. Below are some common lazy.nvim configurations for
+popular plugins:
+
+
+RENDER-MARKDOWN.NVIM ~
+
+To render the markdown in the chat buffer:
+
+>lua
+    {
+      "MeanderingProgrammer/render-markdown.nvim",
+      ft = { "markdown", "codecompanion" }
+    },
+<
+
+
+MARKVIEW.NVIM ~
+
+To render the markdown in the chat buffer:
+
+>lua
+    {
+      "OXY2DEV/markview.nvim",
+      lazy = false,
+      opts = {
+        preview = {
+          filetypes = { "markdown", "codecompanion" },
+          ignore_buftypes = {},
+        },
+      },
+    },
+<
+
+
+IMG-CLIP.NVIM ~
+
+To enable you to copy images from your system clipboard into a chat buffer via
+`:PasteImage`:
+
+>lua
+    {
+      "HakonHarnes/img-clip.nvim",
+      opts = {
+        filetypes = {
+          codecompanion = {
+            prompt_for_file_name = false,
+            template = "[Image]($FILE_PATH)",
+            use_absolute_path = true,
+          },
+        },
+      },
+    },
+<
+
+
+COMPLETION                             *codecompanion-installation-completion*
 
 When in the |codecompanion-usage-chat-buffer-index|, completion can be used to
 more easily add |codecompanion-usage-chat-buffer-variables|,
@@ -1287,8 +1348,11 @@ There are a number of diff settings available to you:
 <
 
 
-UI ~
+USER INTERFACE (UI) ~
 
+
+  [!NOTE] The |codecompanion-installation-additional-plugins| section contains
+  installation instructions for some popular markdown rendering plugins
 
 USER AND LLM ROLES
 
@@ -1322,36 +1386,6 @@ If you opt for a function, the first parameter will always be the adapter from
 the chat buffer.
 
 The user role is currently only available as a string.
-
-
-MARKDOWN RENDERING
-
-As the Chat Buffer uses markdown as its syntax, you can use popular rendering
-plugins to improve the UI:
-
-**render-markdown.nvim**
-
->lua
-    {
-      "MeanderingProgrammer/render-markdown.nvim",
-      ft = { "markdown", "codecompanion" }
-    },
-<
-
-**markview.nvim**
-
->lua
-    {
-      "OXY2DEV/markview.nvim",
-      lazy = false,
-      opts = {
-        preview = {
-          filetypes = { "markdown", "codecompanion" },
-          ignore_buftypes = {},
-        },
-      },
-    },
-<
 
 
 AUTO SCROLLING
@@ -1841,51 +1875,18 @@ the user can edit as they wish. To persist any changes, the chat buffer keymaps
 for sending a message (defaults: `<CR>` or `<C-s>`) can be used.
 
 
-SETTINGS ~
+IMAGES / VISION ~
 
-An adapter’s settings can also be changed via the debug window (`gd`). This
-allows you to modify an adapter’s schema, changing things like the specific
-model and the temperature etc. Be sure to save the changes to the debug window
-to persist them to the chat buffer.
+Many LLMs have the ability to receive images as input (sometimes referred to as
+vision). CodeCompanion supports the adding of images into the chat buffer via
+the |codecompanion-usage-chat-buffer-slash-commands-image| slash command and
+through the system clipboard with |codecompanion-installation-img-clip-nvim|.
+CodeCompanion can work with images in your file system and also with remote
+URLs, encoding both into a base64 representation.
 
-
-CHAT BUFFER COMPLETION ~
-
-
-
-The plugin supports multiple completion plugins out of the box, in the chat
-buffer. By default, the plugin will look to setup blink.cmp
-<https://github.com/Saghen/blink.cmp> before trying to setup nvim-cmp
-<https://github.com/hrsh7th/nvim-cmp>. If you don’t use a completion plugin,
-then you can use native completions with no setup, invoking them with `<C-_>`
-from within the chat buffer.
-
-
-KEYMAPS ~
-
-The plugin has a host of keymaps available in the chat buffer. Pressing `?` in
-the chat buffer will conveniently display all of them to you.
-
-The keymaps available to the user in normal mode are:
-
-- `<CR>|<C-s>` to send a message to the LLM
-- `<C-c>` to close the chat buffer
-- `q` to stop the current request
-- `ga` to change the adapter for the currentchat
-- `gc` to insert a codeblock in the chat buffer
-- `gd` to view/debug the chat buffer’s contents
-- `gf` to fold any codeblocks in the chat buffer
-- `gp` to pin a reference to the chat buffer
-- `gw` to watch a referenced buffer
-- `gr` to regenerate the last response
-- `gs` to toggle the system prompt on/off
-- `gta` to toggle auto tool mode
-- `gx` to clear the chat buffer’s contents
-- `gy` to yank the last codeblock in the chat buffer
-- `[[` to move to the previous header
-- `]]` to move to the next header
-- `{` to move to the previous chat
-- `}` to move to the next chat
+If your adapter and model doesn’t support images, then CodeCompanion will
+endeavour to ensure that the image is not included in the messages payload
+that’s sent to the LLM.
 
 
 REFERENCES / CONTEXT ~
@@ -1938,6 +1939,45 @@ enabled (`display.chat.show_settings = true`), then a yaml block will be
 present at the top of the chat buffer which can be modified in between
 responses. The yaml block is simply a representation of an adapter’s schema
 table.
+
+
+COMPLETION ~
+
+
+
+The plugin supports multiple completion plugins out of the box, in the chat
+buffer. By default, the plugin will look to setup blink.cmp
+<https://github.com/Saghen/blink.cmp> before trying to setup nvim-cmp
+<https://github.com/hrsh7th/nvim-cmp>. If you don’t use a completion plugin,
+then you can use native completions with no setup, invoking them with `<C-_>`
+from within the chat buffer.
+
+
+KEYMAPS ~
+
+The plugin has a host of keymaps available in the chat buffer. Pressing `?` in
+the chat buffer will conveniently display all of them to you.
+
+The keymaps available to the user in normal mode are:
+
+- `<CR>|<C-s>` to send a message to the LLM
+- `<C-c>` to close the chat buffer
+- `q` to stop the current request
+- `ga` to change the adapter for the currentchat
+- `gc` to insert a codeblock in the chat buffer
+- `gd` to view/debug the chat buffer’s contents
+- `gf` to fold any codeblocks in the chat buffer
+- `gp` to pin a reference to the chat buffer
+- `gw` to watch a referenced buffer
+- `gr` to regenerate the last response
+- `gs` to toggle the system prompt on/off
+- `gta` to toggle auto tool mode
+- `gx` to clear the chat buffer’s contents
+- `gy` to yank the last codeblock in the chat buffer
+- `[[` to move to the previous header
+- `]]` to move to the next header
+- `{` to move to the previous chat
+- `}` to move to the next chat
 
 
 AGENTS AND TOOLS                        *codecompanion-usage-agents-and-tools*
@@ -2214,6 +2254,15 @@ The `help` slash command allows you to add content from a vim help file
 only available for `Telescope`, `mini.pick`, `fzf_lua` and `snacks.nvim`
 providers. By default, the slash command will prompt you to trim a help file
 that is over 1,000 lines in length.
+
+
+/IMAGE ~
+
+The `image` slash command allows you to add images into a chat buffer via
+remote URLs and through your file system. In the config for the slash command,
+you can specify a group of directories (with `opts.dirs`) that the image picker
+will always search in, alongside the current working directory. Currently the
+image picker is only available with `snacks.nvim` and the `vim.ui.select`.
 
 
 /NOW ~
@@ -2766,7 +2815,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI’S API OUTPUT
+OPENAI�S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>

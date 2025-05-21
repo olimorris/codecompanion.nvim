@@ -19,12 +19,13 @@ CodeCompanion is a productivity tool which streamlines how you develop with LLMs
 
 - :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
 - :electric_plug: Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs out of the box (or bring your own!)
-- :heart_hands: User contributed and supported [adapters](configuration/adapters.html#user-contributed-adapters)
-- :rocket: Inline transformations, code creation and refactoring
-- :robot: Variables, Slash Commands, Agents/Tools and Workflows to improve LLM output
-- :sparkles: Built in prompt library for common tasks like advice on LSP errors and code explanations
-- :building_construction: Create your own custom prompts, Variables and Slash Commands
-- :books: Have multiple chats open at the same time
+- :heart_hands: User contributed and supported [adapters](/configuration/adapters#community-adapters)
+- :rocket: [Inline transformations](/usage/inline-assistant.html), code creation and refactoring
+- :robot: [Variables](/usage/chat-buffer/variables), [Slash Commands](/usage/chat-buffer/slash-commands), [Agents/Tools](/usage/chat-buffer/agents) and [Workflows](/usage/workflows) to improve LLM output
+- :sparkles: Built in [prompt library](/usage/action-palette.html) for common tasks like advice on LSP errors and code explanations
+- :building_construction: Create your own [custom prompts](extending/prompts), Variables and Slash Commands
+- :books: Have [multiple chats](/usage/introduction#quickly-accessing-a-chat-buffer) open at the same time
+- :art: Support for [vision and images](/usage/chat-buffer/#images-vision) as input
 - :muscle: Async execution for fast performance
 
 ## Plugin Overview
