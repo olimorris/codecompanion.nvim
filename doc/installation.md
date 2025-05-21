@@ -1,13 +1,14 @@
 # Installation
 
 > [!IMPORTANT]
-> The plugin requires the markdown Tree-sitter parser to be installed with `:TSInstall markdown`
+> The plugin requires the markdown and markdown_inline Tree-sitter parsers to be installed with `:TSInstall markdown markdown_inline`
 
 ## Requirements
 
 - The `curl` library
 - Neovim 0.10.0 or greater
 - _(Optional)_ An API key for your chosen LLM
+- _(Optional)_ The `base64` library for image/vision support
 
 ## Installation
 
@@ -99,7 +100,59 @@ require("codecompanion").setup({
 
 Visit the [extensions documentation](extending/extensions) to learn more about available extensions and how to create your own.
 
-## Completion in the Chat Buffer
+## Additional Plugins
+
+CodeCompanion integrates with a number of other plugins to make your AI coding experience more enjoyable. Below are some common lazy.nvim configurations for popular plugins:
+
+### [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim)
+
+To render the markdown in the chat buffer:
+
+```lua
+{
+  "MeanderingProgrammer/render-markdown.nvim",
+  ft = { "markdown", "codecompanion" }
+},
+```
+
+### [markview.nvim](https://github.com/OXY2DEV/markview.nvim)
+
+To render the markdown in the chat buffer:
+
+```lua
+{
+  "OXY2DEV/markview.nvim",
+  lazy = false,
+  opts = {
+    preview = {
+      filetypes = { "markdown", "codecompanion" },
+      ignore_buftypes = {},
+    },
+  },
+},
+```
+
+### [img-clip.nvim](https://github.com/hakonharnes/img-clip.nvim)
+
+To enable you to copy images from your system clipboard into a chat buffer via `:PasteImage`:
+
+```lua
+{
+  "HakonHarnes/img-clip.nvim",
+  opts = {
+    filetypes = {
+      codecompanion = {
+        prompt_for_file_name = false,
+        template = "[Image]($FILE_PATH)",
+        use_absolute_path = true,
+      },
+    },
+  },
+},
+
+```
+
+## Completion
 
 When in the [Chat Buffer](usage/chat-buffer/index), completion can be used to more easily add [variables](usage/chat-buffer/variables), [slash commands](usage/chat-buffer/slash-commands) and [tools](usage/chat-buffer/agents). Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
 
