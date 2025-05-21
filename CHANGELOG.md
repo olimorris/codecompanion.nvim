@@ -1,5 +1,20 @@
 # Changelog
 
+## [15.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.5.0...v15.6.0) (2025-05-21)
+
+
+### Features
+
+* **adapters:** add vision support ([#1455](https://github.com/olimorris/codecompanion.nvim/issues/1455)) ([1a4f0a4](https://github.com/olimorris/codecompanion.nvim/commit/1a4f0a44b1e52d1c569ce2f66b03b6804e74b183))
+* **adapters:** can use adapter.opts.request to override Client:request ([#1469](https://github.com/olimorris/codecompanion.nvim/issues/1469)) ([ec73b64](https://github.com/olimorris/codecompanion.nvim/commit/ec73b64df3d0767eb0a5b42d942f9e02970ee95c))
+* **adapters:** set Copilot default model to `gpt-4.1` ([bd14edb](https://github.com/olimorris/codecompanion.nvim/commit/bd14edb82ea07423c5c0f7484ef885a895374719))
+
+
+### Bug Fixes
+
+* **inline:** keymap modes ([#1468](https://github.com/olimorris/codecompanion.nvim/issues/1468)) ([7ac8234](https://github.com/olimorris/codecompanion.nvim/commit/7ac823450c490201af3362a0861c2c1c19b827a8))
+* **variables:** ensure special chars are matched ([#1470](https://github.com/olimorris/codecompanion.nvim/issues/1470)) ([a682004](https://github.com/olimorris/codecompanion.nvim/commit/a682004d4ff97c0450617975699bfc78029862be))
+
 ## [15.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.4.2...v15.5.0) (2025-05-20)
 
 
