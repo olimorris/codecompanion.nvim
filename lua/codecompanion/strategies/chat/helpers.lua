@@ -43,35 +43,45 @@ function M.slash_command_keymaps(slash_commands)
   return keymaps
 end
 
----Add an image to the chat buffer
----@param Chat CodeCompanion.Chat The chat instance.
+---Base64 encode the given image
 ---@param image table The image object containing the path and other metadata.
----@return nil
-function M.add_image(Chat, image)
-  local id = "<image>" .. (image.id or image.path) .. "</image>"
-
+---@return {base64: string, mimetype: string}|string The base64 encoded image string
+function M.encode_image(image)
   local b64_content, b64_err = base64.encode(image.path)
   if b64_err then
-    return log:error(b64_err)
+    return b64_err
   end
+
+  image.base64 = b64_content
 
   if not image.mimetype then
     image.mimetype = base64.get_mimetype(image.path)
   end
 
-  if b64_content then
-    Chat:add_message({
-      role = config.constants.USER_ROLE,
-      content = b64_content,
-    }, { reference = id, mimetype = image.mimetype, tag = "image", visible = false })
+  return image
+end
 
-    Chat.references:add({
-      bufnr = image.bufnr,
-      id = id,
-      path = image.path,
-      source = "codecompanion.strategies.chat.slash_commands.image",
-    })
-  end
+---Add an image to the chat buffer
+---@param Chat CodeCompanion.Chat The chat instance
+---@param image table The image object containing the path and other metadata
+---@param opts table Options for adding the image
+---@return nil
+function M.add_image(Chat, image, opts)
+  opts = opts or {}
+
+  local id = "<image>" .. (image.id or image.path) .. "</image>"
+
+  Chat:add_message({
+    role = opts.role or config.constants.USER_ROLE,
+    content = image.base64,
+  }, { reference = id, mimetype = image.mimetype, tag = "image", visible = false })
+
+  Chat.references:add({
+    bufnr = opts.bufnr or image.bufnr,
+    id = id,
+    path = image.path,
+    source = opts.source or "codecompanion.strategies.chat.slash_commands.image",
+  })
 end
 
 return M

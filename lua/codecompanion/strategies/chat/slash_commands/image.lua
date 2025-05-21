@@ -1,6 +1,7 @@
 local Curl = require("plenary.curl")
 local config = require("codecompanion.config")
-local util = require("codecompanion.utils")
+local helpers = require("codecompanion.strategies.chat.helpers")
+local log = require("codecompanion.utils.log")
 
 local CONSTANTS = {
   NAME = "Image",
@@ -90,7 +91,7 @@ local choice = {
       end
 
       if vim.fn.executable("base64") == 0 then
-        return util.notify("The `base64` command could not be found", vim.log.levels.ERROR)
+        return log:warn("The `base64` command could not be found")
       end
 
       -- Download the image to a temporary directory
@@ -105,7 +106,7 @@ local choice = {
       end)
       if not curl_ok then
         vim.loop.fs_unlink(loc)
-        return util.notify("Failed to execute curl: " .. tostring(curl_payload), vim.log.levels.ERROR)
+        return log:error("Failed to execute curl: %s", tostring(curl_payload))
       end
 
       -- Check if the response is valid
@@ -115,10 +116,10 @@ local choice = {
           err_msg = err_msg .. " HTTP Status: " .. response.status
         end
         if response and response.body and #response.body > 0 then
-          err_msg = err_msg .. "\nServer response: " .. response.body:sub(1, 200) -- Show a snippet
+          err_msg = err_msg .. "\nServer response: " .. response.body:sub(1, 200)
         end
-        vim.loop.fs_unlink(loc) -- Clean up the downloaded file, as it might be an error page or empty
-        return util.notify(err_msg, vim.log.levels.ERROR)
+        vim.loop.fs_unlink(loc)
+        return log:error(err_msg)
       end
 
       -- Fetch the MIME type from headers
@@ -175,7 +176,11 @@ end
 ---@param opts? table
 ---@return nil
 function SlashCommand:output(selected, opts)
-  return require("codecompanion.strategies.chat.helpers").add_image(self.Chat, selected)
+  local encoded_image = helpers.encode_image(selected)
+  if type(encoded_image) == "string" then
+    return log:error("Could not encode image: %s", encoded_image)
+  end
+  return helpers.add_image(self.Chat, selected)
 end
 
 ---Is the slash command enabled?

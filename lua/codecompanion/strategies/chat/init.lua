@@ -1006,12 +1006,19 @@ function Chat:check_images(message)
   end
 
   for _, image in ipairs(images) do
-    -- Add the images to the chat buffer
-    helpers.add_image(self, image)
+    local encoded_image = helpers.encode_image(image)
+    if type(encoded_image) == "string" then
+      log:error("Could not encode image: %s", encoded_image)
+      goto continue
+    end
 
-    -- Remove the image reference from the message
+    helpers.add_image(self, encoded_image)
+
+    -- Replace the image link in the message with "image"
     local to_remove = string.format("[Image](%s)", image.path)
     message.content = vim.trim(message.content:gsub(vim.pesc(to_remove), "image"))
+
+    :: continue ::
   end
 end
 
