@@ -4,9 +4,9 @@ local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
 
+local _cached_adapter
 local _cache_expires
 local _cache_file = vim.fn.tempname()
-local _cached_adapter
 local _cached_models
 
 ---@alias CopilotOAuthToken string|nil
@@ -15,7 +15,8 @@ local _oauth_token
 ---@alias CopilotToken {token: string, expires_at: number}|nil
 local _github_token
 
---- Finds the configuration path
+---Finds the configuration path
+---@return string|nil
 local function find_config_path()
   if os.getenv("CODECOMPANION_TOKEN_PATH") then
     return os.getenv("CODECOMPANION_TOKEN_PATH")
@@ -263,6 +264,13 @@ return {
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
+      -- Ensure we send over the correct headers for image requests
+      for _, m in ipairs(messages) do
+        if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+          self.headers["Copilot-Vision-Request"] = "true"
+          break
+        end
+      end
       return openai.handlers.form_messages(self, messages)
     end,
     form_tools = function(self, tools)

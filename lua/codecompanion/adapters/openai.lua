@@ -101,9 +101,6 @@ return {
           -- Process any images
           if m.opts and m.opts.tag == "image" and m.opts.mimetype then
             if self.opts and self.opts.vision then
-              if self.name == "copilot" then
-                self.headers["Copilot-Vision-Request"] = "true"
-              end
               m.content = {
                 {
                   type = "image_url",
