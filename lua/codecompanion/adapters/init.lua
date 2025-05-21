@@ -326,7 +326,7 @@ function Adapter.resolve(adapter)
   elseif type(adapter) == "function" then
     adapter = adapter()
   end
-
+  adapter:map_schema_to_params()
   return adapter.set_model(adapter)
 end
 
