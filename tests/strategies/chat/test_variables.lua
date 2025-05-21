@@ -64,6 +64,19 @@ T["Variables"][":parse"]["should parse a message with a variable and ignore para
   h.eq("baz", message.content)
 end
 
+T["Variables"][":parse"]["should parse a message with special characters in variable name"] = function()
+  table.insert(chat.messages, {
+    role = "user",
+    content = "#screenshot://screenshot-2025-05-21T11-17-45.440Z what does this do?",
+  })
+  local result = vars:parse(chat, chat.messages[#chat.messages])
+
+  h.eq(true, result)
+
+  local message = chat.messages[#chat.messages]
+  h.eq("Resolved screenshot variable", message.content)
+end
+
 T["Variables"][":replace"]["should replace the variable in the message"] = function()
   local message = "#foo #bar replace this var"
   local result = vars:replace(message, 0)

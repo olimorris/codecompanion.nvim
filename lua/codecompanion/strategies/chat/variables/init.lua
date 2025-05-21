@@ -79,7 +79,9 @@ function Variables:find(message)
 
   local found = {}
   for var, _ in pairs(self.vars) do
-    if message.content:match("%f[%w" .. CONSTANTS.PREFIX .. "]" .. CONSTANTS.PREFIX .. var .. "%f[%W]") then
+    -- Escape the special characters in var
+    local escaped_var = var:gsub("[%(%)%.%%%+%-%*%?%[%]%^%$%/:]", "%%%1")
+    if message.content:match("%f[%w" .. CONSTANTS.PREFIX .. "]" .. CONSTANTS.PREFIX .. escaped_var .. "%f[%W]") then
       table.insert(found, var)
     end
   end
