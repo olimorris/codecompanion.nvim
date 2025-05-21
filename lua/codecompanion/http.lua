@@ -59,6 +59,16 @@ end
 ---@param opts? table Options that can be passed to the request
 ---@return table|nil The Plenary job
 function Client:request(payload, actions, opts)
+  -- Check if the adapter has a custom request function and use it instead
+  if
+    self.adapter
+    and self.adapter.opts
+    and self.adapter.opts.request
+    and type(self.adapter.opts.request) == "function"
+  then
+    return self.adapter.opts.request(self, payload, actions, opts)
+  end
+
   opts = opts or {}
   local cb = log:wrap_cb(actions.callback, "Response error: %s") --[[@type function]]
 
