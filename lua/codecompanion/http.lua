@@ -60,8 +60,13 @@ end
 ---@return table|nil The Plenary job
 function Client:request(payload, actions, opts)
   -- Check if the adapter has a custom request function and use it instead
-  if self.adapter and self.adapter.request and type(self.adapter.request) == "function" then
-    return self.adapter.request(self, payload, actions, opts)
+  if
+    self.adapter
+    and self.adapter.opts
+    and self.adapter.opts.request
+    and type(self.adapter.opts.request) == "function"
+  then
+    return self.adapter.opts.request(self, payload, actions, opts)
   end
 
   opts = opts or {}
