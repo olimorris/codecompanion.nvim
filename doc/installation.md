@@ -152,6 +152,23 @@ To enable you to copy images from your system clipboard into a chat buffer via `
 
 ```
 
+### [mini.diff](https://github.com/echasnovski/mini.diff)
+
+To render generated diffs inline, but keep `mini.diff` disabled for Git diffs:
+
+```lua
+ {
+    "echasnovski/mini.diff",
+    config = function()
+      local diff = require("mini.diff")
+      diff.setup({
+        -- Disabled by default
+        source = diff.gen_source.none(),
+      })
+    end,
+},
+```
+
 ## Completion
 
 When in the [Chat Buffer](usage/chat-buffer/index), completion can be used to more easily add [variables](usage/chat-buffer/variables), [slash commands](usage/chat-buffer/slash-commands) and [tools](usage/chat-buffer/agents). Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
