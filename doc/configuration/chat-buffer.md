@@ -86,7 +86,6 @@ require("codecompanion").setup({
 })
 ```
 
-
 You can also add your own slash commands:
 
 ```lua
