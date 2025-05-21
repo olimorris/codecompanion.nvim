@@ -29,6 +29,10 @@ The _file_ slash command allows you to add the contents of a file in the current
 
 The _help_ slash command allows you to add content from a vim help file (`:h helpfile`), to the chat buffer, by searching for help tags. Currently this is only available for _Telescope_, _mini.pick_, _fzf_lua_ and _snacks.nvim_ providers. By default, the slash command will prompt you to trim a help file that is over 1,000 lines in length.
 
+## /image
+
+The _image_ slash command allows you to add images into a chat buffer via remote URLs and through your file system. In the config for the slash command, you can specify a group of directories (with `opts.dirs`) that the image picker will always search in, alongside the current working directory. Currently the image picker is only available with _snacks.nvim_ and the `vim.ui.select`.
+
 ## /now
 
 The _now_ slash command simply inserts the current datetime stamp into the chat buffer.

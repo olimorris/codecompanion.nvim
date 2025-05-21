@@ -117,4 +117,40 @@ T["Chat"]["prompt decorator is applied prior to sending to the LLM"] = function(
   h.eq("<prompt>" .. prompt .. "</prompt>", output)
 end
 
+T["Chat"]["images are replaced in text and base64 encoded"] = function()
+  local prompt = string.format("What does this [Image](%s) do?", vim.fn.getcwd() .. "/tests/stubs/logo.png")
+  local message = child.lua(string.format(
+    [[
+      _G.chat:add_buf_message({
+        role = "user",
+        content = "%s",
+      })
+      _G.chat:submit()
+      local messages = _G.chat.messages
+      return messages[#messages - 1].content
+  ]],
+    prompt
+  ))
+
+  h.eq("What does this image do?", message)
+
+  if vim.fn.executable("base64") == 0 then
+    MiniTest.skip("base64 is not installed, skipping test")
+  end
+
+  message = child.lua([[
+    local messages = _G.chat.messages
+    return messages[#messages]
+  ]])
+
+  h.eq({
+    mimetype = "image/png",
+    reference = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fn.getcwd()),
+    tag = "image",
+    visible = false,
+  }, message.opts)
+
+  h.expect_starts_with("iVBORw0KGgoAAAANSUhEU", message.content)
+end
+
 return T

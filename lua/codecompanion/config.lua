@@ -1,6 +1,6 @@
-local fmt = string.format
-
 local providers = require("codecompanion.providers")
+
+local fmt = string.format
 
 local constants = {
   LLM_ROLE = "llm",
@@ -143,6 +143,15 @@ local defaults = {
             contains_code = false,
             max_lines = 128, -- Maximum amount of lines to of the help file to send (NOTE: Each vimdoc line is typically 10 tokens)
             provider = providers.help, -- telescope|fzf_lua|mini_pick|snacks
+          },
+        },
+        ["image"] = {
+          callback = "strategies.chat.slash_commands.image",
+          description = "Insert an image",
+          opts = {
+            dirs = {}, -- Directories to search for images
+            filetypes = { "png", "jpg", "jpeg", "gif", "webp" }, -- Filetypes to search for
+            provider = providers.images, -- snacks|default
           },
         },
         ["now"] = {

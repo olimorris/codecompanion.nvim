@@ -10,11 +10,11 @@ return {
   },
   opts = {
     stream = true,
+    vision = true,
   },
   features = {
     text = true,
     tokens = true,
-    vision = true,
   },
   url = "${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=${api_version}",
   env = {

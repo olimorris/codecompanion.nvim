@@ -60,11 +60,11 @@ return {
   },
   opts = {
     stream = true,
+    vision = false,
   },
   features = {
     text = true,
     tokens = true,
-    vision = false,
   },
   url = "https://api.novita.ai/v3/openai/chat/completions",
   env = {

@@ -4,9 +4,9 @@ local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
 
+local _cached_adapter
 local _cache_expires
 local _cache_file = vim.fn.tempname()
-local _cached_adapter
 local _cached_models
 
 ---@alias CopilotOAuthToken string|nil
@@ -15,7 +15,8 @@ local _oauth_token
 ---@alias CopilotToken {token: string, expires_at: number}|nil
 local _github_token
 
---- Finds the configuration path
+---Finds the configuration path
+---@return string|nil
 local function find_config_path()
   if os.getenv("CODECOMPANION_TOKEN_PATH") then
     return os.getenv("CODECOMPANION_TOKEN_PATH")
@@ -178,12 +179,14 @@ local function get_models(self, opts)
     if model.model_picker_enabled and model.capabilities.type == "chat" then
       local choice_opts = {}
 
-      -- streaming support
       if model.capabilities.supports.streaming then
         choice_opts.can_stream = true
       end
       if model.capabilities.supports.tool_calls then
         choice_opts.can_use_tools = true
+      end
+      if model.capabilities.supports.vision then
+        choice_opts.has_vision = true
       end
 
       models[model.id] = { opts = choice_opts }
@@ -207,11 +210,11 @@ return {
   opts = {
     stream = true,
     tools = true,
+    vision = true,
   },
   features = {
     text = true,
     tokens = true,
-    vision = false,
   },
   url = "https://api.githubcopilot.com/chat/completions",
   env = {
@@ -249,6 +252,9 @@ return {
       if (self.opts and self.opts.tools) and (model_opts and model_opts.opts and not model_opts.opts.can_use_tools) then
         self.opts.tools = false
       end
+      if (self.opts and self.opts.vision) and (model_opts and model_opts.opts and not model_opts.opts.has_vision) then
+        self.opts.vision = false
+      end
 
       return get_and_authorize_token()
     end,
@@ -258,6 +264,13 @@ return {
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
+      -- Ensure we send over the correct headers for image requests
+      for _, m in ipairs(messages) do
+        if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+          self.headers["Copilot-Vision-Request"] = "true"
+          break
+        end
+      end
       return openai.handlers.form_messages(self, messages)
     end,
     form_tools = function(self, tools)

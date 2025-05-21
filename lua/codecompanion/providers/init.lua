@@ -73,9 +73,17 @@ local function pick_providers()
   return find_provider(providers, configs, "default")
 end
 
+---Get the default image providers
+---@return string
+local function image_providers()
+  local providers = { "snacks" }
+  return find_provider(providers, configs, "default")
+end
+
 return {
   action_palette = action_palette_providers(),
   diff = diff_providers(),
   help = help_providers(),
+  images = image_providers(),
   pickers = pick_providers(),
 }
