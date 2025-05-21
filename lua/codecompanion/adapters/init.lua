@@ -30,6 +30,7 @@ local log = require("codecompanion.utils.log")
 ---@field handlers.on_exit? fun(self: CodeCompanion.Adapter, data: table): table|nil
 ---@field handlers.teardown? fun(self: CodeCompanion.Adapter): any
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
+---@field request? fun(self: CodeCompanion.Client, payload: { messages: table, tools: table|nil }, actions: CodeCompanion.Adapter.RequestActions, opts: table?) # Function to let and adapter completely override the above request handlers, and implement the request function itself.
 
 ---Check if a variable starts with "cmd:"
 ---@param var string
