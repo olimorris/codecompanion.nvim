@@ -317,12 +317,13 @@ end
 ---@param adapter? CodeCompanion.Adapter|string|function
 ---@return CodeCompanion.Adapter
 function Adapter.resolve(adapter)
-  adapter = adapter or config.adapters[config.strategies.chat.adapter]
+  adapter = adapter or config.strategies.chat.adapter
 
   if type(adapter) == "table" then
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
-    adapter = Adapter.extend(adapter)
+    local user_adapter = config.adapters[adapter]
+    adapter = Adapter.extend(user_adapter or adapter, { name = adapter })
   elseif type(adapter) == "function" then
     adapter = adapter()
   end

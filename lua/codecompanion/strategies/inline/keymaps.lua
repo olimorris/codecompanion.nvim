@@ -9,8 +9,8 @@ local M = {}
 local function clear_map(keymaps, bufnr)
   bufnr = bufnr or 0
   for _, map in pairs(keymaps) do
-    for _, key in pairs(map.modes) do
-      vim.keymap.del("n", key, { buffer = bufnr })
+    for mode, lhs in pairs(map.modes) do
+      vim.keymap.del(mode, lhs, { buffer = bufnr })
     end
   end
 end

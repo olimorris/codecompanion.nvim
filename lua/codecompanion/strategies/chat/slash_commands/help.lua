@@ -111,6 +111,7 @@ local function output(SlashCommand, selected)
 
   if line_count > CONSTANTS.MAX_LINES then
     vim.ui.select({ "Yes", "No" }, {
+      kind = "codecompanion.nvim",
       prompt = "The help file is more than " .. CONSTANTS.MAX_LINES .. " lines. Do you want to trim it?",
     }, function(choice)
       if not choice then
