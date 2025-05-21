@@ -138,6 +138,7 @@ return {
         if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
           return self.schema.model.choices[model].opts.can_reason
         end
+        return false
       end,
       default = "medium",
       desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
