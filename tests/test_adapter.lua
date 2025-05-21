@@ -252,6 +252,14 @@ T["Adapter"]["can resolve custom adapters"] = function()
   h.eq("abc_123", result)
 end
 
+T["Adapter"]["maps schema to params when resolving"] = function()
+  local result = child.lua([[
+    return require("codecompanion.adapters").resolve(_G.test_adapter).parameters.data.model
+  ]])
+
+  h.eq("gpt-4-0125-preview", result)
+end
+
 T["Adapter"]["utils"] = new_set()
 
 T["Adapter"]["utils"]["can consolidate consecutive messages"] = function()
