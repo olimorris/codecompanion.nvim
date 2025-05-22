@@ -315,7 +315,6 @@ end
 
 ---Resolve an adapter from deep within the plugin...somewhere
 ---@param adapter? CodeCompanion.Adapter|string|function
----@param opts? table
 ---@return CodeCompanion.Adapter
 function Adapter.resolve(adapter)
   adapter = adapter or config.strategies.chat.adapter
