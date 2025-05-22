@@ -41,18 +41,22 @@ T["Inline"]["can parse markdown output correctly"] = function()
 end
 
 T["Inline"]["can parse Ollama output correctly"] = function()
-  local json = inline:parse_output(
-    [[```json\n{\n  "code": "\n/**\n * Executes an action based on the current action type.\n */\n",\n  "language": "php",\n  "placement": "before"\n}\n```]]
-  )
-  h.eq(
-    [[
+  local ollama_response_str = "{\n"
+    .. '  "code": "\\n\\n/**\\n * Executes an action based on the current action type.\\n */\\n",\n'
+    .. '  "language": "lua",\n'
+    .. '  "placement": "before"\n'
+    .. "}"
+
+  local json = inline:parse_output(ollama_response_str)
+  local expected_code_block = [[
+
 
 /**
  * Executes an action based on the current action type.
  */
-]],
-    json.code
-  )
+]]
+
+  h.eq(expected_code_block, json.code)
   h.eq("before", json.placement)
 end
 
