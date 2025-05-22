@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 21
+*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 22
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -249,6 +249,24 @@ To render the markdown in the chat buffer:
           ignore_buftypes = {},
         },
       },
+    },
+<
+
+
+MINI.DIFF ~
+
+For a cleaner diff when using the inline assistant or the `@editor` tool:
+
+>lua
+    {
+      "echasnovski/mini.diff",
+      config = function()
+        local diff = require("mini.diff")
+        diff.setup({
+          -- Disabled by default
+          source = diff.gen_source.none(),
+        })
+      end,
     },
 <
 

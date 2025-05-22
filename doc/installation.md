@@ -132,6 +132,23 @@ To render the markdown in the chat buffer:
 },
 ```
 
+### [mini.diff](https://github.com/echasnovski/mini.diff)
+
+For a cleaner diff when using the inline assistant or the `@editor` tool:
+
+```lua
+{
+  "echasnovski/mini.diff",
+  config = function()
+    local diff = require("mini.diff")
+    diff.setup({
+      -- Disabled by default
+      source = diff.gen_source.none(),
+    })
+  end,
+},
+```
+
 ### [img-clip.nvim](https://github.com/hakonharnes/img-clip.nvim)
 
 To enable you to copy images from your system clipboard into a chat buffer via `:PasteImage`:
