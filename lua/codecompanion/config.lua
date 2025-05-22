@@ -23,11 +23,9 @@ local defaults = {
     ollama = "ollama",
     openai = "openai",
     xai = "xai",
-    -- NON-LLMs ---------------------------------------------------------------
-    non_llm = {
-      jina = "jina",
-      tavily = "tavily",
-    },
+    -- Non LLMs
+    jina = "jina",
+    tavily = "tavily",
     -- OPTIONS ----------------------------------------------------------------
     opts = {
       allow_insecure = false, -- Allow insecure connections?

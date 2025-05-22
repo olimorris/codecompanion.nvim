@@ -271,11 +271,7 @@ function Adapter.extend(adapter, opts)
   opts = opts or {}
 
   if type(adapter) == "string" then
-    local subfolder = opts.subfolder or ""
-    if subfolder ~= "" and subfolder:sub(-1) ~= "." then
-      subfolder = subfolder .. "."
-    end
-    ok, adapter_config = pcall(require, "codecompanion.adapters." .. subfolder .. adapter)
+    ok, adapter_config = pcall(require, "codecompanion.adapters." .. adapter)
     if not ok then
       adapter_config = config.adapters[adapter]
       if type(adapter_config) == "function" then

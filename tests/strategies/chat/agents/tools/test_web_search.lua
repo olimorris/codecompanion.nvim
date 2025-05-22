@@ -2,7 +2,7 @@ local new_set = MiniTest.new_set
 local h = require("tests.helpers")
 
 local client = require("codecompanion.http")
-local tavily = require("codecompanion.adapters.non_llm.tavily")
+local tavily = require("codecompanion.adapters.tavily")
 local web_search = require("codecompanion.strategies.chat.agents.tools.web_search")
 
 local T = new_set({
@@ -12,7 +12,7 @@ local T = new_set({
       client.new = function(_)
         return {
           request = function(_, _, opts)
-            local lines = vim.fn.readfile("tests/adapters/non_llm/stubs/output/tavily_search.json")
+            local lines = vim.fn.readfile("tests/adapters/stubs/output/tavily_search.txt")
             local json_string = table.concat(lines, "\n")
             local tavily_search_stub = vim.json.decode(json_string)
             opts.callback(nil, tavily_search_stub)

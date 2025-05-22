@@ -7,7 +7,7 @@ T = new_set()
 T["Tavily adapter"] = new_set({
   hooks = {
     pre_case = function()
-      adapter = require("codecompanion.adapters.non_llm.tavily")
+      adapter = require("codecompanion.adapters.tavily")
       adapter.opts = {}
     end,
   },

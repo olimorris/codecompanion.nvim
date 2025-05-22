@@ -32,7 +32,8 @@ return {
 
       args.query = string.gsub(args.query, "%f[%w_]web_search%f[^%w_]", "", 1)
 
-      local adapter = adapters.resolve(config.adapters.non_llm.tavily, { subfolder = "non_llm" })
+      local tool_adapter = config.strategies.chat.tools.web_search.opts.adapter
+      local adapter = adapters.resolve(config.adapters[tool_adapter])
 
       if not adapter then
         log:error("Failed to load the adapter for the web_search Tool")
