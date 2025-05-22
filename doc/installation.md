@@ -166,7 +166,6 @@ To enable you to copy images from your system clipboard into a chat buffer via `
     },
   },
 },
-
 ```
 
 ## Completion

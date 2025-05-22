@@ -17,7 +17,15 @@ local configs = {
       return snacks_module and snacks_module.config.picker.enabled
     end,
   },
-  mini_diff = { module = "mini.diff", name = "mini_diff" },
+  mini_diff = {
+    module = "mini.diff",
+    name = "mini_diff",
+    condition = function()
+      -- MiniDiff only works correctly if initialized,
+      -- which sets the global variable
+      return _G.MiniDiff ~= nil
+    end,
+  },
   fzf_lua = { module = "fzf-lua", name = "fzf_lua" },
 }
 
