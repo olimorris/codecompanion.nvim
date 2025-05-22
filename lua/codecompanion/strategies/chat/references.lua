@@ -90,7 +90,14 @@ local function add(chat, ref, row)
     table.insert(lines, "")
   end
 
+  local was_locked = not vim.bo[chat.bufnr].modifiable
+  if was_locked then
+    chat.ui:unlock_buf()
+  end
   api.nvim_buf_set_lines(chat.bufnr, row, row, false, lines)
+  if was_locked then
+    chat.ui:lock_buf()
+  end
 end
 
 ---@class CodeCompanion.Chat.References
