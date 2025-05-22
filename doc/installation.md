@@ -149,24 +149,6 @@ To enable you to copy images from your system clipboard into a chat buffer via `
     },
   },
 },
-
-```
-
-### [mini.diff](https://github.com/echasnovski/mini.diff)
-
-To render generated diffs inline, but keep `mini.diff` disabled for Git diffs:
-
-```lua
- {
-    "echasnovski/mini.diff",
-    config = function()
-      local diff = require("mini.diff")
-      diff.setup({
-        -- Disabled by default
-        source = diff.gen_source.none(),
-      })
-    end,
-},
 ```
 
 ## Completion
