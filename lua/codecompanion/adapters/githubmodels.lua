@@ -136,12 +136,13 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
-      default = "gpt-4o",
+      default = "gpt-4.1",
       choices = {
         ["o3-mini"] = { opts = { can_reason = true } },
         ["o1"] = { opts = { can_reason = true } },
         ["o1-mini"] = { opts = { can_reason = true } },
         "claude-3.5-sonnet",
+        "gpt-4.1",
         "gpt-4o",
         "gpt-4o-mini",
         "DeepSeek-R1",
