@@ -47,11 +47,11 @@ return {
   },
   opts = {
     stream = true,
+    vision = false,
   },
   features = {
     text = true,
     tokens = true,
-    vision = false,
   },
   url = "https://models.inference.ai.azure.com/chat/completions",
   env = {

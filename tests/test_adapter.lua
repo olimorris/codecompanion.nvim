@@ -5,7 +5,7 @@ local new_set = MiniTest.new_set
 local child = MiniTest.new_child_neovim()
 T = new_set({
   hooks = {
-    pre_once = function()
+    pre_case = function()
       child.restart({ "-u", "scripts/minimal_init.lua" })
       child.lua([[
         utils = require("codecompanion.utils.adapters")
@@ -99,7 +99,7 @@ T = new_set({
         }
       ]])
     end,
-    post_once = child.stop,
+    post_case = child.stop,
   },
 })
 
@@ -224,8 +224,33 @@ T["Adapter"]["can update a model on the adapter"] = function()
     name = "o4-mini-2025-04-16",
     opts = {
       can_reason = true,
+      has_vision = true,
     },
   }, result)
+end
+
+T["Adapter"]["can resolve custom adapters"] = function()
+  local result = child.lua([[
+    require("codecompanion").setup({
+      adapters = {
+        openai = function()
+          return require("codecompanion.adapters").extend("openai", {
+            env = {
+              api_key = "abc_123"
+            }
+          })
+        end,
+      },
+      strategies = {
+        chat = {
+          adapter = "openai",
+        }
+      }
+    })
+    return require("codecompanion.adapters").resolve().env.api_key
+  ]])
+
+  h.eq("abc_123", result)
 end
 
 T["Adapter"]["utils"] = new_set()

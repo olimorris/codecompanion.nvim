@@ -17,6 +17,7 @@ The [History extension](https://github.com/ravitemer/codecompanion-history.nvim)
 - 🔄 Continue from where you left
 - 📚 Browse saved chats with preview
 - 🔍 Multiple picker interfaces
+- ⌛ Optional automatic chat expiration
 - ⚡ Restore chat sessions with full context and tools state
 
 The following CodeCompanion features are preserved when saving and restoring chats:
@@ -63,22 +64,30 @@ require("codecompanion").setup({
             opts = {
                 -- Keymap to open history from chat buffer (default: gh)
                 keymap = "gh",
-                -- Automatically generate titles for new chats
+                -- Keymap to save the current chat manually (when auto_save is disabled)
+                save_chat_keymap = "sc",
+                -- Save all chats by default (disable to save only manually using 'sc')
+                auto_save = true,
+                -- Number of days after which chats are automatically deleted (0 to disable)
+                expiration_days = 0,
+                -- Picker interface ("telescope" or "snacks" or "fzf-lua" or "default")
+                picker = "telescope",
+                ---Automatically generate titles for new chats
                 auto_generate_title = true,
+                title_generation_opts = {
+                    ---Adapter for generating titles (defaults to active chat's adapter) 
+                    adapter = nil, -- e.g "copilot"
+                    ---Model for generating titles (defaults to active chat's model)
+                    model = nil, -- e.g "gpt-4o"
+                },
                 ---On exiting and entering neovim, loads the last chat on opening chat
                 continue_last_chat = false,
                 ---When chat is cleared with `gx` delete the chat from history
                 delete_on_clearing_chat = false,
-                -- Picker interface ("telescope" or "snacks" or "default")
-                picker = "telescope",
-                ---Enable detailed logging for history extension
-                enable_logging = false,
                 ---Directory path to save the chats
                 dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
-                -- Save all chats by default
-                auto_save = true,
-                -- Keymap to save the current chat manually
-                save_chat_keymap = "sc",
+                ---Enable detailed logging for history extension
+                enable_logging = false,
             }
         }
     }
@@ -105,7 +114,16 @@ The history browser shows all your saved chats with:
 
 Actions in history browser:
 - `<CR>` - Open selected chat
-- `d` - Delete selected chat in normal mode (Doesn't apply to default vim.ui.select)
+- Normal mode:
+  - `d` - Delete selected chat(s)
+  - `r` - Rename selected chat
+- Insert mode:
+  - `<M-d>` (Alt+d) - Delete selected chat(s)
+  - `<M-r>` (Alt+r) - Rename selected chat
+
+You can use `<Tab>` to select multiple chats for deletion.
+
+> Note: Delete and rename actions are not available for the default picker.
 
 #### 🔧 API
 
@@ -132,6 +150,3 @@ delete_chat(save_id: string): boolean
 
 - Visit [codecompanion-history.nvim](https://github.com/ravitemer/codecompanion-history.nvim) to see how it works.
 - Found a bug? [Raise an issue](https://github.com/ravitemer/codecompanion-history.nvim/issues).
-
-
-

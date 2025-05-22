@@ -174,6 +174,10 @@ return {
             has_params = true,
           },
         },
+        ["screenshot://screenshot-2025-05-21T11-17-45.440Z"] = {
+          callback = "tests.strategies.chat.variables.screenshot",
+          description = "Screenshot",
+        },
         ["baz"] = {
           callback = "tests.strategies.chat.variables.baz",
           description = "baz",

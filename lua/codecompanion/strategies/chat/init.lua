@@ -316,6 +316,54 @@ local function ts_parse_headers(chat)
   end
 end
 
+---Parse a section of the buffer for Markdown inline links.
+---@param chat CodeCompanion.Chat The chat instance.
+---@param start_range number The 1-indexed line number from where to start parsing.
+local function ts_parse_images(chat, start_range)
+  local ts_query = vim.treesitter.query.parse(
+    "markdown_inline",
+    [[
+((inline_link) @link)
+  ]]
+  )
+  local parser = vim.treesitter.get_parser(chat.bufnr, "markdown_inline")
+
+  local tree = parser:parse({ start_range, -1 })[1]
+  local root = tree:root()
+
+  local links = {}
+
+  for id, node in ts_query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
+    local capture_name = ts_query.captures[id]
+    if capture_name == "link" then
+      local link_label_text = nil
+      local link_dest_text = nil
+
+      for child in node:iter_children() do
+        local child_type = child:type()
+
+        if child_type == "link_text" then
+          local text = vim.treesitter.get_node_text(child, chat.bufnr)
+          link_label_text = text
+        elseif child_type == "link_destination" then
+          local text = vim.treesitter.get_node_text(child, chat.bufnr)
+          link_dest_text = text
+        end
+      end
+
+      if link_label_text and link_dest_text then
+        table.insert(links, { text = link_label_text, path = link_dest_text })
+      end
+    end
+  end
+
+  if vim.tbl_isempty(links) then
+    return nil
+  end
+
+  return links
+end
+
 ---Parse the chat buffer for a code block
 ---returns the code block that the cursor is in or the last code block
 ---@param chat CodeCompanion.Chat
@@ -809,7 +857,8 @@ function Chat:submit(opts)
   -- excluded and we can do this by checking for user messages.
   if message then
     message = self.references:clear(self.messages[#self.messages])
-    self.replace_vars_and_tools(self, message)
+    self:replace_vars_and_tools(message)
+    self:check_images(message)
     self:check_references()
     add_pins(self)
   end
@@ -945,6 +994,29 @@ function Chat:add_reference(data, source, id, opts)
 
   self.references:add({ source = source, id = id })
   self:add_message(data, opts)
+end
+
+---Check if there are any images in the chat buffer
+---@param message table
+---@return nil
+function Chat:check_images(message)
+  local images = ts_parse_images(self, self.header_line)
+  if not images then
+    return
+  end
+
+  for _, image in ipairs(images) do
+    local encoded_image = helpers.encode_image(image)
+    if type(encoded_image) == "string" then
+      log:warn("Could not encode image: %s", encoded_image)
+    else
+      helpers.add_image(self, encoded_image)
+
+      -- Replace the image link in the message with "image"
+      local to_remove = string.format("[Image](%s)", image.path)
+      message.content = vim.trim(message.content:gsub(vim.pesc(to_remove), "image"))
+    end
+  end
 end
 
 ---Reconcile the references table to the references in the chat buffer

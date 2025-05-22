@@ -11,11 +11,11 @@ return {
   opts = {
     stream = true,
     tools = true,
+    vision = true,
   },
   features = {
     text = true,
     tokens = true,
-    vision = true,
   },
   url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
   env = {
@@ -26,10 +26,21 @@ return {
     ["Content-Type"] = "application/json",
   },
   handlers = {
-    --- Use the OpenAI adapter for the bulk of the work
     setup = function(self)
-      return openai.handlers.setup(self)
+      -- Make sure the individual model options are set
+      local model = self.schema.model.default
+      local model_opts = self.schema.model.choices[model]
+      if model_opts and model_opts.opts then
+        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
+        if not model_opts.opts.has_vision then
+          self.opts.vision = false
+        end
+      end
+
+      return true
     end,
+
+    --- Use the OpenAI adapter for the bulk of the work
     tokens = function(self, data)
       return openai.handlers.tokens(self, data)
     end,
@@ -67,19 +78,18 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "The model that will complete your prompt. See https://ai.google.dev/gemini-api/docs/models/gemini#model-variations for additional details and options.",
-      default = "gemini-2.5-flash-preview-04-17",
+      default = "gemini-2.5-flash-preview-05-20",
       choices = {
-        "gemini-2.5-flash-preview-04-17",
-        "gemini-2.5-pro-exp-03-25",
-        "gemini-2.0-flash",
-        "gemini-2.0-pro-exp-02-05",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro",
-        "gemini-1.0-pro",
+        ["gemini-2.5-pro-preview-05-06"] = { opts = { can_reason = true, has_vision = true } },
+        ["gemini-2.5-flash-preview-05-20"] = { opts = { can_reason = true, has_vision = true } },
+        ["gemini-2.0-flash"] = { opts = { has_vision = true } },
+        ["gemini-2.0-flash-lite"] = { opts = { has_vision = true } },
+        ["gemini-1.5-pro"] = { opts = { has_vision = true } },
+        ["gemini-1.5-flash"] = { opts = { has_vision = true } },
       },
     },
     ---@type CodeCompanion.Schema
-    maxOutputTokens = {
+    max_tokens = {
       order = 2,
       mapping = "parameters",
       type = "integer",
@@ -103,7 +113,7 @@ return {
       end,
     },
     ---@type CodeCompanion.Schema
-    topP = {
+    top_p = {
       order = 4,
       mapping = "parameters",
       type = "integer",
@@ -115,34 +125,29 @@ return {
       end,
     },
     ---@type CodeCompanion.Schema
-    topK = {
+    reasoning_effort = {
       order = 5,
       mapping = "parameters",
-      type = "integer",
+      type = "string",
       optional = true,
-      default = nil,
-      desc = "The maximum number of tokens to consider when sampling",
-      validate = function(n)
-        return n > 0, "Must be greater than 0"
+      condition = function(self)
+        local model = self.schema.model.default
+        if type(model) == "function" then
+          model = model()
+        end
+        if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
+          return self.schema.model.choices[model].opts.can_reason
+        end
+        return false
       end,
-    },
-    ---@type CodeCompanion.Schema
-    presencePenalty = {
-      order = 6,
-      mapping = "parameters",
-      type = "number",
-      optional = true,
-      default = nil,
-      desc = "Presence penalty applied to the next token's logprobs if the token has already been seen in the response",
-    },
-    ---@type CodeCompanion.Schema
-    frequencyPenalty = {
-      order = 7,
-      mapping = "parameters",
-      type = "number",
-      optional = true,
-      default = nil,
-      desc = "Frequency penalty applied to the next token's logprobs, multiplied by the number of times each token has been seen in the response so far.",
+      default = "medium",
+      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
+      choices = {
+        "high",
+        "medium",
+        "low",
+        "none",
+      },
     },
   },
 }

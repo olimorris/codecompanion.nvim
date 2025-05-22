@@ -321,14 +321,14 @@ end
 ---@param adapter? CodeCompanion.Adapter|string|function
 ---@param opts? table
 ---@return CodeCompanion.Adapter
-function Adapter.resolve(adapter, opts)
-  adapter = adapter or config.adapters[config.strategies.chat.adapter]
-  opts = opts or {}
+function Adapter.resolve(adapter)
+  adapter = adapter or config.strategies.chat.adapter
 
   if type(adapter) == "table" then
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
-    adapter = Adapter.extend(adapter, opts)
+    local user_adapter = config.adapters[adapter]
+    adapter = Adapter.extend(user_adapter or adapter, { name = adapter })
   elseif type(adapter) == "function" then
     adapter = adapter()
   end

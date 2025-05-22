@@ -1,5 +1,41 @@
 # Changelog
 
+## [15.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.5.0...v15.6.0) (2025-05-21)
+
+
+### Features
+
+* **adapters:** add vision support ([#1455](https://github.com/olimorris/codecompanion.nvim/issues/1455)) ([1a4f0a4](https://github.com/olimorris/codecompanion.nvim/commit/1a4f0a44b1e52d1c569ce2f66b03b6804e74b183))
+* **adapters:** can use adapter.opts.request to override Client:request ([#1469](https://github.com/olimorris/codecompanion.nvim/issues/1469)) ([ec73b64](https://github.com/olimorris/codecompanion.nvim/commit/ec73b64df3d0767eb0a5b42d942f9e02970ee95c))
+* **adapters:** set Copilot default model to `gpt-4.1` ([bd14edb](https://github.com/olimorris/codecompanion.nvim/commit/bd14edb82ea07423c5c0f7484ef885a895374719))
+
+
+### Bug Fixes
+
+* **inline:** keymap modes ([#1468](https://github.com/olimorris/codecompanion.nvim/issues/1468)) ([7ac8234](https://github.com/olimorris/codecompanion.nvim/commit/7ac823450c490201af3362a0861c2c1c19b827a8))
+* **variables:** ensure special chars are matched ([#1470](https://github.com/olimorris/codecompanion.nvim/issues/1470)) ([a682004](https://github.com/olimorris/codecompanion.nvim/commit/a682004d4ff97c0450617975699bfc78029862be))
+
+## [15.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.4.2...v15.5.0) (2025-05-20)
+
+
+### Features
+
+* **action_palette:** add `fzf_lua` provider ([#1443](https://github.com/olimorris/codecompanion.nvim/issues/1443)) ([03caa41](https://github.com/olimorris/codecompanion.nvim/commit/03caa41555d6615006d0ac8f6fcfee317cb967f0))
+
+
+### Bug Fixes
+
+* **adapters:** resolve adapters with correct name ([#1459](https://github.com/olimorris/codecompanion.nvim/issues/1459)) ([0beb918](https://github.com/olimorris/codecompanion.nvim/commit/0beb9183954ae1afa2e1f5a91812706764d1a743))
+* **adapters:** resolve not using custom adapter ([#1461](https://github.com/olimorris/codecompanion.nvim/issues/1461)) ([b79b33a](https://github.com/olimorris/codecompanion.nvim/commit/b79b33a58304cd386f72ee0ab159824fa21321c6))
+* **ui:** include `kind` option in all `vim.ui.select` calls ([#1456](https://github.com/olimorris/codecompanion.nvim/issues/1456)) ([9d8fc51](https://github.com/olimorris/codecompanion.nvim/commit/9d8fc51a1923333de683ebf85c633fd003ad2b9b))
+
+## [15.4.2](https://github.com/olimorris/codecompanion.nvim/compare/v15.4.1...v15.4.2) (2025-05-16)
+
+
+### Bug Fixes
+
+* **inline:** don't modify prompts going to the chat buffer ([#1447](https://github.com/olimorris/codecompanion.nvim/issues/1447)) ([a3b2b63](https://github.com/olimorris/codecompanion.nvim/commit/a3b2b633c6e17f0a891713c724285843c9706e1e))
+
 ## [15.4.1](https://github.com/olimorris/codecompanion.nvim/compare/v15.4.0...v15.4.1) (2025-05-11)
 
 

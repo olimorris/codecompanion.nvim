@@ -186,7 +186,7 @@ function SlashCommand:execute(SlashCommands, opts)
   -- end
 
   -- Let the user select a group
-  vim.ui.select(groups, { prompt = "Select a Group to load" }, function(choice)
+  vim.ui.select(groups, { kind = "codecompanion.nvim", prompt = "Select a Group to load" }, function(choice)
     if not choice then
       return nil
     end

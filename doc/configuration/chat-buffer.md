@@ -86,7 +86,6 @@ require("codecompanion").setup({
 })
 ```
 
-
 You can also add your own slash commands:
 
 ```lua
@@ -327,7 +326,10 @@ require("codecompanion").setup({
 }),
 ```
 
-## UI
+## User Interface (UI)
+
+> [!NOTE]
+> The [additional plugins](/installation#additional-plugins) section contains installation instructions for some popular markdown rendering plugins
 
 ### User and LLM Roles
 
@@ -357,34 +359,6 @@ By default, the LLM's responses will be placed under a header such as `CodeCompa
 
 The user role is currently only available as a string.
 
-### Markdown Rendering
-
-As the Chat Buffer uses markdown as its syntax, you can use popular rendering plugins to improve the UI:
-
-**[render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim)**
-
-```lua
-{
-  "MeanderingProgrammer/render-markdown.nvim",
-  ft = { "markdown", "codecompanion" }
-},
-```
-
-**[markview.nvim](https://github.com/OXY2DEV/markview.nvim)**
-
-```lua
-{
-  "OXY2DEV/markview.nvim",
-  lazy = false,
-  opts = {
-    preview = {
-      filetypes = { "markdown", "codecompanion" },
-      ignore_buftypes = {},
-    },
-  },
-},
-```
-
 ### Auto scrolling
 
 By default, the page scrolls down automatically as the response streams, with the cursor placed at the end.
@@ -400,6 +374,7 @@ require("codecompanion").setup({
   },
 }),
 ```
+
 ## Additional Options
 
 There are also a number of other options that you can customize:
