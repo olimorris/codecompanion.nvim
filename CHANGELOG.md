@@ -1,5 +1,14 @@
 # Changelog
 
+## [15.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v15.6.0...v15.6.1) (2025-05-22)
+
+
+### Bug Fixes
+
+* **adapters:** enable OpenAI vision support ([#1486](https://github.com/olimorris/codecompanion.nvim/issues/1486)) ([f8e14ae](https://github.com/olimorris/codecompanion.nvim/commit/f8e14ae0be51c0f65b0284f787277407db30ace7))
+* **providers:** only use `mini.diff` if initialized ([#1472](https://github.com/olimorris/codecompanion.nvim/issues/1472)) ([f7bb598](https://github.com/olimorris/codecompanion.nvim/commit/f7bb59888b201507a43c856460d455f786c989f8))
+* **references:** unlock buffer when adding reference after a tool output ([#1477](https://github.com/olimorris/codecompanion.nvim/issues/1477)) ([df44594](https://github.com/olimorris/codecompanion.nvim/commit/df4459401180612bc5b7b167eff7133324e85f1c))
+
 ## [15.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.5.0...v15.6.0) (2025-05-21)
 
 
