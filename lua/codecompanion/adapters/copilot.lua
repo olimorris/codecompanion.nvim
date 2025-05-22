@@ -326,25 +326,11 @@ return {
       end,
     },
     ---@type CodeCompanion.Schema
-    reasoning_effort = {
-      order = 2,
-      mapping = "parameters",
-      type = "string",
-      optional = true,
-      default = "medium",
-      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
-      choices = {
-        "high",
-        "medium",
-        "low",
-      },
-    },
-    ---@type CodeCompanion.Schema
     temperature = {
       order = 3,
       mapping = "parameters",
       type = "number",
-      default = 0,
+      default = 0.1,
       condition = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
@@ -358,7 +344,7 @@ return {
       order = 4,
       mapping = "parameters",
       type = "integer",
-      default = 15000,
+      default = 16384,
       desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
     },
     ---@type CodeCompanion.Schema
