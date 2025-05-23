@@ -480,8 +480,14 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
-      default = "claude-3-7-sonnet-20250219",
+      default = "claude-sonnet-4-20250514",
       choices = {
+        ["claude-opus-4-20250514"] = {
+          opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true },
+        },
+        ["claude-sonnet-4-20250514"] = {
+          opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true },
+        },
         ["claude-3-7-sonnet-20250219"] = {
           opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true },
         },
