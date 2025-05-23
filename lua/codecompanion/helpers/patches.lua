@@ -71,15 +71,10 @@ local function get_new_change(focus, pre)
 end
 
 
---- Returns list of Change objects parsed from the response provided by LLMs
----@param raw string raw text containing the patch with changes
+--- Returns list of Change objects parsed from the patch provided by LLMs
+---@param patch string patch containing the changes
 ---@return Change[]
-function M.parse_changes(raw)
-  local patch = raw:match("%*%*%* Begin Patch%s+(.-)%s+%*%*%* End Patch")
-  if not patch then
-    error("Invalid patch format: missing Begin/End markers")
-  end
-
+local function parse_changes_from_patch(patch)
   local changes = {}
   local change = get_new_change()
   local lines = vim.split(patch, "\n", { plain = true })
@@ -123,6 +118,28 @@ function M.parse_changes(raw)
   end
   table.insert(changes, change)
   return changes
+end
+
+--- Returns list of Change objects parsed from the response provided by LLMs
+---@param raw string raw text containing the patch with changes
+---@return Change[]
+function M.parse_changes(raw)
+  local patches = {}
+  for patch in raw:gmatch("%*%*%* Begin Patch%s+(.-)%s+%*%*%* End Patch") do
+    table.insert(patches, patch)
+  end
+  if not patches then
+    error("Invalid patch format: missing Begin/End markers")
+  end
+
+  local all_changes = {}
+  for _, patch in ipairs(patches) do
+    local changes = parse_changes_from_patch(patch)
+    for _, change in ipairs(changes) do
+      table.insert(all_changes, change)
+    end
+  end
+  return all_changes
 end
 
 --- returns whether the given lines (needle) match the lines in the file we are editing at the given line number
