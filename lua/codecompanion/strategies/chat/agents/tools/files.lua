@@ -3,9 +3,9 @@
 This tool can be used make edits to files on disk.
 --]]
 
-local patches = require('codecompanion.helpers.patches')
 local Path = require("plenary.path")
 local log = require("codecompanion.utils.log")
+local patches = require("codecompanion.helpers.patches")
 
 local fmt = string.format
 
@@ -102,7 +102,6 @@ local function read(action)
   )
   return output
 end
-
 
 ---Edit the contents of a file
 ---@param action Action The arguments from the LLM's tool call
@@ -210,8 +209,7 @@ return {
               { type = "string" },
               { type = "null" },
             },
-            description =
-            "Contents of new file in the case of CREATE action; patch in the specified format for UPDATE action. `null` in the case of READ or DELETE actions.",
+            description = "Contents of new file in the case of CREATE action; patch in the specified format for UPDATE action. `null` in the case of READ or DELETE actions.",
           },
         },
         required = {

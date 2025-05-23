@@ -51,10 +51,8 @@ This format is a bit similar to the `git diff` format; the difference is that `@
 ---@field new table list of lines to be added
 ---@field post table list of unchanged lines just after edits
 
-
 ---@class MatchOptions
 ---@field trim_spaces boolean trim spaces while comparing lines
-
 
 --- Returns an new (empty) change table instance
 ---@param focus table|nil list of focus lines, used to create a new change set with similar focus
@@ -69,7 +67,6 @@ local function get_new_change(focus, pre)
     post = {},
   }
 end
-
 
 --- Returns list of Change objects parsed from the patch provided by LLMs
 ---@param patch string patch containing the changes
@@ -153,7 +150,7 @@ local function matches_lines(haystack, pos, needle, opts)
   for i, needle_line in ipairs(needle) do
     local hayline = haystack[pos + i - 1]
     local is_same = hayline
-        and ((hayline == needle_line) or (opts.trim_spaces and vim.trim(hayline) == vim.trim(needle_line)))
+      and ((hayline == needle_line) or (opts.trim_spaces and vim.trim(hayline) == vim.trim(needle_line)))
     if not is_same then
       return false
     end
