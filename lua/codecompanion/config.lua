@@ -124,7 +124,9 @@ local defaults = {
           callback = "strategies.chat.slash_commands.fetch",
           description = "Insert URL contents",
           opts = {
-            adapter = "jina",
+            adapter = "jina", -- jina|tavily
+            cache_path = vim.fn.stdpath("data") .. "/codecompanion/urls",
+            provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
         ["file"] = {
