@@ -133,7 +133,7 @@ local function update(action)
       new_lines = patches.apply_change(lines, change, { trim_spaces = true })
     end
     if new_lines == nil then
-      error(fmt("Diff block not found:\n\n%s", patch))
+      error(fmt("Diff block not found:\n\n%s", change))
     else
       lines = new_lines
     end
