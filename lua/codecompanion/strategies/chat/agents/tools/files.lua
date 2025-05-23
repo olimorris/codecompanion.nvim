@@ -9,6 +9,65 @@ local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 
+PROMPT = [[# Files Tool (`files`)
+
+- This tool is connected to the Neovim instance via CodeCompanion.
+- Use this tool to CREATE / READ / UPDATE or DELETE files.
+- You do not need to ask for permission to use this tool to perform CRUD actions. CodeCompanion will ask for those permissions automatically while executing the actions.
+
+## Instructions for Usage
+
+- You must provide the `action`, `path` and `contents` to use this tool.
+- The `action` can be one of `CREATE`, `READ`, `UPDATE`, or `DELETE`.
+- The `path` must be a relative path. It should NEVER BE AN ABSOLUTE PATH.
+- The `contents` should be `null` for the `READ` action. Use the `READ` action to read the contents of a file.
+- The `contents` should be `null` for the `DELETE` action. Use the `DELETE` action to remove any file.
+- The `contents` will be the actual contents to write in the file in case of the `CREATE` action. Use the `CREATE` action to create a new file.
+- The `contents` must be in the diff format given below in the case of the `UPDATE` action. Use the `UPDATE` action to make changes to an existing file.
+
+### Format of `contents` for the `UPDATE` action
+
+The format of diff and `contents` in `UPDATE` action is a bit different. Pay a close attention to the following details for its implementation.
+
+The `contents` of the `UPDATE` action must be in this format:
+
+]] .. patches.FORMAT_PROMPT .. [[
+
+## Examples
+
+These are few complete examples of the responses from this tool:
+
+```
+// CREATE
+{
+  "action": "CREATE",
+  "path": "src/main.py",
+  "contents": "print('Hello')\n"
+}
+
+// READ
+{
+  "action": "READ",
+  "path": "src/main.py",
+  "contents": null
+}
+
+// UPDATE
+{
+  "action": "UPDATE",
+  "path": "src/main.py",
+  "contents": "*** Begin Patch\n@@def greet():\n-    pass\n+    print('Hello')\n*** End Patch"
+}
+
+// DELETE
+{
+  "action": "DELETE",
+  "path": "src/main.py",
+  "contents": null
+}
+```
+]]
+
 ---@class Action The arguments from the LLM's tool call
 ---@field action string CREATE / READ / UPDATE / DELETE action to perform
 ---@field path string path of the file to perform action on
@@ -165,105 +224,7 @@ return {
       strict = true,
     },
   },
-  system_prompt = [[# Files Tool (`files`)
-
-- This tool is connected to the Neovim instance via CodeCompanion.
-- Use this tool to CREATE / READ / UPDATE or DELETE files.
-- You do not need to ask for permission to use this tool to perform CRUD actions. CodeCompanion will ask for those permissions automatically while executing the actions.
-
-## Instructions for Usage
-
-- You must provide the `action`, `path` and `contents` to use this tool.
-- The `action` can be one of `CREATE`, `READ`, `UPDATE`, or `DELETE`.
-- The `path` must be a relative path. It should NEVER BE AN ABSOLUTE PATH.
-- The `contents` should be `null` for the `READ` action. Use the `READ` action to read the contents of a file.
-- The `contents` should be `null` for the `DELETE` action. Use the `DELETE` action to remove any file.
-- The `contents` will be the actual contents to write in the file in case of the `CREATE` action. Use the `CREATE` action to create a new file.
-- The `contents` must be in the diff format given below in the case of the `UPDATE` action. Use the `UPDATE` action to make changes to an existing file.
-
-### Format of `contents` for the `UPDATE` action
-
-The format of diff and `contents` in `UPDATE` action is a bit different. Pay a close attention to the following details for its implementation.
-
-The `contents` of the `UPDATE` action must be in this format:
-
-*** Begin Patch
-[PATCH]
-*** End Patch
-
-The `[PATCH]` is the series of diffs to be applied for each change in the file. Each diff should be in this format:
-
-[3 lines of pre-context]
--[old code]
-+[new code]
-[3 lines of post-context]
-
-The context blocks are 3 lines of existing code, immediately before and after the modified lines of code. Lines to be modified should be prefixed with a `+` or `-` sign. Unchanged lines used for context starting with a `-` (such as comments in Lua) can be prefixed with a space ` `.
-
-Multiple blocks of diffs should be separated by an empty line and `@@[identifier]` detailed below.
-
-The linked context lines next to the edits are enough to locate the lines to edit. DO NOT USE line numbers anywhere in the contents.
-
-You can use `@@[identifier]` to define a larger context in case the immediately before and after context is not sufficient to locate the edits. Example:
-
-@@class BaseClass(models.Model):
-[3 lines of pre-context]
--	pass
-+	raise NotImplementedError()
-[3 lines of post-context]
-
-You can also use multiple `@@[identifiers]` to provide the right context if a single `@@` is not sufficient.
-
-Example of `contents` with multiple blocks of changes and `@@` identifiers:
-
-*** Begin Patch
-@@class BaseClass(models.Model):
-@@	def search():
--		pass
-+		raise NotImplementedError()
-
-@@class Subclass(BaseClass):
-@@	def search():
--		pass
-+		raise NotImplementedError()
-*** End Patch
-
-This format is a bit similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.
-
-## Examples
-
-These are few complete examples of the responses from this tool:
-
-```
-// CREATE
-{
-  "action": "CREATE",
-  "path": "src/main.py",
-  "contents": "print('Hello')\n"
-}
-
-// READ
-{
-  "action": "READ",
-  "path": "src/main.py",
-  "contents": null
-}
-
-// UPDATE
-{
-  "action": "UPDATE",
-  "path": "src/main.py",
-  "contents": "*** Begin Patch\n@@def greet():\n-    pass\n+    print('Hello')\n*** End Patch"
-}
-
-// DELETE
-{
-  "action": "DELETE",
-  "path": "src/main.py",
-  "contents": null
-}
-```
-]],
+  system_prompt = PROMPT,
   handlers = {
     ---@param agent CodeCompanion.Agent The tool object
     ---@return nil

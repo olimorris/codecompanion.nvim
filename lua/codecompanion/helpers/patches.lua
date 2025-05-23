@@ -1,5 +1,49 @@
 local M = {}
 
+M.FORMAT_PROMPT = [[*** Begin Patch
+[PATCH]
+*** End Patch
+
+The `[PATCH]` is the series of diffs to be applied for each change in the file. Each diff should be in this format:
+
+[3 lines of pre-context]
+-[old code]
++[new code]
+[3 lines of post-context]
+
+The context blocks are 3 lines of existing code, immediately before and after the modified lines of code. Lines to be modified should be prefixed with a `+` or `-` sign. Unchanged lines used for context starting with a `-` (such as comments in Lua) can be prefixed with a space ` `.
+
+Multiple blocks of diffs should be separated by an empty line and `@@[identifier]` detailed below.
+
+The linked context lines next to the edits are enough to locate the lines to edit. DO NOT USE line numbers anywhere in the patch.
+
+You can use `@@[identifier]` to define a larger context in case the immediately before and after context is not sufficient to locate the edits. Example:
+
+@@class BaseClass(models.Model):
+[3 lines of pre-context]
+-	pass
++	raise NotImplementedError()
+[3 lines of post-context]
+
+You can also use multiple `@@[identifiers]` to provide the right context if a single `@@` is not sufficient.
+
+Example with multiple blocks of changes and `@@` identifiers:
+
+*** Begin Patch
+@@class BaseClass(models.Model):
+@@	def search():
+-		pass
++		raise NotImplementedError()
+
+@@class Subclass(BaseClass):
+@@	def search():
+-		pass
++		raise NotImplementedError()
+*** End Patch
+
+This format is a bit similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.
+]]
+
 ---@class Change
 ---@field focus table list of lines before changes for larger context
 ---@field pre table list of unchanged lines just before edits
