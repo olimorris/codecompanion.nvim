@@ -72,6 +72,8 @@ function Default:buffers()
   return self
 end
 
+function Default:urls(urls) end
+
 ---Find images in a set of paths
 ---@param paths table
 ---@param filetypes table
