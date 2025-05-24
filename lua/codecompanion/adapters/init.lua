@@ -268,6 +268,7 @@ end
 function Adapter.extend(adapter, opts)
   local ok
   local adapter_config
+  opts = opts or {}
 
   if type(adapter) == "string" then
     ok, adapter_config = pcall(require, "codecompanion.adapters." .. adapter)
