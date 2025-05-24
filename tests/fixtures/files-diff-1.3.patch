@@ -1,0 +1,12 @@
+*** Begin Patch
+@@ two
+@@ three
+four
+-five
++5
+six
+
+@@ seven
+eight
+-nine
+*** End Patch

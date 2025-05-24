@@ -1,7 +1,18 @@
 *** Begin Patch
-@@ <div id="l1">
-<li>
--  <span><em>Bee</em></span>
-+  <span><em>B</em></span>
-</li>
+@@
+-local function greet(name)
++---@param name string|nil
++---@return string
++local function greet(name)
+  name = name or "world"
+  local message = "Hello, " .. name .. "!"
+  print(message)
+  return message
+@@end
+
++---@param tbl table
+ ---@return number
+ local function count(tbl)
+   if type(tbl) ~= "table" then
+     error("count: expected table, got " .. type(tbl))
 *** End Patch

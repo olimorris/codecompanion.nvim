@@ -5,8 +5,68 @@ This tool can be used make edits to files on disk.
 
 local Path = require("plenary.path")
 local log = require("codecompanion.utils.log")
+local patches = require("codecompanion.helpers.patches")
 
 local fmt = string.format
+
+PROMPT = [[# Files Tool (`files`)
+
+- This tool is connected to the Neovim instance via CodeCompanion.
+- Use this tool to CREATE / READ / UPDATE or DELETE files.
+- You do not need to ask for permission to use this tool to perform CRUD actions. CodeCompanion will ask for those permissions automatically while executing the actions.
+
+## Instructions for Usage
+
+- You must provide the `action`, `path` and `contents` to use this tool.
+- The `action` can be one of `CREATE`, `READ`, `UPDATE`, or `DELETE`.
+- The `path` must be a relative path. It should NEVER BE AN ABSOLUTE PATH.
+- The `contents` should be `null` for the `READ` action. Use the `READ` action to read the contents of a file.
+- The `contents` should be `null` for the `DELETE` action. Use the `DELETE` action to remove any file.
+- The `contents` will be the actual contents to write in the file in case of the `CREATE` action. Use the `CREATE` action to create a new file.
+- The `contents` must be in the diff format given below in the case of the `UPDATE` action. Use the `UPDATE` action to make changes to an existing file.
+
+### Format of `contents` for the `UPDATE` action
+
+The format of diff and `contents` in `UPDATE` action is a bit different. Pay a close attention to the following details for its implementation.
+
+The `contents` of the `UPDATE` action must be in this format:
+
+]] .. patches.FORMAT_PROMPT .. [[
+
+## Examples
+
+These are few complete examples of the responses from this tool:
+
+```
+// CREATE
+{
+  "action": "CREATE",
+  "path": "src/main.py",
+  "contents": "print('Hello')\n"
+}
+
+// READ
+{
+  "action": "READ",
+  "path": "src/main.py",
+  "contents": null
+}
+
+// UPDATE
+{
+  "action": "UPDATE",
+  "path": "src/main.py",
+  "contents": "*** Begin Patch\n@@def greet():\n-    pass\n+    print('Hello')\n*** End Patch"
+}
+
+// DELETE
+{
+  "action": "DELETE",
+  "path": "src/main.py",
+  "contents": null
+}
+```
+]]
 
 ---@class Action The arguments from the LLM's tool call
 ---@field action string CREATE / READ / UPDATE / DELETE action to perform
@@ -43,172 +103,6 @@ local function read(action)
   return output
 end
 
----@class Change
----@field focus table list of lines before changes for larger context
----@field pre table list of unchanged lines just before edits
----@field old table list of lines to be removed
----@field new table list of lines to be added
----@field post table list of unchanged lines just after edits
---- Returns an new (empty) change table instance
----@param focus table list of focus lines, used to create a new change set with similar focus
----@param pre table list of pre lines to extend an existing change set
----@return Change
-local function get_new_change(focus, pre)
-  return {
-    focus = focus or {},
-    pre = pre or {},
-    old = {},
-    new = {},
-    post = {},
-  }
-end
-
---- Returns list of Change objects parsed from the patch provided by LLMs
----@param patch string patch contents to be parsed
----@return Change[]
-local function parse_changes(patch)
-  local changes = {}
-  local change = get_new_change()
-  local lines = vim.split(patch, "\n", { plain = true })
-  for i, line in ipairs(lines) do
-    if vim.startswith(line, "@@") then
-      if #change.old > 0 or #change.new > 0 then
-        -- @@ after any edits is a new change block
-        table.insert(changes, change)
-        change = get_new_change()
-      end
-      -- focus name can be empty too to signify new blocks
-      local focus_name = vim.trim(line:sub(3))
-      if focus_name and #focus_name > 0 then
-        change.focus[#change.focus + 1] = focus_name
-      end
-    elseif line == "" and lines[i + 1] and lines[i + 1]:match("^@@") then
-      -- empty lines can be part of pre/post context
-      -- we treat empty lines as new change block and not as post context
-      -- only when the the next line uses @@ identifier
-      table.insert(changes, change)
-      change = get_new_change()
-    elseif line:sub(1, 1) == "-" then
-      if #change.post > 0 then
-        -- edits after post edit lines are new block of changes with same focus
-        table.insert(changes, change)
-        change = get_new_change(change.focus, change.post)
-      end
-      change.old[#change.old + 1] = line:sub(2)
-    elseif line:sub(1, 1) == "+" then
-      if #change.post > 0 then
-        -- edits after post edit lines are new block of changes with same focus
-        table.insert(changes, change)
-        change = get_new_change(change.focus, change.post)
-      end
-      change.new[#change.new + 1] = line:sub(2)
-    elseif #change.old == 0 and #change.new == 0 then
-      change.pre[#change.pre + 1] = line
-    elseif #change.old > 0 or #change.new > 0 then
-      change.post[#change.post + 1] = line
-    end
-  end
-  table.insert(changes, change)
-  return changes
-end
-
----@class MatchOptions
----@field trim_spaces boolean trim spaces while comparing lines
---- returns whether the given lines (needle) match the lines in the file we are editing at the given line number
----@param haystack string[] list of lines in the file we are updating
----@param pos number the line number where we are checking the match
----@param needle string[] list of lines we are trying to match
----@param opts? MatchOptions options for matching strategy
----@return boolean true of the given lines match at the given line number in haystack
-local function matches_lines(haystack, pos, needle, opts)
-  opts = opts or {}
-  for i, needle_line in ipairs(needle) do
-    local hayline = haystack[pos + i - 1]
-    local is_same = hayline
-      and ((hayline == needle_line) or (opts.trim_spaces and vim.trim(hayline) == vim.trim(needle_line)))
-    if not is_same then
-      return false
-    end
-  end
-  return true
-end
-
---- returns whether the given line number (before_pos) is after the focus lines
----@param lines string[] list of lines in the file we are updating
----@param before_pos number current line number before which the focus lines should appear
----@param opts? MatchOptions options for matching strategy
----@return boolean true of the given line number is after the focus lines
-local function has_focus(lines, before_pos, focus, opts)
-  opts = opts or {}
-  local start = 1
-  for _, focus_line in ipairs(focus) do
-    local found = false
-    for k = start, before_pos - 1 do
-      if focus_line == lines[k] or (opts.trim_spaces and vim.trim(focus_line) == vim.trim(lines[k])) then
-        start = k
-        found = true
-        break
-      end
-    end
-    if not found then
-      return false
-    end
-  end
-  return true
-end
-
---- returns new list of lines with the applied changes
----@param lines string[] list of lines in the file we are updating
----@param change Change change to be applied on the lines
----@param opts? MatchOptions options for matching strategy
----@return string[]|nil list of updated lines after change
-local function apply_change(lines, change, opts)
-  opts = opts or {}
-  for i = 1, #lines do
-    local line_matches_change = (
-      has_focus(lines, i, change.focus, opts)
-      and matches_lines(lines, i - #change.pre, change.pre, opts)
-      and matches_lines(lines, i, change.old, opts)
-      and matches_lines(lines, i + #change.old, change.post, opts)
-    )
-    if line_matches_change then
-      local new_lines = {}
-      -- add lines before diff
-      for k = 1, i - 1 do
-        new_lines[#new_lines + 1] = lines[k]
-      end
-      -- add new lines
-      local fix_spaces
-      -- infer adjustment of spaces from the delete line
-      if opts.trim_spaces and #change.old > 0 then
-        if change.old[1] == " " .. lines[i] then
-          -- diff patch added and extra space on left
-          fix_spaces = function(ln)
-            return ln:sub(2)
-          end
-        elseif #change.old[1] < #lines[i] then
-          -- diff removed spaces on left
-          local prefix = string.rep(" ", #lines[i] - #change.old[1])
-          fix_spaces = function(ln)
-            return prefix .. ln
-          end
-        end
-      end
-      for _, ln in ipairs(change.new) do
-        if fix_spaces then
-          ln = fix_spaces(ln)
-        end
-        new_lines[#new_lines + 1] = ln
-      end
-      -- add remaining lines
-      for k = i + #change.old, #lines do
-        new_lines[#new_lines + 1] = lines[k]
-      end
-      return new_lines
-    end
-  end
-end
-
 ---Edit the contents of a file
 ---@param action Action The arguments from the LLM's tool call
 ---@return string
@@ -216,23 +110,17 @@ local function update(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
 
-  -- 1. extract raw patch
+  -- 1. extract list of changes from the contents
   local raw = action.contents or ""
-  local patch = raw:match("%*%*%* Begin Patch%s+(.-)%s+%*%*%* End Patch")
-  if not patch then
-    error("Invalid patch format: missing Begin/End markers")
-  end
+  local changes = patches.parse_changes(raw)
 
   -- 2. read file into lines
   local content = p:read()
   local lines = vim.split(content, "\n", { plain = true })
 
-  -- 3. parse changes
-  local changes = parse_changes(patch)
-
-  -- 4. apply changes
+  -- 3. apply changes
   for _, change in ipairs(changes) do
-    local new_lines = apply_change(lines, change)
+    local new_lines = patches.apply_change(lines, change)
     if new_lines == nil then
       -- try applying patch in flexible spaces mode
       -- there is no standardised way to of spaces in diffs
@@ -242,16 +130,16 @@ local function update(action)
       -- and LLM models (especially Claude) sometimes strip
       -- long spaces on the left in case of large nestings (eg html)
       -- trim_spaces mode solves all of these
-      new_lines = apply_change(lines, change, { trim_spaces = true })
+      new_lines = patches.apply_change(lines, change, { trim_spaces = true })
     end
     if new_lines == nil then
-      error(fmt("Diff block not found:\n\n%s", patch))
+      error(fmt("Diff block not found:\n\n%s", change))
     else
       lines = new_lines
     end
   end
 
-  -- 5. write back
+  -- 4. write back
   p:write(table.concat(lines, "\n"), "w")
   return fmt("The UPDATE action for `%s` was successful", action.path)
 end
@@ -334,105 +222,7 @@ return {
       strict = true,
     },
   },
-  system_prompt = [[# Files Tool (`files`)
-
-- This tool is connected to the Neovim instance via CodeCompanion.
-- Use this tool to CREATE / READ / UPDATE or DELETE files.
-- You do not need to ask for permission to use this tool to perform CRUD actions. CodeCompanion will ask for those permissions automatically while executing the actions.
-
-## Instructions for Usage
-
-- You must provide the `action`, `path` and `contents` to use this tool.
-- The `action` can be one of `CREATE`, `READ`, `UPDATE`, or `DELETE`.
-- The `path` must be a relative path. It should NEVER BE AN ABSOLUTE PATH.
-- The `contents` should be `null` for the `READ` action. Use the `READ` action to read the contents of a file.
-- The `contents` should be `null` for the `DELETE` action. Use the `DELETE` action to remove any file.
-- The `contents` will be the actual contents to write in the file in case of the `CREATE` action. Use the `CREATE` action to create a new file.
-- The `contents` must be in the diff format given below in the case of the `UPDATE` action. Use the `UPDATE` action to make changes to an existing file.
-
-### Format of `contents` for the `UPDATE` action
-
-The format of diff and `contents` in `UPDATE` action is a bit different. Pay a close attention to the following details for its implementation.
-
-The `contents` of the `UPDATE` action must be in this format:
-
-*** Begin Patch
-[PATCH]
-*** End Patch
-
-The `[PATCH]` is the series of diffs to be applied for each change in the file. Each diff should be in this format:
-
-[3 lines of pre-context]
--[old code]
-+[new code]
-[3 lines of post-context]
-
-The context blocks are 3 lines of existing code, immediately before and after the modified lines of code. Lines to be modified should be prefixed with a `+` or `-` sign. Unchanged lines used for context starting with a `-` (such as comments in Lua) can be prefixed with a space ` `.
-
-Multiple blocks of diffs should be separated by an empty line and `@@[identifier]` detailed below.
-
-The linked context lines next to the edits are enough to locate the lines to edit. DO NOT USE line numbers anywhere in the contents.
-
-You can use `@@[identifier]` to define a larger context in case the immediately before and after context is not sufficient to locate the edits. Example:
-
-@@class BaseClass(models.Model):
-[3 lines of pre-context]
--	pass
-+	raise NotImplementedError()
-[3 lines of post-context]
-
-You can also use multiple `@@[identifiers]` to provide the right context if a single `@@` is not sufficient.
-
-Example of `contents` with multiple blocks of changes and `@@` identifiers:
-
-*** Begin Patch
-@@class BaseClass(models.Model):
-@@	def search():
--		pass
-+		raise NotImplementedError()
-
-@@class Subclass(BaseClass):
-@@	def search():
--		pass
-+		raise NotImplementedError()
-*** End Patch
-
-This format is a bit similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.
-
-## Examples
-
-These are few complete examples of the responses from this tool:
-
-```
-// CREATE
-{
-  "action": "CREATE",
-  "path": "src/main.py",
-  "contents": "print('Hello')\n"
-}
-
-// READ
-{
-  "action": "READ",
-  "path": "src/main.py",
-  "contents": null
-}
-
-// UPDATE
-{
-  "action": "UPDATE",
-  "path": "src/main.py",
-  "contents": "*** Begin Patch\n@@def greet():\n-    pass\n+    print('Hello')\n*** End Patch"
-}
-
-// DELETE
-{
-  "action": "DELETE",
-  "path": "src/main.py",
-  "contents": null
-}
-```
-]],
+  system_prompt = PROMPT,
   handlers = {
     ---@param agent CodeCompanion.Agent The tool object
     ---@return nil
