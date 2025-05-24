@@ -1,7 +1,6 @@
 --[[
 *Editor Tool*
-This tool is used to directly modify the contents of a buffer. It can handle
-multiple edits in the same XML block.
+This tool is used to directly modify the contents of a buffer
 --]]
 
 local config = require("codecompanion.config")
