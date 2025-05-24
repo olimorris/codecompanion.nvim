@@ -122,18 +122,7 @@ local function update(action)
   for _, change in ipairs(changes) do
     local new_lines = patches.apply_change(lines, change)
     if new_lines == nil then
-      -- try applying patch in flexible spaces mode
-      -- there is no standardised way to of spaces in diffs
-      -- python differ specifies a single space after +/-
-      -- while gnu udiff uses no spaces
-      --
-      -- and LLM models (especially Claude) sometimes strip
-      -- long spaces on the left in case of large nestings (eg html)
-      -- trim_spaces mode solves all of these
-      new_lines = patches.apply_change(lines, change, { trim_spaces = true })
-    end
-    if new_lines == nil then
-      error(fmt("Diff block not found:\n\n%s", change))
+      error(fmt("Diff block not found:\n\n%s\n\nNo changes were applied", change))
     else
       lines = new_lines
     end

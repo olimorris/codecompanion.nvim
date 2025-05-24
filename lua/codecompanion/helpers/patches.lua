@@ -143,95 +143,119 @@ end
 ---@param haystack string[] list of lines in the file we are updating
 ---@param pos number the line number where we are checking the match
 ---@param needle string[] list of lines we are trying to match
----@param opts? MatchOptions options for matching strategy
----@return boolean true of the given lines match at the given line number in haystack
-local function matches_lines(haystack, pos, needle, opts)
-  opts = opts or {}
+---@return integer score based on how many lines match
+local function get_score(haystack, pos, needle)
+  local score = 0
   for i, needle_line in ipairs(needle) do
     local hayline = haystack[pos + i - 1]
-    local is_same = hayline
-      and ((hayline == needle_line) or (opts.trim_spaces and vim.trim(hayline) == vim.trim(needle_line)))
-    if not is_same then
-      return false
+    if hayline == needle_line then
+      score = score + 10
+    elseif hayline and vim.trim(hayline) == vim.trim(needle_line) then
+      score = score + 9
     end
   end
-  return true
+  return score
 end
 
 --- returns whether the given line number (before_pos) is after the focus lines
 ---@param lines string[] list of lines in the file we are updating
 ---@param before_pos number current line number before which the focus lines should appear
----@param opts? MatchOptions options for matching strategy
----@return boolean true of the given line number is after the focus lines
-local function has_focus(lines, before_pos, focus, opts)
-  opts = opts or {}
+---@return integer 20 score for each line in focus
+local function get_focus_score(lines, before_pos, focus)
   local start = 1
+  local score = 0
   for _, focus_line in ipairs(focus) do
-    local found = false
     for k = start, before_pos - 1 do
-      if focus_line == lines[k] or (opts.trim_spaces and vim.trim(focus_line) == vim.trim(lines[k])) then
+      if focus_line == lines[k] or (vim.trim(focus_line) == vim.trim(lines[k])) then
+        score = score + 20
         start = k
-        found = true
         break
       end
     end
-    if not found then
-      return false
+  end
+  return score
+end
+
+---@param lines string[] list of lines in the file we are updating
+---@param change Change change to be applied on the lines
+local function get_match_score(lines, change, i)
+  local max_score = (#change.focus * 2 + #change.pre + #change.old + #change.post) * 10
+  local score = get_focus_score(lines, i, change.focus)
+    + get_score(lines, i - #change.pre, change.pre)
+    + get_score(lines, i, change.old)
+    + get_score(lines, i + #change.old, change.post)
+  return score / max_score
+end
+
+--- returns line number where the change can be applied along withthe match score between 0 to 1
+---@param lines string[] list of lines in the file we are updating
+---@param change Change change to be applied on the lines
+---@return integer,number list of updated lines after change
+local function get_best_location(lines, change)
+  -- try applying patch in flexible spaces mode
+  -- there is no standardised way to of spaces in diffs
+  -- python differ specifies a single space after +/-
+  -- while gnu udiff uses no spaces
+  --
+  -- and LLM models (especially Claude) sometimes strip
+  -- long spaces on the left in case of large nestings (eg html)
+  -- trim_spaces mode solves all of these
+  local best_location = 1
+  local best_score = 0
+  for i = 1, #lines do
+    local score = get_match_score(lines, change, i)
+    if score == 1 then
+      return i, 1
+    end
+    if score > best_score then
+      best_location = i
     end
   end
-  return true
+  return best_location, best_score
 end
 
 --- returns new list of lines with the applied changes
 ---@param lines string[] list of lines in the file we are updating
 ---@param change Change change to be applied on the lines
----@param opts? MatchOptions options for matching strategy
 ---@return string[]|nil list of updated lines after change
-function M.apply_change(lines, change, opts)
-  opts = opts or {}
-  for i = 1, #lines do
-    local line_matches_change = (
-      has_focus(lines, i, change.focus, opts)
-      and matches_lines(lines, i - #change.pre, change.pre, opts)
-      and matches_lines(lines, i, change.old, opts)
-      and matches_lines(lines, i + #change.old, change.post, opts)
-    )
-    if line_matches_change then
-      local new_lines = {}
-      -- add lines before diff
-      for k = 1, i - 1 do
-        new_lines[#new_lines + 1] = lines[k]
+function M.apply_change(lines, change)
+  local location, score = get_best_location(lines, change)
+  if score < 0.5 then
+    return
+  end
+  local new_lines = {}
+  -- add lines before diff
+  for k = 1, location - 1 do
+    new_lines[#new_lines + 1] = lines[k]
+  end
+  -- add new lines
+  local fix_spaces
+  -- infer adjustment of spaces from the delete line
+  if score ~= 1 and #change.old > 0 then
+    if change.old[1] == " " .. lines[location] then
+      -- diff patch added and extra space on left
+      fix_spaces = function(ln)
+        return ln:sub(2)
       end
-      -- add new lines
-      local fix_spaces
-      -- infer adjustment of spaces from the delete line
-      if opts.trim_spaces and #change.old > 0 then
-        if change.old[1] == " " .. lines[i] then
-          -- diff patch added and extra space on left
-          fix_spaces = function(ln)
-            return ln:sub(2)
-          end
-        elseif #change.old[1] < #lines[i] then
-          -- diff removed spaces on left
-          local prefix = string.rep(" ", #lines[i] - #change.old[1])
-          fix_spaces = function(ln)
-            return prefix .. ln
-          end
-        end
+    elseif #change.old[1] < #lines[location] then
+      -- diff removed spaces on left
+      local prefix = string.rep(" ", #lines[location] - #change.old[1])
+      fix_spaces = function(ln)
+        return prefix .. ln
       end
-      for _, ln in ipairs(change.new) do
-        if fix_spaces then
-          ln = fix_spaces(ln)
-        end
-        new_lines[#new_lines + 1] = ln
-      end
-      -- add remaining lines
-      for k = i + #change.old, #lines do
-        new_lines[#new_lines + 1] = lines[k]
-      end
-      return new_lines
     end
   end
+  for _, ln in ipairs(change.new) do
+    if fix_spaces then
+      ln = fix_spaces(ln)
+    end
+    new_lines[#new_lines + 1] = ln
+  end
+  -- add remaining lines
+  for k = location + #change.old, #lines do
+    new_lines[#new_lines + 1] = lines[k]
+  end
+  return new_lines
 end
 
 return M
