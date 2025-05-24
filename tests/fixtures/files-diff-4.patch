@@ -1,12 +1,19 @@
 *** Begin Patch
-@@ 2nd:
-one
-two
--three
-+3
-four
-five
--six
-+6
-seven
+@@    <article>
+
+      <header>
+        <h1>Deeply Nested Structure</h1>
+-        <br>
+      </header>
+
+      <main>
+
+@@    <article>
+      <footer>
+        <p>End of Article</p>
+-        <br>
++        <p>Good work</p>
+      </footer>
+
+    </article>
 *** End Patch
