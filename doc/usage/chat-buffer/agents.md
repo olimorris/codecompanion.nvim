@@ -69,12 +69,8 @@ The _@files_ tool leverages the [Plenary.Path](https://github.com/nvim-lua/plena
 
 - Creating a file
 - Reading a file
-- Reading lines from a file
 - Editing a file
 - Deleting a file
-- Renaming a file
-- Copying a file
-- Moving a file
 
 ## @full_stack_dev
 
