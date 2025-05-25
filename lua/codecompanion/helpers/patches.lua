@@ -45,19 +45,16 @@ This format is a bit similar to the `git diff` format; the difference is that `@
 ]]
 
 ---@class Change
----@field focus table list of lines before changes for larger context
----@field pre table list of unchanged lines just before edits
----@field old table list of lines to be removed
----@field new table list of lines to be added
----@field post table list of unchanged lines just after edits
+---@field focus string[] Identifiers or lines for providing large context before a change
+---@field pre string[] Unchanged lines immediately before edits
+---@field old string[] Lines to be removed
+---@field new string[] Lines to be added
+---@field post string[] Unchanged lines just after edits
 
----@class MatchOptions
----@field trim_spaces boolean trim spaces while comparing lines
-
---- Returns an new (empty) change table instance
----@param focus table|nil list of focus lines, used to create a new change set with similar focus
----@param pre table|nil list of pre lines to extend an existing change set
----@return Change
+---Create and return a new (empty) Change table instance.
+---@param focus? string[] Optional focus lines for context
+---@param pre? string[] Optional pre-context lines
+---@return Change New change object
 local function get_new_change(focus, pre)
   return {
     focus = focus or {},
@@ -68,9 +65,9 @@ local function get_new_change(focus, pre)
   }
 end
 
---- Returns list of Change objects parsed from the patch provided by LLMs
----@param patch string patch containing the changes
----@return Change[]
+---Parse a patch string into a list of Change objects.
+---@param patch string Patch containing the changes
+---@return Change[] List of parsed change blocks
 local function parse_changes_from_patch(patch)
   local changes = {}
   local change = get_new_change()
@@ -117,9 +114,9 @@ local function parse_changes_from_patch(patch)
   return changes
 end
 
---- Returns list of Change objects parsed from the response provided by LLMs
----@param raw string raw text containing the patch with changes
----@return Change[]
+---Parse the full raw string from LLM for all patches, returning all Change objects parsed.
+---@param raw string Raw text containing patch blocks
+---@return Change[] All parsed Change objects
 function M.parse_changes(raw)
   local patches = {}
   for patch in raw:gmatch("%*%*%* Begin Patch%s+(.-)%s+%*%*%* End Patch") do
@@ -139,11 +136,11 @@ function M.parse_changes(raw)
   return all_changes
 end
 
---- returns whether the given lines (needle) match the lines in the file we are editing at the given line number
----@param haystack string[] list of lines in the file we are updating
----@param pos number the line number where we are checking the match
----@param needle string[] list of lines we are trying to match
----@return integer score based on how many lines match
+---Score how many lines from needle match haystack lines.
+---@param haystack string[] All file lines
+---@param pos integer Starting index to check (1-based)
+---@param needle string[] Lines to match
+---@return integer Score: 10 per perfect line, or 9 per trimmed match
 local function get_score(haystack, pos, needle)
   local score = 0
   for i, needle_line in ipairs(needle) do
@@ -157,10 +154,11 @@ local function get_score(haystack, pos, needle)
   return score
 end
 
---- returns whether the given line number (before_pos) is after the focus lines
----@param lines string[] list of lines in the file we are updating
----@param before_pos number current line number before which the focus lines should appear
----@return integer 20 score for each line in focus
+---Compute the match score for focus lines above a position.
+---@param lines string[] Lines of source file
+---@param before_pos integer Scan up to this line (exclusive; 1-based)
+---@param focus string[] Focus lines/context
+---@return integer Score: 20 per matching focus line before position
 local function get_focus_score(lines, before_pos, focus)
   local start = 1
   local score = 0
@@ -176,8 +174,11 @@ local function get_focus_score(lines, before_pos, focus)
   return score
 end
 
----@param lines string[] list of lines in the file we are updating
----@param change Change change to be applied on the lines
+---Get overall score for placing change at a given index.
+---@param lines string[] File lines
+---@param change Change To match
+---@param i integer Line position
+---@return number Score from 0.0 to 1.0
 local function get_match_score(lines, change, i)
   local max_score = (#change.focus * 2 + #change.pre + #change.old + #change.post) * 10
   local score = get_focus_score(lines, i, change.focus)
@@ -187,10 +188,10 @@ local function get_match_score(lines, change, i)
   return score / max_score
 end
 
---- returns line number where the change can be applied along withthe match score between 0 to 1
----@param lines string[] list of lines in the file we are updating
----@param change Change change to be applied on the lines
----@return integer,number list of updated lines after change
+---Determine best insertion spot for a Change and its match score.
+---@param lines string[] File lines
+---@param change Change Patch block
+---@return integer,number location (1-based), Score (0-1)
 local function get_best_location(lines, change)
   -- try applying patch in flexible spaces mode
   -- there is no standardised way to of spaces in diffs
@@ -215,10 +216,10 @@ local function get_best_location(lines, change)
   return best_location, best_score
 end
 
---- returns new list of lines with the applied changes
----@param lines string[] list of lines in the file we are updating
----@param change Change change to be applied on the lines
----@return string[]|nil list of updated lines after change
+---Apply a Change object to the file lines. Returns nil if not confident.
+---@param lines string[] Lines before patch
+---@param change Change Edit description
+---@return string[]|nil New file lines (or nil if patch can't be confidently placed)
 function M.apply_change(lines, change)
   local location, score = get_best_location(lines, change)
   if score < 0.5 then
@@ -259,10 +260,11 @@ function M.apply_change(lines, change)
   return new_lines
 end
 
----@param list string[] list of strings to join
----@param sep string sep to concat list elements
----@param prefix string|nil prefix to be applied to each element
----@return string|false list concated with `sep` and prefixed with `prefix` for each line
+---Join a list of lines, prefixing each optionally.
+---@param list string[] List of lines
+---@param sep string Separator (e.g., "\n")
+---@param prefix? string Optional prefix for each line
+---@return string|false Result string or false if list is empty
 local function prefix_join(list, sep, prefix)
   if #list == 0 then
     return false
@@ -276,8 +278,9 @@ local function prefix_join(list, sep, prefix)
   return table.concat(list, sep)
 end
 
----@param change Change change to be rendered as text
----@return string text representation of the change for rendering anywhere
+---Format a Change block as a string for output or logs.
+---@param change Change To render
+---@return string Formatted string
 function M.get_change_string(change)
   local parts = {
     prefix_join(change.focus, "\n", "@@"),

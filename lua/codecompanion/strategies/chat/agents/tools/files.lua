@@ -122,7 +122,7 @@ local function update(action)
   for _, change in ipairs(changes) do
     local new_lines = patches.apply_change(lines, change)
     if new_lines == nil then
-      error(fmt("Incorrect diff format:\n\n%s\n\nNo changes were applied", patches.get_change_string(change)))
+      error(fmt("Bad/Incorrect diff:\n\n%s\n\nNo changes were applied", patches.get_change_string(change)))
     else
       lines = new_lines
     end
