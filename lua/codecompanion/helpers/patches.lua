@@ -6,12 +6,12 @@ M.FORMAT_PROMPT = [[*** Begin Patch
 
 The `[PATCH]` is the series of diffs to be applied for each change in the file. Each diff should be in this format:
 
-[3 lines of pre-context]
+ [3 lines of pre-context]
 -[old code]
 +[new code]
-[3 lines of post-context]
+ [3 lines of post-context]
 
-The context blocks are 3 lines of existing code, immediately before and after the modified lines of code. Lines to be modified should be prefixed with a `+` or `-` sign. Unmodified lines used in context can be used as it is except when they themselves begin with a `-` sign. Example in case of Lua, the comments and type-annotations start with `--`. The pre/post context lines in such cases can start with a space ` ` to prevent them from being interpretted as deleted lines.
+The context blocks are 3 lines of existing code, immediately before and after the modified lines of code. Lines to be modified should be prefixed with a `+` or `-` sign. Unmodified lines used in context should begin with an empty space ` `.
 
 Multiple blocks of diffs should be separated by an empty line and `@@[identifier]` detailed below.
 
@@ -20,10 +20,10 @@ The immediately preceding and after context lines are enough to locate the lines
 You can use `@@[identifier]` to define a larger context in case the immediately before and after context is not sufficient to locate the edits. Example:
 
 @@class BaseClass(models.Model):
-[3 lines of pre-context]
+ [3 lines of pre-context]
 -	pass
 +	raise NotImplementedError()
-[3 lines of post-context]
+ [3 lines of post-context]
 
 You can also use multiple `@@[identifiers]` to provide the right context if a single `@@` is not sufficient.
 
