@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 22
+*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 25
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -2107,6 +2107,17 @@ disk:
 - Renaming a file
 - Copying a file
 - Moving a file
+
+
+@WEB_SEARCH ~
+
+The `@web_search` tool enables an LLM to search the web for a specific query.
+This can be useful to supplement an LLMs knowledge cut off date with more up to
+date information.
+
+>md
+    Can you use the @web_search tool to tell me the latest version of Neovim?
+<
 
 
 @FULL_STACK_DEV ~
