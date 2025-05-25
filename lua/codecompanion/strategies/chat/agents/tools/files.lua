@@ -122,7 +122,7 @@ local function update(action)
   for _, change in ipairs(changes) do
     local new_lines = patches.apply_change(lines, change)
     if new_lines == nil then
-      error(fmt("Diff block not found:\n\n%s\n\nNo changes were applied", change))
+      error(fmt("Diff block not found:\n\n%s\n\nNo changes were applied", patches.get_change_string(change)))
     else
       lines = new_lines
     end

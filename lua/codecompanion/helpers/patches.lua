@@ -258,4 +258,40 @@ function M.apply_change(lines, change)
   return new_lines
 end
 
+---@param list string[] list of strings to join
+---@param sep string sep to concat list elements
+---@param prefix string|nil prefix to be applied to each element
+---@return string|false list concated with `sep` and prefixed with `prefix` for each line
+local function prefix_join(list, sep, prefix)
+  if #list == 0 then
+    return false
+  end
+
+  if prefix then
+    for i = 1, #list do
+      list[i] = prefix .. list[i]
+    end
+  end
+  return table.concat(list, sep)
+end
+
+---@param change Change change to be rendered as text
+---@return string text representation of the change for rendering anywhere
+function M.get_change_string(change)
+  local parts = {
+    prefix_join(change.focus, "\n", "@@"),
+    prefix_join(change.pre, "\n"),
+    prefix_join(change.old, "\n", "-"),
+    prefix_join(change.new, "\n", "+"),
+    prefix_join(change.post, "\n"),
+  }
+  local non_empty = {}
+  for _, part in ipairs(parts) do
+    if part then
+      table.insert(non_empty, part)
+    end
+  end
+  return table.concat(non_empty, "\n")
+end
+
 return M
