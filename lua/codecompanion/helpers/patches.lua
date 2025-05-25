@@ -11,11 +11,11 @@ The `[PATCH]` is the series of diffs to be applied for each change in the file. 
 +[new code]
 [3 lines of post-context]
 
-The context blocks are 3 lines of existing code, immediately before and after the modified lines of code. Lines to be modified should be prefixed with a `+` or `-` sign. Unchanged lines used for context starting with a `-` (such as comments in Lua) can be prefixed with a space ` `.
+The context blocks are 3 lines of existing code, immediately before and after the modified lines of code. Lines to be modified should be prefixed with a `+` or `-` sign. Unmodified lines used in context can be used as it is except when they themselves begin with a `-` sign. Example in case of Lua, the comments and type-annotations start with `--`. The pre/post context lines in such cases can start with a space ` ` to prevent them from being interpretted as deleted lines.
 
 Multiple blocks of diffs should be separated by an empty line and `@@[identifier]` detailed below.
 
-The linked context lines next to the edits are enough to locate the lines to edit. DO NOT USE line numbers anywhere in the patch.
+The immediately preceding and after context lines are enough to locate the lines to edit. DO NOT USE line numbers anywhere in the patch.
 
 You can use `@@[identifier]` to define a larger context in case the immediately before and after context is not sufficient to locate the edits. Example:
 
