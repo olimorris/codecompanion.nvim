@@ -72,6 +72,14 @@ The _@files_ tool leverages the [Plenary.Path](https://github.com/nvim-lua/plena
 - Editing a file
 - Deleting a file
 
+## @web_search
+
+The _@web_search_ tool enables an LLM to search the web for a specific query. This can be useful to supplement an LLMs knowledge cut off date with more up to date information.
+
+```md
+Can you use the @web_search tool to tell me the latest version of Neovim?
+```
+
 ## @full_stack_dev
 
 The plugin enables tools to be grouped together. The _@full_stack_dev_ agent is a combination of the _@cmd_runner_, _@editor_ and _@files_ tools:

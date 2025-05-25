@@ -2113,6 +2113,17 @@ disk:
 - Moving a file
 
 
+@WEB_SEARCH ~
+
+The `@web_search` tool enables an LLM to search the web for a specific query.
+This can be useful to supplement an LLMs knowledge cut off date with more up to
+date information.
+
+>md
+    Can you use the @web_search tool to tell me the latest version of Neovim?
+<
+
+
 @FULL_STACK_DEV ~
 
 The plugin enables tools to be grouped together. The `@full_stack_dev` agent is
