@@ -72,7 +72,16 @@ function Default:buffers()
   return self
 end
 
-function Default:urls(urls) end
+---Find URLs in a set of paths
+---@param urls table The table of URLs to display
+---@return nil
+function Default:urls(urls)
+  self.to_display = urls
+  self.to_format = function(item)
+    return item.display or item.url
+  end
+  return self
+end
 
 ---Find images in a set of paths
 ---@param paths table

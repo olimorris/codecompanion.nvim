@@ -161,4 +161,13 @@ function M.make_relative(timestamp)
   end
 end
 
+---Remove an exension from a filename
+---@param filename string
+---@param extension? string
+---@return string
+M.strip_extension = function(filename, extension)
+  local pattern = extension and ("%." .. extension .. "$") or "%.%w+$"
+  return (filename:gsub(pattern, "")) -- only return first value
+end
+
 return M

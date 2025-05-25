@@ -13,24 +13,44 @@ local CONSTANTS = {
   CACHE_PATH = config.strategies.chat.slash_commands.fetch.opts.cache_path,
 }
 
-local providers = {
-  ---The default provider
-  ---@param SlashCommand CodeCompanion.SlashCommand
-  ---@return nil
-  default = function(SlashCommand, urls)
-    local default = require("codecompanion.providers.slash_commands.default")
-    return default
-      .new({
-        output = function(selection)
-          return SlashCommand:output(selection)
-        end,
-        SlashCommand = SlashCommand,
-        title = CONSTANTS.PROMPT,
-      })
-      :find_files()
-      :display()
-  end,
-}
+---Get the cached URLs from the directory
+---@return table
+local function get_cached_files()
+  local scan = require("plenary.scandir")
+  local cache_dir = Path:new(CONSTANTS.CACHE_PATH):expand()
+
+  if not Path:new(cache_dir):exists() then
+    return {}
+  end
+
+  local cache = scan.scan_dir(cache_dir, {
+    depth = 1,
+    search_pattern = "%.json$",
+  })
+
+  local urls = vim
+    .iter(cache)
+    :map(function(f)
+      local file = Path:new(f):read()
+      local content = vim.json.decode(file)
+      return {
+        filepath = f,
+        content = content.data,
+        filename = vim.fn.fnamemodify(f, ":t"),
+        url = content.url,
+        timestamp = content.timestamp,
+        display = string.format("[%s] %s", util.make_relative(content.timestamp), content.url),
+      }
+    end)
+    :totable()
+
+  -- Sort by timestamp (newest first)
+  table.sort(urls, function(a, b)
+    return a.timestamp > b.timestamp
+  end)
+
+  return urls
+end
 
 ---Format the output for the chat buffer
 ---@param url string
@@ -51,12 +71,12 @@ local function format_output(url, text, opts)
   return fmt(output, "Here is the output from " .. url .. " that I'm sharing with you:", text)
 end
 
----Output the contents of the URL to the chat buffer
----@param chat CodeCompanion.Chat
+---Output the contents of the URL to the chat buffer @param chat CodeCompanion.Chat
 ---@param data table
----@param opts table
+---@param opts? table
 ---@return nil
 local function output(chat, data, opts)
+  opts = opts or {}
   local id = "<url>" .. data.url .. "</url>"
 
   chat:add_message({
@@ -76,6 +96,182 @@ local function output(chat, data, opts)
 
   return util.notify(fmt("Added `%s` to the chat", data.url))
 end
+
+local providers = {
+  ---The default provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  default = function(SlashCommand)
+    local cached_files = get_cached_files()
+
+    if #cached_files == 0 then
+      return util.notify("No cached URLs found", vim.log.levels.WARN)
+    end
+
+    local default = require("codecompanion.providers.slash_commands.default")
+    return default
+      .new({
+        output = function(selection)
+          return output(SlashCommand.Chat, selection)
+        end,
+        SlashCommand = SlashCommand,
+        title = CONSTANTS.PROMPT,
+      })
+      :urls(cached_files)
+      :display()
+  end,
+  ---The snacks.nvim provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  snacks = function(SlashCommand)
+    local cached_files = get_cached_files()
+
+    if #cached_files == 0 then
+      return util.notify("No cached URLs found", vim.log.levels.WARN)
+    end
+
+    local snacks = require("codecompanion.providers.slash_commands.snacks")
+    snacks = snacks.new({
+      output = function(selection)
+        return output(SlashCommand.Chat, selection)
+      end,
+    })
+
+    -- Transform cached files into picker items
+    local items = vim.tbl_map(function(file)
+      return {
+        text = file.display,
+        file = file.filepath,
+        url = file.url,
+        content = file.content,
+        timestamp = file.timestamp,
+      }
+    end, cached_files)
+
+    snacks.provider.picker.pick({
+      title = "Cached URLs",
+      items = items,
+      prompt = snacks.title,
+      format = function(item, _)
+        local display_text = item.text
+        return { { display_text } }
+      end,
+      confirm = snacks:display(),
+      main = { file = false, float = true },
+    })
+  end,
+  ---The Telescope provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  telescope = function(SlashCommand)
+    local cached_files = get_cached_files()
+
+    if #cached_files == 0 then
+      return util.notify("No cached URLs found", vim.log.levels.WARN)
+    end
+
+    local telescope = require("codecompanion.providers.slash_commands.telescope")
+    telescope = telescope.new({
+      output = function(selection)
+        return output(SlashCommand.Chat, selection)
+      end,
+    })
+
+    local pickers = require("telescope.pickers")
+    local finders = require("telescope.finders")
+
+    local function create_finder()
+      return finders.new_table({
+        results = cached_files,
+        entry_maker = function(entry)
+          return {
+            value = entry,
+            content = entry.content,
+            url = entry.url,
+            ordinal = entry.display,
+            display = entry.display,
+            filename = entry.filepath,
+          }
+        end,
+      })
+    end
+
+    pickers
+      .new({
+        finder = create_finder(),
+        attach_mappings = telescope:display(),
+      })
+      :find()
+  end,
+  ---The Mini.Pick provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  mini_pick = function(SlashCommand)
+    local cached_files = get_cached_files()
+
+    if #cached_files == 0 then
+      return util.notify("No cached URLs found", vim.log.levels.WARN)
+    end
+
+    local mini_pick = require("codecompanion.providers.slash_commands.mini_pick")
+    mini_pick = mini_pick.new({
+      output = function(selected)
+        return output(SlashCommand.Chat, selected)
+      end,
+    })
+
+    local items = vim.tbl_map(function(file)
+      return {
+        text = file.display,
+        url = file.url,
+        content = file.content,
+      }
+    end, cached_files)
+
+    mini_pick.provider.start({
+      source = vim.tbl_deep_extend(
+        "force",
+        mini_pick:display(function(picked_item)
+          return picked_item
+        end).source,
+        {
+          items = items,
+        }
+      ),
+    })
+  end,
+  ---The FZF-Lua provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  fzf_lua = function(SlashCommand)
+    local cached_files = get_cached_files()
+
+    if #cached_files == 0 then
+      return util.notify("No cached URLs found", vim.log.levels.WARN)
+    end
+
+    local fzf = require("codecompanion.providers.slash_commands.fzf_lua")
+    fzf = fzf.new({
+      output = function(selected)
+        return output(SlashCommand.Chat, selected)
+      end,
+    })
+
+    local items = vim.tbl_map(function(file)
+      return file.display
+    end, cached_files)
+
+    local transformer_fn = function(selected, _)
+      for _, file_object in ipairs(cached_files) do
+        if file_object.display == selected then
+          return file_object
+        end
+      end
+    end
+
+    fzf.provider.fzf_exec(items, fzf:display(transformer_fn))
+  end,
+}
 
 ---Determine if the URL has already been cached
 ---@param hash string
@@ -148,109 +344,36 @@ local function fetch(chat, adapter, url, opts)
             return log:error("Could not parse the JSON response")
           end
           if data.status == 200 then
-            write_cache(
-              util_hash.hash(url),
-              vim.json.encode({
-                url = url,
-                timestamp = os.time(),
-                data = body.data.text,
-              })
-            )
-            return output(chat, {
+            output(chat, {
               content = body.data.text,
               url = url,
             }, opts)
+
+            -- Cache the response
+            -- TODO: Get an LLM to create summary
+            vim.ui.select({ "Yes", "No" }, {
+              prompt = "Do you want to cache this URL?",
+              kind = "codecompanion.nvim",
+            }, function(selected)
+              if selected == "Yes" then
+                local hash = util_hash.hash(url)
+                write_cache(
+                  hash,
+                  vim.json.encode({
+                    url = url,
+                    hash = hash,
+                    timestamp = os.time(),
+                    data = body.data.text,
+                  })
+                )
+              end
+            end)
           else
             return log:error("Error %s - %s", data.status, body.data.text)
           end
         end
       end,
     })
-end
-
----Prompt the user whether to load the URL from the cache
----@param chat CodeCompanion.Chat
----@param url string
----@param hash string
----@param adapter table
----@param opts table
----@param cb function
----@return nil
-local function load_from_cache(chat, url, hash, adapter, opts, cb)
-  return vim.ui.select({ "Yes", "No" }, {
-    kind = "codecompanion.nvim",
-    prompt = "Load the URL from the cache?",
-  }, function(choice)
-    if not choice then
-      return cb
-    end
-    if choice == "Yes" then
-      return read_cache(chat, url, hash, opts)
-    end
-    return fetch(chat, adapter, url, opts)
-  end)
-end
-
----Read the contents of the given file
----@param filepath string
----@return table
-local function read_file(filepath)
-  local file = Path:new(filepath)
-  if not file:exists() then
-    return log:error("No cached items found")
-  end
-
-  local content, err = file:read()
-  if not content then
-    log:error("Failed to read file: %s - %s", filepath, err)
-    return { ok = false }
-  end
-
-  local ok, data = pcall(vim.json.decode, content)
-  if not ok then
-    log:error("Failed to parse JSON: %s - %s", filepath, data)
-    return { ok = false }
-  end
-
-  return { ok = true, data = data }
-end
-
-local function get_cached_files()
-  local scan = require("plenary.scandir")
-  local cache_dir = Path:new(CONSTANTS.CACHE_PATH):expand()
-
-  -- Ensure cache directory exists
-  if not Path:new(cache_dir):exists() then
-    return {}
-  end
-
-  local cached_files = scan.scan_dir(cache_dir, {
-    depth = 1,
-    search_pattern = "%.json$",
-  })
-
-  local results = {}
-  for _, filepath in ipairs(cached_files) do
-    local file_data = read_file(filepath)
-    if file_data.ok then
-      local file = Path:new(filepath)
-      table.insert(results, {
-        filepath = filepath,
-        filename = vim.fn.fnamemodify(file.filename, ":t"),
-        url = file_data.data.url,
-        timestamp = file_data.data.timestamp,
-        data = file_data.data.data,
-        display = string.format("[%s] %s", util.make_relative(file_data.data.timestamp), file_data.data.url),
-      })
-    end
-  end
-
-  -- Sort by timestamp (newest first)
-  table.sort(results, function(a, b)
-    return a.timestamp > b.timestamp
-  end)
-
-  return results
 end
 
 -- The different choices to load URLs in to the chat buffer
