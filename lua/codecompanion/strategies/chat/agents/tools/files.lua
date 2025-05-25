@@ -130,6 +130,12 @@ local function update(action)
 
   -- 4. write back
   p:write(table.concat(lines, "\n"), "w")
+
+  -- 5. refresh the buffer if the file is open
+  local bufnr = vim.fn.bufnr(p.filename)
+  if bufnr ~= -1 and vim.api.nvim_buf_is_loaded(bufnr) then
+    vim.api.nvim_command("checktime " .. bufnr)
+  end
   return fmt("The UPDATE action for `%s` was successful", action.path)
 end
 
