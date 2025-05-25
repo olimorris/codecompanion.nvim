@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 22
+*codecompanion.txt*          For NVIM v0.10.0         Last change: 2025 May 25
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -225,7 +225,9 @@ popular plugins:
 
 RENDER-MARKDOWN.NVIM ~
 
-To render the markdown in the chat buffer:
+Use render-markdown.nvim
+<https://github.com/MeanderingProgrammer/render-markdown.nvim> to render the
+markdown in the chat buffer:
 
 >lua
     {
@@ -237,7 +239,8 @@ To render the markdown in the chat buffer:
 
 MARKVIEW.NVIM ~
 
-To render the markdown in the chat buffer:
+Use markview.nvim <https://github.com/OXY2DEV/markview.nvim> to render the
+markdown in the chat buffer:
 
 >lua
     {
@@ -255,7 +258,8 @@ To render the markdown in the chat buffer:
 
 MINI.DIFF ~
 
-For a cleaner diff when using the inline assistant or the `@editor` tool:
+Use mini.diff <https://github.com/echasnovski/mini.diff> for a cleaner diff
+when using the inline assistant or the `@editor` tool:
 
 >lua
     {
@@ -273,8 +277,8 @@ For a cleaner diff when using the inline assistant or the `@editor` tool:
 
 IMG-CLIP.NVIM ~
 
-To enable you to copy images from your system clipboard into a chat buffer via
-`:PasteImage`:
+Use img-clip.nvim <https://github.com/hakonharnes/img-clip.nvim> to copy images
+from your system clipboard into a chat buffer via `:PasteImage`:
 
 >lua
     {
@@ -342,7 +346,7 @@ WITH AN ADAPTER                *codecompanion-getting-started-with-an-adapter*
   [!NOTE] The adapters that the plugin supports out of the box can be found here
   <https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters>.
   Or, see the user contributed adapters
-  |codecompanion-configuration-adapters.html-user-contributed-adapters|
+  |codecompanion-configuration-adapters.html-community-adapters|
 An adapter is what connects Neovim to an LLM. It’s the interface that allows
 data to be sent, received and processed. In order to use the plugin, you need
 to make sure you’ve configured an adapter first:
@@ -629,7 +633,7 @@ ADAPTERS                                *codecompanion-configuration-adapters*
 
 
   [!TIP] Want to connect to an LLM that isn’t supported out of the box? Check
-  out |codecompanion--user-contributed-adapters| user contributed adapters,
+  out |codecompanion--community-adapters| user contributed adapters,
   |codecompanion-extending-adapters.html| your own or post in the discussions
   <https://github.com/olimorris/codecompanion.nvim/discussions>
 An adapter is what connects Neovim to an LLM. It’s the interface that allows
@@ -2833,7 +2837,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI�S API OUTPUT
+OPENAI’S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
