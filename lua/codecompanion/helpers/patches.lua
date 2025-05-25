@@ -209,6 +209,7 @@ local function get_best_location(lines, change)
     end
     if score > best_score then
       best_location = i
+      best_score = score
     end
   end
   return best_location, best_score
