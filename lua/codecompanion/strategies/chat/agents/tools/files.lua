@@ -122,18 +122,7 @@ local function update(action)
   for _, change in ipairs(changes) do
     local new_lines = patches.apply_change(lines, change)
     if new_lines == nil then
-      -- try applying patch in flexible spaces mode
-      -- there is no standardised way to of spaces in diffs
-      -- python differ specifies a single space after +/-
-      -- while gnu udiff uses no spaces
-      --
-      -- and LLM models (especially Claude) sometimes strip
-      -- long spaces on the left in case of large nestings (eg html)
-      -- trim_spaces mode solves all of these
-      new_lines = patches.apply_change(lines, change, { trim_spaces = true })
-    end
-    if new_lines == nil then
-      error(fmt("Diff block not found:\n\n%s", change))
+      error(fmt("Bad/Incorrect diff:\n\n%s\n\nNo changes were applied", patches.get_change_string(change)))
     else
       lines = new_lines
     end
@@ -141,6 +130,12 @@ local function update(action)
 
   -- 4. write back
   p:write(table.concat(lines, "\n"), "w")
+
+  -- 5. refresh the buffer if the file is open
+  local bufnr = vim.fn.bufnr(p.filename)
+  if bufnr ~= -1 and vim.api.nvim_buf_is_loaded(bufnr) then
+    vim.api.nvim_command("checktime " .. bufnr)
+  end
   return fmt("The UPDATE action for `%s` was successful", action.path)
 end
 
