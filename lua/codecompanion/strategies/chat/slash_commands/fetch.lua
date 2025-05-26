@@ -115,7 +115,6 @@ local providers = {
           return output(SlashCommand.Chat, selection)
         end,
         SlashCommand = SlashCommand,
-        title = CONSTANTS.PROMPT,
       })
       :urls(cached_files)
       :display()
