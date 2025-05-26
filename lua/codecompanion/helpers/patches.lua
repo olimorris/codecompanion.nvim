@@ -122,7 +122,7 @@ function M.parse_changes(raw)
   for patch in raw:gmatch("%*%*%* Begin Patch%s+(.-)%s+%*%*%* End Patch") do
     table.insert(patches, patch)
   end
-  if not patches then
+  if #patches == 0 then
     error("Invalid patch format: missing Begin/End markers")
   end
 
