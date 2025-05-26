@@ -1,7 +1,12 @@
 *** Begin Patch
-@@ <div id="l1">
-<li>
--  <span><em>Bee</em></span>
-+  <span><em>B</em></span>
-</li>
+@@ two
+@@ three
+four
+-five
++5
+six
+
+@@ seven
+eight
+-nine
 *** End Patch
