@@ -188,6 +188,10 @@ function Agent:execute(chat, tools)
   end)
 end
 
+function Agent:_pattern(tool)
+  return CONSTANTS.PREFIX .. tool .. "\\(\\s\\|$\\)"
+end
+
 ---Look for tools in a given message
 ---@param chat CodeCompanion.Chat
 ---@param message table
@@ -201,7 +205,11 @@ function Agent:find(chat, message)
   local tools = {}
 
   local function is_found(tool)
-    return message.content:match("%f[%w" .. CONSTANTS.PREFIX .. "]" .. CONSTANTS.PREFIX .. tool .. "%f[%W]")
+    -- Use vim.regex with explicit word boundaries
+    -- Pattern: @tool + (whitespace OR end of line)
+    -- This prevents partial matches like "@mcp" matching in "@mcphub"
+    local pattern = self:_pattern(tool)
+    return util.regex_find(message.content, pattern)
   end
 
   -- Process groups
@@ -277,14 +285,13 @@ end
 function Agent:replace(message)
   for tool, _ in pairs(self.tools_config) do
     if tool ~= "opts" and tool ~= "groups" then
-      message = vim.trim(message:gsub(CONSTANTS.PREFIX .. tool, tool))
+      message = vim.trim(util.regex_replace(message, self:_pattern(tool), tool))
     end
   end
   for group, _ in pairs(self.tools_config.groups) do
     local tools = table.concat(self.tools_config.groups[group].tools, ", ")
-    message = vim.trim(message:gsub(CONSTANTS.PREFIX .. group, tools))
+    message = vim.trim(util.regex_replace(message, self:_pattern(group), tools))
   end
-
   return message
 end
 
