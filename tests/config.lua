@@ -140,6 +140,11 @@ return {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/mock_cmd_runner.lua",
           description = "Cmd tool",
         },
+        -- Add tool with same name as a tool group to verify word boundary matching
+        ["tool_group_tool"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/tool_group_tool.lua",
+          description = "Tool group extended",
+        },
         groups = {
           ["tool_group"] = {
             description = "Tool Group",
@@ -166,6 +171,11 @@ return {
         ["foo"] = {
           callback = "tests.strategies.chat.variables.foo",
           description = "foo",
+        },
+        -- Add test variables to verify word boundary matching
+        ["foo://10-20-30:40"] = {
+          callback = "tests.strategies.chat.variables.foo_special",
+          description = "Variable with prefix starting with 'foo' and with special chars",
         },
         ["bar"] = {
           callback = "tests.strategies.chat.variables.bar",
