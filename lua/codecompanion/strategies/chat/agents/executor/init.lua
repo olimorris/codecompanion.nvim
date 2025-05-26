@@ -2,6 +2,7 @@ local CmdExecutor = require("codecompanion.strategies.chat.agents.executor.cmd")
 local FuncExecutor = require("codecompanion.strategies.chat.agents.executor.func")
 local Queue = require("codecompanion.strategies.chat.agents.executor.queue")
 local log = require("codecompanion.utils.log")
+local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils")
 
 ---@class CodeCompanion.Agent.Executor
@@ -112,33 +113,29 @@ function Executor:setup(input)
       prompt = ("Run the %q tool?"):format(self.tool.name)
     end
 
-    vim.ui.select({ "Yes", "No", "Cancel" }, {
-      kind = "codecompanion.nvim",
-      prompt = prompt,
-      format_item = function(item)
-        if item == "Yes" then
-          return "Yes"
-        elseif item == "No" then
-          return "No"
-        else
-          return "Cancel"
-        end
-      end,
-    }, function(choice)
-      if not choice or choice == "Cancel" then -- No selection or cancelled
+    -- Use create_confirm_dialog instead of vim.ui.select
+    ui.create_confirm_dialog(prompt, function(choice)
+      if choice == nil then -- Cancelled (ESC/q)
         log:debug("Executor:execute - Tool cancelled")
         finalize_agent(self)
         self:close()
         return
-      elseif choice == "Yes" then -- Selected yes
+      elseif choice == true then -- Selected Yes
         log:debug("Executor:execute - Tool approved")
         self:execute(cmd, input)
-      elseif choice == "No" then -- Selected no
+      elseif choice == false then -- Selected No
         log:debug("Executor:execute - Tool rejected")
         self.output.rejected(cmd)
         self:setup()
       end
-    end)
+    end, {
+      title = "Tool Approval",
+      yes_text = " ✓ Run",
+      no_text = " ✗ Not",
+      padding = 2,
+      min_width = 40,
+      auto_close = false, -- Prevent accidental closure
+    })
   else
     self:execute(cmd, input)
   end
