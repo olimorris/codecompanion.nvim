@@ -1,5 +1,12 @@
 # Changelog
 
+## [15.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.6.1...v15.7.0) (2025-05-25)
+
+
+### Features
+
+* **adapters:** add new Anthropic models ([#1488](https://github.com/olimorris/codecompanion.nvim/issues/1488)) ([70d52e0](https://github.com/olimorris/codecompanion.nvim/commit/70d52e00c23a6df9ccf3bc927e2658b320764302))
+
 ## [15.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v15.6.0...v15.6.1) (2025-05-22)
 
 
