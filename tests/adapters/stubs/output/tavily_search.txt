@@ -1,0 +1,11 @@
+{
+  "body": "{\"query\":\"Neovim latest version release May 2025\",\"follow_up_questions\":null,\"answer\":null,\"images\":[],\"results\":[{\"url\":\"https://gpanders.com/blog/whats-new-in-neovim-0-11/\",\"title\":\"What's New in Neovim 0.11 | g.p. anders\",\"content\":\"What's New in Neovim 0.11. March 26, 2025. Neovim 0.11 was just released. As in previous installments in this series, let's talk a bit about\",\"score\":0.84707206,\"raw_content\":null},{\"url\":\"https://neovim.io/news/2025/03\",\"title\":\"Neovim 0.11\",\"content\":\"Neovim 0.11. March 2025. Nvim 0.11 was released. Newsletter is here: https ... Neovim is a Vim-based text editor engineered for extensibility and usability, to\",\"score\":0.8332299,\"raw_content\":null},{\"url\":\"https://www.reddit.com/r/HelixEditor/comments/1iltqlt/neovim_is_coming_at_helix_in_2025/\",\"title\":\"Neovim is coming at Helix in 2025 : r/HelixEditor - Reddit\",\"content\":\"Neovim 2025 will be interesting, closing obvious \\\"gaps\\\": OTOH, Zed/Helix are converging from the other direction, by becoming more extensible.\",\"score\":0.6551821,\"raw_content\":null}],\"response_time\":2.18}",
+  "exit": 0,
+  "headers": {
+    "date": "Mon, 12 May 2025 03:23:28 GMT",
+    "content-type": "application/json",
+    "content-length": "1069",
+    "content-security-policy": "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self';base-uri 'self';form-action 'self'; require-trusted-types-for 'script'; upgrade-insecure-requests;"
+  },
+  "status": 200
+}

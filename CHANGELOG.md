@@ -1,5 +1,34 @@
 # Changelog
 
+## [15.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.7.0...v15.8.0) (2025-05-26)
+
+
+### Features
+
+* **tools:** add tavily adapter and `[@web](https://github.com/web)_search` tool ([#1279](https://github.com/olimorris/codecompanion.nvim/issues/1279)) ([a5a8701](https://github.com/olimorris/codecompanion.nvim/commit/a5a8701bf8814ff0ba9bf5f76b3a3deedf3e5f28))
+
+
+### Bug Fixes
+
+* **slash_commands:** update adapter reference ([#1502](https://github.com/olimorris/codecompanion.nvim/issues/1502)) ([41108b2](https://github.com/olimorris/codecompanion.nvim/commit/41108b2ee7d71eca50ff6c5008b30a853e14cf35))
+* **workflows:** successive prompts and tools now work ([#1508](https://github.com/olimorris/codecompanion.nvim/issues/1508)) ([0112caf](https://github.com/olimorris/codecompanion.nvim/commit/0112caf54a79bb6cfbcb6e67cd16a3a9f18af9a7)), closes [#1496](https://github.com/olimorris/codecompanion.nvim/issues/1496)
+
+## [15.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.6.1...v15.7.0) (2025-05-25)
+
+
+### Features
+
+* **adapters:** add new Anthropic models ([#1488](https://github.com/olimorris/codecompanion.nvim/issues/1488)) ([70d52e0](https://github.com/olimorris/codecompanion.nvim/commit/70d52e00c23a6df9ccf3bc927e2658b320764302))
+
+## [15.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v15.6.0...v15.6.1) (2025-05-22)
+
+
+### Bug Fixes
+
+* **adapters:** enable OpenAI vision support ([#1486](https://github.com/olimorris/codecompanion.nvim/issues/1486)) ([f8e14ae](https://github.com/olimorris/codecompanion.nvim/commit/f8e14ae0be51c0f65b0284f787277407db30ace7))
+* **providers:** only use `mini.diff` if initialized ([#1472](https://github.com/olimorris/codecompanion.nvim/issues/1472)) ([f7bb598](https://github.com/olimorris/codecompanion.nvim/commit/f7bb59888b201507a43c856460d455f786c989f8))
+* **references:** unlock buffer when adding reference after a tool output ([#1477](https://github.com/olimorris/codecompanion.nvim/issues/1477)) ([df44594](https://github.com/olimorris/codecompanion.nvim/commit/df4459401180612bc5b7b167eff7133324e85f1c))
+
 ## [15.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.5.0...v15.6.0) (2025-05-21)
 
 

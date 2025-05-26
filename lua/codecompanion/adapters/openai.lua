@@ -40,7 +40,7 @@ return {
         model_opts = model_opts(self)
       end
 
-      self.opts.vision = false
+      self.opts.vision = true
 
       if model_opts and model_opts[model] and model_opts[model].opts then
         self.opts = vim.tbl_deep_extend("force", self.opts, model_opts[model].opts)

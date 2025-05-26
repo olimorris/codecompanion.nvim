@@ -471,7 +471,7 @@ M.change_adapter = {
     local adapters_list = vim
       .iter(adapters)
       :filter(function(adapter)
-        return adapter ~= "opts" and adapter ~= "non_llms" and adapter ~= current_adapter
+        return adapter ~= "opts" and adapter ~= "non_llm" and adapter ~= current_adapter
       end)
       :map(function(adapter, _)
         return adapter

@@ -23,10 +23,9 @@ local defaults = {
     ollama = "ollama",
     openai = "openai",
     xai = "xai",
-    -- NON-LLMs ---------------------------------------------------------------
-    non_llms = {
-      jina = "jina",
-    },
+    -- Non LLMs
+    jina = "jina",
+    tavily = "tavily",
     -- OPTIONS ----------------------------------------------------------------
     opts = {
       allow_insecure = false, -- Allow insecure connections?
@@ -80,6 +79,19 @@ local defaults = {
           description = "Update the file system with the LLM's response",
           opts = {
             requires_approval = true,
+          },
+        },
+        ["web_search"] = {
+          callback = "strategies.chat.agents.tools.web_search",
+          description = "Search the web for information",
+          opts = {
+            adapter = "tavily",
+            opts = {
+              search_depth = "advanced",
+              topic = "general",
+              chunks_per_source = 3,
+              max_results = 5,
+            },
           },
         },
         opts = {

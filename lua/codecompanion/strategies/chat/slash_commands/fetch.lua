@@ -432,9 +432,9 @@ end
 ---@param opts? table
 ---@return nil
 function SlashCommand:output(url, opts)
-  local ok, adapter = pcall(require, "codecompanion.adapters.non_llm." .. self.config.opts.adapter)
+  local ok, adapter = pcall(require, "codecompanion.adapters." .. self.config.opts.adapter)
   if not ok then
-    ok, adapter = pcall(loadfile, self.config.opts.provider)
+    ok, adapter = pcall(loadfile, self.config.opts.adapter)
   end
   if not ok or not adapter then
     return log:error("Failed to load the adapter for the fetch Slash Command")

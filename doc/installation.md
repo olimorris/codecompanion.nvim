@@ -104,9 +104,9 @@ Visit the [extensions documentation](extending/extensions) to learn more about a
 
 CodeCompanion integrates with a number of other plugins to make your AI coding experience more enjoyable. Below are some common lazy.nvim configurations for popular plugins:
 
-### [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim)
+### render-markdown.nvim
 
-To render the markdown in the chat buffer:
+Use [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) to render the markdown in the chat buffer:
 
 ```lua
 {
@@ -115,9 +115,9 @@ To render the markdown in the chat buffer:
 },
 ```
 
-### [markview.nvim](https://github.com/OXY2DEV/markview.nvim)
+### markview.nvim
 
-To render the markdown in the chat buffer:
+Use [markview.nvim](https://github.com/OXY2DEV/markview.nvim) to render the markdown in the chat buffer:
 
 ```lua
 {
@@ -132,9 +132,9 @@ To render the markdown in the chat buffer:
 },
 ```
 
-### [mini.diff](https://github.com/echasnovski/mini.diff)
+### mini.diff
 
-For a cleaner diff when using the inline assistant or the `@editor` tool:
+Use [mini.diff](https://github.com/echasnovski/mini.diff) for a cleaner diff when using the inline assistant or the `@editor` tool:
 
 ```lua
 {
@@ -149,9 +149,9 @@ For a cleaner diff when using the inline assistant or the `@editor` tool:
 },
 ```
 
-### [img-clip.nvim](https://github.com/hakonharnes/img-clip.nvim)
+### img-clip.nvim
 
-To enable you to copy images from your system clipboard into a chat buffer via `:PasteImage`:
+Use [img-clip.nvim](https://github.com/hakonharnes/img-clip.nvim) to copy images from your system clipboard into a chat buffer via `:PasteImage`:
 
 ```lua
 {
@@ -170,7 +170,7 @@ To enable you to copy images from your system clipboard into a chat buffer via `
 
 ## Completion
 
-When in the [Chat Buffer](usage/chat-buffer/index), completion can be used to more easily add [variables](usage/chat-buffer/variables), [slash commands](usage/chat-buffer/slash-commands) and [tools](usage/chat-buffer/agents). Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
+When in the [chat buffer](usage/chat-buffer/index), completion can be used to more easily add [variables](usage/chat-buffer/variables), [slash commands](usage/chat-buffer/slash-commands) and [tools](usage/chat-buffer/agents). Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
 
 ```lua
 sources = {
