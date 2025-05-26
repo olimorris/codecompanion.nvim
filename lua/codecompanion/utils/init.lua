@@ -145,7 +145,7 @@ end
 
 ---Make a timestamp relative
 ---@param timestamp number Unix timestamp
----@return string Relative time string (e.g. "5m ago", "2h ago")
+---@return string Relative time string (e.g. "5m", "2h")
 function M.make_relative(timestamp)
   local now = os.time()
   local diff = now - timestamp
