@@ -353,19 +353,6 @@ function Adapter.get_from_string(adapter_str)
   return adapter
 end
 
----Call a method on the adapter
----@param adapter CodeCompanion.Adapter
----@param method string
----@param data table
----@return CodeCompanion.Adapter
-function Adapter.call_method(adapter, method, data)
-  local copy = vim.deepcopy(adapter)
-  print(vim.inspect(copy))
-  print(vim.inspect(method))
-  copy.methods[method](copy, data)
-  return copy
-end
-
 ---Make an adapter safe for serialization
 ---@param adapter CodeCompanion.Adapter
 ---@return table
