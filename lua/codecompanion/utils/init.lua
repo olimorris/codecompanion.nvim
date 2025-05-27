@@ -143,7 +143,6 @@ function M.set_option(bufnr, opt, value)
   end
 end
 
-
 ---Replace certain patterns in a string with a replacement
 ---@param str string The input string
 ---@param regex_pattern string The regex pattern to match
@@ -189,6 +188,7 @@ function M.regex_find(str, regex_pattern)
     end
   end
   return nil
+end
 
 ---Make a timestamp relative
 ---@param timestamp number Unix timestamp
