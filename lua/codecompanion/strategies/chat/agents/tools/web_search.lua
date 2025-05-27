@@ -61,7 +61,7 @@ return {
                 return cb({ status = "error", data = "Web Search Tool Could not parse the JSON response" })
               end
               if data.status == 200 then
-                local output = adapter.handlers.chat_output(adapter, body)
+                local output = adapter.methods.tools.web_search.output(adapter, body)
                 return cb({ status = "success", data = output })
               else
                 log:error("Error %s - %s", data.status, body)

@@ -91,7 +91,7 @@ T["Tavily adapter"]["should format results correctly"] = function()
     "**Title: Title 2**\nURL: https://example.com/2\nContent: Content 2\n\n",
   }
 
-  local res = adapter.handlers.chat_output(adapter, data)
+  local res = adapter.methods.tools.web_search.output(adapter, data)
   h.eq(res, expected)
 end
 
@@ -110,7 +110,7 @@ T["Tavily adapter"]["should handle missing fields"] = function()
     "**Title: Title 3**\nURL: https://example.com/3\nContent: \n\n",
   }
 
-  local res = adapter.handlers.chat_output(adapter, data)
+  local res = adapter.methods.tools.web_search.output(adapter, data)
   h.eq(res, expected)
 end
 
