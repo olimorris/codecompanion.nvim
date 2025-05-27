@@ -30,6 +30,7 @@ local log = require("codecompanion.utils.log")
 ---@field handlers.on_exit? fun(self: CodeCompanion.Adapter, data: table): table|nil
 ---@field handlers.teardown? fun(self: CodeCompanion.Adapter): any
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
+---@field methods table Methods that the adapter can perform e.g. for Slash Commands
 
 ---Check if a variable starts with "cmd:"
 ---@param var string
@@ -329,6 +330,40 @@ function Adapter.resolve(adapter)
   end
 
   return adapter.set_model(adapter)
+end
+
+---Get an adapter from a string path
+---@param adapter_str string
+---@return CodeCompanion.Adapter|nil
+function Adapter.get_from_string(adapter_str)
+  local ok, adapter = pcall(require, "codecompanion.adapters." .. adapter_str)
+  if not ok then
+    ok, adapter = pcall(loadfile, adapter_str)
+  end
+  if not ok or not adapter then
+    return nil
+  end
+
+  adapter = Adapter.resolve(adapter)
+
+  if not adapter then
+    return nil
+  end
+
+  return adapter
+end
+
+---Call a method on the adapter
+---@param adapter CodeCompanion.Adapter
+---@param method string
+---@param data table
+---@return CodeCompanion.Adapter
+function Adapter.call_method(adapter, method, data)
+  local copy = vim.deepcopy(adapter)
+  print(vim.inspect(copy))
+  print(vim.inspect(method))
+  copy.methods[method](copy, data)
+  return copy
 end
 
 ---Make an adapter safe for serialization

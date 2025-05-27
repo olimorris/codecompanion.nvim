@@ -85,7 +85,7 @@ local defaults = {
           callback = "strategies.chat.agents.tools.web_search",
           description = "Search the web for information",
           opts = {
-            adapter = "tavily",
+            adapter = "tavily", -- tavily
             opts = {
               search_depth = "advanced",
               topic = "general",
@@ -136,7 +136,7 @@ local defaults = {
           callback = "strategies.chat.slash_commands.fetch",
           description = "Insert URL contents",
           opts = {
-            adapter = "jina", -- jina|tavily
+            adapter = "jina", -- jina
             cache_path = vim.fn.stdpath("data") .. "/codecompanion/urls",
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },

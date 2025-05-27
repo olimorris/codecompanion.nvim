@@ -317,13 +317,11 @@ end
 ---@param opts table
 ---@return nil
 local function fetch(chat, adapter, url, opts)
-  adapter.env = {
-    query = function()
-      return url
-    end,
-  }
-
   log:debug("Fetch Slash Command: Fetching from %s", url)
+
+  -- Make sure that we don't modify the original adapter
+  adapter = vim.deepcopy(adapter)
+  adapter.methods.slash_commands.fetch(adapter)
 
   return client
     .new({
@@ -432,23 +430,11 @@ end
 ---@param opts? table
 ---@return nil
 function SlashCommand:output(url, opts)
-  local ok, adapter = pcall(require, "codecompanion.adapters." .. self.config.opts.adapter)
-  if not ok then
-    ok, adapter = pcall(loadfile, self.config.opts.adapter)
-  end
-  if not ok or not adapter then
-    return log:error("Failed to load the adapter for the fetch Slash Command")
-  end
-
   opts = opts or {}
 
-  if type(adapter) == "function" then
-    adapter = adapter()
-  end
-
-  adapter = adapters.resolve(adapter)
+  local adapter = adapters.get_from_string(self.config.opts.adapter)
   if not adapter then
-    return log:error("Failed to load the adapter for the fetch Slash Command")
+    return log:error("Could not resolve adapter for the fetch slash command")
   end
 
   local function call_fetch()
