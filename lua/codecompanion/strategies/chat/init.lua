@@ -204,10 +204,7 @@ local function ready_chat_buffer(chat)
     chat.ui:display_tokens(chat.parser, chat.header_line)
     chat.references:render()
 
-    -- If we're running any tooling, let them handle the subscriptions instead
-    if not chat.tools:loaded() then
-      chat.subscribers:process(chat)
-    end
+    chat.subscribers:process(chat)
   end
 
   log:info("Chat request finished")

@@ -69,12 +69,16 @@ The _@files_ tool leverages the [Plenary.Path](https://github.com/nvim-lua/plena
 
 - Creating a file
 - Reading a file
-- Reading lines from a file
 - Editing a file
 - Deleting a file
-- Renaming a file
-- Copying a file
-- Moving a file
+
+## @web_search
+
+The _@web_search_ tool enables an LLM to search the web for a specific query. This can be useful to supplement an LLMs knowledge cut off date with more up to date information.
+
+```md
+Can you use the @web_search tool to tell me the latest version of Neovim?
+```
 
 ## @full_stack_dev
 

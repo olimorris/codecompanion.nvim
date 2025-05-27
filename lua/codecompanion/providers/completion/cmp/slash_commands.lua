@@ -17,7 +17,7 @@ function source:get_trigger_characters()
 end
 
 function source:get_keyword_pattern()
-  return [[\w\+]]
+  return [[/\w\+]]
 end
 
 function source:complete(params, callback)

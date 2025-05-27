@@ -208,6 +208,15 @@ return {
             provider = "default",
           },
         },
+        ["fetch"] = {
+          callback = "strategies.chat.slash_commands.fetch",
+          description = "Insert URL contents",
+          opts = {
+            adapter = "jina", -- jina|tavily
+            cache_path = vim.fn.stdpath("data") .. "/codecompanion/urls",
+            provider = "default",
+          },
+        },
         ["file"] = {
           callback = "strategies.chat.slash_commands.file",
           description = "Insert a file",

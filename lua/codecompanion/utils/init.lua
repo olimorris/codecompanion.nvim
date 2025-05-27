@@ -143,6 +143,7 @@ function M.set_option(bufnr, opt, value)
   end
 end
 
+
 ---Replace certain patterns in a string with a replacement
 ---@param str string The input string
 ---@param regex_pattern string The regex pattern to match
@@ -188,6 +189,24 @@ function M.regex_find(str, regex_pattern)
     end
   end
   return nil
+
+---Make a timestamp relative
+---@param timestamp number Unix timestamp
+---@return string Relative time string (e.g. "5m", "2h")
+function M.make_relative(timestamp)
+  local now = os.time()
+  local diff = now - timestamp
+
+  if diff < 60 then
+    return diff .. "s"
+  elseif diff < 3600 then
+    return math.floor(diff / 60) .. "m"
+  elseif diff < 86400 then
+    return math.floor(diff / 3600) .. "h"
+  else
+    return math.floor(diff / 86400) .. "d"
+  end
+
 end
 
 return M
