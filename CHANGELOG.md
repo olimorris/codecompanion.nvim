@@ -1,5 +1,13 @@
 # Changelog
 
+## [15.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.8.0...v15.9.0) (2025-05-28)
+
+
+### Features
+
+* **adapters:** users can specify models for strategies ([#1518](https://github.com/olimorris/codecompanion.nvim/issues/1518)) ([763c81b](https://github.com/olimorris/codecompanion.nvim/commit/763c81b4823af3e3ef9cfb3f55f15f7f8f8b4b15))
+* **slash_commands:** better caching and restoring of URLs ([#1491](https://github.com/olimorris/codecompanion.nvim/issues/1491)) ([d39890c](https://github.com/olimorris/codecompanion.nvim/commit/d39890cb432801cfe5b2a97104289e1cc4b9c415))
+
 ## [15.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.7.0...v15.8.0) (2025-05-26)
 
 
