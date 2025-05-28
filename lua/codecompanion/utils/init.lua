@@ -159,7 +159,7 @@ function M.regex_replace(str, regex_pattern, replacement)
   for _, line in ipairs(vim.split(str, "\n", { trimempty = true, plain = true })) do
     local start_pos, end_pos = regex:match_str(line)
     local iteration_count = 0
-    local max_iterations = 1000  -- Arbitrary limit to prevent infinite loops
+    local max_iterations = 1000 -- Arbitrary limit to prevent infinite loops
     while start_pos and end_pos do
       -- Break if the match is zero-width to prevent infinite loops
       if start_pos == end_pos then
@@ -222,7 +222,6 @@ function M.make_relative(timestamp)
   else
     return math.floor(diff / 86400) .. "d"
   end
-
 end
 
 return M
