@@ -253,6 +253,24 @@ T["Adapter"]["can resolve custom adapters"] = function()
   h.eq("abc_123", result)
 end
 
+T["Adapter"]["can pass in the name of the model"] = function()
+  local result = child.lua([[
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          adapter = {
+            name = "copilot",
+            model = "some_made_up_model"
+          }
+        }
+      }
+    })
+    return require("codecompanion.adapters").resolve().model.name
+  ]])
+
+  h.eq("some_made_up_model", result)
+end
+
 T["Adapter"]["utils"] = new_set()
 
 T["Adapter"]["utils"]["can consolidate consecutive messages"] = function()

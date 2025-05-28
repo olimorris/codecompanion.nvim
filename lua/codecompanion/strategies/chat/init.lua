@@ -565,7 +565,7 @@ function Chat.new(args)
     chat = self,
   }
 
-  self.adapter = adapters.resolve(args.adapter)
+  self.adapter = adapters.resolve(args.adapter or config.strategies.chat.adapter)
   if not self.adapter then
     return log:error("No adapter found")
   end

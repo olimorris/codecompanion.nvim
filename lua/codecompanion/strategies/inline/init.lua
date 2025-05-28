@@ -204,7 +204,7 @@ function Inline.new(args)
     prompts = vim.deepcopy(args.prompts),
   }, { __index = Inline })
 
-  self:set_adapter(args.adapter or config.adapters[config.strategies.inline.adapter])
+  self:set_adapter(args.adapter or config.strategies.inline.adapter)
   if not self.adapter then
     return log:error("[Inline] No adapter found")
   end
@@ -223,7 +223,7 @@ function Inline.new(args)
 end
 
 ---Set the adapter for the inline prompt
----@param adapter CodeCompanion.Adapter
+---@param adapter CodeCompanion.Adapter|string|function
 ---@return nil
 function Inline:set_adapter(adapter)
   self.adapter = adapters.resolve(adapter)
