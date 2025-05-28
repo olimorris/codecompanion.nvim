@@ -330,13 +330,13 @@ function Adapter.resolve(adapter, opts)
   elseif type(adapter) == "string" then
     opts = vim.tbl_deep_extend("force", opts, { name = adapter })
     if opts.model then
-      opts = {
+      opts = vim.tbl_deep_extend("force", opts, {
         schema = {
           model = {
             default = opts.model,
           },
         },
-      }
+      })
     end
 
     local user_adapter = config.adapters[adapter]
