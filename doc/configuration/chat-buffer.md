@@ -50,6 +50,8 @@ require("codecompanion").setup({
           description = "Explain what my_var does",
           opts = {
             contains_code = false,
+            --has_params = true,    -- Set this if your variable supports parameters
+            --default_params = nil, -- Set default parameters
           },
         },
       },

@@ -15,6 +15,24 @@ The _#buffer_ variable shares the full contents from the buffer that the user wa
 - `#buffer{pin}` - To pin the current buffer
 - `#buffer{watch}` - To watch the current buffer
 
+To pin or watch buffers by default, you can add this configuration:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      variables = {
+        ["buffer"] = {
+          opts = {
+            default_params = 'pin', -- or 'watch'
+          },
+        },
+      },
+    },
+  },
+})
+```
+
 ## #lsp
 
 > [!TIP]
