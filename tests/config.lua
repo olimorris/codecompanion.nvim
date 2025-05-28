@@ -222,7 +222,7 @@ return {
       },
     },
     inline = {
-      adapter = "foo",
+      adapter = "test_adapter",
       variables = {
         ["foo"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/inline/variables/foo.lua",

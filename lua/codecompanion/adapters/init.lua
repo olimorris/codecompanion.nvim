@@ -316,15 +316,31 @@ end
 
 ---Resolve an adapter from deep within the plugin...somewhere
 ---@param adapter? CodeCompanion.Adapter|string|function
+---@param opts? table
 ---@return CodeCompanion.Adapter
-function Adapter.resolve(adapter)
+function Adapter.resolve(adapter, opts)
   adapter = adapter or config.strategies.chat.adapter
+  opts = opts or {}
 
   if type(adapter) == "table" then
+    if adapter.name and adapter.model then
+      return Adapter.resolve(adapter.name, { model = adapter.model })
+    end
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
+    opts = vim.tbl_deep_extend("force", opts, { name = adapter })
+    if opts.model then
+      opts = vim.tbl_deep_extend("force", opts, {
+        schema = {
+          model = {
+            default = opts.model,
+          },
+        },
+      })
+    end
+
     local user_adapter = config.adapters[adapter]
-    adapter = Adapter.extend(user_adapter or adapter, { name = adapter })
+    adapter = Adapter.extend(user_adapter or adapter, opts)
   elseif type(adapter) == "function" then
     adapter = adapter()
   end

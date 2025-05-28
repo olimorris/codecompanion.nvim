@@ -65,6 +65,42 @@ require("codecompanion").setup({
 
 Environment variables can also be functions and as a parameter, they receive a copy of the adapter itself.
 
+## Changing a Model
+
+To more easily change a model associated with a strategy you can pass in the `name` and `model` to the adapter:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      adapter = {
+        name = "copilot",
+        model = "claude-sonnet-4-20250514",
+      },
+    },
+  },
+}),
+
+```
+
+To change the default model on an adapter you can modify the `schema.model.default` property:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    openai = function()
+      return require("codecompanion.adapters").extend("openai", {
+        schema = {
+          model = {
+            default = "gpt-4.1",
+          },
+        },
+      })
+    end,
+  },
+}),
+```
+
 ## Configuring Adapter Settings
 
 LLMs have many settings such as model, temperature and max_tokens. In an adapter, these sit within a schema table and can be configured during setup:
@@ -120,26 +156,6 @@ require("codecompanion").setup({
       allow_insecure = true,
       proxy = "socks5://127.0.0.1:9999",
     },
-  },
-}),
-```
-
-## Changing a Model
-
-Many adapters allow model selection via the `schema.model.default` property:
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    openai = function()
-      return require("codecompanion.adapters").extend("openai", {
-        schema = {
-          model = {
-            default = "gpt-4",
-          },
-        },
-      })
-    end,
   },
 }),
 ```

@@ -15,7 +15,7 @@ function Cmd.new(args)
     opts = args.opts,
   }, { __index = Cmd })
 
-  self.adapter = adapters.resolve(config.adapters[config.strategies.cmd.adapter])
+  self.adapter = adapters.resolve(config.strategies.cmd.adapter)
   if not self.adapter then
     return log:error("No adapter found")
   end

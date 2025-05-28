@@ -25,7 +25,7 @@ require("codecompanion").setup({
 }),
 ```
 
-In the example above, we're using the Anthropic adapter for both the chat and inline strategies.
+In the example above, we're using the Anthropic adapter for both the chat and inline strategies. Refer to the [adapter](configuration/adapters#changing-a-model) section to understand how to change the default model.
 
 Because most LLMs require an API key you'll need to share that with the adapter. By default, adapters will look in your environment for a `*_API_KEY` where `*` is the name of the adapter such as `ANTHROPIC` or `OPENAI`. However, you can extend the adapter and change the API key like so:
 
