@@ -80,7 +80,7 @@ return {
       messages = vim
         .iter(messages)
         :map(function(m)
-          if vim.startswith(model, "o1") and m.role == "system" then
+          if vim.startswith(model.name, "o1") and m.role == "system" then
             m.role = self.roles.user
           end
 

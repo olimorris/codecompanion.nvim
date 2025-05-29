@@ -86,18 +86,21 @@ function Client:request(payload, actions, opts)
 
   adapter:get_env_vars()
 
-  local body = self.opts.encode(
-    vim.tbl_extend(
-      "keep",
-      handlers.form_parameters
-          and handlers.form_parameters(adapter, adapter:set_env_vars(adapter.parameters), payload.messages)
-        or {},
-      handlers.form_messages and handlers.form_messages(adapter, payload.messages) or {},
-      handlers.form_tools and handlers.form_tools(adapter, payload.tools) or {},
-      adapter.body and adapter.body or {},
-      handlers.set_body and handlers.set_body(adapter, payload) or {}
-    )
+  local body_tbl = vim.tbl_extend(
+    "keep",
+    handlers.form_parameters
+        and handlers.form_parameters(adapter, adapter:set_env_vars(adapter.parameters), payload.messages)
+      or {},
+    handlers.form_messages and handlers.form_messages(adapter, payload.messages) or {},
+    handlers.form_tools and handlers.form_tools(adapter, payload.tools) or {},
+    adapter.body and adapter.body or {},
+    handlers.set_body and handlers.set_body(adapter, payload) or {}
   )
+  if body_tbl.model and type(body_tbl.model) == "table" then
+    body_tbl.model = body_tbl.model.name
+  end
+
+  local body = self.opts.encode(body_tbl)
 
   local body_file = Path.new(vim.fn.tempname() .. ".json")
   body_file:write(vim.split(body, "\n"), "w")
