@@ -11,11 +11,15 @@ end
 
 local completion = require("codecompanion.providers.completion")
 
+---Converts CodeCompanion completion items to CoC-compatible completion items.
+---@param opt table Table containing completion trigger context (buffer info, input, cursor position).
+---@param complete_items table Array of original CodeCompanion completion items.
+---@return table Array of formatted completion items compatible with CoC.
 local function format_complete_items(opt, complete_items)
   for _, item in ipairs(complete_items) do
     item.word = item.label:sub(2)
     item.abbr = item.label
-    item.label = nil -- necessary for coc matching
+    item.label = nil -- for coc matching
     item.info = item.detail
     item.context = {
       bufnr = opt.bufnr,
@@ -23,11 +27,16 @@ local function format_complete_items(opt, complete_items)
       cursor = { row = opt.linenr, col = opt.colnr },
     }
   end
+
   return complete_items
 end
 
+---Provides CodeCompanion completion items for CoC-triggered completion.
+---@param opt table Completion trigger context
+---@return table Completion items
 function M.complete(opt)
   local complete_items
+
   if opt.triggerCharacter == "@" then
     complete_items = format_complete_items(opt, completion.tools())
   elseif opt.triggerCharacter == "#" then
@@ -37,27 +46,63 @@ function M.complete(opt)
   else
     complete_items = {}
   end
+
   return complete_items
 end
 
+---Deletes text from the start position to the cursor position.
+---@param bufnr number Buffer number
+---@param start table Start position
+---@param offset number
+local function delete_text_to_cursor(bufnr, start, offset)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+
+  -- convert from 1-based to 0-based
+  local range = {
+    start = {
+      line = start.row - 1,
+      character = start.col - 1 + offset,
+    },
+    ["end"] = {
+      line = cursor[1] - 1,
+      character = cursor[2], -- end position is exclusive
+    },
+  }
+
+  vim.lsp.util.apply_text_edits({ { newText = "", range = range } }, bufnr, "utf-8")
+end
+
+---Executes selected slash command on CoC-triggered completion action.
+---@param opt table The selected item from the completion menu.
+---@return nil
 function M.execute(opt)
   if not (opt.type == "slash_command") then
     return
   end
-  opt.label = opt.abbr -- necessary for command execution
-  local chat = require("codecompanion").buf_get_chat(opt.context.bufnr)
+
+  local bufnr = opt.context.bufnr
+
+  -- delete the keyword
+  local start = opt.context.cursor
+  delete_text_to_cursor(bufnr, start, -1)
+
+  opt.label = opt.abbr -- for command execution
+
+  local chat = require("codecompanion").buf_get_chat(bufnr)
+
   completion.slash_commands_execute(opt, chat)
 end
 
--- Activates coc for a non-attached buffer.
+---Activates coc for the current buffer.
+---@return nil
 function M.ensure_buffer_attached()
   vim.b.coc_force_attach = true
 end
 
--- NOTE: The only way to register a new coc completion source is currently by creating an autoload file in the given path. This shall change in the future!
+---@type table The CoC autoload file.
 local autoload_file = {
   name = "codecompanion.vim",
-  path = vim.fn.expand("~/.vim/autoload/coc/source"),
+  path = vim.fn.stdpath("config") .. "/autoload/coc/source",
   content = [[
 function! coc#source#codecompanion#init() abort
   return v:lua.codecompanion_coc_init()
@@ -73,6 +118,8 @@ endfunction
 ]],
 }
 
+---Ensures that the CoC autoload file exists in the expected path.
+---@return nil
 function M.ensure_autoload_file()
   if vim.fn.filereadable(autoload_file.path) == 1 then
     return
