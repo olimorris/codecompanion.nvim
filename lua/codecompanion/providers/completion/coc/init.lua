@@ -16,6 +16,7 @@ local function format_complete_items(opt, complete_items)
     item.word = item.label:sub(2)
     item.abbr = item.label
     item.label = nil -- necessary for coc matching
+    item.info = item.detail
     item.context = {
       bufnr = opt.bufnr,
       input = opt.input,
@@ -40,8 +41,11 @@ function M.complete(opt)
 end
 
 function M.execute(opt)
+  if not (opt.type == "slash_command") then
+    return
+  end
   opt.label = opt.abbr -- necessary for command execution
-  local chat = require("codecompanion").buf_get_chat(opt.bufnr)
+  local chat = require("codecompanion").buf_get_chat(opt.context.bufnr)
   completion.slash_commands_execute(opt, chat)
 end
 
