@@ -361,6 +361,12 @@ local defaults = {
           callback = "keymaps.auto_tool_mode",
           description = "Toggle automatic tool mode",
         },
+        goto_file_under_cursor = {
+          modes = { n = "gR" },
+          index = 19,
+          callback = "keymaps.goto_file_under_cursor",
+          description = "Open the file under cursor in a new tab.",
+        },
       },
       opts = {
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
@@ -996,6 +1002,8 @@ You must create or modify a workspace file through a series of prompts over mult
   extensions = {},
   -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
+    ---@type string|fun(path: string)
+    goto_file_action = "tabnew",
     log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
     language = "English", -- The language used for LLM responses
 
