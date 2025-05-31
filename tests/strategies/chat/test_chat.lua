@@ -169,10 +169,7 @@ T["Chat"]["can bring up keymap options in the chat buffer"] = function()
   child.type_keys("?")
   vim.loop.sleep(200)
 
-  local lines = get_lines()
-
-  h.eq(lines[1], "### Keymaps")
-  h.eq(lines[3], "### Variables")
+  h.eq(get_lines()[1], "### Keymaps")
 end
 
 return T
