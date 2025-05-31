@@ -76,13 +76,23 @@ function Agent:set_autocmds()
         )
       elseif request.match == "CodeCompanionAgentFinished" then
         return vim.schedule(function()
-          self:reset()
           if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then
-            self.chat:submit()
+            return self.chat:submit({
+              auto_submit = true,
+              callback = function()
+                self:reset({ auto_submit = true })
+              end,
+            })
           end
           if self.status == CONSTANTS.STATUS_SUCCESS and self.tools_config.opts.auto_submit_success then
-            self.chat:submit()
+            return self.chat:submit({
+              auto_submit = true,
+              callback = function()
+                self:reset({ auto_submit = true })
+              end,
+            })
           end
+          self:reset({ auto_submit = false })
         end)
       end
     end,
@@ -289,8 +299,10 @@ function Agent:replace(message)
 end
 
 ---Reset the Agent class
+---@param opts? table
 ---@return nil
-function Agent:reset()
+function Agent:reset(opts)
+  opts = opts or {}
   api.nvim_buf_clear_namespace(self.bufnr, self.tools_ns, 0, -1)
   api.nvim_clear_autocmds({ group = self.aug })
 
@@ -299,7 +311,7 @@ function Agent:reset()
   self.stderr = {}
   self.stdout = {}
 
-  self.chat:tools_done()
+  self.chat:tools_done(opts)
   log:info("[Agent] Completed")
 end
 
