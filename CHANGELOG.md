@@ -1,5 +1,15 @@
 # Changelog
 
+## [15.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.10.0...v15.11.0) (2025-05-31)
+
+
+### Features
+
+* **chat:** add keymap to jump to file under cursor ([#1408](https://github.com/olimorris/codecompanion.nvim/issues/1408)) ([4c54348](https://github.com/olimorris/codecompanion.nvim/commit/4c5434883fff08bc9814fb71aff0f51518276acb))
+* **chat:** remember cursor position when toggling ([#1523](https://github.com/olimorris/codecompanion.nvim/issues/1523)) ([51fb1df](https://github.com/olimorris/codecompanion.nvim/commit/51fb1dfa7227ace2e6635c8fcc75cc2ab1b607c6))
+* **prompt_library:** custom prompts can add references ([#1384](https://github.com/olimorris/codecompanion.nvim/issues/1384)) ([3117350](https://github.com/olimorris/codecompanion.nvim/commit/31173502852f0d524e9e74e51255177f094c45e0))
+* **tools:** improve auto-submit and turn on by default ([#1539](https://github.com/olimorris/codecompanion.nvim/issues/1539)) ([3388e15](https://github.com/olimorris/codecompanion.nvim/commit/3388e1562aaa6d6deab90e8ad141439ed2bcac2f))
+
 ## [15.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.9.0...v15.10.0) (2025-05-31)
 
 
