@@ -226,7 +226,9 @@ end
 ---@param adapter CodeCompanion.Adapter|string|function
 ---@return nil
 function Inline:set_adapter(adapter)
-  self.adapter = adapters.resolve(adapter)
+  if not self.adapter or not adapters.resolved(adapter) then
+    self.adapter = adapters.resolve(adapter)
+  end
 end
 
 ---Prompt the LLM
