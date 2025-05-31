@@ -65,8 +65,11 @@ function UI.new(args)
 end
 
 ---Open/create the chat window
+---@param opts? table
 ---@return CodeCompanion.Chat.UI|nil
-function UI:open()
+function UI:open(opts)
+  opts = opts or {}
+
   if self:is_visible() then
     return
   end
@@ -137,7 +140,10 @@ function UI:open()
 
   ui.set_win_options(self.winnr, window.opts)
   vim.bo[self.bufnr].textwidth = 0
-  self:follow()
+
+  if not opts.toggled then
+    self:follow()
+  end
 
   log:trace("Chat opened with ID %d", self.id)
   util.fire("ChatOpened", { bufnr = self.bufnr })
