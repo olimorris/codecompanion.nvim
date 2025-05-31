@@ -1,5 +1,35 @@
 # Changelog
 
+## [15.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.10.0...v15.11.0) (2025-05-31)
+
+
+### Features
+
+* **chat:** add keymap to jump to file under cursor ([#1408](https://github.com/olimorris/codecompanion.nvim/issues/1408)) ([4c54348](https://github.com/olimorris/codecompanion.nvim/commit/4c5434883fff08bc9814fb71aff0f51518276acb))
+* **chat:** remember cursor position when toggling ([#1523](https://github.com/olimorris/codecompanion.nvim/issues/1523)) ([51fb1df](https://github.com/olimorris/codecompanion.nvim/commit/51fb1dfa7227ace2e6635c8fcc75cc2ab1b607c6))
+* **prompt_library:** custom prompts can add references ([#1384](https://github.com/olimorris/codecompanion.nvim/issues/1384)) ([3117350](https://github.com/olimorris/codecompanion.nvim/commit/31173502852f0d524e9e74e51255177f094c45e0))
+* **tools:** improve auto-submit and turn on by default ([#1539](https://github.com/olimorris/codecompanion.nvim/issues/1539)) ([3388e15](https://github.com/olimorris/codecompanion.nvim/commit/3388e1562aaa6d6deab90e8ad141439ed2bcac2f))
+
+## [15.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.9.0...v15.10.0) (2025-05-31)
+
+
+### Features
+
+* **adapters:** support Copilot enterprise ([#1533](https://github.com/olimorris/codecompanion.nvim/issues/1533)) ([7572e35](https://github.com/olimorris/codecompanion.nvim/commit/7572e35f22395ad2ab095e75b419a70a00ca2036))
+
+
+### Bug Fixes
+
+* **adapters:** resolving adapters from prompt library ([#1536](https://github.com/olimorris/codecompanion.nvim/issues/1536)) ([9964f48](https://github.com/olimorris/codecompanion.nvim/commit/9964f4880c66376e4c9f0d45f5fd2ab1e5496254)), closes [#1521](https://github.com/olimorris/codecompanion.nvim/issues/1521)
+
+## [15.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.8.0...v15.9.0) (2025-05-28)
+
+
+### Features
+
+* **adapters:** users can specify models for strategies ([#1518](https://github.com/olimorris/codecompanion.nvim/issues/1518)) ([763c81b](https://github.com/olimorris/codecompanion.nvim/commit/763c81b4823af3e3ef9cfb3f55f15f7f8f8b4b15))
+* **slash_commands:** better caching and restoring of URLs ([#1491](https://github.com/olimorris/codecompanion.nvim/issues/1491)) ([d39890c](https://github.com/olimorris/codecompanion.nvim/commit/d39890cb432801cfe5b2a97104289e1cc4b9c415))
+
 ## [15.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.7.0...v15.8.0) (2025-05-26)
 
 

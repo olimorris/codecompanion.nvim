@@ -1,3 +1,4 @@
+local og_config = require("codecompanion.config")
 return {
   constants = {
     LLM_ROLE = "llm",
@@ -63,6 +64,7 @@ return {
         llm = "assistant",
         user = "foo",
       },
+      keymaps = og_config.strategies.chat.keymaps,
       tools = {
         ["cmd_runner"] = {
           callback = "strategies.chat.agents.tools.cmd_runner",
@@ -222,7 +224,7 @@ return {
       },
     },
     inline = {
-      adapter = "foo",
+      adapter = "test_adapter",
       variables = {
         ["foo"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/inline/variables/foo.lua",

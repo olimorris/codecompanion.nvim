@@ -9,42 +9,8 @@ local log = require("codecompanion.utils.log")
 ---@return nil
 local function add_adapter(strategy, opts)
   if opts.adapter and opts.adapter.name then
-    strategy.selected.adapter = adapters.resolve(config.adapters[opts.adapter.name])
-    if opts.adapter.model then
-      strategy.selected.adapter.schema.model.default = opts.adapter.model
-    end
+    strategy.selected.adapter = adapters.resolve(opts.adapter.name, { model = opts.adapter.model })
   end
-end
-
----Add a reference to the chat buffer
----@param prompt table
----@param chat CodeCompanion.Chat
-local function add_ref(prompt, chat)
-  if not prompt.references then
-    return
-  end
-
-  local slash_commands = require("codecompanion.strategies.chat.slash_commands")
-
-  vim.iter(prompt.references):each(function(ref)
-    if ref.type == "file" or ref.type == "symbols" then
-      if type(ref.path) == "string" then
-        return slash_commands.references(chat, ref.type, { path = ref.path })
-      elseif type(ref.path) == "table" then
-        for _, path in ipairs(ref.path) do
-          slash_commands.references(chat, ref.type, { path = path })
-        end
-      end
-    elseif ref.type == "url" then
-      if type(ref.url) == "string" then
-        return slash_commands.references(chat, ref.type, { url = ref.url })
-      elseif type(ref.url) == "table" then
-        for _, url in ipairs(ref.url) do
-          slash_commands.references(chat, ref.type, { url = url })
-        end
-      end
-    end
-  end)
 end
 
 ---@class CodeCompanion.Strategies
@@ -70,6 +36,37 @@ end
 ---@param strategy string
 function Strategies:start(strategy)
   return self[strategy](self)
+end
+
+---Add a reference to the chat buffer
+---@param prompt table
+---@param chat CodeCompanion.Chat
+function Strategies.add_ref(prompt, chat)
+  if not prompt.references then
+    return
+  end
+
+  local slash_commands = require("codecompanion.strategies.chat.slash_commands")
+
+  vim.iter(prompt.references):each(function(ref)
+    if ref.type == "file" or ref.type == "symbols" then
+      if type(ref.path) == "string" then
+        return slash_commands.references(chat, ref.type, { path = ref.path })
+      elseif type(ref.path) == "table" then
+        for _, path in ipairs(ref.path) do
+          slash_commands.references(chat, ref.type, { path = path })
+        end
+      end
+    elseif ref.type == "url" then
+      if type(ref.url) == "string" then
+        return slash_commands.references(chat, ref.type, { url = ref.url })
+      elseif type(ref.url) == "table" then
+        for _, url in ipairs(ref.url) do
+          slash_commands.references(chat, ref.type, { url = url })
+        end
+      end
+    end
+  end)
 end
 
 ---@return CodeCompanion.Chat|nil
@@ -131,16 +128,16 @@ function Strategies:chat()
         end
 
         local chat = create_chat(input)
-        return add_ref(self.selected, chat)
+        return self.add_ref(self.selected, chat)
       end)
     else
       local chat = create_chat()
-      return add_ref(self.selected, chat)
+      return self.add_ref(self.selected, chat)
     end
   end
 
   local chat = create_chat()
-  return add_ref(self.selected, chat)
+  return self.add_ref(self.selected, chat)
 end
 
 ---@return CodeCompanion.Chat
@@ -178,7 +175,7 @@ function Strategies:workflow()
   })
 
   if workflow.references then
-    add_ref(workflow, chat)
+    self.add_ref(workflow, chat)
   end
 
   table.remove(prompts, 1)

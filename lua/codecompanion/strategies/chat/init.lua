@@ -194,9 +194,12 @@ end
 
 ---Ready the chat buffer for the next round of conversation
 ---@param chat CodeCompanion.Chat
+---@param opts? table
 ---@return nil
-local function ready_chat_buffer(chat)
-  if chat.last_role ~= config.constants.USER_ROLE then
+local function ready_chat_buffer(chat, opts)
+  opts = opts or {}
+
+  if not opts.auto_submit and chat.last_role ~= config.constants.USER_ROLE then
     increment_cycle(chat)
     chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
@@ -205,6 +208,16 @@ local function ready_chat_buffer(chat)
     chat.references:render()
 
     chat.subscribers:process(chat)
+  end
+
+  -- If we're automatically responding to a tool output, we need to leave some
+  -- space for the LLM's response so we can then display the user prompt again
+  if opts.auto_submit then
+    chat:add_buf_message({
+      role = config.constants.LLM_ROLE,
+      content = "\n\n",
+      opts = { visible = true },
+    })
   end
 
   log:info("Chat request finished")
@@ -565,7 +578,11 @@ function Chat.new(args)
     chat = self,
   }
 
-  self.adapter = adapters.resolve(args.adapter)
+  if args.adapter and adapters.resolved(args.adapter) then
+    self.adapter = args.adapter
+  else
+    self.adapter = adapters.resolve(args.adapter or config.strategies.chat.adapter)
+  end
   if not self.adapter then
     return log:error("No adapter found")
   end
@@ -827,54 +844,66 @@ function Chat:submit(opts)
 
   opts = opts or {}
 
-  local bufnr = self.bufnr
-  local message = ts_parse_messages(self, self.header_line)
-
-  if not message and not has_user_messages(self) then
-    return log:warn("No messages to submit")
+  if opts.callback then
+    opts.callback()
   end
 
-  -- Check if any watched buffers have changes and add to the chat buffer before any user messages
-  self.watchers:check_for_changes(self)
+  local bufnr = self.bufnr
 
-  -- Allow users to send a blank message to the LLM
-  if not opts.regenerate then
-    local chat_opts = config.strategies.chat.opts
-    if message and message.content and chat_opts and chat_opts.prompt_decorator then
-      message.content = chat_opts.prompt_decorator(message.content, adapters.make_safe(self.adapter), self.context)
-    end
+  if opts.auto_submit then
     self:add_message({
       role = config.constants.USER_ROLE,
-      content = (message and message.content or config.strategies.chat.opts.blank_prompt),
-    })
-  end
+      content = "I've shared the output from the tool/function call with you.",
+    }, { visible = false })
+  else
+    local message = ts_parse_messages(self, self.header_line)
 
-  -- NOTE: There are instances when submit is called with no user message. Such
-  -- as in the case of tools auto-submitting responses. References should be
-  -- excluded and we can do this by checking for user messages.
-  if message then
-    message = self.references:clear(self.messages[#self.messages])
-    self:replace_vars_and_tools(message)
-    self:check_images(message)
-    self:check_references()
-    add_pins(self)
-  end
+    if not message and not has_user_messages(self) then
+      return log:warn("No messages to submit")
+    end
 
-  -- Check if the user has manually overridden the adapter
-  if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
-    self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
+    -- Check if any watched buffers have changes and add to the chat buffer before any user messages
+    self.watchers:check_for_changes(self)
+
+    -- Allow users to send a blank message to the LLM
+    if not opts.regenerate then
+      local chat_opts = config.strategies.chat.opts
+      if message and message.content and chat_opts and chat_opts.prompt_decorator then
+        message.content = chat_opts.prompt_decorator(message.content, adapters.make_safe(self.adapter), self.context)
+      end
+      self:add_message({
+        role = config.constants.USER_ROLE,
+        content = (message and message.content or config.strategies.chat.opts.blank_prompt),
+      })
+    end
+
+    -- NOTE: There are instances when submit is called with no user message. Such
+    -- as in the case of tools auto-submitting responses. References should be
+    -- excluded and we can do this by checking for user messages.
+    if message then
+      message = self.references:clear(self.messages[#self.messages])
+      self:replace_vars_and_tools(message)
+      self:check_images(message)
+      self:check_references()
+      add_pins(self)
+    end
+
+    -- Check if the user has manually overridden the adapter
+    if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
+      self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
+    end
+
+    if not config.display.chat.auto_scroll then
+      vim.cmd("stopinsert")
+    end
+    self.ui:lock_buf()
+
+    set_text_editing_area(self, 2) -- this accounts for the LLM header
   end
 
   local settings = ts_parse_settings(bufnr, self.yaml_parser, self.adapter)
   self:apply_settings(settings)
   local mapped_settings = self.adapter:map_schema_to_params(settings)
-
-  if not config.display.chat.auto_scroll then
-    vim.cmd("stopinsert")
-  end
-  self.ui:lock_buf()
-
-  set_text_editing_area(self, 2) -- this accounts for the LLM header
 
   local payload = {
     messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
@@ -934,10 +963,11 @@ function Chat:submit(opts)
 end
 
 ---Method to fire when all the tools are done
----@param self CodeCompanion.Chat
+---@param opts? table
 ---@return nil
-function Chat:tools_done()
-  return ready_chat_buffer(self)
+function Chat:tools_done(opts)
+  opts = opts or {}
+  return ready_chat_buffer(self, opts)
 end
 
 ---Method to call after the response from the LLM is received
