@@ -324,13 +324,16 @@ function Adapter.resolve(adapter, opts)
 
   if type(adapter) == "table" then
     if adapter.name and adapter.schema and Adapter.resolved(adapter) then
+      log:trace("[Adapter] Returning existing resolved adapter: %s", adapter.name)
       return Adapter.set_model(adapter)
     elseif adapter.name and adapter.model then
+      log:trace("[Adapter] Table adapter: %s", adapter.name)
       local model_name = type(adapter.model) == "table" and adapter.model.name or adapter.model
       return Adapter.resolve(adapter.name, { model = model_name })
     end
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
+    log:trace("[Adapter] Loading adapter: %s%s", adapter, opts.model and (" with model: " .. opts.model) or "")
     opts = vim.tbl_deep_extend("force", opts, { name = adapter })
     if opts.model then
       opts = vim.tbl_deep_extend("force", opts, {

@@ -43,7 +43,7 @@ T["Prompt Library"]["can specify separate adapter and model"] = function()
         },
       }
     })
-    require("tests.log")
+    --require("tests.log")
     codecompanion.prompt("test_adapters")
     return {
       name = codecompanion.last_chat().adapter.name,
