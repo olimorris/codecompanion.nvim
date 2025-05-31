@@ -1,3 +1,4 @@
+local og_config = require("codecompanion.config")
 return {
   constants = {
     LLM_ROLE = "llm",
@@ -63,16 +64,7 @@ return {
         llm = "assistant",
         user = "foo",
       },
-      keymaps = {
-        options = {
-          modes = {
-            n = "?",
-          },
-          callback = "keymaps.options",
-          description = "Options",
-          hide = true,
-        },
-      },
+      keymaps = og_config.strategies.chat.keymaps,
       tools = {
         ["cmd_runner"] = {
           callback = "strategies.chat.agents.tools.cmd_runner",

@@ -13,10 +13,35 @@ local function add_adapter(strategy, opts)
   end
 end
 
+---@class CodeCompanion.Strategies
+---@field context table
+---@field selected table
+local Strategies = {}
+
+---@class CodeCompanion.StrategyArgs
+---@field context table
+---@field selected table
+
+---@param args CodeCompanion.StrategyArgs
+function Strategies.new(args)
+  log:trace("Context: %s", args.context)
+
+  return setmetatable({
+    called = {},
+    context = args.context,
+    selected = args.selected,
+  }, { __index = Strategies })
+end
+
+---@param strategy string
+function Strategies:start(strategy)
+  return self[strategy](self)
+end
+
 ---Add a reference to the chat buffer
 ---@param prompt table
 ---@param chat CodeCompanion.Chat
-local function add_ref(prompt, chat)
+function Strategies.add_ref(prompt, chat)
   if not prompt.references then
     return
   end
@@ -42,31 +67,6 @@ local function add_ref(prompt, chat)
       end
     end
   end)
-end
-
----@class CodeCompanion.Strategies
----@field context table
----@field selected table
-local Strategies = {}
-
----@class CodeCompanion.StrategyArgs
----@field context table
----@field selected table
-
----@param args CodeCompanion.StrategyArgs
-function Strategies.new(args)
-  log:trace("Context: %s", args.context)
-
-  return setmetatable({
-    called = {},
-    context = args.context,
-    selected = args.selected,
-  }, { __index = Strategies })
-end
-
----@param strategy string
-function Strategies:start(strategy)
-  return self[strategy](self)
 end
 
 ---@return CodeCompanion.Chat|nil
@@ -128,16 +128,16 @@ function Strategies:chat()
         end
 
         local chat = create_chat(input)
-        return add_ref(self.selected, chat)
+        return self.add_ref(self.selected, chat)
       end)
     else
       local chat = create_chat()
-      return add_ref(self.selected, chat)
+      return self.add_ref(self.selected, chat)
     end
   end
 
   local chat = create_chat()
-  return add_ref(self.selected, chat)
+  return self.add_ref(self.selected, chat)
 end
 
 ---@return CodeCompanion.Chat
@@ -175,7 +175,7 @@ function Strategies:workflow()
   })
 
   if workflow.references then
-    add_ref(workflow, chat)
+    self.add_ref(workflow, chat)
   end
 
   table.remove(prompts, 1)
