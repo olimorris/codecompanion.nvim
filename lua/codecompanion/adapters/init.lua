@@ -323,8 +323,11 @@ function Adapter.resolve(adapter, opts)
   opts = opts or {}
 
   if type(adapter) == "table" then
-    if adapter.name and adapter.model then
-      return Adapter.resolve(adapter.name, { model = adapter.model })
+    if adapter.name and adapter.schema and Adapter.resolved(adapter) then
+      return Adapter.set_model(adapter)
+    elseif adapter.name and adapter.model then
+      local model_name = type(adapter.model) == "table" and adapter.model.name or adapter.model
+      return Adapter.resolve(adapter.name, { model = model_name })
     end
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
@@ -339,13 +342,22 @@ function Adapter.resolve(adapter, opts)
       })
     end
 
-    local user_adapter = config.adapters[adapter]
-    adapter = Adapter.extend(user_adapter or adapter, opts)
+    adapter = Adapter.extend(config.adapters[adapter] or adapter, opts)
   elseif type(adapter) == "function" then
     adapter = adapter()
   end
 
   return adapter.set_model(adapter)
+end
+
+---Check if an adapter has already been resolved
+---@param adapter CodeCompanion.Adapter|string|function|nil
+---@return boolean
+function Adapter.resolved(adapter)
+  if adapter and getmetatable(adapter) and getmetatable(adapter).__index == Adapter then
+    return true
+  end
+  return false
 end
 
 ---Get an adapter from a string path
