@@ -84,7 +84,7 @@ end
 ---Get the default image providers
 ---@return string
 local function image_providers()
-  local providers = { "snacks" }
+  local providers = { "telescope", "snacks" }
   return find_provider(providers, configs, "default")
 end
 
