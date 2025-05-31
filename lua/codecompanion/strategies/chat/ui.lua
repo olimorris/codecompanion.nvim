@@ -65,9 +65,11 @@ function UI.new(args)
 end
 
 ---Open/create the chat window
----@param from_toggle? boolean
+---@param opts? table
 ---@return CodeCompanion.Chat.UI|nil
-function UI:open(from_toggle)
+function UI:open(opts)
+  opts = opts or {}
+
   if self:is_visible() then
     return
   end
@@ -139,7 +141,7 @@ function UI:open(from_toggle)
   ui.set_win_options(self.winnr, window.opts)
   vim.bo[self.bufnr].textwidth = 0
 
-  if not from_toggle then
+  if not opts.toggled then
     self:follow()
   end
 

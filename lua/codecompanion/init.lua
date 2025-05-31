@@ -204,7 +204,7 @@ CodeCompanion.toggle = function()
 
   chat.context = context_utils.get(api.nvim_get_current_buf())
   CodeCompanion.close_last_chat()
-  chat.ui:open(true)
+  chat.ui:open({ toggled = true })
 end
 
 ---Return a chat buffer
