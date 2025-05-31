@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local util = require("codecompanion.utils")
 
 local CONSTANTS = {
   PREFIX = "#",
@@ -69,6 +70,13 @@ function Variables.new()
   return self
 end
 
+function Variables:_pattern(var)
+  --Non-greedy
+  return CONSTANTS.PREFIX .. var .. "\\(\\s\\|$\\|{[^}]*}\\)"
+  --Greedy
+  --return CONSTANTS.PREFIX .. var .. "\\(\\s\\|$\\|{[^}]\\+}\\)"
+end
+
 ---Check a message for a variable
 ---@param message table
 ---@return table|nil
@@ -79,9 +87,10 @@ function Variables:find(message)
 
   local found = {}
   for var, _ in pairs(self.vars) do
-    -- Escape the special characters in var
-    local escaped_var = var:gsub("[%(%)%.%%%+%-%*%?%[%]%^%$%/:]", "%%%1")
-    if message.content:match("%f[%w" .. CONSTANTS.PREFIX .. "]" .. CONSTANTS.PREFIX .. escaped_var .. "%f[%W]") then
+    -- Use vim.regex with explicit word boundaries
+    -- Pattern:  #var + (whitespace OR end of line OR { for parameters)
+    -- This prevents partial matches like "#var" matching in "#variable"
+    if util.regex_find(message.content, self:_pattern(var)) then
       table.insert(found, var)
     end
   end
@@ -138,7 +147,7 @@ function Variables:replace(message, bufnr)
     if var:match("^buffer") then
       message = require("codecompanion.strategies.chat.variables.buffer").replace(CONSTANTS.PREFIX, message, bufnr)
     else
-      message = vim.trim(message:gsub(CONSTANTS.PREFIX .. var, ""))
+      message = vim.trim(util.regex_replace(message, self:_pattern(var), ""))
     end
   end
   return message
