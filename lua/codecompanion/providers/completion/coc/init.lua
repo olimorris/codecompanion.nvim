@@ -17,10 +17,10 @@ local completion = require("codecompanion.providers.completion")
 ---@return table Array of formatted completion items compatible with CoC.
 local function format_complete_items(opt, complete_items)
   for _, item in ipairs(complete_items) do
-    item.word = item.label:sub(2)
-    item.abbr = item.label
-    item.label = nil -- for coc matching
-    item.info = item.detail
+    item.word = item.label:sub(2) --text to be inserted (after the trigger)
+    item.abbr = item.label --text in the menu
+    item.label = nil --messes up coc matching if set
+    item.info = item.detail --information in preview window
     item.context = {
       bufnr = opt.bufnr,
       input = opt.input,
@@ -86,7 +86,8 @@ function M.execute(opt)
   local start = opt.context.cursor
   delete_text_to_cursor(bufnr, start, -1)
 
-  opt.label = opt.abbr -- for command execution
+  opt.label = opt.abbr --necessary for command execution
+  opt.info = nil --not needed anymore
 
   local chat = require("codecompanion").buf_get_chat(bufnr)
 
