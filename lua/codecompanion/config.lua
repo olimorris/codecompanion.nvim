@@ -362,7 +362,7 @@ local defaults = {
           description = "Toggle automatic tool mode",
         },
         goto_file_under_cursor = {
-          modes = { n = "gR", x = "gR" },
+          modes = { n = "gR" },
           index = 19,
           callback = "keymaps.goto_file_under_cursor",
           description = "Open the file under cursor in a new tab.",
