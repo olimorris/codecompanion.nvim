@@ -82,6 +82,7 @@ The keymaps available to the user in normal mode are:
 - `gp` to pin a reference to the chat buffer
 - `gw` to watch a referenced buffer
 - `gr` to regenerate the last response
+- `gR` to go to the file under cursor, in a new tab
 - `gs` to toggle the system prompt on/off
 - `gta` to toggle auto tool mode
 - `gx` to clear the chat buffer's contents
