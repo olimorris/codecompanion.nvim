@@ -1,5 +1,17 @@
 # Changelog
 
+## [15.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.9.0...v15.10.0) (2025-05-31)
+
+
+### Features
+
+* **adapters:** support Copilot enterprise ([#1533](https://github.com/olimorris/codecompanion.nvim/issues/1533)) ([7572e35](https://github.com/olimorris/codecompanion.nvim/commit/7572e35f22395ad2ab095e75b419a70a00ca2036))
+
+
+### Bug Fixes
+
+* **adapters:** resolving adapters from prompt library ([#1536](https://github.com/olimorris/codecompanion.nvim/issues/1536)) ([9964f48](https://github.com/olimorris/codecompanion.nvim/commit/9964f4880c66376e4c9f0d45f5fd2ab1e5496254)), closes [#1521](https://github.com/olimorris/codecompanion.nvim/issues/1521)
+
 ## [15.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.8.0...v15.9.0) (2025-05-28)
 
 
