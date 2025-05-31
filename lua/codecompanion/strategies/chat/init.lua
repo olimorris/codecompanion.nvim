@@ -565,7 +565,11 @@ function Chat.new(args)
     chat = self,
   }
 
-  self.adapter = adapters.resolve(args.adapter)
+  if args.adapter and adapters.resolved(args.adapter) then
+    self.adapter = args.adapter
+  else
+    self.adapter = adapters.resolve(args.adapter or config.strategies.chat.adapter)
+  end
   if not self.adapter then
     return log:error("No adapter found")
   end

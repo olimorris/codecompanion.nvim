@@ -30,6 +30,7 @@ local log = require("codecompanion.utils.log")
 ---@field handlers.on_exit? fun(self: CodeCompanion.Adapter, data: table): table|nil
 ---@field handlers.teardown? fun(self: CodeCompanion.Adapter): any
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
+---@field methods table Methods that the adapter can perform e.g. for Slash Commands
 
 ---Check if a variable starts with "cmd:"
 ---@param var string
@@ -315,20 +316,72 @@ end
 
 ---Resolve an adapter from deep within the plugin...somewhere
 ---@param adapter? CodeCompanion.Adapter|string|function
+---@param opts? table
 ---@return CodeCompanion.Adapter
-function Adapter.resolve(adapter)
+function Adapter.resolve(adapter, opts)
   adapter = adapter or config.strategies.chat.adapter
+  opts = opts or {}
 
   if type(adapter) == "table" then
+    if adapter.name and adapter.schema and Adapter.resolved(adapter) then
+      log:trace("[Adapter] Returning existing resolved adapter: %s", adapter.name)
+      return Adapter.set_model(adapter)
+    elseif adapter.name and adapter.model then
+      log:trace("[Adapter] Table adapter: %s", adapter.name)
+      local model_name = type(adapter.model) == "table" and adapter.model.name or adapter.model
+      return Adapter.resolve(adapter.name, { model = model_name })
+    end
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
-    local user_adapter = config.adapters[adapter]
-    adapter = Adapter.extend(user_adapter or adapter, { name = adapter })
+    log:trace("[Adapter] Loading adapter: %s%s", adapter, opts.model and (" with model: " .. opts.model) or "")
+    opts = vim.tbl_deep_extend("force", opts, { name = adapter })
+    if opts.model then
+      opts = vim.tbl_deep_extend("force", opts, {
+        schema = {
+          model = {
+            default = opts.model,
+          },
+        },
+      })
+    end
+
+    adapter = Adapter.extend(config.adapters[adapter] or adapter, opts)
   elseif type(adapter) == "function" then
     adapter = adapter()
   end
 
   return adapter.set_model(adapter)
+end
+
+---Check if an adapter has already been resolved
+---@param adapter CodeCompanion.Adapter|string|function|nil
+---@return boolean
+function Adapter.resolved(adapter)
+  if adapter and getmetatable(adapter) and getmetatable(adapter).__index == Adapter then
+    return true
+  end
+  return false
+end
+
+---Get an adapter from a string path
+---@param adapter_str string
+---@return CodeCompanion.Adapter|nil
+function Adapter.get_from_string(adapter_str)
+  local ok, adapter = pcall(require, "codecompanion.adapters." .. adapter_str)
+  if not ok then
+    ok, adapter = pcall(loadfile, adapter_str)
+  end
+  if not ok or not adapter then
+    return nil
+  end
+
+  adapter = Adapter.resolve(adapter)
+
+  if not adapter then
+    return nil
+  end
+
+  return adapter
 end
 
 ---Make an adapter safe for serialization
