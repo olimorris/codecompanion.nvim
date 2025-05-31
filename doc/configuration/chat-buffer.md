@@ -361,6 +361,24 @@ By default, the LLM's responses will be placed under a header such as `CodeCompa
 
 The user role is currently only available as a string.
 
+### Completion
+
+By default, CodeCompanion looks to use the fantastic [blink.cmp](https://github.com/Saghen/blink.cmp) plugin to complete variables, slash commands and tools. However, you can override this in your config:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      opts = {
+        completion_provider = "cmp", -- blink|cmp|default
+      }
+    }
+  }
+})
+```
+
+The plugin also supports [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) as well as a native completion solution (`default`).
+
 ### Auto scrolling
 
 By default, the page scrolls down automatically as the response streams, with the cursor placed at the end.
