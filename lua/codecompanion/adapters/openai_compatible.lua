@@ -86,11 +86,11 @@ return {
   opts = {
     stream = true,
     tools = true,
+    vision = true,
   },
   features = {
     text = true,
     tokens = true,
-    vision = false,
   },
   url = "${url}${chat_url}",
   env = {

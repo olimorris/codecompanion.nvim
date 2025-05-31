@@ -2,7 +2,7 @@
 
 > [!TIP]
 > Want to connect to an LLM that isn't supported out of the box? Check out
-> [these](#user-contributed-adapters) user contributed adapters, [create](/extending/adapters.html) your own or post in the [discussions](https://github.com/olimorris/codecompanion.nvim/discussions)
+> [these](#community-adapters) user contributed adapters, [create](/extending/adapters.html) your own or post in the [discussions](https://github.com/olimorris/codecompanion.nvim/discussions)
 
 An adapter is what connects Neovim to an LLM. It's the interface that allows data to be sent, received and processed and there are a multitude of ways to customize them.
 
@@ -63,6 +63,44 @@ require("codecompanion").setup({
 > [!NOTE]
 > In this example, we're using the 1Password CLI to extract the OpenAI API Key. You could also use gpg as outlined [here](https://github.com/olimorris/codecompanion.nvim/discussions/601)
 
+Environment variables can also be functions and as a parameter, they receive a copy of the adapter itself.
+
+## Changing a Model
+
+To more easily change a model associated with a strategy you can pass in the `name` and `model` to the adapter:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      adapter = {
+        name = "copilot",
+        model = "claude-sonnet-4-20250514",
+      },
+    },
+  },
+}),
+
+```
+
+To change the default model on an adapter you can modify the `schema.model.default` property:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    openai = function()
+      return require("codecompanion.adapters").extend("openai", {
+        schema = {
+          model = {
+            default = "gpt-4.1",
+          },
+        },
+      })
+    end,
+  },
+}),
+```
+
 ## Configuring Adapter Settings
 
 LLMs have many settings such as model, temperature and max_tokens. In an adapter, these sit within a schema table and can be configured during setup:
@@ -118,26 +156,6 @@ require("codecompanion").setup({
       allow_insecure = true,
       proxy = "socks5://127.0.0.1:9999",
     },
-  },
-}),
-```
-
-## Changing a Model
-
-Many adapters allow model selection via the `schema.model.default` property:
-
-```lua
-require("codecompanion").setup({
-  adapters = {
-    openai = function()
-      return require("codecompanion.adapters").extend("openai", {
-        schema = {
-          model = {
-            default = "gpt-4",
-          },
-        },
-      })
-    end,
   },
 }),
 ```

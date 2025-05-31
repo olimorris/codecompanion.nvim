@@ -62,7 +62,9 @@ require("codecompanion").setup({
 
 [Slash Commands](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114) (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.
 
-The plugin supports providers like `telescope`, `mini_pick`, `fzf_lua` and `snacks` (as in snacks.nvim). By default, the plugin will automatically detect if you have any of those plugins installed and duly select them. Failing that, the in-build `default` provider will be used. Please see the [Chat Buffer](/usage/chat-buffer/index) usage section for full details:
+The plugin supports providers like [telescope](https://github.com/nvim-telescope/telescope.nvim), [mini_pick](https://github.com/echasnovski/mini.pick), [fzf_lua](https://github.com/ibhagwan/fzf-lua) and [snacks.nvim](https://github.com/folke/snacks.nvim). By default, the plugin will automatically detect if you have any of those plugins installed and duly set them as the default provider. Failing that, the in-built `default` provider will be used. Please see the [Chat Buffer](/usage/chat-buffer/index) usage section for information on how to use Slash Commands.
+
+You can configure Slash Commands with:
 
 ```lua
 require("codecompanion").setup({
@@ -83,7 +85,6 @@ require("codecompanion").setup({
   },
 })
 ```
-
 
 You can also add your own slash commands:
 
@@ -120,6 +121,30 @@ Credit to [@lazymaniac](https://github.com/lazymaniac) for the [inspiration](htt
 > [!NOTE]
 > You can also point the callback to a lua file that resides within your own configuration
 
+### Keymaps
+
+Slash Commands can also be called via keymaps, in the chat buffer. Simply add a `keymaps` table to the Slash Command you'd like to call. For example:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      slash_commands = {
+        ["buffer"] = {
+          keymaps = {
+            modes = {
+              i = "<C-b>",
+              n = { "<C-b>", "gb" },
+            },
+          },
+        },
+      },
+    },
+  },
+})
+
+```
+
 ## Agents and Tools
 
 [Tools](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55) perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` when in the chat buffer:
@@ -154,7 +179,9 @@ When users introduce the agent `@my_agent` in the chat buffer, it can call the t
 
 A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys that define the interface and workflow of the tool. The table can be resolved using the `callback` option. The `callback` option can be a table itself or either a function or a string that points to a luafile that return the table.
 
-Some tools, such as the [@cmd_runner](/usage/chat-buffer/agents.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
+### Approvals
+
+Some tools, such as [@cmd_runner](/usage/chat-buffer/agents.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
 
 ```lua
 require("codecompanion").setup({
@@ -170,6 +197,28 @@ require("codecompanion").setup({
     }
   }
 })
+```
+
+You can also force any tool to require your approval by adding in `opts.requires_approval = true`.
+
+### Auto Submit Tool Output (Recursion)
+
+When a tool executes, it can be useful to automatically send its output back to the LLM. This can be achieved by the following options in your configuration:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      tools = {
+        opts = {
+          auto_submit_errors = false, -- Send any errors to the LLM automatically?
+          auto_submit_success = false, -- Send any successful output to the LLM automatically?
+        },
+      }
+    }
+  }
+})
+
 ```
 
 ## Prompt Decorator
@@ -222,7 +271,7 @@ require("codecompanion").setup({
       -- Options to customize the UI of the chat buffer
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer
-        position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.plitright|vim.opt.splitbelow)
+        position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
         border = "single",
         height = 0.8,
         width = 0.45,
@@ -277,7 +326,10 @@ require("codecompanion").setup({
 }),
 ```
 
-## UI
+## User Interface (UI)
+
+> [!NOTE]
+> The [additional plugins](/installation#additional-plugins) section contains installation instructions for some popular markdown rendering plugins
 
 ### User and LLM Roles
 
@@ -307,34 +359,6 @@ By default, the LLM's responses will be placed under a header such as `CodeCompa
 
 The user role is currently only available as a string.
 
-### Markdown Rendering
-
-As the Chat Buffer uses markdown as its syntax, you can use popular rendering plugins to improve the UI:
-
-**[render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim)**
-
-```lua
-{
-  "MeanderingProgrammer/render-markdown.nvim",
-  ft = { "markdown", "codecompanion" }
-},
-```
-
-**[markview.nvim](https://github.com/OXY2DEV/markview.nvim)**
-
-```lua
-{
-  "OXY2DEV/markview.nvim",
-  lazy = false,
-  opts = {
-    preview = {
-      filetypes = { "markdown", "codecompanion" },
-      ignore_buftypes = {},
-    },
-  },
-},
-```
-
 ### Auto scrolling
 
 By default, the page scrolls down automatically as the response streams, with the cursor placed at the end.
@@ -350,6 +374,7 @@ require("codecompanion").setup({
   },
 }),
 ```
+
 ## Additional Options
 
 There are also a number of other options that you can customize:

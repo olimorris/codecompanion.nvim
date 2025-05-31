@@ -72,10 +72,54 @@ function Default:buffers()
   return self
 end
 
+---Find URLs in a set of paths
+---@param urls table The table of URLs to display
+---@return nil
+function Default:urls(urls)
+  self.to_display = urls
+  self.to_format = function(item)
+    return item.display or item.url
+  end
+  return self
+end
+
+---Find images in a set of paths
+---@param paths table
+---@param filetypes table
+function Default:images(paths, filetypes)
+  local files = {}
+  for _, path in ipairs(paths) do
+    local p = Path:new(path)
+
+    local file = scan.scan_dir(p:absolute(), {
+      hidden = false,
+      depth = 5,
+      add_dirs = false,
+      search_pattern = filetypes,
+    })
+
+    vim.list_extend(files, file)
+  end
+
+  self.to_display = vim
+    .iter(files)
+    :map(function(f)
+      return { relative_path = f, path = f }
+    end)
+    :totable()
+
+  self.to_format = function(item)
+    return item.relative_path
+  end
+
+  return self
+end
+
 ---The function to display the provider
 ---@return function
 function Default:display()
   return vim.ui.select(self.to_display, {
+    kind = "codecompanion.nvim",
     prompt = self.title,
     format_item = function(item)
       return self.to_format(item)

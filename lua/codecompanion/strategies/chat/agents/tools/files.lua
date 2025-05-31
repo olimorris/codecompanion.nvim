@@ -4,195 +4,196 @@ This tool can be used make edits to files on disk.
 --]]
 
 local Path = require("plenary.path")
-local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local patches = require("codecompanion.helpers.patches")
 
 local fmt = string.format
-local file = nil
+
+PROMPT = [[# Files Tool (`files`)
+
+- This tool is connected to the Neovim instance via CodeCompanion.
+- Use this tool to CREATE / READ / UPDATE or DELETE files.
+- You do not need to ask for permission to use this tool to perform CRUD actions. CodeCompanion will ask for those permissions automatically while executing the actions.
+
+## Instructions for Usage
+
+- You must provide the `action`, `path` and `contents` to use this tool.
+- The `action` can be one of `CREATE`, `READ`, `UPDATE`, or `DELETE`.
+- The `path` must be a relative path. It should NEVER BE AN ABSOLUTE PATH.
+- The `contents` should be `null` for the `READ` action. Use the `READ` action to read the contents of a file.
+- The `contents` should be `null` for the `DELETE` action. Use the `DELETE` action to remove any file.
+- The `contents` will be the actual contents to write in the file in case of the `CREATE` action. Use the `CREATE` action to create a new file.
+- The `contents` must be in the diff format given below in the case of the `UPDATE` action. Use the `UPDATE` action to make changes to an existing file.
+
+### Format of `contents` for the `UPDATE` action
+
+The format of diff and `contents` in `UPDATE` action is a bit different. Pay a close attention to the following details for its implementation.
+
+The `contents` of the `UPDATE` action must be in this format:
+
+]] .. patches.FORMAT_PROMPT .. [[
+
+## Examples
+
+These are few complete examples of the responses from this tool:
+
+```
+// CREATE
+{
+  "action": "CREATE",
+  "path": "src/main.py",
+  "contents": "print('Hello')\n"
+}
+
+// READ
+{
+  "action": "READ",
+  "path": "src/main.py",
+  "contents": null
+}
+
+// UPDATE
+{
+  "action": "UPDATE",
+  "path": "src/main.py",
+  "contents": "*** Begin Patch\n@@def greet():\n-    pass\n+    print('Hello')\n*** End Patch"
+}
+
+// DELETE
+{
+  "action": "DELETE",
+  "path": "src/main.py",
+  "contents": null
+}
+```
+]]
+
+---@class Action The arguments from the LLM's tool call
+---@field action string CREATE / READ / UPDATE / DELETE action to perform
+---@field path string path of the file to perform action on
+---@field contents string diff in case of UPDATE; raw contents in case of CREATE
 
 ---Create a file and it's surrounding folders
----@param action table The action object
----@return nil
+---@param action Action The arguments from the LLM's tool call
+---@return string
 local function create(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
   p:touch({ parents = true })
   p:write(action.contents or "", "w")
+  return fmt("The CREATE action for `%s` was successful", action.path)
 end
 
----Read the contents of af ile
----@param action table The action object
----@return table<string, string>
+---Read the contents of file
+---@param action Action The arguments from the LLM's tool call
+---@return string
 local function read(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
-  file = {
-    content = p:read(),
-    filetype = vim.fn.fnamemodify(p.filename, ":e"),
-  }
-  return file
-end
 
----Read the contents of a file between specific lines
----@param action table The action object
----@return nil
-local function read_lines(action)
-  local p = Path:new(action.path)
-  p.filename = p:expand()
+  local output = fmt(
+    [[The file's contents are:
 
-  -- Read requested lines
-  local extracted = {}
-  local current_line = 0
-
-  local lines = p:iter()
-
-  -- Parse line numbers
-  local start_line = tonumber(action.start_line) or 1
-  local end_line = tonumber(action.end_line) or #lines
-
-  for line in lines do
-    current_line = current_line + 1
-    if current_line >= start_line and current_line <= end_line then
-      table.insert(extracted, current_line .. ":  " .. line)
-    end
-    if current_line > end_line then
-      break
-    end
-  end
-
-  file = {
-    content = table.concat(extracted, "\n"),
-    filetype = vim.fn.fnamemodify(p.filename, ":e"),
-  }
-  return file
+```%s
+%s
+```]],
+    vim.fn.fnamemodify(p.filename, ":e"),
+    p:read()
+  )
+  return output
 end
 
 ---Edit the contents of a file
----@param action table The action object
----@return nil
-local function edit(action)
+---@param action Action The arguments from the LLM's tool call
+---@return string
+local function update(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
 
-  if action.contents and action.contents ~= "" then
-    return p:write(action.contents, "w")
-  end
+  -- 1. extract list of changes from the contents
+  local raw = action.contents or ""
+  local changes = patches.parse_changes(raw)
 
+  -- 2. read file into lines
   local content = p:read()
-  if not content then
-    return util.notify(fmt("No data found in %s", action.path))
-  end
-  if not action.search or not action.replace then
-    return util.notify(fmt("Couldn't edit the file %s", action.path))
+  local lines = vim.split(content, "\n", { plain = true })
+
+  -- 3. apply changes
+  for _, change in ipairs(changes) do
+    local new_lines = patches.apply_change(lines, change)
+    if new_lines == nil then
+      error(fmt("Bad/Incorrect diff:\n\n%s\n\nNo changes were applied", patches.get_change_string(change)))
+    else
+      lines = new_lines
+    end
   end
 
-  local changed, substitutions_count = content:gsub(vim.pesc(action.search), vim.pesc(action.replace))
-  if substitutions_count == 0 then
-    return util.notify(fmt("Could not find the search string in %s", action.path))
+  -- 4. write back
+  p:write(table.concat(lines, "\n"), "w")
+
+  -- 5. refresh the buffer if the file is open
+  local bufnr = vim.fn.bufnr(p.filename)
+  if bufnr ~= -1 and vim.api.nvim_buf_is_loaded(bufnr) then
+    vim.api.nvim_command("checktime " .. bufnr)
   end
-  p:write(changed, "w")
+  return fmt("The UPDATE action for `%s` was successful", action.path)
 end
 
 ---Delete a file
----@param action table The action object
----@return nil
+---@param action table The arguments from the LLM's tool call
+---@return string
 local function delete(action)
   local p = Path:new(action.path)
   p.filename = p:expand()
   p:rm()
-end
-
----Rename a file
----@param action table The action object
----@return nil
-local function rename(action)
-  local p = Path:new(action.path)
-  p.filename = p:expand()
-
-  local new_p = Path:new(action.new_path)
-  new_p.filename = new_p:expand()
-
-  p:rename({ new_name = new_p.filename })
-end
-
----Copy a file
----@param action table The action object
----@return nil
-local function copy(action)
-  local p = Path:new(action.path)
-  p.filename = p:expand()
-
-  local new_p = Path:new(action.new_path)
-  new_p.filename = new_p:expand()
-
-  p:copy({ destination = new_p.filename, parents = true })
-end
-
----Move a file
----@param action table The action object
----@return nil
-local function move(action)
-  local p = Path:new(action.path)
-  p.filename = p:expand()
-
-  local new_p = Path:new(action.new_path)
-  new_p.filename = new_p:expand()
-
-  p:copy({ destination = new_p.filename, parents = true })
-  p:rm()
+  return fmt("The DELETE action for `%s` was successful", action.path)
 end
 
 local actions = {
-  create = create,
-  read = read,
-  read_lines = read_lines,
-  edit = edit,
-  delete = delete,
-  rename = rename,
-  copy = copy,
-  move = move,
+  CREATE = create,
+  READ = read,
+  UPDATE = update,
+  DELETE = delete,
 }
 
 ---@class CodeCompanion.Tool.Files: CodeCompanion.Agent.Tool
 return {
   name = "files",
-  actions = actions,
   cmds = {
     ---Execute the file commands
     ---@param self CodeCompanion.Tool.Editor The Editor tool
     ---@param args table The arguments from the LLM's tool call
     ---@param input? any The output from the previous function call
-    ---@return nil|{ status: "success"|"error", data: string }
+    ---@return { status: "success"|"error", data: string }
     function(self, args, input)
+      args.action = args.action and string.upper(args.action)
+      if not actions[args.action] then
+        return { status = "error", data = fmt("Unknown action: %s", args.action) }
+      end
       local ok, outcome = pcall(actions[args.action], args)
       if not ok then
-        return { status = "error", data = fmt("Error running the files tool: %s", outcome) }
+        return { status = "error", data = outcome }
       end
-      return { status = "success", data = "Files tool ran successfully!" }
+      return { status = "success", data = outcome }
     end,
   },
   schema = {
     type = "function",
     ["function"] = {
       name = "files",
-      description = "Create/read/update/delete/rename/copy/move files on disk (user approval required)",
+      description = "CREATE/READ/UPDATE/DELETE files on disk (user approval required)",
       parameters = {
         type = "object",
         properties = {
           action = {
             type = "string",
             enum = {
-              "create",
-              "read",
-              "read_lines",
-              "edit",
-              "delete",
-              "rename",
-              "copy",
-              "move",
+              "CREATE",
+              "READ",
+              "UPDATE",
+              "DELETE",
             },
-            description = "Type of file operation to perform.",
+            description = "Type of file action to perform.",
           },
           path = {
             type = "string",
@@ -203,120 +204,47 @@ return {
               { type = "string" },
               { type = "null" },
             },
-            description = "Contents for create/edit; set to `null` otherwise.",
-          },
-          start_line = {
-            anyOf = {
-              { type = "integer" },
-              { type = "null" },
-            },
-            description = "1‑based start line for read_lines; `null` otherwise.",
-          },
-          end_line = {
-            anyOf = {
-              { type = "integer" },
-              { type = "null" },
-            },
-            description = "1‑based end line for read_lines; `null` otherwise.",
-          },
-          search = {
-            anyOf = {
-              { type = "string" },
-              { type = "null" },
-            },
-            description = "Search pattern for edit; `null` otherwise.",
-          },
-          replace = {
-            anyOf = {
-              { type = "string" },
-              { type = "null" },
-            },
-            description = "Replacement text for edit; `null` otherwise.",
-          },
-          new_path = {
-            anyOf = {
-              { type = "string" },
-              { type = "null" },
-            },
-            description = "Destination path for rename/copy/move; `null` otherwise.",
+            description = "Contents of new file in the case of CREATE action; patch in the specified format for UPDATE action. `null` in the case of READ or DELETE actions.",
           },
         },
         required = {
           "action",
           "path",
           "contents",
-          "start_line",
-          "end_line",
-          "search",
-          "replace",
-          "new_path",
         },
         additionalProperties = false,
       },
       strict = true,
     },
   },
-  system_prompt = [[# Files Tool (`files`)
-
-## CONTEXT
-- You are connected to a Neovim instance via CodeCompanion.
-- Using this tool you can create a file, read a file's contents, read specific lines from a file, edit a file, delete a file, rename a file, copy a file, or move files, on a user's disk.
-- CodeCompanion asks the user for approval before this tool executes, so you do not need to ask for permission.
-
-## OBJECTIVE
-- Invoke this tool when specific file operations are required.
-
-## RESPONSE
-- Return a single JSON-based function call matching the schema.
-
-## POINTS TO NOTE
-- This tool can be used alongside other tools within CodeCompanion.
-- To edit a file, you can provide a search and replace string, or provide the entire file contents.
-- Be careful when using search and replace as this will overwrite the contents in the search string.
-]],
+  system_prompt = PROMPT,
   handlers = {
     ---@param agent CodeCompanion.Agent The tool object
     ---@return nil
     on_exit = function(agent)
       log:debug("[Files Tool] on_exit handler executed")
-      file = nil
     end,
   },
   output = {
     ---The message which is shared with the user when asking for their approval
     ---@param self CodeCompanion.Agent.Tool
     ---@param agent CodeCompanion.Agent
-    ---@return string
+    ---@return nil|string
     prompt = function(self, agent)
-      local prompts = {}
-
       local responses = {
-        create = "Create a file at %s?",
-        read = "Read %s?",
-        read_lines = "Read specific lines in %s?",
-        edit = "Edit %s?",
-        delete = "Delete %s?",
-        copy = "Copy %s?",
-        rename = "Rename %s to %s?",
-        move = "Move %s to %s?",
+        CREATE = "Create a file at %s?",
+        READ = "Read %s?",
+        UPDATE = "Edit %s?",
+        DELETE = "Delete %s?",
       }
 
       local args = self.args
       local path = vim.fn.fnamemodify(args.path, ":.")
-      local action = string.lower(args.action)
+      local action = args.action
 
-      local new_path
-      if args.new_path then
-        new_path = vim.fn.fnamemodify(args.new_path, ":.")
+      if action and path and responses[string.upper(action)] then
+        return fmt(responses[string.upper(action)], path)
       end
-
-      if action == "rename" or action == "move" then
-        table.insert(prompts, fmt(responses[action], path, new_path))
-      else
-        table.insert(prompts, fmt(responses[action], path))
-      end
-
-      return table.concat(prompts, "\n")
     end,
 
     ---@param self CodeCompanion.Tool.Files
@@ -326,28 +254,9 @@ return {
     success = function(self, agent, cmd, stdout)
       local chat = agent.chat
       local args = self.args
-
-      local output =
-        fmt([[**Files Tool**: The %s action for `%s` was successful]], string.upper(args.action), args.path)
-
-      local llm_output
-      if args.action == "read" or args.action == "read_lines" then
-        llm_output = fmt(
-          [[**Files Tool**: The %s action for `%s` was successful. The file's contents are:
-
-```%s
-%s
-```]],
-          string.upper(args.action),
-          args.path,
-          file and file.filetype,
-          file and file.content
-        )
-      else
-        llm_output = output
-      end
-
-      chat:add_tool_output(self, llm_output, output)
+      local llm_output = vim.iter(stdout):flatten():join("\n")
+      local user_output = fmt([[**Files Tool**: The %s action for `%s` was successful]], args.action, args.path)
+      chat:add_tool_output(self, llm_output, user_output)
     end,
 
     ---@param self CodeCompanion.Tool.Files
@@ -362,12 +271,12 @@ return {
       log:debug("[Files Tool] Error output: %s", stderr)
 
       local error_output = fmt(
-        [[**Files Tool**: There was an error running the %s command:
+        [[**Files Tool**: There was an error running the %s action:
 
 ```txt
 %s
 ```]],
-        string.upper(args.action),
+        args.action,
         errors
       )
       chat:add_tool_output(self, error_output)

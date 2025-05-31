@@ -8,7 +8,7 @@ Please see the author's own [config](https://github.com/olimorris/dotfiles/blob/
 ## Configuring an Adapter
 
 > [!NOTE]
-> The adapters that the plugin supports out of the box can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters). Or, see the user contributed adapters [here](configuration/adapters.html#user-contributed-adapters)
+> The adapters that the plugin supports out of the box can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters). Or, see the user contributed adapters [here](configuration/adapters.html#community-adapters)
 
 An adapter is what connects Neovim to an LLM. It's the interface that allows data to be sent, received and processed. In order to use the plugin, you need to make sure you've configured an adapter first:
 
@@ -25,7 +25,7 @@ require("codecompanion").setup({
 }),
 ```
 
-In the example above, we're using the Anthropic adapter for both the chat and inline strategies.
+In the example above, we're using the Anthropic adapter for both the chat and inline strategies. Refer to the [adapter](configuration/adapters#changing-a-model) section to understand how to change the default model.
 
 Because most LLMs require an API key you'll need to share that with the adapter. By default, adapters will look in your environment for a `*_API_KEY` where `*` is the name of the adapter such as `ANTHROPIC` or `OPENAI`. However, you can extend the adapter and change the API key like so:
 

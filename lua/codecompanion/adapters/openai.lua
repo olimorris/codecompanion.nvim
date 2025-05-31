@@ -13,11 +13,11 @@ return {
   opts = {
     stream = true,
     tools = true,
+    vision = true,
   },
   features = {
     text = true,
     tokens = true,
-    vision = true,
   },
   url = "https://api.openai.com/v1/chat/completions",
   env = {
@@ -35,19 +35,26 @@ return {
       if type(model) == "function" then
         model = model(self)
       end
-      local choices = self.schema.model.choices
-      if type(choices) == "function" then
-        choices = choices(self)
+      local model_opts = self.schema.model.choices
+      if type(model_opts) == "function" then
+        model_opts = model_opts(self)
       end
 
-      if choices and choices[model] and choices[model].opts then
-        self.opts = vim.tbl_deep_extend("force", self.opts, choices[model].opts)
+      self.opts.vision = true
+
+      if model_opts and model_opts[model] and model_opts[model].opts then
+        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts[model].opts)
+
+        if not model_opts[model].opts.has_vision then
+          self.opts.vision = false
+        end
       end
 
       if self.opts and self.opts.stream then
         self.parameters.stream = true
         self.parameters.stream_options = { include_usage = true }
       end
+
       return true
     end,
 
@@ -65,13 +72,14 @@ return {
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
+      local model = self.schema.model.default
+      if type(model) == "function" then
+        model = model(self)
+      end
+
       messages = vim
         .iter(messages)
         :map(function(m)
-          local model = self.schema.model.default
-          if type(model) == "function" then
-            model = model(self)
-          end
           if vim.startswith(model, "o1") and m.role == "system" then
             m.role = self.roles.user
           end
@@ -88,6 +96,23 @@ return {
                 }
               end)
               :totable()
+          end
+
+          -- Process any images
+          if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+            if self.opts and self.opts.vision then
+              m.content = {
+                {
+                  type = "image_url",
+                  image_url = {
+                    url = string.format("data:%s;base64,%s", m.opts.mimetype, m.content),
+                  },
+                },
+              }
+            else
+              -- Remove the message if vision is not supported
+              return nil
+            end
           end
 
           return {
@@ -304,14 +329,14 @@ return {
       ---@type string|fun(): string
       default = "gpt-4.1",
       choices = {
-        ["o4-mini-2025-04-16"] = { opts = { can_reason = true } },
+        ["o4-mini-2025-04-16"] = { opts = { has_vision = true, can_reason = true } },
         ["o3-mini-2025-01-31"] = { opts = { can_reason = true } },
-        ["o3-2025-04-16"] = { opts = { can_reason = true } },
-        ["o1-2024-12-17"] = { opts = { can_reason = true } },
-        "gpt-4.1",
-        "gpt-4o",
-        "gpt-4o-mini",
-        "gpt-4-turbo-preview",
+        ["o3-2025-04-16"] = { opts = { has_vision = true, can_reason = true } },
+        ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
+        ["gpt-4.1"] = { opts = { has_vision = true } },
+        ["gpt-4o"] = { opts = { has_vision = true } },
+        ["gpt-4o-mini"] = { opts = { has_vision = true } },
+        ["gpt-4-turbo-preview"] = { opts = { has_vision = true } },
         "gpt-4",
         "gpt-3.5-turbo",
       },
@@ -329,6 +354,7 @@ return {
         if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
           return self.schema.model.choices[model].opts.can_reason
         end
+        return false
       end,
       default = "medium",
       desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",

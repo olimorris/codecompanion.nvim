@@ -1,3 +1,4 @@
+local og_config = require("codecompanion.config")
 return {
   constants = {
     LLM_ROLE = "llm",
@@ -63,6 +64,7 @@ return {
         llm = "assistant",
         user = "foo",
       },
+      keymaps = og_config.strategies.chat.keymaps,
       tools = {
         ["cmd_runner"] = {
           callback = "strategies.chat.agents.tools.cmd_runner",
@@ -174,12 +176,39 @@ return {
             has_params = true,
           },
         },
+        ["screenshot://screenshot-2025-05-21T11-17-45.440Z"] = {
+          callback = "tests.strategies.chat.variables.screenshot",
+          description = "Screenshot",
+        },
         ["baz"] = {
           callback = "tests.strategies.chat.variables.baz",
           description = "baz",
         },
       },
       slash_commands = {
+        ["buffer"] = {
+          callback = "strategies.chat.slash_commands.buffer",
+          description = "Insert open buffers",
+          keymaps = {
+            modes = {
+              i = "<C-b>",
+              n = { "<C-b>", "gb" },
+            },
+          },
+          opts = {
+            contains_code = true,
+            provider = "default",
+          },
+        },
+        ["fetch"] = {
+          callback = "strategies.chat.slash_commands.fetch",
+          description = "Insert URL contents",
+          opts = {
+            adapter = "jina", -- jina|tavily
+            cache_path = vim.fn.stdpath("data") .. "/codecompanion/urls",
+            provider = "default",
+          },
+        },
         ["file"] = {
           callback = "strategies.chat.slash_commands.file",
           description = "Insert a file",
@@ -195,7 +224,7 @@ return {
       },
     },
     inline = {
-      adapter = "foo",
+      adapter = "test_adapter",
       variables = {
         ["foo"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/inline/variables/foo.lua",

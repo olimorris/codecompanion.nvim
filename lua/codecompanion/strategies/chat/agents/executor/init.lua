@@ -113,6 +113,7 @@ function Executor:setup(input)
     end
 
     vim.ui.select({ "Yes", "No", "Cancel" }, {
+      kind = "codecompanion.nvim",
       prompt = prompt,
       format_item = function(item)
         if item == "Yes" then
@@ -187,15 +188,9 @@ end
 ---Close the execution of the tool
 ---@return nil
 function Executor:close()
-  local chat = self.agent.chat
   log:debug("Executor:close")
   self.handlers.on_exit()
   util.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.agent.bufnr })
-
-  vim.schedule(function()
-    chat.subscribers:process(chat)
-    _G.codecompanion_current_tool = nil -- This must come last
-  end)
 end
 
 return Executor

@@ -13,11 +13,11 @@ return {
   opts = {
     stream = true,
     tools = true,
+    vision = false,
   },
   features = {
     text = true,
     tokens = true,
-    vision = true,
   },
   url = "https://api.deepseek.com/chat/completions",
   env = {
@@ -43,7 +43,7 @@ return {
       local model_opts = self.schema.model.choices[model]
 
       if model_opts.opts and model_opts.opts.can_use_tools == false then
-        if vim.tbl_count(tools) > 0 then
+        if tools and vim.tbl_count(tools) > 0 then
           log:warn("Tools are not supported for this model")
         end
         return

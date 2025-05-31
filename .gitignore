@@ -46,7 +46,9 @@ luac.out
 doc/.vitepress/dist
 doc/.vitepress/cache
 doc/tags*
+doc/node_modules
 
+assets/
 .direnv/
 .testenv/
 .repro/

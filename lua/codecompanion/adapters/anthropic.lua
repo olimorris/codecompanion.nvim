@@ -35,13 +35,13 @@ return {
   features = {
     tokens = true,
     text = true,
-    vision = true,
   },
   opts = {
     cache_breakpoints = 4, -- Cache up to this many messages
     cache_over = 300, -- Cache any message which has this many tokens or more
     stream = true,
     tools = true,
+    vision = true,
   },
   url = "https://api.anthropic.com/v1/messages",
   env = {
@@ -67,6 +67,9 @@ return {
       local model_opts = self.schema.model.choices[model]
       if model_opts and model_opts.opts then
         self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
+        if not model_opts.opts.has_vision then
+          self.opts.vision = false
+        end
       end
 
       -- Add the extended output header if enabled
@@ -133,12 +136,31 @@ return {
         end)
         :totable()
 
-      -- 3–6. Clean up, role‐convert, and handle tool calls in one pass
+      -- 3–7. Clean up, role‐convert, and handle tool calls in one pass
       messages = vim.tbl_map(function(message)
-        -- 3. Remove disallowed keys
+        -- 3. Account for any images
+        if message.opts and message.opts.tag == "image" and message.opts.mimetype then
+          if self.opts and self.opts.vision then
+            message.content = {
+              {
+                type = "image",
+                source = {
+                  type = "base64",
+                  media_type = message.opts.mimetype,
+                  data = message.content,
+                },
+              },
+            }
+          else
+            -- Remove the message if vision is not supported
+            return nil
+          end
+        end
+
+        -- 4. Remove disallowed keys
         message = filter_out_messages(message)
 
-        -- 4. Turn string content into { { type = "text", text } }
+        -- 5. Turn string content into { { type = "text", text } }
         if
           (message.role == self.roles.user or message.role == self.roles.llm)
           and type(message.content) == "string"
@@ -158,12 +180,12 @@ return {
           has_tools = true
         end
 
-        -- 5. Treat 'tool' role as user
+        -- 6. Treat 'tool' role as user
         if message.role == "tool" then
           message.role = self.roles.user
         end
 
-        -- 6. Convert any LLM tool_calls into content blocks
+        -- 7. Convert any LLM tool_calls into content blocks
         if has_tools and message.role == self.roles.llm and message.tool_calls then
           message.content = message.content or {}
           for _, call in ipairs(message.tool_calls) do
@@ -180,10 +202,10 @@ return {
         return message
       end, messages)
 
-      -- 7. Merge consecutive messages with the same role
+      -- 8. Merge consecutive messages with the same role
       messages = utils.merge_messages(messages)
 
-      -- 8. Ensure that any consecutive tool results are merged
+      -- 9. Ensure that any consecutive tool results are merged
       if has_tools then
         for _, m in ipairs(messages) do
           if m.role == self.roles.user and m.content then
@@ -205,7 +227,7 @@ return {
         end
       end
 
-      -- 9+. Cache large messages per opts.cache_over / cache_breakpoints
+      -- 10+. Cache large messages per opts.cache_over / cache_breakpoints
       local breakpoints_used = 0
       for i = #messages, 1, -1 do
         local msgs = messages[i]
@@ -458,12 +480,16 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
-      default = "claude-3-7-sonnet-20250219",
+      default = "claude-sonnet-4-20250514",
       choices = {
-        ["claude-3-7-sonnet-20250219"] = { opts = { can_reason = true, has_token_efficient_tools = true } },
-        "claude-3-5-sonnet-20241022",
-        "claude-3-5-haiku-20241022",
-        "claude-3-opus-20240229",
+        ["claude-opus-4-20250514"] = { opts = { can_reason = true, has_vision = true } },
+        ["claude-sonnet-4-20250514"] = { opts = { can_reason = true, has_vision = true } },
+        ["claude-3-7-sonnet-20250219"] = {
+          opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true },
+        },
+        ["claude-3-5-sonnet-20241022"] = { opts = { has_vision = true } },
+        ["claude-3-5-haiku-20241022"] = { opts = { has_vision = true } },
+        ["claude-3-opus-20240229"] = { opts = { has_vision = true } },
         "claude-2.1",
       },
     },

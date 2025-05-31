@@ -204,10 +204,7 @@ local function ready_chat_buffer(chat)
     chat.ui:display_tokens(chat.parser, chat.header_line)
     chat.references:render()
 
-    -- If we're running any tooling, let them handle the subscriptions instead
-    if not chat.tools:loaded() then
-      chat.subscribers:process(chat)
-    end
+    chat.subscribers:process(chat)
   end
 
   log:info("Chat request finished")
@@ -314,6 +311,54 @@ local function ts_parse_headers(chat)
   if last_match then
     return last_match:range()
   end
+end
+
+---Parse a section of the buffer for Markdown inline links.
+---@param chat CodeCompanion.Chat The chat instance.
+---@param start_range number The 1-indexed line number from where to start parsing.
+local function ts_parse_images(chat, start_range)
+  local ts_query = vim.treesitter.query.parse(
+    "markdown_inline",
+    [[
+((inline_link) @link)
+  ]]
+  )
+  local parser = vim.treesitter.get_parser(chat.bufnr, "markdown_inline")
+
+  local tree = parser:parse({ start_range, -1 })[1]
+  local root = tree:root()
+
+  local links = {}
+
+  for id, node in ts_query:iter_captures(root, chat.bufnr, start_range - 1, -1) do
+    local capture_name = ts_query.captures[id]
+    if capture_name == "link" then
+      local link_label_text = nil
+      local link_dest_text = nil
+
+      for child in node:iter_children() do
+        local child_type = child:type()
+
+        if child_type == "link_text" then
+          local text = vim.treesitter.get_node_text(child, chat.bufnr)
+          link_label_text = text
+        elseif child_type == "link_destination" then
+          local text = vim.treesitter.get_node_text(child, chat.bufnr)
+          link_dest_text = text
+        end
+      end
+
+      if link_label_text and link_dest_text then
+        table.insert(links, { text = link_label_text, path = link_dest_text })
+      end
+    end
+  end
+
+  if vim.tbl_isempty(links) then
+    return nil
+  end
+
+  return links
 end
 
 ---Parse the chat buffer for a code block
@@ -520,7 +565,11 @@ function Chat.new(args)
     chat = self,
   }
 
-  self.adapter = adapters.resolve(args.adapter)
+  if args.adapter and adapters.resolved(args.adapter) then
+    self.adapter = args.adapter
+  else
+    self.adapter = adapters.resolve(args.adapter or config.strategies.chat.adapter)
+  end
   if not self.adapter then
     return log:error("No adapter found")
   end
@@ -570,6 +619,18 @@ function Chat.new(args)
       :set()
   end
 
+  local slash_command_keymaps = helpers.slash_command_keymaps(config.strategies.chat.slash_commands)
+  if vim.tbl_count(slash_command_keymaps) > 0 then
+    keymaps
+      .new({
+        bufnr = self.bufnr,
+        callbacks = require("codecompanion.strategies.chat.slash_commands.keymaps"),
+        data = self,
+        keymaps = slash_command_keymaps,
+      })
+      :set()
+  end
+
   ---@cast self CodeCompanion.Chat
   self:add_system_prompt()
   set_autocmds(self)
@@ -604,6 +665,7 @@ function Chat:apply_model(model)
   end
 
   self.adapter.schema.model.default = model
+  self.adapter = adapters.set_model(self.adapter)
 
   return self
 end
@@ -796,7 +858,8 @@ function Chat:submit(opts)
   -- excluded and we can do this by checking for user messages.
   if message then
     message = self.references:clear(self.messages[#self.messages])
-    self.replace_vars_and_tools(self, message)
+    self:replace_vars_and_tools(message)
+    self:check_images(message)
     self:check_references()
     add_pins(self)
   end
@@ -932,6 +995,29 @@ function Chat:add_reference(data, source, id, opts)
 
   self.references:add({ source = source, id = id })
   self:add_message(data, opts)
+end
+
+---Check if there are any images in the chat buffer
+---@param message table
+---@return nil
+function Chat:check_images(message)
+  local images = ts_parse_images(self, self.header_line)
+  if not images then
+    return
+  end
+
+  for _, image in ipairs(images) do
+    local encoded_image = helpers.encode_image(image)
+    if type(encoded_image) == "string" then
+      log:warn("Could not encode image: %s", encoded_image)
+    else
+      helpers.add_image(self, encoded_image)
+
+      -- Replace the image link in the message with "image"
+      local to_remove = string.format("[Image](%s)", image.path)
+      message.content = vim.trim(message.content:gsub(vim.pesc(to_remove), "image"))
+    end
+  end
 end
 
 ---Reconcile the references table to the references in the chat buffer

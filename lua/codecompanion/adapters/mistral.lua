@@ -10,11 +10,11 @@ return {
   },
   opts = {
     stream = true,
+    vision = true,
   },
   features = {
     text = true,
     tokens = true,
-    vision = true,
   },
   url = "${url}/v1/chat/completions",
   env = {
@@ -30,6 +30,16 @@ return {
       if self.opts and self.opts.stream then
         self.parameters.stream = true
       end
+
+      local model = self.schema.model.default
+      local model_opts = self.schema.model.choices[model]
+      if model_opts and model_opts.opts then
+        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
+        if not model_opts.opts.has_vision then
+          self.opts.vision = false
+        end
+      end
+
       return true
     end,
 
@@ -64,14 +74,15 @@ return {
       choices = {
         -- Premier models
         "mistral-large-latest",
-        "pixtral-large-latest",
+        ["pixtral-large-latest"] = { opts = { has_vision = true } },
+        ["mistral-medium-latest"] = { opts = { has_vision = true } },
         "mistral-saba-latest",
         "codestral-latest",
         "ministral-8b-latest",
         "ministral-3b-latest",
         -- Free models, latest
-        "mistral-small-latest",
-        "pixtral-12b-2409",
+        ["mistral-small-latest"] = { opts = { has_vision = true } },
+        ["pixtral-12b-2409"] = { opts = { has_vision = true } },
         -- Free models, research
         "open-mistral-nemo",
         "open-codestral-mamba",

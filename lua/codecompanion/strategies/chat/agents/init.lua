@@ -107,12 +107,34 @@ function Agent:execute(chat, tools)
 
     local name = tool["function"].name
     local tool_config = self.tools_config[name]
+    local function handle_missing_tool(tool_call, err_message)
+      tool_call.name = name
+      tool_call.function_call = tool_call
+      log:error(err_message)
+      local available_tools_msg = next(chat.tools.in_use or {})
+          and "The available tools are: " .. table.concat(
+            vim.tbl_map(function(t)
+              return "`" .. t .. "`"
+            end, vim.tbl_keys(chat.tools.in_use)),
+            ", "
+          )
+        or "No tools available"
+      self.chat:add_tool_output(
+        tool_call,
+        string.format("Tool `%s` not found. %s", name, available_tools_msg),
+        string.format("**%s Tool Error**: %s", name, err_message)
+      )
+      return util.fire("AgentFinished", { bufnr = self.bufnr })
+    end
+    if not tool_config then
+      return handle_missing_tool(vim.deepcopy(tool), string.format("Couldn't find the tool `%s`", name))
+    end
 
     local ok, resolved_tool = pcall(function()
       return Agent.resolve(tool_config)
     end)
     if not ok or not resolved_tool then
-      return log:error("Couldn't resolve the tool(s) from the LLM's response %s", resolved_tool)
+      return handle_missing_tool(vim.deepcopy(tool), string.format("Couldn't resolve the tool `%s`", name))
     end
 
     self.tool = vim.deepcopy(resolved_tool)

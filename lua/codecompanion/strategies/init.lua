@@ -9,10 +9,7 @@ local log = require("codecompanion.utils.log")
 ---@return nil
 local function add_adapter(strategy, opts)
   if opts.adapter and opts.adapter.name then
-    strategy.selected.adapter = adapters.resolve(config.adapters[opts.adapter.name])
-    if opts.adapter.model then
-      strategy.selected.adapter.schema.model.default = opts.adapter.model
-    end
+    strategy.selected.adapter = adapters.resolve(opts.adapter.name, { model = opts.adapter.model })
   end
 end
 

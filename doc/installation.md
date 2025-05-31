@@ -1,13 +1,14 @@
 # Installation
 
 > [!IMPORTANT]
-> The plugin requires the markdown Tree-sitter parser to be installed with `:TSInstall markdown`
+> The plugin requires the markdown and markdown_inline Tree-sitter parsers to be installed with `:TSInstall markdown markdown_inline`
 
 ## Requirements
 
 - The `curl` library
 - Neovim 0.10.0 or greater
 - _(Optional)_ An API key for your chosen LLM
+- _(Optional)_ The `base64` library for image/vision support
 
 ## Installation
 
@@ -67,32 +68,30 @@ As per [#377](https://github.com/olimorris/codecompanion.nvim/issues/377), if yo
 
 ## Installing Extensions
 
-CodeCompanion supports extensions that add additional functionality to the plugin. For example, to install and set up the mcphub extension using lazy.nvim:
+CodeCompanion supports extensions that add additional functionality to the plugin. Below is an example which installs and configures the [MCP Hub](extensions/mcphub.html) extension:
 
-1. Install the extension:
+1. Install with:
 
 ```lua
 {
   "olimorris/codecompanion.nvim",
   dependencies = {
-    -- Add mcphub.nvim as a dependency
-    "ravitemer/mcphub.nvim" 
+    "ravitemer/mcphub.nvim"
   }
 }
 ```
 
-2. Add extension to your config with additional options:
+2. Configure with additional options:
 
 ```lua
--- Configure in your setup
 require("codecompanion").setup({
   extensions = {
     mcphub = {
       callback = "mcphub.extensions.codecompanion",
       opts = {
-        make_vars = true,       
+        make_vars = true,
         make_slash_commands = true,
-        show_result_in_chat = true  
+        show_result_in_chat = true
       }
     }
   }
@@ -101,9 +100,77 @@ require("codecompanion").setup({
 
 Visit the [extensions documentation](extending/extensions) to learn more about available extensions and how to create your own.
 
+## Additional Plugins
+
+CodeCompanion integrates with a number of other plugins to make your AI coding experience more enjoyable. Below are some common lazy.nvim configurations for popular plugins:
+
+### render-markdown.nvim
+
+Use [render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) to render the markdown in the chat buffer:
+
+```lua
+{
+  "MeanderingProgrammer/render-markdown.nvim",
+  ft = { "markdown", "codecompanion" }
+},
+```
+
+### markview.nvim
+
+Use [markview.nvim](https://github.com/OXY2DEV/markview.nvim) to render the markdown in the chat buffer:
+
+```lua
+{
+  "OXY2DEV/markview.nvim",
+  lazy = false,
+  opts = {
+    preview = {
+      filetypes = { "markdown", "codecompanion" },
+      ignore_buftypes = {},
+    },
+  },
+},
+```
+
+### mini.diff
+
+Use [mini.diff](https://github.com/echasnovski/mini.diff) for a cleaner diff when using the inline assistant or the `@editor` tool:
+
+```lua
+{
+  "echasnovski/mini.diff",
+  config = function()
+    local diff = require("mini.diff")
+    diff.setup({
+      -- Disabled by default
+      source = diff.gen_source.none(),
+    })
+  end,
+},
+```
+
+### img-clip.nvim
+
+Use [img-clip.nvim](https://github.com/hakonharnes/img-clip.nvim) to copy images from your system clipboard into a chat buffer via `:PasteImage`:
+
+```lua
+{
+  "HakonHarnes/img-clip.nvim",
+  opts = {
+    filetypes = {
+      codecompanion = {
+        prompt_for_file_name = false,
+        template = "[Image]($FILE_PATH)",
+        use_absolute_path = true,
+      },
+    },
+  },
+},
+```
+
 ## Completion
 
-Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
+When in the [chat buffer](usage/chat-buffer/index), completion can be used to more easily add [variables](usage/chat-buffer/variables), [slash commands](usage/chat-buffer/slash-commands) and [tools](usage/chat-buffer/agents). Out of the box, the plugin supports completion with both [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [blink.cmp](https://github.com/Saghen/blink.cmp). For the latter, on version <= 0.10.0, ensure that you've added `codecompanion` as a source:
 
 ```lua
 sources = {

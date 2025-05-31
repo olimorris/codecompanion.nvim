@@ -1,6 +1,6 @@
-local fmt = string.format
-
 local providers = require("codecompanion.providers")
+
+local fmt = string.format
 
 local constants = {
   LLM_ROLE = "llm",
@@ -23,10 +23,9 @@ local defaults = {
     ollama = "ollama",
     openai = "openai",
     xai = "xai",
-    -- NON-LLMs ---------------------------------------------------------------
-    non_llms = {
-      jina = "jina",
-    },
+    -- Non LLMs
+    jina = "jina",
+    tavily = "tavily",
     -- OPTIONS ----------------------------------------------------------------
     opts = {
       allow_insecure = false, -- Allow insecure connections?
@@ -82,6 +81,19 @@ local defaults = {
             requires_approval = true,
           },
         },
+        ["web_search"] = {
+          callback = "strategies.chat.agents.tools.web_search",
+          description = "Search the web for information",
+          opts = {
+            adapter = "tavily", -- tavily
+            opts = {
+              search_depth = "advanced",
+              topic = "general",
+              chunks_per_source = 3,
+              max_results = 5,
+            },
+          },
+        },
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
           auto_submit_success = false, -- Send any successful output to the LLM automatically?
@@ -117,14 +129,16 @@ local defaults = {
           description = "Insert open buffers",
           opts = {
             contains_code = true,
-            provider = providers.pickers, -- default|telescope|mini_pick|fzf_lua|snacks
+            provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
         ["fetch"] = {
           callback = "strategies.chat.slash_commands.fetch",
           description = "Insert URL contents",
           opts = {
-            adapter = "jina",
+            adapter = "jina", -- jina
+            cache_path = vim.fn.stdpath("data") .. "/codecompanion/urls",
+            provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
         ["file"] = {
@@ -133,7 +147,7 @@ local defaults = {
           opts = {
             contains_code = true,
             max_lines = 1000,
-            provider = providers.pickers, -- default|telescope|mini_pick|fzf_lua|snacks
+            provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
         ["help"] = {
@@ -142,7 +156,16 @@ local defaults = {
           opts = {
             contains_code = false,
             max_lines = 128, -- Maximum amount of lines to of the help file to send (NOTE: Each vimdoc line is typically 10 tokens)
-            provider = providers.help, -- telescope|mini_pick|fzf_lua|snacks
+            provider = providers.help, -- telescope|fzf_lua|mini_pick|snacks
+          },
+        },
+        ["image"] = {
+          callback = "strategies.chat.slash_commands.image",
+          description = "Insert an image",
+          opts = {
+            dirs = {}, -- Directories to search for images
+            filetypes = { "png", "jpg", "jpeg", "gif", "webp" }, -- Filetypes to search for
+            provider = providers.images, -- snacks|default
           },
         },
         ["now"] = {
@@ -157,7 +180,7 @@ local defaults = {
           description = "Insert symbols for a selected file",
           opts = {
             contains_code = true,
-            provider = providers.pickers, -- default|telescope|mini_pick|fzf_lua|snacks
+            provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
         ["terminal"] = {
@@ -337,6 +360,12 @@ local defaults = {
           index = 18,
           callback = "keymaps.auto_tool_mode",
           description = "Toggle automatic tool mode",
+        },
+        goto_file_under_cursor = {
+          modes = { n = "gR" },
+          index = 19,
+          callback = "keymaps.goto_file_under_cursor",
+          description = "Open the file under cursor in a new tab.",
         },
       },
       opts = {
@@ -894,7 +923,7 @@ You must create or modify a workspace file through a series of prompts over mult
       width = 95,
       height = 10,
       prompt = "Prompt ", -- Prompt used for interactive LLM calls
-      provider = providers.action_palette, -- default|telescope|mini_pick|snacks
+      provider = providers.action_palette, -- telescope|mini_pick|snacks|default
       opts = {
         show_default_actions = true, -- Show the default actions in the action palette?
         show_default_prompt_library = true, -- Show the default prompt library in the action palette?
@@ -962,7 +991,7 @@ You must create or modify a workspace file through a series of prompts over mult
         "followwrap",
         "linematch:120",
       },
-      provider = providers.diff, -- default|mini_diff
+      provider = providers.diff, -- mini_diff|default
     },
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?
@@ -973,6 +1002,8 @@ You must create or modify a workspace file through a series of prompts over mult
   extensions = {},
   -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
+    ---@type string|fun(path: string)
+    goto_file_action = "tabnew",
     log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
     language = "English", -- The language used for LLM responses
 

@@ -204,7 +204,7 @@ function Inline.new(args)
     prompts = vim.deepcopy(args.prompts),
   }, { __index = Inline })
 
-  self:set_adapter(args.adapter or config.adapters[config.strategies.inline.adapter])
+  self:set_adapter(args.adapter or config.strategies.inline.adapter)
   if not self.adapter then
     return log:error("[Inline] No adapter found")
   end
@@ -223,10 +223,12 @@ function Inline.new(args)
 end
 
 ---Set the adapter for the inline prompt
----@param adapter CodeCompanion.Adapter
+---@param adapter CodeCompanion.Adapter|string|function
 ---@return nil
 function Inline:set_adapter(adapter)
-  self.adapter = adapters.resolve(adapter)
+  if not self.adapter or not adapters.resolved(adapter) then
+    self.adapter = adapters.resolve(adapter)
+  end
 end
 
 ---Prompt the LLM
@@ -305,11 +307,11 @@ function Inline:prompt(user_prompt)
       log:info("[Inline] User input received: %s", input)
       add_prompt("<user_prompt>" .. input .. "</user_prompt>", user_role)
       self.prompts = prompts
-      return self:submit(prompts)
+      return self:submit(vim.deepcopy(prompts))
     end)
   else
     self.prompts = prompts
-    return self:submit(prompts)
+    return self:submit(vim.deepcopy(prompts))
   end
 end
 

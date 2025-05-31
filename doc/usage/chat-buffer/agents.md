@@ -69,12 +69,16 @@ The _@files_ tool leverages the [Plenary.Path](https://github.com/nvim-lua/plena
 
 - Creating a file
 - Reading a file
-- Reading lines from a file
 - Editing a file
 - Deleting a file
-- Renaming a file
-- Copying a file
-- Moving a file
+
+## @web_search
+
+The _@web_search_ tool enables an LLM to search the web for a specific query. This can be useful to supplement an LLMs knowledge cut off date with more up to date information.
+
+```md
+Can you use the @web_search tool to tell me the latest version of Neovim?
+```
 
 ## @full_stack_dev
 
@@ -127,13 +131,15 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | DeepSeek          | deepseek-reasoner          | :x:                | Doesn't support function calling |
 | Gemini            | Gemini-2.0-flash           | :white_check_mark: |                                  |
 | Gemini            | Gemini-2.5-pro-exp-03-25   | :white_check_mark: |                                  |
+| Gemini            | gemini-2.5-flash-preview   | :white_check_mark: |                                  |
 | GitHub Models     | All                        | :x:                | Not supported yet                |
 | Huggingface       | All                        | :x:                | Not supported yet                |
 | Mistral           | All                        | :x:                | Not supported yet                |
 | Novita            | All                        | :x:                | Not supported yet                |
 | Ollama            | All                        | :x:                | Is currently [broken](https://github.com/ollama/ollama/issues/9632) |
-| OpenAI Compatible | All                        | :x:                | Dependant on the model           |
+| OpenAI Compatible | All                        | :exclamation:                | Dependent on the model and provider          |
 | OpenAI            | gpt-3.5-turbo              | :white_check_mark: |                                  |
+| OpenAI            | gpt-4.1                    | :white_check_mark: |                                  |
 | OpenAI            | gpt-4                      | :white_check_mark: |                                  |
 | OpenAI            | gpt-4o                     | :white_check_mark: |                                  |
 | OpenAI            | gpt-4o-mini                | :white_check_mark: |                                  |
@@ -141,4 +147,3 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | OpenAI            | o1-mini-2024-09-12         | :x:                | Doesn't support function calling |
 | OpenAI            | o3-mini-2025-01-31         | :white_check_mark: |                                  |
 | xAI               | All                        | :x:                | Not supported yet                |
-

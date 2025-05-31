@@ -471,7 +471,7 @@ M.change_adapter = {
     local adapters_list = vim
       .iter(adapters)
       :filter(function(adapter)
-        return adapter ~= "opts" and adapter ~= "non_llms" and adapter ~= current_adapter
+        return adapter ~= "opts" and adapter ~= "non_llm" and adapter ~= current_adapter
       end)
       :map(function(adapter, _)
         return adapter
@@ -593,6 +593,51 @@ M.auto_tool_mode = {
       vim.g.codecompanion_auto_tool_mode = true
       return util.notify("Enabled automatic tool mode", vim.log.levels.INFO)
     end
+  end,
+}
+
+M.goto_file_under_cursor = {
+  desc = "Open the file under cursor in a new tab.",
+  ---@param chat CodeCompanion.Chat
+  callback = function(chat)
+    local file_name
+    if vim.fn.mode() == "n" then
+      file_name = vim.fn.expand("<cfile>")
+    elseif string.lower(vim.fn.mode()):find("^.?v%a?") then
+      -- one of the visual selection modes
+      local start_pos = vim.fn.getpos("v")
+      local end_pos = vim.fn.getpos(".")
+      if start_pos[1] > end_pos[1] or (start_pos[1] == end_pos[1] and start_pos[2] > end_pos[2]) then
+        start_pos, end_pos = end_pos, start_pos
+      end
+      local lines =
+        vim.api.nvim_buf_get_text(chat.bufnr, start_pos[2] - 1, start_pos[3] - 1, end_pos[2] - 1, end_pos[3], {})
+      if lines then
+        file_name = table.concat(lines)
+      end
+    end
+    if type(file_name) == "string" then
+      file_name = vim.fs.normalize(file_name)
+    else
+      return
+    end
+
+    local stat = vim.uv.fs_stat(file_name)
+    if stat == nil or stat.type ~= "file" then
+      return
+    end
+    local action = nil
+    local user_action = config.opts.goto_file_action
+    if type(user_action) == "string" then
+      action = function(fname)
+        vim.cmd(user_action .. " " .. fname)
+      end
+    elseif type(user_action) == "function" then
+      action = user_action
+    else
+      error(string.format("%s is not a valid jump action!", vim.inspect(user_action)))
+    end
+    action(file_name)
   end,
 }
 

@@ -21,6 +21,61 @@ T["OpenAI adapter"]["it can form messages"] = function()
   h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
 end
 
+T["OpenAI adapter"]["it can form messages with images"] = function()
+  local messages = {
+    {
+      content = "How are you?",
+      role = "user",
+    },
+    {
+      content = "I am fine, thanks. How can I help?",
+      role = "assistant",
+    },
+    {
+      content = "somefakebase64encoding",
+      role = "user",
+      opts = {
+        mimetype = "image/jpg",
+        reference = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
+        tag = "image",
+        visible = false,
+      },
+    },
+    {
+      content = "What is this an image of?",
+      role = "user",
+    },
+  }
+
+  local expected = {
+    {
+      content = "How are you?",
+      role = "user",
+    },
+    {
+      content = "I am fine, thanks. How can I help?",
+      role = "assistant",
+    },
+    {
+      content = {
+        {
+          type = "image_url",
+          image_url = {
+            url = "data:image/jpg;base64,somefakebase64encoding",
+          },
+        },
+      },
+      role = "user",
+    },
+    {
+      content = "What is this an image of?",
+      role = "user",
+    },
+  }
+
+  h.eq(expected, adapter.handlers.form_messages(adapter, messages).messages)
+end
+
 T["OpenAI adapter"]["it can form messages with tools"] = function()
   local messages = {
     {

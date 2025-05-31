@@ -4,18 +4,44 @@ local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
 
+-- Reference: https://github.com/yetone/avante.nvim/blob/22418bff8bcac4377ebf975cd48f716823867979/lua/avante/providers/copilot.lua#L5-L26
+---
+---@class CopilotToken
+---@field annotations_enabled boolean
+---@field chat_enabled boolean
+---@field chat_jetbrains_enabled boolean
+---@field code_quote_enabled boolean
+---@field codesearch boolean
+---@field copilotignore_enabled boolean
+---@field endpoints {api: string, ["origin-tracker"]: string, proxy: string, telemetry: string}
+---@field expires_at integer
+---@field individual boolean
+---@field nes_enabled boolean
+---@field prompt_8k boolean
+---@field public_suggestions string
+---@field refresh_in integer
+---@field sku string
+---@field snippy_load_test_enabled boolean
+---@field telemetry string
+---@field token string
+---@field tracking_id string
+---@field vsc_electron_fetcher boolean
+---@field xcode boolean
+---@field xcode_chat boolean
+
+local _cached_adapter
 local _cache_expires
 local _cache_file = vim.fn.tempname()
-local _cached_adapter
 local _cached_models
 
 ---@alias CopilotOAuthToken string|nil
 local _oauth_token
 
----@alias CopilotToken {token: string, expires_at: number}|nil
+---@type CopilotToken|nil
 local _github_token
 
---- Finds the configuration path
+---Finds the configuration path
+---@return string|nil
 local function find_config_path()
   if os.getenv("CODECOMPANION_TOKEN_PATH") then
     return os.getenv("CODECOMPANION_TOKEN_PATH")
@@ -110,8 +136,9 @@ local function authorize_token()
 end
 
 ---Get and authorize a GitHub Copilot token
+---@param self CodeCompanion.Adapter
 ---@return boolean success
-local function get_and_authorize_token()
+local function get_and_authorize_token(self)
   _oauth_token = get_token()
   if not _oauth_token then
     log:error("Copilot Adapter: No token found. Please refer to https://github.com/github/copilot.vim")
@@ -123,6 +150,7 @@ local function get_and_authorize_token()
     log:error("Copilot Adapter: Could not authorize your GitHub Copilot token")
     return false
   end
+  self.url = _github_token.endpoints.api .. "/chat/completions"
 
   return true
 end
@@ -134,8 +162,8 @@ local function reset()
 end
 
 ---Get a list of available Copilot models
----@params self CodeCompanion.Adapter
----@params opts? table
+---@param self CodeCompanion.Adapter
+---@param opts? table
 ---@return table
 local function get_models(self, opts)
   if _cached_models and _cache_expires and _cache_expires > os.time() then
@@ -149,8 +177,8 @@ local function get_models(self, opts)
     _cached_adapter = self
   end
 
-  get_and_authorize_token()
-  local url = "https://api.githubcopilot.com"
+  get_and_authorize_token(self)
+  local url = _github_token.endpoints.api or "https://api.githubcopilot.com"
   local headers = vim.deepcopy(_cached_adapter.headers)
   headers["Authorization"] = "Bearer " .. _github_token.token
 
@@ -178,12 +206,14 @@ local function get_models(self, opts)
     if model.model_picker_enabled and model.capabilities.type == "chat" then
       local choice_opts = {}
 
-      -- streaming support
       if model.capabilities.supports.streaming then
         choice_opts.can_stream = true
       end
       if model.capabilities.supports.tool_calls then
         choice_opts.can_use_tools = true
+      end
+      if model.capabilities.supports.vision then
+        choice_opts.has_vision = true
       end
 
       models[model.id] = { opts = choice_opts }
@@ -207,11 +237,11 @@ return {
   opts = {
     stream = true,
     tools = true,
+    vision = true,
   },
   features = {
     text = true,
     tokens = true,
-    vision = false,
   },
   url = "https://api.githubcopilot.com/chat/completions",
   env = {
@@ -249,8 +279,11 @@ return {
       if (self.opts and self.opts.tools) and (model_opts and model_opts.opts and not model_opts.opts.can_use_tools) then
         self.opts.tools = false
       end
+      if (self.opts and self.opts.vision) and (model_opts and model_opts.opts and not model_opts.opts.has_vision) then
+        self.opts.vision = false
+      end
 
-      return get_and_authorize_token()
+      return get_and_authorize_token(self)
     end,
 
     --- Use the OpenAI adapter for the bulk of the work
@@ -258,6 +291,13 @@ return {
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
+      -- Ensure we send over the correct headers for image requests
+      for _, m in ipairs(messages) do
+        if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+          self.headers["Copilot-Vision-Request"] = "true"
+          break
+        end
+      end
       return openai.handlers.form_messages(self, messages)
     end,
     form_tools = function(self, tools)
@@ -313,25 +353,11 @@ return {
       end,
     },
     ---@type CodeCompanion.Schema
-    reasoning_effort = {
-      order = 2,
-      mapping = "parameters",
-      type = "string",
-      optional = true,
-      default = "medium",
-      desc = "Constrains effort on reasoning for reasoning models. Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning in a response.",
-      choices = {
-        "high",
-        "medium",
-        "low",
-      },
-    },
-    ---@type CodeCompanion.Schema
     temperature = {
       order = 3,
       mapping = "parameters",
       type = "number",
-      default = 0,
+      default = 0.1,
       condition = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
@@ -345,7 +371,7 @@ return {
       order = 4,
       mapping = "parameters",
       type = "integer",
-      default = 15000,
+      default = 16384,
       desc = "The maximum number of tokens to generate in the chat completion. The total length of input tokens and generated tokens is limited by the model's context length.",
     },
     ---@type CodeCompanion.Schema

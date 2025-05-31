@@ -15,6 +15,7 @@ local log = require("codecompanion.utils.log")
 ---@field temp? table A table to store temporary values which are not passed to the request
 ---@field raw? table Any additional curl arguments to pass to the request
 ---@field opts? table Additional options for the adapter
+---@field model? { name: string, opts: table } The model to use for the request
 ---@field handlers table Functions which link the output from the request to CodeCompanion
 ---@field handlers.setup? fun(self: CodeCompanion.Adapter): boolean
 ---@field handlers.set_body? fun(self: CodeCompanion.Adapter, data: table): table|nil
@@ -29,6 +30,7 @@ local log = require("codecompanion.utils.log")
 ---@field handlers.on_exit? fun(self: CodeCompanion.Adapter, data: table): table|nil
 ---@field handlers.teardown? fun(self: CodeCompanion.Adapter): any
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
+---@field methods table Methods that the adapter can perform e.g. for Slash Commands
 
 ---Check if a variable starts with "cmd:"
 ---@param var string
@@ -267,6 +269,7 @@ end
 function Adapter.extend(adapter, opts)
   local ok
   local adapter_config
+  opts = opts or {}
 
   if type(adapter) == "string" then
     ok, adapter_config = pcall(require, "codecompanion.adapters." .. adapter)
@@ -287,18 +290,95 @@ function Adapter.extend(adapter, opts)
   return Adapter.new(adapter_config)
 end
 
+---Set the model name and options on the adapter for convenience
+---@param adapter CodeCompanion.Adapter
+---@return CodeCompanion.Adapter
+function Adapter.set_model(adapter)
+  -- Set the model dictionary as a convenience for the user. This can be string
+  -- or function values. If they're functions, these are likely to make http
+  -- requests to obtain a list of available models. This is expensive, so
+  -- we dont't execute them here. Instead, let the user decide when to.
+  if adapter.schema and adapter.schema.model then
+    adapter.model = {}
+    local model = adapter.schema.model.default
+    local choices = adapter.schema.model.choices
+
+    if type(model) == "string" then
+      adapter.model.name = model
+    end
+    if type(choices) == "table" then
+      adapter.model.opts = (choices[model] and choices[model].opts) and choices[model].opts
+    end
+  end
+
+  return adapter
+end
+
 ---Resolve an adapter from deep within the plugin...somewhere
 ---@param adapter? CodeCompanion.Adapter|string|function
+---@param opts? table
 ---@return CodeCompanion.Adapter
-function Adapter.resolve(adapter)
-  adapter = adapter or config.adapters[config.strategies.chat.adapter]
+function Adapter.resolve(adapter, opts)
+  adapter = adapter or config.strategies.chat.adapter
+  opts = opts or {}
 
   if type(adapter) == "table" then
-    return Adapter.new(adapter)
+    if adapter.name and adapter.schema and Adapter.resolved(adapter) then
+      log:trace("[Adapter] Returning existing resolved adapter: %s", adapter.name)
+      return Adapter.set_model(adapter)
+    elseif adapter.name and adapter.model then
+      log:trace("[Adapter] Table adapter: %s", adapter.name)
+      local model_name = type(adapter.model) == "table" and adapter.model.name or adapter.model
+      return Adapter.resolve(adapter.name, { model = model_name })
+    end
+    adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
-    return Adapter.extend(adapter)
+    log:trace("[Adapter] Loading adapter: %s%s", adapter, opts.model and (" with model: " .. opts.model) or "")
+    opts = vim.tbl_deep_extend("force", opts, { name = adapter })
+    if opts.model then
+      opts = vim.tbl_deep_extend("force", opts, {
+        schema = {
+          model = {
+            default = opts.model,
+          },
+        },
+      })
+    end
+
+    adapter = Adapter.extend(config.adapters[adapter] or adapter, opts)
   elseif type(adapter) == "function" then
-    return adapter()
+    adapter = adapter()
+  end
+
+  return adapter.set_model(adapter)
+end
+
+---Check if an adapter has already been resolved
+---@param adapter CodeCompanion.Adapter|string|function|nil
+---@return boolean
+function Adapter.resolved(adapter)
+  if adapter and getmetatable(adapter) and getmetatable(adapter).__index == Adapter then
+    return true
+  end
+  return false
+end
+
+---Get an adapter from a string path
+---@param adapter_str string
+---@return CodeCompanion.Adapter|nil
+function Adapter.get_from_string(adapter_str)
+  local ok, adapter = pcall(require, "codecompanion.adapters." .. adapter_str)
+  if not ok then
+    ok, adapter = pcall(loadfile, adapter_str)
+  end
+  if not ok or not adapter then
+    return nil
+  end
+
+  adapter = Adapter.resolve(adapter)
+
+  if not adapter then
+    return nil
   end
 
   return adapter
@@ -310,6 +390,7 @@ end
 function Adapter.make_safe(adapter)
   return {
     name = adapter.name,
+    model = adapter.model,
     formatted_name = adapter.formatted_name,
     features = adapter.features,
     url = adapter.url,

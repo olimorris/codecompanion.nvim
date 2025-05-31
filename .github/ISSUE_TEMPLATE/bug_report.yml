@@ -2,7 +2,6 @@ name: Bug Report
 description: Raising a bug/issue with the plugin
 title: "[Bug]: "
 labels: ["bug"]
-assignees: olimorris
 
 body:
     - type: markdown
@@ -40,6 +39,13 @@ body:
         placeholder: "MacOS 11.5"
       validations:
         required: true
+    - type: input
+      attributes:
+        label: "Adapter and model"
+        placeholder: "Copilot and GPT-4.1"
+      validations:
+        required: true
+
 
     - type: textarea
       attributes:
