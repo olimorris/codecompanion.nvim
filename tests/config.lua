@@ -63,6 +63,16 @@ return {
         llm = "assistant",
         user = "foo",
       },
+      keymaps = {
+        options = {
+          modes = {
+            n = "?",
+          },
+          callback = "keymaps.options",
+          description = "Options",
+          hide = true,
+        },
+      },
       tools = {
         ["cmd_runner"] = {
           callback = "strategies.chat.agents.tools.cmd_runner",
