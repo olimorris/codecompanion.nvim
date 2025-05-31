@@ -683,7 +683,7 @@ function Chat:apply_model(model)
   return self
 end
 
----The source to provide the model entries for completion
+---The source to provide the model entries for completion (cmp only)
 ---@param callback fun(request: table)
 ---@return nil
 function Chat:complete_models(callback)

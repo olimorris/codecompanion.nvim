@@ -295,6 +295,12 @@ CodeCompanion.setup = function(opts)
     api.nvim_create_user_command(cmd.cmd, cmd.callback, cmd.opts)
   end
 
+  -- Set up completion
+  local completion = config.strategies.chat.opts.completion_provider
+  pcall(function()
+    return require("codecompanion.providers.completion." .. completion .. ".setup")
+  end)
+
   -- Set the log root
   log.set_root(log.new({
     handlers = {
