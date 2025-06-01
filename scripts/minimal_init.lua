@@ -1,23 +1,27 @@
+-- Add project root to runtime path
 vim.cmd([[let &rtp.=','.getcwd()]])
 
+-- Add dependencies to runtime path
+vim.cmd("set rtp+=./deps/mini.nvim")
 vim.cmd("set rtp+=./deps/plenary.nvim")
 vim.cmd("set rtp+=./deps/nvim-treesitter")
 
 -- Install and setup Tree-sitter
-require("nvim-treesitter").setup({
+local ts = require("nvim-treesitter")
+ts.setup({
   install_dir = "deps/parsers",
 })
-require("nvim-treesitter")
-  .install({
-    "go",
-    "lua",
-    "markdown",
-    "markdown_inline",
-    "python",
-    "yaml",
-  })
-  :wait(300000)
+ts.install({
+  "go",
+  "lua",
+  "markdown",
+  "markdown_inline",
+  "python",
+  "yaml",
+}):wait(300000)
 vim.treesitter.language.register("markdown", "codecompanion")
 
-vim.cmd("set rtp+=deps/mini.nvim")
-require("mini.test").setup()
+local minitest = require("mini.test")
+if _G.MiniTest == nil then
+  minitest.setup()
+end
