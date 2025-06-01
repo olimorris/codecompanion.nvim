@@ -86,13 +86,16 @@ function Variables:output()
       goto append
     end
 
-    ok, module = pcall(loadfile, callback)
-    if not ok then
-      log:error("[Variables] %s could not be resolved", var)
-      goto skip
-    end
-    if module then
-      var_output = module() --[[@type CodeCompanion.Inline.Variables]]
+    do
+      local err
+      module, err = loadfile(callback)
+      if err then
+        log:error("[Variables] %s could not be resolved", var)
+        goto skip
+      end
+      if module then
+        var_output = module() --[[@type CodeCompanion.Inline.Variables]]
+      end
     end
 
     if (var_config.opts and var_config.opts.contains_code) and not config.can_send_code() then

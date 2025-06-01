@@ -357,9 +357,17 @@ function Agent.resolve(tool)
     return module
   end
 
-  -- Try loading the tool from the user's config
-  ok, module = pcall(loadfile, callback)
-  if not ok then
+  -- Try loading the tool from the user's config using a module path
+  ok, module = pcall(require)
+  if ok then
+    log:debug("[Tools] %s identified", callback)
+    return module
+  end
+
+  -- Try loading the tool from the user's config using a file path
+  local err
+  module, err = loadfile(callback)
+  if err then
     return error()
   end
 
