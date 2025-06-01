@@ -44,7 +44,7 @@ return {
     type = "function",
     ["function"] = {
       name = "create_file",
-      description = "This is a tool for creating a new file in the current working directory. The file will be created with the specified content.",
+      description = "This is a tool for creating a new file on the user's machine. The file will be created with the specified content, creating any necessary parent directories.",
       parameters = {
         type = "object",
         properties = {
@@ -123,7 +123,7 @@ return {
     ---@return nil
     rejected = function(self, agent, cmd)
       local chat = agent.chat
-      chat:add_tool_output(self, fmt("**Create File Tool**: The user declined to run this.", self.args.action))
+      chat:add_tool_output(self, fmt("**Create File Tool**: The user declined to execute", self.args.action))
     end,
   },
 }
