@@ -42,6 +42,16 @@ local configs = {
       return has_cmp and not has_blink
     end,
   },
+  coc = {
+    module = "coc",
+    name = "coc",
+    condition = function()
+      local has_cmp, _ = pcall(require, "cmp")
+      local has_blink, _ = pcall(require, "blink.cmp")
+      local has_coc = vim.fn.exists("*coc#rpc#ready") == 1
+      return has_coc and not has_blink and not has_cmp
+    end,
+  },
 }
 
 ---@param providers table<string> Provider names
@@ -84,7 +94,7 @@ end
 ---Get the default Completion provider
 ---@return string
 local function completion_providers()
-  local providers = { "blink", "cmp", "default" }
+  local providers = { "blink", "cmp", "coc", "default" }
   return find_provider(providers, configs, "default")
 end
 

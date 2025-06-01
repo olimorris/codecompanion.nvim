@@ -314,7 +314,8 @@ blink.cmp <https://github.com/Saghen/blink.cmp>. For the latter, on version <=
     },
 <
 
-The plugin also supports |codecompanion-usage-chat-buffer-index-completion|.
+The plugin also supports |codecompanion-usage-chat-buffer-index-completion| and
+coc.nvim <https://github.com/neoclide/coc.nvim>.
 
 
 HELP                                         *codecompanion-installation-help*
@@ -440,7 +441,8 @@ SLASH COMMANDS ~
 
   [!IMPORTANT] These have been designed to work with native Neovim completions
   alongside nvim-cmp and blink.cmp. To open the native completion menu use
-  `<C-_>` in insert mode when in the chat buffer.
+  `<C-_>` in insert mode when in the chat buffer. Note: Slash commands should
+  also work with coc.nvim.
 `Slash commands`, accessed via `/`, run commands to insert additional context
 into the chat buffer:
 
@@ -1442,15 +1444,16 @@ commands and tools. However, you can override this in your config:
       strategies = {
         chat = {
           opts = {
-            completion_provider = "cmp", -- blink|cmp|default
+            completion_provider = "cmp", -- blink|cmp|coc|default
           }
         }
       }
     })
 <
 
-The plugin also supports nvim-cmp <https://github.com/hrsh7th/nvim-cmp> as well
-as a native completion solution (`default`).
+The plugin also supports nvim-cmp <https://github.com/hrsh7th/nvim-cmp>, a
+native completion solution (`default`), and coc.nvim
+<https://github.com/neoclide/coc.nvim>.
 
 
 AUTO SCROLLING
@@ -2393,9 +2396,9 @@ VARIABLES                                      *codecompanion-usage-variables*
 
 Variables allow you to share data about the current state of Neovim with an
 LLM. Simply type `#` in the chat buffer and trigger code completion if you’re
-not using blink.cmp or nvim-cmp. Alternatively, type the variables manually.
-After the response is sent to the LLM, you should see the variable output
-tagged as a reference in the chat buffer.
+not using blink.cmp or nvim-cmp (or coc.nvim). Alternatively, type the
+variables manually. After the response is sent to the LLM, you should see the
+variable output tagged as a reference in the chat buffer.
 
 Custom variables can be shared by adding them to the
 `strategies.chat.variables` table in your configuration.
@@ -2904,7 +2907,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI�S API OUTPUT
+OPENAI’S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
