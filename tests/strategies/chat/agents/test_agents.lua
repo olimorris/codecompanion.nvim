@@ -167,4 +167,62 @@ T["Agent"][":replace"]["should replace the tool in the message"] = function()
   h.eq("run the editor tool", child.lua_get("_G.result"))
 end
 
+T["Agent"][":find"] = new_set()
+T["Agent"][":find"]["can find tool groups in message"] = function()
+  child.lua([[
+    local chat = _G.chat
+    local message = {
+      content = "@tool_group help me with something"
+    }
+    
+    local tools, groups = _G.agent:find(chat, message)
+    _G.found_tools = tools
+    _G.found_groups = groups
+  ]])
+
+  -- The function returns empty tables, not nil when no tools found
+  h.eq({}, child.lua_get("_G.found_tools"))
+  h.eq({ "tool_group" }, child.lua_get("_G.found_groups"))
+end
+
+T["Agent"][":find"]["can find both tools and groups in message"] = function()
+  child.lua([[
+    local chat = _G.chat
+    local message = {
+      content = "@func and @tool_group help me"
+    }
+    
+    local tools, groups = _G.agent:find(chat, message)
+    _G.found_tools = tools
+    _G.found_groups = groups
+  ]])
+
+  h.eq({ "func" }, child.lua_get("_G.found_tools"))
+  h.eq({ "tool_group" }, child.lua_get("_G.found_groups"))
+end
+
+T["Agent"][":parse"]["add tool group to chat buffer"] = function()
+  child.lua([[
+    local chat = _G.chat
+    table.insert(chat.messages, {
+      role = "user",
+      content = "@tool_group do some stuff",
+    })
+
+    _G.agent:parse(chat, chat.messages[#chat.messages])
+  ]])
+
+  -- Should have the group reference
+  h.eq(true, child.lua_get([[_G.chat.references:get_from_chat()[1] == "<group>tool_group</group>"]]))
+end
+
+T["Agent"][":replace"]["should replace tool group in message"] = function()
+  child.lua([[
+    local message = "run the @tool_group"
+    _G.result = _G.agent:replace(message)
+  ]])
+
+  h.eq("run the func, cmd", child.lua_get("_G.result"))
+end
+
 return T

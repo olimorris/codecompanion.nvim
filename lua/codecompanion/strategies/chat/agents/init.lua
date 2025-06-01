@@ -218,12 +218,6 @@ function Agent:find(chat, message)
   vim.iter(self.tools_config.groups):each(function(tool)
     if is_found(tool) then
       table.insert(groups, tool)
-
-      for _, t in ipairs(self.tools_config.groups[tool].tools) do
-        if not vim.tbl_contains(tools, t) then
-          table.insert(tools, t)
-        end
-      end
     end
   end)
 
@@ -239,7 +233,7 @@ function Agent:find(chat, message)
       end
     end)
 
-  if #tools == 0 then
+  if #tools == 0 and #groups == 0 then
     return nil, nil
   end
 
@@ -262,17 +256,7 @@ function Agent:parse(chat, message)
 
     if groups and not vim.tbl_isempty(groups) then
       for _, group in ipairs(groups) do
-        local schema = self.tools_config.groups[group]
-        local system_prompt = schema.system_prompt
-        if type(system_prompt) == "function" then
-          system_prompt = system_prompt(schema)
-        end
-        if system_prompt then
-          chat:add_message({
-            role = config.constants.SYSTEM_ROLE,
-            content = system_prompt,
-          }, { tag = "tool", visible = false })
-        end
+        chat.tools:add_group(group, self.tools_config)
       end
     end
     return true

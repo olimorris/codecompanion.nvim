@@ -92,6 +92,37 @@ function Tools:add(tool, tool_config)
   return self
 end
 
+function Tools:add_group(group, tools_config)
+  local group_config = tools_config.groups[group]
+  if not group_config or not group_config.tools then
+    return
+  end
+  local system_prompt = group_config.system_prompt
+  if type(system_prompt) == "function" then
+    system_prompt = system_prompt(group_config)
+  end
+  if system_prompt then
+    self.chat:add_message({
+      role = config.constants.SYSTEM_ROLE,
+      content = system_prompt,
+    }, { tag = "tool", visible = false })
+  end
+
+  local id = "<group>" .. group .. "</group>"
+  add_reference(self.chat, id)
+  for _, tool in ipairs(group_config.tools) do
+    if not vim.tbl_contains(self.in_use, tool) then
+      local resolved_tool = self.chat.agents.resolve(tools_config[tool])
+      if resolved_tool then
+        add_system_prompt(self.chat, resolved_tool, id)
+        add_schema(self, resolved_tool, id)
+        util.fire("ChatToolAdded", { bufnr = self.chat.bufnr, id = self.chat.id, tool = tool })
+        self.in_use[tool] = true
+      end
+    end
+  end
+end
+
 ---Determine if the chat buffer has any tools in use
 ---@return boolean
 function Tools:loaded()
