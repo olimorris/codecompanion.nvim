@@ -7,18 +7,19 @@ vim.cmd("set rtp+=./deps/plenary.nvim")
 vim.cmd("set rtp+=./deps/nvim-treesitter")
 
 -- Install and setup Tree-sitter
-local ts = require("nvim-treesitter")
-ts.setup({
+require("nvim-treesitter").setup({
   install_dir = "deps/parsers",
 })
-ts.install({
-  "go",
-  "lua",
-  "markdown",
-  "markdown_inline",
-  "python",
-  "yaml",
-}):wait(300000)
+require("nvim-treesitter")
+  .install({
+    "go",
+    "lua",
+    "markdown",
+    "markdown_inline",
+    "python",
+    "yaml",
+  })
+  :wait(300000)
 vim.treesitter.language.register("markdown", "codecompanion")
 
 local minitest = require("mini.test")
