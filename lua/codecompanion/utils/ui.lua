@@ -10,7 +10,8 @@ local M = {}
 ---@return number,number The buffer and window numbers
 M.create_float = function(lines, opts)
   local window = opts.window
-  local width = window.width > 1 and window.width or opts.width or 85
+  local optsWidth = opts.width.width == "auto" and 0.45 or opts.window.width
+  local width = optsWidth > 1 and optsWidth or opts.width or 85
   local height = window.height > 1 and window.height or opts.height or 17
 
   local bufnr = opts.bufnr or api.nvim_create_buf(false, true)
