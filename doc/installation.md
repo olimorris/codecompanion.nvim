@@ -180,7 +180,7 @@ sources = {
 },
 ```
 
-The plugin also supports [native completion](usage/chat-buffer/index#completion).
+The plugin also supports [native completion](usage/chat-buffer/index#completion) and [coc.nvim](https://github.com/neoclide/coc.nvim).
 
 ## Help
 

@@ -370,14 +370,14 @@ require("codecompanion").setup({
   strategies = {
     chat = {
       opts = {
-        completion_provider = "cmp", -- blink|cmp|default
+        completion_provider = "cmp", -- blink|cmp|coc|default
       }
     }
   }
 })
 ```
 
-The plugin also supports [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) as well as a native completion solution (`default`).
+The plugin also supports [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), a native completion solution (`default`), and [coc.nvim](https://github.com/neoclide/coc.nvim).
 
 ### Auto scrolling
 

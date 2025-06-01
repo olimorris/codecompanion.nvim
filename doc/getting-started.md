@@ -85,7 +85,7 @@ _Variables_, accessed via `#`, contain data about the present state of Neovim:
 ### Slash Commands
 
 > [!IMPORTANT]
-> These have been designed to work with native Neovim completions alongside nvim-cmp and blink.cmp. To open the native completion menu use `<C-_>` in insert mode when in the chat buffer.
+> These have been designed to work with native Neovim completions alongside nvim-cmp and blink.cmp. To open the native completion menu use `<C-_>` in insert mode when in the chat buffer. Note: Slash commands should also work with coc.nvim.
 
 _Slash commands_, accessed via `/`, run commands to insert additional context into the chat buffer:
 
