@@ -1,5 +1,21 @@
 # Changelog
 
+## [15.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.11.0...v15.12.0) (2025-06-01)
+
+
+### Features
+
+* **adapters:** new copilot default is gpt-4.1 ([#1540](https://github.com/olimorris/codecompanion.nvim/issues/1540)) ([15b0614](https://github.com/olimorris/codecompanion.nvim/commit/15b06141cb9d66ebb3b3038fbe4fa9cd0ee0fc15))
+* **chat:** can set default params for variables ([#1516](https://github.com/olimorris/codecompanion.nvim/issues/1516)) ([c0549d5](https://github.com/olimorris/codecompanion.nvim/commit/c0549d54203160020b4214d3e8827b2103a95b97))
+* **providers:** add coc.nvim ([#1421](https://github.com/olimorris/codecompanion.nvim/issues/1421)) ([c22d2a6](https://github.com/olimorris/codecompanion.nvim/commit/c22d2a675f76a97ede327a49baddec02ecd6f3f5))
+* **slash_commands:** add Telescope provider for `/image` ([#1542](https://github.com/olimorris/codecompanion.nvim/issues/1542)) ([a12d3aa](https://github.com/olimorris/codecompanion.nvim/commit/a12d3aa9a0825ae72733fcffc646615bc3bee484))
+
+
+### Bug Fixes
+
+* **providers:** register coc execute function ([#1548](https://github.com/olimorris/codecompanion.nvim/issues/1548)) ([92ba84c](https://github.com/olimorris/codecompanion.nvim/commit/92ba84cddf19d936809d9775884699e66a070ec4))
+* **tools:** auto submit sends updated buffer ([#1545](https://github.com/olimorris/codecompanion.nvim/issues/1545)) ([82f5917](https://github.com/olimorris/codecompanion.nvim/commit/82f5917455cb7156f36daa99b2ec8049a7958ce5))
+
 ## [15.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.10.0...v15.11.0) (2025-05-31)
 
 
