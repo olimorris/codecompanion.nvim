@@ -86,8 +86,9 @@ function Variables:output()
       goto append
     end
 
-    ok, module = pcall(loadfile, callback)
-    if not ok then
+    local err
+    module, err = loadfile(callback)
+    if err then
       log:error("[Variables] %s could not be resolved", var)
       goto skip
     end

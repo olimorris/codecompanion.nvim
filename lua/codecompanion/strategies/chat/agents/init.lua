@@ -365,8 +365,9 @@ function Agent.resolve(tool)
   end
 
   -- Try loading the tool from the user's config using a file path
-  ok, module = pcall(loadfile, callback)
-  if not ok then
+  local err
+  module, err = loadfile(callback)
+  if err then
     return error()
   end
 

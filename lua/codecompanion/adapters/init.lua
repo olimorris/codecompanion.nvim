@@ -368,10 +368,11 @@ end
 ---@return CodeCompanion.Adapter|nil
 function Adapter.get_from_string(adapter_str)
   local ok, adapter = pcall(require, "codecompanion.adapters." .. adapter_str)
+  local err
   if not ok then
-    ok, adapter = pcall(loadfile, adapter_str)
+    adapter, err = loadfile(adapter_str)
   end
-  if not ok or not adapter then
+  if err then
     return nil
   end
 
