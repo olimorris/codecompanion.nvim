@@ -74,9 +74,9 @@ local defaults = {
           callback = "strategies.chat.agents.tools.editor",
           description = "Update a buffer with the LLM's response",
         },
-        ["files"] = {
-          callback = "strategies.chat.agents.tools.files",
-          description = "Update the file system with the LLM's response",
+        ["create_file"] = {
+          callback = "strategies.chat.agents.tools.create_file",
+          description = "Create a file in the current working directory",
           opts = {
             requires_approval = true,
           },
