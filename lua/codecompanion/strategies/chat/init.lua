@@ -851,6 +851,7 @@ function Chat:submit(opts)
   local bufnr = self.bufnr
 
   if opts.auto_submit then
+    self.watchers:check_for_changes(self)
     self:add_message({
       role = config.constants.USER_ROLE,
       content = "I've shared the output from the tool/function call with you.",
@@ -862,7 +863,6 @@ function Chat:submit(opts)
       return log:warn("No messages to submit")
     end
 
-    -- Check if any watched buffers have changes and add to the chat buffer before any user messages
     self.watchers:check_for_changes(self)
 
     -- Allow users to send a blank message to the LLM
