@@ -10,7 +10,7 @@ local M = {}
 ---@return number,number The buffer and window numbers
 M.create_float = function(lines, opts)
   local window = opts.window
-  local optsWidth = opts.width.width == "auto" and 0.45 or opts.window.width
+  local optsWidth = opts.window.width == "auto" and 0.45 or opts.window.width
   local width = optsWidth > 1 and optsWidth or opts.width or 85
   local height = window.height > 1 and window.height or opts.height or 17
 
