@@ -946,7 +946,7 @@ You must create or modify a workspace file through a series of prompts over mult
         position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
         border = "single",
         height = 0.8,
-        ---@type number|"auto" using "auto" will alow full_height buffers to act like normal buffers
+        ---@type number|"auto" using "auto" will allow full_height buffers to act like normal buffers
         width = 0.45,
         relative = "editor",
         full_height = true,
