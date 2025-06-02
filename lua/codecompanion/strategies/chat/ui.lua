@@ -78,7 +78,7 @@ function UI:open(opts)
   end
 
   local window = config.display.chat.window
-  local width  = math.floor(vim.o.columns * 0.45)
+  local width = math.floor(vim.o.columns * 0.45)
   if window.width ~= "auto" then
     width = window.width > 1 and window.width or math.floor(vim.o.columns * window.width)
   end
