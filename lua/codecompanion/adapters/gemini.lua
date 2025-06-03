@@ -37,6 +37,12 @@ return {
         end
       end
 
+      if self.opts and self.opts.stream then
+        self.parameters = self.parameters or {}
+        self.parameters.stream = true
+        self.parameters.stream_options = { include_usage = true }
+      end
+
       return true
     end,
 
