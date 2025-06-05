@@ -83,8 +83,19 @@ When you suggest a change to the codebase, you may call this tool to jump to the
         end
       end
       local winnr = self.tool.opts.jump_action(args.path)
-      if args.line > 0 then
-        vim.api.nvim_win_set_cursor(winnr, { args.line, 0 })
+      if args.line > 0 and winnr then
+        local ok = pcall(vim.api.nvim_win_set_cursor, winnr, { args.line, 0 })
+        if not ok then
+          local bufnr = vim.api.nvim_win_get_buf(winnr)
+          return {
+            status = "error",
+            data = string.format(
+              "Failed to jump to line %d. This file only has %d lines.",
+              args.line,
+              vim.api.nvim_buf_line_count(bufnr)
+            ),
+          }
+        end
       end
       return { status = "success", data = "Jump successful!" }
     end,
