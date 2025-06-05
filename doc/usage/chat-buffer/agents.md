@@ -94,6 +94,8 @@ require("codecompanion").setup({
       tools = {
         ["next_edit_suggestion"] = {
           opts = {
+            --- the default is to open in a new tab, and reuse existing tabs
+            --- where possible
             ---@type string|fun(path: string):integer?
             jump_action = 'tabnew',
           },
