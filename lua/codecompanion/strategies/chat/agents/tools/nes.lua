@@ -82,7 +82,10 @@ When you suggest a change to the codebase, you may call this tool to jump to the
           return vim.api.nvim_get_current_win()
         end
       end
-      vim.api.nvim_win_set_cursor(self.tool.opts.jump_action(args.path), { args.line, 0 })
+      local winnr = self.tool.opts.jump_action(args.path)
+      if args.line > 0 then
+        vim.api.nvim_win_set_cursor(winnr, { args.line, 0 })
+      end
       return { status = "success", data = "Jump successful!" }
     end,
   },
