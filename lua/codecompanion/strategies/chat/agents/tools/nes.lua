@@ -5,8 +5,14 @@ local log = require("codecompanion.utils.log")
 ---@field path string
 ---@field line integer
 
+---@alias jump_action fun(path: string):integer
+
 ---@class CodeCompanion.Tool.NextEditSuggestion: CodeCompanion.Agent.Tool
 return {
+  opts = {
+    ---@type jump_action|string
+    jump_action = "tabnew",
+  },
   name = "nes",
   schema = {
     type = "function",
@@ -62,8 +68,15 @@ When you suggest a change to the codebase, you may call this tool to jump to the
       if stat == nil or stat.type ~= "file" then
         return { status = "error", data = "Invalid path: " .. tostring(args.path) }
       end
-      vim.cmd("tabnew " .. args.path)
-      vim.api.nvim_win_set_cursor(0, { args.line, 0 })
+
+      if type(self.opts.jump_action) == "string" then
+        ---@type jump_action
+        self.opts.jump_action = function(path)
+          vim.cmd(self.opts.jump_action .. " " .. path)
+          return vim.api.nvim_get_current_win()
+        end
+      end
+      vim.api.nvim_win_set_cursor(self.opts.jump_action(args.path), { args.line, 0 })
       return { status = "success", data = "Jump successful!" }
     end,
   },
