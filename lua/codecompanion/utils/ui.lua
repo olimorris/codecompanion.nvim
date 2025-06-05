@@ -254,6 +254,7 @@ end
 
 --- Jump to an existing tab if the file is already opened.
 --- Otherwise, open it in a new tab.
+--- Returns the window ID after the jump.
 ---@param path string?
 ---@return integer
 function M.tabnew_reuse(path)
@@ -273,7 +274,7 @@ function M.tabnew_reuse(path)
     end
   end
   vim.cmd("tabnew " .. path)
-  return api.nvim_tabpage_get_number(0)
+  return api.nvim_get_current_win()
 end
 
 return M
