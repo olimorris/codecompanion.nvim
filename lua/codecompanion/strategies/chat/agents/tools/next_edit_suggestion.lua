@@ -5,7 +5,7 @@ local log = require("codecompanion.utils.log")
 ---@field path string
 ---@field line integer
 
----@alias jump_action fun(path: string):integer
+---@alias jump_action fun(path: string):integer?
 
 ---@class CodeCompanion.Tool.NextEditSuggestion: CodeCompanion.Agent.Tool
 return {
@@ -13,11 +13,11 @@ return {
     ---@type jump_action|string
     jump_action = require("codecompanion.utils.ui").tabnew_reuse,
   },
-  name = "nes",
+  name = "next_edit_suggestion",
   schema = {
     type = "function",
     ["function"] = {
-      name = "nes",
+      name = "next_edit_suggestion",
       description = "Suggest a possible position in a file for the next edit.",
       parameters = {
         type = "object",

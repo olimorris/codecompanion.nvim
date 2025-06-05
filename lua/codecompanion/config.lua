@@ -95,8 +95,8 @@ local defaults = {
             },
           },
         },
-        ["nes"] = {
-          callback = "strategies.chat.agents.tools.nes",
+        ["next_edit_suggestion"] = {
+          callback = "strategies.chat.agents.tools.next_edit_suggestion",
           description = "Suggest and jump to the next position to edit",
         },
         opts = {
