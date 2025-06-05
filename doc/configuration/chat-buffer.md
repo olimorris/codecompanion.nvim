@@ -414,3 +414,23 @@ require("codecompanion").setup({
   },
 }),
 ```
+
+## Jump Action
+
+The jump action (the command/function triggered by the `gR` keymap) can be
+customised as follows:
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      opts = {
+        goto_file_action = 'tabnew', -- this will always open the file in a new tab
+      },
+    },
+  },
+})
+```
+This can either be a string (denoting a VimScript command), or a function that
+takes a single parameter (the path to the file to jump to). The default action
+is to jump to an existing tab if the file is already opened, and open a new tab 
+otherwise.
