@@ -74,7 +74,7 @@ return {
       return fmt("Create a file at %s?", filepath)
     end,
 
-    ---@param self CodeCompanion.Tool.Files
+    ---@param self CodeCompanion.Tool.CreateFile
     ---@param agent CodeCompanion.Agent
     ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
@@ -84,7 +84,7 @@ return {
       chat:add_tool_output(self, llm_output)
     end,
 
-    ---@param self CodeCompanion.Tool.Files
+    ---@param self CodeCompanion.Tool.CreateFile
     ---@param agent CodeCompanion.Agent
     ---@param cmd table
     ---@param stderr table The error output from the command
@@ -101,20 +101,19 @@ return {
 ```txt
 %s
 ```]],
-        args.action,
         errors
       )
       chat:add_tool_output(self, error_output)
     end,
 
     ---Rejection message back to the LLM
-    ---@param self CodeCompanion.Tool.Files
+    ---@param self CodeCompanion.Tool.CreateFile
     ---@param agent CodeCompanion.Agent
     ---@param cmd table
     ---@return nil
     rejected = function(self, agent, cmd)
       local chat = agent.chat
-      chat:add_tool_output(self, fmt("**Create File Tool**: The user declined to execute", self.args.action))
+      chat:add_tool_output(self, "**Create File Tool**: The user declined to execute")
     end,
   },
 }

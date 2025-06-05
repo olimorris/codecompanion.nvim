@@ -162,7 +162,7 @@ return {
     ---@return nil
     rejected = function(self, agent, cmd)
       local chat = agent.chat
-      chat:add_tool_output(self, fmt("**Read File Tool**: The user declined to execute"))
+      chat:add_tool_output(self, "**Read File Tool**: The user declined to execute")
     end,
   },
 }
