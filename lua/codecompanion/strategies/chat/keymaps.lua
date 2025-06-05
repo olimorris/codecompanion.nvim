@@ -279,7 +279,7 @@ local function yank_node(node)
   vim.api.nvim_buf_set_mark(0, "]", end_row + 1, end_col - 1, {})
 
   -- Yank using marks
-  vim.cmd(string.format('normal! "%s`[y`]', config.strategies.chat.opts.register))
+  vim.cmd(string.format('normal! `["%sy`]', config.strategies.chat.opts.register))
 
   -- Restore position after delay
   vim.defer_fn(function()
