@@ -627,7 +627,7 @@ M.goto_file_under_cursor = {
       return
     end
     local action = nil
-    local user_action = config.opts.goto_file_action
+    local user_action = config.strategies.chat.opts.goto_file_action
     if type(user_action) == "string" then
       action = function(fname)
         vim.cmd(user_action .. " " .. fname)

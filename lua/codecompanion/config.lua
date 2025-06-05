@@ -374,6 +374,8 @@ local defaults = {
         completion_provider = providers.completion, -- blink|cmp|coc|default
         register = "+", -- The register to use for yanking code
         yank_jump_delay_ms = 400, -- Delay in milliseconds before jumping back from the yanked code
+        ---@type string|fun(path: string)
+        goto_file_action = ui_utils.tabnew_reuse,
       },
     },
     -- INLINE STRATEGY --------------------------------------------------------
@@ -1005,8 +1007,6 @@ You must create or modify a workspace file through a series of prompts over mult
   extensions = {},
   -- GENERAL OPTIONS ----------------------------------------------------------
   opts = {
-    ---@type string|fun(path: string)
-    goto_file_action = ui_utils.tabnew_reuse,
     log_level = "ERROR", -- TRACE|DEBUG|ERROR|INFO
     language = "English", -- The language used for LLM responses
 
