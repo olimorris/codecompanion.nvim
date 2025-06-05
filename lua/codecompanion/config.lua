@@ -81,6 +81,10 @@ local defaults = {
             requires_approval = true,
           },
         },
+        ["read_file"] = {
+          callback = "strategies.chat.agents.tools.read_file",
+          description = "Read a file in the current working directory",
+        },
         ["web_search"] = {
           callback = "strategies.chat.agents.tools.web_search",
           description = "Search the web for information",

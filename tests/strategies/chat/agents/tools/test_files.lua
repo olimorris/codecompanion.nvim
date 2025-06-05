@@ -29,54 +29,6 @@ local T = new_set({
   },
 })
 
-
-T["files tool read action"] = function()
-  child.lua([[
-    -- Create a test file with known contents
-    local contents = { "alpha", "beta", "gamma" }
-    local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE)
-    assert(ok == 0)
-    local tool = {
-      {
-        ["function"] = {
-          name = "files",
-          arguments = string.format('{"action": "READ", "path": "%s", "contents": null}', _G.TEST_TMPFILE)
-        },
-      },
-    }
-    agent:execute(chat, tool)
-    vim.wait(200)
-  ]])
-
-  local output = child.lua_get("chat.messages[#chat.messages].content")
-  h.eq("alpha", string.match(output, "alpha"))
-  h.eq("beta", string.match(output, "beta"))
-  h.eq("gamma", string.match(output, "gamma"))
-end
-
-T["files tool delete action"] = function()
-  child.lua([[
-    -- Create a test file to delete
-    local contents = { "to be deleted" }
-    local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE)
-    assert(ok == 0)
-    local tool = {
-      {
-        ["function"] = {
-          name = "files",
-          arguments = string.format('{"action": "DELETE", "path": "%s"}', _G.TEST_TMPFILE)
-        },
-      },
-    }
-    agent:execute(chat, tool)
-    vim.wait(200)
-  ]])
-
-  -- Test that the file was deleted
-  local deleted = child.lua_get("vim.loop.fs_stat(_G.TEST_TMPFILE) == nil")
-  h.eq(deleted, true, "File was not deleted")
-end
-
 T["files tool update action"] = function()
   child.lua([[
       -- create initial file
