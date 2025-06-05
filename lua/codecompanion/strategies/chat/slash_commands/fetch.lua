@@ -346,6 +346,8 @@ local function fetch(chat, adapter, url, opts)
               url = url,
             }, opts)
 
+            util.fire("RequestFinished")
+
             -- Cache the response
             -- TODO: Get an LLM to create summary
             vim.ui.select({ "Yes", "No" }, {
