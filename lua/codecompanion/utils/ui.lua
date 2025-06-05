@@ -252,4 +252,29 @@ function M.set_win_options(winnr, opts)
   end
 end
 
+--- Jump to an existing tab if the file is already opened.
+--- Otherwise, open it in a new tab.
+--- Returns the window ID after the jump.
+---@param path string?
+---@return integer
+function M.tabnew_reuse(path)
+  local uri
+  if path then
+    uri = vim.uri_from_fname(path)
+  else
+    uri = vim.uri_from_bufnr(0)
+  end
+  for _, tab in pairs(api.nvim_list_tabpages()) do
+    for _, win in pairs(api.nvim_tabpage_list_wins(tab)) do
+      local buf = api.nvim_win_get_buf(win)
+      if vim.uri_from_bufnr(buf) == uri then
+        api.nvim_set_current_win(win)
+        return win
+      end
+    end
+  end
+  vim.cmd("tabnew " .. path)
+  return api.nvim_get_current_win()
+end
+
 return M
