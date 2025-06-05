@@ -7,7 +7,8 @@ local fmt = string.format
 ---@param action {filepath: string, content: string} The action containing the filepath and content
 ---@return string
 local function create(action)
-  local p = Path:new(action.filepath)
+  local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
+  local p = Path:new(filepath)
   p.filename = p:expand()
   p:touch({ parents = true })
   p:write(action.content or "", "w")
@@ -41,7 +42,7 @@ return {
         properties = {
           filepath = {
             type = "string",
-            description = "The absolute path to the file to create, including its filename and extension.",
+            description = "The relative path to the file to create, including its filename and extension.",
           },
           content = {
             type = "string",

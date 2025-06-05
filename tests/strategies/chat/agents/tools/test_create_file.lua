@@ -9,11 +9,10 @@ local T = new_set({
       child.restart({ "-u", "scripts/minimal_init.lua" })
       child.o.statusline = ""
       child.o.laststatus = 0
-      child.lua([[
-        _G.TEST_TMPFILE = vim.fn.stdpath('cache') .. '/codecompanion/tests/cc_test_file.txt'
 
-        -- ensure no leftover from previous run
-        pcall(vim.loop.fs_unlink, _G.TEST_TMPFILE)
+      child.lua([[
+        _G.TEST_TMPFILE = '/tests/stubs/cc_test_file.txt'
+        _G.TEST_TMPFILE_ABSOLUTE = vim.fs.joinpath(vim.fn.getcwd(), _G.TEST_TMPFILE)
 
         h = require('tests.helpers')
         chat, agent = h.setup_chat_buffer()
@@ -21,7 +20,7 @@ local T = new_set({
     end,
     post_case = function()
       child.lua([[
-        pcall(vim.loop.fs_unlink, _G.TEST_TMPFILE)
+        pcall(vim.loop.fs_unlink, _G.TEST_TMPFILE_ABSOLUTE)
         h.teardown_chat_buffer()
       ]])
     end,
@@ -43,7 +42,7 @@ T["can create files"] = function()
     vim.wait(200)
   ]])
 
-  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE_ABSOLUTE)")
   h.eq(output, { "import pygame", "import time", "import random" }, "File was not created")
 end
 

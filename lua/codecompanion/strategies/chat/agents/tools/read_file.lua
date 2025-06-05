@@ -7,7 +7,8 @@ local fmt = string.format
 ---@param action {filepath: string, start_line_number_base_zero: number, end_line_number_base_zero: number} The action containing the filepath
 ---@return string
 local function read(action)
-  local p = Path:new(action.filepath)
+  local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
+  local p = Path:new(filepath)
   p.filename = p:expand()
 
   if not p:exists() then
@@ -51,7 +52,7 @@ local function read(action)
 ```]],
     action.start_line_number_base_zero,
     action.end_line_number_base_zero,
-    action.filepath,
+    filepath,
     file_ext,
     content
   )
@@ -85,7 +86,7 @@ return {
         properties = {
           filepath = {
             type = "string",
-            description = "The absolute path to the file to read, including its filename and extension.",
+            description = "The relative path to the file to read, including its filename and extension.",
           },
           start_line_number_base_zero = {
             type = "number",

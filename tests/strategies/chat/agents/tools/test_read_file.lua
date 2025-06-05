@@ -10,7 +10,8 @@ local T = new_set({
       child.o.statusline = ""
       child.o.laststatus = 0
       child.lua([[
-        _G.TEST_TMPFILE = vim.fn.stdpath('cache') .. '/codecompanion/tests/cc_test_file.txt'
+        _G.TEST_TMPFILE = '/tests/stubs/cc_test_file.txt'
+        _G.TEST_TMPFILE_ABSOLUTE = vim.fs.joinpath(vim.fn.getcwd(), _G.TEST_TMPFILE)
 
         -- ensure no leftover from previous run
         pcall(vim.loop.fs_unlink, _G.TEST_TMPFILE)
@@ -21,7 +22,7 @@ local T = new_set({
     end,
     post_case = function()
       child.lua([[
-        pcall(vim.loop.fs_unlink, _G.TEST_TMPFILE)
+        pcall(vim.loop.fs_unlink, _G.TEST_TMPFILE_ABSOLUTE)
         h.teardown_chat_buffer()
       ]])
     end,
@@ -32,7 +33,7 @@ local T = new_set({
 T["can read lines from a file"] = function()
   child.lua([[
     local contents = { "alpha", "beta", "gamma" }
-    local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE)
+    local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE_ABSOLUTE)
     assert(ok == 0)
 
     local tool = {
@@ -57,7 +58,7 @@ T["can read all of the file"] = function()
   child.lua([[
     require('tests.log')
     local contents = { "alpha", "beta", "gamma" }
-    local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE)
+    local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE_ABSOLUTE)
     assert(ok == 0)
 
     local tool = {
