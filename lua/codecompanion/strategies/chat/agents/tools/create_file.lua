@@ -1,8 +1,3 @@
---[[
-*Create File Tool*
-This tool can be used make edits to files on disk.
---]]
-
 local Path = require("plenary.path")
 local log = require("codecompanion.utils.log")
 
@@ -64,7 +59,6 @@ return {
       },
     },
   },
-  system_prompt = PROMPT,
   handlers = {
     ---@param agent CodeCompanion.Agent The tool object
     ---@return nil
