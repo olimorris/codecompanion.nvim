@@ -52,12 +52,13 @@ When you suggest a change to the codebase, you may call this tool to jump to the
 - DO NOT make up paths that you are not given
 - Only use this tool when there's an unambiguous position to jump to
 - If there are multiple possible edits, ask the users to make a choice before jumping
-- Pass -1 as the line number if you are not sure about the correct line number.
+- Pass -1 as the line number if you are not sure about the correct line number
+- Consider the paths as **CASE SENSITIVE**
     ]]
   end,
 
   cmds = {
-    ---@param self CodeCompanion.Tool.NextEditSuggestion
+    ---@param self CodeCompanion.Agent
     ---@param args CodeCompanion.Tool.NextEditSuggestion.Args
     ---@return {status: "success"|"error", data: string}
     function(self, args, _)
@@ -66,17 +67,22 @@ When you suggest a change to the codebase, you may call this tool to jump to the
       end
       local stat = vim.uv.fs_stat(args.path)
       if stat == nil or stat.type ~= "file" then
+        log:error("failed to jump to %s", args.path)
+        if stat then
+          log:error("file stat:\n%s", vim.inspect(stat))
+        end
         return { status = "error", data = "Invalid path: " .. tostring(args.path) }
       end
 
-      if type(self.opts.jump_action) == "string" then
+      if type(self.tool.opts.jump_action) == "string" then
+        local action_command = self.tool.opts.jump_action
         ---@type jump_action
-        self.opts.jump_action = function(path)
-          vim.cmd(self.opts.jump_action .. " " .. path)
+        self.tool.opts.jump_action = function(path)
+          vim.cmd(action_command .. " " .. path)
           return vim.api.nvim_get_current_win()
         end
       end
-      vim.api.nvim_win_set_cursor(self.opts.jump_action(args.path), { args.line, 0 })
+      vim.api.nvim_win_set_cursor(self.tool.opts.jump_action(args.path), { args.line, 0 })
       return { status = "success", data = "Jump successful!" }
     end,
   },
