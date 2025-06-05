@@ -57,6 +57,11 @@ end
 
 T["Gemini adapter"]["Streaming"] = new_set()
 
+T["Gemini adapter"]["Streaming"]["can build parameters"] = function()
+  adapter.handlers.setup(adapter)
+  h.eq({ stream = true, stream_options = { include_usage = true } }, adapter.parameters)
+end
+
 T["Gemini adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
   local output = ""
   local lines = vim.fn.readfile("tests/adapters/stubs/gemini_streaming.txt")
