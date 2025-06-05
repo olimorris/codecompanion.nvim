@@ -80,6 +80,12 @@ The _@web_search_ tool enables an LLM to search the web for a specific query. Th
 Can you use the @web_search tool to tell me the latest version of Neovim?
 ```
 
+## @nes
+
+Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the `@nes` tool gives the LLM the ability to show you where the next edit is.
+The LLM can only suggest edits in files that it knows, so this tool only works if you've sent some files in your project to the LLM. 
+This can be done by `/file` or `/buffer` slash commands, the `#buffer` variable or other tools like `@vectorcode`.
+
 ## @full_stack_dev
 
 The plugin enables tools to be grouped together. The _@full_stack_dev_ agent is a combination of the _@cmd_runner_, _@editor_ and _@files_ tools:

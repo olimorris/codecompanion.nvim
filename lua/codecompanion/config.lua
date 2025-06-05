@@ -95,6 +95,10 @@ local defaults = {
             },
           },
         },
+        ["nes"] = {
+          callback = "strategies.chat.agents.tools.nes",
+          description = "Suggest and jump to the next position to edit",
+        },
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
