@@ -62,6 +62,14 @@ local defaults = {
               "files",
             },
           },
+          ["files"] = {
+            description = "Tools related to creating, reading and editing files",
+            tools = {
+              "create_file",
+              "read_file",
+              "insert_edit_into_file",
+            },
+          },
         },
         ["cmd_runner"] = {
           callback = "strategies.chat.agents.tools.cmd_runner",
@@ -73,6 +81,13 @@ local defaults = {
         ["editor"] = {
           callback = "strategies.chat.agents.tools.editor",
           description = "Update a buffer with the LLM's response",
+        },
+        ["insert_edit_into_file"] = {
+          callback = "strategies.chat.agents.tools.insert_edit_into_file",
+          description = "Insert code into an existing file",
+          opts = {
+            requires_approval = true,
+          },
         },
         ["create_file"] = {
           callback = "strategies.chat.agents.tools.create_file",

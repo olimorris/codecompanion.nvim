@@ -1,48 +1,37 @@
 local M = {}
 
-M.FORMAT_PROMPT = [[*** Begin Patch
-[PATCH]
+M.FORMAT_PROMPT = [[Put all changes for a file in a single patch using this format:
+
+*** Begin Patch
+[PATCH CONTENT]
 *** End Patch
 
-The `[PATCH]` is the series of diffs to be applied for each change in the file. Each diff should be in this format:
+Each change block uses:
+- 3 lines of context before changes (fewer if file is short)
+- `-` prefix for lines to remove
+- `+` prefix for lines to add
+- ` ` (space) prefix for unchanged context lines
+- 3 lines of context after changes (fewer if file is short)
 
- [3 lines of pre-context]
--[old code]
-+[new code]
- [3 lines of post-context]
+Separate multiple change blocks with a blank line.
 
-The context blocks are 3 lines of existing code, immediately before and after the modified lines of code. Lines to be modified should be prefixed with a `+` or `-` sign. Unmodified lines used in context should begin with an empty space ` `.
-
-Multiple blocks of diffs should be separated by an empty line and `@@[identifier]` detailed below.
-
-The immediately preceding and after context lines are enough to locate the lines to edit. DO NOT USE line numbers anywhere in the patch.
-
-You can use `@@[identifier]` to define a larger context in case the immediately before and after context is not sufficient to locate the edits. Example:
-
-@@class BaseClass(models.Model):
- [3 lines of pre-context]
--	pass
-+	raise NotImplementedError()
- [3 lines of post-context]
-
-You can also use multiple `@@[identifiers]` to provide the right context if a single `@@` is not sufficient.
-
-Example with multiple blocks of changes and `@@` identifiers:
+Use `@@[identifier]` for additional context when the immediate before/after context isn't unique enough to locate the change:
 
 *** Begin Patch
 @@class BaseClass(models.Model):
-@@	def search():
--		pass
-+		raise NotImplementedError()
+ def existing_method(self):
+     return True
+-    pass
++    raise NotImplementedError()
+ # end of method
 
-@@class Subclass(BaseClass):
-@@	def search():
--		pass
-+		raise NotImplementedError()
+@@class SubClass(BaseClass):
+@@    def search(self):
+-        pass
++        return self.query()
 *** End Patch
 
-This format is a bit similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.
-]]
+The system uses fuzzy matching and confidence scoring, so don't worry about perfect whitespace - focus on providing enough context to uniquely identify the location.]]
 
 ---@class Change
 ---@field focus string[] Identifiers or lines for providing large context before a change
