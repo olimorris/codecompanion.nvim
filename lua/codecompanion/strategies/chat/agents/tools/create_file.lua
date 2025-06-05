@@ -3,12 +3,8 @@ local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 
----@class Action The arguments from the LLM's tool call
----@field filepath string The absolute path of the file to create
----@field content string The content to write to the file
-
----Create a file and it's surrounding folders
----@param action Action The arguments from the LLM's tool call
+---Create a file and the surrounding folders
+---@param action {filepath: string, content: string} The action containing the filepath and content
 ---@return string
 local function create(action)
   local p = Path:new(action.filepath)
@@ -23,7 +19,7 @@ return {
   name = "create_file",
   cmds = {
     ---Execute the file commands
-    ---@param self CodeCompanion.Tool.Editor The Editor tool
+    ---@param self CodeCompanion.Tool.CreateFile
     ---@param args table The arguments from the LLM's tool call
     ---@param input? any The output from the previous function call
     ---@return { status: "success"|"error", data: string }
@@ -63,7 +59,7 @@ return {
     ---@param agent CodeCompanion.Agent The tool object
     ---@return nil
     on_exit = function(agent)
-      log:debug("[Create File Tool] on_exit handler executed")
+      log:trace("[Create File Tool] on_exit handler executed")
     end,
   },
   output = {

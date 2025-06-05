@@ -29,27 +29,6 @@ local T = new_set({
   },
 })
 
-T["files tool create action"] = function()
-  child.lua([[
-    --require("tests.log")
-    local tool = {
-      {
-        ["function"] = {
-          name = "files",
-          arguments = string.format('{"action": "CREATE", "path": "%s", "contents": "import pygame\\nimport time\\nimport random\\n"}', _G.TEST_TMPFILE)
-        },
-      },
-    }
-    agent:execute(chat, tool)
-    vim.wait(200)
-  ]])
-
-  -- Test that the file was created
-  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
-  h.eq(output, { "import pygame", "import time", "import random" }, "File was not created")
-
-  -- expect.reference_screenshot(child.get_screenshot())
-end
 
 T["files tool read action"] = function()
   child.lua([[
