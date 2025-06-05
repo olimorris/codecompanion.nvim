@@ -11,7 +11,7 @@ local log = require("codecompanion.utils.log")
 return {
   opts = {
     ---@type jump_action|string
-    jump_action = "tabnew",
+    jump_action = require("codecompanion.utils.ui").tabnew_reuse,
   },
   name = "nes",
   schema = {
