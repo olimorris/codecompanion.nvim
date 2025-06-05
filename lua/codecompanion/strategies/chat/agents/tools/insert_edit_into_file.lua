@@ -12,6 +12,7 @@ For each file, give a short description of what needs to be changed, then use th
 The insert_edit_into_file tool is very smart and can understand how to apply your edits to the user's files, you just need to follow the patch instructions carefully and to the letter.
 
 ## Patch Format
+
 ]] .. patches.FORMAT_PROMPT .. [[
 The system uses fuzzy matching and confidence scoring, so don't worry about perfect whitespace - focus on providing enough context to uniquely identify the location.
 </editFileInstructions>]]
