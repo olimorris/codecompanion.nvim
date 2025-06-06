@@ -1,8 +1,7 @@
-local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Tool.NextEditSuggestion.Args
----@field path string
+---@field filepath string
 ---@field line integer
 
 ---@alias jump_action fun(path: string):integer?
@@ -22,16 +21,16 @@ return {
       parameters = {
         type = "object",
         properties = {
-          path = {
+          filepath = {
             type = "string",
-            description = "The path to the file",
+            description = "The relative path to the file to edit, including its filename and extension.",
           },
           line = {
             type = "integer",
             description = "Line number for the next edit (1-indexed). Use -1 if you're not sure about it.",
           },
         },
-        required = { "path", "line" },
+        required = { "filepath", "line" },
         additionalProperties = false,
       },
       strict = true,
@@ -62,16 +61,16 @@ When you suggest a change to the codebase, you may call this tool to jump to the
     ---@param args CodeCompanion.Tool.NextEditSuggestion.Args
     ---@return {status: "success"|"error", data: string}
     function(self, args, _)
-      if type(args.path) == "string" then
-        args.path = vim.fs.normalize(args.path)
+      if type(args.filepath) == "string" then
+        args.filepath = vim.fs.normalize(args.filepath)
       end
-      local stat = vim.uv.fs_stat(args.path)
+      local stat = vim.uv.fs_stat(args.filepath)
       if stat == nil or stat.type ~= "file" then
-        log:error("failed to jump to %s", args.path)
+        log:error("failed to jump to %s", args.filepath)
         if stat then
           log:error("file stat:\n%s", vim.inspect(stat))
         end
-        return { status = "error", data = "Invalid path: " .. tostring(args.path) }
+        return { status = "error", data = "Invalid path: " .. tostring(args.filepath) }
       end
 
       if type(self.tool.opts.jump_action) == "string" then
@@ -82,7 +81,7 @@ When you suggest a change to the codebase, you may call this tool to jump to the
           return vim.api.nvim_get_current_win()
         end
       end
-      local winnr = self.tool.opts.jump_action(args.path)
+      local winnr = self.tool.opts.jump_action(args.filepath)
       if args.line > 0 and winnr then
         local ok = pcall(vim.api.nvim_win_set_cursor, winnr, { args.line, 0 })
         if not ok then
@@ -90,9 +89,9 @@ When you suggest a change to the codebase, you may call this tool to jump to the
           return {
             status = "error",
             data = string.format(
-              "Failed to jump to line %d. This file only has %d lines.",
-              args.line,
-              vim.api.nvim_buf_line_count(bufnr)
+              "The jump to the file was successful, but This file only has %d lines. Unable to jump to line %d",
+              vim.api.nvim_buf_line_count(bufnr),
+              args.line
             ),
           }
         end
