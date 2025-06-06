@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.10.0         Last change: 2025 June 01
+*codecompanion.txt*         For NVIM v0.10.0         Last change: 2025 June 06
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1034,9 +1034,11 @@ to send messages, regenerate responses, close the buffer, etc. Example:
           keymaps = {
             send = {
               modes = { n = "<C-s>", i = "<C-s>" },
+              opts = {},
             },
             close = {
               modes = { n = "<C-c>", i = "<C-c>" },
+              opts = {},
             },
             -- Add further custom keymaps here
           },
@@ -1046,7 +1048,8 @@ to send messages, regenerate responses, close the buffer, etc. Example:
 <
 
 The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing
-in both normal and insert modes.
+in both normal and insert modes. To set other `:map-arguments`, you can use the
+optional `opts` table which will be fed to `vim.keymap.set`
 
 
 VARIABLES ~
