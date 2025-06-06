@@ -1,6 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local regex = require("codecompanion.utils.regex")
 
 local CONSTANTS = {
   PREFIX = "#",
@@ -70,11 +70,11 @@ function Variables.new()
   return self
 end
 
+---Creates a regex pattern to match a variable in a message
+---@param var string The variable name to create a pattern for
+---@return string The compiled regex pattern
 function Variables:_pattern(var)
-  --Non-greedy
   return CONSTANTS.PREFIX .. var .. "\\(\\s\\|$\\|{[^}]*}\\)"
-  --Greedy
-  --return CONSTANTS.PREFIX .. var .. "\\(\\s\\|$\\|{[^}]\\+}\\)"
 end
 
 ---Check a message for a variable
@@ -87,10 +87,7 @@ function Variables:find(message)
 
   local found = {}
   for var, _ in pairs(self.vars) do
-    -- Use vim.regex with explicit word boundaries
-    -- Pattern:  #var + (whitespace OR end of line OR { for parameters)
-    -- This prevents partial matches like "#var" matching in "#variable"
-    if util.regex_find(message.content, self:_pattern(var)) then
+    if regex.find(message.content, self:_pattern(var)) then
       table.insert(found, var)
     end
   end
@@ -147,7 +144,7 @@ function Variables:replace(message, bufnr)
     if var:match("^buffer") then
       message = require("codecompanion.strategies.chat.variables.buffer").replace(CONSTANTS.PREFIX, message, bufnr)
     else
-      message = vim.trim(util.regex_replace(message, self:_pattern(var), ""))
+      message = vim.trim(regex.replace(message, self:_pattern(var), ""))
     end
   end
   return message

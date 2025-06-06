@@ -26,19 +26,12 @@ api.nvim_create_autocmd("FileType", {
   pattern = "codecompanion",
   group = group,
   callback = vim.schedule_wrap(function()
-    -- Highlight variable names that start with #
-    -- Use explicit word boundaries to ensure complete word matching
-    -- This prevents partial matches like "#var" matching in "#variable"
-    -- Note: We dont' use \> but \(\s\|$\) because \> treats special characters as word boundaries,
     vim.iter(config.strategies.chat.variables):each(function(name, var)
+      -- Use explicit word boundaries to ensure complete word matching, this prevents partial matches like "#var" matching in "#variable"
       vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '\\(\\s\\|$\\)"')
       -- Allow highlighting variables even without parameters, match the complete pattern including braces (to maintain consistency for finding and replacing logic)
       vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '{[^}]*}"')
     end)
-
-    -- Highlight tool names that start with @
-    -- Use explicit word boundaries to ensure complete word matching
-    -- This prevents partial matches like "@mcp" matching in "@mcphub"
     vim
       .iter(config.strategies.chat.tools)
       :filter(function(name)
