@@ -32,8 +32,7 @@ require("codecompanion").setup({
 })
 ```
 
-The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes.
-To set other `:map-arguments`, you can use the optional `opts` table which will be fed to `vim.keymap.set`
+The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes. To set other `:map-arguments`, you can use the optional `opts` table which will be fed to `vim.keymap.set`.
 
 ## Variables
 
