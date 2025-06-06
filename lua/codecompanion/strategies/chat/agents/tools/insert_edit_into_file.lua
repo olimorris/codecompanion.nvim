@@ -9,12 +9,11 @@ Before editing a file, ensure you have its content via the provided context or r
 Use the insert_edit_into_file tool to modify files.
 NEVER show the code edits to the user - only call the tool. The system will apply and display the changes.
 For each file, give a short description of what needs to be changed, then use the insert_edit_into_file tools. You can use the tool multiple times in a response, and you can keep writing text after using a tool.
-The insert_edit_into_file tool is very smart and can understand how to apply your edits to the user's files, you just need to follow the patch instructions carefully and to the letter.
+The insert_edit_into_file tool is very smart and can understand how to apply your edits to the user's files, you just need to follow the patch format instructions carefully and to the letter.
 
 ## Patch Format
-
 ]] .. patch.FORMAT_PROMPT .. [[
-The system uses fuzzy matching and confidence scoring, so don't worry about perfect whitespace - focus on providing enough context to uniquely identify the location.
+The system uses fuzzy matching and confidence scoring so focus on providing enough context to uniquely identify the location.
 </editFileInstructions>]]
 
 ---Edit code in a file
@@ -81,15 +80,15 @@ return {
         properties = {
           explanation = {
             type = "string",
-            description = "A short explanation of the code edit being made.",
+            description = "A short explanation of the code edit being made",
           },
           filepath = {
             type = "string",
-            description = "The relative path to the file to edit, including its filename and extension.",
+            description = "The relative path to the file to edit, including its filename and extension",
           },
           code = {
             type = "string",
-            description = "The code edits to apply to the file. Avoid repeating existing code. Be as concise as possible.",
+            description = "The code which follows the patch format",
           },
         },
         required = {
