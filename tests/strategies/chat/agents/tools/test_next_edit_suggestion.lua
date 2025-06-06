@@ -37,7 +37,7 @@ T["next_edit_suggestion tool"] = function()
         ["function"] = {
           name = "next_edit_suggestion",
           -- The path to the file you created, and the line number to jump to
-          arguments = string.format('{"path": "%s", "line": 10}', _G.TEST_FILE_PATH),
+          arguments = string.format('{"filepath": "%s", "line": 9}', _G.TEST_FILE_PATH),
         },
       },
     }

@@ -27,7 +27,7 @@ return {
           },
           line = {
             type = "integer",
-            description = "Line number for the next edit (1-indexed). Use -1 if you're not sure about it.",
+            description = "Line number for the next edit (0-based). Use -1 if you're not sure about it.",
           },
         },
         required = { "filepath", "line" },
@@ -82,8 +82,8 @@ When you suggest a change to the codebase, you may call this tool to jump to the
         end
       end
       local winnr = self.tool.opts.jump_action(args.filepath)
-      if args.line > 0 and winnr then
-        local ok = pcall(vim.api.nvim_win_set_cursor, winnr, { args.line, 0 })
+      if args.line >= 0 and winnr then
+        local ok = pcall(vim.api.nvim_win_set_cursor, winnr, { args.line + 1, 0 })
         if not ok then
           local bufnr = vim.api.nvim_win_get_buf(winnr)
           return {
