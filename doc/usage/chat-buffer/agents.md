@@ -63,14 +63,21 @@ Can you apply the suggested changes to the buffer with the @editor tool?
 ## @files
 
 > [!NOTE]
-> All file operations require approval from the user before they're executed
+> All file operations require approval from the user before they're executed except for `@read_file`
 
-The _@files_ tool leverages the [Plenary.Path](https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/path.lua) module to enable an LLM to perform various file operations on the user's disk:
+The _@files_ group is a collection of three tools to enable an LLM to perform various file operations on the user's disk:
 
-- Creating a file
-- Reading a file
-- Editing a file
-- Deleting a file
+- `@create_file` - For creating a file on disk
+- `@read_file` - For reading a file on disk
+- `@insert_edit_into_file` - For editing a file on disk
+
+```md
+Can we apply the code changes you've suggested using the @files tool?
+```
+
+```md
+Can you use the @create_file to create files for some common travel destinations in Europe at `destinations/`?
+```
 
 ## @web_search
 
