@@ -60,7 +60,17 @@ local defaults = {
             tools = {
               "cmd_runner",
               "editor",
-              "files",
+              "create_file",
+              "read_file",
+              "insert_edit_into_file",
+            },
+          },
+          ["files"] = {
+            description = "Tools related to creating, reading and editing files",
+            tools = {
+              "create_file",
+              "read_file",
+              "insert_edit_into_file",
             },
           },
         },
@@ -75,12 +85,23 @@ local defaults = {
           callback = "strategies.chat.agents.tools.editor",
           description = "Update a buffer with the LLM's response",
         },
-        ["files"] = {
-          callback = "strategies.chat.agents.tools.files",
-          description = "Update the file system with the LLM's response",
+        ["insert_edit_into_file"] = {
+          callback = "strategies.chat.agents.tools.insert_edit_into_file",
+          description = "Insert code into an existing file",
           opts = {
             requires_approval = true,
           },
+        },
+        ["create_file"] = {
+          callback = "strategies.chat.agents.tools.create_file",
+          description = "Create a file in the current working directory",
+          opts = {
+            requires_approval = true,
+          },
+        },
+        ["read_file"] = {
+          callback = "strategies.chat.agents.tools.read_file",
+          description = "Read a file in the current working directory",
         },
         ["web_search"] = {
           callback = "strategies.chat.agents.tools.web_search",
