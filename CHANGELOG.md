@@ -1,5 +1,12 @@
 # Changelog
 
+## [16.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v16.0.0...v16.1.0) (2025-06-06)
+
+
+### Features
+
+* **tools:** auto_tool_mode now auto submits ([#1580](https://github.com/olimorris/codecompanion.nvim/issues/1580)) ([1b2ab64](https://github.com/olimorris/codecompanion.nvim/commit/1b2ab6445dac16908b2136bd7c071e4dcb7f38d6))
+
 ## [16.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.12.0...v16.0.0) (2025-06-06)
 
 
