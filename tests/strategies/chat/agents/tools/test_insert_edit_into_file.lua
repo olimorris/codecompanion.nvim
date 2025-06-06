@@ -77,7 +77,7 @@ T["insert_edit_into_file tool regex"] = function()
   h.eq(output, { "line1", "line3" }, "File was not updated")
 end
 
-T["insert_edit_into_file tool update from fixtures"] = function()
+T["insert_edit_into_file tool from fixtures"] = function()
   child.lua([[
        -- read initial file from fixture
        local initial = vim.fn.readfile("tests/fixtures/files-input-1.html")
@@ -104,221 +104,228 @@ T["insert_edit_into_file tool update from fixtures"] = function()
   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-1.1.html')")
   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
---
--- T["insert_edit_into_file tool update multiple @@"] = function()
---   child.lua([[
---       -- read initial file from fixture
---       local initial = vim.fn.readfile("tests/fixtures/files-input-1.html")
---       local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE)
---       assert(ok == 0)
---       -- read contents for the tool from fixtures
---       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-1.2.patch"), "\n")
---       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
---       local tool = {
---         {
---           ["function"] = {
---             name = "insert_edit_into_file",
---             arguments = arguments
---           },
---         },
---       }
---       agent:execute(chat, tool)
---       vim.wait(200)
---     ]])
---
---   -- Test that the file was updated as per the output fixture
---   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
---   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-1.2.html')")
---   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
--- end
---
--- T["insert_edit_into_file tool update empty lines"] = function()
---   child.lua([[
---       -- read initial file from fixture
---       local initial = vim.fn.readfile("tests/fixtures/files-input-1.html")
---       local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE)
---       assert(ok == 0)
---       -- read contents for the tool from fixtures
---       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-1.3.patch"), "\n")
---       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
---       local tool = {
---         {
---           ["function"] = {
---             name = "insert_edit_into_file",
---             arguments = arguments
---           },
---         },
---       }
---       agent:execute(chat, tool)
---       vim.wait(200)
---     ]])
---
---   -- Test that the file was updated as per the output fixture
---   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
---   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-1.3.html')")
---   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
--- end
---
--- T["insert_edit_into_file tool multiple patches"] = function()
---   child.lua([[
---       -- read initial file from fixture
---       local initial = vim.fn.readfile("tests/fixtures/files-input-1.html")
---       local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE)
---       assert(ok == 0)
---       -- read contents for the tool from fixtures
---       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-1.4.patch"), "\n")
---       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
---       local tool = {
---         {
---           ["function"] = {
---             name = "insert_edit_into_file",
---             arguments = arguments
---           },
---         },
---       }
---       agent:execute(chat, tool)
---       vim.wait(200)
---     ]])
---
---   -- Test that the file was updated as per the output fixture
---   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
---   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-1.4.html')")
---   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
--- end
---
--- T["insert_edit_into_file tool update multiple continuation"] = function()
---   child.lua([[
---       -- read initial file from fixture
---       local initial = vim.fn.readfile("tests/fixtures/files-input-2.html")
---       local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE)
---       assert(ok == 0)
---       -- read contents for the tool from fixtures
---       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-2.1.patch"), "\n")
---       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
---       local tool = {
---         {
---           ["function"] = {
---             name = "insert_edit_into_file",
---             arguments = arguments
---           },
---         },
---       }
---       agent:execute(chat, tool)
---       vim.wait(200)
---     ]])
---
---   -- Test that the file was updated as per the output fixture
---   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
---   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-2.1.html')")
---   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
--- end
---
--- T["insert_edit_into_file tool update spaces"] = function()
---   child.lua([[
---       -- read initial file from fixture
---       local initial = vim.fn.readfile("tests/fixtures/files-input-2.html")
---       local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE)
---       assert(ok == 0)
---       -- read contents for the tool from fixtures
---       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-2.2.patch"), "\n")
---       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
---       local tool = {
---         {
---           ["function"] = {
---             name = "insert_edit_into_file",
---             arguments = arguments
---           },
---         },
---       }
---       agent:execute(chat, tool)
---       vim.wait(200)
---     ]])
---
---   -- Test that the file was updated as per the output fixture
---   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
---   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-2.2.html')")
---   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
--- end
---
--- T["insert_edit_into_file tool update html spaces flexible"] = function()
---   child.lua([[
---       -- read initial file from fixture
---       local initial = vim.fn.readfile("tests/fixtures/files-input-3.html")
---       local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE)
---       assert(ok == 0)
---       -- read contents for the tool from fixtures
---       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-3.patch"), "\n")
---       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
---       local tool = {
---         {
---           ["function"] = {
---             name = "insert_edit_into_file",
---             arguments = arguments
---           },
---         },
---       }
---       agent:execute(chat, tool)
---       vim.wait(200)
---     ]])
---
---   -- Test that the file was updated as per the output fixture
---   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
---   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-3.html')")
---   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
--- end
---
--- T["insert_edit_into_file tool update html line breaks"] = function()
---   child.lua([[
---       -- read initial file from fixture
---       local initial = vim.fn.readfile("tests/fixtures/files-input-4.html")
---       local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE)
---       assert(ok == 0)
---       -- read contents for the tool from fixtures
---       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-4.patch"), "\n")
---       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
---       local tool = {
---         {
---           ["function"] = {
---             name = "insert_edit_into_file",
---             arguments = arguments
---           },
---         },
---       }
---       agent:execute(chat, tool)
---       vim.wait(200)
---     ]])
---
---   -- Test that the file was updated as per the output fixture
---   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
---   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-4.html')")
---   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
--- end
---
--- T["insert_edit_into_file tool update lua dashes"] = function()
---   child.lua([[
---       -- read initial file from fixture
---       local initial = vim.fn.readfile("tests/fixtures/files-input-5.lua")
---       local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE)
---       assert(ok == 0)
---       -- read contents for the tool from fixtures
---       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-5.patch"), "\n")
---       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
---       local tool = {
---         {
---           ["function"] = {
---             name = "insert_edit_into_file",
---             arguments = arguments
---           },
---         },
---       }
---       agent:execute(chat, tool)
---       vim.wait(200)
---     ]])
---
---   -- Test that the file was updated as per the output fixture
---   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE)")
---   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-5.lua')")
---   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
--- end
+
+T["insert_edit_into_file tool multiple @@"] = function()
+  child.lua([[
+       -- read initial file from fixture
+       local initial = vim.fn.readfile("tests/fixtures/files-input-1.html")
+       local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE_ABSOLUTE)
+       assert(ok == 0)
+
+       -- read contents for the tool from fixtures
+       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-1.2.patch"), "\n")
+       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+       local tool = {
+         {
+           ["function"] = {
+             name = "insert_edit_into_file",
+             arguments = arguments
+           },
+         },
+       }
+       agent:execute(chat, tool)
+       vim.wait(200)
+     ]])
+
+  -- Test that the file was updated as per the output fixture
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE_ABSOLUTE)")
+  local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-1.2.html')")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
+end
+
+T["insert_edit_into_file tool empty lines"] = function()
+  child.lua([[
+       -- read initial file from fixture
+       local initial = vim.fn.readfile("tests/fixtures/files-input-1.html")
+       local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE_ABSOLUTE)
+       assert(ok == 0)
+
+       -- read contents for the tool from fixtures
+       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-1.3.patch"), "\n")
+       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+       local tool = {
+         {
+           ["function"] = {
+             name = "insert_edit_into_file",
+             arguments = arguments
+           },
+         },
+       }
+       agent:execute(chat, tool)
+       vim.wait(200)
+     ]])
+
+  -- Test that the file was updated as per the output fixture
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE_ABSOLUTE)")
+  local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-1.3.html')")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
+end
+
+T["insert_edit_into_file tool multiple patches"] = function()
+  child.lua([[
+      -- read initial file from fixture
+      local initial = vim.fn.readfile("tests/fixtures/files-input-1.html")
+      local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE_ABSOLUTE)
+      assert(ok == 0)
+
+      -- read contents for the tool from fixtures
+      local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-1.4.patch"), "\n")
+      local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+      local tool = {
+        {
+          ["function"] = {
+            name = "insert_edit_into_file",
+            arguments = arguments
+          },
+        },
+      }
+      agent:execute(chat, tool)
+      vim.wait(200)
+    ]])
+
+  -- Test that the file was updated as per the output fixture
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE_ABSOLUTE)")
+  local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-1.4.html')")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
+end
+
+T["insert_edit_into_file tool multiple continuation"] = function()
+  child.lua([[
+      -- read initial file from fixture
+      local initial = vim.fn.readfile("tests/fixtures/files-input-2.html")
+      local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE_ABSOLUTE)
+      assert(ok == 0)
+
+      -- read contents for the tool from fixtures
+      local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-2.1.patch"), "\n")
+      local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+      local tool = {
+        {
+          ["function"] = {
+            name = "insert_edit_into_file",
+            arguments = arguments
+          },
+        },
+      }
+      agent:execute(chat, tool)
+      vim.wait(200)
+    ]])
+
+  -- Test that the file was updated as per the output fixture
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE_ABSOLUTE)")
+  local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-2.1.html')")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
+end
+
+T["insert_edit_into_file tool spaces"] = function()
+  child.lua([[
+       -- read initial file from fixture
+       local initial = vim.fn.readfile("tests/fixtures/files-input-2.html")
+       local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE_ABSOLUTE)
+       assert(ok == 0)
+       -- read contents for the tool from fixtures
+       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-2.2.patch"), "\n")
+       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+       local tool = {
+         {
+           ["function"] = {
+             name = "insert_edit_into_file",
+             arguments = arguments
+           },
+         },
+       }
+       agent:execute(chat, tool)
+       vim.wait(200)
+     ]])
+
+  -- Test that the file was updated as per the output fixture
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE_ABSOLUTE)")
+  local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-2.2.html')")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
+end
+
+T["insert_edit_into_file tool html spaces flexible"] = function()
+  child.lua([[
+       -- read initial file from fixture
+       local initial = vim.fn.readfile("tests/fixtures/files-input-3.html")
+       local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE_ABSOLUTE)
+       assert(ok == 0)
+
+       -- read contents for the tool from fixtures
+       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-3.patch"), "\n")
+       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+       local tool = {
+         {
+           ["function"] = {
+             name = "insert_edit_into_file",
+             arguments = arguments
+           },
+         },
+       }
+       agent:execute(chat, tool)
+       vim.wait(200)
+     ]])
+
+  -- Test that the file was updated as per the output fixture
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE_ABSOLUTE)")
+  local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-3.html')")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
+end
+
+T["insert_edit_into_file tool html line breaks"] = function()
+  child.lua([[
+       -- read initial file from fixture
+       local initial = vim.fn.readfile("tests/fixtures/files-input-4.html")
+       local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE_ABSOLUTE)
+       assert(ok == 0)
+
+       -- read contents for the tool from fixtures
+       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-4.patch"), "\n")
+       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+       local tool = {
+         {
+           ["function"] = {
+             name = "insert_edit_into_file",
+             arguments = arguments
+           },
+         },
+       }
+       agent:execute(chat, tool)
+       vim.wait(200)
+     ]])
+
+  -- Test that the file was updated as per the output fixture
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE_ABSOLUTE)")
+  local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-4.html')")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
+end
+
+T["insert_edit_into_file tool lua dashes"] = function()
+  child.lua([[
+      -- read initial file from fixture
+      local initial = vim.fn.readfile("tests/fixtures/files-input-5.lua")
+      local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE_ABSOLUTE)
+
+      assert(ok == 0)
+      -- read contents for the tool from fixtures
+      local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-5.patch"), "\n")
+      local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+      local tool = {
+        {
+          ["function"] = {
+            name = "insert_edit_into_file",
+            arguments = arguments
+          },
+        },
+      }
+      agent:execute(chat, tool)
+      vim.wait(200)
+    ]])
+
+  -- Test that the file was updated as per the output fixture
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE_ABSOLUTE)")
+  local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-5.lua')")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
+end
 
 return T
