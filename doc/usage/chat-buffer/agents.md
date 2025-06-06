@@ -107,7 +107,7 @@ Consider combining tools for complex tasks:
 
 ### Automatic Tool Mode
 
-The plugin allows you to run tools on autopilot. This automatically approves any tool use instead of prompting the user, disables any diffs, and automatically saves any buffers that the agent has edited. Simply set the global variable `vim.g.codecompanion_auto_tool_mode` to enable this or set it to `nil` to undo this. Alternatively, the keymap `gta` will toggle  the feature whist from the chat buffer.
+The plugin allows you to run tools on autopilot. This automatically approves any tool use instead of prompting the user, disables any diffs, submits errors and success messages and automatically saves any buffers that the agent has edited. Simply set the global variable `vim.g.codecompanion_auto_tool_mode` to enable this or set it to `nil` to undo this. Alternatively, the keymap `gta` will toggle  the feature whist from the chat buffer.
 
 ## Compatibility
 
