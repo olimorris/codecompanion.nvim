@@ -12,6 +12,7 @@
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local regex = require("codecompanion.utils.regex")
 
 local CONSTANTS = {
   PREFIX = "#",
@@ -31,11 +32,18 @@ function Variables.new(args)
   return self
 end
 
+---Creates a regex pattern to match a variable in a message
+---@param var string The variable name to create a pattern for
+---@return string The compiled regex pattern
+function Variables:_pattern(var)
+  return CONSTANTS.PREFIX .. var .. "\\(\\s\\|$\\|{[^}]*}\\)"
+end
+
 ---Check a prompt for a variable
 ---@return CodeCompanion.Inline.Variable
 function Variables:find()
   for var, _ in pairs(self.config) do
-    if self.prompt:match("%f[%w" .. CONSTANTS.PREFIX .. "]" .. CONSTANTS.PREFIX .. var .. "%f[%W]") then
+    if regex.find(self.prompt, self:_pattern(var)) then
       table.insert(self.vars, var)
     end
   end
@@ -47,7 +55,7 @@ end
 ---@return CodeCompanion.Inline.Variable
 function Variables:replace()
   for var, _ in pairs(self.config) do
-    self.prompt = vim.trim(self.prompt:gsub(CONSTANTS.PREFIX .. var .. " ", ""))
+    self.prompt = vim.trim(regex.replace(self.prompt, self:_pattern(var), ""))
   end
   return self
 end
