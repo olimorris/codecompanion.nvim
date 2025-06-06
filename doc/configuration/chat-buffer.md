@@ -10,6 +10,9 @@ Please refer to the [config.lua](https://github.com/olimorris/codecompanion.nvim
 
 ## Keymaps
 
+> [!NOTE]
+> The plugin scopes CodeCompanion specific keymaps to the _chat buffer_ only.
+
 You can define or override the [default keymaps](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178) to send messages, regenerate responses, close the buffer, etc. Example:
 
 ```lua
