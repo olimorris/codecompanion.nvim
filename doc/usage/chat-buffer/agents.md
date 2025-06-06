@@ -80,6 +80,8 @@ The _@web_search_ tool enables an LLM to search the web for a specific query. Th
 Can you use the @web_search tool to tell me the latest version of Neovim?
 ```
 
+Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
+
 ## @full_stack_dev
 
 The plugin enables tools to be grouped together. The _@full_stack_dev_ agent is a combination of the _@cmd_runner_, _@editor_ and _@files_ tools:
