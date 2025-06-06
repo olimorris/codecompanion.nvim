@@ -59,7 +59,9 @@ local defaults = {
             tools = {
               "cmd_runner",
               "editor",
-              "files",
+              "create_file",
+              "read_file",
+              "insert_edit_into_file",
             },
           },
           ["files"] = {
