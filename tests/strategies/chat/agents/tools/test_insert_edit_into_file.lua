@@ -41,7 +41,7 @@ T["insert_edit_into_file tool edit a file"] = function()
         {
           ["function"] = {
             name = "insert_edit_into_file",
-            arguments = string.format('{"filepath": "%s", "explanation": "Some edit", "code": "*** Begin Patch\\nline1\\n-line2\\n+new_line2\\nline3\\n*** End Patch"}', _G.TEST_TMPFILE)
+            arguments = string.format('{"filepath": "%s", "explanation": "...", "code": "*** Begin Patch\\nline1\\n-line2\\n+new_line2\\nline3\\n*** End Patch"}', _G.TEST_TMPFILE)
           },
         },
       }
@@ -64,7 +64,7 @@ T["insert_edit_into_file tool regex"] = function()
         {
           ["function"] = {
             name = "insert_edit_into_file",
-            arguments = string.format('{"filepath": "%s", "code": "*** Begin Patch\\n-line2\\n*** End Patch\\n"}', _G.TEST_TMPFILE)
+            arguments = string.format('{"filepath": "%s", "explanation": "...", "code": "*** Begin Patch\\n-line2\\n*** End Patch\\n"}', _G.TEST_TMPFILE)
           },
         },
       }
@@ -86,7 +86,7 @@ T["insert_edit_into_file tool from fixtures"] = function()
 
        -- read contents for the tool from fixtures
        local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-1.1.patch"), "\n")
-       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, explanation = "...", code = content })
        local tool = {
          {
            ["function"] = {
@@ -114,7 +114,7 @@ T["insert_edit_into_file tool multiple @@"] = function()
 
        -- read contents for the tool from fixtures
        local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-1.2.patch"), "\n")
-       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, explanation = "...", code = content })
        local tool = {
          {
            ["function"] = {
@@ -142,7 +142,7 @@ T["insert_edit_into_file tool empty lines"] = function()
 
        -- read contents for the tool from fixtures
        local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-1.3.patch"), "\n")
-       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, explanation = "...", code = content })
        local tool = {
          {
            ["function"] = {
@@ -170,7 +170,7 @@ T["insert_edit_into_file tool multiple patches"] = function()
 
       -- read contents for the tool from fixtures
       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-1.4.patch"), "\n")
-      local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+      local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, explanation = "...", code = content })
       local tool = {
         {
           ["function"] = {
@@ -198,7 +198,7 @@ T["insert_edit_into_file tool multiple continuation"] = function()
 
       -- read contents for the tool from fixtures
       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-2.1.patch"), "\n")
-      local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+      local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, explanation = "...", code = content })
       local tool = {
         {
           ["function"] = {
@@ -225,7 +225,7 @@ T["insert_edit_into_file tool spaces"] = function()
        assert(ok == 0)
        -- read contents for the tool from fixtures
        local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-2.2.patch"), "\n")
-       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, explanation = "...", code = content })
        local tool = {
          {
            ["function"] = {
@@ -253,7 +253,7 @@ T["insert_edit_into_file tool html spaces flexible"] = function()
 
        -- read contents for the tool from fixtures
        local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-3.patch"), "\n")
-       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, explanation = "...", code = content })
        local tool = {
          {
            ["function"] = {
@@ -281,7 +281,7 @@ T["insert_edit_into_file tool html line breaks"] = function()
 
        -- read contents for the tool from fixtures
        local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-4.patch"), "\n")
-       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+       local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, explanation = "...", code = content })
        local tool = {
          {
            ["function"] = {
@@ -309,7 +309,7 @@ T["insert_edit_into_file tool lua dashes"] = function()
       assert(ok == 0)
       -- read contents for the tool from fixtures
       local content = table.concat(vim.fn.readfile("tests/fixtures/files-diff-5.patch"), "\n")
-      local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, code = content })
+      local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, explanation = "...", code = content })
       local tool = {
         {
           ["function"] = {

@@ -1,10 +1,10 @@
 local Path = require("plenary.path")
 local log = require("codecompanion.utils.log")
-local patches = require("codecompanion.helpers.patches")
+local patch = require("codecompanion.strategies.chat.agents.tools.helpers.patch")
 
 local fmt = string.format
 
-PROMPT = [[<editFileInstructions>
+local PROMPT = [[<editFileInstructions>
 Before editing a file, ensure you have its content via the provided context or read_file tool.
 Use the insert_edit_into_file tool to modify files.
 NEVER show the code edits to the user - only call the tool. The system will apply and display the changes.
@@ -13,7 +13,7 @@ The insert_edit_into_file tool is very smart and can understand how to apply you
 
 ## Patch Format
 
-]] .. patches.FORMAT_PROMPT .. [[
+]] .. patch.FORMAT_PROMPT .. [[
 The system uses fuzzy matching and confidence scoring, so don't worry about perfect whitespace - focus on providing enough context to uniquely identify the location.
 </editFileInstructions>]]
 
@@ -27,7 +27,7 @@ local function edit(action)
 
   -- 1. extract list of changes from the code
   local raw = action.code or ""
-  local changes = patches.parse_changes(raw)
+  local changes = patch.parse_changes(raw)
 
   -- 2. read file into lines
   local content = p:read()
@@ -35,9 +35,9 @@ local function edit(action)
 
   -- 3. apply changes
   for _, change in ipairs(changes) do
-    local new_lines = patches.apply_change(lines, change)
+    local new_lines = patch.apply_change(lines, change)
     if new_lines == nil then
-      error(fmt("Bad/Incorrect diff:\n\n%s\n\nNo changes were applied", patches.get_change_string(change)))
+      error(fmt("Bad/Incorrect diff:\n\n%s\n\nNo changes were applied", patch.get_change_string(change)))
     else
       lines = new_lines
     end
