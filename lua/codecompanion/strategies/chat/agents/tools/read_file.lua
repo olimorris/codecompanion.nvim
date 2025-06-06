@@ -5,35 +5,70 @@ local fmt = string.format
 
 ---Read the contents of a file
 ---@param action {filepath: string, start_line_number_base_zero: number, end_line_number_base_zero: number} The action containing the filepath
----@return string
+---@return {status: "success"|"error", data: string}
 local function read(action)
   local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
   local p = Path:new(filepath)
   p.filename = p:expand()
 
-  if not p:exists() then
-    return fmt("**Read File Tool**: File `%s` does not exist", action.filepath)
+  local exists, _ = p:exists()
+  if not exists then
+    return {
+      status = "error",
+      data = fmt("**Read File Tool**: File `%s` does not exist", action.filepath),
+    }
   end
 
   local lines = p:readlines()
-  local start_line = tonumber(action.start_line_number_base_zero) + 1
-  local end_line = tonumber(action.end_line_number_base_zero) + 1
+  local start_line_zero = tonumber(action.start_line_number_base_zero)
+  local end_line_zero = tonumber(action.end_line_number_base_zero)
 
-  -- Validate line ranges
-  if start_line < 1 then
-    start_line = 1
-  end
-  if end_line > #lines or end_line == 0 then
-    end_line = #lines
-  end
-  if start_line > end_line then
-    return fmt(
-      "**Read File Tool**: Invalid line range for `%s` - start line (%d) is after end line (%d)",
+  local error_msg = nil
+
+  if not start_line_zero then
+    error_msg =
+      fmt("start_line_number_base_zero must be a valid number, got: %s", tostring(action.start_line_number_base_zero))
+  elseif not end_line_zero then
+    error_msg =
+      fmt("end_line_number_base_zero must be a valid number, got: %s", tostring(action.end_line_number_base_zero))
+  elseif start_line_zero < 0 then
+    error_msg = fmt("start_line_number_base_zero cannot be negative, got: %d", start_line_zero)
+  elseif end_line_zero < -1 then
+    error_msg = fmt("end_line_number_base_zero cannot be less than -1, got: %d", end_line_zero)
+  elseif start_line_zero >= #lines then
+    error_msg = fmt(
+      "start_line_number_base_zero (%d) is beyond file length. File `%s` has %d lines (0-%d)",
+      start_line_zero,
       action.filepath,
-      action.start_line_number_base_zero,
-      action.end_line_number_base_zero
+      #lines,
+      math.max(0, #lines - 1)
+    )
+  elseif end_line_zero ~= -1 and end_line_zero >= #lines then
+    error_msg = fmt(
+      "end_line_number_base_zero (%d) is beyond file length. File `%s` has %d lines (0-%d)",
+      end_line_zero,
+      action.filepath,
+      #lines,
+      math.max(0, #lines - 1)
+    )
+  elseif end_line_zero ~= -1 and start_line_zero > end_line_zero then
+    error_msg = fmt(
+      "Invalid line range - start_line_number_base_zero (%d) comes after end_line_number_base_zero (%d)",
+      start_line_zero,
+      end_line_zero
     )
   end
+
+  if error_msg then
+    return {
+      status = "error",
+      data = "**Read File Tool**: " .. error_msg,
+    }
+  end
+
+  -- Convert to 1-based indexing
+  local start_line = start_line_zero + 1
+  local end_line = end_line_zero == -1 and #lines or end_line_zero + 1
 
   -- Extract the specified lines
   local selected_lines = {}
@@ -45,18 +80,21 @@ local function read(action)
   local file_ext = vim.fn.fnamemodify(p.filename, ":e")
 
   local output = fmt(
-    [[**Read File Tool**: Lines %d-%d of `%s`:
+    [[**Read File Tool**: Lines %d to %d of `%s`:
 
-```%s
+````%s
 %s
-```]],
+````]],
     action.start_line_number_base_zero,
     action.end_line_number_base_zero,
     filepath,
     file_ext,
     content
   )
-  return output
+  return {
+    status = "success",
+    data = output,
+  }
 end
 
 ---@class CodeCompanion.Tool.ReadFile: CodeCompanion.Agent.Tool
@@ -69,11 +107,7 @@ return {
     ---@param input? any The output from the previous function call
     ---@return { status: "success"|"error", data: string }
     function(self, args, input)
-      local ok, output = pcall(read, args)
-      if not ok then
-        return { status = "error", data = output }
-      end
-      return { status = "success", data = output }
+      return read(args)
     end,
   },
   schema = {

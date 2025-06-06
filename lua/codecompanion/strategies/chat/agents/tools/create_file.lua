@@ -5,14 +5,42 @@ local fmt = string.format
 
 ---Create a file and the surrounding folders
 ---@param action {filepath: string, content: string} The action containing the filepath and content
----@return string
+---@return {status: "success"|"error", data: string}
 local function create(action)
   local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
   local p = Path:new(filepath)
   p.filename = p:expand()
-  p:touch({ parents = true })
-  p:write(action.content or "", "w")
-  return fmt("**Create File Tool**: `%s` was created successfully", action.filepath)
+
+  if p:exists() then
+    if p:is_dir() then
+      return {
+        status = "error",
+        data = fmt("**Create File Tool**: `%s` already exists as a directory", action.filepath),
+      }
+    else
+      return {
+        status = "error",
+        data = fmt("**Create File Tool**: File `%s` already exists", action.filepath),
+      }
+    end
+  end
+
+  local ok, result = pcall(function()
+    p:touch({ parents = true })
+    p:write(action.content, "w")
+  end)
+
+  if not ok then
+    return {
+      status = "error",
+      data = fmt("**Create File Tool**: Failed to create file `%s` - %s", action.filepath, result),
+    }
+  end
+
+  return {
+    status = "success",
+    data = fmt("**Create File Tool**: `%s` was created successfully", action.filepath),
+  }
 end
 
 ---@class CodeCompanion.Tool.CreateFile: CodeCompanion.Agent.Tool
@@ -25,11 +53,7 @@ return {
     ---@param input? any The output from the previous function call
     ---@return { status: "success"|"error", data: string }
     function(self, args, input)
-      local ok, output = pcall(create, args)
-      if not ok then
-        return { status = "error", data = output }
-      end
-      return { status = "success", data = output }
+      return create(args)
     end,
   },
   schema = {
