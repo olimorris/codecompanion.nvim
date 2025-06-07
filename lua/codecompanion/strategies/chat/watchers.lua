@@ -5,134 +5,7 @@ checked, it compares states to detect line additions, deletions, and modificatio
 ]]
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-
 local api = vim.api
-
----Find the index of a line in a list of lines
----@param line string
----@param lines table
----@param start_idx number
----@return number|nil
-local function find_line_match(line, lines, start_idx)
-  for i = start_idx or 1, #lines do
-    if lines[i] == line then
-      return i
-    end
-  end
-  return nil
-end
-
----Detect changes between two sets of lines
----@param old_lines table
----@param new_lines table
----@return CodeCompanion.WatcherChange[]
-local function detect_changes(old_lines, new_lines)
-  local changes = {}
-  local old_size = #old_lines
-  local new_size = #new_lines
-
-  local i = 1 -- old lines index
-  local j = 1 -- new lines index
-
-  while i <= old_size or j <= new_size do
-    if i > old_size then
-      -- Remaining lines are new additions
-      local added = {}
-      local start = j
-      while j <= new_size do
-        table.insert(added, new_lines[j])
-        j = j + 1
-      end
-      if #added > 0 then
-        table.insert(changes, {
-          type = "add",
-          start = start,
-          end_line = new_size,
-          lines = added,
-        })
-      end
-      break
-    end
-
-    if j > new_size then
-      -- Remaining lines are deletions
-      local deleted = {}
-      local start = i
-      while i <= old_size do
-        table.insert(deleted, old_lines[i])
-        i = i + 1
-      end
-      if #deleted > 0 then
-        table.insert(changes, {
-          type = "delete",
-          start = start,
-          end_line = old_size,
-          lines = deleted,
-        })
-      end
-      break
-    end
-
-    if old_lines[i] == new_lines[j] then
-      -- Lines match, move both forward
-      i = i + 1
-      j = j + 1
-    else
-      -- Look ahead for matches
-      local next_match = find_line_match(old_lines[i], new_lines, j)
-      if next_match then
-        -- Found the line later - everything before is new
-        local added = {}
-        local start = j
-        while j < next_match do
-          table.insert(added, new_lines[j])
-          j = j + 1
-        end
-        if #added > 0 then
-          table.insert(changes, {
-            type = "add",
-            start = start,
-            end_line = next_match - 1,
-            lines = added,
-          })
-        end
-      else
-        -- Line was deleted or modified
-        local next_old_match = find_line_match(new_lines[j], old_lines, i)
-        if next_old_match then
-          -- Found matching line later in old content - report deletions
-          local deleted = {}
-          local start = i
-          while i < next_old_match do
-            table.insert(deleted, old_lines[i])
-            i = i + 1
-          end
-          if #deleted > 0 then
-            table.insert(changes, {
-              type = "delete",
-              start = start,
-              end_line = next_old_match - 1,
-              lines = deleted,
-            })
-          end
-        else
-          -- Modified line
-          table.insert(changes, {
-            type = "modify",
-            start = i,
-            end_line = i,
-            old_lines = { old_lines[i] },
-            new_lines = { new_lines[j] },
-          })
-          i = i + 1
-          j = j + 1
-        end
-      end
-    end
-  end
-
-  return changes
-end
 
 ---@class CodeCompanion.Watchers
 local Watchers = {}
@@ -185,30 +58,66 @@ function Watchers:unwatch(bufnr)
   end
 end
 
+---Check if buffer content has changed
+---@param old_content table
+---@param new_content table
+---@return boolean
+local function has_changes(old_content, new_content)
+  if #old_content ~= #new_content then
+    return true
+  end
+  for i = 1, #old_content do
+    if old_content[i] ~= new_content[i] then
+      return true
+    end
+  end
+  return false
+end
+
 ---Get any changes in a watched buffer
 ---@param bufnr number
----@return CodeCompanion.WatcherChange[]|nil
+---@return boolean, table|nil
 function Watchers:get_changes(bufnr)
   if not self.buffers[bufnr] then
-    return nil
+    return false, nil
   end
-
   local buffer = self.buffers[bufnr]
   local current_content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local current_tick = api.nvim_buf_get_changedtick(bufnr)
-
   if current_tick == buffer.changedtick then
-    return nil
+    return false, nil
+  end
+  local old_content = buffer.last_sent -- Store before updating
+  local changed = has_changes(old_content, current_content)
+  if changed then
+    buffer.content = current_content
+    buffer.last_sent = current_content
+    buffer.changedtick = current_tick
+    return true, old_content
   end
 
-  local changes = detect_changes(buffer.last_sent, current_content)
+  return false, nil
+end
 
-  -- Update states
-  buffer.content = current_content
-  buffer.last_sent = current_content
-  buffer.changedtick = current_tick
+---Generate unified diff using vim.diff
+---@param old_content table
+---@param new_content table
+---@return string
+local function format_changes_as_diff(old_content, new_content)
+  -- Convert line arrays to strings for vim.diff
+  local old_str = table.concat(old_content, "\n") .. "\n"
+  local new_str = table.concat(new_content, "\n") .. "\n"
+  -- Use vim.diff to generate clean unified diff
+  local diff_result = vim.diff(old_str, new_str, {
+    result_type = "unified",
+    ctxlen = 3, -- 3 lines of context
+    algorithm = "myers",
+  })
+  if diff_result and diff_result ~= "" then
+    return string.format("```diff\n%s```", diff_result)
+  end
 
-  return changes
+  return ""
 end
 
 ---Check all watched buffers for changes
@@ -216,53 +125,24 @@ end
 function Watchers:check_for_changes(chat)
   for _, ref in ipairs(chat.refs) do
     if ref.bufnr and ref.opts and ref.opts.watched then
-      local changes = self:get_changes(ref.bufnr)
-      log:debug("Checking watched buffer %d, found %d changes", ref.bufnr, changes and #changes or 0)
+      local has_changed, old_content = self:get_changes(ref.bufnr)
 
-      if changes and #changes > 0 then
-        local changes_text = string.format(
-          "Changes detected in `%s` (buffer %d):\n",
-          vim.fn.fnamemodify(api.nvim_buf_get_name(ref.bufnr), ":t"),
-          ref.bufnr
-        )
+      if has_changed and old_content then
+        local filename = vim.fn.fnamemodify(api.nvim_buf_get_name(ref.bufnr), ":t")
+        local current_content = api.nvim_buf_get_lines(ref.bufnr, 0, -1, false)
+        local diff_content = format_changes_as_diff(old_content, current_content)
 
-        for _, change in ipairs(changes) do
-          if change.type == "delete" then
-            changes_text = changes_text
-              .. string.format(
-                "Lines %d-%d were deleted:\n```%s\n%s\n```\n",
-                change.start,
-                change.end_line,
-                vim.bo[ref.bufnr].filetype,
-                table.concat(change.lines, "\n")
-              )
-          elseif change.type == "modify" then
-            changes_text = changes_text
-              .. string.format(
-                "Lines %d-%d were modified from:\n```%s\n%s\n```\nto:\n```%s\n%s\n```\n",
-                change.start,
-                change.end_line,
-                vim.bo[ref.bufnr].filetype,
-                table.concat(change.old_lines, "\n"),
-                vim.bo[ref.bufnr].filetype,
-                table.concat(change.new_lines, "\n")
-              )
-          else -- type == "add"
-            changes_text = changes_text
-              .. string.format(
-                "Lines %d-%d were added:\n```%s\n%s\n```\n",
-                change.start,
-                change.end_line,
-                vim.bo[ref.bufnr].filetype,
-                table.concat(change.lines, "\n")
-              )
-          end
+        if diff_content ~= "" then
+          local changes_text = string.format(
+            "The user has modified the watched file `%s`. Here are the changes:\n%s",
+            filename,
+            diff_content
+          )
+          chat:add_message({
+            role = config.constants.USER_ROLE,
+            content = changes_text,
+          }, { visible = false })
         end
-
-        chat:add_message({
-          role = config.constants.USER_ROLE,
-          content = changes_text,
-        }, { visible = false })
       end
     end
   end
