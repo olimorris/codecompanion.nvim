@@ -76,6 +76,24 @@ function M.get_open(ft)
   return buffers
 end
 
+---Check if a filepath is open as a buffer and return the buffer number
+---@param filepath string The filepath to check
+---@return number|nil Buffer number if found, nil otherwise
+function M.get_bufnr_from_filepath(filepath)
+  local normalized_path = vim.fn.fnamemodify(filepath, ":p")
+
+  for _, bufnr in ipairs(api.nvim_list_bufs()) do
+    if api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buflisted then
+      local buf_path = vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":p")
+      if buf_path == normalized_path then
+        return bufnr
+      end
+    end
+  end
+
+  return nil
+end
+
 ---Get the content of a given buffer
 ---@param bufnr number
 ---@param range? table
