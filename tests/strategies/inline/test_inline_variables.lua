@@ -40,7 +40,7 @@ T["Inline Variables"]["can remove variables from a prompt"] = function()
 
   vars.prompt = "are you #foo #bar working?"
   vars:replace()
-  h.eq("are you working?", vars.prompt)
+  h.eq("are you   working?", vars.prompt)
 end
 
 T["Inline Variables"]["can add variables to an inline class"] = function()

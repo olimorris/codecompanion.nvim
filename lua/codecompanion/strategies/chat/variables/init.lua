@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local regex = require("codecompanion.utils.regex")
 
 local CONSTANTS = {
   PREFIX = "#",
@@ -69,6 +70,13 @@ function Variables.new()
   return self
 end
 
+---Creates a regex pattern to match a variable in a message
+---@param var string The variable name to create a pattern for
+---@return string The compiled regex pattern
+function Variables:_pattern(var)
+  return CONSTANTS.PREFIX .. var .. "\\(\\s\\|$\\|{[^}]*}\\)"
+end
+
 ---Check a message for a variable
 ---@param message table
 ---@return table|nil
@@ -79,9 +87,7 @@ function Variables:find(message)
 
   local found = {}
   for var, _ in pairs(self.vars) do
-    -- Escape the special characters in var
-    local escaped_var = var:gsub("[%(%)%.%%%+%-%*%?%[%]%^%$%/:]", "%%%1")
-    if message.content:match("%f[%w" .. CONSTANTS.PREFIX .. "]" .. CONSTANTS.PREFIX .. escaped_var .. "%f[%W]") then
+    if regex.find(message.content, self:_pattern(var)) then
       table.insert(found, var)
     end
   end
@@ -138,7 +144,7 @@ function Variables:replace(message, bufnr)
     if var:match("^buffer") then
       message = require("codecompanion.strategies.chat.variables.buffer").replace(CONSTANTS.PREFIX, message, bufnr)
     else
-      message = vim.trim(message:gsub(CONSTANTS.PREFIX .. var, ""))
+      message = vim.trim(regex.replace(message, self:_pattern(var), ""))
     end
   end
   return message

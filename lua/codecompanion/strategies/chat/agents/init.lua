@@ -15,6 +15,7 @@
 local Executor = require("codecompanion.strategies.chat.agents.executor")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local regex = require("codecompanion.utils.regex")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils")
 
@@ -201,6 +202,13 @@ function Agent:execute(chat, tools)
   end)
 end
 
+---Creates a regex pattern to match a tool name in a message
+---@param tool string The tool name to create a pattern for
+---@return string The compiled regex pattern
+function Agent:_pattern(tool)
+  return CONSTANTS.PREFIX .. tool .. "\\(\\s\\|$\\)"
+end
+
 ---Look for tools in a given message
 ---@param chat CodeCompanion.Chat
 ---@param message table
@@ -213,8 +221,11 @@ function Agent:find(chat, message)
   local groups = {}
   local tools = {}
 
+  ---@param tool string The tool name to search for
+  ---@return number?,number? The start position of the match, or nil if not found
   local function is_found(tool)
-    return message.content:match("%f[%w" .. CONSTANTS.PREFIX .. "]" .. CONSTANTS.PREFIX .. tool .. "%f[%W]")
+    local pattern = self:_pattern(tool)
+    return regex.find(message.content, pattern)
   end
 
   -- Process groups
@@ -290,14 +301,13 @@ end
 function Agent:replace(message)
   for tool, _ in pairs(self.tools_config) do
     if tool ~= "opts" and tool ~= "groups" then
-      message = vim.trim(message:gsub(CONSTANTS.PREFIX .. tool, tool))
+      message = vim.trim(regex.replace(message, self:_pattern(tool), tool))
     end
   end
   for group, _ in pairs(self.tools_config.groups) do
     local tools = table.concat(self.tools_config.groups[group].tools, ", ")
-    message = vim.trim(message:gsub(CONSTANTS.PREFIX .. group, tools))
+    message = vim.trim(regex.replace(message, self:_pattern(group), tools))
   end
-
   return message
 end
 
