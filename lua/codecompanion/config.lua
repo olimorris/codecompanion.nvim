@@ -127,6 +127,7 @@ local defaults = {
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
+            default_params = "watch",
             has_params = true,
           },
         },
