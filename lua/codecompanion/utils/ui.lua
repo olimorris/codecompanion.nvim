@@ -10,7 +10,8 @@ local M = {}
 ---@return number,number The buffer and window numbers
 M.create_float = function(lines, opts)
   local window = opts.window
-  local width = window.width > 1 and window.width or opts.width or 85
+  local optsWidth = opts.window.width == "auto" and 0.45 or opts.window.width
+  local width = optsWidth > 1 and optsWidth or opts.width or 85
   local height = window.height > 1 and window.height or opts.height or 17
 
   local bufnr = opts.bufnr or api.nvim_create_buf(false, true)
@@ -249,6 +250,31 @@ function M.set_win_options(winnr, opts)
   for k, v in pairs(opts) do
     api.nvim_set_option_value(k, v, { scope = "local", win = winnr })
   end
+end
+
+--- Jump to an existing tab if the file is already opened.
+--- Otherwise, open it in a new tab.
+--- Returns the window ID after the jump.
+---@param path string?
+---@return integer
+function M.tabnew_reuse(path)
+  local uri
+  if path then
+    uri = vim.uri_from_fname(path)
+  else
+    uri = vim.uri_from_bufnr(0)
+  end
+  for _, tab in pairs(api.nvim_list_tabpages()) do
+    for _, win in pairs(api.nvim_tabpage_list_wins(tab)) do
+      local buf = api.nvim_win_get_buf(win)
+      if vim.uri_from_bufnr(buf) == uri then
+        api.nvim_set_current_win(win)
+        return win
+      end
+    end
+  end
+  vim.cmd("tabnew " .. path)
+  return api.nvim_get_current_win()
 end
 
 return M

@@ -153,4 +153,23 @@ T["Chat"]["images are replaced in text and base64 encoded"] = function()
   h.expect_starts_with("iVBORw0KGgoAAAANSUhEU", message.content)
 end
 
+local get_lines = function()
+  return child.api.nvim_buf_get_lines(0, 0, -1, true)
+end
+
+T["Chat"]["can bring up keymap options in the chat buffer"] = function()
+  child.lua([[
+    -- Open the chat buffer
+    require("codecompanion").chat()
+
+    -- Ensure we're in normal mode
+    vim.cmd("stopinsert")
+  ]])
+
+  child.type_keys("?")
+  vim.loop.sleep(200)
+
+  h.eq(get_lines()[1], "### Keymaps")
+end
+
 return T

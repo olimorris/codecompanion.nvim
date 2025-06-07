@@ -1,14 +1,13 @@
 # Configuring the Chat Buffer
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/597299d2-36b3-469e-b69c-4d8fd14838f8" alt="Chat buffer">
-</p>
-
 By default, CodeCompanion provides a "chat" strategy that uses a dedicated Neovim buffer for conversational interaction with your chosen LLM. This buffer can be customized according to your preferences.
 
 Please refer to the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L42-L392) file for a full list of all configuration options.
 
 ## Keymaps
+
+> [!NOTE]
+> The plugin scopes CodeCompanion specific keymaps to the _chat buffer_ only.
 
 You can define or override the [default keymaps](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178) to send messages, regenerate responses, close the buffer, etc. Example:
 
@@ -19,9 +18,11 @@ require("codecompanion").setup({
       keymaps = {
         send = {
           modes = { n = "<C-s>", i = "<C-s>" },
+          opts = {},
         },
         close = {
           modes = { n = "<C-c>", i = "<C-c>" },
+          opts = {},
         },
         -- Add further custom keymaps here
       },
@@ -30,7 +31,7 @@ require("codecompanion").setup({
 })
 ```
 
-The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes.
+The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes. To set other `:map-arguments`, you can use the optional `opts` table which will be fed to `vim.keymap.set`.
 
 ## Variables
 
@@ -50,6 +51,8 @@ require("codecompanion").setup({
           description = "Explain what my_var does",
           opts = {
             contains_code = false,
+            --has_params = true,    -- Set this if your variable supports parameters
+            --default_params = nil, -- Set default parameters
           },
         },
       },
@@ -359,6 +362,24 @@ By default, the LLM's responses will be placed under a header such as `CodeCompa
 
 The user role is currently only available as a string.
 
+### Completion
+
+By default, CodeCompanion looks to use the fantastic [blink.cmp](https://github.com/Saghen/blink.cmp) plugin to complete variables, slash commands and tools. However, you can override this in your config:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      opts = {
+        completion_provider = "cmp", -- blink|cmp|coc|default
+      }
+    }
+  }
+})
+```
+
+The plugin also supports [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), a native completion solution (`default`), and [coc.nvim](https://github.com/neoclide/coc.nvim).
+
 ### Auto scrolling
 
 By default, the page scrolls down automatically as the response streams, with the cursor placed at the end.
@@ -394,3 +415,23 @@ require("codecompanion").setup({
   },
 }),
 ```
+
+## Jump Action
+
+The jump action (the command/function triggered by the `gR` keymap) can be
+customised as follows:
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      opts = {
+        goto_file_action = 'tabnew', -- this will always open the file in a new tab
+      },
+    },
+  },
+})
+```
+This can either be a string (denoting a VimScript command), or a function that
+takes a single parameter (the path to the file to jump to). The default action
+is to jump to an existing tab if the file is already opened, and open a new tab 
+otherwise.

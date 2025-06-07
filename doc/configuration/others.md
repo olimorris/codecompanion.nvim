@@ -54,4 +54,3 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatToolGroups` - Tool groups in the chat buffer
 - `CodeCompanionChatVariable` - Variables in the chat buffer
 - `CodeCompanionVirtualText` - All other virtual text in the plugin
-

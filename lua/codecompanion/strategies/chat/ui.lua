@@ -65,8 +65,11 @@ function UI.new(args)
 end
 
 ---Open/create the chat window
+---@param opts? table
 ---@return CodeCompanion.Chat.UI|nil
-function UI:open()
+function UI:open(opts)
+  opts = opts or {}
+
   if self:is_visible() then
     return
   end
@@ -75,7 +78,10 @@ function UI:open()
   end
 
   local window = config.display.chat.window
-  local width = window.width > 1 and window.width or math.floor(vim.o.columns * window.width)
+  local width = math.floor(vim.o.columns * 0.45)
+  if window.width ~= "auto" then
+    width = window.width > 1 and window.width or math.floor(vim.o.columns * window.width)
+  end
   local height = window.height > 1 and window.height or math.floor(vim.o.lines * window.height)
 
   if window.layout == "float" then
@@ -112,7 +118,9 @@ function UI:open()
     if position == "right" and not vim.opt.splitright:get() then
       vim.cmd("wincmd l")
     end
-    vim.cmd("vertical resize " .. width)
+    if window.width ~= "auto" then
+      vim.cmd("vertical resize " .. width)
+    end
     self.winnr = api.nvim_get_current_win()
     api.nvim_win_set_buf(self.winnr, self.bufnr)
   elseif window.layout == "horizontal" then
@@ -137,7 +145,10 @@ function UI:open()
 
   ui.set_win_options(self.winnr, window.opts)
   vim.bo[self.bufnr].textwidth = 0
-  self:follow()
+
+  if not opts.toggled then
+    self:follow()
+  end
 
   log:trace("Chat opened with ID %d", self.id)
   util.fire("ChatOpened", { bufnr = self.bufnr })

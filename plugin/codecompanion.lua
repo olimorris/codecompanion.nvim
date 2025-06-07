@@ -61,42 +61,6 @@ local diagnostic_config = {
 vim.diagnostic.config(diagnostic_config, config.INFO_NS)
 vim.diagnostic.config(diagnostic_config, config.ERROR_NS)
 
--- Setup completion for blink.cmp and cmp
-local has_cmp, cmp = pcall(require, "cmp")
-local has_blink, blink = pcall(require, "blink.cmp")
-if has_blink then
-  pcall(function()
-    local add_provider = blink.add_source_provider or blink.add_provider
-    add_provider("codecompanion", {
-      name = "CodeCompanion",
-      module = "codecompanion.providers.completion.blink",
-      enabled = true,
-      score_offset = 10,
-    })
-  end)
-  pcall(function()
-    blink.add_filetype_source("codecompanion", "codecompanion")
-  end)
-  -- We need to check for blink alongside cmp as blink.compat has a module that
-  -- is detected by a require("cmp") call and a lot of users have it installed
-  -- Reference: https://github.com/olimorris/codecompanion.nvim/discussions/501
-elseif has_cmp and not has_blink then
-  local completion = "codecompanion.providers.completion.cmp"
-  cmp.register_source("codecompanion_models", require(completion .. ".models").new(config))
-  cmp.register_source("codecompanion_slash_commands", require(completion .. ".slash_commands").new(config))
-  cmp.register_source("codecompanion_tools", require(completion .. ".tools").new(config))
-  cmp.register_source("codecompanion_variables", require(completion .. ".variables").new())
-  cmp.setup.filetype("codecompanion", {
-    enabled = true,
-    sources = vim.list_extend({
-      { name = "codecompanion_models" },
-      { name = "codecompanion_slash_commands" },
-      { name = "codecompanion_tools" },
-      { name = "codecompanion_variables" },
-    }, cmp.get_config().sources),
-  })
-end
-
 -- Capture the last terminal buffer
 _G.codecompanion_last_terminal = nil
 api.nvim_create_autocmd("TermEnter", {

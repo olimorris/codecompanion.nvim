@@ -77,13 +77,26 @@ function Agent:set_autocmds()
         )
       elseif request.match == "CodeCompanionAgentFinished" then
         return vim.schedule(function()
-          self:reset()
+          local auto_submit = function()
+            return self.chat:submit({
+              auto_submit = true,
+              callback = function()
+                self:reset({ auto_submit = true })
+              end,
+            })
+          end
+
+          if vim.g.codecompanion_auto_tool_mode then
+            return auto_submit()
+          end
           if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then
-            self.chat:submit()
+            return auto_submit()
           end
           if self.status == CONSTANTS.STATUS_SUCCESS and self.tools_config.opts.auto_submit_success then
-            self.chat:submit()
+            return auto_submit()
           end
+
+          self:reset({ auto_submit = false })
         end)
       end
     end,
@@ -299,8 +312,10 @@ function Agent:replace(message)
 end
 
 ---Reset the Agent class
+---@param opts? table
 ---@return nil
-function Agent:reset()
+function Agent:reset(opts)
+  opts = opts or {}
   api.nvim_buf_clear_namespace(self.bufnr, self.tools_ns, 0, -1)
   api.nvim_clear_autocmds({ group = self.aug })
 
@@ -309,7 +324,7 @@ function Agent:reset()
   self.stderr = {}
   self.stdout = {}
 
-  self.chat:tools_done()
+  self.chat:tools_done(opts)
   log:info("[Agent] Completed")
 end
 
@@ -355,9 +370,17 @@ function Agent.resolve(tool)
     return module
   end
 
-  -- Try loading the tool from the user's config
-  ok, module = pcall(loadfile, callback)
-  if not ok then
+  -- Try loading the tool from the user's config using a module path
+  ok, module = pcall(require)
+  if ok then
+    log:debug("[Tools] %s identified", callback)
+    return module
+  end
+
+  -- Try loading the tool from the user's config using a file path
+  local err
+  module, err = loadfile(callback)
+  if err then
     return error()
   end
 

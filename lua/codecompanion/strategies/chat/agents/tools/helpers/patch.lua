@@ -41,8 +41,7 @@ Example with multiple blocks of changes and `@@` identifiers:
 +		raise NotImplementedError()
 *** End Patch
 
-This format is a bit similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.
-]]
+This format is a bit similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.]]
 
 ---@class Change
 ---@field focus string[] Identifiers or lines for providing large context before a change

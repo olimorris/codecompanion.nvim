@@ -204,7 +204,7 @@ CodeCompanion.toggle = function()
 
   chat.context = context_utils.get(api.nvim_get_current_buf())
   CodeCompanion.close_last_chat()
-  chat.ui:open()
+  chat.ui:open({ toggled = true })
 end
 
 ---Return a chat buffer
@@ -294,6 +294,12 @@ CodeCompanion.setup = function(opts)
   for _, cmd in ipairs(cmds) do
     api.nvim_create_user_command(cmd.cmd, cmd.callback, cmd.opts)
   end
+
+  -- Set up completion
+  local completion = config.strategies.chat.opts.completion_provider
+  pcall(function()
+    return require("codecompanion.providers.completion." .. completion .. ".setup")
+  end)
 
   -- Set the log root
   log.set_root(log.new({

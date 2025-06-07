@@ -63,14 +63,21 @@ Can you apply the suggested changes to the buffer with the @editor tool?
 ## @files
 
 > [!NOTE]
-> All file operations require approval from the user before they're executed
+> All file operations require approval from the user before they're executed except for `@read_file`
 
-The _@files_ tool leverages the [Plenary.Path](https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/path.lua) module to enable an LLM to perform various file operations on the user's disk:
+The _@files_ group is a collection of three tools to enable an LLM to perform various file operations on the user's disk:
 
-- Creating a file
-- Reading a file
-- Editing a file
-- Deleting a file
+- `@create_file` - For creating a file on disk
+- `@read_file` - For reading a file on disk
+- `@insert_edit_into_file` - For editing a file on disk
+
+```md
+Can we apply the code changes you've suggested using the @files tool?
+```
+
+```md
+Can you use the @create_file to create files for some common travel destinations in Europe at `destinations/`?
+```
 
 ## @web_search
 
@@ -79,6 +86,8 @@ The _@web_search_ tool enables an LLM to search the web for a specific query. Th
 ```md
 Can you use the @web_search tool to tell me the latest version of Neovim?
 ```
+
+Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
 
 ## @full_stack_dev
 
@@ -105,7 +114,7 @@ Consider combining tools for complex tasks:
 
 ### Automatic Tool Mode
 
-The plugin allows you to run tools on autopilot. This automatically approves any tool use instead of prompting the user, disables any diffs, and automatically saves any buffers that the agent has edited. Simply set the global variable `vim.g.codecompanion_auto_tool_mode` to enable this or set it to `nil` to undo this. Alternatively, the keymap `gta` will toggle  the feature whist from the chat buffer.
+The plugin allows you to run tools on autopilot. This automatically approves any tool use instead of prompting the user, disables any diffs, submits errors and success messages and automatically saves any buffers that the agent has edited. Simply set the global variable `vim.g.codecompanion_auto_tool_mode` to enable this or set it to `nil` to undo this. Alternatively, the keymap `gta` will toggle  the feature whist from the chat buffer.
 
 ## Compatibility
 

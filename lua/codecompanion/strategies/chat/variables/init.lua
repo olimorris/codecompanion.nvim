@@ -37,7 +37,7 @@ local function resolve(chat, var_config, params)
     local init = {
       Chat = chat,
       config = var_config,
-      params = params,
+      params = params or (var_config.opts and var_config.opts.default_params),
     }
 
     -- User is using a custom callback

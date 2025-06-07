@@ -1,4 +1,5 @@
 local providers = require("codecompanion.providers")
+local ui_utils = require("codecompanion.utils.ui")
 
 local fmt = string.format
 
@@ -59,7 +60,17 @@ local defaults = {
             tools = {
               "cmd_runner",
               "editor",
-              "files",
+              "create_file",
+              "read_file",
+              "insert_edit_into_file",
+            },
+          },
+          ["files"] = {
+            description = "Tools related to creating, reading and editing files",
+            tools = {
+              "create_file",
+              "read_file",
+              "insert_edit_into_file",
             },
           },
         },
@@ -74,12 +85,23 @@ local defaults = {
           callback = "strategies.chat.agents.tools.editor",
           description = "Update a buffer with the LLM's response",
         },
-        ["files"] = {
-          callback = "strategies.chat.agents.tools.files",
-          description = "Update the file system with the LLM's response",
+        ["insert_edit_into_file"] = {
+          callback = "strategies.chat.agents.tools.insert_edit_into_file",
+          description = "Insert code into an existing file",
           opts = {
             requires_approval = true,
           },
+        },
+        ["create_file"] = {
+          callback = "strategies.chat.agents.tools.create_file",
+          description = "Create a file in the current working directory",
+          opts = {
+            requires_approval = true,
+          },
+        },
+        ["read_file"] = {
+          callback = "strategies.chat.agents.tools.read_file",
+          description = "Read a file in the current working directory",
         },
         ["web_search"] = {
           callback = "strategies.chat.agents.tools.web_search",
@@ -96,7 +118,7 @@ local defaults = {
         },
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
-          auto_submit_success = false, -- Send any successful output to the LLM automatically?
+          auto_submit_success = true, -- Send any successful output to the LLM automatically?
         },
       },
       variables = {
@@ -165,7 +187,7 @@ local defaults = {
           opts = {
             dirs = {}, -- Directories to search for images
             filetypes = { "png", "jpg", "jpeg", "gif", "webp" }, -- Filetypes to search for
-            provider = providers.images, -- snacks|default
+            provider = providers.images, -- telescope|snacks|default
           },
         },
         ["now"] = {
@@ -361,11 +383,20 @@ local defaults = {
           callback = "keymaps.auto_tool_mode",
           description = "Toggle automatic tool mode",
         },
+        goto_file_under_cursor = {
+          modes = { n = "gR" },
+          index = 19,
+          callback = "keymaps.goto_file_under_cursor",
+          description = "Open the file under cursor in a new tab.",
+        },
       },
       opts = {
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
+        completion_provider = providers.completion, -- blink|cmp|coc|default
         register = "+", -- The register to use for yanking code
         yank_jump_delay_ms = 400, -- Delay in milliseconds before jumping back from the yanked code
+        ---@type string|fun(path: string)
+        goto_file_action = ui_utils.tabnew_reuse,
       },
     },
     -- INLINE STRATEGY --------------------------------------------------------
@@ -939,6 +970,7 @@ You must create or modify a workspace file through a series of prompts over mult
         position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
         border = "single",
         height = 0.8,
+        ---@type number|"auto" using "auto" will allow full_height buffers to act like normal buffers
         width = 0.45,
         relative = "editor",
         full_height = true,

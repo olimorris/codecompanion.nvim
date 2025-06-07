@@ -12,8 +12,9 @@ local function resolve(callback)
   end
 
   -- Try loading the tool from the user's config
-  ok, slash_command = pcall(loadfile, callback)
-  if not ok then
+  local err
+  slash_command, err = loadfile(callback)
+  if err then
     return log:error("Could not load the slash command: %s", callback)
   end
 

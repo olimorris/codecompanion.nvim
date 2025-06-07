@@ -42,20 +42,12 @@
 ---@field context table The context of the buffer that the chat was initiated from
 ---@field prompts table Any prompts to be sent to the LLM
 
----@class CodeCompanion.WatcherChange
----@field type "add"|"delete"|"modify" The type of change
----@field start number Starting line number
----@field end_line number Ending line number
----@field lines? string[] Added or deleted lines
----@field old_lines? string[] Original lines (for modify type)
----@field new_lines? string[] New lines (for modify type)
-
 ---@class CodeCompanion.Watchers
 ---@field buffers table<number, CodeCompanion.WatcherState> Map of buffer numbers to their states
 ---@field augroup integer The autocmd group ID
 ---@field watch fun(self: CodeCompanion.Watchers, bufnr: number): nil Start watching a buffer
 ---@field unwatch fun(self: CodeCompanion.Watchers, bufnr: number): nil Stop watching a buffer
----@field get_changes fun(self: CodeCompanion.Watchers, bufnr: number): CodeCompanion.WatcherChange[]|nil Get the latest changes in the buffer
+---@field get_changes fun(self: CodeCompanion.Watchers, bufnr: number): boolean, table
 
 ---@class CodeCompanion.WatcherState
 ---@field content string[] Complete buffer content

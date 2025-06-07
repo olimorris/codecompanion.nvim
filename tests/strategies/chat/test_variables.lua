@@ -127,6 +127,20 @@ T["Variables"][":parse"]["should parse a message with a variable and ignore para
   h.eq("baz", message.content)
 end
 
+T["Variables"][":parse"]["should parse a message with a variable and use default params if set"] = function()
+  local config = require("codecompanion.config")
+  config.strategies.chat.variables.baz.opts = { default_params = "with default" }
+
+  table.insert(chat.messages, {
+    role = "user",
+    content = "#baz Can you parse this variable?",
+  })
+  vars:parse(chat, chat.messages[#chat.messages])
+
+  local message = chat.messages[#chat.messages]
+  h.eq("baz with default", message.content)
+end
+
 T["Variables"][":parse"]["should parse a message with special characters in variable name"] = function()
   table.insert(chat.messages, {
     role = "user",

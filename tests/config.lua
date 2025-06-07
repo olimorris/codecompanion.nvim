@@ -1,3 +1,4 @@
+local og_config = require("codecompanion.config")
 return {
   constants = {
     LLM_ROLE = "llm",
@@ -63,6 +64,7 @@ return {
         llm = "assistant",
         user = "foo",
       },
+      keymaps = og_config.strategies.chat.keymaps,
       tools = {
         ["cmd_runner"] = {
           callback = "strategies.chat.agents.tools.cmd_runner",
@@ -75,6 +77,18 @@ return {
         ["files"] = {
           callback = "strategies.chat.agents.tools.files",
           description = "Update the file system with the LLM's response",
+        },
+        ["insert_edit_into_file"] = {
+          callback = "strategies.chat.agents.tools.insert_edit_into_file",
+          description = "Insert code into an existing file",
+        },
+        ["create_file"] = {
+          callback = "strategies.chat.agents.tools.create_file",
+          description = "Create a file in the current working directory",
+        },
+        ["read_file"] = {
+          callback = "strategies.chat.agents.tools.read_file",
+          description = "Read a file in the current working directory",
         },
         ["weather"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/weather.lua",
@@ -232,7 +246,7 @@ return {
       },
     },
     inline = {
-      adapter = "foo",
+      adapter = "test_adapter",
       variables = {
         ["foo"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/inline/variables/foo.lua",

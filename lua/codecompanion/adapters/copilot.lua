@@ -4,6 +4,31 @@ local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
 
+-- Reference: https://github.com/yetone/avante.nvim/blob/22418bff8bcac4377ebf975cd48f716823867979/lua/avante/providers/copilot.lua#L5-L26
+---
+---@class CopilotToken
+---@field annotations_enabled boolean
+---@field chat_enabled boolean
+---@field chat_jetbrains_enabled boolean
+---@field code_quote_enabled boolean
+---@field codesearch boolean
+---@field copilotignore_enabled boolean
+---@field endpoints {api: string, ["origin-tracker"]: string, proxy: string, telemetry: string}
+---@field expires_at integer
+---@field individual boolean
+---@field nes_enabled boolean
+---@field prompt_8k boolean
+---@field public_suggestions string
+---@field refresh_in integer
+---@field sku string
+---@field snippy_load_test_enabled boolean
+---@field telemetry string
+---@field token string
+---@field tracking_id string
+---@field vsc_electron_fetcher boolean
+---@field xcode boolean
+---@field xcode_chat boolean
+
 local _cached_adapter
 local _cache_expires
 local _cache_file = vim.fn.tempname()
@@ -12,7 +37,7 @@ local _cached_models
 ---@alias CopilotOAuthToken string|nil
 local _oauth_token
 
----@alias CopilotToken {token: string, expires_at: number}|nil
+---@type CopilotToken|nil
 local _github_token
 
 ---Finds the configuration path
@@ -111,8 +136,9 @@ local function authorize_token()
 end
 
 ---Get and authorize a GitHub Copilot token
+---@param self CodeCompanion.Adapter
 ---@return boolean success
-local function get_and_authorize_token()
+local function get_and_authorize_token(self)
   _oauth_token = get_token()
   if not _oauth_token then
     log:error("Copilot Adapter: No token found. Please refer to https://github.com/github/copilot.vim")
@@ -124,6 +150,7 @@ local function get_and_authorize_token()
     log:error("Copilot Adapter: Could not authorize your GitHub Copilot token")
     return false
   end
+  self.url = _github_token.endpoints.api .. "/chat/completions"
 
   return true
 end
@@ -135,8 +162,8 @@ local function reset()
 end
 
 ---Get a list of available Copilot models
----@params self CodeCompanion.Adapter
----@params opts? table
+---@param self CodeCompanion.Adapter
+---@param opts? table
 ---@return table
 local function get_models(self, opts)
   if _cached_models and _cache_expires and _cache_expires > os.time() then
@@ -150,8 +177,8 @@ local function get_models(self, opts)
     _cached_adapter = self
   end
 
-  get_and_authorize_token()
-  local url = "https://api.githubcopilot.com"
+  get_and_authorize_token(self)
+  local url = _github_token.endpoints.api or "https://api.githubcopilot.com"
   local headers = vim.deepcopy(_cached_adapter.headers)
   headers["Authorization"] = "Bearer " .. _github_token.token
 
@@ -256,7 +283,7 @@ return {
         self.opts.vision = false
       end
 
-      return get_and_authorize_token()
+      return get_and_authorize_token(self)
     end,
 
     --- Use the OpenAI adapter for the bulk of the work
@@ -320,7 +347,7 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
-      default = "gpt-4o",
+      default = "gpt-4.1",
       choices = function(self)
         return get_models(self)
       end,

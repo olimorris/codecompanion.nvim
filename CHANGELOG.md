@@ -1,5 +1,88 @@
 # Changelog
 
+## [16.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v16.0.0...v16.1.0) (2025-06-06)
+
+
+### Features
+
+* **tools:** auto_tool_mode now auto submits ([#1580](https://github.com/olimorris/codecompanion.nvim/issues/1580)) ([1b2ab64](https://github.com/olimorris/codecompanion.nvim/commit/1b2ab6445dac16908b2136bd7c071e4dcb7f38d6))
+
+## [16.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.12.0...v16.0.0) (2025-06-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* **chat:** move the `goto_file_action` to `strategies.chat.opts`
+* **chat:** move `opts.goto_file_action` to `strategies.chat.opts` ([#1571](https://github.com/olimorris/codecompanion.nvim/issues/1571))
+* **chat:** reuse existing tabs when jumping to a file. ([#1569](https://github.com/olimorris/codecompanion.nvim/issues/1569))
+
+### Features
+
+* **chat:** chat buffer acts more like a normal buffer ([#1556](https://github.com/olimorris/codecompanion.nvim/issues/1556)) ([ebcdd78](https://github.com/olimorris/codecompanion.nvim/commit/ebcdd78a9d5d0d95c64fe9a106999b9f9603d2f3))
+* **chat:** reuse existing tabs when jumping to a file. ([#1569](https://github.com/olimorris/codecompanion.nvim/issues/1569)) ([8747d88](https://github.com/olimorris/codecompanion.nvim/commit/8747d8871e310942996431d5374001a8b29ab0b7))
+* **chat:** support `:map-arguments` in keymaps ([#1572](https://github.com/olimorris/codecompanion.nvim/issues/1572)) ([d8e94cf](https://github.com/olimorris/codecompanion.nvim/commit/d8e94cfff7525ff5fdcc376093666c2cf57bb0e5))
+* **tools:** can load tools via relative paths ([#1552](https://github.com/olimorris/codecompanion.nvim/issues/1552)) ([7991e53](https://github.com/olimorris/codecompanion.nvim/commit/7991e53c0270db489b94e1a26c0d1608aa2d6206))
+
+
+### Bug Fixes
+
+* **adapters:** fix streaming for gemini adapter ([#1561](https://github.com/olimorris/codecompanion.nvim/issues/1561)) ([585fade](https://github.com/olimorris/codecompanion.nvim/commit/585fadef1940a66216124bdbd1bace55be3b1e73))
+* **chat:** correct yank command syntax in keymaps ([#1568](https://github.com/olimorris/codecompanion.nvim/issues/1568)) ([05555a4](https://github.com/olimorris/codecompanion.nvim/commit/05555a40f263488592556c3acfb61ef323805136))
+* **chat:** Register cmp completions when filetype is set ([#1560](https://github.com/olimorris/codecompanion.nvim/issues/1560)) ([3d62ac3](https://github.com/olimorris/codecompanion.nvim/commit/3d62ac3ebe840245b157e169d06b8d87ee878dc5))
+* **inline:** remove blank lines in diffs ([#1565](https://github.com/olimorris/codecompanion.nvim/issues/1565)) ([fee2dd1](https://github.com/olimorris/codecompanion.nvim/commit/fee2dd137b515b779c57c915ca031921e6591d85))
+
+
+### Code Refactoring
+
+* **chat:** move `opts.goto_file_action` to `strategies.chat.opts` ([#1571](https://github.com/olimorris/codecompanion.nvim/issues/1571)) ([cdf7721](https://github.com/olimorris/codecompanion.nvim/commit/cdf772165782e55a451c0793bf4c2a89926b89bd))
+* **chat:** move the `goto_file_action` to `strategies.chat.opts` ([cdf7721](https://github.com/olimorris/codecompanion.nvim/commit/cdf772165782e55a451c0793bf4c2a89926b89bd))
+
+## [15.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.11.0...v15.12.0) (2025-06-01)
+
+
+### Features
+
+* **adapters:** new copilot default is gpt-4.1 ([#1540](https://github.com/olimorris/codecompanion.nvim/issues/1540)) ([15b0614](https://github.com/olimorris/codecompanion.nvim/commit/15b06141cb9d66ebb3b3038fbe4fa9cd0ee0fc15))
+* **chat:** can set default params for variables ([#1516](https://github.com/olimorris/codecompanion.nvim/issues/1516)) ([c0549d5](https://github.com/olimorris/codecompanion.nvim/commit/c0549d54203160020b4214d3e8827b2103a95b97))
+* **providers:** add coc.nvim ([#1421](https://github.com/olimorris/codecompanion.nvim/issues/1421)) ([c22d2a6](https://github.com/olimorris/codecompanion.nvim/commit/c22d2a675f76a97ede327a49baddec02ecd6f3f5))
+* **slash_commands:** add Telescope provider for `/image` ([#1542](https://github.com/olimorris/codecompanion.nvim/issues/1542)) ([a12d3aa](https://github.com/olimorris/codecompanion.nvim/commit/a12d3aa9a0825ae72733fcffc646615bc3bee484))
+
+
+### Bug Fixes
+
+* **providers:** register coc execute function ([#1548](https://github.com/olimorris/codecompanion.nvim/issues/1548)) ([92ba84c](https://github.com/olimorris/codecompanion.nvim/commit/92ba84cddf19d936809d9775884699e66a070ec4))
+* **tools:** auto submit sends updated buffer ([#1545](https://github.com/olimorris/codecompanion.nvim/issues/1545)) ([82f5917](https://github.com/olimorris/codecompanion.nvim/commit/82f5917455cb7156f36daa99b2ec8049a7958ce5))
+
+## [15.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.10.0...v15.11.0) (2025-05-31)
+
+
+### Features
+
+* **chat:** add keymap to jump to file under cursor ([#1408](https://github.com/olimorris/codecompanion.nvim/issues/1408)) ([4c54348](https://github.com/olimorris/codecompanion.nvim/commit/4c5434883fff08bc9814fb71aff0f51518276acb))
+* **chat:** remember cursor position when toggling ([#1523](https://github.com/olimorris/codecompanion.nvim/issues/1523)) ([51fb1df](https://github.com/olimorris/codecompanion.nvim/commit/51fb1dfa7227ace2e6635c8fcc75cc2ab1b607c6))
+* **prompt_library:** custom prompts can add references ([#1384](https://github.com/olimorris/codecompanion.nvim/issues/1384)) ([3117350](https://github.com/olimorris/codecompanion.nvim/commit/31173502852f0d524e9e74e51255177f094c45e0))
+* **tools:** improve auto-submit and turn on by default ([#1539](https://github.com/olimorris/codecompanion.nvim/issues/1539)) ([3388e15](https://github.com/olimorris/codecompanion.nvim/commit/3388e1562aaa6d6deab90e8ad141439ed2bcac2f))
+
+## [15.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.9.0...v15.10.0) (2025-05-31)
+
+
+### Features
+
+* **adapters:** support Copilot enterprise ([#1533](https://github.com/olimorris/codecompanion.nvim/issues/1533)) ([7572e35](https://github.com/olimorris/codecompanion.nvim/commit/7572e35f22395ad2ab095e75b419a70a00ca2036))
+
+
+### Bug Fixes
+
+* **adapters:** resolving adapters from prompt library ([#1536](https://github.com/olimorris/codecompanion.nvim/issues/1536)) ([9964f48](https://github.com/olimorris/codecompanion.nvim/commit/9964f4880c66376e4c9f0d45f5fd2ab1e5496254)), closes [#1521](https://github.com/olimorris/codecompanion.nvim/issues/1521)
+
+## [15.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.8.0...v15.9.0) (2025-05-28)
+
+
+### Features
+
+* **adapters:** users can specify models for strategies ([#1518](https://github.com/olimorris/codecompanion.nvim/issues/1518)) ([763c81b](https://github.com/olimorris/codecompanion.nvim/commit/763c81b4823af3e3ef9cfb3f55f15f7f8f8b4b15))
+* **slash_commands:** better caching and restoring of URLs ([#1491](https://github.com/olimorris/codecompanion.nvim/issues/1491)) ([d39890c](https://github.com/olimorris/codecompanion.nvim/commit/d39890cb432801cfe5b2a97104289e1cc4b9c415))
+
 ## [15.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.7.0...v15.8.0) (2025-05-26)
 
 
