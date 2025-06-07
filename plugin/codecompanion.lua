@@ -28,7 +28,7 @@ api.nvim_create_autocmd("FileType", {
   callback = vim.schedule_wrap(function()
     vim.iter(config.strategies.chat.variables):each(function(name, var)
       -- Use explicit word boundaries to ensure complete word matching, this prevents partial matches like "#var" matching in "#variable"
-      vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '\\(\\s\\|$\\)"')
+      vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '\\(\\ze\\s\\|\\ze$\\)"')
       -- Allow highlighting variables even without parameters, match the complete pattern including braces (to maintain consistency for finding and replacing logic)
       vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '{[^}]*}"')
     end)
@@ -38,10 +38,10 @@ api.nvim_create_autocmd("FileType", {
         return name ~= "groups" and name ~= "opts"
       end)
       :each(function(name, _)
-        vim.cmd.syntax('match CodeCompanionChatTool "@' .. name .. '\\(\\s\\|$\\)"')
+        vim.cmd.syntax('match CodeCompanionChatTool "@' .. name .. '\\(\\ze\\s\\|\\ze$\\)"')
       end)
     vim.iter(config.strategies.chat.tools.groups):each(function(name, _)
-      vim.cmd.syntax('match CodeCompanionChatToolGroup "@' .. name .. '\\(\\s\\|$\\)"')
+      vim.cmd.syntax('match CodeCompanionChatToolGroup "@' .. name .. '\\(\\ze\\s\\|\\ze$\\)"')
     end)
   end),
 })
