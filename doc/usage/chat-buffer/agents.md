@@ -63,14 +63,21 @@ Can you apply the suggested changes to the buffer with the @editor tool?
 ## @files
 
 > [!NOTE]
-> All file operations require approval from the user before they're executed
+> All file operations require approval from the user before they're executed except for `@read_file`
 
-The _@files_ tool leverages the [Plenary.Path](https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/path.lua) module to enable an LLM to perform various file operations on the user's disk:
+The _@files_ group is a collection of three tools to enable an LLM to perform various file operations on the user's disk:
 
-- Creating a file
-- Reading a file
-- Editing a file
-- Deleting a file
+- `@create_file` - For creating a file on disk
+- `@read_file` - For reading a file on disk
+- `@insert_edit_into_file` - For editing a file on disk
+
+```md
+Can we apply the code changes you've suggested using the @files tool?
+```
+
+```md
+Can you use the @create_file to create files for some common travel destinations in Europe at `destinations/`?
+```
 
 ## @web_search
 
@@ -80,13 +87,14 @@ The _@web_search_ tool enables an LLM to search the web for a specific query. Th
 Can you use the @web_search tool to tell me the latest version of Neovim?
 ```
 
+Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
+
 ## @next_edit_suggestion
 
-Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the `@next_edit_suggestion` tool gives the LLM the ability to show you where the next edit is.
-The LLM can only suggest edits in files that it knows, so this tool only works if you've sent some files in your project to the LLM. 
-This can be done by `/file` or `/buffer` slash commands, the `#buffer` variable or other tools like `@vectorcode`.
+Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the `@next_edit_suggestion` tool gives the LLM the ability to show the user where the next edit is. The LLM can only suggest edits in files or buffers that have been shared with it as context.
 
-The jump action can be customised by the `opts` table:
+The jump action can be customised in the `opts` table:
+
 ```lua
 require("codecompanion").setup({
   strategies = {
@@ -105,11 +113,8 @@ require("codecompanion").setup({
   }
 })
 ```
-The `jump_action` can be a VimScript command (as a string), or a lua function
-that accepts the path to the file and optionally returns the [window ID](https://neovim.io/doc/user/windows.html#window-ID).
 
-The window ID is needed if you want the LLM to point you to a specific line in
-the file.
+The `jump_action` can be a VimScript command (as a string), or a lua function that accepts the path to the file and optionally returns the [window ID](https://neovim.io/doc/user/windows.html#window-ID). The window ID is needed if you want the LLM to point you to a specific line in the file.
 
 ## @full_stack_dev
 
@@ -136,7 +141,7 @@ Consider combining tools for complex tasks:
 
 ### Automatic Tool Mode
 
-The plugin allows you to run tools on autopilot. This automatically approves any tool use instead of prompting the user, disables any diffs, and automatically saves any buffers that the agent has edited. Simply set the global variable `vim.g.codecompanion_auto_tool_mode` to enable this or set it to `nil` to undo this. Alternatively, the keymap `gta` will toggle  the feature whist from the chat buffer.
+The plugin allows you to run tools on autopilot. This automatically approves any tool use instead of prompting the user, disables any diffs, submits errors and success messages and automatically saves any buffers that the agent has edited. Simply set the global variable `vim.g.codecompanion_auto_tool_mode` to enable this or set it to `nil` to undo this. Alternatively, the keymap `gta` will toggle  the feature whist from the chat buffer.
 
 ## Compatibility
 

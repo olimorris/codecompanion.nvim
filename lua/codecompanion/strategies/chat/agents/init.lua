@@ -76,22 +76,25 @@ function Agent:set_autocmds()
         )
       elseif request.match == "CodeCompanionAgentFinished" then
         return vim.schedule(function()
-          if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then
+          local auto_submit = function()
             return self.chat:submit({
               auto_submit = true,
               callback = function()
                 self:reset({ auto_submit = true })
               end,
             })
+          end
+
+          if vim.g.codecompanion_auto_tool_mode then
+            return auto_submit()
+          end
+          if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then
+            return auto_submit()
           end
           if self.status == CONSTANTS.STATUS_SUCCESS and self.tools_config.opts.auto_submit_success then
-            return self.chat:submit({
-              auto_submit = true,
-              callback = function()
-                self:reset({ auto_submit = true })
-              end,
-            })
+            return auto_submit()
           end
+
           self:reset({ auto_submit = false })
         end)
       end

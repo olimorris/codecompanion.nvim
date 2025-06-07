@@ -1,5 +1,42 @@
 # Changelog
 
+## [16.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v16.0.0...v16.1.0) (2025-06-06)
+
+
+### Features
+
+* **tools:** auto_tool_mode now auto submits ([#1580](https://github.com/olimorris/codecompanion.nvim/issues/1580)) ([1b2ab64](https://github.com/olimorris/codecompanion.nvim/commit/1b2ab6445dac16908b2136bd7c071e4dcb7f38d6))
+
+## [16.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.12.0...v16.0.0) (2025-06-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* **chat:** move the `goto_file_action` to `strategies.chat.opts`
+* **chat:** move `opts.goto_file_action` to `strategies.chat.opts` ([#1571](https://github.com/olimorris/codecompanion.nvim/issues/1571))
+* **chat:** reuse existing tabs when jumping to a file. ([#1569](https://github.com/olimorris/codecompanion.nvim/issues/1569))
+
+### Features
+
+* **chat:** chat buffer acts more like a normal buffer ([#1556](https://github.com/olimorris/codecompanion.nvim/issues/1556)) ([ebcdd78](https://github.com/olimorris/codecompanion.nvim/commit/ebcdd78a9d5d0d95c64fe9a106999b9f9603d2f3))
+* **chat:** reuse existing tabs when jumping to a file. ([#1569](https://github.com/olimorris/codecompanion.nvim/issues/1569)) ([8747d88](https://github.com/olimorris/codecompanion.nvim/commit/8747d8871e310942996431d5374001a8b29ab0b7))
+* **chat:** support `:map-arguments` in keymaps ([#1572](https://github.com/olimorris/codecompanion.nvim/issues/1572)) ([d8e94cf](https://github.com/olimorris/codecompanion.nvim/commit/d8e94cfff7525ff5fdcc376093666c2cf57bb0e5))
+* **tools:** can load tools via relative paths ([#1552](https://github.com/olimorris/codecompanion.nvim/issues/1552)) ([7991e53](https://github.com/olimorris/codecompanion.nvim/commit/7991e53c0270db489b94e1a26c0d1608aa2d6206))
+
+
+### Bug Fixes
+
+* **adapters:** fix streaming for gemini adapter ([#1561](https://github.com/olimorris/codecompanion.nvim/issues/1561)) ([585fade](https://github.com/olimorris/codecompanion.nvim/commit/585fadef1940a66216124bdbd1bace55be3b1e73))
+* **chat:** correct yank command syntax in keymaps ([#1568](https://github.com/olimorris/codecompanion.nvim/issues/1568)) ([05555a4](https://github.com/olimorris/codecompanion.nvim/commit/05555a40f263488592556c3acfb61ef323805136))
+* **chat:** Register cmp completions when filetype is set ([#1560](https://github.com/olimorris/codecompanion.nvim/issues/1560)) ([3d62ac3](https://github.com/olimorris/codecompanion.nvim/commit/3d62ac3ebe840245b157e169d06b8d87ee878dc5))
+* **inline:** remove blank lines in diffs ([#1565](https://github.com/olimorris/codecompanion.nvim/issues/1565)) ([fee2dd1](https://github.com/olimorris/codecompanion.nvim/commit/fee2dd137b515b779c57c915ca031921e6591d85))
+
+
+### Code Refactoring
+
+* **chat:** move `opts.goto_file_action` to `strategies.chat.opts` ([#1571](https://github.com/olimorris/codecompanion.nvim/issues/1571)) ([cdf7721](https://github.com/olimorris/codecompanion.nvim/commit/cdf772165782e55a451c0793bf4c2a89926b89bd))
+* **chat:** move the `goto_file_action` to `strategies.chat.opts` ([cdf7721](https://github.com/olimorris/codecompanion.nvim/commit/cdf772165782e55a451c0793bf4c2a89926b89bd))
+
 ## [15.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v15.11.0...v15.12.0) (2025-06-01)
 
 

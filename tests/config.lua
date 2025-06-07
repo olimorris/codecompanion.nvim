@@ -82,6 +82,18 @@ return {
           callback = "strategies.chat.agents.tools.next_edit_suggestion",
           description = "Suggest and jump to the next position to edit",
         },
+        ["insert_edit_into_file"] = {
+          callback = "strategies.chat.agents.tools.insert_edit_into_file",
+          description = "Insert code into an existing file",
+        },
+        ["create_file"] = {
+          callback = "strategies.chat.agents.tools.create_file",
+          description = "Create a file in the current working directory",
+        },
+        ["read_file"] = {
+          callback = "strategies.chat.agents.tools.read_file",
+          description = "Read a file in the current working directory",
+        },
         ["weather"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/weather.lua",
           description = "Get the latest weather",
