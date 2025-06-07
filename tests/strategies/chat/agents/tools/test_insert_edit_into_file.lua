@@ -30,7 +30,9 @@ local T = new_set({
   },
 })
 
-T["insert_edit_into_file tool edit a file"] = function()
+T["File"] = new_set()
+
+T["File"]["insert_edit_into_file tool edit a file"] = function()
   child.lua([[
       -- create initial file
       local initial = "line1\nline2\nline3"
@@ -54,7 +56,7 @@ T["insert_edit_into_file tool edit a file"] = function()
   h.eq(output, { "line1", "new_line2", "line3" }, "File was not updated")
 end
 
-T["insert_edit_into_file tool regex"] = function()
+T["File"]["insert_edit_into_file tool regex"] = function()
   child.lua([[
       -- create initial file
       local initial = "line1\nline2\nline3"
@@ -77,7 +79,7 @@ T["insert_edit_into_file tool regex"] = function()
   h.eq(output, { "line1", "line3" }, "File was not updated")
 end
 
-T["insert_edit_into_file tool from fixtures"] = function()
+T["File"]["insert_edit_into_file tool from fixtures"] = function()
   child.lua([[
        -- read initial file from fixture
        local initial = vim.fn.readfile("tests/fixtures/files-input-1.html")
@@ -105,7 +107,7 @@ T["insert_edit_into_file tool from fixtures"] = function()
   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
 
-T["insert_edit_into_file tool multiple @@"] = function()
+T["File"]["insert_edit_into_file tool multiple @@"] = function()
   child.lua([[
        -- read initial file from fixture
        local initial = vim.fn.readfile("tests/fixtures/files-input-1.html")
@@ -133,7 +135,7 @@ T["insert_edit_into_file tool multiple @@"] = function()
   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
 
-T["insert_edit_into_file tool empty lines"] = function()
+T["File"]["insert_edit_into_file tool empty lines"] = function()
   child.lua([[
        -- read initial file from fixture
        local initial = vim.fn.readfile("tests/fixtures/files-input-1.html")
@@ -161,7 +163,7 @@ T["insert_edit_into_file tool empty lines"] = function()
   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
 
-T["insert_edit_into_file tool multiple patches"] = function()
+T["File"]["insert_edit_into_file tool multiple patches"] = function()
   child.lua([[
       -- read initial file from fixture
       local initial = vim.fn.readfile("tests/fixtures/files-input-1.html")
@@ -189,7 +191,7 @@ T["insert_edit_into_file tool multiple patches"] = function()
   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
 
-T["insert_edit_into_file tool multiple continuation"] = function()
+T["File"]["insert_edit_into_file tool multiple continuation"] = function()
   child.lua([[
       -- read initial file from fixture
       local initial = vim.fn.readfile("tests/fixtures/files-input-2.html")
@@ -217,7 +219,7 @@ T["insert_edit_into_file tool multiple continuation"] = function()
   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
 
-T["insert_edit_into_file tool spaces"] = function()
+T["File"]["insert_edit_into_file tool spaces"] = function()
   child.lua([[
        -- read initial file from fixture
        local initial = vim.fn.readfile("tests/fixtures/files-input-2.html")
@@ -244,7 +246,7 @@ T["insert_edit_into_file tool spaces"] = function()
   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
 
-T["insert_edit_into_file tool html spaces flexible"] = function()
+T["File"]["insert_edit_into_file tool html spaces flexible"] = function()
   child.lua([[
        -- read initial file from fixture
        local initial = vim.fn.readfile("tests/fixtures/files-input-3.html")
@@ -272,7 +274,7 @@ T["insert_edit_into_file tool html spaces flexible"] = function()
   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
 
-T["insert_edit_into_file tool html line breaks"] = function()
+T["File"]["insert_edit_into_file tool html line breaks"] = function()
   child.lua([[
        -- read initial file from fixture
        local initial = vim.fn.readfile("tests/fixtures/files-input-4.html")
@@ -300,7 +302,7 @@ T["insert_edit_into_file tool html line breaks"] = function()
   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
 end
 
-T["insert_edit_into_file tool lua dashes"] = function()
+T["File"]["insert_edit_into_file tool lua dashes"] = function()
   child.lua([[
       -- read initial file from fixture
       local initial = vim.fn.readfile("tests/fixtures/files-input-5.lua")
@@ -326,6 +328,49 @@ T["insert_edit_into_file tool lua dashes"] = function()
   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE_ABSOLUTE)")
   local expected = child.lua_get("vim.fn.readfile('tests/fixtures/files-output-5.lua')")
   h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
+end
+
+T["Buffer"] = new_set()
+
+T["Buffer"]["insert_edit_into_file tool edits buffers"] = function()
+  child.lua([[
+      -- read initial file from fixture
+      local initial = vim.fn.readfile("tests/fixtures/buffers-input-1.lua")
+      local ok = vim.fn.writefile(initial, _G.TEST_TMPFILE_ABSOLUTE)
+      assert(ok == 0)
+
+      -- load the file into a buffer
+      _G.bufnr = vim.fn.bufadd(_G.TEST_TMPFILE_ABSOLUTE)
+
+      -- read contents for the tool from fixtures
+      local content = table.concat(vim.fn.readfile("tests/fixtures/buffers-diff-1.patch"), "\n")
+      local arguments = vim.json.encode({ filepath = _G.TEST_TMPFILE, explanation = "...", code = content })
+
+      local tool = {
+        {
+          ["function"] = {
+            name = "insert_edit_into_file",
+            arguments = arguments
+          },
+        },
+      }
+      agent:execute(chat, tool)
+      vim.cmd("buffer " .. _G.bufnr)
+      vim.wait(200)
+    ]])
+
+  -- Test that the file was updated as per the output fixture
+  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE_ABSOLUTE)")
+  local expected = child.lua_get("vim.fn.readfile('tests/fixtures/buffers-output-1.lua')")
+  h.eq_info(output, expected, child.lua_get("chat.messages[#chat.messages].content"))
+
+  -- Check that the buffer was updated
+  local lines = child.lua([[
+    local log = require("codecompanion.utils.log")
+    local lines = h.get_buf_lines(_G.bufnr)
+    return lines
+  ]])
+  h.eq(lines[2], '  return "CodeCompanion"')
 end
 
 return T

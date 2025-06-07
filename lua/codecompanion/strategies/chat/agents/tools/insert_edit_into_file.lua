@@ -1,7 +1,12 @@
 local Path = require("plenary.path")
+local buffers = require("codecompanion.utils.buffers")
+local config = require("codecompanion.config")
+local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local patch = require("codecompanion.strategies.chat.agents.tools.helpers.patch")
+local ui = require("codecompanion.utils.ui")
 
+local api = vim.api
 local fmt = string.format
 
 local PROMPT = [[<editFileInstructions>
@@ -19,7 +24,7 @@ The system uses fuzzy matching and confidence scoring so focus on providing enou
 ---Edit code in a file
 ---@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
 ---@return string
-local function edit(action)
+local function edit_file(action)
   local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
   local p = Path:new(filepath)
   p.filename = p:expand()
@@ -47,10 +52,83 @@ local function edit(action)
 
   -- 5. refresh the buffer if the file is open
   local bufnr = vim.fn.bufnr(p.filename)
-  if bufnr ~= -1 and vim.api.nvim_buf_is_loaded(bufnr) then
-    vim.api.nvim_command("checktime " .. bufnr)
+  if bufnr ~= -1 and api.nvim_buf_is_loaded(bufnr) then
+    api.nvim_command("checktime " .. bufnr)
   end
   return fmt("**Insert Edit Into File Tool**: `%s` - %s", action.filepath, action.explanation)
+end
+
+---Edit code in a buffer
+---@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
+---@return string
+local function edit_buffer(bufnr, action)
+  -- Initialize diff if enabled and not in auto mode
+  if not vim.g.codecompanion_auto_tool_mode and config.display.diff.enabled and vim.bo[bufnr].buftype ~= "terminal" then
+    local provider = config.display.diff.provider
+    local ok, diff = pcall(require, "codecompanion.providers.diff." .. provider)
+    local winnr = ui.buf_get_win(bufnr)
+
+    if ok and winnr then
+      ---@type CodeCompanion.DiffArgs
+      local diff_args = {
+        bufnr = bufnr,
+        contents = api.nvim_buf_get_lines(bufnr, 0, -1, true),
+        filetype = api.nvim_buf_get_option(bufnr, "filetype"),
+        winnr = winnr,
+      }
+      ---@type CodeCompanion.Diff
+      diff = diff.new(diff_args)
+      keymaps
+        .new({
+          bufnr = bufnr,
+          callbacks = require("codecompanion.strategies.inline.keymaps"),
+          data = { diff = diff },
+          keymaps = config.strategies.inline.keymaps,
+        })
+        :set()
+    end
+  end
+
+  -- Parse and apply patches to buffer
+  local raw = action.code or ""
+  local changes = patch.parse_changes(raw)
+
+  -- Get current buffer content as lines
+  local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+
+  -- Apply each change
+  for _, change in ipairs(changes) do
+    local new_lines = patch.apply_change(lines, change)
+    if new_lines == nil then
+      error(fmt("Bad/Incorrect diff:\n\n%s\n\nNo changes were applied", patch.get_change_string(change)))
+    else
+      lines = new_lines
+    end
+  end
+
+  -- Update the buffer with new content
+  api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+
+  -- Auto-save if enabled
+  if vim.g.codecompanion_auto_tool_mode then
+    log:info("[Insert Edit Into File Tool] Auto-saving buffer")
+    api.nvim_buf_call(bufnr, function()
+      vim.cmd("silent write")
+    end)
+  end
+
+  return fmt("**Insert Edit Into File Tool**: `%s` - %s", action.filepath, action.explanation)
+end
+
+---Edit code
+---@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
+---@return string
+local function edit(action)
+  local bufnr = buffers.get_bufnr_from_filepath(action.filepath)
+  if bufnr then
+    return edit_buffer(bufnr, action)
+  end
+  return edit_file(action)
 end
 
 ---@class CodeCompanion.Tool.InsertEditIntoFile: CodeCompanion.Agent.Tool

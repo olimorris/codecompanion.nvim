@@ -133,11 +133,8 @@ function Watchers:check_for_changes(chat)
         local diff_content = format_changes_as_diff(old_content, current_content)
 
         if diff_content ~= "" then
-          local changes_text = string.format(
-            "The user has modified the watched file `%s`. Here are the changes:\n%s",
-            filename,
-            diff_content
-          )
+          local changes_text =
+            string.format("The watched file `%s`, has been modified. Here are the changes:\n%s", filename, diff_content)
           chat:add_message({
             role = config.constants.USER_ROLE,
             content = changes_text,
