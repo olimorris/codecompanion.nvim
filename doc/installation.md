@@ -6,7 +6,7 @@
 ## Requirements
 
 - The `curl` library
-- Neovim 0.10.0 or greater
+- Neovim 0.11.0 or greater
 - _(Optional)_ An API key for your chosen LLM
 - _(Optional)_ The `base64` library for image/vision support
 
