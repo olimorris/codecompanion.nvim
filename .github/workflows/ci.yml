@@ -21,8 +21,6 @@ jobs:
             url: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.tar.gz
           - os: ubuntu-latest
             url: https://github.com/neovim/neovim/releases/download/v0.11.0/nvim-linux-x86_64.tar.gz
-          - os: ubuntu-latest
-            url: https://github.com/neovim/neovim/releases/download/v0.10.0/nvim-linux64.tar.gz
 
     steps:
       - name: Checkout 🛎️
@@ -36,7 +34,7 @@ jobs:
           path: _neovim
           key: ${{ runner.os }}-${{ matrix.url }}-${{ hashFiles('todays-date') }}
 
-      - name: Prepare 🏗️
+      - name: Prepare Neovim 🏗️
         run: |
           test -d _neovim || {
             mkdir -p _neovim
@@ -44,6 +42,11 @@ jobs:
           }
           mkdir -p ~/.local/share/nvim/site/pack/vendor/start
           ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
+
+      - name: Install Tree-sitter 🌳
+        run: |
+          # Install tree-sitter CLI
+          npm install -g tree-sitter-cli
 
       - name: Run tests 🧪
         run: |
