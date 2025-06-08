@@ -215,6 +215,18 @@ local function get_best_location(lines, change)
   return best_location, best_score
 end
 
+---Get the location where a change would be applied without actually applying it
+---@param lines string[] File lines
+---@param change Change Edit description
+---@return integer|nil location The line number (1-based) where the change would be applied
+function M.get_change_location(lines, change)
+  local location, score = get_best_location(lines, change)
+  if score < 0.5 then
+    return nil
+  end
+  return location
+end
+
 ---Apply a Change object to the file lines. Returns nil if not confident.
 ---@param lines string[] Lines before patch
 ---@param change Change Edit description

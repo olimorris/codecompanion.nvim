@@ -122,6 +122,46 @@ M.buf_scroll_to_end = function(bufnr)
   end
 end
 
+---Scroll the window to show a specific line without moving cursor
+---@param bufnr number The buffer number
+---@param line_num number The line number to scroll to (1-based)
+function M.scroll_to_line(bufnr, line_num)
+  local winnr = M.buf_get_win(bufnr)
+  if not winnr then
+    return
+  end
+
+  api.nvim_win_call(winnr, function()
+    vim.cmd(":" .. tostring(line_num))
+    vim.cmd("normal! zz")
+  end)
+end
+
+---Scroll to line and briefly highlight the edit area
+---@param bufnr number The buffer number
+---@param line_num number The line number to scroll to
+---@param num_lines? number Number of lines that were changed
+function M.scroll_and_highlight(bufnr, line_num, num_lines)
+  num_lines = num_lines or 1
+
+  M.scroll_to_line(bufnr, line_num)
+
+  local ns_id = api.nvim_create_namespace("codecompanion_edit_highlight")
+
+  -- Highlight the edited lines
+  for i = 0, num_lines - 1 do
+    local highlight_line = line_num + i - 1 -- Convert to 0-based
+    if highlight_line >= 0 and highlight_line < api.nvim_buf_line_count(bufnr) then
+      api.nvim_buf_add_highlight(bufnr, ns_id, "DiffAdd", highlight_line, 0, -1)
+    end
+  end
+
+  -- Clear highlight after a short delay
+  vim.defer_fn(function()
+    api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+  end, 2000) -- 2 seconds
+end
+
 ---@param bufnr nil|integer
 ---@return nil|integer
 M.buf_get_win = function(bufnr)

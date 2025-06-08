@@ -3,6 +3,7 @@ local buffers = require("codecompanion.utils.buffers")
 local diff = require("codecompanion.strategies.chat.agents.tools.helpers.diff")
 local log = require("codecompanion.utils.log")
 local patch = require("codecompanion.strategies.chat.agents.tools.helpers.patch")
+local ui = require("codecompanion.utils.ui")
 local wait = require("codecompanion.strategies.chat.agents.tools.helpers.wait")
 
 local api = vim.api
@@ -78,17 +79,26 @@ local function edit_buffer(bufnr, action, output_handler)
   local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
 
   -- Apply each change
+  local start_line = nil
   for _, change in ipairs(changes) do
     local new_lines = patch.apply_change(lines, change)
     if new_lines == nil then
       error(fmt("Bad/Incorrect diff:\n\n%s\n\nNo changes were applied", patch.get_change_string(change)))
     else
+      if not start_line then
+        start_line = patch.get_change_location(lines, change)
+      end
       lines = new_lines
     end
   end
 
   -- Update the buffer with the edited code
   api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+
+  -- Scroll to the editing location
+  if start_line then
+    ui.scroll_to_line(bufnr, start_line or 1)
+  end
 
   -- Auto-save if enabled
   if vim.g.codecompanion_auto_tool_mode then
