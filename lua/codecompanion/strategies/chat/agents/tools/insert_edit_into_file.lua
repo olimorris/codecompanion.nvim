@@ -1,10 +1,8 @@
 local Path = require("plenary.path")
 local buffers = require("codecompanion.utils.buffers")
-local config = require("codecompanion.config")
-local keymaps = require("codecompanion.utils.keymaps")
+local diff = require("codecompanion.strategies.chat.agents.tools.helpers.diff")
 local log = require("codecompanion.utils.log")
 local patch = require("codecompanion.strategies.chat.agents.tools.helpers.patch")
-local ui = require("codecompanion.utils.ui")
 local wait = require("codecompanion.strategies.chat.agents.tools.helpers.wait")
 
 local api = vim.api
@@ -65,37 +63,11 @@ end
 ---@param output_handler function The callback to call when done
 ---@return string
 local function edit_buffer(bufnr, action, output_handler)
-  local diff_started = false
+  local diffed
   local diff_id = math.random(10000000)
 
-  -- Initialize diff if enabled and not in auto mode
-  if not vim.g.codecompanion_auto_tool_mode and config.display.diff.enabled and vim.bo[bufnr].buftype ~= "terminal" then
-    local provider = config.display.diff.provider
-    local ok, diff = pcall(require, "codecompanion.providers.diff." .. provider)
-    local winnr = ui.buf_get_win(bufnr)
-
-    if ok and winnr then
-      diff_started = true
-
-      ---@type CodeCompanion.DiffArgs
-      local diff_args = {
-        bufnr = bufnr,
-        contents = api.nvim_buf_get_lines(bufnr, 0, -1, true),
-        filetype = api.nvim_buf_get_option(bufnr, "filetype"),
-        id = diff_id,
-        winnr = winnr,
-      }
-      ---@type CodeCompanion.Diff
-      diff = diff.new(diff_args)
-      keymaps
-        .new({
-          bufnr = bufnr,
-          callbacks = require("codecompanion.strategies.inline.keymaps"),
-          data = { diff = diff },
-          keymaps = config.strategies.inline.keymaps,
-        })
-        :set()
-    end
+  if diff.should_create(bufnr) then
+    diffed = diff.create(bufnr, diff_id)
   end
 
   -- Parse and apply patches to buffer
@@ -131,7 +103,7 @@ local function edit_buffer(bufnr, action, output_handler)
     data = fmt("**Insert Edit Into File Tool**: `%s` - %s", action.filepath, action.explanation),
   }
 
-  if diff_started then
+  if diffed then
     local opts = {
       notify = "Diff created - please review and accept/reject",
     }

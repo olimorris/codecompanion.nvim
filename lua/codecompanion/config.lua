@@ -407,7 +407,7 @@ local defaults = {
       keymaps = {
         accept_change = {
           modes = {
-            n = "ga",
+            n = "gda",
           },
           index = 1,
           callback = "keymaps.accept_change",
@@ -415,7 +415,7 @@ local defaults = {
         },
         reject_change = {
           modes = {
-            n = "gr",
+            n = "gdr",
           },
           index = 2,
           callback = "keymaps.reject_change",

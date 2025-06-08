@@ -29,7 +29,6 @@ function M.for_decision(id, events, callback, opts)
     pattern = events,
     callback = function(event)
       local event_data = event.data or {}
-
       if id ~= event_data.id then
         return
       end

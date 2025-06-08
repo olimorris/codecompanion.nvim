@@ -20,7 +20,6 @@ local current_source
 local MiniDiff = {}
 
 ---@param args CodeCompanion.DiffArgs
----@return CodeCompanion.MiniDiff
 function MiniDiff.new(args)
   local self = setmetatable({
     bufnr = args.bufnr,
