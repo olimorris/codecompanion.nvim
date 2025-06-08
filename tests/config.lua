@@ -70,10 +70,6 @@ return {
           callback = "strategies.chat.agents.tools.cmd_runner",
           description = "Run shell commands initiated by the LLM",
         },
-        ["editor"] = {
-          callback = "strategies.chat.agents.tools.editor",
-          description = "Update a buffer with the LLM's response",
-        },
         ["files"] = {
           callback = "strategies.chat.agents.tools.files",
           description = "Update the file system with the LLM's response",

@@ -27,13 +27,13 @@ T["Agent"]["resolve"] = new_set()
 T["Agent"]["resolve"]["can resolve built-in tools"] = function()
   child.lua([[
     _G.tool = _G.agent.resolve({
-      callback = "strategies.chat.agents.tools.editor",
+      callback = "strategies.chat.agents.tools.create_file",
       description = "Update a buffer with the LLM's response",
     })
   ]])
 
   h.eq("table", child.lua_get("type(_G.tool)"))
-  h.eq("editor", child.lua_get("_G.tool.name"))
+  h.eq("create_file", child.lua_get("_G.tool.name"))
 end
 
 T["Agent"]["resolve"]["can resolve user's tools"] = function()
@@ -160,11 +160,11 @@ T["Agent"][":execute"]["a nested response from the LLM"] = function() end
 T["Agent"][":replace"] = new_set()
 T["Agent"][":replace"]["should replace the tool in the message"] = function()
   child.lua([[
-    local message = "run the @editor tool"
-    _G.result = _G.agent:replace(message, "editor")
+    local message = "run the @create_file tool"
+    _G.result = _G.agent:replace(message, "create_file")
   ]])
 
-  h.eq("run the editor tool", child.lua_get("_G.result"))
+  h.eq("run the create_file tool", child.lua_get("_G.result"))
 end
 
 return T

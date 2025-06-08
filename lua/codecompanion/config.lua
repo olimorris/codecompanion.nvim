@@ -59,7 +59,6 @@ local defaults = {
             system_prompt = "**DO NOT** make any assumptions about the dependencies that a user has installed. If you need to install any dependencies to fulfil the user's request, do so via the Command Runner tool. If the user doesn't specify a path, use their current working directory.",
             tools = {
               "cmd_runner",
-              "editor",
               "create_file",
               "read_file",
               "insert_edit_into_file",
@@ -80,10 +79,6 @@ local defaults = {
           opts = {
             requires_approval = true,
           },
-        },
-        ["editor"] = {
-          callback = "strategies.chat.agents.tools.editor",
-          description = "Update a buffer with the LLM's response",
         },
         ["insert_edit_into_file"] = {
           callback = "strategies.chat.agents.tools.insert_edit_into_file",
