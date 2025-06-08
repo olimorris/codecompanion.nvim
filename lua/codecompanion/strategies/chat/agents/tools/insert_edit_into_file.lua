@@ -5,6 +5,7 @@ local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local patch = require("codecompanion.strategies.chat.agents.tools.helpers.patch")
 local ui = require("codecompanion.utils.ui")
+local wait = require("codecompanion.strategies.chat.agents.tools.helpers.wait")
 
 local api = vim.api
 local fmt = string.format
@@ -59,9 +60,14 @@ local function edit_file(action)
 end
 
 ---Edit code in a buffer
+---@param bufnr number The buffer number to edit
 ---@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
+---@param output_handler function The callback to call when done
 ---@return string
-local function edit_buffer(bufnr, action)
+local function edit_buffer(bufnr, action, output_handler)
+  local diff_started = false
+  local diff_id = math.random(10000000)
+
   -- Initialize diff if enabled and not in auto mode
   if not vim.g.codecompanion_auto_tool_mode and config.display.diff.enabled and vim.bo[bufnr].buftype ~= "terminal" then
     local provider = config.display.diff.provider
@@ -69,11 +75,14 @@ local function edit_buffer(bufnr, action)
     local winnr = ui.buf_get_win(bufnr)
 
     if ok and winnr then
+      diff_started = true
+
       ---@type CodeCompanion.DiffArgs
       local diff_args = {
         bufnr = bufnr,
         contents = api.nvim_buf_get_lines(bufnr, 0, -1, true),
         filetype = api.nvim_buf_get_option(bufnr, "filetype"),
+        id = diff_id,
         winnr = winnr,
       }
       ---@type CodeCompanion.Diff
@@ -106,7 +115,7 @@ local function edit_buffer(bufnr, action)
     end
   end
 
-  -- Update the buffer with new content
+  -- Update the buffer with the edited code
   api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
 
   -- Auto-save if enabled
@@ -117,35 +126,52 @@ local function edit_buffer(bufnr, action)
     end)
   end
 
-  return fmt("**Insert Edit Into File Tool**: `%s` - %s", action.filepath, action.explanation)
-end
+  local success = {
+    status = "success",
+    data = fmt("**Insert Edit Into File Tool**: `%s` - %s", action.filepath, action.explanation),
+  }
 
----Edit code
----@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
----@return string
-local function edit(action)
-  local bufnr = buffers.get_bufnr_from_filepath(action.filepath)
-  if bufnr then
-    return edit_buffer(bufnr, action)
+  if diff_started then
+    local opts = {
+      notify = "Diff created - please review and accept/reject",
+    }
+
+    -- Wait for the user to accept or reject the edit
+    return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
+      if result.accepted then
+        return output_handler(success)
+      end
+      return output_handler({
+        status = "error",
+        data = result.timeout and "User failed to accept the changes in time" or "User rejected the changes",
+      })
+    end, opts)
   end
-  return edit_file(action)
+
+  return output_handler(success)
 end
 
 ---@class CodeCompanion.Tool.InsertEditIntoFile: CodeCompanion.Agent.Tool
 return {
   name = "insert_edit_into_file",
   cmds = {
-    ---Execute the file commands
-    ---@param self CodeCompanion.Tool.Editor The Editor tool
+    ---Execute the edit commands
+    ---@param self CodeCompanion.Tool.InsertEditIntoFile The Editor tool
     ---@param args table The arguments from the LLM's tool call
     ---@param input? any The output from the previous function call
-    ---@return { status: "success"|"error", data: string }
-    function(self, args, input)
-      local ok, outcome = pcall(edit, args)
-      if not ok then
-        return { status = "error", data = outcome }
+    ---@param output_handler function Async callback for completion
+    ---@return nil
+    function(self, args, input, output_handler)
+      local bufnr = buffers.get_bufnr_from_filepath(args.filepath)
+      if bufnr then
+        return edit_buffer(bufnr, args, output_handler)
+      else
+        local ok, outcome = pcall(edit_file, args)
+        if not ok then
+          return output_handler({ status = "error", data = outcome })
+        end
+        return output_handler({ status = "success", data = outcome })
       end
-      return { status = "success", data = outcome }
     end,
   },
   schema = {
