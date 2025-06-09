@@ -74,6 +74,58 @@ M.set_virtual_text = function(bufnr, ns_id, message, opts)
   })
 end
 
+---Show a notification with virtual lines in a buffer
+---@param bufnr number The buffer number to display the notification in
+---@param opts table Options for the notification
+---@return number The extmark ID for cleanup
+function M.show_buffer_notification(bufnr, opts)
+  opts = opts or {}
+
+  local ns_id = api.nvim_create_namespace(opts.namespace or ("codecompanion_notification_" .. tostring(bufnr)))
+  local line_count = api.nvim_buf_line_count(bufnr)
+  local target_line = opts.line or (line_count - 1) -- Default to last line (0-indexed)
+
+  local main_text = opts.text or "Notification"
+  local sub_text = opts.sub_text
+  local main_hl = opts.main_hl or "CodeCompanionChatWarn"
+  local sub_hl = opts.sub_hl or "Comment"
+
+  local virt_lines = {
+    { -- Empty line for spacing
+      { "", "Normal" },
+    },
+    { -- Main message
+      { " ", "Normal" },
+      { main_text, main_hl },
+    },
+  }
+
+  -- Add sub-text line if provided
+  if sub_text then
+    table.insert(virt_lines, {
+      { "╰─ ", "Comment" },
+      { sub_text, sub_hl },
+    })
+  end
+
+  local extmark_id = api.nvim_buf_set_extmark(bufnr, ns_id, target_line, 0, {
+    virt_lines = virt_lines,
+    virt_lines_above = opts.above or false,
+    priority = opts.priority or (vim.highlight.priorities.user + 10),
+  })
+
+  return extmark_id
+end
+
+---Clear a notification by extmark ID
+---@param bufnr number The buffer number
+---@param extmark_id number The extmark ID to remove
+---@param namespace? string Optional namespace (defaults to codecompanion_notification)
+function M.clear_notification(bufnr, extmark_id, namespace)
+  local ns_id = api.nvim_create_namespace(namespace or ("codecompanion_notification_" .. tostring(bufnr)))
+  pcall(api.nvim_buf_del_extmark, bufnr, ns_id, extmark_id)
+end
+
 ---@param bufnr number
 ---@return boolean
 M.buf_is_empty = function(bufnr)

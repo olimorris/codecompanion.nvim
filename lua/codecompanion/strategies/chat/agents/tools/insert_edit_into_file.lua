@@ -1,5 +1,6 @@
 local Path = require("plenary.path")
 local buffers = require("codecompanion.utils.buffers")
+local config = require("codecompanion.config")
 local diff = require("codecompanion.strategies.chat.agents.tools.helpers.diff")
 local log = require("codecompanion.utils.log")
 local patch = require("codecompanion.strategies.chat.agents.tools.helpers.patch")
@@ -60,10 +61,11 @@ end
 
 ---Edit code in a buffer
 ---@param bufnr number The buffer number to edit
+---@param chat_bufnr number The chat buffer number
 ---@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
 ---@param output_handler function The callback to call when done
 ---@return string
-local function edit_buffer(bufnr, action, output_handler)
+local function edit_buffer(bufnr, chat_bufnr, action, output_handler)
   local diffed
   local diff_id = math.random(10000000)
 
@@ -97,7 +99,7 @@ local function edit_buffer(bufnr, action, output_handler)
 
   -- Scroll to the editing location
   if start_line then
-    ui.scroll_to_line(bufnr, start_line or 1)
+    ui.scroll_to_line(bufnr, start_line)
   end
 
   -- Auto-save if enabled
@@ -114,8 +116,14 @@ local function edit_buffer(bufnr, action, output_handler)
   }
 
   if diffed then
+    -- Get the diff keymaps
+    local accept = config.strategies.inline.keymaps.accept_change.modes.n
+    local reject = config.strategies.inline.keymaps.reject_change.modes.n
+
     local opts = {
-      notify = "Diff created - please review and accept/reject",
+      chat_bufnr = chat_bufnr,
+      notify = "  Waiting for diff approval...",
+      sub_text = fmt("`%s` - Accept changes / `%s` - Reject changes", accept, reject),
     }
 
     -- Wait for the user to accept or reject the edit
@@ -146,7 +154,7 @@ return {
     function(self, args, input, output_handler)
       local bufnr = buffers.get_bufnr_from_filepath(args.filepath)
       if bufnr then
-        return edit_buffer(bufnr, args, output_handler)
+        return edit_buffer(bufnr, self.chat.bufnr, args, output_handler)
       else
         local ok, outcome = pcall(edit_file, args)
         if not ok then
