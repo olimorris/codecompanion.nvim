@@ -21,6 +21,7 @@ local util = require("codecompanion.utils")
 local api = vim.api
 
 local extmarks = {}
+local show_tools_processing = config.display.chat.show_tools_processing
 
 local CONSTANTS = {
   PREFIX = "@",
@@ -70,14 +71,16 @@ function Agent:set_autocmds()
 
       if request.match == "CodeCompanionAgentStarted" then
         log:info("[Agent] Initiated")
-        local namespace = CONSTANTS.NS_TOOLS .. "_" .. self.bufnr
-        local extmark_id = ui.show_buffer_notification(self.bufnr, {
-          namespace = namespace,
-          text = CONSTANTS.PROCESSING_MSG,
-          main_hl = "CodeCompanionChatInfo",
-          spacer = true,
-        })
-        extmarks[namespace] = extmark_id
+        if show_tools_processing then
+          local namespace = CONSTANTS.NS_TOOLS .. "_" .. self.bufnr
+          local extmark_id = ui.show_buffer_notification(self.bufnr, {
+            namespace = namespace,
+            text = CONSTANTS.PROCESSING_MSG,
+            main_hl = "CodeCompanionChatInfo",
+            spacer = true,
+          })
+          extmarks[namespace] = extmark_id
+        end
       elseif request.match == "CodeCompanionAgentFinished" then
         return vim.schedule(function()
           local auto_submit = function()
@@ -311,7 +314,10 @@ end
 function Agent:reset(opts)
   opts = opts or {}
 
-  ui.clear_notification(self.bufnr, extmarks[self.bufnr], CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr))
+  if show_tools_processing then
+    ui.clear_notification(self.bufnr, extmarks[self.bufnr], CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr))
+  end
+
   api.nvim_clear_autocmds({ group = self.aug })
 
   extmarks[self.bufnr] = nil

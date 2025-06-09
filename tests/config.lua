@@ -335,8 +335,13 @@ return {
         },
       },
       intro_message = "", -- Keep this blank or it messes up the screenshot tests
+      show_tools_processing = false, -- Show the loading message when tools are being executed?
     },
     diff = { enabled = false },
+    icons = {
+      loading = " ",
+      warning = " ",
+    },
   },
   opts = {
     system_prompt = "default system prompt",

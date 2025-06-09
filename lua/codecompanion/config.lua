@@ -996,6 +996,7 @@ You must create or modify a workspace file through a series of prompts over mult
 
       show_references = true, -- Show references (from slash commands and variables) in the chat buffer?
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
+      show_tools_processing = true, -- Show the loading message when tools are being executed?
       show_token_count = true, -- Show the token count for each response?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
 

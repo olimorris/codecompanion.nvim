@@ -146,7 +146,7 @@ return {
   name = "insert_edit_into_file",
   cmds = {
     ---Execute the edit commands
-    ---@param self CodeCompanion.Tool.InsertEditIntoFile The Editor tool
+    ---@param self CodeCompanion.Tool.InsertEditIntoFile
     ---@param args table The arguments from the LLM's tool call
     ---@param input? any The output from the previous function call
     ---@param output_handler function Async callback for completion
