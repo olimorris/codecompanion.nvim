@@ -89,6 +89,33 @@ Can you use the @web_search tool to tell me the latest version of Neovim?
 
 Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
 
+## @next_edit_suggestion
+
+Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the `@next_edit_suggestion` tool gives the LLM the ability to show the user where the next edit is. The LLM can only suggest edits in files or buffers that have been shared with it as context.
+
+The jump action can be customised in the `opts` table:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      tools = {
+        ["next_edit_suggestion"] = {
+          opts = {
+            --- the default is to open in a new tab, and reuse existing tabs
+            --- where possible
+            ---@type string|fun(path: string):integer?
+            jump_action = 'tabnew',
+          },
+        }
+      }
+    }
+  }
+})
+```
+
+The `jump_action` can be a VimScript command (as a string), or a lua function that accepts the path to the file and optionally returns the [window ID](https://neovim.io/doc/user/windows.html#window-ID). The window ID is needed if you want the LLM to point you to a specific line in the file.
+
 ## @full_stack_dev
 
 The plugin enables tools to be grouped together. The _@full_stack_dev_ agent is a combination of the _@cmd_runner_, _@editor_ and _@files_ tools:

@@ -74,6 +74,10 @@ return {
           callback = "strategies.chat.agents.tools.files",
           description = "Update the file system with the LLM's response",
         },
+        ["next_edit_suggestion"] = {
+          callback = "strategies.chat.agents.tools.next_edit_suggestion",
+          description = "Suggest and jump to the next position to edit",
+        },
         ["insert_edit_into_file"] = {
           callback = "strategies.chat.agents.tools.insert_edit_into_file",
           description = "Insert code into an existing file",
