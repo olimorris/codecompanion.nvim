@@ -90,15 +90,17 @@ function M.show_buffer_notification(bufnr, opts)
   local main_hl = opts.main_hl or "CodeCompanionChatWarn"
   local sub_hl = opts.sub_hl or "Comment"
 
-  local virt_lines = {
-    { -- Empty line for spacing
-      { "", "Normal" },
-    },
-    { -- Main message
-      { " ", "Normal" },
-      { main_text, main_hl },
-    },
-  }
+  local virt_lines = {}
+
+  if opts.spacer then
+    table.insert(virt_lines, { { "", "Normal" } })
+  end
+
+  -- Create the main text line
+  table.insert(virt_lines, {
+    { "", "Normal" },
+    { main_text, main_hl },
+  })
 
   -- Add sub-text line if provided
   if sub_text then

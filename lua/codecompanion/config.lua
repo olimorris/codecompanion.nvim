@@ -1024,6 +1024,10 @@ You must create or modify a workspace file through a series of prompts over mult
       -- If the inline prompt creates a new buffer, how should we display this?
       layout = "vertical", -- vertical|horizontal|buffer
     },
+    icons = {
+      loading = " ",
+      warning = " ",
+    },
   },
   -- EXTENSIONS ------------------------------------------------------
   extensions = {},

@@ -122,7 +122,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler)
 
     local opts = {
       chat_bufnr = chat_bufnr,
-      notify = "  Waiting for diff approval...",
+      notify = config.display.icons.warning .. " Waiting for diff approval ...",
       sub_text = fmt("`%s` - Accept changes / `%s` - Reject changes", accept, reject),
     }
 
