@@ -26,6 +26,9 @@ T = new_set({
         _G.test_callback = function(result)
           table.insert(_G.callback_results, result)
         end
+
+        h = require('tests.helpers')
+        chat, agent = h.setup_chat_buffer()
       ]])
     end,
     post_case = function()
@@ -219,19 +222,6 @@ end
 
 T["for_decision()"]["uses default timeout from config"] = function()
   child.lua([[
-    -- Mock config to return specific timeout
-    package.loaded["codecompanion.config"] = {
-      strategies = {
-        chat = {
-          tools = {
-						opts = {
-							wait_timeout = 1000
-						}
-					}
-        }
-      }
-    }
-
     vim.g.codecompanion_auto_tool_mode = false
 
     -- Reload wait module to pick up mocked config
@@ -247,7 +237,7 @@ T["for_decision()"]["uses default timeout from config"] = function()
   ]])
 
   -- Wait for timeout with some buffer
-  child.lua("vim.wait(1500, function() return #_G.callback_results > 0 end)")
+  child.lua("vim.wait(3000, function() return #_G.callback_results > 0 end)")
 
   local results = child.lua_get("_G.callback_results")
   local duration = child.lua_get("_G.timeout_duration")

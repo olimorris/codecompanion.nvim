@@ -162,9 +162,7 @@ return {
         },
         opts = {
           system_prompt = "My tool system prompt",
-          auto_submit_errors = false, -- Send any errors to the LLM automatically?
-          auto_submit_success = true, -- Send any successful output to the LLM automatically?
-          wait_timeout = 3000, -- How long to wait for user input before timing out (milliseconds)
+          wait_timeout = 3000,
         },
       },
       variables = {
