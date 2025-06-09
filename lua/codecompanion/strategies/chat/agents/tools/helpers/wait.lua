@@ -43,7 +43,7 @@ function M.for_decision(id, events, callback, opts)
     end,
   })
 
-  opts.timeout = opts.timeout or config.strategies.chat.tools.wait_timeout or 30000
+  opts.timeout = opts.timeout or config.strategies.chat.tools.opts.wait_timeout or 30000
 
   vim.defer_fn(function()
     api.nvim_clear_autocmds({ group = aug })
