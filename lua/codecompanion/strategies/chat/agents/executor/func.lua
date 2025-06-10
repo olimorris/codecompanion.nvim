@@ -72,8 +72,7 @@ function FuncExecutor:run(func, action, input, callback)
   ---@param msg {status:"success"|"error", data:any}
   local function output_handler(msg)
     if tool_finished then
-      log:warn("output_handler for tool %s is called more than once.", self.executor.tool.name)
-      return
+      return log:info("output_handler for tool %s called more than once", self.executor.tool.name)
     end
     tool_finished = true
     if msg.status == self.executor.agent.constants.STATUS_ERROR then
