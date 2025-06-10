@@ -205,24 +205,6 @@ local function generate_context_for_group(group_info, file_content, group_index,
   return context
 end
 
--- Debug function to print formatted content
-local function debug_print_content(content, title)
-  print("\n" .. string.rep("=", 60))
-  print("DEBUG: " .. (title or "Content"))
-  print(string.rep("=", 60))
-
-  -- Split content by lines and print with proper formatting
-  local lines = vim.split(content, "\n")
-  for i, line in ipairs(lines) do
-    -- Add line numbers for easier debugging
-    print(string.format("%3d: %s", i, line))
-  end
-
-  print(string.rep("=", 60))
-  print("END DEBUG")
-  print(string.rep("=", 60) .. "\n")
-end
-
 ---@class CodeCompanion.SlashCommand.Qflist: CodeCompanion.SlashCommand
 local SlashCommand = {}
 
@@ -388,9 +370,6 @@ function SlashCommand:output_entries(entries)
   for filepath, file_data in pairs(files) do
     local description, id = process_single_file(filepath, file_data)
     if description then
-      -- TODO: remove this debug before commit
-      debug_print_content(description, "Quickfix Output for " .. vim.fn.fnamemodify(filepath, ":."))
-
       self.Chat:add_message({
         role = config.constants.USER_ROLE,
         content = description,
