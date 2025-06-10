@@ -85,7 +85,7 @@ When a tool is detected, the chat buffer sends any output to the `agents/init.lu
 There are two types of tools that CodeCompanion can leverage:
 
 1. **Command-based**: These tools can execute a series of commands in the background using a [plenary.job](https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/job.lua). They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
-2. **Function-based**: These tools, like [@editor](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/editor.lua), execute Lua functions directly in Neovim within the main process, one after another.
+2. **Function-based**: These tools, like [@insert_edit_into_file](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/insert_edit_into_file.lua), execute Lua functions directly in Neovim within the main process, one after another.
 
 For the purposes of this section of the guide, we'll be building a simple function-based calculator tool that an LLM can use to do basic maths.
 

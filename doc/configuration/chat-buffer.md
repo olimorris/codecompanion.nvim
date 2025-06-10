@@ -314,7 +314,7 @@ require("codecompanion").setup({
 > [!NOTE]
 > Currently the plugin only supports native Neovim diff or [mini.diff](https://github.com/echasnovski/mini.diff)
 
-If you utilize the `@editor` tool, then the plugin can update a given chat buffer. A diff will be created so you can see the changes made by the LLM.
+If you utilize the `@insert_edit_into_file` tool, then the plugin can update a given chat buffer. A diff will be created so you can see the changes made by the LLM.
 
 There are a number of diff settings available to you:
 

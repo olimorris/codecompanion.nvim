@@ -54,7 +54,7 @@ T["Agent"][":find"] = new_set()
 T["Agent"][":find"]["should only find tools that end with space or are eol"] = function()
   local result = child.lua([[
     local message = {
-      content = "Use @tool_group_toolfor @files something and not @editor!"
+      content = "Use @tool_group_toolfor @files something and not @insert_edit_into_file!"
     }
     local tools, groups = _G.agent:find(_G.chat, message)
     return {
