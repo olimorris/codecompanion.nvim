@@ -30,6 +30,10 @@ local function edit_file(action)
   local p = Path:new(filepath)
   p.filename = p:expand()
 
+  if not p:exists() or not p:is_file() then
+    return fmt("**Insert Edit Into File Tool Error**: File '%s' does not exist or is not a file", action.filepath)
+  end
+
   -- 1. extract list of changes from the code
   local raw = action.code or ""
   local changes = patch.parse_changes(raw)
