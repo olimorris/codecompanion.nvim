@@ -10,6 +10,9 @@ Custom variables can be shared by adding them to the `strategies.chat.variables`
 
 ## #buffer
 
+> [!NOTE]
+> As of [v16.2.0](https://github.com/olimorris/codecompanion.nvim/releases/tag/v16.2.0), buffers are now watched by default
+
 The _#buffer_ variable shares the full contents from the buffer that the user was last in when they initiated `:CodeCompanionChat`. To select another buffer, use the _/buffer_ slash command. These buffers can be [pinned or watched](/usage/chat-buffer/index#references) to enable updated content to be automatically shared with the LLM:
 
 - `#buffer{pin}` - To pin the current buffer

@@ -2363,6 +2363,10 @@ alongside the `prompt_library` table where individual prompts have
 
 /BUFFER ~
 
+
+  [!NOTE] As of v16.2.0
+  <https://github.com/olimorris/codecompanion.nvim/releases/tag/v16.2.0>, buffers
+  are now watched by default
 The `buffer` slash command enables you to add the contents of any open buffers
 in Neovim to the chat buffer. The command has native, `Telescope`, `mini.pick`,
 `fzf.lua` and `snacks.nvim` providers available. Also, multiple buffers can be
@@ -2475,6 +2479,10 @@ Custom variables can be shared by adding them to the
 
 #BUFFER ~
 
+
+  [!NOTE] As of v16.2.0
+  <https://github.com/olimorris/codecompanion.nvim/releases/tag/v16.2.0>, buffers
+  are now watched by default
 The `#buffer` variable shares the full contents from the buffer that the user
 was last in when they initiated `:CodeCompanionChat`. To select another buffer,
 use the `/buffer` slash command. These buffers can be
