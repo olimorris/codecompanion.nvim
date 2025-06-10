@@ -23,7 +23,10 @@ The _fetch_ slash command allows you to add the contents of a URL to the chat bu
 
 ## /file
 
-The _file_ slash command allows you to add the contents of a file in the current working directory to the chat buffer. The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, multiple files can be selected and added to the chat buffer.
+The _file_ slash command allows you to add the contents of a file in the current working directory to the chat buffer. The command has native, _Telescope_, _mini.pick_, _fzf.lua_ and _snacks.nvim_ providers available. Also, [multiple files can be selected]([url](https://github.com/olimorris/codecompanion.nvim/discussions/1589#discussioncomment-13401712)) and added to the chat buffer.
+
+- Select single file: `⏎ enter`
+- Select multiple files: `⇥ tab` to select
 
 ## /help
 
