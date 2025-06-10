@@ -89,6 +89,9 @@ require("codecompanion").setup({
 })
 ```
 
+> [!IMPORTANT]
+> Each slash command may have their own unique configuration so be sure to check out the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) file
+
 You can also add your own slash commands:
 
 ```lua
@@ -431,7 +434,8 @@ require("codecompanion").setup({
   },
 })
 ```
+
 This can either be a string (denoting a VimScript command), or a function that
 takes a single parameter (the path to the file to jump to). The default action
-is to jump to an existing tab if the file is already opened, and open a new tab 
+is to jump to an existing tab if the file is already opened, and open a new tab
 otherwise.
