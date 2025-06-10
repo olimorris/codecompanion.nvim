@@ -98,6 +98,22 @@ return {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
           description = "Some function tool to test",
         },
+        ["func_approval"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_approval.lua",
+          description = "Some function tool to test with an approval step",
+          opts = {
+            requires_approval = true,
+          },
+        },
+        ["func_approval2"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_approval2.lua",
+          description = "Some function tool to test with an approval step that's a table",
+          opts = {
+            requires_approval = {
+              buffer = true, -- We're not actually testing this. requires_approval being a table triggers the user_approval test
+            },
+          },
+        },
         ["func_handlers_once"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_handlers_once.lua",
           description = "Some function tool to test",

@@ -38,12 +38,18 @@ function Executor:setup_handlers()
     setup = function()
       _G.codecompanion_current_tool = self.tool.name
       if self.tool.handlers and self.tool.handlers.setup then
-        self.tool.handlers.setup(self.tool, self.agent)
+        return self.tool.handlers.setup(self.tool, self.agent)
       end
+    end,
+    prompt_condition = function()
+      if self.tool.handlers and self.tool.handlers.prompt_condition then
+        return self.tool.handlers.prompt_condition(self.tool, self.agent, self.agent.tools_config)
+      end
+      return true
     end,
     on_exit = function()
       if self.tool.handlers and self.tool.handlers.on_exit then
-        self.tool.handlers.on_exit(self.tool, self.agent)
+        return self.tool.handlers.on_exit(self.tool, self.agent)
       end
     end,
   }
@@ -104,43 +110,51 @@ function Executor:setup(input)
   log:debug("Executor:execute - `%s` tool", self.tool.name)
 
   -- Check if the tool requires approval
-  if self.tool.opts and self.tool.opts.requires_approval and not vim.g.codecompanion_auto_tool_mode then
-    log:debug("Executor:execute - Asking for approval")
+  if self.tool.opts and not vim.g.codecompanion_auto_tool_mode then
+    local requires_approval = self.tool.opts.requires_approval
 
-    local prompt = self.output.prompt()
-    if prompt == nil or prompt == "" then
-      prompt = ("Run the %q tool?"):format(self.tool.name)
+    if type(requires_approval) == "table" then
+      requires_approval = self.handlers.prompt_condition()
     end
 
-    vim.ui.select({ "Yes", "No", "Cancel" }, {
-      kind = "codecompanion.nvim",
-      prompt = prompt,
-      format_item = function(item)
-        if item == "Yes" then
-          return "Yes"
-        elseif item == "No" then
-          return "No"
-        else
-          return "Cancel"
-        end
-      end,
-    }, function(choice)
-      if not choice or choice == "Cancel" then -- No selection or cancelled
-        log:debug("Executor:execute - Tool cancelled")
-        finalize_agent(self)
-        self:close()
-        return
-      elseif choice == "Yes" then -- Selected yes
-        log:debug("Executor:execute - Tool approved")
-        self:execute(cmd, input)
-      elseif choice == "No" then -- Selected no
-        log:debug("Executor:execute - Tool rejected")
-        self.output.rejected(cmd)
-        self:setup()
+    if requires_approval then
+      log:debug("Executor:execute - Asking for approval")
+
+      local prompt = self.output.prompt()
+      if prompt == nil or prompt == "" then
+        prompt = ("Run the %q tool?"):format(self.tool.name)
       end
-    end)
-  else
-    self:execute(cmd, input)
+
+      vim.ui.select({ "Yes", "No", "Cancel" }, {
+        kind = "codecompanion.nvim",
+        prompt = prompt,
+        format_item = function(item)
+          if item == "Yes" then
+            return "Yes"
+          elseif item == "No" then
+            return "No"
+          else
+            return "Cancel"
+          end
+        end,
+      }, function(choice)
+        if not choice or choice == "Cancel" then -- No selection or cancelled
+          log:debug("Executor:execute - Tool cancelled")
+          finalize_agent(self)
+          self:close()
+          return
+        elseif choice == "Yes" then -- Selected yes
+          log:debug("Executor:execute - Tool approved")
+          self:execute(cmd, input)
+        elseif choice == "No" then -- Selected no
+          log:debug("Executor:execute - Tool rejected")
+          self.output.rejected(cmd)
+          self:setup()
+        end
+      end)
+    else
+      return self:execute(cmd, input)
+    end
   end
 end
 

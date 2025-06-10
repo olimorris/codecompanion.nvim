@@ -212,6 +212,29 @@ return {
   },
   system_prompt = PROMPT,
   handlers = {
+    ---The handler to determine whether to prompt the user for approval
+    ---@param self CodeCompanion.Tool.InsertEditIntoFile
+    ---@param agent CodeCompanion.Agent
+    ---@param config table The tool configuration
+    ---@return boolean
+    prompt_condition = function(self, agent, config)
+      local opts = config["insert_edit_into_file"].opts or {}
+
+      local args = self.args
+      local bufnr = buffers.get_bufnr_from_filepath(args.filepath)
+      if bufnr then
+        if opts.requires_approval.buffer then
+          return true
+        end
+        return false
+      end
+
+      if opts.requires_approval.file then
+        return true
+      end
+      return false
+    end,
+
     ---@param agent CodeCompanion.Agent The tool object
     ---@return nil
     on_exit = function(agent)
