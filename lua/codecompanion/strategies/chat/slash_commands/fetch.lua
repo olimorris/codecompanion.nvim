@@ -366,7 +366,7 @@ local function fetch(chat, adapter, url, opts)
               end
             end)
           else
-            return log:error("Error %s - %s", data.status, body.data.text)
+            return log:error("Error %s - %s", data.status, body.message or "No message provided")
           end
         end
       end,

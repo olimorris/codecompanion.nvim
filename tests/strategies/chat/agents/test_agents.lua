@@ -49,6 +49,92 @@ T["Agent"]["resolve"]["can resolve user's tools"] = function()
   h.eq("This is the Foo tool", child.lua_get("_G.tool.cmds[1]()"))
 end
 
+T["Agent"][":find"] = new_set()
+
+T["Agent"][":find"]["should only find tools that end with space or are eol"] = function()
+  local result = child.lua([[
+    local message = {
+      content = "Use @tool_group_toolfor @files something and not @editor!"
+    }
+    local tools, groups = _G.agent:find(_G.chat, message)
+    return {
+     tools = tools ,
+     groups = groups 
+    }
+  ]])
+
+  h.eq({ "files" }, result.tools)
+  h.eq({}, result.groups)
+end
+
+T["Agent"][":find"]["should find tools followed by a new line"] = function()
+  local result = child.lua([[
+    local message = {
+      content = "Use @editor\n"
+    }
+    local tools, groups = _G.agent:find(_G.chat, message)
+    return {
+     tools = tools ,
+     groups = groups 
+    }
+  ]])
+
+  h.eq({ "editor" }, result.tools)
+  h.eq({}, result.groups)
+end
+T["Agent"][":find"]["should find tools with non-space chars before"] = function()
+  local result = child.lua([[
+    local message = {
+      content = "Use @tool_group_toolfor@files something "
+    }
+    local tools, groups = _G.agent:find(_G.chat, message)
+    return {
+     tools = tools ,
+     groups = groups 
+    }
+  ]])
+
+  h.eq({ "files" }, result.tools)
+  h.eq({}, result.groups)
+end
+
+T["Agent"][":find"]["should find a group and a tool with same prefix"] = function()
+  local result = child.lua([[
+    local message = {
+      content = "Use @tool_group_tool @tool_group for something"
+    }
+    local tools, groups = _G.agent:find(_G.chat, message)
+    return {
+     tools = tools, 
+     groups = groups 
+    }
+  ]])
+
+  h.eq(
+    true,
+    vim.tbl_contains(result.tools, "tool_group_tool")
+      and vim.tbl_contains(result.tools, "func")
+      and vim.tbl_contains(result.tools, "cmd")
+  )
+  h.eq({ "tool_group" }, result.groups)
+end
+
+T["Agent"][":find"]["should not find a group when tool name starts with group name"] = function()
+  local result = child.lua([[
+    local message = {
+      content = "Use @tool_group_tool for something"
+    }
+    local tools, groups = _G.agent:find(_G.chat, message)
+    return {
+     tools = tools, 
+     groups = groups 
+    }
+  ]])
+
+  h.eq({ "tool_group_tool" }, result.tools)
+  h.eq({}, result.groups)
+end
+
 T["Agent"][":parse"] = new_set()
 T["Agent"][":parse"]["add a tool's system prompt to chat buffer"] = function()
   child.lua([[
@@ -165,6 +251,18 @@ T["Agent"][":replace"]["should replace the tool in the message"] = function()
   ]])
 
   h.eq("run the create_file tool", child.lua_get("_G.result"))
+end
+
+T["Agent"][":replace"]["should be in sync with finding logic"] = function()
+  child.lua([[
+    local message = "run the @editor tool and pre@files and @tool_group_tool and not @files! but handle newlines @editor\n"
+    _G.result = _G.agent:replace(message)
+  ]])
+
+  h.eq(
+    "run the editor tool and prefiles and tool_group_tool and not @files! but handle newlines editor",
+    child.lua_get("_G.result")
+  )
 end
 
 return T
