@@ -68,8 +68,11 @@ end
 ---@param chat_bufnr number The chat buffer number
 ---@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
 ---@param output_handler function The callback to call when done
+---@param opts? table Additional options
 ---@return string
-local function edit_buffer(bufnr, chat_bufnr, action, output_handler)
+local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
+  opts = opts or {}
+
   local diffed
   local diff_id = math.random(10000000)
 
@@ -119,12 +122,14 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler)
     data = fmt("**Insert Edit Into File Tool**: `%s` - %s", action.filepath, action.explanation),
   }
 
-  if diffed then
+  local tool_config = opts.config and opts.config[opts.name] or {}
+
+  if diffed and tool_config.opts.user_confirmation then
     -- Get the diff keymaps
     local accept = config.strategies.inline.keymaps.accept_change.modes.n
     local reject = config.strategies.inline.keymaps.reject_change.modes.n
 
-    local opts = {
+    local wait_opts = {
       chat_bufnr = chat_bufnr,
       notify = config.display.icons.warning .. " Waiting for diff approval ...",
       sub_text = fmt("`%s` - Accept changes / `%s` - Reject changes", accept, reject),
@@ -139,7 +144,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler)
         status = "error",
         data = result.timeout and "User failed to accept the changes in time" or "User rejected the changes",
       })
-    end, opts)
+    end, wait_opts)
   end
 
   return output_handler(success)
@@ -150,7 +155,7 @@ return {
   name = "insert_edit_into_file",
   cmds = {
     ---Execute the edit commands
-    ---@param self CodeCompanion.Tool.InsertEditIntoFile
+    ---@param self CodeCompanion.Agent
     ---@param args table The arguments from the LLM's tool call
     ---@param input? any The output from the previous function call
     ---@param output_handler function Async callback for completion
@@ -158,7 +163,13 @@ return {
     function(self, args, input, output_handler)
       local bufnr = buffers.get_bufnr_from_filepath(args.filepath)
       if bufnr then
-        return edit_buffer(bufnr, self.chat.bufnr, args, output_handler)
+        return edit_buffer(
+          bufnr,
+          self.chat.bufnr,
+          args,
+          output_handler,
+          { name = self.tool.name, config = self.tools_config }
+        )
       else
         local ok, outcome = pcall(edit_file, args)
         if not ok then
@@ -209,7 +220,7 @@ return {
   },
   output = {
     ---The message which is shared with the user when asking for their approval
-    ---@param self CodeCompanion.Agent.Tool
+    ---@param self CodeCompanion.Tool.InsertEditIntoFile
     ---@param agent CodeCompanion.Agent
     ---@return nil|string
     prompt = function(self, agent)
