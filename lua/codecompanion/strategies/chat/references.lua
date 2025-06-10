@@ -128,6 +128,7 @@ function References:add(ref)
     if not ref.opts then
       ref.opts = {}
     end
+
     -- Ensure both properties exist with defaults
     ref.opts.pinned = ref.opts.pinned or false
     ref.opts.watched = ref.opts.watched or false

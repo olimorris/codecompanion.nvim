@@ -152,6 +152,7 @@ local defaults = {
           description = "Insert open buffers",
           opts = {
             contains_code = true,
+            default_params = "watch", -- watch|pin
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
