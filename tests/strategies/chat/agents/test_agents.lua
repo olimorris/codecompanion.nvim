@@ -59,7 +59,7 @@ T["Agent"][":find"]["should only find tools that end with space or are eol"] = f
     local tools, groups = _G.agent:find(_G.chat, message)
     return {
      tools = tools ,
-     groups = groups 
+     groups = groups
     }
   ]])
 
@@ -70,16 +70,16 @@ end
 T["Agent"][":find"]["should find tools followed by a new line"] = function()
   local result = child.lua([[
     local message = {
-      content = "Use @editor\n"
+      content = "Use @insert_edit_into_file\n"
     }
     local tools, groups = _G.agent:find(_G.chat, message)
     return {
      tools = tools ,
-     groups = groups 
+     groups = groups
     }
   ]])
 
-  h.eq({ "editor" }, result.tools)
+  h.eq({ "insert_edit_into_file" }, result.tools)
   h.eq({}, result.groups)
 end
 T["Agent"][":find"]["should find tools with non-space chars before"] = function()
@@ -90,7 +90,7 @@ T["Agent"][":find"]["should find tools with non-space chars before"] = function(
     local tools, groups = _G.agent:find(_G.chat, message)
     return {
      tools = tools ,
-     groups = groups 
+     groups = groups
     }
   ]])
 
@@ -105,8 +105,8 @@ T["Agent"][":find"]["should find a group and a tool with same prefix"] = functio
     }
     local tools, groups = _G.agent:find(_G.chat, message)
     return {
-     tools = tools, 
-     groups = groups 
+     tools = tools,
+     groups = groups
     }
   ]])
 
@@ -126,8 +126,8 @@ T["Agent"][":find"]["should not find a group when tool name starts with group na
     }
     local tools, groups = _G.agent:find(_G.chat, message)
     return {
-     tools = tools, 
-     groups = groups 
+     tools = tools,
+     groups = groups
     }
   ]])
 
@@ -255,12 +255,12 @@ end
 
 T["Agent"][":replace"]["should be in sync with finding logic"] = function()
   child.lua([[
-    local message = "run the @editor tool and pre@files and @tool_group_tool and not @files! but handle newlines @editor\n"
+    local message = "run the @insert_edit_into_file tool and pre@files and @tool_group_tool and not @files! but handle newlines @insert_edit_into_file\n"
     _G.result = _G.agent:replace(message)
   ]])
 
   h.eq(
-    "run the editor tool and prefiles and tool_group_tool and not @files! but handle newlines editor",
+    "run the insert_edit_into_file tool and prefiles and tool_group_tool and not @files! but handle newlines insert_edit_into_file",
     child.lua_get("_G.result")
   )
 end
