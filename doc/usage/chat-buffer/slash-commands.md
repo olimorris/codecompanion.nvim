@@ -37,6 +37,13 @@ The _file_ slash command allows you to add the contents of a file in the current
 
 Please note that these mappings may be different depending on your provider.
 
+## /QUICKFIX
+
+The `quickfix` slash command adds entries from the Neovim quickfix list to the chat buffer.
+
+- For search patterns or file entries, the whole file is shared.
+- For diagnostics, the context of the function/method/class is shared if possible; otherwise, 10 lines around the diagnostic are included.
+
 ## /help
 
 The _help_ slash command allows you to add content from a vim help file (`:h helpfile`), to the chat buffer, by searching for help tags. Currently this is only available for _Telescope_, _mini.pick_, _fzf_lua_ and _snacks.nvim_ providers. By default, the slash command will prompt you to trim a help file that is over 1,000 lines in length.
