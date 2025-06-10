@@ -21,7 +21,6 @@ local util = require("codecompanion.utils")
 
 local api = vim.api
 
-local extmarks = {}
 local show_tools_processing = config.display.chat.show_tools_processing
 
 local CONSTANTS = {
@@ -73,14 +72,13 @@ function Agent:set_autocmds()
       if request.match == "CodeCompanionAgentStarted" then
         log:info("[Agent] Initiated")
         if show_tools_processing then
-          local namespace = CONSTANTS.NS_TOOLS .. "_" .. self.bufnr
-          local extmark_id = ui.show_buffer_notification(self.bufnr, {
+          local namespace = CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr)
+          ui.show_buffer_notification(self.bufnr, {
             namespace = namespace,
             text = CONSTANTS.PROCESSING_MSG,
             main_hl = "CodeCompanionChatInfo",
             spacer = true,
           })
-          extmarks[namespace] = extmark_id
         end
       elseif request.match == "CodeCompanionAgentFinished" then
         return vim.schedule(function()
@@ -325,12 +323,11 @@ function Agent:reset(opts)
   opts = opts or {}
 
   if show_tools_processing then
-    ui.clear_notification(self.bufnr, extmarks[self.bufnr], CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr))
+    ui.clear_notification(self.bufnr, { namespace = CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr) })
   end
 
   api.nvim_clear_autocmds({ group = self.aug })
 
-  extmarks[self.bufnr] = nil
   self.extracted = {}
   self.status = CONSTANTS.STATUS_SUCCESS
   self.stderr = {}

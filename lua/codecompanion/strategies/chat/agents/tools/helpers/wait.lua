@@ -40,7 +40,7 @@ function M.for_decision(id, events, callback, opts)
       local accepted = (event.match == events[1])
 
       if chat_extmark_id and opts.chat_bufnr then
-        M.clear_waiting_indicator(opts.chat_bufnr, chat_extmark_id)
+        M.clear_waiting_indicator(opts.chat_bufnr)
       end
 
       api.nvim_clear_autocmds({ group = aug })
@@ -53,13 +53,13 @@ function M.for_decision(id, events, callback, opts)
   })
 
   if opts.notify then
-    utils.notify(opts.notify or "Waiting for user decision...")
+    utils.notify(opts.notify or "Waiting for user decision ...")
   end
 
   opts.timeout = opts.timeout or config.strategies.chat.tools.opts.wait_timeout or 30000
   vim.defer_fn(function()
     if chat_extmark_id and opts.chat_bufnr then
-      M.clear_waiting_indicator(opts.chat_bufnr, chat_extmark_id)
+      M.clear_waiting_indicator(opts.chat_bufnr)
     end
 
     api.nvim_clear_autocmds({ group = aug })
@@ -77,7 +77,7 @@ end
 function M.show_waiting_indicator(bufnr, opts)
   opts = opts or {}
 
-  local notify = opts.notify or "⏳ Waiting for approval..."
+  local notify = opts.notify or "Waiting for user decision ..."
   local sub_text = opts.sub_text
 
   return ui.show_buffer_notification(bufnr, {
@@ -85,16 +85,15 @@ function M.show_waiting_indicator(bufnr, opts)
     text = notify,
     sub_text = sub_text,
     main_hl = "CodeCompanionChatWarn",
-    sub_hl = "Comment",
+    sub_hl = "CodeCompanionChatSubtext",
   })
 end
 
 ---Clear the waiting indicator
 ---@param bufnr number The buffer number to clear the indicator from
----@param extmark_id number The extmark ID to remove
 ---@return nil
-function M.clear_waiting_indicator(bufnr, extmark_id)
-  ui.clear_notification(bufnr, extmark_id, "codecompanion_waiting_" .. tostring(bufnr))
+function M.clear_waiting_indicator(bufnr)
+  ui.clear_notification(bufnr, { namespace = "codecompanion_waiting_" .. tostring(bufnr) })
 end
 
 return M

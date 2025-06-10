@@ -77,7 +77,7 @@ end
 ---Show a notification with virtual lines in a buffer
 ---@param bufnr number The buffer number to display the notification in
 ---@param opts table Options for the notification
----@return number The extmark ID for cleanup
+---@return number The extmark ID
 function M.show_buffer_notification(bufnr, opts)
   opts = opts or {}
 
@@ -88,7 +88,7 @@ function M.show_buffer_notification(bufnr, opts)
   local main_text = opts.text or "Notification"
   local sub_text = opts.sub_text
   local main_hl = opts.main_hl or "CodeCompanionChatWarn"
-  local sub_hl = opts.sub_hl or "Comment"
+  local sub_hl = opts.sub_hl or "CodeCompanionChatSubtext"
 
   local virt_lines = {}
 
@@ -110,22 +110,20 @@ function M.show_buffer_notification(bufnr, opts)
     })
   end
 
-  local extmark_id = api.nvim_buf_set_extmark(bufnr, ns_id, target_line, 0, {
+  return api.nvim_buf_set_extmark(bufnr, ns_id, target_line, 0, {
     virt_lines = virt_lines,
     virt_lines_above = opts.above or false,
     priority = opts.priority or (vim.highlight.priorities.user + 10),
   })
-
-  return extmark_id
 end
 
----Clear a notification by extmark ID
+---Clear a notification via the namespace
 ---@param bufnr number The buffer number
----@param extmark_id number The extmark ID to remove
----@param namespace? string Optional namespace (defaults to codecompanion_notification)
-function M.clear_notification(bufnr, extmark_id, namespace)
-  local ns_id = api.nvim_create_namespace(namespace or ("codecompanion_notification_" .. tostring(bufnr)))
-  pcall(api.nvim_buf_del_extmark, bufnr, ns_id, extmark_id)
+---@param opts? table Options for clearing the notification
+function M.clear_notification(bufnr, opts)
+  opts = opts or {}
+  local ns_id = api.nvim_create_namespace(opts.namespace or ("codecompanion_notification_" .. tostring(bufnr)))
+  pcall(api.nvim_buf_clear_namespace, bufnr, ns_id, opts.line_start or 0, opts.line_end or -1)
 end
 
 ---@param bufnr number

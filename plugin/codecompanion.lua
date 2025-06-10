@@ -14,6 +14,7 @@ local api = vim.api
 api.nvim_set_hl(0, "CodeCompanionChatInfo", { link = "DiagnosticInfo", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatError", { link = "DiagnosticError", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatWarn", { link = "DiagnosticWarn", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatSubtext", { link = "Comment", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatHeader", { link = "@markup.heading.2.markdown", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatSeparator", { link = "@punctuation.special.markdown", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatTokens", { link = "Comment", default = true })
