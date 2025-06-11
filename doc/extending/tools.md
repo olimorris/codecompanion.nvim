@@ -322,6 +322,7 @@ The _handlers_ table contains two functions that are executed before and after a
 
 1. `setup` - Is called **before** anything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the [@cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/agents/tools/cmd_runner.lua) tool.
 2. `on_exit` - Is called **after** everything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table.
+3. `prompt_condition` - Is called **before** anything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table and is used to determine _if_ the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they'd like to apply an approval to _buffer_ or _file_ edits.
 
 For the purposes of our calculator, let's just return some notifications so you can see the agent and tool flow:
 
@@ -564,6 +565,9 @@ require("codecompanion").setup({
   }
 })
 ```
+
+> [!NOTE]
+> `opts.requires_approval` can also be a function that receives the tool and agent classes as parameters
 
 To account for the user being prompted for an approval, we can add a `output.prompt` to the tool:
 

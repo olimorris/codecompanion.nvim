@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.10.0         Last change: 2025 June 10
+*codecompanion.txt*         For NVIM v0.10.0         Last change: 2025 June 11
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -4217,6 +4217,7 @@ a tool completes:
 
 1. `setup` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @cmd_runner <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/agents/tools/cmd_runner.lua> tool.
 2. `on_exit` - Is called **after** everything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table.
+3. `prompt_condition` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table and is used to determine `if` the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they’d like to apply an approval to `buffer` or `file` edits.
 
 For the purposes of our calculator, let’s just return some notifications so
 you can see the agent and tool flow:
@@ -4474,6 +4475,9 @@ tool’s `opts` table:
     })
 <
 
+
+  [!NOTE] `opts.requires_approval` can also be a function that receives the tool
+  and agent classes as parameters
 To account for the user being prompted for an approval, we can add a
 `output.prompt` to the tool:
 

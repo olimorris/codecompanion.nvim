@@ -113,7 +113,13 @@ function Executor:setup(input)
   if self.tool.opts and not vim.g.codecompanion_auto_tool_mode then
     local requires_approval = self.tool.opts.requires_approval
 
-    if type(requires_approval) == "table" then
+    -- Users can set this to be a function if necessary
+    if requires_approval and type(requires_approval) == "function" then
+      requires_approval = requires_approval(self.tool, self.agent)
+    end
+
+    -- Anything that isn't a boolean will get evaluated with a prompt condition
+    if requires_approval and type(requires_approval) ~= "boolean" then
       requires_approval = self.handlers.prompt_condition()
     end
 
