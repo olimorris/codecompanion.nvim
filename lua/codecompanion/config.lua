@@ -963,7 +963,7 @@ You must create or modify a workspace file through a series of prompts over mult
     chat = {
       icons = {
         pinned_buffer = " ",
-        watched_buffer = "👀 ",
+        watched_buffer = "󰂥 ",
       },
       debug_window = {
         ---@return number|fun(): number

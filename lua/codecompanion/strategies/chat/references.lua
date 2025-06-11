@@ -83,7 +83,17 @@ local function add(chat, ref, row)
   end
   local lines = {}
 
-  table.insert(lines, string.format("> - %s", ref.id))
+  -- Check if this reference has special options and format accordingly
+  local ref_text
+  if ref.opts and ref.opts.pinned then
+    ref_text = string.format("> - %s%s", icons.pinned, ref.id)
+  elseif ref.opts and ref.opts.watched then
+    ref_text = string.format("> - %s%s", icons.watched, ref.id)
+  else
+    ref_text = string.format("> - %s", ref.id)
+  end
+
+  table.insert(lines, ref_text)
 
   if vim.tbl_count(chat.refs) == 1 then
     table.insert(lines, 1, "> Context:")
