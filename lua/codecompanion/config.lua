@@ -84,11 +84,11 @@ local defaults = {
           callback = "strategies.chat.agents.tools.insert_edit_into_file",
           description = "Insert code into an existing file",
           opts = {
-            requires_approval = {
+            requires_approval = { -- Require approval before the tool is executed?
               buffer = false,
               file = true,
             },
-            user_confirmation = true, -- Require confirmation from the user to apply the edit?
+            user_confirmation = true, -- Require confirmation from the user before moving on in the chat buffer?
           },
         },
         ["create_file"] = {
