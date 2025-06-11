@@ -161,6 +161,8 @@ function Executor:setup(input)
     else
       return self:execute(cmd, input)
     end
+  else
+    return self:execute(cmd, input)
   end
 end
 

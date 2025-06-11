@@ -124,7 +124,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   local tool_config = opts.config and opts.config[opts.name] or {}
 
-  if diffed and tool_config.opts.user_confirmation then
+  if diffed and tool_config.opts.user_confirmation and not vim.g.codecompanion_auto_tool_mode then
     -- Get the diff keymaps
     local accept = config.strategies.inline.keymaps.accept_change.modes.n
     local reject = config.strategies.inline.keymaps.reject_change.modes.n
