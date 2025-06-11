@@ -73,11 +73,11 @@ end
 local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   opts = opts or {}
 
-  local diffed
+  local should_diff
   local diff_id = math.random(10000000)
 
   if diff.should_create(bufnr) then
-    diffed = diff.create(bufnr, diff_id)
+    should_diff = diff.create(bufnr, diff_id)
   end
 
   -- Parse and apply patches to buffer
@@ -124,8 +124,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   local tool_config = opts.config and opts.config[opts.name] or {}
 
-  if diffed and tool_config.opts.user_confirmation and not vim.g.codecompanion_auto_tool_mode then
-    -- Get the diff keymaps
+  if should_diff and tool_config.opts.user_confirmation then
     local accept = config.strategies.inline.keymaps.accept_change.modes.n
     local reject = config.strategies.inline.keymaps.reject_change.modes.n
 
