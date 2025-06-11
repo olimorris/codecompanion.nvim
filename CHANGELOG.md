@@ -1,5 +1,21 @@
 # Changelog
 
+## [16.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v16.1.0...v16.2.0) (2025-06-11)
+
+
+### Features
+
+* **adapters:** add gemini-2.5-pro-preview-06-05 ([#1605](https://github.com/olimorris/codecompanion.nvim/issues/1605)) ([fa8af3b](https://github.com/olimorris/codecompanion.nvim/commit/fa8af3bbaa70773a5d104ad8fdc567d30be260b4))
+* **chat:** simplify watchers to use unified diffs ([#1583](https://github.com/olimorris/codecompanion.nvim/issues/1583)) ([81b817b](https://github.com/olimorris/codecompanion.nvim/commit/81b817b4186f85d4b2880516054b0e34bb27e60d))
+* **slash_commands:** for `/fetch` only show cache option if cached files exist ([#1582](https://github.com/olimorris/codecompanion.nvim/issues/1582)) ([f022807](https://github.com/olimorris/codecompanion.nvim/commit/f0228073aeb2b577425ace676c34654b2e1a308d))
+* **tools:** `[@editor](https://github.com/editor)` tool merges with `[@insert](https://github.com/insert)_edit_into_file` ([#1586](https://github.com/olimorris/codecompanion.nvim/issues/1586)) ([bec6cd1](https://github.com/olimorris/codecompanion.nvim/commit/bec6cd124da650dc25472e03f4416cbe27574ef8))
+* **tools:** add `[@next](https://github.com/next)_edit_suggestion` tool ([#1570](https://github.com/olimorris/codecompanion.nvim/issues/1570)) ([600e7b2](https://github.com/olimorris/codecompanion.nvim/commit/600e7b2d55816fa3b8103ef898aaaa31a224224f))
+
+
+### Bug Fixes
+
+* **chat:** word boundary matching for tools and variables ([#1503](https://github.com/olimorris/codecompanion.nvim/issues/1503)) ([f572601](https://github.com/olimorris/codecompanion.nvim/commit/f57260190a40bb4f071d27c5386eeff1440c111b))
+
 ## [16.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v16.0.0...v16.1.0) (2025-06-06)
 
 
