@@ -59,7 +59,6 @@ local defaults = {
             system_prompt = "**DO NOT** make any assumptions about the dependencies that a user has installed. If you need to install any dependencies to fulfil the user's request, do so via the Command Runner tool. If the user doesn't specify a path, use their current working directory.",
             tools = {
               "cmd_runner",
-              "editor",
               "create_file",
               "read_file",
               "insert_edit_into_file",
@@ -81,15 +80,15 @@ local defaults = {
             requires_approval = true,
           },
         },
-        ["editor"] = {
-          callback = "strategies.chat.agents.tools.editor",
-          description = "Update a buffer with the LLM's response",
-        },
         ["insert_edit_into_file"] = {
           callback = "strategies.chat.agents.tools.insert_edit_into_file",
           description = "Insert code into an existing file",
           opts = {
-            requires_approval = true,
+            requires_approval = {
+              buffer = false,
+              file = true,
+            },
+            user_confirmation = true, -- Require confirmation from the user to apply the edit?
           },
         },
         ["create_file"] = {
@@ -123,6 +122,7 @@ local defaults = {
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
+          wait_timeout = 30000, -- How long to wait for user input before timing out (milliseconds)
         },
       },
       variables = {
@@ -131,6 +131,7 @@ local defaults = {
           description = "Share the current buffer with the LLM",
           opts = {
             contains_code = true,
+            default_params = "watch", -- watch|pin
             has_params = true,
           },
         },
@@ -155,6 +156,7 @@ local defaults = {
           description = "Insert open buffers",
           opts = {
             contains_code = true,
+            default_params = "watch", -- watch|pin
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
@@ -409,7 +411,7 @@ local defaults = {
       keymaps = {
         accept_change = {
           modes = {
-            n = "ga",
+            n = "gda",
           },
           index = 1,
           callback = "keymaps.accept_change",
@@ -417,7 +419,7 @@ local defaults = {
         },
         reject_change = {
           modes = {
-            n = "gr",
+            n = "gdr",
           },
           index = 2,
           callback = "keymaps.reject_change",
@@ -570,7 +572,7 @@ Your instructions here
 
 You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
 
-1. Update the code in #buffer{watch} using the @editor tool
+1. Update the code in #buffer using the @insert_edit_into_file tool
 2. Then use the @cmd_runner tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
 3. Make sure you trigger both tools in the same response
 
@@ -961,7 +963,7 @@ You must create or modify a workspace file through a series of prompts over mult
     chat = {
       icons = {
         pinned_buffer = " ",
-        watched_buffer = "👀 ",
+        watched_buffer = "󰂥 ",
       },
       debug_window = {
         ---@return number|fun(): number
@@ -999,6 +1001,7 @@ You must create or modify a workspace file through a series of prompts over mult
 
       show_references = true, -- Show references (from slash commands and variables) in the chat buffer?
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
+      show_tools_processing = true, -- Show the loading message when tools are being executed?
       show_token_count = true, -- Show the token count for each response?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
 
@@ -1026,6 +1029,10 @@ You must create or modify a workspace file through a series of prompts over mult
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?
       layout = "vertical", -- vertical|horizontal|buffer
+    },
+    icons = {
+      loading = " ",
+      warning = " ",
     },
   },
   -- EXTENSIONS ------------------------------------------------------

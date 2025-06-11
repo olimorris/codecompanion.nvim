@@ -70,10 +70,6 @@ return {
           callback = "strategies.chat.agents.tools.cmd_runner",
           description = "Run shell commands initiated by the LLM",
         },
-        ["editor"] = {
-          callback = "strategies.chat.agents.tools.editor",
-          description = "Update a buffer with the LLM's response",
-        },
         ["files"] = {
           callback = "strategies.chat.agents.tools.files",
           description = "Update the file system with the LLM's response",
@@ -101,6 +97,22 @@ return {
         ["func"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func.lua",
           description = "Some function tool to test",
+        },
+        ["func_approval"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_approval.lua",
+          description = "Some function tool to test with an approval step",
+          opts = {
+            requires_approval = true,
+          },
+        },
+        ["func_approval2"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_approval2.lua",
+          description = "Some function tool to test with an approval step that's a table",
+          opts = {
+            requires_approval = {
+              buffer = true, -- We're not actually testing this. requires_approval being a table triggers the user_approval test
+            },
+          },
         },
         ["func_handlers_once"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/func_handlers_once.lua",
@@ -175,6 +187,7 @@ return {
         },
         opts = {
           system_prompt = "My tool system prompt",
+          wait_timeout = 3000,
         },
       },
       variables = {
@@ -348,8 +361,13 @@ return {
         },
       },
       intro_message = "", -- Keep this blank or it messes up the screenshot tests
+      show_tools_processing = false, -- Show the loading message when tools are being executed?
     },
     diff = { enabled = false },
+    icons = {
+      loading = " ",
+      warning = " ",
+    },
   },
   opts = {
     system_prompt = "default system prompt",

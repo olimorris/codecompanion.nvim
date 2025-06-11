@@ -27,13 +27,13 @@ T["Agent"]["resolve"] = new_set()
 T["Agent"]["resolve"]["can resolve built-in tools"] = function()
   child.lua([[
     _G.tool = _G.agent.resolve({
-      callback = "strategies.chat.agents.tools.editor",
+      callback = "strategies.chat.agents.tools.create_file",
       description = "Update a buffer with the LLM's response",
     })
   ]])
 
   h.eq("table", child.lua_get("type(_G.tool)"))
-  h.eq("editor", child.lua_get("_G.tool.name"))
+  h.eq("create_file", child.lua_get("_G.tool.name"))
 end
 
 T["Agent"]["resolve"]["can resolve user's tools"] = function()
@@ -54,12 +54,12 @@ T["Agent"][":find"] = new_set()
 T["Agent"][":find"]["should only find tools that end with space or are eol"] = function()
   local result = child.lua([[
     local message = {
-      content = "Use @tool_group_toolfor @files something and not @editor!"
+      content = "Use @tool_group_toolfor @files something and not @insert_edit_into_file!"
     }
     local tools, groups = _G.agent:find(_G.chat, message)
     return {
      tools = tools ,
-     groups = groups 
+     groups = groups
     }
   ]])
 
@@ -70,16 +70,16 @@ end
 T["Agent"][":find"]["should find tools followed by a new line"] = function()
   local result = child.lua([[
     local message = {
-      content = "Use @editor\n"
+      content = "Use @insert_edit_into_file\n"
     }
     local tools, groups = _G.agent:find(_G.chat, message)
     return {
      tools = tools ,
-     groups = groups 
+     groups = groups
     }
   ]])
 
-  h.eq({ "editor" }, result.tools)
+  h.eq({ "insert_edit_into_file" }, result.tools)
   h.eq({}, result.groups)
 end
 T["Agent"][":find"]["should find tools with non-space chars before"] = function()
@@ -90,7 +90,7 @@ T["Agent"][":find"]["should find tools with non-space chars before"] = function(
     local tools, groups = _G.agent:find(_G.chat, message)
     return {
      tools = tools ,
-     groups = groups 
+     groups = groups
     }
   ]])
 
@@ -105,8 +105,8 @@ T["Agent"][":find"]["should find a group and a tool with same prefix"] = functio
     }
     local tools, groups = _G.agent:find(_G.chat, message)
     return {
-     tools = tools, 
-     groups = groups 
+     tools = tools,
+     groups = groups
     }
   ]])
 
@@ -126,8 +126,8 @@ T["Agent"][":find"]["should not find a group when tool name starts with group na
     }
     local tools, groups = _G.agent:find(_G.chat, message)
     return {
-     tools = tools, 
-     groups = groups 
+     tools = tools,
+     groups = groups
     }
   ]])
 
@@ -246,21 +246,21 @@ T["Agent"][":execute"]["a nested response from the LLM"] = function() end
 T["Agent"][":replace"] = new_set()
 T["Agent"][":replace"]["should replace the tool in the message"] = function()
   child.lua([[
-    local message = "run the @editor tool"
-    _G.result = _G.agent:replace(message)
+    local message = "run the @create_file tool"
+    _G.result = _G.agent:replace(message, "create_file")
   ]])
 
-  h.eq("run the editor tool", child.lua_get("_G.result"))
+  h.eq("run the create_file tool", child.lua_get("_G.result"))
 end
 
 T["Agent"][":replace"]["should be in sync with finding logic"] = function()
   child.lua([[
-    local message = "run the @editor tool and pre@files and @tool_group_tool and not @files! but handle newlines @editor\n"
+    local message = "run the @insert_edit_into_file tool and pre@files and @tool_group_tool and not @files! but handle newlines @insert_edit_into_file\n"
     _G.result = _G.agent:replace(message)
   ]])
 
   h.eq(
-    "run the editor tool and prefiles and tool_group_tool and not @files! but handle newlines editor",
+    "run the insert_edit_into_file tool and prefiles and tool_group_tool and not @files! but handle newlines insert_edit_into_file",
     child.lua_get("_G.result")
   )
 end

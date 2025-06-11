@@ -1,0 +1,5 @@
+*** Begin Patch
+local function foo()
+-  return "foo"
++  return "CodeCompanion"
+*** End Patch

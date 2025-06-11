@@ -21,6 +21,8 @@ local util = require("codecompanion.utils")
 
 local api = vim.api
 
+local show_tools_processing = config.display.chat.show_tools_processing
+
 local CONSTANTS = {
   PREFIX = "@",
 
@@ -30,7 +32,7 @@ local CONSTANTS = {
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
 
-  PROCESSING_MSG = "Tool processing ...",
+  PROCESSING_MSG = config.display.icons.loading .. " Tools processing ...",
 }
 
 ---@class CodeCompanion.Agent
@@ -69,12 +71,15 @@ function Agent:set_autocmds()
 
       if request.match == "CodeCompanionAgentStarted" then
         log:info("[Agent] Initiated")
-        return ui.set_virtual_text(
-          self.bufnr,
-          self.tools_ns,
-          CONSTANTS.PROCESSING_MSG,
-          { hl_group = "CodeCompanionVirtualText" }
-        )
+        if show_tools_processing then
+          local namespace = CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr)
+          ui.show_buffer_notification(self.bufnr, {
+            namespace = namespace,
+            text = CONSTANTS.PROCESSING_MSG,
+            main_hl = "CodeCompanionChatInfo",
+            spacer = true,
+          })
+        end
       elseif request.match == "CodeCompanionAgentFinished" then
         return vim.schedule(function()
           local auto_submit = function()
@@ -316,7 +321,11 @@ end
 ---@return nil
 function Agent:reset(opts)
   opts = opts or {}
-  api.nvim_buf_clear_namespace(self.bufnr, self.tools_ns, 0, -1)
+
+  if show_tools_processing then
+    ui.clear_notification(self.bufnr, { namespace = CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr) })
+  end
+
   api.nvim_clear_autocmds({ group = self.aug })
 
   self.extracted = {}

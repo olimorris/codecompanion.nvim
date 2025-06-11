@@ -180,7 +180,7 @@ end
 ---@param opts? table
 ---@return nil
 function SlashCommand:output(selected, opts)
-  if not config.can_send_code() and (SlashCommand.config.opts and SlashCommand.config.opts.contains_code) then
+  if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
     return log:warn("Sending of code has been disabled")
   end
   local opts = opts or {}
@@ -210,10 +210,20 @@ function SlashCommand:output(selected, opts)
     return
   end
 
+  local slash_command_opts = self.config.opts and self.config.opts.default_params or nil
+  if slash_command_opts then
+    if slash_command_opts == "pin" then
+      opts.pinned = true
+    elseif slash_command_opts == "watch" then
+      opts.watched = true
+    end
+  end
+
   self.Chat.references:add({
     bufnr = selected.bufnr,
     id = id,
     path = selected.path,
+    opts = opts,
     source = "codecompanion.strategies.chat.slash_commands.buffer",
   })
 

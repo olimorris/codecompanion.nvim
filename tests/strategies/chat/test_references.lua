@@ -408,4 +408,55 @@ T["References"]["Correctly removes tool schema and usage flag on reference delet
   h.eq(expected_final_in_use, final_in_use, "Only func tool should be marked in use after deletion")
 end
 
+T["References"]["Show icons immediately when added with default parameters"] = function()
+  child.lua([[
+    -- Test watched reference with default parameters
+    _G.chat.references:add({
+      id = "<buf>watched_file.lua</buf>",
+      path = "test_watched.lua",
+      source = "codecompanion.strategies.chat.slash_commands.buffer",
+      opts = {
+        watched = true,
+      },
+    })
+
+    -- Test pinned reference with default parameters
+    _G.chat.references:add({
+      id = "<buf>pinned_file.lua</buf>",
+      path = "test_pinned.lua",
+      source = "codecompanion.strategies.chat.slash_commands.buffer",
+      opts = {
+        pinned = true,
+      },
+    })
+
+    -- Test regular reference for comparison
+    _G.chat.references:add({
+      id = "<buf>regular_file.lua</buf>",
+      path = "test_regular.lua",
+      source = "codecompanion.strategies.chat.slash_commands.buffer",
+    })
+  ]])
+
+  local lines = child.lua_get([[h.get_buf_lines(_G.chat.bufnr)]])
+
+  -- Check that the context header appears
+  h.eq("> Context:", lines[3])
+
+  -- Check that watched reference shows with icon immediately
+  h.eq(
+    string.format("> - %s<buf>watched_file.lua</buf>", child.lua_get([[config.display.chat.icons.watched_buffer]])),
+    lines[4]
+  )
+
+  -- Check that pinned reference shows with icon immediately
+  h.eq(
+    string.format("> - %s<buf>pinned_file.lua</buf>", child.lua_get([[config.display.chat.icons.pinned_buffer]])),
+    lines[5]
+  )
+
+  -- Check that regular reference shows without icon
+  h.eq("> - <buf>regular_file.lua</buf>", lines[6])
+end
+
 return T

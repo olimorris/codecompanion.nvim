@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.10.0         Last change: 2025 June 06
+*codecompanion.txt*         For NVIM v0.10.0         Last change: 2025 June 11
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -259,7 +259,7 @@ markdown in the chat buffer:
 MINI.DIFF ~
 
 Use mini.diff <https://github.com/echasnovski/mini.diff> for a cleaner diff
-when using the inline assistant or the `@editor` tool:
+when using the inline assistant or the `@insert_edit_into_file` tool:
 
 >lua
     {
@@ -461,13 +461,16 @@ AGENTS / TOOLS ~
 actions:
 
 - `@cmd_runner` - The LLM will run shell commands (subject to approval)
-- `@editor` - The LLM will edit code in a Neovim buffer
-- `@files` - The LLM will can work with files on the file system (subject to approval)
+- `@create_file` - The LLM will create a file in the current working directory (subject to approval)
+- `@insert_edit_into_file` - The LLM will edit code in a Neovim buffer or on the file system (subject to approval)
+- `@next_edit_suggestion` - The LLM can show the user where the next edit is
+- `@read_file` - The LLM can read a specific file
+- `@web_search` - The LLM can search the internet for information
 
 Tools can also be grouped together to form `Agents`, which are also accessed
 via `@` in the chat buffer:
 
-- `@full_stack_dev` - Contains the `cmd_runner`, `editor` and `files` tools.
+- `@files` - Contains the `@create_file`, `@insert_edit_into_file` and `@read_file` tools
 
 
 INLINE ASSISTANT              *codecompanion-getting-started-inline-assistant*
@@ -1023,6 +1026,9 @@ file for a full list of all configuration options.
 
 KEYMAPS ~
 
+
+  [!NOTE] The plugin scopes CodeCompanion specific keymaps to the `chat buffer`
+  only.
 You can define or override the default keymaps
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178>
 to send messages, regenerate responses, close the buffer, etc. Example:
@@ -1049,7 +1055,7 @@ to send messages, regenerate responses, close the buffer, etc. Example:
 
 The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing
 in both normal and insert modes. To set other `:map-arguments`, you can use the
-optional `opts` table which will be fed to `vim.keymap.set`
+optional `opts` table which will be fed to `vim.keymap.set`.
 
 
 VARIABLES ~
@@ -1125,6 +1131,11 @@ You can configure Slash Commands with:
     })
 <
 
+
+  [!IMPORTANT] Each slash command may have their own unique configuration so be
+  sure to check out the config.lua
+  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua>
+  file
 You can also add your own slash commands:
 
 >lua
@@ -1376,8 +1387,9 @@ DIFF ~
 
   [!NOTE] Currently the plugin only supports native Neovim diff or mini.diff
   <https://github.com/echasnovski/mini.diff>
-If you utilize the `@editor` tool, then the plugin can update a given chat
-buffer. A diff will be created so you can see the changes made by the LLM.
+If you utilize the `@insert_edit_into_file` tool, then the plugin can update a
+given chat buffer. A diff will be created so you can see the changes made by
+the LLM.
 
 There are a number of diff settings available to you:
 
@@ -1496,6 +1508,29 @@ There are also a number of other options that you can customize:
       },
     }),
 <
+
+
+JUMP ACTION ~
+
+The jump action (the command/function triggered by the `gR` keymap) can be
+customised as follows:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          opts = {
+            goto_file_action = 'tabnew', -- this will always open the file in a new tab
+          },
+        },
+      },
+    })
+<
+
+This can either be a string (denoting a VimScript command), or a function that
+takes a single parameter (the path to the file to jump to). The default action
+is to jump to an existing tab if the file is already opened, and open a new tab
+otherwise.
 
 
 INLINE ASSISTANT                *codecompanion-configuration-inline-assistant*
@@ -1819,6 +1854,10 @@ HIGHLIGHT GROUPS ~
 
 The plugin sets the following highlight groups during setup:
 
+- `CodeCompanionChatInfo` - Information messages in the chat buffer
+- `CodeCompanionChatError` - Error messages in the chat buffer
+- `CodeCompanionChatWarn` - Warning messages in the chat buffer
+- `CodeCompanionChatSubtext` - Messages that appear under the information, error or warning messages in the chat buffer
 - `CodeCompanionChatHeader` - The headers in the chat buffer
 - `CodeCompanionChatSeparator` - Separator between headings in the chat buffer
 - `CodeCompanionChatTokens` - Virtual text in the chat buffer showing the token count
@@ -1845,14 +1884,14 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-AUTOMATICALLY UPDATE A BUFFER ~
+APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
 
-The |codecompanion-usage-chat-buffer-agents-editor| tool, combined with the
-`#buffer` variable, enables an LLM to modify code in a Neovim buffer. This is
-especially useful if you do not wish to manually apply an LLM’s suggestions
-yourself. Simply tag it in the chat buffer with `@editor`. To ensure the LLM
-can consistently see the changes that it’s applied, be sure to
-|codecompanion-usage-chat-buffer--references| your buffers.
+The |codecompanion-usage-chat-buffer-agents-files| tool, combined with the
+|codecompanion-usage-chat-buffer-variables.html-buffer| variable or
+|codecompanion-usage-chat-buffer-slash-commands.html-buffer| slash command,
+enables an LLM to modify code in a Neovim buffer. This is especially useful if
+you do not wish to manually apply an LLM’s suggestions yourself. Simply tag
+it in the chat buffer with `@files` or `@insert_edit_into_file`.
 
 
 RUN TESTS FROM THE CHAT BUFFER ~
@@ -2039,7 +2078,8 @@ The keymaps available to the user in normal mode are:
 - `gp` to pin a reference to the chat buffer
 - `gw` to watch a referenced buffer
 - `gr` to regenerate the last response
-- `gR` to go to the file under cursor, in a new tab
+- `gR` to go to the file under cursor. If the file is already opened, it’ll jump
+    to the existing window. Otherwise, it’ll be opened in a new tab.
 - `gs` to toggle the system prompt on/off
 - `gta` to toggle auto tool mode
 - `gx` to clear the chat buffer’s contents
@@ -2125,36 +2165,72 @@ outcome of the test is stored in the corresponding flag on the chat buffer.
 This makes it ideal for |codecompanion-extending-workflows| to hook into.
 
 
-@EDITOR ~
+@CREATE_FILE ~
 
-The `@editor` tool enables an LLM to modify the code in a Neovim buffer. If a
-buffer’s content has been shared with the LLM then the tool can be used to
-add, edit or delete specific lines. Consider pinning or watching a buffer to
-avoid manually re-sending a buffer’s content to the LLM:
 
->md
-    Use the @editor tool refactor the code in #buffer{watch}
-<
+  [!NOTE] By default, this tool requires user approval before it can be executed
+Create a file within the current working directory:
 
 >md
-    Can you apply the suggested changes to the buffer with the @editor tool?
+    Can you create some test fixtures using the @create_file tool?
 <
 
 
-@FILES ~
+@INSERT_EDIT_INTO_FILE ~
 
 
-  [!NOTE] All file operations require approval from the user before they’re
-  executed
-The `@files` tool leverages the Plenary.Path
-<https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/path.lua>
-module to enable an LLM to perform various file operations on the user’s
-disk:
+  [!NOTE] By default, this tool requires user approval before it can be executed
+This tool can edit buffers and files for code changes from an LLM:
 
-- Creating a file
-- Reading a file
-- Editing a file
-- Deleting a file
+>md
+    Use the @insert_edit_into_file tool to refactor the code in #buffer
+<
+
+>md
+    Can you apply the suggested changes to the buffer with the @insert_edit_into_file tool?
+<
+
+
+@NEXT_EDIT_SUGGESTION ~
+
+Inspired by Copilot Next Edit Suggestion
+<https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions>, the
+`@next_edit_suggestion` tool gives the LLM the ability to show the user where
+the next edit is. The LLM can only suggest edits in files or buffers that have
+been shared with it as context.
+
+The jump action can be customised in the `opts` table:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          tools = {
+            ["next_edit_suggestion"] = {
+              opts = {
+                --- the default is to open in a new tab, and reuse existing tabs
+                --- where possible
+                ---@type string|fun(path: string):integer?
+                jump_action = 'tabnew',
+              },
+            }
+          }
+        }
+      }
+    })
+<
+
+The `jump_action` can be a VimScript command (as a string), or a lua function
+that accepts the path to the file and optionally returns the |window ID|. The
+window ID is needed if you want the LLM to point you to a specific line in the
+file.
+
+
+@READ_FILE ~
+
+This tool can read the contents of a specific file in the current working
+directory. This can be useful for an LLM to gain wider context of files that
+haven’t been shared with it.
 
 
 @WEB_SEARCH ~
@@ -2167,15 +2243,9 @@ date information.
     Can you use the @web_search tool to tell me the latest version of Neovim?
 <
 
-
-@FULL_STACK_DEV ~
-
-The plugin enables tools to be grouped together. The `@full_stack_dev` agent is
-a combination of the `@cmd_runner`, `@editor` and `@files` tools:
-
->md
-    Let's use the @full_stack_dev tools to create a new app
-<
+Currently, the tool uses tavily <https://www.tavily.com> and you’ll need to
+ensure that an API key has been set accordingly, as per the adapter
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua>.
 
 
 APPROVALS ~
@@ -2200,11 +2270,11 @@ Consider combining tools for complex tasks:
 AUTOMATIC TOOL MODE
 
 The plugin allows you to run tools on autopilot. This automatically approves
-any tool use instead of prompting the user, disables any diffs, and
-automatically saves any buffers that the agent has edited. Simply set the
-global variable `vim.g.codecompanion_auto_tool_mode` to enable this or set it
-to `nil` to undo this. Alternatively, the keymap `gta` will toggle the feature
-whist from the chat buffer.
+any tool use instead of prompting the user, disables any diffs, submits errors
+and success messages and automatically saves any buffers that the agent has
+edited. Simply set the global variable `vim.g.codecompanion_auto_tool_mode` to
+enable this or set it to `nil` to undo this. Alternatively, the keymap `gta`
+will toggle the feature whist from the chat buffer.
 
 
 COMPATIBILITY ~
@@ -2297,6 +2367,10 @@ alongside the `prompt_library` table where individual prompts have
 
 /BUFFER ~
 
+
+  [!NOTE] As of v16.2.0
+  <https://github.com/olimorris/codecompanion.nvim/releases/tag/v16.2.0>, buffers
+  are now watched by default
 The `buffer` slash command enables you to add the contents of any open buffers
 in Neovim to the chat buffer. The command has native, `Telescope`, `mini.pick`,
 `fzf.lua` and `snacks.nvim` providers available. Also, multiple buffers can be
@@ -2409,6 +2483,10 @@ Custom variables can be shared by adding them to the
 
 #BUFFER ~
 
+
+  [!NOTE] As of v16.2.0
+  <https://github.com/olimorris/codecompanion.nvim/releases/tag/v16.2.0>, buffers
+  are now watched by default
 The `#buffer` variable shares the full contents from the buffer that the user
 was last in when they initiated `:CodeCompanionChat`. To select another buffer,
 use the `/buffer` slash command. These buffers can be
@@ -2485,6 +2563,8 @@ The events that you can access are:
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
 - `CodeCompanionDiffAttached` - Fired when in Diff mode
 - `CodeCompanionDiffDetached` - Fired when exiting Diff mode
+- `CodeCompanionDiffAccepted` - Fired when a user accepts a change
+- `CodeCompanionDiffRejected` - Fired when a user rejects a change
 
 
 EVENT DATA ~
@@ -2621,19 +2701,19 @@ CodeCompanion.
 PROGRESS UPDATES WITH FIDGET.NVIM BY @JESSEVDP ~
 
 As per the discussion over at #813
-<https://github.com/olimorris/codecompanion.nvim/discussions/813>
+<https://github.com/olimorris/codecompanion.nvim/discussions/813>.
 
 
 INLINE SPINNER WITH FIDGET.NVIM BY @YUHUA99 ~
 
 As per the comment on #640
-<https://github.com/olimorris/codecompanion.nvim/discussions/640#discussioncomment-12866279>
+<https://github.com/olimorris/codecompanion.nvim/discussions/640#discussioncomment-12866279>.
 
 
 STATUS COLUMN EXTMARKS WITH THE INLINE ASSISTANT BY @LUCOBELLIC ~
 
 As per the discussion over at #1297
-<https://github.com/olimorris/codecompanion.nvim/discussions/1297>
+<https://github.com/olimorris/codecompanion.nvim/discussions/1297>.
 
 
 LUALINE.NVIM INTEGRATION ~
@@ -2910,7 +2990,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI’S API OUTPUT
+OPENAI�S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
@@ -3868,7 +3948,7 @@ LLM, identifying the tool and duly executing it.
 There are two types of tools that CodeCompanion can leverage:
 
 1. **Command-based**: These tools can execute a series of commands in the background using a plenary.job <https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/job.lua>. They’re non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
-2. **Function-based**: These tools, like @editor <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/editor.lua>, execute Lua functions directly in Neovim within the main process, one after another.
+2. **Function-based**: These tools, like @insert_edit_into_file <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/insert_edit_into_file.lua>, execute Lua functions directly in Neovim within the main process, one after another.
 
 For the purposes of this section of the guide, we’ll be building a simple
 function-based calculator tool that an LLM can use to do basic maths.
@@ -4141,6 +4221,7 @@ a tool completes:
 
 1. `setup` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the @cmd_runner <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/agents/tools/cmd_runner.lua> tool.
 2. `on_exit` - Is called **after** everything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table.
+3. `prompt_condition` - Is called **before** anything in the |codecompanion-extending-tools.html-cmds| and |codecompanion-extending-tools.html-output| table and is used to determine `if` the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they’d like to apply an approval to `buffer` or `file` edits.
 
 For the purposes of our calculator, let’s just return some notifications so
 you can see the agent and tool flow:
@@ -4398,6 +4479,9 @@ tool’s `opts` table:
     })
 <
 
+
+  [!NOTE] `opts.requires_approval` can also be a function that receives the tool
+  and agent classes as parameters
 To account for the user being prompted for an approval, we can add a
 `output.prompt` to the tool:
 
@@ -4601,7 +4685,7 @@ Let’s breakdown the prompts in that workflow:
     
     You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
     
-    1. Update the code in #buffer{watch} using the @editor tool
+    1. Update the code in #buffer{watch} using the @insert_edit_into_file tool
     2. Then use the @cmd_runner tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
     3. Make sure you trigger both tools in the same response
     
@@ -4615,7 +4699,7 @@ Let’s breakdown the prompts in that workflow:
 
 The first prompt in a workflow should set the ask of the LLM and provide clear
 instructions. In this case, we’re giving the LLM access to the
-|codecompanion-usage-chat-buffer-agents.html-editor| and
+|codecompanion-usage-chat-buffer-agents.html-files| and
 |codecompanion-usage-chat-buffer-agents.html-cmd-runner| tools to edit a buffer
 and run tests, respectively.
 

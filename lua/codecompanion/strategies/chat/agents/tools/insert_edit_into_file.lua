@@ -1,7 +1,13 @@
 local Path = require("plenary.path")
+local buffers = require("codecompanion.utils.buffers")
+local config = require("codecompanion.config")
+local diff = require("codecompanion.strategies.chat.agents.tools.helpers.diff")
 local log = require("codecompanion.utils.log")
 local patch = require("codecompanion.strategies.chat.agents.tools.helpers.patch")
+local ui = require("codecompanion.utils.ui")
+local wait = require("codecompanion.strategies.chat.agents.tools.helpers.wait")
 
+local api = vim.api
 local fmt = string.format
 
 local PROMPT = [[<editFileInstructions>
@@ -19,10 +25,14 @@ The system uses fuzzy matching and confidence scoring so focus on providing enou
 ---Edit code in a file
 ---@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
 ---@return string
-local function edit(action)
+local function edit_file(action)
   local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
   local p = Path:new(filepath)
   p.filename = p:expand()
+
+  if not p:exists() or not p:is_file() then
+    return fmt("**Insert Edit Into File Tool Error**: File '%s' does not exist or is not a file", action.filepath)
+  end
 
   -- 1. extract list of changes from the code
   local raw = action.code or ""
@@ -47,27 +57,125 @@ local function edit(action)
 
   -- 5. refresh the buffer if the file is open
   local bufnr = vim.fn.bufnr(p.filename)
-  if bufnr ~= -1 and vim.api.nvim_buf_is_loaded(bufnr) then
-    vim.api.nvim_command("checktime " .. bufnr)
+  if bufnr ~= -1 and api.nvim_buf_is_loaded(bufnr) then
+    api.nvim_command("checktime " .. bufnr)
   end
   return fmt("**Insert Edit Into File Tool**: `%s` - %s", action.filepath, action.explanation)
+end
+
+---Edit code in a buffer
+---@param bufnr number The buffer number to edit
+---@param chat_bufnr number The chat buffer number
+---@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
+---@param output_handler function The callback to call when done
+---@param opts? table Additional options
+---@return string
+local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
+  opts = opts or {}
+
+  local should_diff
+  local diff_id = math.random(10000000)
+
+  if diff.should_create(bufnr) then
+    should_diff = diff.create(bufnr, diff_id)
+  end
+
+  -- Parse and apply patches to buffer
+  local raw = action.code or ""
+  local changes = patch.parse_changes(raw)
+
+  -- Get current buffer content as lines
+  local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+
+  -- Apply each change
+  local start_line = nil
+  for _, change in ipairs(changes) do
+    local new_lines = patch.apply_change(lines, change)
+    if new_lines == nil then
+      error(fmt("Bad/Incorrect diff:\n\n%s\n\nNo changes were applied", patch.get_change_string(change)))
+    else
+      if not start_line then
+        start_line = patch.get_change_location(lines, change)
+      end
+      lines = new_lines
+    end
+  end
+
+  -- Update the buffer with the edited code
+  api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+
+  -- Scroll to the editing location
+  if start_line then
+    ui.scroll_to_line(bufnr, start_line)
+  end
+
+  -- Auto-save if enabled
+  if vim.g.codecompanion_auto_tool_mode then
+    log:info("[Insert Edit Into File Tool] Auto-saving buffer")
+    api.nvim_buf_call(bufnr, function()
+      vim.cmd("silent write")
+    end)
+  end
+
+  local success = {
+    status = "success",
+    data = fmt("**Insert Edit Into File Tool**: `%s` - %s", action.filepath, action.explanation),
+  }
+
+  local tool_config = opts.config and opts.config[opts.name] or {}
+
+  if should_diff and tool_config.opts.user_confirmation then
+    local accept = config.strategies.inline.keymaps.accept_change.modes.n
+    local reject = config.strategies.inline.keymaps.reject_change.modes.n
+
+    local wait_opts = {
+      chat_bufnr = chat_bufnr,
+      notify = config.display.icons.warning .. " Waiting for diff approval ...",
+      sub_text = fmt("`%s` - Accept changes / `%s` - Reject changes", accept, reject),
+    }
+
+    -- Wait for the user to accept or reject the edit
+    return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
+      if result.accepted then
+        return output_handler(success)
+      end
+      return output_handler({
+        status = "error",
+        data = result.timeout and "User failed to accept the changes in time" or "User rejected the changes",
+      })
+    end, wait_opts)
+  end
+
+  return output_handler(success)
 end
 
 ---@class CodeCompanion.Tool.InsertEditIntoFile: CodeCompanion.Agent.Tool
 return {
   name = "insert_edit_into_file",
   cmds = {
-    ---Execute the file commands
-    ---@param self CodeCompanion.Tool.Editor The Editor tool
+    ---Execute the edit commands
+    ---@param self CodeCompanion.Agent
     ---@param args table The arguments from the LLM's tool call
     ---@param input? any The output from the previous function call
-    ---@return { status: "success"|"error", data: string }
-    function(self, args, input)
-      local ok, outcome = pcall(edit, args)
-      if not ok then
-        return { status = "error", data = outcome }
+    ---@param output_handler function Async callback for completion
+    ---@return nil
+    function(self, args, input, output_handler)
+      local bufnr = buffers.get_bufnr_from_filepath(args.filepath)
+      if bufnr then
+        return edit_buffer(
+          bufnr,
+          self.chat.bufnr,
+          args,
+          output_handler,
+          { name = self.tool.name, config = self.tools_config }
+        )
+      else
+        local ok, outcome = pcall(edit_file, args)
+        if not ok then
+          return output_handler({ status = "error", data = outcome })
+        end
+        return output_handler({ status = "success", data = outcome })
       end
-      return { status = "success", data = outcome }
     end,
   },
   schema = {
@@ -103,6 +211,29 @@ return {
   },
   system_prompt = PROMPT,
   handlers = {
+    ---The handler to determine whether to prompt the user for approval
+    ---@param self CodeCompanion.Tool.InsertEditIntoFile
+    ---@param agent CodeCompanion.Agent
+    ---@param config table The tool configuration
+    ---@return boolean
+    prompt_condition = function(self, agent, config)
+      local opts = config["insert_edit_into_file"].opts or {}
+
+      local args = self.args
+      local bufnr = buffers.get_bufnr_from_filepath(args.filepath)
+      if bufnr then
+        if opts.requires_approval.buffer then
+          return true
+        end
+        return false
+      end
+
+      if opts.requires_approval.file then
+        return true
+      end
+      return false
+    end,
+
     ---@param agent CodeCompanion.Agent The tool object
     ---@return nil
     on_exit = function(agent)
@@ -111,7 +242,7 @@ return {
   },
   output = {
     ---The message which is shared with the user when asking for their approval
-    ---@param self CodeCompanion.Agent.Tool
+    ---@param self CodeCompanion.Tool.InsertEditIntoFile
     ---@param agent CodeCompanion.Agent
     ---@return nil|string
     prompt = function(self, agent)
