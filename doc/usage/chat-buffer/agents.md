@@ -62,7 +62,7 @@ Can you create some test fixtures using the @create_file tool?
 ## @insert_edit_into_file
 
 > [!NOTE]
-> By default, this tool requires user approval before it can be executed
+> By default, when editing files, this tool requires user approval before it can be executed
 
 <p>
   <video controls muted src="https://github.com/user-attachments/assets/990bbc99-7b12-4dca-8770-c24b9f3e7838"></video>

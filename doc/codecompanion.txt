@@ -2179,7 +2179,8 @@ Create a file within the current working directory:
 @INSERT_EDIT_INTO_FILE ~
 
 
-  [!NOTE] By default, this tool requires user approval before it can be executed
+  [!NOTE] By default, when editing files, this tool requires user approval before
+  it can be executed
 This tool can edit buffers and files for code changes from an LLM:
 
 >md
@@ -2395,7 +2396,12 @@ URL.
 The `file` slash command allows you to add the contents of a file in the
 current working directory to the chat buffer. The command has native,
 `Telescope`, `mini.pick`, `fzf.lua` and `snacks.nvim` providers available.
-Also, multiple files can be selected and added to the chat buffer.
+Also, multiple files can be selected and added to the chat buffer:
+
+- Select a single file: `⏎ enter`
+- Select multiple files: `⇥ tab`
+
+Please note that these mappings may be different depending on your provider.
 
 
 /HELP ~
