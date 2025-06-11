@@ -82,38 +82,61 @@ function M.show_buffer_notification(bufnr, opts)
   opts = opts or {}
 
   local ns_id = api.nvim_create_namespace(opts.namespace or ("codecompanion_notification_" .. tostring(bufnr)))
-  local line_count = api.nvim_buf_line_count(bufnr)
-  local target_line = opts.line or (line_count - 1) -- Default to last line (0-indexed)
+  local buf_lines = api.nvim_buf_line_count(bufnr)
+  local win_lines = vim.o.lines - vim.o.cmdheight
+  local target_line = opts.line or (buf_lines - 1)
 
   local main_text = opts.text or "Notification"
-  local sub_text = opts.sub_text
   local main_hl = opts.main_hl or "CodeCompanionChatWarn"
+  local sub_text = opts.sub_text
   local sub_hl = opts.sub_hl or "CodeCompanionChatSubtext"
 
+  local required_lines = 0
   local virt_lines = {}
 
-  if opts.spacer then
+  local function increment(line_count)
+    line_count = line_count or 1
+    required_lines = required_lines + line_count
+  end
+  local function spacer()
+    increment()
     table.insert(virt_lines, { { "", "Normal" } })
   end
 
+  if opts.spacer then
+    spacer()
+  end
+
   -- Create the main text line
+  increment(2)
   table.insert(virt_lines, {
     { "", "Normal" },
     { main_text, main_hl },
   })
 
-  -- Add sub-text line if provided
+  -- Add sub-text if provided
   if sub_text then
+    increment(2)
     table.insert(virt_lines, {
       { "╰─ ", "Comment" },
       { sub_text, sub_hl },
     })
   end
 
+  if opts.footer then
+    spacer()
+  end
+
+  -- Show the notification above the bottom line if we're out of space
+  local show_above = opts.above or false
+  if win_lines <= (buf_lines + required_lines) then
+    show_above = true
+  end
+
   return api.nvim_buf_set_extmark(bufnr, ns_id, target_line, 0, {
     virt_lines = virt_lines,
-    virt_lines_above = opts.above or false,
-    priority = opts.priority or (vim.highlight.priorities.user + 10),
+    virt_lines_above = show_above,
+    priority = opts.priority or (vim.hl.priorities.user + 10),
   })
 end
 

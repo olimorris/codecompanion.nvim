@@ -82,6 +82,7 @@ function M.show_waiting_indicator(bufnr, opts)
 
   return ui.show_buffer_notification(bufnr, {
     namespace = "codecompanion_waiting_" .. tostring(bufnr),
+    footer = true,
     text = notify,
     sub_text = sub_text,
     main_hl = "CodeCompanionChatWarn",
