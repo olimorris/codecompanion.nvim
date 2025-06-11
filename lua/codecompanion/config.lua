@@ -85,8 +85,8 @@ local defaults = {
           description = "Insert code into an existing file",
           opts = {
             requires_approval = { -- Require approval before the tool is executed?
-              buffer = false,
-              file = true,
+              buffer = false, -- For editing buffers in Neovim
+              file = true, -- For editing files in the current working directory
             },
             user_confirmation = true, -- Require confirmation from the user before moving on in the chat buffer?
           },
