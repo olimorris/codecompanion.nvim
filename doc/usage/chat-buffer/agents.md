@@ -64,6 +64,10 @@ Can you create some test fixtures using the @create_file tool?
 > [!NOTE]
 > By default, this tool requires user approval before it can be executed
 
+<p>
+  <video controls muted src="https://github.com/user-attachments/assets/990bbc99-7b12-4dca-8770-c24b9f3e7838"></video>
+</p>
+
 This tool can edit buffers and files for code changes from an LLM:
 
 ```md
