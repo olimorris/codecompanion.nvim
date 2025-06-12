@@ -136,7 +136,7 @@ function M.show_buffer_notification(bufnr, opts)
   return api.nvim_buf_set_extmark(bufnr, ns_id, target_line, 0, {
     virt_lines = virt_lines,
     virt_lines_above = show_above,
-    priority = opts.priority or (vim.hl.priorities.user + 10),
+    priority = opts.priority or ((vim.hl or vim.highlight).priorities.user + 10),
   })
 end
 
