@@ -459,4 +459,120 @@ T["References"]["Show icons immediately when added with default parameters"] = f
   h.eq("> - <buf>regular_file.lua</buf>", lines[6])
 end
 
+T["References"]["Tool group with collapse_tools shows single group reference"] = function()
+  child.lua([[
+    _G.agent.tools_config.groups.test_group = {
+      tools = { "func", "weather" },
+      system_prompt = "Test group system prompt",
+      opts = { collapse_tools = true }
+    }
+    
+    local message = { role = "user", content = "@test_group help" }
+    _G.chat:add_message(message)
+    _G.chat:replace_vars_and_tools(message)
+  ]])
+
+  local refs_in_chat = child.lua_get([[_G.chat.references:get_from_chat()]])
+  h.expect_tbl_contains("<group>test_group</group>", refs_in_chat)
+
+  -- Verify system message was added with group reference
+  child.lua([[
+    _G.system_msg = nil
+    for _, msg in ipairs(_G.chat.messages) do
+      if msg.role == "system" and msg.opts and msg.opts.reference == "<group>test_group</group>" then
+        _G.system_msg = { content = msg.content, reference = msg.opts.reference }
+        break
+      end
+    end
+  ]])
+
+  local system_msg = child.lua_get("_G.system_msg")
+  h.eq("Test group system prompt", system_msg.content)
+  h.eq("<group>test_group</group>", system_msg.reference)
+end
+
+T["References"]["Tool group without collapse_tools shows individual tools"] = function()
+  child.lua([[
+    _G.agent.tools_config.groups.test_group2 = {
+      tools = { "func", "weather" },
+      system_prompt = "Individual tools system prompt",
+      opts = { collapse_tools = false }
+    }
+    
+    local message = { role = "user", content = "@test_group2 help" }
+    _G.chat:add_message(message)
+    _G.chat:replace_vars_and_tools(message)
+  ]])
+
+  local refs_in_chat = child.lua_get([[_G.chat.references:get_from_chat()]])
+  h.expect_tbl_contains("<tool>func</tool>", refs_in_chat)
+  h.expect_tbl_contains("<tool>weather</tool>", refs_in_chat)
+
+  -- Verify system message still has group reference even with individual tools
+  child.lua([[
+    _G.system_msg_content = nil
+    for _, msg in ipairs(_G.chat.messages) do
+      if msg.role == "system" and msg.opts and msg.opts.reference == "<group>test_group2</group>" then
+        _G.system_msg_content = msg.content
+        break
+      end
+    end
+  ]])
+
+  local system_msg = child.lua_get("_G.system_msg_content")
+  h.eq("Individual tools system prompt", system_msg)
+end
+
+T["References"]["Removing collapsed group removes all its tools and system message"] = function()
+  child.lua([[
+    _G.agent.tools_config.groups.remove_group = {
+      tools = { "func", "weather" },
+      system_prompt = "System prompt to be removed",
+      opts = { collapse_tools = true }
+    }
+    
+    local message = { role = "user", content = "@remove_group help" }
+    _G.chat:add_message(message)
+    _G.chat:replace_vars_and_tools(message)
+  ]])
+
+  -- Verify initial state
+  child.lua([[
+    _G.initial_system_msg_found = false
+    for _, msg in ipairs(_G.chat.messages) do
+      if msg.role == "system" and msg.opts and msg.opts.reference == "<group>remove_group</group>" then
+        _G.initial_system_msg_found = true
+        break
+      end
+    end
+  ]])
+
+  h.eq(true, child.lua_get("_G.initial_system_msg_found"), "System message should exist initially")
+
+  child.lua([[
+    -- Mock removing the group reference
+    _G.chat.references.get_from_chat = function() return {} end
+    _G.chat:check_references()
+  ]])
+
+  local final_schemas = child.lua_get([[_G.chat.tools.schemas]])
+  local final_in_use = child.lua_get([[_G.chat.tools.in_use]])
+
+  h.eq({}, final_schemas, "All tool schemas should be removed")
+  h.eq({}, final_in_use, "All tools should be removed from in_use")
+
+  -- Verify system message with group reference is removed
+  child.lua([[
+    _G.system_msg_exists = false
+    for _, msg in ipairs(_G.chat.messages) do
+      if msg.role == "system" and msg.opts and msg.opts.reference == "<group>remove_group</group>" then
+        _G.system_msg_exists = true
+        break
+      end
+    end
+  ]])
+
+  h.eq(false, child.lua_get("_G.system_msg_exists"), "System message with group reference should be removed")
+end
+
 return T
