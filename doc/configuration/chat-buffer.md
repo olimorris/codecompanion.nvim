@@ -224,12 +224,12 @@ require("codecompanion").setup({
     }
   }
 })
-
 ```
 
 ### Automatically Add Tools to Chat
 
-You can configure CodeCompanion to load tools to new chats by default:
+You can configure the plugin to automatically add tools to new chat buffers:
+
 ```lua
 require("codecompanion").setup({
   strategies = {
@@ -244,8 +244,7 @@ require("codecompanion").setup({
 })
 ```
 
-This works for both built-in tools and external tools configured by the users or
-[extensions](/configuration#extensions).
+This also works for [extensions](/configuration/extensions).
 
 ## Prompt Decorator
 
