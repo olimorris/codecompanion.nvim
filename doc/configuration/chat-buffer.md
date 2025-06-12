@@ -227,6 +227,26 @@ require("codecompanion").setup({
 
 ```
 
+### Automatically Add Tools to Chat
+
+You can configure CodeCompanion to load tools to new chats by default:
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      tools = {
+        opts = {
+          default_tools = { "my_tool" }
+        },
+      }
+    }
+  }
+})
+```
+
+This works for both built-in tools and external tools configured by the users or
+[extensions](/configuration#extensions).
+
 ## Prompt Decorator
 
 It can be useful to decorate your prompt, prior to sending to an LLM, with additional information. For example, the GitHub Copilot prompt in VS Code, wraps a user's prompt between `<prompt></prompt>` tags presumably to differentiate the user's ask from additional context. This can also be achieved in CodeCompanion:

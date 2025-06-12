@@ -123,6 +123,8 @@ local defaults = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
           wait_timeout = 30000, -- How long to wait for user input before timing out (milliseconds)
+          ---@type string[]
+          default_tools = {},
         },
       },
       variables = {

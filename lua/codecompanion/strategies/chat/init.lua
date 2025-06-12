@@ -655,6 +655,13 @@ function Chat.new(args)
     self:submit()
   end
 
+  for _, tool_name in pairs(config.strategies.chat.tools.opts.default_tools or {}) do
+    local tool_config = config.strategies.chat.tools[tool_name]
+    if tool_config ~= nil then
+      self.tools:add(tool_name, tool_config)
+    end
+  end
+
   return self ---@type CodeCompanion.Chat
 end
 
