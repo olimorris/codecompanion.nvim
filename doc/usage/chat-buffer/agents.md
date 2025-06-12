@@ -119,6 +119,35 @@ Can you use the @web_search tool to tell me the latest version of Neovim?
 
 Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
 
+## Tool Groups
+
+CodeCompanion comes with two built-in tool groups:
+
+- `@full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools 
+- `@files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools 
+
+When you include a tool group in your chat (e.g., `@files`), all tools within that group become available to the LLM. By default, each individual tool in the group will appear as a separate reference in the chat buffer. 
+
+If you want to show it as a single collapsed `<group>files</group>` reference, use the `collapse_tools` option:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      tools = {
+        groups = {
+          ["files"] = {
+            opts = {
+              collapse_tools = true, -- Collapse all tools into a single group reference
+            },
+          },
+        },
+      }
+    }
+  }
+})
+```
+
 ## Approvals
 
 Some tools, such as the _@cmd_runner_, require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response.

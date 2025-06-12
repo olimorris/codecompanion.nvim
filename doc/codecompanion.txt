@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.10.0         Last change: 2025 June 11
+*codecompanion.txt*         For NVIM v0.10.0         Last change: 2025 June 12
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1224,6 +1224,9 @@ referenced with `@` when in the chat buffer:
                   "editor",
                   -- Add your own tools or reuse existing ones
                 },
+                opts = {
+                  collapse_tools = false, -- When true, show as a single group reference instead of individual tools
+                },
               },
             },
           },
@@ -1278,8 +1281,8 @@ the LLM. This can be achieved by the following options in your configuration:
         chat = {
           tools = {
             opts = {
-              auto_submit_errors = false, -- Send any errors to the LLM automatically?
-              auto_submit_success = false, -- Send any successful output to the LLM automatically?
+              auto_submit_errors = true, -- Send any errors to the LLM automatically?
+              auto_submit_success = true, -- Send any successful output to the LLM automatically?
             },
           }
         }
@@ -1884,7 +1887,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-agents-files| tool, combined with the
 |codecompanion-usage-chat-buffer-variables.html-buffer| variable or
@@ -2247,6 +2250,39 @@ date information.
 Currently, the tool uses tavily <https://www.tavily.com> and you’ll need to
 ensure that an API key has been set accordingly, as per the adapter
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua>.
+
+
+TOOL GROUPS ~
+
+CodeCompanion comes with two built-in tool groups:
+
+- `@full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools
+- `@files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools
+
+When you include a tool group in your chat (e.g., `@files`), all tools within
+that group become available to the LLM. By default, each individual tool in the
+group will appear as a separate reference in the chat buffer.
+
+If you want to show it as a single collapsed `<group>files</group>` reference,
+use the `collapse_tools` option:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          tools = {
+            groups = {
+              ["files"] = {
+                opts = {
+                  collapse_tools = true, -- Collapse all tools into a single group reference
+                },
+              },
+            },
+          }
+        }
+      }
+    })
+<
 
 
 APPROVALS ~
@@ -2996,7 +3032,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI�S API OUTPUT
+OPENAI’S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
