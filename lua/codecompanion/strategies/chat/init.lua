@@ -659,6 +659,8 @@ function Chat.new(args)
     local tool_config = config.strategies.chat.tools[tool_name]
     if tool_config ~= nil then
       self.tools:add(tool_name, tool_config)
+    elseif config.strategies.chat.tools.groups[tool_name] ~= nil and self.agents ~= nil then
+      self.agents:add_tool_group(self, tool_name)
     end
   end
 

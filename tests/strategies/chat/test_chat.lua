@@ -173,7 +173,7 @@ T["Chat"]["can bring up keymap options in the chat buffer"] = function()
 end
 
 T["Chat"]["can load default tools"] = function()
-  local loaded_tools = child.lua([[
+  local refs = child.lua([[
     codecompanion = require("codecompanion")
     h = require('tests.helpers')
     _G.chat, _G.agent = h.setup_chat_buffer({ 
@@ -181,7 +181,7 @@ T["Chat"]["can load default tools"] = function()
         chat = {
           tools = {
             opts = {
-              default_tools = { "weather" }
+              default_tools = { "weather", "tool_group" }
             }
           }
         } 
@@ -191,9 +191,9 @@ T["Chat"]["can load default tools"] = function()
     return _G.chat.refs
   ]])
   h.eq(
-    { "<tool>weather</tool>" },
+    { "<tool>weather</tool>", "<tool>func</tool>", "<tool>cmd</tool>" },
     vim
-      .iter(loaded_tools)
+      .iter(refs)
       :map(function(item)
         return item.id
       end)

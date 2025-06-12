@@ -228,7 +228,7 @@ require("codecompanion").setup({
 
 ### Automatically Add Tools to Chat
 
-You can configure the plugin to automatically add tools to new chat buffers:
+You can configure the plugin to automatically add tools and tool groups to new chat buffers:
 
 ```lua
 require("codecompanion").setup({
@@ -236,7 +236,10 @@ require("codecompanion").setup({
     chat = {
       tools = {
         opts = {
-          default_tools = { "my_tool" }
+          default_tools = { 
+            "my_tool",
+            "my_tool_group"
+          }
         },
       }
     }
