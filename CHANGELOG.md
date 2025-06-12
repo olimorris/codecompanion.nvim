@@ -1,5 +1,12 @@
 # Changelog
 
+## [16.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v16.2.0...v16.2.1) (2025-06-12)
+
+
+### Bug Fixes
+
+* **utils:** fallback to vim.highlight ([#1611](https://github.com/olimorris/codecompanion.nvim/issues/1611)) ([6d62e18](https://github.com/olimorris/codecompanion.nvim/commit/6d62e1843cbee7a181a5b86de9e4ec554650d8d9))
+
 ## [16.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v16.1.0...v16.2.0) (2025-06-11)
 
 
