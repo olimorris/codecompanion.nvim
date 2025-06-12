@@ -1,0 +1,163 @@
+local log = require("codecompanion.utils.log")
+
+local fmt = string.format
+
+---Search the current working directory for files matching the glob pattern.
+---@param action { query: string, max_results: number }
+---@return { status: "success"|"error", data: string }
+local function search(action)
+  local query = action.query
+  local max_results = action.max_results or 50 -- Default limit to prevent overwhelming results
+
+  if not query or query == "" then
+    return {
+      status = "error",
+      data = "**File Search Tool**: Query parameter is required and cannot be empty",
+    }
+  end
+
+  -- Get current working directory
+  local cwd = vim.fn.getcwd()
+
+  -- Convert glob pattern to lpeg pattern for matching
+  local ok, glob_pattern = pcall(vim.glob.to_lpeg, query)
+  if not ok then
+    return {
+      status = "error",
+      data = fmt("**File Search Tool**: Invalid glob pattern '%s': %s", query, glob_pattern),
+    }
+  end
+
+  local matches = {}
+
+  -- Use vim.fs.find with a custom function that matches the glob pattern
+  local found_files = vim.fs.find(function(name, path)
+    -- Create the full path and then get relative path from cwd for pattern matching
+    local full_path = vim.fs.joinpath(path, name)
+    local relative_path = vim.fs.relpath(cwd, full_path)
+
+    if not relative_path then
+      return false
+    end
+
+    -- Match against the glob pattern
+    return glob_pattern:match(relative_path) ~= nil
+  end, {
+    limit = max_results,
+    type = "file",
+    path = cwd,
+  })
+
+  -- Format the results
+  if #found_files == 0 then
+    return {
+      status = "success",
+      data = fmt("**File Search Tool**: No files found matching pattern '%s'", query),
+    }
+  end
+
+  -- Convert absolute paths to relative paths for cleaner output
+  local relative_files = {}
+  for _, file in ipairs(found_files) do
+    local rel_path = vim.fs.relpath(cwd, file)
+    if rel_path then
+      table.insert(relative_files, rel_path)
+    else
+      table.insert(relative_files, file)
+    end
+  end
+
+  return {
+    status = "success",
+    data = relative_files,
+  }
+end
+
+---@class CodeCompanion.Tool.FileSearch: CodeCompanion.Agent.Tool
+return {
+  name = "file_search",
+  cmds = {
+    ---Execute the search commands
+    ---@param self CodeCompanion.Tool.FileSearch
+    ---@param args table The arguments from the LLM's tool call
+    ---@param input? any The output from the previous function call
+    ---@return { status: "success"|"error", data: string }
+    function(self, args, input)
+      return search(args)
+    end,
+  },
+  schema = {
+    type = "function",
+    ["function"] = {
+      name = "file_search",
+      description = "Search for files in the workspace by glob pattern. This only returns the paths of matching files. Use this tool when you know the exact filename pattern of the files you're searching for. Glob patterns match from the root of the workspace folder. Examples:\n- **/*.{js,ts} to match all js/ts files in the workspace.\n- src/** to match all files under the top-level src folder.\n- **/foo/**/*.js to match all js files under any foo folder in the workspace.",
+      parameters = {
+        type = "object",
+        properties = {
+          query = {
+            type = "string",
+            description = "Search for files with names or paths matching this glob pattern.",
+          },
+          max_results = {
+            type = "number",
+            description = "The maximum number of results to return. Do not use this unless necessary, it can slow things down. By default, only some matches are returned. If you use this and don't see what you're looking for, you can try again with a more specific query or a larger max_results.",
+          },
+        },
+        required = {
+          "query",
+        },
+      },
+    },
+  },
+  handlers = {
+    ---@param agent CodeCompanion.Agent The tool object
+    ---@return nil
+    on_exit = function(agent)
+      log:trace("[File Search Tool] on_exit handler executed")
+    end,
+  },
+  output = {
+    ---The message which is shared with the user when asking for their approval
+    ---@param self CodeCompanion.Agent.Tool
+    ---@param agent CodeCompanion.Agent
+    ---@return nil|string
+    prompt = function(self, agent)
+      local args = self.args
+      local query = args.query or ""
+      return fmt("Search the cwd for %s?", query)
+    end,
+
+    ---@param self CodeCompanion.Tool.FileSearch
+    ---@param agent CodeCompanion.Agent
+    ---@param cmd table The command that was executed
+    ---@param stdout table The output from the command
+    success = function(self, agent, cmd, stdout)
+      local chat = agent.chat
+
+      local files = #stdout[1]
+      local output = vim.iter(stdout):flatten():join("\n")
+      local llm_output =
+        fmt("<fileSearchTool>Found the following files matching your query:\n\n%s</fileSearchTool>", output)
+      local user_message = fmt("**File Search Tool**: Returned %d files matching the query", files)
+
+      chat:add_tool_output(self, llm_output, user_message)
+    end,
+
+    ---@param self CodeCompanion.Tool.FileSearch
+    ---@param agent CodeCompanion.Agent
+    ---@param cmd table
+    ---@param stderr table The error output from the command
+    ---@param stdout? table The output from the command
+    error = function(self, agent, cmd, stderr, stdout) end,
+
+    ---Rejection message back to the LLM
+    ---@param self CodeCompanion.Tool.FileSearch
+    ---@param agent CodeCompanion.Agent
+    ---@param cmd table
+    ---@return nil
+    rejected = function(self, agent, cmd)
+      local chat = agent.chat
+      chat:add_tool_output(self, "**File Search Tool**: The user declined to execute")
+    end,
+  },
+}
