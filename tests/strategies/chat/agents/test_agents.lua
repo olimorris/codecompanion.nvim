@@ -109,7 +109,6 @@ T["Agent"][":find"]["should find a group and a tool with same prefix"] = functio
      groups = groups
     }
   ]])
-  print(vim.inspect(result))
 
   h.eq({ "tool_group_tool" }, result.tools)
   h.eq({ "tool_group" }, result.groups)
