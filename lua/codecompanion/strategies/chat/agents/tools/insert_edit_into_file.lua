@@ -10,17 +10,32 @@ local wait = require("codecompanion.strategies.chat.agents.tools.helpers.wait")
 local api = vim.api
 local fmt = string.format
 
-local PROMPT = [[<editFileInstructions>
+local PROMPT = [=[<editFileInstructions>
 Before editing a file, ensure you have its content via the provided context or read_file tool.
-Use the insert_edit_into_file tool to modify files.
-NEVER show the code edits to the user - only call the tool. The system will apply and display the changes.
-For each file, give a short description of what needs to be changed, then use the insert_edit_into_file tools. You can use the tool multiple times in a response, and you can keep writing text after using a tool.
-The insert_edit_into_file tool is very smart and can understand how to apply your edits to the user's files, you just need to follow the patch format instructions carefully and to the letter.
+You MUST use the `insert_edit_into_file` tool to modify files.
+NEVER include the code edits in your response message; instead, *always* pass the complete patch content as the `code` argument to the `insert_edit_into_file` tool. The system will handle applying and displaying the changes.
+For each file, first give a short description of what needs to be changed, then make the `insert_edit_into_file` tool call. You can use the tool multiple times in a response, and you can keep writing text after using a tool.
+The `insert_edit_into_file` tool is very smart and can understand how to apply your edits to the user's files, you just need to follow the patch format instructions carefully and to the letter.
 
 ## Patch Format
-]] .. patch.FORMAT_PROMPT .. [[
+]=] .. patch.FORMAT_PROMPT .. [=[
 The system uses fuzzy matching and confidence scoring so focus on providing enough context to uniquely identify the location.
-</editFileInstructions>]]
+
+## Example Tool Call
+When you want to edit a file, your output should use the `insert_edit_into_file` tool like this:
+```
+tool_code('insert_edit_into_file', {
+    filepath = 'src/my_module.py',
+    explanation = 'Fixed a bug in data processing logic.',
+    code = [[*** Begin Patch
+@@def process_data(data):
+-    result = data * 2
++    result = data + 5
+     return result
+*** End Patch]]
+})
+```
+</editFileInstructions>]=]
 
 ---Edit code in a file
 ---@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
@@ -182,7 +197,7 @@ return {
     type = "function",
     ["function"] = {
       name = "insert_edit_into_file",
-      description = "Insert new code or modify existing code in a file in the current working directory. Use this tool once per file that needs to be modified, even if there are multiple changes for a file. The system is very smart and can understand how to apply your edits to the user's files if you follow the instructions.",
+      description = "Insert new code or modify existing code in a file in the current working directory. You must provide the changes in the specific patch format in the 'code' parameter. Use this tool once per file that needs to be modified, even if there are multiple changes for a file. The system is very smart and can apply your edits accurately if you follow the patch format instructions carefully.",
       parameters = {
         type = "object",
         properties = {
