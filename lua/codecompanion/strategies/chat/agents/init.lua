@@ -265,7 +265,9 @@ function Agent:find(chat, message)
   return tools, groups
 end
 
+---Add a tool group to the chat buffer
 ---@param chat CodeCompanion.Chat
+---@param group string The group name to add
 function Agent:add_tool_group(chat, group)
   local schema = self.tools_config.groups[group]
   local system_prompt = schema.system_prompt
