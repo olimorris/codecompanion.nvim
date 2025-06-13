@@ -192,7 +192,7 @@ return {
           },
           filepath = {
             type = "string",
-            description = "The relative path to the file to edit, including its filename and extension",
+            description = "The path to the file to edit, including its filename and extension",
           },
           code = {
             type = "string",

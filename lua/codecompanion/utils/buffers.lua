@@ -76,6 +76,70 @@ function M.get_open(ft)
   return buffers
 end
 
+---Format buffer content with XML wrapper for LLM consumption
+---@param selected table Buffer info { bufnr: number, path: string, name?: string }
+---@param opts? table Options { message?: string, range?: table }
+---@return string content The XML-wrapped content
+---@return string id The buffer reference ID
+---@return string filename The buffer filename
+function M.format_for_llm(selected, opts)
+  opts = opts or {}
+  local bufnr = selected.bufnr
+  local path = selected.path
+
+  -- Handle unloaded buffers
+  local content
+  if not api.nvim_buf_is_loaded(bufnr) then
+    local file_content = require("plenary.path").new(path):read()
+    if file_content == "" then
+      error("Could not read the file: " .. path)
+    end
+    content = "```"
+      .. vim.filetype.match({ filename = path })
+      .. "\n"
+      .. M.add_line_numbers(vim.trim(file_content))
+      .. "\n```"
+  else
+    content = M.format_with_line_numbers(bufnr, opts.range)
+  end
+
+  local filename = selected.name or vim.fn.fnamemodify(path, ":t")
+  local relative_path = M.make_relative_path(path)
+
+  -- Generate consistent ID
+  local id = "<buf>" .. filename .. "</buf>"
+
+  local message = opts.message or "Buffer content"
+
+  local formatted_content = string.format(
+    [[<buffer filepath="%s" number="%s">%s
+From %s:
+%s</buffer>]],
+    relative_path,
+    bufnr,
+    message,
+    relative_path,
+    content
+  )
+
+  return formatted_content, id, relative_path
+end
+
+---Make a relative path from an absolute path
+---@param path string The absolute path to convert
+---@return string
+function M.make_relative_path(path)
+  return vim.fn.fnamemodify(path, ":.")
+end
+
+---Get the relative path of a buffer
+---@param bufnr number The buffer number to get the relative path for
+---@return string
+function M.get_relative_path(bufnr)
+  local bufname = api.nvim_buf_get_name(bufnr)
+  return M.make_relative_path(bufname)
+end
+
 ---Check if a filepath is open as a buffer and return the buffer number
 ---@param filepath string The filepath to check
 ---@return number|nil Buffer number if found, nil otherwise
@@ -107,14 +171,6 @@ function M.get_content(bufnr, range)
   return content
 end
 
----Get the content of a given line in a buffer
----@param bufnr number
----@param line number
----@return string
-function M.get_line(bufnr, line)
-  return api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or ""
-end
-
 ---Formats the content of a buffer into a markdown string
 ---@param buffer table The buffer data to include
 ---@param lines string The lines of the buffer to include
@@ -127,20 +183,9 @@ local function format(buffer, lines)
   end
 
   return string.format(
-    [[
-Buffer Number: %d
-Name: %s
-Path: %s
-Filetype: %s
-Content:
-```%s
+    [[```%s
 %s
-```
-]],
-    buffer.number,
-    buffer.name,
-    buffer.path,
-    buffer.filetype,
+```]],
     buffer.filetype,
     table.concat(formatted, "\n")
   )
@@ -166,22 +211,6 @@ function M.add_line_numbers(content)
   end
 
   return table.concat(formatted, "\n")
-end
-
----Format a buffer's contents for use in a markdown file
----@param bufnr number
----@param range? table
----@return string
-function M.format(bufnr, range)
-  local buffer = M.get_info(bufnr)
-
-  return string.format(
-    [[```%s
-%s
-```]],
-    buffer.filetype,
-    M.get_content(bufnr, range)
-  )
 end
 
 return M

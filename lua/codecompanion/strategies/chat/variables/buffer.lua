@@ -56,15 +56,25 @@ function Variable:output(selected, opts)
   end
 
   local content, id = self:read(bufnr)
+  local path = buf_utils.get_relative_path(bufnr)
 
-  local message = "Here is the content from the buffer.\n\n"
+  local message = "User's current visible code in a buffer, this should be the main focus."
   if opts.pin then
-    message = "Here is the updated buffer content.\n\n"
+    message = "Here is the updated buffer content."
   end
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = fmt([[%s%s]], message, content),
+    content = fmt(
+      [[<buffer filepath="%s" number="%s">%s
+From %s:
+%s</buffer>]],
+      path,
+      bufnr,
+      message,
+      path,
+      content
+    ),
   }, { reference = id, tag = "variable", visible = false })
 
   if opts.pin then
@@ -89,7 +99,7 @@ end
 ---@return string
 function Variable.replace(prefix, message, bufnr)
   local bufname = buf_utils.name_from_bufnr(bufnr)
-  local replacement = "buffer " .. bufnr .. " (`" .. bufname .. "`)"
+  local replacement = "buffer `" .. bufname .. "` (buffer number: " .. bufnr .. ")"
 
   local result = message:gsub(prefix .. "buffer{[^}]*}", replacement)
   result = result:gsub(prefix .. "buffer", replacement)

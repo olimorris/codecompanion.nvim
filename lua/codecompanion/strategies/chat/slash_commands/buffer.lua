@@ -149,32 +149,6 @@ function SlashCommand:execute(SlashCommands)
   return SlashCommands:set_provider(self, providers)
 end
 
----Open and read the contents of the selected file
----@param selected table The selected item from the provider { relative_path = string, path = string }
-function SlashCommand:read(selected)
-  local filename = vim.fn.fnamemodify(selected.path, ":t")
-
-  -- If the buffer is not loaded, then read the file
-  local content
-  if not api.nvim_buf_is_loaded(selected.bufnr) then
-    content = path.new(selected.path):read()
-    if content == "" then
-      return log:warn("Could not read the file: %s", selected.path)
-    end
-    content = "```"
-      .. vim.filetype.match({ filename = selected.path })
-      .. "\n"
-      .. buf.add_line_numbers(vim.trim(content))
-      .. "\n```"
-  else
-    content = buf.format_with_line_numbers(selected.bufnr)
-  end
-
-  local id = "<buf>" .. self.Chat.references:make_id_from_buf(selected.bufnr) .. "</buf>"
-
-  return content, filename, id
-end
-
 ---Output from the slash command in the chat buffer
 ---@param selected table The selected item from the provider { relative_path = string, path = string }
 ---@param opts? table
@@ -185,30 +159,22 @@ function SlashCommand:output(selected, opts)
   end
   local opts = opts or {}
 
-  local content, filename, id = self:read(selected)
-
-  local message = "Here is the content from"
+  local message = "Here is the content from a selected buffer."
   if opts.pin then
-    message = "Here is the updated content from"
+    message = "Here is the updated content from a selected buffer."
+  end
+
+  local ok, content, id, filename = pcall(buf.format_for_llm, selected, { message = message })
+  if not ok then
+    return log:warn(content)
   end
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = fmt(
-      [[%s `%s` (which has a buffer number of _%d_ and a filepath of `%s`):
-
-%s]],
-      message,
-      filename,
-      selected.bufnr,
-      selected.path,
-      content
-    ),
+    content = content,
   }, { reference = id, visible = false })
 
-  if opts.pin then
-    return
-  end
+  -- Remove the old read() call and content formatting
 
   local slash_command_opts = self.config.opts and self.config.opts.default_params or nil
   if slash_command_opts then
