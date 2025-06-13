@@ -14,16 +14,6 @@ local PROMPT = [=[<editFileInstructions>
 Before editing a file, ensure you have its content via the provided context or read_file tool.
 You have access to the `insert_edit_into_file` tool to modify files.
 For each file, first give a short description of what needs to be changed, then make the `insert_edit_into_file` tool call. You can keep writing text after using a tool.
-</editFileInstructions>]=]
-
-local TOOL_DESCRIPTION = [=[Insert new code or modify existing code in a file in the current working directory. You must provide the changes in the specific patch format in the 'code' parameter. Use this tool once per file that needs to be modified. For each file, you can only make *one* `insert_edit_into_file` tool call. If a file requires multiple changes, combine them into a single `code` parameter using multiple diff blocks within the patch format. 
-You can use the tool multiple times in a response, but *only* if you need to modify *different* files.
-The system is very smart and can apply your edits accurately if you follow the patch format instructions carefully.
-
-## Patch Format
-]=] .. patch.FORMAT_PROMPT .. [=[
-The system uses fuzzy matching and confidence scoring so focus on providing enough context to uniquely identify the location.
-
 ## Example Tool Call
 When you want to edit a file, your output should use the `insert_edit_into_file` tool like this:
 ```
@@ -42,7 +32,17 @@ tool_code('insert_edit_into_file', {
      return message
 *** End Patch]]
 })
-```]=]
+```
+</editFileInstructions>]=]
+
+local TOOL_DESCRIPTION = [=[Insert new code or modify existing code in a file in the current working directory. You must provide the changes in the specific patch format in the 'code' parameter. Use this tool once per file that needs to be modified. For each file, you can only make *one* `insert_edit_into_file` tool call. If a file requires multiple changes, combine them into a single `code` parameter using multiple diff blocks within the patch format. 
+You can use the tool multiple times in a response, but *only* if you need to modify *different* files.
+The system is very smart and can apply your edits accurately if you follow the patch format instructions carefully.
+
+## Patch Format
+]=] .. patch.FORMAT_PROMPT .. [=[
+The system uses fuzzy matching and confidence scoring so focus on providing enough context to uniquely identify the location.
+]=]
 
 ---Edit code in a file
 ---@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
