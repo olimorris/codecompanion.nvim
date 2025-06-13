@@ -104,7 +104,9 @@ function Tools:add_group(group, tools_config)
     return
   end
 
-  local collapse_tools = group_config.opts and group_config.opts.collapse_tools or false
+  local opts = vim.tbl_deep_extend("force", { collapse_tools = true }, group_config.opts or {})
+  local collapse_tools = opts.collapse_tools
+
   local group_id = "<group>" .. group .. "</group>"
 
   local system_prompt = group_config.system_prompt

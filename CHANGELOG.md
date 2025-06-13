@@ -1,5 +1,12 @@
 # Changelog
 
+## [16.2.2](https://github.com/olimorris/codecompanion.nvim/compare/v16.2.1...v16.2.2) (2025-06-13)
+
+
+### Bug Fixes
+
+* **inline:** revert keymap changes ([#1622](https://github.com/olimorris/codecompanion.nvim/issues/1622)) ([6f89961](https://github.com/olimorris/codecompanion.nvim/commit/6f89961632defce5a591195851569758a1e15a0e)), closes [#1621](https://github.com/olimorris/codecompanion.nvim/issues/1621)
+
 ## [16.2.1](https://github.com/olimorris/codecompanion.nvim/compare/v16.2.0...v16.2.1) (2025-06-12)
 
 

@@ -126,9 +126,9 @@ CodeCompanion comes with two built-in tool groups:
 - `@full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools 
 - `@files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools 
 
-When you include a tool group in your chat (e.g., `@files`), all tools within that group become available to the LLM. By default, each individual tool in the group will appear as a separate reference in the chat buffer. 
+When you include a tool group in your chat (e.g., `@files`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer. 
 
-If you want to show it as a single collapsed `<group>files</group>` reference, use the `collapse_tools` option:
+If you want to show all tools as references in the chat buffer, set the `collapse_tools` option to `false`:
 
 ```lua
 require("codecompanion").setup({
@@ -138,7 +138,7 @@ require("codecompanion").setup({
         groups = {
           ["files"] = {
             opts = {
-              collapse_tools = true, -- Collapse all tools into a single group reference
+              collapse_tools = false, -- Shows all tools in the group as individual references
             },
           },
         },
