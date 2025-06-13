@@ -55,26 +55,25 @@ function Variable:output(selected, opts)
     return log:warn("Invalid parameter for buffer variable: %s", params)
   end
 
-  local content, id = self:read(bufnr)
-  local path = buf_utils.get_relative_path(bufnr)
-
   local message = "User's current visible code in a buffer, this should be the main focus."
   if opts.pin then
     message = "Here is the updated buffer content."
   end
 
+  -- Create selected table for format_for_llm
+  local buffer_info = {
+    bufnr = bufnr,
+    path = buf_utils.get_info(bufnr).path,
+  }
+
+  local ok, content, id, filename = pcall(buf_utils.format_for_llm, buffer_info, { message = message })
+  if not ok then
+    return log:warn(content)
+  end
+
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = fmt(
-      [[<buffer filepath="%s" number="%s">%s
-From %s:
-%s</buffer>]],
-      path,
-      bufnr,
-      message,
-      path,
-      content
-    ),
+    content = content,
   }, { reference = id, tag = "variable", visible = false })
 
   if opts.pin then

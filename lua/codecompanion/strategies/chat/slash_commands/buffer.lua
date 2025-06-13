@@ -157,11 +157,11 @@ function SlashCommand:output(selected, opts)
   if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
     return log:warn("Sending of code has been disabled")
   end
-  local opts = opts or {}
+  opts = opts or {}
 
-  local message = "Here is the content from a selected buffer."
+  local message = "Here is the content from a buffer."
   if opts.pin then
-    message = "Here is the updated content from a selected buffer."
+    message = "Here is the updated content from a buffer."
   end
 
   local ok, content, id, filename = pcall(buf.format_for_llm, selected, { message = message })
@@ -174,7 +174,9 @@ function SlashCommand:output(selected, opts)
     content = content,
   }, { reference = id, visible = false })
 
-  -- Remove the old read() call and content formatting
+  if opts.pin then
+    return
+  end
 
   local slash_command_opts = self.config.opts and self.config.opts.default_params or nil
   if slash_command_opts then

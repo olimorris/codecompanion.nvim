@@ -103,11 +103,11 @@ function M.format_for_llm(selected, opts)
     content = M.format_with_line_numbers(bufnr, opts.range)
   end
 
-  local filename = selected.name or vim.fn.fnamemodify(path, ":t")
+  local filename = vim.fn.fnamemodify(path, ":t")
   local relative_path = M.make_relative_path(path)
 
   -- Generate consistent ID
-  local id = "<buf>" .. filename .. "</buf>"
+  local id = "<buf>" .. relative_path .. "</buf>"
 
   local message = opts.message or "Buffer content"
 
@@ -122,7 +122,7 @@ From %s:
     content
   )
 
-  return formatted_content, id, relative_path
+  return formatted_content, id, filename
 end
 
 ---Make a relative path from an absolute path
