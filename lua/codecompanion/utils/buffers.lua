@@ -112,7 +112,7 @@ function M.format_for_llm(selected, opts)
   local message = opts.message or "Buffer content"
 
   local formatted_content = string.format(
-    [[<buffer filepath="%s" number="%s">%s. From %s:
+    [[<buffer filepath="%s" number="%s">%s:
 %s</buffer>]],
     relative_path,
     bufnr,
