@@ -650,11 +650,6 @@ function Chat.new(args)
 
   last_chat = self
 
-  util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
-  if args.auto_submit then
-    self:submit()
-  end
-
   for _, tool_name in pairs(config.strategies.chat.tools.opts.default_tools or {}) do
     local tool_config = config.strategies.chat.tools[tool_name]
     if tool_config ~= nil then
@@ -662,6 +657,11 @@ function Chat.new(args)
     elseif config.strategies.chat.tools.groups[tool_name] ~= nil then
       self.tools:add_group(tool_name, config.strategies.chat.tools)
     end
+  end
+
+  util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
+  if args.auto_submit then
+    self:submit()
   end
 
   return self ---@type CodeCompanion.Chat
