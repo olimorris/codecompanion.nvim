@@ -60,7 +60,6 @@ function Variable:output(selected, opts)
     message = "Here is the updated buffer content."
   end
 
-  -- Create selected table for format_for_llm
   local buffer_info = {
     bufnr = bufnr,
     path = buf_utils.get_info(bufnr).path,
