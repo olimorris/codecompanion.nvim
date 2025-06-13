@@ -98,6 +98,10 @@ function Tools:add(tool, tool_config, opts)
   return self
 end
 
+---Add tools from a group to the chat buffer
+---@param group string The name of the group
+---@param tools_config table The tools configuration
+---@return nil
 function Tools:add_group(group, tools_config)
   local group_config = tools_config.groups[group]
   if not group_config or not group_config.tools then
