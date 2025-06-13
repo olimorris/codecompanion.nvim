@@ -100,7 +100,7 @@ body:
             {
               "olimorris/codecompanion.nvim",
               dependencies = {
-                { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
+                { "nvim-treesitter/nvim-treesitter", branch = "main", lazy = false, build = ":TSUpdate" },
                 { "nvim-lua/plenary.nvim" },
                 -- Test with blink.cmp (delete if not required)
                 {
@@ -142,13 +142,12 @@ body:
           require("lazy.minit").repro({ spec = plugins })
 
           -- Setup Tree-sitter
-          local ts_status, treesitter = pcall(require, "nvim-treesitter.configs")
-          if ts_status then
-            treesitter.setup({
-              ensure_installed = { "lua", "markdown", "markdown_inline", "yaml", "diff" },
-              highlight = { enable = true },
-            })
-          end
+          require("nvim-treesitter").install({
+            "lua",
+            "markdown",
+            "markdown_inline",
+            "yaml",
+          })
 
           -- Setup nvim-cmp
           -- local cmp_status, cmp = pcall(require, "cmp")
