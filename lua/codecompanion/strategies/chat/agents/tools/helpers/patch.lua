@@ -41,7 +41,7 @@ Example with multiple blocks of changes and `@@` identifiers:
 +		raise NotImplementedError()
 *** End Patch
 
-Make sure to always add the '*** Begin Patch' and '*** End Patch' lines respectively before and after your patch content otherwise the tool call will fail.]]
+]]
 
 ---@class Change
 ---@field focus string[] Identifiers or lines for providing large context before a change
