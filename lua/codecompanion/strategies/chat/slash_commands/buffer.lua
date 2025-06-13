@@ -195,13 +195,13 @@ function SlashCommand:output(selected, opts)
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = fmt(
-      [[%s `%s` (which has a buffer number of _%d_ and a filepath of `%s`):
+      [[%s `%s` (which has a buffer number of _%d_ and a relative filepath of `%s`):
 
 %s]],
       message,
       filename,
       selected.bufnr,
-      selected.path,
+      selected.relative_path,
       content
     ),
   }, { reference = id, visible = false })
@@ -222,7 +222,7 @@ function SlashCommand:output(selected, opts)
   self.Chat.references:add({
     bufnr = selected.bufnr,
     id = id,
-    path = selected.path,
+    relative_path = selected.relative_path,
     opts = opts,
     source = "codecompanion.strategies.chat.slash_commands.buffer",
   })

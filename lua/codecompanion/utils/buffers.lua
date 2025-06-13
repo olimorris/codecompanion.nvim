@@ -130,7 +130,7 @@ local function format(buffer, lines)
     [[
 Buffer Number: %d
 Name: %s
-Path: %s
+Relative Path: %s
 Filetype: %s
 Content:
 ```%s
@@ -139,7 +139,7 @@ Content:
 ]],
     buffer.number,
     buffer.name,
-    buffer.path,
+    buffer.relative_path,
     buffer.filetype,
     buffer.filetype,
     table.concat(formatted, "\n")
