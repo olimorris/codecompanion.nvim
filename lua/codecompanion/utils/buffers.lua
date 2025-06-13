@@ -30,11 +30,11 @@ function M.get_visible_lines()
   return lines
 end
 
----Get the formatted name of a buffer from its number
+---Get the relative name of a buffer from the buffer number
 ---@param bufnr number
 ---@return table
 function M.name_from_bufnr(bufnr)
-  return vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":t")
+  return vim.fn.fnamemodify(api.nvim_buf_get_name(bufnr), ":.")
 end
 
 ---Get the information of a given buffer
