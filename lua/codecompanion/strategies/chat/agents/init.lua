@@ -265,6 +265,26 @@ function Agent:find(chat, message)
   return tools, groups
 end
 
+---Add a tool group to the chat buffer
+---@param chat CodeCompanion.Chat
+---@param group string The group name to add
+function Agent:add_tool_group(chat, group)
+  local schema = self.tools_config.groups[group]
+  local system_prompt = schema.system_prompt
+  if type(system_prompt) == "function" then
+    system_prompt = system_prompt(schema)
+  end
+  if system_prompt then
+    chat:add_message({
+      role = config.constants.SYSTEM_ROLE,
+      content = system_prompt,
+    }, { tag = "tool", visible = false })
+  end
+  for _, tool_name in pairs(schema.tools or {}) do
+    chat.tools:add(tool_name, self.tools_config[tool_name])
+  end
+end
+
 ---Parse a user message looking for a tool
 ---@param chat CodeCompanion.Chat
 ---@param message table
@@ -281,17 +301,7 @@ function Agent:parse(chat, message)
 
     if groups and not vim.tbl_isempty(groups) then
       for _, group in ipairs(groups) do
-        local schema = self.tools_config.groups[group]
-        local system_prompt = schema.system_prompt
-        if type(system_prompt) == "function" then
-          system_prompt = system_prompt(schema)
-        end
-        if system_prompt then
-          chat:add_message({
-            role = config.constants.SYSTEM_ROLE,
-            content = system_prompt,
-          }, { tag = "tool", visible = false })
-        end
+        self:add_tool_group(chat, group)
       end
     end
     return true
