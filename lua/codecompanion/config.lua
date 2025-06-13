@@ -123,6 +123,9 @@ local defaults = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
           wait_timeout = 30000, -- How long to wait for user input before timing out (milliseconds)
+          ---Tools and/or groups that are always loaded in a chat buffer
+          ---@type string[]
+          default_tools = {},
         },
       },
       variables = {
@@ -411,7 +414,7 @@ local defaults = {
       keymaps = {
         accept_change = {
           modes = {
-            n = "gda",
+            n = "ga",
           },
           index = 1,
           callback = "keymaps.accept_change",
@@ -419,7 +422,7 @@ local defaults = {
         },
         reject_change = {
           modes = {
-            n = "gdr",
+            n = "gr",
           },
           index = 2,
           callback = "keymaps.reject_change",
