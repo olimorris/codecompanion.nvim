@@ -104,7 +104,7 @@ function M.format_for_llm(selected, opts)
   end
 
   local filename = vim.fn.fnamemodify(path, ":t")
-  local relative_path = M.make_relative_path(path)
+  local relative_path = vim.fn.fnamemodify(path, ":.")
 
   -- Generate consistent ID
   local id = "<buf>" .. relative_path .. "</buf>"
@@ -123,21 +123,6 @@ From %s:
   )
 
   return formatted_content, id, filename
-end
-
----Make a relative path from an absolute path
----@param path string The absolute path to convert
----@return string
-function M.make_relative_path(path)
-  return vim.fn.fnamemodify(path, ":.")
-end
-
----Get the relative path of a buffer
----@param bufnr number The buffer number to get the relative path for
----@return string
-function M.get_relative_path(bufnr)
-  local bufname = api.nvim_buf_get_name(bufnr)
-  return M.make_relative_path(bufname)
 end
 
 ---Check if a filepath is open as a buffer and return the buffer number
