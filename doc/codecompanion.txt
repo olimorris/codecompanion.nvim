@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.10.0         Last change: 2025 June 12
+*codecompanion.txt*         For NVIM v0.10.0         Last change: 2025 June 13
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1225,7 +1225,7 @@ referenced with `@` when in the chat buffer:
                   -- Add your own tools or reuse existing ones
                 },
                 opts = {
-                  collapse_tools = false, -- When true, show as a single group reference instead of individual tools
+                  collapse_tools = true, -- When true, show as a single group reference instead of individual tools
                 },
               },
             },
@@ -1289,6 +1289,31 @@ the LLM. This can be achieved by the following options in your configuration:
       }
     })
 <
+
+
+AUTOMATICALLY ADD TOOLS TO CHAT
+
+You can configure the plugin to automatically add tools and tool groups to new
+chat buffers:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          tools = {
+            opts = {
+              default_tools = { 
+                "my_tool",
+                "my_tool_group"
+              }
+            },
+          }
+        }
+      }
+    })
+<
+
+This also works for |codecompanion-configuration-extensions|.
 
 
 PROMPT DECORATOR ~
@@ -2260,11 +2285,11 @@ CodeCompanion comes with two built-in tool groups:
 - `@files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools
 
 When you include a tool group in your chat (e.g., `@files`), all tools within
-that group become available to the LLM. By default, each individual tool in the
-group will appear as a separate reference in the chat buffer.
+that group become available to the LLM. By default, all the tools in the group
+will be shown as a single `<group>name</group>` reference in the chat buffer.
 
-If you want to show it as a single collapsed `<group>files</group>` reference,
-use the `collapse_tools` option:
+If you want to show all tools as references in the chat buffer, set the
+`collapse_tools` option to `false`:
 
 >lua
     require("codecompanion").setup({
@@ -2274,7 +2299,7 @@ use the `collapse_tools` option:
             groups = {
               ["files"] = {
                 opts = {
-                  collapse_tools = true, -- Collapse all tools into a single group reference
+                  collapse_tools = false, -- Shows all tools in the group as individual references
                 },
               },
             },
