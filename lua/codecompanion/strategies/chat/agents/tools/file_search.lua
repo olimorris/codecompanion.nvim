@@ -4,10 +4,14 @@ local fmt = string.format
 
 ---Search the current working directory for files matching the glob pattern.
 ---@param action { query: string, max_results: number }
+---@param opts table
 ---@return { status: "success"|"error", data: string }
-local function search(action)
+local function search(action, opts)
+  opts = opts or {}
   local query = action.query
-  local max_results = action.max_results or 50 -- Default limit to prevent overwhelming results
+
+  local tool_config = opts.config and opts.config[opts.name] or {}
+  local max_results = action.max_results or tool_config.opts.max_results or 500 -- Default limit to prevent overwhelming results
 
   if not query or query == "" then
     return {
@@ -83,7 +87,7 @@ return {
     ---@param input? any The output from the previous function call
     ---@return { status: "success"|"error", data: string }
     function(self, args, input)
-      return search(args)
+      return search(args, { name = self.tool.name, config = self.tools_config })
     end,
   },
   schema = {
@@ -136,8 +140,7 @@ return {
 
       local files = #stdout[1]
       local output = vim.iter(stdout):flatten():join("\n")
-      local llm_output =
-        fmt("<fileSearchTool>Found the following files matching your query:\n\n%s</fileSearchTool>", output)
+      local llm_output = fmt("<fileSearchTool>Found %d files matching your query:\n%s</fileSearchTool>", files, output)
       local user_message = fmt("**File Search Tool**: Returned %d files matching the query", files)
 
       chat:add_tool_output(self, llm_output, user_message)

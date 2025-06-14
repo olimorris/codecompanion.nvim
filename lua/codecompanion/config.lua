@@ -98,6 +98,9 @@ local defaults = {
         ["file_search"] = {
           callback = "strategies.chat.agents.tools.file_search",
           description = "Search for files in the current working directory by glob pattern",
+          opts = {
+            max_results = 500, -- Maximum number of results to return
+          },
         },
         ["insert_edit_into_file"] = {
           callback = "strategies.chat.agents.tools.insert_edit_into_file",
