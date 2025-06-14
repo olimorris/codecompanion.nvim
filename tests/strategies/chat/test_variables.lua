@@ -169,7 +169,7 @@ end
 T["Variables"][":replace"]["should partly replace #buffer in the message"] = function()
   local message = "what does #buffer{pin} do?"
   local result = vars:replace(message, 0)
-  h.expect_starts_with("what does buffer ", result)
+  h.expect_starts_with("what does file ", result)
 end
 
 T["Variables"][":replace"]["should be in sync with finding logic"] = function()
