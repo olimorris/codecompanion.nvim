@@ -106,7 +106,7 @@ T["Inline"]["forms correct prompts"] = function()
   h.expect_starts_with("## CONTEXT", inline.prompts[1].content)
   -- Visual selection
   h.eq(
-    "For context, this is the code that I've visually selected in the buffer, which is relevant to my prompt:\n\n```lua\nlocal x = 1\n```",
+    "For context, this is the code that I've visually selected in the buffer, which is relevant to my prompt:\n<code>\n```lua\nlocal x = 1\n```\n</code>",
     inline.prompts[3].content
   )
   -- User prompt

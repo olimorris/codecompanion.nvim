@@ -182,7 +182,7 @@ return {
     type = "function",
     ["function"] = {
       name = "insert_edit_into_file",
-      description = "Insert new code or modify existing code in a file in the current working directory. Use this tool once per file that needs to be modified, even if there are multiple changes for a file. The system is very smart and can understand how to apply your edits to the user's files if you follow the instructions.",
+      description = "Insert new code or modify existing code in a file. Use this tool once per file that needs to be modified, even if there are multiple changes for a file. The system is very smart and can understand how to apply your edits to the user's files if you follow the instructions.",
       parameters = {
         type = "object",
         properties = {
@@ -192,7 +192,7 @@ return {
           },
           filepath = {
             type = "string",
-            description = "The relative path to the file to edit, including its filename and extension",
+            description = "The path to the file to edit, including its filename and extension",
           },
           code = {
             type = "string",

@@ -6,7 +6,7 @@ local child = MiniTest.new_child_neovim()
 T = new_set({
   hooks = {
     pre_case = function()
-      child.restart({ "-u", "scripts/minimal_init.lua" })
+      h.child_start(child)
       child.lua([[
         h = require('tests.helpers')
         _G.chat, _G.agent = h.setup_chat_buffer()
@@ -110,12 +110,7 @@ T["Agent"][":find"]["should find a group and a tool with same prefix"] = functio
     }
   ]])
 
-  h.eq(
-    true,
-    vim.tbl_contains(result.tools, "tool_group_tool")
-      and vim.tbl_contains(result.tools, "func")
-      and vim.tbl_contains(result.tools, "cmd")
-  )
+  h.eq({ "tool_group_tool" }, result.tools)
   h.eq({ "tool_group" }, result.groups)
 end
 

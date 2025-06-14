@@ -64,6 +64,9 @@ local defaults = {
               "read_file",
               "insert_edit_into_file",
             },
+            opts = {
+              collapse_tools = true,
+            },
           },
           ["files"] = {
             description = "Tools related to creating, reading and editing files",
@@ -72,6 +75,9 @@ local defaults = {
               "file_search",
               "read_file",
               "insert_edit_into_file",
+            },
+            opts = {
+              collapse_tools = true,
             },
           },
         },
@@ -129,6 +135,9 @@ local defaults = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
           wait_timeout = 30000, -- How long to wait for user input before timing out (milliseconds)
+          ---Tools and/or groups that are always loaded in a chat buffer
+          ---@type string[]
+          default_tools = {},
         },
       },
       variables = {
@@ -417,7 +426,7 @@ local defaults = {
       keymaps = {
         accept_change = {
           modes = {
-            n = "gda",
+            n = "ga",
           },
           index = 1,
           callback = "keymaps.accept_change",
@@ -425,7 +434,7 @@ local defaults = {
         },
         reject_change = {
           modes = {
-            n = "gdr",
+            n = "gr",
           },
           index = 2,
           callback = "keymaps.reject_change",
@@ -1083,11 +1092,12 @@ Your core tasks include:
 
 You must:
 - Follow the user's requirements carefully and to the letter.
+- Use the context and attachments the user provides.
 - Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
 - Minimize additional prose unless clarification is needed.
 - Use Markdown formatting in your answers.
 - Include the programming language name at the start of each Markdown code block.
-- Avoid including line numbers in code blocks.
+- Do not include line numbers in code blocks.
 - Avoid wrapping the whole response in triple backticks.
 - Only return code that's directly relevant to the task at hand. You may omit code that isn’t necessary for the solution.
 - Avoid using H1, H2 or H3 headers in your responses as these are reserved for the user.

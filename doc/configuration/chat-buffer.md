@@ -173,6 +173,9 @@ require("codecompanion").setup({
               "editor",
               -- Add your own tools or reuse existing ones
             },
+            opts = {
+              collapse_tools = true, -- When true, show as a single group reference instead of individual tools
+            },
           },
         },
       },
@@ -217,15 +220,37 @@ require("codecompanion").setup({
     chat = {
       tools = {
         opts = {
-          auto_submit_errors = false, -- Send any errors to the LLM automatically?
-          auto_submit_success = false, -- Send any successful output to the LLM automatically?
+          auto_submit_errors = true, -- Send any errors to the LLM automatically?
+          auto_submit_success = true, -- Send any successful output to the LLM automatically?
         },
       }
     }
   }
 })
-
 ```
+
+### Automatically Add Tools to Chat
+
+You can configure the plugin to automatically add tools and tool groups to new chat buffers:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      tools = {
+        opts = {
+          default_tools = { 
+            "my_tool",
+            "my_tool_group"
+          }
+        },
+      }
+    }
+  }
+})
+```
+
+This also works for [extensions](/configuration/extensions).
 
 ## Prompt Decorator
 
