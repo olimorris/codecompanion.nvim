@@ -173,6 +173,9 @@ require("codecompanion").setup({
               "editor",
               -- Add your own tools or reuse existing ones
             },
+            opts = {
+              collapse_tools = true, -- When true, show as a single group reference instead of individual tools
+            },
           },
         },
       },

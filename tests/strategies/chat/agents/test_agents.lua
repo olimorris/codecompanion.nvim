@@ -110,12 +110,7 @@ T["Agent"][":find"]["should find a group and a tool with same prefix"] = functio
     }
   ]])
 
-  h.eq(
-    true,
-    vim.tbl_contains(result.tools, "tool_group_tool")
-      and vim.tbl_contains(result.tools, "func")
-      and vim.tbl_contains(result.tools, "cmd")
-  )
+  h.eq({ "tool_group_tool" }, result.tools)
   h.eq({ "tool_group" }, result.groups)
 end
 

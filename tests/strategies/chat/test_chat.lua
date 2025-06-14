@@ -189,7 +189,7 @@ T["Chat"]["can load default tools"] = function()
     return _G.chat.refs
   ]])
   h.eq(
-    { "<tool>weather</tool>", "<tool>func</tool>", "<tool>cmd</tool>" },
+    { "<tool>weather</tool>", "<group>tool_group</group>", "<tool>func</tool>", "<tool>cmd</tool>" },
     vim
       .iter(refs)
       :map(function(item)

@@ -63,6 +63,9 @@ local defaults = {
               "read_file",
               "insert_edit_into_file",
             },
+            opts = {
+              collapse_tools = true,
+            },
           },
           ["files"] = {
             description = "Tools related to creating, reading and editing files",
@@ -70,6 +73,9 @@ local defaults = {
               "create_file",
               "read_file",
               "insert_edit_into_file",
+            },
+            opts = {
+              collapse_tools = true,
             },
           },
         },
