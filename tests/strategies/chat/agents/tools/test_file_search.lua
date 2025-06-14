@@ -68,7 +68,7 @@ T["returns results"] = function()
   ]])
 
   local output = child.lua_get("chat.messages[#chat.messages].content")
-  h.eq("<fileSearchTool>Found 1 files matching your query:\nsrc/components/Button.js</fileSearchTool>", output)
+  h.eq("<fileSearchTool>Returning 1 files matching the query:\nsrc/components/Button.js</fileSearchTool>", output)
 end
 
 T["can search for JavaScript files"] = function()

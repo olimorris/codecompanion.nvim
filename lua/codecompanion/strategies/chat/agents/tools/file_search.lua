@@ -143,8 +143,8 @@ return {
         local files = #data
         chat:add_tool_output(
           self,
-          fmt(llm_output, fmt("Found %d files matching your query:\n%s", files, output)),
-          fmt(user_message, fmt("Returned %d files matching the query", files))
+          fmt(llm_output, fmt("Returning %d files matching the query:\n%s", files, output)),
+          fmt(user_message, fmt("Returned %d files", files))
         )
       else
         -- No files found - data is a string message
