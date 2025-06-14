@@ -50,7 +50,7 @@ local CONSTANTS = {
   STATUS_SUCCESS = "success",
 
   SYSTEM_PROMPT = [[## CONTEXT
-You are a knowledgeable developer working in the Neovim text editor. You write %s code on behalf of a user (unless told otherwise), directly into their active Neovim buffer.
+You are a knowledgeable developer working in the Neovim text editor. You write %s code on behalf of a user (unless told otherwise), directly into their active Neovim buffer. In Neovim, a buffer is a file loaded into memory for editing.
 
 ## OBJECTIVE
 You must follow the user's prompt (enclosed within <prompt></prompt> tags) to the letter, ensuring that you output high quality, fully working code. Pay attention to any code that the user has shared with you as context.
@@ -59,11 +59,9 @@ You must follow the user's prompt (enclosed within <prompt></prompt> tags) to th
 %s
 
 If you cannot answer the user's prompt, respond with the reason why, in one sentence, in %s and enclosed within error tags:
-```json
 {
   "error": "Reason for not being able to answer the prompt"
 }
-```
 
 ### POINTS TO NOTE
 - Validate all code carefully.
@@ -78,8 +76,6 @@ If you cannot answer the user's prompt, respond with the reason why, in one sent
 
   RESPONSE_WITHOUT_PLACEMENT = fmt(
     [[Respond to the user's prompt by returning your code in JSON:
-
-```json
 {
   "code": "%s",
   "language": "%s"
@@ -97,8 +93,8 @@ Determine where to place your code in relation to the user's Neovim buffer. Your
 1. **Replace**: where the user's current visual selection in the buffer is replaced with your code.
 2. **Add**: where your code is placed after the user's current cursor position in the buffer.
 3. **Before**: where your code is placed before the user's current cursor position in the buffer.
-4. **New**: where a new neovim buffer is created for your code.
-5. **Chat**: when the placement doesn't fit in any of the above placements and/or the user's prompt is a question or a request for information.
+4. **New**: where a new Neovim buffer is created for your code.
+5. **Chat**: when the placement doesn't fit in any of the above placements and/or the user's prompt is a question, is conversational or is a request for information.
 
 Here are some example user prompts and how they would be placed:
 - "Can you refactor/fix/amend this code?" would be **Replace** as the user is asking you to refactor their existing code.
@@ -110,27 +106,22 @@ Here are some example user prompts and how they would be placed:
 
 ### OUTPUT
 
-Respond to the user's prompt by putting your code and placement in JSON. For example:
-```json
+Respond to the user's prompt by putting your code and placement in valid JSON that can be parsed by Neovim. For example:
 {
   "code": "%s",
   "language": "%s",
   "placement": "replace"
 }
-```
 
 This would **Replace** the user's current selection in a buffer with `%s`.
 
 **Points to Note:**
+- You must always include a placement in your response.
 - If you determine the placement to be **Chat**, your JSON response **must** be structured as follows, omitting the `code` and `language` keys entirely:
-
-```json
 {
   "placement": "chat"
 }
-```
-
-In this specific "chat" case, do not attempt to generate code or provide a `language`.]],
+- Do not return anything else after the JSON response.]],
     [[    print(\"Hello World\")]],
     "python",
     [[    print(\"Hello World\")]],
@@ -146,10 +137,11 @@ In this specific "chat" case, do not attempt to generate code or provide a `lang
 local function code_block(message, filetype, code)
   return fmt(
     [[%s
-
+<code>
 ```%s
 %s
-```]],
+```
+</code>]],
     message,
     filetype,
     table.concat(code, "\n")
