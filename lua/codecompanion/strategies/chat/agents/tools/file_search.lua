@@ -20,7 +20,6 @@ local function search(action, opts)
     }
   end
 
-  -- Get current working directory
   local cwd = vim.fn.getcwd()
 
   -- Convert glob pattern to lpeg pattern for matching
@@ -32,11 +31,8 @@ local function search(action, opts)
     }
   end
 
-  local matches = {}
-
   -- Use vim.fs.find with a custom function that matches the glob pattern
   local found_files = vim.fs.find(function(name, path)
-    -- Create the full path and then get relative path from cwd for pattern matching
     local full_path = vim.fs.joinpath(path, name)
     local relative_path = vim.fs.relpath(cwd, full_path)
 
@@ -44,7 +40,6 @@ local function search(action, opts)
       return false
     end
 
-    -- Match against the glob pattern
     return glob_pattern:match(relative_path) ~= nil
   end, {
     limit = max_results,
@@ -52,7 +47,6 @@ local function search(action, opts)
     path = cwd,
   })
 
-  -- Format the results
   if #found_files == 0 then
     return {
       status = "success",
@@ -60,7 +54,7 @@ local function search(action, opts)
     }
   end
 
-  -- Convert absolute paths to relative paths for cleaner output
+  -- Convert absolute paths to relative paths so the LLM doesn't have full knowledge of the filesystem
   local relative_files = {}
   for _, file in ipairs(found_files) do
     local rel_path = vim.fs.relpath(cwd, file)
