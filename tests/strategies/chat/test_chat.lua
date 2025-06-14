@@ -8,9 +8,7 @@ local child = MiniTest.new_child_neovim()
 T = new_set({
   hooks = {
     pre_case = function()
-      child.restart({ "-u", "scripts/minimal_init.lua" })
-      child.o.statusline = ""
-      child.o.laststatus = 0
+      h.child_start(child)
       child.lua([[
         codecompanion = require("codecompanion")
         h = require('tests.helpers')
@@ -176,15 +174,15 @@ T["Chat"]["can load default tools"] = function()
   local refs = child.lua([[
     codecompanion = require("codecompanion")
     h = require('tests.helpers')
-    _G.chat, _G.agent = h.setup_chat_buffer({ 
-      strategies = { 
+    _G.chat, _G.agent = h.setup_chat_buffer({
+      strategies = {
         chat = {
           tools = {
             opts = {
               default_tools = { "weather", "tool_group" }
             }
           }
-        } 
+        }
       }
     })
 

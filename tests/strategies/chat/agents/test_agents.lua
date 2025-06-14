@@ -6,7 +6,7 @@ local child = MiniTest.new_child_neovim()
 T = new_set({
   hooks = {
     pre_case = function()
-      child.restart({ "-u", "scripts/minimal_init.lua" })
+      h.child_start(child)
       child.lua([[
         h = require('tests.helpers')
         _G.chat, _G.agent = h.setup_chat_buffer()
