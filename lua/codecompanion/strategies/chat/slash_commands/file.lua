@@ -189,12 +189,12 @@ function SlashCommand:output(selected, opts)
     )
   else
     description = fmt(
-      [[<file filepath="%s">%s:
+      [[<attachment filepath="%s">%s:
 
 ```%s
 %s
 ```
-</file>]],
+</attachment>]],
       relative_path,
       opts.pin and "Here is the updated content from the file" or "Here is the content from the file",
       ft,
