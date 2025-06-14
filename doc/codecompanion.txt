@@ -255,6 +255,10 @@ markdown in the chat buffer:
     },
 <
 
+You can also conceal the tags used in chat buffers, see
+<https://github.com/OXY2DEV/markview.nvim/wiki/HTML#container_elements>
+and <https://github.com/olimorris/codecompanion.nvim/discussions/1638> for
+examples.
 
 MINI.DIFF ~
 
