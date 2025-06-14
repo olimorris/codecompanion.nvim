@@ -178,6 +178,13 @@ local defaults = {
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
           },
         },
+        ["quickfix"] = {
+          callback = "strategies.chat.slash_commands.quickfix",
+          description = "Insert quickfix list entries",
+          opts = {
+            contains_code = true,
+          },
+        },
         ["file"] = {
           callback = "strategies.chat.slash_commands.file",
           description = "Insert a file",

@@ -9,6 +9,7 @@ https://github.com/stevearc/aerial.nvim/blob/master/lua/aerial/backends/treesitt
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local path = require("plenary.path")
+local symbol_utils = require("codecompanion.strategies.chat.helpers")
 local util = require("codecompanion.utils")
 
 local fmt = string.format
@@ -188,88 +189,39 @@ function SlashCommand:output(selected, opts)
   opts = opts or {}
 
   local ft = vim.filetype.match({ filename = selected.path })
-  -- weird TypeScript bug for vim.filetype.match
-  -- see: https://github.com/neovim/neovim/issues/27265
-  if not ft then
-    local base_name = vim.fs.basename(selected.path)
-    local split_name = vim.split(base_name, "%.")
-    if #split_name > 1 then
-      local ext = split_name[#split_name]
-      if ext == "ts" then
-        ft = "typescript"
-      end
-    end
-  end
-  local content = path.new(selected.path):read()
+  local symbols, content = symbol_utils.extract_file_symbols(selected.path)
 
-  local query = vim.treesitter.query.get(ft, "symbols")
-
-  if not query then
+  if not symbols then
     return no_query(ft)
   end
 
-  local parser = vim.treesitter.get_string_parser(content, ft)
-  local tree = parser:parse()[1]
+  local symbol_descriptions = {}
+  local kinds = {
+    "Import",
+    "Enum",
+    "Module",
+    "Class",
+    "Struct",
+    "Interface",
+    "Method",
+    "Function",
+  }
 
-  local symbols = {}
-  for _, matches, metadata in query:iter_matches(tree:root(), content) do
-    local match = vim.tbl_extend("force", {}, metadata)
-    for id, nodes in pairs(matches) do
-      local node = type(nodes) == "table" and nodes[1] or nodes
-      match = vim.tbl_extend("keep", match, {
-        [query.captures[id]] = {
-          metadata = metadata[id],
-          node = node,
-        },
-      })
+  for _, symbol in ipairs(symbols) do
+    if vim.tbl_contains(kinds, symbol.kind) then
+      table.insert(
+        symbol_descriptions,
+        fmt("- %s: `%s` (from line %s to %s)", symbol.kind:lower(), symbol.name, symbol.start_line, symbol.end_line)
+      )
     end
-
-    local name_match = match.name or {}
-    local symbol_node = (match.symbol or match.type or {}).node
-
-    if not symbol_node then
-      goto continue
-    end
-
-    local start_node = (match.start or {}).node or symbol_node
-    local end_node = (match["end"] or {}).node or start_node
-
-    local kind = match.kind
-
-    local kinds = {
-      "Import",
-      "Enum",
-      "Module",
-      "Class",
-      "Struct",
-      "Interface",
-      "Method",
-      "Function",
-    }
-
-    vim
-      .iter(kinds)
-      :filter(function(k)
-        return kind == k
-      end)
-      :each(function(k)
-        local range = range_from_nodes(start_node, end_node)
-        if name_match.node then
-          local name = vim.trim(get_node_text(name_match.node, content)) or "<parse error>"
-
-          table.insert(symbols, fmt("- %s: `%s` (from line %s to %s)", k:lower(), name, range.lnum, range.end_lnum))
-        end
-      end)
-
-    ::continue::
   end
 
-  if #symbols == 0 then
+  if #symbol_descriptions == 0 then
     return no_symbols()
   end
 
   local id = "<symbols>" .. (selected.relative_path or selected.path) .. "</symbols>"
-  content = table.concat(symbols, "\n")
+  content = table.concat(symbol_descriptions, "\n")
 
   -- Workspaces allow the user to set their own custom description which should take priority
   local description
