@@ -117,7 +117,6 @@ function M.format_for_llm(selected, opts)
     relative_path,
     bufnr,
     message,
-    relative_path,
     content
   )
 

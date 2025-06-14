@@ -345,7 +345,10 @@ T["References"]["file references always have a relative id"] = function()
     _G.chat:submit()
   ]])
 
-  h.expect_starts_with("Here is the updated content", child.lua_get([[_G.chat.messages[#_G.chat.messages].content]]))
+  h.expect_starts_with(
+    '<file filepath="tests/stubs/file.txt">Here is the updated content from the file',
+    child.lua_get([[_G.chat.messages[#_G.chat.messages].content]])
+  )
   h.eq("<file>tests/stubs/file.txt</file>", child.lua_get([[_G.chat.messages[#_G.chat.messages].opts.reference]]))
 end
 
