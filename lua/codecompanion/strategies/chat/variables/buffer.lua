@@ -2,8 +2,6 @@ local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
-local fmt = string.format
-
 local reserved_params = {
   "pin",
   "watch",
@@ -23,23 +21,6 @@ function Variable.new(args)
   return self
 end
 
----Read the contents of the buffer
----@param bufnr number
----@return string, string
-function Variable:read(bufnr)
-  local content = buf_utils.format_with_line_numbers(bufnr)
-  log:trace("Buffer Variable:\n---\n%s", content)
-
-  local name = self.Chat.references:make_id_from_buf(bufnr)
-  if name == "" then
-    name = "Buffer " .. bufnr
-  end
-
-  local id = "<buf>" .. name .. "</buf>"
-
-  return content, id
-end
-
 ---Add the contents of the current buffer to the chat
 ---@param selected table
 ---@param opts? table
@@ -55,9 +36,9 @@ function Variable:output(selected, opts)
     return log:warn("Invalid parameter for buffer variable: %s", params)
   end
 
-  local message = "User's current visible code in a buffer, this should be the main focus."
+  local message = "User's current visible code in a file, this should be the main focus"
   if opts.pin then
-    message = "Here is the updated buffer content."
+    message = "Here is the updated file content"
   end
 
   local buffer_info = {
@@ -97,7 +78,7 @@ end
 ---@return string
 function Variable.replace(prefix, message, bufnr)
   local bufname = buf_utils.name_from_bufnr(bufnr)
-  local replacement = "buffer `" .. bufname .. "` (buffer number: " .. bufnr .. ")"
+  local replacement = "file `" .. bufname .. "` (with buffer number: " .. bufnr .. ")"
 
   local result = message:gsub(prefix .. "buffer{[^}]*}", replacement)
   result = result:gsub(prefix .. "buffer", replacement)

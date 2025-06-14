@@ -135,10 +135,10 @@ function Watchers:check_for_changes(chat)
         local diff_content = format_changes_as_diff(old_content, current_content)
 
         if diff_content ~= "" then
-          local delta = fmt("The buffer `%s`, has been modified. Here are the changes:\n%s", filename, diff_content)
+          local delta = fmt("The file `%s`, has been modified. Here are the changes:\n%s", filename, diff_content)
           chat:add_message({
             role = config.constants.USER_ROLE,
-            content = fmt([[<buffer filepath="%s" number="%s">%s</buffer>]], filename, ref.bufnr, delta),
+            content = fmt([[<attachment filepath="%s" buffer_number="%s">%s</attachment>]], filename, ref.bufnr, delta),
           }, { visible = false })
         end
       end
