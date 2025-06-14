@@ -37,7 +37,7 @@ The _file_ slash command allows you to add the contents of a file in the current
 
 Please note that these mappings may be different depending on your provider.
 
-## /QUICKFIX
+## /quickfix
 
 The `quickfix` slash command adds entries from the Neovim quickfix list to the chat buffer.
 

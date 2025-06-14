@@ -285,13 +285,14 @@ local function process_single_file(filepath, file_data)
         table.insert(diagnostic_summary, fmt("Line %d: %s", diagnostic.lnum, diagnostic.text))
       end
       description = fmt(
-        [[Quickfix entries from `%s` (small file, showing all content):
-
-%s
-
+        [[<attachment filepath="%s">Here is the content from the file with quickfix entries (small file, showing all content):
+  
+  %s
+  
 ```%s
 %s
-```]],
+```
+  </attachment>]],
         relative_path,
         table.concat(diagnostic_summary, "\n"),
         ft,
@@ -329,13 +330,14 @@ local function process_single_file(filepath, file_data)
       content = table.concat(contexts, "\n\n")
 
       description = fmt(
-        [[Quickfix entries from `%s`:
-
-%s
-
+        [[<attachment filepath="%s">Here is the content from the file with quickfix entries:
+  
+  %s
+  
 ```%s
 %s
-```]],
+```
+  </attachment>]],
         relative_path,
         table.concat(diagnostic_summary, "\n"),
         ft,
@@ -346,11 +348,12 @@ local function process_single_file(filepath, file_data)
     -- File-only entries
     content = file_content
     description = fmt(
-      [[File from quickfix list `%s`:
-
+      [[<attachment filepath="%s">Here is the content from the file:
+  
 ```%s
 %s
-```]],
+```
+  </attachment>]],
       relative_path,
       ft,
       content

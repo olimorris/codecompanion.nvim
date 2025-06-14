@@ -100,7 +100,7 @@ local function range_from_nodes(start_node, end_node)
   }
 end
 
----Extract symbols from a file using TreeSitter
+---Extract symbols from a file using Tree-sitter
 ---@param filepath string The path to the file
 ---@param target_kinds? string[] Optional list of symbol kinds to include (default: all)
 ---@return table[]|nil symbols Array of symbols with name, kind, start_line, end_line
