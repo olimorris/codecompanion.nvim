@@ -41,12 +41,10 @@ function Variable:output(selected, opts)
     message = "Here is the updated file content"
   end
 
-  local buffer_info = {
+  local ok, content, id, _ = pcall(buf_utils.format_for_llm, {
     bufnr = bufnr,
     path = buf_utils.get_info(bufnr).path,
-  }
-
-  local ok, content, id, filename = pcall(buf_utils.format_for_llm, buffer_info, { message = message })
+  }, { message = message })
   if not ok then
     return log:warn(content)
   end
