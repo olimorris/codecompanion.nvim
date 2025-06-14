@@ -16,7 +16,7 @@ local function search(action, opts)
   if not query or query == "" then
     return {
       status = "error",
-      data = "**File Search Tool**: Query parameter is required and cannot be empty",
+      data = "Query parameter is required and cannot be empty",
     }
   end
 
@@ -28,7 +28,7 @@ local function search(action, opts)
   if not ok then
     return {
       status = "error",
-      data = fmt("**File Search Tool**: Invalid glob pattern '%s': %s", query, glob_pattern),
+      data = fmt("Invalid glob pattern '%s': %s", query, glob_pattern),
     }
   end
 
@@ -56,7 +56,7 @@ local function search(action, opts)
   if #found_files == 0 then
     return {
       status = "success",
-      data = fmt("**File Search Tool**: No files found matching pattern '%s'", query),
+      data = fmt("No files found matching pattern '%s'", query),
     }
   end
 
@@ -138,12 +138,24 @@ return {
     success = function(self, agent, cmd, stdout)
       local chat = agent.chat
 
-      local files = #stdout[1]
-      local output = vim.iter(stdout):flatten():join("\n")
-      local llm_output = fmt("<fileSearchTool>Found %d files matching your query:\n%s</fileSearchTool>", files, output)
-      local user_message = fmt("**File Search Tool**: Returned %d files matching the query", files)
+      local data = stdout[1]
 
-      chat:add_tool_output(self, llm_output, user_message)
+      local llm_output = "<fileSearchTool>%s</fileSearchTool>"
+      local user_message = "**File Search Tool**: %s"
+      local output = vim.iter(stdout):flatten():join("\n")
+
+      if type(data) == "table" then
+        -- Files were found - data is an array of file paths
+        local files = #data
+        chat:add_tool_output(
+          self,
+          fmt(llm_output, fmt("Found %d files matching your query:\n%s", files, output)),
+          fmt(user_message, fmt("Returned %d files matching the query", files))
+        )
+      else
+        -- No files found - data is a string message
+        chat:add_tool_output(self, fmt(llm_output, "No files found"), fmt(user_message, "No files found"))
+      end
     end,
 
     ---@param self CodeCompanion.Tool.FileSearch
@@ -151,7 +163,21 @@ return {
     ---@param cmd table
     ---@param stderr table The error output from the command
     ---@param stdout? table The output from the command
-    error = function(self, agent, cmd, stderr, stdout) end,
+    error = function(self, agent, cmd, stderr, stdout)
+      local chat = agent.chat
+      local errors = vim.iter(stderr):flatten():join("\n")
+      log:debug("[File Search Tool] Error output: %s", stderr)
+
+      local error_output = fmt(
+        [[**File Search Tool**: Ran with an error:
+
+```txt
+%s
+```]],
+        errors
+      )
+      chat:add_tool_output(self, error_output)
+    end,
 
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.FileSearch
