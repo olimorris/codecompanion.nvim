@@ -59,6 +59,15 @@ Create a file within the current working directory:
 Can you create some test fixtures using the @create_file tool?
 ```
 
+## @file_search
+
+This tool enables an LLM to search for files in the current working directory by glob pattern. It will return a list of relative paths for any matching files.
+
+```md
+Use the @file_search tool to list all the lua files in my project
+```
+
+
 ## @insert_edit_into_file
 
 > [!NOTE]
@@ -123,10 +132,10 @@ Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ens
 
 CodeCompanion comes with two built-in tool groups:
 
-- `@full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools 
-- `@files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools 
+- `@full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools
+- `@files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools
 
-When you include a tool group in your chat (e.g., `@files`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer. 
+When you include a tool group in your chat (e.g., `@files`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer.
 
 If you want to show all tools as references in the chat buffer, set the `collapse_tools` option to `false`:
 
