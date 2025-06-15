@@ -1,4 +1,5 @@
 local log = require("codecompanion.utils.log")
+local files = require("codecompanion.utils.files")
 
 local fmt = string.format
 
@@ -28,65 +29,59 @@ local function create(action)
   local ok, result = pcall(function()
     local parent_dir = vim.fs.dirname(filepath)
 
-    -- Improved recursive directory creation
-    local function create_dir_recursive(path)
-      -- Normalize path and check if we've reached root directory
-      local normalized = vim.fs.normalize(path)
-      if normalized == "/" or normalized:match("^[A-Z]:[\\/]?$") then
-        return -- Already at root directory
-      end
-
-      local parent = vim.fs.dirname(normalized)
-      if parent ~= normalized and not vim.uv.fs_stat(parent) then
-        create_dir_recursive(parent)
-      end
-
-      local success, err, errname = vim.uv.fs_mkdir(normalized, 493)
-      if not success and errname ~= "EEXIST" then
-        error(fmt("Failed to create directory %s: %s (%s)", normalized, err, errname))
-      end
-    end
-
     -- Ensure parent directory exists
     if not vim.uv.fs_stat(parent_dir) then
-      create_dir_recursive(parent_dir)
+      local success, err_msg = files.create_dir_recursive(parent_dir)
+      if not success then
+        error(err_msg) -- This error is specific to directory creation
+      end
     end
 
     -- Create file with safer error handling
-    local fd, err, errname = vim.uv.fs_open(filepath, "w", 420)
+    local fd, fs_open_err, fs_open_errname = vim.uv.fs_open(filepath, "w", 420) -- 0644 permissions
     if not fd then
-      error(fmt("Failed to open file for writing: %s (%s)", err, errname))
+      error(fmt("Failed to open file for writing: %s (%s)", fs_open_err, fs_open_errname))
     end
 
-    -- Ensure file descriptor is closed in any case
-    local write_ok, write_result = pcall(function()
-      local bytes_written, write_err, write_errname = vim.uv.fs_write(fd, action.content)
+    local final_operation_error_message = nil
+
+    -- Try to write to the file
+    local write_ok, write_error_value = pcall(function()
+      local bytes_written, fs_write_err, fs_write_errname = vim.uv.fs_write(fd, action.content)
       if not bytes_written then
-        error(fmt("Failed to write to file: %s (%s)", write_err, write_errname))
+        error(fmt("Failed to write to file: %s (%s)", fs_write_err, fs_write_errname))
       end
-
-      -- Check if content was fully written
-      local content_length = #action.content
-      if bytes_written ~= content_length then
-        error(fmt("Incomplete write: expected %d bytes, wrote %d bytes", content_length, bytes_written))
+      if bytes_written ~= #action.content then
+        error(fmt("Incomplete write: expected %d bytes, wrote %d bytes", #action.content, bytes_written))
       end
-
-      return bytes_written
     end)
 
-    -- Always close the file regardless of write success
-    local close_success, close_err, close_errname = vim.uv.fs_close(fd)
-    if not close_success then
-      error(fmt("Failed to close file: %s (%s)", close_err, close_errname))
+    if not write_ok then
+      final_operation_error_message = write_error_value -- Store the write error
     end
 
-    -- Re-throw write error if it occurred
-    if not write_ok then
-      error(write_result)
+    -- Always try to close the file descriptor
+    local close_success, fs_close_err, fs_close_errname = vim.uv.fs_close(fd)
+    if not close_success then
+      local close_error_message = fmt("Failed to close file: %s (%s)", fs_close_err, fs_close_errname)
+      if final_operation_error_message then
+        -- Append close error to the existing write error
+        final_operation_error_message = final_operation_error_message .. ". Additionally, " .. close_error_message
+      else
+        -- No prior write error, so close error is the primary one
+        final_operation_error_message = close_error_message
+      end
     end
+
+    -- If any error occurred during write or close, throw it
+    if final_operation_error_message then
+      error(final_operation_error_message)
+    end
+    -- If we reach here, all operations (open, write, close) were successful
   end)
 
   if not ok then
+    log:error("Create File Tool: Failed to create file `%s` - %s", action.filepath, result)
     return {
       status = "error",
       data = fmt("**Create File Tool**: Failed to create file `%s` - %s", action.filepath, result),
