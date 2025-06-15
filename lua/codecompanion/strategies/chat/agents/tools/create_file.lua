@@ -9,31 +9,81 @@ local function create(action)
   local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
   filepath = vim.fs.normalize(filepath)
 
-  -- Check if path already exists
-  if vim.fn.isdirectory(filepath) == 1 then
-    return {
-      status = "error",
-      data = fmt("**Create File Tool**: `%s` already exists as a directory", action.filepath),
-    }
-  end
-
-  if vim.fn.filereadable(filepath) == 1 then
-    return {
-      status = "error",
-      data = fmt("**Create File Tool**: File `%s` already exists", action.filepath),
-    }
+  -- Check if file already exists
+  local stat = vim.uv.fs_stat(filepath)
+  if stat then
+    if stat.type == "directory" then
+      return {
+        status = "error",
+        data = fmt("**Create File Tool**: `%s` already exists as a directory", action.filepath),
+      }
+    elseif stat.type == "file" then
+      return {
+        status = "error",
+        data = fmt("**Create File Tool**: File `%s` already exists", action.filepath),
+      }
+    end
   end
 
   local ok, result = pcall(function()
-    -- Create parent directories if they don't exist
-    local parent_dir = vim.fn.fnamemodify(filepath, ":h")
-    if vim.fn.isdirectory(parent_dir) == 0 then
-      vim.fn.mkdir(parent_dir, "p")
+    local parent_dir = vim.fs.dirname(filepath)
+
+    -- Improved recursive directory creation
+    local function create_dir_recursive(path)
+      -- Normalize path and check if we've reached root directory
+      local normalized = vim.fs.normalize(path)
+      if normalized == "/" or normalized:match("^[A-Z]:[\\/]?$") then
+        return -- Already at root directory
+      end
+
+      local parent = vim.fs.dirname(normalized)
+      if parent ~= normalized and not vim.uv.fs_stat(parent) then
+        create_dir_recursive(parent)
+      end
+
+      local success, err, errname = vim.uv.fs_mkdir(normalized, 493)
+      if not success and errname ~= "EEXIST" then
+        error(fmt("Failed to create directory %s: %s (%s)", normalized, err, errname))
+      end
     end
 
-    -- Split content into lines for writefile
-    local lines = vim.split(action.content, "\n", { plain = true })
-    vim.fn.writefile(lines, filepath)
+    -- Ensure parent directory exists
+    if not vim.uv.fs_stat(parent_dir) then
+      create_dir_recursive(parent_dir)
+    end
+
+    -- Create file with safer error handling
+    local fd, err, errname = vim.uv.fs_open(filepath, "w", 420)
+    if not fd then
+      error(fmt("Failed to open file for writing: %s (%s)", err, errname))
+    end
+
+    -- Ensure file descriptor is closed in any case
+    local write_ok, write_result = pcall(function()
+      local bytes_written, write_err, write_errname = vim.uv.fs_write(fd, action.content)
+      if not bytes_written then
+        error(fmt("Failed to write to file: %s (%s)", write_err, write_errname))
+      end
+
+      -- Check if content was fully written
+      local content_length = #action.content
+      if bytes_written ~= content_length then
+        error(fmt("Incomplete write: expected %d bytes, wrote %d bytes", content_length, bytes_written))
+      end
+
+      return bytes_written
+    end)
+
+    -- Always close the file regardless of write success
+    local close_success, close_err, close_errname = vim.uv.fs_close(fd)
+    if not close_success then
+      error(fmt("Failed to close file: %s (%s)", close_err, close_errname))
+    end
+
+    -- Re-throw write error if it occurred
+    if not write_ok then
+      error(write_result)
+    end
   end)
 
   if not ok then
