@@ -60,6 +60,7 @@ local defaults = {
             tools = {
               "cmd_runner",
               "create_file",
+              "file_search",
               "read_file",
               "insert_edit_into_file",
             },
@@ -71,6 +72,7 @@ local defaults = {
             description = "Tools related to creating, reading and editing files",
             tools = {
               "create_file",
+              "file_search",
               "read_file",
               "insert_edit_into_file",
             },
@@ -86,6 +88,20 @@ local defaults = {
             requires_approval = true,
           },
         },
+        ["create_file"] = {
+          callback = "strategies.chat.agents.tools.create_file",
+          description = "Create a file in the current working directory",
+          opts = {
+            requires_approval = true,
+          },
+        },
+        ["file_search"] = {
+          callback = "strategies.chat.agents.tools.file_search",
+          description = "Search for files in the current working directory by glob pattern",
+          opts = {
+            max_results = 500, -- Maximum number of results to return
+          },
+        },
         ["insert_edit_into_file"] = {
           callback = "strategies.chat.agents.tools.insert_edit_into_file",
           description = "Insert code into an existing file",
@@ -95,13 +111,6 @@ local defaults = {
               file = true, -- For editing files in the current working directory
             },
             user_confirmation = true, -- Require confirmation from the user before moving on in the chat buffer?
-          },
-        },
-        ["create_file"] = {
-          callback = "strategies.chat.agents.tools.create_file",
-          description = "Create a file in the current working directory",
-          opts = {
-            requires_approval = true,
           },
         },
         ["read_file"] = {
