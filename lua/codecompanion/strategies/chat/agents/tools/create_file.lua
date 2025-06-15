@@ -1,4 +1,3 @@
-local Path = require("plenary.path")
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
@@ -8,26 +7,33 @@ local fmt = string.format
 ---@return {status: "success"|"error", data: string}
 local function create(action)
   local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
-  local p = Path:new(filepath)
-  p.filename = p:expand()
+  filepath = vim.fs.normalize(filepath)
 
-  if p:exists() then
-    if p:is_dir() then
-      return {
-        status = "error",
-        data = fmt("**Create File Tool**: `%s` already exists as a directory", action.filepath),
-      }
-    else
-      return {
-        status = "error",
-        data = fmt("**Create File Tool**: File `%s` already exists", action.filepath),
-      }
-    end
+  -- Check if path already exists
+  if vim.fn.isdirectory(filepath) == 1 then
+    return {
+      status = "error",
+      data = fmt("**Create File Tool**: `%s` already exists as a directory", action.filepath),
+    }
+  end
+
+  if vim.fn.filereadable(filepath) == 1 then
+    return {
+      status = "error",
+      data = fmt("**Create File Tool**: File `%s` already exists", action.filepath),
+    }
   end
 
   local ok, result = pcall(function()
-    p:touch({ parents = true })
-    p:write(action.content, "w")
+    -- Create parent directories if they don't exist
+    local parent_dir = vim.fn.fnamemodify(filepath, ":h")
+    if vim.fn.isdirectory(parent_dir) == 0 then
+      vim.fn.mkdir(parent_dir, "p")
+    end
+
+    -- Split content into lines for writefile
+    local lines = vim.split(action.content, "\n", { plain = true })
+    vim.fn.writefile(lines, filepath)
   end)
 
   if not ok then
