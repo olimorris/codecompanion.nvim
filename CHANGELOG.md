@@ -1,5 +1,22 @@
 # Changelog
 
+## [17.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v16.3.0...v17.0.0) (2025-06-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove support for nvim-0.10 ([#1639](https://github.com/olimorris/codecompanion.nvim/issues/1639))
+
+### Features
+
+* **slash_command:** new `/quickfix` command ([#1600](https://github.com/olimorris/codecompanion.nvim/issues/1600)) ([6384dc0](https://github.com/olimorris/codecompanion.nvim/commit/6384dc0d5b150394403e5ab3bc89bfad301634ea))
+* **tools:** add `file_search` tool ([#1613](https://github.com/olimorris/codecompanion.nvim/issues/1613)) ([3582a2c](https://github.com/olimorris/codecompanion.nvim/commit/3582a2c465fe8900ad70e24877d48247abd608c9))
+
+
+### Code Refactoring
+
+* remove support for nvim-0.10 ([#1639](https://github.com/olimorris/codecompanion.nvim/issues/1639)) ([5d0ef43](https://github.com/olimorris/codecompanion.nvim/commit/5d0ef43ed822ea3341ed0989e45f2d10d57ba359))
+
 ## [16.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v16.2.2...v16.3.0) (2025-06-14)
 
 
