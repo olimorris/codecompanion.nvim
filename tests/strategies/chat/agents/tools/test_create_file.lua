@@ -41,7 +41,7 @@ T["can create files"] = function()
   ]])
 
   local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE_ABSOLUTE)")
-  h.eq(output, { "import pygame", "import time", "import random", "" }, "File was not created")
+  h.eq(output, { "import pygame", "import time", "import random" }, "File was not created")
 end
 
 return T
