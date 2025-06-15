@@ -9,10 +9,14 @@ T = new_set({
       child.restart({ "-u", "scripts/minimal_init.lua" })
 
       child.lua([[
-        h = require('tests.helpers')
+        h = require("tests.helpers")
         _G.helpers = require("codecompanion.strategies.chat.helpers")
+        -- Create temporary directory for test files
+        _G.TEST_DIR = "tests/stubs/helpers"
+        _G.TEMP_DIR = vim.fs.joinpath(vim.fn.tempname(), _G.TEST_DIR)
+        vim.fn.mkdir(_G.TEMP_DIR, "p")
 
-        -- Helper function to create test files
+        -- Helper function to create test files in temp directory
         function _G.create_test_files()
           -- Lua file with functions
           vim.fn.writefile({
@@ -27,8 +31,8 @@ T = new_set({
             "  return x",
             "end",
             "",
-            "return M"
-          }, "test_symbols.lua")
+            "return M",
+          }, vim.fs.joinpath(_G.TEMP_DIR, "test_symbols.lua"))
 
           -- Python file
           vim.fn.writefile({
@@ -43,40 +47,34 @@ T = new_set({
             "    print('hello')",
             "",
             "def another_function(param):",
-            "    return param * 2"
-          }, "test_symbols.py")
+            "    return param * 2",
+          }, vim.fs.joinpath(_G.TEMP_DIR, "test_symbols.py"))
 
           -- Empty file
-          vim.fn.writefile({}, "empty_file.lua")
+          vim.fn.writefile({}, vim.fs.joinpath(_G.TEMP_DIR, "empty_file.lua"))
 
           -- File with no symbols
           vim.fn.writefile({
             "-- Just a comment",
-            "local x = 1"
-          }, "no_symbols.lua")
+            "local x = 1",
+          }, vim.fs.joinpath(_G.TEMP_DIR, "no_symbols.lua"))
 
           -- Unsupported file type
           vim.fn.writefile({
-            "This is just text"
-          }, "plain.txt")
-        end
-
-        function _G.cleanup_test_files()
-          vim.fn.delete("test_symbols.lua")
-          vim.fn.delete("test_symbols.py")
-          vim.fn.delete("empty_file.lua")
-          vim.fn.delete("no_symbols.lua")
-          vim.fn.delete("plain.txt")
+            "This is just text",
+          }, vim.fs.joinpath(_G.TEMP_DIR, "plain.txt"))
         end
 
         -- Simple helper functions using buffer variables
-        function _G.test_symbols(filepath)
+        function _G.test_symbols(filename)
+          local filepath = vim.fs.joinpath(_G.TEMP_DIR, filename)
           local symbols, content = _G.helpers.extract_file_symbols(filepath)
           vim.b.cc_test_symbols = symbols
           return symbols, content
         end
 
-        function _G.test_filtered_symbols(filepath, target_kinds)
+        function _G.test_filtered_symbols(filename, target_kinds)
+          local filepath = vim.fs.joinpath(_G.TEMP_DIR, filename)
           local symbols, content = _G.helpers.extract_file_symbols(filepath, target_kinds)
           vim.b.cc_test_symbols = symbols
           return symbols, content
@@ -95,27 +93,23 @@ T = new_set({
 
         function _G.validate_structure()
           local symbols = vim.b.cc_test_symbols
-          if not symbols then return false end
-          
+          if not symbols then
+            return false
+          end
+
           for _, symbol in ipairs(symbols) do
-            if not symbol.name or not symbol.kind or 
-               not symbol.start_line or not symbol.end_line or
-               not symbol.range then
+            if not symbol.name or not symbol.kind or not symbol.start_line or not symbol.end_line or not symbol.range then
               return false
             end
-            
+
             local range = symbol.range
-            if not range.lnum or not range.end_lnum or
-               not range.col or not range.end_col then
+            if not range.lnum or not range.end_lnum or not range.col or not range.end_col then
               return false
             end
           end
           return true
         end
       ]])
-    end,
-    post_case = function()
-      child.lua([[_G.cleanup_test_files()]])
     end,
     post_once = child.stop,
   },
