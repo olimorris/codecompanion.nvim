@@ -1,5 +1,5 @@
-local log = require("codecompanion.utils.log")
 local files = require("codecompanion.utils.files")
+local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 

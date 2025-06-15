@@ -1,5 +1,5 @@
-local h = require("tests.helpers")
 local files = require("codecompanion.utils.files")
+local h = require("tests.helpers")
 local log = require("codecompanion.utils.log")
 
 -- Test fixture directory
