@@ -462,12 +462,6 @@ end
 
 T["References"]["Tool group with collapse_tools shows single group reference"] = function()
   child.lua([[
-    _G.agent.tools_config.groups.test_group = {
-      tools = { "func", "weather" },
-      system_prompt = "Test group system prompt",
-      opts = { collapse_tools = true }
-    }
-    
     local message = { role = "user", content = "@test_group help" }
     _G.chat:add_message(message)
     _G.chat:replace_vars_and_tools(message)
@@ -494,12 +488,6 @@ end
 
 T["References"]["Tool group without collapse_tools shows individual tools"] = function()
   child.lua([[
-    _G.agent.tools_config.groups.test_group2 = {
-      tools = { "func", "weather" },
-      system_prompt = "Individual tools system prompt",
-      opts = { collapse_tools = false }
-    }
-    
     local message = { role = "user", content = "@test_group2 help" }
     _G.chat:add_message(message)
     _G.chat:replace_vars_and_tools(message)
@@ -526,12 +514,6 @@ end
 
 T["References"]["Removing collapsed group removes all its tools and system message"] = function()
   child.lua([[
-    _G.agent.tools_config.groups.remove_group = {
-      tools = { "func", "weather" },
-      system_prompt = "System prompt to be removed",
-      opts = { collapse_tools = true }
-    }
-    
     local message = { role = "user", content = "@remove_group help" }
     _G.chat:add_message(message)
     _G.chat:replace_vars_and_tools(message)

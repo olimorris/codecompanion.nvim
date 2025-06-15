@@ -191,6 +191,24 @@ return {
               "cmd",
             },
           },
+          ["test_group"] = {
+            description = "Test Group",
+            system_prompt = "Test group system prompt",
+            tools = { "func", "weather" },
+            opts = { collapse_tools = true },
+          },
+          ["test_group2"] = {
+            description = "Group to be used for testing references",
+            system_prompt = "Individual tools system prompt",
+            tools = { "func", "weather" },
+            opts = { collapse_tools = false },
+          },
+          ["remove_group"] = {
+            description = "Group to be removed during testing of references",
+            system_prompt = "System prompt to be removed",
+            tools = { "func", "weather" },
+            opts = { collapse_tools = true },
+          },
         },
         opts = {
           system_prompt = "My tool system prompt",

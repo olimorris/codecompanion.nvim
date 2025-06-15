@@ -1,4 +1,5 @@
 local SlashCommands = require("codecompanion.strategies.chat.slash_commands")
+local ToolFilter = require("codecompanion.strategies.chat.agents.tool_filter")
 local config = require("codecompanion.config")
 local strategy = require("codecompanion.strategies")
 
@@ -72,9 +73,12 @@ end
 ---Return the tools to be used for completion
 ---@return table
 function M.tools()
+  -- Get filtered tools configuration (this uses the cache!)
+  local tools = ToolFilter.filter_enabled_tools(config.strategies.chat.tools)
+
   -- Add groups
   local items = vim
-    .iter(config.strategies.chat.tools.groups)
+    .iter(tools.groups)
     :filter(function(label)
       return label ~= "tools"
     end)
@@ -91,7 +95,7 @@ function M.tools()
 
   -- Add tools
   vim
-    .iter(config.strategies.chat.tools)
+    .iter(tools)
     :filter(function(label, value)
       return label ~= "opts" and label ~= "groups" and value.visible ~= false
     end)
