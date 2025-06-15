@@ -1,4 +1,4 @@
-local Path = require("plenary.path")
+local files = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
@@ -8,16 +8,17 @@ local fmt = string.format
 ---@return {status: "success"|"error", data: string}
 local function create(action)
   local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
-  local p = Path:new(filepath)
-  p.filename = p:expand()
+  filepath = vim.fs.normalize(filepath)
 
-  if p:exists() then
-    if p:is_dir() then
+  -- Check if file already exists
+  local stat = vim.uv.fs_stat(filepath)
+  if stat then
+    if stat.type == "directory" then
       return {
         status = "error",
         data = fmt("**Create File Tool**: `%s` already exists as a directory", action.filepath),
       }
-    else
+    elseif stat.type == "file" then
       return {
         status = "error",
         data = fmt("**Create File Tool**: File `%s` already exists", action.filepath),
@@ -26,11 +27,61 @@ local function create(action)
   end
 
   local ok, result = pcall(function()
-    p:touch({ parents = true })
-    p:write(action.content, "w")
+    local parent_dir = vim.fs.dirname(filepath)
+
+    -- Ensure parent directory exists
+    if not vim.uv.fs_stat(parent_dir) then
+      local success, err_msg = files.create_dir_recursive(parent_dir)
+      if not success then
+        error(err_msg) -- This error is specific to directory creation
+      end
+    end
+
+    -- Create file with safer error handling
+    local fd, fs_open_err, fs_open_errname = vim.uv.fs_open(filepath, "w", 420) -- 0644 permissions
+    if not fd then
+      error(fmt("Failed to open file for writing: %s (%s)", fs_open_err, fs_open_errname))
+    end
+
+    local final_operation_error_message = nil
+
+    -- Try to write to the file
+    local write_ok, write_error_value = pcall(function()
+      local bytes_written, fs_write_err, fs_write_errname = vim.uv.fs_write(fd, action.content)
+      if not bytes_written then
+        error(fmt("Failed to write to file: %s (%s)", fs_write_err, fs_write_errname))
+      end
+      if bytes_written ~= #action.content then
+        error(fmt("Incomplete write: expected %d bytes, wrote %d bytes", #action.content, bytes_written))
+      end
+    end)
+
+    if not write_ok then
+      final_operation_error_message = write_error_value -- Store the write error
+    end
+
+    -- Always try to close the file descriptor
+    local close_success, fs_close_err, fs_close_errname = vim.uv.fs_close(fd)
+    if not close_success then
+      local close_error_message = fmt("Failed to close file: %s (%s)", fs_close_err, fs_close_errname)
+      if final_operation_error_message then
+        -- Append close error to the existing write error
+        final_operation_error_message = final_operation_error_message .. ". Additionally, " .. close_error_message
+      else
+        -- No prior write error, so close error is the primary one
+        final_operation_error_message = close_error_message
+      end
+    end
+
+    -- If any error occurred during write or close, throw it
+    if final_operation_error_message then
+      error(final_operation_error_message)
+    end
+    -- If we reach here, all operations (open, write, close) were successful
   end)
 
   if not ok then
+    log:error("Create File Tool: Failed to create file `%s` - %s", action.filepath, result)
     return {
       status = "error",
       data = fmt("**Create File Tool**: Failed to create file `%s` - %s", action.filepath, result),
