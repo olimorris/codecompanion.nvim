@@ -279,7 +279,7 @@ local function yank_node(node)
   vim.api.nvim_buf_set_mark(0, "]", end_row + 1, end_col - 1, {})
 
   -- Yank using marks
-  vim.cmd(string.format('normal! "%s`[y`]', config.strategies.chat.opts.register))
+  vim.cmd(string.format('normal! `["%sy`]', config.strategies.chat.opts.register))
 
   -- Restore position after delay
   vim.defer_fn(function()
@@ -627,7 +627,7 @@ M.goto_file_under_cursor = {
       return
     end
     local action = nil
-    local user_action = config.opts.goto_file_action
+    local user_action = config.strategies.chat.opts.goto_file_action
     if type(user_action) == "string" then
       action = function(fname)
         vim.cmd(user_action .. " " .. fname)

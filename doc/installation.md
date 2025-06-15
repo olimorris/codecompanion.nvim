@@ -131,10 +131,11 @@ Use [markview.nvim](https://github.com/OXY2DEV/markview.nvim) to render the mark
   },
 },
 ```
+You can also conceal the tags used in chat buffers, see [HTML options](https://github.com/OXY2DEV/markview.nvim/wiki/HTML#container_elements) and [this discussion](https://github.com/olimorris/codecompanion.nvim/discussions/1638) for examples.
 
 ### mini.diff
 
-Use [mini.diff](https://github.com/echasnovski/mini.diff) for a cleaner diff when using the inline assistant or the `@editor` tool:
+Use [mini.diff](https://github.com/echasnovski/mini.diff) for a cleaner diff when using the inline assistant or the `@insert_edit_into_file` tool:
 
 ```lua
 {

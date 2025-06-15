@@ -366,7 +366,7 @@ local function fetch(chat, adapter, url, opts)
               end
             end)
           else
-            return log:error("Error %s - %s", data.status, body.data.text)
+            return log:error("Error %s - %s", data.status, body.message or "No message provided")
           end
         end
       end,
@@ -414,7 +414,17 @@ end
 ---@param opts? table
 ---@return nil|string
 function SlashCommand:execute(SlashCommands, opts)
-  vim.ui.select({ "URL", "Cache" }, {
+  local cached_files = get_cached_files()
+  local options = { "URL" }
+  if #cached_files > 0 then
+    table.insert(options, "Cache")
+  end
+
+  if #options == 1 then
+    return choice[options[1]](self, SlashCommands)
+  end
+
+  vim.ui.select(options, {
     prompt = "Select link source",
     kind = "codecompanion.nvim",
   }, function(selected)

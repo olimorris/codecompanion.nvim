@@ -18,42 +18,46 @@ T["Inline"] = new_set({
   },
 })
 
-T["Inline"]["can parse XML output correctly"] = function()
-  local xml = inline:parse_output([[<response>
-      <code>function test() end</code>
-      <placement>add</placement>
-    </response>]])
+T["Inline"]["can parse json output correctly"] = function()
+  local json = inline:parse_output([[{
+  "code": "function test() end",
+  "placement": "add"
+}]])
 
-  h.eq("function test() end", xml.code)
-  h.eq("add", xml.placement)
+  h.eq("function test() end", json.code)
+  h.eq("add", json.placement)
 end
 
 T["Inline"]["can parse markdown output correctly"] = function()
-  local xml = inline:parse_output([[```xml
-<response>
-  <code>function test() end</code>
-  <placement>add</placement>
-</response>
+  local json = inline:parse_output([[```json
+{
+  "code": "function test() end",
+  "placement": "add"
+}
 ```]])
 
-  h.eq("function test() end", xml.code)
-  h.eq("add", xml.placement)
+  h.eq("function test() end", json.code)
+  h.eq("add", json.placement)
 end
 
 T["Inline"]["can parse Ollama output correctly"] = function()
-  local xml = inline:parse_output(
-    "```xml\n<response>\n  <code><![CDATA[\n/**\n * Executes an action based on the current action type.\n */\n]]></code>\n  <language>php</language>\n  <placement>before</placement>\n</response>\n```"
-  )
-  h.eq(
-    [[
+  local ollama_response_str = "{\n"
+    .. '  "code": "\\n\\n/**\\n * Executes an action based on the current action type.\\n */\\n",\n'
+    .. '  "language": "lua",\n'
+    .. '  "placement": "before"\n'
+    .. "}"
+
+  local json = inline:parse_output(ollama_response_str)
+  local expected_code_block = [[
+
 
 /**
  * Executes an action based on the current action type.
  */
-]],
-    xml.code
-  )
-  h.eq("before", xml.placement)
+]]
+
+  h.eq(expected_code_block, json.code)
+  h.eq("before", json.placement)
 end
 
 T["Inline"]["handles different placements"] = function()
@@ -102,11 +106,11 @@ T["Inline"]["forms correct prompts"] = function()
   h.expect_starts_with("## CONTEXT", inline.prompts[1].content)
   -- Visual selection
   h.eq(
-    "For context, this is the code that I've visually selected in the buffer, which is relevant to my prompt:\n\n```lua\nlocal x = 1\n```",
+    "For context, this is the code that I've visually selected in the buffer, which is relevant to my prompt:\n<code>\n```lua\nlocal x = 1\n```\n</code>",
     inline.prompts[3].content
   )
   -- User prompt
-  h.eq("<user_prompt>Hello World</user_prompt>", inline.prompts[#inline.prompts].content)
+  h.eq("<prompt>Hello World</prompt>", inline.prompts[#inline.prompts].content)
 end
 
 T["Inline"]["generates correct prompt structure"] = function()
@@ -122,7 +126,7 @@ T["Inline"]["generates correct prompt structure"] = function()
   h.eq(#submitted_prompts, 2) -- Should be a system prompt and the user prompt
   h.eq(submitted_prompts[1].role, "system")
   h.eq(submitted_prompts[2].role, "user")
-  h.eq(submitted_prompts[2].content, "<user_prompt>Test prompt</user_prompt>")
+  h.eq(submitted_prompts[2].content, "<prompt>Test prompt</prompt>")
 end
 
 T["Inline"]["the first word can be an adapter"] = function()
@@ -141,7 +145,7 @@ T["Inline"]["the first word can be an adapter"] = function()
   h.eq("fake_adapter", inline.adapter.name)
 
   -- Adapter is removed from the prompt
-  h.eq(submitted_prompts[2].content, "<user_prompt>print hello world</user_prompt>")
+  h.eq(submitted_prompts[2].content, "<prompt>print hello world</prompt>")
 end
 
 T["Inline"]["can be called from the action palette"] = function()
@@ -179,7 +183,7 @@ T["Inline"]["integration"] = function()
   inline:prompt("#foo can you print hello world?")
 
   h.eq("The output from foo variable", submitted_prompts[2].content)
-  h.eq("<user_prompt>can you print hello world?</user_prompt>", submitted_prompts[3].content)
+  h.eq("<prompt>can you print hello world?</prompt>", submitted_prompts[3].content)
 end
 
 return T

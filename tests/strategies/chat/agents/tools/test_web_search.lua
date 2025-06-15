@@ -6,9 +6,7 @@ local child = MiniTest.new_child_neovim()
 local T = new_set({
   hooks = {
     pre_case = function()
-      child.restart({ "-u", "scripts/minimal_init.lua" })
-      child.o.statusline = ""
-      child.o.laststatus = 0
+      h.child_start(child)
     end,
   },
 })

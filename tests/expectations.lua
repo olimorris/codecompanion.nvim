@@ -52,6 +52,13 @@ end, function(pattern, str)
 end)
 
 --[[@type function]]
+H.expect_match = MiniTest.new_expectation("string matching", function(str, pattern)
+  return str:find(pattern) ~= nil
+end, function(str, pattern)
+  return string.format("Pattern: %s\nObserved string: %s", vim.inspect(pattern), str)
+end)
+
+--[[@type function]]
 H.expect_tbl_contains = MiniTest.new_expectation(
   "table contains value",
   function(value, tbl)

@@ -8,9 +8,7 @@ local child = MiniTest.new_child_neovim()
 T = new_set({
   hooks = {
     pre_case = function()
-      child.restart({ "-u", "scripts/minimal_init.lua" })
-      child.o.statusline = ""
-      child.o.laststatus = 0
+      h.child_start(child)
       child.lua([[
         codecompanion = require("codecompanion")
         h = require('tests.helpers')
@@ -170,6 +168,35 @@ T["Chat"]["can bring up keymap options in the chat buffer"] = function()
   vim.loop.sleep(200)
 
   h.eq(get_lines()[1], "### Keymaps")
+end
+
+T["Chat"]["can load default tools"] = function()
+  local refs = child.lua([[
+    codecompanion = require("codecompanion")
+    h = require('tests.helpers')
+    _G.chat, _G.agent = h.setup_chat_buffer({
+      strategies = {
+        chat = {
+          tools = {
+            opts = {
+              default_tools = { "weather", "tool_group" }
+            }
+          }
+        }
+      }
+    })
+
+    return _G.chat.refs
+  ]])
+  h.eq(
+    { "<tool>weather</tool>", "<group>tool_group</group>", "<tool>func</tool>", "<tool>cmd</tool>" },
+    vim
+      .iter(refs)
+      :map(function(item)
+        return item.id
+      end)
+      :totable()
+  )
 end
 
 return T

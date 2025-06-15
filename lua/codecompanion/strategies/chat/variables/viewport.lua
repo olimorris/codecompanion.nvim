@@ -19,17 +19,11 @@ end
 ---@return nil
 function Variable:output()
   local buf_lines = buf_utils.get_visible_lines()
-
-  -- Replace the line numbers with content
-  local formatted = {}
-  for bufnr, range in pairs(buf_lines) do
-    range = range[1]
-    table.insert(formatted, buf_utils.format_with_line_numbers(bufnr, range))
-  end
+  local content = buf_utils.format_viewport_for_llm(buf_lines)
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = table.concat(formatted, "\n\n"),
+    content = content,
   }, { tag = "variable", visible = false })
 end
 

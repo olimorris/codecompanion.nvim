@@ -6,9 +6,9 @@ CodeCompanion continues to evolve with regular frequency. This page will endeavo
 
 The fastest way to copy an LLM's code output is with `gy`. This will yank the nearest codeblock.
 
-## Automatically update a buffer
+## Applying an LLM's edits to a buffer or file
 
-The [editor](/usage/chat-buffer/agents#editor) tool, combined with the `#buffer` variable, enables an LLM to modify code in a Neovim buffer. This is especially useful if you do not wish to manually apply an LLM's suggestions yourself. Simply tag it in the chat buffer with `@editor`. To ensure the LLM can consistently see the changes that it's applied, be sure to [pin or watch](/usage/chat-buffer/#references) your buffers.
+The [@insert_edit_into_file](/usage/chat-buffer/agents#files) tool, combined with the [#buffer](/usage/chat-buffer/variables.html#buffer) variable or [/buffer](/usage/chat-buffer/slash-commands.html#buffer) slash command, enables an LLM to modify code in a Neovim buffer. This is especially useful if you do not wish to manually apply an LLM's suggestions yourself. Simply tag it in the chat buffer with `@files` or `@insert_edit_into_file`.
 
 ## Run tests from the chat buffer
 

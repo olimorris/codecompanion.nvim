@@ -650,6 +650,15 @@ function Chat.new(args)
 
   last_chat = self
 
+  for _, tool_name in pairs(config.strategies.chat.tools.opts.default_tools or {}) do
+    local tool_config = config.strategies.chat.tools[tool_name]
+    if tool_config ~= nil then
+      self.tools:add(tool_name, tool_config)
+    elseif config.strategies.chat.tools.groups[tool_name] ~= nil then
+      self.tools:add_group(tool_name, config.strategies.chat.tools)
+    end
+  end
+
   util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
   if args.auto_submit then
     self:submit()
@@ -1049,16 +1058,35 @@ end
 ---Reconcile the references table to the references in the chat buffer
 ---@return nil
 function Chat:check_references()
-  local refs = self.references:get_from_chat()
-  if vim.tbl_isempty(refs) and vim.tbl_isempty(self.refs) then
+  local refs_in_chat = self.references:get_from_chat()
+  if vim.tbl_isempty(refs_in_chat) and vim.tbl_isempty(self.refs) then
     return
   end
+
+  local function expand_group_ref(group_name)
+    local group_config = self.agents.tools_config.groups[group_name] or {}
+    return vim.tbl_map(function(tool)
+      return "<tool>" .. tool .. "</tool>"
+    end, group_config.tools or {})
+  end
+
+  local groups_in_chat = {}
+  for _, id in ipairs(refs_in_chat) do
+    local group_name = id:match("<group>(.*)</group>")
+    if group_name and vim.trim(group_name) ~= "" then
+      table.insert(groups_in_chat, group_name)
+    end
+  end
+  -- Populate the refs_in_chat with tool refs from groups
+  vim.iter(groups_in_chat):each(function(group_name)
+    vim.list_extend(refs_in_chat, expand_group_ref(group_name))
+  end)
 
   -- Fetch references that exist on the chat object but not in the buffer
   local to_remove = vim
     .iter(self.refs)
     :filter(function(ref)
-      return not vim.tbl_contains(refs, ref.id)
+      return not vim.tbl_contains(refs_in_chat, ref.id)
     end)
     :map(function(ref)
       return ref.id
@@ -1068,6 +1096,15 @@ function Chat:check_references()
   if vim.tbl_isempty(to_remove) then
     return
   end
+
+  local groups_to_remove = vim.tbl_filter(function(id)
+    return id:match("<group>(.*)</group>")
+  end, to_remove)
+
+  -- Extend to_remove with tools in the groups
+  vim.iter(groups_to_remove):each(function(group_name)
+    vim.list_extend(to_remove, expand_group_ref(group_name))
+  end)
 
   -- Remove them from the messages table
   self.messages = vim

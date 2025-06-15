@@ -1,14 +1,13 @@
 # Configuring the Chat Buffer
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/597299d2-36b3-469e-b69c-4d8fd14838f8" alt="Chat buffer">
-</p>
-
 By default, CodeCompanion provides a "chat" strategy that uses a dedicated Neovim buffer for conversational interaction with your chosen LLM. This buffer can be customized according to your preferences.
 
 Please refer to the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L42-L392) file for a full list of all configuration options.
 
 ## Keymaps
+
+> [!NOTE]
+> The plugin scopes CodeCompanion specific keymaps to the _chat buffer_ only.
 
 You can define or override the [default keymaps](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178) to send messages, regenerate responses, close the buffer, etc. Example:
 
@@ -19,9 +18,11 @@ require("codecompanion").setup({
       keymaps = {
         send = {
           modes = { n = "<C-s>", i = "<C-s>" },
+          opts = {},
         },
         close = {
           modes = { n = "<C-c>", i = "<C-c>" },
+          opts = {},
         },
         -- Add further custom keymaps here
       },
@@ -30,7 +31,7 @@ require("codecompanion").setup({
 })
 ```
 
-The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes.
+The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes. To set other `:map-arguments`, you can use the optional `opts` table which will be fed to `vim.keymap.set`.
 
 ## Variables
 
@@ -87,6 +88,9 @@ require("codecompanion").setup({
   },
 })
 ```
+
+> [!IMPORTANT]
+> Each slash command may have their own unique configuration so be sure to check out the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) file
 
 You can also add your own slash commands:
 
@@ -169,6 +173,9 @@ require("codecompanion").setup({
               "editor",
               -- Add your own tools or reuse existing ones
             },
+            opts = {
+              collapse_tools = true, -- When true, show as a single group reference instead of individual tools
+            },
           },
         },
       },
@@ -213,15 +220,37 @@ require("codecompanion").setup({
     chat = {
       tools = {
         opts = {
-          auto_submit_errors = false, -- Send any errors to the LLM automatically?
-          auto_submit_success = false, -- Send any successful output to the LLM automatically?
+          auto_submit_errors = true, -- Send any errors to the LLM automatically?
+          auto_submit_success = true, -- Send any successful output to the LLM automatically?
         },
       }
     }
   }
 })
-
 ```
+
+### Automatically Add Tools to Chat
+
+You can configure the plugin to automatically add tools and tool groups to new chat buffers:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      tools = {
+        opts = {
+          default_tools = { 
+            "my_tool",
+            "my_tool_group"
+          }
+        },
+      }
+    }
+  }
+})
+```
+
+This also works for [extensions](/configuration/extensions).
 
 ## Prompt Decorator
 
@@ -310,7 +339,7 @@ require("codecompanion").setup({
 > [!NOTE]
 > Currently the plugin only supports native Neovim diff or [mini.diff](https://github.com/echasnovski/mini.diff)
 
-If you utilize the `@editor` tool, then the plugin can update a given chat buffer. A diff will be created so you can see the changes made by the LLM.
+If you utilize the `@insert_edit_into_file` tool, then the plugin can update a given chat buffer. A diff will be created so you can see the changes made by the LLM.
 
 There are a number of diff settings available to you:
 
@@ -414,3 +443,24 @@ require("codecompanion").setup({
   },
 }),
 ```
+
+## Jump Action
+
+The jump action (the command/function triggered by the `gR` keymap) can be
+customised as follows:
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      opts = {
+        goto_file_action = 'tabnew', -- this will always open the file in a new tab
+      },
+    },
+  },
+})
+```
+
+This can either be a string (denoting a VimScript command), or a function that
+takes a single parameter (the path to the file to jump to). The default action
+is to jump to an existing tab if the file is already opened, and open a new tab
+otherwise.

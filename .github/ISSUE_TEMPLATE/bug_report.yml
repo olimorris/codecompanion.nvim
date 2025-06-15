@@ -11,7 +11,7 @@ body:
 
           Usage questions such as ***"How do I...?"*** belong in [Discussions](https://github.com/olimorris/codecompanion.nvim/discussions) and will be closed.
 
-          Finally, if you don't supply a valid `repro.lua` file at the bottom of this page, your issue will be closed.
+          Finally, if you don't supply a valid `init.lua` file at the bottom of this page, your issue will be closed.
 
     - type: checkboxes
       attributes:
