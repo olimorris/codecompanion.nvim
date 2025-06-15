@@ -1,5 +1,12 @@
 # Changelog
 
+## [17.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.0.0...v17.1.0) (2025-06-15)
+
+
+### Features
+
+* **tools:** can be conditionally loaded ([#1647](https://github.com/olimorris/codecompanion.nvim/issues/1647)) ([40ba4fc](https://github.com/olimorris/codecompanion.nvim/commit/40ba4fc7e7749a089f23123593d9a6c85140fcfc))
+
 ## [17.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v16.3.0...v17.0.0) (2025-06-15)
 
 
