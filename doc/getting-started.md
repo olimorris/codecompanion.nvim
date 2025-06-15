@@ -92,6 +92,7 @@ _Slash commands_, accessed via `/`, run commands to insert additional context in
 - `/buffer` - Insert open buffers
 - `/fetch` - Insert URL contents
 - `/file` - Insert a file
+- `/quickfix` - Insert entries from the quickfix list
 - `/help` - Insert content from help tags
 - `/now` - Insert the current date and time
 - `/symbols` - Insert symbols from a selected file

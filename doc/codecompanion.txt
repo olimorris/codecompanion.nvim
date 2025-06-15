@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.10.0         Last change: 2025 June 13
+*codecompanion.txt*          For NVIM v0.11          Last change: 2025 June 15
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -255,10 +255,12 @@ markdown in the chat buffer:
     },
 <
 
-You can also conceal the tags used in chat buffers, see
-<https://github.com/OXY2DEV/markview.nvim/wiki/HTML#container_elements>
-and <https://github.com/olimorris/codecompanion.nvim/discussions/1638> for
+You can also conceal the tags used in chat buffers, see HTML options
+<https://github.com/OXY2DEV/markview.nvim/wiki/HTML#container_elements> and
+this discussion
+<https://github.com/olimorris/codecompanion.nvim/discussions/1638> for
 examples.
+
 
 MINI.DIFF ~
 
@@ -453,6 +455,7 @@ into the chat buffer:
 - `/buffer` - Insert open buffers
 - `/fetch` - Insert URL contents
 - `/file` - Insert a file
+- `/quickfix` - Insert entries from the quickfix list
 - `/help` - Insert content from help tags
 - `/now` - Insert the current date and time
 - `/symbols` - Insert symbols from a selected file
@@ -1916,7 +1919,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-agents-files| tool, combined with the
 |codecompanion-usage-chat-buffer-variables.html-buffer| variable or
@@ -2208,6 +2211,17 @@ Create a file within the current working directory:
 <
 
 
+@FILE_SEARCH ~
+
+This tool enables an LLM to search for files in the current working directory
+by glob pattern. It will return a list of relative paths for any matching
+files.
+
+>md
+    Use the @file_search tool to list all the lua files in my project
+<
+
+
 @INSERT_EDIT_INTO_FILE ~
 
 
@@ -2467,6 +2481,15 @@ Also, multiple files can be selected and added to the chat buffer:
 - Select multiple files: `⇥ tab`
 
 Please note that these mappings may be different depending on your provider.
+
+
+/QUICKFIX ~
+
+The `quickfix` slash command adds entries from the Neovim quickfix list to the
+chat buffer.
+
+- For search patterns or file entries, the whole file is shared.
+- For diagnostics, the context of the function/method/class is shared if possible; otherwise, 10 lines around the diagnostic are included.
 
 
 /HELP ~
@@ -3061,7 +3084,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI’S API OUTPUT
+OPENAI�S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>

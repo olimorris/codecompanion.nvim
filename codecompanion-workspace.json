@@ -67,7 +67,9 @@
         "executor-func",
         "executor-cmd",
         "executor-queue",
-        "queue-example"
+        "queue-example",
+        "read_file_tool",
+        "read_file_tool_test"
       ]
     }
   ],
@@ -203,6 +205,16 @@
       "type": "file",
       "path": "tests/stubs/queue.txt",
       "description": "This is how the queue object can look. This is an example of a function tool, a command tool, followed by a function tool:"
+    },
+    "read_file_tool": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/agents/tools/read_file.lua",
+      "description": "This is an example of a tool in CodeCompanion that reads a file in the current working directory. It's a great example of a function tool."
+    },
+    "read_file_tool_test": {
+      "type": "file",
+      "path": "tests/strategies/chat/agents/tools/test_read_file.lua",
+      "description": "This is the corresponding test for the read file tool."
     }
   }
 }

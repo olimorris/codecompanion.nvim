@@ -86,6 +86,13 @@ return {
           callback = "strategies.chat.agents.tools.create_file",
           description = "Create a file in the current working directory",
         },
+        ["file_search"] = {
+          callback = "strategies.chat.agents.tools.file_search",
+          description = "Search for files in the current working directory by glob pattern",
+          opts = {
+            max_results = 500,
+          },
+        },
         ["read_file"] = {
           callback = "strategies.chat.agents.tools.read_file",
           description = "Read a file in the current working directory",
