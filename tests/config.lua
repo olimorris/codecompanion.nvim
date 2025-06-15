@@ -93,6 +93,14 @@ return {
             max_results = 500,
           },
         },
+        ["hidden_tool"] = {
+          callback = "strategies.chat.agents.tools.create_file",
+          ---@return boolean
+          enabled = function()
+            return false
+          end,
+          description = "A hidden tool that will not be shown in the tool list",
+        },
         ["read_file"] = {
           callback = "strategies.chat.agents.tools.read_file",
           description = "Read a file in the current working directory",
@@ -190,6 +198,24 @@ return {
               "func",
               "cmd",
             },
+          },
+          ["test_group"] = {
+            description = "Test Group",
+            system_prompt = "Test group system prompt",
+            tools = { "func", "weather" },
+            opts = { collapse_tools = true },
+          },
+          ["test_group2"] = {
+            description = "Group to be used for testing references",
+            system_prompt = "Individual tools system prompt",
+            tools = { "func", "weather" },
+            opts = { collapse_tools = false },
+          },
+          ["remove_group"] = {
+            description = "Group to be removed during testing of references",
+            system_prompt = "System prompt to be removed",
+            tools = { "func", "weather" },
+            opts = { collapse_tools = true },
           },
         },
         opts = {

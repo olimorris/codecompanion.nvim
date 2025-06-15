@@ -2,6 +2,7 @@ local _extensions = require("codecompanion._extensions")
 local config = require("codecompanion.config")
 local context_utils = require("codecompanion.utils.context")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
 
 local api = vim.api
 
@@ -133,6 +134,8 @@ CodeCompanion.chat = function(args)
         return CodeCompanion.add(args)
       elseif prompt == "toggle" then
         return CodeCompanion.toggle()
+      elseif prompt == "refreshcache" then
+        return CodeCompanion.refresh_cache()
       else
         table.insert(messages, {
           role = config.constants.USER_ROLE,
@@ -231,6 +234,14 @@ end
 CodeCompanion.actions = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
   return require("codecompanion.actions").launch(context, args)
+end
+
+---Refresh any of the caches used by the plugin
+---@return nil
+CodeCompanion.refresh_cache = function()
+  local ToolFilter = require("codecompanion.strategies.chat.agents.tool_filter")
+  ToolFilter.refresh_cache()
+  utils.notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
 end
 
 ---Return the JSON schema for the workspace file
