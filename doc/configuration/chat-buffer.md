@@ -188,6 +188,29 @@ When users introduce the agent `@my_agent` in the chat buffer, it can call the t
 
 A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys that define the interface and workflow of the tool. The table can be resolved using the `callback` option. The `callback` option can be a table itself or either a function or a string that points to a luafile that return the table.
 
+### Tool Conditionals
+
+Tools can also be conditionally enabled:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      tools = {
+        ["grep_search"] = {
+          ---@return boolean
+          enabled = function()
+            return vim.fn.executable("rg") == 1
+          end,
+        },
+      }
+    }
+  }
+})
+```
+
+This is useful to ensure that a particular dependency is installed on the machine. After the user has installed the dependency, the `:CodeCompanionChat RefreshCache` command can be used to refresh the cache's across chat buffers.
+
 ### Approvals
 
 Some tools, such as [@cmd_runner](/usage/chat-buffer/agents.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
@@ -239,7 +262,7 @@ require("codecompanion").setup({
     chat = {
       tools = {
         opts = {
-          default_tools = { 
+          default_tools = {
             "my_tool",
             "my_tool_group"
           }

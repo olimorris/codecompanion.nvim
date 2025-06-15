@@ -547,8 +547,9 @@ However, there are multiple options available:
 - `CodeCompanion /<prompt library>` - Call an item from the |codecompanion-configuration-prompt-library|
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
-- `CodeCompanionChat Toggle` - Toggle a chat buffer
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
+- `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
+- `CodeCompanionChat Toggle` - Toggle a chat buffer
 
 
 SUGGESTED WORKFLOW          *codecompanion-getting-started-suggested-workflow*
@@ -1251,6 +1252,32 @@ the `callback` option. The `callback` option can be a table itself or either a
 function or a string that points to a luafile that return the table.
 
 
+TOOL CONDITIONALS
+
+Tools can also be conditionally enabled:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          tools = {
+            ["grep_search"] = {
+              ---@return boolean
+              enabled = function()
+                return vim.fn.executable("rg") == 1
+              end,
+            },
+          }
+        }
+      }
+    })
+<
+
+This is useful to ensure that a particular dependency is installed on the
+machine. After the user has installed the dependency, the `:CodeCompanionChat
+RefreshCache` command can be used to refresh the cache’s across chat buffers.
+
+
 APPROVALS
 
 Some tools, such as |codecompanion-usage-chat-buffer-agents.html-cmd-runner|,
@@ -1309,7 +1336,7 @@ chat buffers:
         chat = {
           tools = {
             opts = {
-              default_tools = { 
+              default_tools = {
                 "my_tool",
                 "my_tool_group"
               }
@@ -2633,7 +2660,7 @@ config, the plugin fires events at various points during its lifecycle.
 
 LIST OF EVENTS ~
 
-The events that you can access are:
+The events that are fired from within the plugin are:
 
 - `CodeCompanionChatCreated` - Fired after a chat has been created for the first time
 - `CodeCompanionChatOpened` - Fired after a chat has been opened
@@ -2659,6 +2686,11 @@ The events that you can access are:
 - `CodeCompanionDiffDetached` - Fired when exiting Diff mode
 - `CodeCompanionDiffAccepted` - Fired when a user accepts a change
 - `CodeCompanionDiffRejected` - Fired when a user rejects a change
+
+There are also events that can be utilized to trigger commands from within the
+plugin:
+
+- `CodeCompanionChatRefreshCache` - Used to refresh conditional elements in the chat buffer
 
 
 EVENT DATA ~
@@ -2706,6 +2738,14 @@ Events can be hooked into as follows:
           require("conform").format({ bufnr = request.buf })
         end
       end,
+    })
+<
+
+You can trigger an event with:
+
+>lua
+    vim.api.nvim_exec_autocmds("User", {
+      pattern = "CodeCompanionChatRefreshCache",
     })
 <
 
