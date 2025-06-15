@@ -93,14 +93,6 @@ return {
             max_results = 500,
           },
         },
-        ["hidden_tool"] = {
-          callback = "strategies.chat.agents.tools.create_file",
-          ---@return boolean
-          enabled = function()
-            return false
-          end,
-          description = "A hidden tool that will not be shown in the tool list",
-        },
         ["read_file"] = {
           callback = "strategies.chat.agents.tools.read_file",
           description = "Read a file in the current working directory",
