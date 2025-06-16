@@ -1,5 +1,18 @@
 # Changelog
 
+## [17.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.0.0...v17.1.0) (2025-06-16)
+
+
+### Features
+
+* **tools:** add `grep_search` tool ([#1651](https://github.com/olimorris/codecompanion.nvim/issues/1651)) ([98eb86c](https://github.com/olimorris/codecompanion.nvim/commit/98eb86cd5e66aa0f2bc3c47eb699ea81c99b74db))
+* **tools:** can be conditionally loaded ([#1647](https://github.com/olimorris/codecompanion.nvim/issues/1647)) ([40ba4fc](https://github.com/olimorris/codecompanion.nvim/commit/40ba4fc7e7749a089f23123593d9a6c85140fcfc))
+
+
+### Bug Fixes
+
+* **tools:** `insert_edit_info_file` tool can insert at EOF ([#1650](https://github.com/olimorris/codecompanion.nvim/issues/1650)) ([d54a41a](https://github.com/olimorris/codecompanion.nvim/commit/d54a41a86a510e9c728f6e460801afdf581d69da))
+
 ## [17.0.0](https://github.com/olimorris/codecompanion.nvim/compare/v16.3.0...v17.0.0) (2025-06-15)
 
 
