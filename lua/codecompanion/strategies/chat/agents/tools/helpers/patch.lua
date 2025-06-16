@@ -11,12 +11,28 @@ The `[PATCH]` is the series of diffs to be applied for each change in the file. 
 +[new code]
  [3 lines of post-context]
 
-The context blocks are 3 lines of existing code, immediately before and after the modified lines of code. Lines to be modified should be prefixed with a `+` or `-` sign. Unmodified lines used in context should begin with an empty space ` `.
+The context blocks are 3 lines of existing code, immediately before and after the modified lines of code.
+Lines to be modified should be prefixed with a `+` or `-` sign.
+Unmodified lines used in context should begin with an empty space ` `.
 
-Multiple blocks of diffs should be separated by an empty line and `@@[identifier]` detailed below.
+For example, to add a subtract method to a calculator class in Python:
 
+*** Begin Patch
+ def add(self, value):
+     self.result += value
+     return self.result
+
++def subtract(self, value):
++    self.result -= value
++    return self.result
++
+ def multiply(self, value):
+     self.result *= value
+     return self.result
+*** End Patch
+
+Multiple blocks of diffs should be separated by an empty line and `@@[identifier]` as detailed below.
 The immediately preceding and after context lines are enough to locate the lines to edit. DO NOT USE line numbers anywhere in the patch.
-
 You can use `@@[identifier]` to define a larger context in case the immediately before and after context is not sufficient to locate the edits. Example:
 
 @@class BaseClass(models.Model):
@@ -26,7 +42,6 @@ You can use `@@[identifier]` to define a larger context in case the immediately 
  [3 lines of post-context]
 
 You can also use multiple `@@[identifiers]` to provide the right context if a single `@@` is not sufficient.
-
 Example with multiple blocks of changes and `@@` identifiers:
 
 *** Begin Patch
@@ -41,7 +56,8 @@ Example with multiple blocks of changes and `@@` identifiers:
 +		raise NotImplementedError()
 *** End Patch
 
-This format is a bit similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.]]
+This format is similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.
+IMPORTANT: Be mindful that the user may have shared attachments that contain line numbers, but these should NEVER be used in your patch. Always use the contextual format described above.]]
 
 ---@class Change
 ---@field focus string[] Identifiers or lines for providing large context before a change
