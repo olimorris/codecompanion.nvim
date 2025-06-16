@@ -202,7 +202,7 @@ local function get_best_location(lines, change)
   -- trim_spaces mode solves all of these
   local best_location = 1
   local best_score = 0
-  for i = 1, #lines do
+  for i = 1, #lines + 1 do
     local score = get_match_score(lines, change, i)
     if score == 1 then
       return i, 1
