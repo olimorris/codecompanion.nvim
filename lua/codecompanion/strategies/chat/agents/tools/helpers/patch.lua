@@ -57,7 +57,6 @@ Example with multiple blocks of changes and `@@` identifiers:
 *** End Patch
 
 This format is similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.
-Be mindful that the user may have shared attachments that contain line numbers, but these should not be used in your patch.
 IMPORTANT: Be mindful that the user may have shared attachments that contain line numbers, but these should NEVER be used in your patch. Always use the contextual format described above.]]
 
 ---@class Change
