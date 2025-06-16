@@ -67,6 +67,13 @@ This tool enables an LLM to search for files in the current working directory by
 Use the @file_search tool to list all the lua files in my project
 ```
 
+## @grep_search
+
+This tool enables an LLM to search for text, within files, in the current working directory. For every match, the output (`{filename}:{line number} {relative filepath}`) will be shared with the LLM:
+
+```md
+Use the @grep_search tool to find all occurrences of `buf_add_message`?
+```
 
 ## @insert_edit_into_file
 
