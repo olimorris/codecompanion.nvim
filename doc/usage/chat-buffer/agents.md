@@ -69,6 +69,9 @@ Use the @file_search tool to list all the lua files in my project
 
 ## @grep_search
 
+> [!IMPORTANT]
+> This tool requires [ripgrep](https://github.com/BurntSushi/ripgrep) to be installed
+
 This tool enables an LLM to search for text, within files, in the current working directory. For every match, the output (`{filename}:{line number} {relative filepath}`) will be shared with the LLM:
 
 ```md

@@ -2252,6 +2252,9 @@ files.
 
 @GREP_SEARCH ~
 
+
+  [!IMPORTANT] This tool requires ripgrep <https://github.com/BurntSushi/ripgrep>
+  to be installed
 This tool enables an LLM to search for text, within files, in the current
 working directory. For every match, the output (`{filename}:{line number}
 {relative filepath}`) will be shared with the LLM:
