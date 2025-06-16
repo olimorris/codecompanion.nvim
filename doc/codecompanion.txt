@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.10.0         Last change: 2025 June 11
+*codecompanion.txt*          For NVIM v0.11          Last change: 2025 June 15
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -255,6 +255,12 @@ markdown in the chat buffer:
     },
 <
 
+You can also conceal the tags used in chat buffers, see HTML options
+<https://github.com/OXY2DEV/markview.nvim/wiki/HTML#container_elements> and
+this discussion
+<https://github.com/olimorris/codecompanion.nvim/discussions/1638> for
+examples.
+
 
 MINI.DIFF ~
 
@@ -449,6 +455,7 @@ into the chat buffer:
 - `/buffer` - Insert open buffers
 - `/fetch` - Insert URL contents
 - `/file` - Insert a file
+- `/quickfix` - Insert entries from the quickfix list
 - `/help` - Insert content from help tags
 - `/now` - Insert the current date and time
 - `/symbols` - Insert symbols from a selected file
@@ -540,8 +547,9 @@ However, there are multiple options available:
 - `CodeCompanion /<prompt library>` - Call an item from the |codecompanion-configuration-prompt-library|
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
-- `CodeCompanionChat Toggle` - Toggle a chat buffer
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
+- `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
+- `CodeCompanionChat Toggle` - Toggle a chat buffer
 
 
 SUGGESTED WORKFLOW          *codecompanion-getting-started-suggested-workflow*
@@ -1224,6 +1232,9 @@ referenced with `@` when in the chat buffer:
                   "editor",
                   -- Add your own tools or reuse existing ones
                 },
+                opts = {
+                  collapse_tools = true, -- When true, show as a single group reference instead of individual tools
+                },
               },
             },
           },
@@ -1239,6 +1250,32 @@ A tool is a |codecompanion-extending-tools| table with specific keys that
 define the interface and workflow of the tool. The table can be resolved using
 the `callback` option. The `callback` option can be a table itself or either a
 function or a string that points to a luafile that return the table.
+
+
+TOOL CONDITIONALS
+
+Tools can also be conditionally enabled:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          tools = {
+            ["grep_search"] = {
+              ---@return boolean
+              enabled = function()
+                return vim.fn.executable("rg") == 1
+              end,
+            },
+          }
+        }
+      }
+    })
+<
+
+This is useful to ensure that a particular dependency is installed on the
+machine. After the user has installed the dependency, the `:CodeCompanionChat
+RefreshCache` command can be used to refresh the cache’s across chat buffers.
 
 
 APPROVALS
@@ -1278,14 +1315,39 @@ the LLM. This can be achieved by the following options in your configuration:
         chat = {
           tools = {
             opts = {
-              auto_submit_errors = false, -- Send any errors to the LLM automatically?
-              auto_submit_success = false, -- Send any successful output to the LLM automatically?
+              auto_submit_errors = true, -- Send any errors to the LLM automatically?
+              auto_submit_success = true, -- Send any successful output to the LLM automatically?
             },
           }
         }
       }
     })
 <
+
+
+AUTOMATICALLY ADD TOOLS TO CHAT
+
+You can configure the plugin to automatically add tools and tool groups to new
+chat buffers:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          tools = {
+            opts = {
+              default_tools = {
+                "my_tool",
+                "my_tool_group"
+              }
+            },
+          }
+        }
+      }
+    })
+<
+
+This also works for |codecompanion-configuration-extensions|.
 
 
 PROMPT DECORATOR ~
@@ -2176,6 +2238,17 @@ Create a file within the current working directory:
 <
 
 
+@FILE_SEARCH ~
+
+This tool enables an LLM to search for files in the current working directory
+by glob pattern. It will return a list of relative paths for any matching
+files.
+
+>md
+    Use the @file_search tool to list all the lua files in my project
+<
+
+
 @INSERT_EDIT_INTO_FILE ~
 
 
@@ -2247,6 +2320,39 @@ date information.
 Currently, the tool uses tavily <https://www.tavily.com> and you’ll need to
 ensure that an API key has been set accordingly, as per the adapter
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua>.
+
+
+TOOL GROUPS ~
+
+CodeCompanion comes with two built-in tool groups:
+
+- `@full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools
+- `@files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools
+
+When you include a tool group in your chat (e.g., `@files`), all tools within
+that group become available to the LLM. By default, all the tools in the group
+will be shown as a single `<group>name</group>` reference in the chat buffer.
+
+If you want to show all tools as references in the chat buffer, set the
+`collapse_tools` option to `false`:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          tools = {
+            groups = {
+              ["files"] = {
+                opts = {
+                  collapse_tools = false, -- Shows all tools in the group as individual references
+                },
+              },
+            },
+          }
+        }
+      }
+    })
+<
 
 
 APPROVALS ~
@@ -2404,6 +2510,15 @@ Also, multiple files can be selected and added to the chat buffer:
 Please note that these mappings may be different depending on your provider.
 
 
+/QUICKFIX ~
+
+The `quickfix` slash command adds entries from the Neovim quickfix list to the
+chat buffer.
+
+- For search patterns or file entries, the whole file is shared.
+- For diagnostics, the context of the function/method/class is shared if possible; otherwise, 10 lines around the diagnostic are included.
+
+
 /HELP ~
 
 The `help` slash command allows you to add content from a vim help file
@@ -2545,7 +2660,7 @@ config, the plugin fires events at various points during its lifecycle.
 
 LIST OF EVENTS ~
 
-The events that you can access are:
+The events that are fired from within the plugin are:
 
 - `CodeCompanionChatCreated` - Fired after a chat has been created for the first time
 - `CodeCompanionChatOpened` - Fired after a chat has been opened
@@ -2571,6 +2686,11 @@ The events that you can access are:
 - `CodeCompanionDiffDetached` - Fired when exiting Diff mode
 - `CodeCompanionDiffAccepted` - Fired when a user accepts a change
 - `CodeCompanionDiffRejected` - Fired when a user rejects a change
+
+There are also events that can be utilized to trigger commands from within the
+plugin:
+
+- `CodeCompanionChatRefreshCache` - Used to refresh conditional elements in the chat buffer
 
 
 EVENT DATA ~
@@ -2618,6 +2738,14 @@ Events can be hooked into as follows:
           require("conform").format({ bufnr = request.buf })
         end
       end,
+    })
+<
+
+You can trigger an event with:
+
+>lua
+    vim.api.nvim_exec_autocmds("User", {
+      pattern = "CodeCompanionChatRefreshCache",
     })
 <
 

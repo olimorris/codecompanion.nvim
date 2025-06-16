@@ -1,5 +1,5 @@
 ---@class CodeCompanion.Agent
----@field tools_config table The agent strategy from the config
+---@field tools_config table The available tools for the agent
 ---@field aug number The augroup for the tool
 ---@field bufnr number The buffer of the chat buffer
 ---@field constants table<string, string> The constants for the tool
@@ -13,6 +13,7 @@
 ---@field tools_ns integer The namespace for the virtual text that appears in the header
 
 local Executor = require("codecompanion.strategies.chat.agents.executor")
+local ToolFilter = require("codecompanion.strategies.chat.agents.tool_filter")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local regex = require("codecompanion.utils.regex")
@@ -50,7 +51,7 @@ function Agent.new(args)
     stdout = {},
     stderr = {},
     tool = {},
-    tools_config = config.strategies.chat.tools,
+    tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools), -- Filter here
     tools_ns = api.nvim_create_namespace(CONSTANTS.NS_TOOLS),
   }, { __index = Agent })
 
@@ -237,12 +238,6 @@ function Agent:find(chat, message)
   vim.iter(self.tools_config.groups):each(function(tool)
     if is_found(tool) then
       table.insert(groups, tool)
-
-      for _, t in ipairs(self.tools_config.groups[tool].tools) do
-        if not vim.tbl_contains(tools, t) then
-          table.insert(tools, t)
-        end
-      end
     end
   end)
 
@@ -258,31 +253,11 @@ function Agent:find(chat, message)
       end
     end)
 
-  if #tools == 0 then
+  if #tools == 0 and #groups == 0 then
     return nil, nil
   end
 
   return tools, groups
-end
-
----Add a tool group to the chat buffer
----@param chat CodeCompanion.Chat
----@param group string The group name to add
-function Agent:add_tool_group(chat, group)
-  local schema = self.tools_config.groups[group]
-  local system_prompt = schema.system_prompt
-  if type(system_prompt) == "function" then
-    system_prompt = system_prompt(schema)
-  end
-  if system_prompt then
-    chat:add_message({
-      role = config.constants.SYSTEM_ROLE,
-      content = system_prompt,
-    }, { tag = "tool", visible = false })
-  end
-  for _, tool_name in pairs(schema.tools or {}) do
-    chat.tools:add(tool_name, self.tools_config[tool_name])
-  end
 end
 
 ---Parse a user message looking for a tool
@@ -301,7 +276,7 @@ function Agent:parse(chat, message)
 
     if groups and not vim.tbl_isempty(groups) then
       for _, group in ipairs(groups) do
-        self:add_tool_group(chat, group)
+        chat.tools:add_group(group, self.tools_config)
       end
     end
     return true

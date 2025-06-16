@@ -35,7 +35,7 @@ tool_code('insert_edit_into_file', {
 ```
 </editFileInstructions>]=]
 
-local TOOL_DESCRIPTION = [=[Insert new code or modify existing code in a file in the current working directory. You must provide the changes in the specific patch format in the 'code' parameter. Use this tool once per file that needs to be modified. For each file, you can only make *one* `insert_edit_into_file` tool call. If a file requires multiple changes, combine them into a single `code` parameter using multiple diff blocks within the patch format. 
+local TOOL_DESCRIPTION = [=[Insert new code or modify existing code in a file. You must provide the changes in the specific patch format in the 'code' parameter. Use this tool once per file that needs to be modified. For each file, you can only make *one* `insert_edit_into_file` tool call. If a file requires multiple changes, combine them into a single `code` parameter using multiple diff blocks within the patch format. 
 You can use the tool multiple times in a response, but *only* if you need to modify *different* files.
 The system is very smart and can apply your edits accurately if you follow the patch format instructions carefully.
 
@@ -214,7 +214,7 @@ return {
           },
           filepath = {
             type = "string",
-            description = "The relative path to the file to edit, including its filename and extension",
+            description = "The path to the file to edit, including its filename and extension",
           },
           code = {
             type = "string",

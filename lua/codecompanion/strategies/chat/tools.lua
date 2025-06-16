@@ -32,12 +32,14 @@ end
 ---Add a reference to the tool in the chat buffer
 ---@param chat CodeCompanion.Chat The chat buffer
 ---@param id string The id of the tool
+---@param opts? table Optional parameters for the reference
 ---@return nil
-local function add_reference(chat, id)
+local function add_reference(chat, id, opts)
   chat.references:add({
     source = "tool",
     name = "tool",
     id = id,
+    opts = opts,
   })
 end
 
@@ -73,15 +75,19 @@ end
 ---Add the given tool to the chat buffer
 ---@param tool string The name of the tool
 ---@param tool_config table The tool from the config
+---@param opts? table Optional parameters
 ---@return nil
-function Tools:add(tool, tool_config)
+function Tools:add(tool, tool_config, opts)
+  opts = opts or {
+    visible = true,
+  }
   local resolved_tool = self.chat.agents.resolve(tool_config)
   if not resolved_tool or self.in_use[tool] then
     return
   end
 
   local id = "<tool>" .. tool .. "</tool>"
-  add_reference(self.chat, id)
+  add_reference(self.chat, id, opts)
   add_system_prompt(self.chat, resolved_tool, id)
   add_schema(self, resolved_tool, id)
 
@@ -90,6 +96,40 @@ function Tools:add(tool, tool_config)
   self.in_use[tool] = true
 
   return self
+end
+
+---Add tools from a group to the chat buffer
+---@param group string The name of the group
+---@param tools_config table The tools configuration
+---@return nil
+function Tools:add_group(group, tools_config)
+  local group_config = tools_config.groups[group]
+  if not group_config or not group_config.tools then
+    return
+  end
+
+  local opts = vim.tbl_deep_extend("force", { collapse_tools = true }, group_config.opts or {})
+  local collapse_tools = opts.collapse_tools
+
+  local group_id = "<group>" .. group .. "</group>"
+
+  local system_prompt = group_config.system_prompt
+  if type(system_prompt) == "function" then
+    system_prompt = system_prompt(group_config)
+  end
+  if system_prompt then
+    self.chat:add_message({
+      role = config.constants.SYSTEM_ROLE,
+      content = system_prompt,
+    }, { tag = "tool", visible = false, reference = group_id })
+  end
+
+  if collapse_tools then
+    add_reference(self.chat, group_id)
+  end
+  for _, tool in ipairs(group_config.tools) do
+    self:add(tool, tools_config[tool], { visible = not collapse_tools })
+  end
 end
 
 ---Determine if the chat buffer has any tools in use

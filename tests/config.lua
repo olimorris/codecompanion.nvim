@@ -86,6 +86,13 @@ return {
           callback = "strategies.chat.agents.tools.create_file",
           description = "Create a file in the current working directory",
         },
+        ["file_search"] = {
+          callback = "strategies.chat.agents.tools.file_search",
+          description = "Search for files in the current working directory by glob pattern",
+          opts = {
+            max_results = 500,
+          },
+        },
         ["read_file"] = {
           callback = "strategies.chat.agents.tools.read_file",
           description = "Read a file in the current working directory",
@@ -183,6 +190,24 @@ return {
               "func",
               "cmd",
             },
+          },
+          ["test_group"] = {
+            description = "Test Group",
+            system_prompt = "Test group system prompt",
+            tools = { "func", "weather" },
+            opts = { collapse_tools = true },
+          },
+          ["test_group2"] = {
+            description = "Group to be used for testing references",
+            system_prompt = "Individual tools system prompt",
+            tools = { "func", "weather" },
+            opts = { collapse_tools = false },
+          },
+          ["remove_group"] = {
+            description = "Group to be removed during testing of references",
+            system_prompt = "System prompt to be removed",
+            tools = { "func", "weather" },
+            opts = { collapse_tools = true },
           },
         },
         opts = {

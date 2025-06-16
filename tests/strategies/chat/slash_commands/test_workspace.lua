@@ -9,7 +9,7 @@ local new_set = MiniTest.new_set
 T = new_set({
   hooks = {
     pre_case = function()
-      child.restart({ "-u", "scripts/minimal_init.lua" })
+      h.child_start(child)
 
       child.lua([[
         h = require('tests.helpers')

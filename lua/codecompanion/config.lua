@@ -60,16 +60,24 @@ local defaults = {
             tools = {
               "cmd_runner",
               "create_file",
+              "file_search",
               "read_file",
               "insert_edit_into_file",
+            },
+            opts = {
+              collapse_tools = true,
             },
           },
           ["files"] = {
             description = "Tools related to creating, reading and editing files",
             tools = {
               "create_file",
+              "file_search",
               "read_file",
               "insert_edit_into_file",
+            },
+            opts = {
+              collapse_tools = true,
             },
           },
         },
@@ -78,6 +86,20 @@ local defaults = {
           description = "Run shell commands initiated by the LLM",
           opts = {
             requires_approval = true,
+          },
+        },
+        ["create_file"] = {
+          callback = "strategies.chat.agents.tools.create_file",
+          description = "Create a file in the current working directory",
+          opts = {
+            requires_approval = true,
+          },
+        },
+        ["file_search"] = {
+          callback = "strategies.chat.agents.tools.file_search",
+          description = "Search for files in the current working directory by glob pattern",
+          opts = {
+            max_results = 500, -- Maximum number of results to return
           },
         },
         ["insert_edit_into_file"] = {
@@ -89,13 +111,6 @@ local defaults = {
               file = true, -- For editing files in the current working directory
             },
             user_confirmation = true, -- Require confirmation from the user before moving on in the chat buffer?
-          },
-        },
-        ["create_file"] = {
-          callback = "strategies.chat.agents.tools.create_file",
-          description = "Create a file in the current working directory",
-          opts = {
-            requires_approval = true,
           },
         },
         ["read_file"] = {
@@ -170,6 +185,13 @@ local defaults = {
             adapter = "jina", -- jina
             cache_path = vim.fn.stdpath("data") .. "/codecompanion/urls",
             provider = providers.pickers, -- telescope|fzf_lua|mini_pick|snacks|default
+          },
+        },
+        ["quickfix"] = {
+          callback = "strategies.chat.slash_commands.quickfix",
+          description = "Insert quickfix list entries",
+          opts = {
+            contains_code = true,
           },
         },
         ["file"] = {
@@ -1080,11 +1102,12 @@ Your core tasks include:
 
 You must:
 - Follow the user's requirements carefully and to the letter.
+- Use the context and attachments the user provides.
 - Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
 - Minimize additional prose unless clarification is needed.
 - Use Markdown formatting in your answers.
 - Include the programming language name at the start of each Markdown code block.
-- Avoid including line numbers in code blocks.
+- Do not include line numbers in code blocks.
 - Avoid wrapping the whole response in triple backticks.
 - Only return code that's directly relevant to the task at hand. You may omit code that isn’t necessary for the solution.
 - Avoid using H1, H2 or H3 headers in your responses as these are reserved for the user.

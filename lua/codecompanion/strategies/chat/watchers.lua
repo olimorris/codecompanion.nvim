@@ -5,7 +5,9 @@ checked, it compares states to detect line additions, deletions, and modificatio
 ]]
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+
 local api = vim.api
+local fmt = string.format
 
 ---@class CodeCompanion.Watchers
 local Watchers = {}
@@ -114,7 +116,7 @@ local function format_changes_as_diff(old_content, new_content)
     algorithm = "myers",
   })
   if diff_result and diff_result ~= "" then
-    return string.format("```diff\n%s```", diff_result)
+    return fmt("```diff\n%s```", diff_result)
   end
 
   return ""
@@ -128,16 +130,15 @@ function Watchers:check_for_changes(chat)
       local has_changed, old_content = self:get_changes(ref.bufnr)
 
       if has_changed and old_content then
-        local filename = vim.fn.fnamemodify(api.nvim_buf_get_name(ref.bufnr), ":t")
+        local filename = vim.fn.fnamemodify(api.nvim_buf_get_name(ref.bufnr), ":.")
         local current_content = api.nvim_buf_get_lines(ref.bufnr, 0, -1, false)
         local diff_content = format_changes_as_diff(old_content, current_content)
 
         if diff_content ~= "" then
-          local changes_text =
-            string.format("The watched file `%s`, has been modified. Here are the changes:\n%s", filename, diff_content)
+          local delta = fmt("The file `%s`, has been modified. Here are the changes:\n%s", filename, diff_content)
           chat:add_message({
             role = config.constants.USER_ROLE,
-            content = changes_text,
+            content = fmt([[<attachment filepath="%s" buffer_number="%s">%s</attachment>]], filename, ref.bufnr, delta),
           }, { visible = false })
         end
       end
