@@ -93,6 +93,10 @@ return {
             max_results = 500,
           },
         },
+        ["grep_search"] = {
+          callback = "strategies.chat.agents.tools.grep_search",
+          description = "Search for text in the current working directory",
+        },
         ["read_file"] = {
           callback = "strategies.chat.agents.tools.read_file",
           description = "Read a file in the current working directory",
