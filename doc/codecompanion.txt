@@ -2250,6 +2250,17 @@ files.
 <
 
 
+@GREP_SEARCH ~
+
+This tool enables an LLM to search for text, within files, in the current
+working directory. For every match, the output (`{filename}:{line number}
+{relative filepath}`) will be shared with the LLM:
+
+>md
+    Use the @grep_search tool to find all occurrences of `buf_add_message`?
+<
+
+
 @INSERT_EDIT_INTO_FILE ~
 
 
