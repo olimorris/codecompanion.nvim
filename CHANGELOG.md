@@ -1,5 +1,13 @@
 # Changelog
 
+## [17.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.1.0...v17.1.1) (2025-06-16)
+
+
+### Bug Fixes
+
+* **chat:** watchers use the same diff format as in patch ([#1655](https://github.com/olimorris/codecompanion.nvim/issues/1655)) ([86b1ff1](https://github.com/olimorris/codecompanion.nvim/commit/86b1ff13d140d3b63f49f1cbfd69873b2cbbe40d))
+* **tools:** make `insert_edit_into_file` more robust for patch markers ([#1653](https://github.com/olimorris/codecompanion.nvim/issues/1653)) ([a6e226c](https://github.com/olimorris/codecompanion.nvim/commit/a6e226ced63d9bb5e601213e63f5cd07ad09f7cd))
+
 ## [17.1.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.0.0...v17.1.0) (2025-06-16)
 
 
