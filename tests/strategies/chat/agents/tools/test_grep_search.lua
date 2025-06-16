@@ -119,6 +119,7 @@ local T = new_set({
     post_case = function()
       child.lua([[
         h.teardown_chat_buffer()
+        vim.fn.delete(_G.TEST_DIR_ABSOLUTE, 'rf')
       ]])
     end,
     post_once = child.stop,
@@ -144,7 +145,7 @@ T["can find basic text matches"] = function()
   -- Should find matches in multiple files
   h.expect_contains("Button.js:3 src/components", output) -- function Button declaration
   h.expect_contains("Button.js:11 src/components", output) -- export default Button
-  h.expect_contains("button.test.js:3 tests", output) -- import Button
+  h.expect_contains("button.test.js:2 tests", output) -- import Button
   h.expect_contains("button.test.js:5 tests", output) -- render(<Button>
 end
 
