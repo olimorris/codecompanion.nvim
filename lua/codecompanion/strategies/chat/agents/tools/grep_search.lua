@@ -160,7 +160,7 @@ return {
     ---@param self CodeCompanion.Tool.GrepSearch
     ---@param args table The arguments from the LLM's tool call
     ---@param input? any The output from the previous function call
-    ---@return { status: "success"|"error", data: string }
+    ---@return { status: "success"|"error", data: string|table }
     function(self, args, input)
       return grep_search(args, self.tool.opts)
     end,

@@ -115,6 +115,7 @@
 ---@field output.error? fun(self: CodeCompanion.Agent.Tool, agent: CodeCompanion.Agent, cmd: table, stderr: table, stdout?: table): any The function to call if an error occurs
 ---@field output.success? fun(self: CodeCompanion.Agent.Tool, agent: CodeCompanion.Agent, cmd: table, stdout: table): any Function to call if the tool is successful
 ---@field args table The arguments sent over by the LLM when making the request
+---@field tool table The tool configuration from the config file
 
 ---@class CodeCompanion.SlashCommand.Provider
 ---@field output function The function to call when a selection is made
