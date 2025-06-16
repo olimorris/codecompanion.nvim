@@ -122,9 +122,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     data = fmt("**Insert Edit Into File Tool**: `%s` - %s", action.filepath, action.explanation),
   }
 
-  local tool_config = opts.config and opts.config[opts.name] or {}
-
-  if should_diff and tool_config.opts.user_confirmation then
+  if should_diff and opts.user_confirmation then
     local accept = config.strategies.inline.keymaps.accept_change.modes.n
     local reject = config.strategies.inline.keymaps.reject_change.modes.n
 
@@ -162,13 +160,7 @@ return {
     function(self, args, input, output_handler)
       local bufnr = buffers.get_bufnr_from_filepath(args.filepath)
       if bufnr then
-        return edit_buffer(
-          bufnr,
-          self.chat.bufnr,
-          args,
-          output_handler,
-          { name = self.tool.name, config = self.tools_config }
-        )
+        return edit_buffer(bufnr, self.chat.bufnr, args, output_handler, self.tool.opts)
       else
         local ok, outcome = pcall(edit_file, args)
         if not ok then
