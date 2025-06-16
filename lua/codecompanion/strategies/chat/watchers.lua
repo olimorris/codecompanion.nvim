@@ -105,7 +105,7 @@ end
 ---@param old_content table
 ---@param new_content table
 ---@return string
-local function format_changes_as_diff(old_content, new_content)
+function Watchers:format_changes_as_diff(old_content, new_content)
   -- Convert line arrays to strings for vim.diff
   local old_str = table.concat(old_content, "\n") .. "\n"
   local new_str = table.concat(new_content, "\n") .. "\n"
@@ -116,7 +116,9 @@ local function format_changes_as_diff(old_content, new_content)
     algorithm = "myers",
   })
   if diff_result and diff_result ~= "" then
-    return fmt("```diff\n%s```", diff_result)
+    -- replace line numbers in diff to keep a common format
+    diff_result = diff_result:gsub("^@@ .+ @@\n", "@@\n")
+    return fmt("```\n%s```", diff_result)
   end
 
   return ""
@@ -132,7 +134,7 @@ function Watchers:check_for_changes(chat)
       if has_changed and old_content then
         local filename = vim.fn.fnamemodify(api.nvim_buf_get_name(ref.bufnr), ":.")
         local current_content = api.nvim_buf_get_lines(ref.bufnr, 0, -1, false)
-        local diff_content = format_changes_as_diff(old_content, current_content)
+        local diff_content = self:format_changes_as_diff(old_content, current_content)
 
         if diff_content ~= "" then
           local delta = fmt("The file `%s`, has been modified. Here are the changes:\n%s", filename, diff_content)
