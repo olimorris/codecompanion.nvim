@@ -36,9 +36,9 @@ function Variable:output(selected, opts)
     return log:warn("Invalid parameter for buffer variable: %s", params)
   end
 
-  local message = "User's current visible code in a file, this should be the main focus"
+  local message = "User's current visible code in a file (including line numbers). This should be the main focus"
   if opts.pin then
-    message = "Here is the updated file content"
+    message = "Here is the updated file content (including line numbers)"
   end
 
   local ok, content, id, _ = pcall(buf_utils.format_for_llm, {
