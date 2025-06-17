@@ -36,6 +36,10 @@ M.libraries = {
     name = "base64",
     optional = true,
   },
+  {
+    name = "rg",
+    optional = true,
+  },
 }
 
 M.adapters = {

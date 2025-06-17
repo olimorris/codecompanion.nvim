@@ -10,8 +10,7 @@ local function search(action, opts)
   opts = opts or {}
   local query = action.query
 
-  local tool_config = opts.config and opts.config[opts.name] or {}
-  local max_results = action.max_results or tool_config.opts.max_results or 500 -- Default limit to prevent overwhelming results
+  local max_results = action.max_results or opts.max_results or 500 -- Default limit to prevent overwhelming results
 
   if not query or query == "" then
     return {
@@ -81,7 +80,7 @@ return {
     ---@param input? any The output from the previous function call
     ---@return { status: "success"|"error", data: string }
     function(self, args, input)
-      return search(args, { name = self.tool.name, config = self.tools_config })
+      return search(args, self.tool.opts)
     end,
   },
   schema = {
