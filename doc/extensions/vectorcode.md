@@ -39,7 +39,7 @@ require("codecompanion").setup({
   extensions = {
     vectorcode = {
       opts = {
-        add_tools = { "ls", "query" },
+        add_tools = { "ls", "query", "vectorise" },
       }
     }
   }
@@ -50,7 +50,9 @@ The `add_tools` array should contain VectorCode tools that you want the LLM to h
 
 - The `ls` tool (named `@vectorcode_ls` in the chat buffer) returns all projects indexed by VectorCode;
 - The `query` tool (named `@vectorcode_query` in the chat buffer) allows the LLM to search for related files in a particular
-  project.
+  project;
+- The `vectorise` tool (named `@vectorcode_vectorise` in the chat buffer) allows
+  the LLM to vectorise files and add them to the database.
 
 For further configuration options, see the [VectorCode wiki](https://github.com/Davidyz/VectorCode/wiki/Neovim-Integrations).
 
