@@ -264,7 +264,6 @@ function UI:render(context, messages, opts)
         end
 
         if msg.opts and msg.opts.tag == "tool_output" then
-          table.insert(lines, "### Tool Output")
           table.insert(lines, "")
         end
 
@@ -489,29 +488,12 @@ function UI:fold_code()
   return self
 end
 
----Process the pending fold after tool output has been added
----@param self CodeCompanion.Chat.UI
----@return nil
-local function process_pending_fold(self)
-  if not self.pending_fold then
-    return
-  end
-
-  local end_line = api.nvim_buf_line_count(self.chat_bufnr) - 1
-  local line_count = end_line - self.pending_fold.start_line
-
-  self:fold_range(self.pending_fold.start_line, end_line)
-  log:trace("Auto-folded tool output (%d lines)", line_count)
-
-  -- Clear the pending fold
-  self.pending_fold = nil
-end
-
 ---Fold a range of lines in the chat buffer
+---@param self CodeCompanion.Chat.UI
 ---@param start_row number The starting row of the fold (0-indexed)
 ---@param end_row number The ending row of the fold (0-indexed)
 ---@return nil
-function UI:fold_range(start_row, end_row)
+local function fold_range(self, start_row, end_row)
   if start_row >= end_row then
     return
   end
@@ -528,6 +510,22 @@ function UI:fold_range(start_row, end_row)
   api.nvim_buf_call(self.chat_bufnr, function()
     vim.cmd(string.format("%d,%dfold", start_row, end_row))
   end)
+end
+
+---Process the pending fold after tool output has been added
+---@param self CodeCompanion.Chat.UI
+---@return nil
+local function process_pending_fold(self)
+  if not self.pending_fold then
+    return
+  end
+
+  local end_line = api.nvim_buf_line_count(self.chat_bufnr) - 1
+
+  fold_range(self, self.pending_fold.start_line, end_line)
+
+  -- Clear the pending fold
+  self.pending_fold = nil
 end
 
 ---Format and potentially fold tool output in the chat buffer

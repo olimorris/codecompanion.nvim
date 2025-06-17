@@ -102,7 +102,7 @@ local chat_buffer_output = function(c)
 
     chat:add_buf_message({
       role = "llm",
-      content = "I've found some awesome weather data for you:\n"
+      content = "I've found some awesome weather data for you:"
     })
 
     chat:add_tool_output(tool, "Temperature: 20°C\nCondition: Sunny\nPrecipitation: 0%\n")
@@ -110,6 +110,11 @@ local chat_buffer_output = function(c)
 end
 
 T["Tool output"]["is displayed and formatted in the chat buffer"] = function()
+  chat_buffer_output(child)
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["Tool output"]["can be folded in the chat buffer"] = function()
   child.lua([[
     _G.chat, _G.agent = h.setup_chat_buffer({
       strategies = {
@@ -117,7 +122,7 @@ T["Tool output"]["is displayed and formatted in the chat buffer"] = function()
           tools = {
             opts = {
               folds = {
-                enabled = false,
+                enabled = true,
               }
             }
           }
@@ -125,11 +130,7 @@ T["Tool output"]["is displayed and formatted in the chat buffer"] = function()
       }
     })
   ]])
-  chat_buffer_output(child)
-  expect.reference_screenshot(child.get_screenshot())
-end
 
-T["Tool output"]["can be folded in the chat buffer"] = function()
   chat_buffer_output(child)
   expect.reference_screenshot(child.get_screenshot())
 end

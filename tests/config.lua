@@ -218,7 +218,7 @@ return {
           system_prompt = "My tool system prompt",
           wait_timeout = 3000,
           folds = {
-            enabled = true,
+            enabled = false,
           },
         },
       },

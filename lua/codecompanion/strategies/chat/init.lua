@@ -179,8 +179,9 @@ end
 ---Increment the spacing between regular text in the chat buffer and output from tools
 ---@param chat CodeCompanion.Chat
 ---@return nil
-local function increment_tool_spacing(chat)
-  chat._tool_output_spacing = chat._tool_output_spacing + 1
+local function increment_tool_spacing(chat, amount)
+  amount = amount or 1
+  chat._tool_output_spacing = chat._tool_output_spacing + amount
 end
 
 ---Make an id from a string or table
@@ -1256,11 +1257,9 @@ function Chat:add_buf_message(data, opts)
   local function append_data()
     -- Tool output
     if opts and opts.tag == "tool_output" then
-      if self._tool_output_spacing == 0 then
-        if self._tool_output_has_llm_response then
-          table.insert(lines, "")
-          increment_tool_spacing(self)
-        end
+      if self._tool_output_has_llm_response then
+        table.insert(lines, "")
+        increment_tool_spacing(self)
       end
       table.insert(lines, "")
       increment_tool_spacing(self)
