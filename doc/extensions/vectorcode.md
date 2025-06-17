@@ -40,6 +40,14 @@ require("codecompanion").setup({
     vectorcode = {
       opts = {
         add_tools = { "ls", "query", "vectorise" },
+        tool_opts = {
+          ---@type VectorCode.CodeCompanion.LsToolOpts
+          ls = {},
+          ---@type VectorCode.CodeCompanion.QueryToolOpts
+          query = {},
+          ---@type VectorCode.CodeCompanion.VectoriseToolOpts
+          vectorise = {}
+        }
       }
     }
   }
