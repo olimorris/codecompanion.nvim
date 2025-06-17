@@ -19,6 +19,8 @@ The [History extension](https://github.com/ravitemer/codecompanion-history.nvim)
 - 🔍 Multiple picker interfaces
 - ⌛ Optional automatic chat expiration
 - ⚡ Restore chat sessions with full context and tools state
+- 🏢 **Project-aware filtering**: Filter chats by workspace/project context
+- 📋 **Chat duplication**: Easily duplicate chats to create variations or backups
 
 The following CodeCompanion features are preserved when saving and restoring chats:
 
@@ -26,6 +28,7 @@ The following CodeCompanion features are preserved when saving and restoring cha
 |---------|--------|-------|
 |  System Prompts | ✅  | System prompt used in the chat |
 |  Messages History | ✅  | All messages |
+|  Images | ✅  | Restores images as base64 strings |
 |  LLM Adapter | ✅  | The specific adapter used for the chat |
 |  LLM Settings | ✅  | Model, temperature and other adapter settings |
 |  Tools | ✅  | Tool schemas and their system prompts |
@@ -34,6 +37,14 @@ The following CodeCompanion features are preserved when saving and restoring cha
 |  References | ✅  | Code snippets and command outputs added via slash commands |
 |  Pinned References | ✅  | Pinned references |
 |  Watchers | ⚠  | Saved but requires original buffer context to resume watching |
+
+When restoring a chat:
+1. The complete message history is recreated
+2. All tools and references are reinitialized
+3. Original LLM settings and adapter are restored
+4. Previous system prompts are preserved
+
+> **Note**: While watched buffer states are saved, they require the original buffer context to resume watching functionality.
 
 > [!NOTE]
 > As this is an extension that deeply integrates with CodeCompanion's internal APIs, occasional compatibility issues may arise when CodeCompanion updates. If you encounter any bugs or unexpected behavior, please [raise an issue](https://github.com/ravitemer/codecompanion-history.nvim/issues) to help us maintain compatibility.
@@ -72,6 +83,12 @@ require("codecompanion").setup({
                 expiration_days = 0,
                 -- Picker interface ("telescope" or "snacks" or "fzf-lua" or "default")
                 picker = "telescope",
+                -- Customize picker keymaps (optional)
+                picker_keymaps = {
+                    rename = { n = "r", i = "<M-r>" },
+                    delete = { n = "d", i = "<M-d>" },
+                    duplicate = { n = "<C-y>", i = "<C-y>" },
+                },
                 ---Automatically generate titles for new chats
                 auto_generate_title = true,
                 title_generation_opts = {
@@ -79,6 +96,10 @@ require("codecompanion").setup({
                     adapter = nil, -- e.g "copilot"
                     ---Model for generating titles (defaults to active chat's model)
                     model = nil, -- e.g "gpt-4o"
+                    ---Number of user prompts after which to refresh the title (0 to disable)
+                    refresh_every_n_prompts = 0, -- e.g., 3 to refresh after every 3rd user prompt
+                    ---Maximum number of times to refresh the title (default: 3)
+                    max_refreshes = 3,
                 },
                 ---On exiting and entering neovim, loads the last chat on opening chat
                 continue_last_chat = false,
@@ -88,6 +109,8 @@ require("codecompanion").setup({
                 dir_to_save = vim.fn.stdpath("data") .. "/codecompanion-history",
                 ---Enable detailed logging for history extension
                 enable_logging = false,
+                ---Optional filter function to control which chats are shown when browsing
+                chat_filter = nil, -- function(chat_data) return boolean end
             }
         }
     }
@@ -117,13 +140,15 @@ Actions in history browser:
 - Normal mode:
   - `d` - Delete selected chat(s)
   - `r` - Rename selected chat
+  - `<C-y>` - Duplicate selected chat
 - Insert mode:
   - `<M-d>` (Alt+d) - Delete selected chat(s)
   - `<M-r>` (Alt+r) - Rename selected chat
+  - `<C-y>` - Duplicate selected chat
 
 You can use `<Tab>` to select multiple chats for deletion.
 
-> Note: Delete and rename actions are not available for the default picker.
+> Note: Delete, rename, and duplicate actions are only available in telescope, snacks, and fzf-lua pickers. Multiple chats can be selected for deletion using picker's multi-select feature. Duplication is limited to one chat at a time.
 
 #### 🔧 API
 
@@ -136,14 +161,46 @@ get_location(): string?
 -- Save a chat to storage (uses last chat if none provided)
 save_chat(chat?: CodeCompanion.Chat)
 
--- Get metadata for all saved chats
-get_chats(): table<string, ChatIndexData>
+-- Browse chats with custom filter function
+browse_chats(filter_fn?: function(ChatIndexData): boolean)
+
+-- Get metadata for all saved chats with optional filtering
+get_chats(filter_fn?: function(ChatIndexData): boolean): table<string, ChatIndexData>
 
 -- Load a specific chat by its save_id
 load_chat(save_id: string): ChatData?
 
 -- Delete a chat by its save_id
 delete_chat(save_id: string): boolean
+
+-- Duplicate a chat by its save_id
+duplicate_chat(save_id: string, new_title?: string): string?
+```
+
+Example usage:
+
+```lua
+local history = require("codecompanion").extensions.history
+
+-- Browse chats with project filter
+history.browse_chats(function(chat_data)
+    return chat_data.project_root == utils.find_project_root()
+end)
+
+-- Get all saved chats metadata
+local chats = history.get_chats()
+
+-- Load a specific chat
+local chat_data = history.load_chat("some_save_id")
+
+-- Delete a chat
+history.delete_chat("some_save_id")
+
+-- Duplicate a chat with custom title
+local new_save_id = history.duplicate_chat("some_save_id", "My Custom Copy")
+
+-- Duplicate a chat with auto-generated title (appends "(1)")
+local new_save_id = history.duplicate_chat("some_save_id")
 ```
 
 ## Additional Resources
