@@ -520,11 +520,7 @@ local function process_pending_fold(self)
     return
   end
 
-  local end_line = api.nvim_buf_line_count(self.chat_bufnr) - 1
-
-  fold_range(self, self.pending_fold.start_line, end_line)
-
-  -- Clear the pending fold
+  fold_range(self, self.pending_fold.start_line, api.nvim_buf_line_count(self.chat_bufnr) - 1)
   self.pending_fold = nil
 end
 

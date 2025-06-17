@@ -176,14 +176,6 @@ local function increment_cycle(chat)
   chat.cycle = chat.cycle + 1
 end
 
----Increment the spacing between regular text in the chat buffer and output from tools
----@param chat CodeCompanion.Chat
----@return nil
-local function increment_tool_spacing(chat, amount)
-  amount = amount or 1
-  chat._tool_output_spacing = chat._tool_output_spacing + amount
-end
-
 ---Make an id from a string or table
 ---@param val string|table
 ---@return number
@@ -546,7 +538,6 @@ function Chat.new(args)
       return bufnr
     end,
     _chat_has_reasoning = false,
-    _tool_output_spacing = 0,
     _tool_output_has_llm_response = false,
   }, { __index = Chat })
 
@@ -1259,10 +1250,8 @@ function Chat:add_buf_message(data, opts)
     if opts and opts.tag == "tool_output" then
       if self._tool_output_has_llm_response then
         table.insert(lines, "")
-        increment_tool_spacing(self)
       end
       table.insert(lines, "")
-      increment_tool_spacing(self)
       return write(data.content or "")
     end
 
@@ -1366,16 +1355,13 @@ function Chat:add_tool_output(tool, for_llm, for_user)
     content = for_user,
   }, { tag = "tool_output" })
 
-  self.ui:fold_tool_output({
-    spacing = self._tool_output_spacing,
-  })
+  self.ui:fold_tool_output({ spacing = 1 })
 end
 
 ---When a request has finished, reset the chat buffer
 ---@return nil
 function Chat:reset()
   self._chat_has_reasoning = false
-  self._tool_output_spacing = 0
   self._tool_output_has_llm_response = false
   self.status = ""
   self.ui:unlock_buf()
