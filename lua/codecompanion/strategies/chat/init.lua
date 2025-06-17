@@ -176,6 +176,13 @@ local function increment_cycle(chat)
   chat.cycle = chat.cycle + 1
 end
 
+---Increment the spacing between regular text in the chat buffer and output from tools
+---@param chat CodeCompanion.Chat
+---@return nil
+local function increment_tool_spacing(chat)
+  chat._tool_output_spacing = chat._tool_output_spacing + 1
+end
+
 ---Make an id from a string or table
 ---@param val string|table
 ---@return number
@@ -538,7 +545,7 @@ function Chat.new(args)
       return bufnr
     end,
     _chat_has_reasoning = false,
-    _tool_output_header_printed = false,
+    _tool_output_spacing = 0,
     _tool_output_has_llm_response = false,
   }, { __index = Chat })
 
@@ -597,8 +604,8 @@ function Chat.new(args)
 
   self.ui = require("codecompanion.strategies.chat.ui").new({
     adapter = self.adapter,
-    id = self.id,
-    bufnr = self.bufnr,
+    chat_id = self.id,
+    chat_bufnr = self.bufnr,
     roles = { user = user_role, llm = llm_role },
     settings = self.settings,
   })
@@ -1249,15 +1256,14 @@ function Chat:add_buf_message(data, opts)
   local function append_data()
     -- Tool output
     if opts and opts.tag == "tool_output" then
-      if not self._tool_output_header_printed then
-        self._tool_output_header_printed = true
+      if self._tool_output_spacing == 0 then
         if self._tool_output_has_llm_response then
           table.insert(lines, "")
-          table.insert(lines, "")
+          increment_tool_spacing(self)
         end
-        table.insert(lines, "### Tool Output")
       end
       table.insert(lines, "")
+      increment_tool_spacing(self)
       return write(data.content or "")
     end
 
@@ -1353,19 +1359,24 @@ function Chat:add_tool_output(tool, for_llm, for_user)
     return
   end
 
-  -- Update the contents of the chat buffer
+  self.ui:fold_tool_output()
+
   for_user = for_user or for_llm
   self:add_buf_message({
     role = config.constants.LLM_ROLE,
     content = for_user,
   }, { tag = "tool_output" })
+
+  self.ui:fold_tool_output({
+    spacing = self._tool_output_spacing,
+  })
 end
 
 ---When a request has finished, reset the chat buffer
 ---@return nil
 function Chat:reset()
   self._chat_has_reasoning = false
-  self._tool_output_header_printed = false
+  self._tool_output_spacing = 0
   self._tool_output_has_llm_response = false
   self.status = ""
   self.ui:unlock_buf()

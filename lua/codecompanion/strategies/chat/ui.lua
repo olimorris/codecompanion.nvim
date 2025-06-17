@@ -38,26 +38,27 @@ local UI = {}
 function UI.new(args)
   local self = setmetatable({
     adapter = args.adapter,
-    bufnr = args.bufnr,
+    chat_bufnr = args.chat_bufnr,
+    chat_id = args.chat_id,
     header_ns = api.nvim_create_namespace(CONSTANTS.NS_HEADER),
-    id = args.id,
+    pending_fold = nil,
     roles = args.roles,
     settings = args.settings,
     tokens = args.tokens,
     winnr = args.winnr,
   }, { __index = UI })
 
-  self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, {
+  self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.chat_bufnr, {
     clear = false,
   })
   api.nvim_create_autocmd("InsertEnter", {
     group = self.aug,
-    buffer = self.bufnr,
+    buffer = self.chat_bufnr,
     once = true,
     desc = "Clear the virtual text in the CodeCompanion chat buffer",
     callback = function()
       local ns_id = api.nvim_create_namespace(CONSTANTS.NS_VIRTUAL_TEXT)
-      api.nvim_buf_clear_namespace(self.bufnr, ns_id, 0, -1)
+      api.nvim_buf_clear_namespace(self.chat_bufnr, ns_id, 0, -1)
     end,
   })
 
@@ -96,7 +97,7 @@ function UI:open(opts)
       title_pos = "center",
       zindex = 45,
     }
-    self.winnr = api.nvim_open_win(self.bufnr, true, win_opts)
+    self.winnr = api.nvim_open_win(self.chat_bufnr, true, win_opts)
   elseif window.layout == "vertical" then
     local position = window.position
     local full_height = window.full_height
@@ -122,7 +123,7 @@ function UI:open(opts)
       vim.cmd("vertical resize " .. width)
     end
     self.winnr = api.nvim_get_current_win()
-    api.nvim_win_set_buf(self.winnr, self.bufnr)
+    api.nvim_win_set_buf(self.winnr, self.chat_bufnr)
   elseif window.layout == "horizontal" then
     local position = window.position
     if position == nil or (position ~= "top" and position ~= "bottom") then
@@ -137,21 +138,21 @@ function UI:open(opts)
     end
     vim.cmd("resize " .. height)
     self.winnr = api.nvim_get_current_win()
-    api.nvim_win_set_buf(self.winnr, self.bufnr)
+    api.nvim_win_set_buf(self.winnr, self.chat_bufnr)
   else
     self.winnr = api.nvim_get_current_win()
-    api.nvim_set_current_buf(self.bufnr)
+    api.nvim_set_current_buf(self.chat_bufnr)
   end
 
   ui.set_win_options(self.winnr, window.opts)
-  vim.bo[self.bufnr].textwidth = 0
+  vim.bo[self.chat_bufnr].textwidth = 0
 
   if not opts.toggled then
     self:follow()
   end
 
-  log:trace("Chat opened with ID %d", self.id)
-  util.fire("ChatOpened", { bufnr = self.bufnr })
+  log:trace("Chat opened with ID %d", self.chat_id)
+  util.fire("ChatOpened", { bufnr = self.chat_bufnr })
   return self
 end
 
@@ -165,7 +166,7 @@ function UI:hide()
       vim.cmd("hide")
     else
       if not self.winnr then
-        self.winnr = ui.buf_get_win(self.bufnr)
+        self.winnr = ui.buf_get_win(self.chat_bufnr)
       end
       api.nvim_win_hide(self.winnr)
     end
@@ -173,7 +174,7 @@ function UI:hide()
     vim.cmd("buffer " .. vim.fn.bufnr("#"))
   end
 
-  util.fire("ChatHidden", { bufnr = self.bufnr })
+  util.fire("ChatHidden", { bufnr = self.chat_bufnr })
 end
 
 ---Follow the cursor in the chat buffer
@@ -194,13 +195,13 @@ end
 ---Determine if the current chat buffer is active
 ---@return boolean
 function UI:is_active()
-  return api.nvim_get_current_buf() == self.bufnr
+  return api.nvim_get_current_buf() == self.chat_bufnr
 end
 
 ---Determine if the chat buffer is visible
 ---@return boolean
 function UI:is_visible()
-  return self.winnr and api.nvim_win_is_valid(self.winnr) and api.nvim_win_get_buf(self.winnr) == self.bufnr
+  return self.winnr and api.nvim_win_is_valid(self.winnr) and api.nvim_win_get_buf(self.winnr) == self.chat_bufnr
 end
 
 ---Get the formatted header for the chat buffer
@@ -319,7 +320,7 @@ function UI:render(context, messages, opts)
   end
 
   self:unlock_buf()
-  api.nvim_buf_set_lines(self.bufnr, 0, -1, false, lines)
+  api.nvim_buf_set_lines(self.chat_bufnr, 0, -1, false, lines)
   self:render_headers()
 
   self:follow()
@@ -335,21 +336,21 @@ function UI:render_headers()
   end
 
   local separator = config.display.chat.separator
-  local lines = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
+  local lines = api.nvim_buf_get_lines(self.chat_bufnr, 0, -1, false)
   local llm_role = set_llm_role(self.roles.llm, self.adapter)
 
   for line, content in ipairs(lines) do
     if content:match("^## " .. vim.pesc(self.roles.user)) or content:match("^## " .. vim.pesc(llm_role)) then
       local col = vim.fn.strwidth(content) - vim.fn.strwidth(separator)
 
-      api.nvim_buf_set_extmark(self.bufnr, self.header_ns, line - 1, col, {
+      api.nvim_buf_set_extmark(self.chat_bufnr, self.header_ns, line - 1, col, {
         virt_text_win_col = col,
         virt_text = { { string.rep(separator, vim.go.columns), "CodeCompanionChatSeparator" } },
         priority = 100,
       })
 
       -- Set the highlight group for the header
-      api.nvim_buf_set_extmark(self.bufnr, self.header_ns, line - 1, 0, {
+      api.nvim_buf_set_extmark(self.chat_bufnr, self.header_ns, line - 1, 0, {
         end_col = col + 1,
         hl_group = "CodeCompanionChatHeader",
       })
@@ -368,7 +369,7 @@ function UI:set_intro_msg()
   if not config.display.chat.start_in_insert_mode then
     local extmark_id = self:set_virtual_text(config.display.chat.intro_message, "eol")
     api.nvim_create_autocmd("InsertEnter", {
-      buffer = self.bufnr,
+      buffer = self.chat_bufnr,
       callback = function()
         self:clear_virtual_text(extmark_id)
       end,
@@ -385,10 +386,10 @@ end
 ---@param range? table<number, number>
 ---@return number The id of the extmark
 function UI:set_virtual_text(message, method, range)
-  range = range or { api.nvim_buf_line_count(self.bufnr) - 1, 0 }
+  range = range or { api.nvim_buf_line_count(self.chat_bufnr) - 1, 0 }
   self.virtual_text_ns = api.nvim_create_namespace(CONSTANTS.NS_VIRTUAL_TEXT)
 
-  return api.nvim_buf_set_extmark(self.bufnr, self.virtual_text_ns, range[1], range[2], {
+  return api.nvim_buf_set_extmark(self.chat_bufnr, self.virtual_text_ns, range[1], range[2], {
     virt_text = { { message, "CodeCompanionVirtualText" } },
     virt_text_pos = method or "eol",
   })
@@ -398,20 +399,20 @@ end
 ---@param extmark_id number The id of the extmark to delete
 ---@return nil
 function UI:clear_virtual_text(extmark_id)
-  api.nvim_buf_del_extmark(self.bufnr, self.virtual_text_ns, extmark_id)
+  api.nvim_buf_del_extmark(self.chat_bufnr, self.virtual_text_ns, extmark_id)
 end
 
 ---Get the last line, column and line count in the chat buffer
 ---@return integer, integer, integer
 function UI:last()
-  local line_count = api.nvim_buf_line_count(self.bufnr)
+  local line_count = api.nvim_buf_line_count(self.chat_bufnr)
 
   local last_line = line_count - 1
   if last_line < 0 then
     return 0, 0, line_count
   end
 
-  local last_line_content = api.nvim_buf_get_lines(self.bufnr, -2, -1, false)
+  local last_line_content = api.nvim_buf_get_lines(self.chat_bufnr, -2, -1, false)
   if not last_line_content or #last_line_content == 0 then
     return last_line, 0, line_count
   end
@@ -431,7 +432,7 @@ function UI:display_tokens(parser, start_row)
     if type(to_display) == "function" then
       local ns_id = api.nvim_create_namespace(CONSTANTS.NS_TOKENS)
       to_display = to_display(self.tokens, self.adapter)
-      require("codecompanion.utils.tokens").display(to_display, ns_id, parser, start_row, self.bufnr)
+      require("codecompanion.utils.tokens").display(to_display, ns_id, parser, start_row, self.chat_bufnr)
     end
   end
 end
@@ -456,12 +457,12 @@ function UI:fold_code()
 ]]
   )
 
-  local parser = vim.treesitter.get_parser(self.bufnr, "markdown")
+  local parser = vim.treesitter.get_parser(self.chat_bufnr, "markdown")
   local tree = parser:parse()[1]
   vim.o.foldmethod = "manual"
 
   local role
-  for _, matches in query:iter_matches(tree:root(), self.bufnr) do
+  for _, matches in query:iter_matches(tree:root(), self.chat_bufnr) do
     local match = {}
     for id, nodes in pairs(matches) do
       local node = type(nodes) == "table" and nodes[1] or nodes
@@ -473,11 +474,11 @@ function UI:fold_code()
     end
 
     if match.role then
-      role = vim.trim(vim.treesitter.get_node_text(match.role.node, self.bufnr))
+      role = vim.trim(vim.treesitter.get_node_text(match.role.node, self.chat_bufnr))
       if role:match(self.roles.user) and match.code then
         local start_row, _, end_row, _ = match.code.node:range()
         if start_row < end_row then
-          api.nvim_buf_call(self.bufnr, function()
+          api.nvim_buf_call(self.chat_bufnr, function()
             vim.cmd(string.format("%d,%dfold", start_row, end_row))
           end)
         end
@@ -488,16 +489,84 @@ function UI:fold_code()
   return self
 end
 
+---Process the pending fold after tool output has been added
+---@param self CodeCompanion.Chat.UI
+---@return nil
+local function process_pending_fold(self)
+  if not self.pending_fold then
+    return
+  end
+
+  local end_line = api.nvim_buf_line_count(self.chat_bufnr) - 1
+  local line_count = end_line - self.pending_fold.start_line
+
+  self:fold_range(self.pending_fold.start_line, end_line)
+  log:trace("Auto-folded tool output (%d lines)", line_count)
+
+  -- Clear the pending fold
+  self.pending_fold = nil
+end
+
+---Fold a range of lines in the chat buffer
+---@param start_row number The starting row of the fold (0-indexed)
+---@param end_row number The ending row of the fold (0-indexed)
+---@return nil
+function UI:fold_range(start_row, end_row)
+  if start_row >= end_row then
+    return
+  end
+
+  -- Set fold method if not already manual
+  if self.winnr and api.nvim_win_is_valid(self.winnr) then
+    api.nvim_win_call(self.winnr, function()
+      if vim.wo.foldmethod ~= "manual" then
+        vim.wo.foldmethod = "manual"
+      end
+    end)
+  end
+
+  api.nvim_buf_call(self.chat_bufnr, function()
+    vim.cmd(string.format("%d,%dfold", start_row, end_row))
+  end)
+end
+
+---Format and potentially fold tool output in the chat buffer
+---@param opts? table
+---@return nil
+function UI:fold_tool_output(opts)
+  if not config.strategies.chat.tools.opts.folds.enabled then
+    return
+  end
+
+  opts = opts or {}
+
+  if not self.pending_fold then
+    local current_line = opts.start_line or api.nvim_buf_line_count(self.chat_bufnr)
+    self.pending_fold = {
+      start_line = current_line,
+      is_error = opts.is_error or false,
+      timestamp = vim.uv.hrtime(),
+    }
+    return
+  end
+
+  if opts.spacing then
+    self.pending_fold.start_line = self.pending_fold.start_line + opts.spacing
+  end
+
+  process_pending_fold(self)
+end
+
 ---Lock the chat buffer from editing
 function UI:lock_buf()
-  vim.bo[self.bufnr].modified = false
-  vim.bo[self.bufnr].modifiable = false
+  vim.bo[self.chat_bufnr].modified = false
+  vim.bo[self.chat_bufnr].modifiable = false
 end
 
 ---Unlock the chat buffer for editing
 function UI:unlock_buf()
-  vim.bo[self.bufnr].modified = false
-  vim.bo[self.bufnr].modifiable = true
+  vim.bo[self.chat_bufnr].modified = false
+  vim.bo[self.chat_bufnr].modifiable = true
 end
 
 return UI

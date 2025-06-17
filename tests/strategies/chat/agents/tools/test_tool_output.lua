@@ -1,33 +1,8 @@
 local h = require("tests.helpers")
 
-local tools = {
-  tool1 = {
-    name = "weather",
-    function_call = {
-      _index = 0,
-      ["function"] = {
-        arguments = '{"location": "London", "units": "celsius"}',
-        name = "weather",
-      },
-      id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
-      type = "function",
-    },
-  },
-  tool2 = {
-    name = "weather",
-    function_call = {
-      _index = 1,
-      ["function"] = {
-        arguments = '{"location": "Paris", "units": "celsius"}',
-        name = "weather",
-      },
-      id = "call_a9oyUMlFhnX8HvqzlfIx5Uek",
-      type = "function",
-    },
-  },
-}
-
+local expect = MiniTest.expect
 local new_set = MiniTest.new_set
+
 local child = MiniTest.new_child_neovim()
 T = new_set({
   hooks = {
@@ -107,6 +82,56 @@ T["Tool output"]["second call appends to same message"] = function()
 
   h.eq(output.count, 2)
   h.eq(output.content, "Hello!\n\nAgain!")
+end
+
+local chat_buffer_output = function(c)
+  c.lua([[
+    local chat = _G.chat
+
+    local tool = {
+      name = "weather",
+      function_call = {
+        ["function"] = {
+          arguments = '{"location": "London", "units": "celsius"}',
+          name = "weather",
+        },
+        id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+        type = "function",
+      },
+    }
+
+    chat:add_buf_message({
+      role = "llm",
+      content = "I've found some awesome weather data for you:\n"
+    })
+
+    chat:add_tool_output(tool, "Temperature: 20°C\nCondition: Sunny\nPrecipitation: 0%\n")
+  ]])
+end
+
+T["Tool output"]["is displayed and formatted in the chat buffer"] = function()
+  child.lua([[
+    _G.chat, _G.agent = h.setup_chat_buffer({
+      strategies = {
+        chat = {
+          tools = {
+            opts = {
+              folds = {
+                enabled = false,
+              }
+            }
+          }
+        }
+      }
+    })
+  ]])
+  chat_buffer_output(child)
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["Tool output"]["can be folded in the chat buffer"] = function()
+  chat_buffer_output(child)
+  expect.reference_screenshot(child.get_screenshot())
 end
 
 return T

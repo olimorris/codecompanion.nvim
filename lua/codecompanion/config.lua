@@ -150,7 +150,11 @@ local defaults = {
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
+          folds = {
+            enabled = true, -- Fold tool output in the buffer?
+          },
           wait_timeout = 30000, -- How long to wait for user input before timing out (milliseconds)
+
           ---Tools and/or groups that are always loaded in a chat buffer
           ---@type string[]
           default_tools = {},
@@ -1002,6 +1006,8 @@ You must create or modify a workspace file through a series of prompts over mult
       icons = {
         pinned_buffer = " ",
         watched_buffer = "󰂥 ",
+        tool_success = " ",
+        tool_failure = " ",
       },
       debug_window = {
         ---@return number|fun(): number
