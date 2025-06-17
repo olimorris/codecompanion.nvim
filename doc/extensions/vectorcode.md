@@ -1,5 +1,7 @@
 # VectorCode
 
+> Last updated for VectorCode 0.7
+
 [VectorCode](https://github.com/Davidyz/VectorCode) is a code repository indexing tool enabling semantic search across your local projects. This extension integrates VectorCode with CodeCompanion, allowing LLMs to query your indexed repositories for enhanced context during chat sessions.
 
 ## Features
@@ -22,8 +24,10 @@ First, install the [VectorCode Neovim plugin](https://github.com/Davidyz/VectorC
 ```lua
 {
   "Davidyz/VectorCode",
-  version = "*", -- optional, depending on whether you're on nightly or release
-  build = "pipx upgrade vectorcode", -- optional but recommended. This keeps your CLI up-to-date.
+  -- pin the nvim plugin to the latest release for stability
+  version = "*",
+  -- keep the CLI up to date so that it supports the features needed by the lua binding
+  build = "uv tool install --upgrade vectorcode",
   dependencies = { "nvim-lua/plenary.nvim" },
 }
 ```
@@ -35,18 +39,25 @@ require("codecompanion").setup({
   extensions = {
     vectorcode = {
       opts = {
-        add_tool = true,
+        add_tools = { "ls", "query" },
       }
     }
   }
 })
 ```
 
-With `add_tool = true`, the `@vectorcode` tool becomes available in the CodeCompanion chat buffer. For further configuration options, see the [VectorCode wiki](https://github.com/Davidyz/VectorCode/wiki/Neovim-Integrations).
+The `add_tools` array should contain VectorCode tools that you want the LLM to have access to.
+
+- The `ls` tool (named `@vectorcode_ls` in the chat buffer) returns all projects indexed by VectorCode;
+- The `query` tool (named `@vectorcode_query` in the chat buffer) allows the LLM to search for related files in a particular
+  project.
+
+For further configuration options, see the [VectorCode wiki](https://github.com/Davidyz/VectorCode/wiki/Neovim-Integrations).
 
 ## Usage
 
-To grant the LLM access to your indexed codebases, simply mention the `@vectorcode` tool in the chat buffer. The LLM can then query any projects indexed by VectorCode (verifiable via `vectorcode ls` in your terminal) to retrieve relevant context for your prompts.
+To grant the LLM access to your indexed codebases, simply mention the corresponding tool(s) in the chat buffer. 
+The LLM can then query any projects indexed by VectorCode to retrieve relevant context for your prompts.
 
 **Example: Using VectorCode to Explore the VectorCode Repository**
 
