@@ -39,7 +39,10 @@ require("codecompanion").setup({
   extensions = {
     vectorcode = {
       opts = {
-        add_tools = { "ls", "query", "vectorise" },
+        tool_group = {
+          enabled = true,
+          collapse = true,
+        },
         tool_opts = {
           ---@type VectorCode.CodeCompanion.LsToolOpts
           ls = {},
@@ -54,13 +57,17 @@ require("codecompanion").setup({
 })
 ```
 
-The `add_tools` array should contain VectorCode tools that you want the LLM to have access to.
+The extension will create the following 3 tools:
 
 - The `ls` tool (named `@vectorcode_ls` in the chat buffer) returns all projects indexed by VectorCode;
 - The `query` tool (named `@vectorcode_query` in the chat buffer) allows the LLM to search for related files in a particular
   project;
 - The `vectorise` tool (named `@vectorcode_vectorise` in the chat buffer) allows
   the LLM to vectorise files and add them to the database.
+
+For your convenience, a tool group named `@vectorcode_toolbox` will be created.
+This is a shortcut that you can use to quickly add all 3 tools mentioned above
+into the chat.
 
 For further configuration options, see the [VectorCode wiki](https://github.com/Davidyz/VectorCode/wiki/Neovim-Integrations).
 
@@ -69,7 +76,7 @@ For further configuration options, see the [VectorCode wiki](https://github.com/
 To grant the LLM access to your indexed codebases, simply mention the corresponding tool(s) in the chat buffer. 
 The LLM can then query any projects indexed by VectorCode to retrieve relevant context for your prompts.
 
-**Example: Using VectorCode to Explore the VectorCode Repository**
+**Example: Using VectorCode to Interact with a Code Repository in a CodeCompanion Chat Buffer**
 
 ![](https://github.com/Davidyz/VectorCode/blob/main/images/codecompanion_chat.png?raw=true)
 
