@@ -35,13 +35,18 @@ First, install the [VectorCode Neovim plugin](https://github.com/Davidyz/VectorC
 Next, register VectorCode as an extension in your CodeCompanion configuration:
 
 ```lua
+---@module "vectorcode"
+
 require("codecompanion").setup({
   extensions = {
     vectorcode = {
+      ---@type VectorCode.CodeCompanion.ExtensionOpts
       opts = {
         tool_group = {
           enabled = true,
           collapse = true,
+          -- tools in this array will be included to the `vectorcode_toolbox` tool group
+          extras = {}, 
         },
         tool_opts = {
           ---@type VectorCode.CodeCompanion.LsToolOpts
@@ -69,7 +74,7 @@ For your convenience, a tool group named `@vectorcode_toolbox` will be created.
 This is a shortcut that you can use to quickly add all 3 tools mentioned above
 into the chat.
 
-For further configuration options, see the [VectorCode wiki](https://github.com/Davidyz/VectorCode/wiki/Neovim-Integrations).
+For further configuration options, see the [VectorCode wiki](https://github.com/Davidyz/VectorCode/wiki/Neovim-Integrations#olimorriscodecompanionnvim).
 
 ## Usage
 
