@@ -35,7 +35,8 @@ end
 ---@class CodeCompanion.Chat.UI
 local UI = {}
 
--- Keep track of folds across all chat buffers
+-- UI.fold_summaries[bufnr][start]   → the recorded line‐text for fold at 0-based row `start`
+---@type table<integer, table<integer, string>>
 UI.fold_summaries = {}
 
 ---@param args CodeCompanion.Chat.UIArgs
@@ -102,7 +103,6 @@ function UI.foldtext()
     local icon = " " .. icon_conf .. " "
     table.insert(chunks, { icon, icon_hl })
   end
-  -- always add the summary text
   table.insert(chunks, { summary, summary_hl })
 
   return chunks

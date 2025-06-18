@@ -1311,6 +1311,11 @@ function Chat:add_buf_message(data, opts)
     new_role()
   end
 
+  -- If someone just printed an LLM response, the tool output should be properly spaced
+  if data.role == config.constants.LLM_ROLE then
+    self._tool_output_has_llm_response = true
+  end
+
   -- Append the output from the LLM
   if data.content or data.reasoning then
     append_data()
