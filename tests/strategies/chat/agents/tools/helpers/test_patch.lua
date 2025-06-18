@@ -9,6 +9,7 @@ local function readfile(path)
 end
 
 local function apply_patch(input_str, patch_str)
+  -- 1. parse changes
   local changes, had_begin_end_markers = patch.parse_changes(patch_str)
 
   -- 2. read file into lines
