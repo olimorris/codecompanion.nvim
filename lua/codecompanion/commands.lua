@@ -35,6 +35,7 @@ end)
 local chat_subcommands = vim.deepcopy(adapters)
 table.insert(chat_subcommands, "Toggle")
 table.insert(chat_subcommands, "Add")
+table.insert(chat_subcommands, "RefreshCache")
 
 ---@type CodeCompanion.Command[]
 return {
@@ -91,7 +92,7 @@ return {
       codecompanion.chat(opts)
     end,
     opts = {
-      desc = "Open a CodeCompanion chat buffer",
+      desc = "Work with a CodeCompanion chat buffer",
       range = true,
       nargs = "*",
       -- Reference:

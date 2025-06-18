@@ -170,8 +170,9 @@ However, there are multiple options available:
 - `CodeCompanion /<prompt library>` - Call an item from the [prompt library](configuration/prompt-library)
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
-- `CodeCompanionChat Toggle` - Toggle a chat buffer
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
+- `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
+- `CodeCompanionChat Toggle` - Toggle a chat buffer
 
 ## Suggested Plugin Workflow
 

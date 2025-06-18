@@ -56,13 +56,14 @@ local defaults = {
         groups = {
           ["full_stack_dev"] = {
             description = "Full Stack Developer - Can run code, edit code and modify files",
-            system_prompt = "**DO NOT** make any assumptions about the dependencies that a user has installed. If you need to install any dependencies to fulfil the user's request, do so via the Command Runner tool. If the user doesn't specify a path, use their current working directory.",
             tools = {
               "cmd_runner",
               "create_file",
               "file_search",
-              "read_file",
+              "grep_search",
               "insert_edit_into_file",
+              "read_file",
+              "web_search",
             },
             opts = {
               collapse_tools = true,
@@ -73,8 +74,8 @@ local defaults = {
             tools = {
               "create_file",
               "file_search",
-              "read_file",
               "insert_edit_into_file",
+              "read_file",
             },
             opts = {
               collapse_tools = true,
@@ -99,7 +100,19 @@ local defaults = {
           callback = "strategies.chat.agents.tools.file_search",
           description = "Search for files in the current working directory by glob pattern",
           opts = {
-            max_results = 500, -- Maximum number of results to return
+            max_results = 500,
+          },
+        },
+        ["grep_search"] = {
+          callback = "strategies.chat.agents.tools.grep_search",
+          enabled = function()
+            -- Currently this tool only supports ripgrep
+            return vim.fn.executable("rg") == 1
+          end,
+          description = "Search for text in the current working directory",
+          opts = {
+            max_results = 100,
+            respect_gitignore = true,
           },
         },
         ["insert_edit_into_file"] = {

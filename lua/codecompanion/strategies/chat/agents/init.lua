@@ -1,5 +1,5 @@
 ---@class CodeCompanion.Agent
----@field tools_config table The agent strategy from the config
+---@field tools_config table The available tools for the agent
 ---@field aug number The augroup for the tool
 ---@field bufnr number The buffer of the chat buffer
 ---@field constants table<string, string> The constants for the tool
@@ -13,6 +13,7 @@
 ---@field tools_ns integer The namespace for the virtual text that appears in the header
 
 local Executor = require("codecompanion.strategies.chat.agents.executor")
+local ToolFilter = require("codecompanion.strategies.chat.agents.tool_filter")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local regex = require("codecompanion.utils.regex")
@@ -50,7 +51,7 @@ function Agent.new(args)
     stdout = {},
     stderr = {},
     tool = {},
-    tools_config = config.strategies.chat.tools,
+    tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools), -- Filter here
     tools_ns = api.nvim_create_namespace(CONSTANTS.NS_TOOLS),
   }, { __index = Agent })
 
