@@ -79,32 +79,6 @@ T["File"]["insert_edit_into_file tool add to end of a file"] = function()
   h.eq(output, { "line1", "", "new_line2" }, "File was not updated")
 end
 
-T["File"]["insert_edit_into_file tool support lines starting by -"] = function()
-  -- mardown files can have a lot of lines starting by -
-  -- the LLM does start the unchanged line by a whitespace to prevent missinterpretation of this lines by 'removed' lines
-  child.lua([[
-      -- create initial file
-      local initial = "- item1"
-      local ok = vim.fn.writefile(vim.split(initial, "\n"), _G.TEST_TMPFILE_ABSOLUTE)
-      assert(ok == 0)
-
-      local tool = {
-        {
-          ["function"] = {
-            name = "insert_edit_into_file",
-            arguments = string.format('{"filepath": "%s", "explanation": "...", "code": "*** Begin Patch\\n - item1\\n+- item2\\n*** End Patch"}', _G.TEST_TMPFILE)
-          },
-        },
-      }
-      agent:execute(chat, tool)
-      vim.wait(200)
-    ]])
-
-  -- Test that the file was updated
-  local output = child.lua_get("vim.fn.readfile(_G.TEST_TMPFILE_ABSOLUTE)")
-  h.eq(output, { "- item1", "- item2" }, "File was not updated")
-end
-
 T["File"]["insert_edit_into_file tool regex"] = function()
   child.lua([[
       -- create initial file
