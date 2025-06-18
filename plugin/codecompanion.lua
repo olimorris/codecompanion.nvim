@@ -20,6 +20,10 @@ api.nvim_set_hl(0, "CodeCompanionChatSeparator", { link = "@punctuation.special.
 api.nvim_set_hl(0, "CodeCompanionChatTokens", { link = "Comment", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatTool", { link = "Special", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolGroup", { link = "Constant", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatToolSuccess", { link = "DiagnosticOK", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatToolSuccessIcon", { link = "DiagnosticOK", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatToolFailure", { link = "Error", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatToolFailureIcon", { link = "Error", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
 api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
 

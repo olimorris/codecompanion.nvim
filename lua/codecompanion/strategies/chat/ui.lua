@@ -16,6 +16,7 @@ local CONSTANTS = {
   NS_INTRO = "CodeCompanion-intro_message",
   NS_TOKENS = "CodeCompanion-tokens",
   NS_VIRTUAL_TEXT = "CodeCompanion-virtual_text",
+  NS_FOLD_MARKS = "CodeCompanion-fold_marks",
 
   AUTOCMD_GROUP = "codecompanion.chat.ui",
 }
@@ -33,6 +34,9 @@ end
 
 ---@class CodeCompanion.Chat.UI
 local UI = {}
+
+-- Keep track of folds across all chat buffers
+UI.fold_summaries = {}
 
 ---@param args CodeCompanion.Chat.UIArgs
 function UI.new(args)
@@ -63,6 +67,45 @@ function UI.new(args)
   })
 
   return self
+end
+
+---Ensure that everytime we action a fold, we call this method
+---@return nil
+function UI:setup_foldtext()
+  api.nvim_win_set_option(self.winnr, "foldtext", 'v:lua.require("codecompanion.strategies.chat.ui").foldtext()')
+end
+
+---GLOBAL method which is called when text is folded in the chat buffer
+---@return table
+function UI.foldtext()
+  local bufnr = api.nvim_get_current_buf()
+  local start0 = vim.v.foldstart - 1
+
+  -- get stored summary, or fall back to the real line
+  local tbl = UI.fold_summaries[bufnr] or {}
+  local summary = tbl[start0] or api.nvim_buf_get_lines(bufnr, start0, start0 + 1, false)[1] or ""
+
+  -- pick icon + highlight based on the word “error”
+  local icon_conf, icon_hl, summary_hl
+  if summary:lower():find("error") then
+    icon_conf = config.display.chat.icons.tool_failure
+    icon_hl = "CodeCompanionChatToolFailureIcon"
+    summary_hl = "CodeCompanionChatToolFailure"
+  else
+    icon_conf = config.display.chat.icons.tool_success
+    icon_hl = "CodeCompanionChatToolSuccessIcon"
+    summary_hl = "CodeCompanionChatToolSuccess"
+  end
+
+  local chunks = {}
+  if icon_conf then
+    local icon = " " .. icon_conf .. " "
+    table.insert(chunks, { icon, icon_hl })
+  end
+  -- always add the summary text
+  table.insert(chunks, { summary, summary_hl })
+
+  return chunks
 end
 
 ---Open/create the chat window
@@ -146,6 +189,7 @@ function UI:open(opts)
 
   ui.set_win_options(self.winnr, window.opts)
   vim.bo[self.chat_bufnr].textwidth = 0
+  self:setup_foldtext()
 
   if not opts.toggled then
     self:follow()
@@ -499,6 +543,10 @@ local function fold_range(winnr, bufnr, start_row, end_row)
     return
   end
 
+  local line = api.nvim_buf_get_lines(bufnr, start_row, start_row + 1, false)[1] or ""
+  UI.fold_summaries[bufnr] = UI.fold_summaries[bufnr] or {}
+  UI.fold_summaries[bufnr][start_row] = line
+
   if winnr and api.nvim_win_is_valid(winnr) then
     api.nvim_win_call(winnr, function()
       if vim.wo.foldmethod ~= "manual" then
@@ -508,7 +556,7 @@ local function fold_range(winnr, bufnr, start_row, end_row)
   end
 
   api.nvim_buf_call(bufnr, function()
-    vim.cmd(string.format("%d,%dfold", start_row, end_row))
+    vim.cmd(string.format("%d,%dfold", start_row + 1, end_row + 1))
   end)
 end
 

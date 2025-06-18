@@ -105,7 +105,7 @@ local chat_buffer_output = function(c)
       content = "I've found some awesome weather data for you:"
     })
 
-    chat:add_tool_output(tool, "Temperature: 20°C\nCondition: Sunny\nPrecipitation: 0%\n")
+    chat:add_tool_output(tool, "**Weather Tool**: Ran successfully:\nTemperature: 20°C\nCondition: Sunny\nPrecipitation: 0%\n")
   ]])
 end
 
