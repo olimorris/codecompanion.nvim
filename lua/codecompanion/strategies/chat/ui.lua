@@ -489,43 +489,31 @@ function UI:fold_code()
 end
 
 ---Fold a range of lines in the chat buffer
----@param self CodeCompanion.Chat.UI
+---@param winnr number The window number where the fold should be applied
+---@param bufnr number The buffer number where the fold should be applied
 ---@param start_row number The starting row of the fold (0-indexed)
 ---@param end_row number The ending row of the fold (0-indexed)
 ---@return nil
-local function fold_range(self, start_row, end_row)
+local function fold_range(winnr, bufnr, start_row, end_row)
   if start_row >= end_row then
     return
   end
 
-  -- Set fold method if not already manual
-  if self.winnr and api.nvim_win_is_valid(self.winnr) then
-    api.nvim_win_call(self.winnr, function()
+  if winnr and api.nvim_win_is_valid(winnr) then
+    api.nvim_win_call(winnr, function()
       if vim.wo.foldmethod ~= "manual" then
         vim.wo.foldmethod = "manual"
       end
     end)
   end
 
-  api.nvim_buf_call(self.chat_bufnr, function()
+  api.nvim_buf_call(bufnr, function()
     vim.cmd(string.format("%d,%dfold", start_row, end_row))
   end)
 end
 
----Process the pending fold after tool output has been added
----@param self CodeCompanion.Chat.UI
----@return nil
-local function process_pending_fold(self)
-  if not self.pending_fold then
-    return
-  end
-
-  fold_range(self, self.pending_fold.start_line, api.nvim_buf_line_count(self.chat_bufnr) - 1)
-  self.pending_fold = nil
-end
-
 ---Format and potentially fold tool output in the chat buffer
----@param opts? table
+---@param opts? {start_line: number, is_error: boolean, spacing: number}
 ---@return nil
 function UI:fold_tool_output(opts)
   if not config.strategies.chat.tools.opts.folds.enabled then
@@ -535,9 +523,8 @@ function UI:fold_tool_output(opts)
   opts = opts or {}
 
   if not self.pending_fold then
-    local current_line = opts.start_line or api.nvim_buf_line_count(self.chat_bufnr)
     self.pending_fold = {
-      start_line = current_line,
+      start_line = opts.start_line or api.nvim_buf_line_count(self.chat_bufnr),
       is_error = opts.is_error or false,
       timestamp = vim.uv.hrtime(),
     }
@@ -548,7 +535,11 @@ function UI:fold_tool_output(opts)
     self.pending_fold.start_line = self.pending_fold.start_line + opts.spacing
   end
 
-  process_pending_fold(self)
+  -- Folds are 0-indexed
+  local end_line = api.nvim_buf_line_count(self.chat_bufnr) - 1
+
+  fold_range(self.winnr, self.chat_bufnr, self.pending_fold.start_line, end_line)
+  self.pending_fold = nil
 end
 
 ---Lock the chat buffer from editing
