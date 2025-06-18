@@ -1,161 +1,162 @@
 local files = require("codecompanion.utils.files")
 local h = require("tests.helpers")
 local log = require("codecompanion.utils.log")
+local new_set = MiniTest.new_set
+
+local T = new_set()
 
 -- Test fixture directory
 local test_dir = vim.fn.tempname()
 
-describe("Files utils", function()
-  before_each(function()
-    -- Create test directory structure
-    vim.fn.mkdir(test_dir, "p")
-  end)
+T["Files utils"] = new_set({
+  hooks = {
+    pre_case = function()
+      -- Create test directory structure
+      vim.fn.mkdir(test_dir, "p")
+    end,
+    post_case = function()
+      -- Cleanup test directory
+      vim.fn.delete(test_dir, "rf")
+    end,
+  },
+})
 
-  after_each(function()
-    -- Cleanup test directory
-    vim.fn.delete(test_dir, "rf")
-  end)
+T["Files utils"]["create_dir_recursive"] = new_set()
 
-  describe("create_dir_recursive", function()
-    it("can create a single directory", function()
-      local dir_path = vim.fs.joinpath(test_dir, "single_dir")
+T["Files utils"]["create_dir_recursive"]["can create a single directory"] = function()
+  local dir_path = vim.fs.joinpath(test_dir, "single_dir")
+  local success, err = files.create_dir_recursive(dir_path)
 
-      local success, err = files.create_dir_recursive(dir_path)
+  h.eq(true, success)
+  h.eq(nil, err)
+  h.eq("directory", vim.uv.fs_stat(dir_path).type)
+end
 
-      h.eq(true, success)
-      h.eq(nil, err)
-      h.eq("directory", vim.uv.fs_stat(dir_path).type)
-    end)
+T["Files utils"]["create_dir_recursive"]["can create nested directories"] = function()
+  local dir_path = vim.fs.joinpath(test_dir, "nested", "deep", "directory")
+  local success, err = files.create_dir_recursive(dir_path)
 
-    it("can create nested directories", function()
-      local dir_path = vim.fs.joinpath(test_dir, "nested", "deep", "directory")
+  h.eq(true, success)
+  h.eq(nil, err)
+  h.eq("directory", vim.uv.fs_stat(dir_path).type)
 
-      local success, err = files.create_dir_recursive(dir_path)
+  -- Verify all parent directories were created
+  local nested_path = vim.fs.joinpath(test_dir, "nested")
+  local deep_path = vim.fs.joinpath(test_dir, "nested", "deep")
 
-      h.eq(true, success)
-      h.eq(nil, err)
-      h.eq("directory", vim.uv.fs_stat(dir_path).type)
+  h.eq("directory", vim.uv.fs_stat(nested_path).type)
+  h.eq("directory", vim.uv.fs_stat(deep_path).type)
+end
 
-      -- Verify all parent directories were created
-      local nested_path = vim.fs.joinpath(test_dir, "nested")
-      local deep_path = vim.fs.joinpath(test_dir, "nested", "deep")
+T["Files utils"]["create_dir_recursive"]["handles existing directories gracefully"] = function()
+  local dir_path = vim.fs.joinpath(test_dir, "existing_dir")
 
-      h.eq("directory", vim.uv.fs_stat(nested_path).type)
-      h.eq("directory", vim.uv.fs_stat(deep_path).type)
-    end)
+  -- Create directory first
+  vim.fn.mkdir(dir_path, "p")
+  h.eq("directory", vim.uv.fs_stat(dir_path).type)
 
-    it("handles existing directories gracefully", function()
-      local dir_path = vim.fs.joinpath(test_dir, "existing_dir")
+  -- Try to create it again
+  local success, err = files.create_dir_recursive(dir_path)
 
-      -- Create directory first
-      vim.fn.mkdir(dir_path, "p")
-      h.eq("directory", vim.uv.fs_stat(dir_path).type)
+  h.eq(true, success)
+  h.eq(nil, err)
+  h.eq("directory", vim.uv.fs_stat(dir_path).type)
+end
 
-      -- Try to create it again
-      local success, err = files.create_dir_recursive(dir_path)
+T["Files utils"]["create_dir_recursive"]["handles partially existing paths"] = function()
+  local partial_path = vim.fs.joinpath(test_dir, "partial_existing")
+  local full_path = vim.fs.joinpath(partial_path, "new_dir", "another_dir")
 
-      h.eq(true, success)
-      h.eq(nil, err)
-      h.eq("directory", vim.uv.fs_stat(dir_path).type)
-    end)
+  -- Create first part of the path
+  vim.fn.mkdir(partial_path, "p")
+  h.eq("directory", vim.uv.fs_stat(partial_path).type)
 
-    it("handles partially existing paths", function()
-      local partial_path = vim.fs.joinpath(test_dir, "partial_existing")
-      local full_path = vim.fs.joinpath(partial_path, "new_dir", "another_dir")
+  -- Create the rest
+  local success, err = files.create_dir_recursive(full_path)
 
-      -- Create first part of the path
-      vim.fn.mkdir(partial_path, "p")
-      h.eq("directory", vim.uv.fs_stat(partial_path).type)
+  h.eq(true, success)
+  h.eq(nil, err)
+  h.eq("directory", vim.uv.fs_stat(full_path).type)
+end
 
-      -- Create the rest
-      local success, err = files.create_dir_recursive(full_path)
+T["Files utils"]["create_dir_recursive"]["handles root directory"] = function()
+  -- Should handle root directory gracefully without error
+  local success, err = files.create_dir_recursive("/")
 
-      h.eq(true, success)
-      h.eq(nil, err)
-      h.eq("directory", vim.uv.fs_stat(full_path).type)
-    end)
+  h.eq(true, success)
+  h.eq(nil, err)
+end
 
-    it("handles root directory", function()
-      -- Should handle root directory gracefully without error
-      local success, err = files.create_dir_recursive("/")
+T["Files utils"]["create_dir_recursive"]["handles Windows root directory"] = function()
+  if vim.fn.has("win32") ~= 1 then
+    MiniTest.skip("Not on Windows")
+  end
 
-      h.eq(true, success)
-      h.eq(nil, err)
-    end)
+  local success, err = files.create_dir_recursive("C:\\")
+  h.eq(true, success)
+  h.eq(nil, err)
+end
 
-    it("handles Windows root directory", function()
-      -- Mock Windows root directory pattern
-      if vim.fn.has("win32") == 1 then
-        local success, err = files.create_dir_recursive("C:\\")
+T["Files utils"]["create_dir_recursive"]["returns error for invalid paths"] = function()
+  -- Try to create directory in a path that can't exist (using a file as parent)
+  local file_path = vim.fs.joinpath(test_dir, "test_file.txt")
+  local invalid_dir_path = vim.fs.joinpath(file_path, "invalid_dir")
 
-        h.eq(true, success)
-        h.eq(nil, err)
-      end
-    end)
+  -- Create a file first
+  local file = io.open(file_path, "w")
+  if file then
+    file:write("test content")
+    file:close()
+  end
+  h.eq("file", vim.uv.fs_stat(file_path).type)
 
-    it("returns error for invalid paths", function()
-      -- Try to create directory in a path that can\'t exist (using a file as parent)
-      local file_path = vim.fs.joinpath(test_dir, "test_file.txt")
-      local invalid_dir_path = vim.fs.joinpath(file_path, "invalid_dir")
+  -- Temporarily silence log.error for this specific test case
+  local original_log_error = log.error
+  local logged_messages_for_this_test = {}
+  log.error = function(_, msg, ...)
+    table.insert(logged_messages_for_this_test, string.format(msg, ...))
+  end
 
-      -- Create a file first
-      local file = io.open(file_path, "w")
-      if file then
-        file:write("test content")
-        file:close()
-      end
+  -- Try to create directory inside the file path
+  local success, err = files.create_dir_recursive(invalid_dir_path)
 
-      h.eq("file", vim.uv.fs_stat(file_path).type)
+  -- Restore original log.error
+  log.error = original_log_error
 
-      -- Temporarily silence log.error for this specific test case
-      local original_log_error = log.error
-      local logged_messages_for_this_test = {}
-      log.error = function(self, msg, ...)
-        table.insert(logged_messages_for_this_test, string.format(msg, ...))
-      end
+  h.eq(false, success)
+  h.expect.no_equality(nil, err)
+  h.expect_contains("Failed to create directory", err) -- Check the returned error message
+  h.expect_contains("create_dir_recursive:", logged_messages_for_this_test[1] or "")
+end
 
-      -- Try to create directory inside the file path
-      local success, err = files.create_dir_recursive(invalid_dir_path)
+T["Files utils"]["create_dir_recursive"]["logs errors properly"] = function()
+  -- This test verifies that errors are logged
+  local file_path = vim.fs.joinpath(test_dir, "log_test_file.txt")
+  local invalid_dir_path = vim.fs.joinpath(file_path, "invalid_dir_for_log")
 
-      -- Restore original log.error
-      log.error = original_log_error
+  -- Create a file first
+  local file = io.open(file_path, "w")
+  if file then
+    file:write("test content")
+    file:close()
+  end
 
-      h.eq(false, success)
-      h.expect.no_equality(nil, err)
-      h.expect_contains("Failed to create directory", err) -- Check the returned error message
-      -- Optionally, you could also check logged_messages_for_this_test if needed,
-      -- but the main goal here is to suppress console output.
-      h.expect_contains("create_dir_recursive:", logged_messages_for_this_test[1] or "")
-    end)
+  -- Capture log messages
+  local original_error = log.error
+  local logged_messages = {}
+  log.error = function(_, msg, ...)
+    table.insert(logged_messages, string.format(msg, ...))
+  end
 
-    it("logs errors properly", function()
-      -- This test verifies that errors are logged
-      local file_path = vim.fs.joinpath(test_dir, "log_test_file.txt")
-      local invalid_dir_path = vim.fs.joinpath(file_path, "invalid_dir_for_log")
+  -- Try to create directory and expect error to be logged
+  local success, err = files.create_dir_recursive(invalid_dir_path)
 
-      -- Create a file first
-      local file = io.open(file_path, "w")
-      if file then
-        file:write("test content")
-        file:close()
-      end
+  -- Restore original log function
+  log.error = original_error
 
-      -- Capture log messages (this is a simplified approach)
-      local original_error = log.error
-      local logged_messages = {}
-      log.error = function(self, msg, ...)
-        table.insert(logged_messages, string.format(msg, ...))
-      end
+  h.eq(false, success)
+  h.expect.no_equality(nil, err)
+  h.expect_contains("create_dir_recursive:", logged_messages[1] or "")
+end
 
-      -- Try to create directory and expect error to be logged
-      local success, err = files.create_dir_recursive(invalid_dir_path)
-
-      -- Restore original log function
-      log.error = original_error
-
-      h.eq(false, success)
-      h.expect.no_equality(nil, err)
-      h.expect_contains("create_dir_recursive:", logged_messages[1] or "")
-    end)
-  end)
-end)
+return T
