@@ -154,45 +154,11 @@ function SlashCommand:output(selected, opts)
   if not config.can_send_code() and (self.config.opts and self.config.opts.contains_code) then
     return log:warn("Sending of code has been disabled")
   end
-  opts = opts or {}
 
-  local message = "Here is the content from a file (including line numbers)"
-  if opts.pin then
-    message = "Here is the updated content from a file (including line numbers)"
-  end
-
-  local ok, content, id, filename = pcall(buf.format_for_llm, selected, { message = message })
-  if not ok then
-    return log:warn(content)
-  end
-
-  self.Chat:add_message({
-    role = config.constants.USER_ROLE,
-    content = content,
-  }, { reference = id, visible = false })
-
-  if opts.pin then
-    return
-  end
-
-  local slash_command_opts = self.config.opts and self.config.opts.default_params or nil
-  if slash_command_opts then
-    if slash_command_opts == "pin" then
-      opts.pinned = true
-    elseif slash_command_opts == "watch" then
-      opts.watched = true
-    end
-  end
-
-  self.Chat.references:add({
-    bufnr = selected.bufnr,
-    id = id,
-    path = selected.path,
-    opts = opts,
+  local opts_with_source = vim.tbl_deep_extend("force", opts or {}, {
     source = "codecompanion.strategies.chat.slash_commands.buffer",
   })
-
-  util.notify(fmt("Added buffer `%s` to the chat", filename))
+  self.Chat:add_buffer(selected, opts_with_source)
 end
 
 return SlashCommand

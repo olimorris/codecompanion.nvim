@@ -43,6 +43,7 @@
 ---@field tokens? table Total tokens spent in the chat buffer so far
 
 local adapters = require("codecompanion.adapters")
+local buf = require("codecompanion.utils.buffers")
 local client = require("codecompanion.http")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
@@ -55,6 +56,7 @@ local util = require("codecompanion.utils")
 local yaml = require("codecompanion.utils.yaml")
 
 local api = vim.api
+local fmt = string.format
 local get_node_text = vim.treesitter.get_node_text --[[@type function]]
 local get_query = vim.treesitter.query.get --[[@type function]]
 
@@ -1030,6 +1032,57 @@ function Chat:add_reference(data, source, id, opts)
 
   self.references:add({ source = source, id = id })
   self:add_message(data, opts)
+end
+
+---Add a buffer to the chat
+---@param buffer table Buffer information { bufnr = string, path = string }, path is optional
+---@param opts? table
+---@return nil
+function Chat:add_buffer(buffer, opts)
+  opts = opts or {}
+
+  local message = "Here is the content from a file (including line numbers)"
+  if opts.pin then
+    message = "Here is the updated content from a file (including line numbers)"
+  end
+
+  local full_buffer = {
+    bufnr = buffer.bufnr,
+    path = (buffer.path and #buffer.path > 0) and buffer.path or buf.get_info(buffer.bufnr).path,
+  }
+
+  local ok, content, id, filename = pcall(buf.format_for_llm, full_buffer, { message = message })
+  if not ok then
+    return log:warn(content)
+  end
+
+  self:add_message({
+    role = config.constants.USER_ROLE,
+    content = content,
+  }, { reference = id, visible = false })
+
+  if opts.pin then
+    return
+  end
+
+  local slash_command_opts = config.opts and config.opts.default_params or nil
+  if slash_command_opts then
+    if slash_command_opts == "pin" then
+      opts.pinned = true
+    elseif slash_command_opts == "watch" then
+      opts.watched = true
+    end
+  end
+
+  self.references:add({
+    bufnr = full_buffer.bufnr,
+    id = id,
+    path = full_buffer.path,
+    opts = opts,
+    source = opts.source and opts.source or "codecompanion.strategies.chat.add_buffer",
+  })
+
+  util.notify(fmt("Added buffer `%s` to the chat", filename))
 end
 
 ---Check if there are any images in the chat buffer
