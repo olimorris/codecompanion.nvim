@@ -1,5 +1,12 @@
 # Changelog
 
+## [17.1.2](https://github.com/olimorris/codecompanion.nvim/compare/v17.1.1...v17.1.2) (2025-06-19)
+
+
+### Bug Fixes
+
+* require tool module path correctly ([#1670](https://github.com/olimorris/codecompanion.nvim/issues/1670)) ([dbefc41](https://github.com/olimorris/codecompanion.nvim/commit/dbefc41dba2f46720ecb6ecec34c0c5f80022f2b))
+
 ## [17.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.1.0...v17.1.1) (2025-06-16)
 
 
