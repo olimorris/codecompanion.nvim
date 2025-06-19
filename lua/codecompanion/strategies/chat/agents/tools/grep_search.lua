@@ -234,7 +234,7 @@ Refers to line 335 of the init.lua file in the lua/codecompanion/strategies/chat
         chat:add_tool_output(
           self,
           fmt(llm_output, fmt("Returning %d results matching the query:\n%s", results, output)),
-          fmt(user_message, fmt("Returned %d results", results))
+          fmt(user_message, fmt("Returned %d results:\n```\n%s\n```", results, output))
         )
       else
         -- No results found - data is a string message
@@ -254,8 +254,7 @@ Refers to line 335 of the init.lua file in the lua/codecompanion/strategies/chat
 
       local error_output = fmt(
         [[**Grep Search Tool**: Ran with an error:
-
-```txt
+```
 %s
 ```]],
         errors

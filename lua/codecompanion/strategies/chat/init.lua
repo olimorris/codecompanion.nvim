@@ -538,7 +538,6 @@ function Chat.new(args)
       return bufnr
     end,
     _chat_has_reasoning = false,
-    _tool_output_header_printed = false,
     _tool_output_has_llm_response = false,
   }, { __index = Chat })
 
@@ -597,8 +596,8 @@ function Chat.new(args)
 
   self.ui = require("codecompanion.strategies.chat.ui").new({
     adapter = self.adapter,
-    id = self.id,
-    bufnr = self.bufnr,
+    chat_id = self.id,
+    chat_bufnr = self.bufnr,
     roles = { user = user_role, llm = llm_role },
     settings = self.settings,
   })
@@ -1249,13 +1248,8 @@ function Chat:add_buf_message(data, opts)
   local function append_data()
     -- Tool output
     if opts and opts.tag == "tool_output" then
-      if not self._tool_output_header_printed then
-        self._tool_output_header_printed = true
-        if self._tool_output_has_llm_response then
-          table.insert(lines, "")
-          table.insert(lines, "")
-        end
-        table.insert(lines, "### Tool Output")
+      if self._tool_output_has_llm_response then
+        table.insert(lines, "")
       end
       table.insert(lines, "")
       return write(data.content or "")
@@ -1317,6 +1311,11 @@ function Chat:add_buf_message(data, opts)
     new_role()
   end
 
+  -- If someone just printed an LLM response, the tool output should be properly spaced
+  if data.role == config.constants.LLM_ROLE then
+    self._tool_output_has_llm_response = true
+  end
+
   -- Append the output from the LLM
   if data.content or data.reasoning then
     append_data()
@@ -1353,19 +1352,21 @@ function Chat:add_tool_output(tool, for_llm, for_user)
     return
   end
 
-  -- Update the contents of the chat buffer
+  self.ui:fold_tool_output()
+
   for_user = for_user or for_llm
   self:add_buf_message({
     role = config.constants.LLM_ROLE,
     content = for_user,
   }, { tag = "tool_output" })
+
+  self.ui:fold_tool_output({ spacing = 1 })
 end
 
 ---When a request has finished, reset the chat buffer
 ---@return nil
 function Chat:reset()
   self._chat_has_reasoning = false
-  self._tool_output_header_printed = false
   self._tool_output_has_llm_response = false
   self.status = ""
   self.ui:unlock_buf()
