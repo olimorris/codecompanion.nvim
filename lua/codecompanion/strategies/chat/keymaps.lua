@@ -641,4 +641,18 @@ M.goto_file_under_cursor = {
   end,
 }
 
+M.copilot_stats = {
+  desc = "Show Copilot usage statistics",
+  callback = function(chat)
+    if chat.adapter.name ~= "copilot" then
+      return util.notify("Copilot stats are only available when using the Copilot adapter", vim.log.levels.WARN)
+    end
+    if chat.adapter.show_copilot_stats then
+      chat.adapter.show_copilot_stats()
+    else
+      util.notify("Copilot stats function not available", vim.log.levels.ERROR)
+    end
+  end,
+}
+
 return M
