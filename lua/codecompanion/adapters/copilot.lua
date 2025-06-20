@@ -345,16 +345,12 @@ local function show_copilot_stats()
   end
   vim.api.nvim_win_call(winnr, function()
     -- Usage percentages with color coding
-    if stats.premium_interactions and not stats.premium_interactions.unlimited then
-      local used = stats.premium_interactions.entitlement - stats.premium_interactions.remaining
-      local usage_percent = stats.premium_interactions.entitlement > 0
-          and (used / stats.premium_interactions.entitlement * 100)
-        or 0
+    local premium = stats.quota_snapshots.premium_interactions
+    if premium and not premium.unlimited then
+      local used = premium.entitlement - premium.remaining
+      local usage_percent = premium.entitlement > 0 and (used / premium.entitlement * 100) or 0
       local highlight = get_usage_highlight(usage_percent)
-      vim.fn.matchadd(
-        highlight,
-        string.format("Used: %d / %d (%.1f%%)", used, stats.premium_interactions.entitlement, usage_percent)
-      )
+      vim.fn.matchadd(highlight, string.format("   - Used: %d / %d (%.1f%%)", used, premium.entitlement, usage_percent))
     end
   end)
 end
