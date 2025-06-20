@@ -205,7 +205,7 @@ CodeCompanion.toggle = function(opts)
   end
 
   if chat.ui:is_visible() then
-    return chat.ui:hide(opts)
+    return chat.ui:hide()
   end
 
   chat.context = context_utils.get(api.nvim_get_current_buf())

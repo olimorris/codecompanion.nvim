@@ -96,6 +96,7 @@
 ---@field winnr number
 ---@field settings table
 ---@field tokens number
+---@field window? table
 
 ---@class CodeCompanion.Agent.Tool
 ---@field name string The name of the tool

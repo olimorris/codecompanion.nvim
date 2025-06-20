@@ -517,6 +517,7 @@ local Chat = {}
 ---@param opts? table
 ---@return CodeCompanion.Chat
 function Chat.new(args, opts)
+  opts = opts or {}
   local id = math.random(10000000)
   log:trace("Chat created with ID %d", id)
 
@@ -602,6 +603,7 @@ function Chat.new(args, opts)
     bufnr = self.bufnr,
     roles = { user = user_role, llm = llm_role },
     settings = self.settings,
+    window = opts.window,
   })
 
   if args.messages then
@@ -609,7 +611,7 @@ function Chat.new(args, opts)
   end
 
   self.close_last_chat()
-  self.ui:open(opts):render(self.context, self.messages, args)
+  self.ui:open():render(self.context, self.messages, args)
 
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then

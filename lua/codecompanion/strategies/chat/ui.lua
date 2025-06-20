@@ -45,6 +45,7 @@ function UI.new(args)
     settings = args.settings,
     tokens = args.tokens,
     winnr = args.winnr,
+    window = args.window,
   }, { __index = UI })
 
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, {
@@ -77,9 +78,16 @@ function UI:open(opts)
     vim.cmd("startinsert")
   end
 
-  local window
   if opts.window then
-    window = vim.tbl_deep_extend("force", {}, config.display.chat.window, opts.window)
+    if opts.window.default then
+      self.window = nil
+    else
+      self.window = opts.window
+    end
+  end
+  local window
+  if self.window then
+    window = vim.tbl_deep_extend("force", {}, config.display.chat.window, self.window)
   else
     window = config.display.chat.window
   end
@@ -161,13 +169,11 @@ function UI:open(opts)
 end
 
 ---Hide the chat buffer from view
----@param opts? table
 ---@return nil
-function UI:hide(opts)
-  opts = opts or {}
+function UI:hide()
   local layout
-  if opts.window then
-    layout = vim.tbl_deep_extend("force", {}, config.display.chat.window, opts.window).layout
+  if self.window then
+    layout = vim.tbl_deep_extend("force", {}, config.display.chat.window, self.window).layout
   else
     layout = config.display.chat.window.layout
   end

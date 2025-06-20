@@ -406,8 +406,10 @@ local function move_buffer(chat, direction)
 
   local codecompanion = require("codecompanion")
 
-  codecompanion.buf_get_chat(chat.bufnr).ui:hide()
-  codecompanion.buf_get_chat(next_buf).ui:open()
+  local prev_ui = codecompanion.buf_get_chat(chat.bufnr).ui
+  prev_ui:hide()
+  local window = prev_ui.window or { default = true }
+  codecompanion.buf_get_chat(next_buf).ui:open({ window = window })
 end
 
 M.next_chat = {
