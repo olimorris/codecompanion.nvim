@@ -148,7 +148,7 @@ local defaults = {
           description = "Suggest and jump to the next position to edit",
         },
         ["lsp_tool"] = {
-          callback = "strategies.chat.agents.tools.lsp",
+          callback = "strategies.chat.agents.tools.lsp_tool",
           description = "Expose LSP capabilities to the LLM",
         },
         opts = {
