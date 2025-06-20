@@ -6,16 +6,15 @@
 
 ## Features
 
-- Provides the `@vectorcode` tool for use in the chat buffer.
+- Provides tools for use in the chat buffer.
 - Enables LLMs to perform semantic searches across multiple indexed local code repositories.
 - Supplies relevant code snippets from your projects as context to the LLM.
 
 ## Prerequisites
 
-> [!NOTE]
-> VectorCode requires initial setup outside of CodeCompanion. You must install the Python backend and index your project files using the VectorCode CLI.
-
-Please refer to the [VectorCode CLI documentation](https://github.com/Davidyz/VectorCode/blob/main/docs/cli.md) for detailed setup instructions.
+Apart from the neovim plugin, VectorCode requires Python backend to interact with the database. 
+Please refer to the [VectorCode CLI documentation](https://github.com/Davidyz/VectorCode/blob/main/docs/cli.md) 
+for detailed setup instructions.
 
 ## Installation
 
@@ -62,6 +61,8 @@ require("codecompanion").setup({
 })
 ```
 
+## Usage
+
 The extension will create the following 3 tools:
 
 - The `ls` tool (named `@vectorcode_ls` in the chat buffer) returns all projects indexed by VectorCode;
@@ -74,16 +75,14 @@ For your convenience, a tool group named `@vectorcode_toolbox` will be created.
 This is a shortcut that you can use to quickly add all 3 tools mentioned above
 into the chat.
 
-For further configuration options, see the [VectorCode wiki](https://github.com/Davidyz/VectorCode/wiki/Neovim-Integrations#olimorriscodecompanionnvim).
+> For further configuration options, see the [VectorCode wiki](https://github.com/Davidyz/VectorCode/wiki/Neovim-Integrations#olimorriscodecompanionnvim).
 
-## Usage
-
-To grant the LLM access to your indexed codebases, simply mention the corresponding tool(s) in the chat buffer. 
-The LLM can then query any projects indexed by VectorCode to retrieve relevant context for your prompts.
+You can now call the tools (or the tool group `@vectorcode_toolbox` to use all 3 tools) in
+the chat buffer, preferably with some instructions to tell the LLM what to do.
 
 **Example: Using VectorCode to Interact with a Code Repository in a CodeCompanion Chat Buffer**
 
-![](https://github.com/Davidyz/VectorCode/blob/main/images/codecompanion_chat.png?raw=true)
+[![asciicast](https://asciinema.org/a/8WP8QJHNAR9lEllZSSx3poLPD.svg)](https://asciinema.org/a/8WP8QJHNAR9lEllZSSx3poLPD?t=3)
 
 ## Additional Resources
 
