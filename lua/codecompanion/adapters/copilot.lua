@@ -259,7 +259,7 @@ local function get_copilot_stats()
     return nil
   end
 
-  return json.quota_snapshots
+  return json
 end
 
 ---Show Copilot usage statistics in a floating window
@@ -275,45 +275,50 @@ local function show_copilot_stats()
   table.insert(lines, "# 󰾞  GitHub Copilot Usage Statistics 󰾞 ")
   table.insert(lines, "")
 
-  if stats.premium_interactions then
-    local premium = stats.premium_interactions
+  if stats.quota_snapshots.premium_interactions then
+    local premium = stats.quota_snapshots.premium_interactions
     table.insert(lines, "##  Premium Interactions")
     local used = premium.entitlement - premium.remaining
     local usage_percent = premium.entitlement > 0 and (used / premium.entitlement * 100) or 0
-    table.insert(lines, string.format("   Used: %d / %d (%.1f%%)", used, premium.entitlement, usage_percent))
-    table.insert(lines, string.format("   Remaining: %d", premium.remaining))
-    table.insert(lines, string.format("   Percentage: %.1f%%", premium.percent_remaining))
+    table.insert(lines, string.format("   - Used: %d / %d (%.1f%%)", used, premium.entitlement, usage_percent))
+    table.insert(lines, string.format("   - Remaining: %d", premium.remaining))
+    table.insert(lines, string.format("   - Percentage: %.1f%%", premium.percent_remaining))
     if premium.unlimited then
-      table.insert(lines, "   Status: Unlimited ✨")
+      table.insert(lines, "   - Status: Unlimited ✨")
     else
-      table.insert(lines, "   Status: Limited")
+      table.insert(lines, "   - Status: Limited")
     end
     table.insert(lines, "")
   end
 
-  if stats.chat then
-    local chat = stats.chat
+  if stats.quota_snapshots.chat then
+    local chat = stats.quota_snapshots.chat
     table.insert(lines, "## 󰭹 Chat")
     if chat.unlimited then
-      table.insert(lines, "   Status: Unlimited ✨")
+      table.insert(lines, "   - Status: Unlimited ✨")
     else
       local used = chat.entitlement - chat.remaining
       local usage_percent = chat.entitlement > 0 and (used / chat.entitlement * 100) or 0
-      table.insert(lines, string.format("   Used: %d / %d (%.1f%%)", used, chat.entitlement, usage_percent))
+      table.insert(lines, string.format("   - Used: %d / %d (%.1f%%)", used, chat.entitlement, usage_percent))
     end
     table.insert(lines, "")
   end
 
-  if stats.completions then
-    local completions = stats.completions
-    table.insert(lines, "##   Completions")
+  if stats.quota_snapshots.completions then
+    local completions = stats.quota_snapshots.completions
+    table.insert(lines, "##  Completions")
     if completions.unlimited then
-      table.insert(lines, "   Status: Unlimited ✨")
+      table.insert(lines, "   - Status: Unlimited ✨")
     else
       local used = completions.entitlement - completions.remaining
       local usage_percent = completions.entitlement > 0 and (used / completions.entitlement * 100) or 0
-      table.insert(lines, string.format("   Used: %d / %d (%.1f%%)", used, completions.entitlement, usage_percent))
+      table.insert(lines, string.format("   - Used: %d / %d (%.1f%%)", used, completions.entitlement, usage_percent))
     end
+  end
+  if stats.quota_reset_date then
+    table.insert(lines, "")
+    table.insert(lines, string.format("> Quota resets on: %s", stats.quota_reset_date))
+    table.insert(lines, "")
   end
 
   -- Create floating window
