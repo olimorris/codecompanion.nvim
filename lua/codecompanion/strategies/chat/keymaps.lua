@@ -231,7 +231,10 @@ M.close = {
     if vim.tbl_count(chats) == 0 then
       return
     end
-    chats[1].chat.ui:open()
+
+    local prev_ui = chat.ui
+    local window = prev_ui.window or { default = true }
+    chats[1].chat.ui:open({ window = window })
   end,
 }
 
