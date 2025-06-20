@@ -514,8 +514,10 @@ _G.codecompanion_buffers = {}
 local Chat = {}
 
 ---@param args CodeCompanion.ChatArgs
+---@param opts? table
 ---@return CodeCompanion.Chat
-function Chat.new(args)
+function Chat.new(args, opts)
+  opts = opts or {}
   local id = math.random(10000000)
   log:trace("Chat created with ID %d", id)
 
@@ -601,6 +603,7 @@ function Chat.new(args)
     bufnr = self.bufnr,
     roles = { user = user_role, llm = llm_role },
     settings = self.settings,
+    window = opts.window,
   })
 
   if args.messages then
