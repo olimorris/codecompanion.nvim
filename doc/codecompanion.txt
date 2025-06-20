@@ -1442,6 +1442,9 @@ configuration:
         },
       },
     }),
+    
+    > [!TIP]
+    > The `window` settings can be overridden dynamically when calling `require("codecompanion").chat()` or `require("codecompanion").toggle()` by passing an `opts` table with a `window` key. For example: `require("codecompanion").toggle({ window = { layout = "float", width = 0.6 } })`
 <
 
 
@@ -1947,7 +1950,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM’S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-agents-files| tool, combined with the
 |codecompanion-usage-chat-buffer-variables.html-buffer| variable or
@@ -2021,6 +2024,18 @@ CHAT BUFFER                                  *codecompanion-usage-chat-buffer*
 You can open a chat buffer with the `:CodeCompanionChat` command or with
 `require("codecompanion").chat()`. You can toggle the visibility of the chat
 buffer with `:CodeCompanionChat Toggle` or `require("codecompanion").toggle()`.
+
+Additionally, both `require("codecompanion").chat()` and
+`require("codecompanion").toggle()` functions accept an optional `opts` table,
+which can be used to override the default window configuration for the chat
+buffer. This allows for dynamic control over its appearance and behavior.
+
+For example, to open the chat buffer in a floating window with a specific
+width:
+
+>lua
+    require("codecompanion").toggle({ window = { layout = "float", width = 0.6 } })
+<
 
 The chat buffer uses markdown as its syntax and `H2` headers separate the user
 and LLM’s responses. The plugin is turn-based, meaning that the user sends a
@@ -3139,7 +3154,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI’S API OUTPUT
+OPENAI�S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
