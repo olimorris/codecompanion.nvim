@@ -226,6 +226,134 @@ local function get_models(self, opts)
   return models
 end
 
+---Get Copilot usage statistics
+---@return table|nil
+local function get_copilot_stats()
+  local dummy_adapter = { url = "" }
+  if not get_and_authorize_token(dummy_adapter) then
+    return nil
+  end
+
+  log:debug("Fetching Copilot usage statistics")
+
+  local ok, response = pcall(function()
+    return curl.get("https://api.github.com/copilot_internal/user", {
+      sync = true,
+      headers = {
+        Authorization = "Bearer " .. _oauth_token,
+        Accept = "*/*",
+        ["User-Agent"] = "CodeCompanion.nvim",
+      },
+      insecure = config.adapters.opts.allow_insecure,
+      proxy = config.adapters.opts.proxy,
+    })
+  end)
+  if not ok then
+    log:error("Could not get Copilot stats: %s", response)
+    return nil
+  end
+
+  local ok, json = pcall(vim.json.decode, response.body)
+  if not ok then
+    log:error("Error parsing Copilot stats response: %s", response.body)
+    return nil
+  end
+
+  return json.quota_snapshots
+end
+
+---Show Copilot usage statistics in a floating window
+---@return nil
+local function show_copilot_stats()
+  local stats = get_copilot_stats()
+  if not stats then
+    return vim.notify("Could not retrieve Copilot stats", vim.log.levels.ERROR)
+  end
+
+  local lines = {}
+  local ui = require("codecompanion.utils.ui")
+  table.insert(lines, "# 󰾞  GitHub Copilot Usage Statistics 󰾞 ")
+  table.insert(lines, "")
+
+  if stats.premium_interactions then
+    local premium = stats.premium_interactions
+    table.insert(lines, "##  Premium Interactions")
+    local used = premium.entitlement - premium.remaining
+    local usage_percent = premium.entitlement > 0 and (used / premium.entitlement * 100) or 0
+    table.insert(lines, string.format("   Used: %d / %d (%.1f%%)", used, premium.entitlement, usage_percent))
+    table.insert(lines, string.format("   Remaining: %d", premium.remaining))
+    table.insert(lines, string.format("   Percentage: %.1f%%", premium.percent_remaining))
+    if premium.unlimited then
+      table.insert(lines, "   Status: Unlimited ✨")
+    else
+      table.insert(lines, "   Status: Limited")
+    end
+    table.insert(lines, "")
+  end
+
+  if stats.chat then
+    local chat = stats.chat
+    table.insert(lines, "## 󰭹 Chat")
+    if chat.unlimited then
+      table.insert(lines, "   Status: Unlimited ✨")
+    else
+      local used = chat.entitlement - chat.remaining
+      local usage_percent = chat.entitlement > 0 and (used / chat.entitlement * 100) or 0
+      table.insert(lines, string.format("   Used: %d / %d (%.1f%%)", used, chat.entitlement, usage_percent))
+    end
+    table.insert(lines, "")
+  end
+
+  if stats.completions then
+    local completions = stats.completions
+    table.insert(lines, "##   Completions")
+    if completions.unlimited then
+      table.insert(lines, "   Status: Unlimited ✨")
+    else
+      local used = completions.entitlement - completions.remaining
+      local usage_percent = completions.entitlement > 0 and (used / completions.entitlement * 100) or 0
+      table.insert(lines, string.format("   Used: %d / %d (%.1f%%)", used, completions.entitlement, usage_percent))
+    end
+  end
+
+  -- Create floating window
+  local float_opts = {
+    title = "󰍘 Copilot Stats",
+    lock = true,
+    relative = "editor",
+    row = "center",
+    col = "center",
+    window = {
+      width = 43,
+      height = math.min(#lines + 2, 20),
+    },
+    ignore_keymaps = false,
+  }
+  local _, winnr = ui.create_float(lines, float_opts)
+
+  local function get_usage_highlight(usage_percent)
+    if usage_percent >= 80 then
+      return "Error"
+    else
+      return "MoreMsg"
+    end
+  end
+  vim.api.nvim_win_call(winnr, function()
+    -- Usage percentages with color coding
+    if stats.premium_interactions and not stats.premium_interactions.unlimited then
+      local used = stats.premium_interactions.entitlement - stats.premium_interactions.remaining
+      local usage_percent = stats.premium_interactions.entitlement > 0
+          and (used / stats.premium_interactions.entitlement * 100)
+        or 0
+      local highlight = get_usage_highlight(usage_percent)
+      vim.fn.matchadd(
+        highlight,
+        string.format("Used: %d / %d (%.1f%%)", used, stats.premium_interactions.entitlement, usage_percent)
+      )
+    end
+  end)
+end
+
 ---@class Copilot.Adapter: CodeCompanion.Adapter
 return {
   name = "copilot",
@@ -256,6 +384,12 @@ return {
     ["Copilot-Integration-Id"] = "vscode-chat",
     ["Editor-Version"] = "Neovim/" .. vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
   },
+  get_copilot_stats = function()
+    return get_copilot_stats()
+  end,
+  show_copilot_stats = function()
+    return show_copilot_stats()
+  end,
   handlers = {
     ---Check for a token before starting the request
     ---@param self CodeCompanion.Adapter
