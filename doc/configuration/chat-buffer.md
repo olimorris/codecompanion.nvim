@@ -355,6 +355,9 @@ require("codecompanion").setup({
     },
   },
 }),
+
+> [!TIP]
+> The `window` settings can be overridden dynamically when calling `require("codecompanion").chat()` or `require("codecompanion").toggle()` by passing an `opts` table with a `window` key. For example: `require("codecompanion").toggle({ window = { layout = "float", width = 0.6 } })`
 ```
 
 ## Diff

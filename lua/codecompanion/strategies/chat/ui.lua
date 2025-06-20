@@ -77,7 +77,12 @@ function UI:open(opts)
     vim.cmd("startinsert")
   end
 
-  local window = config.display.chat.window
+  local window
+  if opts.window then
+    window = vim.tbl_deep_extend("force", {}, config.display.chat.window, opts.window)
+  else
+    window = config.display.chat.window
+  end
   local width = math.floor(vim.o.columns * 0.45)
   if window.width ~= "auto" then
     width = window.width > 1 and window.width or math.floor(vim.o.columns * window.width)
@@ -156,9 +161,16 @@ function UI:open(opts)
 end
 
 ---Hide the chat buffer from view
+---@param opts? table
 ---@return nil
-function UI:hide()
-  local layout = config.display.chat.window.layout
+function UI:hide(opts)
+  opts = opts or {}
+  local layout
+  if opts.window then
+    layout = vim.tbl_deep_extend("force", {}, config.display.chat.window, opts.window).layout
+  else
+    layout = config.display.chat.window.layout
+  end
 
   if layout == "float" or layout == "vertical" or layout == "horizontal" then
     if self:is_active() then

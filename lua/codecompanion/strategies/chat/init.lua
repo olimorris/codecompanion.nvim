@@ -514,8 +514,9 @@ _G.codecompanion_buffers = {}
 local Chat = {}
 
 ---@param args CodeCompanion.ChatArgs
+---@param opts? table
 ---@return CodeCompanion.Chat
-function Chat.new(args)
+function Chat.new(args, opts)
   local id = math.random(10000000)
   log:trace("Chat created with ID %d", id)
 
@@ -608,7 +609,7 @@ function Chat.new(args)
   end
 
   self.close_last_chat()
-  self.ui:open():render(self.context, self.messages, args)
+  self.ui:open(opts):render(self.context, self.messages, args)
 
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then

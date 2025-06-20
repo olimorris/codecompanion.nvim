@@ -117,8 +117,10 @@ end
 
 ---Open a chat buffer and converse with an LLM
 ---@param args? table
+---@param opts? table
 ---@return nil
-CodeCompanion.chat = function(args)
+CodeCompanion.chat = function(args, opts)
+  opts = opts or {}
   local adapter
   local messages = {}
   local context = context_utils.get(api.nvim_get_current_buf(), args)
@@ -133,7 +135,7 @@ CodeCompanion.chat = function(args)
       if prompt == "add" then
         return CodeCompanion.add(args)
       elseif prompt == "toggle" then
-        return CodeCompanion.toggle()
+        return CodeCompanion.toggle(opts)
       elseif prompt == "refreshcache" then
         return CodeCompanion.refresh_cache()
       else
@@ -152,7 +154,7 @@ CodeCompanion.chat = function(args)
     adapter = adapter,
     messages = has_messages and messages or nil,
     auto_submit = has_messages,
-  })
+  }, opts)
 end
 
 ---Create a cmd
@@ -192,21 +194,23 @@ CodeCompanion.cmd = function(args)
 end
 
 ---Toggle the chat buffer
+---@param opts? table
 ---@return nil
-CodeCompanion.toggle = function()
+CodeCompanion.toggle = function(opts)
+  opts = opts or {}
   local chat = CodeCompanion.last_chat()
 
   if not chat then
-    return CodeCompanion.chat()
+    return CodeCompanion.chat(nil, opts)
   end
 
   if chat.ui:is_visible() then
-    return chat.ui:hide()
+    return chat.ui:hide(opts)
   end
 
   chat.context = context_utils.get(api.nvim_get_current_buf())
   CodeCompanion.close_last_chat()
-  chat.ui:open({ toggled = true })
+  chat.ui:open({ toggled = true, window = opts.window })
 end
 
 ---Return a chat buffer
