@@ -1,25 +1,17 @@
 local log = require("codecompanion.utils.log")
 
--- Code Extractor helper
-local SymbolContext = {}
-SymbolContext.__index = SymbolContext
+---@class SymbolContextTool
+local SymbolContextTool = {}
+SymbolContextTool.__index = SymbolContextTool
 
-function SymbolContext:new()
-  local instance = setmetatable({}, SymbolContext)
-  return instance
-end
-
-SymbolContext.LSP_TIMEOUT_MS = 10000
-SymbolContext.symbol_data = {}
-SymbolContext.filetype = ""
-
-SymbolContext.LSP_METHODS = {
+-- Constants for LSP methods and Tree-sitter nodes
+SymbolContextTool.LSP_METHODS = {
   get_definition = vim.lsp.protocol.Methods.textDocument_definition,
   get_references = vim.lsp.protocol.Methods.textDocument_references,
   get_implementation = vim.lsp.protocol.Methods.textDocument_implementation,
 }
 
-SymbolContext.TREESITTER_NODES = {
+SymbolContextTool.TREESITTER_NODES = {
   -- Functions and Classes
   function_definition = true,
   method_definition = true,
@@ -49,15 +41,40 @@ SymbolContext.TREESITTER_NODES = {
   decorated_definition = true,
 }
 
-function SymbolContext:is_valid_buffer(bufnr)
+SymbolContextTool.LSP_TIMEOUT_MS = 10000
+
+--- Creates a new instance of SymbolContextTool
+--- @return SymbolContextTool instance New SymbolContextTool instance
+function SymbolContextTool:new()
+  local instance = setmetatable({}, SymbolContextTool)
+  return instance
+end
+
+--- Stores symbol data and filetype information
+SymbolContextTool.symbol_data = {}
+SymbolContextTool.filetype = ""
+
+--- Validates if a buffer is valid and exists
+--- @param bufnr number Buffer number to validate
+--- @return boolean valid True if buffer is valid, false otherwise
+function SymbolContextTool:is_valid_buffer(bufnr)
   return bufnr and vim.api.nvim_buf_is_valid(bufnr)
 end
 
-function SymbolContext:get_buffer_lines(bufnr, start_row, end_row)
+--- Gets lines from a buffer within a specified range
+--- @param bufnr number Buffer number to read from
+--- @param start_row number Starting row (0-indexed)
+--- @param end_row number Ending row (0-indexed, exclusive)
+--- @return string[] lines Array of lines from the buffer
+function SymbolContextTool:get_buffer_lines(bufnr, start_row, end_row)
   return vim.api.nvim_buf_get_lines(bufnr, start_row, end_row, false)
 end
 
-function SymbolContext:get_node_data(bufnr, node)
+--- Extracts code block data from a treesitter node
+--- @param bufnr number Buffer number containing the node
+--- @param node table Treesitter node to extract data from
+--- @return table result Contains status and data with code_block, start_line, end_line, filename
+function SymbolContextTool:get_node_data(bufnr, node)
   local start_row, start_col, end_row, end_col = node:range()
 
   local lines = self:get_buffer_lines(bufnr, start_row, end_row + 1)
@@ -87,7 +104,12 @@ function SymbolContext:get_node_data(bufnr, node)
   }
 end
 
-function SymbolContext:get_symbol_data(bufnr, row, col)
+--- Gets symbol data at a specific position using treesitter
+--- @param bufnr number Buffer number to analyze
+--- @param row number Row position (0-indexed)
+--- @param col number Column position (0-indexed)
+--- @return table result Contains status and data with symbol information or error message
+function SymbolContextTool:get_symbol_data(bufnr, row, col)
   if not self:is_valid_buffer(bufnr) then
     return {
       status = "error",
@@ -122,7 +144,11 @@ function SymbolContext:get_symbol_data(bufnr, row, col)
   }
 end
 
-function SymbolContext:validate_lsp_params(bufnr, method)
+--- Validates LSP request parameters
+--- @param bufnr number Buffer number for the request
+--- @param method string LSP method name
+--- @return table result Contains status and data indicating validation result
+function SymbolContextTool:validate_lsp_params(bufnr, method)
   if not (bufnr and method) then
     return {
       status = "error",
@@ -136,7 +162,11 @@ function SymbolContext:validate_lsp_params(bufnr, method)
   return { status = "success", data = "" }
 end
 
-function SymbolContext:execute_lsp_request(bufnr, method)
+--- Executes an LSP request synchronously across all applicable clients
+--- @param bufnr number Buffer number for the LSP request
+--- @param method string LSP method to execute
+--- @return table result Contains status and data with LSP results by client or error message
+function SymbolContextTool:execute_lsp_request(bufnr, method)
   local clients = vim.lsp.get_clients({
     bufnr = vim._resolve_bufnr(bufnr),
     method = method,
@@ -176,7 +206,11 @@ function SymbolContext:execute_lsp_request(bufnr, method)
   return { status = "success", data = lsp_results }
 end
 
-function SymbolContext:process_single_range(uri, range)
+--- Processes a single range from LSP results and extracts symbol data
+--- @param uri string URI of the file containing the range
+--- @param range table LSP range object with start and end positions
+--- @return table result Contains status and data indicating processing result
+function SymbolContextTool:process_single_range(uri, range)
   if not (uri and range) then
     return { status = "error", data = "Missing uri or range. Internal tool error. Skip future tool calls." }
   end
@@ -193,7 +227,10 @@ function SymbolContext:process_single_range(uri, range)
   end
 end
 
-function SymbolContext:process_lsp_result(result)
+--- Processes LSP results, handling both single items and arrays
+--- @param result table LSP result data, either single item or array
+--- @return table result Contains status and data indicating processing result
+function SymbolContextTool:process_lsp_result(result)
   if result.range then
     return self:process_single_range(result.uri or result.targetUri, result.range)
   end
@@ -218,7 +255,11 @@ function SymbolContext:process_lsp_result(result)
   return { status = "success", data = "Results processed" }
 end
 
-function SymbolContext:call_lsp_method(bufnr, method)
+--- Main method to execute LSP operations and process results
+--- @param bufnr number Buffer number for the LSP request
+--- @param method string LSP method to execute
+--- @return table result Contains status and data indicating overall operation result
+function SymbolContextTool:call_lsp_method(bufnr, method)
   local validation = self:validate_lsp_params(bufnr, method)
   if validation.status == "error" then
     return { status = "error", data = validation.data }
@@ -237,7 +278,11 @@ function SymbolContext:call_lsp_method(bufnr, method)
   end
 end
 
-function SymbolContext:process_all_lsp_results(results_by_client, method)
+--- Processes LSP results from all clients that responded
+--- @param results_by_client table LSP results organized by client name
+--- @param method string LSP method that was executed
+--- @return table result Contains status and data with processing count or error messages
+function SymbolContextTool:process_all_lsp_results(results_by_client, method)
   local processed_count = 0
   local errors = {}
 
@@ -257,32 +302,47 @@ function SymbolContext:process_all_lsp_results(results_by_client, method)
   return { status = "success", data = processed_count }
 end
 
-function SymbolContext:find_symbol_in_line(line, symbol)
+--- Finds a symbol within a line of text using word boundary matching
+--- @param line string Line of text to search in
+--- @param symbol string Symbol to find
+--- @return number|nil start_col Starting column of the symbol (1-indexed) or nil if not found
+function SymbolContextTool:find_symbol_in_line(line, symbol)
   local pattern = "%f[%w_]" .. vim.pesc(symbol) .. "%f[^%w_]"
   local start_col = line:find(pattern)
   return start_col
 end
 
-function SymbolContext:is_searchable_buffer(bufnr)
+--- Checks if a buffer is searchable (valid, loaded, and modifiable)
+--- @param bufnr number Buffer number to check
+--- @return boolean searchable True if buffer can be searched, false otherwise
+function SymbolContextTool:is_searchable_buffer(bufnr)
   return self:is_valid_buffer(bufnr)
     and vim.api.nvim_buf_is_loaded(bufnr)
     and vim.api.nvim_get_option_value("modifiable", { buf = bufnr })
 end
 
-function SymbolContext:search_symbol_in_buffer(bufnr, symbol)
+--- Searches for a symbol within all lines of a buffer
+--- @param bufnr number Buffer number to search in
+--- @param symbol string Symbol to find
+--- @return table|nil position Table with line and col fields (1-indexed line, 0-indexed col) or nil if not found
+function SymbolContextTool:search_symbol_in_buffer(bufnr, symbol)
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
 
   for line_num, line_content in ipairs(lines) do
     local col = self:find_symbol_in_line(line_content, symbol)
     if col then
-      return { line = line_num, col = col - 1 }
+      return { line = line_num, col = col }
     end
   end
 
   return nil
 end
 
-function SymbolContext:set_cursor_position(bufnr, position)
+--- Sets cursor position in a window displaying the specified buffer
+--- @param bufnr number Buffer number to set cursor in
+--- @param position table Position with line and col fields
+--- @return boolean success True if cursor was set successfully, false otherwise
+function SymbolContextTool:set_cursor_position(bufnr, position)
   local window_ids = vim.fn.win_findbuf(bufnr)
   if #window_ids == 0 then
     return false
@@ -293,12 +353,16 @@ function SymbolContext:set_cursor_position(bufnr, position)
   return true
 end
 
-function SymbolContext:move_cursor_to_symbol(symbol)
+--- Moves cursor to the first occurrence of a symbol across all loaded buffers
+--- @param symbol string Symbol to search for and move cursor to
+--- @return table result Contains status and data with buffer number or error message
+function SymbolContextTool:move_cursor_to_symbol(symbol)
   if not symbol or symbol == "" then
     return { status = "error", data = "Symbol parameter is required and cannot be empty. Provide a symbol to look for." }
   end
 
   local buffer_list = vim.api.nvim_list_bufs()
+  vim.notify("Loaded buffer list: " .. vim.inspect(buffer_list), vim.log.levels.INFO)
 
   for _, bufnr in ipairs(buffer_list) do
     if self:is_searchable_buffer(bufnr) then
@@ -316,10 +380,9 @@ function SymbolContext:move_cursor_to_symbol(symbol)
   return { status = "error", data = "Symbol not found in any loaded buffer. Double check the spelling of the symbol." }
 end
 
--- Helpers initialization
-local symbol_context_tool = SymbolContext:new()
+local symbol_context_tool = SymbolContextTool:new()
 
----@class CodeCompanion.Tool.SymbolContentTool: CodeCompanion.Agent.Tool
+---@class CodeCompanion.Tool.SymbolContext: CodeCompanion.Agent.Tool
 return {
   name = "symbol_context",
   cmds = {
@@ -343,7 +406,7 @@ return {
       if not symbol_context_tool.LSP_METHODS[operation] then
         return {
           status = "error",
-          data = "Unsupported LSP method: " .. operation .. ". Use one of supported lsp methods are: " .. table.concat(
+          data = "Unsupported LSP method: " .. operation .. ". Use one of supported lsp methods: " .. table.concat(
             symbol_context_tool.LSP_METHODS,
             ", "
           ),
@@ -387,11 +450,12 @@ Use this tool AT THE START of a coding task to gather context about code symbols
           },
           symbol = {
             type = "string",
-            description = "The unknown code symbol that the Symbol Context tool will use to perform LSP operations.",
+            description = "The unknown code symbol that the Symbol Context tool will use as argument for LSP operations.",
           },
         },
         required = {
           "operation",
+          "symbol",
         },
         additionalProperties = false,
       },
@@ -409,7 +473,7 @@ Use this tool AT THE START of a coding task to gather context about code symbols
     end,
   },
   output = {
-    ---@param self CodeCompanion.Tool.GrepSearch
+    ---@param self CodeCompanion.Tool.SymbolContext
     ---@param agent CodeCompanion.Agent
     ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
