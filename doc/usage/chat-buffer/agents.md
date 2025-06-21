@@ -207,7 +207,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | Copilot           | gemini-2.5-pro             | :white_check_mark: |                                  |
 | DeepSeek          | deepseek-chat              | :white_check_mark: |                                  |
 | DeepSeek          | deepseek-reasoner          | :x:                | Doesn't support function calling |
-| Gemini            | Gemini-2.0-flash           | :white_check_mark: |                                  |
+| Gemini            | Gemini-2.5-flash           | :white_check_mark: |                                  |
 | Gemini            | Gemini-2.5-pro-exp-03-25   | :white_check_mark: |                                  |
 | Gemini            | gemini-2.5-flash-preview   | :white_check_mark: |                                  |
 | GitHub Models     | All                        | :x:                | Not supported yet                |

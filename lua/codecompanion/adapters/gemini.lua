@@ -84,10 +84,11 @@ return {
       mapping = "parameters",
       type = "enum",
       desc = "The model that will complete your prompt. See https://ai.google.dev/gemini-api/docs/models/gemini#model-variations for additional details and options.",
-      default = "gemini-2.5-flash-preview-05-20",
+      default = "gemini-2.5-flash",
       choices = {
         ["gemini-2.5-pro-preview-06-05"] = { opts = { can_reason = true, has_vision = true } },
         ["gemini-2.5-pro-preview-05-06"] = { opts = { can_reason = true, has_vision = true } },
+        ["gemini-2.5-flash"] = { opts = { can_reason = true, has_vision = true } },
         ["gemini-2.5-flash-preview-05-20"] = { opts = { can_reason = true, has_vision = true } },
         ["gemini-2.0-flash"] = { opts = { has_vision = true } },
         ["gemini-2.0-flash-lite"] = { opts = { has_vision = true } },
