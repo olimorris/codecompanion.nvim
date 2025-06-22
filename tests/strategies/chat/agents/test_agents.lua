@@ -130,6 +130,32 @@ T["Agent"][":find"]["should not find a group when tool name starts with group na
   h.eq({}, result.groups)
 end
 
+T["Agent"][":find"]["should find tools added after a chat is initialized"] = function()
+  child.lua([[
+    local config = require("codecompanion.config")
+    
+    -- Add a dynamic tool after chat is already created
+    config.strategies.chat.tools.dynamic_test_tool = {
+    callback = "",
+      description = "Dynamic tool",
+      enabled = true,
+    }
+    
+    -- Submit a message with the dynamic tool - this should trigger refresh
+    _G.chat:add_buf_message({
+      role = "user",
+      content = "Use @dynamic_test_tool please",
+    })
+    _G.chat:submit()
+    
+    _G.found_dynamic_tool = _G.chat.tools.in_use["dynamic_test_tool"] 
+    -- Clean up
+    config.strategies.chat.tools.dynamic_test_tool = nil
+  ]])
+
+  h.eq(true, child.lua_get("_G.found_dynamic_tool"))
+end
+
 T["Agent"][":parse"] = new_set()
 T["Agent"][":parse"]["add a tool's system prompt to chat buffer"] = function()
   child.lua([[
