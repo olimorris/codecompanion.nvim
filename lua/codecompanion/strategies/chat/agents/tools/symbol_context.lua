@@ -552,7 +552,7 @@ Use this tool AT THE START of a coding task to gather context about code symbols
     success = function(self, agent, cmd, stdout)
       local operation = self.args.operation
       local symbol = self.args.symbol
-      local chat_message_content = string.format("The %s of symbol: `%s`", string.upper(operation), symbol)
+      local chat_message_content = string.format("The %s of symbol: `%s`\n", string.upper(operation), symbol)
 
       for _, code_block in ipairs(lsp_caller.symbol_data) do
         chat_message_content = chat_message_content
