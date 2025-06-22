@@ -343,7 +343,24 @@ function LSPCaller:process_single_range(uri, range)
 
   local symbol_result = code_extractor:get_symbol_data(target_bufnr, range.start.line, range.start.character)
   if symbol_result.status == "success" then
-    table.insert(self.symbol_data, symbol_result.data)
+    -- Check if element with same filename, start_line and end_line already exists
+    local duplicate_exists = false
+    for _, existing_data in ipairs(self.symbol_data) do
+      if
+        existing_data.filename == symbol_result.data.filename
+        and existing_data.start_line == symbol_result.data.start_line
+        and existing_data.end_line == symbol_result.data.end_line
+      then
+        duplicate_exists = true
+        break
+      end
+    end
+
+    -- Only insert if no duplicate exists
+    if not duplicate_exists then
+      table.insert(self.symbol_data, symbol_result.data)
+    end
+
     return { status = "success", data = "Symbol processed" }
   else
     return { status = "error", data = "Can't extract symbol data: " .. symbol_result.data }
