@@ -16,84 +16,110 @@ function SymbolFinder:new()
   return instance
 end
 
---- Finds a symbol within a line of text using word boundary matching
---- @param line string Line of text to search in
---- @param symbol string Symbol to find
---- @return number|nil start_col Starting column of the symbol (1-indexed) or nil if not found
-function SymbolFinder:find_symbol_in_line(line, symbol)
-  local pattern = "%f[%w_]" .. vim.pesc(symbol) .. "%f[^%w_]"
-  local start_col = line:find(pattern)
-  return start_col
-end
-
---- Checks if a buffer is searchable (valid, loaded, and modifiable)
---- @param bufnr number Buffer number to check
---- @return boolean searchable True if buffer can be searched, false otherwise
-function SymbolFinder:is_searchable_buffer(bufnr)
-  return bufnr
-    and vim.api.nvim_buf_is_valid(bufnr)
-    and vim.api.nvim_buf_is_loaded(bufnr)
-    and vim.api.nvim_get_option_value("modifiable", { buf = bufnr })
-end
-
---- Searches for a symbol within all lines of a buffer
---- @param bufnr number Buffer number to search in
---- @param symbol string Symbol to find
---- @return table|nil position Table with line and col fields (1-indexed line, 0-indexed col) or nil if not found
-function SymbolFinder:search_symbol_in_buffer(bufnr, symbol)
-  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-
-  for line_num, line_content in ipairs(lines) do
-    local col = self:find_symbol_in_line(line_content, symbol)
-    if col then
-      return { line = line_num, col = col }
-    end
+--- Gets file pattern for ripgrep based on filetype
+--- @param filetype string File extension or type (e.g., "lua", "javascript", "java")
+--- @return string pattern Ripgrep file pattern
+function SymbolFinder:get_filetype_pattern(filetype)
+  if not filetype or filetype == "" then
+    return ""
   end
 
-  return nil
+  return string.format("--type %s", filetype)
 end
 
---- Sets cursor position in a window displaying the specified buffer
---- @param bufnr number Buffer number to set cursor in
---- @param position table Position with line and col fields
---- @return boolean success True if cursor was set successfully, false otherwise
-function SymbolFinder:set_cursor_position(bufnr, position)
-  local window_ids = vim.fn.win_findbuf(bufnr)
-  if #window_ids == 0 then
-    return false
+--- Searches for a symbol in the workspace using grep (ripgrep)
+--- @param symbol string Symbol to search for
+--- @param filetype string|nil File type to search in (optional)
+--- @return table|nil result Table with file, line, col, and text or nil if not found
+function SymbolFinder:search_symbol_in_workspace(symbol, filetype)
+  local search_pattern = "\\b" .. vim.fn.escape(symbol, "\\") .. "\\b"
+
+  -- Build the grep command
+  local cmd = string.format(
+    "silent! grep! %s %s",
+    filetype and self:get_filetype_pattern(filetype) or "",
+    vim.fn.shellescape(search_pattern)
+  )
+
+  local success, _ = pcall(vim.cmd, cmd)
+
+  if not success then
+    return nil
   end
 
-  vim.api.nvim_set_current_win(window_ids[1])
-  vim.api.nvim_win_set_cursor(0, { position.line, position.col })
+  -- Get the quickfix list
+  local qflist = vim.fn.getqflist()
+
+  if #qflist == 0 then
+    return nil
+  end
+
+  -- Return the first match
+  local first_match = qflist[1]
+  return {
+    file = vim.fn.bufname(first_match.bufnr),
+    line = first_match.lnum,
+    col = first_match.col - 1, -- Convert to 0-indexed
+    text = first_match.text,
+    bufnr = first_match.bufnr,
+  }
+end
+
+--- Opens a file and sets cursor position
+--- @param filepath string Path to the file
+--- @param line number Line number (1-indexed)
+--- @param col number Column number (0-indexed)
+--- @return boolean success True if file was opened and cursor set successfully
+function SymbolFinder:open_file_and_set_cursor(filepath, line, col)
+  -- Open the file
+  vim.cmd("edit " .. vim.fn.fnameescape(filepath))
+
+  -- Set cursor position
+  vim.api.nvim_win_set_cursor(0, { line, col })
+
+  -- Center the line on screen
+  vim.cmd("normal! zz")
+
   return true
 end
 
---- Moves cursor to the first occurrence of a symbol across all loaded buffers
+--- Moves cursor to the first occurrence of a symbol in the workspace
 --- @param symbol string Symbol to search for and move cursor to
---- @return table result Contains status and data with buffer number or error message
-function SymbolFinder:move_cursor_to_symbol(symbol)
+--- @param filetype string|nil File type to search in (e.g., "lua", "javascript", "java")
+--- @return table result Contains status and data with file info or error message
+function SymbolFinder:move_cursor_to_symbol(symbol, filetype)
   if not symbol or symbol == "" then
     return { status = "error", data = "Symbol parameter is required and cannot be empty. Provide a symbol to look for." }
   end
 
-  local buffer_list = vim.api.nvim_list_bufs()
-
   vim.cmd("stopinsert")
 
-  for _, bufnr in ipairs(buffer_list) do
-    if self:is_searchable_buffer(bufnr) then
-      local symbol_position = self:search_symbol_in_buffer(bufnr, symbol)
+  local match = self:search_symbol_in_workspace(symbol, filetype)
 
-      if symbol_position then
-        local cursor_set = self:set_cursor_position(bufnr, symbol_position)
-        if cursor_set then
-          return { status = "success", data = bufnr }
-        end
-      end
-    end
+  if not match then
+    local filetype_msg = filetype and (" in " .. filetype .. " files") or ""
+    return {
+      status = "error",
+      data = "Symbol not found in workspace" .. filetype_msg .. ". Double check the spelling of the symbol.",
+    }
   end
 
-  return { status = "error", data = "Symbol not found in any loaded buffer. Double check the spelling of the symbol." }
+  -- Open file and position cursor
+  local success = self:open_file_and_set_cursor(match.file, match.line, match.col)
+
+  if success then
+    return {
+      status = "success",
+      data = {
+        file = match.file,
+        line = match.line,
+        col = match.col,
+        bufnr = match.bufnr,
+      },
+    }
+  else
+    return { status = "error", data = "Failed to open file or set cursor position." }
+  end
 end
 
 local symbol_finder = SymbolFinder:new()
@@ -213,35 +239,35 @@ end
 
 local code_extractor = CodeExtractor:new()
 
----@class OperationExecutor
-local OperationExecutor = {}
-OperationExecutor.__index = OperationExecutor
+---@class LSPCaller
+local LSPCaller = {}
+LSPCaller.__index = LSPCaller
 
 -- Constants for LSP methods and Tree-sitter nodes
-OperationExecutor.LSP_METHODS = {
+LSPCaller.LSP_METHODS = {
   get_definition = vim.lsp.protocol.Methods.textDocument_definition,
   get_references = vim.lsp.protocol.Methods.textDocument_references,
   get_implementation = vim.lsp.protocol.Methods.textDocument_implementation,
 }
 
-OperationExecutor.LSP_TIMEOUT_MS = 10000
+LSPCaller.LSP_TIMEOUT_MS = 10000
 
 --- Creates a new instance of SymbolContextTool
---- @return OperationExecutor instance New SymbolContextTool instance
-function OperationExecutor:new()
-  local instance = setmetatable({}, OperationExecutor)
+--- @return LSPCaller instance New SymbolContextTool instance
+function LSPCaller:new()
+  local instance = setmetatable({}, LSPCaller)
   return instance
 end
 
 --- Stores symbol data and filetype information
-OperationExecutor.symbol_data = {}
-OperationExecutor.filetype = ""
+LSPCaller.symbol_data = {}
+LSPCaller.filetype = ""
 
 --- Validates LSP request parameters
 --- @param bufnr number Buffer number for the request
 --- @param method string LSP method name
 --- @return table result Contains status and data indicating validation result
-function OperationExecutor:validate_lsp_params(bufnr, method)
+function LSPCaller:validate_lsp_params(bufnr, method)
   if not (bufnr and method) then
     return {
       status = "error",
@@ -259,7 +285,7 @@ end
 --- @param bufnr number Buffer number for the LSP request
 --- @param method string LSP method to execute
 --- @return table result Contains status and data with LSP results by client or error message
-function OperationExecutor:execute_lsp_request(bufnr, method)
+function LSPCaller:execute_lsp_request(bufnr, method)
   local clients = vim.lsp.get_clients({
     bufnr = vim._resolve_bufnr(bufnr),
     method = method,
@@ -307,7 +333,7 @@ end
 --- @param uri string URI of the file containing the range
 --- @param range table LSP range object with start and end positions
 --- @return table result Contains status and data indicating processing result
-function OperationExecutor:process_single_range(uri, range)
+function LSPCaller:process_single_range(uri, range)
   if not (uri and range) then
     return { status = "error", data = "Missing uri or range. Internal tool error. Skip future tool calls." }
   end
@@ -327,7 +353,7 @@ end
 --- Processes LSP results, handling both single items and arrays
 --- @param result table LSP result data, either single item or array
 --- @return table result Contains status and data indicating processing result
-function OperationExecutor:process_lsp_result(result)
+function LSPCaller:process_lsp_result(result)
   if result.range then
     return self:process_single_range(result.uri or result.targetUri, result.range)
   end
@@ -356,7 +382,7 @@ end
 --- @param bufnr number Buffer number for the LSP request
 --- @param method string LSP method to execute
 --- @return table result Contains status and data indicating overall operation result
-function OperationExecutor:call_lsp_method(bufnr, method)
+function LSPCaller:call_lsp_method(bufnr, method)
   local validation = self:validate_lsp_params(bufnr, method)
   if validation.status == "error" then
     return { status = "error", data = validation.data }
@@ -379,7 +405,7 @@ end
 --- @param results_by_client table LSP results organized by client name
 --- @param method string LSP method that was executed
 --- @return table result Contains status and data with processing count or error messages
-function OperationExecutor:process_all_lsp_results(results_by_client, method)
+function LSPCaller:process_all_lsp_results(results_by_client, method)
   local processed_count = 0
   local errors = {}
 
@@ -399,14 +425,14 @@ function OperationExecutor:process_all_lsp_results(results_by_client, method)
   return { status = "success", data = processed_count }
 end
 
-local lsp_code_extractor = OperationExecutor:new()
+local lsp_caller = LSPCaller:new()
 
 ---@class CodeCompanion.Tool.SymbolContext: CodeCompanion.Agent.Tool
 return {
   name = "symbol_context",
   cmds = {
     ---Execute the search commands
-    ---@param self CodeCompanion.Tool.GrepSearch
+    ---@param self CodeCompanion.Tool.SymbolContext
     ---@param args table The arguments from the LLM's tool call
     ---@param input? any The output from the previous function call
     ---@return { status: "success"|"error", data: string|table }
@@ -414,28 +440,38 @@ return {
       local operation = args.operation
       local symbol = args.symbol
 
-      local cursor_result = symbol_finder:move_cursor_to_symbol(symbol)
+      ---@diagnostic disable-next-line: undefined-field
+      local context_filetype = self.chat.context.filetype
+      ---@diagnostic disable-next-line: undefined-field
+      local context_winnr = self.chat.context.winnr
 
-      if cursor_result.status == "error" then
-        return cursor_result
-      end
+      local chat_winnr = vim.api.nvim_get_current_win()
 
-      local bufnr = tonumber(cursor_result.data)
+      vim.api.nvim_set_current_win(context_winnr)
 
-      if not lsp_code_extractor.LSP_METHODS[operation] then
+      if not lsp_caller.LSP_METHODS[operation] then
         return {
           status = "error",
           data = "Unsupported LSP method: " .. operation .. ". Use one of supported lsp methods: " .. table.concat(
-            lsp_code_extractor.LSP_METHODS,
+            lsp_caller.LSP_METHODS,
             ", "
           ),
         }
       end
 
+      local cursor_result = symbol_finder:move_cursor_to_symbol(symbol, context_filetype)
+
+      if cursor_result.status == "error" then
+        return cursor_result
+      end
+
+      local bufnr = tonumber(cursor_result.data.bufnr)
+
       ---@diagnostic disable-next-line: param-type-mismatch
-      local result = lsp_code_extractor:call_lsp_method(bufnr, lsp_code_extractor.LSP_METHODS[operation])
+      local result = lsp_caller:call_lsp_method(bufnr, lsp_caller.LSP_METHODS[operation])
+      vim.api.nvim_set_current_win(chat_winnr)
       if result.status == "success" then
-        lsp_code_extractor.filetype = vim.api.nvim_get_option_value("filetype", { buf = bufnr })
+        lsp_caller.filetype = vim.api.nvim_get_option_value("filetype", { buf = bufnr })
         return { status = "success", data = "Tool executed successfully" }
       else
         return { status = "error", data = result.data }
@@ -487,8 +523,8 @@ Use this tool AT THE START of a coding task to gather context about code symbols
     ---@return nil
     on_exit = function(_, agent)
       log:trace("[Symbol Content Tool] on_exit handler executed")
-      lsp_code_extractor.symbol_data = {}
-      lsp_code_extractor.filetype = ""
+      lsp_caller.symbol_data = {}
+      lsp_caller.filetype = ""
       return agent.chat:submit()
     end,
   },
@@ -502,7 +538,7 @@ Use this tool AT THE START of a coding task to gather context about code symbols
       local symbol = self.args.symbol
       local chat_message_content = ""
 
-      for _, code_block in ipairs(lsp_code_extractor.symbol_data) do
+      for _, code_block in ipairs(lsp_caller.symbol_data) do
         chat_message_content = chat_message_content
           .. string.format(
             [[
@@ -521,7 +557,7 @@ Content:
             code_block.filename,
             code_block.start_line,
             code_block.end_line,
-            lsp_code_extractor.filetype,
+            lsp_caller.filetype,
             code_block.code_block
           )
       end
