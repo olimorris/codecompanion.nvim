@@ -41,6 +41,7 @@ function SymbolFinder:search_symbol_in_workspace(symbol, filetype)
     vim.fn.shellescape(search_pattern)
   )
 
+  ---@diagnostic disable-next-line: param-type-mismatch
   local success, _ = pcall(vim.cmd, cmd)
 
   if not success then

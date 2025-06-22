@@ -101,6 +101,10 @@ return {
           callback = "strategies.chat.agents.tools.read_file",
           description = "Read a file in the current working directory",
         },
+        ["symbol_context"] = {
+          callback = "strategies.chat.agents.tools.symbol_context",
+          description = "Find code symbol context",
+        },
         ["weather"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/weather.lua",
           description = "Get the latest weather",
