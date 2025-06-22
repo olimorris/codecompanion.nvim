@@ -5,6 +5,7 @@ local ToolFilter = {}
 
 local _enabled_cache = {}
 local _cache_timestamp = 0
+local _config_hash = nil
 local CACHE_TTL = 30000
 
 ---Clear the enabled tools cache
@@ -12,20 +13,48 @@ local CACHE_TTL = 30000
 local function clear_cache()
   _enabled_cache = {}
   _cache_timestamp = 0
+  _config_hash = nil -- Add this line
   log:trace("[Tool Filter] Cache cleared")
 end
 
----Check if the cache is valid
+---Generate a hash of the current tools config to detect changes
+---@param tools_config table
+---@return string
+local function generate_config_hash(tools_config)
+  local tool_data = {}
+
+  -- Collect tool names and their enabled status
+  for tool_name, _ in pairs(tools_config) do
+    if tool_name ~= "opts" and tool_name ~= "groups" then
+      table.insert(tool_data, tool_name)
+    end
+  end
+
+  -- Include groups
+  if tools_config.groups then
+    for group_name, group_config in pairs(tools_config.groups) do
+      table.insert(tool_data, "group:" .. group_name .. ":" .. table.concat(group_config.tools or {}, ","))
+    end
+  end
+  table.sort(tool_data)
+  return table.concat(tool_data, "|")
+end
+
+---Check if the cache is valid (time + config unchanged)
+---@param tools_config_hash string The hash of the tools config
 ---@return boolean
-local function is_cache_valid()
-  return vim.loop.now() - _cache_timestamp < CACHE_TTL
+local function is_cache_valid(tools_config_hash)
+  local time_valid = vim.loop.now() - _cache_timestamp < CACHE_TTL
+  local config_unchanged = _config_hash == tools_config_hash
+  return time_valid and config_unchanged
 end
 
 ---Get enabled tools from the cache or compute them
 ---@param tools_config table The tools configuration
 ---@return table<string, boolean> Map of tool names to enabled status
 local function get_enabled_tools(tools_config)
-  if is_cache_valid() and next(_enabled_cache) then
+  local current_hash = generate_config_hash(tools_config)
+  if is_cache_valid(current_hash) and next(_enabled_cache) then
     log:trace("[Tool Filter] Using cached enabled tools")
     return _enabled_cache
   end
@@ -33,6 +62,7 @@ local function get_enabled_tools(tools_config)
   log:trace("[Tool Filter] Computing enabled tools")
   _enabled_cache = {}
   _cache_timestamp = vim.loop.now()
+  _config_hash = current_hash
 
   for tool_name, tool_config in pairs(tools_config) do
     -- Skip special keys

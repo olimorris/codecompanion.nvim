@@ -58,6 +58,13 @@ function Agent.new(args)
   return self
 end
 
+---Refresh the tools configuration to pick up any dynamically added tools
+---@return CodeCompanion.Agent
+function Agent:refresh_tools()
+  self.tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools)
+  return self
+end
+
 ---Set the autocmds for the tool
 ---@return nil
 function Agent:set_autocmds()
