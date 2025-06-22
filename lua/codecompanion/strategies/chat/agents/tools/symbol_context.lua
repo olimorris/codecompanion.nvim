@@ -27,7 +27,7 @@ function SymbolFinder:get_filetype_pattern(filetype)
   return string.format("--type %s", filetype)
 end
 
---- Searches for a symbol in the workspace using grep (ripgrep)
+--- Searches for a symbol in the workspace using grep (ripgrep) and quickfix list
 --- @param symbol string Symbol to search for
 --- @param filetype string|nil File type to search in (optional)
 --- @return table|nil result Table with file, line, col, and text or nil if not found
@@ -542,7 +542,6 @@ Use this tool AT THE START of a coding task to gather context about code symbols
       log:trace("[Symbol Content Tool] on_exit handler executed")
       lsp_caller.symbol_data = {}
       lsp_caller.filetype = ""
-      return agent.chat:submit()
     end,
   },
   output = {
