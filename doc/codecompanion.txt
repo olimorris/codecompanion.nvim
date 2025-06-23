@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2025 June 20
+*codecompanion.txt*          For NVIM v0.11          Last change: 2025 June 23
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1442,10 +1442,11 @@ configuration:
         },
       },
     }),
-    
-    > [!TIP]
-    > The `window` settings can be overridden dynamically when calling `require("codecompanion").chat()` or `require("codecompanion").toggle()` by passing an `opts` table with a `window` key. For example: `require("codecompanion").toggle({ window = { layout = "float", width = 0.6 } })`
 <
+
+The chat buffer’s window settings may be overridden. For example:
+`require("codecompanion").toggle({ window = { layout = "float", width = 0.6 }
+})`
 
 
 DIFF ~
@@ -2024,18 +2025,6 @@ CHAT BUFFER                                  *codecompanion-usage-chat-buffer*
 You can open a chat buffer with the `:CodeCompanionChat` command or with
 `require("codecompanion").chat()`. You can toggle the visibility of the chat
 buffer with `:CodeCompanionChat Toggle` or `require("codecompanion").toggle()`.
-
-Additionally, both `require("codecompanion").chat()` and
-`require("codecompanion").toggle()` functions accept an optional `opts` table,
-which can be used to override the default window configuration for the chat
-buffer. This allows for dynamic control over its appearance and behavior.
-
-For example, to open the chat buffer in a floating window with a specific
-width:
-
->lua
-    require("codecompanion").toggle({ window = { layout = "float", width = 0.6 } })
-<
 
 The chat buffer uses markdown as its syntax and `H2` headers separate the user
 and LLM’s responses. The plugin is turn-based, meaning that the user sends a
