@@ -369,6 +369,8 @@ return {
       icons = {
         pinned_buffer = " ",
         watched_buffer = "👀 ",
+        tool_success = "!!",
+        tool_failure = "xx",
       },
       show_references = true,
       show_settings = false,

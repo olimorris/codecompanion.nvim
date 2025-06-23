@@ -1006,8 +1006,8 @@ You must create or modify a workspace file through a series of prompts over mult
       icons = {
         pinned_buffer = " ",
         watched_buffer = "󰂥 ",
-        tool_success = " ",
-        tool_failure = " ",
+        tool_success = "",
+        tool_failure = "",
       },
       debug_window = {
         ---@return number|fun(): number

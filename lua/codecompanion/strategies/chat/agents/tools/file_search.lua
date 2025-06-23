@@ -130,24 +130,21 @@ return {
     ---@param stdout table The output from the command
     success = function(self, agent, cmd, stdout)
       local chat = agent.chat
-
+      local query = self.args.query
       local data = stdout[1]
 
       local llm_output = "<fileSearchTool>%s</fileSearchTool>"
-      local user_message = "**File Search Tool**: %s"
       local output = vim.iter(stdout):flatten():join("\n")
 
       if type(data) == "table" then
         -- Files were found - data is an array of file paths
         local files = #data
-        chat:add_tool_output(
-          self,
-          fmt(llm_output, fmt("Returning %d files matching the query:\n%s", files, output)),
-          fmt(user_message, fmt("Returned %d files", files))
-        )
+        local results_msg = fmt("Searched files for `%s`, %d results\n```\n%s\n```", query, files, output)
+        chat:add_tool_output(self, fmt(llm_output, results_msg), results_msg)
       else
         -- No files found - data is a string message
-        chat:add_tool_output(self, fmt(llm_output, "No files found"), fmt(user_message, "No files found"))
+        local no_results_msg = fmt("Searched files for `%s`, no results", query)
+        chat:add_tool_output(self, fmt(llm_output, no_results_msg), no_results_msg)
       end
     end,
 
@@ -158,15 +155,17 @@ return {
     ---@param stdout? table The output from the command
     error = function(self, agent, cmd, stderr, stdout)
       local chat = agent.chat
+      local query = self.args.query
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[File Search Tool] Error output: %s", stderr)
 
       local error_output = fmt(
-        [[**File Search Tool**: Ran with an error:
+        [[Searched files for `%s`, error:
 
 ```txt
 %s
 ```]],
+        query,
         errors
       )
       chat:add_tool_output(self, error_output)

@@ -12,11 +12,10 @@ local yaml = require("codecompanion.utils.yaml")
 local api = vim.api
 
 local CONSTANTS = {
-  NS_HEADER = "CodeCompanion-headers",
-  NS_INTRO = "CodeCompanion-intro_message",
-  NS_TOKENS = "CodeCompanion-tokens",
-  NS_VIRTUAL_TEXT = "CodeCompanion-virtual_text",
-  NS_FOLD_MARKS = "CodeCompanion-fold_marks",
+  NS_HEADER = api.nvim_create_namespace("CodeCompanion-headers"),
+  NS_TOKENS = api.nvim_create_namespace("CodeCompanion-tokens"),
+  NS_VIRTUAL_TEXT = api.nvim_create_namespace("CodeCompanion-virtual_text"),
+  NS_FOLD_MARKS = api.nvim_create_namespace("CodeCompanion-fold_marks"),
 
   AUTOCMD_GROUP = "codecompanion.chat.ui",
 }
@@ -45,7 +44,6 @@ function UI.new(args)
     adapter = args.adapter,
     chat_bufnr = args.chat_bufnr,
     chat_id = args.chat_id,
-    header_ns = api.nvim_create_namespace(CONSTANTS.NS_HEADER),
     pending_fold = nil,
     roles = args.roles,
     settings = args.settings,
@@ -62,50 +60,11 @@ function UI.new(args)
     once = true,
     desc = "Clear the virtual text in the CodeCompanion chat buffer",
     callback = function()
-      local ns_id = api.nvim_create_namespace(CONSTANTS.NS_VIRTUAL_TEXT)
-      api.nvim_buf_clear_namespace(self.chat_bufnr, ns_id, 0, -1)
+      api.nvim_buf_clear_namespace(self.chat_bufnr, CONSTANTS.NS_VIRTUAL_TEXT, 0, -1)
     end,
   })
 
   return self
-end
-
----Ensure that everytime we action a fold, we call this method
----@return nil
-function UI:setup_foldtext()
-  api.nvim_win_set_option(self.winnr, "foldtext", 'v:lua.require("codecompanion.strategies.chat.ui").foldtext()')
-end
-
----GLOBAL method which is called when text is folded in the chat buffer
----@return table
-function UI.foldtext()
-  local bufnr = api.nvim_get_current_buf()
-  local start0 = vim.v.foldstart - 1
-
-  -- get stored summary, or fall back to the real line
-  local tbl = UI.fold_summaries[bufnr] or {}
-  local summary = tbl[start0] or api.nvim_buf_get_lines(bufnr, start0, start0 + 1, false)[1] or ""
-
-  -- pick icon + highlight based on the word “error”
-  local icon_conf, icon_hl, summary_hl
-  if summary:lower():find("error") then
-    icon_conf = config.display.chat.icons.tool_failure
-    icon_hl = "CodeCompanionChatToolFailureIcon"
-    summary_hl = "CodeCompanionChatToolFailure"
-  else
-    icon_conf = config.display.chat.icons.tool_success
-    icon_hl = "CodeCompanionChatToolSuccessIcon"
-    summary_hl = "CodeCompanionChatToolSuccess"
-  end
-
-  local chunks = {}
-  if icon_conf then
-    local icon = " " .. icon_conf .. " "
-    table.insert(chunks, { icon, icon_hl })
-  end
-  table.insert(chunks, { summary, summary_hl })
-
-  return chunks
 end
 
 ---Open/create the chat window
@@ -386,14 +345,14 @@ function UI:render_headers()
     if content:match("^## " .. vim.pesc(self.roles.user)) or content:match("^## " .. vim.pesc(llm_role)) then
       local col = vim.fn.strwidth(content) - vim.fn.strwidth(separator)
 
-      api.nvim_buf_set_extmark(self.chat_bufnr, self.header_ns, line - 1, col, {
+      api.nvim_buf_set_extmark(self.chat_bufnr, CONSTANTS.NS_HEADER, line - 1, col, {
         virt_text_win_col = col,
         virt_text = { { string.rep(separator, vim.go.columns), "CodeCompanionChatSeparator" } },
         priority = 100,
       })
 
       -- Set the highlight group for the header
-      api.nvim_buf_set_extmark(self.chat_bufnr, self.header_ns, line - 1, 0, {
+      api.nvim_buf_set_extmark(self.chat_bufnr, CONSTANTS.NS_HEADER, line - 1, 0, {
         end_col = col + 1,
         hl_group = "CodeCompanionChatHeader",
       })
@@ -430,9 +389,8 @@ end
 ---@return number The id of the extmark
 function UI:set_virtual_text(message, method, range)
   range = range or { api.nvim_buf_line_count(self.chat_bufnr) - 1, 0 }
-  self.virtual_text_ns = api.nvim_create_namespace(CONSTANTS.NS_VIRTUAL_TEXT)
 
-  return api.nvim_buf_set_extmark(self.chat_bufnr, self.virtual_text_ns, range[1], range[2], {
+  return api.nvim_buf_set_extmark(self.chat_bufnr, CONSTANTS.NS_VIRTUAL_TEXT, range[1], range[2], {
     virt_text = { { message, "CodeCompanionVirtualText" } },
     virt_text_pos = method or "eol",
   })
@@ -442,7 +400,7 @@ end
 ---@param extmark_id number The id of the extmark to delete
 ---@return nil
 function UI:clear_virtual_text(extmark_id)
-  api.nvim_buf_del_extmark(self.chat_bufnr, self.virtual_text_ns, extmark_id)
+  api.nvim_buf_del_extmark(self.chat_bufnr, CONSTANTS.NS_VIRTUAL_TEXT, extmark_id)
 end
 
 ---Get the last line, column and line count in the chat buffer
@@ -473,9 +431,8 @@ function UI:display_tokens(parser, start_row)
   if config.display.chat.show_token_count and self.tokens then
     local to_display = config.display.chat.token_count
     if type(to_display) == "function" then
-      local ns_id = api.nvim_create_namespace(CONSTANTS.NS_TOKENS)
       to_display = to_display(self.tokens, self.adapter)
-      require("codecompanion.utils.tokens").display(to_display, ns_id, parser, start_row, self.chat_bufnr)
+      require("codecompanion.utils.tokens").display(to_display, CONSTANTS.NS_TOKENS, parser, start_row, self.chat_bufnr)
     end
   end
 end
@@ -532,32 +489,91 @@ function UI:fold_code()
   return self
 end
 
----Fold a range of lines in the chat buffer
+---Format the tool output that will be displayed in the chat buffer
+---@param content string The content from the tool
+---@param opts? table Options for formatting
+---@return table[]  list of {text, hl_group}
+local function format_tool_content(content, opts)
+  opts = opts or {}
+
+  local chunks = {}
+  content = vim.trim(content)
+
+  local icon_conf = config.display.chat.icons.tool_success or ""
+  local icon_hl = "CodeCompanionChatToolSuccessIcon"
+  local summary_hl = "CodeCompanionChatToolSuccess"
+
+  if content:lower():find("error") then
+    icon_conf = config.display.chat.icons.tool_failure or ""
+    icon_hl = "CodeCompanionChatToolFailureIcon"
+    summary_hl = "CodeCompanionChatToolFailure"
+  end
+
+  -- The first chunk is the icon, which is always shown
+  table.insert(chunks, { " " .. icon_conf .. " ", icon_hl })
+
+  if opts.show_icon_only then
+    return chunks
+  end
+
+  -- The second chunk is the content of the tool output, if it exists
+  table.insert(chunks, { content, summary_hl })
+
+  return chunks
+end
+
+---Ensure that everytime we action a fold, we call this method
+---@return nil
+function UI:setup_foldtext()
+  api.nvim_win_set_option(self.winnr, "foldtext", 'v:lua.require("codecompanion.strategies.chat.ui").foldtext()')
+end
+
+---Global method which Neovim calls when text is folded in the chat buffer
+---@return table
+function UI.foldtext()
+  local bufnr = api.nvim_get_current_buf()
+  local start = vim.v.foldstart - 1
+
+  local folds = UI.fold_summaries[bufnr] or {}
+  local lines = folds[start] or api.nvim_buf_get_lines(bufnr, start, start + 1, false)[1] or ""
+
+  return format_tool_content(lines)
+end
+
+---Create a fold with summary extmark in a single operation
 ---@param winnr number The window number where the fold should be applied
 ---@param bufnr number The buffer number where the fold should be applied
 ---@param start_row number The starting row of the fold (0-indexed)
 ---@param end_row number The ending row of the fold (0-indexed)
 ---@return nil
-local function fold_range(winnr, bufnr, start_row, end_row)
-  if start_row >= end_row then
-    return
-  end
-
+local function create_fold_with_summary(winnr, bufnr, start_row, end_row)
   local line = api.nvim_buf_get_lines(bufnr, start_row, start_row + 1, false)[1] or ""
-  UI.fold_summaries[bufnr] = UI.fold_summaries[bufnr] or {}
-  UI.fold_summaries[bufnr][start_row] = line
 
-  if winnr and api.nvim_win_is_valid(winnr) then
-    api.nvim_win_call(winnr, function()
-      if vim.wo.foldmethod ~= "manual" then
-        vim.wo.foldmethod = "manual"
-      end
+  api.nvim_buf_set_extmark(bufnr, CONSTANTS.NS_FOLD_MARKS, start_row, 0, {
+    virt_text = format_tool_content(line, { show_icon_only = true }),
+    virt_text_pos = "inline",
+    priority = 200,
+  })
+
+  -- We only create a fold if there is more than one line
+  if start_row < end_row then
+    UI.fold_summaries[bufnr] = UI.fold_summaries[bufnr] or {}
+    UI.fold_summaries[bufnr][start_row] = line
+
+    -- Make sure the fold method is set
+    if winnr and api.nvim_win_is_valid(winnr) then
+      api.nvim_win_call(winnr, function()
+        if vim.wo.foldmethod ~= "manual" then
+          vim.wo.foldmethod = "manual"
+        end
+      end)
+    end
+
+    -- And create the fold
+    api.nvim_buf_call(bufnr, function()
+      vim.cmd(string.format("%d,%dfold", start_row + 1, end_row + 1))
     end)
   end
-
-  api.nvim_buf_call(bufnr, function()
-    vim.cmd(string.format("%d,%dfold", start_row + 1, end_row + 1))
-  end)
 end
 
 ---Format and potentially fold tool output in the chat buffer
@@ -586,7 +602,7 @@ function UI:fold_tool_output(opts)
   -- Folds are 0-indexed
   local end_line = api.nvim_buf_line_count(self.chat_bufnr) - 1
 
-  fold_range(self.winnr, self.chat_bufnr, self.pending_fold.start_line, end_line)
+  create_fold_with_summary(self.winnr, self.chat_bufnr, self.pending_fold.start_line, end_line)
   self.pending_fold = nil
 end
 

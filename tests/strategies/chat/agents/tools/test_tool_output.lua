@@ -135,4 +135,47 @@ T["Tool output"]["can be folded in the chat buffer"] = function()
   expect.reference_screenshot(child.get_screenshot())
 end
 
+T["Tool output"]["does not fold single line output but applies extmarks"] = function()
+  child.lua([[
+    _G.chat, _G.agent = h.setup_chat_buffer({
+      strategies = {
+        chat = {
+          tools = {
+            opts = {
+              folds = {
+                enabled = true,
+              }
+            }
+          }
+        }
+      }
+    })
+  ]])
+
+  child.lua([[
+    local chat = _G.chat
+
+    local tool = {
+      name = "weather",
+      function_call = {
+        ["function"] = {
+          arguments = '{"location": "London", "units": "celsius"}',
+          name = "weather",
+        },
+        id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+        type = "function",
+      },
+    }
+
+    chat:add_buf_message({
+      role = "llm",
+      content = "I've found some awesome weather data for you:"
+    })
+
+    chat:add_tool_output(tool, "**Weather Tool**: Ran successfully")
+  ]])
+
+  expect.reference_screenshot(child.get_screenshot())
+end
+
 return T

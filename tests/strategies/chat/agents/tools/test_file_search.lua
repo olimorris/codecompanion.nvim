@@ -68,7 +68,10 @@ T["returns results"] = function()
   ]])
 
   local output = child.lua_get("chat.messages[#chat.messages].content")
-  h.eq("<fileSearchTool>Returning 1 files matching the query:\nsrc/components/Button.js</fileSearchTool>", output)
+  h.eq(
+    "<fileSearchTool>Searched files for `**/Button.js`, 1 results\n```\nsrc/components/Button.js\n```</fileSearchTool>",
+    output
+  )
 end
 
 T["can search for JavaScript files"] = function()
@@ -200,7 +203,7 @@ T["handles empty search results"] = function()
   ]])
 
   local output = child.lua_get("chat.messages[#chat.messages].content")
-  h.eq("No files found", string.match(output, "No files found"))
+  h.eq("<fileSearchTool>Searched files for `**/*.nonexistent`, no results</fileSearchTool>", output)
 end
 
 T["handles empty query"] = function()
@@ -217,7 +220,7 @@ T["handles empty query"] = function()
    ]])
 
   local output = child.lua_get("chat.messages[#chat.messages].content")
-  h.expect_contains("**File Search Tool**: Ran with an error:", output)
+  h.expect_contains("Searched files for ``, error:", output)
 end
 
 T["respects max_results parameter"] = function()
@@ -285,7 +288,7 @@ T["can return no files"] = function()
 
   local output = child.lua_get("chat.messages[#chat.messages].content")
 
-  h.eq("<fileSearchTool>No files found</fileSearchTool>", output)
+  h.eq("<fileSearchTool>Searched files for `src/**/test*`, no results</fileSearchTool>", output)
 end
 
 return T
