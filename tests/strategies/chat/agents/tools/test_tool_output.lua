@@ -100,12 +100,10 @@ local chat_buffer_output = function(c)
       },
     }
 
-    chat:add_buf_message({
-      role = "llm",
-      content = "I've found some awesome weather data for you:"
+    h.make_tool_call(chat, tool, "**Weather Tool**: Ran successfully:\nTemperature: 20°C\nCondition: Sunny\nPrecipitation: 0%", {
+      llm_initial_response = "I've found some awesome weather data for you:",
+      llm_final_response = "Let me know if you need anything else!",
     })
-
-    chat:add_tool_output(tool, "**Weather Tool**: Ran successfully:\nTemperature: 20°C\nCondition: Sunny\nPrecipitation: 0%\n")
   ]])
 end
 
@@ -137,43 +135,40 @@ end
 
 T["Tool output"]["does not fold single line output but applies extmarks"] = function()
   child.lua([[
-    _G.chat, _G.agent = h.setup_chat_buffer({
-      strategies = {
-        chat = {
-          tools = {
-            opts = {
-              folds = {
-                enabled = true,
-              }
-            }
-          }
-        }
-      }
-    })
-  ]])
+     _G.chat, _G.agent = h.setup_chat_buffer({
+       strategies = {
+         chat = {
+           tools = {
+             opts = {
+               folds = {
+                 enabled = true,
+               }
+             }
+           }
+         }
+       }
+     })
+   ]])
 
   child.lua([[
-    local chat = _G.chat
+     local chat = _G.chat
 
-    local tool = {
-      name = "weather",
-      function_call = {
-        ["function"] = {
-          arguments = '{"location": "London", "units": "celsius"}',
-          name = "weather",
-        },
-        id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
-        type = "function",
-      },
-    }
+     local tool = {
+       name = "weather",
+       function_call = {
+         ["function"] = {
+           arguments = '{"location": "London", "units": "celsius"}',
+           name = "weather",
+         },
+         id = "call_RJU6xfk0OzQF3Gg9cOFS5RY7",
+         type = "function",
+       },
+     }
 
-    chat:add_buf_message({
-      role = "llm",
-      content = "I've found some awesome weather data for you:"
+    h.make_tool_call(chat, tool, "**Weather Tool**: Ran successfully", {
+      llm_initial_response = "I've found some awesome weather data for you:",
     })
-
-    chat:add_tool_output(tool, "**Weather Tool**: Ran successfully")
-  ]])
+   ]])
 
   expect.reference_screenshot(child.get_screenshot())
 end

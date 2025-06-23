@@ -213,11 +213,8 @@ local function ready_chat_buffer(chat, opts)
   -- If we're automatically responding to a tool output, we need to leave some
   -- space for the LLM's response so we can then display the user prompt again
   if opts.auto_submit then
-    chat:add_buf_message({
-      role = config.constants.LLM_ROLE,
-      content = "\n\n",
-      opts = { visible = true },
-    })
+    chat:add_line_break()
+    chat:add_line_break()
   end
 
   log:info("Chat request finished")
@@ -538,7 +535,6 @@ function Chat.new(args)
       return bufnr
     end,
     _chat_has_reasoning = false,
-    _tool_output_has_llm_response = false,
   }, { __index = Chat })
 
   self.bufnr = self.create_buf()
@@ -803,6 +799,28 @@ function Chat:remove_tagged_message(tag)
     :totable()
 end
 
+---Return the last message in the chat buffer by a given tag
+---@param opts? { tag?: string, offset?: number }
+---@return table|nil
+function Chat:get_last_message(opts)
+  opts = opts or {}
+
+  local index = #self.messages
+  if opts.offset then
+    index = index - opts.offset
+  end
+
+  if not opts.tag then
+    return self.messages[index]
+  end
+
+  if self.messages[index].opts.tag == opts.tag then
+    return self.messages[index]
+  end
+
+  return nil
+end
+
 ---Add a message to the message table
 ---@param data { role: string, content: string, tool_calls?: table }
 ---@param opts? table Options for the message
@@ -952,10 +970,7 @@ function Chat:submit(opts)
               result.output.role = config.constants.LLM_ROLE
             end
             table.insert(output, result.output.content)
-            self:add_buf_message(result.output)
-            if result.output.content ~= "" and not self._tool_output_has_llm_response then
-              self._tool_output_has_llm_response = true
-            end
+            self:add_buf_message(result.output, { tag = "llm_message" })
           elseif self.status == CONSTANTS.STATUS_ERROR then
             log:error("Error: %s", result.output)
             return self:done(output)
@@ -1000,7 +1015,7 @@ function Chat:done(output, tools)
       self:add_message({
         role = config.constants.LLM_ROLE,
         content = content,
-      })
+      }, { tag = "llm_message" })
     end
   end
 
@@ -1009,9 +1024,9 @@ function Chat:done(output, tools)
     self:add_message({
       role = config.constants.LLM_ROLE,
       tool_calls = tools,
-      opts = {
-        visible = false,
-      },
+    }, {
+      tag = "llm_tool_calls",
+      visible = false,
     })
     return self.agents:execute(self, tools)
   end
@@ -1219,6 +1234,31 @@ function Chat:close()
   self = nil
 end
 
+---Add a line break to the chat buffer
+---@return nil
+function Chat:add_line_break()
+  local _, _, line_count = self.ui:last()
+
+  self.ui:unlock_buf()
+  vim.api.nvim_buf_set_lines(self.bufnr, line_count, line_count, false, { "" })
+  self.ui:lock_buf()
+
+  self:move_cursor(true)
+end
+
+---Update the cursor position in the chat buffer
+---@param cursor_has_moved boolean Sometimes
+---@return nil
+function Chat:move_cursor(cursor_has_moved)
+  if config.display.chat.auto_scroll then
+    if cursor_has_moved and self.ui:is_active() then
+      self.ui:follow()
+    elseif not self.ui:is_active() then
+      self.ui:follow()
+    end
+  end
+end
+
 ---Add a message directly to the chat buffer. This will be visible to the user
 ---@param data table
 ---@param opts? table
@@ -1229,29 +1269,48 @@ function Chat:add_buf_message(data, opts)
   local bufnr = self.bufnr
   local new_response = false
 
+  ---Insert a line break into the lines table
+  local function spacer()
+    table.insert(lines, "")
+    log:info("Calling Spacer. Current role is %s", self.last_role)
+  end
+
+  ---Add new data to the lines table, taking care of newlines
+  ---@param text string The text to write to the chat buffer
   local function write(text)
     for _, t in ipairs(vim.split(text, "\n", { plain = true, trimempty = false })) do
       table.insert(lines, t)
     end
   end
 
-  -- Add a new header to the chat buffer
-  local function new_role()
+  --Add a new role via a header to the chat buffer
+  local function add_header()
     new_response = true
     self.last_role = data.role
-    table.insert(lines, "")
-    table.insert(lines, "")
+    if self:get_last_message({ tag = "tool_output" }) then
+      -- We only need one spacer as the tool output adds a line break
+      spacer()
+    else
+      spacer()
+      spacer()
+    end
     self.ui:set_header(lines, config.strategies.chat.roles[data.role])
   end
 
-  -- Add data to the chat buffer
+  ---Append data to the lines table, taking into account the type of data that is being added
   local function append_data()
+    local last_message = self:get_last_message()
+
     -- Tool output
     if opts and opts.tag == "tool_output" then
-      if self._tool_output_has_llm_response then
-        table.insert(lines, "")
+      -- We need to always offset by two as the last message will be the LLM calling the tool
+      last_message = self:get_last_message({ offset = 2 })
+
+      -- Add a spacer between the tool output and the LLM's initial response
+      if last_message and last_message.opts.tag == "llm_message" then
+        spacer()
+        spacer()
       end
-      table.insert(lines, "")
       return write(data.content or "")
     end
 
@@ -1259,7 +1318,7 @@ function Chat:add_buf_message(data, opts)
     if data.reasoning then
       if not self._chat_has_reasoning then
         table.insert(lines, "### Reasoning")
-        table.insert(lines, "")
+        spacer()
       end
       self._chat_has_reasoning = true
       write(data.reasoning)
@@ -1269,15 +1328,19 @@ function Chat:add_buf_message(data, opts)
     if data.content then
       if self._chat_has_reasoning then
         self._chat_has_reasoning = false -- LLMs *should* do reasoning first then output after
-        table.insert(lines, "")
-        table.insert(lines, "")
+        spacer()
+        spacer()
+        --TODO: Fold the reasoning output
         table.insert(lines, "### Response")
-        table.insert(lines, "")
+        spacer()
+      elseif last_message and last_message.opts.tag == "tool_output" then
+        spacer()
       end
       write(data.content)
     end
   end
 
+  ---Ready and update the chat buffer with the data in lines
   local function update_buffer()
     self.ui:unlock_buf()
     local last_line, last_column, line_count = self.ui:last()
@@ -1297,26 +1360,13 @@ function Chat:add_buf_message(data, opts)
       self.ui:lock_buf()
     end
 
-    if config.display.chat.auto_scroll then
-      if cursor_moved and self.ui:is_active() then
-        self.ui:follow()
-      elseif not self.ui:is_active() then
-        self.ui:follow()
-      end
-    end
+    self:move_cursor(cursor_moved)
   end
 
-  -- Handle a new role
   if (data.role and data.role ~= self.last_role) or (opts and opts.force_role) then
-    new_role()
+    add_header()
   end
 
-  -- If someone just printed an LLM response, the tool output should be properly spaced
-  if data.role == config.constants.LLM_ROLE then
-    self._tool_output_has_llm_response = true
-  end
-
-  -- Append the output from the LLM
   if data.content or data.reasoning then
     append_data()
     update_buffer()
@@ -1340,6 +1390,7 @@ function Chat:add_tool_output(tool, for_llm, for_user)
     visible = true,
   })
 
+  -- Ensure that tool output is merged if it has the same tool call ID
   local existing = find_tool_call(tool_call.id, self.messages)
   if existing then
     existing.content = existing.content .. "\n\n" .. output.content
@@ -1357,7 +1408,9 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   for_user = for_user or for_llm
   self:add_buf_message({
     role = config.constants.LLM_ROLE,
-    content = for_user,
+    -- HACK: We add a blank line to ensure that the tool output can be folded properly.
+    -- Folds can't work if the boundary is the last line in the buffer.
+    content = for_user .. "\n",
   }, { tag = "tool_output" })
 
   self.ui:fold_tool_output({ spacing = 1 })
@@ -1367,7 +1420,6 @@ end
 ---@return nil
 function Chat:reset()
   self._chat_has_reasoning = false
-  self._tool_output_has_llm_response = false
   self.status = ""
   self.ui:unlock_buf()
 end

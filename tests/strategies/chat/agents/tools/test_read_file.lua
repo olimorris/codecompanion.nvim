@@ -80,7 +80,7 @@ end
 
 T["can only read files that exist"] = function()
   child.lua([[
-    require("tests.log")
+    --require("tests.log")
     local tool = {
       {
         ["function"] = {

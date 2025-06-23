@@ -219,6 +219,11 @@ return {
           wait_timeout = 3000,
           folds = {
             enabled = false,
+            failure_words = {
+              "error",
+              "failed",
+              "invalid",
+            },
           },
         },
       },

@@ -108,6 +108,48 @@ Helpers.teardown_chat_buffer = function()
   package.loaded["codecompanion.utils.bar_again"] = nil
 end
 
+---Simulates a real tool call in a chat buffer
+---@param chat CodeCompanion.Chat
+---@param tool_call table The tool call data
+---@param tool_output string The output from the tool
+---@param messages? table Additional messages to add to the chat
+Helpers.make_tool_call = function(chat, tool_call, tool_output, messages)
+  messages = messages or {}
+
+  -- Firstly, add the LLM's intro message before the tool call
+  if messages.llm_initial_response then
+    chat:add_buf_message({
+      role = "llm",
+      content = messages.llm_initial_response,
+    })
+    chat:add_message({
+      role = "llm",
+      content = messages.llm_initial_response,
+    }, { tag = "llm_message" })
+  end
+
+  -- Then add the LLM's tool call
+  chat:add_message({
+    role = "llm",
+    tool_calls = tool_call.function_call,
+  }, { tag = "llm_tool_calls", visible = false })
+
+  -- Then add the tool output
+  chat:add_tool_output(tool_call, tool_output)
+
+  -- Finally, add any LLM messages
+  if messages.llm_final_response then
+    chat:add_buf_message({
+      role = "llm",
+      content = messages.llm_final_response,
+    })
+    chat:add_message({
+      role = "llm",
+      content = messages.llm_final_response,
+    }, { tag = "llm_message" })
+  end
+end
+
 ---Get the lines of a buffer
 ---@param bufnr number
 ---@return table

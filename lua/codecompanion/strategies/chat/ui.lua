@@ -20,6 +20,8 @@ local CONSTANTS = {
   AUTOCMD_GROUP = "codecompanion.chat.ui",
 }
 
+local tool_icons = config.display.chat.icons
+
 ---Set the LLM role based on the adapter
 ---@param role string|function
 ---@param adapter table
@@ -499,14 +501,17 @@ local function format_tool_content(content, opts)
   local chunks = {}
   content = vim.trim(content)
 
-  local icon_conf = config.display.chat.icons.tool_success or ""
+  local icon_conf = tool_icons.tool_success or ""
   local icon_hl = "CodeCompanionChatToolSuccessIcon"
   local summary_hl = "CodeCompanionChatToolSuccess"
 
-  if content:lower():find("error") then
-    icon_conf = config.display.chat.icons.tool_failure or ""
-    icon_hl = "CodeCompanionChatToolFailureIcon"
-    summary_hl = "CodeCompanionChatToolFailure"
+  for _, word in ipairs(config.strategies.chat.tools.opts.folds.failure_words) do
+    if content:lower():find(word) then
+      icon_conf = tool_icons.tool_failure or ""
+      icon_hl = "CodeCompanionChatToolFailureIcon"
+      summary_hl = "CodeCompanionChatToolFailure"
+      break
+    end
   end
 
   -- The first chunk is the icon, which is always shown
@@ -548,7 +553,6 @@ end
 ---@return nil
 local function create_fold_with_summary(winnr, bufnr, start_row, end_row)
   local line = api.nvim_buf_get_lines(bufnr, start_row, start_row + 1, false)[1] or ""
-
   api.nvim_buf_set_extmark(bufnr, CONSTANTS.NS_FOLD_MARKS, start_row, 0, {
     virt_text = format_tool_content(line, { show_icon_only = true }),
     virt_text_pos = "inline",
@@ -599,11 +603,11 @@ function UI:fold_tool_output(opts)
     self.pending_fold.start_line = self.pending_fold.start_line + opts.spacing
   end
 
-  -- Folds are 0-indexed
-  local end_line = api.nvim_buf_line_count(self.chat_bufnr) - 1
-
-  create_fold_with_summary(self.winnr, self.chat_bufnr, self.pending_fold.start_line, end_line)
-  self.pending_fold = nil
+  vim.schedule(function()
+    local end_line = api.nvim_buf_line_count(self.chat_bufnr) - 1 -- Folds are 0-indexed
+    create_fold_with_summary(self.winnr, self.chat_bufnr, self.pending_fold.start_line, end_line)
+    self.pending_fold = nil
+  end)
 end
 
 ---Lock the chat buffer from editing

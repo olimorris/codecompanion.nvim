@@ -152,6 +152,12 @@ local defaults = {
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
           folds = {
             enabled = true, -- Fold tool output in the buffer?
+            failure_words = { -- Words that indicate an error in the tool output. Used to apply failure highlighting
+              "error",
+              "failed",
+              "invalid",
+              "rejected",
+            },
           },
           wait_timeout = 30000, -- How long to wait for user input before timing out (milliseconds)
 
