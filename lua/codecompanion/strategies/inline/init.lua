@@ -294,15 +294,17 @@ function Inline:prompt(user_prompt)
   -- From the prompt library, user's can explicitly ask to be prompted for input
   if self.opts and self.opts.user_prompt then
     local title = string.gsub(self.context.filetype, "^%l", string.upper)
-    vim.ui.input({ prompt = title .. " " .. config.display.action_palette.prompt }, function(input)
-      if not input then
-        return
-      end
+    vim.schedule(function()
+      vim.ui.input({ prompt = title .. " " .. config.display.action_palette.prompt }, function(input)
+        if not input then
+          return
+        end
 
-      log:info("[Inline] User input received: %s", input)
-      add_prompt("<prompt>" .. input .. "</prompt>", user_role)
-      self.prompts = prompts
-      return self:submit(vim.deepcopy(prompts))
+        log:info("[Inline] User input received: %s", input)
+        add_prompt("<prompt>" .. input .. "</prompt>", user_role)
+        self.prompts = prompts
+        return self:submit(vim.deepcopy(prompts))
+      end)
     end)
   else
     self.prompts = prompts
