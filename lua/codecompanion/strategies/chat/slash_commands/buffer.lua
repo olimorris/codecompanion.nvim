@@ -156,9 +156,9 @@ function SlashCommand:output(selected, opts)
   end
   opts = opts or {}
 
-  local message = "Here is the content from a file"
+  local message = "Here is the content from a file (including line numbers)"
   if opts.pin then
-    message = "Here is the updated content from a file"
+    message = "Here is the updated content from a file (including line numbers)"
   end
 
   local ok, content, id, filename = pcall(buf.format_for_llm, selected, { message = message })

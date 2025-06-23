@@ -11,12 +11,28 @@ The `[PATCH]` is the series of diffs to be applied for each change in the file. 
 +[new code]
  [3 lines of post-context]
 
-The context blocks are 3 lines of existing code, immediately before and after the modified lines of code. Lines to be modified should be prefixed with a `+` or `-` sign. Unmodified lines used in context should begin with an empty space ` `.
+The context blocks are 3 lines of existing code, immediately before and after the modified lines of code.
+Lines to be modified should be prefixed with a `+` or `-` sign.
+Unmodified lines used in context should begin with an empty space ` `.
 
-Multiple blocks of diffs should be separated by an empty line and `@@[identifier]` detailed below.
+For example, to add a subtract method to a calculator class in Python:
 
+*** Begin Patch
+ def add(self, value):
+     self.result += value
+     return self.result
+
++def subtract(self, value):
++    self.result -= value
++    return self.result
++
+ def multiply(self, value):
+     self.result *= value
+     return self.result
+*** End Patch
+
+Multiple blocks of diffs should be separated by an empty line and `@@[identifier]` as detailed below.
 The immediately preceding and after context lines are enough to locate the lines to edit. DO NOT USE line numbers anywhere in the patch.
-
 You can use `@@[identifier]` to define a larger context in case the immediately before and after context is not sufficient to locate the edits. Example:
 
 @@class BaseClass(models.Model):
@@ -26,7 +42,6 @@ You can use `@@[identifier]` to define a larger context in case the immediately 
  [3 lines of post-context]
 
 You can also use multiple `@@[identifiers]` to provide the right context if a single `@@` is not sufficient.
-
 Example with multiple blocks of changes and `@@` identifiers:
 
 *** Begin Patch
@@ -41,7 +56,8 @@ Example with multiple blocks of changes and `@@` identifiers:
 +		raise NotImplementedError()
 *** End Patch
 
-This format is a bit similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.]]
+This format is similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.
+IMPORTANT: Be mindful that the user may have shared attachments that contain line numbers, but these should NEVER be used in your patch. Always use the contextual format described above.]]
 
 ---@class Change
 ---@field focus string[] Identifiers or lines for providing large context before a change
@@ -86,7 +102,7 @@ local function parse_changes_from_patch(patch)
     elseif line == "" and lines[i + 1] and lines[i + 1]:match("^@@") then
       -- empty lines can be part of pre/post context
       -- we treat empty lines as new change block and not as post context
-      -- only when the the next line uses @@ identifier
+      -- only when the next line uses @@ identifier
       table.insert(changes, change)
       change = get_new_change()
     elseif line:sub(1, 1) == "-" then
@@ -115,14 +131,20 @@ end
 
 ---Parse the full raw string from LLM for all patches, returning all Change objects parsed.
 ---@param raw string Raw text containing patch blocks
----@return Change[] All parsed Change objects
+---@return Change[], boolean All parsed Change objects, and whether the patch was properly parsed
 function M.parse_changes(raw)
   local patches = {}
   for patch in raw:gmatch("%*%*%* Begin Patch%s+(.-)%s+%*%*%* End Patch") do
     table.insert(patches, patch)
   end
+
+  local had_begin_end_markers = true
   if #patches == 0 then
-    error("Invalid patch format: missing Begin/End markers")
+    --- LLMs miss the begin / end markers sometimes
+    --- let's assume the raw content was correctly wrapped in these cases
+    --- setting a `markers_error` so that we can show this error in case the patch fails to apply
+    had_begin_end_markers = false
+    table.insert(patches, raw)
   end
 
   local all_changes = {}
@@ -132,7 +154,7 @@ function M.parse_changes(raw)
       table.insert(all_changes, change)
     end
   end
-  return all_changes
+  return all_changes, had_begin_end_markers
 end
 
 ---Score how many lines from needle match haystack lines.
@@ -190,7 +212,7 @@ end
 ---Determine best insertion spot for a Change and its match score.
 ---@param lines string[] File lines
 ---@param change Change Patch block
----@return integer,number location (1-based), Score (0-1)
+---@return integer, number location (1-based), Score (0-1)
 local function get_best_location(lines, change)
   -- try applying patch in flexible spaces mode
   -- there is no standardised way to of spaces in diffs
@@ -202,7 +224,7 @@ local function get_best_location(lines, change)
   -- trim_spaces mode solves all of these
   local best_location = 1
   local best_score = 0
-  for i = 1, #lines do
+  for i = 1, #lines + 1 do
     local score = get_match_score(lines, change, i)
     if score == 1 then
       return i, 1

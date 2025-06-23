@@ -36,6 +36,7 @@ jobs:
 
       - name: Prepare Neovim 🏗️
         run: |
+          sudo apt-get install ripgrep
           test -d _neovim || {
             mkdir -p _neovim
             curl -sL ${{ matrix.url }} | tar xzf - --strip-components=1 -C "${PWD}/_neovim"
