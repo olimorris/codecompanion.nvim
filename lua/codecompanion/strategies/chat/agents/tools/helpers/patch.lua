@@ -103,8 +103,9 @@ local function parse_changes_from_patch(patch)
       -- empty lines can be part of pre/post context
       -- we treat empty lines as new change block and not as post context
       -- only when the next line uses @@ identifier
-      table.insert(changes, change)
-      change = get_new_change()
+      -- skip this line and do nothing
+      do
+      end
     elseif line:sub(1, 1) == "-" then
       if #change.post > 0 then
         -- edits after post edit lines are new block of changes with same focus
@@ -134,7 +135,7 @@ end
 ---@return Change[], boolean All parsed Change objects, and whether the patch was properly parsed
 function M.parse_changes(raw)
   local patches = {}
-  for patch in raw:gmatch("%*%*%* Begin Patch%s+(.-)%s+%*%*%* End Patch") do
+  for patch in raw:gmatch("%*%*%* Begin Patch[\r\n]+(.-)[\r\n]+%*%*%* End Patch") do
     table.insert(patches, patch)
   end
 

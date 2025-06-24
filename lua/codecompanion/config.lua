@@ -1010,8 +1010,8 @@ You must create or modify a workspace file through a series of prompts over mult
     },
     chat = {
       icons = {
-        pinned_buffer = " ",
-        watched_buffer = "󰂥 ",
+        buffer_pin = " ",
+        buffer_watch = "󰂥 ",
         tool_success = "",
         tool_failure = "",
       },
