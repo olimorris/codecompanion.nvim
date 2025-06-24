@@ -166,6 +166,10 @@ function SlashCommand:output(selected, opts)
     return log:warn(content)
   end
 
+  if opts.description then
+    content = opts.description .. "\n\n" .. content
+  end
+
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = content,

@@ -108,7 +108,7 @@ T["Workspace"]["can open a file as a buffer if it's already open"] = function()
 
   local messages = child.lua_get([[_G.chat.messages]])
 
-  h.expect_starts_with('<attachment filepath="tests/stubs/stub.go" buffer_number=', messages[5].content)
+  h.expect_starts_with([[Test description for the file stub.go located at tests/stubs/stub.go]], messages[5].content)
 end
 
 T["Workspace"]["top-level prompts are not duplicated and are ordered correctly"] = function()
