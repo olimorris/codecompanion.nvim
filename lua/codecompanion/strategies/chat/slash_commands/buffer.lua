@@ -192,7 +192,9 @@ function SlashCommand:output(selected, opts)
     source = "codecompanion.strategies.chat.slash_commands.buffer",
   })
 
-  util.notify(fmt("Added buffer `%s` to the chat", filename))
+  if not opts.silent then
+    util.notify(fmt("Added buffer `%s` to the chat", filename))
+  end
 end
 
 return SlashCommand

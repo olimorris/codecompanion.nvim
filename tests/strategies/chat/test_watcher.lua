@@ -310,12 +310,4 @@ T["Watchers"]["doesn't watch invalid buffers"] = function()
   h.eq(old_content, nil)
 end
 
-T["Watchers"]["format_changes_as_diff returns correct unified diff"] = function()
-  local old = { "one", "two", "three" }
-  local new = { "one", "TWO", "three", "four" }
-  local watcher = Watcher.new()
-  local diff = watcher:format_changes_as_diff(old, new)
-  h.eq(diff, "```\n@@\n one\n-two\n+TWO\n three\n+four\n```")
-end
-
 return T

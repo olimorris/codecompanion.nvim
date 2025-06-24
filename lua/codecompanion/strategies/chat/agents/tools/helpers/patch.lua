@@ -135,7 +135,7 @@ end
 ---@return Change[], boolean All parsed Change objects, and whether the patch was properly parsed
 function M.parse_changes(raw)
   local patches = {}
-  for patch in raw:gmatch("%*%*%* Begin Patch%s+(.-)%s+%*%*%* End Patch") do
+  for patch in raw:gmatch("%*%*%* Begin Patch[\r\n]+(.-)[\r\n]+%*%*%* End Patch") do
     table.insert(patches, patch)
   end
 
