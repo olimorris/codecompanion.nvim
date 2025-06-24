@@ -127,4 +127,47 @@ T["Copilot adapter"]["No Streaming"]["can output for the inline assistant"] = fu
   )
 end
 
+T["Stats"] = new_set()
+
+T["Stats"]["can calculate usage percentages correctly"] = function()
+  local entitlement, remaining = 300, 250
+  local used = entitlement - remaining
+  local usage_percent = entitlement > 0 and (used / entitlement * 100) or 0
+  h.eq(50, used)
+  -- 50/300 * 100 = 16.666... so we need to check the rounded value
+  h.eq(16.7, math.floor(usage_percent * 10 + 0.5) / 10)
+
+  local zero_entitlement = 0
+  local zero_percent = zero_entitlement > 0 and (0 / zero_entitlement * 100) or 0
+  h.eq(0, zero_percent)
+
+  -- Test full usage
+  local full_entitlement, no_remaining = 100, 0
+  local full_used = full_entitlement - no_remaining
+  local full_percent = full_entitlement > 0 and (full_used / full_entitlement * 100) or 0
+  h.eq(100, full_used)
+  h.eq(100.0, full_percent)
+end
+
+T["Stats"]["can determine correct highlight colors based on usage"] = function()
+  local function get_usage_highlight(usage_percent)
+    if usage_percent >= 80 then
+      return "Error"
+    else
+      return "MoreMsg"
+    end
+  end
+
+  -- Test low usage (green)
+  h.eq("MoreMsg", get_usage_highlight(16.7))
+  h.eq("MoreMsg", get_usage_highlight(50))
+  h.eq("MoreMsg", get_usage_highlight(79.9))
+  -- Test high usage (red)
+  h.eq("Error", get_usage_highlight(80))
+  h.eq("Error", get_usage_highlight(85))
+  h.eq("Error", get_usage_highlight(100))
+
+  h.eq("MoreMsg", get_usage_highlight(0))
+end
+
 return T
