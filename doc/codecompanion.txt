@@ -156,13 +156,13 @@ VIM-PLUG ~
 
 >vim
     call plug#begin()
-    
+
     Plug 'nvim-lua/plenary.nvim'
     Plug 'nvim-treesitter/nvim-treesitter'
     Plug 'olimorris/codecompanion.nvim'
-    
+
     call plug#end()
-    
+
     lua << EOF
       require("codecompanion").setup()
     EOF
@@ -561,7 +561,7 @@ For an optimum plugin workflow, I recommend the following:
     vim.keymap.set({ "n", "v" }, "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
     vim.keymap.set({ "n", "v" }, "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
     vim.keymap.set("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true })
-    
+
     -- Expand 'cc' into 'CodeCompanion' in the command line
     vim.cmd([[cab cc CodeCompanion]])
 <
@@ -1397,10 +1397,10 @@ configuration:
         chat = {
           -- Change the default icons
           icons = {
-            pinned_buffer = " ",
-            watched_buffer = "👀 ",
+            buffer_pin = " ",
+            buffer_watch = "👀 ",
           },
-    
+
           -- Alter the sizing of the debug window
           debug_window = {
             ---@return number|fun(): number
@@ -1408,7 +1408,7 @@ configuration:
             ---@return number|fun(): number
             height = vim.o.lines - 2,
           },
-    
+
           -- Options to customize the UI of the chat buffer
           window = {
             layout = "vertical", -- float|vertical|horizontal|buffer
@@ -1431,7 +1431,7 @@ configuration:
               wrap = true,
             },
           },
-    
+
           ---Customize how tokens are displayed
           ---@param tokens number
           ---@param adapter CodeCompanion.Adapter
@@ -1492,7 +1492,7 @@ customized in the configuration:
             llm = function(adapter)
               return "CodeCompanion (" .. adapter.formatted_name .. ")"
             end,
-    
+
             ---The header name for your messages
             ---@type string
             user = "Me",
@@ -1723,9 +1723,9 @@ Custom prompts can be added as follows:
             {
               role = "user",
               content = [[I'm rewriting the documentation for my plugin CodeCompanion.nvim, as I'm moving to a vitepress website. Can you help me rewrite it?
-    
+
     I'm sharing my vitepress config file so you have the context of how the documentation website is structured in the `sidebar` section of that file.
-    
+
     I'm also sharing my `config.lua` file which I'm mapping to the `configuration` section of the sidebar.
     ]],
             },
@@ -1760,7 +1760,7 @@ The plugin comes with the following system prompt:
 
 >txt
     You are an AI programming assistant named "CodeCompanion". You are currently plugged in to the Neovim text editor on a user's machine.
-    
+
     Your core tasks include:
     - Answering general programming questions.
     - Explaining how the code in a Neovim buffer works.
@@ -1772,7 +1772,7 @@ The plugin comes with the following system prompt:
     - Proposing fixes for test failures.
     - Answering questions about Neovim.
     - Running tools.
-    
+
     You must:
     - Follow the user's requirements carefully and to the letter.
     - Keep your answers short and impersonal, especially if the user responds with context outside of your tasks.
@@ -1785,7 +1785,7 @@ The plugin comes with the following system prompt:
     - Use actual line breaks instead of '\n' in your response to begin new lines.
     - Use '\n' only when you want a literal backslash followed by a character 'n'.
     - All non-code responses must be in %s.
-    
+
     When given a task:
     1. Think step-by-step and describe your plan for what to build in pseudocode, written out in great detail, unless asked not to do so.
     2. Output the code in a single code block, being careful to only return relevant code.
@@ -1833,7 +1833,7 @@ lazy.nvim:
       "olimorris/codecompanion.nvim",
       dependencies = {
         -- Add mcphub.nvim as a dependency
-        "ravitemer/mcphub.nvim" 
+        "ravitemer/mcphub.nvim"
       }
     }
 <
@@ -1847,9 +1847,9 @@ lazy.nvim:
         mcphub = {
           callback = "mcphub.extensions.codecompanion",
           opts = {
-            make_vars = true,       
+            make_vars = true,
             make_slash_commands = true,
-            show_result_in_chat = true  
+            show_result_in_chat = true
           }
         }
       }
@@ -2406,45 +2406,45 @@ Below is the tool use status of various adapters and models in CodeCompanion:
   --------------------------------------------------------------------------------
   Adapter       Model                         Supported   Notes
   ------------- ---------------------------- ------------ ------------------------
-  Anthropic     claude-3-opus-20240229                    
+  Anthropic     claude-3-opus-20240229
 
-  Anthropic     claude-3-5-haiku-20241022                 
+  Anthropic     claude-3-5-haiku-20241022
 
-  Anthropic     claude-3-5-sonnet-20241022                
+  Anthropic     claude-3-5-sonnet-20241022
 
-  Anthropic     claude-3-7-sonnet-20250219                
+  Anthropic     claude-3-7-sonnet-20250219
 
-  Copilot       gpt-4o                                    
+  Copilot       gpt-4o
 
-  Copilot       gpt-4.1                                   
+  Copilot       gpt-4.1
 
-  Copilot       o1                                        
+  Copilot       o1
 
-  Copilot       o3-mini                                   
+  Copilot       o3-mini
 
-  Copilot       o4-mini                                   
+  Copilot       o4-mini
 
-  Copilot       claude-3-5-sonnet                         
+  Copilot       claude-3-5-sonnet
 
-  Copilot       claude-3-7-sonnet                         
+  Copilot       claude-3-7-sonnet
 
   Copilot       claude-3-7-sonnet-thought                 Doesn’t support function
                                                           calling
 
-  Copilot       gemini-2.0-flash-001                      
+  Copilot       gemini-2.0-flash-001
 
-  Copilot       gemini-2.5-pro                            
+  Copilot       gemini-2.5-pro
 
-  DeepSeek      deepseek-chat                             
+  DeepSeek      deepseek-chat
 
   DeepSeek      deepseek-reasoner                         Doesn’t support function
                                                           calling
 
-  Gemini        Gemini-2.0-flash                          
+  Gemini        Gemini-2.0-flash
 
-  Gemini        Gemini-2.5-pro-exp-03-25                  
+  Gemini        Gemini-2.5-pro-exp-03-25
 
-  Gemini        gemini-2.5-flash-preview                  
+  Gemini        gemini-2.5-flash-preview
 
   GitHub Models All                                       Not supported yet
 
@@ -2459,22 +2459,22 @@ Below is the tool use status of various adapters and models in CodeCompanion:
   OpenAI        All                                       Dependent on the model
   Compatible                                              and provider
 
-  OpenAI        gpt-3.5-turbo                             
+  OpenAI        gpt-3.5-turbo
 
-  OpenAI        gpt-4.1                                   
+  OpenAI        gpt-4.1
 
-  OpenAI        gpt-4                                     
+  OpenAI        gpt-4
 
-  OpenAI        gpt-4o                                    
+  OpenAI        gpt-4o
 
-  OpenAI        gpt-4o-mini                               
+  OpenAI        gpt-4o-mini
 
-  OpenAI        o1-2024-12-17                             
+  OpenAI        o1-2024-12-17
 
   OpenAI        o1-mini-2024-09-12                        Doesn’t support function
                                                           calling
 
-  OpenAI        o3-mini-2025-01-31                        
+  OpenAI        o3-mini-2025-01-31
 
   xAI           All                                       Not supported yet
   --------------------------------------------------------------------------------
@@ -2743,7 +2743,7 @@ Events can be hooked into as follows:
 
 >lua
     local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
-    
+
     vim.api.nvim_create_autocmd({ "User" }, {
       pattern = "CodeCompanionInline*",
       group = group,
@@ -2872,10 +2872,10 @@ statusline when a request is being sent to an LLM:
 
 >lua
     local M = require("lualine.component"):extend()
-    
+
     M.processing = false
     M.spinner_index = 1
-    
+
     local spinner_symbols = {
       "⠋",
       "⠙",
@@ -2889,13 +2889,13 @@ statusline when a request is being sent to an LLM:
       "⠏",
     }
     local spinner_symbols_len = 10
-    
+
     -- Initializer
     function M:init(options)
       M.super.init(self, options)
-    
+
       local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
-    
+
       vim.api.nvim_create_autocmd({ "User" }, {
         pattern = "CodeCompanionRequest*",
         group = group,
@@ -2908,7 +2908,7 @@ statusline when a request is being sent to an LLM:
         end,
       })
     end
-    
+
     -- Function that runs every time statusline is updated
     function M:update_status()
       if self.processing then
@@ -2918,7 +2918,7 @@ statusline when a request is being sent to an LLM:
         return nil
       end
     end
-    
+
     return M
 <
 
@@ -3168,7 +3168,7 @@ The chat buffer, which is structured like:
 
 >markdown
     ## Me
-    
+
     Explain Ruby in two words
 <
 
@@ -3233,7 +3233,7 @@ comes with some handy utility functions to work with this:
 >lua
     -- Put this at the top of your adapter
     local utils = require("codecompanion.utils.adapters")
-    
+
     handlers = {
       chat_output = function(self, data)
         data = utils.clean_streamed_data(data)
@@ -3278,7 +3278,7 @@ chat buffer, with:
         local output = {}
         ---
         local delta = json.choices[1].delta
-    
+
         if delta.content then
           output.content = delta.content
           output.role = delta.role or nil
@@ -3308,17 +3308,17 @@ we have data in our response:
     handlers = {
       chat_output = function(self, data)
         local output = {}
-    
+
         if data and data ~= "" then
           data = utils.clean_streamed_data(data)
           local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
-    
+
           local delta = json.choices[1].delta
-    
+
           if delta.content then
             output.content = delta.content
             output.role = delta.role or nil
-    
+
             return {
               status = "success",
               output = output,
@@ -3683,7 +3683,7 @@ builtin to the plugin as the `Code Advisor` action:
               role = "user",
               content = function(context)
                 local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-    
+
                 return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
               end,
               opts = {
@@ -3744,7 +3744,7 @@ advice on the code:
         role = "user",
         content = function(context)
           local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-    
+
           return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
         end,
         opts = {
@@ -3799,7 +3799,7 @@ Lets now take a look at the second prompt:
       role = "user",
       content = function(context)
         local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-    
+
         return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
       end,
       opts = {
@@ -4024,32 +4024,32 @@ please see the diagram below:
         participant A as Agent
         participant E as Tool Executor
         participant T as Tool
-    
+
         C->>L: Prompt
         L->>C: Response with Tool(s) request
-    
+
         C->>A: Parse response
-    
+
         loop For each detected tool
             A<<->>T: Resolve Tool config
             A->>A: Add Tool to queue
         end
-    
+
         A->>E: Begin executing Tools
-    
+
         loop While queue not empty
             E<<->>T: Fetch Tool implementation
-    
+
             E->>E: Setup handlers and output functions
             T<<->>E: handlers.setup()
-    
+
             alt
             Note over C,E: Some Tools require human approvals
                 E->>C: Prompt for approval
                 C->>E: User decision
             end
-    
-    
+
+
             alt
             Note over E,T: If Tool runs with success
                 T-->>A: Update stdout
@@ -4059,13 +4059,13 @@ please see the diagram below:
                 T-->>A: Update stderr
                 E<<->>T: output.error()
             end
-    
+
             Note over E,T: When Tool completes
             E<<->>T: handlers.on_exit()
         end
-    
+
         E-->>A: Fire autocmd
-    
+
         A->>A: reset()
 <
 
@@ -4175,7 +4175,7 @@ by use of ${} brackets. The now removed `@code_runner` tool used them as below:
       local temp_dir = temp_input:match("(.*/)")
       local lang = self.args.lang
       local code = self.args.code
-    
+
       return {
         code = code,
         lang = lang,
@@ -4209,20 +4209,20 @@ you can ignore it. For the purpose of our calculator example:
         local num1 = tonumber(args.num1)
         local num2 = tonumber(args.num2)
         local operation = args.operation
-    
+
         -- Validate input
         if not num1 then
           return { status = "error", data = "First number is missing or invalid" }
         end
-    
+
         if not num2 then
           return { status = "error", data = "Second number is missing or invalid" }
         end
-    
+
         if not operation then
           return { status = "error", data = "Operation is missing" }
         end
-    
+
         -- Perform the calculation
         local result
         if operation == "add" then
@@ -4239,7 +4239,7 @@ you can ignore it. For the purpose of our calculator example:
         else
           return { status = "error", data = "Invalid operation: must be add, subtract, multiply, or divide" }
         end
-    
+
         return { status = "success", data = result }
       end,
     },
@@ -4349,14 +4349,14 @@ For our calculator tool, our `system_prompt` could look something like:
 
 >lua
     system_prompt = [[## Calculator Tool (`calculator`)
-    
+
     ## CONTEXT
     - You have access to a calculator tool running within CodeCompanion, in Neovim.
     - You can use it to add, subtract, multiply or divide two numbers.
-    
+
     ### OBJECTIVE
     - Do a mathematical operation on two numbers when the user asks
-    
+
     ### RESPONSE
     - Always use the structure above for consistency.
     ]],
@@ -4471,20 +4471,20 @@ If we put this all together in our config:
                     local num1 = tonumber(args.num1)
                     local num2 = tonumber(args.num2)
                     local operation = args.operation
-    
+
                     -- Validate input
                     if not num1 then
                       return { status = "error", data = "First number is missing or invalid" }
                     end
-    
+
                     if not num2 then
                       return { status = "error", data = "Second number is missing or invalid" }
                     end
-    
+
                     if not operation then
                       return { status = "error", data = "Operation is missing" }
                     end
-    
+
                     -- Perform the calculation
                     local result
                     if operation == "add" then
@@ -4504,23 +4504,23 @@ If we put this all together in our config:
                         data = "Invalid operation: must be add, subtract, multiply, or divide",
                       }
                     end
-    
+
                     return { status = "success", data = result }
                   end,
                 },
                 system_prompt = [[## Calculator Tool (`calculator`)
-    
+
     ## CONTEXT
     - You have access to a calculator tool running within CodeCompanion, in Neovim.
     - You can use it to add, subtract, multiply or divide two numbers.
-    
+
     ### OBJECTIVE
     - Do a mathematical operation on two numbers when the user asks
-    
+
     ### RESPONSE
     - Always use the structure above for consistency.
     ]],
-    
+
                 schema = {
                   type = "function",
                   ["function"] = {
@@ -4637,7 +4637,7 @@ To account for the user being prompted for an approval, we can add a
 >lua
     output = {
       -- success and error functions remain the same ...
-    
+
       ---The message which is shared with the user when asking for their approval
       ---@param self CodeCompanion.Tool.Calculator
       ---@param agent CodeCompanion.Agent
@@ -4660,7 +4660,7 @@ You can also customize the output if a user rejects the approval:
 >lua
     output = {
       -- success, error and prompt functions remain the same ...
-    
+
       ---Rejection message back to the LLM
       ---@param self CodeCompanion.Tool.Calculator
       ---@param agent CodeCompanion.Agent
@@ -4824,20 +4824,20 @@ Let’s breakdown the prompts in that workflow:
           content = function()
             -- Leverage auto_tool_mode which disables the requirement of approvals and automatically saves any edited buffer
             vim.g.codecompanion_auto_tool_mode = true
-    
+
             -- Some clear instructions for the LLM to follow
             return [[### Instructions
-    
+
     Your instructions here
-    
+
     ### Steps to Follow
-    
+
     You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
-    
+
     1. Update the code in #buffer{watch} using the @insert_edit_into_file tool
     2. Then use the @cmd_runner tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
     3. Make sure you trigger both tools in the same response
-    
+
     We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
           end,
         },
@@ -5194,7 +5194,7 @@ Extensions are configured in your CodeCompanion setup:
         "author/codecompanion_history.nvim" -- history extension
       }
     }
-    
+
     -- Configure in your setup
     require("codecompanion").setup({
       extensions = {
@@ -5233,19 +5233,19 @@ exports:
     ---@field setup fun(opts: table) Function called when extension is loaded
     ---@field exports? table Functions exposed via codecompanion.extensions.your_extension
     local Extension = {}
-    
+
     ---Setup the extension
-    ---@param opts table Configuration options 
+    ---@param opts table Configuration options
     function Extension.setup(opts)
       -- Initialize extension
       -- Add actions, keymaps etc.
     end
-    
+
     -- Optional: Functions exposed via codecompanion.extensions.your_extension
     Extension.exports = {
       clear_history = function() end
     }
-    
+
     return Extension
 <
 
@@ -5261,10 +5261,10 @@ codecompanion.config object inside setup function.
     function Extension.setup(opts)
       -- Add action to chat keymaps
       local chat_keymaps = require("codecompanion.config").strategies.chat.keymaps
-      
+
       chat_keymaps.open_saved_chats = {
         modes = {
-          n = opts.keymap or "gh", 
+          n = opts.keymap or "gh",
         },
         description = "Open Saved Chats",
         callback = function(chat)
@@ -5310,12 +5310,12 @@ cases:
                   vim.notify("Editor opened for chat " .. chat.id)
                 end,
               }
-    
+
               -- Add the action to chat keymaps config
               local chat_keymaps = require("codecompanion.config").strategies.chat.keymaps
               chat_keymaps.open_editor = open_editor
             end,
-    
+
             -- Optional: Expose functions
             exports = {
               is_editor_open = function()

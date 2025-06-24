@@ -310,8 +310,8 @@ require("codecompanion").setup({
     chat = {
       -- Change the default icons
       icons = {
-        pinned_buffer = " ",
-        watched_buffer = "👀 ",
+        buffer_pin = " ",
+        buffer_watch = "👀 ",
       },
 
       -- Alter the sizing of the debug window
