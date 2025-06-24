@@ -1,5 +1,12 @@
 # Changelog
 
+## [17.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.2.0...v17.3.0) (2025-06-24)
+
+
+### Features
+
+* **chat:** add copilot usage statistics with `gS` keymap ([#1677](https://github.com/olimorris/codecompanion.nvim/issues/1677)) ([8602a50](https://github.com/olimorris/codecompanion.nvim/commit/8602a50cacf111c69f35e305d1556afd9fa1f1a1))
+
 ## [17.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.1.1...v17.2.0) (2025-06-24)
 
 
