@@ -121,7 +121,7 @@ function SlashCommands.references(chat, slash_command, opts)
       end
     end
     if not vim.tbl_isempty(buffer) then
-      return slash_commands["buffer"]:output(buffer, { silent = true })
+      return slash_commands["buffer"]:output(buffer, { description = opts.description, silent = true })
     end
   end
 
