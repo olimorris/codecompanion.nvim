@@ -121,7 +121,7 @@ Helpers.make_tool_call = function(chat, tool_call, tool_output, messages)
     chat:add_buf_message({
       role = "llm",
       content = messages.llm_initial_response,
-    })
+    }, { tag = "llm_message" })
     chat:add_message({
       role = "llm",
       content = messages.llm_initial_response,
