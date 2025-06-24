@@ -515,7 +515,7 @@ local function format_tool_content(content, opts)
   end
 
   -- The first chunk is the icon, which is always shown
-  table.insert(chunks, { " " .. icon_conf .. " ", icon_hl })
+  table.insert(chunks, { icon_conf .. " ", icon_hl })
 
   if opts.show_icon_only then
     return chunks
