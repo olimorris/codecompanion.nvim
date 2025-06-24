@@ -82,6 +82,14 @@ T["patch"]["no BEGIN and END markers"] = function()
   h.eq(output_str, expected_output)
 end
 
+T["patch"]["empty line before first @focus"] = function()
+  local input_str = readfile("tests/fixtures/files-input-1.html")
+  local patch_str = readfile("tests/fixtures/files-diff-1.6.patch")
+  local output_str = apply_patch(input_str, patch_str)
+  local expected_output = readfile("tests/fixtures/files-output-1.6.html")
+  h.eq(output_str, expected_output)
+end
+
 T["patch"]["multiple continuation"] = function()
   local input_str = readfile("tests/fixtures/files-input-2.html")
   local patch_str = readfile("tests/fixtures/files-diff-2.1.patch")
