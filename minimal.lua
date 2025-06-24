@@ -14,7 +14,7 @@ load(vim.fn.system("curl -s https://raw.githubusercontent.com/folke/lazy.nvim/ma
 -- Your CodeCompanion setup
 local plugins = {
   {
-    dir = "~/Code/Neovim/codecompanion.nvim",
+    "olimorris/codecompanion.nvim",
     dependencies = {
       { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
       { "nvim-lua/plenary.nvim" },
