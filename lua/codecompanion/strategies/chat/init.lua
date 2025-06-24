@@ -1270,9 +1270,8 @@ function Chat:add_buf_message(data, opts)
   local new_response = false
 
   ---Insert a line break into the lines table
-  local function spacer()
+  local function line_break()
     table.insert(lines, "")
-    log:info("Calling Spacer. Current role is %s", self.last_role)
   end
 
   ---Add new data to the lines table, taking care of newlines
@@ -1288,11 +1287,11 @@ function Chat:add_buf_message(data, opts)
     new_response = true
     self.last_role = data.role
     if self:get_last_message({ tag = "tool_output" }) then
-      -- We only need one spacer as the tool output adds a line break
-      spacer()
+      -- We only need one line break as the tool output adds a line break
+      line_break()
     else
-      spacer()
-      spacer()
+      line_break()
+      line_break()
     end
     self.ui:set_header(lines, config.strategies.chat.roles[data.role])
   end
@@ -1306,10 +1305,10 @@ function Chat:add_buf_message(data, opts)
       -- We need to always offset by two as the last message will be the LLM calling the tool
       last_message = self:get_last_message({ offset = 2 })
 
-      -- Add a spacer between the tool output and the LLM's initial response
+      -- Add a line break between the tool output and the LLM's initial response
       if last_message and last_message.opts.tag == "llm_message" then
-        spacer()
-        spacer()
+        line_break()
+        line_break()
       end
       return write(data.content or "")
     end
@@ -1318,7 +1317,7 @@ function Chat:add_buf_message(data, opts)
     if data.reasoning then
       if not self._chat_has_reasoning then
         table.insert(lines, "### Reasoning")
-        spacer()
+        line_break()
       end
       self._chat_has_reasoning = true
       write(data.reasoning)
@@ -1328,13 +1327,13 @@ function Chat:add_buf_message(data, opts)
     if data.content then
       if self._chat_has_reasoning then
         self._chat_has_reasoning = false -- LLMs *should* do reasoning first then output after
-        spacer()
-        spacer()
+        line_break()
+        line_break()
         --TODO: Fold the reasoning output
         table.insert(lines, "### Response")
-        spacer()
+        line_break()
       elseif last_message and last_message.opts.tag == "tool_output" then
-        spacer()
+        line_break()
       end
       write(data.content)
     end
