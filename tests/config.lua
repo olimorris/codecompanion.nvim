@@ -364,8 +364,8 @@ return {
   display = {
     chat = {
       icons = {
-        pinned_buffer = " ",
-        watched_buffer = "👀 ",
+        buffer_pin = " ",
+        buffer_watch = "👀 ",
       },
       show_references = true,
       show_settings = false,
