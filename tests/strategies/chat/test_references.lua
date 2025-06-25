@@ -218,7 +218,7 @@ T["References"]["Can be pinned"] = function()
 
   h.eq("> Context:", buffer[15])
   h.eq(
-    string.format("> - %s<buf>pinned example</buf>", child.lua_get([[config.display.chat.icons.pinned_buffer]])),
+    string.format("> - %s<buf>pinned example</buf>", child.lua_get([[config.display.chat.icons.buffer_pin]])),
     buffer[16]
   )
   h.eq("> - <buf>unpinned example</buf>", buffer[17])
@@ -446,13 +446,13 @@ T["References"]["Show icons immediately when added with default parameters"] = f
 
   -- Check that watched reference shows with icon immediately
   h.eq(
-    string.format("> - %s<buf>watched_file.lua</buf>", child.lua_get([[config.display.chat.icons.watched_buffer]])),
+    string.format("> - %s<buf>watched_file.lua</buf>", child.lua_get([[config.display.chat.icons.buffer_watch]])),
     lines[4]
   )
 
   -- Check that pinned reference shows with icon immediately
   h.eq(
-    string.format("> - %s<buf>pinned_file.lua</buf>", child.lua_get([[config.display.chat.icons.pinned_buffer]])),
+    string.format("> - %s<buf>pinned_file.lua</buf>", child.lua_get([[config.display.chat.icons.buffer_pin]])),
     lines[5]
   )
 

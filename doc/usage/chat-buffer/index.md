@@ -85,6 +85,7 @@ The keymaps available to the user in normal mode are:
 - `gR` to go to the file under cursor. If the file is already opened, it'll jump
   to the existing window. Otherwise, it'll be opened in a new tab.
 - `gs` to toggle the system prompt on/off
+- `gS` to show copilot usage stats
 - `gta` to toggle auto tool mode
 - `gx` to clear the chat buffer's contents
 - `gy` to yank the last codeblock in the chat buffer
@@ -92,4 +93,3 @@ The keymaps available to the user in normal mode are:
 - `]]` to move to the next header
 - `{` to move to the previous chat
 - `}` to move to the next chat
-
