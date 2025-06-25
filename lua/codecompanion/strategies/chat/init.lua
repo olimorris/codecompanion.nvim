@@ -28,6 +28,7 @@
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field watchers CodeCompanion.Watchers The buffer watcher instance
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
+---@field _has_llm_responded boolean Has the LLM responded to the last request with a direct message?
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
@@ -213,8 +214,8 @@ local function ready_chat_buffer(chat, opts)
   -- If we're automatically responding to a tool output, we need to leave some
   -- space for the LLM's response so we can then display the user prompt again
   if opts.auto_submit then
-    chat:add_line_break()
-    chat:add_line_break()
+    chat.ui:add_line_break()
+    chat.ui:add_line_break()
   end
 
   log:info("Chat request finished")
@@ -535,6 +536,7 @@ function Chat.new(args)
       return bufnr
     end,
     _chat_has_reasoning = false,
+    _has_llm_responded = false,
   }, { __index = Chat })
 
   self.bufnr = self.create_buf()
@@ -802,7 +804,7 @@ end
 ---Return the last message in the chat buffer by a given tag
 ---@param opts? { tag?: string, offset?: number }
 ---@return table|nil
-function Chat:get_last_message(opts)
+function Chat:pluck_message(opts)
   opts = opts or {}
 
   local index = #self.messages
@@ -1012,6 +1014,7 @@ function Chat:done(output, tools)
   if has_output then
     local content = vim.trim(table.concat(output or {}, "")) -- No idea why the LSP freaks out that this isn't a table
     if content ~= "" then
+      self._has_llm_responded = true
       self:add_message({
         role = config.constants.LLM_ROLE,
         content = content,
@@ -1234,31 +1237,6 @@ function Chat:close()
   self = nil
 end
 
----Add a line break to the chat buffer
----@return nil
-function Chat:add_line_break()
-  local _, _, line_count = self.ui:last()
-
-  self.ui:unlock_buf()
-  vim.api.nvim_buf_set_lines(self.bufnr, line_count, line_count, false, { "" })
-  self.ui:lock_buf()
-
-  self:move_cursor(true)
-end
-
----Update the cursor position in the chat buffer
----@param cursor_has_moved boolean Sometimes
----@return nil
-function Chat:move_cursor(cursor_has_moved)
-  if config.display.chat.auto_scroll then
-    if cursor_has_moved and self.ui:is_active() then
-      self.ui:follow()
-    elseif not self.ui:is_active() then
-      self.ui:follow()
-    end
-  end
-end
-
 ---Add a message directly to the chat buffer. This will be visible to the user
 ---@param data table
 ---@param opts? table
@@ -1286,7 +1264,7 @@ function Chat:add_buf_message(data, opts)
   local function add_header()
     new_response = true
     self.last_role = data.role
-    if self:get_last_message({ tag = "tool_output" }) then
+    if self:pluck_message({ tag = "tool_output" }) then
       -- We only need one line break as the tool output adds a line break
       line_break()
     else
@@ -1298,12 +1276,12 @@ function Chat:add_buf_message(data, opts)
 
   ---Append data to the lines table, taking into account the type of data that is being added
   local function append_data()
-    local last_message = self:get_last_message()
+    local last_message = self:pluck_message()
 
     -- Tool output
     if opts and opts.tag == "tool_output" then
       -- We need to always offset by two as the last message will be the LLM calling the tool
-      last_message = self:get_last_message({ offset = 2 })
+      last_message = self:pluck_message({ offset = 2 })
 
       -- Add a line break between the tool output and the LLM's initial response
       if last_message and last_message.opts.tag == "llm_message" then
@@ -1359,16 +1337,24 @@ function Chat:add_buf_message(data, opts)
       self.ui:lock_buf()
     end
 
-    self:move_cursor(cursor_moved)
+    self.ui:move_cursor(cursor_moved)
   end
 
   if (data.role and data.role ~= self.last_role) or (opts and opts.force_role) then
     add_header()
   end
 
+  if opts and opts.callbacks and opts.callbacks.before_content then
+    opts.callbacks.before_content()
+  end
+
   if data.content or data.reasoning then
     append_data()
     update_buffer()
+  end
+
+  if opts and opts.callbacks and opts.callbacks.after_content then
+    opts.callbacks.after_content()
   end
 end
 
@@ -1397,28 +1383,38 @@ function Chat:add_tool_output(tool, for_llm, for_user)
     table.insert(self.messages, output)
   end
 
-  -- Allow tools to pass in an empty string to end the processing
+  -- Allow tools to pass in an empty string to not write any output to the buffer
   if for_user == "" then
     return
   end
 
-  self.ui:fold_tool_output()
-
-  for_user = for_user or for_llm
   self:add_buf_message({
     role = config.constants.LLM_ROLE,
     -- HACK: We add a blank line to ensure that the tool output can be folded properly.
     -- Folds can't work if the boundary is the last line in the buffer.
-    content = for_user .. "\n",
-  }, { tag = "tool_output" })
+    content = (for_user or for_llm) .. "\n",
+  }, {
+    tag = "tool_output",
+    callbacks = {
+      before_content = function()
+        local offset = 0
+        if not self._has_llm_responded then
+          -- If the LLM has responded then we will have inserted a new line in the chat buffer
+          offset = -1
+        end
+        self.ui.tools:start_folding({ offset = offset })
+      end,
+    },
+  })
 
-  self.ui:fold_tool_output({ spacing = 1 })
+  self.ui.tools:end_folding()
 end
 
 ---When a request has finished, reset the chat buffer
 ---@return nil
 function Chat:reset()
   self._chat_has_reasoning = false
+  self._has_llm_responded = false
   self.status = ""
   self.ui:unlock_buf()
 end

@@ -15,12 +15,9 @@ local CONSTANTS = {
   NS_HEADER = api.nvim_create_namespace("CodeCompanion-headers"),
   NS_TOKENS = api.nvim_create_namespace("CodeCompanion-tokens"),
   NS_VIRTUAL_TEXT = api.nvim_create_namespace("CodeCompanion-virtual_text"),
-  NS_FOLD_MARKS = api.nvim_create_namespace("CodeCompanion-fold_marks"),
 
   AUTOCMD_GROUP = "codecompanion.chat.ui",
 }
-
-local tool_icons = config.display.chat.icons
 
 ---Set the LLM role based on the adapter
 ---@param role string|function
@@ -35,10 +32,6 @@ end
 
 ---@class CodeCompanion.Chat.UI
 local UI = {}
-
--- UI.fold_summaries[bufnr][start]   → the recorded line‐text for fold at 0-based row `start`
----@type table<integer, table<integer, string>>
-UI.fold_summaries = {}
 
 ---@param args CodeCompanion.Chat.UIArgs
 function UI.new(args)
@@ -150,7 +143,6 @@ function UI:open(opts)
 
   ui.set_win_options(self.winnr, window.opts)
   vim.bo[self.chat_bufnr].textwidth = 0
-  self:setup_foldtext()
 
   if not opts.toggled then
     self:follow()
@@ -158,6 +150,12 @@ function UI:open(opts)
 
   log:trace("Chat opened with ID %d", self.chat_id)
   util.fire("ChatOpened", { bufnr = self.chat_bufnr })
+
+  self.tools = require("codecompanion.strategies.chat.ui.tools").new({
+    chat_bufnr = self.chat_bufnr,
+    winnr = self.winnr,
+  })
+
   return self
 end
 
@@ -491,123 +489,29 @@ function UI:fold_code()
   return self
 end
 
----Format the tool output that will be displayed in the chat buffer
----@param content string The content from the tool
----@param opts? table Options for formatting
----@return table[]  list of {text, hl_group}
-local function format_tool_content(content, opts)
-  opts = opts or {}
+---Add a line break to the chat buffer
+---@return nil
+function UI:add_line_break()
+  local _, _, line_count = self:last()
 
-  local chunks = {}
-  content = vim.trim(content)
+  self:unlock_buf()
+  vim.api.nvim_buf_set_lines(self.chat_bufnr, line_count, line_count, false, { "" })
+  self:lock_buf()
 
-  local icon_conf = tool_icons.tool_success or ""
-  local icon_hl = "CodeCompanionChatToolSuccessIcon"
-  local summary_hl = "CodeCompanionChatToolSuccess"
+  self:move_cursor(true)
+end
 
-  for _, word in ipairs(config.strategies.chat.tools.opts.folds.failure_words) do
-    if content:lower():find(word) then
-      icon_conf = tool_icons.tool_failure or ""
-      icon_hl = "CodeCompanionChatToolFailureIcon"
-      summary_hl = "CodeCompanionChatToolFailure"
-      break
+---Update the cursor position in the chat buffer
+---@param cursor_has_moved boolean
+---@return nil
+function UI:move_cursor(cursor_has_moved)
+  if config.display.chat.auto_scroll then
+    if cursor_has_moved and self:is_active() then
+      self:follow()
+    elseif not self:is_active() then
+      self:follow()
     end
   end
-
-  -- The first chunk is the icon, which is always shown
-  table.insert(chunks, { icon_conf .. " ", icon_hl })
-
-  if opts.show_icon_only then
-    return chunks
-  end
-
-  -- The second chunk is the content of the tool output, if it exists
-  table.insert(chunks, { content, summary_hl })
-
-  return chunks
-end
-
----Ensure that everytime we action a fold, we call this method
----@return nil
-function UI:setup_foldtext()
-  api.nvim_win_set_option(self.winnr, "foldtext", 'v:lua.require("codecompanion.strategies.chat.ui").foldtext()')
-end
-
----Global method which Neovim calls when text is folded in the chat buffer
----@return table
-function UI.foldtext()
-  local bufnr = api.nvim_get_current_buf()
-  local start = vim.v.foldstart - 1
-
-  local folds = UI.fold_summaries[bufnr] or {}
-  local lines = folds[start] or api.nvim_buf_get_lines(bufnr, start, start + 1, false)[1] or ""
-
-  return format_tool_content(lines)
-end
-
----Create a fold with summary extmark in a single operation
----@param winnr number The window number where the fold should be applied
----@param bufnr number The buffer number where the fold should be applied
----@param start_row number The starting row of the fold (0-indexed)
----@param end_row number The ending row of the fold (0-indexed)
----@return nil
-local function create_fold_with_summary(winnr, bufnr, start_row, end_row)
-  local line = api.nvim_buf_get_lines(bufnr, start_row, start_row + 1, false)[1] or ""
-  api.nvim_buf_set_extmark(bufnr, CONSTANTS.NS_FOLD_MARKS, start_row, 0, {
-    virt_text = format_tool_content(line, { show_icon_only = true }),
-    virt_text_pos = "inline",
-    priority = 200,
-  })
-
-  -- We only create a fold if there is more than one line
-  if start_row < end_row then
-    UI.fold_summaries[bufnr] = UI.fold_summaries[bufnr] or {}
-    UI.fold_summaries[bufnr][start_row] = line
-
-    -- Make sure the fold method is set
-    if winnr and api.nvim_win_is_valid(winnr) then
-      api.nvim_win_call(winnr, function()
-        if vim.wo.foldmethod ~= "manual" then
-          vim.wo.foldmethod = "manual"
-        end
-      end)
-    end
-
-    -- And create the fold
-    api.nvim_buf_call(bufnr, function()
-      vim.cmd(string.format("%d,%dfold", start_row + 1, end_row + 1))
-    end)
-  end
-end
-
----Format and potentially fold tool output in the chat buffer
----@param opts? {start_line: number, is_error: boolean, spacing: number}
----@return nil
-function UI:fold_tool_output(opts)
-  if not config.strategies.chat.tools.opts.folds.enabled then
-    return
-  end
-
-  opts = opts or {}
-
-  if not self.pending_fold then
-    self.pending_fold = {
-      start_line = opts.start_line or api.nvim_buf_line_count(self.chat_bufnr),
-      is_error = opts.is_error or false,
-      timestamp = vim.uv.hrtime(),
-    }
-    return
-  end
-
-  if opts.spacing then
-    self.pending_fold.start_line = self.pending_fold.start_line + opts.spacing
-  end
-
-  vim.schedule(function()
-    local end_line = api.nvim_buf_line_count(self.chat_bufnr) - 1 -- Folds are 0-indexed
-    create_fold_with_summary(self.winnr, self.chat_bufnr, self.pending_fold.start_line, end_line)
-    self.pending_fold = nil
-  end)
 end
 
 ---Lock the chat buffer from editing

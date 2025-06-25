@@ -87,6 +87,7 @@
 ---@field winnr number The window number of the chat
 ---@field settings table The settings for the chat
 ---@field tokens number The current token count in the chat
+---@field tools CodeCompanion.Chat.UI.Tools The tools used in the chat
 
 ---@class CodeCompanion.Chat.UIArgs
 ---@field adapter CodeCompanion.Adapter
@@ -96,6 +97,10 @@
 ---@field winnr number
 ---@field settings table
 ---@field tokens number
+
+---@class CodeCompanion.Chat.UI.ToolArgs
+---@field chat_bufnr number
+---@field winnr number
 
 ---@class CodeCompanion.Agent.Tool
 ---@field name string The name of the tool
