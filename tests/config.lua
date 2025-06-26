@@ -101,8 +101,8 @@ return {
           callback = "strategies.chat.agents.tools.read_file",
           description = "Read a file in the current working directory",
         },
-        ["symbol_context"] = {
-          callback = "strategies.chat.agents.tools.symbol_context",
+        ["list_code_usages"] = {
+          callback = "strategies.chat.agents.tools.list_code_usages",
           description = "Find code symbol context",
         },
         ["weather"] = {

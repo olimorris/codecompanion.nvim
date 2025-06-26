@@ -9,7 +9,7 @@ local T = new_set({
       h.child_start(child)
       child.lua([[
         -- Setup test directory structure
-        _G.TEST_DIR = 'tests/stubs/symbol_context'
+        _G.TEST_DIR = 'tests/stubs/list_code_usages'
         _G.TEST_DIR_ABSOLUTE = vim.fs.joinpath(vim.fn.tempname(), _G.TEST_DIR)
 
         -- Create test directory structure and test file
@@ -18,7 +18,7 @@ local T = new_set({
         local test_file = {
           path = 'src/test_symbols.lua',
           content = {
-            '-- Test symbols for symbol_context tool',
+            '-- Test symbols for list_code_usages tool',
             'local M = {}',
             '',
             'function M.testFunction(arg1, arg2)',
@@ -63,7 +63,7 @@ T["validates operation parameter"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "symbol_context",
+          name = "list_code_usages",
           arguments = '{"operation": "invalid_operation", "symbol": "testFunction"}'
         },
       },
@@ -84,7 +84,7 @@ T["validates symbol parameter"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "symbol_context",
+          name = "list_code_usages",
           arguments = '{"operation": "get_definition", "symbol": ""}'
         },
       },
@@ -105,7 +105,7 @@ T["handles symbol not found"] = function()
     local tool = {
       {
         ["function"] = {
-          name = "symbol_context",
+          name = "list_code_usages",
           arguments = '{"operation": "get_definition", "symbol": "nonExistentSymbol"}'
         },
       },

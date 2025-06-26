@@ -147,8 +147,8 @@ local defaults = {
           callback = "strategies.chat.agents.tools.next_edit_suggestion",
           description = "Suggest and jump to the next position to edit",
         },
-        ["symbol_context"] = {
-          callback = "strategies.chat.agents.tools.symbol_context",
+        ["list_code_usages"] = {
+          callback = "strategies.chat.agents.tools.list_code_usages",
           description = "Find code symbol context",
         },
         opts = {

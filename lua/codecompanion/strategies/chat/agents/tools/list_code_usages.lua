@@ -447,7 +447,7 @@ local lsp_caller = LSPCaller:new()
 
 ---@class CodeCompanion.Tool.SymbolContext: CodeCompanion.Agent.Tool
 return {
-  name = "symbol_context",
+  name = "list_code_usages",
   cmds = {
     ---Execute the search commands
     ---@param self CodeCompanion.Tool.SymbolContext
@@ -455,8 +455,8 @@ return {
     ---@param input? any The output from the previous function call
     ---@return { status: "success"|"error", data: string|table }
     function(self, args, input)
-      local operation = args.operation
-      local symbol = args.symbol
+      local symbol = args.symbolName
+      local filePaths = args.filePaths or {}
 
       ---@diagnostic disable-next-line: undefined-field
       local context_filetype = self.chat.context.filetype
@@ -467,69 +467,93 @@ return {
 
       vim.api.nvim_set_current_win(context_winnr)
 
-      if not lsp_caller.LSP_METHODS[operation] then
-        return {
-          status = "error",
-          data = "Unsupported LSP method: " .. operation .. ". Use one of supported lsp methods: " .. table.concat(
-            lsp_caller.LSP_METHODS,
-            ", "
-          ),
-        }
+      -- Reset symbol data before new search
+      lsp_caller.symbol_data = {}
+
+      -- If filePaths provided, try them first
+      local symbol_found = false
+      if filePaths and #filePaths > 0 then
+        for _, filepath in ipairs(filePaths) do
+          if vim.fn.filereadable(filepath) == 1 then
+            -- Open the file
+            vim.cmd("edit " .. vim.fn.fnameescape(filepath))
+            local bufnr = vim.api.nvim_get_current_buf()
+
+            -- Try to find the symbol in this file
+            local cursor_result = symbol_finder:move_cursor_to_symbol(symbol, nil)
+            if cursor_result.status == "success" then
+              symbol_found = true
+
+              -- Collect all LSP information (definitions, references, implementations)
+              for operation, method in pairs(lsp_caller.LSP_METHODS) do
+                ---@diagnostic disable-next-line: param-type-mismatch
+                lsp_caller:call_lsp_method(bufnr, method)
+              end
+
+              break
+            end
+          end
+        end
       end
 
-      local cursor_result = symbol_finder:move_cursor_to_symbol(symbol, context_filetype)
+      -- If symbol not found in provided files, try general search
+      if not symbol_found then
+        local cursor_result = symbol_finder:move_cursor_to_symbol(symbol, context_filetype)
 
-      if cursor_result.status == "error" then
-        return cursor_result
+        if cursor_result.status == "error" then
+          vim.api.nvim_set_current_win(chat_winnr)
+          return cursor_result
+        end
+
+        local bufnr = tonumber(cursor_result.data.bufnr)
+
+        -- Collect all LSP information (definitions, references, implementations)
+        for operation, method in pairs(lsp_caller.LSP_METHODS) do
+          ---@diagnostic disable-next-line: param-type-mismatch
+          lsp_caller:call_lsp_method(bufnr, method)
+        end
       end
 
-      local bufnr = tonumber(cursor_result.data.bufnr)
-
-      ---@diagnostic disable-next-line: param-type-mismatch
-      local result = lsp_caller:call_lsp_method(bufnr, lsp_caller.LSP_METHODS[operation])
       vim.api.nvim_set_current_win(chat_winnr)
-      if result.status == "success" then
-        lsp_caller.filetype = vim.api.nvim_get_option_value("filetype", { buf = bufnr })
+
+      if #lsp_caller.symbol_data > 0 then
+        -- Save filetype for output formatting
+        lsp_caller.filetype = vim.api.nvim_get_option_value("filetype", { buf = vim.api.nvim_get_current_buf() })
         return { status = "success", data = "Tool executed successfully" }
       else
-        return { status = "error", data = result.data }
+        return {
+          status = "error",
+          data = "No usages found for symbol: " .. symbol,
+        }
       end
     end,
   },
   schema = {
     type = "function",
     ["function"] = {
-      name = "symbol_context",
-      description = [[Use available LSP operations to build context around unknown code symbols to provide error-proof solution without unnecessary guessing.
-
-== MANDATORY USAGE ==
-Use this tool AT THE START of a coding task to gather context about code symbols that are unknown to you and are important to solve the given problem before providing the final answer. This tool should help you solve the problem without any guesses or assumptions.
-
-== Important ==
-- Wait for tool results before providing solutions
-- Minimize explanations about the tool itself
-- When looking for a symbol, pass only the exact name of the symbol without the object. E.g. use: `saveUsers` instead of `userRepository.saveUsers`
-]],
+      name = "list_code_usages",
+      description = [[
+Request to list all usages (references, definitions, implementations etc) of a function, class, method, variable etc. Use this tool when
+1. Looking for a sample implementation of an interface or class
+2. Checking how a function is used throughout the codebase.
+3. Including and updating all usages when changing a function, method, or constructor]],
       parameters = {
         type = "object",
         properties = {
-          operation = {
+          symbolName = {
             type = "string",
-            enum = {
-              "get_definition",
-              "get_references",
-              "get_implementation",
-            },
-            description = "Available LSP operation to be performed by the Symbol Context tool on the given code symbol.",
+            description = "The name of the symbol, such as a function name, class name, method name, variable name, etc.",
           },
-          symbol = {
-            type = "string",
-            description = "The unknown code symbol that the Symbol Context tool will use as argument for LSP operations.",
+          filePaths = {
+            type = "array",
+            description = "One or more file paths which likely contain the definition of the symbol. For instance the file which declares a class or function. This is optional but will speed up the invocation of this tool and improve the quality of its output.",
+            items = {
+              type = "string",
+            },
           },
         },
         required = {
-          "operation",
-          "symbol",
+          "symbolName",
         },
         additionalProperties = false,
       },
@@ -551,9 +575,8 @@ Use this tool AT THE START of a coding task to gather context about code symbols
     ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
     success = function(self, agent, cmd, stdout)
-      local operation = self.args.operation
-      local symbol = self.args.symbol
-      local chat_message_content = string.format("The %s of symbol: `%s`\n", string.upper(operation), symbol)
+      local symbol = self.args.symbolName
+      local chat_message_content = string.format("Code usages for symbol: `%s`\n", symbol)
 
       for _, code_block in ipairs(lsp_caller.symbol_data) do
         chat_message_content = chat_message_content
