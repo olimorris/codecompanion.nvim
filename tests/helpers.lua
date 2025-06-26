@@ -122,16 +122,19 @@ Helpers.make_tool_call = function(chat, tool_call, tool_output, messages)
       role = "llm",
       content = messages.llm_initial_response,
     }, { tag = "llm_message" })
+
     chat:add_message({
       role = "llm",
       content = messages.llm_initial_response,
     }, { tag = "llm_message" })
+
+    chat._has_llm_responded = true
   end
 
   -- Then add the LLM's tool call
   chat:add_message({
     role = "llm",
-    tool_calls = tool_call.function_call,
+    tool_calls = { tool_call.function_call },
   }, { tag = "llm_tool_calls", visible = false })
 
   -- Then add the tool output

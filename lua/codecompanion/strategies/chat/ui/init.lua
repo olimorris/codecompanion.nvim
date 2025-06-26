@@ -39,7 +39,6 @@ function UI.new(args)
     adapter = args.adapter,
     chat_bufnr = args.chat_bufnr,
     chat_id = args.chat_id,
-    pending_fold = nil,
     roles = args.roles,
     settings = args.settings,
     tokens = args.tokens,

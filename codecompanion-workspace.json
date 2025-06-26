@@ -9,7 +9,12 @@
       "opts": {
         "remove_config_system_prompt": true
       },
-      "data": ["chat-buffer-init", "chat-references", "chat-watchers"]
+      "data": [
+        "chat-buffer-init",
+        "chat-buffer-ui",
+        "chat-references",
+        "chat-watchers"
+      ]
     },
     {
       "name": "Workflows",
@@ -78,6 +83,11 @@
       "type": "file",
       "path": "lua/codecompanion/strategies/chat/init.lua",
       "description": "The `${filename}` file is the entry point for the chat strategy. All methods directly relating to the chat buffer reside here."
+    },
+    "chat-buffer-ui": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/ui/init.lua",
+      "description": "The `${filename}` file is responsible for translating the content in the chat buffer into the Neovim UI that the user interacts with. It handles the rendering of any headers alongside holding methods that relate to folding and extmarks"
     },
     "chat-references": {
       "type": "symbols",

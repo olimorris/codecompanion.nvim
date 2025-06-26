@@ -20,10 +20,20 @@ Tools.fold_summaries = {}
 function Tools.new(args)
   local self = setmetatable({
     chat_bufnr = args.chat_bufnr,
+    fold = nil,
     winnr = args.winnr,
   }, { __index = Tools })
 
   self:setup_fold()
+
+  -- Make sure the fold method is set
+  if self.winnr and api.nvim_win_is_valid(self.winnr) then
+    api.nvim_win_call(self.winnr, function()
+      if vim.wo.foldmethod ~= "manual" then
+        vim.wo.foldmethod = "manual"
+      end
+    end)
+  end
 
   return self
 end
@@ -34,7 +44,7 @@ function Tools:setup_fold()
   api.nvim_win_set_option(
     self.winnr,
     "foldtext",
-    'v:lua.require("codecompanion.strategies.chat.ui.tools").fold_tool_output()'
+    'v:lua.require("codecompanion.strategies.chat.ui.tools").fold_output()'
   )
 end
 
@@ -42,7 +52,7 @@ end
 ---@param content string The content from the tool
 ---@param opts? table Options for formatting
 ---@return table[]  list of {text, hl_group}
-local function format_output(content, opts)
+local function format_summary(content, opts)
   opts = opts or {}
 
   local chunks = {}
@@ -81,44 +91,9 @@ function Tools.fold_output()
   local start = vim.v.foldstart - 1
 
   local folds = Tools.fold_summaries[bufnr] or {}
-  local lines = folds[start] or api.nvim_buf_get_lines(bufnr, start, start + 1, false)[1] or ""
+  local content = folds[start] or api.nvim_buf_get_lines(bufnr, start, start + 1, false)[1] or ""
 
-  return format_output(lines)
-end
-
----Create a fold with summary extmark in a single operation
----@param winnr number The window number where the fold should be applied
----@param bufnr number The buffer number where the fold should be applied
----@param start_row number The starting row of the fold (0-indexed)
----@param end_row number The ending row of the fold (0-indexed)
----@return nil
-local function create_fold_with_summary(winnr, bufnr, start_row, end_row)
-  local line = api.nvim_buf_get_lines(bufnr, start_row, start_row + 1, false)[1] or ""
-  api.nvim_buf_set_extmark(bufnr, CONSTANTS.NS_FOLD_TOOLS, start_row, 0, {
-    virt_text = format_output(line, { show_icon_only = true }),
-    virt_text_pos = "inline",
-    priority = 200,
-  })
-
-  -- We only create a fold if there is more than one line
-  if start_row < end_row then
-    Tools.fold_summaries[bufnr] = Tools.fold_summaries[bufnr] or {}
-    Tools.fold_summaries[bufnr][start_row] = line
-
-    -- Make sure the fold method is set
-    if winnr and api.nvim_win_is_valid(winnr) then
-      api.nvim_win_call(winnr, function()
-        if vim.wo.foldmethod ~= "manual" then
-          vim.wo.foldmethod = "manual"
-        end
-      end)
-    end
-
-    -- And create the fold
-    api.nvim_buf_call(bufnr, function()
-      vim.cmd(string.format("%d,%dfold", start_row + 1, end_row + 1))
-    end)
-  end
+  return format_summary(content)
 end
 
 ---Start the folding of the tool output in the chat buffer
@@ -131,14 +106,39 @@ function Tools:start_folding(opts)
 
   opts = opts or {}
 
-  self.pending_fold = {
-    start_line = opts.start_line or api.nvim_buf_line_count(self.chat_bufnr),
-    is_error = opts.is_error or false,
-    timestamp = vim.uv.hrtime(),
+  self.fold = {
+    start_line = opts.start_line or api.nvim_buf_line_count(self.chat_bufnr) + 1,
   }
 
   if opts.offset then
-    self.pending_fold.start_line = self.pending_fold.start_line + opts.offset
+    self.fold.start_line = self.fold.start_line + opts.offset
+  end
+end
+
+---Create a fold with summary extmark in a single operation
+---@param bufnr number The buffer number where the fold should be applied
+---@param start_line number (0-indexed)
+---@param end_line number (0-indexed)
+---@return nil
+local function create_fold(bufnr, start_line, end_line)
+  -- Capture the first line of the fold
+  local line = api.nvim_buf_get_lines(bufnr, start_line, start_line + 1, false)[1] or ""
+
+  -- Overlay the appropriate icon and summary text
+  api.nvim_buf_set_extmark(bufnr, CONSTANTS.NS_FOLD_TOOLS, start_line, 0, {
+    virt_text = format_summary(line, { show_icon_only = true }),
+    virt_text_pos = "inline",
+    priority = 200,
+  })
+
+  -- We only create a fold if there is more than one line
+  if start_line < end_line then
+    Tools.fold_summaries[bufnr] = Tools.fold_summaries[bufnr] or {}
+    Tools.fold_summaries[bufnr][start_line] = line
+
+    api.nvim_buf_call(bufnr, function()
+      vim.cmd(string.format("%d,%dfold", start_line + 1, end_line + 1))
+    end)
   end
 end
 
@@ -148,11 +148,11 @@ function Tools:end_folding()
   if not config.strategies.chat.tools.opts.folds.enabled then
     return
   end
+
   local end_line = api.nvim_buf_line_count(self.chat_bufnr) - 1
-  if self.pending_fold.start_line <= end_line then
-    create_fold_with_summary(self.winnr, self.chat_bufnr, self.pending_fold.start_line, end_line)
-  end
-  self.pending_fold = nil
+  create_fold(self.chat_bufnr, self.fold.start_line, end_line)
+
+  self.fold = nil
 end
 
 return Tools

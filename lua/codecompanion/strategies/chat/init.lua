@@ -802,14 +802,18 @@ function Chat:remove_tagged_message(tag)
 end
 
 ---Return the last message in the chat buffer by a given tag
----@param opts? { tag?: string, offset?: number }
+---@param opts? { tag?: string, n?: number, n_minus?: number }
 ---@return table|nil
 function Chat:pluck_message(opts)
   opts = opts or {}
 
   local index = #self.messages
-  if opts.offset then
-    index = index - opts.offset
+  if opts.n then
+    if not opts.n > index then
+      index = opts.n
+    end
+  elseif opts.n_minus then
+    index = index - opts.n_minus
   end
 
   if not opts.tag then
@@ -1263,7 +1267,6 @@ function Chat:add_buf_message(data, opts)
   --Add a new role via a header to the chat buffer
   local function add_header()
     new_response = true
-    self.last_role = data.role
     if self:pluck_message({ tag = "tool_output" }) then
       -- We only need one line break as the tool output adds a line break
       line_break()
@@ -1271,6 +1274,7 @@ function Chat:add_buf_message(data, opts)
       line_break()
       line_break()
     end
+    self.last_role = data.role
     self.ui:set_header(lines, config.strategies.chat.roles[data.role])
   end
 
@@ -1281,7 +1285,7 @@ function Chat:add_buf_message(data, opts)
     -- Tool output
     if opts and opts.tag == "tool_output" then
       -- We need to always offset by two as the last message will be the LLM calling the tool
-      last_message = self:pluck_message({ offset = 2 })
+      last_message = self:pluck_message({ n_minus = 2 })
 
       -- Add a line break between the tool output and the LLM's initial response
       if last_message and last_message.opts.tag == "llm_message" then
@@ -1390,24 +1394,23 @@ function Chat:add_tool_output(tool, for_llm, for_user)
 
   self:add_buf_message({
     role = config.constants.LLM_ROLE,
-    -- HACK: We add a blank line to ensure that the tool output can be folded properly.
-    -- Folds can't work if the boundary is the last line in the buffer.
+    -- HACK: We add a blank line to ensure that the tool output can be folded
+    -- properly as folds can't work if the boundary is the last line
     content = (for_user or for_llm) .. "\n",
   }, {
     tag = "tool_output",
     callbacks = {
       before_content = function()
-        local offset = 0
-        if not self._has_llm_responded then
-          -- If the LLM has responded then we will have inserted a new line in the chat buffer
-          offset = -1
-        end
+        -- If the LLM has NOT responded with a message that was written in the
+        -- buffer, then we need to remove a line in the fold count
+        local offset = self._has_llm_responded and 0 or -2
         self.ui.tools:start_folding({ offset = offset })
+      end,
+      after_content = function()
+        self.ui.tools:end_folding()
       end,
     },
   })
-
-  self.ui.tools:end_folding()
 end
 
 ---When a request has finished, reset the chat buffer
