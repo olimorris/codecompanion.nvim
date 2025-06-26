@@ -31,7 +31,7 @@ end
 --- @param symbol string Symbol to search for
 --- @param filetype string|nil File type to search in (optional)
 --- @return table|nil result Table with file, line, col, and text or nil if not found
-function SymbolFinder:search_symbol_in_workspace(symbol, filetype)
+function SymbolFinder:grep_symbol_in_workspace(symbol, filetype)
   local search_pattern = "\\b" .. vim.fn.escape(symbol, "\\") .. "\\b"
 
   -- Build the grep command
@@ -95,7 +95,7 @@ function SymbolFinder:move_cursor_to_symbol(symbol, filetype)
 
   vim.cmd("stopinsert")
 
-  local match = self:search_symbol_in_workspace(symbol, filetype)
+  local match = self:grep_symbol_in_workspace(symbol, filetype)
 
   if not match then
     local filetype_msg = filetype and (" in " .. filetype .. " files") or ""
