@@ -8,11 +8,16 @@ local T = new_set({
     pre_case = function()
       h.child_start(child)
       child.lua([[
-        _G.TEST_TMPFILE = '/tests/stubs/cc_test_file.txt'
-        _G.TEST_TMPFILE_ABSOLUTE = vim.fs.joinpath(vim.fn.getcwd(), _G.TEST_TMPFILE)
+        -- Setup test directory structure
+        _G.TEST_CWD = vim.fn.tempname()
+        _G.TEST_DIR = 'tests/stubs/read_file'
+        _G.TEST_DIR_ABSOLUTE = vim.fs.joinpath(_G.TEST_CWD, _G.TEST_DIR)
 
-        -- ensure no leftover from previous run
-        pcall(vim.loop.fs_unlink, _G.TEST_TMPFILE)
+        _G.TEST_TMPFILE = "cc_readfile_test.txt"
+        _G.TEST_TMPFILE_ABSOLUTE = vim.fs.joinpath(_G.TEST_DIR_ABSOLUTE, _G.TEST_TMPFILE)
+
+        -- Create test directory structure
+        vim.fn.mkdir(_G.TEST_DIR_ABSOLUTE, 'p')
 
         h = require('tests.helpers')
         chat, agent = h.setup_chat_buffer()
@@ -20,7 +25,7 @@ local T = new_set({
     end,
     post_case = function()
       child.lua([[
-        pcall(vim.loop.fs_unlink, _G.TEST_TMPFILE_ABSOLUTE)
+        pcall(vim.fn.delete, _G.TEST_CWD, 'rf')
         h.teardown_chat_buffer()
       ]])
     end,
@@ -30,6 +35,7 @@ local T = new_set({
 
 T["can read lines from a file"] = function()
   child.lua([[
+    vim.uv.chdir(_G.TEST_CWD)
     local contents = { "alpha", "beta", "gamma" }
 
     local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE_ABSOLUTE)
@@ -39,7 +45,7 @@ T["can read lines from a file"] = function()
       {
         ["function"] = {
           name = "read_file",
-          arguments = string.format('{"filepath": "%s", "start_line_number_base_zero": 0, "end_line_number_base_zero": 1}', _G.TEST_TMPFILE)
+          arguments = string.format('{"filepath": "%s", "start_line_number_base_zero": 0, "end_line_number_base_zero": 1}', vim.fs.joinpath(_G.TEST_DIR, _G.TEST_TMPFILE))
         },
       },
     }
@@ -56,6 +62,8 @@ end
 T["can read all of the file"] = function()
   child.lua([[
     --require('tests.log')
+    vim.uv.chdir(_G.TEST_CWD)
+
     local contents = { "alpha", "beta", "gamma" }
     local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE_ABSOLUTE)
     assert(ok == 0)
@@ -64,7 +72,7 @@ T["can read all of the file"] = function()
       {
         ["function"] = {
           name = "read_file",
-          arguments = string.format('{"filepath": "%s", "start_line_number_base_zero": 0, "end_line_number_base_zero": -1}', _G.TEST_TMPFILE)
+          arguments = string.format('{"filepath": "%s", "start_line_number_base_zero": 0, "end_line_number_base_zero": -1}', vim.fs.joinpath(_G.TEST_DIR, _G.TEST_TMPFILE))
         },
       },
     }

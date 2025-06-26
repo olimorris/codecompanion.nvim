@@ -11,33 +11,6 @@ local CONSTANTS = {
   WORKSPACE_FILE = vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json"),
 }
 
----Output a list of files in the group
----@param group table
----@param workspace table
----@return string
-local function get_file_list(group, workspace)
-  local items = {}
-
-  if group.data and workspace and workspace.data then
-    for _, item in ipairs(group.data) do
-      local resource = workspace.data[item]
-      if resource and resource.path then
-        table.insert(items, "- " .. resource.path)
-      end
-    end
-  end
-
-  if vim.tbl_count(items) == 0 then
-    return ""
-  end
-
-  if group.vars then
-    util.replace_placeholders(items, group.vars)
-  end
-
-  return table.concat(items, "\n")
-end
-
 ---Replace variables in a string
 ---@param workspace table
 ---@param group table

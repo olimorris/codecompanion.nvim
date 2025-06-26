@@ -93,7 +93,7 @@ Let's also explore one of the `data` objects in detail:
 
 ### Files
 
-When _files_ are defined, their entire content is shared with the LLM alongside the description. This is useful for files where a deep understanding of how they function is required. Of course, this can consume significant tokens.
+When _files_ are defined, their entire content is shared with the LLM alongside the description. This is useful for files where a deep understanding of how they function is required. Of course, this can consume significant tokens. CodeCompanion will automatically detect if a file is open in Neovim, as a buffer, and load it as such. This makes it more convenient to leverage watchers and pins and keep an LLM updated when you modify the contents.
 
 ### Symbols
 
@@ -104,11 +104,11 @@ The plugin uses Tree-sitter [queries](https://github.com/olimorris/codecompanion
 - File/library imports
 - Start/end lines for each symbol
 
-By tagging the `files` tool, the LLM can request specific line ranges from these symbols - a cost-effective alternative to sharing entire files.
+Alongside the `@files` tool group, the LLM can request specific line ranges from these symbols - a cost-effective alternative to sharing entire files.
 
 ### URLs
 
-Workspace files also support the loading of data from URLs. When loading a URL, the `fetch` slash command adapter retrieves the data. The plugin:
+Workspace files also support the loading of data from URLs. When loading a URL, the `/fetch` slash command adapter retrieves the data. The plugin:
 
 - Caches URL data to disk by default
 - Prompts before restoring from cache

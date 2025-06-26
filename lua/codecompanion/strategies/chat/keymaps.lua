@@ -307,7 +307,7 @@ M.pin_reference = {
       return
     end
 
-    local icon = config.display.chat.icons.pinned_buffer
+    local icon = config.display.chat.icons.pinned_buffer or config.display.chat.icons.buffer_pin
     local id = line:gsub("^> %- ", "")
 
     if not chat.references:can_be_pinned(id) then
@@ -355,7 +355,8 @@ M.toggle_watch = {
 
     -- Find the reference and toggle watch state
     for _, ref in ipairs(chat.refs) do
-      local clean_id = id:gsub(icons.pinned_buffer, ""):gsub(icons.watched_buffer, "")
+      local clean_id = id:gsub(icons.pinned_buffer or icons.buffer_pin, "")
+        :gsub(icons.watched_buffer or icons.buffer_watch, "")
       if ref.id == clean_id then
         if not ref.opts then
           ref.opts = {}
@@ -368,7 +369,7 @@ M.toggle_watch = {
           -- Check if buffer is still valid before watching
           if vim.api.nvim_buf_is_valid(ref.bufnr) and vim.api.nvim_buf_is_loaded(ref.bufnr) then
             chat.watchers:watch(ref.bufnr)
-            new_line = string.format("> - %s%s", icons.watched_buffer, clean_id)
+            new_line = string.format("> - %s%s", icons.watched_buffer or icons.buffer_watch, clean_id)
           else
             -- Buffer is invalid, can't watch it
             ref.opts.watched = false
@@ -638,6 +639,20 @@ M.goto_file_under_cursor = {
       error(string.format("%s is not a valid jump action!", vim.inspect(user_action)))
     end
     action(file_name)
+  end,
+}
+
+M.copilot_stats = {
+  desc = "Show Copilot usage statistics",
+  callback = function(chat)
+    if chat.adapter.name ~= "copilot" then
+      return util.notify("Copilot stats are only available when using the Copilot adapter", vim.log.levels.WARN)
+    end
+    if chat.adapter.show_copilot_stats then
+      chat.adapter.show_copilot_stats()
+    else
+      util.notify("Copilot stats function not available", vim.log.levels.ERROR)
+    end
   end,
 }
 

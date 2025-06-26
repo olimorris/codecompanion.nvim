@@ -1,5 +1,26 @@
 # Changelog
 
+## [17.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.2.0...v17.3.0) (2025-06-24)
+
+
+### Features
+
+* **chat:** add copilot usage statistics with `gS` keymap ([#1677](https://github.com/olimorris/codecompanion.nvim/issues/1677)) ([8602a50](https://github.com/olimorris/codecompanion.nvim/commit/8602a50cacf111c69f35e305d1556afd9fa1f1a1))
+
+## [17.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.1.1...v17.2.0) (2025-06-24)
+
+
+### Features
+
+* **workspaces:** files can be opened as buffers ([#1708](https://github.com/olimorris/codecompanion.nvim/issues/1708)) ([2ea49ff](https://github.com/olimorris/codecompanion.nvim/commit/2ea49ff2063100757e71b0e327b7a32a1d566a9d))
+
+
+### Bug Fixes
+
+* require tool module path correctly ([#1670](https://github.com/olimorris/codecompanion.nvim/issues/1670)) ([dbefc41](https://github.com/olimorris/codecompanion.nvim/commit/dbefc41dba2f46720ecb6ecec34c0c5f80022f2b))
+* **tools:** patching algorithm can start with an empty line ([#1663](https://github.com/olimorris/codecompanion.nvim/issues/1663)) ([370ec56](https://github.com/olimorris/codecompanion.nvim/commit/370ec56f388fd317fd324d68709e9441d3461896))
+* **tools:** patching algorithm now supports lines starting with `-` ([#1654](https://github.com/olimorris/codecompanion.nvim/issues/1654)) ([9011839](https://github.com/olimorris/codecompanion.nvim/commit/9011839a6827b264d632822d9ce17cb66fe95e61))
+
 ## [17.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.1.0...v17.1.1) (2025-06-16)
 
 

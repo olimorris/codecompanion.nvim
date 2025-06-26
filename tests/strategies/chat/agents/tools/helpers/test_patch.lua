@@ -42,6 +42,14 @@ T["patch"]["simple patch"] = function()
   h.eq(output_str, expected_output)
 end
 
+T["patch"]["lines starting by '-'"] = function()
+  local input_str = "- item1"
+  local patch_str = "*** Begin Patch\n - item1\n+- item2\n*** End Patch"
+  local output_str = apply_patch(input_str, patch_str)
+  local expected_output = "- item1\n- item2"
+  h.eq(output_str, expected_output)
+end
+
 T["patch"]["simple test from fixtures"] = function()
   local input_str = readfile("tests/fixtures/files-input-1.html")
   local patch_str = readfile("tests/fixtures/files-diff-1.1.patch")
@@ -71,6 +79,14 @@ T["patch"]["no BEGIN and END markers"] = function()
   local patch_str = readfile("tests/fixtures/files-diff-1.5.patch")
   local output_str = apply_patch(input_str, patch_str)
   local expected_output = readfile("tests/fixtures/files-output-1.5.html")
+  h.eq(output_str, expected_output)
+end
+
+T["patch"]["empty line before first @focus"] = function()
+  local input_str = readfile("tests/fixtures/files-input-1.html")
+  local patch_str = readfile("tests/fixtures/files-diff-1.6.patch")
+  local output_str = apply_patch(input_str, patch_str)
+  local expected_output = readfile("tests/fixtures/files-output-1.6.html")
   h.eq(output_str, expected_output)
 end
 
