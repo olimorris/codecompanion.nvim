@@ -579,10 +579,7 @@ Request to list all usages (references, definitions, implementations etc) of a f
               .. string.format(
                 [[
 ---
-Filename: %s
-Start line: %s
-End line: %s
-Content:
+Filename: %s:%s-%s
 ```%s
 %s
 ```
