@@ -210,6 +210,12 @@ function UI:is_visible()
   return self.winnr and api.nvim_win_is_valid(self.winnr) and api.nvim_win_get_buf(self.winnr) == self.chat_bufnr
 end
 
+---Chat buffer is visible but not in the current tab
+---@return boolean
+function UI:is_visible_non_curtab()
+  return self:is_visible() and api.nvim_get_current_tabpage() ~= api.nvim_win_get_tabpage(self.winnr)
+end
+
 ---Get the formatted header for the chat buffer
 ---@param role string The role of the user
 ---@return string
