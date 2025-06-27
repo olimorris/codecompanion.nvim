@@ -33,4 +33,10 @@ T["cmds"][":CodeCompanionChat"] = function()
   expect.reference_screenshot(child.get_screenshot())
 end
 
+T["cmds"][":CodeCompanionChat Toggle"] = function()
+  child.cmd([[tabnew]])
+  child.cmd([[CodeCompanionChat Toggle]])
+  expect.reference_screenshot(child.get_screenshot())
+end
+
 return T
