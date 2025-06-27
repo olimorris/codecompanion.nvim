@@ -523,6 +523,9 @@ end
 ---@param output string
 ---@return table|nil
 function Inline:parse_output(output)
+  -- Remove any think tags that may have been added by the LLM (e.g. qwen3).
+  output = output:gsub("<think>.-</think>", "")
+
   -- Try parsing as plain JSON first
   output = output:gsub("^```json", ""):gsub("```$", "")
   local _, json = pcall(vim.json.decode, output)

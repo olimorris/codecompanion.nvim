@@ -28,6 +28,23 @@ T["Inline"]["can parse json output correctly"] = function()
   h.eq("add", json.placement)
 end
 
+T["Inline"]["can parse output with think tags correctly"] = function()
+  local json = inline:parse_output([[
+<think>
+Cogito,
+ergo sum.
+</think>
+
+{
+  "code": "function test() end",
+  "placement": "add"
+}
+]])
+
+  h.eq("function test() end", json.code)
+  h.eq("add", json.placement)
+end
+
 T["Inline"]["can parse markdown output correctly"] = function()
   local json = inline:parse_output([[```json
 {
