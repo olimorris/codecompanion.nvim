@@ -264,7 +264,7 @@ LSPCaller.LSP_METHODS = {
   type_definition = vim.lsp.protocol.Methods.textDocument_typeDefinition,
   incoming_calls = vim.lsp.protocol.Methods.callHierarchy_incomingCalls,
   outgoing_calls = vim.lsp.protocol.Methods.callHierarchy_outgoingCalls,
-  hover = vim.lsp.protocol.Methods.textDocument_hover,
+  documentation = vim.lsp.protocol.Methods.textDocument_hover,
 }
 
 LSPCaller.LSP_TIMEOUT_MS = 10000
@@ -328,7 +328,18 @@ function LSPCaller:execute_lsp_request(bufnr, method)
     position_params.context = { -- Some LSPs require this param
       includeDeclaration = false,
     }
+
     local lsp_result, err = client:request_sync(method, position_params, self.LSP_TIMEOUT_MS)
+
+    if method == self.LSP_METHODS.documentation then
+      if lsp_result and lsp_result.result and lsp_result.result.contents then
+        lsp_result.result = {
+          range = lsp_result.result.range,
+          contents = lsp_result.result.contents.value or lsp_result.result.contents,
+        }
+      end
+    end
+
     if err then
       table.insert(errors, "LSP error: " .. tostring(err))
     elseif lsp_result and lsp_result.result then
@@ -364,14 +375,16 @@ function LSPCaller:process_single_range(uri, range, operation)
   if symbol_result.status == "success" then
     -- Check if element with same filename, start_line and end_line already exists
     local duplicate_exists = false
-    for _, existing_data in ipairs(self.symbol_data) do
-      if
-        existing_data.filename == symbol_result.data.filename
-        and existing_data.start_line == symbol_result.data.start_line
-        and existing_data.end_line == symbol_result.data.end_line
-      then
-        duplicate_exists = true
-        break
+    for _, code_blocks in pairs(self.symbol_data) do
+      for _, code_block in ipairs(code_blocks) do
+        if
+          code_block.filename == symbol_result.data.filename
+          and code_block.start_line == symbol_result.data.start_line
+          and code_block.end_line == symbol_result.data.end_line
+        then
+          duplicate_exists = true
+          break
+        end
       end
     end
 
@@ -393,11 +406,22 @@ end
 --- @param result table LSP result data, either single item or array
 --- @return table result Contains status and data indicating processing result
 function LSPCaller:process_lsp_result(result, operation)
+  if result.contents then
+    if not self.symbol_data[operation] then
+      self.symbol_data[operation] = {}
+    end
+    table.insert(self.symbol_data[operation], {
+      code_block = result.contents,
+    })
+
+    return { status = "success", data = "Hover content processed" }
+  end
+
   if result.range then
     return self:process_single_range(result.uri or result.targetUri, result.range, operation)
   end
 
-  if #result > 20 then
+  if #result > 50 then
     return { status = "error", data = "Too many results for symbol operation. Ignoring." }
   end
 
@@ -422,7 +446,6 @@ end
 --- @param method string LSP method to execute
 --- @return table result Contains status and data indicating overall operation result
 function LSPCaller:call_lsp_method_and_store_results(bufnr, method, operation)
-  vim.notify("Executing LSP method: " .. method .. " for buffer: " .. bufnr, vim.log.levels.INFO)
   local validation = self:validate_lsp_params(bufnr, method, operation)
   if validation.status == "error" then
     return { status = "error", data = validation.data }
@@ -435,7 +458,7 @@ function LSPCaller:call_lsp_method_and_store_results(bufnr, method, operation)
 
   local processed_result = self:process_all_lsp_results(results.data, operation)
   if processed_result.status == "success" then
-    return { status = "success", data = "Tool executed successfully" }
+    return { status = "success", data = processed_result.data }
   else
     return { status = "error", data = processed_result.data }
   end
@@ -443,7 +466,7 @@ end
 
 --- Processes LSP results from all clients that responded
 --- @param results_by_client table LSP results organized by client name
---- @param method string LSP method that was executed
+--- @param operation string operation that was executed
 --- @return table result Contains status and data with processing count or error messages
 function LSPCaller:process_all_lsp_results(results_by_client, operation)
   local processed_count = 0
@@ -509,18 +532,22 @@ return {
         symbol_found = true
       end
 
+      local results_num = 0
+
       if symbol_found then
         bufnr = tonumber(cursor_result.data.bufnr)
-        vim.notify("bufnr: " .. bufnr, vim.log.levels.INFO)
         for operation, method in pairs(lsp_caller.LSP_METHODS) do
           ---@diagnostic disable-next-line: param-type-mismatch
-          lsp_caller:call_lsp_method_and_store_results(bufnr, method, operation)
+          local lsp_call_result = lsp_caller:call_lsp_method_and_store_results(bufnr, method, operation)
+          if lsp_call_result.status == "success" then
+            results_num = results_num + lsp_call_result.data
+          end
         end
       end
 
       vim.api.nvim_set_current_win(chat_winnr)
 
-      if #lsp_caller.symbol_data > 0 then
+      if results_num > 0 then
         lsp_caller.filetype = vim.api.nvim_get_option_value("filetype", { buf = bufnr })
         return { status = "success", data = "Tool executed successfully" }
       else
@@ -579,12 +606,30 @@ Request to list all usages (references, definitions, implementations etc) of a f
     ---@param stdout table The output from the command
     success = function(self, agent, cmd, stdout)
       local symbol = self.args.symbolName
-      local chat_message_content = string.format("Code usages for symbol: `%s`\n", symbol)
+      local chat_message_content = ""
 
-      for _, code_block in ipairs(lsp_caller.symbol_data) do
-        chat_message_content = chat_message_content
-          .. string.format(
-            [[
+      vim.notify(
+        "Found usages for symbol: " .. symbol .. " Data: " .. vim.inspect(lsp_caller.symbol_data),
+        vim.log.levels.INFO
+      )
+      for operation, code_blocks in pairs(lsp_caller.symbol_data) do
+        chat_message_content = chat_message_content .. string.format("\n%s of symbol: `%s`\n", operation, symbol)
+        for _, code_block in ipairs(code_blocks) do
+          if operation == "documentation" then
+            chat_message_content = chat_message_content
+              .. string.format(
+                [[
+---
+```markdown
+%s
+```
+]],
+                code_block.code_block
+              )
+          else
+            chat_message_content = chat_message_content
+              .. string.format(
+                [[
 ---
 Filename: %s
 Start line: %s
@@ -594,12 +639,14 @@ Content:
 %s
 ```
 ]],
-            code_block.filename,
-            code_block.start_line,
-            code_block.end_line,
-            lsp_caller.filetype,
-            code_block.code_block
-          )
+                code_block.filename,
+                code_block.start_line,
+                code_block.end_line,
+                lsp_caller.filetype,
+                code_block.code_block
+              )
+          end
+        end
       end
 
       return agent.chat:add_tool_output(self, chat_message_content)
