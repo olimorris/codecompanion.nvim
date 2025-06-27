@@ -104,8 +104,8 @@ return {
     form_tools = function(self, tools)
       return openai.handlers.form_tools(self, tools)
     end,
-    chat_output = function(self, data)
-      return openai.handlers.chat_output(self, data)
+    chat_output = function(self, data, tools)
+      return openai.handlers.chat_output(self, data, tools)
     end,
     tools = {
       format_tool_calls = function(self, tools)
