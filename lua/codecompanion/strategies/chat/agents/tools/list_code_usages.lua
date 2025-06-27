@@ -29,17 +29,27 @@ end
 
 --- Searches for a symbol in the workspace using grep (ripgrep) and quickfix list
 --- @param symbol string Symbol to search for
---- @param filetype string|nil File type to search in (optional)
+--- @param filetype? string|nil File type to search in (optional)
+--- @param filepaths? table|nil List of file paths to search in (optional)
 --- @return table|nil result Table with file, line, col, and text or nil if not found
-function SymbolFinder:grep_symbol_in_workspace(symbol, filetype)
+function SymbolFinder:grep_symbol_in_workspace(symbol, filetype, filepaths)
   local search_pattern = "\\b" .. vim.fn.escape(symbol, "\\") .. "\\b"
 
   -- Build the grep command
-  local cmd = string.format(
-    "silent! grep! %s %s",
-    filetype and self:get_filetype_pattern(filetype) or "",
-    vim.fn.shellescape(search_pattern)
-  )
+  local cmd = "silent! grep! "
+
+  -- Add filetype pattern if provided
+  if filetype then
+    cmd = cmd .. self:get_filetype_pattern(filetype) .. " "
+  end
+
+  -- Add search pattern
+  cmd = cmd .. vim.fn.shellescape(search_pattern)
+
+  -- Add specific filepaths if provided
+  if filepaths and type(filepaths) == "table" and #filepaths > 0 then
+    cmd = cmd .. " " .. table.concat(filepaths, " ")
+  end
 
   ---@diagnostic disable-next-line: param-type-mismatch
   local success, _ = pcall(vim.cmd, cmd)
@@ -86,16 +96,17 @@ end
 
 --- Moves cursor to the first occurrence of a symbol in the workspace
 --- @param symbol string Symbol to search for and move cursor to
---- @param filetype string|nil File type to search in (e.g., "lua", "javascript", "java")
+--- @param filetype? string|nil File type to search in (e.g., "lua", "javascript", "java")
+--- @param filepaths? table|nil List of file paths to search in (optional)
 --- @return table result Contains status and data with file info or error message
-function SymbolFinder:move_cursor_to_symbol(symbol, filetype)
+function SymbolFinder:move_cursor_to_symbol(symbol, filetype, filepaths)
   if not symbol or symbol == "" then
     return { status = "error", data = "Symbol parameter is required and cannot be empty. Provide a symbol to look for." }
   end
 
   vim.cmd("stopinsert")
 
-  local match = self:grep_symbol_in_workspace(symbol, filetype)
+  local match = self:grep_symbol_in_workspace(symbol, filetype, filepaths)
 
   if not match then
     local filetype_msg = filetype and (" in " .. filetype .. " files") or ""
@@ -246,15 +257,20 @@ LSPCaller.__index = LSPCaller
 
 -- Constants for LSP methods and Tree-sitter nodes
 LSPCaller.LSP_METHODS = {
-  get_definition = vim.lsp.protocol.Methods.textDocument_definition,
-  get_references = vim.lsp.protocol.Methods.textDocument_references,
-  get_implementation = vim.lsp.protocol.Methods.textDocument_implementation,
+  definition = vim.lsp.protocol.Methods.textDocument_definition,
+  references = vim.lsp.protocol.Methods.textDocument_references,
+  implementation = vim.lsp.protocol.Methods.textDocument_implementation,
+  declaration = vim.lsp.protocol.Methods.textDocument_declaration,
+  type_definition = vim.lsp.protocol.Methods.textDocument_typeDefinition,
+  incoming_calls = vim.lsp.protocol.Methods.callHierarchy_incomingCalls,
+  outgoing_calls = vim.lsp.protocol.Methods.callHierarchy_outgoingCalls,
+  hover = vim.lsp.protocol.Methods.textDocument_hover,
 }
 
 LSPCaller.LSP_TIMEOUT_MS = 10000
 
---- Creates a new instance of SymbolContextTool
---- @return LSPCaller instance New SymbolContextTool instance
+--- Creates a new instance of ListCodeUsagesTool
+--- @return LSPCaller instance New ListCodeUsagesTool instance
 function LSPCaller:new()
   local instance = setmetatable({}, LSPCaller)
   return instance
@@ -268,14 +284,16 @@ LSPCaller.filetype = ""
 --- @param bufnr number Buffer number for the request
 --- @param method string LSP method name
 --- @return table result Contains status and data indicating validation result
-function LSPCaller:validate_lsp_params(bufnr, method)
-  if not (bufnr and method) then
+function LSPCaller:validate_lsp_params(bufnr, method, operation)
+  if not (bufnr and method and operation) then
     return {
       status = "error",
-      data = "Missing bufnr or method. buffer="
+      data = "Missing bufnr or method or operation. buffer="
         .. bufnr
         .. " method="
         .. method
+        .. " operation="
+        .. operation
         .. ". Tool could not find provided symbol in the code. Check spelling.",
     }
   end
@@ -307,7 +325,7 @@ function LSPCaller:execute_lsp_request(bufnr, method)
   for _, client in ipairs(clients) do
     local position_params = vim.lsp.util.make_position_params(0, client.offset_encoding)
     ---@diagnostic disable-next-line: inject-field
-    position_params.context = {
+    position_params.context = { -- Some LSPs require this param
       includeDeclaration = false,
     }
     local lsp_result, err = client:request_sync(method, position_params, self.LSP_TIMEOUT_MS)
@@ -334,7 +352,7 @@ end
 --- @param uri string URI of the file containing the range
 --- @param range table LSP range object with start and end positions
 --- @return table result Contains status and data indicating processing result
-function LSPCaller:process_single_range(uri, range)
+function LSPCaller:process_single_range(uri, range, operation)
   if not (uri and range) then
     return { status = "error", data = "Missing uri or range. Internal tool error. Skip future tool calls." }
   end
@@ -359,7 +377,10 @@ function LSPCaller:process_single_range(uri, range)
 
     -- Only insert if no duplicate exists
     if not duplicate_exists then
-      table.insert(self.symbol_data, symbol_result.data)
+      if not self.symbol_data[operation] then
+        self.symbol_data[operation] = {}
+      end
+      table.insert(self.symbol_data[operation], symbol_result.data)
     end
 
     return { status = "success", data = "Symbol processed" }
@@ -371,9 +392,9 @@ end
 --- Processes LSP results, handling both single items and arrays
 --- @param result table LSP result data, either single item or array
 --- @return table result Contains status and data indicating processing result
-function LSPCaller:process_lsp_result(result)
+function LSPCaller:process_lsp_result(result, operation)
   if result.range then
-    return self:process_single_range(result.uri or result.targetUri, result.range)
+    return self:process_single_range(result.uri or result.targetUri, result.range, operation)
   end
 
   if #result > 20 then
@@ -383,7 +404,7 @@ function LSPCaller:process_lsp_result(result)
   local errors = {}
   for _, item in pairs(result) do
     local process_result =
-      self:process_single_range(item.uri or item.targetUri, item.range or item.targetSelectionRange)
+      self:process_single_range(item.uri or item.targetUri, item.range or item.targetSelectionRange, operation)
     if process_result.status == "error" then
       table.insert(errors, process_result.data)
     end
@@ -400,8 +421,9 @@ end
 --- @param bufnr number Buffer number for the LSP request
 --- @param method string LSP method to execute
 --- @return table result Contains status and data indicating overall operation result
-function LSPCaller:call_lsp_method(bufnr, method)
-  local validation = self:validate_lsp_params(bufnr, method)
+function LSPCaller:call_lsp_method_and_store_results(bufnr, method, operation)
+  vim.notify("Executing LSP method: " .. method .. " for buffer: " .. bufnr, vim.log.levels.INFO)
+  local validation = self:validate_lsp_params(bufnr, method, operation)
   if validation.status == "error" then
     return { status = "error", data = validation.data }
   end
@@ -411,7 +433,7 @@ function LSPCaller:call_lsp_method(bufnr, method)
     return { status = "error", data = results.data }
   end
 
-  local processed_result = self:process_all_lsp_results(results.data, method)
+  local processed_result = self:process_all_lsp_results(results.data, operation)
   if processed_result.status == "success" then
     return { status = "success", data = "Tool executed successfully" }
   else
@@ -423,12 +445,12 @@ end
 --- @param results_by_client table LSP results organized by client name
 --- @param method string LSP method that was executed
 --- @return table result Contains status and data with processing count or error messages
-function LSPCaller:process_all_lsp_results(results_by_client, method)
+function LSPCaller:process_all_lsp_results(results_by_client, operation)
   local processed_count = 0
   local errors = {}
 
   for client_name, lsp_results in pairs(results_by_client) do
-    local process_result = self:process_lsp_result(lsp_results or {})
+    local process_result = self:process_lsp_result(lsp_results or {}, operation)
     if process_result.status == "success" then
       processed_count = processed_count + 1
     else
@@ -445,12 +467,12 @@ end
 
 local lsp_caller = LSPCaller:new()
 
----@class CodeCompanion.Tool.SymbolContext: CodeCompanion.Agent.Tool
+---@class CodeCompanion.Tool.ListCodeUsages: CodeCompanion.Agent.Tool
 return {
   name = "list_code_usages",
   cmds = {
-    ---Execute the search commands
-    ---@param self CodeCompanion.Tool.SymbolContext
+    ---Execute the find usages tool
+    ---@param self CodeCompanion.Tool.ListCodeUsages
     ---@param args table The arguments from the LLM's tool call
     ---@param input? any The output from the previous function call
     ---@return { status: "success"|"error", data: string|table }
@@ -462,7 +484,6 @@ return {
       local context_filetype = self.chat.context.filetype
       ---@diagnostic disable-next-line: undefined-field
       local context_winnr = self.chat.context.winnr
-
       local chat_winnr = vim.api.nvim_get_current_win()
 
       vim.api.nvim_set_current_win(context_winnr)
@@ -470,55 +491,37 @@ return {
       -- Reset symbol data before new search
       lsp_caller.symbol_data = {}
 
-      -- If filePaths provided, try them first
       local symbol_found = false
-      if filePaths and #filePaths > 0 then
-        for _, filepath in ipairs(filePaths) do
-          if vim.fn.filereadable(filepath) == 1 then
-            -- Open the file
-            vim.cmd("edit " .. vim.fn.fnameescape(filepath))
-            local bufnr = vim.api.nvim_get_current_buf()
+      local bufnr
+      local cursor_result = symbol_finder:move_cursor_to_symbol(symbol, nil, filePaths)
 
-            -- Try to find the symbol in this file
-            local cursor_result = symbol_finder:move_cursor_to_symbol(symbol, nil)
-            if cursor_result.status == "success" then
-              symbol_found = true
-
-              -- Collect all LSP information (definitions, references, implementations)
-              for operation, method in pairs(lsp_caller.LSP_METHODS) do
-                ---@diagnostic disable-next-line: param-type-mismatch
-                lsp_caller:call_lsp_method(bufnr, method)
-              end
-
-              break
-            end
-          end
-        end
+      if cursor_result and cursor_result.status == "success" then
+        symbol_found = true
       end
 
-      -- If symbol not found in provided files, try general search
       if not symbol_found then
-        local cursor_result = symbol_finder:move_cursor_to_symbol(symbol, context_filetype)
+        cursor_result = symbol_finder:move_cursor_to_symbol(symbol, context_filetype, nil)
 
         if cursor_result.status == "error" then
           vim.api.nvim_set_current_win(chat_winnr)
           return cursor_result
         end
+        symbol_found = true
+      end
 
-        local bufnr = tonumber(cursor_result.data.bufnr)
-
-        -- Collect all LSP information (definitions, references, implementations)
+      if symbol_found then
+        bufnr = tonumber(cursor_result.data.bufnr)
+        vim.notify("bufnr: " .. bufnr, vim.log.levels.INFO)
         for operation, method in pairs(lsp_caller.LSP_METHODS) do
           ---@diagnostic disable-next-line: param-type-mismatch
-          lsp_caller:call_lsp_method(bufnr, method)
+          lsp_caller:call_lsp_method_and_store_results(bufnr, method, operation)
         end
       end
 
       vim.api.nvim_set_current_win(chat_winnr)
 
       if #lsp_caller.symbol_data > 0 then
-        -- Save filetype for output formatting
-        lsp_caller.filetype = vim.api.nvim_get_option_value("filetype", { buf = vim.api.nvim_get_current_buf() })
+        lsp_caller.filetype = vim.api.nvim_get_option_value("filetype", { buf = bufnr })
         return { status = "success", data = "Tool executed successfully" }
       else
         return {
@@ -564,13 +567,13 @@ Request to list all usages (references, definitions, implementations etc) of a f
     ---@param agent CodeCompanion.Agent The tool object
     ---@return nil
     on_exit = function(_, agent)
-      log:trace("[Symbol Content Tool] on_exit handler executed")
+      log:trace("[List Code Usages Tool] on_exit handler executed")
       lsp_caller.symbol_data = {}
       lsp_caller.filetype = ""
     end,
   },
   output = {
-    ---@param self CodeCompanion.Tool.SymbolContext
+    ---@param self CodeCompanion.Tool.ListCodeUsages
     ---@param agent CodeCompanion.Agent
     ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
@@ -599,7 +602,7 @@ Content:
           )
       end
 
-      return agent.chat:add_tool_output(self, chat_message_content, chat_message_content)
+      return agent.chat:add_tool_output(self, chat_message_content)
     end,
 
     ---@param self CodeCompanion.Tool.GrepSearch
@@ -608,7 +611,7 @@ Content:
     ---@param stderr table The error output from the command
     ---@param stdout? table The output from the command
     error = function(self, agent, cmd, stderr, stdout)
-      return agent.chat:add_tool_output(self, tostring(stderr[1]), tostring(stderr[1]))
+      return agent.chat:add_tool_output(self, tostring(stderr[1]))
     end,
   },
 }
