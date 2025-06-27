@@ -4,6 +4,31 @@ local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
 
+-- Reference: https://github.com/yetone/avante.nvim/blob/22418bff8bcac4377ebf975cd48f716823867979/lua/avante/providers/copilot.lua#L5-L26
+---
+---@class CopilotToken
+---@field annotations_enabled boolean
+---@field chat_enabled boolean
+---@field chat_jetbrains_enabled boolean
+---@field code_quote_enabled boolean
+---@field codesearch boolean
+---@field copilotignore_enabled boolean
+---@field endpoints {api: string, ["origin-tracker"]: string, proxy: string, telemetry: string}
+---@field expires_at integer
+---@field individual boolean
+---@field nes_enabled boolean
+---@field prompt_8k boolean
+---@field public_suggestions string
+---@field refresh_in integer
+---@field sku string
+---@field snippy_load_test_enabled boolean
+---@field telemetry string
+---@field token string
+---@field tracking_id string
+---@field vsc_electron_fetcher boolean
+---@field xcode boolean
+---@field xcode_chat boolean
+
 local _cached_adapter
 local _cache_expires
 local _cache_file = vim.fn.tempname()
@@ -12,7 +37,7 @@ local _cached_models
 ---@alias CopilotOAuthToken string|nil
 local _oauth_token
 
----@alias CopilotToken {token: string, expires_at: number}|nil
+---@type CopilotToken|nil
 local _github_token
 
 ---Finds the configuration path
@@ -111,8 +136,9 @@ local function authorize_token()
 end
 
 ---Get and authorize a GitHub Copilot token
+---@param self CodeCompanion.Adapter
 ---@return boolean success
-local function get_and_authorize_token()
+local function get_and_authorize_token(self)
   _oauth_token = get_token()
   if not _oauth_token then
     log:error("Copilot Adapter: No token found. Please refer to https://github.com/github/copilot.vim")
@@ -124,6 +150,7 @@ local function get_and_authorize_token()
     log:error("Copilot Adapter: Could not authorize your GitHub Copilot token")
     return false
   end
+  self.url = _github_token.endpoints.api .. "/chat/completions"
 
   return true
 end
@@ -135,8 +162,8 @@ local function reset()
 end
 
 ---Get a list of available Copilot models
----@params self CodeCompanion.Adapter
----@params opts? table
+---@param self CodeCompanion.Adapter
+---@param opts? table
 ---@return table
 local function get_models(self, opts)
   if _cached_models and _cache_expires and _cache_expires > os.time() then
@@ -150,8 +177,8 @@ local function get_models(self, opts)
     _cached_adapter = self
   end
 
-  get_and_authorize_token()
-  local url = "https://api.githubcopilot.com"
+  get_and_authorize_token(self)
+  local url = _github_token.endpoints.api or "https://api.githubcopilot.com"
   local headers = vim.deepcopy(_cached_adapter.headers)
   headers["Authorization"] = "Bearer " .. _github_token.token
 
@@ -199,6 +226,135 @@ local function get_models(self, opts)
   return models
 end
 
+---Get Copilot usage statistics
+---@return table|nil
+local function get_copilot_stats()
+  local dummy_adapter = { url = "" }
+  if not get_and_authorize_token(dummy_adapter) then
+    return nil
+  end
+
+  log:debug("Fetching Copilot usage statistics")
+
+  local ok, response = pcall(function()
+    return curl.get("https://api.github.com/copilot_internal/user", {
+      sync = true,
+      headers = {
+        Authorization = "Bearer " .. _oauth_token,
+        Accept = "*/*",
+        ["User-Agent"] = "CodeCompanion.nvim",
+      },
+      insecure = config.adapters.opts.allow_insecure,
+      proxy = config.adapters.opts.proxy,
+    })
+  end)
+  if not ok then
+    log:error("Could not get Copilot stats: %s", response)
+    return nil
+  end
+
+  local ok, json = pcall(vim.json.decode, response.body)
+  if not ok then
+    log:error("Error parsing Copilot stats response: %s", response.body)
+    return nil
+  end
+
+  return json
+end
+
+---Show Copilot usage statistics in a floating window
+---@return nil
+local function show_copilot_stats()
+  local stats = get_copilot_stats()
+  if not stats then
+    return vim.notify("Could not retrieve Copilot stats", vim.log.levels.ERROR)
+  end
+
+  local lines = {}
+  local ui = require("codecompanion.utils.ui")
+  table.insert(lines, "# 󰾞  GitHub Copilot Usage Statistics 󰾞 ")
+  table.insert(lines, "")
+
+  if stats.quota_snapshots.premium_interactions then
+    local premium = stats.quota_snapshots.premium_interactions
+    table.insert(lines, "##  Premium Interactions")
+    local used = premium.entitlement - premium.remaining
+    local usage_percent = premium.entitlement > 0 and (used / premium.entitlement * 100) or 0
+    table.insert(lines, string.format("   - Used: %d / %d (%.1f%%)", used, premium.entitlement, usage_percent))
+    table.insert(lines, string.format("   - Remaining: %d", premium.remaining))
+    table.insert(lines, string.format("   - Percentage: %.1f%%", premium.percent_remaining))
+    if premium.unlimited then
+      table.insert(lines, "   - Status: Unlimited ✨")
+    else
+      table.insert(lines, "   - Status: Limited")
+    end
+    table.insert(lines, "")
+  end
+
+  if stats.quota_snapshots.chat then
+    local chat = stats.quota_snapshots.chat
+    table.insert(lines, "## 󰭹 Chat")
+    if chat.unlimited then
+      table.insert(lines, "   - Status: Unlimited ✨")
+    else
+      local used = chat.entitlement - chat.remaining
+      local usage_percent = chat.entitlement > 0 and (used / chat.entitlement * 100) or 0
+      table.insert(lines, string.format("   - Used: %d / %d (%.1f%%)", used, chat.entitlement, usage_percent))
+    end
+    table.insert(lines, "")
+  end
+
+  if stats.quota_snapshots.completions then
+    local completions = stats.quota_snapshots.completions
+    table.insert(lines, "##  Completions")
+    if completions.unlimited then
+      table.insert(lines, "   - Status: Unlimited ✨")
+    else
+      local used = completions.entitlement - completions.remaining
+      local usage_percent = completions.entitlement > 0 and (used / completions.entitlement * 100) or 0
+      table.insert(lines, string.format("   - Used: %d / %d (%.1f%%)", used, completions.entitlement, usage_percent))
+    end
+  end
+  if stats.quota_reset_date then
+    table.insert(lines, "")
+    table.insert(lines, string.format("> Quota resets on: %s", stats.quota_reset_date))
+    table.insert(lines, "")
+  end
+
+  -- Create floating window
+  local float_opts = {
+    title = "󰍘 Copilot Stats",
+    lock = true,
+    relative = "editor",
+    row = "center",
+    col = "center",
+    window = {
+      width = 43,
+      height = math.min(#lines + 2, 20),
+    },
+    ignore_keymaps = false,
+  }
+  local _, winnr = ui.create_float(lines, float_opts)
+
+  local function get_usage_highlight(usage_percent)
+    if usage_percent >= 80 then
+      return "Error"
+    else
+      return "MoreMsg"
+    end
+  end
+  vim.api.nvim_win_call(winnr, function()
+    -- Usage percentages with color coding
+    local premium = stats.quota_snapshots.premium_interactions
+    if premium and not premium.unlimited then
+      local used = premium.entitlement - premium.remaining
+      local usage_percent = premium.entitlement > 0 and (used / premium.entitlement * 100) or 0
+      local highlight = get_usage_highlight(usage_percent)
+      vim.fn.matchadd(highlight, string.format("   - Used: %d / %d (%.1f%%)", used, premium.entitlement, usage_percent))
+    end
+  end)
+end
+
 ---@class Copilot.Adapter: CodeCompanion.Adapter
 return {
   name = "copilot",
@@ -229,6 +385,12 @@ return {
     ["Copilot-Integration-Id"] = "vscode-chat",
     ["Editor-Version"] = "Neovim/" .. vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
   },
+  get_copilot_stats = function()
+    return get_copilot_stats()
+  end,
+  show_copilot_stats = function()
+    return show_copilot_stats()
+  end,
   handlers = {
     ---Check for a token before starting the request
     ---@param self CodeCompanion.Adapter
@@ -256,7 +418,7 @@ return {
         self.opts.vision = false
       end
 
-      return get_and_authorize_token()
+      return get_and_authorize_token(self)
     end,
 
     --- Use the OpenAI adapter for the bulk of the work
@@ -320,7 +482,7 @@ return {
       type = "enum",
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
-      default = "gpt-4o",
+      default = "gpt-4.1",
       choices = function(self)
         return get_models(self)
       end,

@@ -4,7 +4,7 @@ In order to enable a tighter integration between CodeCompanion and your Neovim c
 
 ## List of Events
 
-The events that you can access are:
+The events that are fired from within the plugin are:
 
 - `CodeCompanionChatCreated` - Fired after a chat has been created for the first time
 - `CodeCompanionChatOpened` - Fired after a chat has been opened
@@ -28,6 +28,12 @@ The events that you can access are:
 - `CodeCompanionRequestFinished` - Fired at the end of any API request
 - `CodeCompanionDiffAttached` - Fired when in Diff mode
 - `CodeCompanionDiffDetached` - Fired when exiting Diff mode
+- `CodeCompanionDiffAccepted` - Fired when a user accepts a change
+- `CodeCompanionDiffRejected` - Fired when a user rejects a change
+
+There are also events that can be utilized to trigger commands from within the plugin:
+
+- `CodeCompanionChatRefreshCache` - Used to refresh conditional elements in the chat buffer
 
 ## Event Data
 
@@ -72,6 +78,14 @@ vim.api.nvim_create_autocmd({ "User" }, {
       require("conform").format({ bufnr = request.buf })
     end
   end,
+})
+```
+
+You can trigger an event with:
+
+```lua
+vim.api.nvim_exec_autocmds("User", {
+  pattern = "CodeCompanionChatRefreshCache",
 })
 ```
 

@@ -64,7 +64,7 @@ When conversing with an LLM, it can be useful to tweak model settings in between
 
 <img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" />
 
-The plugin supports multiple completion plugins out of the box, in the chat buffer. By default, the plugin will look to setup [blink.cmp](https://github.com/Saghen/blink.cmp) before trying to setup [nvim-cmp](https://github.com/hrsh7th/nvim-cmp). If you don't use a completion plugin, then you can use native completions with no setup, invoking them with `<C-_>` from within the chat buffer.
+You can invoke the completion plugins by typing the variable, slash command or tool name whilst in the chat buffer. If you don't use a completion plugin, then you can use native completions with no setup, invoking them with `<C-_>` from within the chat buffer.
 
 ## Keymaps
 
@@ -82,7 +82,10 @@ The keymaps available to the user in normal mode are:
 - `gp` to pin a reference to the chat buffer
 - `gw` to watch a referenced buffer
 - `gr` to regenerate the last response
+- `gR` to go to the file under cursor. If the file is already opened, it'll jump
+  to the existing window. Otherwise, it'll be opened in a new tab.
 - `gs` to toggle the system prompt on/off
+- `gS` to show copilot usage stats
 - `gta` to toggle auto tool mode
 - `gx` to clear the chat buffer's contents
 - `gy` to yank the last codeblock in the chat buffer
@@ -90,4 +93,3 @@ The keymaps available to the user in normal mode are:
 - `]]` to move to the next header
 - `{` to move to the previous chat
 - `}` to move to the next chat
-

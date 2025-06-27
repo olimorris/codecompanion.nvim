@@ -10,8 +10,8 @@ local api = vim.api
 local user_role = config.strategies.chat.roles.user
 local icons_path = config.display.chat.icons
 local icons = {
-  pinned = icons_path.pinned_buffer,
-  watched = icons_path.watched_buffer,
+  pinned = icons_path.pinned_buffer or icons_path.buffer_pin,
+  watched = icons_path.watched_buffer or icons_path.buffer_watch,
 }
 
 local allowed_pins = {
@@ -83,7 +83,17 @@ local function add(chat, ref, row)
   end
   local lines = {}
 
-  table.insert(lines, string.format("> - %s", ref.id))
+  -- Check if this reference has special options and format accordingly
+  local ref_text
+  if ref.opts and ref.opts.pinned then
+    ref_text = string.format("> - %s%s", icons.pinned, ref.id)
+  elseif ref.opts and ref.opts.watched then
+    ref_text = string.format("> - %s%s", icons.watched, ref.id)
+  else
+    ref_text = string.format("> - %s", ref.id)
+  end
+
+  table.insert(lines, ref_text)
 
   if vim.tbl_count(chat.refs) == 1 then
     table.insert(lines, 1, "> Context:")
@@ -128,6 +138,7 @@ function References:add(ref)
     if not ref.opts then
       ref.opts = {}
     end
+
     -- Ensure both properties exist with defaults
     ref.opts.pinned = ref.opts.pinned or false
     ref.opts.watched = ref.opts.watched or false

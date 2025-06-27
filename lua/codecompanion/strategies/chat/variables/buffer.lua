@@ -2,8 +2,6 @@ local buf_utils = require("codecompanion.utils.buffers")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
-local fmt = string.format
-
 local reserved_params = {
   "pin",
   "watch",
@@ -23,23 +21,6 @@ function Variable.new(args)
   return self
 end
 
----Read the contents of the buffer
----@param bufnr number
----@return string, string
-function Variable:read(bufnr)
-  local content = buf_utils.format_with_line_numbers(bufnr)
-  log:trace("Buffer Variable:\n---\n%s", content)
-
-  local name = self.Chat.references:make_id_from_buf(bufnr)
-  if name == "" then
-    name = "Buffer " .. bufnr
-  end
-
-  local id = "<buf>" .. name .. "</buf>"
-
-  return content, id
-end
-
 ---Add the contents of the current buffer to the chat
 ---@param selected table
 ---@param opts? table
@@ -55,16 +36,22 @@ function Variable:output(selected, opts)
     return log:warn("Invalid parameter for buffer variable: %s", params)
   end
 
-  local content, id = self:read(bufnr)
-
-  local message = "Here is the content from the buffer.\n\n"
+  local message = "User's current visible code in a file (including line numbers). This should be the main focus"
   if opts.pin then
-    message = "Here is the updated buffer content.\n\n"
+    message = "Here is the updated file content (including line numbers)"
+  end
+
+  local ok, content, id, _ = pcall(buf_utils.format_for_llm, {
+    bufnr = bufnr,
+    path = buf_utils.get_info(bufnr).path,
+  }, { message = message })
+  if not ok then
+    return log:warn(content)
   end
 
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
-    content = fmt([[%s%s]], message, content),
+    content = content,
   }, { reference = id, tag = "variable", visible = false })
 
   if opts.pin then
@@ -89,7 +76,7 @@ end
 ---@return string
 function Variable.replace(prefix, message, bufnr)
   local bufname = buf_utils.name_from_bufnr(bufnr)
-  local replacement = "buffer " .. bufnr .. " (`" .. bufname .. "`)"
+  local replacement = "file `" .. bufname .. "` (with buffer number: " .. bufnr .. ")"
 
   local result = message:gsub(prefix .. "buffer{[^}]*}", replacement)
   result = result:gsub(prefix .. "buffer", replacement)

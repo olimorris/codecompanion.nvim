@@ -6,7 +6,7 @@ local child = MiniTest.new_child_neovim()
 local T = new_set({
   hooks = {
     pre_case = function()
-      child.restart({ "-u", "scripts/minimal_init.lua" })
+      h.child_start(child)
 
       -- Load helpers and set up the environment in the child process
       child.lua([[

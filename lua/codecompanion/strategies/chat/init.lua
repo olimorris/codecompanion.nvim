@@ -194,9 +194,12 @@ end
 
 ---Ready the chat buffer for the next round of conversation
 ---@param chat CodeCompanion.Chat
+---@param opts? table
 ---@return nil
-local function ready_chat_buffer(chat)
-  if chat.last_role ~= config.constants.USER_ROLE then
+local function ready_chat_buffer(chat, opts)
+  opts = opts or {}
+
+  if not opts.auto_submit and chat.last_role ~= config.constants.USER_ROLE then
     increment_cycle(chat)
     chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
@@ -205,6 +208,16 @@ local function ready_chat_buffer(chat)
     chat.references:render()
 
     chat.subscribers:process(chat)
+  end
+
+  -- If we're automatically responding to a tool output, we need to leave some
+  -- space for the LLM's response so we can then display the user prompt again
+  if opts.auto_submit then
+    chat:add_buf_message({
+      role = config.constants.LLM_ROLE,
+      content = "\n\n",
+      opts = { visible = true },
+    })
   end
 
   log:info("Chat request finished")
@@ -565,7 +578,11 @@ function Chat.new(args)
     chat = self,
   }
 
-  self.adapter = adapters.resolve(args.adapter or config.strategies.chat.adapter)
+  if args.adapter and adapters.resolved(args.adapter) then
+    self.adapter = args.adapter
+  else
+    self.adapter = adapters.resolve(args.adapter or config.strategies.chat.adapter)
+  end
   if not self.adapter then
     return log:error("No adapter found")
   end
@@ -633,6 +650,15 @@ function Chat.new(args)
 
   last_chat = self
 
+  for _, tool_name in pairs(config.strategies.chat.tools.opts.default_tools or {}) do
+    local tool_config = config.strategies.chat.tools[tool_name]
+    if tool_config ~= nil then
+      self.tools:add(tool_name, tool_config)
+    elseif config.strategies.chat.tools.groups[tool_name] ~= nil then
+      self.tools:add_group(tool_name, config.strategies.chat.tools)
+    end
+  end
+
   util.fire("ChatCreated", { bufnr = self.bufnr, from_prompt_library = self.from_prompt_library, id = self.id })
   if args.auto_submit then
     self:submit()
@@ -666,7 +692,7 @@ function Chat:apply_model(model)
   return self
 end
 
----The source to provide the model entries for completion
+---The source to provide the model entries for completion (cmp only)
 ---@param callback fun(request: table)
 ---@return nil
 function Chat:complete_models(callback)
@@ -827,54 +853,62 @@ function Chat:submit(opts)
 
   opts = opts or {}
 
+  if opts.callback then
+    opts.callback()
+  end
+
   local bufnr = self.bufnr
-  local message = ts_parse_messages(self, self.header_line)
 
-  if not message and not has_user_messages(self) then
-    return log:warn("No messages to submit")
-  end
+  if opts.auto_submit then
+    self.watchers:check_for_changes(self)
+  else
+    local message = ts_parse_messages(self, self.header_line)
 
-  -- Check if any watched buffers have changes and add to the chat buffer before any user messages
-  self.watchers:check_for_changes(self)
-
-  -- Allow users to send a blank message to the LLM
-  if not opts.regenerate then
-    local chat_opts = config.strategies.chat.opts
-    if message and message.content and chat_opts and chat_opts.prompt_decorator then
-      message.content = chat_opts.prompt_decorator(message.content, adapters.make_safe(self.adapter), self.context)
+    if not message and not has_user_messages(self) then
+      return log:warn("No messages to submit")
     end
-    self:add_message({
-      role = config.constants.USER_ROLE,
-      content = (message and message.content or config.strategies.chat.opts.blank_prompt),
-    })
-  end
 
-  -- NOTE: There are instances when submit is called with no user message. Such
-  -- as in the case of tools auto-submitting responses. References should be
-  -- excluded and we can do this by checking for user messages.
-  if message then
-    message = self.references:clear(self.messages[#self.messages])
-    self:replace_vars_and_tools(message)
-    self:check_images(message)
-    self:check_references()
-    add_pins(self)
-  end
+    self.watchers:check_for_changes(self)
 
-  -- Check if the user has manually overridden the adapter
-  if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
-    self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
+    -- Allow users to send a blank message to the LLM
+    if not opts.regenerate then
+      local chat_opts = config.strategies.chat.opts
+      if message and message.content and chat_opts and chat_opts.prompt_decorator then
+        message.content = chat_opts.prompt_decorator(message.content, adapters.make_safe(self.adapter), self.context)
+      end
+      self:add_message({
+        role = config.constants.USER_ROLE,
+        content = (message and message.content or config.strategies.chat.opts.blank_prompt),
+      })
+    end
+
+    -- NOTE: There are instances when submit is called with no user message. Such
+    -- as in the case of tools auto-submitting responses. References should be
+    -- excluded and we can do this by checking for user messages.
+    if message then
+      message = self.references:clear(self.messages[#self.messages])
+      self:replace_vars_and_tools(message)
+      self:check_images(message)
+      self:check_references()
+      add_pins(self)
+    end
+
+    -- Check if the user has manually overridden the adapter
+    if vim.g.codecompanion_adapter and self.adapter.name ~= vim.g.codecompanion_adapter then
+      self.adapter = adapters.resolve(config.adapters[vim.g.codecompanion_adapter])
+    end
+
+    if not config.display.chat.auto_scroll then
+      vim.cmd("stopinsert")
+    end
+    self.ui:lock_buf()
+
+    set_text_editing_area(self, 2) -- this accounts for the LLM header
   end
 
   local settings = ts_parse_settings(bufnr, self.yaml_parser, self.adapter)
   self:apply_settings(settings)
   local mapped_settings = self.adapter:map_schema_to_params(settings)
-
-  if not config.display.chat.auto_scroll then
-    vim.cmd("stopinsert")
-  end
-  self.ui:lock_buf()
-
-  set_text_editing_area(self, 2) -- this accounts for the LLM header
 
   local payload = {
     messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
@@ -934,10 +968,11 @@ function Chat:submit(opts)
 end
 
 ---Method to fire when all the tools are done
----@param self CodeCompanion.Chat
+---@param opts? table
 ---@return nil
-function Chat:tools_done()
-  return ready_chat_buffer(self)
+function Chat:tools_done(opts)
+  opts = opts or {}
+  return ready_chat_buffer(self, opts)
 end
 
 ---Method to call after the response from the LLM is received
@@ -1019,16 +1054,35 @@ end
 ---Reconcile the references table to the references in the chat buffer
 ---@return nil
 function Chat:check_references()
-  local refs = self.references:get_from_chat()
-  if vim.tbl_isempty(refs) and vim.tbl_isempty(self.refs) then
+  local refs_in_chat = self.references:get_from_chat()
+  if vim.tbl_isempty(refs_in_chat) and vim.tbl_isempty(self.refs) then
     return
   end
+
+  local function expand_group_ref(group_name)
+    local group_config = self.agents.tools_config.groups[group_name] or {}
+    return vim.tbl_map(function(tool)
+      return "<tool>" .. tool .. "</tool>"
+    end, group_config.tools or {})
+  end
+
+  local groups_in_chat = {}
+  for _, id in ipairs(refs_in_chat) do
+    local group_name = id:match("<group>(.*)</group>")
+    if group_name and vim.trim(group_name) ~= "" then
+      table.insert(groups_in_chat, group_name)
+    end
+  end
+  -- Populate the refs_in_chat with tool refs from groups
+  vim.iter(groups_in_chat):each(function(group_name)
+    vim.list_extend(refs_in_chat, expand_group_ref(group_name))
+  end)
 
   -- Fetch references that exist on the chat object but not in the buffer
   local to_remove = vim
     .iter(self.refs)
     :filter(function(ref)
-      return not vim.tbl_contains(refs, ref.id)
+      return not vim.tbl_contains(refs_in_chat, ref.id)
     end)
     :map(function(ref)
       return ref.id
@@ -1038,6 +1092,15 @@ function Chat:check_references()
   if vim.tbl_isempty(to_remove) then
     return
   end
+
+  local groups_to_remove = vim.tbl_filter(function(id)
+    return id:match("<group>(.*)</group>")
+  end, to_remove)
+
+  -- Extend to_remove with tools in the groups
+  vim.iter(groups_to_remove):each(function(group_name)
+    vim.list_extend(to_remove, expand_group_ref(group_name))
+  end)
 
   -- Remove them from the messages table
   self.messages = vim

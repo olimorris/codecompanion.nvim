@@ -7,7 +7,7 @@ local child = MiniTest.new_child_neovim()
 T = new_set({
   hooks = {
     pre_once = function()
-      child.restart({ "-u", "scripts/minimal_init.lua" })
+      h.child_start(child)
       child.lua([[
         codecompanion = require("codecompanion")
       ]])
@@ -63,7 +63,7 @@ T["extensions"]["loads external extension via setup()"] = function()
   child.lua([[
     ---@type CodeCompanion.Extension
     local mock_ext = {
-      setup = function(opts) 
+      setup = function(opts)
         require("codecompanion.config").strategies.chat.keymaps.test_action = {
           modes = { n = "gt" },
           description = "Test Action",
@@ -73,7 +73,7 @@ T["extensions"]["loads external extension via setup()"] = function()
         test_function = function() return "test_value" end
       }
     }
-    
+
     codecompanion.setup({
       extensions = {
         external_extension = {
@@ -111,7 +111,7 @@ T["extensions"]["loads via register_extension()"] = function()
         test_function = function() return "dynamic" end
       }
     }
-    
+
     codecompanion.register_extension("test_extension2", extension)
   ]])
 
@@ -142,7 +142,7 @@ T["extensions"]["respects enabled flag"] = function()
         test_function = function() return "test_value" end
       }
     }
-    
+
     codecompanion.setup({
       extensions = {
         disabled_extension = {

@@ -48,29 +48,85 @@ Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/St
 
 The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its request. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for [workflows](/extending/workflows) to hook into.
 
-## @editor
-
-The _@editor_ tool enables an LLM to modify the code in a Neovim buffer. If a buffer's content has been shared with the LLM then the tool can be used to add, edit or delete specific lines. Consider pinning or watching a buffer to avoid manually re-sending a buffer's content to the LLM:
-
-```md
-Use the @editor tool refactor the code in #buffer{watch}
-```
-
-```md
-Can you apply the suggested changes to the buffer with the @editor tool?
-```
-
-## @files
+## @create_file
 
 > [!NOTE]
-> All file operations require approval from the user before they're executed
+> By default, this tool requires user approval before it can be executed
 
-The _@files_ tool leverages the [Plenary.Path](https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/path.lua) module to enable an LLM to perform various file operations on the user's disk:
+Create a file within the current working directory:
 
-- Creating a file
-- Reading a file
-- Editing a file
-- Deleting a file
+```md
+Can you create some test fixtures using the @create_file tool?
+```
+
+## @file_search
+
+This tool enables an LLM to search for files in the current working directory by glob pattern. It will return a list of relative paths for any matching files.
+
+```md
+Use the @file_search tool to list all the lua files in my project
+```
+
+## @grep_search
+
+> [!IMPORTANT]
+> This tool requires [ripgrep](https://github.com/BurntSushi/ripgrep) to be installed
+
+This tool enables an LLM to search for text, within files, in the current working directory. For every match, the output (`{filename}:{line number} {relative filepath}`) will be shared with the LLM:
+
+```md
+Use the @grep_search tool to find all occurrences of `buf_add_message`?
+```
+
+## @insert_edit_into_file
+
+> [!NOTE]
+> By default, when editing files, this tool requires user approval before it can be executed
+
+<p>
+  <video controls muted src="https://github.com/user-attachments/assets/990bbc99-7b12-4dca-8770-c24b9f3e7838"></video>
+</p>
+
+This tool can edit buffers and files for code changes from an LLM:
+
+```md
+Use the @insert_edit_into_file tool to refactor the code in #buffer
+```
+
+```md
+Can you apply the suggested changes to the buffer with the @insert_edit_into_file tool?
+```
+
+## @next_edit_suggestion
+
+Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the `@next_edit_suggestion` tool gives the LLM the ability to show the user where the next edit is. The LLM can only suggest edits in files or buffers that have been shared with it as context.
+
+The jump action can be customised in the `opts` table:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      tools = {
+        ["next_edit_suggestion"] = {
+          opts = {
+            --- the default is to open in a new tab, and reuse existing tabs
+            --- where possible
+            ---@type string|fun(path: string):integer?
+            jump_action = 'tabnew',
+          },
+        }
+      }
+    }
+  }
+})
+```
+
+The `jump_action` can be a VimScript command (as a string), or a lua function that accepts the path to the file and optionally returns the [window ID](https://neovim.io/doc/user/windows.html#window-ID). The window ID is needed if you want the LLM to point you to a specific line in the file.
+
+## @read_file
+
+This tool can read the contents of a specific file in the current working directory. This can be useful for an LLM to gain wider context of files that haven't been shared with it.
 
 ## @web_search
 
@@ -80,14 +136,36 @@ The _@web_search_ tool enables an LLM to search the web for a specific query. Th
 Can you use the @web_search tool to tell me the latest version of Neovim?
 ```
 
-## @full_stack_dev
+Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
 
-The plugin enables tools to be grouped together. The _@full_stack_dev_ agent is a combination of the _@cmd_runner_, _@editor_ and _@files_ tools:
+## Tool Groups
 
-```md
-Let's use the @full_stack_dev tools to create a new app
+CodeCompanion comes with two built-in tool groups:
+
+- `@full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools
+- `@files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools
+
+When you include a tool group in your chat (e.g., `@files`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer.
+
+If you want to show all tools as references in the chat buffer, set the `collapse_tools` option to `false`:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      tools = {
+        groups = {
+          ["files"] = {
+            opts = {
+              collapse_tools = false, -- Shows all tools in the group as individual references
+            },
+          },
+        },
+      }
+    }
+  }
+})
 ```
-
 
 ## Approvals
 
@@ -105,7 +183,7 @@ Consider combining tools for complex tasks:
 
 ### Automatic Tool Mode
 
-The plugin allows you to run tools on autopilot. This automatically approves any tool use instead of prompting the user, disables any diffs, and automatically saves any buffers that the agent has edited. Simply set the global variable `vim.g.codecompanion_auto_tool_mode` to enable this or set it to `nil` to undo this. Alternatively, the keymap `gta` will toggle  the feature whist from the chat buffer.
+The plugin allows you to run tools on autopilot. This automatically approves any tool use instead of prompting the user, disables any diffs, submits errors and success messages and automatically saves any buffers that the agent has edited. Simply set the global variable `vim.g.codecompanion_auto_tool_mode` to enable this or set it to `nil` to undo this. Alternatively, the keymap `gta` will toggle  the feature whist from the chat buffer.
 
 ## Compatibility
 

@@ -4,31 +4,31 @@ CodeCompanion aims to keep any changes to the user's UI to a minimum. Aesthetics
 
 Below are some examples of how you can customize the UI related to CodeCompanion.
 
-## [Progress updates with Fidget.nvim](https://github.com/olimorris/codecompanion.nvim/discussions/813) by [@jessevdp](https://github.com/jessevdp)
+## Progress updates with Fidget.nvim by [@jessevdp](https://github.com/jessevdp)
 
 <p align="center">
 <video controls muted src="https://github.com/user-attachments/assets/f1419889-7b62-46f2-ba73-98327a1b378b"></video>
 </p>
 
-As per the discussion over at [#813](https://github.com/olimorris/codecompanion.nvim/discussions/813)
+As per the discussion over at [#813](https://github.com/olimorris/codecompanion.nvim/discussions/813).
 
-## [Inline spinner with Fidget.nvim](https://github.com/olimorris/codecompanion.nvim/discussions/813) by [@yuhua99](https://github.com/yuhua99)
+## Inline spinner with Fidget.nvim by [@yuhua99](https://github.com/yuhua99)
 
 <p align="center">
 <img src="https://github.com/user-attachments/assets/aafb706f-b04f-42e6-b58e-ad30366ee532" />
 </p>
 
-As per the comment on [#640](https://github.com/olimorris/codecompanion.nvim/discussions/640#discussioncomment-12866279)
+As per the comment on [#640](https://github.com/olimorris/codecompanion.nvim/discussions/640#discussioncomment-12866279).
 
-## [Status column extmarks with the inline assistant](https://github.com/olimorris/codecompanion.nvim/discussions/1297) by [@lucobellic](https://github.com/lucobellic)
+## Status column extmarks with the inline assistant by [@lucobellic](https://github.com/lucobellic)
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/1daa7409-414e-4f4c-91fe-cd9c3ed0640e" />
 </p>
 
-As per the discussion over at [#1297](https://github.com/olimorris/codecompanion.nvim/discussions/1297)
+As per the discussion over at [#1297](https://github.com/olimorris/codecompanion.nvim/discussions/1297).
 
-## [Lualine.nvim](https://github.com/nvim-lualine/lualine.nvim) integration
+## Lualine.nvim integration
 
 The plugin can be integrated with lualine.nvim to show an icon in the statusline when a request is being sent to an LLM:
 
@@ -84,7 +84,7 @@ end
 return M
 ```
 
-## [Heirline.nvim](https://github.com/rebelot/heirline.nvim) integration
+## Heirline.nvim integration
 
 The plugin can also be integrated into heirline.nvim to show an icon when a request is being sent to an LLM:
 
@@ -114,4 +114,3 @@ local CodeCompanion = {
   },
 }
 ```
-

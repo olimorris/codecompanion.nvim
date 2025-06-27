@@ -1,19 +1,20 @@
 # VectorCode
 
+> Last updated for VectorCode 0.7
+
 [VectorCode](https://github.com/Davidyz/VectorCode) is a code repository indexing tool enabling semantic search across your local projects. This extension integrates VectorCode with CodeCompanion, allowing LLMs to query your indexed repositories for enhanced context during chat sessions.
 
 ## Features
 
-- Provides the `@vectorcode` tool for use in the chat buffer.
+- Provides tools for use in the chat buffer.
 - Enables LLMs to perform semantic searches across multiple indexed local code repositories.
 - Supplies relevant code snippets from your projects as context to the LLM.
 
 ## Prerequisites
 
-> [!NOTE]
-> VectorCode requires initial setup outside of CodeCompanion. You must install the Python backend and index your project files using the VectorCode CLI.
-
-Please refer to the [VectorCode CLI documentation](https://github.com/Davidyz/VectorCode/blob/main/docs/cli.md) for detailed setup instructions.
+Apart from the neovim plugin, VectorCode requires Python backend to interact with the database. 
+Please refer to the [VectorCode CLI documentation](https://github.com/Davidyz/VectorCode/blob/main/docs/cli.md) 
+for detailed setup instructions.
 
 ## Installation
 
@@ -22,8 +23,10 @@ First, install the [VectorCode Neovim plugin](https://github.com/Davidyz/VectorC
 ```lua
 {
   "Davidyz/VectorCode",
-  version = "*", -- optional, depending on whether you're on nightly or release
-  build = "pipx upgrade vectorcode", -- optional but recommended. This keeps your CLI up-to-date.
+  -- pin the nvim plugin to the latest release for stability
+  version = "*",
+  -- keep the CLI up to date so that it supports the features needed by the lua binding
+  build = "uv tool install --upgrade vectorcode",
   dependencies = { "nvim-lua/plenary.nvim" },
 }
 ```
@@ -31,26 +34,55 @@ First, install the [VectorCode Neovim plugin](https://github.com/Davidyz/VectorC
 Next, register VectorCode as an extension in your CodeCompanion configuration:
 
 ```lua
+---@module "vectorcode"
+
 require("codecompanion").setup({
   extensions = {
     vectorcode = {
+      ---@type VectorCode.CodeCompanion.ExtensionOpts
       opts = {
-        add_tool = true,
+        tool_group = {
+          enabled = true,
+          collapse = true,
+          -- tools in this array will be included to the `vectorcode_toolbox` tool group
+          extras = {}, 
+        },
+        tool_opts = {
+          ---@type VectorCode.CodeCompanion.LsToolOpts
+          ls = {},
+          ---@type VectorCode.CodeCompanion.QueryToolOpts
+          query = {},
+          ---@type VectorCode.CodeCompanion.VectoriseToolOpts
+          vectorise = {}
+        }
       }
     }
   }
 })
 ```
 
-With `add_tool = true`, the `@vectorcode` tool becomes available in the CodeCompanion chat buffer. For further configuration options, see the [VectorCode wiki](https://github.com/Davidyz/VectorCode/wiki/Neovim-Integrations).
-
 ## Usage
 
-To grant the LLM access to your indexed codebases, simply mention the `@vectorcode` tool in the chat buffer. The LLM can then query any projects indexed by VectorCode (verifiable via `vectorcode ls` in your terminal) to retrieve relevant context for your prompts.
+The extension will create the following 3 tools:
 
-**Example: Using VectorCode to Explore the VectorCode Repository**
+- The `ls` tool (named `@vectorcode_ls` in the chat buffer) returns all projects indexed by VectorCode;
+- The `query` tool (named `@vectorcode_query` in the chat buffer) allows the LLM to search for related files in a particular
+  project;
+- The `vectorise` tool (named `@vectorcode_vectorise` in the chat buffer) allows
+  the LLM to vectorise files and add them to the database.
 
-![](https://github.com/Davidyz/VectorCode/blob/main/images/codecompanion_chat.png?raw=true)
+For your convenience, a tool group named `@vectorcode_toolbox` will be created.
+This is a shortcut that you can use to quickly add all 3 tools mentioned above
+into the chat.
+
+> For further configuration options, see the [VectorCode wiki](https://github.com/Davidyz/VectorCode/wiki/Neovim-Integrations#olimorriscodecompanionnvim).
+
+You can now call the tools (or the tool group `@vectorcode_toolbox` to use all 3 tools) in
+the chat buffer, preferably with some instructions to tell the LLM what to do.
+
+**Example: Using VectorCode to Interact with a Code Repository in a CodeCompanion Chat Buffer**
+
+[![asciicast](https://asciinema.org/a/8WP8QJHNAR9lEllZSSx3poLPD.svg)](https://asciinema.org/a/8WP8QJHNAR9lEllZSSx3poLPD?t=3)
 
 ## Additional Resources
 

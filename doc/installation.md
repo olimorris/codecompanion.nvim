@@ -6,9 +6,10 @@
 ## Requirements
 
 - The `curl` library
-- Neovim 0.10.0 or greater
+- Neovim 0.11.0 or greater
 - _(Optional)_ An API key for your chosen LLM
 - _(Optional)_ The `base64` library for image/vision support
+- _(Optional)_ The `[ripgrep](https://github.com/BurntSushi/ripgrep)` library for the `grep_search` tool
 
 ## Installation
 
@@ -132,9 +133,11 @@ Use [markview.nvim](https://github.com/OXY2DEV/markview.nvim) to render the mark
 },
 ```
 
+You can also conceal the tags used in chat buffers, see [HTML options](https://github.com/OXY2DEV/markview.nvim/wiki/HTML#container_elements) and [this discussion](https://github.com/olimorris/codecompanion.nvim/discussions/1638) for examples.
+
 ### mini.diff
 
-Use [mini.diff](https://github.com/echasnovski/mini.diff) for a cleaner diff when using the inline assistant or the `@editor` tool:
+Use [mini.diff](https://github.com/echasnovski/mini.diff) for a cleaner diff when using the inline assistant or the `@insert_edit_into_file` tool:
 
 ```lua
 {
@@ -180,7 +183,7 @@ sources = {
 },
 ```
 
-The plugin also supports [native completion](usage/chat-buffer/index#completion).
+The plugin also supports [native completion](usage/chat-buffer/index#completion) and [coc.nvim](https://github.com/neoclide/coc.nvim).
 
 ## Help
 

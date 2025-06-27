@@ -1,5 +1,5 @@
 ---@class CodeCompanion.Agent
----@field tools_config table The agent strategy from the config
+---@field tools_config table The available tools for the agent
 ---@field aug number The augroup for the tool
 ---@field bufnr number The buffer of the chat buffer
 ---@field constants table<string, string> The constants for the tool
@@ -13,12 +13,16 @@
 ---@field tools_ns integer The namespace for the virtual text that appears in the header
 
 local Executor = require("codecompanion.strategies.chat.agents.executor")
+local ToolFilter = require("codecompanion.strategies.chat.agents.tool_filter")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local regex = require("codecompanion.utils.regex")
 local ui = require("codecompanion.utils.ui")
 local util = require("codecompanion.utils")
 
 local api = vim.api
+
+local show_tools_processing = config.display.chat.show_tools_processing
 
 local CONSTANTS = {
   PREFIX = "@",
@@ -29,7 +33,7 @@ local CONSTANTS = {
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
 
-  PROCESSING_MSG = "Tool processing ...",
+  PROCESSING_MSG = config.display.icons.loading .. " Tools processing ...",
 }
 
 ---@class CodeCompanion.Agent
@@ -47,7 +51,7 @@ function Agent.new(args)
     stdout = {},
     stderr = {},
     tool = {},
-    tools_config = config.strategies.chat.tools,
+    tools_config = ToolFilter.filter_enabled_tools(config.strategies.chat.tools), -- Filter here
     tools_ns = api.nvim_create_namespace(CONSTANTS.NS_TOOLS),
   }, { __index = Agent })
 
@@ -68,21 +72,37 @@ function Agent:set_autocmds()
 
       if request.match == "CodeCompanionAgentStarted" then
         log:info("[Agent] Initiated")
-        return ui.set_virtual_text(
-          self.bufnr,
-          self.tools_ns,
-          CONSTANTS.PROCESSING_MSG,
-          { hl_group = "CodeCompanionVirtualText" }
-        )
+        if show_tools_processing then
+          local namespace = CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr)
+          ui.show_buffer_notification(self.bufnr, {
+            namespace = namespace,
+            text = CONSTANTS.PROCESSING_MSG,
+            main_hl = "CodeCompanionChatInfo",
+            spacer = true,
+          })
+        end
       elseif request.match == "CodeCompanionAgentFinished" then
         return vim.schedule(function()
-          self:reset()
+          local auto_submit = function()
+            return self.chat:submit({
+              auto_submit = true,
+              callback = function()
+                self:reset({ auto_submit = true })
+              end,
+            })
+          end
+
+          if vim.g.codecompanion_auto_tool_mode then
+            return auto_submit()
+          end
           if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then
-            self.chat:submit()
+            return auto_submit()
           end
           if self.status == CONSTANTS.STATUS_SUCCESS and self.tools_config.opts.auto_submit_success then
-            self.chat:submit()
+            return auto_submit()
           end
+
+          self:reset({ auto_submit = false })
         end)
       end
     end,
@@ -188,6 +208,13 @@ function Agent:execute(chat, tools)
   end)
 end
 
+---Creates a regex pattern to match a tool name in a message
+---@param tool string The tool name to create a pattern for
+---@return string The compiled regex pattern
+function Agent:_pattern(tool)
+  return CONSTANTS.PREFIX .. tool .. "\\(\\s\\|$\\)"
+end
+
 ---Look for tools in a given message
 ---@param chat CodeCompanion.Chat
 ---@param message table
@@ -200,20 +227,17 @@ function Agent:find(chat, message)
   local groups = {}
   local tools = {}
 
+  ---@param tool string The tool name to search for
+  ---@return number?,number? The start position of the match, or nil if not found
   local function is_found(tool)
-    return message.content:match("%f[%w" .. CONSTANTS.PREFIX .. "]" .. CONSTANTS.PREFIX .. tool .. "%f[%W]")
+    local pattern = self:_pattern(tool)
+    return regex.find(message.content, pattern)
   end
 
   -- Process groups
   vim.iter(self.tools_config.groups):each(function(tool)
     if is_found(tool) then
       table.insert(groups, tool)
-
-      for _, t in ipairs(self.tools_config.groups[tool].tools) do
-        if not vim.tbl_contains(tools, t) then
-          table.insert(tools, t)
-        end
-      end
     end
   end)
 
@@ -229,7 +253,7 @@ function Agent:find(chat, message)
       end
     end)
 
-  if #tools == 0 then
+  if #tools == 0 and #groups == 0 then
     return nil, nil
   end
 
@@ -252,17 +276,7 @@ function Agent:parse(chat, message)
 
     if groups and not vim.tbl_isempty(groups) then
       for _, group in ipairs(groups) do
-        local schema = self.tools_config.groups[group]
-        local system_prompt = schema.system_prompt
-        if type(system_prompt) == "function" then
-          system_prompt = system_prompt(schema)
-        end
-        if system_prompt then
-          chat:add_message({
-            role = config.constants.SYSTEM_ROLE,
-            content = system_prompt,
-          }, { tag = "tool", visible = false })
-        end
+        chat.tools:add_group(group, self.tools_config)
       end
     end
     return true
@@ -277,21 +291,26 @@ end
 function Agent:replace(message)
   for tool, _ in pairs(self.tools_config) do
     if tool ~= "opts" and tool ~= "groups" then
-      message = vim.trim(message:gsub(CONSTANTS.PREFIX .. tool, tool))
+      message = vim.trim(regex.replace(message, self:_pattern(tool), tool))
     end
   end
   for group, _ in pairs(self.tools_config.groups) do
     local tools = table.concat(self.tools_config.groups[group].tools, ", ")
-    message = vim.trim(message:gsub(CONSTANTS.PREFIX .. group, tools))
+    message = vim.trim(regex.replace(message, self:_pattern(group), tools))
   end
-
   return message
 end
 
 ---Reset the Agent class
+---@param opts? table
 ---@return nil
-function Agent:reset()
-  api.nvim_buf_clear_namespace(self.bufnr, self.tools_ns, 0, -1)
+function Agent:reset(opts)
+  opts = opts or {}
+
+  if show_tools_processing then
+    ui.clear_notification(self.bufnr, { namespace = CONSTANTS.NS_TOOLS .. "_" .. tostring(self.bufnr) })
+  end
+
   api.nvim_clear_autocmds({ group = self.aug })
 
   self.extracted = {}
@@ -299,7 +318,7 @@ function Agent:reset()
   self.stderr = {}
   self.stdout = {}
 
-  self.chat:tools_done()
+  self.chat:tools_done(opts)
   log:info("[Agent] Completed")
 end
 
@@ -345,9 +364,17 @@ function Agent.resolve(tool)
     return module
   end
 
-  -- Try loading the tool from the user's config
-  ok, module = pcall(loadfile, callback)
-  if not ok then
+  -- Try loading the tool from the user's config using a module path
+  ok, module = pcall(require, callback)
+  if ok then
+    log:debug("[Tools] %s identified", callback)
+    return module
+  end
+
+  -- Try loading the tool from the user's config using a file path
+  local err
+  module, err = loadfile(callback)
+  if err then
     return error()
   end
 

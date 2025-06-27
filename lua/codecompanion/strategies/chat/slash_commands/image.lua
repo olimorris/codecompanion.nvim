@@ -70,6 +70,35 @@ local providers = {
       main = { file = false, float = true },
     })
   end,
+
+  ---The Telescope provider
+  ---@param SlashCommand CodeCompanion.SlashCommand
+  ---@return nil
+  telescope = function(SlashCommand)
+    local telescope = require("codecompanion.providers.slash_commands.telescope")
+    telescope = telescope.new({
+      title = CONSTANTS.PROMPT,
+      output = function(selection)
+        return SlashCommand:output({
+          path = selection[1],
+        })
+      end,
+    })
+
+    local dirs, img_fts = prepare_image_search_options()
+    local find_command = { "fd", "--type", "f", "--follow", "--hidden" }
+    for _, ext in ipairs(img_fts) do
+      table.insert(find_command, "--extension")
+      table.insert(find_command, ext)
+    end
+
+    telescope.provider.find_files({
+      find_command = find_command,
+      prompt_title = telescope.title,
+      attach_mappings = telescope:display(),
+      search_dirs = dirs,
+    })
+  end,
 }
 
 -- The different choices the user has to insert an image via a slash command

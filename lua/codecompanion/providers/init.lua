@@ -7,16 +7,20 @@
 
 ---@type Providers<ProviderSpec>
 local configs = {
+  -- Pickers / Action Palette
   telescope = { module = "telescope", name = "telescope" },
   mini_pick = { module = "mini.pick", name = "mini_pick" },
+  fzf_lua = { module = "fzf-lua", name = "fzf_lua" },
   snacks = {
     module = "snacks",
     name = "snacks",
-    condition = function(snacks_module)
+    condition = function(snacks)
       -- Snacks can be installed but the Picker is disabled
-      return snacks_module and snacks_module.config.picker.enabled
+      return snacks and snacks.config.picker.enabled
     end,
   },
+
+  -- Diffs
   mini_diff = {
     module = "mini.diff",
     name = "mini_diff",
@@ -26,7 +30,28 @@ local configs = {
       return _G.MiniDiff ~= nil
     end,
   },
-  fzf_lua = { module = "fzf-lua", name = "fzf_lua" },
+
+  -- Completion
+  blink = { module = "blink.cmp", name = "blink" },
+  cmp = {
+    module = "cmp",
+    name = "cmp",
+    condition = function()
+      local has_cmp, _ = pcall(require, "cmp")
+      local has_blink, _ = pcall(require, "blink.cmp")
+      return has_cmp and not has_blink
+    end,
+  },
+  coc = {
+    module = "coc",
+    name = "coc",
+    condition = function()
+      local has_cmp, _ = pcall(require, "cmp")
+      local has_blink, _ = pcall(require, "blink.cmp")
+      local has_coc = vim.fn.exists("*coc#rpc#ready") == 1
+      return has_coc and not has_blink and not has_cmp
+    end,
+  },
 }
 
 ---@param providers table<string> Provider names
@@ -66,6 +91,13 @@ local function diff_providers()
   return find_provider(providers, configs, "default")
 end
 
+---Get the default Completion provider
+---@return string
+local function completion_providers()
+  local providers = { "blink", "cmp", "coc", "default" }
+  return find_provider(providers, configs, "default")
+end
+
 ---Get the default Vim Help provider
 ---@return string
 local function help_providers()
@@ -84,12 +116,13 @@ end
 ---Get the default image providers
 ---@return string
 local function image_providers()
-  local providers = { "snacks" }
+  local providers = { "telescope", "snacks" }
   return find_provider(providers, configs, "default")
 end
 
 return {
   action_palette = action_palette_providers(),
+  completion = completion_providers(),
   diff = diff_providers(),
   help = help_providers(),
   images = image_providers(),

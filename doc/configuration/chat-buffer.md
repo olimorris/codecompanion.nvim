@@ -1,14 +1,13 @@
 # Configuring the Chat Buffer
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/597299d2-36b3-469e-b69c-4d8fd14838f8" alt="Chat buffer">
-</p>
-
 By default, CodeCompanion provides a "chat" strategy that uses a dedicated Neovim buffer for conversational interaction with your chosen LLM. This buffer can be customized according to your preferences.
 
 Please refer to the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L42-L392) file for a full list of all configuration options.
 
 ## Keymaps
+
+> [!NOTE]
+> The plugin scopes CodeCompanion specific keymaps to the _chat buffer_ only.
 
 You can define or override the [default keymaps](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L178) to send messages, regenerate responses, close the buffer, etc. Example:
 
@@ -19,9 +18,11 @@ require("codecompanion").setup({
       keymaps = {
         send = {
           modes = { n = "<C-s>", i = "<C-s>" },
+          opts = {},
         },
         close = {
           modes = { n = "<C-c>", i = "<C-c>" },
+          opts = {},
         },
         -- Add further custom keymaps here
       },
@@ -30,7 +31,7 @@ require("codecompanion").setup({
 })
 ```
 
-The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes.
+The keymaps are mapped to `<C-s>` for sending a message and `<C-c>` for closing in both normal and insert modes. To set other `:map-arguments`, you can use the optional `opts` table which will be fed to `vim.keymap.set`.
 
 ## Variables
 
@@ -50,6 +51,8 @@ require("codecompanion").setup({
           description = "Explain what my_var does",
           opts = {
             contains_code = false,
+            --has_params = true,    -- Set this if your variable supports parameters
+            --default_params = nil, -- Set default parameters
           },
         },
       },
@@ -85,6 +88,9 @@ require("codecompanion").setup({
   },
 })
 ```
+
+> [!IMPORTANT]
+> Each slash command may have their own unique configuration so be sure to check out the [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) file
 
 You can also add your own slash commands:
 
@@ -167,6 +173,9 @@ require("codecompanion").setup({
               "editor",
               -- Add your own tools or reuse existing ones
             },
+            opts = {
+              collapse_tools = true, -- When true, show as a single group reference instead of individual tools
+            },
           },
         },
       },
@@ -178,6 +187,29 @@ require("codecompanion").setup({
 When users introduce the agent `@my_agent` in the chat buffer, it can call the tools you listed (like `@my_tool`) to perform tasks on your code.
 
 A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys that define the interface and workflow of the tool. The table can be resolved using the `callback` option. The `callback` option can be a table itself or either a function or a string that points to a luafile that return the table.
+
+### Tool Conditionals
+
+Tools can also be conditionally enabled:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      tools = {
+        ["grep_search"] = {
+          ---@return boolean
+          enabled = function()
+            return vim.fn.executable("rg") == 1
+          end,
+        },
+      }
+    }
+  }
+})
+```
+
+This is useful to ensure that a particular dependency is installed on the machine. After the user has installed the dependency, the `:CodeCompanionChat RefreshCache` command can be used to refresh the cache's across chat buffers.
 
 ### Approvals
 
@@ -211,15 +243,37 @@ require("codecompanion").setup({
     chat = {
       tools = {
         opts = {
-          auto_submit_errors = false, -- Send any errors to the LLM automatically?
-          auto_submit_success = false, -- Send any successful output to the LLM automatically?
+          auto_submit_errors = true, -- Send any errors to the LLM automatically?
+          auto_submit_success = true, -- Send any successful output to the LLM automatically?
         },
       }
     }
   }
 })
-
 ```
+
+### Automatically Add Tools to Chat
+
+You can configure the plugin to automatically add tools and tool groups to new chat buffers:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      tools = {
+        opts = {
+          default_tools = {
+            "my_tool",
+            "my_tool_group"
+          }
+        },
+      }
+    }
+  }
+})
+```
+
+This also works for [extensions](/configuration/extensions).
 
 ## Prompt Decorator
 
@@ -256,8 +310,8 @@ require("codecompanion").setup({
     chat = {
       -- Change the default icons
       icons = {
-        pinned_buffer = " ",
-        watched_buffer = "👀 ",
+        buffer_pin = " ",
+        buffer_watch = "👀 ",
       },
 
       -- Alter the sizing of the debug window
@@ -308,7 +362,7 @@ require("codecompanion").setup({
 > [!NOTE]
 > Currently the plugin only supports native Neovim diff or [mini.diff](https://github.com/echasnovski/mini.diff)
 
-If you utilize the `@editor` tool, then the plugin can update a given chat buffer. A diff will be created so you can see the changes made by the LLM.
+If you utilize the `@insert_edit_into_file` tool, then the plugin can update a given chat buffer. A diff will be created so you can see the changes made by the LLM.
 
 There are a number of diff settings available to you:
 
@@ -359,6 +413,24 @@ By default, the LLM's responses will be placed under a header such as `CodeCompa
 
 The user role is currently only available as a string.
 
+### Completion
+
+By default, CodeCompanion looks to use the fantastic [blink.cmp](https://github.com/Saghen/blink.cmp) plugin to complete variables, slash commands and tools. However, you can override this in your config:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      opts = {
+        completion_provider = "cmp", -- blink|cmp|coc|default
+      }
+    }
+  }
+})
+```
+
+The plugin also supports [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), a native completion solution (`default`), and [coc.nvim](https://github.com/neoclide/coc.nvim).
+
 ### Auto scrolling
 
 By default, the page scrolls down automatically as the response streams, with the cursor placed at the end.
@@ -394,3 +466,24 @@ require("codecompanion").setup({
   },
 }),
 ```
+
+## Jump Action
+
+The jump action (the command/function triggered by the `gR` keymap) can be
+customised as follows:
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      opts = {
+        goto_file_action = 'tabnew', -- this will always open the file in a new tab
+      },
+    },
+  },
+})
+```
+
+This can either be a string (denoting a VimScript command), or a function that
+takes a single parameter (the path to the file to jump to). The default action
+is to jump to an existing tab if the file is already opened, and open a new tab
+otherwise.

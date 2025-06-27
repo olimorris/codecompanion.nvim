@@ -136,4 +136,14 @@ Helpers.setup_inline = function(config)
   })
 end
 
+---Start a child Neovim instance with minimal configuration
+---@param child table
+---@return nil
+Helpers.child_start = function(child)
+  child.restart({ "-u", "scripts/minimal_init.lua" })
+  child.o.statusline = ""
+  child.o.laststatus = 0
+  child.o.cmdheight = 0
+end
+
 return Helpers

@@ -16,14 +16,15 @@ local current_source
 ---@class CodeCompanion.MiniDiff
 ---@field bufnr number The buffer number of the original buffer
 ---@field contents string[] The contents of the original buffer
+---@field id number A unique identifier for the diff instance
 local MiniDiff = {}
 
 ---@param args CodeCompanion.DiffArgs
----@return CodeCompanion.MiniDiff
 function MiniDiff.new(args)
   local self = setmetatable({
     bufnr = args.bufnr,
     contents = args.contents,
+    id = args.id,
   }, { __index = MiniDiff })
 
   -- Capture the current source before we disable it
@@ -37,12 +38,12 @@ function MiniDiff.new(args)
     source = {
       name = "codecompanion",
       attach = function(bufnr)
-        util.fire("DiffAttached", { diff = "mini_diff", bufnr = bufnr })
+        util.fire("DiffAttached", { diff = "mini_diff", bufnr = bufnr, id = self.id })
         diff.set_ref_text(bufnr, self.contents)
         diff.toggle_overlay(self.bufnr)
       end,
       detach = function(bufnr)
-        util.fire("DiffDetached", { diff = "mini_diff", bufnr = bufnr })
+        util.fire("DiffDetached", { diff = "mini_diff", bufnr = bufnr, id = self.id })
         self:teardown()
       end,
     },
@@ -57,6 +58,7 @@ end
 ---Accept the diff
 ---@return nil
 function MiniDiff:accept()
+  util.fire("DiffAccepted", { diff = "mini_diff", bufnr = self.bufnr, id = self.id, accept = true })
   vim.b[self.bufnr].minidiff_config = nil
   diff.disable(self.bufnr)
 end
@@ -64,6 +66,7 @@ end
 ---Reject the diff
 ---@return nil
 function MiniDiff:reject()
+  util.fire("DiffRejected", { diff = "mini_diff", bufnr = self.bufnr, id = self.id, accept = false })
   api.nvim_buf_set_lines(self.bufnr, 0, -1, true, self.contents)
 
   vim.b[self.bufnr].minidiff_config = nil

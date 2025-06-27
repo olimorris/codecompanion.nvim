@@ -37,6 +37,12 @@ return {
         end
       end
 
+      if self.opts and self.opts.stream then
+        self.parameters = self.parameters or {}
+        self.parameters.stream = true
+        self.parameters.stream_options = { include_usage = true }
+      end
+
       return true
     end,
 
@@ -80,6 +86,7 @@ return {
       desc = "The model that will complete your prompt. See https://ai.google.dev/gemini-api/docs/models/gemini#model-variations for additional details and options.",
       default = "gemini-2.5-flash-preview-05-20",
       choices = {
+        ["gemini-2.5-pro-preview-06-05"] = { opts = { can_reason = true, has_vision = true } },
         ["gemini-2.5-pro-preview-05-06"] = { opts = { can_reason = true, has_vision = true } },
         ["gemini-2.5-flash-preview-05-20"] = { opts = { can_reason = true, has_vision = true } },
         ["gemini-2.0-flash"] = { opts = { has_vision = true } },

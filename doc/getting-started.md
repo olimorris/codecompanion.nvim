@@ -85,13 +85,14 @@ _Variables_, accessed via `#`, contain data about the present state of Neovim:
 ### Slash Commands
 
 > [!IMPORTANT]
-> These have been designed to work with native Neovim completions alongside nvim-cmp and blink.cmp. To open the native completion menu use `<C-_>` in insert mode when in the chat buffer.
+> These have been designed to work with native Neovim completions alongside nvim-cmp and blink.cmp. To open the native completion menu use `<C-_>` in insert mode when in the chat buffer. Note: Slash commands should also work with coc.nvim.
 
 _Slash commands_, accessed via `/`, run commands to insert additional context into the chat buffer:
 
 - `/buffer` - Insert open buffers
 - `/fetch` - Insert URL contents
 - `/file` - Insert a file
+- `/quickfix` - Insert entries from the quickfix list
 - `/help` - Insert content from help tags
 - `/now` - Insert the current date and time
 - `/symbols` - Insert symbols from a selected file
@@ -102,12 +103,15 @@ _Slash commands_, accessed via `/`, run commands to insert additional context in
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out actions:
 
 - `@cmd_runner` - The LLM will run shell commands (subject to approval)
-- `@editor` - The LLM will edit code in a Neovim buffer
-- `@files` -  The LLM will can work with files on the file system (subject to approval)
+- `@create_file` - The LLM will create a file in the current working directory (subject to approval)
+- `@insert_edit_into_file` - The LLM will edit code in a Neovim buffer or on the file system (subject to approval)
+- `@next_edit_suggestion` - The LLM can show the user where the next edit is
+- `@read_file` - The LLM can read a specific file
+- `@web_search` -  The LLM can search the internet for information
 
 Tools can also be grouped together to form _Agents_, which are also accessed via `@` in the chat buffer:
 
-- `@full_stack_dev` - Contains the `cmd_runner`, `editor` and `files` tools.
+- `@files` - Contains the `@create_file`, `@insert_edit_into_file` and `@read_file` tools
 
 ## Inline Assistant
 
@@ -166,8 +170,9 @@ However, there are multiple options available:
 - `CodeCompanion /<prompt library>` - Call an item from the [prompt library](configuration/prompt-library)
 - `CodeCompanionChat <prompt>` - Send a prompt to the LLM via a chat buffer
 - `CodeCompanionChat <adapter>` - Open a chat buffer with a specific adapter
-- `CodeCompanionChat Toggle` - Toggle a chat buffer
 - `CodeCompanionChat Add` - Add visually selected chat to the current chat buffer
+- `CodeCompanionChat RefreshCache` - Used to refresh conditional elements in the chat buffer
+- `CodeCompanionChat Toggle` - Toggle a chat buffer
 
 ## Suggested Plugin Workflow
 

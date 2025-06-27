@@ -9,7 +9,7 @@ local new_set = MiniTest.new_set
 T = new_set({
   hooks = {
     pre_case = function()
-      child.restart({ "-u", "scripts/minimal_init.lua" })
+      h.child_start(child)
 
       child.lua([[
         h = require('tests.helpers')
@@ -95,6 +95,20 @@ T["Workspace"]["files and symbols are added to the chat"] = function()
     "Test symbol description for the file stub.lua located at tests/stubs/stub.lua",
     messages[6].content
   )
+end
+
+T["Workspace"]["can open a file as a buffer if it's already open"] = function()
+  child.lua([[
+    -- Comment this out and see that it's loaded as a file instead
+    vim.cmd("edit tests/stubs/stub.go")
+
+    _G.set_workspace()
+    _G.wks:output("Test")
+  ]])
+
+  local messages = child.lua_get([[_G.chat.messages]])
+
+  h.expect_starts_with([[Test description for the file stub.go located at tests/stubs/stub.go]], messages[5].content)
 end
 
 T["Workspace"]["top-level prompts are not duplicated and are ordered correctly"] = function()

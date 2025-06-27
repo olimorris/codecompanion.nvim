@@ -31,7 +31,6 @@ The Inline Assistant - This is where code is applied directly to a Neovim buffer
 ---@field placement string The placement of the code in Neovim
 ---@field pos {line: number, col: number, bufnr: number} The data for where the prompt should be placed
 
-local TreeHandler = require("codecompanion.utils.xml.xmlhandler.tree")
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
@@ -39,7 +38,6 @@ local keymaps = require("codecompanion.utils.keymaps")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 local variables = require("codecompanion.strategies.inline.variables")
-local xml2lua = require("codecompanion.utils.xml.xml2lua")
 
 local api = vim.api
 local fmt = string.format
@@ -51,32 +49,25 @@ local CONSTANTS = {
   STATUS_ERROR = "error",
   STATUS_SUCCESS = "success",
 
-  -- var1: language/filetype
-  -- var2: response
   SYSTEM_PROMPT = [[## CONTEXT
-You are a knowledgeable developer working in the Neovim text editor. You write %s code on behalf of a user (unless told otherwise), directly into their active Neovim buffer.
+You are a knowledgeable developer working in the Neovim text editor. You write %s code on behalf of a user (unless told otherwise), directly into their active Neovim buffer. In Neovim, a buffer is a file loaded into memory for editing.
 
 ## OBJECTIVE
-You must follow the user's prompt (enclosed within <user_prompt></user_prompt> tags) to the letter, ensuring that you output high quality, fully working code. Pay attention to any code that the user has shared with you as context.
+You must follow the user's prompt (enclosed within <prompt></prompt> tags) to the letter, ensuring that you output high quality, fully working code. Pay attention to any code that the user has shared with you as context.
 
 ## RESPONSE
 %s
 
 If you cannot answer the user's prompt, respond with the reason why, in one sentence, in %s and enclosed within error tags:
-```xml
-<response>
-  <error>Reason for not being able to answer the prompt</error>
-</response>
-```
+{
+  "error": "Reason for not being able to answer the prompt"
+}
 
-### KEY CONSIDERATIONS
-- **Safety and Accuracy:** Validate all code carefully.
-- **CDATA Usage:** Ensure code is wrapped in CDATA blocks to protect special characters and prevent them from being misinterpreted by XML.
-- **XML schema:** Follow the XML schema exactly.
-
-### OTHER POINTS TO NOTE
-- Ensure only XML is returned.
-- Do not include triple backticks or code blocks in your response.
+### POINTS TO NOTE
+- Validate all code carefully.
+- Adhere to the JSON schema provided.
+- Ensure only raw, valid JSON is returned.
+- Do not include triple backticks or markdown formatted code blocks in your response.
 - Do not include any explanations or prose.
 - Use proper indentation for the target language.
 - Include language-appropriate comments when needed.
@@ -84,15 +75,13 @@ If you cannot answer the user's prompt, respond with the reason why, in one sent
 - Preserve all whitespace.]],
 
   RESPONSE_WITHOUT_PLACEMENT = fmt(
-    [[Respond to the user's prompt by returning your code in XML:
-```xml
-<response>
-  <code>%s</code>
-  <language>python</language>
-</response>
-```
-This would add `    print('Hello World')` to the user's Neovim buffer.]],
-    "<![CDATA[    print('Hello World')]]>"
+    [[Respond to the user's prompt by returning your code in JSON:
+{
+  "code": "%s",
+  "language": "%s"
+}]],
+    "    print('Hello World')",
+    "python"
   ),
 
   RESPONSE_WITH_PLACEMENT = fmt(
@@ -104,8 +93,8 @@ Determine where to place your code in relation to the user's Neovim buffer. Your
 1. **Replace**: where the user's current visual selection in the buffer is replaced with your code.
 2. **Add**: where your code is placed after the user's current cursor position in the buffer.
 3. **Before**: where your code is placed before the user's current cursor position in the buffer.
-4. **New**: where a new neovim buffer is created for your code.
-5. **Chat**: when the placement doesn't fit in any of the above placements and/or the user's prompt is a question or a request for information.
+4. **New**: where a new Neovim buffer is created for your code.
+5. **Chat**: when the placement doesn't fit in any of the above placements and/or the user's prompt is a question, is conversational or is a request for information.
 
 Here are some example user prompts and how they would be placed:
 - "Can you refactor/fix/amend this code?" would be **Replace** as the user is asking you to refactor their existing code.
@@ -117,21 +106,26 @@ Here are some example user prompts and how they would be placed:
 
 ### OUTPUT
 
-Respond to the user's prompt by putting your code and placement in XML. For example:
-```xml
-<response>
-  <code>%s</code>
-  <language>python</language>
-  <placement>replace</placement>
-</response>
-```
-This would **Replace** the user's current selection in a buffer with `    print('Hello World')`.
+Respond to the user's prompt by putting your code and placement in valid JSON that can be parsed by Neovim. For example:
+{
+  "code": "%s",
+  "language": "%s",
+  "placement": "replace"
+}
+
+This would **Replace** the user's current selection in a buffer with `%s`.
 
 **Points to Note:**
-- If you determine the placement to be **Chat**, just respond with the placement. Do not answer the user's prompt.
-
-]],
-    "<![CDATA[    print('Hello World')]]>"
+- You must always include a placement in your response.
+- If you determine the placement to be **Chat**, your JSON response **must** be structured as follows, omitting the `code` and `language` keys entirely:
+{
+  "placement": "chat"
+}
+- Do not return anything else after the JSON response.]],
+    [[    print(\"Hello World\")]],
+    "python",
+    [[    print(\"Hello World\")]],
+    config.opts.language
   ),
 }
 
@@ -143,10 +137,11 @@ This would **Replace** the user's current selection in a buffer with `    print(
 local function code_block(message, filetype, code)
   return fmt(
     [[%s
-
+<code>
 ```%s
 %s
-```]],
+```
+</code>]],
     message,
     filetype,
     table.concat(code, "\n")
@@ -226,7 +221,9 @@ end
 ---@param adapter CodeCompanion.Adapter|string|function
 ---@return nil
 function Inline:set_adapter(adapter)
-  self.adapter = adapters.resolve(adapter)
+  if not self.adapter or not adapters.resolved(adapter) then
+    self.adapter = adapters.resolve(adapter)
+  end
 end
 
 ---Prompt the LLM
@@ -290,7 +287,7 @@ function Inline:prompt(user_prompt)
     end
 
     -- 3. Add the user's prompt
-    add_prompt("<user_prompt>" .. user_prompt .. "</user_prompt>")
+    add_prompt("<prompt>" .. user_prompt .. "</prompt>")
     log:debug("[Inline] Modified user prompt: %s", user_prompt)
   end
 
@@ -303,7 +300,7 @@ function Inline:prompt(user_prompt)
       end
 
       log:info("[Inline] User input received: %s", input)
-      add_prompt("<user_prompt>" .. input .. "</user_prompt>", user_role)
+      add_prompt("<prompt>" .. input .. "</prompt>", user_role)
       self.prompts = prompts
       return self:submit(vim.deepcopy(prompts))
     end)
@@ -432,18 +429,18 @@ function Inline:done(output)
     return self:reset()
   end
 
-  local xml = self:parse_output(output)
-  if not xml then
+  local json = self:parse_output(output)
+  if not json then
     -- Logging is done in parse_output
     return self:reset()
   end
-  if xml and xml.error then
-    log:error("[%s] %s", adapter_name, xml.error)
+  if json and json.error then
+    log:error("[%s] %s", adapter_name, json.error)
     return self:reset()
   end
 
   -- There should always be a placement whether that's from the LLM or the user's prompt
-  local placement = xml and xml.placement or self.classification.placement
+  local placement = json and json.placement or self.classification.placement
   if not placement then
     log:error("[%s] No placement returned", adapter_name)
     return self:reset()
@@ -453,7 +450,7 @@ function Inline:done(output)
   log:debug("[Inline] Placement: %s", placement)
 
   -- An LLM won't send code if it deems the placement should go to a chat buffer
-  if xml and not xml.code and placement ~= "chat" then
+  if json and not json.code and placement ~= "chat" then
     log:error("[%s] Returned no code", adapter_name)
     return self:reset()
   end
@@ -467,7 +464,7 @@ function Inline:done(output)
   vim.schedule(function()
     self:start_diff()
     pcall(vim.cmd.undojoin)
-    self:output(xml.code)
+    self:output(json.code)
     self:reset()
   end)
 end
@@ -496,26 +493,6 @@ function Inline:reset()
   api.nvim_clear_autocmds({ group = self.aug })
 end
 
----Parse XML content using xml2lua
----@param content string
----@return table|nil
-local function parse_xml(content)
-  local ok, xml = pcall(function()
-    local handler = TreeHandler:new()
-    local parser = xml2lua.parser(handler)
-    parser:parse(content)
-    return handler.root.response
-  end)
-
-  if not ok then
-    log:debug("[Inline] Tried to parse:\n%s", content)
-    log:debug("[Inline] XML could not be parsed:\n%s", xml)
-    return nil
-  end
-
-  return xml
-end
-
 ---Extract a code block from markdown text
 ---@param content string
 ---@return string|nil
@@ -533,7 +510,7 @@ local function parse_with_treesitter(content)
     if query.captures[id] == "code" then
       local node_text = vim.treesitter.get_node_text(node, content)
       -- Deepseek protection!!
-      node_text = node_text:gsub("```xml", "")
+      node_text = node_text:gsub("```json", "")
       node_text = node_text:gsub("```", "")
 
       table.insert(code, node_text)
@@ -546,20 +523,21 @@ end
 ---@param output string
 ---@return table|nil
 function Inline:parse_output(output)
-  -- Try parsing as plain XML first
-  local xml = parse_xml(output)
-  if xml then
-    log:debug("[Inline] Parsed XML:\n%s", xml)
-    return xml
+  -- Try parsing as plain JSON first
+  output = output:gsub("^```json", ""):gsub("```$", "")
+  local _, json = pcall(vim.json.decode, output)
+  if json then
+    log:debug("[Inline] Parsed json:\n%s", json)
+    return json
   end
 
   -- Fall back to Tree-sitter parsing
   local markdown_code = parse_with_treesitter(output)
   if markdown_code then
-    xml = parse_xml(markdown_code)
-    if xml then
-      log:debug("[Inline] Parsed markdown XML:\n%s", xml)
-      return xml
+    _, json = pcall(vim.json.decode, markdown_code)
+    if json then
+      log:debug("[Inline] Parsed markdown JSON:\n%s", json)
+      return json
     end
   end
 
