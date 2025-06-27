@@ -214,7 +214,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | Huggingface       | All                        | :x:                | Not supported yet                |
 | Mistral           | All                        | :x:                | Not supported yet                |
 | Novita            | All                        | :x:                | Not supported yet                |
-| Ollama            | All                        | :white_check_mark:            |                     |
+| Ollama            | Tested with Qwen3                        | :white_check_mark:            |                     |
 | OpenAI Compatible | All                        | :exclamation:                | Dependent on the model and provider          |
 | OpenAI            | gpt-3.5-turbo              | :white_check_mark: |                                  |
 | OpenAI            | gpt-4.1                    | :white_check_mark: |                                  |
