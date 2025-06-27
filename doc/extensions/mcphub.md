@@ -44,35 +44,7 @@ require("codecompanion").setup({
 
 ## Usage
 
-Once configured, you can interact with MCP Hub within the CodeCompanion chat buffer:
-
--   **Tool Access:** Type `@mcp` to add available MCP servers to the system prompt, enabling the LLM to use registered MCP tools.
--   **Resources as Variables:** If `make_vars = true`, MCP resources become available as variables prefixed with `#`. You can include these in your prompts (e.g., `Summarize the issues in #mcp:lsp:get_diagnostics`):
-
-*Example: Accessing LSP diagnostics*:
-
-![image](https://github.com/user-attachments/assets/fb04393c-a9da-4704-884b-2810ff69f59a)
-![image](https://github.com/user-attachments/assets/8aeaa5f6-f48a-46fd-b761-4f4e34aeb262)
-
-**Prompts as Slash Commands:** If `make_slash_commands = true`, MCP prompts are available as slash commands (e.g., `/mcp:prompt_name`). Arguments are handled via `vim.ui.input`.
-
-*Example: Using an MCP prompt via slash command*:
-
-![image](https://github.com/user-attachments/assets/678a06a5-ada9-4bb5-8f49-6e58549c8f32)
-
-![image](https://github.com/user-attachments/assets/f1fa305a-5d48-4119-b3e6-e13a9176da07)
-
-### Auto-approvals
-
-MCP tool requests can be automatically approved, bypassing the confirmation prompt, if any of the following are true:
-1. MCP Hub configuration:
-```lua
-require("mcphub").setup({
-  config = { auto_approve = true }
-})
-```
-2. Global MCP Hub variable: `vim.g.mcphub_auto_approve = true`
-3. CodeCompanion auto tool mode: `vim.g.codecompanion_auto_tool_mode = true` (toggled via `gta` in the chat buffer)
+Please visit MCP Hub's [CodeCompanion](https://ravitemer.github.io/mcphub.nvim/extensions/codecompanion.html) extension page for detailed up-to-date usage instructions.
 
 ## Additional Resources
 
