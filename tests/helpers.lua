@@ -118,12 +118,11 @@ Helpers.make_tool_call = function(chat, tool_call, tool_output, messages)
 
   -- Firstly, add the LLM's intro message before the tool call
   if messages.llm_initial_response then
-    chat:add_buf_message({
+    chat:add_message({
       role = "llm",
       content = messages.llm_initial_response,
     }, { tag = "llm_message" })
-
-    chat:add_message({
+    chat:add_buf_message({
       role = "llm",
       content = messages.llm_initial_response,
     }, { tag = "llm_message" })

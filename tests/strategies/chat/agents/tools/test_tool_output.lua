@@ -146,6 +146,7 @@ T["Tool output"]["Folds"]["can be folded"] = function()
   set_buffer_contents(child, "Can you tell me the weather in London?")
   tool_call(child)
   child.lua([[
+    require("tests.log")
     h.make_tool_call(_G.chat, _G.tool, "**Weather Tool**: Ran successfully:\nTemperature: 20°C\nCondition: Sunny\nPrecipitation: 0%", {
       llm_initial_response = "I've found some awesome weather data for you:",
       llm_final_response = "Let me know if you need anything else!",
@@ -160,10 +161,48 @@ T["Tool output"]["Folds"]["does not fold single line output but applies extmarks
   set_buffer_contents(child, "Can you tell me the weather in London?")
   tool_call(child)
   child.lua([[
+    require("tests.log")
      h.make_tool_call(_G.chat, _G.tool, "**Weather Tool**: Ran successfully", {
        llm_initial_response = "I've found some awesome weather data for you:",
      })
    ]])
+
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["Tool output"]["Folds"]["multi-line tool output with no initial message"] = function()
+  enable_folds(child)
+  set_buffer_contents(child, "Can you tell me the weather in London?\\n")
+  tool_call(child)
+  child.lua([[
+    h.make_tool_call(_G.chat, _G.tool, "**Weather Tool**: Ran successfully\nTemperature: 20°C\nCondition: Sunny\nPrecipitation: 0%", {
+      llm_final_response = "Let me know if you need anything else!",
+    })
+  ]])
+
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["Tool output"]["Folds"]["multi-line tool output only"] = function()
+  enable_folds(child)
+  set_buffer_contents(child, "Can you tell me the weather in London?\\n")
+  tool_call(child)
+  child.lua([[
+    h.make_tool_call(_G.chat, _G.tool, "**Weather Tool**: Ran successfully\nTemperature: 20°C\nCondition: Sunny\nPrecipitation: 0%")
+  ]])
+
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["Tool output"]["Folds"]["multiple tool output"] = function()
+  enable_folds(child)
+  set_buffer_contents(child, "Can you tell me the weather in London?\\n")
+  tool_call(child)
+  child.lua([[
+    h.make_tool_call(_G.chat, _G.tool, "**Weather Tool**: Ran successfully\nTemperature: 20°C\nCondition: Sunny\nPrecipitation: 0%")
+    h.make_tool_call(_G.chat, _G.tool, "**Weather Tool**: Ran successfully\nTemperature: 20°C\nCondition: Sunny\nPrecipitation: 0%")
+    h.make_tool_call(_G.chat, _G.tool, "**Weather Tool**: Ran successfully\nTemperature: 20°C\nCondition: Sunny\nPrecipitation: 0%")
+  ]])
 
   expect.reference_screenshot(child.get_screenshot())
 end

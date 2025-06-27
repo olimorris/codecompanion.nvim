@@ -1282,7 +1282,6 @@ function Chat:add_buf_message(data, opts)
   local function append_data()
     local last_message = self:pluck_message()
 
-    -- Tool output
     if opts and opts.tag == "tool_output" then
       -- We need to always offset by two as the last message will be the LLM calling the tool
       last_message = self:pluck_message({ n_minus = 2 })
@@ -1292,10 +1291,23 @@ function Chat:add_buf_message(data, opts)
         line_break()
         line_break()
       end
-      return write(data.content or "")
+
+      local tool_content_start = #lines + 1
+      write(data.content or "")
+      local tool_content_end = #lines
+
+      -- Store the fold info for update_buffer to use
+      if tool_content_end > tool_content_start then
+        opts.fold_info = {
+          start_offset = tool_content_start - 1, -- Convert to 0-based offset
+          end_offset = tool_content_end - 1,
+          first_line = lines[tool_content_start] or "",
+        }
+      end
+
+      return
     end
 
-    -- Reasoning output
     if data.reasoning then
       if not self._chat_has_reasoning then
         table.insert(lines, "### Reasoning")
@@ -1305,7 +1317,6 @@ function Chat:add_buf_message(data, opts)
       write(data.reasoning)
     end
 
-    -- Regular output
     if data.content then
       if self._chat_has_reasoning then
         self._chat_has_reasoning = false -- LLMs *should* do reasoning first then output after
@@ -1325,6 +1336,7 @@ function Chat:add_buf_message(data, opts)
   local function update_buffer()
     self.ui:unlock_buf()
     local last_line, last_column, line_count = self.ui:last()
+
     if opts and opts.insert_at then
       last_line = opts.insert_at
       last_column = 0
@@ -1332,6 +1344,12 @@ function Chat:add_buf_message(data, opts)
 
     local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
     api.nvim_buf_set_text(bufnr, last_line, last_column, last_line, last_column, lines)
+
+    if opts and opts.tag == "tool_output" and #lines > 1 then
+      local fold_start = last_line + opts.fold_info.start_offset
+      local fold_end = last_line + opts.fold_info.end_offset
+      self.ui.tools:create_fold(fold_start, fold_end, opts.fold_info.first_line)
+    end
 
     if new_response then
       self.ui:render_headers()
@@ -1348,17 +1366,9 @@ function Chat:add_buf_message(data, opts)
     add_header()
   end
 
-  if opts and opts.callbacks and opts.callbacks.before_content then
-    opts.callbacks.before_content()
-  end
-
   if data.content or data.reasoning then
     append_data()
     update_buffer()
-  end
-
-  if opts and opts.callbacks and opts.callbacks.after_content then
-    opts.callbacks.after_content()
   end
 end
 
@@ -1399,17 +1409,6 @@ function Chat:add_tool_output(tool, for_llm, for_user)
     content = (for_user or for_llm) .. "\n",
   }, {
     tag = "tool_output",
-    callbacks = {
-      before_content = function()
-        -- If the LLM has NOT responded with a message that was written in the
-        -- buffer, then we need to remove a line in the fold count
-        local offset = self._has_llm_responded and 0 or -2
-        self.ui.tools:start_folding({ offset = offset })
-      end,
-      after_content = function()
-        self.ui.tools:end_folding()
-      end,
-    },
   })
 end
 
