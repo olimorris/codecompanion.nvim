@@ -1,0 +1,3 @@
+[files]
+extend-exclude = [ "CHANGELOG.md", "tests/", "doc/codecompanion.txt" ]
+
