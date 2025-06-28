@@ -182,8 +182,8 @@ follow the master branch:
 INSTALLING EXTENSIONS       *codecompanion-installation-installing-extensions*
 
 CodeCompanion supports extensions that add additional functionality to the
-plugin. Below is an example which installs and configures the
-|codecompanion-extensions-mcphub.html| extension:
+plugin. Below is an example which installs and configures mcphub.nvim
+<https://github.com/ravitemer/mcphub.nvim>:
 
 1. Install with:
 
