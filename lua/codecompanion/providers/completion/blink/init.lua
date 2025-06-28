@@ -75,7 +75,7 @@ function M:get_completions(ctx, callback)
             kind = vim.lsp.protocol.CompletionItemKind.Variable,
             label = item.label:sub(2),
             textEdit = {
-              newText = item.label,
+              newText = string.format("#{%s}", item.label:sub(2)),
               range = edit_range,
             },
             documentation = {
@@ -101,7 +101,7 @@ function M:get_completions(ctx, callback)
             kind = vim.lsp.protocol.CompletionItemKind.Struct,
             label = item.label:sub(2),
             textEdit = {
-              newText = item.label,
+              newText = string.format("@{%s}", item.label:sub(2)),
               range = edit_range,
             },
             documentation = {
