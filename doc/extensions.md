@@ -22,9 +22,7 @@ The [History extension](https://github.com/ravitemer/codecompanion-history.nvim)
 
 [VectorCode](https://github.com/Davidyz/VectorCode) is a code repository indexing tool enabling semantic search across your local projects. The [extension](https://github.com/Davidyz/VectorCode/wiki/Neovim-Integrations#olimorriscodecompanionnvim) integrates VectorCode with CodeCompanion, allowing LLMs to query your indexed repositories for enhanced context during chat sessions.
 
-<p>
-<video controls muted src="https://asciinema.org/a/8WP8QJHNAR9lEllZSSx3poLPD.svg"></video>
-</p>
+[![asciicast](https://asciinema.org/a/8WP8QJHNAR9lEllZSSx3poLPD.svg)](https://asciinema.org/a/8WP8QJHNAR9lEllZSSx3poLPD?t=3)
 
 
 ## Create Your Own
