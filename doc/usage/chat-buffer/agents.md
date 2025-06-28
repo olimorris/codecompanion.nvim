@@ -190,7 +190,7 @@ The plugin allows you to run tools on autopilot. This automatically approves any
 Below is the tool use status of various adapters and models in CodeCompanion:
 
 | Adapter           | Model             | Supported          | Notes                               |
-|-------------------|-------------------|--:-:---------------|-------------------------------------|
+|-------------------|-------------------| :----------------: |-------------------------------------|
 | Anthropic         |                   | :white_check_mark: | Dependent on the model              |
 | Azure OpenAI      |                   | :white_check_mark: | Dependent on the model              |
 | Copilot           |                   | :white_check_mark: | Dependent on the model              |
