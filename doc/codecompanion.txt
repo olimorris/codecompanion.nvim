@@ -2415,6 +2415,8 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   Anthropic     claude-3-7-sonnet-20250219                
 
+  Azure         All that work with OpenAI                 
+
   Copilot       gpt-4o                                    
 
   Copilot       gpt-4.1                                   
@@ -2455,7 +2457,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 
   Novita        All                                       Not supported yet
 
-  Ollama        All                                       Is currently broken
+  Ollama        Tested with Qwen3                         
 
   OpenAI        All                                       Dependent on the model
   Compatible                                              and provider

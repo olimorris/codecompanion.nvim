@@ -19,7 +19,7 @@ In the plugin, tools are simply context and actions that are shared with an LLM 
 
 Tools make use of an LLM's [function calling](https://platform.openai.com/docs/guides/function-calling) ability. All tools in CodeCompanion follow OpenAI's function calling specification, [here](https://platform.openai.com/docs/guides/function-calling#defining-functions).
 
-When a tool is added to the chat buffer, the LLM is instructured by the plugin to return a structured JSON schema which has been defined for each tool. The chat buffer parses the LLMs response and detects the tool use before triggering the _agent/init.lua_ file. The agent triggers off a series of events, which sees tool's added to a queue and sequentially worked with their putput being shared back to the LLM via the chat buffer. Depending on the tool, flags may be inserted on the chat buffer for later processing.
+When a tool is added to the chat buffer, the LLM is instructured by the plugin to return a structured JSON schema which has been defined for each tool. The chat buffer parses the LLMs response and detects the tool use before triggering the _agent/init.lua_ file. The agent triggers off a series of events, which sees tool's added to a queue and sequentially worked with their output being shared back to the LLM via the chat buffer. Depending on the tool, flags may be inserted on the chat buffer for later processing.
 
 An outline of the architecture can be seen [here](/extending/tools#architecture).
 
@@ -189,39 +189,18 @@ The plugin allows you to run tools on autopilot. This automatically approves any
 
 Below is the tool use status of various adapters and models in CodeCompanion:
 
-| Adapter           | Model                      | Supported          | Notes                            |
-|-------------------|----------------------------| :----------------: |----------------------------------|
-| Anthropic         | claude-3-opus-20240229     | :white_check_mark: |                                  |
-| Anthropic         | claude-3-5-haiku-20241022  | :white_check_mark: |                                  |
-| Anthropic         | claude-3-5-sonnet-20241022 | :white_check_mark: |                                  |
-| Anthropic         | claude-3-7-sonnet-20250219 | :white_check_mark: |                                  |
-| Copilot           | gpt-4o                     | :white_check_mark: |                                  |
-| Copilot           | gpt-4.1                    | :white_check_mark: |                                  |
-| Copilot           | o1                         | :white_check_mark: |                                  |
-| Copilot           | o3-mini                    | :white_check_mark: |                                  |
-| Copilot           | o4-mini                    | :white_check_mark: |                                  |
-| Copilot           | claude-3-5-sonnet          | :white_check_mark: |                                  |
-| Copilot           | claude-3-7-sonnet          | :white_check_mark: |                                  |
-| Copilot           | claude-3-7-sonnet-thought  | :x:                | Doesn't support function calling |
-| Copilot           | gemini-2.0-flash-001       | :x:                |                                  |
-| Copilot           | gemini-2.5-pro             | :white_check_mark: |                                  |
-| DeepSeek          | deepseek-chat              | :white_check_mark: |                                  |
-| DeepSeek          | deepseek-reasoner          | :x:                | Doesn't support function calling |
-| Gemini            | Gemini-2.0-flash           | :white_check_mark: |                                  |
-| Gemini            | Gemini-2.5-pro-exp-03-25   | :white_check_mark: |                                  |
-| Gemini            | gemini-2.5-flash-preview   | :white_check_mark: |                                  |
-| GitHub Models     | All                        | :x:                | Not supported yet                |
-| Huggingface       | All                        | :x:                | Not supported yet                |
-| Mistral           | All                        | :x:                | Not supported yet                |
-| Novita            | All                        | :x:                | Not supported yet                |
-| Ollama            | All                        | :x:                | Is currently [broken](https://github.com/ollama/ollama/issues/9632) |
-| OpenAI Compatible | All                        | :exclamation:                | Dependent on the model and provider          |
-| OpenAI            | gpt-3.5-turbo              | :white_check_mark: |                                  |
-| OpenAI            | gpt-4.1                    | :white_check_mark: |                                  |
-| OpenAI            | gpt-4                      | :white_check_mark: |                                  |
-| OpenAI            | gpt-4o                     | :white_check_mark: |                                  |
-| OpenAI            | gpt-4o-mini                | :white_check_mark: |                                  |
-| OpenAI            | o1-2024-12-17              | :white_check_mark: |                                  |
-| OpenAI            | o1-mini-2024-09-12         | :x:                | Doesn't support function calling |
-| OpenAI            | o3-mini-2025-01-31         | :white_check_mark: |                                  |
-| xAI               | All                        | :x:                | Not supported yet                |
+| Adapter           | Model             | Supported          | Notes                               |
+|-------------------|-------------------|--:-:---------------|-------------------------------------|
+| Anthropic         |                   | :white_check_mark: | Dependent on the model              |
+| Azure OpenAI      |                   | :white_check_mark: | Dependent on the model              |
+| Copilot           |                   | :white_check_mark: | Dependent on the model              |
+| DeepSeek          |                   | :white_check_mark: | Dependent on the model              |
+| Gemini            |                   | :white_check_mark: | Dependent on the model              |
+| GitHub Models     | All               | :x:                | Not supported yet                   |
+| Huggingface       | All               | :x:                | Not supported yet                   |
+| Mistral           | All               | :x:                | Not supported yet                   |
+| Novita            | All               | :x:                | Not supported yet                   |
+| Ollama            | Tested with Qwen3 | :white_check_mark: | Dependent on the model              |
+| OpenAI Compatible |                   | :exclamation:      | Dependent on the model and provider |
+| OpenAI            |                   | :white_check_mark: | Dependent on the model              |
+| xAI               | All               | :x:                | Not supported yet                   |
