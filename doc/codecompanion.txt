@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2025 June 27
+*codecompanion.txt*          For NVIM v0.11          Last change: 2025 June 28
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -2414,6 +2414,8 @@ Below is the tool use status of various adapters and models in CodeCompanion:
   Anthropic     claude-3-5-sonnet-20241022                
 
   Anthropic     claude-3-7-sonnet-20250219                
+
+  Azure         All that work with OpenAI                 
 
   Copilot       gpt-4o                                    
 
