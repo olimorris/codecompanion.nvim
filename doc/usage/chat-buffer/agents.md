@@ -138,6 +138,11 @@ Can you use the @web_search tool to tell me the latest version of Neovim?
 
 Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
 
+You can also ask it to search under a specific domain:
+```
+Using the @web_search tool to search from `https://neovim.io` and explain how I can configure a new language server.
+```
+
 ## Tool Groups
 
 CodeCompanion comes with two built-in tool groups:
