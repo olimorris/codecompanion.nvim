@@ -28,7 +28,6 @@
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field watchers CodeCompanion.Watchers The buffer watcher instance
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
----@field _has_llm_responded boolean Has the LLM responded to the last request with a direct message?
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
@@ -536,7 +535,6 @@ function Chat.new(args)
       return bufnr
     end,
     _chat_has_reasoning = false,
-    _has_llm_responded = false,
   }, { __index = Chat })
 
   self.bufnr = self.create_buf()
@@ -1014,7 +1012,6 @@ function Chat:done(output, tools)
   if has_output then
     local content = vim.trim(table.concat(output or {}, "")) -- No idea why the LSP freaks out that this isn't a table
     if content ~= "" then
-      self._has_llm_responded = true
       self:add_message({
         role = config.constants.LLM_ROLE,
         content = content,
@@ -1412,7 +1409,6 @@ end
 ---@return nil
 function Chat:reset()
   self._chat_has_reasoning = false
-  self._has_llm_responded = false
   self.status = ""
   self.ui:unlock_buf()
 end

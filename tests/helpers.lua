@@ -127,7 +127,7 @@ Helpers.make_tool_call = function(chat, tool_call, tool_output, messages)
       content = messages.llm_initial_response,
     }, { tag = "llm_message" })
 
-    chat._has_llm_responded = true
+    chat._chat_last_message_role = "llm"
   end
 
   -- Then add the LLM's tool call
