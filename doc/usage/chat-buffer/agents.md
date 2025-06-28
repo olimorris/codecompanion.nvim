@@ -195,6 +195,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | Anthropic         | claude-3-5-haiku-20241022  | :white_check_mark: |                                  |
 | Anthropic         | claude-3-5-sonnet-20241022 | :white_check_mark: |                                  |
 | Anthropic         | claude-3-7-sonnet-20250219 | :white_check_mark: |                                  |
+| Azure             | All that work with OpenAI  | :white_check_mark: |                                  |
 | Copilot           | gpt-4o                     | :white_check_mark: |                                  |
 | Copilot           | gpt-4.1                    | :white_check_mark: |                                  |
 | Copilot           | o1                         | :white_check_mark: |                                  |
