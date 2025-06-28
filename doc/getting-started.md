@@ -135,10 +135,10 @@ Tools can also be grouped together, also accessible via `@` in the chat buffer:
 
 The inline assistant enables an LLM to write code directly into a Neovim buffer.
 
-Run `:CodeCompanion <your prompt>` to call the inline assistant. The assistant will evaluate the prompt and either write code or open a chat buffer. You can also make a visual selection and call the assistant. To send additional context alongside your prompt, you can leverage [variables](/usage/inline-assistant#variables) such as `:CodeCompanion <var> <your prompt>`:
+Run `:CodeCompanion <your prompt>` to call the inline assistant. The assistant will evaluate the prompt and either write code or open a chat buffer. You can also make a visual selection and call the assistant. To send additional context alongside your prompt, you can leverage [variables](/usage/inline-assistant#variables) such as `:CodeCompanion #{buffer} <your prompt>`:
 
-- `#{buffer}` - shares the contents of the current buffer
-- `#{chat}` - shares the LLM's messages from the last chat buffer
+- `buffer` - shares the contents of the current buffer
+- `chat` - shares the LLM's messages from the last chat buffer
 
 For convenience, you can call prompts from the [prompt library](/configuration/prompt-library) via the cmd line, such as `:'<,'>CodeCompanion /explain`. The prompt library comes with the following defaults:
 
