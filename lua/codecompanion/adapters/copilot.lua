@@ -5,7 +5,6 @@ local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
 
 -- Reference: https://github.com/yetone/avante.nvim/blob/22418bff8bcac4377ebf975cd48f716823867979/lua/avante/providers/copilot.lua#L5-L26
----
 ---@class CopilotToken
 ---@field annotations_enabled boolean
 ---@field chat_enabled boolean
@@ -361,6 +360,7 @@ return {
   formatted_name = "Copilot",
   roles = {
     llm = "assistant",
+    tool = "tool",
     user = "user",
   },
   opts = {
@@ -426,13 +426,21 @@ return {
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
-      -- Ensure we send over the correct headers for image requests
       for _, m in ipairs(messages) do
         if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+          self.headers["X-Initiator"] = "user"
           self.headers["Copilot-Vision-Request"] = "true"
           break
         end
       end
+
+      local last_msg = messages[#messages]
+      if last_msg and last_msg.role == self.roles.tool then
+        -- NOTE: The inclusion of this header reduces premium token usage when
+        -- sending tool output back to the LLM (#1717)
+        self.headers["X-Initiator"] = "agent"
+      end
+
       return openai.handlers.form_messages(self, messages)
     end,
     form_tools = function(self, tools)
