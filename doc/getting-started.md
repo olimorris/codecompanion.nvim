@@ -86,7 +86,7 @@ _Variables_, accessed via `#`, contain data about the present state of Neovim:
 - `viewport` - Shares the buffers and lines that you see in the Neovim viewport
 
 > [!TIP]
-> Use them in your prompt like: `What does the code in #{buffer} do?`
+> Use them in your prompt like: `What does the code in #{buffer} do?`, ensuring they're wrapped in curly brackets
 
 ### Slash Commands
 
@@ -122,7 +122,7 @@ Tools can also be grouped together, also accessible via `@` in the chat buffer:
 - `files` - Contains the `create_file`, `file_search`, `grep_search`, `insert_edit_into_file` and `read_file` tools
 
 > [!TIP]
-> Use them in your prompt like: `Can you use the @{grep_search} tool to find occurrences of "add_message"`
+> Use them in your prompt like: `Can you use the @{grep_search} tool to find occurrences of "add_message"`, ensuring they're wrapped in curly brackets
 
 ## Inline Assistant
 
