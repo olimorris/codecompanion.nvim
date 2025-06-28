@@ -78,9 +78,9 @@ You can add context from your code base by using _Variables_ and _Slash Commands
 
 _Variables_, accessed via `#`, contain data about the present state of Neovim:
 
-- `#buffer` - Shares the current buffer's code. This can also receive [parameters](usage/chat-buffer/variables#buffer)
-- `#lsp` - Shares LSP information and code for the current buffer
-- `#viewport` - Shares the buffers and lines that you see in the Neovim viewport
+- `#{buffer}` - Shares the current buffer's code. This can also receive [parameters](usage/chat-buffer/variables#buffer)
+- `#{lsp}` - Shares LSP information and code for the current buffer
+- `#{viewport}` - Shares the buffers and lines that you see in the Neovim viewport
 
 ### Slash Commands
 
@@ -102,16 +102,16 @@ _Slash commands_, accessed via `/`, run commands to insert additional context in
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out actions:
 
-- `@cmd_runner` - The LLM will run shell commands (subject to approval)
-- `@create_file` - The LLM will create a file in the current working directory (subject to approval)
-- `@insert_edit_into_file` - The LLM will edit code in a Neovim buffer or on the file system (subject to approval)
-- `@next_edit_suggestion` - The LLM can show the user where the next edit is
-- `@read_file` - The LLM can read a specific file
-- `@web_search` -  The LLM can search the internet for information
+- `@{cmd_runner}` - The LLM will run shell commands (subject to approval)
+- `@{create_file}` - The LLM will create a file in the current working directory (subject to approval)
+- `@{insert_edit_into_file}` - The LLM will edit code in a Neovim buffer or on the file system (subject to approval)
+- `@{next_edit_suggestion}` - The LLM can show the user where the next edit is
+- `@{read_file}` - The LLM can read a specific file
+- `@{web_search}` -  The LLM can search the internet for information
 
 Tools can also be grouped together to form _Agents_, which are also accessed via `@` in the chat buffer:
 
-- `@files` - Contains the `@create_file`, `@insert_edit_into_file` and `@read_file` tools
+- `@{files}` - Contains the `@{create_file}`, `@{insert_edit_into_file}` and `@{read_file}` tools
 
 ## Inline Assistant
 
@@ -126,8 +126,8 @@ The inline assistant enables an LLM to write code directly into a Neovim buffer.
 
 Run `:CodeCompanion <your prompt>` to call the inline assistant. The assistant will evaluate the prompt and either write code or open a chat buffer. You can also make a visual selection and call the assistant. To send additional context alongside your prompt, you can leverage [variables](/usage/inline-assistant#variables) such as `:CodeCompanion <var> <your prompt>`:
 
-- `#buffer` - shares the contents of the current buffer
-- `#chat` - shares the LLM's messages from the last chat buffer
+- `#{buffer}` - shares the contents of the current buffer
+- `#{chat}` - shares the LLM's messages from the last chat buffer
 
 For convenience, you can call prompts from the [prompt library](/configuration/prompt-library) via the cmd line, such as `:'<,'>CodeCompanion /explain`. The prompt library comes with the following defaults:
 

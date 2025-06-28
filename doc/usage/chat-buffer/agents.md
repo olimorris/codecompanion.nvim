@@ -1,5 +1,8 @@
 # Using Agents and Tools
 
+> [!TIP]
+> When you press `@` or `#` in the chat buffer, the completion menu will open. Selecting a tool or variable from the menu will automatically insert curly brackets (e.g., `@{tool}` or `#{variable}`). Using curly brackets is required for the tool or variable to be recognized by the plugin.
+
 > [!IMPORTANT]
 > Not all LLMs support function calling and the use of tools. Please see the [compatibility](#compatibility) section for more information.
 
@@ -37,11 +40,11 @@ The section of the discussion forums which is dedicated to user created tools ca
 The _@cmd_runner_ tool enables an LLM to execute commands on your machine, subject to your authorization. For example:
 
 ```md
-Can you use the @cmd_runner tool to run my test suite with `pytest`?
+Can you use the @{cmd_runner} tool to run my test suite with `pytest`?
 ```
 
 ```md
-Use the @cmd_runner tool to install any missing libraries in my project
+Use the @{cmd_runner} tool to install any missing libraries in my project
 ```
 
 Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) which means the plugin can't pass the output of the execution to the LLM. When this occurs, the tool will instead share the exit code.
@@ -56,7 +59,7 @@ The LLM is specifically instructed to detect if you're running a test suite, and
 Create a file within the current working directory:
 
 ```md
-Can you create some test fixtures using the @create_file tool?
+Can you create some test fixtures using the @{create_file} tool?
 ```
 
 ## @file_search
@@ -64,7 +67,7 @@ Can you create some test fixtures using the @create_file tool?
 This tool enables an LLM to search for files in the current working directory by glob pattern. It will return a list of relative paths for any matching files.
 
 ```md
-Use the @file_search tool to list all the lua files in my project
+Use the @{file_search} tool to list all the lua files in my project
 ```
 
 ## @grep_search
@@ -75,7 +78,7 @@ Use the @file_search tool to list all the lua files in my project
 This tool enables an LLM to search for text, within files, in the current working directory. For every match, the output (`{filename}:{line number} {relative filepath}`) will be shared with the LLM:
 
 ```md
-Use the @grep_search tool to find all occurrences of `buf_add_message`?
+Use the @{grep_search} tool to find all occurrences of `buf_add_message`?
 ```
 
 ## @insert_edit_into_file
@@ -90,11 +93,11 @@ Use the @grep_search tool to find all occurrences of `buf_add_message`?
 This tool can edit buffers and files for code changes from an LLM:
 
 ```md
-Use the @insert_edit_into_file tool to refactor the code in #buffer
+Use the @{insert_edit_into_file} tool to refactor the code in #buffer
 ```
 
 ```md
-Can you apply the suggested changes to the buffer with the @insert_edit_into_file tool?
+Can you apply the suggested changes to the buffer with the @{insert_edit_into_file} tool?
 ```
 
 ## @next_edit_suggestion
@@ -133,7 +136,7 @@ This tool can read the contents of a specific file in the current working direct
 The _@web_search_ tool enables an LLM to search the web for a specific query. This can be useful to supplement an LLMs knowledge cut off date with more up to date information.
 
 ```md
-Can you use the @web_search tool to tell me the latest version of Neovim?
+Can you use the @{web_search} tool to tell me the latest version of Neovim?
 ```
 
 Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
@@ -145,7 +148,7 @@ CodeCompanion comes with two built-in tool groups:
 - `@full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools
 - `@files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools
 
-When you include a tool group in your chat (e.g., `@files`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer.
+When you include a tool group in your chat (e.g., `@{files}`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer.
 
 If you want to show all tools as references in the chat buffer, set the `collapse_tools` option to `false`:
 
@@ -178,7 +181,7 @@ Some tools, such as the _@cmd_runner_, require the user to approve any actions b
 Consider combining tools for complex tasks:
 
 ```md
-@full_stack_dev I want to play Snake. Can you create the game for me in Python and install any packages you need. Let's save it to ~/Code/Snake. When you've finished writing it, can you open it so I can play?
+@{full_stack_dev} I want to play Snake. Can you create the game for me in Python and install any packages you need. Let's save it to ~/Code/Snake. When you've finished writing it, can you open it so I can play?
 ```
 
 ### Automatic Tool Mode

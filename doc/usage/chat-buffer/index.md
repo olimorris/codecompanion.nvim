@@ -64,7 +64,7 @@ When conversing with an LLM, it can be useful to tweak model settings in between
 
 <img src="https://github.com/user-attachments/assets/02b4d5e2-3b40-4044-8a85-ccd6dfa6d271" />
 
-You can invoke the completion plugins by typing the variable, slash command or tool name whilst in the chat buffer. If you don't use a completion plugin, then you can use native completions with no setup, invoking them with `<C-_>` from within the chat buffer.
+You can invoke the completion plugins by typing `#` or `@` followed by the variable or tool name enclosed in curly brackets (e.g., `#{buffer}` or `@{cmd_runner}`) whilst in the chat buffer. This will trigger the completion menu. If you don't use a completion plugin, you can use native completions with no setup, invoking them with `<C-_>` from within the chat buffer.
 
 ## Keymaps
 
