@@ -1,7 +1,7 @@
 # Using Agents and Tools
 
-> [!TIP]
-> When you press `@` or `#` in the chat buffer, the completion menu will open. Selecting a tool or variable from the menu will automatically insert curly brackets (e.g., `@{tool}` or `#{variable}`). Using curly brackets is required for the tool or variable to be recognized by the plugin.
+> [!IMPORTANT]
+> As of `v17.5.0`, tools must be wrapped in curly braces, such as `@{grep_search}` or `@{files}`
 
 > [!IMPORTANT]
 > Not all LLMs support function calling and the use of tools. Please see the [compatibility](#compatibility) section for more information.
@@ -35,7 +35,7 @@ There is also a thriving ecosystem of user created tools:
 
 The section of the discussion forums which is dedicated to user created tools can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions/categories/tools).
 
-## @cmd_runner
+## cmd_runner
 
 The _@cmd_runner_ tool enables an LLM to execute commands on your machine, subject to your authorization. For example:
 
@@ -51,7 +51,7 @@ Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/St
 
 The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its request. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for [workflows](/extending/workflows) to hook into.
 
-## @create_file
+## create_file
 
 > [!NOTE]
 > By default, this tool requires user approval before it can be executed
@@ -62,7 +62,7 @@ Create a file within the current working directory:
 Can you create some test fixtures using the @{create_file} tool?
 ```
 
-## @file_search
+## file_search
 
 This tool enables an LLM to search for files in the current working directory by glob pattern. It will return a list of relative paths for any matching files.
 
@@ -70,7 +70,7 @@ This tool enables an LLM to search for files in the current working directory by
 Use the @{file_search} tool to list all the lua files in my project
 ```
 
-## @grep_search
+## grep_search
 
 > [!IMPORTANT]
 > This tool requires [ripgrep](https://github.com/BurntSushi/ripgrep) to be installed
@@ -81,7 +81,7 @@ This tool enables an LLM to search for text, within files, in the current workin
 Use the @{grep_search} tool to find all occurrences of `buf_add_message`?
 ```
 
-## @insert_edit_into_file
+## insert_edit_into_file
 
 > [!NOTE]
 > By default, when editing files, this tool requires user approval before it can be executed
@@ -100,7 +100,7 @@ Use the @{insert_edit_into_file} tool to refactor the code in #buffer
 Can you apply the suggested changes to the buffer with the @{insert_edit_into_file} tool?
 ```
 
-## @next_edit_suggestion
+## next_edit_suggestion
 
 Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the `@next_edit_suggestion` tool gives the LLM the ability to show the user where the next edit is. The LLM can only suggest edits in files or buffers that have been shared with it as context.
 
@@ -127,11 +127,11 @@ require("codecompanion").setup({
 
 The `jump_action` can be a VimScript command (as a string), or a lua function that accepts the path to the file and optionally returns the [window ID](https://neovim.io/doc/user/windows.html#window-ID). The window ID is needed if you want the LLM to point you to a specific line in the file.
 
-## @read_file
+## read_file
 
 This tool can read the contents of a specific file in the current working directory. This can be useful for an LLM to gain wider context of files that haven't been shared with it.
 
-## @web_search
+## web_search
 
 The _@web_search_ tool enables an LLM to search the web for a specific query. This can be useful to supplement an LLMs knowledge cut off date with more up to date information.
 
@@ -145,8 +145,8 @@ Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ens
 
 CodeCompanion comes with two built-in tool groups:
 
-- `@full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools
-- `@files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools
+- `full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools
+- `files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools
 
 When you include a tool group in your chat (e.g., `@{files}`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer.
 

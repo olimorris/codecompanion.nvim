@@ -1,7 +1,7 @@
 # Using Variables
 
-> [!TIP]
-> When you press `#` in the chat buffer, the completion menu will open. Selecting a variable from the menu will automatically insert curly brackets (e.g., `#{variable}`). Using curly brackets is required for the variable to be recognized by the plugin.
+> [!IMPORTANT]
+> As of `v17.5.0`, variables must be wrapped in curly braces, such as `#{buffer}` or `#{lsp}`
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/642ef2df-f1c4-41c4-93e2-baa66d7f0801" />
@@ -45,9 +45,9 @@ require("codecompanion").setup({
 > The [Action Palette](/usage/action-palette) has a pre-built prompt which asks an LLM to explain LSP diagnostics in a
 > visual selection
 
-The _#{lsp}_ variable shares any information from the LSP servers that active in the current buffer. This can serve as useful context should you wish to troubleshoot any errors with an LLM.
+The _lsp_ variable shares any information from the LSP servers that active in the current buffer. This can serve as useful context should you wish to troubleshoot any errors with an LLM.
 
 ## #viewport
 
-The _#{viewport}_ variable shares with the LLM, exactly what you see on your screen at the point a response is sent (excluding the chat buffer of course).
+The _viewport_ variable shares with the LLM, exactly what you see on your screen at the point a response is sent (excluding the chat buffer of course).
 
