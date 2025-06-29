@@ -55,7 +55,7 @@ local T = new_set({
   },
 })
 
-T["validates operation parameter"] = function()
+T["filepaths can be empty"] = function()
   child.lua([[
     chat. context = {
       winnr = 0
@@ -64,7 +64,7 @@ T["validates operation parameter"] = function()
       {
         ["function"] = {
           name = "list_code_usages",
-          arguments = '{"operation": "invalid_operation", "symbol": "testFunction"}'
+          arguments = '{ "symbolName": "testFunction", "filepaths": "" }'
         },
       },
     }
@@ -85,7 +85,7 @@ T["validates symbol parameter"] = function()
       {
         ["function"] = {
           name = "list_code_usages",
-          arguments = '{"operation": "get_definition", "symbol": ""}'
+          arguments = '{ "symbolName": ""}'
         },
       },
     }
@@ -106,7 +106,7 @@ T["handles symbol not found"] = function()
       {
         ["function"] = {
           name = "list_code_usages",
-          arguments = '{"operation": "get_definition", "symbol": "nonExistentSymbol"}'
+          arguments = '{ "symbolName": "nonExistentSymbol" }'
         },
       },
     }

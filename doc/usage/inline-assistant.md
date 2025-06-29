@@ -11,14 +11,14 @@ For convenience, you can call prompts from the [prompt library](/configuration/p
 ## Variables
 
 > [!TIP]
-> To ensure the LLM has enough context to complete a complex ask, it's recommended to use the `#buffer` variable
+> To ensure the LLM has enough context to complete a complex ask, it's recommended to use the `buffer` variable
 
 The inline assistant allows you to send context alongside your prompt via the notion of variables:
 
-- `#buffer` - shares the contents of the current buffer
-- `#chat` - shares the LLM's messages from the last chat buffer
+- `buffer` - shares the contents of the current buffer
+- `chat` - shares the LLM's messages from the last chat buffer
 
-Simply include them in your prompt. For example `:CodeCompanion #buffer add a new method to this file`. Multiple variables can be sent as part of the same prompt. You can even add your own custom variables as per the [configuration](/configuration/inline-assistant#variables).
+Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a new method to this file`. Multiple variables can be sent as part of the same prompt. You can even add your own custom variables as per the [configuration](/configuration/inline-assistant#variables).
 
 ## Adapters
 
