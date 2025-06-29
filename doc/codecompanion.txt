@@ -2185,7 +2185,7 @@ When a tool is added to the chat buffer, the LLM is instructured by the plugin
 to return a structured JSON schema which has been defined for each tool. The
 chat buffer parses the LLMs response and detects the tool use before triggering
 the `agent/init.lua` file. The agent triggers off a series of events, which
-sees tool’s added to a queue and sequentially worked with their putput being
+sees tool’s added to a queue and sequentially worked with their output being
 shared back to the LLM via the chat buffer. Depending on the tool, flags may be
 inserted on the chat buffer for later processing.
 
@@ -2404,83 +2404,37 @@ COMPATIBILITY ~
 
 Below is the tool use status of various adapters and models in CodeCompanion:
 
-  --------------------------------------------------------------------------------
-  Adapter       Model                         Supported   Notes
-  ------------- ---------------------------- ------------ ------------------------
-  Anthropic     claude-3-opus-20240229                    
+  ------------------------------------------------------------------------
+  Adapter        Model            Supported   Notes
+  -------------- -------------- ------------- ----------------------------
+  Anthropic                                   Dependent on the model
 
-  Anthropic     claude-3-5-haiku-20241022                 
+  Azure OpenAI                                Dependent on the model
 
-  Anthropic     claude-3-5-sonnet-20241022                
+  Copilot                                     Dependent on the model
 
-  Anthropic     claude-3-7-sonnet-20250219                
+  DeepSeek                                    Dependent on the model
 
-  Azure         All that work with OpenAI                 
+  Gemini                                      Dependent on the model
 
-  Copilot       gpt-4o                                    
+  GitHub Models  All                          Not supported yet
 
-  Copilot       gpt-4.1                                   
+  Huggingface    All                          Not supported yet
 
-  Copilot       o1                                        
+  Mistral        All                          Not supported yet
 
-  Copilot       o3-mini                                   
+  Novita         All                          Not supported yet
 
-  Copilot       o4-mini                                   
+  Ollama         Tested with                  Dependent on the model
+                 Qwen3                        
 
-  Copilot       claude-3-5-sonnet                         
+  OpenAI                                      Dependent on the model and
+  Compatible                                  provider
 
-  Copilot       claude-3-7-sonnet                         
+  OpenAI                                      Dependent on the model
 
-  Copilot       claude-3-7-sonnet-thought                 Doesn’t support function
-                                                          calling
-
-  Copilot       gemini-2.0-flash-001                      
-
-  Copilot       gemini-2.5-pro                            
-
-  DeepSeek      deepseek-chat                             
-
-  DeepSeek      deepseek-reasoner                         Doesn’t support function
-                                                          calling
-
-  Gemini        Gemini-2.0-flash                          
-
-  Gemini        Gemini-2.5-pro-exp-03-25                  
-
-  Gemini        gemini-2.5-flash-preview                  
-
-  GitHub Models All                                       Not supported yet
-
-  Huggingface   All                                       Not supported yet
-
-  Mistral       All                                       Not supported yet
-
-  Novita        All                                       Not supported yet
-
-  Ollama        Tested with Qwen3                         
-
-  OpenAI        All                                       Dependent on the model
-  Compatible                                              and provider
-
-  OpenAI        gpt-3.5-turbo                             
-
-  OpenAI        gpt-4.1                                   
-
-  OpenAI        gpt-4                                     
-
-  OpenAI        gpt-4o                                    
-
-  OpenAI        gpt-4o-mini                               
-
-  OpenAI        o1-2024-12-17                             
-
-  OpenAI        o1-mini-2024-09-12                        Doesn’t support function
-                                                          calling
-
-  OpenAI        o3-mini-2025-01-31                        
-
-  xAI           All                                       Not supported yet
-  --------------------------------------------------------------------------------
+  xAI            All                          Not supported yet
+  ------------------------------------------------------------------------
 
 SLASH COMMANDS                            *codecompanion-usage-slash-commands*
 
