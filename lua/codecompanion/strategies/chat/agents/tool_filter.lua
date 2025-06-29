@@ -14,7 +14,7 @@ local CACHE_TTL = 30000
 local function clear_cache()
   _enabled_cache = {}
   _cache_timestamp = 0
-  _config_hash = nil -- Add this line
+  _config_hash = nil
   log:trace("[Tool Filter] Cache cleared")
 end
 
