@@ -1203,7 +1203,7 @@ function Chat:close()
     end)
   )
   chatmap[self.bufnr] = nil
-  api.nvim_buf_delete(self.bufnr, { force = true })
+  pcall(api.nvim_buf_delete, self.bufnr, { force = true })
   if self.aug then
     api.nvim_clear_autocmds({ group = self.aug })
   end
@@ -1422,6 +1422,12 @@ end
 ---@return CodeCompanion.Chat|nil
 function Chat.last_chat()
   if not last_chat or vim.tbl_isempty(last_chat) then
+    return nil
+  end
+  -- if last_chat buffer was deleted, we need to clean it out
+  if last_chat and not api.nvim_buf_is_loaded(last_chat.bufnr) then
+    last_chat:close()
+    last_chat = nil
     return nil
   end
   return last_chat
