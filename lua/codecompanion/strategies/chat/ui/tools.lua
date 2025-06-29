@@ -117,9 +117,6 @@ function Tools:create_fold(start_line, end_line, foldtext)
     priority = 200,
   })
 
-  log:info("FOLD: start line %d", start_line + 1)
-  log:info("FOLD: end line %d", end_line + 1)
-
   -- Create the fold
   self.fold_summaries[self.chat_bufnr] = self.fold_summaries[self.chat_bufnr] or {}
   self.fold_summaries[self.chat_bufnr][start_line] = foldtext

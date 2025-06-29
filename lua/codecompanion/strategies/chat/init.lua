@@ -68,6 +68,13 @@ local CONSTANTS = {
   BLANK_DESC = "[No messages]",
 }
 
+local MESSAGE_TAGS = {
+  LLM_MESSAGE = "llm_message",
+  TOOL_OUTPUT = "tool_output",
+  USER_MESSAGE = "user_message",
+  SYSTEM_MESSAGE = "system_message",
+}
+
 local llm_role = config.strategies.chat.roles.llm
 local user_role = config.strategies.chat.roles.user
 
@@ -970,7 +977,7 @@ function Chat:submit(opts)
               result.output.role = config.constants.LLM_ROLE
             end
             table.insert(output, result.output.content)
-            self:add_buf_message(result.output, { tag = "llm_message" })
+            self:add_buf_message(result.output, { tag = MESSAGE_TAGS.LLM_MESSAGE })
           elseif self.status == CONSTANTS.STATUS_ERROR then
             log:error("Error: %s", result.output)
             return self:done(output)
@@ -1015,7 +1022,7 @@ function Chat:done(output, tools)
       self:add_message({
         role = config.constants.LLM_ROLE,
         content = content,
-      }, { tag = "llm_message" })
+      }, { tag = MESSAGE_TAGS.LLM_MESSAGE })
     end
   end
 
@@ -1244,6 +1251,17 @@ function Chat:add_buf_message(data, opts)
   local bufnr = self.bufnr
   local new_response = false
 
+  -- Set the tag from the last message
+  local function set_last_tag()
+    if opts and opts.tag then
+      self._chat_last_tag = opts.tag
+      log:info("Last tag: %s", self._chat_last_tag)
+      return
+    end
+    self._chat_last_tag = nil
+    log:info("Last tag: %s", self._chat_last_tag)
+  end
+
   ---Insert a line break into the lines table
   local function line_break()
     table.insert(lines, "")
@@ -1260,7 +1278,7 @@ function Chat:add_buf_message(data, opts)
   --Add a new role via a header to the chat buffer
   local function add_header()
     new_response = true
-    if self:pluck_message({ tag = "tool_output" }) then
+    if self._chat_last_tag == MESSAGE_TAGS.TOOL_OUTPUT then
       -- We only need one line break as the tool output adds a line break
       line_break()
     else
@@ -1273,14 +1291,9 @@ function Chat:add_buf_message(data, opts)
 
   ---Append data to the lines table, taking into account the type of data that is being added
   local function append_data()
-    local last_message = self:pluck_message()
-
-    if opts and opts.tag == "tool_output" then
-      -- We need to always offset by two as the last message will be the LLM calling the tool
-      last_message = self:pluck_message({ n_minus = 2 })
-
+    if opts and opts.tag == MESSAGE_TAGS.TOOL_OUTPUT then
       -- Add a line break between the tool output and the LLM's initial response
-      if last_message and last_message.opts.tag == "llm_message" then
+      if self._chat_last_tag == MESSAGE_TAGS.LLM_MESSAGE then
         line_break()
         line_break()
       end
@@ -1298,7 +1311,7 @@ function Chat:add_buf_message(data, opts)
         }
       end
 
-      return
+      return set_last_tag()
     end
 
     if data.reasoning then
@@ -1318,7 +1331,7 @@ function Chat:add_buf_message(data, opts)
         --TODO: Fold the reasoning output
         table.insert(lines, "### Response")
         line_break()
-      elseif last_message and last_message.opts.tag == "tool_output" then
+      elseif self._chat_last_tag == MESSAGE_TAGS.TOOL_OUTPUT then
         line_break()
       end
       write(data.content)
@@ -1338,7 +1351,7 @@ function Chat:add_buf_message(data, opts)
     local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
     api.nvim_buf_set_text(bufnr, last_line, last_column, last_line, last_column, lines)
 
-    if opts and opts.tag == "tool_output" and #lines > 1 then
+    if opts and opts.tag == MESSAGE_TAGS.TOOL_OUTPUT and #lines > 1 then
       local fold_start = last_line + opts.fold_info.start_offset
       local fold_end = last_line + opts.fold_info.end_offset
       self.ui.tools:create_fold(fold_start, fold_end, opts.fold_info.first_line)
@@ -1363,6 +1376,8 @@ function Chat:add_buf_message(data, opts)
     append_data()
     update_buffer()
   end
+
+  set_last_tag()
 end
 
 ---Add the output from a tool to the message history and a message to the UI
@@ -1378,7 +1393,7 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   output.cycle = self.cycle
   output.id = make_id({ role = output.role, content = output.content })
   output.opts = vim.tbl_extend("force", output.opts or {}, {
-    tag = "tool_output",
+    tag = MESSAGE_TAGS.TOOL_OUTPUT,
     visible = true,
   })
 
@@ -1401,7 +1416,7 @@ function Chat:add_tool_output(tool, for_llm, for_user)
     -- properly as folds can't work if the boundary is the last line
     content = (for_user or for_llm) .. "\n",
   }, {
-    tag = "tool_output",
+    tag = MESSAGE_TAGS.TOOL_OUTPUT,
   })
 end
 
@@ -1409,6 +1424,7 @@ end
 ---@return nil
 function Chat:reset()
   self._chat_has_reasoning = false
+  self._chat_last_tag = nil
   self.status = ""
   self.ui:unlock_buf()
 end

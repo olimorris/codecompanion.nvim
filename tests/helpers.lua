@@ -1,3 +1,5 @@
+local log = require("codecompanion.utils.log")
+
 local Helpers = {}
 
 Helpers = vim.tbl_extend("error", Helpers, require("tests.expectations"))
@@ -126,8 +128,6 @@ Helpers.make_tool_call = function(chat, tool_call, tool_output, messages)
       role = "llm",
       content = messages.llm_initial_response,
     }, { tag = "llm_message" })
-
-    chat._chat_last_message_role = "llm"
   end
 
   -- Then add the LLM's tool call
@@ -144,7 +144,7 @@ Helpers.make_tool_call = function(chat, tool_call, tool_output, messages)
     chat:add_buf_message({
       role = "llm",
       content = messages.llm_final_response,
-    })
+    }, { tag = "llm_message" })
     chat:add_message({
       role = "llm",
       content = messages.llm_final_response,
