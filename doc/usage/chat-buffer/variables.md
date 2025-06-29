@@ -1,5 +1,8 @@
 # Using Variables
 
+> [!IMPORTANT]
+> As of `v17.5.0`, variables must be wrapped in curly braces, such as `#{buffer}` or `#{lsp}`
+
 <p align="center">
   <img src="https://github.com/user-attachments/assets/642ef2df-f1c4-41c4-93e2-baa66d7f0801" />
 </p>
@@ -13,10 +16,10 @@ Custom variables can be shared by adding them to the `strategies.chat.variables`
 > [!NOTE]
 > As of [v16.2.0](https://github.com/olimorris/codecompanion.nvim/releases/tag/v16.2.0), buffers are now watched by default
 
-The _#buffer_ variable shares the full contents from the buffer that the user was last in when they initiated `:CodeCompanionChat`. To select another buffer, use the _/buffer_ slash command. These buffers can be [pinned or watched](/usage/chat-buffer/index#references) to enable updated content to be automatically shared with the LLM:
+The _#{buffer}_ variable shares the full contents from the buffer that the user was last in when they initiated `:CodeCompanionChat`. To select another buffer, use the _/buffer_ slash command. These buffers can be [pinned or watched](/usage/chat-buffer/index#references) to enable updated content to be automatically shared with the LLM:
 
-- `#buffer{pin}` - To pin the current buffer
-- `#buffer{watch}` - To watch the current buffer
+- `#{buffer}{pin}` - To pin the current buffer
+- `#{buffer}{watch}` - To watch the current buffer
 
 To pin or watch buffers by default, you can add this configuration:
 
@@ -42,9 +45,9 @@ require("codecompanion").setup({
 > The [Action Palette](/usage/action-palette) has a pre-built prompt which asks an LLM to explain LSP diagnostics in a
 > visual selection
 
-The _#lsp_ variable shares any information from the LSP servers that active in the current buffer. This can serve as useful context should you wish to troubleshoot any errors with an LLM.
+The _lsp_ variable shares any information from the LSP servers that active in the current buffer. This can serve as useful context should you wish to troubleshoot any errors with an LLM.
 
 ## #viewport
 
-The _#viewport_ variable shares with the LLM, exactly what you see on your screen at the point a response is sent (excluding the chat buffer of course).
+The _viewport_ variable shares with the LLM, exactly what you see on your screen at the point a response is sent (excluding the chat buffer of course).
 

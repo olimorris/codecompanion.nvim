@@ -1,8 +1,6 @@
 import { defineConfig } from "vitepress";
 import { execSync } from "node:child_process";
 import { withMermaid } from "vitepress-plugin-mermaid";
-import fs from "node:fs";
-import path from "node:path";
 
 const inProd = process.env.NODE_ENV === "production";
 
@@ -30,50 +28,6 @@ const headers = inProd ? [baseHeaders, umamiScript] : baseHeaders;
 
 const siteUrl = "https://codecompanion.olimorris.dev";
 
-const extensionsDir = path.resolve(__dirname, "../extensions");
-
-// Return a list of extensions
-function getExtensionSidebarItems() {
-  try {
-    const files = fs.readdirSync(extensionsDir);
-    return files
-      .filter((file) => file.endsWith(".md") && file !== "index.md")
-      .map((file) => {
-        const nameWithoutExt = path.basename(file, ".md");
-        const filePath = path.join(extensionsDir, file);
-        let text = "";
-
-        try {
-          const content = fs.readFileSync(filePath, "utf-8");
-          const lines = content.split("\n");
-          const h1Line = lines.find((line) => line.startsWith("# "));
-          if (h1Line) {
-            text = h1Line.substring(2).trim(); // Extract text after '# '
-          }
-        } catch (readError) {
-          console.error(`Error reading file ${filePath}:`, readError);
-        }
-
-        // Fallback if H1 not found or file read error
-        if (!text) {
-          text = nameWithoutExt
-            .split("-")
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(" ");
-        }
-
-        return {
-          text: text,
-          link: `/extensions/${nameWithoutExt}`,
-        };
-      });
-  } catch (error) {
-    console.error("Error reading extensions directory:", error);
-    return [];
-  }
-}
-
-const extensionItems = getExtensionSidebarItems();
 
 // https://vitepress.dev/reference/site-config
 export default withMermaid(
@@ -164,11 +118,7 @@ export default withMermaid(
             { text: "Creating Extensions", link: "/extending/extensions" },
           ],
         },
-        {
-          text: "Community Extensions",
-          collapsed: true,
-          items: extensionItems,
-        },
+        { text: "Community Extensions", link: "/extensions" },
       ],
 
       editLink: {

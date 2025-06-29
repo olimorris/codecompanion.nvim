@@ -219,7 +219,7 @@ end
 ---@param tool string The tool name to create a pattern for
 ---@return string The compiled regex pattern
 function Agent:_pattern(tool)
-  return CONSTANTS.PREFIX .. tool .. "\\(\\s\\|$\\)"
+  return CONSTANTS.PREFIX .. "{" .. tool .. "}"
 end
 
 ---Look for tools in a given message
