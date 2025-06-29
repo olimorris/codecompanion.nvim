@@ -1,25 +1,11 @@
 local log = require("codecompanion.utils.log")
 
---- Validates if a buffer is valid and exists
---- @param bufnr number Buffer number to validate
---- @return boolean valid True if buffer is valid, false otherwise
-local function is_valid_buffer(bufnr)
-  return bufnr and vim.api.nvim_buf_is_valid(bufnr)
-end
-
 ---@class SymbolFinder
 local SymbolFinder = {}
 SymbolFinder.__index = SymbolFinder
 
 function SymbolFinder:new()
   return setmetatable({}, SymbolFinder)
-end
-
---- Gets file pattern for ripgrep based on filetype
---- @param filetype string File extension or type (e.g., "lua", "javascript", "java")
---- @return string pattern Ripgrep file pattern
-function SymbolFinder:get_filetype_pattern(filetype)
-  return filetype and filetype ~= "" and string.format("--type %s", filetype) or ""
 end
 
 --- Searches for a symbol in the workspace using grep (ripgrep) and quickfix list
@@ -32,8 +18,8 @@ function SymbolFinder:grep_symbol_in_workspace(symbolName, filetype, filepaths)
   local cmd = "silent! grep! "
 
   -- Add filetype pattern if provided
-  if filetype then
-    cmd = cmd .. self:get_filetype_pattern(filetype) .. " "
+  if filetype and filetype ~= "" then
+    cmd = cmd .. string.format("--type %s", filetype) .. " "
   end
 
   -- Add search pattern
@@ -44,6 +30,8 @@ function SymbolFinder:grep_symbol_in_workspace(symbolName, filetype, filepaths)
     cmd = cmd .. " " .. table.concat(filepaths, " ")
   end
 
+  log:debug("[SymbolFinder] Executing grep command: %s", cmd)
+
   ---@diagnostic disable-next-line: param-type-mismatch
   local success, _ = pcall(vim.cmd, cmd)
   if not success then
@@ -51,6 +39,7 @@ function SymbolFinder:grep_symbol_in_workspace(symbolName, filetype, filepaths)
   end
 
   local qflist = vim.fn.getqflist()
+  log:debug("[SymbolFinder] Quickfix list after grep: %s", vim.inspect(qflist))
   if #qflist == 0 then
     return nil
   end
@@ -59,7 +48,7 @@ function SymbolFinder:grep_symbol_in_workspace(symbolName, filetype, filepaths)
   return {
     file = vim.fn.bufname(first_match.bufnr),
     line = first_match.lnum,
-    col = first_match.col - 1, -- Convert to 0-indexed
+    col = first_match.col,
     text = first_match.text,
     bufnr = first_match.bufnr,
   }
@@ -71,6 +60,7 @@ end
 --- @param col number Column number (0-indexed)
 --- @return boolean success True if file was opened and cursor set successfully
 function SymbolFinder:open_file_and_set_cursor(filepath, line, col)
+  log:debug("[SymbolFinder] Opening file: %s at line: %d, col: %d", filepath, line, col)
   vim.cmd("edit " .. vim.fn.fnameescape(filepath))
   vim.api.nvim_win_set_cursor(0, { line, col })
   vim.cmd("normal! zz")
@@ -151,6 +141,8 @@ CodeExtractor.TREESITTER_NODES = {
   interface_declaration = true,
   type_declaration = true,
   decorated_definition = true,
+  use_declaration = true,
+  import_declaration = true,
 }
 
 --- Extracts code block data from a treesitter node
@@ -159,8 +151,17 @@ CodeExtractor.TREESITTER_NODES = {
 --- @return table result Contains status and data with code_block, start_line, end_line, filename
 function CodeExtractor:get_node_data(bufnr, node)
   local start_row, start_col, end_row, end_col = node:range()
+  log:debug(
+    "[CodeExtractor] Extracting node data from buffer %d, range: (%d, %d) to (%d, %d)",
+    bufnr,
+    start_row,
+    start_col,
+    end_row,
+    end_col
+  )
 
   local lines = vim.api.nvim_buf_get_lines(bufnr, start_row, end_row + 1, false)
+  log:debug("[CodeExtractor] Extracted lines from buffer %d: %s", bufnr, vim.inspect(lines))
   if not lines or #lines == 0 then
     return { status = "error", data = "Symbol text range is empty. Tool could not extract symbol data." }
   end
@@ -193,7 +194,7 @@ end
 --- @param col number Column position (0-indexed)
 --- @return table result Contains status and data with symbol information or error message
 function CodeExtractor:get_symbol_data(bufnr, row, col)
-  if not is_valid_buffer(bufnr) then
+  if not (bufnr and vim.api.nvim_buf_is_valid(bufnr)) then
     return {
       status = "error",
       data = "Invalid buffer id: " .. bufnr .. ". Internal tool error.",
@@ -206,7 +207,7 @@ function CodeExtractor:get_symbol_data(bufnr, row, col)
       status = "error",
       data = "Can't initialize tree-sitter parser for buffer id: "
         .. bufnr
-        .. ". Internal tool error. Skip future tool calls.",
+        .. ". Internal tool error. Missing treesitter package?.",
     }
   end
 
@@ -215,6 +216,7 @@ function CodeExtractor:get_symbol_data(bufnr, row, col)
   local node = root:named_descendant_for_range(row, col, row, col)
 
   while node do
+    log:debug("[CodeExtractor] Checking node type '%s' at position (%d, %d) in buffer %d", node:type(), row, col, bufnr)
     if self.TREESITTER_NODES[node:type()] then
       return self:get_node_data(bufnr, node)
     end
@@ -237,15 +239,13 @@ LSPCaller.__index = LSPCaller
 LSPCaller.LSP_METHODS = {
   definition = vim.lsp.protocol.Methods.textDocument_definition,
   references = vim.lsp.protocol.Methods.textDocument_references,
-  implementation = vim.lsp.protocol.Methods.textDocument_implementation,
+  implementations = vim.lsp.protocol.Methods.textDocument_implementation,
   declaration = vim.lsp.protocol.Methods.textDocument_declaration,
   type_definition = vim.lsp.protocol.Methods.textDocument_typeDefinition,
-  incoming_calls = vim.lsp.protocol.Methods.callHierarchy_incomingCalls,
-  outgoing_calls = vim.lsp.protocol.Methods.callHierarchy_outgoingCalls,
   documentation = vim.lsp.protocol.Methods.textDocument_hover,
 }
 
-LSPCaller.LSP_TIMEOUT_MS = 10000
+LSPCaller.LSP_TIMEOUT_MS = 60000
 LSPCaller.symbol_data = {}
 LSPCaller.filetype = ""
 
@@ -255,29 +255,54 @@ function LSPCaller:new()
   return setmetatable({}, LSPCaller)
 end
 
---- Executes an LSP request synchronously across all applicable clients
---- @param bufnr number Buffer number for the LSP request
---- @param method string LSP method to execute
---- @return table result Contains status and data with LSP results by client or error message
+function LSPCaller:filter_project_references(references)
+  local project_root = vim.fn.getcwd()
+
+  local filtered_results = {}
+  for _, reference in ipairs(references) do
+    local uri = reference.uri
+    if uri then
+      local filepath = uri:gsub("file://", "")
+      -- On Windows, normalize path
+      filepath = filepath:gsub("^/", "")
+
+      if filepath:find(project_root, 1, true) == 1 then
+        table.insert(filtered_results, reference)
+      end
+    end
+  end
+
+  log:debug(
+    "[LSPCaller] LSP references filtered for project. Original: %d, Filtered: %d",
+    #references,
+    #filtered_results
+  )
+
+  return filtered_results
+end
+
+-- Then modify the execute_lsp_request function to use this new function
 function LSPCaller:execute_lsp_request(bufnr, method)
   local clients = vim.lsp.get_clients({
-    bufnr = vim._resolve_bufnr(bufnr),
     method = method,
   })
-
-  if #clients == 0 then
-    return {
-      status = "error",
-      data = "No matching language servers with "
-        .. method
-        .. " capability. Internal tool error.",
-    }
-  end
+  log:debug(
+    "[LSPCaller] Executing LSP method '%s' on buffer %d with clients: %s",
+    method,
+    bufnr,
+    vim.inspect(vim.tbl_map(function(client)
+      return client.name
+    end, clients))
+  )
 
   local lsp_results = {}
   local errors = {}
 
   for _, client in ipairs(clients) do
+    if not vim.lsp.buf_is_attached(bufnr, client.id) then
+      log:debug("[LSPCaller] Attaching client '%s' to buffer %d", client.name, bufnr)
+      vim.lsp.buf_attach_client(bufnr, client.id)
+    end
     local position_params = vim.lsp.util.make_position_params(0, client.offset_encoding)
     ---@diagnostic disable-next-line: inject-field
     position_params.context = { includeDeclaration = false } -- some LSPs require this context for references
@@ -293,18 +318,26 @@ function LSPCaller:execute_lsp_request(bufnr, method)
 
     if err then
       table.insert(errors, "LSP error: " .. tostring(err))
+      log:debug("[LSPCaller] LSP request '%s' failed for client '%s': %s", method, client.name, tostring(err))
     elseif lsp_result and lsp_result.result then
       if not lsp_results[client.name] then
         lsp_results[client.name] = {}
       end
-      lsp_results[client.name] = lsp_result.result
-    else
-      table.insert(errors, "No results for method: " .. method .. " for client: " .. client.name)
-    end
-  end
 
-  if next(lsp_results) == nil and #errors > 0 then
-    return { status = "error", data = table.concat(errors, "; ") .. ". Internal tool error." }
+      -- If this is a references request, filter the results
+      if method == self.LSP_METHODS.references and type(lsp_result.result) == "table" then
+        lsp_results[client.name] = self:filter_project_references(lsp_result.result)
+      else
+        lsp_results[client.name] = lsp_result.result
+      end
+
+      log:debug(
+        "[LSPCaller] LSP request '%s' succeeded for client '%s': %s",
+        method,
+        client.name,
+        vim.inspect(lsp_result.result)
+      )
+    end
   end
 
   return { status = "success", data = lsp_results }
@@ -320,9 +353,16 @@ function LSPCaller:process_single_range(uri, range, operation)
   end
 
   local target_bufnr = vim.uri_to_bufnr(uri)
+  log:debug(
+    "[LSPCaller] Processing single range for operation '%s' in buffer %d, range: %s",
+    operation,
+    target_bufnr,
+    vim.inspect(range)
+  )
   vim.fn.bufload(target_bufnr)
 
   local symbol_result = code_extractor:get_symbol_data(target_bufnr, range.start.line, range.start.character)
+  log:debug("[LSPCaller] Processed symbol data for operation '%s': %s", operation, vim.inspect(symbol_result))
   if symbol_result.status == "success" then
     -- Check if element with same filename, start_line and end_line already exists
     local duplicate = false
@@ -360,18 +400,21 @@ function LSPCaller:process_lsp_result(result, operation)
     if not self.symbol_data[operation] then
       self.symbol_data[operation] = {}
     end
+
+    local content_to_insert = result.contents
+    if type(result.contents) == "table" and type(result.contents[#result.contents]) == "string" then
+      content_to_insert = result.contents[#result.contents]
+    end
+
     table.insert(self.symbol_data[operation], {
-      code_block = result.contents,
+      code_block = content_to_insert,
     })
+
     return { status = "success", data = "Hover content processed" }
   end
 
   if result.range then
     return self:process_single_range(result.uri or result.targetUri, result.range, operation)
-  end
-
-  if #result > 50 then
-    return { status = "error", data = "Too many results for symbol operation." }
   end
 
   local errors = {}
@@ -428,7 +471,7 @@ function LSPCaller:call_lsp_method_and_store_results(bufnr, method, operation)
 
   local results = self:execute_lsp_request(bufnr, method)
   if results.status == "error" then
-    return { status = "error", data = results.data }
+    return results
   end
 
   return self:process_all_lsp_results(results.data, operation)
@@ -449,6 +492,12 @@ return {
       local symbolName = args.symbolName
       local filePaths = args.filePaths
 
+      log:trace(
+        "[List Code Usages Tool] Executing with symbolName: %s, filePaths: %s",
+        symbolName,
+        vim.inspect(filePaths)
+      )
+
       ---@diagnostic disable-next-line: undefined-field
       local context_filetype = self.chat.context.filetype
       ---@diagnostic disable-next-line: undefined-field
@@ -463,7 +512,9 @@ return {
       local symbol_found = false
       local bufnr
       local cursor_result
+
       if filePaths and type(filePaths) == "table" and #filePaths > 0 then
+        log:debug("[List Code Usages Tool] Searching in specified file paths: %s", vim.inspect(filePaths))
         cursor_result = symbol_finder:move_cursor_to_symbol(symbolName, nil, filePaths)
         if cursor_result and cursor_result.status == "success" then
           symbol_found = true
@@ -471,6 +522,11 @@ return {
       end
 
       if not symbol_found then
+        log:debug(
+          "[List Code Usages Tool] Searching in workspace for symbol: %s and filetype: %s",
+          symbolName,
+          context_filetype
+        )
         cursor_result = symbol_finder:move_cursor_to_symbol(symbolName, context_filetype, nil)
 
         if cursor_result.status == "error" then
@@ -483,12 +539,26 @@ return {
       local results_num = 0
 
       if symbol_found then
+        log:debug("[List Code Usages Tool] Symbol found, processing usages for symbol: %s", symbolName)
         bufnr = tonumber(cursor_result.data.bufnr)
         for operation, method in pairs(lsp_caller.LSP_METHODS) do
+          log:debug(
+            "[List Code Usages Tool] Calling LSP method '%s' for operation '%s' on buffer %d",
+            method,
+            operation,
+            bufnr
+          )
           ---@diagnostic disable-next-line: param-type-mismatch
           local lsp_call_result = lsp_caller:call_lsp_method_and_store_results(bufnr, method, operation)
+          log:debug(
+            "[List Code Usages Tool] LSP call result for operation '%s': %s",
+            operation,
+            vim.inspect(lsp_call_result)
+          )
           if lsp_call_result.status == "success" then
             results_num = results_num + lsp_call_result.data
+          else
+            return lsp_call_result
           end
         end
       end
@@ -556,10 +626,6 @@ Request to list all usages (references, definitions, implementations etc) of a f
       local symbol = self.args.symbolName
       local chat_message_content = ""
 
-      vim.notify(
-        "Found usages for symbol: " .. symbol .. " Data: " .. vim.inspect(lsp_caller.symbol_data),
-        vim.log.levels.INFO
-      )
       for operation, code_blocks in pairs(lsp_caller.symbol_data) do
         chat_message_content = chat_message_content .. string.format("\n%s of symbol: `%s`\n", operation, symbol)
         for _, code_block in ipairs(code_blocks) do
@@ -568,9 +634,7 @@ Request to list all usages (references, definitions, implementations etc) of a f
               .. string.format(
                 [[
 ---
-```markdown
 %s
-```
 ]],
                 code_block.code_block
               )
