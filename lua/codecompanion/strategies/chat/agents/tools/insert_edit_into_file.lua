@@ -31,7 +31,7 @@ local function edit_file(action)
   p.filename = p:expand()
 
   if not p:exists() or not p:is_file() then
-    return fmt("**Insert Edit Into File Tool Error**: File '%s' does not exist or is not a file", action.filepath)
+    return fmt("Error editing '%s'\nFile does not exist or is not a file", action.filepath)
   end
 
   -- 1. extract list of changes from the code
@@ -64,7 +64,12 @@ local function edit_file(action)
   if bufnr ~= -1 and api.nvim_buf_is_loaded(bufnr) then
     api.nvim_command("checktime " .. bufnr)
   end
-  return fmt("**Insert Edit Into File Tool**: `%s` - %s", action.filepath, action.explanation)
+  return fmt(
+    [[Edited `%s`
+%s]],
+    action.filepath,
+    action.explanation
+  )
 end
 
 ---Edit code in a buffer
@@ -127,7 +132,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   local success = {
     status = "success",
-    data = fmt("**Insert Edit Into File Tool**: `%s` - %s", action.filepath, action.explanation),
+    data = fmt("Edited `%s`\n%s", action.filepath, action.explanation),
   }
 
   if should_diff and opts.user_confirmation then
@@ -272,11 +277,11 @@ return {
       log:debug("[Insert Edit Into File Tool] Error output: %s", stderr)
 
       local error_output = fmt(
-        [[**Insert Edit Into File Tool**: Ran with an error:
-
+        [[Error editing `%s`
 ```txt
 %s
 ```]],
+        args.filepath,
         errors
       )
       chat:add_tool_output(self, error_output)
@@ -289,7 +294,7 @@ return {
     ---@return nil
     rejected = function(self, agent, cmd)
       local chat = agent.chat
-      chat:add_tool_output(self, "**Insert Edit Into File Tool**: The user declined to execute")
+      chat:add_tool_output(self, fmt("User rejected to edit `%s`", self.args.filepath))
     end,
   },
 }

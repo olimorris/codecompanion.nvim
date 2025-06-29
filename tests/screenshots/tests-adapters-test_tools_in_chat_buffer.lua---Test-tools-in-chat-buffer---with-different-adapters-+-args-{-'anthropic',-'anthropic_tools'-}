@@ -7,15 +7,15 @@
 06|## assistant                        │~                                          
 07|                                    │~                                          
 08|I'll check the weather for both     │~                                          
-09|cities using Celsius units.### Tool │~                                          
-10|Output                              │~                                          
-11|                                    │~                                          
-12|The weather in London, UK is 15°    │~                                          
-13|celsius                             │~                                          
-14|The weather in Paris, France is 15° │~                                          
-15|celsius                             │~                                          
-16|                                    │~                                          
-17|## foo                              │~                                          
+09|cities using Celsius units.         │~                                          
+10|                                    │~                                          
+11|The weather in London, UK is 15°    │~                                          
+12|celsius                             │~                                          
+13|The weather in Paris, France is 15° │~                                          
+14|celsius                             │~                                          
+15|                                    │~                                          
+16|## foo                              │~                                          
+17|                                    │~                                          
 18|                                    │~                                          
 19|                                    │~                                          
 20|~                                   │~                                          

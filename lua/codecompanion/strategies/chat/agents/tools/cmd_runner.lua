@@ -166,9 +166,8 @@ return {
       end
       local output = vim.iter(stdout[#stdout]):flatten():join("\n")
       local message = string.format(
-        [[**Cmd Runner Tool**: The output from the command `%s` was:
-
-```txt
+        [[`%s`
+```
 %s
 ```]],
         table.concat(cmd.cmd, " "),
