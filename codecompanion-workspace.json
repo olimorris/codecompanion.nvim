@@ -1,7 +1,7 @@
 {
   "name": "CodeCompanion.nvim",
   "version": "1.0.0",
-  "system_prompt": "CodeCompanion.nvim is an AI-powered productivity tool integrated into Neovim, designed to enhance the development workflow by seamlessly interacting with various large language models (LLMs). It offers features like inline code transformations, code creation, refactoring, and supports multiple LLMs such as OpenAI, Anthropic, and Google Gemini, among others. With tools for variable management, agents, and custom workflows, CodeCompanion.nvim streamlines coding tasks and facilitates intelligent code assistance directly within the Neovim editor.",
+  "system_prompt": "CodeCompanion.nvim is an AI-powered productivity tool that seamlessly integrates large language models (LLMs) into the Neovim editing experience. The plugin is built around three core strategies: **Chat** (conversational interface), **Inline** (direct code generation), and **Agents** (tool execution).\n\n**Architecture Philosophy:**\n- **Adapter Pattern**: Unified interface for multiple LLM providers (OpenAI, Anthropic, Google Gemini, etc.)\n- **Strategy Pattern**: Different interaction modes (chat, inline, agents) with shared infrastructure\n- **Builder Pattern**: Complex UI operations broken into composable, testable components\n- **Event-Driven**: Extensible through subscribers, watchers, and workflows\n\n**Key Components:**\n- **Chat Buffer**: Markdown-formatted conversational interface with Tree-sitter parsing\n- **Adapters**: LLM-specific handlers for requests, responses, and capabilities\n- **Tools/Agents**: Function calling system for LLM-driven automation\n- **Variables & References**: Context injection system for enhanced prompts\n- **Workflows**: Automated prompt chaining and response processing\n\n**Testing & Quality:**\nExtensively tested using Mini.Test with both unit tests and visual regression testing through screenshots. The codebase emphasizes maintainability through clear separation of concerns, comprehensive error handling, and modular design patterns that make extending functionality straightforward.",
   "groups": [
     {
       "name": "Chat Buffer",
@@ -14,6 +14,21 @@
         "chat-buffer-ui",
         "chat-references",
         "chat-watchers"
+      ]
+    },
+    {
+      "name": "Chat UI",
+      "system_prompt": "The Chat UI group contains the files responsible for rendering and formatting content in the chat buffer. This includes the message builder pattern that coordinates how different types of content (tool output, reasoning, standard messages) are formatted and displayed to the user.\n\nKey components:\n1. **Builder Pattern**: The main orchestrator that handles the flow of adding headers, formatting content, and writing to the buffer\n2. **Formatters**: Specialized classes that handle different message types (tools, reasoning, standard content)\n3. **UI Management**: Methods for handling buffer operations, folding, and visual presentation\n\nThe files to analyze are:\n${group_files}",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "data": [
+        "chat-ui-builder",
+        "chat-ui-formatters-base",
+        "chat-ui-formatters-tools",
+        "chat-ui-formatters-reasoning",
+        "chat-ui-formatters-standard",
+        "chat-ui-tools"
       ]
     },
     {
@@ -98,6 +113,36 @@
       "type": "symbols",
       "path": "lua/codecompanion/strategies/chat/watchers.lua",
       "description": "A watcher is when a user has toggled a specific buffer to be watched. When a message is sent to the LLM by the user, any changes made to the watched buffer are also sent, giving the LLM up to date context. The `${filename}` is where this logic sits and I've shared its symbolic outline below."
+    },
+    "chat-ui-builder": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/ui/builder.lua",
+      "description": "The message builder coordinates the entire process of adding content to the chat buffer. It uses a fluent interface to chain operations: adding headers when roles change, formatting content through specialized formatters, writing to the buffer with proper folding, and updating internal state. This replaced the complex monolithic `add_buf_message` function with a clean, extensible pattern."
+    },
+    "chat-ui-formatters-base": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/ui/formatters/base.lua",
+      "description": "The base formatter class that defines the interface all formatters must implement. It provides error handling through `safe_format` and requires formatters to implement `can_handle`, `get_tag`, and `format` methods. Each formatter receives the chat instance, allowing access to state like `_last_tag` and `_has_reasoning_output`."
+    },
+    "chat-ui-formatters-tools": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/ui/formatters/tools.lua",
+      "description": "Handles formatting of tool output messages. It manages spacing rules (extra line breaks after LLM messages), calculates fold information for multi-line tool output, and ensures proper visual separation between tool results and other content types."
+    },
+    "chat-ui-formatters-reasoning": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/ui/formatters/reasoning.lua",
+      "description": "Formats reasoning content from LLMs that support chain-of-thought responses. It adds the '### Reasoning' header only once per reasoning sequence and manages the `_has_reasoning_output` state to coordinate with the standard formatter for proper transitions."
+    },
+    "chat-ui-formatters-standard": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/ui/formatters/standard.lua",
+      "description": "The fallback formatter that handles regular message content. It manages transitions from reasoning to response content (adding '### Response' headers), handles spacing after tool output, and processes standard text content with proper line splitting."
+    },
+    "chat-ui-tools": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/ui/tools.lua",
+      "description": "Manages visual presentation of tool output including folding functionality. It creates collapsible folds for tool output with custom fold text that shows success/failure icons and summarized content. The fold text adapts based on keywords in the tool output to indicate success or failure states."
     },
     "strategies-init": {
       "type": "file",

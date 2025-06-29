@@ -28,6 +28,9 @@
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field watchers CodeCompanion.Watchers The buffer watcher instance
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
+---@field _has_reasoning_output boolean Has any reasoning content been rendered in the chat buffer?
+---@field _last_role string The last role that was rendered in the chat buffer
+---@field _last_tag string The last message tag that was rendered in the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
@@ -35,7 +38,7 @@
 ---@field context? table Context of the buffer that the chat was initiated from
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
----@field last_role? string The role of the last response in the chat buffer
+---@field last_role string The last role that was rendered in the chat buffer-
 ---@field messages? table The messages to display in the chat buffer
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field status? string The status of any running jobs in the chat buffe
@@ -43,6 +46,7 @@
 ---@field tokens? table Total tokens spent in the chat buffer so far
 
 local adapters = require("codecompanion.adapters")
+local builder = require("codecompanion.strategies.chat.ui.builder")
 local client = require("codecompanion.http")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
@@ -66,13 +70,6 @@ local CONSTANTS = {
   STATUS_SUCCESS = "success",
 
   BLANK_DESC = "[No messages]",
-}
-
-local MESSAGE_TAGS = {
-  LLM_MESSAGE = "llm_message",
-  TOOL_OUTPUT = "tool_output",
-  USER_MESSAGE = "user_message",
-  SYSTEM_MESSAGE = "system_message",
 }
 
 local llm_role = config.strategies.chat.roles.llm
@@ -206,7 +203,7 @@ end
 local function ready_chat_buffer(chat, opts)
   opts = opts or {}
 
-  if not opts.auto_submit and chat.last_role ~= config.constants.USER_ROLE then
+  if not opts.auto_submit and chat._last_role ~= config.constants.USER_ROLE then
     increment_cycle(chat)
     chat:add_buf_message({ role = config.constants.USER_ROLE, content = "" })
 
@@ -517,6 +514,13 @@ _G.codecompanion_buffers = {}
 ---@class CodeCompanion.Chat
 local Chat = {}
 
+Chat.MESSAGE_TAGS = {
+  LLM_MESSAGE = "llm_message",
+  TOOL_OUTPUT = "tool_output",
+  USER_MESSAGE = "user_message",
+  SYSTEM_MESSAGE = "system_message",
+}
+
 ---@param args CodeCompanion.ChatArgs
 ---@return CodeCompanion.Chat
 function Chat.new(args)
@@ -529,7 +533,6 @@ function Chat.new(args)
     header_line = 1,
     from_prompt_library = args.from_prompt_library or false,
     id = id,
-    last_role = args.last_role or config.constants.USER_ROLE,
     messages = args.messages or {},
     opts = args,
     refs = {},
@@ -541,7 +544,9 @@ function Chat.new(args)
 
       return bufnr
     end,
-    _chat_has_reasoning = false,
+    _has_reasoning_output = false,
+    _last_role = args.last_role or config.constants.USER_ROLE,
+    _last_tag = nil,
   }, { __index = Chat })
 
   self.bufnr = self.create_buf()
@@ -977,7 +982,7 @@ function Chat:submit(opts)
               result.output.role = config.constants.LLM_ROLE
             end
             table.insert(output, result.output.content)
-            self:add_buf_message(result.output, { tag = MESSAGE_TAGS.LLM_MESSAGE })
+            self:add_buf_message(result.output, { tag = self.MESSAGE_TAGS.LLM_MESSAGE })
           elseif self.status == CONSTANTS.STATUS_ERROR then
             log:error("Error: %s", result.output)
             return self:done(output)
@@ -1022,7 +1027,7 @@ function Chat:done(output, tools)
       self:add_message({
         role = config.constants.LLM_ROLE,
         content = content,
-      }, { tag = MESSAGE_TAGS.LLM_MESSAGE })
+      })
     end
   end
 
@@ -1032,7 +1037,6 @@ function Chat:done(output, tools)
       role = config.constants.LLM_ROLE,
       tool_calls = tools,
     }, {
-      tag = "llm_tool_calls",
       visible = false,
     })
     return self.agents:execute(self, tools)
@@ -1241,143 +1245,24 @@ function Chat:close()
   self = nil
 end
 
----Add a message directly to the chat buffer. This will be visible to the user
+---Add a message directly to the chat buffer that will be visible to the user
+---This will NOT form part of the message stack that is sent to the LLM
 ---@param data table
 ---@param opts? table
 function Chat:add_buf_message(data, opts)
   assert(type(data) == "table", "data must be a table")
+  opts = opts or {}
 
-  local lines = {}
-  local bufnr = self.bufnr
-  local new_response = false
-
-  -- Set the tag from the last message
-  local function set_last_tag()
-    if opts and opts.tag then
-      self._chat_last_tag = opts.tag
-      log:info("Last tag: %s", self._chat_last_tag)
-      return
-    end
-    self._chat_last_tag = nil
-    log:info("Last tag: %s", self._chat_last_tag)
-  end
-
-  ---Insert a line break into the lines table
-  local function line_break()
-    table.insert(lines, "")
-  end
-
-  ---Add new data to the lines table, taking care of newlines
-  ---@param text string The text to write to the chat buffer
-  local function write(text)
-    for _, t in ipairs(vim.split(text, "\n", { plain = true, trimempty = false })) do
-      table.insert(lines, t)
-    end
-  end
-
-  --Add a new role via a header to the chat buffer
-  local function add_header()
-    new_response = true
-    if self._chat_last_tag == MESSAGE_TAGS.TOOL_OUTPUT then
-      -- We only need one line break as the tool output adds a line break
-      line_break()
-    else
-      line_break()
-      line_break()
-    end
-    self.last_role = data.role
-    self.ui:set_header(lines, config.strategies.chat.roles[data.role])
-  end
-
-  ---Append data to the lines table, taking into account the type of data that is being added
-  local function append_data()
-    if opts and opts.tag == MESSAGE_TAGS.TOOL_OUTPUT then
-      -- Add a line break between the tool output and the LLM's initial response
-      if self._chat_last_tag == MESSAGE_TAGS.LLM_MESSAGE then
-        line_break()
-        line_break()
-      end
-
-      local tool_content_start = #lines + 1
-      write(data.content or "")
-      local tool_content_end = #lines
-
-      -- Store the fold info for update_buffer to use
-      if tool_content_end > tool_content_start then
-        opts.fold_info = {
-          start_offset = tool_content_start - 1, -- Convert to 0-based offset
-          end_offset = tool_content_end - 1,
-          first_line = lines[tool_content_start] or "",
-        }
-      end
-
-      return set_last_tag()
-    end
-
-    if data.reasoning then
-      if not self._chat_has_reasoning then
-        table.insert(lines, "### Reasoning")
-        line_break()
-      end
-      self._chat_has_reasoning = true
-      write(data.reasoning)
-    end
-
-    if data.content then
-      if self._chat_has_reasoning then
-        self._chat_has_reasoning = false -- LLMs *should* do reasoning first then output after
-        line_break()
-        line_break()
-        --TODO: Fold the reasoning output
-        table.insert(lines, "### Response")
-        line_break()
-      elseif self._chat_last_tag == MESSAGE_TAGS.TOOL_OUTPUT then
-        line_break()
-      end
-      write(data.content)
-    end
-  end
-
-  ---Ready and update the chat buffer with the data in lines
-  local function update_buffer()
-    self.ui:unlock_buf()
-    local last_line, last_column, line_count = self.ui:last()
-
-    if opts and opts.insert_at then
-      last_line = opts.insert_at
-      last_column = 0
-    end
-
-    local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
-    api.nvim_buf_set_text(bufnr, last_line, last_column, last_line, last_column, lines)
-
-    if opts and opts.tag == MESSAGE_TAGS.TOOL_OUTPUT and #lines > 1 then
-      local fold_start = last_line + opts.fold_info.start_offset
-      local fold_end = last_line + opts.fold_info.end_offset
-      self.ui.tools:create_fold(fold_start, fold_end, opts.fold_info.first_line)
-    end
-
-    if new_response then
-      self.ui:render_headers()
-    end
-
-    if self.last_role ~= config.constants.USER_ROLE then
-      self.ui:lock_buf()
-    end
-
-    self.ui:move_cursor(cursor_moved)
-  end
-
-  if (data.role and data.role ~= self.last_role) or (opts and opts.force_role) then
-    add_header()
-  end
-
-  if data.content or data.reasoning then
-    append_data()
-    update_buffer()
-  end
-
-  set_last_tag()
+  builder
+    .new({
+      chat = self,
+      data = data,
+      opts = opts,
+    })
+    :add_header()
+    :format_content()
+    :write_to_buffer()
+    :update_tag()
 end
 
 ---Add the output from a tool to the message history and a message to the UI
@@ -1393,7 +1278,7 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   output.cycle = self.cycle
   output.id = make_id({ role = output.role, content = output.content })
   output.opts = vim.tbl_extend("force", output.opts or {}, {
-    tag = MESSAGE_TAGS.TOOL_OUTPUT,
+    tag = self.MESSAGE_TAGS.TOOL_OUTPUT,
     visible = true,
   })
 
@@ -1416,15 +1301,15 @@ function Chat:add_tool_output(tool, for_llm, for_user)
     -- properly as folds can't work if the boundary is the last line
     content = (for_user or for_llm) .. "\n",
   }, {
-    tag = MESSAGE_TAGS.TOOL_OUTPUT,
+    tag = self.MESSAGE_TAGS.TOOL_OUTPUT,
   })
 end
 
 ---When a request has finished, reset the chat buffer
 ---@return nil
 function Chat:reset()
-  self._chat_has_reasoning = false
-  self._chat_last_tag = nil
+  self._has_reasoning_output = false
+  self._last_tag = nil
   self.status = ""
   self.ui:unlock_buf()
 end
