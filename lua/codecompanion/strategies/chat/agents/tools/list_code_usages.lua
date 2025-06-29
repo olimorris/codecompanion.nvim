@@ -263,9 +263,6 @@ function LSPCaller:filter_project_references(references)
     local uri = reference.uri
     if uri then
       local filepath = uri:gsub("file://", "")
-      -- On Windows, normalize path
-      filepath = filepath:gsub("^/", "")
-
       if filepath:find(project_root, 1, true) == 1 then
         table.insert(filtered_results, reference)
       end
@@ -550,11 +547,6 @@ return {
           )
           ---@diagnostic disable-next-line: param-type-mismatch
           local lsp_call_result = lsp_caller:call_lsp_method_and_store_results(bufnr, method, operation)
-          log:debug(
-            "[List Code Usages Tool] LSP call result for operation '%s': %s",
-            operation,
-            vim.inspect(lsp_call_result)
-          )
           if lsp_call_result.status == "success" then
             results_num = results_num + lsp_call_result.data
           else
