@@ -1,5 +1,13 @@
 # Changelog
 
+## [17.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.5.0...v17.6.0) (2025-06-29)
+
+
+### Features
+
+* **chat:** handle buffer deletion of chat buffers ([#1745](https://github.com/olimorris/codecompanion.nvim/issues/1745)) ([dbc7957](https://github.com/olimorris/codecompanion.nvim/commit/dbc7957ee92ddce403405c5c6d91ba7dccb278c7))
+* **tools:** `web_search` tool can search specific sites ([#1741](https://github.com/olimorris/codecompanion.nvim/issues/1741)) ([6ef907f](https://github.com/olimorris/codecompanion.nvim/commit/6ef907fca6480dd11dc8f7a3048fec23f8a39b29))
+
 ## [17.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.4.0...v17.5.0) (2025-06-28)
 
 
