@@ -85,7 +85,7 @@ end
 
 T["Agent"][":find"]["should find tools added after a chat is initialized"] = function()
   child.lua([[
-    local config = require("tests.config")
+    local config = require("codecompanion.config")
     
     -- Add a dynamic tool after chat is already created
     config.strategies.chat.tools.dynamic_test_tool = {
