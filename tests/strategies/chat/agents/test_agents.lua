@@ -97,7 +97,7 @@ T["Agent"][":find"]["should find tools added after a chat is initialized"] = fun
     -- Submit a message with the dynamic tool - this should trigger refresh
     _G.chat:add_buf_message({
       role = "user",
-      content = "Use @dynamic_test_tool please",
+      content = "Use @{dynamic_test_tool} please",
     })
     _G.chat:submit()
     
