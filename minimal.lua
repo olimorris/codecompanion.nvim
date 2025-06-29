@@ -8,7 +8,7 @@ It will search the following paths for a token:
 --]]
 vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand("~/.config")
 
-vim.env.LAZY_STDPATH = ".repro"
+vim.env.LAZY_STDPATH = ".repro/minimal"
 load(vim.fn.system("curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua"))()
 
 -- Your CodeCompanion setup
@@ -16,7 +16,7 @@ local plugins = {
   {
     "olimorris/codecompanion.nvim",
     dependencies = {
-      { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
+      { "nvim-treesitter/nvim-treesitter", branch = "main", lazy = false, build = ":TSUpdate" },
       { "nvim-lua/plenary.nvim" },
       -- Test with blink.cmp
       {
@@ -55,13 +55,12 @@ local plugins = {
 require("lazy.minit").repro({ spec = plugins })
 
 -- Setup Tree-sitter
-local ts_status, treesitter = pcall(require, "nvim-treesitter.configs")
-if ts_status then
-  treesitter.setup({
-    ensure_installed = { "lua", "markdown", "markdown_inline", "yaml" },
-    highlight = { enable = true },
-  })
-end
+require("nvim-treesitter").install({
+  "lua",
+  "markdown",
+  "markdown_inline",
+  "yaml",
+})
 
 -- Setup nvim-cmp
 -- local cmp_status, cmp = pcall(require, "cmp")
