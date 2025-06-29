@@ -857,6 +857,9 @@ function Chat:submit(opts)
     opts.callback()
   end
 
+  -- Refresh agent tools before submitting to pick up any dynamically added tools
+  self.agents:refresh_tools()
+
   local bufnr = self.bufnr
 
   if opts.auto_submit then
