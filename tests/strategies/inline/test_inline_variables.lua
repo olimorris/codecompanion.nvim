@@ -16,14 +16,14 @@ T["Inline Variables"] = new_set({
 
 T["Inline Variables"]["can find variables"] = function()
   local vars = require("codecompanion.strategies.inline.variables").new({
-    prompt = "#foo can you print hello world?",
+    prompt = "#{foo} can you print hello world?",
   })
   vars:find()
 
   h.eq({ "foo" }, vars.vars)
 
   vars.vars = {}
-  vars.prompt = "can you #foo #bar print hello world?"
+  vars.prompt = "can you #{foo} #{bar} print hello world?"
   vars:find()
 
   table.sort(vars.vars) -- Avoid any ordering issues
@@ -32,13 +32,13 @@ end
 
 T["Inline Variables"]["can remove variables from a prompt"] = function()
   local vars = require("codecompanion.strategies.inline.variables").new({
-    prompt = "#foo can you print hello world?",
+    prompt = "#{foo} can you print hello world?",
   })
   vars:replace()
 
   h.eq("can you print hello world?", vars.prompt)
 
-  vars.prompt = "are you #foo #bar working?"
+  vars.prompt = "are you #{foo} #{bar} working?"
   vars:replace()
   h.eq("are you   working?", vars.prompt)
 end

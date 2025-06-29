@@ -14,7 +14,7 @@ T["Tavily adapter"] = new_set({
 })
 
 T["Tavily adapter"]["should return properly formatted body with default options"] = function()
-  local data = { query = "test query" }
+  local data = { query = "test query", include_domains = { "https://github.com" } }
   local body = adapter.handlers.set_body(adapter, data)
 
   h.eq(body.query, data.query)
@@ -25,6 +25,7 @@ T["Tavily adapter"]["should return properly formatted body with default options"
   h.eq(body.max_results, 3)
   h.eq(body.include_answer, false)
   h.eq(body.include_raw_content, false)
+  h.eq(body.include_domains, { "https://github.com" })
 end
 
 T["Tavily adapter"]["should use adapter options if provided"] = function()

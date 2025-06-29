@@ -34,9 +34,10 @@ end
 
 ---Creates a regex pattern to match a variable in a message
 ---@param var string The variable name to create a pattern for
+---@param include_params? boolean Whether to include parameters in the pattern
 ---@return string The compiled regex pattern
-function Variables:_pattern(var)
-  return CONSTANTS.PREFIX .. var .. "\\(\\s\\|$\\|{[^}]*}\\)"
+function Variables:_pattern(var, include_params)
+  return CONSTANTS.PREFIX .. "{" .. var .. "}" .. (include_params and "{[^}]*}" or "")
 end
 
 ---Check a prompt for a variable

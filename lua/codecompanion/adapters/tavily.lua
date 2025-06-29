@@ -40,6 +40,7 @@ return {
         time_range = adapter.opts.time_range or nil, -- day, week, month, year
         include_answer = adapter.opts.include_answer or false,
         include_raw_content = adapter.opts.include_raw_content or false,
+        include_domains = data.include_domains,
       }
 
       if adapter.opts.topic == "news" then

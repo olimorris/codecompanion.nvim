@@ -130,4 +130,39 @@ T["patch"]["lua dashes"] = function()
   h.eq(output_str, expected_output)
 end
 
+T["patch"]["empty file with non-existent context"] = function()
+  local input_str = ""
+  local patch_str =
+    "*** Begin Patch\nnon-existent line 1\nnon-existent line 2\nnon-existent line 3\n+first line\n+second line\n*** End Patch"
+  local output_str = apply_patch(input_str, patch_str)
+  local expected_output = "first line\nsecond line"
+  h.eq(output_str, expected_output)
+end
+
+T["patch"]["empty file with no context"] = function()
+  local input_str = ""
+  local patch_str = "*** Begin Patch\n+function M.func1() return 1 end\n+function M.func2() return 2 end\n*** End Patch"
+  local output_str = apply_patch(input_str, patch_str)
+  local expected_output = "function M.func1() return 1 end\nfunction M.func2() return 2 end"
+  h.eq(output_str, expected_output)
+end
+
+T["patch"]["small file with mismatched context but correct end"] = function()
+  local input_str = "actual_line1\nactual_line2"
+  local patch_str = "*** Begin Patch\nwrong_context1\nactual_line1\nactual_line2\n+new_line3\n+new_line4\n*** End Patch"
+  local output_str = apply_patch(input_str, patch_str)
+  local expected_output = "actual_line1\nactual_line2\nnew_line3\nnew_line4"
+  h.eq(output_str, expected_output)
+end
+
+T["patch"]["small module file insertion"] = function()
+  local input_str = "local M = {}\nreturn M"
+  local patch_str =
+    "*** Begin Patch\nlocal M = {}\n+function M.func1() return 1 end\n+function M.func2() return 2 end\n+function M.func3() return 3 end\nreturn M\n*** End Patch"
+  local output_str = apply_patch(input_str, patch_str)
+  local expected_output =
+    "local M = {}\nfunction M.func1() return 1 end\nfunction M.func2() return 2 end\nfunction M.func3() return 3 end\nreturn M"
+  h.eq(output_str, expected_output)
+end
+
 return T

@@ -47,6 +47,7 @@ return {
         :request({
           url = adapter.url,
           query = args.query,
+          include_domains = args.include_domains,
         }, {
           callback = function(err, data)
             if err then
@@ -90,8 +91,16 @@ return {
             type = "string",
             description = "Search query optimized for keyword searching.",
           },
+          include_domains = {
+            type = "array",
+            items = {
+              type = "string",
+              description = "Each string should be a url, like `https://github.com/` or `https://neovim.io/`",
+            },
+            description = "When there's a specific site that you want to search from, add the url to the sites here. They must be from user input or from a previous search result. Otherwise, leave this field empty.",
+          },
         },
-        required = { "query" },
+        required = { "query", "include_domains" },
         additionalProperties = false,
       },
       strict = true,

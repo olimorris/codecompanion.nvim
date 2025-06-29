@@ -13,7 +13,13 @@ local callbacks_cache = {}
 local function transform_complete_items(opt, complete_items)
   for _, item in ipairs(complete_items) do
     -- Populate standard Vim completion-items fields (see :h complete-items).
-    item.word = item.label:sub(2) -- The text to insert after the trigger character
+    if opt.triggerCharacter == "#" then
+      item.word = string.format("#{%s}", item.label:sub(2))
+    elseif opt.triggerCharacter == "@" then
+      item.word = string.format("@{%s}", item.label:sub(2))
+    else
+      item.word = item.label:sub(2)
+    end
     item.abbr = item.label -- The text to show in the completion menu
     item.info = item.detail -- The details shown in the preview window
 

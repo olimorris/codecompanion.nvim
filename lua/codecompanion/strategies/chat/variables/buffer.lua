@@ -78,8 +78,8 @@ function Variable.replace(prefix, message, bufnr)
   local bufname = buf_utils.name_from_bufnr(bufnr)
   local replacement = "file `" .. bufname .. "` (with buffer number: " .. bufnr .. ")"
 
-  local result = message:gsub(prefix .. "buffer{[^}]*}", replacement)
-  result = result:gsub(prefix .. "buffer", replacement)
+  local result = message:gsub(prefix .. "{buffer}{[^}]*}", replacement)
+  result = result:gsub(prefix .. "{buffer}", replacement)
 
   return result
 end

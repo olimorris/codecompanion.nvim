@@ -26,6 +26,7 @@ function source:complete(_, callback)
 
   vim.iter(items):map(function(item)
     item.kind = kind
+    item.insertText = string.format("#{%s}", item.label:sub(2))
     return item
   end)
 

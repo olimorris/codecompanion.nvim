@@ -14,7 +14,9 @@ T["Anthropic adapter"] = new_set({
   },
 })
 
-T["Anthropic adapter"]["consolidates system prompts in their own block"] = function()
+T["Anthropic adapter"]["form_messages"] = new_set()
+
+T["Anthropic adapter"]["form_messages"]["consolidates system prompts in their own block"] = function()
   local messages = {
     { content = "Hello", role = "system" },
     { content = "What can you do?!", role = "user" },
@@ -38,7 +40,7 @@ T["Anthropic adapter"]["consolidates system prompts in their own block"] = funct
   }, output.messages)
 end
 
-T["Anthropic adapter"]["can form messages to be sent to the API"] = function()
+T["Anthropic adapter"]["form_messages"]["regular chat"] = function()
   local input = {
     {
       content = "Explain Ruby in two words",
@@ -67,7 +69,7 @@ T["Anthropic adapter"]["can form messages to be sent to the API"] = function()
   }, adapter.handlers.form_messages(adapter, input))
 end
 
-T["Anthropic adapter"]["it can form messages with images"] = function()
+T["Anthropic adapter"]["form_messages"]["images"] = function()
   local messages = {
     {
       content = "How are you?",
@@ -134,7 +136,7 @@ T["Anthropic adapter"]["it can form messages with images"] = function()
   h.eq(expected, adapter.handlers.form_messages(adapter, messages).messages)
 end
 
-T["Anthropic adapter"]["can form messages with tools to be sent to the API"] = function()
+T["Anthropic adapter"]["form_messages"]["with tools and consecutive tool results"] = function()
   local input = {
     {
       content = "What's the weather like in London and Paris?",
@@ -190,7 +192,6 @@ T["Anthropic adapter"]["can form messages with tools to be sent to the API"] = f
         is_error = false,
       },
     },
-
     {
       role = "tool",
       content = {
@@ -269,14 +270,81 @@ T["Anthropic adapter"]["can form messages with tools to be sent to the API"] = f
   h.eq({ messages = output }, adapter.handlers.form_messages(adapter, input))
 end
 
-T["Anthropic adapter"]["it can form tools to be sent to the API"] = function()
-  local weather = require("tests/strategies/chat/agents/tools/stubs/weather").schema
-  local tools = { weather = { weather } }
+T["Anthropic adapter"]["form_messages"]["handles tool results correctly"] = function()
+  local messages = {
+    {
+      role = "user",
+      content = "Use the weather tool to check London weather",
+    },
+    {
+      role = "assistant",
+      content = "I'll check the weather for you.",
+      tool_calls = {
+        {
+          id = "call_123",
+          ["function"] = {
+            name = "get_weather",
+            arguments = '{"location": "London"}',
+          },
+        },
+      },
+    },
+    {
+      role = "tool",
+      content = {
+        type = "tool_result",
+        tool_use_id = "call_123",
+        content = "London weather: 22°C, sunny",
+        is_error = false,
+      },
+    },
+  }
 
-  h.eq({ tools = { transform.to_anthropic(weather) } }, adapter.handlers.form_tools(adapter, tools))
+  local result = adapter.handlers.form_messages(adapter, messages)
+
+  -- The tool result should be preserved as an array with the content intact
+  local tool_message = result.messages[3]
+
+  h.eq(tool_message.role, "user") -- Tool messages become user messages
+  h.eq(type(tool_message.content), "table")
+  h.eq(vim.islist(tool_message.content), true)
+  h.eq(#tool_message.content, 1)
+  h.eq(tool_message.content[1].type, "tool_result")
+  h.eq(tool_message.content[1].tool_use_id, "call_123")
+  h.eq(tool_message.content[1].content, "London weather: 22°C, sunny")
 end
 
-T["Anthropic adapter"]["consolidates consecutive user messages together"] = function()
+T["Anthropic adapter"]["form_messages"]["preserves separate tool results with different IDs"] = function()
+  local messages = {
+    {
+      role = "user",
+      content = {
+        {
+          type = "tool_result",
+          tool_use_id = "call_123",
+          content = "Weather data",
+          is_error = false,
+        },
+        {
+          type = "tool_result",
+          tool_use_id = "call_456",
+          content = "Calendar data",
+          is_error = false,
+        },
+      },
+    },
+  }
+
+  local result = adapter.handlers.form_messages(adapter, messages)
+
+  -- The tool results should remain separate
+  local user_message = result.messages[1]
+  h.eq(#user_message.content, 2)
+  h.eq(user_message.content[1].tool_use_id, "call_123")
+  h.eq(user_message.content[2].tool_use_id, "call_456")
+end
+
+T["Anthropic adapter"]["form_messages"]["consolidates consecutive user messages together"] = function()
   local messages = {
     { content = "Hello", role = "user" },
     { content = "World!", role = "user" },
@@ -302,6 +370,13 @@ T["Anthropic adapter"]["consolidates consecutive user messages together"] = func
       role = "user",
     },
   }, adapter.handlers.form_messages(adapter, messages).messages)
+end
+
+T["Anthropic adapter"]["form_tools"] = function()
+  local weather = require("tests/strategies/chat/agents/tools/stubs/weather").schema
+  local tools = { weather = { weather } }
+
+  h.eq({ tools = { transform.to_anthropic(weather) } }, adapter.handlers.form_tools(adapter, tools))
 end
 
 T["Anthropic adapter"]["Non-Reasoning models have less tokens"] = function()

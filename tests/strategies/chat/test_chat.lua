@@ -37,7 +37,7 @@ T["Chat"]["buffer variables are handled"] = function()
     local chat = _G.chat
 
     -- Add a new message with a variable reference
-    table.insert(chat.messages, { role = "user", content = "#foo what does this file do?" })
+    table.insert(chat.messages, { role = "user", content = "#{foo} what does this file do?" })
 
     -- Get the message we just added
     local message = chat.messages[#chat.messages]

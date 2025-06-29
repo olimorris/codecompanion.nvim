@@ -208,21 +208,30 @@ return {
       -- 9. Ensure that any consecutive tool results are merged
       if has_tools then
         for _, m in ipairs(messages) do
-          if m.role == self.roles.user and m.content then
-            local consolidated = {}
-            for _, block in ipairs(m.content) do
-              if block.type == "tool_result" then
-                local prev = consolidated[#consolidated]
-                if prev and prev.type == "tool_result" and prev.tool_use_id == block.tool_use_id then
-                  prev.content = prev.content .. block.content
+          if m.role == self.roles.user and m.content and m.content ~= "" then
+            -- Check if content is already an array of blocks
+            if type(m.content) == "table" and m.content.type then
+              -- If it's a single content block, like a tool_result), make it an array
+              m.content = { m.content }
+            end
+
+            -- Now we can iterate over the content blocks
+            if type(m.content) == "table" and vim.islist(m.content) then
+              local consolidated = {}
+              for _, block in ipairs(m.content) do
+                if block.type == "tool_result" then
+                  local prev = consolidated[#consolidated]
+                  if prev and prev.type == "tool_result" and prev.tool_use_id == block.tool_use_id then
+                    prev.content = prev.content .. block.content
+                  else
+                    table.insert(consolidated, block)
+                  end
                 else
                   table.insert(consolidated, block)
                 end
-              else
-                table.insert(consolidated, block)
               end
+              m.content = consolidated
             end
-            m.content = consolidated
           end
         end
       end

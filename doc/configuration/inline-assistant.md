@@ -33,7 +33,7 @@ In this example, `<leader>a` (or `ga` on some keyboards) accepts inline changes,
 
 ## Variables
 
-The plugin comes with a number of [variables](/usage/inline-assistant.html#variables) that can be used alongside your prompt. You can also add your own:
+The plugin comes with a number of [variables](/usage/inline-assistant.html#variables) that can be used alongside your prompt using the `#{}` syntax (e.g., `#{my_new_var}`). You can also add your own:
 
 ```lua
 require("codecompanion").setup({

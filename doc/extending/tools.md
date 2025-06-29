@@ -537,7 +537,7 @@ require("codecompanion").setup({
 and with the prompt:
 
 ```
-Use the @calculator tool for 100*50
+Use the @{calculator} tool for 100*50
 ```
 
 You should see: `5000`, in the chat buffer.

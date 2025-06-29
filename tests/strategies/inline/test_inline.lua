@@ -180,7 +180,7 @@ T["Inline"]["integration"] = function()
     submitted_prompts = prompts
   end
 
-  inline:prompt("#foo can you print hello world?")
+  inline:prompt("#{foo} can you print hello world?")
 
   h.eq("The output from foo variable", submitted_prompts[2].content)
   h.eq("<prompt>can you print hello world?</prompt>", submitted_prompts[3].content)
