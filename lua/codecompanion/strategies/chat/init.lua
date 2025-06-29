@@ -28,6 +28,8 @@
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field watchers CodeCompanion.Watchers The buffer watcher instance
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
+---@field context_summarizer? CodeCompanion.Chat.ContextSummarizer The context summarizer for managing long conversations
+---@field iteration_manager? CodeCompanion.Chat.IterationManager The iteration manager for controlling LLM iterations
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
@@ -586,6 +588,19 @@ function Chat.new(args)
   if not self.adapter then
     return log:error("No adapter found")
   end
+
+  -- Initialize LLM iteration components if enabled (AFTER adapter is set)
+  if config.strategies.chat.iteration.enabled then
+    self.context_summarizer = require("codecompanion.strategies.chat.context_summarizer").new({
+      chat = self,
+      adapter = self.adapter,
+      config = config.strategies.chat.iteration.context_summarization,
+    })
+    self.iteration_manager = require("codecompanion.strategies.chat.iteration_manager").new({
+      chat = self,
+      config = config.strategies.chat.iteration,
+    })
+  end
   util.fire("ChatAdapter", {
     adapter = adapters.make_safe(self.adapter),
     bufnr = self.bufnr,
@@ -853,6 +868,16 @@ function Chat:submit(opts)
 
   opts = opts or {}
 
+  -- Check iteration limits if iteration management is enabled
+  if self.iteration_manager and not opts.skip_iteration_check then
+    local can_continue, reason = self.iteration_manager:increment_and_check("llm_request")
+    if not can_continue then
+      log:warn("LLM request blocked: %s", reason or "Unknown reason")
+      util.notify("Request blocked: " .. (reason or "Iteration limit reached"), vim.log.levels.WARN)
+      return
+    end
+  end
+
   if opts.callback then
     opts.callback()
   end
@@ -910,8 +935,14 @@ function Chat:submit(opts)
   self:apply_settings(settings)
   local mapped_settings = self.adapter:map_schema_to_params(settings)
 
+  -- Check if context summarization is needed
+  local messages_to_send = vim.deepcopy(self.messages)
+  if self.context_summarizer and not opts.skip_summarization then
+    messages_to_send = self:check_and_summarize_context(messages_to_send, mapped_settings)
+  end
+
   local payload = {
-    messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
+    messages = self.adapter:map_roles(messages_to_send),
     tools = (not vim.tbl_isempty(self.tools.schemas) and { self.tools.schemas } or {}),
   }
 
@@ -1002,6 +1033,17 @@ function Chat:done(output, tools)
   end
 
   if has_tools then
+    -- Check iteration limits for tool execution
+    if self.iteration_manager then
+      local can_continue, reason = self.iteration_manager:increment_and_check("tool_execution")
+      if not can_continue then
+        log:warn("Tool execution blocked: %s", reason or "Unknown reason")
+        util.notify("Tool execution blocked: " .. (reason or "Iteration limit reached"), vim.log.levels.WARN)
+        ready_chat_buffer(self)
+        return
+      end
+    end
+
     tools = self.adapter.handlers.tools.format_tool_calls(self.adapter, tools)
     self:add_message({
       role = config.constants.LLM_ROLE,
@@ -1384,10 +1426,177 @@ function Chat:clear()
 
   self.tools:clear()
 
+  -- Reset iteration management
+  if self.iteration_manager then
+    self.iteration_manager:reset()
+  end
+
   log:trace("Clearing chat buffer")
   self.ui:render(self.context, self.messages, self.opts):set_intro_msg()
   self:add_system_prompt()
   util.fire("ChatCleared", { bufnr = self.bufnr, id = self.id })
+end
+
+---Check if context summarization is needed and perform it
+---@param messages table The messages to check and potentially summarize
+---@param adapter_settings table The adapter settings to use for context limit detection
+---@return table The messages (potentially with summarization applied)
+function Chat:check_and_summarize_context(messages, adapter_settings)
+  if not self.context_summarizer then
+    return messages
+  end
+
+  -- Get context limit for the current adapter
+  local context_limit = self:get_context_limit(adapter_settings)
+  if not context_limit then
+    log:warn("[Chat] Could not determine context limit, skipping summarization")
+    return messages
+  end
+
+  -- Check if summarization is needed
+  local should_summarize = self.context_summarizer:should_summarize(
+    messages, 
+    context_limit, 
+    config.strategies.chat.iteration.context_summarization.threshold_ratio
+  )
+
+  if not should_summarize then
+    log:debug("[Chat] Context within limits, no summarization needed")
+    return messages
+  end
+
+  log:info("[Chat] Context approaching limit, attempting summarization")
+
+  -- Split messages for summarization
+  local messages_to_summarize, messages_to_keep = self.context_summarizer:split_messages_for_summary(
+    messages, 
+    config.strategies.chat.iteration.context_summarization.keep_recent_messages
+  )
+
+  if #messages_to_summarize == 0 then
+    log:debug("[Chat] No messages to summarize")
+    return messages
+  end
+
+  -- Generate summary
+  local summary, error_msg = self.context_summarizer:summarize(messages_to_summarize, {
+    current_task = "Ongoing conversation",
+    preserve_tools = config.strategies.chat.iteration.context_summarization.preserve_tools,
+  })
+
+  if error_msg then
+    log:error("[Chat] Summarization failed: %s", error_msg)
+    util.notify("Failed to summarize context: " .. error_msg, vim.log.levels.WARN)
+    return messages -- Return original messages on failure
+  end
+
+  if not summary or summary == "" then
+    log:warn("[Chat] Empty summary generated, keeping original messages")
+    return messages
+  end
+
+  -- Create summarized message
+  local summary_message = {
+    role = config.constants.SYSTEM_ROLE,
+    content = string.format("=== CONVERSATION SUMMARY ===\n\n%s\n\n=== END SUMMARY ===", summary),
+    id = require("codecompanion.utils.hash").hash({ role = "system", content = summary }),
+    cycle = self.cycle,
+    opts = {
+      visible = false,
+      tag = "context_summary",
+    },
+  }
+
+  -- Combine summary with recent messages
+  local result_messages = { summary_message }
+  for _, msg in ipairs(messages_to_keep) do
+    table.insert(result_messages, msg)
+  end
+
+  log:info("[Chat] Context summarized: %d messages → %d messages + summary", 
+           #messages, #result_messages)
+
+  -- Show notification to user
+  util.notify(
+    string.format("Context summarized: %d messages condensed into summary", #messages_to_summarize),
+    vim.log.levels.INFO
+  )
+
+  return result_messages
+end
+
+---Get the context limit for the current adapter
+---@param adapter_settings table The adapter settings
+---@return number|nil The context limit in tokens
+function Chat:get_context_limit(adapter_settings)
+  local adapter_name = self.adapter.name
+  local iteration_config = config.strategies.chat.iteration
+  
+  -- Get the current model from adapter settings or adapter schema
+  local current_model = nil
+  if adapter_settings and adapter_settings.model then
+    current_model = adapter_settings.model
+  elseif self.adapter.schema and self.adapter.schema.model then
+    if type(self.adapter.schema.model.default) == "function" then
+      current_model = self.adapter.schema.model.default()
+    else
+      current_model = self.adapter.schema.model.default
+    end
+  end
+  
+  -- Ensure current_model is a string (some adapters may return tables)
+  if current_model and type(current_model) ~= "string" then
+    log:debug("[Chat] current_model is not a string (type: %s), skipping model-specific lookup", type(current_model))
+    current_model = nil
+  end
+  
+  -- Priority 1: Check for specific adapter:model configuration
+  if current_model and iteration_config.context_limits.models then
+    local model_key = adapter_name .. ":" .. current_model
+    local model_limit = iteration_config.context_limits.models[model_key]
+    if model_limit then
+      log:debug("[Chat] Using model-specific context limit for %s: %d tokens", model_key, model_limit)
+      return model_limit
+    end
+    
+    -- Also try without adapter prefix (for generic model names)
+    local generic_model_limit = iteration_config.context_limits.models[current_model]
+    if generic_model_limit then
+      log:debug("[Chat] Using generic model context limit for %s: %d tokens", current_model, generic_model_limit)
+      return generic_model_limit
+    end
+  end
+
+  -- Priority 2: Check adapter-level configuration
+  if iteration_config.context_limits[adapter_name] then
+    log:debug("[Chat] Using adapter-specific context limit for %s: %d tokens", adapter_name, iteration_config.context_limits[adapter_name])
+    return iteration_config.context_limits[adapter_name]
+  end
+
+  -- Priority 3: Check adapter schema for context window information
+  if self.adapter.schema and self.adapter.schema.context_window then
+    local context_window = self.adapter.schema.context_window
+    if type(context_window) == "number" then
+      log:debug("[Chat] Using adapter schema context window: %d tokens", context_window)
+      return context_window
+    elseif type(context_window) == "table" and context_window.default then
+      log:debug("[Chat] Using adapter schema default context window: %d tokens", context_window.default)
+      return context_window.default
+    end
+  end
+
+  -- Priority 4: Check for max_tokens in adapter settings (as a fallback estimate)
+  if adapter_settings and adapter_settings.max_tokens then
+    -- Estimate context window as 4x max_tokens (rough heuristic)
+    local estimated_limit = adapter_settings.max_tokens * 4
+    log:debug("[Chat] Estimating context limit from max_tokens: %d tokens", estimated_limit)
+    return estimated_limit
+  end
+
+  -- Priority 5: Fall back to default
+  local default_limit = iteration_config.context_limits.default
+  log:debug("[Chat] Using default context limit: %d tokens", default_limit)
+  return default_limit
 end
 
 ---Display the chat buffer's settings and messages

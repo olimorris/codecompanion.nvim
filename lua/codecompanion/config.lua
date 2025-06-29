@@ -156,6 +156,122 @@ local defaults = {
           default_tools = {},
         },
       },
+      -- LLM ITERATION OPTIONS ------------------------------------------------
+      iteration = {
+        enabled = true, -- Enable iteration management and context summarization
+        max_iterations_per_task = 20, -- Maximum iterations allowed per task
+        iteration_increase_amount = 10, -- Amount to increase limit when user continues
+        show_iteration_progress = true, -- Show iteration progress notifications
+        context_summarization = {
+          enabled = true, -- Enable automatic context summarization
+          threshold_ratio = 0.75, -- Trigger summarization at 75% of context limit
+          keep_recent_messages = 3, -- Number of recent messages to keep unsummarized
+          max_summary_tokens = 1000, -- Maximum tokens for generated summaries
+          preserve_tools = true, -- Pay special attention to tool usage in summaries
+        },
+        context_limits = {
+          -- Default context window sizes for different adapters
+          -- These can be overridden by adapter-specific settings
+          default = 4096,
+          
+          -- Adapter-level defaults (fallback when specific model not found)
+          openai = 8192,
+          anthropic = 200000,  -- Claude 3.5 Sonnet default
+          gemini = 32768,      -- Gemini 2.0 Flash default
+          copilot = 8192,
+          deepseek = 32768,
+          mistral = 32768,
+          ollama = 2048,       -- Conservative default for local models
+          
+          -- Model-specific context limits (takes precedence over adapter defaults)
+          -- Format: ["adapter:model"] = context_size
+          models = {
+            -- OpenAI Models
+            ["openai:gpt-3.5-turbo"] = 16385,
+            ["openai:gpt-3.5-turbo-16k"] = 16385,
+            ["openai:gpt-4"] = 8192,
+            ["openai:gpt-4-32k"] = 32768,
+            ["openai:gpt-4-turbo"] = 128000,
+            ["openai:gpt-4o"] = 128000,
+            ["openai:gpt-4o-mini"] = 128000,
+            ["openai:o1"] = 200000,
+            ["openai:o1-mini"] = 128000,
+            ["openai:o3-mini"] = 200000,
+            
+            -- Anthropic Models  
+            ["anthropic:claude-3-haiku-20240307"] = 200000,
+            ["anthropic:claude-3-sonnet-20240229"] = 200000,
+            ["anthropic:claude-3-opus-20240229"] = 200000,
+            ["anthropic:claude-3-5-sonnet-20241022"] = 200000,
+            ["anthropic:claude-3-5-sonnet-20240620"] = 200000,
+            ["anthropic:claude-3-5-haiku-20241022"] = 200000,
+            
+            -- Gemini Models
+            ["gemini:gemini-1.5-pro"] = 2000000,
+            ["gemini:gemini-1.5-flash"] = 1000000,
+            ["gemini:gemini-2.0-flash"] = 1000000,
+            ["gemini:gemini-2.5-pro-preview-05-06"] = 2000000,
+            ["gemini:gemini-2.5-pro-preview-06-05"] = 2000000,
+            ["gemini:gemini-2.5-flash-preview-05-20"] = 1000000,
+            
+            -- DeepSeek Models
+            ["deepseek:deepseek-chat"] = 32768,
+            ["deepseek:deepseek-coder"] = 16384,
+            ["deepseek:deepseek-r1"] = 64000,
+            ["deepseek:deepseek-r1-turbo"] = 64000,
+            ["deepseek:deepseek-v3"] = 64000,
+            ["deepseek:deepseek_v3"] = 64000,
+            ["deepseek:deepseek-v3-turbo"] = 64000,
+            ["deepseek:deepseek-r1-distill-qwen-14b"] = 64000,
+            ["deepseek:deepseek-r1-distill-qwen-32b"] = 64000,
+            ["deepseek:deepseek-r1-distill-llama-70b"] = 32000,
+            ["deepseek:deepseek-r1-distill-llama-8b"] = 32000,
+            
+            -- Meta Llama Models
+            ["meta-llama:llama-3-8b-instruct"] = 8192,
+            ["meta-llama:llama-3-70b-instruct"] = 8192,
+            ["meta-llama:llama-3.1-8b-instruct"] = 128000,
+            ["meta-llama:llama-3.1-70b-instruct"] = 128000,
+            ["meta-llama:llama-3.1-405b-instruct"] = 128000,
+            ["meta-llama:llama-3.2-1b-instruct"] = 128000,
+            ["meta-llama:llama-3.2-3b-instruct"] = 128000,
+            ["meta-llama:llama-3.3-70b-instruct"] = 128000,
+            
+            -- Mistral Models
+            ["mistral:mistral-7b-instruct"] = 32768,
+            ["mistral:mixtral-8x7b-instruct"] = 32768,
+            ["mistral:mixtral-8x22b-instruct"] = 65536,
+            ["mistral:mistral-nemo"] = 128000,
+            ["mistral:mistral-large"] = 128000,
+            
+            -- Qwen Models
+            ["qwen:qwen-2-7b-instruct"] = 32768,
+            ["qwen:qwen-2.5-72b-instruct"] = 32768,
+            ["qwen:qwen-2-vl-72b-instruct"] = 32768,
+            ["qwen:qwq-32b"] = 32768,
+            
+            -- GitHub Models (same as base models but with github prefix)
+            ["githubmodels:gpt-4o"] = 128000,
+            ["githubmodels:gpt-4o-mini"] = 128000,
+            ["githubmodels:o1"] = 200000,
+            ["githubmodels:o1-mini"] = 128000,
+            ["githubmodels:o3-mini"] = 200000,
+            ["githubmodels:claude-3.5-sonnet"] = 200000,
+            ["githubmodels:DeepSeek-R1"] = 64000,
+            ["githubmodels:Codestral-2501"] = 32768,
+            
+            -- Copilot Models (typically follow OpenAI limits)
+            ["copilot:gpt-4"] = 8192,
+            ["copilot:gpt-4.1"] = 128000,
+            ["copilot:gpt-4o"] = 128000,
+            ["copilot:gpt-4o-mini"] = 128000,
+            ["copilot:claude-3.5-sonnet"] = 200000,
+            
+            -- Add more models as needed...
+            -- Format: ["adapter_name:model_id"] = context_window_size
+          },
+        },
+      },
       variables = {
         ["buffer"] = {
           callback = "strategies.chat.variables.buffer",
@@ -1128,7 +1244,7 @@ You must:
 - Include the programming language name at the start of each Markdown code block.
 - Do not include line numbers in code blocks.
 - Avoid wrapping the whole response in triple backticks.
-- Only return code that's directly relevant to the task at hand. You may omit code that isn’t necessary for the solution.
+- Only return code that's directly relevant to the task at hand. You may omit code that isn't necessary for the solution.
 - Avoid using H1, H2 or H3 headers in your responses as these are reserved for the user.
 - Use actual line breaks in your responses; only use "\n" when you want a literal backslash followed by 'n'.
 - All non-code text responses must be written in the %s language indicated.
