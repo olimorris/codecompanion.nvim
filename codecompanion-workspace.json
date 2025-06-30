@@ -18,7 +18,7 @@
     },
     {
       "name": "Chat UI",
-      "system_prompt": "The Chat UI group contains the files responsible for rendering and formatting content in the chat buffer. This includes the message builder pattern that coordinates how different types of content (tool output, reasoning, standard messages) are formatted and displayed to the user.\n\nKey components:\n1. **Builder Pattern**: The main orchestrator that handles the flow of adding headers, formatting content, and writing to the buffer\n2. **Formatters**: Specialized classes that handle different message types (tools, reasoning, standard content)\n3. **UI Management**: Methods for handling buffer operations, folding, and visual presentation\n\nThe files to analyze are:\n${group_files}",
+      "system_prompt": "The Chat UI group contains the files responsible for rendering and formatting content in the chat buffer. This includes the message builder pattern that coordinates how different types of content (tool output, reasoning, standard messages) are formatted and displayed to the user.\n\nKey components:\n1. **Builder Pattern**: The main orchestrator that handles the flow of adding headers, formatting content, and writing to the buffer with centralized state management\n2. **Formatters**: Specialized classes that handle different message types (tools, reasoning, standard content)\n3. **UI Management**: Methods for handling buffer operations, folding, and visual presentation\n4. **State Management**: Rich formatting state objects that track role changes, content transitions, and section boundaries\n5. **Section Detection**: Logic for identifying when new sections are needed (e.g., LLM message → tool output transitions)\n\nThe files to analyze are:\n${group_files}",
       "opts": {
         "remove_config_system_prompt": true
       },
@@ -28,7 +28,8 @@
         "chat-ui-formatters-tools",
         "chat-ui-formatters-reasoning",
         "chat-ui-formatters-standard",
-        "chat-ui-tools"
+        "chat-ui-tools",
+        "chat-ui-builder-test"
       ]
     },
     {
@@ -143,6 +144,11 @@
       "type": "file",
       "path": "lua/codecompanion/strategies/chat/ui/tools.lua",
       "description": "Manages visual presentation of tool output including folding functionality. It creates collapsible folds for tool output with custom fold text that shows success/failure icons and summarized content. The fold text adapts based on keywords in the tool output to indicate success or failure states."
+    },
+    "chat-ui-builder-test": {
+      "type": "file",
+      "path": "tests/strategies/chat/test_builder.lua",
+      "description": "Comprehensive tests for the builder pattern covering state management, section detection, reasoning transitions, and header logic. Tests verify that the builder correctly manages formatting state across multiple message additions and properly detects when new sections or headers are needed."
     },
     "strategies-init": {
       "type": "file",
