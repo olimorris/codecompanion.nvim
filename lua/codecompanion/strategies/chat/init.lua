@@ -28,6 +28,8 @@
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field watchers CodeCompanion.Watchers The buffer watcher instance
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
+---@field context_summarizer? CodeCompanion.Chat.ContextSummarizer The context summarizer for managing long conversations
+---@field iteration_manager? CodeCompanion.Chat.IterationManager The iteration manager for controlling LLM iterations
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
@@ -586,6 +588,19 @@ function Chat.new(args)
   if not self.adapter then
     return log:error("No adapter found")
   end
+
+  -- Initialize LLM iteration components if enabled (AFTER adapter is set)
+  if config.strategies.chat.iteration.enabled then
+    self.context_summarizer = require("codecompanion.strategies.chat.context_summarizer").new({
+      chat = self,
+      adapter = self.adapter,
+      config = config.strategies.chat.iteration.context_summarization,
+    })
+    self.iteration_manager = require("codecompanion.strategies.chat.iteration_manager").new({
+      chat = self,
+      config = config.strategies.chat.iteration,
+    })
+  end
   util.fire("ChatAdapter", {
     adapter = adapters.make_safe(self.adapter),
     bufnr = self.bufnr,
@@ -853,6 +868,29 @@ function Chat:submit(opts)
 
   opts = opts or {}
 
+  -- Check iteration limits if iteration management is enabled (async)
+  if self.iteration_manager and not opts.skip_iteration_check then
+    self.iteration_manager:increment_and_check_async("llm_request", function(can_continue, reason)
+      if not can_continue then
+        log:warn("LLM request blocked: %s", reason or "Unknown reason")
+        util.notify("Request blocked: " .. (reason or "Iteration limit reached"), vim.log.levels.WARN)
+        return
+      end
+
+      -- Continue with the actual submit logic
+      self:_continue_submit(opts)
+    end)
+    return
+  end
+
+  -- If no iteration manager, continue directly
+  self:_continue_submit(opts)
+end
+
+---Continue the submit process after iteration check
+---@param opts? table
+---@return nil
+function Chat:_continue_submit(opts)
   if opts.callback then
     opts.callback()
   end
@@ -910,8 +948,47 @@ function Chat:submit(opts)
   self:apply_settings(settings)
   local mapped_settings = self.adapter:map_schema_to_params(settings)
 
+  -- Check if context summarization is needed before sending
+  if self.context_summarizer and not opts.skip_summarization then
+    local context_limit = self:get_context_limit(mapped_settings)
+    if
+      context_limit
+      and self.context_summarizer:should_summarize(
+        self.messages,
+        context_limit,
+        config.strategies.chat.iteration.context_summarization.threshold_ratio
+      )
+    then
+      log:info("[Chat] Context approaching limit, performing async summarization before sending")
+
+      -- Perform async summarization before sending the request
+      self:perform_async_summarization(mapped_settings, function(success, error_msg)
+        if success then
+          log:info("[Chat] Summarization completed, continuing with request")
+          -- Continue with the request using updated messages
+          self:_send_request_with_messages(mapped_settings, bufnr)
+        else
+          log:warn("[Chat] Summarization failed: %s, continuing without summarization", error_msg or "Unknown error")
+          util.notify("Summarization failed, continuing without context compression", vim.log.levels.WARN)
+          -- Continue with original messages
+          self:_send_request_with_messages(mapped_settings, bufnr)
+        end
+      end)
+      return
+    end
+  end
+
+  -- No summarization needed, send request directly
+  self:_send_request_with_messages(mapped_settings, bufnr)
+end
+
+---Send the actual request with current messages
+---@param mapped_settings table
+---@param bufnr number
+---@return nil
+function Chat:_send_request_with_messages(mapped_settings, bufnr)
   local payload = {
-    messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
+    messages = self.adapter:map_roles(self.messages),
     tools = (not vim.tbl_isempty(self.tools.schemas) and { self.tools.schemas } or {}),
   }
 
@@ -1002,18 +1079,43 @@ function Chat:done(output, tools)
   end
 
   if has_tools then
-    tools = self.adapter.handlers.tools.format_tool_calls(self.adapter, tools)
-    self:add_message({
-      role = config.constants.LLM_ROLE,
-      tool_calls = tools,
-      opts = {
-        visible = false,
-      },
-    })
-    return self.agents:execute(self, tools)
+    -- Check iteration limits for tool execution (async)
+    if self.iteration_manager then
+      self.iteration_manager:increment_and_check_async("tool_execution", function(can_continue, reason)
+        if not can_continue then
+          log:warn("Tool execution blocked: %s", reason or "Unknown reason")
+          util.notify("Tool execution blocked: " .. (reason or "Iteration limit reached"), vim.log.levels.WARN)
+          ready_chat_buffer(self)
+          return
+        end
+
+        -- Continue with tool execution
+        self:_continue_tool_execution(tools)
+      end)
+      return
+    end
+
+    -- If no iteration manager, continue directly
+    self:_continue_tool_execution(tools)
+    return
   end
 
   ready_chat_buffer(self)
+end
+
+---Continue tool execution after iteration check
+---@param tools table
+---@return nil
+function Chat:_continue_tool_execution(tools)
+  tools = self.adapter.handlers.tools.format_tool_calls(self.adapter, tools)
+  self:add_message({
+    role = config.constants.LLM_ROLE,
+    tool_calls = tools,
+    opts = {
+      visible = false,
+    },
+  })
+  return self.agents:execute(self, tools)
 end
 
 ---Add a reference to the chat buffer (Useful for user's adding custom Slash Commands)
@@ -1384,10 +1486,300 @@ function Chat:clear()
 
   self.tools:clear()
 
+  -- Reset iteration management
+  if self.iteration_manager then
+    self.iteration_manager:reset()
+  end
+
   log:trace("Clearing chat buffer")
   self.ui:render(self.context, self.messages, self.opts):set_intro_msg()
   self:add_system_prompt()
   util.fire("ChatCleared", { bufnr = self.bufnr, id = self.id })
+end
+
+---Perform async context summarization that replaces historical messages
+---@param adapter_settings table The adapter settings
+---@param callback function Callback function: callback(success, error_msg)
+---@return nil
+function Chat:perform_async_summarization(adapter_settings, callback)
+  if not self.context_summarizer then
+    return callback(false, "Context summarizer not available")
+  end
+
+  -- Get context limit for the current adapter
+  local context_limit = self:get_context_limit(adapter_settings)
+  if not context_limit then
+    log:warn("[Chat] Could not determine context limit, skipping summarization")
+    return callback(false, "Could not determine context limit")
+  end
+
+  -- Split messages for summarization
+  local messages_to_summarize, messages_to_keep = self.context_summarizer:split_messages_for_summary(
+    self.messages,
+    config.strategies.chat.iteration.context_summarization.keep_recent_messages
+  )
+
+  if #messages_to_summarize == 0 then
+    log:debug("[Chat] No messages to summarize")
+    return callback(true, nil)
+  end
+
+  log:info(
+    "[Chat] Starting async summarization of %d messages, keeping %d recent messages",
+    #messages_to_summarize,
+    #messages_to_keep
+  )
+
+  -- Collect context metadata before summarization
+  local context_metadata = self.context_summarizer:collect_context_metadata(messages_to_summarize, self.refs)
+
+  -- Perform async summarization
+  self.context_summarizer:summarize_async(messages_to_summarize, {
+    current_task = "Ongoing conversation",
+    preserve_tools = config.strategies.chat.iteration.context_summarization.preserve_tools,
+    metadata = context_metadata,
+  }, function(summary, error_msg)
+    if error_msg then
+      log:error("[Chat] Summarization failed: %s", error_msg)
+      return callback(false, error_msg)
+    end
+
+    if not summary or summary == "" then
+      log:warn("[Chat] Empty summary generated")
+      return callback(false, "Empty summary generated")
+    end
+
+    -- Create summarized message to replace historical messages
+    local summary_message = {
+      role = config.constants.SYSTEM_ROLE,
+      content = string.format(
+        "🔄 CONTEXT ITERATION SUMMARY 🔄\n\nIMPORTANT: This conversation has been summarized due to context length limits. The following contains the condensed history of our previous interaction:\n\n%s\n\n=== END OF ITERATION SUMMARY ===\n\nYou can now continue the conversation normally. All the key information from the previous context has been preserved above.",
+        summary
+      ),
+      id = require("codecompanion.utils.hash").hash({ role = "system", content = summary }),
+      cycle = self.cycle,
+      opts = {
+        visible = false,
+        tag = "context_summary",
+      },
+    }
+
+    -- Replace messages: keep system prompts + summary + lightweight file references + recent messages
+    local new_messages = {}
+
+    -- Keep original system prompts (but not old summaries)
+    for _, msg in ipairs(self.messages) do
+      if msg.role == config.constants.SYSTEM_ROLE and (not msg.opts or msg.opts.tag ~= "context_summary") then
+        table.insert(new_messages, msg)
+      end
+    end
+
+    -- Add the new summary
+    table.insert(new_messages, summary_message)
+
+    -- Create lightweight file reference placeholders
+    -- This ensures AI knows about all files without including full content
+    self:_create_file_reference_placeholders(context_metadata, new_messages)
+
+    -- Add recent messages to keep
+    for _, msg in ipairs(messages_to_keep) do
+      table.insert(new_messages, msg)
+    end
+
+    -- Replace the messages in the chat
+    self.messages = new_messages
+
+    log:info(
+      "[Chat] Context summarized: %d total messages → %d messages (including summary)",
+      #messages_to_summarize + #messages_to_keep,
+      #new_messages
+    )
+
+    -- Show notification to user
+    vim.schedule(function()
+      util.notify(
+        string.format("Context summarized: %d messages condensed", #messages_to_summarize),
+        vim.log.levels.INFO
+      )
+    end)
+
+    callback(true, nil)
+  end)
+end
+
+---Check if context summarization is needed and perform it (deprecated - use perform_async_summarization)
+---@param messages table The messages to check and potentially summarize
+---@param adapter_settings table The adapter settings to use for context limit detection
+---@return table The messages (potentially with summarization applied)
+function Chat:check_and_summarize_context(messages, adapter_settings)
+  if not self.context_summarizer then
+    return messages
+  end
+
+  -- Get context limit for the current adapter
+  local context_limit = self:get_context_limit(adapter_settings)
+  if not context_limit then
+    log:warn("[Chat] Could not determine context limit, skipping summarization")
+    return messages
+  end
+
+  -- Check if summarization is needed
+  local should_summarize = self.context_summarizer:should_summarize(
+    messages,
+    context_limit,
+    config.strategies.chat.iteration.context_summarization.threshold_ratio
+  )
+
+  if not should_summarize then
+    log:debug("[Chat] Context within limits, no summarization needed")
+    return messages
+  end
+
+  log:info("[Chat] Context approaching limit, attempting summarization")
+
+  -- Split messages for summarization
+  local messages_to_summarize, messages_to_keep = self.context_summarizer:split_messages_for_summary(
+    messages,
+    config.strategies.chat.iteration.context_summarization.keep_recent_messages
+  )
+
+  if #messages_to_summarize == 0 then
+    log:debug("[Chat] No messages to summarize")
+    return messages
+  end
+
+  -- Generate summary (sync - for now we'll use the sync version to avoid blocking the main flow)
+  local context_metadata_sync = self.context_summarizer:collect_context_metadata(messages_to_summarize, self.refs)
+  local summary, error_msg = self.context_summarizer:summarize(messages_to_summarize, {
+    current_task = "Ongoing conversation",
+    preserve_tools = config.strategies.chat.iteration.context_summarization.preserve_tools,
+    metadata = context_metadata_sync,
+  })
+
+  if error_msg then
+    log:error("[Chat] Summarization failed: %s", error_msg)
+    util.notify("Failed to summarize context: " .. error_msg, vim.log.levels.WARN)
+    return messages -- Return original messages on failure
+  end
+
+  if not summary or summary == "" then
+    log:warn("[Chat] Empty summary generated, keeping original messages")
+    return messages
+  end
+
+  -- Create summarized message
+  local summary_message = {
+    role = config.constants.SYSTEM_ROLE,
+    content = string.format(
+      "🔄 CONTEXT ITERATION SUMMARY 🔄\n\nIMPORTANT: This conversation has been summarized due to context length limits. The following contains the condensed history of our previous interaction:\n\n%s\n\n=== END OF ITERATION SUMMARY ===\n\nYou can now continue the conversation normally. All the key information from the previous context has been preserved above.",
+      summary
+    ),
+    id = require("codecompanion.utils.hash").hash({ role = "system", content = summary }),
+    cycle = self.cycle,
+    opts = {
+      visible = false,
+      tag = "context_summary",
+    },
+  }
+
+  -- Combine summary with lightweight file references + recent messages
+  local result_messages = { summary_message }
+
+  -- Create lightweight file reference placeholders
+  self:_create_file_reference_placeholders(context_metadata_sync, result_messages)
+
+  -- Add recent messages
+  for _, msg in ipairs(messages_to_keep) do
+    table.insert(result_messages, msg)
+  end
+
+  log:info("[Chat] Context summarized: %d messages → %d messages + summary", #messages, #result_messages)
+
+  -- Show notification to user
+  util.notify(
+    string.format("Context summarized: %d messages condensed into summary", #messages_to_summarize),
+    vim.log.levels.INFO
+  )
+
+  return result_messages
+end
+
+---Get the context limit for the current adapter
+---@param adapter_settings table The adapter settings
+---@return number|nil The context limit in tokens
+function Chat:get_context_limit(adapter_settings)
+  local adapter_name = self.adapter.name
+  local iteration_config = config.strategies.chat.iteration
+
+  -- Get the current model from adapter settings or adapter schema
+  local current_model = nil
+  if adapter_settings and adapter_settings.model then
+    current_model = adapter_settings.model
+  elseif self.adapter.schema and self.adapter.schema.model then
+    if type(self.adapter.schema.model.default) == "function" then
+      current_model = self.adapter.schema.model.default()
+    else
+      current_model = self.adapter.schema.model.default
+    end
+  end
+
+  -- Ensure current_model is a string (some adapters may return tables)
+  if current_model and type(current_model) ~= "string" then
+    log:debug("[Chat] current_model is not a string (type: %s), skipping model-specific lookup", type(current_model))
+    current_model = nil
+  end
+
+  -- Priority 1: Check for specific adapter:model configuration
+  if current_model and iteration_config.context_limits.models then
+    local model_key = adapter_name .. ":" .. current_model
+    local model_limit = iteration_config.context_limits.models[model_key]
+    if model_limit then
+      log:debug("[Chat] Using model-specific context limit for %s: %d tokens", model_key, model_limit)
+      return model_limit
+    end
+
+    -- Also try without adapter prefix (for generic model names)
+    local generic_model_limit = iteration_config.context_limits.models[current_model]
+    if generic_model_limit then
+      log:debug("[Chat] Using generic model context limit for %s: %d tokens", current_model, generic_model_limit)
+      return generic_model_limit
+    end
+  end
+
+  -- Priority 2: Check adapter-level configuration
+  if iteration_config.context_limits[adapter_name] then
+    log:debug(
+      "[Chat] Using adapter-specific context limit for %s: %d tokens",
+      adapter_name,
+      iteration_config.context_limits[adapter_name]
+    )
+    return iteration_config.context_limits[adapter_name]
+  end
+
+  -- Priority 3: Check adapter schema for context window information
+  if self.adapter.schema and self.adapter.schema.context_window then
+    local context_window = self.adapter.schema.context_window
+    if type(context_window) == "number" then
+      log:debug("[Chat] Using adapter schema context window: %d tokens", context_window)
+      return context_window
+    elseif type(context_window) == "table" and context_window.default then
+      log:debug("[Chat] Using adapter schema default context window: %d tokens", context_window.default)
+      return context_window.default
+    end
+  end
+
+  -- Priority 4: Check for max_tokens in adapter settings (as a fallback estimate)
+  if adapter_settings and adapter_settings.max_tokens then
+    -- Estimate context window as 4x max_tokens (rough heuristic)
+    local estimated_limit = adapter_settings.max_tokens * 4
+    log:debug("[Chat] Estimating context limit from max_tokens: %d tokens", estimated_limit)
+    return estimated_limit
+  end
+
+  -- Priority 5: Fall back to default
+  local default_limit = iteration_config.context_limits.default
+  log:debug("[Chat] Using default context limit: %d tokens", default_limit)
+  return default_limit
 end
 
 ---Display the chat buffer's settings and messages
@@ -1441,6 +1833,42 @@ function Chat.close_last_chat()
       last_chat.ui:hide()
     end
   end
+end
+
+---Create lightweight file reference placeholders to preserve file awareness after summarization
+---@param metadata table Context metadata containing file information
+---@param messages table The message list to add placeholders to
+---@return nil
+function Chat:_create_file_reference_placeholders(metadata, messages)
+  if not metadata or not metadata.file_names or #metadata.file_names == 0 then
+    return
+  end
+
+  -- Create a single system message listing all files with minimal metadata
+  local file_list = {}
+  for i, file_path in ipairs(metadata.file_names) do
+    table.insert(file_list, string.format("%d. %s", i, file_path))
+  end
+
+  local placeholder_content = string.format(
+    "📁 FILE REFERENCES (%d files)\n\nThe following files were provided in the previous context:\n%s\n\nNote: Full file contents were summarized above to manage context length. If you need to reference specific parts of these files, please ask the user to re-upload the relevant files or use file search tools.",
+    #metadata.file_names,
+    table.concat(file_list, "\n")
+  )
+
+  local placeholder_message = {
+    role = config.constants.SYSTEM_ROLE,
+    content = placeholder_content,
+    id = require("codecompanion.utils.hash").hash({ role = "system", content = placeholder_content }),
+    cycle = self.cycle,
+    opts = {
+      visible = false,
+      tag = "file_references_placeholder",
+    },
+  }
+
+  table.insert(messages, placeholder_message)
+  log:info("[Chat] Created file reference placeholder for %d files", #metadata.file_names)
 end
 
 return Chat
