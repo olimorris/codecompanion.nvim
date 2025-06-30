@@ -1,5 +1,4 @@
 local config = require("codecompanion.config")
-local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Chat.UI.Tools
 ---@field chat_bufnr number The buffer number of the chat

@@ -1,30 +1,27 @@
 local BaseFormatter = require("codecompanion.strategies.chat.ui.formatters.base")
 
 ---@class CodeCompanion.Chat.UI.Formatters.Tools : CodeCompanion.Chat.UI.Formatters.Base
----@field chat CodeCompanion.Chat
-local Tools = BaseFormatter:new(chat)
+local Tools = setmetatable({}, { __index = BaseFormatter })
 Tools.__class = "Tools"
 
-function Tools:can_handle(data, opts)
-  return opts and opts.tag == self.chat.MESSAGE_TAGS.TOOL_OUTPUT
+function Tools:can_handle(message, opts, tags)
+  return opts and opts.tag == tags.TOOL_OUTPUT
 end
 
 function Tools:get_tag()
   return self.chat.MESSAGE_TAGS.TOOL_OUTPUT
 end
 
-function Tools:format(data, opts)
+function Tools:format(message, opts, state)
   local lines = {}
 
-  -- Add spacing based on previous content
-  if self.chat._last_tag == self.chat.MESSAGE_TAGS.LLM_MESSAGE then
-    table.insert(lines, "")
+  if state.is_new_section or state.last_tag == self.chat.MESSAGE_TAGS.LLM_MESSAGE then
     table.insert(lines, "")
   end
 
   -- Write the tool content
   local content_start = #lines + 1
-  local content = data.content or ""
+  local content = message.content or ""
   for _, line in ipairs(vim.split(content, "\n", { plain = true, trimempty = false })) do
     table.insert(lines, line)
   end

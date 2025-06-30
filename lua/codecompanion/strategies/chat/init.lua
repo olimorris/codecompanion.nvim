@@ -5,6 +5,7 @@
 ---@class CodeCompanion.Chat
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
 ---@field agents CodeCompanion.Agent The agent that calls tools available to the user
+---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
 ---@field aug number The ID for the autocmd group
 ---@field bufnr integer The buffer number of the chat
 ---@field context table The context of the buffer that the chat was initiated from
@@ -28,9 +29,7 @@
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field watchers CodeCompanion.Watchers The buffer watcher instance
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
----@field _has_reasoning_output boolean Has any reasoning content been rendered in the chat buffer?
 ---@field _last_role string The last role that was rendered in the chat buffer
----@field _last_tag string The last message tag that was rendered in the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
@@ -46,7 +45,6 @@
 ---@field tokens? table Total tokens spent in the chat buffer so far
 
 local adapters = require("codecompanion.adapters")
-local builder = require("codecompanion.strategies.chat.ui.builder")
 local client = require("codecompanion.http")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
@@ -544,9 +542,7 @@ function Chat.new(args)
 
       return bufnr
     end,
-    _has_reasoning_output = false,
     _last_role = args.last_role or config.constants.USER_ROLE,
-    _last_tag = nil,
   }, { __index = Chat })
 
   self.bufnr = self.create_buf()
@@ -570,12 +566,13 @@ function Chat.new(args)
     self.yaml_parser = yaml_parser
   end
 
+  self.agents = require("codecompanion.strategies.chat.agents").new({ bufnr = self.bufnr, messages = self.messages })
+  self.builder = require("codecompanion.strategies.chat.ui.builder").new({ chat = self })
   self.references = require("codecompanion.strategies.chat.references").new({ chat = self })
   self.subscribers = require("codecompanion.strategies.chat.subscribers").new()
-  self.agents = require("codecompanion.strategies.chat.agents").new({ bufnr = self.bufnr, messages = self.messages })
   self.tools = require("codecompanion.strategies.chat.tools").new({ chat = self })
-  self.watchers = require("codecompanion.strategies.chat.watchers").new()
   self.variables = require("codecompanion.strategies.chat.variables").new()
+  self.watchers = require("codecompanion.strategies.chat.watchers").new()
 
   table.insert(_G.codecompanion_buffers, self.bufnr)
   chatmap[self.bufnr] = {
@@ -979,6 +976,7 @@ function Chat:submit(opts)
           self.status = result.status
           if self.status == CONSTANTS.STATUS_SUCCESS then
             if result.output.role then
+              self._last_role = result.output.role
               result.output.role = config.constants.LLM_ROLE
             end
             table.insert(output, result.output.content)
@@ -1253,16 +1251,7 @@ function Chat:add_buf_message(data, opts)
   assert(type(data) == "table", "data must be a table")
   opts = opts or {}
 
-  builder
-    .new({
-      chat = self,
-      data = data,
-      opts = opts,
-    })
-    :add_header()
-    :format_content()
-    :write_to_buffer()
-    :update_tag()
+  self.builder:add_message(data, opts)
 end
 
 ---Add the output from a tool to the message history and a message to the UI
@@ -1308,8 +1297,6 @@ end
 ---When a request has finished, reset the chat buffer
 ---@return nil
 function Chat:reset()
-  self._has_reasoning_output = false
-  self._last_tag = nil
   self.status = ""
   self.ui:unlock_buf()
 end

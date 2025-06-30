@@ -2,21 +2,33 @@ local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Chat.UI.Formatters.Base
 ---@field chat CodeCompanion.Chat
+---@field is_new_response boolean
+---@field last_tag? string
+---@field __class string
 local BaseFormatter = {}
 BaseFormatter.__class = "BaseFormatter"
 
+---@class CodeCompanion.Chat.UI.Formatters.BaseArgs
+---@field chat CodeCompanion.Chat
+---@field is_new_response boolean
+---@field last_tag? string
+
 ---@param chat CodeCompanion.Chat
 function BaseFormatter:new(chat)
+  if not chat then
+    error("BaseFormatter:new() called with nil chat")
+  end
+
   return setmetatable({
     chat = chat,
   }, { __index = self })
 end
 
 ---Check if this formatter can handle the given data/opts
----@param data table
+---@param message table
 ---@param opts table
 ---@return boolean
-function BaseFormatter:can_handle(data, opts)
+function BaseFormatter:can_handle(message, opts)
   error("Must implement can_handle method")
 end
 
@@ -27,25 +39,12 @@ function BaseFormatter:get_tag()
 end
 
 ---Format the content into lines
----@param data table
+---@param message table
 ---@param opts table
+---@param state table
 ---@return table lines, table? fold_info
-function BaseFormatter:format(data, opts)
+function BaseFormatter:format(message, opts, state)
   error("Must implement format method")
-end
-
----Safely format content with error handling
----@param data table
----@param opts table
----@return table lines, table? fold_info
-function BaseFormatter:safe_format(data, opts)
-  local ok, lines, fold_info = pcall(self.format, self, data, opts, self.chat)
-  if not ok then
-    log:error("[Formatters] Error in %s formatter:\n%s", self.__class or "unknown", lines)
-    -- Return minimal safe output
-    return { data.content or "Error formatting content" }, nil
-  end
-  return lines or {}, fold_info
 end
 
 return BaseFormatter
