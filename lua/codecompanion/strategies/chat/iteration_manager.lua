@@ -9,6 +9,35 @@ local IterationManager = {}
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
+---Validate configuration parameters
+---@param config table Configuration to validate
+---@return table validated_config, string|nil error_message
+local function validate_config(config)
+  local errors = {}
+  
+  if config.max_iterations_per_task and (type(config.max_iterations_per_task) ~= "number" or config.max_iterations_per_task < 1) then
+    table.insert(errors, "max_iterations_per_task must be a positive number")
+  end
+  
+  if config.iteration_increase_amount and (type(config.iteration_increase_amount) ~= "number" or config.iteration_increase_amount < 1) then
+    table.insert(errors, "iteration_increase_amount must be a positive number")
+  end
+  
+  if config.user_confirmation_timeout and (type(config.user_confirmation_timeout) ~= "number" or config.user_confirmation_timeout < 1000) then
+    table.insert(errors, "user_confirmation_timeout must be at least 1000ms")
+  end
+  
+  if config.show_iteration_progress and type(config.show_iteration_progress) ~= "boolean" then
+    table.insert(errors, "show_iteration_progress must be a boolean")
+  end
+  
+  if #errors > 0 then
+    return config, "Invalid iteration config: " .. table.concat(errors, ", ")
+  end
+  
+  return config, nil
+end
+
 ---@param args { chat: CodeCompanion.Chat, config?: table }
 function IterationManager.new(args)
   local default_config = {
@@ -19,6 +48,15 @@ function IterationManager.new(args)
   }
 
   local config = vim.tbl_deep_extend("force", default_config, args.config or {})
+  
+  -- Validate configuration
+  local validated_config, error_msg = validate_config(config)
+  if error_msg then
+    log:error("[IterationManager] %s", error_msg)
+    config = default_config -- Fall back to defaults
+  else
+    config = validated_config
+  end
 
   local self = setmetatable({
     chat = args.chat,
@@ -49,12 +87,10 @@ function IterationManager:start_task(task_description)
   end
 end
 
----Increment iteration count and check if limit is reached (async version)
----@param iteration_type? string Type of iteration (e.g., "llm_request", "tool_execution")
----@param callback function Callback function: callback(continue_allowed, reason)
----@return nil
-function IterationManager:increment_and_check_async(iteration_type, callback)
-  iteration_type = iteration_type or "unknown"
+---Common iteration increment logic
+---@param iteration_type string Type of iteration
+---@return boolean Whether limit was reached
+function IterationManager:_increment_iteration(iteration_type)
   self.current_iterations = self.current_iterations + 1
   
   -- Record iteration in history
@@ -72,37 +108,51 @@ function IterationManager:increment_and_check_async(iteration_type, callback)
     self:show_iteration_progress()
   end
   
-  -- Check if we've reached the limit
-  if self.current_iterations >= self.max_iterations then
+  return self.current_iterations >= self.max_iterations
+end
+
+---Record user decision in history
+---@param approved boolean Whether user approved continuation
+function IterationManager:_record_user_decision(approved)
+  if approved then
+    self.max_iterations = self.max_iterations + self.config.iteration_increase_amount
+    log:info("[IterationManager] User approved continuation. New limit: %d", self.max_iterations)
+    
+    table.insert(self.iteration_history, {
+      type = "user_approved_continuation",
+      iteration_number = self.current_iterations,
+      new_limit = self.max_iterations,
+      timestamp = os.time(),
+    })
+  else
+    log:info("[IterationManager] User declined continuation. Stopping iterations.")
+    
+    table.insert(self.iteration_history, {
+      type = "user_cancelled",
+      iteration_number = self.current_iterations,
+      timestamp = os.time(),
+    })
+  end
+end
+
+---Increment iteration count and check if limit is reached (async version)
+---@param iteration_type? string Type of iteration (e.g., "llm_request", "tool_execution")
+---@param callback function Callback function: callback(continue_allowed, reason)
+---@return nil
+function IterationManager:increment_and_check_async(iteration_type, callback)
+  iteration_type = iteration_type or "unknown"
+  local limit_reached = self:_increment_iteration(iteration_type)
+  
+  if limit_reached then
     log:warn("[IterationManager] Iteration limit reached: %d/%d", 
              self.current_iterations, self.max_iterations)
     
-    -- Trigger async user confirmation
     self:request_user_confirmation_async(function(should_continue)
+      self:_record_user_decision(should_continue)
+      
       if should_continue then
-        -- Increase the limit
-        self.max_iterations = self.max_iterations + self.config.iteration_increase_amount
-        log:info("[IterationManager] User approved continuation. New limit: %d", self.max_iterations)
-        
-        -- Record the continuation approval
-        table.insert(self.iteration_history, {
-          type = "user_approved_continuation",
-          iteration_number = self.current_iterations,
-          new_limit = self.max_iterations,
-          timestamp = os.time(),
-        })
-        
         callback(true, nil)
       else
-        log:info("[IterationManager] User declined continuation. Stopping iterations.")
-        
-        -- Record the user cancellation
-        table.insert(self.iteration_history, {
-          type = "user_cancelled",
-          iteration_number = self.current_iterations,
-          timestamp = os.time(),
-        })
-        
         callback(false, "User cancelled due to iteration limit")
       end
     end)
@@ -117,55 +167,18 @@ end
 ---@return string|nil reason Reason if continuation is not allowed
 function IterationManager:increment_and_check(iteration_type)
   iteration_type = iteration_type or "unknown"
-  self.current_iterations = self.current_iterations + 1
+  local limit_reached = self:_increment_iteration(iteration_type)
   
-  -- Record iteration in history
-  table.insert(self.iteration_history, {
-    type = iteration_type,
-    iteration_number = self.current_iterations,
-    timestamp = os.time(),
-  })
-  
-  log:debug("[IterationManager] Iteration %d/%d (%s)", 
-           self.current_iterations, self.max_iterations, iteration_type)
-  
-  -- Show progress if enabled
-  if self.config.show_iteration_progress then
-    self:show_iteration_progress()
-  end
-  
-  -- Check if we've reached the limit
-  if self.current_iterations >= self.max_iterations then
+  if limit_reached then
     log:warn("[IterationManager] Iteration limit reached: %d/%d", 
              self.current_iterations, self.max_iterations)
     
-    -- Trigger user confirmation
     local should_continue = self:request_user_confirmation()
+    self:_record_user_decision(should_continue)
     
     if should_continue then
-      -- Increase the limit
-      self.max_iterations = self.max_iterations + self.config.iteration_increase_amount
-      log:info("[IterationManager] User approved continuation. New limit: %d", self.max_iterations)
-      
-      -- Record the continuation approval
-      table.insert(self.iteration_history, {
-        type = "user_approved_continuation",
-        iteration_number = self.current_iterations,
-        new_limit = self.max_iterations,
-        timestamp = os.time(),
-      })
-      
       return true, nil
     else
-      log:info("[IterationManager] User declined continuation. Stopping iterations.")
-      
-      -- Record the user cancellation
-      table.insert(self.iteration_history, {
-        type = "user_cancelled",
-        iteration_number = self.current_iterations,
-        timestamp = os.time(),
-      })
-      
       return false, "User cancelled due to iteration limit"
     end
   end
@@ -202,9 +215,9 @@ function IterationManager:request_user_confirmation_async(callback)
     prompt = message,
     format_item = function(item)
       if item == "Continue" then
-        return "✅ Continue with more iterations"
+        return "Continue with more iterations"
       elseif item == "Cancel" then
-        return "❌ Stop iterations"
+        return "Stop iterations"
       end
       return item
     end,
@@ -241,9 +254,57 @@ function IterationManager:request_user_confirmation()
     vim.log.levels.WARN
   )
   
-  local choice = vim.fn.confirm(message, "&Continue\n&Cancel", 1, "Question")
+  -- Use non-blocking vim.ui.select with improved error handling
+  local result = nil
+  local selection_completed = false
   
-  return choice == 1
+  -- Set a timeout using a timer to avoid indefinite blocking
+  local timeout_timer = vim.loop.new_timer()
+  if timeout_timer then
+    timeout_timer:start(self.config.user_confirmation_timeout or 30000, 0, function()
+      if not selection_completed then
+        selection_completed = true
+        result = false -- Default to false on timeout
+        log:warn("[IterationManager] User confirmation timed out, defaulting to cancel")
+      end
+      timeout_timer:close()
+    end)
+  end
+  
+  vim.ui.select(
+    { "Continue", "Cancel" },
+    {
+      prompt = message,
+      format_item = function(item)
+        return item
+      end,
+    },
+    function(choice)
+      if not selection_completed then
+        selection_completed = true
+        result = choice == "Continue"
+        if timeout_timer then
+          timeout_timer:close()
+        end
+      end
+    end
+  )
+  
+  -- Wait for user response with improved error handling
+  local wait_timeout = self.config.user_confirmation_timeout or 30000
+  local ok = vim.wait(wait_timeout, function()
+    return selection_completed
+  end, 10) -- Check every 10ms for better UI responsiveness
+  
+  if not ok then
+    log:warn("[IterationManager] User confirmation wait timed out")
+    if timeout_timer then
+      timeout_timer:close()
+    end
+    return false
+  end
+  
+  return result or false
 end
 
 ---Format a summary of iterations for user display
@@ -275,21 +336,45 @@ function IterationManager:format_iteration_summary()
   return table.concat(summary_lines, "\n")
 end
 
----Show iteration progress notification
+---Show iteration progress notification with improved UX
 function IterationManager:show_iteration_progress()
-  local progress_message = string.format("🔄 Iteration %d/%d", self.current_iterations, self.max_iterations)
+  local progress_message = string.format("Iteration %d/%d", self.current_iterations, self.max_iterations)
   local percentage = math.floor((self.current_iterations / self.max_iterations) * 100)
   
-  -- Show progress notification (users can integrate with Fidget via events)
-  -- This will be visible to Fidget integrations through CodeCompanion events
-  if self.current_iterations % 5 == 0 then -- Show every 5 iterations to avoid spam
+  -- Show progress notification with better timing and visual feedback
+  local should_notify = false
+  
+  -- Show every 5 iterations, but also show at specific milestones
+  if self.current_iterations % 5 == 0 or 
+     percentage >= 75 or 
+     (percentage >= 50 and self.current_iterations % 3 == 0) then
+    should_notify = true
+  end
+  
+  if should_notify then
+    local icon = percentage >= 75 and "⚠️ " or "🔄 "
+    local level = percentage >= 75 and vim.log.levels.WARN or vim.log.levels.INFO
+    
     util.notify(
-      string.format("%s (%d%%)", progress_message, percentage), 
-      vim.log.levels.INFO
+      string.format("%s%s (%d%%)", icon, progress_message, percentage), 
+      level
     )
   end
   
-  log:debug("[IterationManager] %s (%d%%)", progress_message, percentage)
+  -- Enhanced logging with more context
+  if percentage >= 75 then
+    log:warn("[IterationManager] Approaching limit: %s (%d%%)", progress_message, percentage)
+  else
+    log:debug("[IterationManager] %s (%d%%)", progress_message, percentage)
+  end
+  
+  -- Fire event for external integrations
+  require("codecompanion.utils").fire("IterationProgress", {
+    current = self.current_iterations,
+    max = self.max_iterations,
+    percentage = percentage,
+    chat_id = self.chat.id,
+  })
 end
 
 ---Show summarization progress with Fidget
