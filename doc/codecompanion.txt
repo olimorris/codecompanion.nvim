@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2025 June 28
+*codecompanion.txt*          For NVIM v0.11          Last change: 2025 June 30
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -434,14 +434,20 @@ You can add context from your code base by using `Variables` and `Slash
 Commands` in the chat buffer.
 
 
+  [!IMPORTANT] As of `v17.5.0`, variables and tools are now wrapped in curly
+  braces, such as `#{buffer}` or `@{files}`
+
 VARIABLES ~
 
 `Variables`, accessed via `#`, contain data about the present state of Neovim:
 
-- `#buffer` - Shares the current buffer’s code. This can also receive |codecompanion-usage-chat-buffer-variables-buffer|
-- `#lsp` - Shares LSP information and code for the current buffer
-- `#viewport` - Shares the buffers and lines that you see in the Neovim viewport
+- `buffer` - Shares the current buffer’s code. This can also receive |codecompanion-usage-chat-buffer-variables-buffer|
+- `lsp` - Shares LSP information and code for the current buffer
+- `viewport` - Shares the buffers and lines that you see in the Neovim viewport
 
+
+  [!TIP] Use them in your prompt like: `What does the code in #{buffer} do?`,
+  ensuring they’re wrapped in curly brackets
 
 SLASH COMMANDS ~
 
@@ -468,18 +474,23 @@ AGENTS / TOOLS ~
 `Tools`, accessed via `@`, allow the LLM to function as an agent and carry out
 actions:
 
-- `@cmd_runner` - The LLM will run shell commands (subject to approval)
-- `@create_file` - The LLM will create a file in the current working directory (subject to approval)
-- `@insert_edit_into_file` - The LLM will edit code in a Neovim buffer or on the file system (subject to approval)
-- `@next_edit_suggestion` - The LLM can show the user where the next edit is
-- `@read_file` - The LLM can read a specific file
-- `@web_search` - The LLM can search the internet for information
+- `cmd_runner` - The LLM will run shell commands (subject to approval)
+- `create_file` - The LLM will create a file in the current working directory (subject to approval)
+- `file_search` - The LLM can search for a file in the current working directory
+- `grep_search` - The LLM can search within files in the current working directory
+- `insert_edit_into_file` - The LLM will edit code in a Neovim buffer or on the file system (subject to approval)
+- `next_edit_suggestion` - The LLM can show the user where the next edit is
+- `read_file` - The LLM can read a specific file
+- `web_search` - The LLM can search the internet for information
 
-Tools can also be grouped together to form `Agents`, which are also accessed
-via `@` in the chat buffer:
+Tools can also be grouped together, also accessible via `@` in the chat buffer:
 
-- `@files` - Contains the `@create_file`, `@insert_edit_into_file` and `@read_file` tools
+- `files` - Contains the `create_file`, `file_search`, `grep_search`, `insert_edit_into_file` and `read_file` tools
 
+
+  [!TIP] Use them in your prompt like: `Can you use the @{grep_search} tool to
+  find occurrences of "add_message"`, ensuring they’re wrapped in curly
+  brackets
 
 INLINE ASSISTANT              *codecompanion-getting-started-inline-assistant*
 
@@ -493,11 +504,11 @@ Run `:CodeCompanion <your prompt>` to call the inline assistant. The assistant
 will evaluate the prompt and either write code or open a chat buffer. You can
 also make a visual selection and call the assistant. To send additional context
 alongside your prompt, you can leverage
-|codecompanion-usage-inline-assistant-variables| such as `:CodeCompanion <var>
-<your prompt>`:
+|codecompanion-usage-inline-assistant-variables| such as `:CodeCompanion
+#{buffer} <your prompt>`:
 
-- `#buffer` - shares the contents of the current buffer
-- `#chat` - shares the LLM’s messages from the last chat buffer
+- `buffer` - shares the contents of the current buffer
+- `chat` - shares the LLM’s messages from the last chat buffer
 
 For convenience, you can call prompts from the
 |codecompanion-configuration-prompt-library| via the cmd line, such as
@@ -1230,7 +1241,7 @@ referenced with `@` when in the chat buffer:
                 system_prompt = "Describe what the agent should do",
                 tools = {
                   "cmd_runner",
-                  "editor",
+                  "insert_edit_into_file",
                   -- Add your own tools or reuse existing ones
                 },
                 opts = {
@@ -1244,8 +1255,8 @@ referenced with `@` when in the chat buffer:
     })
 <
 
-When users introduce the agent `@my_agent` in the chat buffer, it can call the
-tools you listed (like `@my_tool`) to perform tasks on your code.
+When users introduce the group, `my_group`, in the chat buffer, it can call the
+tools you listed (such as `cmd_runner`) to perform tasks on your code.
 
 A tool is a |codecompanion-extending-tools| table with specific keys that
 define the interface and workflow of the tool. The table can be resolved using
@@ -1450,7 +1461,7 @@ DIFF ~
 
   [!NOTE] Currently the plugin only supports native Neovim diff or mini.diff
   <https://github.com/echasnovski/mini.diff>
-If you utilize the `@insert_edit_into_file` tool, then the plugin can update a
+If you utilize the `insert_edit_into_file` tool, then the plugin can update a
 given chat buffer. A diff will be created so you can see the changes made by
 the LLM.
 
@@ -1635,7 +1646,8 @@ VARIABLES ~
 
 The plugin comes with a number of
 |codecompanion-usage-inline-assistant.html-variables| that can be used
-alongside your prompt. You can also add your own:
+alongside your prompt using the `#{}` syntax (e.g., `#{my_new_var}`). You can
+also add your own:
 
 >lua
     require("codecompanion").setup({
@@ -2117,11 +2129,14 @@ table.
 COMPLETION ~
 
 
+  [!IMPORTANT] As of `v17.5.0`, variables and tools are wrapped in curly braces
+  automatically, such as `#{buffer}` or `@{files}`
 
-You can invoke the completion plugins by typing the variable, slash command or
-tool name whilst in the chat buffer. If you don’t use a completion plugin,
-then you can use native completions with no setup, invoking them with `<C-_>`
-from within the chat buffer.
+
+You can invoke the completion plugins by typing `#` or `@` followed by the
+variable or tool name, which will trigger the completion menu. If you don’t
+use a completion plugin, you can use native completions with no setup, invoking
+them with `<C-_>` from within the chat buffer.
 
 
 KEYMAPS ~
@@ -2156,6 +2171,9 @@ The keymaps available to the user in normal mode are:
 
 AGENTS AND TOOLS                        *codecompanion-usage-agents-and-tools*
 
+
+  [!IMPORTANT] As of `v17.5.0`, tools must be wrapped in curly braces, such as
+  `@{grep_search}` or `@{files}`
 
   [!IMPORTANT] Not all LLMs support function calling and the use of tools. Please
   see the |codecompanion--compatibility| section for more information.
@@ -2205,17 +2223,17 @@ can be found here
 <https://github.com/olimorris/codecompanion.nvim/discussions/categories/tools>.
 
 
-@CMD_RUNNER ~
+CMD_RUNNER ~
 
 The `@cmd_runner` tool enables an LLM to execute commands on your machine,
 subject to your authorization. For example:
 
 >md
-    Can you use the @cmd_runner tool to run my test suite with `pytest`?
+    Can you use the @{cmd_runner} tool to run my test suite with `pytest`?
 <
 
 >md
-    Use the @cmd_runner tool to install any missing libraries in my project
+    Use the @{cmd_runner} tool to install any missing libraries in my project
 <
 
 Some commands do not write any data to stdout
@@ -2229,29 +2247,29 @@ outcome of the test is stored in the corresponding flag on the chat buffer.
 This makes it ideal for |codecompanion-extending-workflows| to hook into.
 
 
-@CREATE_FILE ~
+CREATE_FILE ~
 
 
   [!NOTE] By default, this tool requires user approval before it can be executed
 Create a file within the current working directory:
 
 >md
-    Can you create some test fixtures using the @create_file tool?
+    Can you create some test fixtures using the @{create_file} tool?
 <
 
 
-@FILE_SEARCH ~
+FILE_SEARCH ~
 
 This tool enables an LLM to search for files in the current working directory
 by glob pattern. It will return a list of relative paths for any matching
 files.
 
 >md
-    Use the @file_search tool to list all the lua files in my project
+    Use the @{file_search} tool to list all the lua files in my project
 <
 
 
-@GREP_SEARCH ~
+GREP_SEARCH ~
 
 
   [!IMPORTANT] This tool requires ripgrep <https://github.com/BurntSushi/ripgrep>
@@ -2261,11 +2279,11 @@ working directory. For every match, the output (`{filename}:{line number}
 {relative filepath}`) will be shared with the LLM:
 
 >md
-    Use the @grep_search tool to find all occurrences of `buf_add_message`?
+    Use the @{grep_search} tool to find all occurrences of `buf_add_message`?
 <
 
 
-@INSERT_EDIT_INTO_FILE ~
+INSERT_EDIT_INTO_FILE ~
 
 
   [!NOTE] By default, when editing files, this tool requires user approval before
@@ -2273,15 +2291,15 @@ working directory. For every match, the output (`{filename}:{line number}
 This tool can edit buffers and files for code changes from an LLM:
 
 >md
-    Use the @insert_edit_into_file tool to refactor the code in #buffer
+    Use the @{insert_edit_into_file} tool to refactor the code in #buffer
 <
 
 >md
-    Can you apply the suggested changes to the buffer with the @insert_edit_into_file tool?
+    Can you apply the suggested changes to the buffer with the @{insert_edit_into_file} tool?
 <
 
 
-@NEXT_EDIT_SUGGESTION ~
+NEXT_EDIT_SUGGESTION ~
 
 Inspired by Copilot Next Edit Suggestion
 <https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions>, the
@@ -2316,36 +2334,42 @@ window ID is needed if you want the LLM to point you to a specific line in the
 file.
 
 
-@READ_FILE ~
+READ_FILE ~
 
 This tool can read the contents of a specific file in the current working
 directory. This can be useful for an LLM to gain wider context of files that
 haven’t been shared with it.
 
 
-@WEB_SEARCH ~
+WEB_SEARCH ~
 
 The `@web_search` tool enables an LLM to search the web for a specific query.
 This can be useful to supplement an LLMs knowledge cut off date with more up to
 date information.
 
 >md
-    Can you use the @web_search tool to tell me the latest version of Neovim?
+    Can you use the @{web_search} tool to tell me the latest version of Neovim?
 <
 
 Currently, the tool uses tavily <https://www.tavily.com> and you’ll need to
 ensure that an API key has been set accordingly, as per the adapter
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua>.
 
+You can also ask it to search under a specific domain:
+
+>
+    Using the @web_search tool to search from `https://neovim.io` and explain how I can configure a new language server.
+<
+
 
 TOOL GROUPS ~
 
 CodeCompanion comes with two built-in tool groups:
 
-- `@full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools
-- `@files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools
+- `full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools
+- `files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools
 
-When you include a tool group in your chat (e.g., `@files`), all tools within
+When you include a tool group in your chat (e.g., `@{files}`), all tools within
 that group become available to the LLM. By default, all the tools in the group
 will be shown as a single `<group>name</group>` reference in the chat buffer.
 
@@ -2386,7 +2410,7 @@ COMBINING TOOLS
 Consider combining tools for complex tasks:
 
 >md
-    @full_stack_dev I want to play Snake. Can you create the game for me in Python and install any packages you need. Let's save it to ~/Code/Snake. When you've finished writing it, can you open it so I can play?
+    @{full_stack_dev} I want to play Snake. Can you create the game for me in Python and install any packages you need. Let's save it to ~/Code/Snake. When you've finished writing it, can you open it so I can play?
 <
 
 
@@ -2564,6 +2588,9 @@ your own.
 
 VARIABLES                                      *codecompanion-usage-variables*
 
+
+  [!IMPORTANT] As of `v17.5.0`, variables must be wrapped in curly braces, such
+  as `#{buffer}` or `#{lsp}`
 Variables allow you to share data about the current state of Neovim with an
 LLM. Simply type `#` in the chat buffer and trigger code completion if you’re
 not using blink.cmp or nvim-cmp (or coc.nvim). Alternatively, type the
@@ -2580,14 +2607,14 @@ Custom variables can be shared by adding them to the
   [!NOTE] As of v16.2.0
   <https://github.com/olimorris/codecompanion.nvim/releases/tag/v16.2.0>, buffers
   are now watched by default
-The `#buffer` variable shares the full contents from the buffer that the user
+The `#{buffer}` variable shares the full contents from the buffer that the user
 was last in when they initiated `:CodeCompanionChat`. To select another buffer,
 use the `/buffer` slash command. These buffers can be
 |codecompanion-usage-chat-buffer-index-references| to enable updated content to
 be automatically shared with the LLM:
 
-- `#buffer{pin}` - To pin the current buffer
-- `#buffer{watch}` - To watch the current buffer
+- `#{buffer}{pin}` - To pin the current buffer
+- `#{buffer}{watch}` - To watch the current buffer
 
 To pin or watch buffers by default, you can add this configuration:
 
@@ -2613,14 +2640,14 @@ To pin or watch buffers by default, you can add this configuration:
 
   [!TIP] The |codecompanion-usage-action-palette| has a pre-built prompt which
   asks an LLM to explain LSP diagnostics in a visual selection
-The `#lsp` variable shares any information from the LSP servers that active in
+The `lsp` variable shares any information from the LSP servers that active in
 the current buffer. This can serve as useful context should you wish to
 troubleshoot any errors with an LLM.
 
 
 #VIEWPORT ~
 
-The `#viewport` variable shares with the LLM, exactly what you see on your
+The `viewport` variable shares with the LLM, exactly what you see on your
 screen at the point a response is sent (excluding the chat buffer of course).
 
 
@@ -2739,14 +2766,14 @@ VARIABLES ~
 
 
   [!TIP] To ensure the LLM has enough context to complete a complex ask, it’s
-  recommended to use the `#buffer` variable
+  recommended to use the `buffer` variable
 The inline assistant allows you to send context alongside your prompt via the
 notion of variables:
 
-- `#buffer` - shares the contents of the current buffer
-- `#chat` - shares the LLM’s messages from the last chat buffer
+- `buffer` - shares the contents of the current buffer
+- `chat` - shares the LLM’s messages from the last chat buffer
 
-Simply include them in your prompt. For example `:CodeCompanion #buffer add a
+Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a
 new method to this file`. Multiple variables can be sent as part of the same
 prompt. You can even add your own custom variables as per the
 |codecompanion-configuration-inline-assistant-variables|.
@@ -4551,7 +4578,7 @@ If we put this all together in our config:
 and with the prompt:
 
 >
-    Use the @calculator tool for 100*50
+    Use the @{calculator} tool for 100*50
 <
 
 You should see: `5000`, in the chat buffer.
@@ -4791,8 +4818,8 @@ Let’s breakdown the prompts in that workflow:
     
     You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
     
-    1. Update the code in #buffer{watch} using the @insert_edit_into_file tool
-    2. Then use the @cmd_runner tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
+    1. Update the code in #{buffer}{watch} using the @{insert_edit_into_file} tool
+    2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
     3. Make sure you trigger both tools in the same response
     
     We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
