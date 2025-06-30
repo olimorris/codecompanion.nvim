@@ -4,10 +4,10 @@
 ---@field config table The configuration for the summarizer
 local ContextSummarizer = {}
 
-local log = require("codecompanion.utils.log")
-local tokens = require("codecompanion.utils.tokens")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
+local tokens = require("codecompanion.utils.tokens")
 local util = require("codecompanion.utils")
 
 ---@param args { chat: CodeCompanion.Chat, adapter: CodeCompanion.Adapter, config?: table }
@@ -64,8 +64,7 @@ function ContextSummarizer:summarize_async(messages_to_summarize, summary_contex
     },
   }
 
-  log:debug("[ContextSummarizer] Summarization prompt length: %d tokens", 
-           tokens.get_tokens(summary_messages))
+  log:debug("[ContextSummarizer] Summarization prompt length: %d tokens", tokens.get_tokens(summary_messages))
 
   -- Log progress but don't show notification
   log:debug("[ContextSummarizer] Generating context summary")
@@ -81,7 +80,7 @@ function ContextSummarizer:summarize_async(messages_to_summarize, summary_contex
 
   -- Create a request using optimized adapter settings for summarization
   local temp_adapter = vim.deepcopy(self.adapter)
-  
+
   -- Apply summarization-specific settings for better performance
   if temp_adapter.schema then
     if temp_adapter.schema.temperature then
@@ -101,14 +100,16 @@ function ContextSummarizer:summarize_async(messages_to_summarize, summary_contex
   local completed = false
 
   local function complete_summarization(final_summary, final_error)
-    if completed then return end
+    if completed then
+      return
+    end
     completed = true
-    
+
     if timeout_timer then
       timeout_timer:stop()
       timeout_timer:close()
     end
-    
+
     -- Only show notification on error or completion
     if final_error then
       vim.schedule(function()
@@ -117,7 +118,7 @@ function ContextSummarizer:summarize_async(messages_to_summarize, summary_contex
     else
       log:info("[ContextSummarizer] Context summarization completed successfully")
     end
-    
+
     callback(final_summary, final_error)
   end
 
@@ -128,47 +129,49 @@ function ContextSummarizer:summarize_async(messages_to_summarize, summary_contex
 
   -- The HTTP request will trigger RequestStarted/RequestFinished events
   -- which users can monitor with Fidget for progress display
-  local summarization_request = client.new({ 
-    adapter = temp_adapter,
-    user_args = { event = "ContextSummarization" } -- Custom event suffix for summarization
-  }):request(payload, {
-    callback = function(err, data, adapter)
-      if err and err.stderr ~= "{}" then
-        error_msg = "Summarization failed: " .. err.stderr
-        log:error("[ContextSummarizer] %s", error_msg)
-        return complete_summarization(nil, error_msg)
-      end
-
-      if data then
-        -- Log progress but don't show notification
-        log:trace("[ContextSummarizer] Processing summarization response")
-        
-        local result = self.adapter.handlers.chat_output(self.adapter, data, {})
-        if result and result.status == "success" and result.output and result.output.content then
-          summary = summary .. (result.output.content or "")
-        elseif result and result.status == "error" then
-          error_msg = "Summarization error: " .. (result.output or "Unknown error")
+  local summarization_request = client
+    .new({
+      adapter = temp_adapter,
+      user_args = { event = "ContextSummarization" }, -- Custom event suffix for summarization
+    })
+    :request(payload, {
+      callback = function(err, data, adapter)
+        if err and err.stderr ~= "{}" then
+          error_msg = "Summarization failed: " .. err.stderr
           log:error("[ContextSummarizer] %s", error_msg)
           return complete_summarization(nil, error_msg)
         end
-      end
-    end,
-    done = function()
-      -- Log progress but don't show notification
-      log:debug("[ContextSummarizer] Finalizing context summary")
-      
-      if summary and summary ~= "" then
-        log:info("[ContextSummarizer] Generated summary: %d characters", #summary)
-        complete_summarization(vim.trim(summary), nil)
-      else
-        complete_summarization(nil, "Empty summary generated")
-      end
-    end,
-  }, {
-    bufnr = self.chat.bufnr,
-    strategy = "chat",
-    context = { summarization = true }, -- Add context to indicate this is a summarization request
-  })
+
+        if data then
+          -- Log progress but don't show notification
+          log:trace("[ContextSummarizer] Processing summarization response")
+
+          local result = self.adapter.handlers.chat_output(self.adapter, data, {})
+          if result and result.status == "success" and result.output and result.output.content then
+            summary = summary .. (result.output.content or "")
+          elseif result and result.status == "error" then
+            error_msg = "Summarization error: " .. (result.output or "Unknown error")
+            log:error("[ContextSummarizer] %s", error_msg)
+            return complete_summarization(nil, error_msg)
+          end
+        end
+      end,
+      done = function()
+        -- Log progress but don't show notification
+        log:debug("[ContextSummarizer] Finalizing context summary")
+
+        if summary and summary ~= "" then
+          log:info("[ContextSummarizer] Generated summary: %d characters", #summary)
+          complete_summarization(vim.trim(summary), nil)
+        else
+          complete_summarization(nil, "Empty summary generated")
+        end
+      end,
+    }, {
+      bufnr = self.chat.bufnr,
+      strategy = "chat",
+      context = { summarization = true }, -- Add context to indicate this is a summarization request
+    })
 end
 
 ---Generate a summary of conversation history (sync version for backward compatibility)
@@ -198,8 +201,7 @@ function ContextSummarizer:summarize(messages_to_summarize, summary_context)
     },
   }
 
-  log:debug("[ContextSummarizer] Summarization prompt length: %d tokens", 
-           tokens.get_tokens(summary_messages))
+  log:debug("[ContextSummarizer] Summarization prompt length: %d tokens", tokens.get_tokens(summary_messages))
 
   -- Check if adapter has required handler
   if not self.adapter.handlers or not self.adapter.handlers.chat_output then
@@ -218,7 +220,7 @@ function ContextSummarizer:summarize(messages_to_summarize, summary_context)
 
   -- Create a request using optimized adapter settings for summarization
   local temp_adapter = vim.deepcopy(self.adapter)
-  
+
   -- Apply summarization-specific settings for better performance
   if temp_adapter.schema then
     if temp_adapter.schema.temperature then
@@ -259,7 +261,7 @@ function ContextSummarizer:summarize(messages_to_summarize, summary_context)
 
   -- Use a more efficient async approach with smaller intervals
   local timeout = 30000 -- 30 seconds timeout in milliseconds
-  
+
   -- Use vim.wait with a smaller interval for better responsiveness
   local ok = vim.wait(timeout, function()
     return success or error_msg ~= nil
@@ -286,7 +288,8 @@ end
 ---@param context table Context information for the summary
 ---@return string The system prompt
 function ContextSummarizer:build_summarization_prompt(context)
-  local prompt = [[You are an expert conversation summarizer. Your task is to create a concise but comprehensive summary of the conversation history provided.
+  local prompt =
+    [[You are an expert conversation summarizer. Your task is to create a concise but comprehensive summary of the conversation history provided.
 
 CRITICAL: This is a context summarization due to length limits. You MUST include a clear metadata section at the beginning.
 
@@ -325,7 +328,8 @@ Focus on information that would be essential for continuing the conversation eff
   end
 
   if context and context.preserve_tools then
-    prompt = prompt .. "\n\nPay special attention to tool usage and their results, as these are critical for the ongoing task."
+    prompt = prompt
+      .. "\n\nPay special attention to tool usage and their results, as these are critical for the ongoing task."
   end
 
   -- Add metadata hints if available
@@ -350,9 +354,9 @@ end
 ---@return string The formatted content
 function ContextSummarizer:format_messages_for_summary(messages)
   local formatted_parts = {}
-  
+
   table.insert(formatted_parts, "=== CONVERSATION HISTORY TO SUMMARIZE ===\n")
-  
+
   for i, msg in ipairs(messages) do
     local role_name = "UNKNOWN"
     if msg.role == config.constants.USER_ROLE then
@@ -364,23 +368,26 @@ function ContextSummarizer:format_messages_for_summary(messages)
     end
 
     table.insert(formatted_parts, string.format("--- %s MESSAGE %d ---", role_name, i))
-    
+
     if msg.content then
       table.insert(formatted_parts, msg.content)
     end
-    
+
     if msg.tool_calls and #msg.tool_calls > 0 then
       table.insert(formatted_parts, "\n[TOOL CALLS USED:]")
       for _, tool_call in ipairs(msg.tool_calls) do
-        table.insert(formatted_parts, string.format("- %s: %s", tool_call.name or "unknown", tool_call.arguments or "{}"))
+        table.insert(
+          formatted_parts,
+          string.format("- %s: %s", tool_call.name or "unknown", tool_call.arguments or "{}")
+        )
       end
     end
-    
+
     table.insert(formatted_parts, "")
   end
-  
+
   table.insert(formatted_parts, "=== END CONVERSATION HISTORY ===")
-  
+
   return table.concat(formatted_parts, "\n")
 end
 
@@ -398,7 +405,7 @@ function ContextSummarizer:collect_context_metadata(messages, chat_refs)
     user_messages_count = 0,
     llm_messages_count = 0,
   }
-  
+
   -- Analyze references
   if chat_refs then
     for _, ref in ipairs(chat_refs) do
@@ -426,7 +433,7 @@ function ContextSummarizer:collect_context_metadata(messages, chat_refs)
       end
     end
   end
-  
+
   -- Analyze messages
   for _, msg in ipairs(messages) do
     if msg.role == config.constants.USER_ROLE then
@@ -434,7 +441,7 @@ function ContextSummarizer:collect_context_metadata(messages, chat_refs)
     elseif msg.role == config.constants.LLM_ROLE then
       metadata.llm_messages_count = metadata.llm_messages_count + 1
     end
-    
+
     -- Count tool calls
     if msg.tool_calls and #msg.tool_calls > 0 then
       metadata.tool_calls_count = metadata.tool_calls_count + #msg.tool_calls
@@ -445,7 +452,7 @@ function ContextSummarizer:collect_context_metadata(messages, chat_refs)
       end
     end
   end
-  
+
   return metadata
 end
 
@@ -465,10 +472,9 @@ function ContextSummarizer:should_summarize(messages, context_limit, threshold_r
   threshold_ratio = threshold_ratio or 0.85
   local current_tokens = self:calculate_tokens(messages)
   local threshold = context_limit * threshold_ratio
-  
-  log:debug("[ContextSummarizer] Token check: %d/%d (threshold: %d)", 
-           current_tokens, context_limit, threshold)
-  
+
+  log:debug("[ContextSummarizer] Token check: %d/%d (threshold: %d)", current_tokens, context_limit, threshold)
+
   return current_tokens > threshold
 end
 
@@ -478,24 +484,24 @@ end
 ---@return table messages_to_summarize, table messages_to_keep
 function ContextSummarizer:split_messages_for_summary(messages, keep_recent_count)
   keep_recent_count = keep_recent_count or 3
-  
+
   if #messages <= keep_recent_count then
     return {}, messages
   end
-  
+
   local split_index = #messages - keep_recent_count
   local messages_to_summarize = {}
   local messages_to_keep = {}
-  
+
   for i = 1, split_index do
     table.insert(messages_to_summarize, messages[i])
   end
-  
+
   for i = split_index + 1, #messages do
     table.insert(messages_to_keep, messages[i])
   end
-  
+
   return messages_to_summarize, messages_to_keep
 end
 
-return ContextSummarizer 
+return ContextSummarizer

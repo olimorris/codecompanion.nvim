@@ -876,7 +876,7 @@ function Chat:submit(opts)
         util.notify("Request blocked: " .. (reason or "Iteration limit reached"), vim.log.levels.WARN)
         return
       end
-      
+
       -- Continue with the actual submit logic
       self:_continue_submit(opts)
     end)
@@ -951,9 +951,16 @@ function Chat:_continue_submit(opts)
   -- Check if context summarization is needed before sending
   if self.context_summarizer and not opts.skip_summarization then
     local context_limit = self:get_context_limit(mapped_settings)
-    if context_limit and self.context_summarizer:should_summarize(self.messages, context_limit, config.strategies.chat.iteration.context_summarization.threshold_ratio) then
+    if
+      context_limit
+      and self.context_summarizer:should_summarize(
+        self.messages,
+        context_limit,
+        config.strategies.chat.iteration.context_summarization.threshold_ratio
+      )
+    then
       log:info("[Chat] Context approaching limit, performing async summarization before sending")
-      
+
       -- Perform async summarization before sending the request
       self:perform_async_summarization(mapped_settings, function(success, error_msg)
         if success then
@@ -1081,7 +1088,7 @@ function Chat:done(output, tools)
           ready_chat_buffer(self)
           return
         end
-        
+
         -- Continue with tool execution
         self:_continue_tool_execution(tools)
       end)
@@ -1491,7 +1498,7 @@ function Chat:clear()
 end
 
 ---Perform async context summarization that replaces historical messages
----@param adapter_settings table The adapter settings 
+---@param adapter_settings table The adapter settings
 ---@param callback function Callback function: callback(success, error_msg)
 ---@return nil
 function Chat:perform_async_summarization(adapter_settings, callback)
@@ -1508,7 +1515,7 @@ function Chat:perform_async_summarization(adapter_settings, callback)
 
   -- Split messages for summarization
   local messages_to_summarize, messages_to_keep = self.context_summarizer:split_messages_for_summary(
-    self.messages, 
+    self.messages,
     config.strategies.chat.iteration.context_summarization.keep_recent_messages
   )
 
@@ -1517,12 +1524,15 @@ function Chat:perform_async_summarization(adapter_settings, callback)
     return callback(true, nil)
   end
 
-  log:info("[Chat] Starting async summarization of %d messages, keeping %d recent messages", 
-           #messages_to_summarize, #messages_to_keep)
+  log:info(
+    "[Chat] Starting async summarization of %d messages, keeping %d recent messages",
+    #messages_to_summarize,
+    #messages_to_keep
+  )
 
   -- Collect context metadata before summarization
   local context_metadata = self.context_summarizer:collect_context_metadata(messages_to_summarize, self.refs)
-  
+
   -- Perform async summarization
   self.context_summarizer:summarize_async(messages_to_summarize, {
     current_task = "Ongoing conversation",
@@ -1542,7 +1552,10 @@ function Chat:perform_async_summarization(adapter_settings, callback)
     -- Create summarized message to replace historical messages
     local summary_message = {
       role = config.constants.SYSTEM_ROLE,
-      content = string.format("🔄 CONTEXT ITERATION SUMMARY 🔄\n\nIMPORTANT: This conversation has been summarized due to context length limits. The following contains the condensed history of our previous interaction:\n\n%s\n\n=== END OF ITERATION SUMMARY ===\n\nYou can now continue the conversation normally. All the key information from the previous context has been preserved above.", summary),
+      content = string.format(
+        "🔄 CONTEXT ITERATION SUMMARY 🔄\n\nIMPORTANT: This conversation has been summarized due to context length limits. The following contains the condensed history of our previous interaction:\n\n%s\n\n=== END OF ITERATION SUMMARY ===\n\nYou can now continue the conversation normally. All the key information from the previous context has been preserved above.",
+        summary
+      ),
       id = require("codecompanion.utils.hash").hash({ role = "system", content = summary }),
       cycle = self.cycle,
       opts = {
@@ -1553,22 +1566,21 @@ function Chat:perform_async_summarization(adapter_settings, callback)
 
     -- Replace messages: keep system prompts + summary + lightweight file references + recent messages
     local new_messages = {}
-    
+
     -- Keep original system prompts (but not old summaries)
     for _, msg in ipairs(self.messages) do
-      if msg.role == config.constants.SYSTEM_ROLE and 
-         (not msg.opts or msg.opts.tag ~= "context_summary") then
+      if msg.role == config.constants.SYSTEM_ROLE and (not msg.opts or msg.opts.tag ~= "context_summary") then
         table.insert(new_messages, msg)
       end
     end
-    
+
     -- Add the new summary
     table.insert(new_messages, summary_message)
-    
+
     -- Create lightweight file reference placeholders
     -- This ensures AI knows about all files without including full content
     self:_create_file_reference_placeholders(context_metadata, new_messages)
-    
+
     -- Add recent messages to keep
     for _, msg in ipairs(messages_to_keep) do
       table.insert(new_messages, msg)
@@ -1577,8 +1589,11 @@ function Chat:perform_async_summarization(adapter_settings, callback)
     -- Replace the messages in the chat
     self.messages = new_messages
 
-    log:info("[Chat] Context summarized: %d total messages → %d messages (including summary)", 
-             #messages_to_summarize + #messages_to_keep, #new_messages)
+    log:info(
+      "[Chat] Context summarized: %d total messages → %d messages (including summary)",
+      #messages_to_summarize + #messages_to_keep,
+      #new_messages
+    )
 
     -- Show notification to user
     vim.schedule(function()
@@ -1610,8 +1625,8 @@ function Chat:check_and_summarize_context(messages, adapter_settings)
 
   -- Check if summarization is needed
   local should_summarize = self.context_summarizer:should_summarize(
-    messages, 
-    context_limit, 
+    messages,
+    context_limit,
     config.strategies.chat.iteration.context_summarization.threshold_ratio
   )
 
@@ -1624,7 +1639,7 @@ function Chat:check_and_summarize_context(messages, adapter_settings)
 
   -- Split messages for summarization
   local messages_to_summarize, messages_to_keep = self.context_summarizer:split_messages_for_summary(
-    messages, 
+    messages,
     config.strategies.chat.iteration.context_summarization.keep_recent_messages
   )
 
@@ -1652,10 +1667,13 @@ function Chat:check_and_summarize_context(messages, adapter_settings)
     return messages
   end
 
-  -- Create summarized message  
+  -- Create summarized message
   local summary_message = {
     role = config.constants.SYSTEM_ROLE,
-    content = string.format("🔄 CONTEXT ITERATION SUMMARY 🔄\n\nIMPORTANT: This conversation has been summarized due to context length limits. The following contains the condensed history of our previous interaction:\n\n%s\n\n=== END OF ITERATION SUMMARY ===\n\nYou can now continue the conversation normally. All the key information from the previous context has been preserved above.", summary),
+    content = string.format(
+      "🔄 CONTEXT ITERATION SUMMARY 🔄\n\nIMPORTANT: This conversation has been summarized due to context length limits. The following contains the condensed history of our previous interaction:\n\n%s\n\n=== END OF ITERATION SUMMARY ===\n\nYou can now continue the conversation normally. All the key information from the previous context has been preserved above.",
+      summary
+    ),
     id = require("codecompanion.utils.hash").hash({ role = "system", content = summary }),
     cycle = self.cycle,
     opts = {
@@ -1666,17 +1684,16 @@ function Chat:check_and_summarize_context(messages, adapter_settings)
 
   -- Combine summary with lightweight file references + recent messages
   local result_messages = { summary_message }
-  
+
   -- Create lightweight file reference placeholders
   self:_create_file_reference_placeholders(context_metadata_sync, result_messages)
-  
+
   -- Add recent messages
   for _, msg in ipairs(messages_to_keep) do
     table.insert(result_messages, msg)
   end
 
-  log:info("[Chat] Context summarized: %d messages → %d messages + summary", 
-           #messages, #result_messages)
+  log:info("[Chat] Context summarized: %d messages → %d messages + summary", #messages, #result_messages)
 
   -- Show notification to user
   util.notify(
@@ -1693,7 +1710,7 @@ end
 function Chat:get_context_limit(adapter_settings)
   local adapter_name = self.adapter.name
   local iteration_config = config.strategies.chat.iteration
-  
+
   -- Get the current model from adapter settings or adapter schema
   local current_model = nil
   if adapter_settings and adapter_settings.model then
@@ -1705,13 +1722,13 @@ function Chat:get_context_limit(adapter_settings)
       current_model = self.adapter.schema.model.default
     end
   end
-  
+
   -- Ensure current_model is a string (some adapters may return tables)
   if current_model and type(current_model) ~= "string" then
     log:debug("[Chat] current_model is not a string (type: %s), skipping model-specific lookup", type(current_model))
     current_model = nil
   end
-  
+
   -- Priority 1: Check for specific adapter:model configuration
   if current_model and iteration_config.context_limits.models then
     local model_key = adapter_name .. ":" .. current_model
@@ -1720,7 +1737,7 @@ function Chat:get_context_limit(adapter_settings)
       log:debug("[Chat] Using model-specific context limit for %s: %d tokens", model_key, model_limit)
       return model_limit
     end
-    
+
     -- Also try without adapter prefix (for generic model names)
     local generic_model_limit = iteration_config.context_limits.models[current_model]
     if generic_model_limit then
@@ -1731,7 +1748,11 @@ function Chat:get_context_limit(adapter_settings)
 
   -- Priority 2: Check adapter-level configuration
   if iteration_config.context_limits[adapter_name] then
-    log:debug("[Chat] Using adapter-specific context limit for %s: %d tokens", adapter_name, iteration_config.context_limits[adapter_name])
+    log:debug(
+      "[Chat] Using adapter-specific context limit for %s: %d tokens",
+      adapter_name,
+      iteration_config.context_limits[adapter_name]
+    )
     return iteration_config.context_limits[adapter_name]
   end
 

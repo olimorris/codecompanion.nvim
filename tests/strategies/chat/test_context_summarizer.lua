@@ -237,4 +237,4 @@ T["ContextSummarizer"]["handles few messages correctly"] = function()
   h.eq(2, #to_keep)
 end
 
-return T 
+return T

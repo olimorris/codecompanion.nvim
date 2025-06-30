@@ -1,8 +1,8 @@
 local helpers = require("tests.helpers")
 local h = helpers
 
-local config = require("codecompanion.config")
 local Chat = require("codecompanion.strategies.chat")
+local config = require("codecompanion.config")
 
 local T = {}
 
@@ -183,7 +183,7 @@ T["LLM Iteration Integration"]["blocks submit when iteration limit reached"] = f
 
   -- Should not proceed with the request
   h.eq(3, chat.iteration_manager.current_iterations)
-  
+
   vim_mocks.restore()
 end
 
@@ -211,7 +211,7 @@ T["LLM Iteration Integration"]["allows continuation when user approves"] = funct
 
   -- Should have increased the limit
   h.eq(5, chat.iteration_manager.max_iterations) -- 3 + 2 = 5
-  
+
   vim_mocks.restore()
 end
 
@@ -238,7 +238,7 @@ T["LLM Iteration Integration"]["performs context summarization when needed"] = f
   local should_summarize = chat.context_summarizer:should_summarize(
     chat.messages,
     50, -- context limit
-    0.1  -- very low threshold
+    0.1 -- very low threshold
   )
 
   h.eq(true, should_summarize)
@@ -374,4 +374,4 @@ T["LLM Iteration Integration"]["tracks tool execution iterations"] = function()
   h.eq(initial_iterations + 1, chat.iteration_manager.current_iterations)
 end
 
-return T 
+return T

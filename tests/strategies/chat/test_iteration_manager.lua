@@ -115,7 +115,7 @@ T["IterationManager"]["allows continuation when user approves"] = function()
 
   local manager = IterationManager.new({
     chat = mock_chat,
-    config = { 
+    config = {
       max_iterations_per_task = 2,
       iteration_increase_amount = 5,
     },
@@ -262,4 +262,4 @@ T["IterationManager"]["handles empty iteration history"] = function()
   h.eq("No iteration history available", summary)
 end
 
-return T 
+return T

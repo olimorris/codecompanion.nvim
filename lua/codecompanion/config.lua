@@ -173,16 +173,16 @@ local defaults = {
           -- Default context window sizes for different adapters
           -- These can be overridden by adapter-specific settings
           default = 4096,
-          
+
           -- Adapter-level defaults (fallback when specific model not found)
           openai = 8192,
-          anthropic = 200000,  -- Claude 3.5 Sonnet default
-          gemini = 32768,      -- Gemini 2.0 Flash default
+          anthropic = 200000, -- Claude 3.5 Sonnet default
+          gemini = 32768, -- Gemini 2.0 Flash default
           copilot = 8192,
           deepseek = 32768,
           mistral = 32768,
-          ollama = 2048,       -- Conservative default for local models
-          
+          ollama = 2048, -- Conservative default for local models
+
           -- Model-specific context limits (takes precedence over adapter defaults)
           -- Format: ["adapter:model"] = context_size
           models = {
@@ -197,15 +197,15 @@ local defaults = {
             ["openai:o1"] = 200000,
             ["openai:o1-mini"] = 128000,
             ["openai:o3-mini"] = 200000,
-            
-            -- Anthropic Models  
+
+            -- Anthropic Models
             ["anthropic:claude-3-haiku-20240307"] = 200000,
             ["anthropic:claude-3-sonnet-20240229"] = 200000,
             ["anthropic:claude-3-opus-20240229"] = 200000,
             ["anthropic:claude-3-5-sonnet-20241022"] = 200000,
             ["anthropic:claude-3-5-sonnet-20240620"] = 200000,
             ["anthropic:claude-3-5-haiku-20241022"] = 200000,
-            
+
             -- Gemini Models
             ["gemini:gemini-1.5-pro"] = 2000000,
             ["gemini:gemini-1.5-flash"] = 1000000,
@@ -213,7 +213,7 @@ local defaults = {
             ["gemini:gemini-2.5-pro-preview-05-06"] = 2000000,
             ["gemini:gemini-2.5-pro-preview-06-05"] = 2000000,
             ["gemini:gemini-2.5-flash-preview-05-20"] = 1000000,
-            
+
             -- DeepSeek Models
             ["deepseek:deepseek-chat"] = 32768,
             ["deepseek:deepseek-coder"] = 16384,
@@ -226,7 +226,7 @@ local defaults = {
             ["deepseek:deepseek-r1-distill-qwen-32b"] = 64000,
             ["deepseek:deepseek-r1-distill-llama-70b"] = 32000,
             ["deepseek:deepseek-r1-distill-llama-8b"] = 32000,
-            
+
             -- Meta Llama Models
             ["meta-llama:llama-3-8b-instruct"] = 8192,
             ["meta-llama:llama-3-70b-instruct"] = 8192,
@@ -236,20 +236,20 @@ local defaults = {
             ["meta-llama:llama-3.2-1b-instruct"] = 128000,
             ["meta-llama:llama-3.2-3b-instruct"] = 128000,
             ["meta-llama:llama-3.3-70b-instruct"] = 128000,
-            
+
             -- Mistral Models
             ["mistral:mistral-7b-instruct"] = 32768,
             ["mistral:mixtral-8x7b-instruct"] = 32768,
             ["mistral:mixtral-8x22b-instruct"] = 65536,
             ["mistral:mistral-nemo"] = 128000,
             ["mistral:mistral-large"] = 128000,
-            
+
             -- Qwen Models
             ["qwen:qwen-2-7b-instruct"] = 32768,
             ["qwen:qwen-2.5-72b-instruct"] = 32768,
             ["qwen:qwen-2-vl-72b-instruct"] = 32768,
             ["qwen:qwq-32b"] = 32768,
-            
+
             -- GitHub Models (same as base models but with github prefix)
             ["githubmodels:gpt-4o"] = 128000,
             ["githubmodels:gpt-4o-mini"] = 128000,
@@ -259,14 +259,14 @@ local defaults = {
             ["githubmodels:claude-3.5-sonnet"] = 200000,
             ["githubmodels:DeepSeek-R1"] = 64000,
             ["githubmodels:Codestral-2501"] = 32768,
-            
+
             -- Copilot Models (typically follow OpenAI limits)
             ["copilot:gpt-4"] = 8192,
             ["copilot:gpt-4.1"] = 128000,
             ["copilot:gpt-4o"] = 128000,
             ["copilot:gpt-4o-mini"] = 128000,
             ["copilot:claude-3.5-sonnet"] = 200000,
-            
+
             -- Add more models as needed...
             -- Format: ["adapter_name:model_id"] = context_window_size
           },
