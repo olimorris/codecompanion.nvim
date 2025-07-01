@@ -73,7 +73,7 @@ T["filepaths can be empty"] = function()
   ]])
 
   local output = child.lua_get("chat.messages[#chat.messages].content")
-  h.expect_contains("Unsupported LSP method", output)
+  h.expect_contains("references of symbol: `testFunction`", output)
 end
 
 T["validates symbol parameter"] = function()
@@ -94,7 +94,7 @@ T["validates symbol parameter"] = function()
   ]])
 
   local output = child.lua_get("chat.messages[#chat.messages].content")
-  h.expect_contains("Symbol parameter is required", output)
+  h.expect_contains("Symbol name is required and cannot be empty.", output)
 end
 
 T["handles symbol not found"] = function()
