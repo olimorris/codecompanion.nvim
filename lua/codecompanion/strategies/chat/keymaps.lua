@@ -49,6 +49,10 @@ M.options = {
       return str .. string.rep(" ", max_length - #str + (offset or 0))
     end
 
+    --- Cleans and truncates a string to a maximum width.
+    ---@param desc string? The description to clean
+    ---@param max_width number? The maximum width to truncate the description to
+    ---@return string The cleaned and truncated description
     local function clean_and_truncate(desc, max_width)
       if not desc then
         return ""
