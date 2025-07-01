@@ -8,8 +8,8 @@ function Reasoning:can_handle(message, opts, tags)
   return message.reasoning ~= nil
 end
 
-function Reasoning:get_tag()
-  return self.chat.MESSAGE_TAGS.LLM_MESSAGE -- Reasoning is part of LLM response
+function Reasoning:get_type()
+  return self.chat.MESSAGE_TYPES.LLM_MESSAGE -- Reasoning is part of LLM response
 end
 
 function Reasoning:format(message, opts, state)

@@ -27,15 +27,16 @@ end
 ---Check if this formatter can handle the given data/opts
 ---@param message table
 ---@param opts table
+---@param tags table
 ---@return boolean
-function BaseFormatter:can_handle(message, opts)
+function BaseFormatter:can_handle(message, opts, tags)
   error("Must implement can_handle method")
 end
 
----Get the tag for this formatter
+---Get the message type for this formatter
 ---@return string
-function BaseFormatter:get_tag()
-  error("Must implement get_tag method")
+function BaseFormatter:get_type()
+  error("Must implement get_type method")
 end
 
 ---Format the content into lines

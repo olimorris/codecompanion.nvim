@@ -8,9 +8,9 @@ function Standard:can_handle(message, opts, tags)
   return message.content ~= nil -- Has content to display
 end
 
-function Standard:get_tag(opts)
+function Standard:get_type(opts)
   -- Default to LLM message, but could be overridden by opts
-  return (opts and opts.tag) or self.chat.MESSAGE_TAGS.LLM_MESSAGE
+  return (opts and opts.type) or self.chat.MESSAGE_TYPES.LLM_MESSAGE
 end
 
 function Standard:format(message, opts, state)
@@ -22,8 +22,6 @@ function Standard:format(message, opts, state)
     table.insert(lines, "")
     table.insert(lines, "")
     table.insert(lines, "### Response")
-    table.insert(lines, "")
-  elseif state.last_tag == self.chat.MESSAGE_TAGS.TOOL_OUTPUT then
     table.insert(lines, "")
   end
 

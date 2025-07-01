@@ -1,21 +1,26 @@
 local BaseFormatter = require("codecompanion.strategies.chat.ui.formatters.base")
+local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Chat.UI.Formatters.Tools : CodeCompanion.Chat.UI.Formatters.Base
 local Tools = setmetatable({}, { __index = BaseFormatter })
 Tools.__class = "Tools"
 
 function Tools:can_handle(message, opts, tags)
-  return opts and opts.tag == tags.TOOL_OUTPUT
+  return opts and opts.type == tags.TOOL_MESSAGE
 end
 
-function Tools:get_tag()
-  return self.chat.MESSAGE_TAGS.TOOL_OUTPUT
+function Tools:get_type()
+  return self.chat.MESSAGE_TYPES.TOOL_MESSAGE
 end
 
 function Tools:format(message, opts, state)
   local lines = {}
 
-  if state.is_new_section or state.last_tag == self.chat.MESSAGE_TAGS.LLM_MESSAGE then
+  if state.is_new_section then
+    table.insert(lines, "")
+  end
+  if state.last_type == self.chat.MESSAGE_TYPES.LLM_MESSAGE then
+    log:debug("Last tag was LLM_MESSAGE, adding extra spacing")
     table.insert(lines, "")
   end
 

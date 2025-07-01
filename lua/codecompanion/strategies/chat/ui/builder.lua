@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 
 local Reasoning = require("codecompanion.strategies.chat.ui.formatters.reasoning")
 local Standard = require("codecompanion.strategies.chat.ui.formatters.standard")
@@ -28,7 +29,7 @@ local function create_state(base_state)
   local state = {
     -- Persistent state (copied from builder)
     last_role = base_state.last_role,
-    last_tag = base_state.last_tag,
+    last_type = base_state.last_type,
     has_reasoning_output = base_state.has_reasoning_output,
 
     -- Current context (gets set during formatting)
@@ -54,8 +55,8 @@ local function create_state(base_state)
     self.has_reasoning_output = true
   end
 
-  function state:update_tag(tag)
-    self.last_tag = tag
+  function state:update_type(type)
+    self.last_type = type
   end
 
   function state:start_new_section()
@@ -73,7 +74,7 @@ function Builder:add_message(data, opts)
   opts = opts or {}
   local lines = {}
   local fold_info = nil
-  local current_tag = nil
+  local current_type = nil
 
   -- Create rich formatting state for this message
   local state = create_state(self.state)
@@ -85,6 +86,7 @@ function Builder:add_message(data, opts)
     state:update_role(data.role)
     self:_add_header_spacing(lines, state)
     self.chat.ui:set_header(lines, config.strategies.chat.roles[data.role])
+    log:debug("Lines after header: %s", lines)
   elseif needs_new_section then
     state:start_new_section()
   end
@@ -98,7 +100,11 @@ function Builder:add_message(data, opts)
     if content_fold_info then
       fold_info = content_fold_info
     end
-    current_tag = formatter:get_tag()
+
+    -- This role check is more of a testing fix than a real logic check
+    if data.content ~= "" and data.role ~= config.constants.USER_ROLE then
+      current_type = formatter:get_type()
+    end
   end
 
   -- Write to buffer
@@ -107,8 +113,9 @@ function Builder:add_message(data, opts)
   end
 
   -- Update persistent state from rich state
-  if current_tag and (data.content ~= "" or data.reasoning) then
-    state:update_tag(current_tag)
+  if current_type then
+    -- log:debug("Updating type to %s", current_type)
+    state:update_type(current_type)
   end
 
   -- Sync state back to builder for persistence
@@ -122,11 +129,15 @@ end
 ---@param state table
 ---@return boolean
 function Builder:_should_start_new_section(data, opts, state)
-  if not opts.tag then
+  if not opts.type then
     return false
   end
 
-  return opts.tag == self.chat.MESSAGE_TAGS.TOOL_OUTPUT and state.last_tag == self.chat.MESSAGE_TAGS.LLM_MESSAGE
+  local tags = self.chat.MESSAGE_TYPES
+
+  return (opts.type == tags.TOOL_MESSAGE and state.last_type ~= tags.TOOL_MESSAGE)
+    or (opts.type == tags.REASONING and not state.has_reasoning_output)
+    or (opts.type == tags.LLM_MESSAGE and state.last_type ~= tags.LLM_MESSAGE)
 end
 
 ---Check if we need a header
@@ -143,7 +154,7 @@ end
 ---@param state table
 ---@return nil
 function Builder:_add_header_spacing(lines, state)
-  if state.last_tag == self.chat.MESSAGE_TAGS.TOOL_OUTPUT then
+  if state.last_type == self.chat.MESSAGE_TYPES.TOOL_MESSAGE then
     table.insert(lines, "")
   else
     table.insert(lines, "")
@@ -163,7 +174,7 @@ function Builder:_get_formatter(data, opts)
   }
 
   for _, formatter in ipairs(formatters) do
-    if formatter:can_handle(data, opts, self.chat.MESSAGE_TAGS) then
+    if formatter:can_handle(data, opts, self.chat.MESSAGE_TYPES) then
       return formatter
     end
   end
@@ -186,10 +197,11 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
   end
 
   local cursor_moved = vim.api.nvim_win_get_cursor(0)[1] == line_count
+  log:debug("Writing: %s", vim.inspect(lines))
   vim.api.nvim_buf_set_text(self.chat.bufnr, last_line, last_column, last_line, last_column, lines)
 
   -- Handle folding
-  if fold_info and opts.tag == self.chat.MESSAGE_TAGS.TOOL_OUTPUT and #lines > 1 then
+  if fold_info and opts.type == self.chat.MESSAGE_TYPES.TOOL_MESSAGE and #lines > 1 then
     local fold_start = last_line + fold_info.start_offset
     local fold_end = last_line + fold_info.end_offset
     self.chat.ui.tools:create_fold(fold_start, fold_end, fold_info.first_line)
@@ -212,7 +224,7 @@ end
 ---@param state table
 function Builder:_sync_state_from_formatting_state(state)
   self.state.last_role = state.last_role
-  self.state.last_tag = state.last_tag
+  self.state.last_type = state.last_type
   self.state.has_reasoning_output = state.has_reasoning_output
 end
 

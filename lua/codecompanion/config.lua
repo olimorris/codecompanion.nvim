@@ -82,10 +82,6 @@ local defaults = {
             },
           },
         },
-        ["weather"] = {
-          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/weather.lua",
-          description = "Get the latest weather",
-        },
         ["cmd_runner"] = {
           callback = "strategies.chat.agents.tools.cmd_runner",
           description = "Run shell commands initiated by the LLM",

@@ -109,7 +109,7 @@ local function add_pins(chat)
   end
 end
 
----Find a message in the table that has a specific tag
+---Find a message in the table that has a specific tool call ID
 ---@param id string
 ---@param messages table
 ---@return table|nil
@@ -512,9 +512,9 @@ _G.codecompanion_buffers = {}
 ---@class CodeCompanion.Chat
 local Chat = {}
 
-Chat.MESSAGE_TAGS = {
+Chat.MESSAGE_TYPES = {
   LLM_MESSAGE = "llm_message",
-  TOOL_OUTPUT = "tool_output",
+  TOOL_MESSAGE = "tool_message",
   USER_MESSAGE = "user_message",
   SYSTEM_MESSAGE = "system_message",
 }
@@ -808,32 +808,6 @@ function Chat:remove_tagged_message(tag)
     :totable()
 end
 
----Return the last message in the chat buffer by a given tag
----@param opts? { tag?: string, n?: number, n_minus?: number }
----@return table|nil
-function Chat:pluck_message(opts)
-  opts = opts or {}
-
-  local index = #self.messages
-  if opts.n then
-    if not opts.n > index then
-      index = opts.n
-    end
-  elseif opts.n_minus then
-    index = index - opts.n_minus
-  end
-
-  if not opts.tag then
-    return self.messages[index]
-  end
-
-  if self.messages[index].opts.tag == opts.tag then
-    return self.messages[index]
-  end
-
-  return nil
-end
-
 ---Add a message to the message table
 ---@param data { role: string, content: string, tool_calls?: table }
 ---@param opts? table Options for the message
@@ -980,7 +954,7 @@ function Chat:submit(opts)
               result.output.role = config.constants.LLM_ROLE
             end
             table.insert(output, result.output.content)
-            self:add_buf_message(result.output, { tag = self.MESSAGE_TAGS.LLM_MESSAGE })
+            self:add_buf_message(result.output, { type = self.MESSAGE_TYPES.LLM_MESSAGE })
           elseif self.status == CONSTANTS.STATUS_ERROR then
             log:error("Error: %s", result.output)
             return self:done(output)
@@ -1267,7 +1241,6 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   output.cycle = self.cycle
   output.id = make_id({ role = output.role, content = output.content })
   output.opts = vim.tbl_extend("force", output.opts or {}, {
-    tag = self.MESSAGE_TAGS.TOOL_OUTPUT,
     visible = true,
   })
 
@@ -1290,7 +1263,7 @@ function Chat:add_tool_output(tool, for_llm, for_user)
     -- properly as folds can't work if the boundary is the last line
     content = (for_user or for_llm) .. "\n",
   }, {
-    tag = self.MESSAGE_TAGS.TOOL_OUTPUT,
+    type = self.MESSAGE_TYPES.TOOL_MESSAGE,
   })
 end
 

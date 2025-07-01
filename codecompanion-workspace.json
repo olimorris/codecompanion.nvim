@@ -9,12 +9,7 @@
       "opts": {
         "remove_config_system_prompt": true
       },
-      "data": [
-        "chat-buffer-init",
-        "chat-buffer-ui",
-        "chat-references",
-        "chat-watchers"
-      ]
+      "data": ["chat-buffer-init", "chat-messages"]
     },
     {
       "name": "Chat UI",
@@ -105,6 +100,11 @@
       "path": "lua/codecompanion/strategies/chat/ui/init.lua",
       "description": "The `${filename}` file is responsible for translating the content in the chat buffer into the Neovim UI that the user interacts with. It handles the rendering of any headers alongside holding methods that relate to folding and extmarks"
     },
+    "chat-messages": {
+      "type": "file",
+      "path": "tests/stubs/messages.lua",
+      "description": "Messages in the chat buffer are lua table objects as seen in `${filename}`. They contain the role of the message (user, assistant, system), the content of the message, and any additional metadata such as visibility and sometimes type. The latter are important when data is being written to the buffer with `add_buf_message` as they allow the chat ui builder pattern to determine the type of message that it's receiving and therefore determine how to format it. In the example shared in `${filename}`, you can see how a user has prompted the LLM to use a tool and the chain of messages that lead to the LLM's final response."
+    },
     "chat-references": {
       "type": "symbols",
       "path": "lua/codecompanion/strategies/chat/references.lua",
@@ -118,12 +118,12 @@
     "chat-ui-builder": {
       "type": "file",
       "path": "lua/codecompanion/strategies/chat/ui/builder.lua",
-      "description": "The message builder coordinates the entire process of adding content to the chat buffer. It uses a fluent interface to chain operations: adding headers when roles change, formatting content through specialized formatters, writing to the buffer with proper folding, and updating internal state. This replaced the complex monolithic `add_buf_message` function with a clean, extensible pattern."
+      "description": "The message builder coordinates the entire process of adding content to the chat buffer. It uses a fluent interface to chain operations: adding headers when roles change, formatting content through specialized formatters, writing to the buffer with proper folding, and updating internal state. It is called from the chat buffer's `add_buf_message` method which occurs throughout the codebase."
     },
     "chat-ui-formatters-base": {
       "type": "file",
       "path": "lua/codecompanion/strategies/chat/ui/formatters/base.lua",
-      "description": "The base formatter class that defines the interface all formatters must implement. It provides error handling through `safe_format` and requires formatters to implement `can_handle`, `get_tag`, and `format` methods. Each formatter receives the chat instance, allowing access to state like `_last_tag` and `_has_reasoning_output`."
+      "description": "The base formatter class that defines the interface all formatters must implement. It requires formatters to implement `can_handle`, `get_tag`, and `format` methods. Each formatter receives the chat instance, allowing access to state like `last_tag` and `has_reasoning_output`."
     },
     "chat-ui-formatters-tools": {
       "type": "file",
@@ -164,11 +164,6 @@
       "type": "file",
       "path": "lua/codecompanion/strategies/chat/init.lua",
       "description": "The `${filename}` file is the entry point for the chat strategy, which is called the `chat buffer`. All methods directly relating to the chat buffer reside here."
-    },
-    "chat-messages": {
-      "type": "file",
-      "path": "tests/stubs/messages.lua",
-      "description": "This is an example of what the messages table looks like. This is the table which contains all of the user and LLM messages that are sent to the LLM. It also includes output from the tools that the LLM has requested to run. The role is the person that has sent the message. Content is the message itself. Cycle is a way of grouping messages together in a turn where a turn is defined as a user message and a LLM message (sometimes a tool message too"
     },
     "workflow-example": {
       "type": "file",
