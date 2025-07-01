@@ -324,6 +324,7 @@ function ListCodeUsagesTool:get_fallback_symbol(bufnr, row, col)
   -- Extract the code block
   local lines = vim.api.nvim_buf_get_lines(bufnr, comment_start, end_row + 1, false)
   local filename = vim.api.nvim_buf_get_name(bufnr)
+  local filetype = vim.api.nvim_get_option_value("filetype", { buf = bufnr })
 
   return {
     status = "success",
@@ -332,6 +333,7 @@ function ListCodeUsagesTool:get_fallback_symbol(bufnr, row, col)
       start_line = comment_start + 1,
       end_line = end_row + 1,
       filename = filename,
+      filetype = filetype,
     },
   }
 end
@@ -381,6 +383,7 @@ function ListCodeUsagesTool:extract_node_data(bufnr, node)
 
   local code_block = table.concat(lines, "\n")
   local filename = vim.api.nvim_buf_get_name(bufnr)
+  local filetype = vim.api.nvim_get_option_value("filetype", { buf = bufnr })
 
   return {
     status = "success",
@@ -389,6 +392,7 @@ function ListCodeUsagesTool:extract_node_data(bufnr, node)
       start_line = comment_start + 1, -- 1-indexed line numbers
       end_line = end_row + 1, -- 1-indexed line numbers
       filename = filename,
+      filetype = filetype,
     },
   }
 end
@@ -721,7 +725,7 @@ Filename: %s:%s-%s
                 code_block.filename,
                 code_block.start_line,
                 code_block.end_line,
-                ListCodeUsagesTool.filetype,
+                code_block.filetype or ListCodeUsagesTool.filetype,
                 code_block.code_block
               )
           end
