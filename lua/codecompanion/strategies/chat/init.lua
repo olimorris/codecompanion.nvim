@@ -1262,9 +1262,7 @@ function Chat:add_tool_output(tool, for_llm, for_user)
 
   self:add_buf_message({
     role = config.constants.LLM_ROLE,
-    -- HACK: We add a blank line to ensure that the tool output can be folded
-    -- properly as folds can't work if the boundary is the last line
-    content = (for_user or for_llm) .. "\n",
+    content = (for_user or for_llm),
   }, {
     type = self.MESSAGE_TYPES.TOOL_MESSAGE,
   })
