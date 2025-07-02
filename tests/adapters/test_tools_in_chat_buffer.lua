@@ -75,7 +75,7 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
       -- Just adding this to make the chat buffer look more real
       _G.chat:add_buf_message({
         role = "user",
-        content = "What's the @weather like in London and Paris?"
+        content = "What's the @{weather} like in London and Paris?"
       }, { type = "user_message" })
       _G.chat:add_message({
         role = "user",
