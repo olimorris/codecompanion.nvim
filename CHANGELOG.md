@@ -1,5 +1,23 @@
 # Changelog
 
+## [17.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.4.0...v17.5.0) (2025-06-28)
+
+
+### Features
+
+* **adapters:** add tool support to Azure OpenAI ([#1737](https://github.com/olimorris/codecompanion.nvim/issues/1737)) ([2c7e9b1](https://github.com/olimorris/codecompanion.nvim/commit/2c7e9b1aa9fa1f5a2b4d82f3f4e065cb0c8bc2b7))
+
+
+### Bug Fixes
+
+* **adapters:** reduce copilot premium request consumption ([#1738](https://github.com/olimorris/codecompanion.nvim/issues/1738)) ([ed96fe3](https://github.com/olimorris/codecompanion.nvim/commit/ed96fe33c17b41957f2334b1cae29c24d35f8ef2))
+* **tools:** patching for empty and small files with insufficient context ([#1734](https://github.com/olimorris/codecompanion.nvim/issues/1734)) ([cb55ef0](https://github.com/olimorris/codecompanion.nvim/commit/cb55ef006be3e75015c84fbd9adef14b3546a08f))
+
+
+### Code Refactoring
+
+* **chat:** tools and variables now use `@{tool}` and `#{variable}` syntax ([#1740](https://github.com/olimorris/codecompanion.nvim/issues/1740)) ([f89eca2](https://github.com/olimorris/codecompanion.nvim/commit/f89eca26368b29bc8259921d459c1b4e5bfaeebb))
+
 ## [17.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.3.0...v17.4.0) (2025-06-27)
 
 

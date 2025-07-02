@@ -127,7 +127,7 @@ T["References"]["Tools and their schema can be deleted"] = function()
   child.lua([[
     _G.chat:add_buf_message({
       role = "user",
-      content = "Whats the @weather like in London? Also adding a @func tool too.",
+      content = "Whats the @{weather} like in London? Also adding a @{func} tool too.",
     })
   ]])
 
@@ -356,7 +356,7 @@ T["References"]["Correctly removes tool schema and usage flag on reference delet
     -- Add a user message that triggers multiple tool agents
     local message = {
       role = config.constants.USER_ROLE,
-      content = "Whats the @weather like in London? Also adding a @func tool too.",
+      content = "Whats the @{weather} like in London? Also adding a @{func} tool too.",
     }
     _G.chat:add_message(message) -- Add to message history
 
@@ -462,7 +462,7 @@ end
 
 T["References"]["Tool group with collapse_tools shows single group reference"] = function()
   child.lua([[
-    local message = { role = "user", content = "@test_group help" }
+    local message = { role = "user", content = "@{test_group} help" }
     _G.chat:add_message(message)
     _G.chat:replace_vars_and_tools(message)
   ]])
@@ -488,7 +488,7 @@ end
 
 T["References"]["Tool group without collapse_tools shows individual tools"] = function()
   child.lua([[
-    local message = { role = "user", content = "@test_group2 help" }
+    local message = { role = "user", content = "@{test_group2} help" }
     _G.chat:add_message(message)
     _G.chat:replace_vars_and_tools(message)
   ]])
@@ -514,7 +514,7 @@ end
 
 T["References"]["Removing collapsed group removes all its tools and system message"] = function()
   child.lua([[
-    local message = { role = "user", content = "@remove_group help" }
+    local message = { role = "user", content = "@{remove_group} help" }
     _G.chat:add_message(message)
     _G.chat:replace_vars_and_tools(message)
   ]])

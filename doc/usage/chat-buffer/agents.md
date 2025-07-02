@@ -1,6 +1,9 @@
 # Using Agents and Tools
 
 > [!IMPORTANT]
+> As of `v17.5.0`, tools must be wrapped in curly braces, such as `@{grep_search}` or `@{files}`
+
+> [!IMPORTANT]
 > Not all LLMs support function calling and the use of tools. Please see the [compatibility](#compatibility) section for more information.
 
 <p align="center">
@@ -32,23 +35,23 @@ There is also a thriving ecosystem of user created tools:
 
 The section of the discussion forums which is dedicated to user created tools can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions/categories/tools).
 
-## @cmd_runner
+## cmd_runner
 
 The _@cmd_runner_ tool enables an LLM to execute commands on your machine, subject to your authorization. For example:
 
 ```md
-Can you use the @cmd_runner tool to run my test suite with `pytest`?
+Can you use the @{cmd_runner} tool to run my test suite with `pytest`?
 ```
 
 ```md
-Use the @cmd_runner tool to install any missing libraries in my project
+Use the @{cmd_runner} tool to install any missing libraries in my project
 ```
 
 Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) which means the plugin can't pass the output of the execution to the LLM. When this occurs, the tool will instead share the exit code.
 
 The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its request. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for [workflows](/extending/workflows) to hook into.
 
-## @create_file
+## create_file
 
 > [!NOTE]
 > By default, this tool requires user approval before it can be executed
@@ -56,18 +59,18 @@ The LLM is specifically instructed to detect if you're running a test suite, and
 Create a file within the current working directory:
 
 ```md
-Can you create some test fixtures using the @create_file tool?
+Can you create some test fixtures using the @{create_file} tool?
 ```
 
-## @file_search
+## file_search
 
 This tool enables an LLM to search for files in the current working directory by glob pattern. It will return a list of relative paths for any matching files.
 
 ```md
-Use the @file_search tool to list all the lua files in my project
+Use the @{file_search} tool to list all the lua files in my project
 ```
 
-## @grep_search
+## grep_search
 
 > [!IMPORTANT]
 > This tool requires [ripgrep](https://github.com/BurntSushi/ripgrep) to be installed
@@ -75,10 +78,10 @@ Use the @file_search tool to list all the lua files in my project
 This tool enables an LLM to search for text, within files, in the current working directory. For every match, the output (`{filename}:{line number} {relative filepath}`) will be shared with the LLM:
 
 ```md
-Use the @grep_search tool to find all occurrences of `buf_add_message`?
+Use the @{grep_search} tool to find all occurrences of `buf_add_message`?
 ```
 
-## @insert_edit_into_file
+## insert_edit_into_file
 
 > [!NOTE]
 > By default, when editing files, this tool requires user approval before it can be executed
@@ -90,14 +93,14 @@ Use the @grep_search tool to find all occurrences of `buf_add_message`?
 This tool can edit buffers and files for code changes from an LLM:
 
 ```md
-Use the @insert_edit_into_file tool to refactor the code in #buffer
+Use the @{insert_edit_into_file} tool to refactor the code in #buffer
 ```
 
 ```md
-Can you apply the suggested changes to the buffer with the @insert_edit_into_file tool?
+Can you apply the suggested changes to the buffer with the @{insert_edit_into_file} tool?
 ```
 
-## @next_edit_suggestion
+## next_edit_suggestion
 
 Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the `@next_edit_suggestion` tool gives the LLM the ability to show the user where the next edit is. The LLM can only suggest edits in files or buffers that have been shared with it as context.
 
@@ -124,28 +127,33 @@ require("codecompanion").setup({
 
 The `jump_action` can be a VimScript command (as a string), or a lua function that accepts the path to the file and optionally returns the [window ID](https://neovim.io/doc/user/windows.html#window-ID). The window ID is needed if you want the LLM to point you to a specific line in the file.
 
-## @read_file
+## read_file
 
 This tool can read the contents of a specific file in the current working directory. This can be useful for an LLM to gain wider context of files that haven't been shared with it.
 
-## @web_search
+## web_search
 
 The _@web_search_ tool enables an LLM to search the web for a specific query. This can be useful to supplement an LLMs knowledge cut off date with more up to date information.
 
 ```md
-Can you use the @web_search tool to tell me the latest version of Neovim?
+Can you use the @{web_search} tool to tell me the latest version of Neovim?
 ```
 
 Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
+
+You can also ask it to search under a specific domain:
+```
+Using the @web_search tool to search from `https://neovim.io` and explain how I can configure a new language server.
+```
 
 ## Tool Groups
 
 CodeCompanion comes with two built-in tool groups:
 
-- `@full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools
-- `@files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools
+- `full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools
+- `files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools
 
-When you include a tool group in your chat (e.g., `@files`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer.
+When you include a tool group in your chat (e.g., `@{files}`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer.
 
 If you want to show all tools as references in the chat buffer, set the `collapse_tools` option to `false`:
 
@@ -178,7 +186,7 @@ Some tools, such as the _@cmd_runner_, require the user to approve any actions b
 Consider combining tools for complex tasks:
 
 ```md
-@full_stack_dev I want to play Snake. Can you create the game for me in Python and install any packages you need. Let's save it to ~/Code/Snake. When you've finished writing it, can you open it so I can play?
+@{full_stack_dev} I want to play Snake. Can you create the game for me in Python and install any packages you need. Let's save it to ~/Code/Snake. When you've finished writing it, can you open it so I can play?
 ```
 
 ### Automatic Tool Mode
@@ -190,7 +198,7 @@ The plugin allows you to run tools on autopilot. This automatically approves any
 Below is the tool use status of various adapters and models in CodeCompanion:
 
 | Adapter           | Model             | Supported          | Notes                               |
-|-------------------|-------------------|--:-:---------------|-------------------------------------|
+|-------------------|-------------------| :----------------: |-------------------------------------|
 | Anthropic         |                   | :white_check_mark: | Dependent on the model              |
 | Azure OpenAI      |                   | :white_check_mark: | Dependent on the model              |
 | Copilot           |                   | :white_check_mark: | Dependent on the model              |
