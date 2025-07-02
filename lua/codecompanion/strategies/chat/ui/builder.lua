@@ -1,5 +1,4 @@
 local config = require("codecompanion.config")
-local log = require("codecompanion.utils.log")
 
 local Reasoning = require("codecompanion.strategies.chat.ui.formatters.reasoning")
 local Standard = require("codecompanion.strategies.chat.ui.formatters.standard")
@@ -86,7 +85,6 @@ function Builder:add_message(data, opts)
     state:update_role(data.role)
     self:_add_header_spacing(lines, state)
     self.chat.ui:set_header(lines, config.strategies.chat.roles[data.role])
-    log:debug("Lines after header: %s", lines)
   elseif needs_new_section then
     state:start_new_section()
   end
@@ -114,7 +112,6 @@ function Builder:add_message(data, opts)
 
   -- Update persistent state from rich state
   if current_type then
-    -- log:debug("Updating type to %s", current_type)
     state:update_type(current_type)
   end
 
@@ -197,7 +194,6 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
   end
 
   local cursor_moved = vim.api.nvim_win_get_cursor(0)[1] == line_count
-  log:debug("Writing: %s", vim.inspect(lines))
   vim.api.nvim_buf_set_text(self.chat.bufnr, last_line, last_column, last_line, last_column, lines)
 
   -- Handle folding
