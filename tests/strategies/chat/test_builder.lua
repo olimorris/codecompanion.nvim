@@ -65,35 +65,36 @@ T["Builder"]["Sections"]["detects new section for tool output after LLM message"
     _G.chat.builder:add_message({
       role = "llm",
       content = "I'll help you with that."
-    }, { tag = "llm_message" })
+}, { type = _G.chat.MESSAGE_TYPES.LLM_MESSAGE })
 
-    local after_llm_tag = _G.chat.builder.state.last_tag
+    local last_type = _G.chat.builder.state.last_type
 
     -- Now add tool output - this should trigger new section detection
     _G.chat.builder:add_message({
       role = "llm",
       content = "Tool executed successfully"
-    }, { tag = "tool_output" })
+}, { type = _G.chat.MESSAGE_TYPES.TOOL_MESSAGE })
 
     -- Get the buffer contents to see if formatting worked
     local lines = h.get_buf_lines(_G.chat.bufnr)
 
     return {
-      after_llm_tag = after_llm_tag,
-      final_tag = _G.chat.builder.state.last_tag,
+      first_type = last_type,
+      final_type = _G.chat.builder.state.last_type,
       buffer_lines = lines,
+
       -- Let's also check some internal logic
       should_start_new_section = _G.chat.builder:_should_start_new_section(
         { role = "llm", content = "test" },
-        { tag = "tool_output" },
-        { last_tag = "llm_message" }
+        { type = _G.chat.MESSAGE_TYPES.TOOL_MESSAGE },
+        { last_type = _G.chat.MESSAGE_TYPES.LLM_MESSAGE }
       )
     }
   ]])
 
-  -- Verify the tag transition logic
-  h.eq(result.after_llm_tag, "llm_message")
-  h.eq(result.final_tag, "tool_output")
+  -- Verify the type transition logic
+  h.eq(result.first_type, child.lua("return _G.chat.MESSAGE_TYPES.LLM_MESSAGE"))
+  h.eq(result.final_type, child.lua("return _G.chat.MESSAGE_TYPES.TOOL_MESSAGE"))
   h.eq(result.should_start_new_section, true)
 end
 
