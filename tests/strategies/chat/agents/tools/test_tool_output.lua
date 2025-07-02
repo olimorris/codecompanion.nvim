@@ -151,7 +151,7 @@ T["Tool output"]["Folds"]["can be folded"] = function()
     --require("tests.log")
     h.make_tool_call(_G.chat, _G.tool, "**Weather Tool**: Ran successfully:\nTemperature: 20°C\nCondition: Sunny\nPrecipitation: 0%", {
       llm_initial_response = "I've found some awesome weather data for you:",
-      llm_final_response = "Let me know if you need anything else!",
+      llm_final_response = "\nLet me know if you need anything else!",
     })
   ]])
 
