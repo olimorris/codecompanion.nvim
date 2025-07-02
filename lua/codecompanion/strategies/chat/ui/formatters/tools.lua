@@ -20,24 +20,25 @@ function Tools:format(message, opts, state)
     table.insert(lines, "")
   end
   if state.last_type == self.chat.MESSAGE_TYPES.LLM_MESSAGE then
-    log:debug("Last tag was LLM_MESSAGE, adding extra spacing")
     table.insert(lines, "")
   end
 
-  -- Write the tool content
   local content_start = #lines + 1
   local content = message.content or ""
   for _, line in ipairs(vim.split(content, "\n", { plain = true, trimempty = false })) do
     table.insert(lines, line)
   end
-  local content_end = #lines
 
-  -- Calculate fold info if multi-line
+  -- Folds can only work up to the penultimate line in the buffer. So we add an
+  -- empty line as a result. But...we don't want to fold this line
+  table.insert(lines, "")
+  local content_end = #lines - 1
+
   local fold_info = nil
   if content_end > content_start then
     fold_info = {
-      start_offset = content_start - 1,
-      end_offset = content_end - 1,
+      start_offset = content_start - 1, -- 0-based index
+      end_offset = content_end - 1, -- 0-based index
       first_line = lines[content_start] or "",
     }
   end
