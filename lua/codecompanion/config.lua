@@ -433,6 +433,12 @@ local defaults = {
           callback = "keymaps.goto_file_under_cursor",
           description = "Open the file under cursor in a new tab.",
         },
+        copilot_stats = {
+          modes = { n = "gS" },
+          index = 20,
+          callback = "keymaps.copilot_stats",
+          description = "Show Copilot usage statistics",
+        },
       },
       opts = {
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
@@ -1000,8 +1006,8 @@ You must create or modify a workspace file through a series of prompts over mult
     },
     chat = {
       icons = {
-        pinned_buffer = " ",
-        watched_buffer = "󰂥 ",
+        buffer_pin = " ",
+        buffer_watch = "󰂥 ",
       },
       debug_window = {
         ---@return number|fun(): number

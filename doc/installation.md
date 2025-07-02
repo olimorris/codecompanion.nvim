@@ -69,7 +69,7 @@ As per [#377](https://github.com/olimorris/codecompanion.nvim/issues/377), if yo
 
 ## Installing Extensions
 
-CodeCompanion supports extensions that add additional functionality to the plugin. Below is an example which installs and configures the [MCP Hub](extensions/mcphub.html) extension:
+CodeCompanion supports extensions that add additional functionality to the plugin. Below is an example which installs and configures [mcphub.nvim](https://github.com/ravitemer/mcphub.nvim):
 
 1. Install with:
 

@@ -11,14 +11,12 @@ local CONSTANTS = {
 ---@param var string
 ---@return string|nil
 local function find_params(message, var)
-  local pattern = CONSTANTS.PREFIX .. var .. "{([^}]+)}"
-
+  local pattern = CONSTANTS.PREFIX .. "{" .. var .. "}{([^}]*)}"
   local params = message.content:match(pattern)
   if params then
     log:trace("Params found for variable: %s", params)
     return params
   end
-
   return nil
 end
 
@@ -72,9 +70,10 @@ end
 
 ---Creates a regex pattern to match a variable in a message
 ---@param var string The variable name to create a pattern for
+---@param include_params? boolean Whether to include parameters in the pattern
 ---@return string The compiled regex pattern
-function Variables:_pattern(var)
-  return CONSTANTS.PREFIX .. var .. "\\(\\s\\|$\\|{[^}]*}\\)"
+function Variables:_pattern(var, include_params)
+  return CONSTANTS.PREFIX .. "{" .. var .. "}" .. (include_params and "{[^}]*}" or "")
 end
 
 ---Check a message for a variable
@@ -144,6 +143,7 @@ function Variables:replace(message, bufnr)
     if var:match("^buffer") then
       message = require("codecompanion.strategies.chat.variables.buffer").replace(CONSTANTS.PREFIX, message, bufnr)
     else
+      message = regex.replace(message, self:_pattern(var, true), "")
       message = vim.trim(regex.replace(message, self:_pattern(var), ""))
     end
   end

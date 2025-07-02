@@ -1,4 +1,5 @@
 local M = {}
+local log = require("codecompanion.utils.log")
 
 M.FORMAT_PROMPT = [[*** Begin Patch
 [PATCH]
@@ -103,8 +104,9 @@ local function parse_changes_from_patch(patch)
       -- empty lines can be part of pre/post context
       -- we treat empty lines as new change block and not as post context
       -- only when the next line uses @@ identifier
-      table.insert(changes, change)
-      change = get_new_change()
+      -- skip this line and do nothing
+      do
+      end
     elseif line:sub(1, 1) == "-" then
       if #change.post > 0 then
         -- edits after post edit lines are new block of changes with same focus
@@ -134,7 +136,7 @@ end
 ---@return Change[], boolean All parsed Change objects, and whether the patch was properly parsed
 function M.parse_changes(raw)
   local patches = {}
-  for patch in raw:gmatch("%*%*%* Begin Patch%s+(.-)%s+%*%*%* End Patch") do
+  for patch in raw:gmatch("%*%*%* Begin Patch[\r\n]+(.-)[\r\n]+%*%*%* End Patch") do
     table.insert(patches, patch)
   end
 
@@ -249,14 +251,78 @@ function M.get_change_location(lines, change)
   return location
 end
 
+---Check if a change is a simple append operation for small/empty files
+---@param lines string[] Current file lines
+---@param change Change The change to analyze
+---@return boolean is_simple_append
+---@return string[]? lines_to_append
+local function is_simple_append(lines, change)
+  -- For empty files (containing only "")
+  if #lines == 1 and lines[1] == "" then
+    log:debug("[Patch] Empty file detected, treating as simple append")
+    return true, change.new
+  end
+
+  -- For small files with simple append patterns
+  if #lines <= 5 and #change.old == 0 and #change.new > 0 then
+    -- Check if pre-context matches the end of the file or is empty
+    if #change.pre == 0 then
+      log:debug("[Patch] No pre-context, appending to end of small file")
+      return true, change.new
+    end
+    -- Check if pre-context matches the last lines of the file
+    local matches = true
+    local start_check = math.max(1, #lines - #change.pre + 1)
+    for i, pre_line in ipairs(change.pre) do
+      local file_line = lines[start_check + i - 1]
+      if not file_line or (vim.trim(file_line) ~= vim.trim(pre_line)) then
+        matches = false
+        break
+      end
+    end
+
+    if matches then
+      log:debug("[Patch] Pre-context matches, treating as simple append")
+      return true, change.new
+    end
+  end
+
+  return false, nil
+end
+
 ---Apply a Change object to the file lines. Returns nil if not confident.
 ---@param lines string[] Lines before patch
 ---@param change Change Edit description
 ---@return string[]|nil New file lines (or nil if patch can't be confidently placed)
 function M.apply_change(lines, change)
+  -- Handle small files and empty files with special logic
+  if #lines <= 5 then
+    local is_append, append_lines = is_simple_append(lines, change)
+    if is_append and append_lines then
+      log:debug("[Patch] Using simple append for small file")
+      local new_lines = {}
+      -- For empty files, don't include the empty string
+      if #lines == 1 and lines[1] == "" then
+        for _, line in ipairs(append_lines) do
+          table.insert(new_lines, line)
+        end
+      else
+        -- Copy existing lines and append new ones
+        for _, line in ipairs(lines) do
+          table.insert(new_lines, line)
+        end
+        for _, line in ipairs(append_lines) do
+          table.insert(new_lines, line)
+        end
+      end
+      log:debug("[Patch] Small file append successful, new line count: %d", #new_lines)
+      return new_lines
+    end
+  end
   local location, score = get_best_location(lines, change)
   if score < 0.5 then
-    return
+    log:debug("[Patch] Low confidence score (%.2f), skipping change", score)
+    return nil
   end
   local new_lines = {}
   -- add lines before diff

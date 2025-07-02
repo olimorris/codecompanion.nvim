@@ -170,7 +170,7 @@ require("codecompanion").setup({
             system_prompt = "Describe what the agent should do",
             tools = {
               "cmd_runner",
-              "editor",
+              "insert_edit_into_file",
               -- Add your own tools or reuse existing ones
             },
             opts = {
@@ -184,7 +184,7 @@ require("codecompanion").setup({
 })
 ```
 
-When users introduce the agent `@my_agent` in the chat buffer, it can call the tools you listed (like `@my_tool`) to perform tasks on your code.
+When users introduce the group, `my_group`, in the chat buffer, it can call the tools you listed (such as `cmd_runner`) to perform tasks on your code.
 
 A tool is a [`CodeCompanion.Tool`](/extending/tools) table with specific keys that define the interface and workflow of the tool. The table can be resolved using the `callback` option. The `callback` option can be a table itself or either a function or a string that points to a luafile that return the table.
 
@@ -213,7 +213,7 @@ This is useful to ensure that a particular dependency is installed on the machin
 
 ### Approvals
 
-Some tools, such as [@cmd_runner](/usage/chat-buffer/agents.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
+Some tools, such as [cmd_runner](/usage/chat-buffer/agents.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
 
 ```lua
 require("codecompanion").setup({
@@ -310,8 +310,8 @@ require("codecompanion").setup({
     chat = {
       -- Change the default icons
       icons = {
-        pinned_buffer = " ",
-        watched_buffer = "👀 ",
+        buffer_pin = " ",
+        buffer_watch = "👀 ",
       },
 
       -- Alter the sizing of the debug window
@@ -362,7 +362,7 @@ require("codecompanion").setup({
 > [!NOTE]
 > Currently the plugin only supports native Neovim diff or [mini.diff](https://github.com/echasnovski/mini.diff)
 
-If you utilize the `@insert_edit_into_file` tool, then the plugin can update a given chat buffer. A diff will be created so you can see the changes made by the LLM.
+If you utilize the `insert_edit_into_file` tool, then the plugin can update a given chat buffer. A diff will be created so you can see the changes made by the LLM.
 
 There are a number of diff settings available to you:
 
