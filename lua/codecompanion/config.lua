@@ -626,8 +626,8 @@ Your instructions here
 
 You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
 
-1. Update the code in #buffer using the @insert_edit_into_file tool
-2. Then use the @cmd_runner tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
+1. Update the code in #{buffer} using the @{insert_edit_into_file} tool
+2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
 3. Make sure you trigger both tools in the same response
 
 We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
