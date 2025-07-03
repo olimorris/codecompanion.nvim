@@ -88,7 +88,7 @@ end
 
 T["can only read files that exist"] = function()
   child.lua([[
-    require("tests.log")
+    --require("tests.log")
     local tool = {
       {
         ["function"] = {
@@ -102,7 +102,7 @@ T["can only read files that exist"] = function()
   ]])
 
   local output = child.lua_get("chat.messages[#chat.messages].content")
-  h.eq("Ran with an error", string.match(output, "Ran with an error"))
+  h.expect_contains("Error reading", output)
 end
 
 return T

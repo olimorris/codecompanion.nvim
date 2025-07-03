@@ -4,6 +4,8 @@
 --]]
 local util = require("codecompanion.utils")
 
+local fmt = string.format
+
 ---@class CodeCompanion.Tool.CmdRunner: CodeCompanion.Agent.Tool
 return {
   name = "cmd_runner",
@@ -39,7 +41,7 @@ return {
       strict = true,
     },
   },
-  system_prompt = string.format(
+  system_prompt = fmt(
     [[# Command Runner Tool (`cmd_runner`)
 
 ## CONTEXT
@@ -105,7 +107,7 @@ return {
     ---@param agent CodeCompanion.Agent
     ---@return string
     prompt = function(self, agent)
-      return string.format("Run the command `%s`?", table.concat(self.cmds[1].cmd, " "))
+      return fmt("Run the command `%s`?", table.concat(self.cmds[1].cmd, " "))
     end,
 
     ---Rejection message back to the LLM
@@ -116,7 +118,7 @@ return {
     rejected = function(self, agent, cmd)
       agent.chat:add_tool_output(
         self,
-        string.format("The user rejected the execution of the command `%s`?", table.concat(self.cmds[1].cmd, " "))
+        fmt("The user rejected the execution of the command `%s`?", table.concat(self.cmds[1].cmd, " "))
       )
     end,
 
@@ -130,28 +132,27 @@ return {
       local cmds = table.concat(cmd.cmd, " ")
       local errors = vim.iter(stderr):flatten():join("\n")
 
-      local error_output = string.format(
-        [[**Cmd Runner Tool**: There was an error running the `%s` command:
-
+      local output = [[%s
 ```txt
 %s
-```]],
-        cmds,
-        errors
-      )
-      chat:add_tool_output(self, error_output)
+```]]
+
+      local llm_output = fmt(output, fmt("There was an error running the `%s` command:", cmds), errors)
+      local user_output = fmt(output, fmt("`%s` error", cmds), errors)
+
+      chat:add_tool_output(self, llm_output, user_output)
 
       if stdout and not vim.tbl_isempty(stdout) then
-        local output = string.format(
-          [[**Cmd Runner Tool**: There was also some output from the command:
-
+        stdout = vim.iter(stdout):flatten():join("\n")
+        output = [[%s
 ```txt
 %s
-```]],
-          vim.iter(stdout):flatten():join("\n")
-        )
+```]]
 
-        chat:add_tool_output(self, output)
+        llm_output = fmt(output, fmt("There was also some output from the `%s` command:", cmds), stdout)
+        user_output = fmt(output, fmt("`%s`", cmds), stdout)
+
+        chat:add_tool_output(self, llm_output, user_output)
       end
     end,
 
@@ -165,10 +166,9 @@ return {
         return chat:add_tool_output(self, "There was no output from the cmd_runner tool")
       end
       local output = vim.iter(stdout[#stdout]):flatten():join("\n")
-      local message = string.format(
-        [[**Cmd Runner Tool**: The output from the command `%s` was:
-
-```txt
+      local message = fmt(
+        [[`%s`
+```
 %s
 ```]],
         table.concat(cmd.cmd, " "),

@@ -217,6 +217,14 @@ return {
         opts = {
           system_prompt = "My tool system prompt",
           wait_timeout = 3000,
+          folds = {
+            enabled = false,
+            failure_words = {
+              "error",
+              "failed",
+              "invalid",
+            },
+          },
         },
       },
       variables = {
@@ -366,6 +374,8 @@ return {
       icons = {
         buffer_pin = " ",
         buffer_watch = "👀 ",
+        tool_success = "!!",
+        tool_failure = "xx",
       },
       show_references = true,
       show_settings = false,
