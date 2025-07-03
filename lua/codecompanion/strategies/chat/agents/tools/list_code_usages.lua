@@ -66,12 +66,26 @@ ListCodeUsagesTool.filetype = ""
 ----------------------
 
 -- Find symbol using grep and populate quickfix list
-function ListCodeUsagesTool:find_symbol_with_grep(symbolName, file_extension, filepaths)
+function ListCodeUsagesTool:find_symbol_with_grep(symbolName, file_extension, filepaths, exclude_dirs)
   local search_pattern = vim.fn.escape(symbolName, "\\")
   local cmd = "silent! grep! -w"
 
+  -- Default excluded directories if none provided. Should be excluded by default in gitignore.
+  exclude_dirs = exclude_dirs or { "node_modules", "dist", "vendor", ".git", "venv", ".env", "target", "build" }
+
   if file_extension and file_extension ~= "" then
-    cmd = cmd .. " --glob=" .. vim.fn.shellescape("*." .. file_extension) .. " "
+    if file_extension == "js" or file_extension == "ts" then
+      -- Include both JavaScript and TypeScript files
+      cmd = cmd .. " --glob=" .. vim.fn.shellescape("*.{js,ts}") .. " "
+    else
+      -- Original behavior for other extensions
+      cmd = cmd .. " --glob=" .. vim.fn.shellescape("*." .. file_extension) .. " "
+    end
+  end
+
+  -- Add exclusion patterns for directories
+  for _, dir in ipairs(exclude_dirs) do
+    cmd = cmd .. " --glob=!" .. vim.fn.shellescape(dir .. "/**") .. " "
   end
 
   cmd = cmd .. vim.fn.shellescape(search_pattern)
