@@ -1,5 +1,6 @@
+local config = require("codecompanion.config")
+
 local BaseFormatter = require("codecompanion.strategies.chat.ui.formatters.base")
-local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Chat.UI.Formatters.Tools : CodeCompanion.Chat.UI.Formatters.Base
 local Tools = setmetatable({}, { __index = BaseFormatter })
@@ -28,10 +29,14 @@ function Tools:format(message, opts, state)
   for _, line in ipairs(vim.split(content, "\n", { plain = true, trimempty = false })) do
     table.insert(lines, line)
   end
+  table.insert(lines, "")
+
+  if not config.strategies.chat.tools.opts.folds.enabled then
+    return lines, nil
+  end
 
   -- Folds can only work up to the penultimate line in the buffer. So we add an
   -- empty line as a result. But...we don't want to fold this line
-  table.insert(lines, "")
   local content_end = #lines - 1
 
   local fold_info = nil
