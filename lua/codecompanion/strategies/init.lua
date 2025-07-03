@@ -158,6 +158,9 @@ function Strategies:workflow()
           if type(p.content) == "function" then
             p.content = p.content(self.context)
           end
+          if p.role == config.constants.SYSTEM_ROLE and not p.opts then
+            p.opts = { visible = false, tags = { "from_custom_prompt" } }
+          end
           return p
         end)
         :totable()
@@ -254,7 +257,7 @@ function Strategies.evaluate_prompts(prompts, context)
     :map(function(prompt)
       local content = type(prompt.content) == "function" and prompt.content(context) or prompt.content
       if prompt.role == config.constants.SYSTEM_ROLE and not prompt.opts then
-        prompt.opts = { visible = false }
+        prompt.opts = { visible = false, tags = { "from_custom_prompt" } }
       end
       return {
         role = prompt.role or "",
