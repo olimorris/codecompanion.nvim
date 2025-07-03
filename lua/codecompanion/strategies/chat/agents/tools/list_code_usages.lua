@@ -23,14 +23,15 @@ ListCodeUsagesTool.TREESITTER_NODES = {
   struct_item = 30,
   trait_item = 30,
   enum_item = 30,
+  enum_declaration = 30,
   type_item = 30,
   module_definition = 30,
   namespace_definition = 30,
 
   -- Function-level constructs (medium priority)
   function_definition = 20,
-  method_definition = 20,
   function_declaration = 20,
+  method_definition = 20,
   method_declaration = 20,
   function_item = 20,
   constructor_declaration = 20,
@@ -42,6 +43,8 @@ ListCodeUsagesTool.TREESITTER_NODES = {
   const_declaration = 10,
   let_declaration = 10,
   const_item = 10,
+  local_declaration = 10,
+  assignment_statement = 10,
 
   -- Import statements
   import_declaration = 5,
