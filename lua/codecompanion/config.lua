@@ -154,7 +154,17 @@ local defaults = {
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
+          folds = {
+            enabled = true, -- Fold tool output in the buffer?
+            failure_words = { -- Words that indicate an error in the tool output. Used to apply failure highlighting
+              "error",
+              "failed",
+              "invalid",
+              "rejected",
+            },
+          },
           wait_timeout = 30000, -- How long to wait for user input before timing out (milliseconds)
+
           ---Tools and/or groups that are always loaded in a chat buffer
           ---@type string[]
           default_tools = {},
@@ -533,10 +543,6 @@ local defaults = {
               context.filetype
             )
           end,
-          opts = {
-            visible = false,
-            tag = "system_tag",
-          },
         },
       },
     },
@@ -560,9 +566,6 @@ local defaults = {
                 context.filetype
               )
             end,
-            opts = {
-              visible = false,
-            },
           },
           {
             role = constants.USER_ROLE,
@@ -620,8 +623,8 @@ Your instructions here
 
 You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
 
-1. Update the code in #buffer using the @insert_edit_into_file tool
-2. Then use the @cmd_runner tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
+1. Update the code in #{buffer} using the @{insert_edit_into_file} tool
+2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
 3. Make sure you trigger both tools in the same response
 
 We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
@@ -670,9 +673,6 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
 3. Explain each function or significant block of code, including parameters and return values.
 4. Highlight any specific functions or methods used and their roles.
 5. Provide context on how the code fits into a larger application if applicable.]],
-          opts = {
-            visible = false,
-          },
         },
         {
           role = constants.USER_ROLE,
@@ -725,9 +725,6 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
       - Edge cases
       - Error handling (if applicable)
 6. Provide the generated unit tests in a clear and organized manner without additional explanations or chat.]],
-          opts = {
-            visible = false,
-          },
         },
         {
           role = constants.USER_ROLE,
@@ -785,9 +782,6 @@ Ensure the fixed code:
 - Is formatted correctly.
 
 Use Markdown formatting and include the programming language name at the start of the code block.]],
-          opts = {
-            visible = false,
-          },
         },
         {
           role = constants.USER_ROLE,
@@ -829,9 +823,6 @@ Use Markdown formatting and include the programming language name at the start o
         {
           role = constants.SYSTEM_ROLE,
           content = [[You are an expert coder and helpful assistant who can help debug code diagnostics, such as warning and error messages. When appropriate, give solutions with code snippets as fenced codeblocks with a language identifier to enable syntax highlighting.]],
-          opts = {
-            visible = false,
-          },
         },
         {
           role = constants.USER_ROLE,
@@ -945,7 +936,6 @@ This is the code, for context:
       prompts = {
         {
           role = constants.SYSTEM_ROLE,
-          opts = { visible = false },
           content = function()
             local schema = require("codecompanion").workspace_schema()
             return fmt(
@@ -1012,6 +1002,8 @@ You must create or modify a workspace file through a series of prompts over mult
       icons = {
         buffer_pin = " ",
         buffer_watch = "󰂥 ",
+        tool_success = "",
+        tool_failure = "",
       },
       debug_window = {
         ---@return number|fun(): number
