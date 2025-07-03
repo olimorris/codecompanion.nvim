@@ -514,9 +514,9 @@ local Chat = {}
 
 Chat.MESSAGE_TYPES = {
   LLM_MESSAGE = "llm_message",
+  SYSTEM_MESSAGE = "system_message",
   TOOL_MESSAGE = "tool_message",
   USER_MESSAGE = "user_message",
-  SYSTEM_MESSAGE = "system_message",
 }
 
 ---@param args CodeCompanion.ChatArgs

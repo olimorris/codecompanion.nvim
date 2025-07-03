@@ -26,12 +26,11 @@ end
 ---@return table Rich formatting state with methods
 local function create_state(base_state)
   local state = {
-    -- Persistent state (copied from builder)
     last_role = base_state.last_role,
     last_type = base_state.last_type,
     has_reasoning_output = base_state.has_reasoning_output,
 
-    -- Current context (gets set during formatting)
+    -- Current context
     is_new_response = false,
     is_new_section = false,
   }
@@ -219,9 +218,9 @@ end
 ---Sync formatting state back to builder's persistent state
 ---@param state table
 function Builder:_sync_state_from_formatting_state(state)
+  self.state.has_reasoning_output = state.has_reasoning_output
   self.state.last_role = state.last_role
   self.state.last_type = state.last_type
-  self.state.has_reasoning_output = state.has_reasoning_output
 end
 
 ---Sync builder state back to chat object for persistence
