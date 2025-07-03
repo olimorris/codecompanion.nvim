@@ -63,12 +63,12 @@ ListCodeUsagesTool.filetype = ""
 ----------------------
 
 -- Find symbol using grep and populate quickfix list
-function ListCodeUsagesTool:find_symbol_with_grep(symbolName, filetype, filepaths)
-  local search_pattern = "\\b" .. vim.fn.escape(symbolName, "\\") .. "\\b"
-  local cmd = "silent! grep! "
+function ListCodeUsagesTool:find_symbol_with_grep(symbolName, file_extension, filepaths)
+  local search_pattern = vim.fn.escape(symbolName, "\\")
+  local cmd = "silent! grep! -w"
 
-  if filetype and filetype ~= "" then
-    cmd = cmd .. string.format("--type %s", filetype) .. " "
+  if file_extension and file_extension ~= "" then
+    cmd = cmd .. " --glob=" .. vim.fn.shellescape("*." .. file_extension) .. " "
   end
 
   cmd = cmd .. vim.fn.shellescape(search_pattern)
@@ -176,7 +176,7 @@ function ListCodeUsagesTool:open_file_and_set_cursor(filepath, line, col)
 end
 
 -- Find and navigate to a symbol
-function ListCodeUsagesTool:navigate_to_symbol(symbolName, filetype, filepaths)
+function ListCodeUsagesTool:navigate_to_symbol(symbolName, file_extension, filepaths)
   vim.cmd("stopinsert")
 
   -- First try LSP
@@ -185,12 +185,12 @@ function ListCodeUsagesTool:navigate_to_symbol(symbolName, filetype, filepaths)
 
   -- Fall back to grep if LSP fails
   if not match then
-    match = self:find_symbol_with_grep(symbolName, filetype, filepaths)
+    match = self:find_symbol_with_grep(symbolName, file_extension, filepaths)
     using_lsp = false
   end
 
   if not match then
-    local filetype_msg = filetype and (" in " .. filetype .. " files") or ""
+    local filetype_msg = file_extension and (" in " .. file_extension .. " files") or ""
     return {
       status = "error",
       data = "Symbol not found in workspace" .. filetype_msg .. ". Double check the spelling.",
@@ -610,11 +610,14 @@ return {
         vim.inspect(filePaths)
       )
 
-      ---@diagnostic disable-next-line: undefined-field
-      local context_filetype = self.chat.context.filetype
-      ---@diagnostic disable-next-line: undefined-field
       local context_winnr = self.chat.context.winnr
+      local context_bufnr = self.chat.context.bufnr
       local chat_winnr = vim.api.nvim_get_current_win()
+      local file_extension = ""
+      if context_bufnr and vim.api.nvim_buf_is_valid(context_bufnr) then
+        local filename = vim.api.nvim_buf_get_name(context_bufnr)
+        file_extension = filename:match("%.([^%.]+)$") or "*"
+      end
 
       -- Reset state
       ListCodeUsagesTool.symbol_data = {}
@@ -622,7 +625,7 @@ return {
 
       -- Step 1: Navigate to the symbol definition
       vim.api.nvim_set_current_win(context_winnr)
-      local cursor_result = ListCodeUsagesTool:navigate_to_symbol(symbolName, context_filetype, filePaths)
+      local cursor_result = ListCodeUsagesTool:navigate_to_symbol(symbolName, file_extension, filePaths)
 
       if cursor_result.status ~= "success" then
         vim.api.nvim_set_current_win(chat_winnr)
