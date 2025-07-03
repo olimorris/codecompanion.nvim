@@ -1,5 +1,5 @@
 name: Bug Report
-description: Raising a bug/issue with the plugin
+description: Raise an issue for something that is stopping CodeCompanion from working as expected
 title: "[Bug]: "
 labels: ["bug"]
 
@@ -11,7 +11,7 @@ body:
 
           **What is a bug?**
           - A bug is a reproducible error that causes CodeCompanion to behave incorrectly, crash, or not work as documented.
-          - Minor cosmetic issues (such as extra line breaks or minor formatting quirks) are not considered bugs unless they impact usability or readability.
+          - Minor cosmetic issues (such as extra line breaks or formatting quirks) are not considered bugs unless they impact usability or readability. Please PR any of these changes yourself.
           - Feature requests, usage questions, or configuration help should go to [Discussions](https://github.com/olimorris/codecompanion.nvim/discussions).
 
           If you don't supply a valid `init.lua` file at the bottom of this page, your issue will be closed.
@@ -28,8 +28,6 @@ body:
           - label: I have updated CodeCompanion.nvim and all dependencies to the latest version.
             required: true
           - label: I have searched for existing issues and discussions.
-            required: true
-          - label: I have checked related plugin issue trackers if relevant.
             required: true
           - label: My issue is not a minor or cosmetic quirk (e.g., formatting, spacing, or other non-functional details).
             required: true
@@ -110,8 +108,8 @@ body:
       attributes:
         label: init.lua file
         description: |
-          Paste your minimal `init.lua` here.
-          Issues without a working minimal config will be closed.
+          Update the minimal `init.lua` below, so we can recreate the issue.
+          Issues without this will be closed.
         value: |
           --[[
           NOTE: Set the config path to enable the copilot adapter to work.
