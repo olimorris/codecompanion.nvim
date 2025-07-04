@@ -9,7 +9,7 @@
 - Neovim 0.11.0 or greater
 - _(Optional)_ An API key for your chosen LLM
 - _(Optional)_ The `base64` library for image/vision support
-- _(Optional)_ The `[ripgrep](https://github.com/BurntSushi/ripgrep)` library for the `grep_search` tool
+- _(Optional)_ The [ripgrep](https://github.com/BurntSushi/ripgrep) library for the `grep_search` tool
 
 ## Installation
 
