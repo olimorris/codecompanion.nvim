@@ -809,7 +809,7 @@ function Chat:remove_tagged_message(tag)
 end
 
 ---Add a message to the message table
----@param data { role: string, content: string, tool_calls?: table }
+---@param data { role: string, content: string, reasoning: string, tool_calls?: table }
 ---@param opts? table Options for the message
 ---@return CodeCompanion.Chat
 function Chat:add_message(data, opts)
@@ -821,6 +821,7 @@ function Chat:add_message(data, opts)
   local message = {
     role = data.role,
     content = data.content,
+    reasoning = data.reasoning,
     tool_calls = data.tool_calls,
   }
   message.id = make_id(message)
@@ -927,7 +928,7 @@ function Chat:submit(opts)
   log:trace("Tools:\n%s", payload.tools)
   log:info("Chat request started")
 
-  local output = {}
+  local output = { content = {}, reasoning = {} }
   local tools = {}
   self.current_request = client.new({ adapter = mapped_settings }):request(payload, {
     ---@param err { message: string, stderr: string }
@@ -956,7 +957,8 @@ function Chat:submit(opts)
               self._last_role = result.output.role
               result.output.role = config.constants.LLM_ROLE
             end
-            table.insert(output, result.output.content)
+            table.insert(output.content, result.output.content)
+            table.insert(output.reasoning, result.output.reasoning)
             self:add_buf_message(result.output, { type = self.MESSAGE_TYPES.LLM_MESSAGE })
           elseif self.status == CONSTANTS.STATUS_ERROR then
             log:error("Error: %s", result.output)
@@ -993,18 +995,22 @@ function Chat:done(output, tools)
   end
 
   local has_tools = tools and not vim.tbl_isempty(tools)
-  local has_output = output and not vim.tbl_isempty(output)
 
-  -- Handle LLM output text
-  if has_output then
-    local content = vim.trim(table.concat(output or {}, "")) -- No idea why the LSP freaks out that this isn't a table
-    if content ~= "" then
-      self:add_message({
-        role = config.constants.LLM_ROLE,
-        content = content,
-      })
-    end
+  -- We add the output to the message table stack as this gets sent with every request
+  local content
+  local reasoning
+  if output.content and not vim.tbl_isempty(output.content) then
+    content = vim.trim(table.concat(output.content or {}, ""))
   end
+  if output.reasoning and not vim.tbl_isempty(output.reasoning) then
+    reasoning = vim.trim(table.concat(output.reasoning or {}, ""))
+  end
+
+  self:add_message({
+    role = config.constants.LLM_ROLE,
+    content = content,
+    reasoning = reasoning,
+  })
 
   if has_tools then
     tools = self.adapter.handlers.tools.format_tool_calls(self.adapter, tools)
