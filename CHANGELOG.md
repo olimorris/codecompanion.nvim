@@ -1,5 +1,12 @@
 # Changelog
 
+## [17.6.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.6.0...v17.6.1) (2025-07-04)
+
+
+### Bug Fixes
+
+* **prompts:** reword vectorcode tool in workspace prompt ([#1775](https://github.com/olimorris/codecompanion.nvim/issues/1775)) ([3527a9c](https://github.com/olimorris/codecompanion.nvim/commit/3527a9c85b58a8db2fee6d7dcde72077ba790a4a))
+
 ## [17.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.5.0...v17.6.0) (2025-07-03)
 
 
