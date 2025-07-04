@@ -69,7 +69,8 @@ CodeCompanion.nvim is organized into several key directories:
 
 - Neovim 0.10.0+
 - [lua-language-server](https://github.com/LuaLS/lua-language-server) for LSP support and type annotations
-- [stylua](https://github.com/JohnnyMorganz/StyLua) for Lua formatting
+- [stylua](https://github.com/JohnnyMorganz/StyLua) for Lua formatting (Install it with feature `lua54`)
+- [pandoc](https://pandoc.org/installing.html) for generate docs.
 
 ### Setting Up for Development
 
