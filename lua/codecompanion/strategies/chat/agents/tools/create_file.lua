@@ -166,7 +166,7 @@ return {
       local args = self.args
       local filepath = args.filepath
 
-      local llm_output = fmt("<createFileTool>%s</createFileTool>","Created file `%s` successfully")
+      local llm_output = fmt("<createFileTool>%s</createFileTool>", "Created file `%s` successfully")
 
       -- Get the file extension for syntax highlighting
       local file_ext = vim.fn.fnamemodify(filepath, ":e")
