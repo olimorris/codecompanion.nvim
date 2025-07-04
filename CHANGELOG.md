@@ -1,5 +1,73 @@
 # Changelog
 
+## [17.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.5.0...v17.6.0) (2025-07-03)
+
+
+### Features
+
+* **adapters:** add gemini-2.5-flash and set as new default ([#1686](https://github.com/olimorris/codecompanion.nvim/issues/1686)) ([fb98d6c](https://github.com/olimorris/codecompanion.nvim/commit/fb98d6c03f6039939e676f1257c76d8480a3da4f))
+* **chat:** handle buffer deletion of chat buffers ([#1745](https://github.com/olimorris/codecompanion.nvim/issues/1745)) ([dbc7957](https://github.com/olimorris/codecompanion.nvim/commit/dbc7957ee92ddce403405c5c6d91ba7dccb278c7))
+* **chat:** tool output can be folded ([#1665](https://github.com/olimorris/codecompanion.nvim/issues/1665)) ([a87ebc7](https://github.com/olimorris/codecompanion.nvim/commit/a87ebc73ffc796bb5020cb083e2a5ef3c2c7e9bf))
+* **tools:** `web_search` tool can search specific sites ([#1741](https://github.com/olimorris/codecompanion.nvim/issues/1741)) ([6ef907f](https://github.com/olimorris/codecompanion.nvim/commit/6ef907fca6480dd11dc8f7a3048fec23f8a39b29))
+
+
+### Bug Fixes
+
+* **chat:** don't remove custom system prompts when using `gs` ([#1770](https://github.com/olimorris/codecompanion.nvim/issues/1770)) ([4e75c62](https://github.com/olimorris/codecompanion.nvim/commit/4e75c629d1c1658c9330a75fd2ffec9cad59ed50)), closes [#1749](https://github.com/olimorris/codecompanion.nvim/issues/1749)
+* **chat:** tools can now be dynamically added ([#1693](https://github.com/olimorris/codecompanion.nvim/issues/1693)) ([3a5f895](https://github.com/olimorris/codecompanion.nvim/commit/3a5f8958197b2e134e7d299673bff76c785dbc99))
+* **prompts:** agentic workflow in the config ([#1764](https://github.com/olimorris/codecompanion.nvim/issues/1764)) ([0b3831d](https://github.com/olimorris/codecompanion.nvim/commit/0b3831ddee88a389aa663fb05e35f2724f6df7da))
+
+## [17.5.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.4.0...v17.5.0) (2025-06-28)
+
+
+### Features
+
+* **adapters:** add tool support to Azure OpenAI ([#1737](https://github.com/olimorris/codecompanion.nvim/issues/1737)) ([2c7e9b1](https://github.com/olimorris/codecompanion.nvim/commit/2c7e9b1aa9fa1f5a2b4d82f3f4e065cb0c8bc2b7))
+
+
+### Bug Fixes
+
+* **adapters:** reduce copilot premium request consumption ([#1738](https://github.com/olimorris/codecompanion.nvim/issues/1738)) ([ed96fe3](https://github.com/olimorris/codecompanion.nvim/commit/ed96fe33c17b41957f2334b1cae29c24d35f8ef2))
+* **tools:** patching for empty and small files with insufficient context ([#1734](https://github.com/olimorris/codecompanion.nvim/issues/1734)) ([cb55ef0](https://github.com/olimorris/codecompanion.nvim/commit/cb55ef006be3e75015c84fbd9adef14b3546a08f))
+
+
+### Code Refactoring
+
+* **chat:** tools and variables now use `@{tool}` and `#{variable}` syntax ([#1740](https://github.com/olimorris/codecompanion.nvim/issues/1740)) ([f89eca2](https://github.com/olimorris/codecompanion.nvim/commit/f89eca26368b29bc8259921d459c1b4e5bfaeebb))
+
+## [17.4.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.3.0...v17.4.0) (2025-06-27)
+
+
+### Features
+
+* **adapters:** :boom: add tool support to Ollama ([#1585](https://github.com/olimorris/codecompanion.nvim/issues/1585)) ([e325370](https://github.com/olimorris/codecompanion.nvim/commit/e325370b8325697cb2f6becd13f267e6a12a0393))
+
+
+### Bug Fixes
+
+* **workspace:** add description to buffer content ([#1713](https://github.com/olimorris/codecompanion.nvim/issues/1713)) ([ff939d1](https://github.com/olimorris/codecompanion.nvim/commit/ff939d18d8d64b0bef985aeb9be26f57e4ee8837))
+
+## [17.3.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.2.0...v17.3.0) (2025-06-24)
+
+
+### Features
+
+* **chat:** add copilot usage statistics with `gS` keymap ([#1677](https://github.com/olimorris/codecompanion.nvim/issues/1677)) ([8602a50](https://github.com/olimorris/codecompanion.nvim/commit/8602a50cacf111c69f35e305d1556afd9fa1f1a1))
+
+## [17.2.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.1.1...v17.2.0) (2025-06-24)
+
+
+### Features
+
+* **workspaces:** files can be opened as buffers ([#1708](https://github.com/olimorris/codecompanion.nvim/issues/1708)) ([2ea49ff](https://github.com/olimorris/codecompanion.nvim/commit/2ea49ff2063100757e71b0e327b7a32a1d566a9d))
+
+
+### Bug Fixes
+
+* require tool module path correctly ([#1670](https://github.com/olimorris/codecompanion.nvim/issues/1670)) ([dbefc41](https://github.com/olimorris/codecompanion.nvim/commit/dbefc41dba2f46720ecb6ecec34c0c5f80022f2b))
+* **tools:** patching algorithm can start with an empty line ([#1663](https://github.com/olimorris/codecompanion.nvim/issues/1663)) ([370ec56](https://github.com/olimorris/codecompanion.nvim/commit/370ec56f388fd317fd324d68709e9441d3461896))
+* **tools:** patching algorithm now supports lines starting with `-` ([#1654](https://github.com/olimorris/codecompanion.nvim/issues/1654)) ([9011839](https://github.com/olimorris/codecompanion.nvim/commit/9011839a6827b264d632822d9ce17cb66fe95e61))
+
 ## [17.1.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.1.0...v17.1.1) (2025-06-16)
 
 

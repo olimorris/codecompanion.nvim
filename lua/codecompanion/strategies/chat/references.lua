@@ -10,8 +10,8 @@ local api = vim.api
 local user_role = config.strategies.chat.roles.user
 local icons_path = config.display.chat.icons
 local icons = {
-  pinned = icons_path.pinned_buffer,
-  watched = icons_path.watched_buffer,
+  pinned = icons_path.pinned_buffer or icons_path.buffer_pin,
+  watched = icons_path.watched_buffer or icons_path.buffer_watch,
 }
 
 local allowed_pins = {

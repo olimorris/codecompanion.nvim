@@ -15,12 +15,20 @@ local function create(action)
     if p:is_dir() then
       return {
         status = "error",
-        data = fmt("**Create File Tool**: `%s` already exists as a directory", action.filepath),
+        data = fmt(
+          [[Failed to create `%s`
+- Already exists as a directory]],
+          action.filepath
+        ),
       }
     else
       return {
         status = "error",
-        data = fmt("**Create File Tool**: File `%s` already exists", action.filepath),
+        data = fmt(
+          [[Failed to create `%s`
+- File already exists]],
+          action.filepath
+        ),
       }
     end
   end
@@ -33,13 +41,18 @@ local function create(action)
   if not ok then
     return {
       status = "error",
-      data = fmt("**Create File Tool**: Failed to create file `%s` - %s", action.filepath, result),
+      data = fmt(
+        [[Failed to create `%s`
+- %s]],
+        action.filepath,
+        result
+      ),
     }
   end
 
   return {
     status = "success",
-    data = fmt("**Create File Tool**: `%s` was created successfully", action.filepath),
+    data = fmt([[Created `%s`]], action.filepath),
   }
 end
 

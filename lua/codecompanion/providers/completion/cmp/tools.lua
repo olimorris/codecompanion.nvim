@@ -35,6 +35,7 @@ function source:complete(params, callback)
     item.context = {
       bufnr = params.context.bufnr,
     }
+    item.insertText = string.format("@{%s}", item.label:sub(2))
     return item
   end)
 

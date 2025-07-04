@@ -49,11 +49,31 @@ M.options = {
       return str .. string.rep(" ", max_length - #str + (offset or 0))
     end
 
+    --- Cleans and truncates a string to a maximum width.
+    ---@param desc string? The description to clean
+    ---@param max_width number? The maximum width to truncate the description to
+    ---@return string The cleaned and truncated description
+    local function clean_and_truncate(desc, max_width)
+      if not desc then
+        return ""
+      end
+      desc = vim.trim(tostring(desc):gsub("\n", " "))
+      if max_width and #desc > max_width then
+        return desc:sub(1, max_width - 3) .. "..."
+      end
+      return desc
+    end
+
     -- Workout the column spacing
     local keymaps = config.strategies.chat.keymaps
     local keymaps_max = max("description", keymaps)
 
-    local vars = config.strategies.chat.variables
+    local vars = {}
+    vim.iter(config.strategies.chat.variables):each(function(key, val)
+      if not val.hide_in_help_window then
+        vars[key] = val
+      end
+    end)
     local vars_max = max("key", vars)
 
     local tools = {}
@@ -64,15 +84,21 @@ M.options = {
         return name ~= "opts" and name ~= "groups"
       end)
       :each(function(tool)
-        tools[tool] = {
-          description = config.strategies.chat.tools[tool].description,
-        }
+        local tool_conf = config.strategies.chat.tools[tool]
+        if not tool_conf.hide_in_help_window then
+          tools[tool] = {
+            description = tool_conf.description,
+          }
+        end
       end)
     -- Add groups
     vim.iter(config.strategies.chat.tools.groups):each(function(tool)
-      tools[tool] = {
-        description = config.strategies.chat.tools.groups[tool].description,
-      }
+      local group_conf = config.strategies.chat.tools.groups[tool]
+      if not group_conf.hide_in_help_window then
+        tools[tool] = {
+          description = group_conf.description,
+        }
+      end
     end)
 
     local tools_max = max("key", tools)
@@ -117,7 +143,8 @@ M.options = {
     table.insert(lines, "### Variables")
 
     for key, val in pairs(vars) do
-      table.insert(lines, indent .. pad("#" .. key, max_length, 4) .. " " .. val.description)
+      local desc = clean_and_truncate(val.description)
+      table.insert(lines, indent .. pad("#" .. key, max_length, 4) .. " " .. desc)
     end
 
     -- Tools
@@ -126,7 +153,8 @@ M.options = {
 
     for key, val in pairs(tools) do
       if key ~= "opts" then
-        table.insert(lines, indent .. pad("@" .. key, max_length, 4) .. " " .. val.description)
+        local desc = clean_and_truncate(val.description)
+        table.insert(lines, indent .. pad("@" .. key, max_length, 4) .. " " .. desc)
       end
     end
 
@@ -307,7 +335,7 @@ M.pin_reference = {
       return
     end
 
-    local icon = config.display.chat.icons.pinned_buffer
+    local icon = config.display.chat.icons.pinned_buffer or config.display.chat.icons.buffer_pin
     local id = line:gsub("^> %- ", "")
 
     if not chat.references:can_be_pinned(id) then
@@ -355,7 +383,8 @@ M.toggle_watch = {
 
     -- Find the reference and toggle watch state
     for _, ref in ipairs(chat.refs) do
-      local clean_id = id:gsub(icons.pinned_buffer, ""):gsub(icons.watched_buffer, "")
+      local clean_id = id:gsub(icons.pinned_buffer or icons.buffer_pin, "")
+        :gsub(icons.watched_buffer or icons.buffer_watch, "")
       if ref.id == clean_id then
         if not ref.opts then
           ref.opts = {}
@@ -368,7 +397,7 @@ M.toggle_watch = {
           -- Check if buffer is still valid before watching
           if vim.api.nvim_buf_is_valid(ref.bufnr) and vim.api.nvim_buf_is_loaded(ref.bufnr) then
             chat.watchers:watch(ref.bufnr)
-            new_line = string.format("> - %s%s", icons.watched_buffer, clean_id)
+            new_line = string.format("> - %s%s", icons.watched_buffer or icons.buffer_watch, clean_id)
           else
             -- Buffer is invalid, can't watch it
             ref.opts.watched = false
@@ -638,6 +667,20 @@ M.goto_file_under_cursor = {
       error(string.format("%s is not a valid jump action!", vim.inspect(user_action)))
     end
     action(file_name)
+  end,
+}
+
+M.copilot_stats = {
+  desc = "Show Copilot usage statistics",
+  callback = function(chat)
+    if chat.adapter.name ~= "copilot" then
+      return util.notify("Copilot stats are only available when using the Copilot adapter", vim.log.levels.WARN)
+    end
+    if chat.adapter.show_copilot_stats then
+      chat.adapter.show_copilot_stats()
+    else
+      util.notify("Copilot stats function not available", vim.log.levels.ERROR)
+    end
   end,
 }
 

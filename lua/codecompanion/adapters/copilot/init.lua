@@ -1,11 +1,11 @@
 local config = require("codecompanion.config")
+local copilot_helper = require("codecompanion.adapters.copilot.helpers")
 local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
 local utils = require("codecompanion.utils.adapters")
 
 -- Reference: https://github.com/yetone/avante.nvim/blob/22418bff8bcac4377ebf975cd48f716823867979/lua/avante/providers/copilot.lua#L5-L26
----
 ---@class CopilotToken
 ---@field annotations_enabled boolean
 ---@field chat_enabled boolean
@@ -28,11 +28,6 @@ local utils = require("codecompanion.utils.adapters")
 ---@field vsc_electron_fetcher boolean
 ---@field xcode boolean
 ---@field xcode_chat boolean
-
-local _cached_adapter
-local _cache_expires
-local _cache_file = vim.fn.tempname()
-local _cached_models
 
 ---@alias CopilotOAuthToken string|nil
 local _oauth_token
@@ -155,83 +150,13 @@ local function get_and_authorize_token(self)
   return true
 end
 
----Reset the cached adapter
----@return nil
-local function reset()
-  _cached_adapter = nil
-end
-
----Get a list of available Copilot models
----@param self CodeCompanion.Adapter
----@param opts? table
----@return table
-local function get_models(self, opts)
-  if _cached_models and _cache_expires and _cache_expires > os.time() then
-    return _cached_models
-  end
-
-  if not _cached_adapter then
-    if not self then
-      return {}
-    end
-    _cached_adapter = self
-  end
-
-  get_and_authorize_token(self)
-  local url = _github_token.endpoints.api or "https://api.githubcopilot.com"
-  local headers = vim.deepcopy(_cached_adapter.headers)
-  headers["Authorization"] = "Bearer " .. _github_token.token
-
-  local ok, response = pcall(function()
-    return curl.get(url .. "/models", {
-      sync = true,
-      headers = headers,
-      insecure = config.adapters.opts.allow_insecure,
-      proxy = config.adapters.opts.proxy,
-    })
-  end)
-  if not ok then
-    log:error("Could not get the Copilot models from " .. url .. "/models.\nError: %s", response)
-    return {}
-  end
-
-  local ok, json = pcall(vim.json.decode, response.body)
-  if not ok then
-    log:error("Error parsing the response from " .. url .. "/models.\nError: %s", response.body)
-    return {}
-  end
-
-  local models = {}
-  for _, model in ipairs(json.data) do
-    if model.model_picker_enabled and model.capabilities.type == "chat" then
-      local choice_opts = {}
-
-      if model.capabilities.supports.streaming then
-        choice_opts.can_stream = true
-      end
-      if model.capabilities.supports.tool_calls then
-        choice_opts.can_use_tools = true
-      end
-      if model.capabilities.supports.vision then
-        choice_opts.has_vision = true
-      end
-
-      models[model.id] = { opts = choice_opts }
-    end
-  end
-
-  _cached_models = models
-  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.opts.cache_models_for)
-
-  return models
-end
-
 ---@class Copilot.Adapter: CodeCompanion.Adapter
 return {
   name = "copilot",
   formatted_name = "Copilot",
   roles = {
     llm = "assistant",
+    tool = "tool",
     user = "user",
   },
   opts = {
@@ -256,6 +181,17 @@ return {
     ["Copilot-Integration-Id"] = "vscode-chat",
     ["Editor-Version"] = "Neovim/" .. vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
   },
+  get_copilot_stats = function()
+    return copilot_helper.get_copilot_stats(get_and_authorize_token, _oauth_token)
+  end,
+  show_copilot_stats = function()
+    -- we need to ensure initialize token if no chat request has been done
+    local dummy_adapter = { url = "" }
+    if not get_and_authorize_token(dummy_adapter) then
+      return nil
+    end
+    return copilot_helper.show_copilot_stats(get_and_authorize_token, _oauth_token)
+  end,
   handlers = {
     ---Check for a token before starting the request
     ---@param self CodeCompanion.Adapter
@@ -291,13 +227,21 @@ return {
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
-      -- Ensure we send over the correct headers for image requests
       for _, m in ipairs(messages) do
         if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+          self.headers["X-Initiator"] = "user"
           self.headers["Copilot-Vision-Request"] = "true"
           break
         end
       end
+
+      local last_msg = messages[#messages]
+      if last_msg and last_msg.role == self.roles.tool then
+        -- NOTE: The inclusion of this header reduces premium token usage when
+        -- sending tool output back to the LLM (#1717)
+        self.headers["X-Initiator"] = "agent"
+      end
+
       return openai.handlers.form_messages(self, messages)
     end,
     form_tools = function(self, tools)
@@ -335,7 +279,7 @@ return {
       return openai.handlers.inline_output(self, data, context)
     end,
     on_exit = function(self, data)
-      reset()
+      copilot_helper.reset_cache()
       return openai.handlers.on_exit(self, data)
     end,
   },
@@ -349,7 +293,14 @@ return {
       ---@type string|fun(): string
       default = "gpt-4.1",
       choices = function(self)
-        return get_models(self)
+        -- Ensure token is available before getting models
+        if not _github_token then
+          local success = get_and_authorize_token(self)
+          if not success then
+            return { ["gpt-4.1"] = { opts = {} } } -- fallback
+          end
+        end
+        return copilot_helper.get_models(self, get_and_authorize_token, _github_token)
       end,
     },
     ---@type CodeCompanion.Schema

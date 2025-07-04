@@ -20,6 +20,10 @@ api.nvim_set_hl(0, "CodeCompanionChatSeparator", { link = "@punctuation.special.
 api.nvim_set_hl(0, "CodeCompanionChatTokens", { link = "Comment", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatTool", { link = "Special", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolGroup", { link = "Constant", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatToolSuccess", { link = "DiagnosticOK", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatToolSuccessIcon", { link = "DiagnosticOK", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatToolFailure", { link = "DiagnosticError", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatToolFailureIcon", { link = "Error", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
 api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
 
@@ -31,10 +35,8 @@ api.nvim_create_autocmd("FileType", {
   group = group,
   callback = vim.schedule_wrap(function()
     vim.iter(config.strategies.chat.variables):each(function(name, var)
-      -- Use explicit word boundaries to ensure complete word matching, this prevents partial matches like "#var" matching in "#variable"
-      vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '\\(\\ze\\s\\|\\ze$\\)"')
-      -- Allow highlighting variables even without parameters, match the complete pattern including braces (to maintain consistency for finding and replacing logic)
-      vim.cmd.syntax('match CodeCompanionChatVariable "#' .. name .. '{[^}]*}"')
+      vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}"')
+      vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}{[^}]*}"')
     end)
     vim
       .iter(config.strategies.chat.tools)
@@ -42,10 +44,10 @@ api.nvim_create_autocmd("FileType", {
         return name ~= "groups" and name ~= "opts"
       end)
       :each(function(name, _)
-        vim.cmd.syntax('match CodeCompanionChatTool "@' .. name .. '\\(\\ze\\s\\|\\ze$\\)"')
+        vim.cmd.syntax('match CodeCompanionChatTool "@{' .. name .. '}"')
       end)
     vim.iter(config.strategies.chat.tools.groups):each(function(name, _)
-      vim.cmd.syntax('match CodeCompanionChatToolGroup "@' .. name .. '\\(\\ze\\s\\|\\ze$\\)"')
+      vim.cmd.syntax('match CodeCompanionChatToolGroup "@{' .. name .. '}"')
     end)
   end),
 })
