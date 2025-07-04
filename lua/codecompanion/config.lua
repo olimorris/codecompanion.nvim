@@ -103,6 +103,13 @@ local defaults = {
             max_results = 500,
           },
         },
+        ["get_changed_files"] = {
+          callback = "strategies.chat.agents.tools.get_changed_files",
+          description = "Get git diffs of current file changes in a git repository",
+          opts = {
+            max_results = 100,
+          },
+        },
         ["grep_search"] = {
           callback = "strategies.chat.agents.tools.grep_search",
           enabled = function()
