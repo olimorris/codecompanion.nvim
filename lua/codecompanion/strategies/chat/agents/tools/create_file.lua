@@ -166,14 +166,14 @@ return {
       local args = self.args
       local filepath = args.filepath
 
-      local llm_output = "<createFileTool>%s</createFileTool>"
+      local llm_output = fmt("<createFileTool>%s</createFileTool>","Created file `%s` successfully")
 
       -- Get the file extension for syntax highlighting
       local file_ext = vim.fn.fnamemodify(filepath, ":e")
 
       local result_msg = fmt("Created file `%s`:\n```%s\n%s\n```", filepath, file_ext, args.content or "")
 
-      chat:add_tool_output(self, fmt(llm_output, result_msg), result_msg)
+      chat:add_tool_output(self, llm_output, result_msg)
     end,
 
     ---@param self CodeCompanion.Tool.CreateFile
