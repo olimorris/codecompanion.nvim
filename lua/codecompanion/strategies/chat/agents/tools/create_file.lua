@@ -162,8 +162,18 @@ return {
     ---@param stdout table The output from the command
     success = function(self, agent, cmd, stdout)
       local chat = agent.chat
-      local llm_output = vim.iter(stdout):flatten():join("\n")
-      chat:add_tool_output(self, llm_output)
+      local output = vim.iter(stdout):flatten():join("\n")
+      local args = self.args
+      local filepath = args.filepath
+
+      local llm_output = "<createFileTool>%s</createFileTool>"
+
+      -- Get the file extension for syntax highlighting
+      local file_ext = vim.fn.fnamemodify(filepath, ":e")
+
+      local result_msg = fmt("Created file `%s`:\n```%s\n%s\n```", filepath, file_ext, args.content or "")
+
+      chat:add_tool_output(self, fmt(llm_output, result_msg), result_msg)
     end,
 
     ---@param self CodeCompanion.Tool.CreateFile
