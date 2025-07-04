@@ -16,12 +16,20 @@ local function create(action)
     if stat.type == "directory" then
       return {
         status = "error",
-        data = fmt("**Create File Tool**: `%s` already exists as a directory", action.filepath),
+        data = fmt(
+          [[Failed to create `%s`
+- Already exists as a directory]],
+          action.filepath
+        ),
       }
     elseif stat.type == "file" then
       return {
         status = "error",
-        data = fmt("**Create File Tool**: File `%s` already exists", action.filepath),
+        data = fmt(
+          [[Failed to create `%s`
+- File already exists]],
+          action.filepath
+        ),
       }
     end
   end
@@ -89,7 +97,7 @@ local function create(action)
   -- If we reach here, all operations (open, write, close) were successful
   return {
     status = "success",
-    data = fmt("**Create File Tool**: `%s` was created successfully", action.filepath),
+    data = fmt([[Created `%s`]], action.filepath),
   }
 end
 

@@ -215,30 +215,28 @@ return {
     ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
     success = function(self, agent, cmd, stdout)
+      local query = self.args.query
       local chat = agent.chat
-
       local data = stdout[1]
 
       local llm_output = [[<grepSearchTool>%s
 
-NOTE: The output format is {filename}:{line number} {filepath}. For example:
+NOTE:
+- The output format is {filename}:{line number} {filepath}.
+- For example:
 init.lua:335 lua/codecompanion/strategies/chat/agents
-Refers to line 335 of the init.lua file in the lua/codecompanion/strategies/chat/agents directory.
-</grepSearchTool>]]
-      local user_message = "**Grep Search Tool**: %s"
+Refers to line 335 of the init.lua file in the lua/codecompanion/strategies/chat/agents path</grepSearchTool>]]
       local output = vim.iter(stdout):flatten():join("\n")
 
       if type(data) == "table" then
         -- Results were found - data is an array of file paths
         local results = #data
-        chat:add_tool_output(
-          self,
-          fmt(llm_output, fmt("Returning %d results matching the query:\n%s", results, output)),
-          fmt(user_message, fmt("Returned %d results", results))
-        )
+        local results_msg = fmt("Searched text for `%s`, %d results\n```\n%s\n```", query, results, output)
+        chat:add_tool_output(self, fmt(llm_output, results_msg), results_msg)
       else
         -- No results found - data is a string message
-        chat:add_tool_output(self, fmt(llm_output, "No results found"), fmt(user_message, "No results found"))
+        local no_results_msg = fmt("Searched text for `%s`, no results", query)
+        chat:add_tool_output(self, fmt(llm_output, no_results_msg), no_results_msg)
       end
     end,
 
@@ -249,15 +247,16 @@ Refers to line 335 of the init.lua file in the lua/codecompanion/strategies/chat
     ---@param stdout? table The output from the command
     error = function(self, agent, cmd, stderr, stdout)
       local chat = agent.chat
+      local query = self.args.query
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Grep Search Tool] Error output: %s", stderr)
 
       local error_output = fmt(
-        [[**Grep Search Tool**: Ran with an error:
-
-```txt
+        [[Searched text for `%s`, error:
+```
 %s
 ```]],
+        query,
         errors
       )
       chat:add_tool_output(self, error_output)
