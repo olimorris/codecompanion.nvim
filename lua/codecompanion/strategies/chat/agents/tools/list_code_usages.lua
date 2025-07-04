@@ -27,6 +27,7 @@ ListCodeUsagesTool.TREESITTER_NODES = {
   type_item = 30,
   module_definition = 30,
   namespace_definition = 30,
+  expression_statement = 30,
 
   -- Function-level constructs (medium priority)
   function_definition = 20,
