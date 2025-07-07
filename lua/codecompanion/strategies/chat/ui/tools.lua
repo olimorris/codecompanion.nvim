@@ -116,12 +116,31 @@ function Tools:create_fold(start_line, end_line, foldtext)
     priority = 200,
   })
 
-  -- Create the fold
+  -- Create the fold with window-local foldmethod swap
   self.fold_summaries[self.chat_bufnr] = self.fold_summaries[self.chat_bufnr] or {}
   self.fold_summaries[self.chat_bufnr][start_line] = foldtext
 
-  api.nvim_buf_call(self.chat_bufnr, function()
+  -- Find the first window displaying the buffer
+  local win
+  for _, w in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_get_buf(w) == self.chat_bufnr then
+      win = w
+      break
+    end
+  end
+  if not win then
+    return
+  end
+
+  vim.api.nvim_win_call(win, function()
+    local old = vim.wo[win].foldmethod
+    vim.wo[win].foldmethod = "manual"
     vim.cmd(string.format("%d,%dfold", start_line + 1, end_line + 1))
+    vim.defer_fn(function()
+      if vim.api.nvim_win_is_valid(win) then
+        vim.wo[win].foldmethod = old
+      end
+    end, 50)
   end)
 end
 
