@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local version = require("codecompanion.utils.version")
 
 ---@class CodeCompanion.Adapter
 ---@field name string The name of the adapter
@@ -127,8 +128,40 @@ end
 ---@class CodeCompanion.Adapter
 local Adapter = {}
 
+---Get default headers that can be added to all adapters
+---@return table
+local function get_default_headers()
+  local default_headers = {}
+
+  -- Get global adapter options from config
+  local adapter_opts = config.adapters and config.adapters.opts or {}
+
+  -- Add User-Agent header if enabled (default: true)
+  if adapter_opts.add_user_agent ~= false then
+    default_headers["User-Agent"] = version.get_user_agent()
+  end
+
+  -- Allow users to add custom default headers
+  if adapter_opts.default_headers and type(adapter_opts.default_headers) == "table" then
+    for k, v in pairs(adapter_opts.default_headers) do
+      default_headers[k] = v
+    end
+  end
+
+  return default_headers
+end
+
 ---@return CodeCompanion.Adapter
 function Adapter.new(args)
+  -- Merge default headers with adapter-specific headers
+  local default_headers = get_default_headers()
+  if args.headers then
+    -- Merge default headers with adapter headers, adapter headers take precedence
+    args.headers = vim.tbl_deep_extend("keep", args.headers, default_headers)
+  else
+    args.headers = default_headers
+  end
+
   return setmetatable(args, { __index = Adapter })
 end
 

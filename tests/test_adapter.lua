@@ -9,6 +9,7 @@ T = new_set({
       h.child_start(child)
       child.lua([[
         utils = require("codecompanion.utils.adapters")
+        version = require("codecompanion.utils.version")
 
         _G.test_adapter = {
           name = "TestAdapter",
@@ -164,7 +165,9 @@ T["Adapter"]["can set environment variables in the adapter"] = function()
     return adapter:set_env_vars(adapter.headers)
   ]])
 
+  local expected_user_agent = child.lua_get("version.get_user_agent()")
   h.eq({
+    ["User-Agent"] = expected_user_agent,
     content_type = "application/json",
     home = os.getenv("HOME"),
   }, headers)

@@ -34,6 +34,8 @@ local defaults = {
       proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
       show_defaults = true, -- Show default adapters
       show_model_choices = true, -- Show model choices when changing adapter
+      add_user_agent = true, -- Add User-Agent header to all adapters (e.g. "CodeCompanion/17.6.0")
+      default_headers = {}, -- Default headers to add to all adapters
     },
   },
   constants = constants,

@@ -36,6 +36,7 @@ Thank you to the following people:
 - :books: Have [multiple chats](https://codecompanion.olimorris.dev/usage/introduction.html#quickly-accessing-a-chat-buffer) open at the same time
 - :art: Support for [vision and images](https://codecompanion.olimorris.dev/usage/chat-buffer/#images-vision) as input
 - :muscle: Async execution for fast performance
+- :identification_card: Automatic User-Agent headers for better API compliance and debugging
 
 <!-- panvimdoc-ignore-start -->
 
@@ -79,6 +80,23 @@ require("codecompanion").setup({
   opts = {
     log_level = "DEBUG", -- or "TRACE"
   }
+})
+```
+
+**User-Agent Headers**
+
+CodeCompanion automatically adds a User-Agent header (e.g., `CodeCompanion/17.6.0`) to all HTTP requests for better API compliance and debugging. You can control this behavior:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    opts = {
+      add_user_agent = true, -- Default: true, set to false to disable
+      default_headers = {
+        ["X-Custom-Header"] = "value", -- Add custom headers to all adapters
+      },
+    },
+  },
 })
 ```
 

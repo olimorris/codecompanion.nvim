@@ -2,6 +2,7 @@ local config = require("codecompanion.config")
 local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.adapters")
+local version = require("codecompanion.utils.version")
 local M = {}
 
 -- Cache variables
@@ -111,7 +112,7 @@ function M.get_copilot_stats(get_and_authorize_token_fn, oauth_token)
       headers = {
         Authorization = "Bearer " .. oauth_token,
         Accept = "*/*",
-        ["User-Agent"] = "CodeCompanion.nvim",
+        ["User-Agent"] = version.get_user_agent(),
       },
       insecure = config.adapters.opts.allow_insecure,
       proxy = config.adapters.opts.proxy,
