@@ -67,21 +67,15 @@ ListCodeUsagesTool.filetype = ""
 ----------------------
 
 -- Find symbol using grep and populate quickfix list
-function ListCodeUsagesTool:find_symbol_with_grep(symbolName, file_extension, filepaths, exclude_dirs)
+function ListCodeUsagesTool:find_symbol_with_grep(symbolName, file_extension, filepaths)
   local search_pattern = vim.fn.escape(symbolName, "\\")
   local cmd = "silent! grep! -w"
 
   -- Default excluded directories if none provided. Should be excluded by default in gitignore.
-  exclude_dirs = exclude_dirs or { "node_modules", "dist", "vendor", ".git", "venv", ".env", "target", "build" }
+  local exclude_dirs = { "node_modules", "dist", "vendor", ".git", "venv", ".env", "target", "build" }
 
   if file_extension and file_extension ~= "" then
-    if file_extension == "js" or file_extension == "ts" then
-      -- Include both JavaScript and TypeScript files
-      cmd = cmd .. " --glob=" .. vim.fn.shellescape("*.{js,ts}") .. " "
-    else
-      -- Original behavior for other extensions
-      cmd = cmd .. " --glob=" .. vim.fn.shellescape("*." .. file_extension) .. " "
-    end
+    cmd = cmd .. " --glob=" .. vim.fn.shellescape("*." .. file_extension) .. " "
   end
 
   -- Add exclusion patterns for directories
@@ -95,7 +89,7 @@ function ListCodeUsagesTool:find_symbol_with_grep(symbolName, file_extension, fi
     cmd = cmd .. " " .. table.concat(filepaths, " ")
   end
 
-  log:debug("[ListCodeUsagesTool] Executing grep command: %s", cmd)
+  log:debug("[ListCodeUsagesTool:find_symbol_with_grep] Executing grep command: %s", cmd)
 
   ---@diagnostic disable-next-line: param-type-mismatch
   local success, _ = pcall(vim.cmd, cmd)
@@ -103,6 +97,11 @@ function ListCodeUsagesTool:find_symbol_with_grep(symbolName, file_extension, fi
     return nil
   end
 
+  log:debug(
+    "[ListCodeUsagesTool:find_symbol_with_grep] Found %d matches for '%s'",
+    vim.fn.getqflist({ size = 0 }).size,
+    symbolName
+  )
   local qflist = vim.fn.getqflist()
   if #qflist == 0 then
     return nil
@@ -119,9 +118,118 @@ function ListCodeUsagesTool:find_symbol_with_grep(symbolName, file_extension, fi
   }
 end
 
+-- Check if code block A is enclosed by code block B
+function ListCodeUsagesTool:is_enclosed_by(block_a, block_b)
+  if block_a.filename ~= block_b.filename then
+    return false
+  end
+  return block_a.start_line >= block_b.start_line and block_a.end_line <= block_b.end_line
+end
+
+-- Enhanced duplicate/enclosure checking for process_lsp_item
+function ListCodeUsagesTool:is_duplicate_or_enclosed(new_block)
+  for op_type, blocks in pairs(self.symbol_data) do
+    for _, existing_block in ipairs(blocks) do
+      -- Skip if missing filename or line data (like documentation)
+      if not (existing_block.filename and existing_block.start_line and existing_block.end_line) then
+        goto continue
+      end
+
+      if
+        new_block.filename == existing_block.filename
+        and new_block.start_line == existing_block.start_line
+        and new_block.end_line == existing_block.end_line
+      then
+        log:debug(
+          "[ListCodeUsagesTool:is_duplicate_or_enclosed] Found exact duplicate: %s:%d-%d",
+          existing_block.filename,
+          existing_block.start_line,
+          existing_block.end_line
+        )
+        return true
+      end
+
+      if self:is_enclosed_by(new_block, existing_block) then
+        log:debug(
+          "[ListCodeUsagesTool:is_duplicate_or_enclosed] Found enclosed block: %s:%d-%d is enclosed by %s:%d-%d",
+          new_block.filename,
+          new_block.start_line,
+          new_block.end_line,
+          existing_block.filename,
+          existing_block.start_line,
+          existing_block.end_line
+        )
+        return true
+      end
+
+      ::continue::
+    end
+  end
+  return false
+end
+
+-- get all matching symbols from lsp
+function ListCodeUsagesTool:get_all_symbols_with_lsp(symbolName, filepaths)
+  log:debug("[ListCodeUsagesTool:get_all_symbols_with_lsp] Searching for all symbols '%s' using LSP", symbolName)
+
+  local clients = vim.lsp.get_clients({
+    method = vim.lsp.protocol.Methods.workspace_symbol,
+  })
+
+  if #clients == 0 then
+    return {}
+  end
+
+  local symbols = {}
+  for _, client in ipairs(clients) do
+    local params = { query = symbolName }
+    local result = client:request_sync(vim.lsp.protocol.Methods.workspace_symbol, params, self.LSP_TIMEOUT_MS)
+
+    if result and result.result then
+      for _, symbol in ipairs(result.result) do
+        if symbol.name == symbolName then
+          local uri = symbol.location.uri
+          local range = symbol.location.range
+          local filepath = uri:gsub("file://", "")
+
+          -- Filter by filepaths if specified
+          if filepaths and #filepaths > 0 then
+            local match = false
+            for _, pattern in ipairs(filepaths) do
+              if filepath:find(pattern) then
+                match = true
+                break
+              end
+            end
+            if not match then
+              goto continue
+            end
+          end
+
+          table.insert(symbols, {
+            uri = uri,
+            range = range,
+            name = symbol.name,
+            kind = symbol.kind,
+            file = filepath,
+          })
+
+          ::continue::
+        end
+      end
+    end
+  end
+
+  -- Sort symbols by kind to prioritize definitions
+  table.sort(symbols, function(a, b)
+    return (a.kind or 999) < (b.kind or 999)
+  end)
+
+  return symbols
+end
 -- Find symbol using LSP workspace/symbol
 function ListCodeUsagesTool:find_symbol_with_lsp(symbolName, filepaths)
-  log:debug("[ListCodeUsagesTool] Searching for symbol '%s' using LSP", symbolName)
+  log:debug("[ListCodeUsagesTool:find_symbol_with_lsp] Searching for symbol '%s' using LSP", symbolName)
 
   local clients = vim.lsp.get_clients({
     method = vim.lsp.protocol.Methods.workspace_symbol,
@@ -135,6 +243,11 @@ function ListCodeUsagesTool:find_symbol_with_lsp(symbolName, filepaths)
   for _, client in ipairs(clients) do
     local params = { query = symbolName }
     local result = client:request_sync(vim.lsp.protocol.Methods.workspace_symbol, params, self.LSP_TIMEOUT_MS)
+    log:debug(
+      "[ListCodeUsagesTool:find_symbol_with_lsp] LSP client %s returned workspace/symbol result: %s",
+      client.name,
+      vim.inspect(result)
+    )
 
     if result and result.result then
       for _, symbol in ipairs(result.result) do
@@ -186,43 +299,45 @@ end
 
 -- Open file and set cursor position
 function ListCodeUsagesTool:open_file_and_set_cursor(filepath, line, col)
-  log:debug("[ListCodeUsagesTool] Opening file: %s at line: %d, col: %d", filepath, line, col)
+  log:debug("[ListCodeUsagesTool:open_file_and_set_cursor] Opening file: %s at line: %d, col: %d", filepath, line, col)
   vim.cmd("edit " .. vim.fn.fnameescape(filepath))
   vim.api.nvim_win_set_cursor(0, { line, col })
   vim.cmd("normal! zz")
   return true
 end
 
--- Find and navigate to a symbol
+-- Find and navigate to a symbol in workspace
 function ListCodeUsagesTool:navigate_to_symbol(symbolName, file_extension, filepaths)
-  vim.cmd("stopinsert")
+  local symbol_result = self:find_symbol_with_lsp(symbolName, filepaths)
+  local grep_result = self:find_symbol_with_grep(symbolName, file_extension, filepaths)
 
-  -- First try LSP
-  local match = self:find_symbol_with_lsp(symbolName, filepaths)
-  local using_lsp = true
-
-  -- Fall back to grep if LSP fails
-  if not match then
-    match = self:find_symbol_with_grep(symbolName, file_extension, filepaths)
-    using_lsp = false
+  if not symbol_result then
+    if grep_result then
+      -- get first match from qflist
+      symbol_result = grep_result
+      -- Save all qflist results for grep references operation
+      symbol_result.all_qflist = grep_result.qflist
+    end
   end
 
-  if not match then
+  if not symbol_result then
     local filetype_msg = file_extension and (" in " .. file_extension .. " files") or ""
     return {
       status = "error",
-      data = "Symbol not found in workspace" .. filetype_msg .. ". Double check the spelling.",
+      data = "Symbol not found in workspace"
+        .. filetype_msg
+        .. ". Double check the spelling and tool usage instructions.",
       qflist = nil,
     }
   end
 
-  local success = self:open_file_and_set_cursor(match.file, match.line, match.col)
+  local success = self:open_file_and_set_cursor(symbol_result.file, symbol_result.line, symbol_result.col)
 
   if success then
     return {
       status = "success",
-      data = { bufnr = match.bufnr },
-      qflist = using_lsp and nil or match.qflist,
+      data = { bufnr = symbol_result.bufnr },
+      qflist = symbol_result.qflist,
     }
   else
     return {
@@ -261,6 +376,7 @@ function ListCodeUsagesTool:get_symbol_at_position(bufnr, row, col)
 
   while node do
     local node_type = node:type()
+    log:debug("[ListCodeUsagesTool:get_symbol_at_position] Checking node type: %s", node_type)
     local priority = self.TREESITTER_NODES[node_type] or 0
 
     if priority > highest_priority then
@@ -280,7 +396,12 @@ end
 
 -- Fallback method for when TreeSitter doesn't provide what we need
 function ListCodeUsagesTool:get_fallback_symbol(bufnr, row, col)
-  log:debug("[ListCodeUsagesTool] Using fallback extraction for buffer %d at (%d, %d)", bufnr, row, col)
+  log:debug(
+    "[ListCodeUsagesTool:get_fallback_symbol] Using fallback extraction for buffer %d at (%d, %d)",
+    bufnr,
+    row,
+    col
+  )
 
   local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1]
   if not line then
@@ -360,7 +481,7 @@ end
 function ListCodeUsagesTool:extract_node_data(bufnr, node)
   local start_row, start_col, end_row, end_col = node:range()
   log:debug(
-    "[ListCodeUsagesTool] Extracting node from buffer %d, range: (%d, %d) to (%d, %d)",
+    "[ListCodeUsagesTool:extract_node_data] Extracting node from buffer %d, range: (%d, %d) to (%d, %d)",
     bufnr,
     start_row,
     start_col,
@@ -434,7 +555,11 @@ function ListCodeUsagesTool:filter_project_references(references)
     end
   end
 
-  log:debug("[ListCodeUsagesTool] References filtered. Original: %d, Filtered: %d", #references, #filtered_results)
+  log:debug(
+    "[ListCodeUsagesTool:filter_project_references] References filtered. Original: %d, Filtered: %d",
+    #references,
+    #filtered_results
+  )
 
   return filtered_results
 end
@@ -446,6 +571,12 @@ function ListCodeUsagesTool:execute_lsp_request(bufnr, method)
 
   for _, client in ipairs(clients) do
     if not vim.lsp.buf_is_attached(bufnr, client.id) then
+      log:debug(
+        "[ListCodeUsagesTool:execute_lsp_request] Attaching client %s to buffer %d for method %s",
+        client.name,
+        bufnr,
+        method
+      )
       vim.lsp.buf_attach_client(bufnr, client.id)
     end
 
@@ -455,6 +586,12 @@ function ListCodeUsagesTool:execute_lsp_request(bufnr, method)
 
     local lsp_result = client:request_sync(method, position_params, self.LSP_TIMEOUT_MS)
 
+    log:debug(
+      "[ListCodeUsagesTool:execute_lsp_request] Client %s returned result for method %s: %s",
+      client.name,
+      method,
+      vim.inspect(lsp_result)
+    )
     if lsp_result and lsp_result.result then
       -- Handle hover documentation specially
       if method == self.LSP_METHODS.documentation and lsp_result.result.contents then
@@ -490,17 +627,8 @@ function ListCodeUsagesTool:process_lsp_item(uri, range, operation)
     return symbol_result
   end
 
-  -- Check for duplicates
-  for _, code_blocks in pairs(self.symbol_data) do
-    for _, code_block in ipairs(code_blocks) do
-      if
-        code_block.filename == symbol_result.data.filename
-        and code_block.start_line == symbol_result.data.start_line
-        and code_block.end_line == symbol_result.data.end_line
-      then
-        return { status = "success", data = "Duplicate entry" }
-      end
-    end
+  if self:is_duplicate_or_enclosed(symbol_result.data) then
+    return { status = "success", data = "Duplicate or enclosed entry" }
   end
 
   -- Add to results
@@ -524,6 +652,7 @@ function ListCodeUsagesTool:process_lsp_results(lsp_results, operation)
       end
 
       local content = result.contents
+      -- jdtls puts documentation in a table with a single string
       if type(content) == "table" and type(content[#content]) == "string" then
         content = content[#content]
       end
@@ -557,6 +686,7 @@ function ListCodeUsagesTool:process_quickfix_references(qflist)
     return 0
   end
 
+  log:debug("[ListCodeUsagesTool:process_quickfix_references] Processing %d quickfix items", #qflist)
   local processed_count = 0
 
   for _, qfitem in ipairs(qflist) do
@@ -575,25 +705,18 @@ function ListCodeUsagesTool:process_quickfix_references(qflist)
 
       if symbol_result.status == "success" then
         -- Initialize references array if needed
-        if not self.symbol_data["references"] then
-          self.symbol_data["references"] = {}
+        if not self.symbol_data["grep"] then
+          self.symbol_data["grep"] = {}
         end
 
-        -- Check for duplicates
         local duplicate = false
-        for _, code_block in ipairs(self.symbol_data["references"] or {}) do
-          if
-            code_block.filename == symbol_result.data.filename
-            and code_block.start_line == symbol_result.data.start_line
-            and code_block.end_line == symbol_result.data.end_line
-          then
-            duplicate = true
-            break
-          end
+        if self:is_duplicate_or_enclosed(symbol_result.data) then
+          duplicate = true
+          break
         end
 
         if not duplicate then
-          table.insert(self.symbol_data["references"], symbol_result.data)
+          table.insert(self.symbol_data["grep"], symbol_result.data)
           processed_count = processed_count + 1
         end
       end
@@ -612,6 +735,7 @@ return {
   cmds = {
     function(self, args, input)
       local symbolName = args.symbolName
+      local filePaths = args.filePaths
 
       if not symbolName or symbolName == "" then
         return {
@@ -620,51 +744,52 @@ return {
         }
       end
 
-      local filePaths = args.filePaths
-
-      log:debug(
-        "[List Code Usages Tool] Executing with symbolName: %s, filePaths: %s",
-        symbolName,
-        vim.inspect(filePaths)
-      )
-
+      -- save current state of view
       local context_winnr = self.chat.context.winnr
       local context_bufnr = self.chat.context.bufnr
       local chat_winnr = vim.api.nvim_get_current_win()
+
+      -- get file extension from context buffer if available. It will be later used as glob param for grep.
       local file_extension = ""
       if context_bufnr and vim.api.nvim_buf_is_valid(context_bufnr) then
         local filename = vim.api.nvim_buf_get_name(context_bufnr)
         file_extension = filename:match("%.([^%.]+)$") or "*"
       end
 
-      -- Reset state
+      -- reset tool state
       ListCodeUsagesTool.symbol_data = {}
       ListCodeUsagesTool.filetype = ""
 
-      -- Step 1: Navigate to the symbol definition
+      -- exit insert mode and switch foxus to context window
+      vim.cmd("stopinsert")
       vim.api.nvim_set_current_win(context_winnr)
+
+      -- step 1: navigate to the symbol position in workspace
       local cursor_result = ListCodeUsagesTool:navigate_to_symbol(symbolName, file_extension, filePaths)
 
-      if cursor_result.status ~= "success" then
+      if cursor_result.status == "error" then
         vim.api.nvim_set_current_win(chat_winnr)
         return cursor_result
       end
 
       local bufnr = tonumber(cursor_result.data.bufnr)
       local results_count = 0
-
-      -- Step 2: Call LSP methods to find all usages
-      for operation, method in pairs(ListCodeUsagesTool.LSP_METHODS) do
-        local lsp_results = ListCodeUsagesTool:execute_lsp_request(bufnr, method)
-        results_count = results_count + ListCodeUsagesTool:process_lsp_results(lsp_results, operation)
+      -- Step 2: Process all symbols found by LSP
+      local all_lsp_symbols = ListCodeUsagesTool:get_all_symbols_with_lsp(symbolName, filePaths)
+      for _, symbol in ipairs(all_lsp_symbols) do
+        local process_result = ListCodeUsagesTool:process_lsp_item(symbol.uri, symbol.range, "definition")
+        if process_result.status == "success" and process_result.data ~= "Duplicate or enclosed entry" then
+          results_count = results_count + 1
+        end
       end
 
-      -- Step 3: Fall back to quickfix results if no LSP results
-      if results_count == 0 and cursor_result.qflist then
+      -- Step 3: Proces qflist result as grep operation if it isn't a duplicate with LSP results.
+      if cursor_result.qflist then
         results_count = ListCodeUsagesTool:process_quickfix_references(cursor_result.qflist)
       end
 
-      -- Restore original window and check results
+      -- Restore original state of view
+      vim.api.nvim_set_current_buf(context_bufnr)
       vim.api.nvim_set_current_win(chat_winnr)
 
       if results_count > 0 then
