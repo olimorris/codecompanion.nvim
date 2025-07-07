@@ -120,4 +120,77 @@ T["Copilot Helper Stats"]["show_copilot_stats handles overage_permitted for prem
   h.eq(true, found_overage, "Expected overage_permitted to be displayed in stats")
 end
 
+T["Copilot Helper Get Models"] = new_set()
+
+T["Copilot Helper Get Models"]["retrieves models with correct structure"] = function()
+  local mock_models = {
+    {
+      id = "model1",
+      capabilities = { type = "chat", supports = { streaming = true, tool_calls = true, vision = true } },
+      model_picker_enabled = true,
+    },
+    {
+      id = "model2",
+      capabilities = { type = "chat", supports = {} },
+      model_picker_enabled = true,
+    },
+    {
+      id = "model3",
+      capabilities = { type = "completion" },
+      model_picker_enabled = false,
+    },
+  }
+  local curl = require("plenary.curl")
+  local original_curl_get = curl.get
+  curl.get = function(url, _)
+    if url == "https://api.githubcopilot.com/models" then
+      return {
+        body = vim.json.encode({ data = mock_models }),
+        status = 200,
+      }
+    else
+      return { status = 404, body = "Not Found" }
+    end
+  end
+  local utils = require("codecompanion.utils.adapters")
+  local original_refresh_cache = utils.refresh_cache
+  local refresh_cache_mock = function()
+    return 0
+  end
+  utils.refresh_cache = refresh_cache_mock
+  local mock_adapter = { url = "https://api.githubcopilot.com", headers = {} }
+  local mock_get_and_authorize_token = function()
+    return true -- Simulate successful token retrieval
+  end
+  local mock_oauth_token = "mock_oauth_token"
+
+  local models = copilot_helper.get_models(mock_adapter, mock_get_and_authorize_token, mock_oauth_token)
+
+  h.eq(2, vim.tbl_count(models), "Expected two models to be returned")
+  h.eq({
+    opts = {
+      can_stream = true,
+      can_use_tools = true,
+      has_vision = true,
+    },
+  }, models.model1, "First model should match")
+  h.eq({ opts = {} }, models.model2, "Second model should match")
+
+  -- Restore original function
+  utils.refresh_cache = original_refresh_cache
+  curl.get = original_curl_get
+end
+
+T["Copilot Helper Get Models"]["returns empty table when Copilot token refresh is not OK"] = function()
+  local mock_adapter = { url = "https://api.githubcopilot.com", headers = {} }
+  local mock_get_and_authorize_token = function()
+    return false -- Simulate unsuccessful token retrieval
+  end
+  local mock_oauth_token = "mock_oauth_token"
+
+  local models = copilot_helper.get_models(mock_adapter, mock_get_and_authorize_token, mock_oauth_token)
+
+  h.eq(0, vim.tbl_count(models), "Expected no models to be returned")
+end
+
 return T
