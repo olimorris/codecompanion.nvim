@@ -122,26 +122,42 @@ function Tools:create_fold(start_line, end_line, foldtext)
 
   -- Find the first window displaying the buffer
   local win
-  for _, w in ipairs(vim.api.nvim_list_wins()) do
-    if vim.api.nvim_win_get_buf(w) == self.chat_bufnr then
+  for _, w in ipairs(api.nvim_list_wins()) do
+    if api.nvim_win_get_buf(w) == self.chat_bufnr then
       win = w
       break
     end
   end
+
+  local created_temp = false
   if not win then
-    return
+    win = api.nvim_open_win(self.chat_bufnr, false, {
+      relative = "editor",
+      width = 1,
+      height = 1,
+      row = 0,
+      col = 0,
+      style = "minimal",
+      focusable = false,
+      noautocmd = true,
+    })
+    created_temp = true
   end
 
-  vim.api.nvim_win_call(win, function()
+  api.nvim_win_call(win, function()
     local old = vim.wo[win].foldmethod
     vim.wo[win].foldmethod = "manual"
     vim.cmd(string.format("%d,%dfold", start_line + 1, end_line + 1))
     vim.defer_fn(function()
-      if vim.api.nvim_win_is_valid(win) then
+      if api.nvim_win_is_valid(win) then
         vim.wo[win].foldmethod = old
       end
     end, 50)
   end)
+
+  if created_temp and api.nvim_win_is_valid(win) then
+    api.nvim_win_close(win, true)
+  end
 end
 
 return Tools
