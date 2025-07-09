@@ -111,8 +111,6 @@ body:
         description: |
           Update the `minimal.lua` below, so we can recreate the issue.
           Issues without this will be closed.
-        value: |
-          -- Paste here
         render: lua
       validations:
         required: true
