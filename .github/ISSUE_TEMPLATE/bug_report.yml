@@ -98,19 +98,17 @@ body:
     - type: markdown
       attributes:
         value: |
-          ## Minimal Reproduction
+          ## Reproduce the issue
 
-          Please provide a `minimal.lua` file that reproduces the issue.
-          Preferably use the one [here](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua).
-          Save as `minimal.lua` and run with `nvim -u minimal.lua`.
-          A minimal config will be created for you in your working directory under `.repro`.
+          - Please provide a `minimal.lua` file that reproduces the issue
+          - I'm a solo maintainer, so making my life easy means a lot
+          - Preferably use the one [here](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua)
+          - Save it as `minimal.lua` and run with `nvim -u minimal.lua`
+          - All files will be downloaded to a `.repro` folder in your current working directory
 
     - type: textarea
       attributes:
         label: minimal.lua file
-        description: |
-          Update the `minimal.lua` below, so we can recreate the issue.
-          Issues without this will be closed.
         render: lua
       validations:
         required: true
