@@ -956,20 +956,20 @@ function Chat:submit(opts)
           self.status = result.status
           if self.status == CONSTANTS.STATUS_SUCCESS then
             if result.output.role then
+              self._last_role = result.output.role
               result.output.role = config.constants.LLM_ROLE
-              self._last_role = config.constants.LLM_ROLE
             end
             if result.output.reasoning then
               table.insert(reasoning, result.output.reasoning)
               self:add_buf_message(
-                { role = config.constants.LLM_ROLE, content = result.output.reasoning.content },
+                { role = result.output.role, content = result.output.reasoning.content },
                 { type = self.MESSAGE_TYPES.REASONING_MESSAGE }
               )
             end
             if result.output.content then
               table.insert(output, result.output.content)
               self:add_buf_message(
-                { role = config.constants.LLM_ROLE, content = result.output.content },
+                { role = result.output.role, content = result.output.content },
                 { type = self.MESSAGE_TYPES.LLM_MESSAGE }
               )
             end
