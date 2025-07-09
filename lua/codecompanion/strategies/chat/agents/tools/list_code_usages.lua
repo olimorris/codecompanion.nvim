@@ -49,6 +49,7 @@ CONSTANTS.TREESITTER_NODES = {
   module_definition = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
   namespace_definition = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
   class = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
+  export_statement = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
 
   -- Function-level constructs
   function_definition = CONSTANTS.TREESITTER_PRIORITY.FUNCTION_LEVEL,
@@ -69,7 +70,7 @@ CONSTANTS.TREESITTER_NODES = {
   const_item = CONSTANTS.TREESITTER_PRIORITY.VARIABLE_LEVEL,
   local_declaration = CONSTANTS.TREESITTER_PRIORITY.VARIABLE_LEVEL,
   assignment_statement = CONSTANTS.TREESITTER_PRIORITY.VARIABLE_LEVEL,
-  expression_statement = CONSTANTS.TREESITTER_PRIORITY.VARIABLE_LEVEL, -- Fixed classification
+  expression_statement = CONSTANTS.TREESITTER_PRIORITY.VARIABLE_LEVEL,
 
   -- Import statements
   import_declaration = CONSTANTS.TREESITTER_PRIORITY.IMPORT_LEVEL,
@@ -624,13 +625,23 @@ function ResultProcessor.process_lsp_results(lsp_results, operation, symbol_data
       end
 
       local content = result.contents
-      -- jdtls puts documentation in a table with a single string
+      -- jdtls puts documentation in a table where last element is content
       if type(content) == "table" and type(content[#content]) == "string" then
         content = content[#content]
       end
+      -- Check for duplicates before adding documentation
+      local is_duplicate = false
+      for _, existing_item in ipairs(symbol_data[operation]) do
+        if existing_item.code_block == content then
+          is_duplicate = true
+          break
+        end
+      end
 
-      table.insert(symbol_data[operation], { code_block = content })
-      processed_count = processed_count + 1
+      if not is_duplicate then
+        table.insert(symbol_data[operation], { code_block = content })
+        processed_count = processed_count + 1
+      end
     -- Handle single item with range
     elseif result.range then
       local process_result =
@@ -828,6 +839,7 @@ local function execute_main_command(self, args, input)
 
   -- Store state for output handler
   ListCodeUsagesTool.symbol_data = state.symbol_data
+  ListCodeUsagesTool.results_count = results_count
   ListCodeUsagesTool.filetype = state.filetype
 
   return Utils.create_result("success", "Tool executed successfully")
@@ -876,12 +888,14 @@ Request to list all usages (references, definitions, implementations etc) of a f
     on_exit = function(_, agent)
       ListCodeUsagesTool.symbol_data = {}
       ListCodeUsagesTool.filetype = ""
+      ListCodeUsagesTool.results_count = 0
     end,
   },
   output = {
     success = function(self, agent, cmd, stdout)
       local symbol = self.args.symbolName
-      local chat_message_content = ""
+      local chat_message_content =
+        string.format("Found %d usages of symbol: %s", ListCodeUsagesTool.results_count, symbol)
 
       for operation, code_blocks in pairs(ListCodeUsagesTool.symbol_data) do
         chat_message_content = chat_message_content .. string.format("\n%s of symbol: `%s`\n", operation, symbol)
