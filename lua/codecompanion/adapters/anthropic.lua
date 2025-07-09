@@ -357,7 +357,6 @@ return {
     ---@param tools? table The table to write any tool output to
     ---@return table|nil [status: string, output: table]
     chat_output = function(self, data, tools)
-      ---{content: string, role: string, reasoning: { content: string, meta: { signature: string } } }
       local output = {}
 
       if self.opts.stream then
@@ -381,7 +380,7 @@ return {
             output.content = ""
           elseif json.type == "content_block_start" then
             if json.content_block.type == "thinking" then
-              output.reasoning = output.reasoning and output.reasoning or {}
+              output.reasoning = output.reasoning or {}
               output.reasoning.content = ""
             end
             if json.content_block.type == "tool_use" and tools then
