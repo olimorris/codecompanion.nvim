@@ -1,4 +1,4 @@
-local Path = require("plenary.path")
+local files = require("codecompanion.utils.files")
 local log = require("codecompanion.utils.log")
 
 local fmt = string.format
@@ -8,11 +8,12 @@ local fmt = string.format
 ---@return {status: "success"|"error", data: string}
 local function create(action)
   local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
-  local p = Path:new(filepath)
-  p.filename = p:expand()
+  filepath = vim.fs.normalize(filepath)
 
-  if p:exists() then
-    if p:is_dir() then
+  -- Check if file already exists
+  local stat = vim.uv.fs_stat(filepath)
+  if stat then
+    if stat.type == "directory" then
       return {
         status = "error",
         data = fmt(
@@ -21,7 +22,7 @@ local function create(action)
           action.filepath
         ),
       }
-    else
+    elseif stat.type == "file" then
       return {
         status = "error",
         data = fmt(
@@ -33,23 +34,67 @@ local function create(action)
     end
   end
 
-  local ok, result = pcall(function()
-    p:touch({ parents = true })
-    p:write(action.content, "w")
-  end)
+  local parent_dir = vim.fs.dirname(filepath)
 
-  if not ok then
-    return {
-      status = "error",
-      data = fmt(
-        [[Failed to create `%s`
-- %s]],
-        action.filepath,
-        result
-      ),
-    }
+  -- Ensure parent directory exists
+  if not vim.uv.fs_stat(parent_dir) then
+    local success, err_msg = files.create_dir_recursive(parent_dir)
+    if not success then
+      local error_message =
+        fmt("**Create File Tool**: Failed to create directory for `%s` - %s", action.filepath, err_msg)
+      log:error(error_message)
+      return { status = "error", data = error_message }
+    end
   end
 
+  -- Create file with safer error handling
+  local fd, fs_open_err, fs_open_errname = vim.uv.fs_open(filepath, "w", 420) -- 0644 permissions
+  if not fd then
+    local error_message = fmt(
+      "**Create File Tool**: Failed to open file `%s` for writing: %s (%s)",
+      action.filepath,
+      fs_open_err,
+      fs_open_errname
+    )
+    log:error(error_message)
+    return { status = "error", data = error_message }
+  end
+
+  -- Try to write to the file
+  local bytes_written, fs_write_err, fs_write_errname = vim.uv.fs_write(fd, action.content)
+  local write_error_message
+  if not bytes_written then
+    write_error_message = fmt("Failed to write to file: %s (%s)", fs_write_err, fs_write_errname)
+  elseif bytes_written ~= #action.content then
+    write_error_message = fmt("Incomplete write: expected %d bytes, wrote %d bytes", #action.content, bytes_written)
+  end
+
+  -- Always try to close the file descriptor
+  local close_success, fs_close_err, fs_close_errname = vim.uv.fs_close(fd)
+  local close_error_message
+  if not close_success then
+    close_error_message = fmt("Failed to close file: %s (%s)", fs_close_err, fs_close_errname)
+  end
+
+  -- Combine errors if any
+  local final_error_message
+  if write_error_message and close_error_message then
+    final_error_message = write_error_message .. ". Additionally, " .. close_error_message
+  elseif write_error_message then
+    final_error_message = write_error_message
+  elseif close_error_message then
+    final_error_message = close_error_message
+  end
+
+  -- If any error occurred during write or close, return error
+  if final_error_message then
+    local full_error =
+      fmt("**Create File Tool**: Failed to create file `%s` - %s", action.filepath, final_error_message)
+    log:error(full_error)
+    return { status = "error", data = full_error }
+  end
+
+  -- If we reach here, all operations (open, write, close) were successful
   return {
     status = "success",
     data = fmt([[Created `%s`]], action.filepath),
@@ -117,8 +162,18 @@ return {
     ---@param stdout table The output from the command
     success = function(self, agent, cmd, stdout)
       local chat = agent.chat
-      local llm_output = vim.iter(stdout):flatten():join("\n")
-      chat:add_tool_output(self, llm_output)
+      local output = vim.iter(stdout):flatten():join("\n")
+      local args = self.args
+      local filepath = args.filepath
+
+      local llm_output = fmt("<createFileTool>%s</createFileTool>", "Created file `%s` successfully")
+
+      -- Get the file extension for syntax highlighting
+      local file_ext = vim.fn.fnamemodify(filepath, ":e")
+
+      local result_msg = fmt("Created file `%s`:\n```%s\n%s\n```", filepath, file_ext, args.content or "")
+
+      chat:add_tool_output(self, llm_output, result_msg)
     end,
 
     ---@param self CodeCompanion.Tool.CreateFile

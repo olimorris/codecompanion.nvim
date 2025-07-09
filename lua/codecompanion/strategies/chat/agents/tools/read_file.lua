@@ -8,6 +8,7 @@ local fmt = string.format
 ---@return {status: "success"|"error", data: string}
 local function read(action)
   local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
+  filepath = vim.fs.normalize(filepath)
   local p = Path:new(filepath)
   p.filename = p:expand()
 
