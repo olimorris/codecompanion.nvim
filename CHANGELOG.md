@@ -1,5 +1,19 @@
 # Changelog
 
+## [17.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.6.0...v17.7.0) (2025-07-09)
+
+
+### Features
+
+* add chat ID to chat opened/hidden events ([17f7cbb](https://github.com/olimorris/codecompanion.nvim/commit/17f7cbb6cabdc12195f164acf4c59c7c7c205b64))
+
+
+### Bug Fixes
+
+* **adapter:** copilot unauthorized token expired ([#1789](https://github.com/olimorris/codecompanion.nvim/issues/1789)) ([d455d71](https://github.com/olimorris/codecompanion.nvim/commit/d455d71f5887063b08da3fc3cd60548460f1c875))
+* **adapters:** reasoning output and tool calls in anthropic ([#1807](https://github.com/olimorris/codecompanion.nvim/issues/1807)) ([5717527](https://github.com/olimorris/codecompanion.nvim/commit/5717527ba6b1086ed748dd3b1390d0f431ec46cb)), closes [#1752](https://github.com/olimorris/codecompanion.nvim/issues/1752)
+* **prompts:** reword vectorcode tool in workspace prompt ([#1775](https://github.com/olimorris/codecompanion.nvim/issues/1775)) ([3527a9c](https://github.com/olimorris/codecompanion.nvim/commit/3527a9c85b58a8db2fee6d7dcde72077ba790a4a))
+
 ## [17.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.5.0...v17.6.0) (2025-07-03)
 
 
