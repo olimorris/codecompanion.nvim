@@ -11,8 +11,9 @@ local output_tokens = 0
 ---@return table The filtered message
 local function filter_out_messages(message)
   local allowed = {
-    "role",
     "content",
+    "role",
+    "reasoning",
     "tool_calls",
   }
 
@@ -105,7 +106,7 @@ return {
       return params
     end,
 
-    ---Set the format of the role and content for the messages from the chat buffer
+    ---Set the format of the role and content for the messages that are sent from the chat buffer to the LLM
     ---@param self CodeCompanion.Adapter
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
@@ -160,20 +161,20 @@ return {
         -- 4. Remove disallowed keys
         message = filter_out_messages(message)
 
-        -- 5. Turn string content into { { type = "text", text } }
-        if
-          (message.role == self.roles.user or message.role == self.roles.llm)
-          and type(message.content) == "string"
-        then
+        -- 5. Turn string content into { { type = "text", text } } and add in the reasoning
+        if message.role == self.roles.user or message.role == self.roles.llm then
           -- Anthropic doesn't allow the user to submit an empty prompt. But
           -- this can be necessary to prompt the LLM to analyze any tool
           -- calls and their output
           if message.role == self.roles.user and message.content == "" then
             message.content = "<prompt></prompt>"
           end
-          message.content = {
-            { type = "text", text = message.content },
-          }
+
+          if type(message.content) == "string" then
+            message.content = {
+              { type = "text", text = message.content },
+            }
+          end
         end
 
         if message.tool_calls and vim.tbl_count(message.tool_calls) > 0 then
@@ -199,13 +200,23 @@ return {
           message.tool_calls = nil
         end
 
+        -- 8. If reasoning is present, format it as a content block
+        if message.reasoning and type(message.content) == "table" then
+          -- Ref: https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking#how-extended-thinking-works
+          table.insert(message.content, 1, {
+            type = "thinking",
+            thinking = message.reasoning.content,
+            signature = message.reasoning._data.signature,
+          })
+        end
+
         return message
       end, messages)
 
-      -- 8. Merge consecutive messages with the same role
+      -- 9. Merge consecutive messages with the same role
       messages = utils.merge_messages(messages)
 
-      -- 9. Ensure that any consecutive tool results are merged
+      -- 10. Ensure that any consecutive tool results are merged
       if has_tools then
         for _, m in ipairs(messages) do
           if m.role == self.roles.user and m.content and m.content ~= "" then
@@ -236,7 +247,7 @@ return {
         end
       end
 
-      -- 10+. Cache large messages per opts.cache_over / cache_breakpoints
+      -- 11+. Cache large messages per opts.cache_over / cache_breakpoints
       local breakpoints_used = 0
       for i = #messages, 1, -1 do
         local msgs = messages[i]
@@ -266,6 +277,31 @@ return {
       end
 
       return { system = system, messages = messages }
+    end,
+
+    ---Form the reasoning output that is stored in the chat buffer
+    ---@param self CodeCompanion.Adapter
+    ---@param data table The reasoning output from the LLM
+    ---@return nil|{ content: string, _data: table }
+    form_reasoning = function(self, data)
+      local content = vim
+        .iter(data)
+        :map(function(item)
+          return item.content
+        end)
+        :filter(function(content)
+          return content ~= nil
+        end)
+        :join("")
+
+      local signature = data[#data].signature
+
+      return {
+        content = content,
+        _data = {
+          signature = signature,
+        },
+      }
     end,
 
     ---Provides the schemas of the tools that are available to the LLM to call
@@ -321,6 +357,7 @@ return {
     ---@param tools? table The table to write any tool output to
     ---@return table|nil [status: string, output: table]
     chat_output = function(self, data, tools)
+      ---{content: string, role: string, reasoning: { content: string, meta: { signature: string } } }
       local output = {}
 
       if self.opts.stream then
@@ -344,7 +381,8 @@ return {
             output.content = ""
           elseif json.type == "content_block_start" then
             if json.content_block.type == "thinking" then
-              output.reasoning = ""
+              output.reasoning = output.reasoning and output.reasoning or {}
+              output.reasoning.content = ""
             end
             if json.content_block.type == "tool_use" and tools then
               -- Source: https://docs.anthropic.com/en/docs/build-with-claude/tool-use/overview#single-tool-example
@@ -357,7 +395,11 @@ return {
             end
           elseif json.type == "content_block_delta" then
             if json.delta.type == "thinking_delta" then
-              output.reasoning = json.delta.thinking
+              output.reasoning = output.reasoning or {}
+              output.reasoning.content = json.delta.thinking
+            elseif json.delta.type == "signature_delta" then
+              output.reasoning = output.reasoning or {}
+              output.reasoning.signature = json.delta.signature
             else
               output.content = json.delta.text
               if json.delta.partial_json and tools then
@@ -376,7 +418,8 @@ return {
               if content.type == "text" then
                 output.content = (output.content or "") .. content.text
               elseif content.type == "thinking" then
-                output.reasoning = content.text
+                output.reasoning = output.reasoning and output.reasoning or {}
+                output.reasoning.content = content.text
               elseif content.type == "tool_use" and tools then
                 table.insert(tools, {
                   _index = i,

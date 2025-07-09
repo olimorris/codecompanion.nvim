@@ -105,8 +105,8 @@ T["Builder"]["Reasoning"]["manages reasoning to response transition"] = function
     -- Add reasoning content first
     _G.chat.builder:add_message({
       role = "llm",
-      reasoning = "Let me think about this..."
-    }, {})
+      content = "Let me think about this..."
+    }, { type = _G.chat.MESSAGE_TYPES.REASONING_MESSAGE })
 
     local after_reasoning_state = _G.chat.builder.state.has_reasoning_output
 

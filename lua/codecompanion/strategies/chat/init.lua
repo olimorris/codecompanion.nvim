@@ -514,6 +514,7 @@ local Chat = {}
 
 Chat.MESSAGE_TYPES = {
   LLM_MESSAGE = "llm_message",
+  REASONING_MESSAGE = "reasoning_message",
   SYSTEM_MESSAGE = "system_message",
   TOOL_MESSAGE = "tool_message",
   USER_MESSAGE = "user_message",
@@ -809,7 +810,7 @@ function Chat:remove_tagged_message(tag)
 end
 
 ---Add a message to the message table
----@param data { role: string, content: string, tool_calls?: table }
+---@param data { role: string, content: string, reasoning?: table, tool_calls?: table }
 ---@param opts? table Options for the message
 ---@return CodeCompanion.Chat
 function Chat:add_message(data, opts)
@@ -821,6 +822,7 @@ function Chat:add_message(data, opts)
   local message = {
     role = data.role,
     content = data.content,
+    reasoning = data.reasoning,
     tool_calls = data.tool_calls,
   }
   message.id = make_id(message)
@@ -928,6 +930,7 @@ function Chat:submit(opts)
   log:info("Chat request started")
 
   local output = {}
+  local reasoning = {}
   local tools = {}
   self.current_request = client.new({ adapter = mapped_settings }):request(payload, {
     ---@param err { message: string, stderr: string }
@@ -956,8 +959,14 @@ function Chat:submit(opts)
               self._last_role = result.output.role
               result.output.role = config.constants.LLM_ROLE
             end
-            table.insert(output, result.output.content)
-            self:add_buf_message(result.output, { type = self.MESSAGE_TYPES.LLM_MESSAGE })
+            if result.output.reasoning then
+              table.insert(reasoning, result.output.reasoning)
+              self:add_buf_message(result.output.reasoning, { type = self.MESSAGE_TYPES.REASONING_MESSAGE })
+            end
+            if result.output.content then
+              table.insert(output, result.output.content)
+              self:add_buf_message(result.output, { type = self.MESSAGE_TYPES.LLM_MESSAGE })
+            end
           elseif self.status == CONSTANTS.STATUS_ERROR then
             log:error("Error: %s", result.output)
             return self:done(output)
@@ -966,7 +975,7 @@ function Chat:submit(opts)
       end
     end,
     done = function()
-      self:done(output, tools)
+      self:done(output, tools, reasoning)
     end,
   }, { bufnr = bufnr, strategy = "chat" })
   util.fire("ChatSubmitted", { bufnr = self.bufnr, id = self.id })
@@ -983,33 +992,45 @@ end
 ---Method to call after the response from the LLM is received
 ---@param output? table The output from the LLM
 ---@param tools? table The tools from the LLM
+---@param reasoning? table The reasoning from the LLM
 ---@return nil
-function Chat:done(output, tools)
+function Chat:done(output, tools, reasoning)
   self.current_request = nil
 
   -- Commonly, a status may not be set if the message exceeds a token limit
   if not self.status or self.status == "" then
     return self:reset()
   end
-
-  local has_tools = tools and not vim.tbl_isempty(tools)
   local has_output = output and not vim.tbl_isempty(output)
+  local has_tools = tools and not vim.tbl_isempty(tools)
 
-  -- Handle LLM output text
+  local content
   if has_output then
-    local content = vim.trim(table.concat(output or {}, "")) -- No idea why the LSP freaks out that this isn't a table
-    if content ~= "" then
-      self:add_message({
-        role = config.constants.LLM_ROLE,
-        content = content,
-      })
+    content = vim.trim(table.concat(output or {}, ""))
+  end
+
+  local reasoning_content = nil
+  if reasoning and not vim.tbl_isempty(reasoning) then
+    if self.adapter.handlers.form_reasoning then
+      reasoning_content = self.adapter.handlers.form_reasoning(self.adapter, reasoning)
     end
   end
 
+  if content and content ~= "" then
+    self:add_message({
+      role = config.constants.LLM_ROLE,
+      content = content,
+      reasoning = reasoning_content,
+    })
+    reasoning_content = nil
+  end
+
+  -- Process tools last
   if has_tools then
     tools = self.adapter.handlers.tools.format_tool_calls(self.adapter, tools)
     self:add_message({
       role = config.constants.LLM_ROLE,
+      reasoning = reasoning_content,
       tool_calls = tools,
     }, {
       visible = false,

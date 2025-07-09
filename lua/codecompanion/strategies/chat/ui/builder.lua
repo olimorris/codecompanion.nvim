@@ -89,7 +89,7 @@ function Builder:add_message(data, opts)
   end
 
   -- Format content - pass rich state to formatters
-  if data.content or data.reasoning then
+  if data.content or (data.reasoning and data.reasoning.content) then
     local formatter = self:_get_formatter(data, opts)
     local content_lines, content_fold_info = formatter:format(data, opts, state)
 
@@ -132,7 +132,7 @@ function Builder:_should_start_new_section(data, opts, state)
   local tags = self.chat.MESSAGE_TYPES
 
   return (opts.type == tags.TOOL_MESSAGE and state.last_type ~= tags.TOOL_MESSAGE)
-    or (opts.type == tags.REASONING and not state.has_reasoning_output)
+    or (opts.type == tags.REASONING_MESSAGE and not state.has_reasoning_output)
     or (opts.type == tags.LLM_MESSAGE and state.last_type ~= tags.LLM_MESSAGE)
 end
 
