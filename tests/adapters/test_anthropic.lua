@@ -372,6 +372,158 @@ T["Anthropic adapter"]["form_messages"]["consolidates consecutive user messages 
   }, adapter.handlers.form_messages(adapter, messages).messages)
 end
 
+T["Anthropic adapter"]["form_messages"]["can handle reasoning"] = function()
+  local messages = {
+    {
+      content = "What's 2 + 2?",
+      role = "user",
+    },
+    {
+      content = "The answer is 4.",
+      reasoning = {
+        content = "I need to calculate 2 + 2. This is a basic arithmetic operation. 2 + 2 = 4.",
+        _data = { signature = "mock_signature_12345" },
+      },
+      role = "assistant",
+    },
+  }
+
+  local result = adapter.handlers.form_messages(adapter, messages)
+
+  local expected = {
+    {
+      content = {
+        {
+          type = "text",
+          text = "What's 2 + 2?",
+        },
+      },
+      role = "user",
+    },
+    {
+      content = {
+        {
+          type = "thinking",
+          thinking = "I need to calculate 2 + 2. This is a basic arithmetic operation. 2 + 2 = 4.",
+          signature = "mock_signature_12345",
+        },
+        {
+          type = "text",
+          text = "The answer is 4.",
+        },
+      },
+      role = "assistant",
+    },
+  }
+
+  h.eq({ messages = expected }, result)
+end
+
+T["Anthropic adapter"]["form_messages"]["tool use AND reasoning"] = function()
+  local messages = {
+    {
+      role = "user",
+      content = "What's the weather like in London?",
+    },
+    {
+      role = "assistant",
+      tool_calls = {
+        {
+          _index = 1,
+          ["function"] = {
+            arguments = '{"location": "London, UK", "units": "celsius"}',
+            name = "weather",
+          },
+          id = "toolu_01UjbLnwyzbLtZNjvrDuiRDE",
+          type = "function",
+        },
+      },
+      reasoning = {
+        content = "Some thinking block",
+        _data = {
+          signature = "some_signature",
+        },
+      },
+    },
+  }
+
+  local result = adapter.handlers.form_messages(adapter, messages)
+
+  local expected = {
+    {
+      content = {
+        {
+          type = "text",
+          text = "What's the weather like in London?",
+        },
+      },
+      role = "user",
+    },
+    {
+      content = {
+        {
+          signature = "some_signature",
+          thinking = "Some thinking block",
+          type = "thinking",
+        },
+        {
+          id = "toolu_01UjbLnwyzbLtZNjvrDuiRDE",
+          input = {
+            location = "London, UK",
+            units = "celsius",
+          },
+          name = "weather",
+          type = "tool_use",
+        },
+      },
+      role = "assistant",
+    },
+  }
+
+  h.eq({ messages = expected }, result)
+end
+
+T["Anthropic adapter"]["form_reasoning"] = function()
+  local reasoning = {
+    {
+      content = "",
+    },
+    {
+      content = "The user is asking if I'm",
+    },
+    {
+      content = " working, which is a simple question to check if I'm functioning",
+    },
+    {
+      content = " properly. This is a straightforward query that",
+    },
+    {
+      content = " doesn't require any complex programming assistance or code",
+    },
+    {
+      content = " analysis. I should give a brief, direct",
+    },
+    {
+      content = " response confirming that I am functioning and ready to help with",
+    },
+    {
+      content = " programming tasks.",
+    },
+    {
+      signature = "EukDCkYIBRgCKkDwVZaI617wvi1+P9+q9M1lGFO7ZOgkmyHvC+qfGNa4/nkNcjoTlxrrCAufnzn1SzSATglo7KdHwTrKRxn5KvqcEgyRopWqnZT5GR4VknIaDDG+2FBu65H7US7/AyIw8NGN1o2Zu6WwxROgr7TeAQU+D54dm7lxXoGKI6sXdmLfe7YKSJNDywkyrs5gTGeuKtACKYLIfqA3hL8qmWgTo7anYIaUTLAcT8bCsj3Kcugbg7QZBbQmy+xHKdE22lPTIZZw5vIVb3urA0LLoBQ0TliqFf2qT7G9oMCsoukKFqYn4cHaQNGib4YJjY3SIKDw+xYpgiF6HMjl5lKyrNMwiM7ZZ41z4nOBMFSvCJWPP4kDmaQjBuKT6Wq8HcN6QJQP+0AbAnJe922U+C1W9pXV/fZSNGEkCIMqimHWLu2Ld4FtyIEVjZqTlNg3zbP9UGzWRmqg9nsNnMCdThdHHteEXv+hVfYY4amyXIQvUsKG+EM16Z+mZrLSTzH4oFd2J3q5J1M9NAMJpGD1abaqYeNXNGd7WCkXE8ZiVgbpVhyCFVID1U0y/Fr01JFj2DWuyg/nqKSToViwvxNuzj14s/Q9gL6phvmF5aekmDqrGq3ngJAIRfiKaZBXkFEgvdgmg5GNA031GAE=",
+    },
+  }
+
+  local output = {
+    content = "The user is asking if I'm working, which is a simple question to check if I'm functioning properly. This is a straightforward query that doesn't require any complex programming assistance or code analysis. I should give a brief, direct response confirming that I am functioning and ready to help with programming tasks.",
+    _data = {
+      signature = "EukDCkYIBRgCKkDwVZaI617wvi1+P9+q9M1lGFO7ZOgkmyHvC+qfGNa4/nkNcjoTlxrrCAufnzn1SzSATglo7KdHwTrKRxn5KvqcEgyRopWqnZT5GR4VknIaDDG+2FBu65H7US7/AyIw8NGN1o2Zu6WwxROgr7TeAQU+D54dm7lxXoGKI6sXdmLfe7YKSJNDywkyrs5gTGeuKtACKYLIfqA3hL8qmWgTo7anYIaUTLAcT8bCsj3Kcugbg7QZBbQmy+xHKdE22lPTIZZw5vIVb3urA0LLoBQ0TliqFf2qT7G9oMCsoukKFqYn4cHaQNGib4YJjY3SIKDw+xYpgiF6HMjl5lKyrNMwiM7ZZ41z4nOBMFSvCJWPP4kDmaQjBuKT6Wq8HcN6QJQP+0AbAnJe922U+C1W9pXV/fZSNGEkCIMqimHWLu2Ld4FtyIEVjZqTlNg3zbP9UGzWRmqg9nsNnMCdThdHHteEXv+hVfYY4amyXIQvUsKG+EM16Z+mZrLSTzH4oFd2J3q5J1M9NAMJpGD1abaqYeNXNGd7WCkXE8ZiVgbpVhyCFVID1U0y/Fr01JFj2DWuyg/nqKSToViwvxNuzj14s/Q9gL6phvmF5aekmDqrGq3ngJAIRfiKaZBXkFEgvdgmg5GNA031GAE=",
+    },
+  }
+
+  h.eq(output, adapter.handlers.form_reasoning(adapter, reasoning))
+end
+
 T["Anthropic adapter"]["form_tools"] = function()
   local weather = require("tests/strategies/chat/agents/tools/stubs/weather").schema
   local tools = { weather = { weather } }
@@ -454,14 +606,16 @@ end
 T["Anthropic adapter"]["Streaming"]["can process reasoning output"] = function()
   local output = {
     content = "",
-    reasoning = "",
+    reasoning = {
+      content = "",
+    },
   }
   local lines = vim.fn.readfile("tests/adapters/stubs/anthropic_reasoning_streaming.txt")
   for _, line in ipairs(lines) do
     local chat_output = adapter.handlers.chat_output(adapter, line)
     if chat_output then
-      if chat_output.output.reasoning then
-        output.reasoning = output.reasoning .. chat_output.output.reasoning
+      if chat_output.output.reasoning and chat_output.output.reasoning.content then
+        output.reasoning.content = output.reasoning.content .. chat_output.output.reasoning.content
       end
       if chat_output.output.content then
         output.content = output.content .. chat_output.output.content
@@ -470,7 +624,7 @@ T["Anthropic adapter"]["Streaming"]["can process reasoning output"] = function()
   end
 
   h.expect_starts_with("**Elegant simplicity**", output.content)
-  h.expect_starts_with("The user is asking me to describe the Ruby programming language", output.reasoning)
+  h.expect_starts_with("The user is asking me to describe the Ruby programming language", output.reasoning.content)
 end
 
 T["Anthropic adapter"]["No Streaming"] = new_set({

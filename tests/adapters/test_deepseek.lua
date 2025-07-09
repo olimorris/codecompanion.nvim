@@ -13,7 +13,9 @@ T["DeepSeek adapter"] = new_set({
   },
 })
 
-T["DeepSeek adapter"]["it can form messages to be sent to the API"] = function()
+T["DeepSeek adapter"]["form_messages"] = new_set()
+
+T["DeepSeek adapter"]["form_messages"]["it can form messages to be sent to the API"] = function()
   local messages = { {
     content = "Explain Ruby in two words",
     role = "user",
@@ -22,7 +24,7 @@ T["DeepSeek adapter"]["it can form messages to be sent to the API"] = function()
   h.eq({ messages = messages }, adapter.handlers.form_messages(adapter, messages))
 end
 
-T["DeepSeek adapter"]["merges consecutive messages with the same role"] = function()
+T["DeepSeek adapter"]["form_messages"]["merges consecutive messages with the same role"] = function()
   local input = {
     { role = "user", content = "A" },
     { role = "user", content = "B" },
@@ -42,7 +44,7 @@ T["DeepSeek adapter"]["merges consecutive messages with the same role"] = functi
   h.eq(expected, adapter.handlers.form_messages(adapter, input))
 end
 
-T["DeepSeek adapter"]["merges system messages together at the start of the message chain"] = function()
+T["DeepSeek adapter"]["form_messages"]["merges system messages together at the start of the message chain"] = function()
   local input = {
     { role = "system", content = "System Prompt 1" },
     { role = "user", content = "User1" },
@@ -66,7 +68,7 @@ T["DeepSeek adapter"]["merges system messages together at the start of the messa
   h.eq(expected, adapter.handlers.form_messages(adapter, input))
 end
 
-T["DeepSeek adapter"]["ensures message content is a string and not a list"] = function()
+T["DeepSeek adapter"]["form_messages"]["ensures message content is a string and not a list"] = function()
   -- Ref: https://github.com/BerriAI/litellm/issues/6642
   local input = {
     { role = "user", content = "Describe Ruby in two words" },
@@ -89,7 +91,7 @@ T["DeepSeek adapter"]["ensures message content is a string and not a list"] = fu
   h.eq(expected, adapter.handlers.form_messages(adapter, input))
 end
 
-T["DeepSeek adapter"]["it can form messages with tools"] = function()
+T["DeepSeek adapter"]["form_messages"]["it can form messages with tools"] = function()
   local input = {
     { role = "system", content = "System Prompt 1" },
     { role = "user", content = "User1" },
@@ -156,7 +158,7 @@ T["DeepSeek adapter"]["it can form messages with tools"] = function()
   h.eq(expected, adapter.handlers.form_messages(adapter, input))
 end
 
-T["DeepSeek adapter"]["it can form tools to be sent to the API"] = function()
+T["DeepSeek adapter"]["form_messages"]["it can form tools to be sent to the API"] = function()
   adapter = require("codecompanion.adapters").extend("deepseek", {
     schema = {
       model = {
@@ -186,12 +188,27 @@ T["DeepSeek adapter"]["Streaming"]["can output streamed data into a format for t
 end
 
 T["DeepSeek adapter"]["Streaming"]["can handle reasoning content when streaming"] = function()
+  local output = {
+    content = "",
+    reasoning = {
+      content = "",
+    },
+  }
+
   local lines = vim.fn.readfile("tests/adapters/stubs/deepseek_streaming.txt")
-  local output = ""
   for _, line in ipairs(lines) do
-    output = output .. (adapter.handlers.chat_output(adapter, line).output.reasoning or "")
+    local chat_output = adapter.handlers.chat_output(adapter, line)
+    if chat_output then
+      if chat_output.output.reasoning and chat_output.output.reasoning.content then
+        output.reasoning.content = output.reasoning.content .. chat_output.output.reasoning.content
+      end
+      if chat_output.output.content then
+        output.content = output.content .. chat_output.output.content
+      end
+    end
   end
-  h.expect_starts_with("Okay, the user wants me to explain Ruby in two words. ", output)
+
+  h.expect_starts_with("Okay, the user wants me to explain Ruby in two words. ", output.reasoning.content)
 end
 
 T["DeepSeek adapter"]["Streaming"]["can process tools"] = function()
