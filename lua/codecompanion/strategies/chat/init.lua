@@ -981,7 +981,7 @@ function Chat:submit(opts)
       end
     end,
     done = function()
-      self:done(output, tools, reasoning)
+      self:done(output, reasoning, tools)
     end,
   }, { bufnr = bufnr, strategy = "chat" })
   util.fire("ChatSubmitted", { bufnr = self.bufnr, id = self.id })
@@ -996,11 +996,11 @@ function Chat:tools_done(opts)
 end
 
 ---Method to call after the response from the LLM is received
----@param output? table The output from the LLM
----@param tools? table The tools from the LLM
----@param reasoning? table The reasoning from the LLM
+---@param output? table The message output from the LLM
+---@param reasoning? table The reasoning output from the LLM
+---@param tools? table The tools output from the LLM
 ---@return nil
-function Chat:done(output, tools, reasoning)
+function Chat:done(output, reasoning, tools)
   self.current_request = nil
 
   -- Commonly, a status may not be set if the message exceeds a token limit
