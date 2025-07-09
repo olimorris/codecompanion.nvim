@@ -20,15 +20,10 @@ local CONSTANTS = {
     documentation = vim.lsp.protocol.Methods.textDocument_hover,
   },
   TREESITTER_PRIORITY = {
-    -- Class-level constructs (highest priority)
     CLASS_LEVEL = 30,
-    -- Function-level constructs (medium priority)
-    FUNCTION_LEVEL = 20,
-    -- Variable/field declarations (lower priority)
+    FUNCTION_LEVEL = 30,
     VARIABLE_LEVEL = 10,
-    -- Import statements
     IMPORT_LEVEL = 5,
-    -- Default priority for non-classified nodes
     DEFAULT = 0,
   },
   EXCLUDED_DIRS = { "node_modules", "dist", "vendor", ".git", "venv", ".env", "target", "build" },
@@ -839,7 +834,6 @@ local function execute_main_command(self, args, input)
 
   -- Store state for output handler
   ListCodeUsagesTool.symbol_data = state.symbol_data
-  ListCodeUsagesTool.results_count = results_count
   ListCodeUsagesTool.filetype = state.filetype
 
   return Utils.create_result("success", "Tool executed successfully")
@@ -888,14 +882,13 @@ Request to list all usages (references, definitions, implementations etc) of a f
     on_exit = function(_, agent)
       ListCodeUsagesTool.symbol_data = {}
       ListCodeUsagesTool.filetype = ""
-      ListCodeUsagesTool.results_count = 0
     end,
   },
   output = {
     success = function(self, agent, cmd, stdout)
       local symbol = self.args.symbolName
       local chat_message_content =
-        string.format("Found %d usages of symbol: %s", ListCodeUsagesTool.results_count, symbol)
+        string.format("Found usages of symbol: %s", symbol)
 
       for operation, code_blocks in pairs(ListCodeUsagesTool.symbol_data) do
         chat_message_content = chat_message_content .. string.format("\n%s of symbol: `%s`\n", operation, symbol)
