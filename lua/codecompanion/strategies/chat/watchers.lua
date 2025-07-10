@@ -83,6 +83,11 @@ function Watchers:get_changes(bufnr)
   if not self.buffers[bufnr] then
     return false, nil
   end
+  if not api.nvim_buf_is_valid(bufnr) then
+    -- special case for unlisted buffers
+    self:unwatch(bufnr)
+    return true, nil
+  end
   local buffer = self.buffers[bufnr]
   local current_content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local current_tick = api.nvim_buf_get_changedtick(bufnr)
@@ -141,6 +146,12 @@ function Watchers:check_for_changes(chat)
             content = fmt([[<attachment filepath="%s" buffer_number="%s">%s</attachment>]], filename, ref.bufnr, delta),
           }, { visible = false })
         end
+      elseif has_changed then
+        -- buffer is now invalid
+        chat:add_message({
+          role = config.constants.USER_ROLE,
+          content = fmt([[buffer %d has been removed.]], ref.bufnr),
+        }, { visible = false })
       end
     end
   end
