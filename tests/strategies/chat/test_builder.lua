@@ -85,7 +85,6 @@ T["Builder"]["Sections"]["detects new section for tool output after LLM message"
 
       -- Let's also check some internal logic
       should_start_new_section = _G.chat.builder:_should_start_new_section(
-        { role = "llm", content = "test" },
         { type = _G.chat.MESSAGE_TYPES.TOOL_MESSAGE },
         { last_type = _G.chat.MESSAGE_TYPES.LLM_MESSAGE }
       )
@@ -105,8 +104,8 @@ T["Builder"]["Reasoning"]["manages reasoning to response transition"] = function
     -- Add reasoning content first
     _G.chat.builder:add_message({
       role = "llm",
-      reasoning = "Let me think about this..."
-    }, {})
+      content = "Let me think about this..."
+    }, { type = _G.chat.MESSAGE_TYPES.REASONING_MESSAGE })
 
     local after_reasoning_state = _G.chat.builder.state.has_reasoning_output
 

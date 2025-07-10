@@ -74,22 +74,22 @@ function Builder:add_message(data, opts)
   local fold_info = nil
   local current_type = nil
 
-  -- Create rich formatting state for this message
   local state = create_state(self.state)
 
   local needs_header = self:_should_add_header(data, opts, state)
-  local needs_new_section = self:_should_start_new_section(data, opts, state)
+  local needs_section = self:_should_start_new_section(opts, state)
 
   if needs_header then
     state:update_role(data.role)
     self:_add_header_spacing(lines, state)
     self.chat.ui:set_header(lines, config.strategies.chat.roles[data.role])
-  elseif needs_new_section then
+  elseif needs_section then
     state:start_new_section()
   end
 
-  -- Format content - pass rich state to formatters
-  if data.content or data.reasoning then
+  local has_content = data.content or (data.reasoning and data.reasoning.content)
+
+  if has_content then
     local formatter = self:_get_formatter(data, opts)
     local content_lines, content_fold_info = formatter:format(data, opts, state)
 
@@ -104,27 +104,23 @@ function Builder:add_message(data, opts)
     end
   end
 
-  -- Write to buffer
   if not vim.tbl_isempty(lines) then
     self:_write_to_buffer(lines, opts, fold_info, state)
   end
 
-  -- Update persistent state from rich state
   if current_type then
     state:update_type(current_type)
   end
 
-  -- Sync state back to builder for persistence
   self:_sync_state_from_formatting_state(state)
   self:_sync_state_to_chat()
 end
 
 ---Determine if we should start a new section under the header
----@param data table
 ---@param opts table
 ---@param state table
 ---@return boolean
-function Builder:_should_start_new_section(data, opts, state)
+function Builder:_should_start_new_section(opts, state)
   if not opts.type then
     return false
   end
@@ -132,11 +128,11 @@ function Builder:_should_start_new_section(data, opts, state)
   local tags = self.chat.MESSAGE_TYPES
 
   return (opts.type == tags.TOOL_MESSAGE and state.last_type ~= tags.TOOL_MESSAGE)
-    or (opts.type == tags.REASONING and not state.has_reasoning_output)
+    or (opts.type == tags.REASONING_MESSAGE and state.last_type ~= tags.REASONING_MESSAGE)
     or (opts.type == tags.LLM_MESSAGE and state.last_type ~= tags.LLM_MESSAGE)
 end
 
----Check if we need a header
+---Check if we need to add a header to the chat buffer
 ---@param data table
 ---@param opts table
 ---@param state table
@@ -202,12 +198,10 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
     self.chat.ui.tools:create_fold(fold_start, fold_end, fold_info.first_line)
   end
 
-  -- Render headers if new response
   if state.is_new_response then
     self.chat.ui:render_headers()
   end
 
-  -- Lock buffer if not user role
   if state.last_role ~= config.constants.USER_ROLE then
     self.chat.ui:lock_buf()
   end
