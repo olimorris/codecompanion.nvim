@@ -30,9 +30,9 @@ end
 ---Get a list of available Copilot models
 ---@param adapter CodeCompanion.Adapter
 ---@param get_and_authorize_token_fn function Function to get and authorize token
----@param github_token table The github token object
+---@param oauth_token string The oauth token
 ---@return table
-function M.get_models(adapter, get_and_authorize_token_fn, github_token)
+function M.get_models(adapter, get_and_authorize_token_fn, oauth_token)
   if _cached_models and _cache_expires and _cache_expires > os.time() then
     return _cached_models
   end
@@ -44,13 +44,16 @@ function M.get_models(adapter, get_and_authorize_token_fn, github_token)
     _cached_adapter = adapter
   end
 
-  get_and_authorize_token_fn(adapter)
-  local url = github_token.endpoints.api or "https://api.githubcopilot.com"
+  if not get_and_authorize_token_fn(adapter) then
+    return {}
+  end
+
+  local url = "https://api.githubcopilot.com/models"
   local headers = vim.deepcopy(_cached_adapter.headers)
-  headers["Authorization"] = "Bearer " .. github_token.token
+  headers["Authorization"] = "Bearer " .. oauth_token
 
   local ok, response = pcall(function()
-    return curl.get(url .. "/models", {
+    return curl.get(url, {
       sync = true,
       headers = headers,
       insecure = config.adapters.opts.allow_insecure,
@@ -58,13 +61,13 @@ function M.get_models(adapter, get_and_authorize_token_fn, github_token)
     })
   end)
   if not ok then
-    log:error("Could not get the Copilot models from " .. url .. "/models.\nError: %s", response)
+    log:error("Could not get the Copilot models from " .. url .. ".\nError: %s", response)
     return {}
   end
 
   local ok, json = pcall(vim.json.decode, response.body)
   if not ok then
-    log:error("Error parsing the response from " .. url .. "/models.\nError: %s", response.body)
+    log:error("Error parsing the response from " .. url .. ".\nError: %s", response.body)
     return {}
   end
 

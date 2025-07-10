@@ -981,7 +981,7 @@ You must create or modify a workspace file through a series of prompts over mult
 
             local ok, _ = pcall(require, "vectorcode")
             if ok then
-              prompt = prompt .. " Use the @vectorcode tool to help identify groupings of files"
+              prompt = prompt .. " Use the @{vectorcode_toolbox} tool to help identify groupings of files"
             end
             return prompt
           end,

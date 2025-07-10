@@ -84,7 +84,7 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
 
       -- Submit the chat buffer!!
       _G.chat_output, _G.chat_tools = _G.chat:mock_submit()
-      _G.chat:done(_G.chat_output, _G.chat_tools)
+      _G.chat:done(_G.chat_output, _, _G.chat_tools)
     ]],
     adapter,
     adapter,

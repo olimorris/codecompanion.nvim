@@ -300,7 +300,7 @@ return {
             return { ["gpt-4.1"] = { opts = {} } } -- fallback
           end
         end
-        return copilot_helper.get_models(self, get_and_authorize_token, _github_token)
+        return copilot_helper.get_models(self, get_and_authorize_token, _oauth_token)
       end,
     },
     ---@type CodeCompanion.Schema

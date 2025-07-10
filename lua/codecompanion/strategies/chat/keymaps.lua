@@ -64,6 +64,22 @@ M.options = {
       return desc
     end
 
+    local function sorted_pairs(tbl, comp)
+      local keys = {}
+      for k in pairs(tbl) do
+        table.insert(keys, k)
+      end
+      table.sort(keys, comp)
+      local i = 0
+      return function()
+        i = i + 1
+        local key = keys[i]
+        if key ~= nil then
+          return key, tbl[key]
+        end
+      end
+    end
+
     -- Workout the column spacing
     local keymaps = config.strategies.chat.keymaps
     local keymaps_max = max("description", keymaps)
@@ -108,7 +124,11 @@ M.options = {
     -- Keymaps
     table.insert(lines, "### Keymaps")
 
-    for _, map in pairs(keymaps) do
+    local function compare_keymaps(a, b)
+      return (keymaps[a].description or "") < (keymaps[b].description or "")
+    end
+
+    for _, map in sorted_pairs(keymaps, compare_keymaps) do
       if type(map.condition) == "function" and not map.condition() then
         goto continue
       end
@@ -142,7 +162,7 @@ M.options = {
     table.insert(lines, "")
     table.insert(lines, "### Variables")
 
-    for key, val in pairs(vars) do
+    for key, val in sorted_pairs(vars) do
       local desc = clean_and_truncate(val.description)
       table.insert(lines, indent .. pad("#" .. key, max_length, 4) .. " " .. desc)
     end
@@ -151,7 +171,7 @@ M.options = {
     table.insert(lines, "")
     table.insert(lines, "### Tools")
 
-    for key, val in pairs(tools) do
+    for key, val in sorted_pairs(tools) do
       if key ~= "opts" then
         local desc = clean_and_truncate(val.description)
         table.insert(lines, indent .. pad("@" .. key, max_length, 4) .. " " .. desc)

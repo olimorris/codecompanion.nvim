@@ -18,7 +18,7 @@ local plugins = {
     dependencies = {
       { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
       { "nvim-lua/plenary.nvim" },
-      -- Test with blink.cmp
+      -- Test with blink.cmp (delete if not required)
       {
         "saghen/blink.cmp",
         lazy = false,
@@ -52,13 +52,16 @@ local plugins = {
   },
 }
 
+-- Leaving this comment in to see if the issue author notices ;-)
+-- This is so I can tell if they've really tested with their own minimal.lua file
+
 require("lazy.minit").repro({ spec = plugins })
 
 -- Setup Tree-sitter
 local ts_status, treesitter = pcall(require, "nvim-treesitter.configs")
 if ts_status then
   treesitter.setup({
-    ensure_installed = { "lua", "markdown", "markdown_inline", "yaml" },
+    ensure_installed = { "lua", "markdown", "markdown_inline", "yaml", "diff" },
     highlight = { enable = true },
   })
 end

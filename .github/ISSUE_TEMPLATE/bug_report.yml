@@ -7,29 +7,28 @@ body:
     - type: markdown
       attributes:
         value: |
-          **Before** reporting an issue, make sure to read the [documentation](https://codecompanion.olimorris.dev) and search [existing issues](https://github.com/olimorris/codecompanion.nvim/issues).
+          **Before** reporting an issue, make sure to read the [documentation](https://codecompanion.olimorris.dev) and search [existing issues](https://github.com/olimorris/codecompanion.nvim/issues)
 
           **What is a bug?**
-          - A bug is a reproducible error that causes CodeCompanion to behave incorrectly, crash, or not work as documented.
-          - Minor cosmetic issues (such as extra line breaks or formatting quirks) are not considered bugs unless they impact usability or readability. Please PR any of these changes yourself.
-          - Feature requests, usage questions, or configuration help should go to [Discussions](https://github.com/olimorris/codecompanion.nvim/discussions).
+          - A bug is a reproducible error that causes CodeCompanion to behave incorrectly, crash, or not work as documented
+          - Minor cosmetic issues (such as extra line breaks or formatting quirks) are not considered bugs unless they impact usability or readability. Please PR any of these changes yourself
+          - Feature requests, usage questions, or configuration help should go to [Discussions](https://github.com/olimorris/codecompanion.nvim/discussions)
 
-          If you don't supply a valid `init.lua` file at the bottom of this page, your issue will be closed.
-
-          _Issues that do not follow this template, or are out of scope, may be closed without comment._
+          > [!IMPORTANT]
+          > If you don't supply a valid `minimal.lua` your issue will be closed
 
     - type: checkboxes
       attributes:
         label: Pre-submission checklist
-        description: Please confirm all of the following before submitting.
+        description: Please confirm all of the following before submitting
         options:
-          - label: I have read the documentation.
+          - label: I have read the [documentation](https://codecompanion.olimorris.dev)
             required: true
-          - label: I have updated CodeCompanion.nvim and all dependencies to the latest version.
+          - label: I have updated the plugin and all dependencies to the latest versions
             required: true
-          - label: I have searched for existing issues and discussions.
+          - label: I have searched for existing [issues](https://github.com/olimorris/codecompanion.nvim/issues) and [discussions](https://github.com/olimorris/codecompanion.nvim/discussions)
             required: true
-          - label: My issue is not a minor or cosmetic quirk (e.g., formatting, spacing, or other non-functional details).
+          - label: My issue is not a minor or cosmetic quirk (e.g., formatting, spacing, or other non-functional details)
             required: true
 
     - type: input
@@ -57,12 +56,12 @@ body:
       attributes:
         label: Describe the bug
         description: |
-          A clear and concise description of the problem.
-          Include any error messages or unexpected behavior you observe.
+          A clear and concise description of the problem
+          Include any error messages or unexpected behavior you observe
         placeholder: |
-          When I ...
-          I expected ...
-          Instead ...
+          When I do X ...
+          I observe Y ...
+          But I expect Z ...
       validations:
         required: true
 
@@ -70,10 +69,10 @@ body:
       attributes:
         label: Steps to reproduce
         description: |
-          List the steps to reproduce the issue.
-          Be as minimal and precise as possible.
+          List the steps to reproduce the issue
+          Be as minimal and precise as possible
         placeholder: |
-          1. Open Neovim with the provided init.lua
+          1. Open Neovim with the provided minimal.lua
           2. ...
           3. ...
       validations:
@@ -82,7 +81,7 @@ body:
     - type: textarea
       attributes:
         label: Expected behavior
-        description: What did you expect to happen?
+        description: What do you expect to happen?
         placeholder: |
           I expected ...
       validations:
@@ -91,106 +90,24 @@ body:
     - type: textarea
       attributes:
         label: Screenshots or recordings (optional)
-        description: If applicable, add screenshots or a screen recording to help explain your problem.
+        description: If applicable, add screenshots or a screen recording to help explain your problem
       validations:
         required: false
 
     - type: markdown
       attributes:
         value: |
-          ## Minimal Reproduction
+          ## Reproduce the issue
 
-          Please provide a minimal `init.lua` file that reproduces the issue.
-          Save as `init.lua` and run with `nvim -u init.lua`.
-          A minimal config will be created for you in your working directory under `.repro`.
+          - Please provide a `minimal.lua` file that reproduces the issue
+          - I'm a solo maintainer, so making my life easy means a lot
+          - Preferably use the one [here](https://github.com/olimorris/codecompanion.nvim/blob/main/minimal.lua)
+          - Save it as `minimal.lua` and run with `nvim -u minimal.lua`
+          - All files will be downloaded to a `.repro` folder in your current working directory
 
     - type: textarea
       attributes:
-        label: init.lua file
-        description: |
-          Update the minimal `init.lua` below, so we can recreate the issue.
-          Issues without this will be closed.
-        value: |
-          --[[
-          NOTE: Set the config path to enable the copilot adapter to work.
-          It will search the following paths for a token:
-            - "$CODECOMPANION_TOKEN_PATH/github-copilot/hosts.json"
-            - "$CODECOMPANION_TOKEN_PATH/github-copilot/apps.json"
-          --]]
-          vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand("~/.config")
-
-          vim.env.LAZY_STDPATH = ".repro"
-          load(vim.fn.system("curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua"))()
-
-          -- Your CodeCompanion setup
-          local plugins = {
-            {
-              "olimorris/codecompanion.nvim",
-              dependencies = {
-                { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
-                { "nvim-lua/plenary.nvim" },
-                -- Test with blink.cmp (delete if not required)
-                {
-                  "saghen/blink.cmp",
-                  lazy = false,
-                  version = "*",
-                  opts = {
-                    keymap = {
-                      preset = "enter",
-                      ["<S-Tab>"] = { "select_prev", "fallback" },
-                      ["<Tab>"] = { "select_next", "fallback" },
-                    },
-                    cmdline = { sources = { "cmdline" } },
-                    sources = {
-                      default = { "lsp", "path", "buffer", "codecompanion" },
-                    },
-                  },
-                },
-                -- Test with nvim-cmp
-                -- { "hrsh7th/nvim-cmp" },
-              },
-              opts = {
-                --Refer to: https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua
-                strategies = {
-                  --NOTE: Change the adapter as required
-                  chat = { adapter = "copilot" },
-                  inline = { adapter = "copilot" },
-                },
-                opts = {
-                  log_level = "DEBUG",
-                },
-              },
-            },
-          }
-
-          -- Leaving this comment in to see if the issue author notices ;-)
-          -- This is so I can tell if they've really tested with their own repro.lua file
-
-          require("lazy.minit").repro({ spec = plugins })
-
-          -- Setup Tree-sitter
-          local ts_status, treesitter = pcall(require, "nvim-treesitter.configs")
-          if ts_status then
-            treesitter.setup({
-              ensure_installed = { "lua", "markdown", "markdown_inline", "yaml", "diff" },
-              highlight = { enable = true },
-            })
-          end
-
-          -- Setup nvim-cmp
-          -- local cmp_status, cmp = pcall(require, "cmp")
-          -- if cmp_status then
-          --   cmp.setup({
-          --     mapping = cmp.mapping.preset.insert({
-          --       ["<C-b>"] = cmp.mapping.scroll_docs(-4),
-          --       ["<C-f>"] = cmp.mapping.scroll_docs(4),
-          --       ["<C-Space>"] = cmp.mapping.complete(),
-          --       ["<C-e>"] = cmp.mapping.abort(),
-          --       ["<CR>"] = cmp.mapping.confirm({ select = true }),
-          --       -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
-          --     }),
-          --   })
-          -- end
+        label: minimal.lua file
         render: lua
       validations:
         required: true
@@ -199,16 +116,15 @@ body:
       attributes:
         label: Log output (optional)
         description: |
-          Share the output from `.repro/state/nvim/codecompanion.log` if available.
-          Please redact any sensitive information.
+          Share the output from `.repro/state/nvim/codecompanion.log` if available
+          Please redact any sensitive information
       validations:
         required: false
 
     - type: checkboxes
       attributes:
         label: Minimal reproduction confirmation
-        description: I have provided and tested with a minimal `init.lua` file as described above.
+        description: I have provided and tested with a `minimal.lua` file as described above
         options:
-          - label: Yes, I have tested and provided a minimal `init.lua` file that reproduces the issue.
+          - label: Yes, I have tested and provided a `minimal.lua` file that reproduces the issue
             required: true
-

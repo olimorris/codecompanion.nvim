@@ -5,11 +5,11 @@ local Reasoning = setmetatable({}, { __index = BaseFormatter })
 Reasoning.__class = "Reasoning"
 
 function Reasoning:can_handle(message, opts, tags)
-  return message.reasoning ~= nil
+  return opts and opts.type == tags.REASONING_MESSAGE
 end
 
 function Reasoning:get_type()
-  return self.chat.MESSAGE_TYPES.LLM_MESSAGE -- Reasoning is part of LLM response
+  return self.chat.MESSAGE_TYPES.REASONING_MESSAGE
 end
 
 function Reasoning:format(message, opts, state)
@@ -23,7 +23,7 @@ function Reasoning:format(message, opts, state)
   end
 
   -- Add reasoning content
-  for _, line in ipairs(vim.split(message.reasoning, "\n", { plain = true, trimempty = false })) do
+  for _, line in ipairs(vim.split(message.content, "\n", { plain = true, trimempty = false })) do
     table.insert(lines, line)
   end
 
