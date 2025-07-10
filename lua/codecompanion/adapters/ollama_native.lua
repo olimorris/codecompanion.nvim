@@ -79,6 +79,7 @@ return {
     stream = true,
     tools = true,
     vision = false,
+    think = true,
     options = {
       -- https://github.com/ollama/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values
     },
@@ -116,6 +117,7 @@ return {
         if self.opts.stream then
           self.stream = true
         end
+        self.body = { think = self.opts.think }
         if not vim.tbl_isempty(self.opts.options) then
           self.options = self.opts.options
         end
@@ -269,6 +271,7 @@ return {
         output = {
           role = delta.role,
           content = delta.content,
+          reasoning = delta.thinking,
         },
       }
     end,
@@ -303,6 +306,32 @@ return {
           return { status = "success", output = choice.message.content }
         end
       end
+    end,
+
+    ---Form the reasoning output that is stored in the chat buffer
+    ---@param self CodeCompanion.Adapter
+    ---@param data table The reasoning output from the LLM
+    ---@return nil|{ content: string, _data: table }
+    form_reasoning = function(self, data)
+      -- taken from anthropic adapter
+      local content = vim
+        .iter(data)
+        :map(function(item)
+          return item.content
+        end)
+        :filter(function(content)
+          return content ~= nil
+        end)
+        :join("")
+
+      local signature = data[#data].signature
+
+      return {
+        content = content,
+        _data = {
+          signature = signature,
+        },
+      }
     end,
     on_exit = function(self, data)
       return openai.handlers.on_exit(self, data)
