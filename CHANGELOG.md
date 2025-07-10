@@ -1,5 +1,13 @@
 # Changelog
 
+## [17.7.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.7.0...v17.7.1) (2025-07-10)
+
+
+### Bug Fixes
+
+* **chat:** tool folding ([#1811](https://github.com/olimorris/codecompanion.nvim/issues/1811)) ([b506225](https://github.com/olimorris/codecompanion.nvim/commit/b5062255224cb72ee35e374ac764ac53f6fe9fa1))
+* **chat:** unwatch buffers when they're unlisted ([#1809](https://github.com/olimorris/codecompanion.nvim/issues/1809)) ([ea29e11](https://github.com/olimorris/codecompanion.nvim/commit/ea29e112916bad53e52f514bff1bc2e54e2287c2))
+
 ## [17.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.6.0...v17.7.0) (2025-07-09)
 
 
