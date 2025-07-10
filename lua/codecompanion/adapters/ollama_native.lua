@@ -312,21 +312,13 @@ return {
       -- taken from anthropic adapter
       local content = vim
         .iter(data)
-        :map(function(item)
-          return item.content
-        end)
         :filter(function(content)
           return content ~= nil
         end)
         :join("")
 
-      local signature = data[#data].signature
-
       return {
         content = content,
-        _data = {
-          signature = signature,
-        },
       }
     end,
     on_exit = function(self, data)
