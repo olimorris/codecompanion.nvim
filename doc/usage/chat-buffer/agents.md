@@ -179,8 +179,8 @@ Using the @web_search tool to search from `https://neovim.io` and explain how I 
 
 CodeCompanion comes with two built-in tool groups:
 
-- `full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools
-- `files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools
+- `full_stack_dev` - Containing all of the tools
+- `files` - Containing `create_file`, `file_search`, `get_changed_files`, `grep_search`, `insert_edit_into_file` and `read_file` tools
 
 When you include a tool group in your chat (e.g., `@{files}`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer.
 
