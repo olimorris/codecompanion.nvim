@@ -79,7 +79,7 @@ return {
     stream = true,
     tools = true,
     vision = false,
-    think = true,
+    think = false,
     options = {
       -- https://github.com/ollama/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values
     },
@@ -224,11 +224,7 @@ return {
               local found = false
               for _, existing_tool in ipairs(tools) do
                 if existing_tool._index == tool_index then
-                  -- Append to arguments if this is a continuation of a stream
-                  if tool["function"] and tool["function"]["arguments"] then
-                    existing_tool["function"]["arguments"] = (existing_tool["function"]["arguments"] or "")
-                      .. tool["function"]["arguments"]
-                  end
+                  -- no need to concat here because ollama streams the full args in one chunk.
                   found = true
                   break
                 end
