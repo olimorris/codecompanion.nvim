@@ -80,6 +80,9 @@ end
 ---@param bufnr number
 ---@return boolean, table|nil
 function Watchers:get_changes(bufnr)
+  if not api.nvim_buf_is_valid(bufnr) then
+    self:unwatch(bufnr)
+  end
   if not self.buffers[bufnr] then
     return false, nil
   end

@@ -187,6 +187,20 @@ T["Watchers"]["ignores changes after unwatching"] = function()
   h.eq(old_content, nil)
 end
 
+T["Watchers"]["handles changes after buffer removal"] = function()
+  local watcher = Watcher.new()
+  local bufnr = vim.api.nvim_create_buf(false, true)
+
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "line 1" })
+  watcher:watch(bufnr)
+
+  vim.api.nvim_buf_delete(bufnr, {})
+
+  local has_changed, old_content = watcher:get_changes(bufnr)
+  h.eq(has_changed, false)
+  h.eq(old_content, nil)
+end
+
 T["Watchers"]["handles prepending to start of buffer"] = function()
   local watcher = Watcher.new()
   local bufnr = vim.api.nvim_get_current_buf()
