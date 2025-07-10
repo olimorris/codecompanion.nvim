@@ -966,13 +966,11 @@ function Chat:submit(opts)
                 { type = self.MESSAGE_TYPES.REASONING_MESSAGE }
               )
             end
-            if result.output.content then
-              table.insert(output, result.output.content)
-              self:add_buf_message(
-                { role = result.output.role, content = result.output.content },
-                { type = self.MESSAGE_TYPES.LLM_MESSAGE }
-              )
-            end
+            table.insert(output, result.output.content)
+            self:add_buf_message(
+              { role = result.output.role, content = result.output.content },
+              { type = self.MESSAGE_TYPES.LLM_MESSAGE }
+            )
           elseif self.status == CONSTANTS.STATUS_ERROR then
             log:error("Error: %s", result.output)
             return self:done(output)
