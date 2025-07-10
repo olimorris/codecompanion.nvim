@@ -97,15 +97,19 @@ function Tools.fold_tools()
 end
 
 ---Create a fold over the given range of lines for specific tool output
+---@param self CodeCompanion.Chat.UI.Tools
 ---@param start_line number The starting line of the fold (0-based)
 ---@param end_line number The ending line of the fold (0-based)
 ---@param foldtext string The text to display in the fold
 ---@return nil
-function Tools:create_fold(start_line, end_line, foldtext)
-  if not config.strategies.chat.tools.opts.folds.enabled then
-    return
-  end
-  if start_line > end_line then
+function Tools.create_fold(self, start_line, end_line, foldtext)
+  local api = vim.api
+  local CONSTANTS = CONSTANTS -- already defined at top of module
+  local format_summary = format_summary
+  local config = require("codecompanion.config")
+
+  -- Bail early if folding is disabled or range is invalid
+  if not config.strategies.chat.tools.opts.folds.enabled or start_line > end_line then
     return
   end
 
@@ -116,16 +120,18 @@ function Tools:create_fold(start_line, end_line, foldtext)
     priority = 200,
   })
 
-  -- Create the fold with window-local foldmethod swap
+  -- Record the summary text for fold_tools()
   self.fold_summaries[self.chat_bufnr] = self.fold_summaries[self.chat_bufnr] or {}
   self.fold_summaries[self.chat_bufnr][start_line] = foldtext
 
-  -- Find the first window displaying the buffer
-  local win
-  for _, w in ipairs(api.nvim_list_wins()) do
-    if api.nvim_win_get_buf(w) == self.chat_bufnr then
-      win = w
-      break
+  -- Pick a window: prefer the one passed in, else scan, else float
+  local win = (self.winnr and api.nvim_win_is_valid(self.winnr)) and self.winnr or nil
+  if not win then
+    for _, w in ipairs(api.nvim_list_wins()) do
+      if api.nvim_win_get_buf(w) == self.chat_bufnr then
+        win = w
+        break
+      end
     end
   end
 
@@ -144,6 +150,7 @@ function Tools:create_fold(start_line, end_line, foldtext)
     created_temp = true
   end
 
+  -- In that window, switch to manual, fold, then restore
   api.nvim_win_call(win, function()
     local old = vim.wo[win].foldmethod
     vim.wo[win].foldmethod = "manual"
@@ -155,6 +162,7 @@ function Tools:create_fold(start_line, end_line, foldtext)
     end, 50)
   end)
 
+  -- Close the float if we opened one
   if created_temp and api.nvim_win_is_valid(win) then
     api.nvim_win_close(win, true)
   end
