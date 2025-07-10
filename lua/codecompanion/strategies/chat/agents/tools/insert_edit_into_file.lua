@@ -148,6 +148,10 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     -- Wait for the user to accept or reject the edit
     return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
       if result.accepted then
+        -- Save the buffer
+        vim.api.nvim_buf_call(bufnr, function()
+          vim.cmd("silent! w")
+        end)
         return output_handler(success)
       end
       return output_handler({
