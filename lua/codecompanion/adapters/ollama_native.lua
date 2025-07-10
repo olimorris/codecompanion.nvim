@@ -369,7 +369,7 @@ return {
       mapping = "parameters.options",
       type = "number",
       optional = true,
-      default = 2048,
+      default = 4096,
       desc = "The maximum number of tokens that the language model can consider at once. This determines the size of the input context window, allowing the model to take into account longer text passages for generating responses. Adjusting this value can affect the model's performance and memory usage.",
       validate = function(n)
         return n > 0, "Must be a positive number"
