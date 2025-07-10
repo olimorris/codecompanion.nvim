@@ -5,7 +5,7 @@ local fmt = string.format
 
 ---@param state string
 ---@return string[]|nil, string|nil
-local function get_git_diff(state)
+local function get_git_diff(state, opts)
   local cmd, desc
   if state == "staged" then
     cmd = { "git", "diff", "--cached" }
@@ -26,18 +26,25 @@ local function get_git_diff(state)
   if not ok then
     return nil, desc
   end
+
+  if result and #result > opts.max_lines then
+    result = vim.list_slice(result, 1, opts.max_lines)
+    table.insert(result, "... (diff output truncated)")
+  end
+
   return result, desc
 end
 
 ---Get changed files in the current working directory based on the git state.
 ---@param action {source_control_state?: string[]}
+---@param opts {max_lines: number}
 ---@return {status: "success"|"error", data: string}
-local function get_changed_files(action)
+local function get_changed_files(action, opts)
   local states = action.source_control_state or { "unstaged", "staged", "merge-conflicts" }
   local output = {}
 
   for _, state in ipairs(states) do
-    local result, desc = get_git_diff(state)
+    local result, desc = get_git_diff(state, opts)
     if desc then
       if state == "merge-conflicts" then
         if result and #result > 0 then
@@ -92,7 +99,7 @@ return {
     ---@param args table
     ---@param input? any
     function(self, args, input)
-      return get_changed_files(args)
+      return get_changed_files(args, self.tool.opts)
     end,
   },
   schema = {
