@@ -17,7 +17,7 @@ local function create(action)
       return {
         status = "error",
         data = fmt(
-          [[Failed to create `%s`
+          [[Failed creating `%s`
 - Already exists as a directory]],
           action.filepath
         ),
@@ -26,7 +26,7 @@ local function create(action)
       return {
         status = "error",
         data = fmt(
-          [[Failed to create `%s`
+          [[Failed creating `%s`
 - File already exists]],
           action.filepath
         ),
@@ -40,8 +40,12 @@ local function create(action)
   if not vim.uv.fs_stat(parent_dir) then
     local success, err_msg = files.create_dir_recursive(parent_dir)
     if not success then
-      local error_message =
-        fmt("**Create File Tool**: Failed to create directory for `%s` - %s", action.filepath, err_msg)
+      local error_message = fmt(
+        [[Failed creating `%s`
+- %s]],
+        action.filepath,
+        err_msg
+      )
       log:error(error_message)
       return { status = "error", data = error_message }
     end
@@ -51,7 +55,9 @@ local function create(action)
   local fd, fs_open_err, fs_open_errname = vim.uv.fs_open(filepath, "w", 420) -- 0644 permissions
   if not fd then
     local error_message = fmt(
-      "**Create File Tool**: Failed to open file `%s` for writing: %s (%s)",
+      [[Failed creating `%s`
+- %s
+-%s ]],
       action.filepath,
       fs_open_err,
       fs_open_errname
@@ -64,16 +70,32 @@ local function create(action)
   local bytes_written, fs_write_err, fs_write_errname = vim.uv.fs_write(fd, action.content)
   local write_error_message
   if not bytes_written then
-    write_error_message = fmt("Failed to write to file: %s (%s)", fs_write_err, fs_write_errname)
+    write_error_message = fmt(
+      [[Failed creating `%s`
+- %s]],
+      action.filepath,
+      fs_write_err
+    )
   elseif bytes_written ~= #action.content then
-    write_error_message = fmt("Incomplete write: expected %d bytes, wrote %d bytes", #action.content, bytes_written)
+    write_error_message = fmt(
+      [[Failed creating `%s`
+- Could only write %s bytes]],
+      action.filepath,
+      bytes_written
+    )
   end
 
   -- Always try to close the file descriptor
   local close_success, fs_close_err, fs_close_errname = vim.uv.fs_close(fd)
   local close_error_message
   if not close_success then
-    close_error_message = fmt("Failed to close file: %s (%s)", fs_close_err, fs_close_errname)
+    close_error_message = fmt(
+      [[Failed creating `%s`
+- Could not close the file
+- %s ]],
+      action.filepath,
+      fs_close_err
+    )
   end
 
   -- Combine errors if any
@@ -88,8 +110,12 @@ local function create(action)
 
   -- If any error occurred during write or close, return error
   if final_error_message then
-    local full_error =
-      fmt("**Create File Tool**: Failed to create file `%s` - %s", action.filepath, final_error_message)
+    local full_error = fmt(
+      [[Failed creating `%s`
+- %s]],
+      action.filepath,
+      final_error_message
+    )
     log:error(full_error)
     return { status = "error", data = full_error }
   end
@@ -171,7 +197,15 @@ return {
       -- Get the file extension for syntax highlighting
       local file_ext = vim.fn.fnamemodify(filepath, ":e")
 
-      local result_msg = fmt("Created file `%s`:\n```%s\n%s\n```", filepath, file_ext, args.content or "")
+      local result_msg = fmt(
+        [[Created file `%s`
+```%s
+%s
+```]],
+        filepath,
+        file_ext,
+        args.content or ""
+      )
 
       chat:add_tool_output(self, llm_output, result_msg)
     end,
@@ -187,14 +221,7 @@ return {
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Create File Tool] Error output: %s", stderr)
 
-      local error_output = fmt(
-        [[**Create File Tool**: Ran with an error:
-
-```txt
-%s
-```]],
-        errors
-      )
+      local error_output = fmt([[%s]], errors)
       chat:add_tool_output(self, error_output)
     end,
 
@@ -205,7 +232,7 @@ return {
     ---@return nil
     rejected = function(self, agent, cmd)
       local chat = agent.chat
-      chat:add_tool_output(self, "**Create File Tool**: The user declined to execute")
+      chat:add_tool_output(self, "User rejected the creation of the file")
     end,
   },
 }
