@@ -7,29 +7,28 @@ body:
     - type: markdown
       attributes:
         value: |
-          **Before** reporting an issue, make sure to read the [documentation](https://codecompanion.olimorris.dev) and search [existing issues](https://github.com/olimorris/codecompanion.nvim/issues).
+          **Before** reporting an issue, make sure to read the [documentation](https://codecompanion.olimorris.dev) and search [existing issues](https://github.com/olimorris/codecompanion.nvim/issues)
 
           **What is a bug?**
-          - A bug is a reproducible error that causes CodeCompanion to behave incorrectly, crash, or not work as documented.
-          - Minor cosmetic issues (such as extra line breaks or formatting quirks) are not considered bugs unless they impact usability or readability. Please PR any of these changes yourself.
-          - Feature requests, usage questions, or configuration help should go to [Discussions](https://github.com/olimorris/codecompanion.nvim/discussions).
+          - A bug is a reproducible error that causes CodeCompanion to behave incorrectly, crash, or not work as documented
+          - Minor cosmetic issues (such as extra line breaks or formatting quirks) are not considered bugs unless they impact usability or readability. Please PR any of these changes yourself
+          - Feature requests, usage questions, or configuration help should go to [Discussions](https://github.com/olimorris/codecompanion.nvim/discussions)
 
-          If you don't supply a valid `init.lua` file at the bottom of this page, your issue will be closed.
-
-          _Issues that do not follow this template, or are out of scope, may be closed without comment._
+          > [!IMPORTANT]
+          > If you don't supply a valid `minimal.lua` your issue will be closed
 
     - type: checkboxes
       attributes:
         label: Pre-submission checklist
-        description: Please confirm all of the following before submitting.
+        description: Please confirm all of the following before submitting
         options:
-          - label: I have read the documentation.
+          - label: I have read the [documentation](https://codecompanion.olimorris.dev)
             required: true
-          - label: I have updated CodeCompanion.nvim and all dependencies to the latest version.
+          - label: I have updated the plugin and all dependencies to the latest versions
             required: true
-          - label: I have searched for existing issues and discussions.
+          - label: I have searched for existing [issues](https://github.com/olimorris/codecompanion.nvim/issues) and [discussions](https://github.com/olimorris/codecompanion.nvim/discussions)
             required: true
-          - label: My issue is not a minor or cosmetic quirk (e.g., formatting, spacing, or other non-functional details).
+          - label: My issue is not a minor or cosmetic quirk (e.g., formatting, spacing, or other non-functional details)
             required: true
 
     - type: input
@@ -57,12 +56,12 @@ body:
       attributes:
         label: Describe the bug
         description: |
-          A clear and concise description of the problem.
-          Include any error messages or unexpected behavior you observe.
+          A clear and concise description of the problem
+          Include any error messages or unexpected behavior you observe
         placeholder: |
-          When I ...
-          I expected ...
-          Instead ...
+          When I do X ...
+          I observe Y ...
+          But I expect Z ...
       validations:
         required: true
 
@@ -70,10 +69,10 @@ body:
       attributes:
         label: Steps to reproduce
         description: |
-          List the steps to reproduce the issue.
-          Be as minimal and precise as possible.
+          List the steps to reproduce the issue
+          Be as minimal and precise as possible
         placeholder: |
-          1. Open Neovim with the provided init.lua
+          1. Open Neovim with the provided minimal.lua
           2. ...
           3. ...
       validations:
@@ -82,7 +81,7 @@ body:
     - type: textarea
       attributes:
         label: Expected behavior
-        description: What did you expect to happen?
+        description: What do you expect to happen?
         placeholder: |
           I expected ...
       validations:
@@ -91,7 +90,7 @@ body:
     - type: textarea
       attributes:
         label: Screenshots or recordings (optional)
-        description: If applicable, add screenshots or a screen recording to help explain your problem.
+        description: If applicable, add screenshots or a screen recording to help explain your problem
       validations:
         required: false
 
@@ -117,16 +116,15 @@ body:
       attributes:
         label: Log output (optional)
         description: |
-          Share the output from `.repro/state/nvim/codecompanion.log` if available.
-          Please redact any sensitive information.
+          Share the output from `.repro/state/nvim/codecompanion.log` if available
+          Please redact any sensitive information
       validations:
         required: false
 
     - type: checkboxes
       attributes:
         label: Minimal reproduction confirmation
-        description: I have provided and tested with a minimal `init.lua` file as described above.
+        description: I have provided and tested with a `minimal.lua` file as described above
         options:
-          - label: Yes, I have tested and provided a minimal `init.lua` file that reproduces the issue.
+          - label: Yes, I have tested and provided a `minimal.lua` file that reproduces the issue
             required: true
-
