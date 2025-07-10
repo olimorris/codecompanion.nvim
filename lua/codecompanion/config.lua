@@ -60,6 +60,7 @@ local defaults = {
               "cmd_runner",
               "create_file",
               "file_search",
+              "get_changed_files",
               "grep_search",
               "insert_edit_into_file",
               "read_file",
@@ -74,6 +75,8 @@ local defaults = {
             tools = {
               "create_file",
               "file_search",
+              "get_changed_files",
+              "grep_search",
               "insert_edit_into_file",
               "read_file",
             },

@@ -120,7 +120,7 @@ _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out a
 
 Tools can also be grouped together, also accessible via `@` in the chat buffer:
 
-- `files` - Contains the `create_file`, `file_search`, `grep_search`, `insert_edit_into_file` and `read_file` tools
+- `files` - Contains the `create_file`, `file_search`, `get_changed_files`, `grep_search`, `insert_edit_into_file` and `read_file` tools
 
 > [!TIP]
 > Use them in your prompt like: `Can you use the @{grep_search} tool to find occurrences of "add_message"`, ensuring they're wrapped in curly brackets
