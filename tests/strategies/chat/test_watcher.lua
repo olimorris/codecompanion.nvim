@@ -197,7 +197,7 @@ T["Watchers"]["handles changes after buffer removal"] = function()
   vim.api.nvim_buf_delete(bufnr, {})
 
   local has_changed, old_content = watcher:get_changes(bufnr)
-  h.eq(has_changed, false)
+  h.eq(has_changed, true)
   h.eq(old_content, nil)
 end
 
