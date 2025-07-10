@@ -51,6 +51,9 @@ Some commands do not write any data to [stdout](https://en.wikipedia.org/wiki/St
 
 The LLM is specifically instructed to detect if you're running a test suite, and if so, to insert a flag in its request. This is then detected and the outcome of the test is stored in the corresponding flag on the chat buffer. This makes it ideal for [workflows](/extending/workflows) to hook into.
 
+**Options:**
+- `requires_approval` require approval before running a command? (Default: true)
+
 ## create_file
 
 > [!NOTE]
@@ -62,6 +65,9 @@ Create a file within the current working directory:
 Can you create some test fixtures using the @{create_file} tool?
 ```
 
+**Options:**
+- `requires_approval` require approval before creating a file? (Default: true)
+
 ## file_search
 
 This tool enables an LLM to search for files in the current working directory by glob pattern. It will return a list of relative paths for any matching files.
@@ -69,6 +75,20 @@ This tool enables an LLM to search for files in the current working directory by
 ```md
 Use the @{file_search} tool to list all the lua files in my project
 ```
+
+**Options:**
+- `max_results` limits the amount of results that can be sent to the LLM in the response (Default: 500)
+
+## get_changed_files
+
+This tool enables an LLM to get git diffs of any file changes in the current working directory. It will return a diff which can contain `staged`, `unstaged` and `merge-conflicts`.
+
+```md
+Use the @{get_changed_files} tool see what's changed
+```
+
+**Options:**
+- `max_lines` limits the amount of lines that can be sent to the LLM in the response (Default: 1000)
 
 ## grep_search
 
@@ -80,6 +100,10 @@ This tool enables an LLM to search for text, within files, in the current workin
 ```md
 Use the @{grep_search} tool to find all occurrences of `buf_add_message`?
 ```
+
+**Options:**
+- `max_files` (number) limits the amount of files that can be sent to the LLM in the response (Default: 100)
+- `respect_gitignore` (boolean) (Default: true)
 
 ## insert_edit_into_file
 
@@ -99,6 +123,11 @@ Use the @{insert_edit_into_file} tool to refactor the code in #buffer
 ```md
 Can you apply the suggested changes to the buffer with the @{insert_edit_into_file} tool?
 ```
+
+**Options:**
+- `requires_approval.buffer` (boolean) Require approval before editng a buffer? (Default: false)
+- `requires_approval.file` (boolean) Require approval before editng a file? (Default: true)
+- `user_confirmation` (boolean) require confirmation from the user before moving on in the chat buffer? (Default: true)
 
 ## next_edit_suggestion
 

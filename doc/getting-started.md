@@ -110,8 +110,9 @@ _Tools_, accessed via `@`, allow the LLM to function as an agent and carry out a
 
 - `cmd_runner` - The LLM will run shell commands (subject to approval)
 - `create_file` - The LLM will create a file in the current working directory (subject to approval)
-- `file_search` - The LLM can search for a file in the current working directory
-- `grep_search` - The LLM can search within files in the current working directory
+- `file_search` - The LLM can search for a file in the CWD
+- `get_changed_files` - The LLM can get git diffs for any changed files in the CWD
+- `grep_search` - The LLM can search within files in the CWD
 - `insert_edit_into_file` - The LLM will edit code in a Neovim buffer or on the file system (subject to approval)
 - `next_edit_suggestion` - The LLM can show the user where the next edit is
 - `read_file` - The LLM can read a specific file
