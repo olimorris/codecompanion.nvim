@@ -156,7 +156,9 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
             vim.cmd("silent! w")
           end)
         end)
+        -- NOTE: This is required to ensure folding works for chat buffers that aren't visible
         codecompanion.restore(chat_bufnr)
+
         return output_handler(success)
       end
       return output_handler({
