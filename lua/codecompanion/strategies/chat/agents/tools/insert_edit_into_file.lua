@@ -1,11 +1,13 @@
-local Path = require("plenary.path")
 local buffers = require("codecompanion.utils.buffers")
+local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local diff = require("codecompanion.strategies.chat.agents.tools.helpers.diff")
 local log = require("codecompanion.utils.log")
 local patch = require("codecompanion.strategies.chat.agents.tools.helpers.patch")
 local ui = require("codecompanion.utils.ui")
 local wait = require("codecompanion.strategies.chat.agents.tools.helpers.wait")
+
+local Path = require("plenary.path")
 
 local api = vim.api
 local fmt = string.format
@@ -154,6 +156,9 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
             vim.cmd("silent! w")
           end)
         end)
+        -- NOTE: This is required to ensure folding works for chat buffers that aren't visible
+        codecompanion.restore(chat_bufnr)
+
         return output_handler(success)
       end
       return output_handler({
