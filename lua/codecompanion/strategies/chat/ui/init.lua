@@ -71,7 +71,11 @@ function UI:open(opts)
     return
   end
   if config.display.chat.start_in_insert_mode then
-    vim.cmd("startinsert")
+    -- Delay entering insert mode until after Telescope picker fully closes,
+    -- since Telescope resets to normal mode on close.
+    vim.schedule(function()
+      vim.cmd("startinsert")
+    end)
   end
 
   local window = config.display.chat.window
