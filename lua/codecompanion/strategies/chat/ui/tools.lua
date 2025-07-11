@@ -120,7 +120,11 @@ function Tools.create_fold(self, start_line, end_line, foldtext)
     priority = 200,
   })
 
-  -- Record the summary text for fold_tools()
+  -- Some tools only have a single line of output, so we don't want to fold it
+  if start_line == end_line then
+    return
+  end
+
   self.fold_summaries[self.chat_bufnr] = self.fold_summaries[self.chat_bufnr] or {}
   self.fold_summaries[self.chat_bufnr][start_line] = foldtext
 

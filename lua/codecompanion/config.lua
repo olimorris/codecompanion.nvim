@@ -60,6 +60,7 @@ local defaults = {
               "cmd_runner",
               "create_file",
               "file_search",
+              "get_changed_files",
               "grep_search",
               "insert_edit_into_file",
               "read_file",
@@ -74,6 +75,8 @@ local defaults = {
             tools = {
               "create_file",
               "file_search",
+              "get_changed_files",
+              "grep_search",
               "insert_edit_into_file",
               "read_file",
             },
@@ -101,6 +104,13 @@ local defaults = {
           description = "Search for files in the current working directory by glob pattern",
           opts = {
             max_results = 500,
+          },
+        },
+        ["get_changed_files"] = {
+          callback = "strategies.chat.agents.tools.get_changed_files",
+          description = "Get git diffs of current file changes in a git repository",
+          opts = {
+            max_lines = 1000,
           },
         },
         ["grep_search"] = {
