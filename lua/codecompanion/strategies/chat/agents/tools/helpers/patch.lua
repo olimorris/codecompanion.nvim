@@ -1,11 +1,18 @@
-local M = {}
 local log = require("codecompanion.utils.log")
 
-M.FORMAT_PROMPT = [[*** Begin Patch
+---@class CodeCompanion.Patch
+---@field prompt string The prompt text explaining the patch format to the LLM
+---@field parse_edits fun(raw: string): CodeCompanion.Patch.Edit[], boolean Parse raw LLM output into changes and whether markers were found
+---@field apply fun(lines: string[], edit: CodeCompanion.Patch.Edit): string[]|nil Apply an edit to file lines, returns nil if can't be confidently applied
+---@field start_line fun(lines: string[], edit: CodeCompanion.Patch.Edit): integer|nil Get the line number (1-based) where edit would be applied
+---@field format fun(edit: CodeCompanion.Patch.Edit): string Format an edit object as a readable string for display/logging
+local Patch = {}
+
+Patch.prompt = [[*** Begin Patch
 [PATCH]
 *** End Patch
 
-The `[PATCH]` is the series of diffs to be applied for each change in the file. Each diff should be in this format:
+The `[PATCH]` is the series of diffs to be applied for each edit in the file. Each diff should be in this format:
 
  [3 lines of pre-context]
 -[old code]
@@ -43,7 +50,7 @@ You can use `@@[identifier]` to define a larger context in case the immediately 
  [3 lines of post-context]
 
 You can also use multiple `@@[identifiers]` to provide the right context if a single `@@` is not sufficient.
-Example with multiple blocks of changes and `@@` identifiers:
+Example with multiple blocks of edits and `@@` identifiers:
 
 *** Begin Patch
 @@class BaseClass(models.Model):
@@ -60,18 +67,18 @@ Example with multiple blocks of changes and `@@` identifiers:
 This format is similar to the `git diff` format; the difference is that `@@[identifiers]` uses the unique line identifiers from the preceding code instead of line numbers. We don't use line numbers anywhere since the before and after context, and `@@` identifiers are enough to locate the edits.
 IMPORTANT: Be mindful that the user may have shared attachments that contain line numbers, but these should NEVER be used in your patch. Always use the contextual format described above.]]
 
----@class Change
----@field focus string[] Identifiers or lines for providing large context before a change
+---@class CodeCompanion.Patch.Edit
+---@field focus string[] Identifiers or lines for providing large context before an edit
 ---@field pre string[] Unchanged lines immediately before edits
 ---@field old string[] Lines to be removed
 ---@field new string[] Lines to be added
 ---@field post string[] Unchanged lines just after edits
 
----Create and return a new (empty) Change table instance.
+---Create and return a new (empty) edit
 ---@param focus? string[] Optional focus lines for context
 ---@param pre? string[] Optional pre-context lines
----@return Change New change object
-local function get_new_change(focus, pre)
+---@return CodeCompanion.Patch.Edit New edit object
+local function get_new_edit(focus, pre)
   return {
     focus = focus or {},
     pre = pre or {},
@@ -81,60 +88,61 @@ local function get_new_change(focus, pre)
   }
 end
 
----Parse a patch string into a list of Change objects.
----@param patch string Patch containing the changes
----@return Change[] List of parsed change blocks
-local function parse_changes_from_patch(patch)
-  local changes = {}
-  local change = get_new_change()
+---Parse a patch string into a list of edits
+---@param patch string Patch containing the edits
+---@return CodeCompanion.Patch.Edit[] List of parsed edit blocks
+local function parse_edits_from_patch(patch)
+  local edits = {}
+  local edit = get_new_edit()
+
   local lines = vim.split(patch, "\n", { plain = true })
   for i, line in ipairs(lines) do
     if vim.startswith(line, "@@") then
-      if #change.old > 0 or #change.new > 0 then
-        -- @@ after any edits is a new change block
-        table.insert(changes, change)
-        change = get_new_change()
+      if #edit.old > 0 or #edit.new > 0 then
+        -- @@ after any edits is a new edit block
+        table.insert(edits, edit)
+        edit = get_new_edit()
       end
       -- focus name can be empty too to signify new blocks
       local focus_name = vim.trim(line:sub(3))
       if focus_name and #focus_name > 0 then
-        change.focus[#change.focus + 1] = focus_name
+        edit.focus[#edit.focus + 1] = focus_name
       end
     elseif line == "" and lines[i + 1] and lines[i + 1]:match("^@@") then
       -- empty lines can be part of pre/post context
-      -- we treat empty lines as new change block and not as post context
+      -- we treat empty lines as a new edit block and not as post context
       -- only when the next line uses @@ identifier
       -- skip this line and do nothing
       do
       end
     elseif line:sub(1, 1) == "-" then
-      if #change.post > 0 then
+      if #edit.post > 0 then
         -- edits after post edit lines are new block of changes with same focus
-        table.insert(changes, change)
-        change = get_new_change(change.focus, change.post)
+        table.insert(edits, edit)
+        edit = get_new_edit(edit.focus, edit.post)
       end
-      change.old[#change.old + 1] = line:sub(2)
+      edit.old[#edit.old + 1] = line:sub(2)
     elseif line:sub(1, 1) == "+" then
-      if #change.post > 0 then
+      if #edit.post > 0 then
         -- edits after post edit lines are new block of changes with same focus
-        table.insert(changes, change)
-        change = get_new_change(change.focus, change.post)
+        table.insert(edits, edit)
+        edit = get_new_edit(edit.focus, edit.post)
       end
-      change.new[#change.new + 1] = line:sub(2)
-    elseif #change.old == 0 and #change.new == 0 then
-      change.pre[#change.pre + 1] = line
-    elseif #change.old > 0 or #change.new > 0 then
-      change.post[#change.post + 1] = line
+      edit.new[#edit.new + 1] = line:sub(2)
+    elseif #edit.old == 0 and #edit.new == 0 then
+      edit.pre[#edit.pre + 1] = line
+    elseif #edit.old > 0 or #edit.new > 0 then
+      edit.post[#edit.post + 1] = line
     end
   end
-  table.insert(changes, change)
-  return changes
+  table.insert(edits, edit)
+  return edits
 end
 
----Parse the full raw string from LLM for all patches, returning all Change objects parsed.
+---Parse the edits from the LLM for all patches, returning all parsed edits
 ---@param raw string Raw text containing patch blocks
----@return Change[], boolean All parsed Change objects, and whether the patch was properly parsed
-function M.parse_changes(raw)
+---@return CodeCompanion.Patch.Edit, boolean All parsed edits, and whether the patch was properly parsed
+function Patch.parse_edits(raw)
   local patches = {}
   for patch in raw:gmatch("%*%*%* Begin Patch[\r\n]+(.-)[\r\n]+%*%*%* End Patch") do
     table.insert(patches, patch)
@@ -149,17 +157,17 @@ function M.parse_changes(raw)
     table.insert(patches, raw)
   end
 
-  local all_changes = {}
+  local all_edits = {}
   for _, patch in ipairs(patches) do
-    local changes = parse_changes_from_patch(patch)
-    for _, change in ipairs(changes) do
-      table.insert(all_changes, change)
+    local edits = parse_edits_from_patch(patch)
+    for _, edit in ipairs(edits) do
+      table.insert(all_edits, edit)
     end
   end
-  return all_changes, had_begin_end_markers
+  return all_edits, had_begin_end_markers
 end
 
----Score how many lines from needle match haystack lines.
+---Score how many lines from needle match haystack lines
 ---@param haystack string[] All file lines
 ---@param pos integer Starting index to check (1-based)
 ---@param needle string[] Lines to match
@@ -197,25 +205,25 @@ local function get_focus_score(lines, before_pos, focus)
   return score
 end
 
----Get overall score for placing change at a given index.
+---Get the overall score for placing an edit on a given line
 ---@param lines string[] File lines
----@param change Change To match
+---@param edit CodeCompanion.Patch.Edit To match
 ---@param i integer Line position
 ---@return number Score from 0.0 to 1.0
-local function get_match_score(lines, change, i)
-  local max_score = (#change.focus * 2 + #change.pre + #change.old + #change.post) * 10
-  local score = get_focus_score(lines, i, change.focus)
-    + get_score(lines, i - #change.pre, change.pre)
-    + get_score(lines, i, change.old)
-    + get_score(lines, i + #change.old, change.post)
+local function get_match_score(lines, edit, i)
+  local max_score = (#edit.focus * 2 + #edit.pre + #edit.old + #edit.post) * 10
+  local score = get_focus_score(lines, i, edit.focus)
+    + get_score(lines, i - #edit.pre, edit.pre)
+    + get_score(lines, i, edit.old)
+    + get_score(lines, i + #edit.old, edit.post)
   return score / max_score
 end
 
----Determine best insertion spot for a Change and its match score.
+---Determine best insertion spot for an edit and its match score
 ---@param lines string[] File lines
----@param change Change Patch block
+---@param edit CodeCompanion.Patch.Edit Patch block
 ---@return integer, number location (1-based), Score (0-1)
-local function get_best_location(lines, change)
+local function get_best_location(lines, edit)
   -- try applying patch in flexible spaces mode
   -- there is no standardised way to of spaces in diffs
   -- python differ specifies a single space after +/-
@@ -227,7 +235,7 @@ local function get_best_location(lines, change)
   local best_location = 1
   local best_score = 0
   for i = 1, #lines + 1 do
-    local score = get_match_score(lines, change, i)
+    local score = get_match_score(lines, edit, i)
     if score == 1 then
       return i, 1
     end
@@ -239,41 +247,41 @@ local function get_best_location(lines, change)
   return best_location, best_score
 end
 
----Get the location where a change would be applied without actually applying it
+---Get the start line location where an edit would be applied without actually applying it
 ---@param lines string[] File lines
----@param change Change Edit description
----@return integer|nil location The line number (1-based) where the change would be applied
-function M.get_change_location(lines, change)
-  local location, score = get_best_location(lines, change)
+---@param edit CodeCompanion.Patch.Edit Edit description
+---@return integer|nil location The line number (1-based) where the edit would be applied
+function Patch.start_line(lines, edit)
+  local location, score = get_best_location(lines, edit)
   if score < 0.5 then
     return nil
   end
   return location
 end
 
----Check if a change is a simple append operation for small/empty files
+---Check if an edit is a simple append operation for small/empty files
 ---@param lines string[] Current file lines
----@param change Change The change to analyze
+---@param edit CodeCompanion.Patch.Edit The edit to analyze
 ---@return boolean is_simple_append
 ---@return string[]? lines_to_append
-local function is_simple_append(lines, change)
+local function is_simple_append(lines, edit)
   -- For empty files (containing only "")
   if #lines == 1 and lines[1] == "" then
     log:debug("[Patch] Empty file detected, treating as simple append")
-    return true, change.new
+    return true, edit.new
   end
 
   -- For small files with simple append patterns
-  if #lines <= 5 and #change.old == 0 and #change.new > 0 then
+  if #lines <= 5 and #edit.old == 0 and #edit.new > 0 then
     -- Check if pre-context matches the end of the file or is empty
-    if #change.pre == 0 then
+    if #edit.pre == 0 then
       log:debug("[Patch] No pre-context, appending to end of small file")
-      return true, change.new
+      return true, edit.new
     end
     -- Check if pre-context matches the last lines of the file
     local matches = true
-    local start_check = math.max(1, #lines - #change.pre + 1)
-    for i, pre_line in ipairs(change.pre) do
+    local start_check = math.max(1, #lines - #edit.pre + 1)
+    for i, pre_line in ipairs(edit.pre) do
       local file_line = lines[start_check + i - 1]
       if not file_line or (vim.trim(file_line) ~= vim.trim(pre_line)) then
         matches = false
@@ -283,21 +291,21 @@ local function is_simple_append(lines, change)
 
     if matches then
       log:debug("[Patch] Pre-context matches, treating as simple append")
-      return true, change.new
+      return true, edit.new
     end
   end
 
   return false, nil
 end
 
----Apply a Change object to the file lines. Returns nil if not confident.
+---Apply an edit to the file lines. Returns nil if not confident
 ---@param lines string[] Lines before patch
----@param change Change Edit description
+---@param edit CodeCompanion.Patch.Edit Edit description
 ---@return string[]|nil New file lines (or nil if patch can't be confidently placed)
-function M.apply_change(lines, change)
+function Patch.apply(lines, edit)
   -- Handle small files and empty files with special logic
   if #lines <= 5 then
-    local is_append, append_lines = is_simple_append(lines, change)
+    local is_append, append_lines = is_simple_append(lines, edit)
     if is_append and append_lines then
       log:debug("[Patch] Using simple append for small file")
       local new_lines = {}
@@ -319,9 +327,9 @@ function M.apply_change(lines, change)
       return new_lines
     end
   end
-  local location, score = get_best_location(lines, change)
+  local location, score = get_best_location(lines, edit)
   if score < 0.5 then
-    log:debug("[Patch] Low confidence score (%.2f), skipping change", score)
+    log:debug("[Patch] Low confidence score (%.2f), skipping edit", score)
     return nil
   end
   local new_lines = {}
@@ -332,34 +340,34 @@ function M.apply_change(lines, change)
   -- add new lines
   local fix_spaces
   -- infer adjustment of spaces from the delete line
-  if score ~= 1 and #change.old > 0 then
-    if change.old[1] == " " .. lines[location] then
+  if score ~= 1 and #edit.old > 0 then
+    if edit.old[1] == " " .. lines[location] then
       -- diff patch added and extra space on left
       fix_spaces = function(ln)
         return ln:sub(2)
       end
-    elseif #change.old[1] < #lines[location] then
+    elseif #edit.old[1] < #lines[location] then
       -- diff removed spaces on left
-      local prefix = string.rep(" ", #lines[location] - #change.old[1])
+      local prefix = string.rep(" ", #lines[location] - #edit.old[1])
       fix_spaces = function(ln)
         return prefix .. ln
       end
     end
   end
-  for _, ln in ipairs(change.new) do
+  for _, ln in ipairs(edit.new) do
     if fix_spaces then
       ln = fix_spaces(ln)
     end
     new_lines[#new_lines + 1] = ln
   end
   -- add remaining lines
-  for k = location + #change.old, #lines do
+  for k = location + #edit.old, #lines do
     new_lines[#new_lines + 1] = lines[k]
   end
   return new_lines
 end
 
----Join a list of lines, prefixing each optionally.
+---Join a list of lines, prefixing each optionally
 ---@param list string[] List of lines
 ---@param sep string Separator (e.g., "\n")
 ---@param prefix? string Optional prefix for each line
@@ -377,16 +385,16 @@ local function prefix_join(list, sep, prefix)
   return table.concat(list, sep)
 end
 
----Format a Change block as a string for output or logs.
----@param change Change To render
+---Format an edit block as a string for output or logs
+---@param edit CodeCompanion.Patch.Edit To render
 ---@return string Formatted string
-function M.get_change_string(change)
+function Patch.format(edit)
   local parts = {
-    prefix_join(change.focus, "\n", "@@"),
-    prefix_join(change.pre, "\n"),
-    prefix_join(change.old, "\n", "-"),
-    prefix_join(change.new, "\n", "+"),
-    prefix_join(change.post, "\n"),
+    prefix_join(edit.focus, "\n", "@@"),
+    prefix_join(edit.pre, "\n"),
+    prefix_join(edit.old, "\n", "-"),
+    prefix_join(edit.new, "\n", "+"),
+    prefix_join(edit.post, "\n"),
   }
   local non_empty = {}
   for _, part in ipairs(parts) do
@@ -397,4 +405,4 @@ function M.get_change_string(change)
   return table.concat(non_empty, "\n")
 end
 
-return M
+return Patch
