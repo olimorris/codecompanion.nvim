@@ -85,6 +85,36 @@ T["can read all of the file"] = function()
   h.eq("beta", string.match(output, "beta"))
   h.eq("gamma", string.match(output, "gamma"))
 end
+T["clamps end_line_number_base_zero to file length if it is too large"] = function()
+  child.lua([[
+    vim.uv.chdir(_G.TEST_CWD)
+    local contents = { "one", "two", "three", "four", "five" }
+    local ok = vim.fn.writefile(contents, _G.TEST_TMPFILE_ABSOLUTE)
+    assert(ok == 0)
+
+    -- end_line_number_base_zero is way beyond file length (file has 5 lines, 0-based: 0-4)
+    local tool = {
+      {
+        ["function"] = {
+          name = "read_file",
+          arguments = string.format(
+            '{"filepath": "%s", "start_line_number_base_zero": 1, "end_line_number_base_zero": 10}',
+            vim.fs.joinpath(_G.TEST_DIR, _G.TEST_TMPFILE)
+          )
+        },
+      },
+    }
+    agent:execute(chat, tool)
+    vim.wait(200)
+  ]])
+
+  local output = child.lua_get("chat.messages[#chat.messages].content")
+  h.eq("two", string.match(output, "two"))
+  h.eq("three", string.match(output, "three"))
+  h.eq("four", string.match(output, "four"))
+  h.eq("five", string.match(output, "five"))
+  h.not_eq("one", string.match(output, "one")) -- since we started at line 1
+end
 
 T["can only read files that exist"] = function()
   child.lua([[
