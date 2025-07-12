@@ -64,16 +64,6 @@ start_line_number_base_zero (%d) is beyond file length. File `%s` has %d lines (
       #lines,
       math.max(0, #lines - 1)
     )
-  elseif end_line_zero ~= -1 and end_line_zero >= #lines then
-    error_msg = fmt(
-      [[Error reading `%s`
-end_line_number_base_zero (%d) is beyond file length. File `%s` has %d lines (0-%d)]],
-      action.filepath,
-      end_line_zero,
-      action.filepath,
-      #lines,
-      math.max(0, #lines - 1)
-    )
   elseif end_line_zero ~= -1 and start_line_zero > end_line_zero then
     error_msg = fmt(
       [[Error reading `%s`
@@ -96,6 +86,11 @@ Invalid line range - start_line_number_base_zero (%d) comes after end_line_numbe
     }
   end
 
+  -- Clamp end_line_zero to the last valid line if it exceeds file length (unless -1)
+  if not error_msg and end_line_zero ~= -1 and end_line_zero >= #lines then
+    end_line_zero = math.max(0, #lines - 1)
+  end
+  
   -- Convert to 1-based indexing
   local start_line = start_line_zero + 1
   local end_line = end_line_zero == -1 and #lines or end_line_zero + 1
