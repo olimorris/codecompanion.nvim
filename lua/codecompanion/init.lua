@@ -200,7 +200,9 @@ CodeCompanion.toggle = function()
     return CodeCompanion.chat()
   end
 
-  if chat.ui:is_visible() then
+  if chat.ui:is_visible_non_curtab() then
+    chat.ui:hide()
+  elseif chat.ui:is_visible() then
     return chat.ui:hide()
   end
 
