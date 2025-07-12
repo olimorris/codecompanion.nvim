@@ -125,36 +125,17 @@ Can you apply the suggested changes to the buffer with the @{insert_edit_into_fi
 ```
 
 **Options:**
+- `patching_algorithm` (string|table|function) The algorithm to use to determine how to edit files and buffers
 - `requires_approval.buffer` (boolean) Require approval before editng a buffer? (Default: false)
 - `requires_approval.file` (boolean) Require approval before editng a file? (Default: true)
 - `user_confirmation` (boolean) require confirmation from the user before moving on in the chat buffer? (Default: true)
 
 ## next_edit_suggestion
 
-Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the `@next_edit_suggestion` tool gives the LLM the ability to show the user where the next edit is. The LLM can only suggest edits in files or buffers that have been shared with it as context.
+Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the tool gives the LLM the ability to show the user where the next edit is. The LLM can only suggest edits in files or buffers that have been shared with it as context.
 
-The jump action can be customised in the `opts` table:
-
-```lua
-require("codecompanion").setup({
-  strategies = {
-    chat = {
-      tools = {
-        ["next_edit_suggestion"] = {
-          opts = {
-            --- the default is to open in a new tab, and reuse existing tabs
-            --- where possible
-            ---@type string|fun(path: string):integer?
-            jump_action = 'tabnew',
-          },
-        }
-      }
-    }
-  }
-})
-```
-
-The `jump_action` can be a VimScript command (as a string), or a lua function that accepts the path to the file and optionally returns the [window ID](https://neovim.io/doc/user/windows.html#window-ID). The window ID is needed if you want the LLM to point you to a specific line in the file.
+**Options:**
+- `jump_action` (string|function) Determines how a jump to the next edit is made (Default: `tabnew`)
 
 ## read_file
 
@@ -184,25 +165,7 @@ CodeCompanion comes with two built-in tool groups:
 
 When you include a tool group in your chat (e.g., `@{files}`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer.
 
-If you want to show all tools as references in the chat buffer, set the `collapse_tools` option to `false`:
-
-```lua
-require("codecompanion").setup({
-  strategies = {
-    chat = {
-      tools = {
-        groups = {
-          ["files"] = {
-            opts = {
-              collapse_tools = false, -- Shows all tools in the group as individual references
-            },
-          },
-        },
-      }
-    }
-  }
-})
-```
+If you want to show all tools as references in the chat buffer, set the `opts.collapse_tools` option to `false` on the group itself.
 
 ## Approvals
 

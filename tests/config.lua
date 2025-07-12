@@ -81,6 +81,9 @@ return {
         ["insert_edit_into_file"] = {
           callback = "strategies.chat.agents.tools.insert_edit_into_file",
           description = "Insert code into an existing file",
+          opts = {
+            patching_algorithm = "strategies.chat.agents.tools.helpers.patch",
+          },
         },
         ["create_file"] = {
           callback = "strategies.chat.agents.tools.create_file",

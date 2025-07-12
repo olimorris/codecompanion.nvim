@@ -129,6 +129,7 @@ local defaults = {
           callback = "strategies.chat.agents.tools.insert_edit_into_file",
           description = "Insert code into an existing file",
           opts = {
+            patching_algorithm = "strategies.chat.agents.tools.helpers.patch",
             requires_approval = { -- Require approval before the tool is executed?
               buffer = false, -- For editing buffers in Neovim
               file = true, -- For editing files in the current working directory
