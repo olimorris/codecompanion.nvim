@@ -88,18 +88,20 @@ function CodeExtractor.get_block_with_locals(bufnr, row, col)
       -- Check if this scope is significant (function, class, etc.)
       local scope_node_type = scope.node:type()
       local is_significant = matches_any(scope_node_type, {
-        "function",
-        "method",
-        "procedure",
-        "def",
+        "module",
+        "namespace",
         "class",
         "interface",
         "struct",
-        "enum",
-        "module",
-        "namespace",
-        "type",
         "impl",
+        "enum",
+        "constructor",
+        "function",
+        "expression_statement",
+        "method",
+        "procedure",
+        "def",
+        "type",
         "const",
         "field",
       })
