@@ -90,7 +90,7 @@ Invalid line range - start_line_number_base_zero (%d) comes after end_line_numbe
   if not error_msg and end_line_zero ~= -1 and end_line_zero >= #lines then
     end_line_zero = math.max(0, #lines - 1)
   end
-  
+
   -- Convert to 1-based indexing
   local start_line = start_line_zero + 1
   local end_line = end_line_zero == -1 and #lines or end_line_zero + 1
