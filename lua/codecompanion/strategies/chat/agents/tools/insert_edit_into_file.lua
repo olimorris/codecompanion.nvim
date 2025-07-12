@@ -51,36 +51,47 @@ end
 
 ---Edit code in a file
 ---@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
----@return string
+---@return string|nil, string|nil
 local function edit_file(action)
   local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
   local p = Path:new(filepath)
   p.filename = p:expand()
 
   if not p:exists() or not p:is_file() then
-    return fmt("Error editing '%s'\nFile does not exist or is not a file", action.filepath)
+    return nil, fmt("Error editing `%s`\nFile does not exist or is not a file", action.filepath)
   end
 
   -- 1. extract list of edits from the code
   local raw = action.code or ""
-  local edits, had_begin_end_markers = patch.parse_edits(raw)
+  local edits, had_begin_end_markers, parse_error = patch.parse_edits(raw)
 
   -- 2. read file into lines
   local content = p:read()
   local lines = vim.split(content, "\n", { plain = true })
 
   -- 3. apply edits
-  for _, edit in ipairs(edits) do
-    local new_lines = patch.apply(lines, edit)
-    if new_lines == nil then
-      if had_begin_end_markers then
-        error(fmt("Bad/Incorrect diff:\n\n%s\n\nNo edits were applied", patch.format(edit)))
-      else
-        error("Invalid patch format: missing Begin/End markers")
+  local all_errors = {}
+  if parse_error then
+    table.insert(all_errors, parse_error)
+  end
+
+  for i, edit in ipairs(edits) do
+    local new_lines, error_msg = patch.apply(lines, edit)
+    if error_msg then
+      table.insert(all_errors, fmt("Edit %d: %s", i, error_msg))
+      if not had_begin_end_markers then
+        table.insert(all_errors, "Hint: Try wrapping your patch in *** Begin Patch / *** End Patch markers")
       end
-    else
+    elseif new_lines then
       lines = new_lines
+    else
+      table.insert(all_errors, fmt("Edit %d: Unknown error applying patch", i))
     end
+  end
+
+  -- Return errors
+  if #all_errors > 0 then
+    return nil, table.concat(all_errors, "\n")
   end
 
   -- 4. write back
@@ -105,7 +116,7 @@ end
 ---@param action {filepath: string, code: string, explanation: string} The arguments from the LLM's tool call
 ---@param output_handler function The callback to call when done
 ---@param opts? table Additional options
----@return string
+---@return string|nil, string|nil
 local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   opts = opts or {}
 
@@ -118,27 +129,41 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   -- Parse and apply patches to buffer
   local raw = action.code or ""
-  local edits, had_begin_end_markers = patch.parse_edits(raw)
+  local edits, had_begin_end_markers, parse_error = patch.parse_edits(raw)
 
   -- Get current buffer content as lines
   local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
 
   -- Apply each edit
   local start_line = nil
-  for _, edit in ipairs(edits) do
-    local new_lines = patch.apply(lines, edit)
-    if new_lines == nil then
-      if had_begin_end_markers then
-        error(fmt("Bad/Incorrect diff:\n\n%s\n\nNo edits were applied", patch.format(edit)))
-      else
-        error("Invalid patch format: missing Begin/End markers")
+  local all_errors = {}
+
+  if parse_error then
+    table.insert(all_errors, parse_error)
+  end
+
+  for i, edit in ipairs(edits) do
+    local new_lines, error_msg = patch.apply(lines, edit)
+    if error_msg then
+      table.insert(all_errors, fmt("Edit %d: %s", i, error_msg))
+      if not had_begin_end_markers then
+        table.insert(all_errors, "Hint: Try wrapping your patch in *** Begin Patch / *** End Patch markers")
       end
-    else
+    elseif new_lines then
       if not start_line then
         start_line = patch.start_line(lines, edit)
       end
       lines = new_lines
+    else
+      table.insert(all_errors, fmt("Edit %d: Unknown error applying patch", i))
     end
+  end
+
+  if #all_errors > 0 then
+    return output_handler({
+      status = "error",
+      data = table.concat(all_errors, "\n"),
+    })
   end
 
   -- Update the buffer with the edited code
@@ -211,11 +236,11 @@ return {
       if bufnr then
         return edit_buffer(bufnr, self.chat.bufnr, args, output_handler, self.tool.opts)
       else
-        local ok, outcome = pcall(edit_file, args)
-        if not ok then
-          return output_handler({ status = "error", data = outcome })
+        local success_msg, error_msg = edit_file(args)
+        if error_msg then
+          return output_handler({ status = "error", data = error_msg })
         end
-        return output_handler({ status = "success", data = outcome })
+        return output_handler({ status = "success", data = success_msg })
       end
     end,
   },
@@ -321,13 +346,23 @@ return {
 
       local error_output = fmt(
         [[Error editing `%s`
-```txt
-%s
-```]],
+%s]],
         args.filepath,
         errors
       )
-      chat:add_tool_output(self, error_output)
+
+      local llm_error_output = fmt(
+        [[%s
+
+**Troubleshooting tips:**
+- Ensure your patch uses the correct format with Begin/End markers
+- Check that the context lines exactly match the file content
+- Verify indentation and whitespace match precisely
+- Try providing more unique context to improve matching confidence]],
+        error_output
+      )
+
+      chat:add_tool_output(self, llm_error_output, error_output)
     end,
 
     ---Rejection message back to the LLM

@@ -2,8 +2,8 @@ local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Patch
 ---@field prompt string The prompt text explaining the patch format to the LLM
----@field parse_edits fun(raw: string): CodeCompanion.Patch.Edit[], boolean Parse raw LLM output into changes and whether markers were found
----@field apply fun(lines: string[], edit: CodeCompanion.Patch.Edit): string[]|nil Apply an edit to file lines, returns nil if can't be confidently applied
+---@field parse_edits fun(raw: string): CodeCompanion.Patch.Edit[], boolean, nil|string Parse raw LLM output into changes and whether markers were found
+---@field apply fun(lines: string[], edit: CodeCompanion.Patch.Edit): string[]|nil,string|nil Apply an edit to file lines, returns nil if can't be confidently applied
 ---@field start_line fun(lines: string[], edit: CodeCompanion.Patch.Edit): integer|nil Get the line number (1-based) where edit would be applied
 ---@field format fun(edit: CodeCompanion.Patch.Edit): string Format an edit object as a readable string for display/logging
 local Patch = {}
@@ -141,7 +141,7 @@ end
 
 ---Parse the edits from the LLM for all patches, returning all parsed edits
 ---@param raw string Raw text containing patch blocks
----@return CodeCompanion.Patch.Edit, boolean All parsed edits, and whether the patch was properly parsed
+---@return CodeCompanion.Patch.Edit, boolean, string|nil All parsed edits, and whether the patch was properly parsed
 function Patch.parse_edits(raw)
   local patches = {}
   for patch in raw:gmatch("%*%*%* Begin Patch[\r\n]+(.-)[\r\n]+%*%*%* End Patch") do
@@ -149,12 +149,15 @@ function Patch.parse_edits(raw)
   end
 
   local had_begin_end_markers = true
+  local parse_error = nil
+
   if #patches == 0 then
     --- LLMs miss the begin / end markers sometimes
     --- let's assume the raw content was correctly wrapped in these cases
     --- setting a `markers_error` so that we can show this error in case the patch fails to apply
     had_begin_end_markers = false
     table.insert(patches, raw)
+    parse_error = "Missing Begin/End patch markers - assuming entire content is a patch"
   end
 
   local all_edits = {}
@@ -164,7 +167,7 @@ function Patch.parse_edits(raw)
       table.insert(all_edits, edit)
     end
   end
-  return all_edits, had_begin_end_markers
+  return all_edits, had_begin_end_markers, parse_error
 end
 
 ---Score how many lines from needle match haystack lines
@@ -301,7 +304,7 @@ end
 ---Apply an edit to the file lines. Returns nil if not confident
 ---@param lines string[] Lines before patch
 ---@param edit CodeCompanion.Patch.Edit Edit description
----@return string[]|nil New file lines (or nil if patch can't be confidently placed)
+---@return string[]|nil,string|nil New file lines (or nil if patch can't be confidently placed)
 function Patch.apply(lines, edit)
   -- Handle small files and empty files with special logic
   if #lines <= 5 then
@@ -329,8 +332,14 @@ function Patch.apply(lines, edit)
   end
   local location, score = get_best_location(lines, edit)
   if score < 0.5 then
-    log:debug("[Patch] Low confidence score (%.2f), skipping edit", score)
-    return nil
+    local error_msg = string.format(
+      "Could not confidently apply edit (confidence: %.1f%%). %s",
+      score * 100,
+      score < 0.2 and "The context doesn't match the file content."
+        or "Try providing more specific context or checking for formatting differences."
+    )
+    log:debug("[Patch] Low confidence score (%.2f), edit details: %s", score, Patch.format(edit))
+    return nil, error_msg
   end
   local new_lines = {}
   -- add lines before diff
@@ -364,7 +373,7 @@ function Patch.apply(lines, edit)
   for k = location + #edit.old, #lines do
     new_lines[#new_lines + 1] = lines[k]
   end
-  return new_lines
+  return new_lines, nil
 end
 
 ---Join a list of lines, prefixing each optionally
