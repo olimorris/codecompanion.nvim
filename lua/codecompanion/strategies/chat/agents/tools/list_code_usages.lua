@@ -10,7 +10,6 @@ local CONSTANTS = {
   LSP_TIMEOUT_MS = 60000,
   MAX_BLOCK_SCAN_LINES = 100,
   MAX_COMMENT_LINES = 10,
-  MIN_LSP_RESULTS_THRESHOLD = 2,
   LSP_METHODS = {
     definition = vim.lsp.protocol.Methods.textDocument_definition,
     references = vim.lsp.protocol.Methods.textDocument_references,
@@ -19,63 +18,7 @@ local CONSTANTS = {
     type_definition = vim.lsp.protocol.Methods.textDocument_typeDefinition,
     documentation = vim.lsp.protocol.Methods.textDocument_hover,
   },
-  TREESITTER_PRIORITY = {
-    CLASS_LEVEL = 30,
-    FUNCTION_LEVEL = 30,
-    VARIABLE_LEVEL = 10,
-    IMPORT_LEVEL = 5,
-    DEFAULT = 0,
-  },
   EXCLUDED_DIRS = { "node_modules", "dist", "vendor", ".git", "venv", ".env", "target", "build" },
-}
-
--- Treesitter node type mappings by priority
-CONSTANTS.TREESITTER_NODES = {
-  -- Class-level constructs (highest priority)
-  class_definition = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
-  class_declaration = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
-  interface_declaration = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
-  impl_item = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
-  struct_item = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
-  trait_item = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
-  enum_item = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
-  enum_declaration = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
-  type_item = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
-  module_definition = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
-  namespace_definition = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
-  class = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
-  export_statement = CONSTANTS.TREESITTER_PRIORITY.CLASS_LEVEL,
-
-  -- Function-level constructs
-  function_definition = CONSTANTS.TREESITTER_PRIORITY.FUNCTION_LEVEL,
-  function_declaration = CONSTANTS.TREESITTER_PRIORITY.FUNCTION_LEVEL,
-  method_definition = CONSTANTS.TREESITTER_PRIORITY.FUNCTION_LEVEL,
-  method_declaration = CONSTANTS.TREESITTER_PRIORITY.FUNCTION_LEVEL,
-  function_item = CONSTANTS.TREESITTER_PRIORITY.FUNCTION_LEVEL,
-  constructor_declaration = CONSTANTS.TREESITTER_PRIORITY.FUNCTION_LEVEL,
-  method = CONSTANTS.TREESITTER_PRIORITY.FUNCTION_LEVEL,
-  singleton_method = CONSTANTS.TREESITTER_PRIORITY.FUNCTION_LEVEL,
-
-  -- Variable/field declarations
-  variable_declaration = CONSTANTS.TREESITTER_PRIORITY.VARIABLE_LEVEL,
-  field_declaration = CONSTANTS.TREESITTER_PRIORITY.VARIABLE_LEVEL,
-  property_declaration = CONSTANTS.TREESITTER_PRIORITY.VARIABLE_LEVEL,
-  const_declaration = CONSTANTS.TREESITTER_PRIORITY.VARIABLE_LEVEL,
-  let_declaration = CONSTANTS.TREESITTER_PRIORITY.VARIABLE_LEVEL,
-  const_item = CONSTANTS.TREESITTER_PRIORITY.VARIABLE_LEVEL,
-  local_declaration = CONSTANTS.TREESITTER_PRIORITY.VARIABLE_LEVEL,
-  assignment_statement = CONSTANTS.TREESITTER_PRIORITY.VARIABLE_LEVEL,
-  expression_statement = CONSTANTS.TREESITTER_PRIORITY.VARIABLE_LEVEL,
-
-  -- Import statements
-  import_declaration = CONSTANTS.TREESITTER_PRIORITY.IMPORT_LEVEL,
-  use_declaration = CONSTANTS.TREESITTER_PRIORITY.IMPORT_LEVEL,
-
-  -- Other constructs
-  decorated_definition = 15,
-  static_item = 15,
-  attribute_item = 10,
-  type_declaration = 15,
 }
 
 -----------------------
@@ -163,8 +106,9 @@ end
 
 -- Open file and position cursor
 function Utils.open_file_and_set_cursor(filepath, line, col)
-  log:debug("[ListCodeUsagesTool] Opening file: %s at line: %d, col: %d", filepath, line, col)
+  log:debug("[Utils:open_file_and_set_cursor] Opening file: %s at line: %d, col: %d", filepath, line, col)
 
+---@diagnostic disable-next-line: param-type-mismatch
   local success, _ = pcall(vim.cmd, "edit " .. vim.fn.fnameescape(filepath))
   if not success then
     return false
@@ -172,6 +116,7 @@ function Utils.open_file_and_set_cursor(filepath, line, col)
 
   local cursor_success, _ = pcall(vim.api.nvim_win_set_cursor, 0, { line, col })
   if cursor_success then
+---@diagnostic disable-next-line: param-type-mismatch
     pcall(vim.cmd, "normal! zz")
   end
 
@@ -191,10 +136,7 @@ end
 -----------------------
 local SymbolFinder = {}
 
--- Find symbols using LSP workspace/symbol
 function SymbolFinder.find_with_lsp(symbolName, filepaths)
-  log:debug("[ListCodeUsagesTool] Searching for symbols '%s' using LSP", symbolName)
-
   local clients = vim.lsp.get_clients({
     method = vim.lsp.protocol.Methods.workspace_symbol,
   })
@@ -246,7 +188,7 @@ function SymbolFinder.find_with_lsp(symbolName, filepaths)
     return (a.kind or 999) < (b.kind or 999)
   end)
 
-  log:debug("[ListCodeUsagesTool] Found %d symbols with LSP", #symbols)
+  log:debug("[SymbolFinder:find_with_lsp] Found symbols with LSP:\n %s", vim.inspect(symbols))
   return symbols
 end
 
@@ -272,8 +214,9 @@ function SymbolFinder.find_with_grep(symbolName, file_extension, filepaths)
     cmd = cmd .. " " .. table.concat(filepaths, " ")
   end
 
-  log:debug("[ListCodeUsagesTool] Executing grep command: %s", cmd)
+  log:debug("[SymbolFinder:find_with_grep] Executing grep command: %s", cmd)
 
+  ---@diagnostic disable-next-line: param-type-mismatch
   local success, _ = pcall(vim.cmd, cmd)
   if not success then
     return nil
@@ -284,7 +227,7 @@ function SymbolFinder.find_with_grep(symbolName, file_extension, filepaths)
     return nil
   end
 
-  log:debug("[ListCodeUsagesTool] Found %d grep matches for '%s'", #qflist, symbolName)
+  log:debug("[SymbolFinder:find_with_grep] Found grep matches: \n %s", vim.inspect(qflist))
 
   local first_match = qflist[1]
   return {
@@ -302,80 +245,148 @@ end
 -----------------------
 local CodeExtractor = {}
 
--- Get comments above a given position
-function CodeExtractor.get_comments_above(bufnr, start_row, max_lines)
-  max_lines = max_lines or CONSTANTS.MAX_COMMENT_LINES
-  local comment_start = start_row
-
-  for i = start_row - 1, math.max(0, start_row - max_lines), -1 do
-    local lines = Utils.safe_get_lines(bufnr, i, i + 1)
-    local line = lines[1]
-    if not line then
-      break
-    end
-
-    if line:match("^%s*$") then
-      break -- Stop at blank line
-    elseif line:match("^%s*[//#*-]") then
-      comment_start = i -- This is a comment line
-    else
-      break -- Not a comment line
-    end
-  end
-
-  return comment_start
-end
-
--- Extract code block using TreeSitter
-function CodeExtractor.get_block_with_treesitter(bufnr, row, col)
+function CodeExtractor.get_block_with_locals(bufnr, row, col)
   local success, parser = pcall(vim.treesitter.get_parser, bufnr)
   if not success or not parser then
     return nil
   end
 
-  local tree_success, trees = pcall(parser.parse, parser)
-  if not tree_success or not trees or #trees == 0 then
+  local trees = parser:parse()
+  log:debug("[CodeExtractor:get_block_with_locals] Parsed %d treesitter trees.", #trees)
+  if not trees or #trees == 0 then
     return nil
   end
 
+  -- Find the node at the cursor position
   local tree = trees[1]
   local root = tree:root()
   local node = root:named_descendant_for_range(row, col, row, col)
 
-  -- Find the node with highest priority
-  local best_node = nil
-  local highest_priority = 0
-
-  while node do
-    local node_type = node:type()
-    local priority = CONSTANTS.TREESITTER_NODES[node_type] or CONSTANTS.TREESITTER_PRIORITY.DEFAULT
-
-    if priority > highest_priority then
-      highest_priority = priority
-      best_node = node
-    end
-    node = node:parent()
+  if not node then
+    return nil
   end
 
-  return best_node
+  -- Get the locals query for this language
+  local query = vim.treesitter.query.get(parser:lang(), "locals")
+  if not query then
+    log:debug("[CodeExtractor:get_block_with_locals] No locals query for language: %s", parser:lang())
+    return node
+  end
+
+  -- Find all scopes in the file
+  local scopes = {}
+  local target_node = node
+
+  -- First pass: find all scopes and possibly the exact symbol node
+  for _, tree in ipairs(trees) do
+    for id, found_node, meta in query:iter_captures(tree:root(), bufnr) do
+      local capture_name = query.captures[id]
+      if capture_name == "local.scope" then
+        table.insert(scopes, {
+          node = found_node,
+          range = { found_node:range() },
+        })
+      end
+    end
+  end
+
+  log:debug("[CodeExtractor:get_block_with_locals] Found %d scopes in the file", #scopes)
+
+  -- Simple helper function to check node type
+  local function matches_any(node_type, patterns)
+    for _, pattern in ipairs(patterns) do
+      if node_type:match(pattern) then
+        return true
+      end
+    end
+    return false
+  end
+
+  -- Get target position for scope matching
+  local target_start_row, target_start_col, target_end_row, target_end_col = target_node:range()
+
+  -- Find the smallest scope that contains the target node
+  local best_scope = nil
+  local best_scope_size = math.huge
+
+  for _, scope in ipairs(scopes) do
+    local start_row, start_col, end_row, end_col = unpack(scope.range)
+
+    -- Check if the scope contains the target
+    if
+      (start_row < target_start_row or (start_row == target_start_row and start_col <= target_start_col))
+      and (end_row > target_end_row or (end_row == target_end_row and end_col >= target_end_col))
+    then
+      -- Calculate scope size (approximate number of characters)
+      local scope_size = (end_row - start_row) * 100 + (end_col - start_col)
+
+      -- Check if this scope is significant (function, class, etc.)
+      local scope_node_type = scope.node:type()
+      local is_significant = matches_any(scope_node_type, {
+        "function",
+        "method",
+        "procedure",
+        "def",
+        "class",
+        "interface",
+        "struct",
+        "enum",
+        "module",
+        "namespace",
+        "type",
+      })
+
+      -- Only consider significant scopes, and prefer smaller ones
+      if is_significant and scope_size < best_scope_size then
+        best_scope = scope.node
+        best_scope_size = scope_size
+        log:debug(
+          "[CodeExtractor:get_block_with_locals] Found containing scope: %s (size: %d)",
+          scope_node_type,
+          scope_size
+        )
+      end
+    end
+  end
+
+  -- If we found a suitable scope, return it
+  if best_scope then
+    log:debug("[CodeExtractor:get_block_with_locals] Using best scope: %s", best_scope:type())
+    return best_scope
+  end
+
+  -- Walk up the tree to find the first significant enclosing block
+  local current = target_node
+  while current do
+    local current_type = current:type()
+
+    -- Check for function-like nodes
+    if matches_any(current_type, { "function", "method", "procedure", "def" }) then
+      log:debug("[CodeExtractor:get_block_with_locals] Found enclosing function: %s", current_type)
+      return current
+    end
+
+    -- Check for class-like nodes
+    if matches_any(current_type, { "class", "interface", "struct", "enum" }) then
+      log:debug("[CodeExtractor:get_block_with_locals] Found enclosing class: %s", current_type)
+      return current
+    end
+
+    -- Move up to parent
+    current = current:parent()
+  end
+
+  -- If we didn't find a significant block, return the original node
+  return target_node
 end
 
 -- Extract node data including comments
 function CodeExtractor.extract_node_data(bufnr, node)
   local start_row, start_col, end_row, end_col = node:range()
 
-  -- Look for comments above the node
-  local comment_start = CodeExtractor.get_comments_above(bufnr, start_row)
-
-  -- Get lines including comments
-  local lines = Utils.safe_get_lines(bufnr, comment_start, end_row + 1)
+  local lines = Utils.safe_get_lines(bufnr, start_row, end_row + 1)
   if not lines or #lines == 0 then
     return Utils.create_result("error", "Symbol text range is empty.")
-  end
-
-  -- Adjust first line if it's part of the node (not a comment)
-  if start_row == comment_start then
-    lines[1] = lines[1]:sub(start_col + 1)
   end
 
   -- Adjust last line
@@ -388,7 +399,7 @@ function CodeExtractor.extract_node_data(bufnr, node)
 
   return Utils.create_result("success", {
     code_block = code_block,
-    start_line = comment_start + 1, -- 1-indexed line numbers
+    start_line = start_row + 1, -- 1-indexed line numbers
     end_line = end_row + 1, -- 1-indexed line numbers
     filename = relative_filename,
     filetype = filetype,
@@ -440,18 +451,15 @@ function CodeExtractor.get_fallback_code_block(bufnr, row, col)
     end_row = i
   end
 
-  -- Look for comments above the start position
-  local comment_start = CodeExtractor.get_comments_above(bufnr, start_row)
-
   -- Extract the code block
-  local extracted_lines = Utils.safe_get_lines(bufnr, comment_start, end_row + 1)
+  local extracted_lines = Utils.safe_get_lines(bufnr, start_row, end_row + 1)
   local absolute_filename = Utils.safe_get_buffer_name(bufnr)
   local relative_filename = Utils.make_relative_path(absolute_filename)
   local filetype = Utils.safe_get_filetype(bufnr)
 
   return Utils.create_result("success", {
     code_block = table.concat(extracted_lines, "\n"),
-    start_line = comment_start + 1,
+    start_line = start_row + 1,
     end_line = end_row + 1,
     filename = relative_filename,
     filetype = filetype,
@@ -464,7 +472,7 @@ function CodeExtractor.get_code_block_at_position(bufnr, row, col)
     return Utils.create_result("error", "Invalid buffer id: " .. tostring(bufnr))
   end
 
-  local node = CodeExtractor.get_block_with_treesitter(bufnr, row, col)
+  local node = CodeExtractor.get_block_with_locals(bufnr, row, col)
 
   if node then
     return CodeExtractor.extract_node_data(bufnr, node)
@@ -492,7 +500,11 @@ function LspHandler.filter_project_references(references)
     end
   end
 
-  log:debug("[ListCodeUsagesTool] References filtered. Original: %d, Filtered: %d", #references, #filtered_results)
+  log:debug(
+    "[LspHandler:filter_project_references] References filtered. Original: %d, Filtered: %d",
+    #references,
+    #filtered_results
+  )
 
   return filtered_results
 end
@@ -504,7 +516,12 @@ function LspHandler.execute_request(bufnr, method)
 
   for _, client in ipairs(clients) do
     if not vim.lsp.buf_is_attached(bufnr, client.id) then
-      log:debug("[ListCodeUsagesTool] Attaching client %s to buffer %d for method %s", client.name, bufnr, method)
+      log:debug(
+        "[LspHandler:execute_request] Attaching client %s to buffer %d for method %s",
+        client.name,
+        bufnr,
+        method
+      )
       vim.lsp.buf_attach_client(bufnr, client.id)
     end
 
@@ -554,7 +571,7 @@ function ResultProcessor.is_duplicate_or_enclosed(new_block, symbol_data)
         and new_block.end_line == existing_block.end_line
       then
         log:debug(
-          "[ListCodeUsagesTool] Found exact duplicate: %s:%d-%d",
+          "[ResultProcessor:is_duplicate_or_enclosed] Found exact duplicate: %s:%d-%d",
           existing_block.filename,
           existing_block.start_line,
           existing_block.end_line
@@ -564,7 +581,7 @@ function ResultProcessor.is_duplicate_or_enclosed(new_block, symbol_data)
 
       if Utils.is_enclosed_by(new_block, existing_block) then
         log:debug(
-          "[ListCodeUsagesTool] Found enclosed block: %s:%d-%d is enclosed by %s:%d-%d",
+          "[ResultProcessor:is_duplicate_or_enclosed] Found enclosed block: %s:%d-%d is enclosed by %s:%d-%d",
           new_block.filename,
           new_block.start_line,
           new_block.end_line,
@@ -591,6 +608,7 @@ function ResultProcessor.process_lsp_item(uri, range, operation, symbol_data)
   vim.fn.bufload(target_bufnr)
 
   local symbol_result = CodeExtractor.get_code_block_at_position(target_bufnr, range.start.line, range.start.character)
+
   if symbol_result.status ~= "success" then
     return symbol_result
   end
@@ -608,6 +626,31 @@ function ResultProcessor.process_lsp_item(uri, range, operation, symbol_data)
   return Utils.create_result("success", "Symbol processed")
 end
 
+function ResultProcessor.process_documentation_item(symbol_data, operation, result)
+  if not symbol_data[operation] then
+    symbol_data[operation] = {}
+  end
+
+  local content = result.contents
+  -- jdtls puts documentation in a table where last element is content
+  if type(content) == "table" and type(content[#content]) == "string" then
+    content = content[#content]
+  end
+  -- Check for duplicates before adding documentation
+  local is_duplicate = false
+  for _, existing_item in ipairs(symbol_data[operation]) do
+    if existing_item.code_block == content then
+      is_duplicate = true
+      break
+    end
+  end
+
+  if not is_duplicate then
+    table.insert(symbol_data[operation], { code_block = content })
+  end
+  return Utils.create_result("success", "documentation processed")
+end
+
 -- Process LSP results
 function ResultProcessor.process_lsp_results(lsp_results, operation, symbol_data)
   local processed_count = 0
@@ -615,32 +658,18 @@ function ResultProcessor.process_lsp_results(lsp_results, operation, symbol_data
   for _, result in pairs(lsp_results) do
     -- Handle documentation specially
     if result.contents then
-      if not symbol_data[operation] then
-        symbol_data[operation] = {}
-      end
-
-      local content = result.contents
-      -- jdtls puts documentation in a table where last element is content
-      if type(content) == "table" and type(content[#content]) == "string" then
-        content = content[#content]
-      end
-      -- Check for duplicates before adding documentation
-      local is_duplicate = false
-      for _, existing_item in ipairs(symbol_data[operation]) do
-        if existing_item.code_block == content then
-          is_duplicate = true
-          break
-        end
-      end
-
-      if not is_duplicate then
-        table.insert(symbol_data[operation], { code_block = content })
+      local process_result = ResultProcessor.process_documentation_item(symbol_data, operation, result)
+      if process_result.status == "success" then
         processed_count = processed_count + 1
       end
     -- Handle single item with range
     elseif result.range then
-      local process_result =
-        ResultProcessor.process_lsp_item(result.uri or result.targetUri, result.range, operation, symbol_data)
+      local process_result = ResultProcessor.process_lsp_item(
+        result.uri or result.targetUri,
+        result.range,
+        operation,
+        symbol_data
+      )
       if process_result.status == "success" then
         processed_count = processed_count + 1
       end
@@ -653,7 +682,7 @@ function ResultProcessor.process_lsp_results(lsp_results, operation, symbol_data
           operation,
           symbol_data
         )
-        if process_result.status == "success" and process_result.data ~= "Duplicate entry" then
+        if process_result.status == "success" and process_result.data ~= "Duplicate or enclosed entry" then
           processed_count = processed_count + 1
         end
       end
@@ -669,7 +698,7 @@ function ResultProcessor.process_quickfix_references(qflist, symbol_data)
     return 0
   end
 
-  log:debug("[ListCodeUsagesTool] Processing %d quickfix items", #qflist)
+  log:debug("[ResultProcessor:process_quickfix_references] Processing %d quickfix items", #qflist)
   local processed_count = 0
 
   for _, qfitem in ipairs(qflist) do
@@ -683,16 +712,15 @@ function ResultProcessor.process_quickfix_references(qflist, symbol_data)
         vim.fn.bufload(target_bufnr)
       end
 
-      -- Extract code block using treesitter
+      -- Extract code block using locals-enhanced treesitter
       local symbol_result = CodeExtractor.get_code_block_at_position(target_bufnr, row, col)
 
       if symbol_result.status == "success" then
-        -- Initialize references array if needed
-        if not symbol_data["grep"] then
-          symbol_data["grep"] = {}
-        end
-
         if not ResultProcessor.is_duplicate_or_enclosed(symbol_result.data, symbol_data) then
+          -- Initialize references array if needed
+          if not symbol_data["grep"] then
+            symbol_data["grep"] = {}
+          end
           table.insert(symbol_data["grep"], symbol_result.data)
           processed_count = processed_count + 1
         end
@@ -708,7 +736,7 @@ end
 -----------------------
 
 -- Process LSP symbols and collect results
-local function process_lsp_symbols(symbols, state)
+local function process_lsp_symbols(symbols, state, symbolName)
   local results_count = 0
 
   for _, symbol in ipairs(symbols) do
@@ -723,7 +751,8 @@ local function process_lsp_symbols(symbols, state)
       -- Call all LSP methods on this symbol
       for operation, method in pairs(CONSTANTS.LSP_METHODS) do
         local lsp_result = LspHandler.execute_request(current_bufnr, method)
-        results_count = results_count + ResultProcessor.process_lsp_results(lsp_result, operation, state.symbol_data)
+        results_count = results_count
+          + ResultProcessor.process_lsp_results(lsp_result, operation, state.symbol_data)
       end
 
       -- Save filetype for the output
@@ -737,7 +766,7 @@ local function process_lsp_symbols(symbols, state)
 end
 
 -- Process grep results and collect data
-local function process_grep_results(grep_result, state)
+local function process_grep_results(grep_result, state, symbolName)
   local results_count = 0
 
   if not grep_result then
@@ -751,7 +780,8 @@ local function process_grep_results(grep_result, state)
     -- Call all LSP methods on this symbol
     for operation, method in pairs(CONSTANTS.LSP_METHODS) do
       local lsp_result = LspHandler.execute_request(current_bufnr, method)
-      results_count = results_count + ResultProcessor.process_lsp_results(lsp_result, operation, state.symbol_data)
+      results_count = results_count
+        + ResultProcessor.process_lsp_results(lsp_result, operation, state.symbol_data)
     end
 
     -- Process quickfix list results
@@ -809,10 +839,10 @@ local function execute_main_command(self, args, input)
   local grep_result = SymbolFinder.find_with_grep(symbolName, file_extension, filePaths)
 
   if all_lsp_symbols and #all_lsp_symbols > 0 then
-    results_count = results_count + process_lsp_symbols(all_lsp_symbols, state)
+    results_count = results_count + process_lsp_symbols(all_lsp_symbols, state, symbolName)
   end
 
-  results_count = results_count + process_grep_results(grep_result, state)
+  results_count = results_count + process_grep_results(grep_result, state, symbolName)
 
   -- Process all qflist results separately after LSP and grep processing
   local qflist = vim.fn.getqflist()
@@ -887,11 +917,10 @@ Request to list all usages (references, definitions, implementations etc) of a f
   output = {
     success = function(self, agent, cmd, stdout)
       local symbol = self.args.symbolName
-      local chat_message_content =
-        string.format("Found usages of symbol: %s", symbol)
+      local chat_message_content = string.format("Found usages of symbol: %s \n", symbol)
 
       for operation, code_blocks in pairs(ListCodeUsagesTool.symbol_data) do
-        chat_message_content = chat_message_content .. string.format("\n%s of symbol: `%s`\n", operation, symbol)
+        chat_message_content = chat_message_content .. string.format("\n%s: \n", operation, symbol)
         for _, code_block in ipairs(code_blocks) do
           if operation == "documentation" then
             chat_message_content = chat_message_content .. string.format("---\n%s\n", code_block.code_block)
