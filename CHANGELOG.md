@@ -1,5 +1,12 @@
 # Changelog
 
+## [17.8.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.8.0...v17.8.1) (2025-07-12)
+
+
+### Bug Fixes
+
+* **tools:** `read_files` tool can read entire file if `end_line` is greater than total lines ([#1824](https://github.com/olimorris/codecompanion.nvim/issues/1824)) ([562950d](https://github.com/olimorris/codecompanion.nvim/commit/562950d1584a1ff603921ec7ce48638e2d7f9e1d))
+
 ## [17.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.7.1...v17.8.0) (2025-07-11)
 
 
