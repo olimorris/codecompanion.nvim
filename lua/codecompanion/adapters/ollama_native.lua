@@ -113,11 +113,11 @@ return {
         end
       end
 
+      self.parameters.stream = true
       if self.opts then
-        if self.opts.stream then
-          self.stream = true
+        if self.opts.stream == false then
+          self.parameters.stream = false
         end
-        self.body = { think = self.opts.think }
         if not vim.tbl_isempty(self.opts.options) then
           self.options = self.opts.options
         end
@@ -297,9 +297,8 @@ return {
           return { status = "error", output = json }
         end
 
-        local choice = json.message
-        if choice.message.content then
-          return { status = "success", output = choice.message.content }
+        if json.message.content then
+          return { status = "success", output = json.message.content }
         end
       end
     end,
