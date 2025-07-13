@@ -77,12 +77,7 @@ Invalid line range - start_line_number_base_zero (%d) comes after end_line_numbe
   if error_msg then
     return {
       status = "error",
-      data = fmt(
-        [["Error reading `%s`
-%s]],
-        action.filename,
-        error_msg
-      ),
+      data = fmt([[%s]], error_msg),
     }
   end
 
