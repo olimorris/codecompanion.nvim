@@ -79,7 +79,6 @@ return {
     stream = true,
     tools = true,
     vision = false,
-    think = false,
     options = {
       -- https://github.com/ollama/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values
     },
@@ -308,7 +307,6 @@ return {
     ---@param data table The reasoning output from the LLM
     ---@return nil|{ content: string, _data: table }
     form_reasoning = function(self, data)
-      -- taken from anthropic adapter
       local content = vim
         .iter(data)
         :filter(function(content)
@@ -337,6 +335,14 @@ return {
       choices = function(self)
         return get_models(self)
       end,
+    },
+    ---@type CodeCompanion.Schema
+    think = {
+      order = 1,
+      mapping = "parameters",
+      type = "boolean",
+      desc = "Whether to enable thinking mode.",
+      default = false,
     },
     ---@type CodeCompanion.Schema
     temperature = {
