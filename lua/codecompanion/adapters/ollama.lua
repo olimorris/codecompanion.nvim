@@ -211,44 +211,20 @@ return {
           for i, tool in ipairs(message.tool_calls) do
             local tool_index = tool.index and tonumber(tool.index) or i
 
-            -- Some endpoints like Gemini do not set this (why?!)
             local id = tool.id
             if not id or id == "" then
               id = string.format("call_%s_%s", json.created, i)
             end
 
-            if self.opts.stream then
-              local found = false
-              for _, existing_tool in ipairs(tools) do
-                if existing_tool._index == tool_index then
-                  -- no need to concat here because ollama streams the full args in one chunk.
-                  found = true
-                  break
-                end
-              end
-
-              if not found then
-                table.insert(tools, {
-                  _index = tool_index,
-                  id = id,
-                  type = tool.type,
-                  ["function"] = {
-                    name = tool["function"]["name"],
-                    arguments = tool["function"]["arguments"] or "",
-                  },
-                })
-              end
-            else
-              table.insert(tools, {
-                _index = i,
-                id = id,
-                type = tool.type,
-                ["function"] = {
-                  name = tool["function"]["name"],
-                  arguments = tool["function"]["arguments"],
-                },
-              })
-            end
+            table.insert(tools, {
+              _index = tool_index,
+              id = id,
+              type = tool.type,
+              ["function"] = {
+                name = tool["function"]["name"],
+                arguments = tool["function"]["arguments"] or "",
+              },
+            })
           end
         end
       end
