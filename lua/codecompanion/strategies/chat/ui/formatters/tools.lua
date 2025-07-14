@@ -17,6 +17,13 @@ end
 function Tools:format(message, opts, state)
   local lines = {}
 
+  if state.has_reasoning_output then
+    state:mark_reasoning_complete()
+    table.insert(lines, "")
+    table.insert(lines, "")
+    table.insert(lines, "### Response")
+  end
+
   if state.is_new_section then
     table.insert(lines, "")
   end
@@ -35,12 +42,12 @@ function Tools:format(message, opts, state)
     return lines, nil
   end
 
-  -- Folds can only work up to the penultimate line in the buffer. So we add an
-  -- empty line as a result. But...we don't want to fold this line
+  -- Folds can only work up to the penultimate line in the buffer, so an extra
+  -- line has been added as a result. But, we don't want to fold this line
   local content_end = #lines - 1
 
   local fold_info = nil
-  if content_end > content_start then
+  if content_end >= content_start then
     fold_info = {
       start_offset = content_start - 1, -- 0-based index
       end_offset = content_end - 1, -- 0-based index

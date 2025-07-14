@@ -71,7 +71,11 @@ function UI:open(opts)
     return
   end
   if config.display.chat.start_in_insert_mode then
-    vim.cmd("startinsert")
+    -- Delay entering insert mode until after Telescope picker fully closes,
+    -- since Telescope resets to normal mode on close.
+    vim.schedule(function()
+      vim.cmd("startinsert")
+    end)
   end
 
   local window = config.display.chat.window
@@ -148,7 +152,7 @@ function UI:open(opts)
   end
 
   log:trace("Chat opened with ID %d", self.chat_id)
-  util.fire("ChatOpened", { bufnr = self.chat_bufnr })
+  util.fire("ChatOpened", { bufnr = self.chat_bufnr, id = self.chat_id })
 
   self.tools = require("codecompanion.strategies.chat.ui.tools").new({
     chat_bufnr = self.chat_bufnr,
@@ -176,7 +180,7 @@ function UI:hide()
     vim.cmd("buffer " .. vim.fn.bufnr("#"))
   end
 
-  util.fire("ChatHidden", { bufnr = self.chat_bufnr })
+  util.fire("ChatHidden", { bufnr = self.chat_bufnr, id = self.chat_id })
 end
 
 ---Follow the cursor in the chat buffer

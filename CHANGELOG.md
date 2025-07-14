@@ -1,5 +1,42 @@
 # Changelog
 
+## [17.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.7.1...v17.8.0) (2025-07-11)
+
+
+### Features
+
+* **chat:** add restore function to ensure a chat buffer can be made visible ([#1816](https://github.com/olimorris/codecompanion.nvim/issues/1816)) ([f37b8b9](https://github.com/olimorris/codecompanion.nvim/commit/f37b8b91d77745b5e5fc816272f50b9826ada6d9))
+* **tools:** `insert_edit_into_file` tool now saves the buffer ([#1813](https://github.com/olimorris/codecompanion.nvim/issues/1813)) ([f7c89b4](https://github.com/olimorris/codecompanion.nvim/commit/f7c89b4a17d040ba4288f60b08c138b8b94bde4a))
+* **tools:** add `get_changed_files` tool ([#1777](https://github.com/olimorris/codecompanion.nvim/issues/1777)) ([ed5c493](https://github.com/olimorris/codecompanion.nvim/commit/ed5c493eaf54b10b56f1489fdeac3689cd583807))
+
+
+### Bug Fixes
+
+* **chat:** start_in_insert_mode with telescope ([#1815](https://github.com/olimorris/codecompanion.nvim/issues/1815)) ([dc5eca1](https://github.com/olimorris/codecompanion.nvim/commit/dc5eca177248f5d77e7d01fdd98e18f90ecfcc56))
+* **inline:** prompting using telescope and dressing in the UI ([#1702](https://github.com/olimorris/codecompanion.nvim/issues/1702)) ([50dde48](https://github.com/olimorris/codecompanion.nvim/commit/50dde48a6a078283c30ec177f7ab3c4eaa350341))
+
+## [17.7.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.7.0...v17.7.1) (2025-07-10)
+
+
+### Bug Fixes
+
+* **chat:** tool folding ([#1811](https://github.com/olimorris/codecompanion.nvim/issues/1811)) ([b506225](https://github.com/olimorris/codecompanion.nvim/commit/b5062255224cb72ee35e374ac764ac53f6fe9fa1))
+* **chat:** unwatch buffers when they're unlisted ([#1809](https://github.com/olimorris/codecompanion.nvim/issues/1809)) ([ea29e11](https://github.com/olimorris/codecompanion.nvim/commit/ea29e112916bad53e52f514bff1bc2e54e2287c2))
+
+## [17.7.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.6.0...v17.7.0) (2025-07-09)
+
+
+### Features
+
+* add chat ID to chat opened/hidden events ([17f7cbb](https://github.com/olimorris/codecompanion.nvim/commit/17f7cbb6cabdc12195f164acf4c59c7c7c205b64))
+
+
+### Bug Fixes
+
+* **adapter:** copilot unauthorized token expired ([#1789](https://github.com/olimorris/codecompanion.nvim/issues/1789)) ([d455d71](https://github.com/olimorris/codecompanion.nvim/commit/d455d71f5887063b08da3fc3cd60548460f1c875))
+* **adapters:** reasoning output and tool calls in anthropic ([#1807](https://github.com/olimorris/codecompanion.nvim/issues/1807)) ([5717527](https://github.com/olimorris/codecompanion.nvim/commit/5717527ba6b1086ed748dd3b1390d0f431ec46cb)), closes [#1752](https://github.com/olimorris/codecompanion.nvim/issues/1752)
+* **prompts:** reword vectorcode tool in workspace prompt ([#1775](https://github.com/olimorris/codecompanion.nvim/issues/1775)) ([3527a9c](https://github.com/olimorris/codecompanion.nvim/commit/3527a9c85b58a8db2fee6d7dcde72077ba790a4a))
+
 ## [17.6.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.5.0...v17.6.0) (2025-07-03)
 
 
