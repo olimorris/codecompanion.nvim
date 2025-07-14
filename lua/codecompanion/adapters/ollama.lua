@@ -79,9 +79,6 @@ return {
     stream = true,
     tools = true,
     vision = true,
-    options = {
-      -- https://github.com/ollama/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values
-    },
   },
   features = {
     text = true,
@@ -116,9 +113,6 @@ return {
       if self.opts then
         if self.opts.stream == false then
           self.parameters.stream = false
-        end
-        if not vim.tbl_isempty(self.opts.options) then
-          self.options = self.opts.options
         end
       end
 
@@ -312,7 +306,7 @@ return {
     },
     ---@type CodeCompanion.Schema
     think = {
-      order = 1,
+      order = 2,
       mapping = "parameters",
       type = "boolean",
       desc = "Whether to enable thinking mode.",
@@ -320,11 +314,11 @@ return {
     },
     ---@type CodeCompanion.Schema
     temperature = {
-      order = 2,
+      order = 3,
       mapping = "parameters.options",
       type = "number",
       optional = true,
-      default = 0.8,
+      default = nil,
       desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
       validate = function(n)
         return n >= 0 and n <= 2, "Must be between 0 and 2"
@@ -332,59 +326,23 @@ return {
     },
     ---@type CodeCompanion.Schema
     num_ctx = {
-      order = 3,
+      order = 4,
       mapping = "parameters.options",
       type = "number",
       optional = true,
-      default = 4096,
+      default = nil,
       desc = "The maximum number of tokens that the language model can consider at once. This determines the size of the input context window, allowing the model to take into account longer text passages for generating responses. Adjusting this value can affect the model's performance and memory usage.",
       validate = function(n)
         return n > 0, "Must be a positive number"
       end,
     },
     ---@type CodeCompanion.Schema
-    mirostat = {
-      order = 4,
-      mapping = "parameters.options",
-      type = "number",
-      optional = true,
-      default = 0,
-      desc = "Enable Mirostat sampling for controlling perplexity. (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0)",
-      validate = function(n)
-        return n == 0 or n == 1 or n == 2, "Must be 0, 1, or 2"
-      end,
-    },
-    ---@type CodeCompanion.Schema
-    mirostat_eta = {
+    repeat_last_n = {
       order = 5,
       mapping = "parameters.options",
       type = "number",
       optional = true,
-      default = 0.1,
-      desc = "Influences how quickly the algorithm responds to feedback from the generated text. A lower learning rate will result in slower adjustments, while a higher learning rate will make the algorithm more responsive. (Default: 0.1)",
-      validate = function(n)
-        return n > 0, "Must be a positive number"
-      end,
-    },
-    ---@type CodeCompanion.Schema
-    mirostat_tau = {
-      order = 6,
-      mapping = "parameters.options",
-      type = "number",
-      optional = true,
-      default = 5.0,
-      desc = "Controls the balance between coherence and diversity of the output. A lower value will result in more focused and coherent text. (Default: 5.0)",
-      validate = function(n)
-        return n > 0, "Must be a positive number"
-      end,
-    },
-    ---@type CodeCompanion.Schema
-    repeat_last_n = {
-      order = 7,
-      mapping = "parameters.options",
-      type = "number",
-      optional = true,
-      default = 64,
+      default = nil,
       desc = "Sets how far back for the model to look back to prevent repetition. (Default: 64, 0 = disabled, -1 = num_ctx)",
       validate = function(n)
         return n >= -1, "Must be -1 or greater"
@@ -392,11 +350,11 @@ return {
     },
     ---@type CodeCompanion.Schema
     repeat_penalty = {
-      order = 8,
+      order = 6,
       mapping = "parameters.options",
       type = "number",
       optional = true,
-      default = 1.1,
+      default = nil,
       desc = "Sets how strongly to penalize repetitions. A higher value (e.g., 1.5) will penalize repetitions more strongly, while a lower value (e.g., 0.9) will be more lenient. (Default: 1.1)",
       validate = function(n)
         return n >= 0, "Must be a non-negative number"
@@ -404,11 +362,11 @@ return {
     },
     ---@type CodeCompanion.Schema
     seed = {
-      order = 9,
+      order = 7,
       mapping = "parameters.options",
       type = "number",
       optional = true,
-      default = 0,
+      default = nil,
       desc = "Sets the random number seed to use for generation. Setting this to a specific number will make the model generate the same text for the same prompt. (Default: 0)",
       validate = function(n)
         return n >= 0, "Must be a non-negative number"
@@ -416,35 +374,26 @@ return {
     },
     ---@type CodeCompanion.Schema
     stop = {
-      order = 10,
+      order = 8,
       mapping = "parameters.options",
-      type = "string",
+      type = "list",
       optional = true,
       default = nil,
       desc = "Sets the stop sequences to use. When this pattern is encountered the LLM will stop generating text and return. Multiple stop patterns may be set by specifying multiple separate stop parameters in a modelfile.",
       validate = function(s)
-        return s:len() > 0, "Cannot be an empty string"
-      end,
-    },
-    ---@type CodeCompanion.Schema
-    num_predict = {
-      order = 12,
-      mapping = "parameters.options",
-      type = "number",
-      optional = true,
-      default = -1,
-      desc = "Maximum number of tokens to predict when generating text. (Default: -1, -1 = infinite generation, -2 = fill context)",
-      validate = function(n)
-        return n >= -2, "Must be -2 or greater"
+        return s == nil
+          or (vim.islist(s) and vim.iter(s):all(function(item)
+            return type(item) == "string"
+          end))
       end,
     },
     ---@type CodeCompanion.Schema
     top_k = {
-      order = 13,
+      order = 9,
       mapping = "parameters.options",
       type = "number",
       optional = true,
-      default = 40,
+      default = nil,
       desc = "Reduces the probability of generating nonsense. A higher value (e.g. 100) will give more diverse answers, while a lower value (e.g. 10) will be more conservative. (Default: 40)",
       validate = function(n)
         return n >= 0, "Must be a non-negative number"
@@ -452,12 +401,24 @@ return {
     },
     ---@type CodeCompanion.Schema
     top_p = {
-      order = 14,
+      order = 10,
       mapping = "parameters.options",
       type = "number",
       optional = true,
-      default = 0.9,
+      default = nil,
       desc = "Works together with top-k. A higher value (e.g., 0.95) will lead to more diverse text, while a lower value (e.g., 0.5) will generate more focused and conservative text. (Default: 0.9)",
+      validate = function(n)
+        return n >= 0 and n <= 1, "Must be between 0 and 1"
+      end,
+    },
+    ---@type CodeCompanion.Schema
+    min_p = {
+      order = 11,
+      mapping = "parameters.options",
+      type = "number",
+      optional = true,
+      default = nil,
+      desc = "Alternative to the top_p, and aims to ensure a balance of quality and variety. The parameter p represents the minimum probability for a token to be considered, relative to the probability of the most likely token. For example, with p=0.05 and the most likely token having a probability of 0.9, logits with a value less than 0.045 are filtered out.",
       validate = function(n)
         return n >= 0 and n <= 1, "Must be between 0 and 1"
       end,
