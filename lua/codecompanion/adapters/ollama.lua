@@ -142,10 +142,6 @@ return {
       messages = vim
         .iter(messages)
         :map(function(m)
-          if vim.startswith(model, "o1") and m.role == "system" then
-            m.role = self.roles.user
-          end
-
           -- Ensure tool_calls are clean
           if m.tool_calls then
             -- TODO: add tool_name?
