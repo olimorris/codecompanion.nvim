@@ -78,7 +78,7 @@ return {
   opts = {
     stream = true,
     tools = true,
-    vision = false,
+    vision = true,
     options = {
       -- https://github.com/ollama/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values
     },
@@ -169,12 +169,10 @@ return {
 
           -- Process any images
           if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+            m.images = m.images or {}
             if self.opts and self.opts.vision then
-              m.images = m.images or {}
               table.insert(m.images, m.content)
-            else
-              -- Remove the message if vision is not supported
-              return nil
+              m.content = nil
             end
           end
 
