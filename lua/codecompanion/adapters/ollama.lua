@@ -38,7 +38,7 @@ local function get_models(self, opts)
   end
 
   local ok, response = pcall(function()
-    return curl.get(url .. "/v1/models", {
+    return curl.get(url .. "/api/tags", {
       sync = true,
       headers = headers,
       insecure = config.adapters.opts.allow_insecure,
@@ -46,19 +46,43 @@ local function get_models(self, opts)
     })
   end)
   if not ok then
-    log:error("Could not get the Ollama models from " .. url .. "/v1/models.\nError: %s", response)
+    log:error("Could not get the Ollama models from " .. url .. "/api/tags.\nError: %s", response)
     return {}
   end
 
   local ok, json = pcall(vim.json.decode, response.body)
   if not ok then
-    log:error("Could not parse the response from " .. url .. "/v1/models")
+    log:error("Could not parse the response from " .. url .. "/api/tags")
     return {}
   end
 
   local models = {}
-  for _, model in ipairs(json.data) do
-    table.insert(models, model.id)
+  local jobs = {}
+
+  for _, model_obj in ipairs(json.models) do
+    -- start async requests
+    local job = curl.post(url .. "/api/show", {
+      headers = headers,
+      insecure = config.adapters.opts.allow_insecure,
+      proxy = config.adapters.opts.proxy,
+      body = vim.json.encode({ model = model_obj.name }),
+      callback = function(output)
+        models[model_obj.name] = { opts = {} }
+        if output.status == 200 then
+          local ok, model_info_json = pcall(vim.json.decode, output.body, { array = true, object = true })
+          if ok then
+            models[model_obj.name].opts.can_reason = vim.list_contains(model_info_json.capabilities or {}, "thinking")
+            models[model_obj.name].opts.has_vision = vim.list_contains(model_info_json.capabilities or {}, "vision")
+          end
+        end
+      end,
+    })
+    table.insert(jobs, job)
+  end
+
+  for _, job in ipairs(jobs) do
+    -- wait for the requests to finish.
+    job:wait()
   end
 
   if opts and opts.last then
