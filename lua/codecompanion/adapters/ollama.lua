@@ -423,5 +423,14 @@ return {
         return n >= 0 and n <= 1, "Must be between 0 and 1"
       end,
     },
+    ---@type CodeCompanion.Schema
+    keep_alive = {
+      order = 12,
+      mapping = "parameters",
+      type = "string",
+      optional = true,
+      default = nil,
+      desc = "Controls how long the model will stay loaded into memory following the request (default: 5m)",
+    },
   },
 }
