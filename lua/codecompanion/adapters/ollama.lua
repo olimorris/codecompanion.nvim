@@ -171,7 +171,6 @@ return {
             content = m.content,
             tool_calls = m.tool_calls,
             images = m.images,
-            thinking = m.reasoning,
           }
         end)
         :totable()
