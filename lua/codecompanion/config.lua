@@ -22,7 +22,6 @@ local defaults = {
     novita = "novita",
     mistral = "mistral",
     ollama = "ollama",
-    ollama_native = "ollama_native",
     openai = "openai",
     xai = "xai",
     -- Non LLMs

@@ -2,6 +2,7 @@ local config = require("codecompanion.config")
 local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
+local utils = require("codecompanion.utils.adapters")
 
 local _cached_adapter
 
@@ -78,45 +79,244 @@ return {
     stream = true,
     tools = true,
     vision = false,
+    options = {
+      -- https://github.com/ollama/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values
+    },
   },
   features = {
     text = true,
     tokens = true,
   },
-  url = "${url}/v1/chat/completions",
+  url = "${url}/api/chat",
   env = {
     url = "http://localhost:11434",
   },
   handlers = {
-    --- Use the OpenAI adapter for the bulk of the work
     setup = function(self)
-      return openai.handlers.setup(self)
+      local model = self.schema.model.default
+      if type(model) == "function" then
+        model = model(self)
+      end
+      local model_opts = self.schema.model.choices
+      if type(model_opts) == "function" then
+        model_opts = model_opts(self)
+      end
+
+      self.opts.vision = true
+
+      if model_opts and model_opts[model] and model_opts[model].opts then
+        self.opts = vim.tbl_deep_extend("force", self.opts, model_opts[model].opts)
+
+        if not model_opts[model].opts.has_vision then
+          self.opts.vision = false
+        end
+      end
+
+      self.parameters.stream = true
+      if self.opts then
+        if self.opts.stream == false then
+          self.parameters.stream = false
+        end
+        if not vim.tbl_isempty(self.opts.options) then
+          self.options = self.opts.options
+        end
+      end
+
+      return true
     end,
     tokens = function(self, data)
-      return openai.handlers.tokens(self, data)
+      if data and data ~= "" then
+        local data_mod = utils.clean_streamed_data(data)
+        local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
+
+        if ok and json.prompt_eval_count ~= nil and json.eval_count ~= nil then
+          local tokens = (json.prompt_eval_count or 0) + (json.eval_count or 0)
+          log:trace("Tokens: %s", tokens)
+          return tokens
+        end
+      end
     end,
     form_parameters = function(self, params, messages)
       return openai.handlers.form_parameters(self, params, messages)
     end,
     form_messages = function(self, messages)
-      return openai.handlers.form_messages(self, messages)
+      local model = self.schema.model.default
+      if type(model) == "function" then
+        model = model(self)
+      end
+
+      messages = vim
+        .iter(messages)
+        :map(function(m)
+          if vim.startswith(model, "o1") and m.role == "system" then
+            m.role = self.roles.user
+          end
+
+          -- Ensure tool_calls are clean
+          if m.tool_calls then
+            -- TODO: add tool_name?
+            m.tool_calls = vim
+              .iter(m.tool_calls)
+              :map(function(tool_call)
+                return {
+                  id = tool_call.id,
+                  ["function"] = tool_call["function"],
+                  type = tool_call.type,
+                }
+              end)
+              :totable()
+          end
+
+          -- Process any images
+          if m.opts and m.opts.tag == "image" and m.opts.mimetype then
+            if self.opts and self.opts.vision then
+              m.images = m.images or {}
+              table.insert(m.images, m.content)
+            else
+              -- Remove the message if vision is not supported
+              return nil
+            end
+          end
+
+          return {
+            role = m.role,
+            content = m.content,
+            tool_calls = m.tool_calls,
+            images = m.images,
+          }
+        end)
+        :totable()
+
+      return { messages = messages }
     end,
     form_tools = function(self, tools)
       return openai.handlers.form_tools(self, tools)
     end,
     chat_output = function(self, data, tools)
-      return openai.handlers.chat_output(self, data, tools)
+      if not data or data == "" then
+        return nil
+      end
+
+      -- Handle both streamed data and structured response
+      local data_mod = type(data) == "table" and data.body or utils.clean_streamed_data(data)
+      local ok, json = pcall(vim.json.decode, data_mod, { luanil = { object = true } })
+
+      if not ok or not json.message then
+        return nil
+      end
+
+      -- Process tool calls from all choices
+      if self.opts.tools and tools then
+        local message = json.message
+
+        if message and message.tool_calls and #message.tool_calls > 0 then
+          for i, tool in ipairs(message.tool_calls) do
+            local tool_index = tool.index and tonumber(tool.index) or i
+
+            -- Some endpoints like Gemini do not set this (why?!)
+            local id = tool.id
+            if not id or id == "" then
+              id = string.format("call_%s_%s", json.created, i)
+            end
+
+            if self.opts.stream then
+              local found = false
+              for _, existing_tool in ipairs(tools) do
+                if existing_tool._index == tool_index then
+                  -- no need to concat here because ollama streams the full args in one chunk.
+                  found = true
+                  break
+                end
+              end
+
+              if not found then
+                table.insert(tools, {
+                  _index = tool_index,
+                  id = id,
+                  type = tool.type,
+                  ["function"] = {
+                    name = tool["function"]["name"],
+                    arguments = tool["function"]["arguments"] or "",
+                  },
+                })
+              end
+            else
+              table.insert(tools, {
+                _index = i,
+                id = id,
+                type = tool.type,
+                ["function"] = {
+                  name = tool["function"]["name"],
+                  arguments = tool["function"]["arguments"],
+                },
+              })
+            end
+          end
+        end
+      end
+
+      local delta = json.message
+
+      if not delta then
+        return nil
+      end
+
+      return {
+        status = "success",
+        output = {
+          role = delta.role,
+          content = delta.content,
+          reasoning = delta.thinking,
+        },
+      }
     end,
     tools = {
       format_tool_calls = function(self, tools)
         return openai.handlers.tools.format_tool_calls(self, tools)
       end,
       output_response = function(self, tool_call, output)
-        return openai.handlers.tools.output_response(self, tool_call, output)
+        return {
+          role = self.roles.tool or "tool",
+          tool_name = tool_call["function"]["name"],
+          content = output,
+          opts = { visible = false },
+        }
       end,
     },
     inline_output = function(self, data, context)
-      return openai.handlers.inline_output(self, data, context)
+      if self.opts.stream then
+        return log:error("Inline output is not supported for non-streaming models")
+      end
+
+      if data and data ~= "" then
+        local ok, json = pcall(vim.json.decode, data.body, { luanil = { object = true } })
+
+        if not ok then
+          log:error("Error decoding JSON: %s", data.body)
+          return { status = "error", output = json }
+        end
+
+        if json.message.content then
+          return { status = "success", output = json.message.content }
+        end
+      end
+    end,
+
+    ---Form the reasoning output that is stored in the chat buffer
+    ---@param self CodeCompanion.Adapter
+    ---@param data table The reasoning output from the LLM
+    ---@return nil|{ content: string, _data: table }
+    form_reasoning = function(self, data)
+      local content = vim
+        .iter(data)
+        :filter(function(content)
+          return content ~= nil
+        end)
+        :join("")
+
+      return {
+        content = content,
+      }
     end,
     on_exit = function(self, data)
       return openai.handlers.on_exit(self, data)
@@ -137,6 +337,14 @@ return {
       end,
     },
     ---@type CodeCompanion.Schema
+    think = {
+      order = 1,
+      mapping = "parameters",
+      type = "boolean",
+      desc = "Whether to enable thinking mode.",
+      default = false,
+    },
+    ---@type CodeCompanion.Schema
     temperature = {
       order = 2,
       mapping = "parameters.options",
@@ -154,7 +362,7 @@ return {
       mapping = "parameters.options",
       type = "number",
       optional = true,
-      default = 2048,
+      default = 4096,
       desc = "The maximum number of tokens that the language model can consider at once. This determines the size of the input context window, allowing the model to take into account longer text passages for generating responses. Adjusting this value can affect the model's performance and memory usage.",
       validate = function(n)
         return n > 0, "Must be a positive number"
