@@ -203,7 +203,7 @@ return {
 
             local id = tool.id
             if not id or id == "" then
-              id = string.format("call_%s_%s", json.created, i)
+              id = string.format("call_%s_%s", json.created_at, i)
             end
 
             table.insert(tools, {
