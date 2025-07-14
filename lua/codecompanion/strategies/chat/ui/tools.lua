@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Chat.UI.Tools
 ---@field chat_bufnr number The buffer number of the chat
@@ -125,9 +126,15 @@ function Tools:create_fold(start_line, end_line, foldtext)
   self.fold_summaries[self.chat_bufnr] = self.fold_summaries[self.chat_bufnr] or {}
   self.fold_summaries[self.chat_bufnr][start_line] = foldtext
 
-  api.nvim_buf_call(self.chat_bufnr, function()
-    vim.cmd(string.format("%d,%dfold", start_line + 1, end_line + 1))
+  local fold, fold_err = pcall(function()
+    api.nvim_buf_call(self.chat_bufnr, function()
+      vim.cmd(string.format("%d,%dfold", start_line + 1, end_line + 1))
+    end)
   end)
+
+  if not fold then
+    log:trace("[Tools] Failed to create fold: %s", fold_err)
+  end
 end
 
 return Tools
