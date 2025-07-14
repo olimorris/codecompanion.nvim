@@ -205,55 +205,55 @@ T["Ollama adapter"]["No Streaming"]["can output for the chat buffer"] = function
   h.eq("Dynamic Scripting language", adapter.handlers.chat_output(adapter, json).output.content)
 end
 
--- T["Ollama adapter"]["No Streaming"]["can process tools"] = function()
---   local data = vim.fn.readfile("tests/adapters/stubs/ollama_tools_no_streaming.txt")
---   data = table.concat(data, "\n")
---
---   local tools = {}
---
---   -- Match the format of the actual request
---   local json = { body = data }
---   adapter.handlers.chat_output(adapter, json, tools)
---
---   local tool_output = {
---     {
---       ["function"] = {
---         arguments = '{"location":"London, UK","units":"celsius"}',
---         name = "weather",
---       },
---       type = "function",
---     },
---     {
---       ["function"] = {
---         arguments = '{"location":"Paris, FR","units":"fahrenheit"}',
---         name = "weather",
---       },
---       type = "function",
---     },
---   }
---
---   h.expect_json_equals(tool_output[1]["function"]["arguments"], tools[1]["function"]["arguments"])
---   h.expect_json_equals(tool_output[2]["function"]["arguments"], tools[2]["function"]["arguments"])
---
---   local formatted_tools = {
---     {
---       arguments = {
---         location = "London, UK",
---         units = "celsius",
---       },
---       name = "weather",
---     },
---     {
---       arguments = {
---         location = "Paris, FR",
---         units = "fahrenheit",
---       },
---       name = "weather",
---     },
---   }
---
---   h.eq(formatted_tools, adapter.handlers.tools.format_tool_calls(adapter, tools))
--- end
+T["Ollama adapter"]["No Streaming"]["can process tools"] = function()
+  local data = vim.fn.readfile("tests/adapters/stubs/ollama_tools_no_streaming.txt")
+  data = table.concat(data, "\n")
+
+  local tools = {}
+
+  -- Match the format of the actual request
+  local json = { body = data }
+  adapter.handlers.chat_output(adapter, json, tools)
+
+  local tool_output = {
+    {
+      ["function"] = {
+        arguments = '{"location":"London, UK","units":"celsius"}',
+        name = "weather",
+      },
+      type = "function",
+    },
+    {
+      ["function"] = {
+        arguments = '{"location":"Paris, FR","units":"fahrenheit"}',
+        name = "weather",
+      },
+      type = "function",
+    },
+  }
+
+  h.expect_json_equals(tool_output[1]["function"]["arguments"], tools[1]["function"]["arguments"])
+  h.expect_json_equals(tool_output[2]["function"]["arguments"], tools[2]["function"]["arguments"])
+
+  -- local formatted_tools = {
+  --   {
+  --     arguments = {
+  --       location = "London, UK",
+  --       units = "celsius",
+  --     },
+  --     name = "weather",
+  --   },
+  --   {
+  --     arguments = {
+  --       location = "Paris, FR",
+  --       units = "fahrenheit",
+  --     },
+  --     name = "weather",
+  --   },
+  -- }
+  --
+  -- h.eq(formatted_tools, adapter.handlers.tools.format_tool_calls(adapter, tools))
+end
 
 T["Ollama adapter"]["No Streaming"]["can output for the inline assistant"] = function()
   local data = vim.fn.readfile("tests/adapters/stubs/ollama_no_streaming.txt")
