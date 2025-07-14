@@ -213,6 +213,25 @@ CodeCompanion.toggle = function(opts)
   chat.ui:open({ toggled = true, window = opts.window })
 end
 
+---Make a previously hidden chat buffer, visible again
+---@param bufnr integer
+---@return nil
+CodeCompanion.restore = function(bufnr)
+  if not bufnr or not api.nvim_buf_is_valid(bufnr) then
+    return log:error("Chat buffer %d is not valid", bufnr)
+  end
+
+  local chat = require("codecompanion.strategies.chat").buf_get_chat(bufnr)
+  if not chat then
+    return log:error("Could not restore the chat buffer")
+  end
+
+  if chat.ui:is_visible() then
+    return
+  end
+  chat.ui:open()
+end
+
 ---Return a chat buffer
 ---@param bufnr? integer
 ---@return CodeCompanion.Chat|table

@@ -1,11 +1,13 @@
-local Path = require("plenary.path")
 local buffers = require("codecompanion.utils.buffers")
+local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local diff = require("codecompanion.strategies.chat.agents.tools.helpers.diff")
 local log = require("codecompanion.utils.log")
 local patch = require("codecompanion.strategies.chat.agents.tools.helpers.patch")
 local ui = require("codecompanion.utils.ui")
 local wait = require("codecompanion.strategies.chat.agents.tools.helpers.wait")
+
+local Path = require("plenary.path")
 
 local api = vim.api
 local fmt = string.format
@@ -31,7 +33,7 @@ local function edit_file(action)
   p.filename = p:expand()
 
   if not p:exists() or not p:is_file() then
-    return fmt("**Insert Edit Into File Tool Error**: File '%s' does not exist or is not a file", action.filepath)
+    return fmt("Error editing '%s'\nFile does not exist or is not a file", action.filepath)
   end
 
   -- 1. extract list of changes from the code
@@ -64,7 +66,12 @@ local function edit_file(action)
   if bufnr ~= -1 and api.nvim_buf_is_loaded(bufnr) then
     api.nvim_command("checktime " .. bufnr)
   end
-  return fmt("**Insert Edit Into File Tool**: `%s` - %s", action.filepath, action.explanation)
+  return fmt(
+    [[Edited `%s`
+%s]],
+    action.filepath,
+    action.explanation
+  )
 end
 
 ---Edit code in a buffer
@@ -127,7 +134,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   local success = {
     status = "success",
-    data = fmt("**Insert Edit Into File Tool**: `%s` - %s", action.filepath, action.explanation),
+    data = fmt("Edited `%s`\n%s", action.filepath, action.explanation),
   }
 
   if should_diff and opts.user_confirmation then
@@ -143,6 +150,15 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     -- Wait for the user to accept or reject the edit
     return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
       if result.accepted then
+        -- Save the buffer
+        pcall(function()
+          api.nvim_buf_call(bufnr, function()
+            vim.cmd("silent! w")
+          end)
+        end)
+        -- NOTE: This is required to ensure folding works for chat buffers that aren't visible
+        codecompanion.restore(chat_bufnr)
+
         return output_handler(success)
       end
       return output_handler({
@@ -272,11 +288,11 @@ return {
       log:debug("[Insert Edit Into File Tool] Error output: %s", stderr)
 
       local error_output = fmt(
-        [[**Insert Edit Into File Tool**: Ran with an error:
-
+        [[Error editing `%s`
 ```txt
 %s
 ```]],
+        args.filepath,
         errors
       )
       chat:add_tool_output(self, error_output)
@@ -289,7 +305,7 @@ return {
     ---@return nil
     rejected = function(self, agent, cmd)
       local chat = agent.chat
-      chat:add_tool_output(self, "**Insert Edit Into File Tool**: The user declined to execute")
+      chat:add_tool_output(self, fmt("User rejected to edit `%s`", self.args.filepath))
     end,
   },
 }

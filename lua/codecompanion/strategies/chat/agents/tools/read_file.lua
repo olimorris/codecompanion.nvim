@@ -8,6 +8,7 @@ local fmt = string.format
 ---@return {status: "success"|"error", data: string}
 local function read(action)
   local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
+  filepath = vim.fs.normalize(filepath)
   local p = Path:new(filepath)
   p.filename = p:expand()
 
@@ -15,7 +16,7 @@ local function read(action)
   if not exists then
     return {
       status = "error",
-      data = fmt("**Read File Tool**: File `%s` does not exist", action.filepath),
+      data = fmt("Error reading `%s`, does not exist", filepath),
     }
   end
 
@@ -26,34 +27,48 @@ local function read(action)
   local error_msg = nil
 
   if not start_line_zero then
-    error_msg =
-      fmt("start_line_number_base_zero must be a valid number, got: %s", tostring(action.start_line_number_base_zero))
+    error_msg = fmt(
+      [[Error reading `%s`
+start_line_number_base_zero must be a valid number, got: %s]],
+      action.filepath,
+      tostring(action.start_line_number_base_zero)
+    )
   elseif not end_line_zero then
-    error_msg =
-      fmt("end_line_number_base_zero must be a valid number, got: %s", tostring(action.end_line_number_base_zero))
+    error_msg = fmt(
+      [[Error reading `%s`
+end_line_number_base_zero must be a valid number, got: %s]],
+      action.filepath,
+      tostring(action.end_line_number_base_zero)
+    )
   elseif start_line_zero < 0 then
-    error_msg = fmt("start_line_number_base_zero cannot be negative, got: %d", start_line_zero)
+    error_msg = fmt(
+      [[Error reading `%s`
+start_line_number_base_zero cannot be negative, got: %d"]],
+      action.filepath,
+      start_line_zero
+    )
   elseif end_line_zero < -1 then
-    error_msg = fmt("end_line_number_base_zero cannot be less than -1, got: %d", end_line_zero)
+    error_msg = fmt(
+      [[Error reading `%s`
+end_line_number_base_zero cannot be less than -1, got: %d]],
+      action.filepath,
+      end_line_zero
+    )
   elseif start_line_zero >= #lines then
     error_msg = fmt(
-      "start_line_number_base_zero (%d) is beyond file length. File `%s` has %d lines (0-%d)",
-      start_line_zero,
+      [[Error reading `%s`
+start_line_number_base_zero (%d) is beyond file length. File `%s` has %d lines (0-%d)]],
       action.filepath,
-      #lines,
-      math.max(0, #lines - 1)
-    )
-  elseif end_line_zero ~= -1 and end_line_zero >= #lines then
-    error_msg = fmt(
-      "end_line_number_base_zero (%d) is beyond file length. File `%s` has %d lines (0-%d)",
-      end_line_zero,
+      start_line_zero,
       action.filepath,
       #lines,
       math.max(0, #lines - 1)
     )
   elseif end_line_zero ~= -1 and start_line_zero > end_line_zero then
     error_msg = fmt(
-      "Invalid line range - start_line_number_base_zero (%d) comes after end_line_number_base_zero (%d)",
+      [[Error reading `%s`
+Invalid line range - start_line_number_base_zero (%d) comes after end_line_number_base_zero (%d)]],
+      action.filepath,
       start_line_zero,
       end_line_zero
     )
@@ -62,8 +77,13 @@ local function read(action)
   if error_msg then
     return {
       status = "error",
-      data = "**Read File Tool**: " .. error_msg,
+      data = fmt([[%s]], error_msg),
     }
+  end
+
+  -- Clamp end_line_zero to the last valid line if it exceeds file length (unless -1)
+  if not error_msg and end_line_zero ~= -1 and end_line_zero >= #lines then
+    end_line_zero = math.max(0, #lines - 1)
   end
 
   -- Convert to 1-based indexing
@@ -80,14 +100,14 @@ local function read(action)
   local file_ext = vim.fn.fnamemodify(p.filename, ":e")
 
   local output = fmt(
-    [[**Read File Tool**: Lines %d to %d of `%s`:
+    [[Read file `%s` from line %d to %d:
 
 ````%s
 %s
 ````]],
+    action.filepath,
     action.start_line_number_base_zero,
     action.end_line_number_base_zero,
-    filepath,
     file_ext,
     content
   )
@@ -164,7 +184,7 @@ return {
     success = function(self, agent, cmd, stdout)
       local chat = agent.chat
       local llm_output = vim.iter(stdout):flatten():join("\n")
-      chat:add_tool_output(self, llm_output)
+      chat:add_tool_output(self, llm_output, fmt("Read file `%s`", self.args.filepath))
     end,
 
     ---@param self CodeCompanion.Tool.ReadFile
@@ -178,15 +198,7 @@ return {
       local errors = vim.iter(stderr):flatten():join("\n")
       log:debug("[Read File Tool] Error output: %s", stderr)
 
-      local error_output = fmt(
-        [[**Read File Tool**: Ran with an error:
-
-```txt
-%s
-```]],
-        errors
-      )
-      chat:add_tool_output(self, error_output)
+      chat:add_tool_output(self, errors)
     end,
 
     ---Rejection message back to the LLM

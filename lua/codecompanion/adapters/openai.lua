@@ -250,13 +250,12 @@ return {
         return nil
       end
 
-      local output = {}
-      output.role = delta.role or nil
-      output.content = delta.content or ""
-
       return {
         status = "success",
-        output = output,
+        output = {
+          role = delta.role,
+          content = delta.content,
+        },
       }
     end,
 

@@ -9,7 +9,7 @@
 - Neovim 0.11.0 or greater
 - _(Optional)_ An API key for your chosen LLM
 - _(Optional)_ The `base64` library for image/vision support
-- _(Optional)_ The `[ripgrep](https://github.com/BurntSushi/ripgrep)` library for the `grep_search` tool
+- _(Optional)_ The [ripgrep](https://github.com/BurntSushi/ripgrep) library for the `grep_search` tool
 
 ## Installation
 
@@ -69,7 +69,7 @@ As per [#377](https://github.com/olimorris/codecompanion.nvim/issues/377), if yo
 
 ## Installing Extensions
 
-CodeCompanion supports extensions that add additional functionality to the plugin. Below is an example which installs and configures the [MCP Hub](extensions/mcphub.html) extension:
+CodeCompanion supports extensions that add additional functionality to the plugin. Below is an example which installs and configures [mcphub.nvim](https://github.com/ravitemer/mcphub.nvim):
 
 1. Install with:
 

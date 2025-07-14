@@ -2,6 +2,7 @@ local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+
 local fmt = string.format
 
 ---@class CodeCompanion.Tool.WebSearch: CodeCompanion.Agent.Tool
@@ -47,6 +48,7 @@ return {
         :request({
           url = adapter.url,
           query = args.query,
+          include_domains = args.include_domains,
         }, {
           callback = function(err, data)
             if err then
@@ -90,8 +92,16 @@ return {
             type = "string",
             description = "Search query optimized for keyword searching.",
           },
+          include_domains = {
+            type = "array",
+            items = {
+              type = "string",
+              description = "Each string should be a url, like `https://github.com/` or `https://neovim.io/`",
+            },
+            description = "When there's a specific site that you want to search from, add the url to the sites here. They must be from user input or from a previous search result. Otherwise, leave this field empty.",
+          },
         },
-        required = { "query" },
+        required = { "query", "include_domains" },
         additionalProperties = false,
       },
       strict = true,
@@ -116,7 +126,7 @@ return {
 - Carefully craft your websearch to retrieve relevant and up to date information.
 ]],
   output = {
-    ---@param self CodeCompanion.Tool.Files
+    ---@param self CodeCompanion.Tool.WebSearch
     ---@param agent CodeCompanion.Agent
     ---@param output string[][] -- The chat_output returned from the adapter will be in the first position in the table
     success = function(self, agent, cmd, output)
@@ -129,12 +139,12 @@ return {
         length = #output[1]
       end
 
-      local query_output = fmt([[**Web Search Tool**: Returned %d results for the query "%s"]], length, cmd.query)
+      local query_output = fmt([[Searched for `%s`, %d results]], cmd.query, length)
 
       chat:add_tool_output(self, content, query_output)
     end,
 
-    ---@param self CodeCompanion.Tool.Files
+    ---@param self CodeCompanion.Tool.WebSearch
     ---@param agent CodeCompanion.Agent
     ---@param stderr table The error output from the command
     error = function(self, agent, _, stderr, _)
@@ -142,8 +152,7 @@ return {
       local args = self.args
       log:debug("[Web Search Tool] Error output: %s", stderr)
 
-      local error_output =
-        fmt([[**Web Search Tool**: There was an error for the following query: `%s`]], string.upper(args.query))
+      local error_output = fmt([[Error searching for `%s`]], string.upper(args.query))
 
       chat:add_tool_output(self, error_output)
     end,

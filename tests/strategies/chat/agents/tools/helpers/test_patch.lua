@@ -42,6 +42,14 @@ T["patch"]["simple patch"] = function()
   h.eq(output_str, expected_output)
 end
 
+T["patch"]["lines starting by '-'"] = function()
+  local input_str = "- item1"
+  local patch_str = "*** Begin Patch\n - item1\n+- item2\n*** End Patch"
+  local output_str = apply_patch(input_str, patch_str)
+  local expected_output = "- item1\n- item2"
+  h.eq(output_str, expected_output)
+end
+
 T["patch"]["simple test from fixtures"] = function()
   local input_str = readfile("tests/fixtures/files-input-1.html")
   local patch_str = readfile("tests/fixtures/files-diff-1.1.patch")
@@ -71,6 +79,14 @@ T["patch"]["no BEGIN and END markers"] = function()
   local patch_str = readfile("tests/fixtures/files-diff-1.5.patch")
   local output_str = apply_patch(input_str, patch_str)
   local expected_output = readfile("tests/fixtures/files-output-1.5.html")
+  h.eq(output_str, expected_output)
+end
+
+T["patch"]["empty line before first @focus"] = function()
+  local input_str = readfile("tests/fixtures/files-input-1.html")
+  local patch_str = readfile("tests/fixtures/files-diff-1.6.patch")
+  local output_str = apply_patch(input_str, patch_str)
+  local expected_output = readfile("tests/fixtures/files-output-1.6.html")
   h.eq(output_str, expected_output)
 end
 
@@ -111,6 +127,41 @@ T["patch"]["lua dashes"] = function()
   local patch_str = readfile("tests/fixtures/files-diff-5.patch")
   local output_str = apply_patch(input_str, patch_str)
   local expected_output = readfile("tests/fixtures/files-output-5.lua")
+  h.eq(output_str, expected_output)
+end
+
+T["patch"]["empty file with non-existent context"] = function()
+  local input_str = ""
+  local patch_str =
+    "*** Begin Patch\nnon-existent line 1\nnon-existent line 2\nnon-existent line 3\n+first line\n+second line\n*** End Patch"
+  local output_str = apply_patch(input_str, patch_str)
+  local expected_output = "first line\nsecond line"
+  h.eq(output_str, expected_output)
+end
+
+T["patch"]["empty file with no context"] = function()
+  local input_str = ""
+  local patch_str = "*** Begin Patch\n+function M.func1() return 1 end\n+function M.func2() return 2 end\n*** End Patch"
+  local output_str = apply_patch(input_str, patch_str)
+  local expected_output = "function M.func1() return 1 end\nfunction M.func2() return 2 end"
+  h.eq(output_str, expected_output)
+end
+
+T["patch"]["small file with mismatched context but correct end"] = function()
+  local input_str = "actual_line1\nactual_line2"
+  local patch_str = "*** Begin Patch\nwrong_context1\nactual_line1\nactual_line2\n+new_line3\n+new_line4\n*** End Patch"
+  local output_str = apply_patch(input_str, patch_str)
+  local expected_output = "actual_line1\nactual_line2\nnew_line3\nnew_line4"
+  h.eq(output_str, expected_output)
+end
+
+T["patch"]["small module file insertion"] = function()
+  local input_str = "local M = {}\nreturn M"
+  local patch_str =
+    "*** Begin Patch\nlocal M = {}\n+function M.func1() return 1 end\n+function M.func2() return 2 end\n+function M.func3() return 3 end\nreturn M\n*** End Patch"
+  local output_str = apply_patch(input_str, patch_str)
+  local expected_output =
+    "local M = {}\nfunction M.func1() return 1 end\nfunction M.func2() return 2 end\nfunction M.func3() return 3 end\nreturn M"
   h.eq(output_str, expected_output)
 end
 

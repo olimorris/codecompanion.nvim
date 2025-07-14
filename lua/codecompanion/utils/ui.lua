@@ -17,15 +17,25 @@ M.create_float = function(lines, opts)
   local bufnr = opts.bufnr or api.nvim_create_buf(false, true)
 
   require("codecompanion.utils").set_option(bufnr, "filetype", opts.filetype or "codecompanion")
+  -- Calculate center position if not specified
+  local row = opts.row or window.row or 10
+  local col = opts.col or window.col or 0
+  if row == "center" then
+    row = math.floor((vim.o.lines - height) / 2)
+  end
+  if col == "center" then
+    col = math.floor((vim.o.columns - width) / 2)
+  end
 
   local winnr = api.nvim_open_win(bufnr, true, {
     relative = opts.relative or "cursor",
-    border = "single",
+    -- thanks to @mini.nvim for this, it's for >= 0.11, to respect users winborder style
+    border = (vim.fn.exists("+winborder") == 1 and vim.o.winborder ~= "") and vim.o.winborder or "single",
     width = width,
     height = height,
     style = "minimal",
-    row = 10,
-    col = 0,
+    row = row,
+    col = col,
     title = opts.title or "Options",
     title_pos = "center",
   })

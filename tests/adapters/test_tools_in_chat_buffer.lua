@@ -60,7 +60,7 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
               result.output.role = config.constants.LLM_ROLE
             end
             table.insert(output, result.output.content)
-            self:add_buf_message(result.output)
+            self:add_buf_message(result.output, { type = "llm_message" })
           end
         end
         return output, tools
@@ -75,8 +75,8 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
       -- Just adding this to make the chat buffer look more real
       _G.chat:add_buf_message({
         role = "user",
-        content = "What's the @weather like in London and Paris?"
-      })
+        content = "What's the @{weather} like in London and Paris?"
+      }, { type = "user_message" })
       _G.chat:add_message({
         role = "user",
         content = "What's the weather like in London and Paris?"
@@ -84,7 +84,7 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
 
       -- Submit the chat buffer!!
       _G.chat_output, _G.chat_tools = _G.chat:mock_submit()
-      _G.chat:done(_G.chat_output, _G.chat_tools)
+      _G.chat:done(_G.chat_output, _, _G.chat_tools)
     ]],
     adapter,
     adapter,
