@@ -43,6 +43,7 @@ function UI.new(args)
     settings = args.settings,
     tokens = args.tokens,
     winnr = args.winnr,
+    window = args.window,
   }, { __index = UI })
 
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.chat_bufnr, {
@@ -78,7 +79,19 @@ function UI:open(opts)
     end)
   end
 
-  local window = config.display.chat.window
+  if opts.window then
+    if opts.window.default then
+      self.window = nil
+    else
+      self.window = opts.window
+    end
+  end
+  local window
+  if self.window then
+    window = vim.tbl_deep_extend("force", {}, config.display.chat.window, self.window)
+  else
+    window = config.display.chat.window
+  end
   local width = math.floor(vim.o.columns * 0.45)
   if window.width ~= "auto" then
     width = window.width > 1 and window.width or math.floor(vim.o.columns * window.width)
@@ -165,7 +178,12 @@ end
 ---Hide the chat buffer from view
 ---@return nil
 function UI:hide()
-  local layout = config.display.chat.window.layout
+  local layout
+  if self.window then
+    layout = vim.tbl_deep_extend("force", {}, config.display.chat.window, self.window).layout
+  else
+    layout = config.display.chat.window.layout
+  end
 
   if layout == "float" or layout == "vertical" or layout == "horizontal" then
     if self:is_active() then
