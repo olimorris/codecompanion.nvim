@@ -199,6 +199,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
     -- Wait for the user to accept or reject the edit
     return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
+      local response
       if result.accepted then
         -- Save the buffer
         pcall(function()
@@ -206,15 +207,16 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
             vim.cmd("silent! w")
           end)
         end)
-        -- NOTE: This is required to ensure folding works for chat buffers that aren't visible
-        codecompanion.restore(chat_bufnr)
-
-        return output_handler(success)
+        response = success
+      else
+        response = {
+          status = "error",
+          data = result.timeout and "User failed to accept the edits in time" or "User rejected the edits",
+        }
       end
-      return output_handler({
-        status = "error",
-        data = result.timeout and "User failed to accept the edits in time" or "User rejected the edits",
-      })
+      -- NOTE: This is required to ensure folding works for chat buffers that aren't visible
+      codecompanion.restore(chat_bufnr)
+      return output_handler(response)
     end, wait_opts)
   end
 

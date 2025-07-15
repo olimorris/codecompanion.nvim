@@ -17,6 +17,13 @@ end
 function Tools:format(message, opts, state)
   local lines = {}
 
+  if state.has_reasoning_output then
+    state:mark_reasoning_complete()
+    table.insert(lines, "")
+    table.insert(lines, "")
+    table.insert(lines, "### Response")
+  end
+
   if state.is_new_section then
     table.insert(lines, "")
   end
