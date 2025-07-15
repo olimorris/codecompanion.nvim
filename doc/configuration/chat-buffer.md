@@ -331,6 +331,7 @@ require("codecompanion").setup({
         width = 0.45,
         relative = "editor",
         full_height = true, -- when set to false, vsplit will be used to open the chat buffer vs. botright/topleft vsplit
+        sticky = false, -- when set to true and `layout` is not `"buffer"`, the chat buffer will remain opened when switching tabs
         opts = {
           breakindent = true,
           cursorcolumn = false,

@@ -1027,6 +1027,7 @@ You must create or modify a workspace file through a series of prompts over mult
         width = 0.45,
         relative = "editor",
         full_height = true,
+        sticky = false,
         opts = {
           breakindent = true,
           cursorcolumn = false,
