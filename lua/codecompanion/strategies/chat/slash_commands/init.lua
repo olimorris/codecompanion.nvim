@@ -136,8 +136,8 @@ function SlashCommands.references(chat, slash_command, opts)
     opts.silent = true
     opts.url = opts.url or opts.path
     opts.description = opts.description
-    opts.auto_restore_cache = opts.opts.auto_restore_cache
-    opts.ignore_cache = opts.opts.ignore_cache
+    opts.auto_restore_cache = opts.opts and opts.opts.auto_restore_cache
+    opts.ignore_cache = opts.opts and opts.opts.ignore_cache
 
     return slash_commands[slash_command]:output(opts.url, opts)
   end
