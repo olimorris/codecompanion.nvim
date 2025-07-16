@@ -186,11 +186,12 @@ function Agent:execute(chat, tools)
     end
     self.tool.opts = vim.tbl_extend("force", self.tool.opts or {}, tool_config.opts or {})
 
+
     if self.tool.env then
       local env = type(self.tool.env) == "function" and self.tool.env(vim.deepcopy(self.tool)) or {}
       util.replace_placeholders(self.tool.cmds, env)
     end
-
+    self.chat:add_tool_output(self.tool, "", "")
     return executor.queue:push(self.tool)
   end
 

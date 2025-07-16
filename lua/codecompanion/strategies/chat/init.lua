@@ -868,14 +868,6 @@ function Chat:submit(opts)
 
   local bufnr = self.bufnr
 
-  for tool in
-    vim.iter(self.tools):filter(function(tool)
-      return tool.function_call ~= nil and (find_tool_call(tool.function_call.id, self.messages) == nil)
-    end)
-  do
-    self:add_tool_output(tool, "", "")
-  end
-
   if opts.auto_submit then
     self.watchers:check_for_changes(self)
   else
