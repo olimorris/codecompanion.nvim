@@ -1275,7 +1275,11 @@ function Chat:add_tool_output(tool, for_llm, for_user)
   -- Ensure that tool output is merged if it has the same tool call ID
   local existing = find_tool_call(tool_call.id, self.messages)
   if existing then
-    existing.content = existing.content .. "\n\n" .. output.content
+    if existing.content ~= "" then
+      existing.content = existing.content .. "\n\n" .. output.content
+    else
+      existing.content = output.content
+    end
   else
     table.insert(self.messages, output)
   end
