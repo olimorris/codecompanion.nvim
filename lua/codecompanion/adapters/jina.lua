@@ -48,6 +48,9 @@ return {
         ---@return nil
         setup = function(self, data)
           self.methods.slash_commands.fetch(self, data)
+          self.handlers.set_body = function()
+            return { url = data.url }
+          end
         end,
 
         ---Process the output from the fetch webpage tool
@@ -55,14 +58,14 @@ return {
         ---@param data table The data returned from the fetch
         ---@return table{status: string, content: string}|nil
         callback = function(self, data)
-          local ok, data = pcall(vim.json.decode, data)
+          local ok, data = pcall(vim.json.decode, data.body)
           if not ok then
             return {
               status = "error",
               output = "Failed to decode JSON content",
             }
           end
-          if data.status ~= 200 then
+          if data.code ~= 200 then
             log:error("[Jina Adapter] Error: %s", data)
             return {
               status = "error",
@@ -71,7 +74,7 @@ return {
           end
           return {
             success = "success",
-            content = data.body.content,
+            content = data.data.text,
           }
         end,
       },

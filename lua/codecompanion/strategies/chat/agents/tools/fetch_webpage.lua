@@ -96,8 +96,8 @@ return {
       local user_output = fmt("Fetched content from `%s`", args.url)
 
       local content = ""
-      if type(stdout[1]) == "table" then
-        content = table.concat(stdout[1], "")
+      if type(stdout) == "table" then
+        content = table.concat(stdout, "")
       end
 
       chat:add_tool_output(self, fmt(llm_output, content), user_output)
