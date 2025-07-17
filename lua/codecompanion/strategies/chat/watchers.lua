@@ -15,7 +15,7 @@ local Watchers = {}
 function Watchers.new()
   return setmetatable({
     buffers = {},
-    augroup = api.nvim_create_augroup("CodeCompanionWatcher", { clear = true }),
+    augroup = api.nvim_create_augroup("codecompanion.watchers", { clear = true }),
   }, { __index = Watchers })
 end
 

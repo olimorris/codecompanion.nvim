@@ -20,7 +20,7 @@ function M.for_decision(id, events, callback, opts)
     return callback({ accepted = true })
   end
 
-  local aug = api.nvim_create_augroup("codecompanion_wait_" .. tostring(id), { clear = true })
+  local aug = api.nvim_create_augroup("codecompanion.agent.tools.wait_" .. tostring(id), { clear = true })
 
   -- Show waiting indicator in the chat buffer
   local chat_extmark_id = nil
