@@ -127,11 +127,6 @@ function Agent:execute(chat, tools)
   ---@param executor CodeCompanion.Agent.Executor The executor instance
   ---@param tool table The tool to run
   local function enqueue_tool(executor, tool)
-    -- If an error occurred, don't run any more tools
-    if self.status == CONSTANTS.STATUS_ERROR then
-      return
-    end
-
     local name = tool["function"].name
     local tool_config = self.tools_config[name]
     local function handle_missing_tool(tool_call, err_message)
@@ -185,7 +180,6 @@ function Agent:execute(chat, tools)
       self.tool.args = args
     end
     self.tool.opts = vim.tbl_extend("force", self.tool.opts or {}, tool_config.opts or {})
-
 
     if self.tool.env then
       local env = type(self.tool.env) == "function" and self.tool.env(vim.deepcopy(self.tool)) or {}

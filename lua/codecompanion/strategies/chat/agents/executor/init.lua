@@ -95,7 +95,7 @@ function Executor:setup(input)
   end
   if self.agent.status == self.agent.constants.STATUS_ERROR then
     log:debug("Executor:execute - Error")
-    return finalize_agent(self)
+    self:close()
   end
 
   -- Get the next tool to run
@@ -190,8 +190,7 @@ function Executor:error(action, error)
     log:warn("Tool %s: %s", self.tool.name, error)
   end
   self.output.error(action)
-  finalize_agent(self)
-  self:close()
+  self:setup()
 end
 
 ---Handle a successful completion of a tool
