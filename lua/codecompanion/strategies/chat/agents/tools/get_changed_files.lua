@@ -43,7 +43,7 @@ local function get_changed_files(action, opts)
   if not action then
     return {
       status = "error",
-      data = "Invalid arguments provided to get_changed_files tool",
+      data = "Missing required parameter 'action' for get_changed_files tool",
     }
   end
   local states = action.source_control_state or { "unstaged", "staged", "merge-conflicts" }
