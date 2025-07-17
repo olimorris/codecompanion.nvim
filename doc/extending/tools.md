@@ -590,7 +590,7 @@ output = {
 
 This will notify the user with the message: `Perform the calculation 100 multiply 50?`. The user can choose to proceed, reject or cancel. The latter will cancel any tools from running.
 
-You can also customize the output if a user rejects the approval:
+You can also customize the output if a user rejects the approval or cancels the tool execution:
 
 ```lua
 output = {
@@ -603,6 +603,15 @@ output = {
   ---@return nil
   rejected = function(self, agent, cmd)
     agent.chat:add_tool_output(self, "The user declined to run the calculator tool")
+  end,
+
+  ---Cancellation message back to the LLM
+  ---@param self CodeCompanion.Tool.Calculator
+  ---@param agent CodeCompanion.Agent
+  ---@param cmd table
+  ---@return nil
+  cancelled = function(self, agent, cmd)
+    agent.chat:add_tool_output(self, "The user cancelled the execution of the calculator tool")
   end,
 },
 ```

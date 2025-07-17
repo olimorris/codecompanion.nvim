@@ -63,16 +63,35 @@ function Executor:setup_handlers()
     rejected = function(cmd)
       if self.tool.output and self.tool.output.rejected then
         self.tool.output.rejected(self.tool, self.agent, cmd)
+      else
+        self.agent.chat:add_tool_output(self.tool, string.format("The `%s` tool was rejected.", self.tool.name))
       end
     end,
     error = function(cmd)
       if self.tool.output and self.tool.output.error then
         self.tool.output.error(self.tool, self.agent, cmd, self.agent.stderr, self.agent.stdout or {})
+      else
+        self.agent.chat:add_tool_output(
+          self.tool,
+          string.format("There was an error when calling the `%s` tool.", self.tool.name)
+        )
+      end
+    end,
+    cancelled = function(cmd)
+      if self.tool.output and self.tool.output.cancelled then
+        self.tool.output.cancelled(self.tool, self.agent, cmd)
+      else
+        self.agent.chat:add_tool_output(self.tool, string.format("The `%s` tool was cancelled.", self.tool.name))
       end
     end,
     success = function(cmd)
       if self.tool.output and self.tool.output.success then
         self.tool.output.success(self.tool, self.agent, cmd, self.agent.stdout)
+      else
+        self.agent.chat:add_tool_output(
+          self.tool,
+          string.format("The `%s` tool has finished successfully.", self.tool.name)
+        )
       end
     end,
   }
@@ -146,9 +165,9 @@ function Executor:setup(input)
       }, function(choice)
         if not choice or choice == "Cancel" then -- No selection or cancelled
           log:debug("Executor:execute - Tool cancelled")
-          finalize_agent(self)
           self:close()
-          return
+          self.output.cancelled(cmd)
+          return self:setup()
         elseif choice == "Yes" then -- Selected yes
           log:debug("Executor:execute - Tool approved")
           self:execute(cmd, input)
