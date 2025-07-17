@@ -1,22 +1,13 @@
 {
     "id": "chatcmpl-399",
     "object": "chat.completion",
-    "created": 1745156351,
+    "created_at": "2025-04-20T00:19:11.000000Z",
     "model": "llama3.1:latest",
-    "system_fingerprint": "fp_ollama",
-    "choices": [
-        {
-            "index": 0,
-            "message": {
-                "role": "assistant",
-                "content": "Dynamic Scripting language"
-            },
-            "finish_reason": "stop"
-        }
-    ],
-    "usage": {
-        "prompt_tokens": 403,
-        "completion_tokens": 5,
-        "total_tokens": 408
-    }
+    "message": {
+        "role": "assistant",
+        "content": "Dynamic Scripting language"
+    },
+    "done": true,
+    "prompt_eval_count": 403,
+    "eval_count": 5
 }

@@ -1,10 +1,9 @@
-data: {"id":"chatcmpl-83","object":"chat.completion.chunk","created":1745156275,"model":"llama3.1:latest","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{"role":"assistant","content":"**"},"finish_reason":null}]}
-data: {"id":"chatcmpl-83","object":"chat.completion.chunk","created":1745156275,"model":"llama3.1:latest","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{"role":"assistant","content":"Dynamic"},"finish_reason":null}]}
-data: {"id":"chatcmpl-83","object":"chat.completion.chunk","created":1745156275,"model":"llama3.1:latest","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{"role":"assistant","content":" Object"},"finish_reason":null}]}
-data: {"id":"chatcmpl-83","object":"chat.completion.chunk","created":1745156275,"model":"llama3.1:latest","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{"role":"assistant","content":"-O"},"finish_reason":null}]}
-data: {"id":"chatcmpl-83","object":"chat.completion.chunk","created":1745156275,"model":"llama3.1:latest","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{"role":"assistant","content":"rient"},"finish_reason":null}]}
-data: {"id":"chatcmpl-83","object":"chat.completion.chunk","created":1745156275,"model":"llama3.1:latest","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{"role":"assistant","content":"ed"},"finish_reason":null}]}
-data: {"id":"chatcmpl-83","object":"chat.completion.chunk","created":1745156275,"model":"llama3.1:latest","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{"role":"assistant","content":"**"},"finish_reason":null}]}
-data: {"id":"chatcmpl-83","object":"chat.completion.chunk","created":1745156275,"model":"llama3.1:latest","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":"stop"}]}
-data: {"id":"chatcmpl-83","object":"chat.completion.chunk","created":1745156275,"model":"llama3.1:latest","system_fingerprint":"fp_ollama","choices":[],"usage":{"prompt_tokens":403,"completion_tokens":8,"total_tokens":411}}
+data: {"model":"llama3.1:latest","created_at":"2025-04-20T00:17:55.000000Z","message":{"role":"assistant","content":"**"},"done":false}
+data: {"model":"llama3.1:latest","created_at":"2025-04-20T00:17:55.000000Z","message":{"role":"assistant","content":"Dynamic"},"done":false}
+data: {"model":"llama3.1:latest","created_at":"2025-04-20T00:17:55.000000Z","message":{"role":"assistant","content":" Object"},"done":false}
+data: {"model":"llama3.1:latest","created_at":"2025-04-20T00:17:55.000000Z","message":{"role":"assistant","content":"-O"},"done":false}
+data: {"model":"llama3.1:latest","created_at":"2025-04-20T00:17:55.000000Z","message":{"role":"assistant","content":"rient"},"done":false}
+data: {"model":"llama3.1:latest","created_at":"2025-04-20T00:17:55.000000Z","message":{"role":"assistant","content":"ed"},"done":false}
+data: {"model":"llama3.1:latest","created_at":"2025-04-20T00:17:55.000000Z","message":{"role":"assistant","content":"**"},"done":false}
+data: {"model":"llama3.1:latest","created_at":"2025-04-20T00:17:55.000000Z","message":{"role":"assistant","content":""},"done":true,"prompt_eval_count":403,"eval_count":8}
 data: [DONE]

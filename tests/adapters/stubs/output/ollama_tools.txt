@@ -9,21 +9,26 @@
             "role": "user"
         },
         {
-            "content": "",
             "tool_calls": [
                 {
-                    "arguments": {
-                        "units": "celsius",
-                        "location": "London, UK"
+                    "function": {
+                        "arguments": {
+                            "units": "celsius",
+                            "location": "London, UK"
+                        },
+                        "name": "weather"
                     },
-                    "name": "weather"
+                    "id": "call_2025-03-31T18:36:18.58469Z_1"
                 },
                 {
-                    "arguments": {
-                        "units": "fahrenheit",
-                        "location": "Paris, FR"
+                    "function": {
+                        "arguments": {
+                            "units": "fahrenheit",
+                            "location": "Paris, FR"
+                        },
+                        "name": "weather"
                     },
-                    "name": "weather"
+                    "id": "call_2025-03-31T18:36:19.500816Z_1"
                 }
             ],
             "role": "assistant"
