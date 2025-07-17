@@ -108,16 +108,16 @@ LLMs have many settings such as model, temperature and max_tokens. In an adapter
 ```lua
 require("codecompanion").setup({
   adapters = {
-    llama3 = function()
+    qwen3 = function()
       return require("codecompanion.adapters").extend("ollama", {
-        name = "gemma3", -- Give this adapter a different name to differentiate it from the default ollama adapter
+        name = "qwen3", -- Give this adapter a different name to differentiate it from the default ollama adapter
         opts = {
           vision = true,
           stream = true,
         },
         schema = {
           model = {
-            default = "gemma3:latest",
+            default = "qwen3:latest",
           },
           num_ctx = {
             default = 16384,
