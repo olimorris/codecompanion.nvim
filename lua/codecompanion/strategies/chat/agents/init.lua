@@ -185,7 +185,6 @@ function Agent:execute(chat, tools)
       local env = type(self.tool.env) == "function" and self.tool.env(vim.deepcopy(self.tool)) or {}
       util.replace_placeholders(self.tool.cmds, env)
     end
-    self.chat:add_tool_output(self.tool, "", "")
     return executor.queue:push(self.tool)
   end
 
