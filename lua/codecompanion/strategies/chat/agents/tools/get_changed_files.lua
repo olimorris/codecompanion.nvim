@@ -40,6 +40,12 @@ end
 ---@param opts {max_lines: number}
 ---@return {status: "success"|"error", data: string}
 local function get_changed_files(action, opts)
+  if not action then
+    return {
+      status = "error",
+      data = "Invalid arguments provided to get_changed_files tool",
+    }
+  end
   local states = action.source_control_state or { "unstaged", "staged", "merge-conflicts" }
   local output = {}
 
