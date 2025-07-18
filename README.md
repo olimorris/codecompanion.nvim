@@ -108,4 +108,5 @@ Command
 - [Saghen](https://github.com/Saghen) for the fantastic docs inspiration from [blink.cmp](https://github.com/Saghen/blink.cmp) and continued PRs to the project
 - [Catwell](https://github.com/catwell) for the [queue](https://github.com/catwell/cw-lua/blob/master/deque/deque.lua) inspiration that I use to stack agents and tools
 - [ravitemer](https://github.com/ravitemer) for the fantastic extensions API
+- [Davidyz](https://github.com/Davidyz) for his continued, excellent contributions that keep CodeCompanion going
 <!-- panvimdoc-ignore-end -->
