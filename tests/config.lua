@@ -180,6 +180,10 @@ return {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd_queue.lua",
           description = "Cmd tool",
         },
+        ["cmd_queue_error"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd_queue_error.lua",
+          description = "Cmd tool",
+        },
         ["mock_cmd_runner"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/mock_cmd_runner.lua",
           description = "Cmd tool",

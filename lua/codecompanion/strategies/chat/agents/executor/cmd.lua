@@ -84,12 +84,14 @@ function CmdExecutor:run(cmd, index)
               return self.executor:setup()
             end
           else
-            return self.executor:error(cmd, string.format("Failed with code %s", code))
+            self.executor:error(cmd, string.format("Failed with code %s", code))
+            return self.executor:close()
           end
         end)
 
         if not ok then
-          return self.executor:error(cmd, string.format("Error whilst running command %s: %s", cmd, output))
+          self.executor:error(cmd, string.format("Error whilst running command %s: %s", cmd, output))
+          return self.executor:close()
         end
       end)
     end,

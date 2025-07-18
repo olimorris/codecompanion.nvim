@@ -4,6 +4,15 @@ local Queue = require("codecompanion.strategies.chat.agents.executor.queue")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
+local fmt = string.format
+
+---Add a response to the chat buffer regarding a tool's execution
+---@param exec CodeCompanion.Agent.Executor
+---@msg string
+local send_response_to_chat = function(exec, msg)
+  exec.agent.chat:add_tool_output(exec.tool, msg)
+end
+
 ---@class CodeCompanion.Agent.Executor
 ---@field agent CodeCompanion.Agent
 ---@field current_cmd_tool table The current cmd tool that's being executed
@@ -63,16 +72,30 @@ function Executor:setup_handlers()
     rejected = function(cmd)
       if self.tool.output and self.tool.output.rejected then
         self.tool.output.rejected(self.tool, self.agent, cmd)
+      else
+        -- If no handler is set then return a default message
+        send_response_to_chat(self, fmt("User rejected `%s`", self.tool.name))
       end
     end,
     error = function(cmd)
       if self.tool.output and self.tool.output.error then
         self.tool.output.error(self.tool, self.agent, cmd, self.agent.stderr, self.agent.stdout or {})
+      else
+        send_response_to_chat(self, fmt("Error calling `%s`", self.tool.name))
+      end
+    end,
+    cancelled = function(cmd)
+      if self.tool.output and self.tool.output.cancelled then
+        self.tool.output.cancelled(self.tool, self.agent, cmd)
+      else
+        send_response_to_chat(self, fmt("Cancelled `%s`", self.tool.name))
       end
     end,
     success = function(cmd)
       if self.tool.output and self.tool.output.success then
         self.tool.output.success(self.tool, self.agent, cmd, self.agent.stdout)
+      else
+        send_response_to_chat(self, fmt("Executed `%s`", self.tool.name))
       end
     end,
   }
@@ -95,7 +118,7 @@ function Executor:setup(input)
   end
   if self.agent.status == self.agent.constants.STATUS_ERROR then
     log:debug("Executor:execute - Error")
-    return finalize_agent(self)
+    self:close()
   end
 
   -- Get the next tool to run
@@ -146,9 +169,9 @@ function Executor:setup(input)
       }, function(choice)
         if not choice or choice == "Cancel" then -- No selection or cancelled
           log:debug("Executor:execute - Tool cancelled")
-          finalize_agent(self)
           self:close()
-          return
+          self.output.cancelled(cmd)
+          return self:setup()
         elseif choice == "Yes" then -- Selected yes
           log:debug("Executor:execute - Tool approved")
           self:execute(cmd, input)
@@ -190,8 +213,7 @@ function Executor:error(action, error)
     log:warn("Tool %s: %s", self.tool.name, error)
   end
   self.output.error(action)
-  finalize_agent(self)
-  self:close()
+  self:setup()
 end
 
 ---Handle a successful completion of a tool
@@ -210,9 +232,14 @@ end
 ---Close the execution of the tool
 ---@return nil
 function Executor:close()
-  log:debug("Executor:close")
-  self.handlers.on_exit()
-  util.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.agent.bufnr })
+  --TODO: This is a workaround that avoids the close method being called more than once
+  if self.tool then
+    log:debug("Executor:close")
+    self.handlers.on_exit()
+    util.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.agent.bufnr })
+    self.tool = nil
+    self.current_cmd_tool = {}
+  end
 end
 
 return Executor
