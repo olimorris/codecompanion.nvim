@@ -1,5 +1,5 @@
 return {
-  name = "cmd_queue",
+  name = "cmd_queue_error",
   system_prompt = "my cmd system prompt",
   cmds = {
     { "echofanweoufqwefvcergv", "0.5" },
