@@ -232,6 +232,7 @@ end
 ---Close the execution of the tool
 ---@return nil
 function Executor:close()
+  --TODO: This is a workaround that avoids the close method being called more than once
   if self.tool then
     log:debug("Executor:close")
     self.handlers.on_exit()
