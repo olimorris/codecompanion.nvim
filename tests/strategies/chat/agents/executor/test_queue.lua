@@ -68,5 +68,41 @@ T["Agent"]["queue"]["can queue functions and commands"] = function()
   -- Test that the function was called
   h.eq("Data 1 Data 2", child.lua_get([[_G._test_func]]))
 end
+T["Agent"]["queue"]["can proceed on error"] = function()
+  h.eq(vim.NIL, child.lua_get([[_G._test_order]]))
+
+  child.lua([[
+    local tools = {
+      {
+        ["function"] = {
+          arguments = { data = "Data 1" },
+          name = "func_queue",
+        },
+      },
+      {
+        ["function"] = {
+          name = "cmd_queue_error",
+        },
+      },
+      {
+        ["function"] = {
+          arguments = { data = "Data 2" },
+          name = "func_queue_2",
+        },
+      },
+    }
+    agent:execute(chat, tools)
+    vim.wait(1000)
+  ]])
+
+  -- Test order
+  h.eq(
+    "Func[Setup]->Func[Success]->Func[Exit]->Cmd[Setup]->Cmd[Error]->Cmd[Exit]->Func2[Setup]->Func2[Success]->Func2[Exit]",
+    child.lua_get([[_G._test_order]])
+  )
+
+  -- Test that the function was called
+  h.eq("Data 1 Data 2", child.lua_get([[_G._test_func]]))
+end
 
 return T

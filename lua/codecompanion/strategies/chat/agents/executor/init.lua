@@ -228,9 +228,13 @@ end
 ---Close the execution of the tool
 ---@return nil
 function Executor:close()
-  log:debug("Executor:close")
-  self.handlers.on_exit()
-  util.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.agent.bufnr })
+  if self.tool then
+    log:debug("Executor:close")
+    self.handlers.on_exit()
+    util.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.agent.bufnr })
+    self.tool = nil
+    self.current_cmd_tool = {}
+  end
 end
 
 return Executor
