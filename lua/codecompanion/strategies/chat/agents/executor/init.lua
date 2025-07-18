@@ -4,6 +4,15 @@ local Queue = require("codecompanion.strategies.chat.agents.executor.queue")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
+local fmt = string.format
+
+---Add a response to the chat buffer regarding a tool's execution
+---@param exec CodeCompanion.Agent.Executor
+---@msg string
+local send_response_to_chat = function(exec, msg)
+  exec.agent.chat:add_tool_output(exec.tool, msg)
+end
+
 ---@class CodeCompanion.Agent.Executor
 ---@field agent CodeCompanion.Agent
 ---@field current_cmd_tool table The current cmd tool that's being executed
@@ -64,34 +73,29 @@ function Executor:setup_handlers()
       if self.tool.output and self.tool.output.rejected then
         self.tool.output.rejected(self.tool, self.agent, cmd)
       else
-        self.agent.chat:add_tool_output(self.tool, string.format("The `%s` tool was rejected.", self.tool.name))
+        -- If no handler is set then return a default message
+        send_response_to_chat(self, fmt("User rejected `%s`", self.tool.name))
       end
     end,
     error = function(cmd)
       if self.tool.output and self.tool.output.error then
         self.tool.output.error(self.tool, self.agent, cmd, self.agent.stderr, self.agent.stdout or {})
       else
-        self.agent.chat:add_tool_output(
-          self.tool,
-          string.format("There was an error when calling the `%s` tool.", self.tool.name)
-        )
+        send_response_to_chat(self, fmt("Error calling `%s`", self.tool.name))
       end
     end,
     cancelled = function(cmd)
       if self.tool.output and self.tool.output.cancelled then
         self.tool.output.cancelled(self.tool, self.agent, cmd)
       else
-        self.agent.chat:add_tool_output(self.tool, string.format("The `%s` tool was cancelled.", self.tool.name))
+        send_response_to_chat(self, fmt("Cancelled `%s`", self.tool.name))
       end
     end,
     success = function(cmd)
       if self.tool.output and self.tool.output.success then
         self.tool.output.success(self.tool, self.agent, cmd, self.agent.stdout)
       else
-        self.agent.chat:add_tool_output(
-          self.tool,
-          string.format("The `%s` tool has finished successfully.", self.tool.name)
-        )
+        send_response_to_chat(self, fmt("Executed `%s`", self.tool.name))
       end
     end,
   }

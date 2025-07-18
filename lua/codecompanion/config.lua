@@ -164,6 +164,7 @@ local defaults = {
           folds = {
             enabled = true, -- Fold tool output in the buffer?
             failure_words = { -- Words that indicate an error in the tool output. Used to apply failure highlighting
+              "cancelled",
               "error",
               "failed",
               "invalid",
