@@ -16,7 +16,7 @@ local function read(action)
   if not exists then
     return {
       status = "error",
-      data = fmt("Error reading `%s`, does not exist", filepath),
+      data = fmt("Error reading `%s`, does not exist", action.filepath),
     }
   end
 
