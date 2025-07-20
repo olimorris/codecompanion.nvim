@@ -1049,12 +1049,16 @@ end
 ---@param data { role: string, content: string }
 ---@param source string
 ---@param id string
----@param opts? table Options for the message
-function Chat:add_reference(data, source, id, opts)
-  opts = opts or { reference = id, visible = false }
+---@param msg_opts? table Options for the message
+---@param ref_opts? table Options for the reference
+function Chat:add_reference(data, source, id, msg_opts, ref_opts)
+  if not msg_opts or vim.tbl_isempty(msg_opts) then
+    msg_opts = { reference = id, visible = false }
+  end
+  ref_opts = ref_opts or {}
 
-  self.references:add({ source = source, id = id })
-  self:add_message(data, opts)
+  self.references:add({ source = source, id = id, opts = ref_opts })
+  self:add_message(data, msg_opts)
 end
 
 ---Check if there are any images in the chat buffer
