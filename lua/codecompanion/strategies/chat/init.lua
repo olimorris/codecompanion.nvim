@@ -1057,7 +1057,7 @@ function Chat:add_reference(data, source, id, msg_opts, ref_opts)
   end
   ref_opts = ref_opts or {}
 
-  local ref = vim.tbl_extend('force', { source = source, id = id }, ref_opts)
+  local ref = vim.tbl_extend("force", { source = source, id = id }, ref_opts)
   self.references:add(ref)
   self:add_message(data, msg_opts)
 end
