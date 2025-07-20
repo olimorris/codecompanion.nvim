@@ -34,13 +34,19 @@ local function cmd_to_func_tool(tool)
         -- function-based tool
         return cmd
       else
+        local flag = cmd.flag
         cmd = cmd.cmd or cmd
         if type(cmd) == "string" then
           cmd = vim.split(cmd, " ", { trimempty = true })
         end
-        return function(_, _, _, cb)
+        ---@param agent CodeCompanion.Agent
+        return function(agent, _, _, cb)
           cb = vim.schedule_wrap(cb)
           vim.system(build_shell_command(cmd), {}, function(out)
+            if flag then
+              agent.chat.tools.flags = agent.chat.tools.flags or {}
+              agent.chat.tools.flags[flag] = (out.code == 0)
+            end
             if out.code == 0 then
               cb({
                 status = "success",

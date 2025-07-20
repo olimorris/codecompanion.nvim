@@ -96,21 +96,21 @@ T["Agent"]["cmds"]["can run multiple commands"] = function()
   h.eq(vim.NIL, child.lua_get("_G._test_output[3]"))
 end
 
--- T["Agent"]["cmds"]["can set test flags on the chat object"] = function()
---   child.lua([[
---     local tool = {
---       {
---         ["function"] = {
---           name = "mock_cmd_runner",
---           arguments = '{"cmds": "ls", "flag": "testing"}',
---         }
---       },
---     }
---     agent:execute(chat, tool)
---     vim.wait(100)
---   ]])
---
---   h.eq({ testing = true }, child.lua_get("agent.chat.tools.flags"))
--- end
+T["Agent"]["cmds"]["can set test flags on the chat object"] = function()
+  child.lua([[
+    local tool = {
+      {
+        ["function"] = {
+          name = "mock_cmd_runner",
+          arguments = '{"cmds": "ls", "flag": "testing"}',
+        }
+      },
+    }
+    agent:execute(chat, tool)
+    vim.wait(100)
+  ]])
+
+  h.eq({ testing = true }, child.lua_get("agent.chat.tools.flags"))
+end
 
 return T
