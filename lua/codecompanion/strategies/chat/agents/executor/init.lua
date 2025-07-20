@@ -1,4 +1,3 @@
-local CmdExecutor = require("codecompanion.strategies.chat.agents.executor.cmd")
 local FuncExecutor = require("codecompanion.strategies.chat.agents.executor.func")
 local Queue = require("codecompanion.strategies.chat.agents.executor.queue")
 local log = require("codecompanion.utils.log")
@@ -13,9 +12,46 @@ local send_response_to_chat = function(exec, msg)
   exec.agent.chat:add_tool_output(exec.tool, msg)
 end
 
+---Accepts a cmd-based tool and returns a function-based tool.
+---The `env` field in the cmd-based tool should've been processed before passed into this function.
+---@param tool CodeCompanion.Agent.Tool
+---@return CodeCompanion.Agent.Tool
+local function cmd_to_func_tool(tool)
+  tool.cmds = vim
+    .iter(tool.cmds)
+    :map(function(cmd)
+      if type(cmd) == "function" then
+        -- function-based tool
+        return cmd
+      else
+        cmd = cmd.cmd or cmd
+        if type(cmd) == "string" then
+          cmd = vim.split(cmd, " ", { trimempty = true })
+        end
+        return function(_, _, _, cb)
+          cb = vim.schedule_wrap(cb)
+          vim.system(cmd, {}, function(out)
+            if out.code == 0 then
+              cb({
+                status = "success",
+                data = vim.split(out.stdout, "\n", { trimempty = true }),
+              })
+            else
+              cb({
+                status = "error",
+                data = vim.split(out.stderr, "\n", { trimempty = true }),
+              })
+            end
+          end)
+        end
+      end
+    end)
+    :totable()
+  return tool
+end
+
 ---@class CodeCompanion.Agent.Executor
 ---@field agent CodeCompanion.Agent
----@field current_cmd_tool table The current cmd tool that's being executed
 ---@field handlers table<string, function>
 ---@field id number The id of the agent
 ---@field index number The index of the current command
@@ -30,7 +66,6 @@ local Executor = {}
 function Executor.new(agent, id)
   local self = setmetatable({
     agent = agent,
-    current_cmd_tool = {},
     id = id,
     queue = Queue.new(),
   }, { __index = Executor })
@@ -128,6 +163,8 @@ function Executor:setup(input)
   self:setup_handlers()
   self.handlers.setup() -- Call this early as cmd_runner needs to setup its cmds dynamically
 
+  self.tool = cmd_to_func_tool(self.tool) -- transform cmd-based tools to func-based
+
   -- Get the first command to run
   local cmd = self.tool.cmds[1]
   log:debug("Executor:execute - `%s` tool", self.tool.name)
@@ -190,15 +227,12 @@ function Executor:setup(input)
 end
 
 ---Execute the tool command
----@param cmd string|table|function
+---@param cmd function
 ---@param input? any
 ---@return nil
 function Executor:execute(cmd, input)
   util.fire("ToolStarted", { id = self.id, tool = self.tool.name, bufnr = self.agent.bufnr })
-  if type(cmd) == "function" then
-    return FuncExecutor.new(self, cmd, 1):orchestrate(input)
-  end
-  return CmdExecutor.new(self, self.tool.cmds, 1):orchestrate()
+  return FuncExecutor.new(self, cmd, 1):orchestrate(input)
 end
 
 ---Handle an error from a tool
@@ -238,7 +272,6 @@ function Executor:close()
     self.handlers.on_exit()
     util.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.agent.bufnr })
     self.tool = nil
-    self.current_cmd_tool = {}
   end
 end
 

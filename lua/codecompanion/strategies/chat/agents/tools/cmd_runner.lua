@@ -107,7 +107,7 @@ return {
     ---@param agent CodeCompanion.Agent
     ---@return string
     prompt = function(self, agent)
-      return fmt("Run the command `%s`?", table.concat(self.cmds[1].cmd, " "))
+      return fmt("Run the command `%s`?", self.args.cmd)
     end,
 
     ---Rejection message back to the LLM
@@ -116,10 +116,7 @@ return {
     ---@param cmd table
     ---@return nil
     rejected = function(self, agent, cmd)
-      agent.chat:add_tool_output(
-        self,
-        fmt("The user rejected the execution of the command `%s`?", table.concat(self.cmds[1].cmd, " "))
-      )
+      agent.chat:add_tool_output(self, fmt("The user rejected the execution of the command `%s`?", self.args.cmd))
     end,
 
     ---@param self CodeCompanion.Tool.CmdRunner
@@ -129,7 +126,7 @@ return {
     ---@param stdout? table The output from the command
     error = function(self, agent, cmd, stderr, stdout)
       local chat = agent.chat
-      local cmds = table.concat(cmd.cmd, " ")
+      local cmds = self.args.cmd
       local errors = vim.iter(stderr):flatten():join("\n")
 
       local output = [[%s
@@ -171,7 +168,7 @@ return {
 ```
 %s
 ```]],
-        table.concat(cmd.cmd, " "),
+        self.args.cmd,
         output
       )
       chat:add_tool_output(self, message)
