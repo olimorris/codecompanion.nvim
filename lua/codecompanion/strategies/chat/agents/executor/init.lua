@@ -12,6 +12,16 @@ local send_response_to_chat = function(exec, msg)
   exec.agent.chat:add_tool_output(exec.tool, msg)
 end
 
+---@param args string[]
+---@return string[]
+local function build_shell_command(args)
+  return {
+    (vim.fn.has("win32") == 1 and "cmd.exe" or "sh"),
+    vim.fn.has("win32") == 1 and "/c" or "-c",
+    table.concat(args, " "),
+  }
+end
+
 ---Accepts a cmd-based tool and returns a function-based tool.
 ---The `env` field in the cmd-based tool should've been processed before passed into this function.
 ---@param tool CodeCompanion.Agent.Tool
@@ -30,7 +40,7 @@ local function cmd_to_func_tool(tool)
         end
         return function(_, _, _, cb)
           cb = vim.schedule_wrap(cb)
-          vim.system(cmd, {}, function(out)
+          vim.system(build_shell_command(cmd), {}, function(out)
             if out.code == 0 then
               cb({
                 status = "success",
