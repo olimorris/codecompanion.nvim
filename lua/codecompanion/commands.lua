@@ -154,10 +154,13 @@ return {
         buffer_with_cursor
       )
       opts.args = user_prompt
+      -- For CodeCompanionComplete, apply edits directly without diff approval
+      opts.opts = opts.opts or {}
+      opts.opts.no_diff = true
       codecompanion.inline(opts)
     end,
     opts = {
-      desc = "Complete code at the cursor using CodeCompanion inline",
+      desc = "Complete code at the cursor and auto-apply without diff",
       range = false,
       nargs = 0,
     },

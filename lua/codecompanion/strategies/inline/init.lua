@@ -677,6 +677,10 @@ end
 ---Start the diff process
 ---@return nil
 function Inline:start_diff()
+  -- Skip diff when no_diff option is set
+  if self.opts and self.opts.no_diff then
+    return
+  end
   if config.display.diff.enabled == false then
     return
   end
