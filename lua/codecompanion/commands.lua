@@ -131,4 +131,35 @@ return {
       range = true,
     },
   },
+  {
+    cmd = "CodeCompanionComplete",
+    callback = function(opts)
+      local api = vim.api
+      local buf = api.nvim_get_current_buf()
+      local filetype = api.nvim_buf_get_option(buf, "filetype")
+      -- Get full buffer lines
+      local lines = api.nvim_buf_get_lines(buf, 0, -1, false)
+      local cursor = api.nvim_win_get_cursor(0)
+      local row, col = cursor[1], cursor[2]
+      local content_lines = vim.deepcopy(lines)
+      local line = content_lines[row] or ""
+      local prefix = line:sub(1, col)
+      local suffix = line:sub(col + 1)
+      content_lines[row] = prefix .. "<cursor>" .. suffix
+      local buffer_with_cursor = table.concat(content_lines, "\n")
+      -- Build the prompt
+      local user_prompt = string.format(
+        "Here is the current buffer with a <cursor> marker:\n```%s\n%s\n```\nPlease complete the code at the <cursor> position.",
+        filetype,
+        buffer_with_cursor
+      )
+      opts.args = user_prompt
+      codecompanion.inline(opts)
+    end,
+    opts = {
+      desc = "Complete code at the cursor using CodeCompanion inline",
+      range = false,
+      nargs = 0,
+    },
+  },
 }
