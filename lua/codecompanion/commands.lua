@@ -155,8 +155,7 @@ return {
       )
       opts.args = user_prompt
       -- For CodeCompanionComplete, apply edits directly without diff approval
-      opts.opts = opts.opts or {}
-      opts.opts.no_diff = true
+      opts = vim.tbl_extend("force", opts, { opts = { no_diff = true } })
       codecompanion.inline(opts)
     end,
     opts = {
