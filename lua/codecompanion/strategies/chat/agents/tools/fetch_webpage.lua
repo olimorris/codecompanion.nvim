@@ -19,26 +19,24 @@ return {
       local url = args.url
 
       if not opts or not opts.adapter then
-        log:error("Error - no adapter for `fetch_webpage`")
-        return cb({ status = "error" })
+        log:error("[Fetch Webpage Tool] No adapter set for `fetch_webpage`")
+        return cb({ status = "error", data = "No adapter for `fetch_webpage`" })
       end
       if not args then
-        log:error("Error - no args for `fetch_webpage` tool")
-        return cb({ status = "error" })
+        log:error("[Fetch Webpage Tool] No args for `fetch_webpage`")
+        return cb({ status = "error", data = "No args for `fetch_webpage`" })
+      end
+
+      if not url or type(url) ~= "string" or url == "" then
+        return cb({ status = "error", data = fmt("No URL for `fetch_webpage`") })
       end
 
       local tool_adapter = config.strategies.chat.tools.fetch_webpage.opts.adapter
       local adapter = vim.deepcopy(adapters.resolve(config.adapters[tool_adapter]))
-
-      if not adapter then
-        log:error("Error - Failed to load the adapter for the `fetch_webpage` tool")
-        return cb({ status = "error" })
-      end
-
       adapter.methods.tools.fetch_webpage.setup(adapter, args)
 
       if not url:match("^https?://") then
-        log:error("Invalid URL: `%s`", url)
+        log:error("[Fetch Webpage Tool] Invalid URL: `%s`", url)
         return cb({ status = "error", data = fmt("Invalid URL: `%s`", url) })
       end
 
@@ -57,7 +55,7 @@ return {
               local output = adapter.methods.tools.fetch_webpage.callback(adapter, data)
               if output.status == "error" then
                 log:error("[Fetch Webpage Tool] Error processing data for `%s`: %s", url, output.content)
-                return cb({ status = "error", data = fmt("Error fetching `%s`\n%s", url, output.content) })
+                return cb({ status = "error", data = fmt("Error processing `%s`\n%s", url, output.content) })
               end
 
               return cb({ status = "success", data = output.content })
@@ -92,7 +90,7 @@ return {
       local args = self.args
       local chat = agent.chat
 
-      local llm_output = "<fetchWebpageTool>%s</fetchWebpageTool>"
+      local llm_output = [[<fetchWebpageTool url="%s">%s</fetchWebpageTool>]]
       local user_output = fmt("Fetched content from `%s`", args.url)
 
       local content = ""
@@ -100,7 +98,7 @@ return {
         content = table.concat(stdout, "")
       end
 
-      chat:add_tool_output(self, fmt(llm_output, content), user_output)
+      chat:add_tool_output(self, fmt(llm_output, args.url, content), user_output)
     end,
 
     ---@param self CodeCompanion.Tool.FetchWebpage

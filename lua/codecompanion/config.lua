@@ -172,6 +172,7 @@ local defaults = {
             failure_words = { -- Words that indicate an error in the tool output. Used to apply failure highlighting
               "error",
               "failed",
+              "incorrect",
               "invalid",
               "rejected",
             },
