@@ -109,15 +109,12 @@ CodeCompanion.add = function(args)
 
   local context = context_utils.get(api.nvim_get_current_buf(), args)
   local content = table.concat(context.lines, "\n")
-
-  local chat = CodeCompanion.last_chat()
-
+  -- init a chat with no context
+  -- avoid duplicated lines when map with `<Cmd>CodeCompanionChat Add<CR>`
+  context.is_visual = nil
+  local chat = CodeCompanion.last_chat() or require("codecompanion.strategies.chat").new({ context = context })
   if not chat then
-    chat = CodeCompanion.chat()
-
-    if not chat then
-      return log:warn("Could not create chat buffer")
-    end
+    return log:warn("Could not create chat buffer")
   end
 
   chat:add_buf_message({
@@ -218,9 +215,7 @@ CodeCompanion.toggle = function()
     return CodeCompanion.chat()
   end
 
-  if chat.ui:is_visible_non_curtab() then
-    chat.ui:hide()
-  elseif chat.ui:is_visible() then
+  if chat.ui:is_visible() and not chat.ui:is_visible_non_curtab() then
     return chat.ui:hide()
   end
 
