@@ -2,12 +2,10 @@ local config = require("codecompanion.config")
 local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.openai")
-local utils = require("codecompanion.utils.adapters")
 
 -- Cache variables for models
 local _cached_models
 local _cache_expires
-local _cache_file = vim.fn.tempname()
 
 ---Get a list of available Hugging Face models from inference providers
 ---@param adapter CodeCompanion.Adapter
@@ -33,12 +31,12 @@ local function get_models(adapter)
     })
   end)
   if not ok then
-    log:error("Could not get Hugging Face models from %s.\nError: %s", url, response)
+    log:error("Could not get Hugging Face models from %s. Error: %s", url, response)
     return {}
   end
-  local ok, models_data = pcall(vim.json.decode, response.body)
-  if not ok then
-    log:error("Error parsing Hugging Face models response: %s", response.body)
+  local ok2, models_data = pcall(vim.json.decode, response.body)
+  if not ok2 then
+    log:error("Error parsing Hugging Face models response from %s", url)
     return {}
   end
   local models = {}
@@ -57,7 +55,7 @@ local function get_models(adapter)
     }
   end
   _cached_models = models
-  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.opts.cache_models_for)
+  _cache_expires = os.time() + (config.adapters.opts.cache_models_for or 1800)
   log:debug("Found %d Hugging Face models", vim.tbl_count(models))
   return models
 end
