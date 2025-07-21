@@ -48,7 +48,7 @@ function M.get_models(adapter, get_and_authorize_token_fn, oauth_token)
     return {}
   end
 
-  local url = "https://api.githubcopilot.com/models"
+  local url = adapter.api .. "/models"
   local headers = vim.deepcopy(_cached_adapter.headers)
   headers["Authorization"] = "Bearer " .. oauth_token
 
