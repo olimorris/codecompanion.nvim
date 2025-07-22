@@ -152,8 +152,7 @@ return {
     ---@param agent CodeCompanion.Agent
     ---@param cmd table
     ---@param stderr table The error output from the command
-    ---@param stdout? table The output from the command
-    error = function(self, agent, cmd, stderr, stdout)
+    error = function(self, agent, cmd, stderr)
       local chat = agent.chat
       local query = self.args.query
       local errors = vim.iter(stderr):flatten():join("\n")

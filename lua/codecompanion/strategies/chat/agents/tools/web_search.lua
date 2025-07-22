@@ -147,7 +147,7 @@ return {
     ---@param self CodeCompanion.Tool.WebSearch
     ---@param agent CodeCompanion.Agent
     ---@param stderr table The error output from the command
-    error = function(self, agent, _, stderr, _)
+    error = function(self, agent, _, stderr)
       local chat = agent.chat
       local args = self.args
       log:debug("[Web Search Tool] Error output: %s", stderr)
