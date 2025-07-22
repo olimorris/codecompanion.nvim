@@ -63,6 +63,7 @@ local defaults = {
               "get_changed_files",
               "grep_search",
               "insert_edit_into_file",
+              "list_code_usages",
               "read_file",
               "web_search",
             },

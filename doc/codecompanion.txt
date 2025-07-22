@@ -483,6 +483,7 @@ actions:
 - `next_edit_suggestion` - The LLM can show the user where the next edit is
 - `read_file` - The LLM can read a specific file
 - `web_search` - The LLM can search the internet for information
+- `list_code_usages` - The LLM can search for code symbol context with the help of an LSP server
 
 Tools can also be grouped together, also accessible via `@` in the chat buffer:
 

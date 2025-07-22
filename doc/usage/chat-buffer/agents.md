@@ -147,6 +147,39 @@ Can you apply the suggested changes to the buffer with the @{insert_edit_into_fi
 - `requires_approval.file` (boolean) Require approval before editng a file? (Default: true)
 - `user_confirmation` (boolean) require confirmation from the user before moving on in the chat buffer? (Default: true)
 
+## list_code_usages
+
+> [!NOTE]
+> This tool requires LSP to be configured and active for optimal results
+
+This tool enables an LLM to find all usages of a symbol (function, class, method, variable, etc.) throughout your codebase. It leverages LSP for accurate results and falls back to grep for broader text searching.
+
+```md
+Use the @{list_code_usages} tool to find all usages of the `create_file` function
+```
+
+```md
+Can you use @{list_code_usages} to show me how the `Agent` class is implemented and used?
+```
+
+The tool provides comprehensive information about symbols including:
+- **References**: All places where the symbol is used
+- **Definitions**: Where the symbol is defined
+- **Implementations**: Concrete implementations of interfaces/abstract methods
+- **Declarations**: Forward declarations
+- **Type Definitions**: Type aliases and definitions
+- **Documentation**: Hover documentation when available
+
+**Use Cases:**
+- Finding sample implementations of interfaces or classes
+- Understanding how functions are used throughout the codebase
+- Preparing for refactoring by seeing all symbol usages
+- Code exploration and documentation
+
+**Parameters:**
+- `symbolName` (string, required): The name of the symbol to search for
+- `filePaths` (array, optional): File paths that likely contain the symbol definition to improve search accuracy and speed
+
 ## next_edit_suggestion
 
 Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the tool gives the LLM the ability to show the user where the next edit is. The LLM can only suggest edits in files or buffers that have been shared with it as context.
