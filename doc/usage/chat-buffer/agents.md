@@ -35,6 +35,12 @@ There is also a thriving ecosystem of user created tools:
 
 The section of the discussion forums which is dedicated to user created tools can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions/categories/tools).
 
+## Security and Approvals
+
+CodeCompanion takes security very seriously, especially in a world of agentic code development. To that end, every effort is made to ensure that LLMs are only given the information that they need to execute a tool successfully. CodeCompanion will endeavour to make sure that the full disk path to your current working directory (cwd) in Neovim is never shared. The impact of this is that the LLM can only work within the cwd when executing tools but will minimize actions that are hard to [recover from](https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7).
+
+The plugin also puts approvals at the heart of its workflow. Some tools, such as the _@cmd_runner_, require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response. You may also [enforce](/configuration/chat-buffer#approvals) an approval for _any_ tool.
+
 ## cmd_runner
 
 The _@cmd_runner_ tool enables an LLM to execute commands on your machine, subject to your authorization. For example:
@@ -67,6 +73,17 @@ Can you create some test fixtures using the @{create_file} tool?
 
 **Options:**
 - `requires_approval` require approval before creating a file? (Default: true)
+
+## fetch_webpage
+
+This tools enables an LLM to fetch the content from a specific webpage. It will return the text in a text format, depending on which adapter you've configured for the tool.
+
+```md
+Use the @{fetch_webpage} tool to tell me what the latest version on neovim.io is
+```
+
+**Options:**
+- `adapter` The adapter used to fetch, process and format the webpage's content (Default: `jina`)
 
 ## file_search
 
@@ -166,10 +183,6 @@ CodeCompanion comes with two built-in tool groups:
 When you include a tool group in your chat (e.g., `@{files}`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer.
 
 If you want to show all tools as references in the chat buffer, set the `opts.collapse_tools` option to `false` on the group itself.
-
-## Approvals
-
-Some tools, such as the _@cmd_runner_, require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response.
 
 ## Useful Tips
 
