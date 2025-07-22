@@ -65,9 +65,24 @@ local function cmd_to_func_tool(tool)
                 data = strip_ansi(vim.split(out.stdout, "\n", { trimempty = true })),
               })
             else
+              local stderr = {}
+              if out.stderr and out.stderr ~= "" then
+                stderr = strip_ansi(vim.split(out.stderr, "\n", { trimempty = true }))
+              end
+
+              -- Some commands may return an error but populate stdout
+              local stdout = {}
+              if out.stdout and out.stdout ~= "" then
+                stdout = strip_ansi(vim.split(out.stdout, "\n", { trimempty = true }))
+              end
+
+              local combined = {}
+              vim.list_extend(combined, stderr)
+              vim.list_extend(combined, stdout)
+
               cb({
                 status = "error",
-                data = strip_ansi(vim.split(out.stderr, "\n", { trimempty = true })),
+                data = combined,
               })
             end
           end)
@@ -271,10 +286,7 @@ end
 function Executor:error(action, error)
   log:debug("Executor:error")
   self.agent.status = self.agent.constants.STATUS_ERROR
-  if type(error) == "string" then
-    table.insert(self.agent.stderr, error)
-    log:warn("Tool %s: %s", self.tool.name, error)
-  end
+  table.insert(self.agent.stderr, error)
   self.output.error(action)
   self:setup()
 end
