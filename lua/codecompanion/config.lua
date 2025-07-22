@@ -1094,7 +1094,7 @@ You must create or modify a workspace file through a series of prompts over mult
         "followwrap",
         "linematch:120",
       },
-      provider = providers.diff, -- mini_diff|default
+      provider = providers.diff, -- inline|mini_diff|default
     },
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?

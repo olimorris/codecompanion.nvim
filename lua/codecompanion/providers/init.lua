@@ -21,6 +21,11 @@ local configs = {
   },
 
   -- Diffs
+  inline = {
+    module = "codecompanion.providers.diff.inline", -- Internal module path
+    name = "inline",
+    -- No condition needed - always available since it's internal
+  },
   mini_diff = {
     module = "mini.diff",
     name = "mini_diff",
@@ -87,7 +92,7 @@ end
 ---Get the default Diff provider
 ---@return string
 local function diff_providers()
-  local providers = { "mini_diff" }
+  local providers = { "inline", "mini_diff" }
   return find_provider(providers, configs, "default")
 end
 
