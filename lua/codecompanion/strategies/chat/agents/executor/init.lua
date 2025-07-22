@@ -22,6 +22,16 @@ local function build_shell_command(args)
   }
 end
 
+---Some commands output ANSI color codes which don't render in the chat buffer
+---@param tbl table
+---@return table
+local function strip_ansi(tbl)
+  for i, v in ipairs(tbl) do
+    tbl[i] = v:gsub("\027%[[0-9;]*%a", "")
+  end
+  return tbl
+end
+
 ---Accepts a cmd-based tool and returns a function-based tool.
 ---The `env` field in the cmd-based tool should've been processed before passed into this function.
 ---@param tool CodeCompanion.Agent.Tool
@@ -50,12 +60,12 @@ local function cmd_to_func_tool(tool)
             if out.code == 0 then
               cb({
                 status = "success",
-                data = vim.split(out.stdout, "\n", { trimempty = true }),
+                data = strip_ansi(vim.split(out.stdout, "\n", { trimempty = true })),
               })
             else
               cb({
                 status = "error",
-                data = vim.split(out.stderr, "\n", { trimempty = true }),
+                data = strip_ansi(vim.split(out.stderr, "\n", { trimempty = true })),
               })
             end
           end)
