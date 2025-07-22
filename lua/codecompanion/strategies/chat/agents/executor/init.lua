@@ -22,7 +22,7 @@ local function build_shell_command(args)
   }
 end
 
----Some commands output ANSI color codes which don't render in the chat buffer
+---Strip any ANSI color codes which don't render in the chat buffer
 ---@param tbl table
 ---@return table
 local function strip_ansi(tbl)
@@ -32,11 +32,12 @@ local function strip_ansi(tbl)
   return tbl
 end
 
----Accepts a cmd-based tool and returns a function-based tool.
----The `env` field in the cmd-based tool should've been processed before passed into this function.
+---Converts a cmd-based tool to a function-based tool.
 ---@param tool CodeCompanion.Agent.Tool
 ---@return CodeCompanion.Agent.Tool
 local function cmd_to_func_tool(tool)
+  --NOTE: The `env` field should be processed in the tool beforehand
+
   tool.cmds = vim
     .iter(tool.cmds)
     :map(function(cmd)
@@ -49,6 +50,7 @@ local function cmd_to_func_tool(tool)
         if type(cmd) == "string" then
           cmd = vim.split(cmd, " ", { trimempty = true })
         end
+
         ---@param agent CodeCompanion.Agent
         return function(agent, _, _, cb)
           cb = vim.schedule_wrap(cb)
@@ -73,6 +75,7 @@ local function cmd_to_func_tool(tool)
       end
     end)
     :totable()
+
   return tool
 end
 
