@@ -1,5 +1,17 @@
 # Changelog
 
+## [17.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.9.0...v17.10.0) (2025-07-22)
+
+
+### Features
+
+* **tools:** add `fetch_webpage` ([#1837](https://github.com/olimorris/codecompanion.nvim/issues/1837)) ([31fdc34](https://github.com/olimorris/codecompanion.nvim/commit/31fdc343e8aba7c3c1dcabbf13a1c7a6379d077b))
+
+
+### Bug Fixes
+
+* **adapters:** update HuggingFace endpoint ([#1868](https://github.com/olimorris/codecompanion.nvim/issues/1868)) ([d067c84](https://github.com/olimorris/codecompanion.nvim/commit/d067c846d4f7239c6d3524ea3535f459b18dfd99)), closes [#1864](https://github.com/olimorris/codecompanion.nvim/issues/1864)
+
 ## [17.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.8.0...v17.9.0) (2025-07-18)
 
 

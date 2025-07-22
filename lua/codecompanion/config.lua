@@ -99,6 +99,13 @@ local defaults = {
             requires_approval = true,
           },
         },
+        ["fetch_webpage"] = {
+          callback = "strategies.chat.agents.tools.fetch_webpage",
+          description = "Fetches content from a webpage",
+          opts = {
+            adapter = "jina",
+          },
+        },
         ["file_search"] = {
           callback = "strategies.chat.agents.tools.file_search",
           description = "Search for files in the current working directory by glob pattern",
@@ -167,6 +174,7 @@ local defaults = {
               "cancelled",
               "error",
               "failed",
+              "incorrect",
               "invalid",
               "rejected",
             },
