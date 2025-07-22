@@ -68,6 +68,17 @@ Can you create some test fixtures using the @{create_file} tool?
 **Options:**
 - `requires_approval` require approval before creating a file? (Default: true)
 
+## fetch_webpage
+
+This tools enables an LLM to fetch the content from a specific webpage. It will return the text in a text format, depending on which adapter you've configured for the tool.
+
+```md
+Use the @{fetch_webpage} tool to tell me what the latest version on neovim.io is
+```
+
+**Options:**
+- `adapter` The adapter used to fetch, process and format the webpage's content (Default: `jina`)
+
 ## file_search
 
 This tool enables an LLM to search for files in the current working directory by glob pattern. It will return a list of relative paths for any matching files.
