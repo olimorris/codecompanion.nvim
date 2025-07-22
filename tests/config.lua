@@ -81,10 +81,20 @@ return {
         ["insert_edit_into_file"] = {
           callback = "strategies.chat.agents.tools.insert_edit_into_file",
           description = "Insert code into an existing file",
+          opts = {
+            patching_algorithm = "strategies.chat.agents.tools.helpers.patch",
+          },
         },
         ["create_file"] = {
           callback = "strategies.chat.agents.tools.create_file",
           description = "Create a file in the current working directory",
+        },
+        ["fetch_webpage"] = {
+          callback = "strategies.chat.agents.tools.fetch_webpage",
+          description = "Fetches content from a webpage",
+          opts = {
+            adapter = "jina",
+          },
         },
         ["file_search"] = {
           callback = "strategies.chat.agents.tools.file_search",
@@ -179,6 +189,10 @@ return {
         },
         ["cmd_queue"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd_queue.lua",
+          description = "Cmd tool",
+        },
+        ["cmd_queue_error"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/agents/tools/stubs/cmd_queue_error.lua",
           description = "Cmd tool",
         },
         ["mock_cmd_runner"] = {

@@ -1,5 +1,33 @@
 # Changelog
 
+## [17.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.9.0...v17.10.0) (2025-07-22)
+
+
+### Features
+
+* **tools:** add `fetch_webpage` ([#1837](https://github.com/olimorris/codecompanion.nvim/issues/1837)) ([31fdc34](https://github.com/olimorris/codecompanion.nvim/commit/31fdc343e8aba7c3c1dcabbf13a1c7a6379d077b))
+
+
+### Bug Fixes
+
+* **adapters:** update HuggingFace endpoint ([#1868](https://github.com/olimorris/codecompanion.nvim/issues/1868)) ([d067c84](https://github.com/olimorris/codecompanion.nvim/commit/d067c846d4f7239c6d3524ea3535f459b18dfd99)), closes [#1864](https://github.com/olimorris/codecompanion.nvim/issues/1864)
+
+## [17.9.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.8.0...v17.9.0) (2025-07-18)
+
+
+### Features
+
+* **adapters:** Ollama adapter has support for `think` and more hyperparameters ([#1829](https://github.com/olimorris/codecompanion.nvim/issues/1829)) ([408b402](https://github.com/olimorris/codecompanion.nvim/commit/408b402da023ae41f13b4a071e4c79d3b0b78693))
+* **ui:** chat buffer can be sticky when navigating tabs ([#1842](https://github.com/olimorris/codecompanion.nvim/issues/1842)) ([71fb6a8](https://github.com/olimorris/codecompanion.nvim/commit/71fb6a80894c584d23ea55d4e8d3448cbb04eeaf))
+
+
+### Bug Fixes
+
+* **chat:** toggling when chat buffer is not in the current tab ([#1725](https://github.com/olimorris/codecompanion.nvim/issues/1725)) ([4f91b4b](https://github.com/olimorris/codecompanion.nvim/commit/4f91b4b6b400b97b923537cb75721b8452cd54dc))
+* **prompt_library:** custom prompts containing URLs ([#1849](https://github.com/olimorris/codecompanion.nvim/issues/1849)) ([164e95c](https://github.com/olimorris/codecompanion.nvim/commit/164e95c6ff0becd6d152e06be56ccd98f53bc5a8))
+* **tools:** `read_files` tool can read entire file if `end_line` is greater than total lines ([#1824](https://github.com/olimorris/codecompanion.nvim/issues/1824)) ([562950d](https://github.com/olimorris/codecompanion.nvim/commit/562950d1584a1ff603921ec7ce48638e2d7f9e1d))
+* **tools:** failed/cancelled/rejected tool calls no longer block the execution queue ([#1852](https://github.com/olimorris/codecompanion.nvim/issues/1852)) ([48d7e8f](https://github.com/olimorris/codecompanion.nvim/commit/48d7e8f6b2fb894afd68e1475bf63d81c934239a)), closes [#1850](https://github.com/olimorris/codecompanion.nvim/issues/1850)
+
 ## [17.8.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.7.1...v17.8.0) (2025-07-11)
 
 

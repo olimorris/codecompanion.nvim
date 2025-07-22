@@ -99,6 +99,13 @@ local defaults = {
             requires_approval = true,
           },
         },
+        ["fetch_webpage"] = {
+          callback = "strategies.chat.agents.tools.fetch_webpage",
+          description = "Fetches content from a webpage",
+          opts = {
+            adapter = "jina",
+          },
+        },
         ["file_search"] = {
           callback = "strategies.chat.agents.tools.file_search",
           description = "Search for files in the current working directory by glob pattern",
@@ -129,6 +136,7 @@ local defaults = {
           callback = "strategies.chat.agents.tools.insert_edit_into_file",
           description = "Insert code into an existing file",
           opts = {
+            patching_algorithm = "strategies.chat.agents.tools.helpers.patch",
             requires_approval = { -- Require approval before the tool is executed?
               buffer = false, -- For editing buffers in Neovim
               file = true, -- For editing files in the current working directory
@@ -167,8 +175,10 @@ local defaults = {
           folds = {
             enabled = true, -- Fold tool output in the buffer?
             failure_words = { -- Words that indicate an error in the tool output. Used to apply failure highlighting
+              "cancelled",
               "error",
               "failed",
+              "incorrect",
               "invalid",
               "rejected",
             },
@@ -1030,6 +1040,7 @@ You must create or modify a workspace file through a series of prompts over mult
         width = 0.45,
         relative = "editor",
         full_height = true,
+        sticky = false, -- chat buffer remains open when switching tabs
         opts = {
           breakindent = true,
           cursorcolumn = false,

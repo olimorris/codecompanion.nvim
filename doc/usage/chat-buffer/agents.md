@@ -35,6 +35,12 @@ There is also a thriving ecosystem of user created tools:
 
 The section of the discussion forums which is dedicated to user created tools can be found [here](https://github.com/olimorris/codecompanion.nvim/discussions/categories/tools).
 
+## Security and Approvals
+
+CodeCompanion takes security very seriously, especially in a world of agentic code development. To that end, every effort is made to ensure that LLMs are only given the information that they need to execute a tool successfully. CodeCompanion will endeavour to make sure that the full disk path to your current working directory (cwd) in Neovim is never shared. The impact of this is that the LLM can only work within the cwd when executing tools but will minimize actions that are hard to [recover from](https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7).
+
+The plugin also puts approvals at the heart of its workflow. Some tools, such as the _@cmd_runner_, require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response. You may also [enforce](/configuration/chat-buffer#approvals) an approval for _any_ tool.
+
 ## cmd_runner
 
 The _@cmd_runner_ tool enables an LLM to execute commands on your machine, subject to your authorization. For example:
@@ -67,6 +73,17 @@ Can you create some test fixtures using the @{create_file} tool?
 
 **Options:**
 - `requires_approval` require approval before creating a file? (Default: true)
+
+## fetch_webpage
+
+This tools enables an LLM to fetch the content from a specific webpage. It will return the text in a text format, depending on which adapter you've configured for the tool.
+
+```md
+Use the @{fetch_webpage} tool to tell me what the latest version on neovim.io is
+```
+
+**Options:**
+- `adapter` The adapter used to fetch, process and format the webpage's content (Default: `jina`)
 
 ## file_search
 
@@ -125,36 +142,17 @@ Can you apply the suggested changes to the buffer with the @{insert_edit_into_fi
 ```
 
 **Options:**
+- `patching_algorithm` (string|table|function) The algorithm to use to determine how to edit files and buffers
 - `requires_approval.buffer` (boolean) Require approval before editng a buffer? (Default: false)
 - `requires_approval.file` (boolean) Require approval before editng a file? (Default: true)
 - `user_confirmation` (boolean) require confirmation from the user before moving on in the chat buffer? (Default: true)
 
 ## next_edit_suggestion
 
-Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the `@next_edit_suggestion` tool gives the LLM the ability to show the user where the next edit is. The LLM can only suggest edits in files or buffers that have been shared with it as context.
+Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the tool gives the LLM the ability to show the user where the next edit is. The LLM can only suggest edits in files or buffers that have been shared with it as context.
 
-The jump action can be customised in the `opts` table:
-
-```lua
-require("codecompanion").setup({
-  strategies = {
-    chat = {
-      tools = {
-        ["next_edit_suggestion"] = {
-          opts = {
-            --- the default is to open in a new tab, and reuse existing tabs
-            --- where possible
-            ---@type string|fun(path: string):integer?
-            jump_action = 'tabnew',
-          },
-        }
-      }
-    }
-  }
-})
-```
-
-The `jump_action` can be a VimScript command (as a string), or a lua function that accepts the path to the file and optionally returns the [window ID](https://neovim.io/doc/user/windows.html#window-ID). The window ID is needed if you want the LLM to point you to a specific line in the file.
+**Options:**
+- `jump_action` (string|function) Determines how a jump to the next edit is made (Default: `tabnew`)
 
 ## read_file
 
@@ -184,29 +182,7 @@ CodeCompanion comes with two built-in tool groups:
 
 When you include a tool group in your chat (e.g., `@{files}`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer.
 
-If you want to show all tools as references in the chat buffer, set the `collapse_tools` option to `false`:
-
-```lua
-require("codecompanion").setup({
-  strategies = {
-    chat = {
-      tools = {
-        groups = {
-          ["files"] = {
-            opts = {
-              collapse_tools = false, -- Shows all tools in the group as individual references
-            },
-          },
-        },
-      }
-    }
-  }
-})
-```
-
-## Approvals
-
-Some tools, such as the _@cmd_runner_, require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response.
+If you want to show all tools as references in the chat buffer, set the `opts.collapse_tools` option to `false` on the group itself.
 
 ## Useful Tips
 
