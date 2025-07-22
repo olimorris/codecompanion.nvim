@@ -27,7 +27,9 @@ function InlineDiff.new(args)
     bufnr = args.bufnr,
     contents = args.contents,
     id = args.id,
-    ns_id = api.nvim_create_namespace("codecompanion_inline_diff_" .. args.id),
+    ns_id = api.nvim_create_namespace(
+      "codecompanion_inline_diff_" .. (args.id ~= nil and args.id or math.random(1, 100000))
+    ),
     extmark_ids = {},
     has_changes = false,
   }, { __index = InlineDiff })
