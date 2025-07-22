@@ -158,7 +158,7 @@ function Executor:setup_handlers()
     end,
     error = function(cmd)
       if self.tool.output and self.tool.output.error then
-        self.tool.output.error(self.tool, self.agent, cmd, self.agent.stderr, self.agent.stdout or {})
+        self.tool.output.error(self.tool, self.agent, cmd, self.agent.stderr)
       else
         send_response_to_chat(self, fmt("Error calling `%s`", self.tool.name))
       end
