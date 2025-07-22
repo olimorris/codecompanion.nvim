@@ -90,15 +90,12 @@ return {
       local args = self.args
       local chat = agent.chat
 
-      local llm_output = [[<fetchWebpageTool url="%s">%s</fetchWebpageTool>]]
+      local content = vim.iter(stdout):flatten():join("\n")
+
+      local llm_output = fmt([[<fetchWebpageTool url="%s">%s</fetchWebpageTool>]], args.url, content)
       local user_output = fmt("Fetched content from `%s`", args.url)
 
-      local content = ""
-      if type(stdout) == "table" then
-        content = table.concat(stdout, "")
-      end
-
-      chat:add_tool_output(self, fmt(llm_output, args.url, content), user_output)
+      chat:add_tool_output(self, llm_output, user_output)
     end,
 
     ---@param self CodeCompanion.Tool.FetchWebpage
