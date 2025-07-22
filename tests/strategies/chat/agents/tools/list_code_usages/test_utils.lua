@@ -838,4 +838,3 @@ T["is_enclosed_by"]["returns false when block A ends after block B"] = function(
 end
 
 return T
-

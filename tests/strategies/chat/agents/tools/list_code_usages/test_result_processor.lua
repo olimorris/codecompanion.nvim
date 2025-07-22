@@ -84,7 +84,7 @@ T["is_duplicate_or_enclosed"]["detects exact duplicates"] = function()
     
     _G.test_result = result
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(true, result)
 end
@@ -102,7 +102,7 @@ T["is_duplicate_or_enclosed"]["detects enclosed blocks"] = function()
     
     _G.test_result = result
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(true, result)
 end
@@ -121,7 +121,7 @@ T["is_duplicate_or_enclosed"]["returns false for unique blocks"] = function()
     
     _G.test_result = result
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(false, result)
 end
@@ -142,7 +142,7 @@ T["is_duplicate_or_enclosed"]["skips blocks without required fields"] = function
     
     _G.test_result = result
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(false, result) -- Should not match documentation block
 end
@@ -156,7 +156,7 @@ T["is_duplicate_or_enclosed"]["handles empty symbol_data"] = function()
     
     _G.test_result = result
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(false, result)
 end
@@ -187,7 +187,7 @@ T["process_lsp_item"]["processes valid LSP item successfully"] = function()
       bufload_calls = _G.mock_bufload_calls
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq("success", result.result.status)
   h.eq("Symbol processed", result.result.data)
@@ -206,7 +206,7 @@ T["process_lsp_item"]["returns error for missing uri or range"] = function()
       result2 = result2
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq("error", result.result1.status)
   h.eq("error", result.result2.status)
@@ -227,7 +227,7 @@ T["process_lsp_item"]["handles code extraction failure"] = function()
     
     _G.test_result = result
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq("error", result.status)
   h.eq("Extraction failed", result.data)
@@ -254,7 +254,7 @@ T["process_lsp_item"]["skips duplicate blocks"] = function()
       symbol_data = symbol_data
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq("success", result.result.status)
   h.eq("Duplicate or enclosed entry", result.result.data)
@@ -281,7 +281,7 @@ T["process_documentation_item"]["processes string content"] = function()
       symbol_data = symbol_data
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq("success", result.result.status)
   h.eq("documentation processed", result.result.data)
@@ -303,7 +303,7 @@ T["process_documentation_item"]["processes table content (jdtls format)"] = func
       symbol_data = symbol_data
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq("success", result.result.status)
   h.eq(1, #result.symbol_data.documentation)
@@ -326,7 +326,7 @@ T["process_documentation_item"]["skips duplicate documentation"] = function()
       symbol_data = symbol_data
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq("success", result.result.status)
   h.eq(1, #result.symbol_data.documentation) -- Should still have only 1 item
@@ -355,7 +355,7 @@ T["process_lsp_results"]["processes documentation results"] = function()
       symbol_data = symbol_data
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(2, result.count)
   h.eq(2, #result.symbol_data.documentation)
@@ -382,7 +382,7 @@ T["process_lsp_results"]["processes single item with range"] = function()
       symbol_data = symbol_data
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(1, result.count)
   h.eq(1, #result.symbol_data.references)
@@ -418,7 +418,7 @@ T["process_lsp_results"]["processes array of items"] = function()
       symbol_data = symbol_data
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(2, result.count)
   h.eq(2, #result.symbol_data.references)
@@ -453,7 +453,7 @@ T["process_lsp_results"]["excludes duplicates from count"] = function()
       total_items = #symbol_data.references
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(1, result.count1) -- First call should count the item
   h.eq(0, result.count2) -- Second call should not count duplicates
@@ -492,7 +492,7 @@ T["process_quickfix_references"]["processes quickfix list successfully"] = funct
       bufload_calls = _G.mock_bufload_calls
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(2, result.count)
   h.eq(2, #result.symbol_data.grep)
@@ -510,7 +510,7 @@ T["process_quickfix_references"]["handles empty quickfix list"] = function()
       count2 = count2
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(0, result.count1)
   h.eq(0, result.count2)
@@ -538,7 +538,7 @@ T["process_quickfix_references"]["skips items without bufnr or lnum"] = function
       symbol_data = symbol_data
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(2, result.count) -- Should only process 2 valid items
   h.eq(2, #result.symbol_data.grep)
@@ -563,7 +563,7 @@ T["process_quickfix_references"]["handles code extraction failures"] = function(
       symbol_data = symbol_data
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(1, result.count) -- Should only count successful extractions
   h.eq(1, #result.symbol_data.grep)
@@ -589,7 +589,7 @@ T["process_quickfix_references"]["skips duplicate blocks"] = function()
       symbol_data = symbol_data
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(1, result.count) -- Should only count unique blocks
   h.eq(1, #result.symbol_data.grep)
@@ -613,7 +613,7 @@ T["process_quickfix_references"]["converts line and column numbers correctly"] =
       extractor_key_found = _G.mock_code_extractor_results["1:14:9"] ~= nil
     }
   ]])
-  
+
   local result = child.lua_get("_G.test_result")
   h.eq(1, result.count)
   h.eq(true, result.extractor_key_found) -- Confirms correct conversion

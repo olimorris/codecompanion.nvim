@@ -439,22 +439,6 @@ T["output handlers"] = new_set({
   },
 })
 
-T["output handlers"]["success handler formats output correctly"] = function()
-  child.lua([[
-    -- Test that the success handler works when symbol_data is properly set
-    -- Skip this test for now since it requires the tool to be fully initialized
-    -- which is complex to mock properly
-
-    _G.test_result = {
-      skipped = true,
-      reason = "Complex tool initialization required"
-    }
-  ]])
-
-  local result = child.lua_get("_G.test_result")
-  h.eq(true, result.skipped) -- Test is skipped due to complexity
-end
-
 T["output handlers"]["error handler formats error correctly"] = function()
   child.lua([[
     local tool_context = create_mock_tool_context({ symbolName = "testFunction" })

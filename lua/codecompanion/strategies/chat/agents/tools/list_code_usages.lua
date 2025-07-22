@@ -1,7 +1,7 @@
-local Utils = require("codecompanion.strategies.chat.agents.tools.list_code_usages.utils")
-local SymbolFinder = require("codecompanion.strategies.chat.agents.tools.list_code_usages.symbol_finder")
 local LspHandler = require("codecompanion.strategies.chat.agents.tools.list_code_usages.lsp_handler")
 local ResultProcessor = require("codecompanion.strategies.chat.agents.tools.list_code_usages.result_processor")
+local SymbolFinder = require("codecompanion.strategies.chat.agents.tools.list_code_usages.symbol_finder")
+local Utils = require("codecompanion.strategies.chat.agents.tools.list_code_usages.utils")
 
 ---@class CodeCompanion.Tool.ListCodeUsages: CodeCompanion.Agent.Tool
 local ListCodeUsagesTool = {}
