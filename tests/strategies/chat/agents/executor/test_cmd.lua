@@ -1,3 +1,7 @@
+--NOTE: These tests are used to test that tools which are commands, are executed
+--correctly. Originally, these were written for the executor/cmd.lua file
+--which has now been replaced by logic in the executor/init.lua file.
+
 local h = require("tests.helpers")
 
 local new_set = MiniTest.new_set
