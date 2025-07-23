@@ -1,7 +1,8 @@
 local FuncExecutor = require("codecompanion.strategies.chat.agents.executor.func")
 local Queue = require("codecompanion.strategies.chat.agents.executor.queue")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
+local tool_utils = require("codecompanion.utils.tools")
+local utils = require("codecompanion.utils")
 
 local fmt = string.format
 
@@ -10,26 +11,6 @@ local fmt = string.format
 ---@msg string
 local send_response_to_chat = function(exec, msg)
   exec.agent.chat:add_tool_output(exec.tool, msg)
-end
-
----@param args string[]
----@return string[]
-local function build_shell_command(args)
-  return {
-    (vim.fn.has("win32") == 1 and "cmd.exe" or "sh"),
-    vim.fn.has("win32") == 1 and "/c" or "-c",
-    table.concat(args, " "),
-  }
-end
-
----Strip any ANSI color codes which don't render in the chat buffer
----@param tbl table
----@return table
-local function strip_ansi(tbl)
-  for i, v in ipairs(tbl) do
-    tbl[i] = v:gsub("\027%[[0-9;]*%a", "")
-  end
-  return tbl
 end
 
 ---Converts a cmd-based tool to a function-based tool.
@@ -54,7 +35,8 @@ local function cmd_to_func_tool(tool)
         ---@param agent CodeCompanion.Agent
         return function(agent, _, _, cb)
           cb = vim.schedule_wrap(cb)
-          vim.system(build_shell_command(cmd), {}, function(out)
+          vim.system(tool_utils.build_shell_command(cmd), {}, function(out)
+            -- Flags can be read higher up in the tool's execution
             if flag then
               agent.chat.tools.flags = agent.chat.tools.flags or {}
               agent.chat.tools.flags[flag] = (out.code == 0)
@@ -62,18 +44,18 @@ local function cmd_to_func_tool(tool)
             if out.code == 0 then
               cb({
                 status = "success",
-                data = strip_ansi(vim.split(out.stdout, "\n", { trimempty = true })),
+                data = tool_utils.strip_ansi(vim.split(out.stdout, "\n", { trimempty = true })),
               })
             else
               local stderr = {}
               if out.stderr and out.stderr ~= "" then
-                stderr = strip_ansi(vim.split(out.stderr, "\n", { trimempty = true }))
+                stderr = tool_utils.strip_ansi(vim.split(out.stderr, "\n", { trimempty = true }))
               end
 
               -- Some commands may return an error but populate stdout
               local stdout = {}
               if out.stdout and out.stdout ~= "" then
-                stdout = strip_ansi(vim.split(out.stdout, "\n", { trimempty = true }))
+                stdout = tool_utils.strip_ansi(vim.split(out.stdout, "\n", { trimempty = true }))
               end
 
               local combined = {}
@@ -184,7 +166,7 @@ end
 ---@param self CodeCompanion.Agent.Executor
 ---@return nil
 local function finalize_agent(self)
-  return util.fire("AgentFinished", { id = self.id, bufnr = self.agent.bufnr })
+  return utils.fire("AgentFinished", { id = self.id, bufnr = self.agent.bufnr })
 end
 
 ---Setup the tool to be executed
@@ -275,7 +257,7 @@ end
 ---@param input? any
 ---@return nil
 function Executor:execute(cmd, input)
-  util.fire("ToolStarted", { id = self.id, tool = self.tool.name, bufnr = self.agent.bufnr })
+  utils.fire("ToolStarted", { id = self.id, tool = self.tool.name, bufnr = self.agent.bufnr })
   return FuncExecutor.new(self, cmd, 1):orchestrate(input)
 end
 
@@ -311,7 +293,7 @@ function Executor:close()
   if self.tool then
     log:debug("Executor:close")
     self.handlers.on_exit()
-    util.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.agent.bufnr })
+    utils.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.agent.bufnr })
     self.tool = nil
   end
 end
