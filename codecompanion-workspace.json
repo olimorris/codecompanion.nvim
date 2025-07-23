@@ -81,7 +81,6 @@
         "agents-init",
         "executor-init",
         "executor-func",
-        "executor-cmd",
         "executor-queue",
         "queue-example",
         "read_file_tool",
@@ -246,11 +245,6 @@
       "type": "file",
       "path": "lua/codecompanion/strategies/chat/agents/executor/func.lua",
       "description": "This is how function tools are run:"
-    },
-    "executor-cmd": {
-      "type": "file",
-      "path": "lua/codecompanion/strategies/chat/agents/executor/cmd.lua",
-      "description": "This is how command tools are run:"
     },
     "executor-queue": {
       "type": "file",

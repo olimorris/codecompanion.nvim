@@ -136,7 +136,7 @@ return {
       local output = vim.iter(stdout):flatten():join("\n")
       chat:add_tool_output(self, output, "Reading changed files")
     end,
-    error = function(self, agent, cmd, stderr, stdout)
+    error = function(self, agent, cmd, stderr)
       local chat = agent.chat
       local errors = vim.iter(stderr):flatten():join("\n")
       chat:add_tool_output(self, errors)
