@@ -18,48 +18,42 @@ sequenceDiagram
     participant E as Tool Executor
     participant T as Tool
 
-    C->>L: Prompt
-    L->>C: Response with Tool(s) request
+    C->>L: Prompt with tool schemas
+    L->>C: Response with tool call(s)
 
-    C->>A: Parse response
+    C->>A: Parse LLM response
 
-    loop For each detected tool
-        A<<->>T: Resolve Tool config
-        A->>A: Add Tool to queue
+    loop For each tool call detected
+        A->>A: Agent.resolve(tool_config)
+        A->>A: Add tool to queue
     end
 
-    A->>E: Begin executing Tools
+    A->>E: Create Executor with queue
 
     loop While queue not empty
-        E<<->>T: Fetch Tool implementation
-
+        E->>E: Pop tool from queue
         E->>E: Setup handlers and output functions
-        T<<->>E: handlers.setup()
+        E->>T: handlers.setup()
 
-        alt
-        Note over C,E: Some Tools require human approvals
-            E->>C: Prompt for approval
-            C->>E: User decision
+        Note over E,C: If approval required, prompt user
+        E->>C: User approval (if needed)
+
+        Note over E,T: If rejected/cancelled, call output handlers and continue
+        Note over E,T: If approved or no approval needed, execute tool
+
+        loop For each cmd in tool.cmds
+            E->>T: Execute function(agent, args, input, output_handler)
+            Note over T,E: Returns {status, data} (sync) or calls output_handler (async)
+            E->>T: output.success() OR output.error()
+            T->>C: add_tool_output()
         end
 
-
-        alt
-        Note over E,T: If Tool runs with success
-            T-->>A: Update stdout
-            E<<->>T: output.success()
-        else
-        Note over E,T: If Tool runs with errors
-            T-->>A: Update stderr
-            E<<->>T: output.error()
-        end
-
-        Note over E,T: When Tool completes
-        E<<->>T: handlers.on_exit()
+        E->>T: handlers.on_exit()
     end
 
-    E-->>A: Fire autocmd
-
+    E->>A: Fire "AgentFinished" autocmd
     A->>A: reset()
+    A->>C: tools_done()
 ```
 
 ## Building Your First Tool
@@ -70,22 +64,22 @@ Before we begin, it's important to familiarise yourself with the directory struc
 strategies/chat/agents
 ├── init.lua
 ├── executor/
-│   ├── cmd.lua
 │   ├── func.lua
 │   ├── init.lua
 │   ├── queue.lua
 ├── tools/
 │   ├── cmd_runner.lua
-│   ├── editor.lua
-│   ├── files.lua
+│   ├── insert_edit_into_file.lua
+│   ├── create_file.lua
+│   ├── ...
 ```
 
 When a tool is detected, the chat buffer sends any output to the `agents/init.lua` file (I will commonly refer to that as the _"agent file"_ throughout this document). The agent file then parses the response from the LLM, identifying the tool and duly executing it.
 
 There are two types of tools that CodeCompanion can leverage:
 
-1. **Command-based**: These tools can execute a series of commands in the background using a [plenary.job](https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/job.lua). They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
-2. **Function-based**: These tools, like [insert_edit_into_file](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/agents/tools/insert_edit_into_file.lua), execute Lua functions directly in Neovim within the main process, one after another.
+1. **Command-based**: These tools can execute a series of commands in the background using `vim.system`. They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
+2. **Function-based**: These tools, like [insert_edit_into_file](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/agents/tools/insert_edit_into_file.lua), execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
 
 For the purposes of this section of the guide, we'll be building a simple function-based calculator tool that an LLM can use to do basic maths.
 
@@ -117,7 +111,7 @@ All tools must implement the following structure which the bulk of this guide wi
 
 **Command-Based Tools**
 
-The `cmds` table is a collection of commands which the agent will execute one after another, asynchronously, using [plenary.job](https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/job.lua).
+The `cmds` table is a collection of commands which the agent will execute one after another, asynchronously, using `vim.system`.
 
 ```lua
 cmds = {
@@ -296,9 +290,12 @@ schema = {
 
 ### `system_prompt`
 
-In the plugin, LLMs are given knowledge about a tool and how it can be used via a system prompt. This method also informs the LLM on how to use the tool to achieve a desired outcome.
+In the plugin, LLMs are given knowledge about a tool and how it can be used via the schema. However, for a particularly complicated tool, you can choose to include a system prompt. This is something that CodeCompanion does for the `insert_edit_into_file` tool.
 
-For our calculator tool, our `system_prompt` could look something like:
+> [!TIP]
+> From experience, a system prompt should be used sparingly. It's often an indication that your tool is too complicated and should be split out into multiple tools.
+
+For our calculator tool, we're going to use a `system_prompt` just to demonstrate the functionality:
 
 ````lua
 system_prompt = [[## Calculator Tool (`calculator`)
@@ -369,8 +366,7 @@ output = {
   ---@param agent CodeCompanion.Agent
   ---@param cmd table
   ---@param stderr table The error output from the command
-  ---@param stdout? table The output from the command
-  error = function(self, agent, cmd, stderr, stdout)
+  error = function(self, agent, cmd, stderr)
     return vim.notify("An error occurred", vim.log.levels.ERROR)
   end,
 },
@@ -521,8 +517,7 @@ require("codecompanion").setup({
               ---@param agent CodeCompanion.Agent
               ---@param cmd table
               ---@param stderr table The error output from the command
-              ---@param stdout? table The output from the command
-              error = function(self, agent, cmd, stderr, stdout)
+              error = function(self, agent, cmd, stderr)
                 return vim.notify("An error occurred", vim.log.levels.ERROR)
               end,
             },
