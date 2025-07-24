@@ -55,20 +55,11 @@ end
 ---Format the output for the chat buffer
 ---@param url string
 ---@param text string
----@param opts table
 ---@return string
-local function format_output(url, text, opts)
-  local output = [[%s
+local function format_output(url, text)
+  local output = [[<attachment url="%s">%s</attachment>]]
 
-<content>
-%s
-</content>]]
-
-  if opts and opts.description then
-    return fmt(output, opts.description, text)
-  end
-
-  return fmt(output, "Here is the output from " .. url .. " that I'm sharing with you:", text)
+  return fmt(output, url, text)
 end
 
 ---Output the contents of the URL to the chat buffer @param chat CodeCompanion.Chat
@@ -81,7 +72,7 @@ local function output(chat, data, opts)
 
   chat:add_message({
     role = config.constants.USER_ROLE,
-    content = format_output(data.url, data.content, opts),
+    content = format_output(data.url, data.content),
   }, { reference = id, visible = false })
 
   chat.references:add({
@@ -321,53 +312,49 @@ local function fetch(chat, adapter, url, opts)
 
   -- Make sure that we don't modify the original adapter
   adapter = vim.deepcopy(adapter)
-  adapter.methods.slash_commands.fetch(adapter)
+  adapter.methods.slash_commands.fetch.setup(adapter, { url = url })
 
   return client
     .new({
       adapter = adapter,
     })
-    :request({
-      url = url,
-    }, {
+    :request(_, {
       callback = function(err, data)
         if err then
           return log:error("Failed to fetch the URL, with error %s", err)
         end
 
         if data then
-          local ok, body = pcall(vim.json.decode, data.body)
-          if not ok then
-            return log:error("Could not parse the JSON response")
-          end
-          if data.status == 200 then
-            output(chat, {
-              content = body.data.text,
-              url = url,
-            }, opts)
+          local body = adapter.methods.slash_commands.fetch.callback(adapter, data)
 
-            -- Cache the response
-            -- TODO: Get an LLM to create summary
-            vim.ui.select({ "Yes", "No" }, {
-              prompt = "Do you want to cache this URL?",
-              kind = "codecompanion.nvim",
-            }, function(selected)
-              if selected == "Yes" then
-                local hash = util_hash.hash(url)
-                write_cache(
-                  hash,
-                  vim.json.encode({
-                    url = url,
-                    hash = hash,
-                    timestamp = os.time(),
-                    data = body.data.text,
-                  })
-                )
-              end
-            end)
-          else
-            return log:error("Error %s - %s", data.status, body.message or "No message provided")
+          if body.status == "error" then
+            return log:error("Error fetching URL: %s", body.content)
           end
+
+          output(chat, {
+            content = body.content,
+            url = url,
+          }, opts)
+
+          -- Cache the response
+          -- TODO: Get an LLM to create summary
+          vim.ui.select({ "Yes", "No" }, {
+            prompt = "Do you want to cache this URL?",
+            kind = "codecompanion.nvim",
+          }, function(selected)
+            if selected == "Yes" then
+              local hash = util_hash.hash(url)
+              write_cache(
+                hash,
+                vim.json.encode({
+                  url = url,
+                  hash = hash,
+                  timestamp = os.time(),
+                  data = body.content,
+                })
+              )
+            end
+          end)
         end
       end,
     })

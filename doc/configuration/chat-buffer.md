@@ -151,7 +151,7 @@ require("codecompanion").setup({
 
 ```
 
-## Agents and Tools
+## Tools
 
 [Tools](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55) perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` when in the chat buffer:
 

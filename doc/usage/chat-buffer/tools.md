@@ -1,4 +1,4 @@
-# Using Agents and Tools
+# Using Tools
 
 > [!IMPORTANT]
 > As of `v17.5.0`, tools must be wrapped in curly braces, such as `@{grep_search}` or `@{files}`
@@ -41,7 +41,9 @@ CodeCompanion takes security very seriously, especially in a world of agentic co
 
 The plugin also puts approvals at the heart of its workflow. Some tools, such as the _@cmd_runner_, require the user to approve any actions before they can be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt you for a response. You may also [enforce](/configuration/chat-buffer#approvals) an approval for _any_ tool.
 
-## cmd_runner
+## Available Tools
+
+### cmd_runner
 
 The _@cmd_runner_ tool enables an LLM to execute commands on your machine, subject to your authorization. For example:
 
@@ -60,7 +62,7 @@ The LLM is specifically instructed to detect if you're running a test suite, and
 **Options:**
 - `requires_approval` require approval before running a command? (Default: true)
 
-## create_file
+### create_file
 
 > [!NOTE]
 > By default, this tool requires user approval before it can be executed
@@ -74,7 +76,7 @@ Can you create some test fixtures using the @{create_file} tool?
 **Options:**
 - `requires_approval` require approval before creating a file? (Default: true)
 
-## fetch_webpage
+### fetch_webpage
 
 This tools enables an LLM to fetch the content from a specific webpage. It will return the text in a text format, depending on which adapter you've configured for the tool.
 
@@ -85,7 +87,7 @@ Use the @{fetch_webpage} tool to tell me what the latest version on neovim.io is
 **Options:**
 - `adapter` The adapter used to fetch, process and format the webpage's content (Default: `jina`)
 
-## file_search
+### file_search
 
 This tool enables an LLM to search for files in the current working directory by glob pattern. It will return a list of relative paths for any matching files.
 
@@ -96,7 +98,7 @@ Use the @{file_search} tool to list all the lua files in my project
 **Options:**
 - `max_results` limits the amount of results that can be sent to the LLM in the response (Default: 500)
 
-## get_changed_files
+### get_changed_files
 
 This tool enables an LLM to get git diffs of any file changes in the current working directory. It will return a diff which can contain `staged`, `unstaged` and `merge-conflicts`.
 
@@ -107,7 +109,7 @@ Use the @{get_changed_files} tool see what's changed
 **Options:**
 - `max_lines` limits the amount of lines that can be sent to the LLM in the response (Default: 1000)
 
-## grep_search
+### grep_search
 
 > [!IMPORTANT]
 > This tool requires [ripgrep](https://github.com/BurntSushi/ripgrep) to be installed
@@ -122,7 +124,7 @@ Use the @{grep_search} tool to find all occurrences of `buf_add_message`?
 - `max_files` (number) limits the amount of files that can be sent to the LLM in the response (Default: 100)
 - `respect_gitignore` (boolean) (Default: true)
 
-## insert_edit_into_file
+### insert_edit_into_file
 
 > [!NOTE]
 > By default, when editing files, this tool requires user approval before it can be executed
@@ -147,33 +149,33 @@ Can you apply the suggested changes to the buffer with the @{insert_edit_into_fi
 - `requires_approval.file` (boolean) Require approval before editng a file? (Default: true)
 - `user_confirmation` (boolean) require confirmation from the user before moving on in the chat buffer? (Default: true)
 
-## next_edit_suggestion
+### next_edit_suggestion
 
 Inspired by [Copilot Next Edit Suggestion](https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions), the tool gives the LLM the ability to show the user where the next edit is. The LLM can only suggest edits in files or buffers that have been shared with it as context.
 
 **Options:**
 - `jump_action` (string|function) Determines how a jump to the next edit is made (Default: `tabnew`)
 
-## read_file
+### read_file
 
 This tool can read the contents of a specific file in the current working directory. This can be useful for an LLM to gain wider context of files that haven't been shared with it.
 
-## web_search
+### search_web
 
-The _@web_search_ tool enables an LLM to search the web for a specific query. This can be useful to supplement an LLMs knowledge cut off date with more up to date information.
+This tool enables an LLM to search the web for a specific query, enabling it to receive up to date information:
 
 ```md
-Can you use the @{web_search} tool to tell me the latest version of Neovim?
+Use @{search_web} tool to find the latest version of Neovim?
 ```
+
+```md
+Use the @{search_web} tool to search neovim.io and explain how I can configure a new language server
+```
+
 
 Currently, the tool uses [tavily](https://www.tavily.com) and you'll need to ensure that an API key has been set accordingly, as per the [adapter](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua).
 
-You can also ask it to search under a specific domain:
-```
-Using the @web_search tool to search from `https://neovim.io` and explain how I can configure a new language server.
-```
-
-## Tool Groups
+## Groups
 
 CodeCompanion comes with two built-in tool groups:
 

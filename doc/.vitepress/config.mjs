@@ -28,7 +28,6 @@ const headers = inProd ? [baseHeaders, umamiScript] : baseHeaders;
 
 const siteUrl = "https://codecompanion.olimorris.dev";
 
-
 // https://vitepress.dev/reference/site-config
 export default withMermaid(
   defineConfig({
@@ -92,11 +91,11 @@ export default withMermaid(
               link: "/usage/chat-buffer/",
               collapsed: true,
               items: [
-                { text: "Agents/Tools", link: "/usage/chat-buffer/agents" },
                 {
                   text: "Slash Commands",
                   link: "/usage/chat-buffer/slash-commands",
                 },
+                { text: "Tools", link: "/usage/chat-buffer/tools" },
                 { text: "Variables", link: "/usage/chat-buffer/variables" },
               ],
             },

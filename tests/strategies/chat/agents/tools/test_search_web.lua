@@ -18,11 +18,11 @@ local T = new_set({
         local mock_adapter = {
           methods = {
             tools = {
-              fetch_webpage = {
+              search_web = {
                 setup = function() end,
                 callback = function(adapter, data)
                   -- Let the real tool handle the formatting
-                  return { status = "success", content = data.html or "mock content" }
+                  return { status = "success", content = data.results or {} }
                 end
               }
             }
@@ -33,13 +33,26 @@ local T = new_set({
           resolve = function() return mock_adapter end
         }
 
-        -- Minimal HTTP mock - just return some data
+        -- Minimal HTTP mock - just return some search results
         package.loaded["codecompanion.http"] = {
           new = function()
             return {
               request = function(_, __, handlers)
                 vim.schedule(function()
-                  handlers.callback(nil, { html = "Hello World content" })
+                  handlers.callback(nil, {
+                    results = {
+                      {
+                        url = "https://example.com/result1",
+                        title = "Example Result 1",
+                        content = "Content of first search result"
+                      },
+                      {
+                        url = "https://example.com/result2",
+                        title = "Example Result 2",
+                        content = "Content of second search result"
+                      }
+                    }
+                  })
                 end)
               end
             }
@@ -48,8 +61,8 @@ local T = new_set({
 
         -- Minimal config
         local config = require("codecompanion.config")
-        config.strategies.chat.tools.fetch_webpage = {
-          callback = "strategies.chat.agents.tools.fetch_webpage",
+        config.strategies.chat.tools.search_web = {
+          callback = "strategies.chat.agents.tools.search_web",
           opts = { adapter = "test_adapter" }
         }
         config.adapters.test_adapter = {}
@@ -67,12 +80,12 @@ local T = new_set({
   },
 })
 
-T["fetches webpage content successfully"] = function()
+T["searches web successfully"] = function()
   child.lua([[
     local tool_call = {
       ["function"] = {
-        name = "fetch_webpage",
-        arguments = '{"url": "https://example.com"}'
+        name = "search_web",
+        arguments = '{"query": "neovim plugins", "domains": []}'
       },
       id = "test_call_id",
       type = "function"
@@ -89,8 +102,8 @@ T["fetches webpage content successfully"] = function()
   end, messages)[1]
 
   -- Match the actual output format
-  h.expect_contains('<attachment url="https://example.com">', tool_message.content)
-  h.expect_contains("Hello World content", tool_message.content)
+  h.expect_contains('<attachment url="https://example.com/result1" title="Example Result 1">', tool_message.content)
+  h.expect_contains("Content of first search result", tool_message.content)
   h.expect_contains("</attachment>", tool_message.content)
 end
 

@@ -64,7 +64,7 @@ local defaults = {
               "grep_search",
               "insert_edit_into_file",
               "read_file",
-              "web_search",
+              "search_web",
             },
             opts = {
               collapse_tools = true,
@@ -85,6 +85,7 @@ local defaults = {
             },
           },
         },
+        -- Tools
         ["cmd_runner"] = {
           callback = "strategies.chat.agents.tools.cmd_runner",
           description = "Run shell commands initiated by the LLM",
@@ -141,29 +142,30 @@ local defaults = {
               buffer = false, -- For editing buffers in Neovim
               file = true, -- For editing files in the current working directory
             },
-            user_confirmation = true, -- Require confirmation from the user before moving on in the chat buffer?
+            user_confirmation = true, -- Require confirmation from the user before accepting the edit?
           },
+        },
+        ["next_edit_suggestion"] = {
+          callback = "strategies.chat.agents.tools.next_edit_suggestion",
+          description = "Suggest and jump to the next position to edit",
         },
         ["read_file"] = {
           callback = "strategies.chat.agents.tools.read_file",
           description = "Read a file in the current working directory",
         },
-        ["web_search"] = {
-          callback = "strategies.chat.agents.tools.web_search",
+        ["search_web"] = {
+          callback = "strategies.chat.agents.tools.search_web",
           description = "Search the web for information",
           opts = {
             adapter = "tavily", -- tavily
             opts = {
+              -- Tavily options
               search_depth = "advanced",
               topic = "general",
               chunks_per_source = 3,
               max_results = 5,
             },
           },
-        },
-        ["next_edit_suggestion"] = {
-          callback = "strategies.chat.agents.tools.next_edit_suggestion",
-          description = "Suggest and jump to the next position to edit",
         },
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?

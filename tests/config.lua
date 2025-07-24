@@ -96,6 +96,13 @@ return {
             adapter = "jina",
           },
         },
+        ["search_web"] = {
+          callback = "strategies.chat.agents.tools.search_web",
+          description = "Searches the web for a given query",
+          opts = {
+            adapter = "tavily",
+          },
+        },
         ["file_search"] = {
           callback = "strategies.chat.agents.tools.file_search",
           description = "Search for files in the current working directory by glob pattern",
