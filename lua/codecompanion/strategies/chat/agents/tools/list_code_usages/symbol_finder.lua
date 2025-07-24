@@ -1,14 +1,8 @@
 local Utils = require("codecompanion.strategies.chat.agents.tools.list_code_usages.utils")
 local log = require("codecompanion.utils.log")
 
------------------------
--- Symbol Finding
------------------------
 local SymbolFinder = {}
 
------------------------
--- Constants
------------------------
 local CONSTANTS = {
   EXCLUDED_DIRS = { "node_modules", "dist", "vendor", ".git", "venv", ".env", "target", "build" },
 }

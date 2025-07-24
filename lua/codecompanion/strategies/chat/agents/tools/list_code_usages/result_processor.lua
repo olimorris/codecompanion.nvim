@@ -2,9 +2,6 @@ local CodeExtractor = require("codecompanion.strategies.chat.agents.tools.list_c
 local Utils = require("codecompanion.strategies.chat.agents.tools.list_code_usages.utils")
 local log = require("codecompanion.utils.log")
 
------------------------
--- Result Processing
------------------------
 local ResultProcessor = {}
 
 -- Check if a block is a duplicate or enclosed by existing blocks

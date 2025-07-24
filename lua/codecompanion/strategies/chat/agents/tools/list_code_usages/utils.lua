@@ -1,6 +1,3 @@
------------------------
--- Utility Functions
------------------------
 local Utils = {}
 
 -- Create a result object with standard format

@@ -1,9 +1,6 @@
 local Utils = require("codecompanion.strategies.chat.agents.tools.list_code_usages.utils")
 local log = require("codecompanion.utils.log")
 
------------------------
--- LSP Handling
------------------------
 local LspHandler = {}
 
 local CONSTANTS = {

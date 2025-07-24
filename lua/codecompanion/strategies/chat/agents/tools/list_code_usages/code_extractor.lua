@@ -1,9 +1,6 @@
 local Utils = require("codecompanion.strategies.chat.agents.tools.list_code_usages.utils")
 local log = require("codecompanion.utils.log")
 
------------------------
--- Code Extraction
------------------------
 local CodeExtractor = {}
 
 local CONSTANTS = {
