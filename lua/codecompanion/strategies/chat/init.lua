@@ -1043,6 +1043,8 @@ function Chat:done(output, reasoning, tools)
   end
 
   ready_chat_buffer(self)
+
+  util.fire("ChatDone", { bufnr = self.bufnr, id = self.id })
 end
 
 ---Add a reference to the chat buffer (Useful for user's adding custom Slash Commands)

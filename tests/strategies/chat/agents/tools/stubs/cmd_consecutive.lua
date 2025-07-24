@@ -22,7 +22,7 @@ return {
     -- Should only be called once
     success = function(self, agent, cmd, output)
       _G._test_order = (_G._test_order or "") .. "->Success"
-      table.insert(_G._test_output, output)
+      _G._test_output = output
     end,
   },
 }
