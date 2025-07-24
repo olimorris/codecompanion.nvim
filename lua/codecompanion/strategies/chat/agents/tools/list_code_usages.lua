@@ -305,7 +305,7 @@ Request to list all usages (references, definitions, implementations etc) of a f
       return agent.chat:add_tool_output(self, chat_message_content)
     end,
 
-    error = function(self, agent, cmd, stderr, stdout)
+    error = function(self, agent, cmd, stderr)
       return agent.chat:add_tool_output(self, tostring(stderr[1]))
     end,
   },
