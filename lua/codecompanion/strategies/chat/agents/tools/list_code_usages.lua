@@ -159,14 +159,14 @@ return {
   name = "list_code_usages",
   cmds = {
     function(self, args, input, output_handler)
-      local symbolName = args.symbolName
-      local filePaths = args.filePaths
+      local symbol_name = args.symbol_name
+      local file_paths = args.file_paths
       local state = {
         symbol_data = {},
         filetype = "",
       }
 
-      if not symbolName or symbolName == "" then
+      if not symbol_name or symbol_name == "" then
         output_handler(Utils.create_result("error", "Symbol name is required and cannot be empty."))
         return
       end
@@ -184,8 +184,8 @@ return {
       vim.api.nvim_set_current_win(context_winnr)
 
       -- Start async processing
-      SymbolFinder.find_with_lsp_async(symbolName, filePaths, function(all_lsp_symbols)
-        SymbolFinder.find_with_grep_async(symbolName, file_extension, filePaths, function(grep_result)
+      SymbolFinder.find_with_lsp_async(symbol_name, file_paths, function(all_lsp_symbols)
+        SymbolFinder.find_with_grep_async(symbol_name, file_extension, file_paths, function(grep_result)
           local total_results = 0
           local completed_processes = 0
           local total_processes = 2 -- LSP symbols and grep results
@@ -254,11 +254,11 @@ Request to list all usages (references, definitions, implementations etc) of a f
       parameters = {
         type = "object",
         properties = {
-          symbolName = {
+          symbol_name = {
             type = "string",
             description = "The name of the symbol, such as a function name, class name, method name, variable name, etc.",
           },
-          filePaths = {
+          file_paths = {
             type = "array",
             description = "One or more file paths which likely contain the definition of the symbol. For instance the file which declares a class or function. This is optional but will speed up the invocation of this tool and improve the quality of its output.",
             items = {
@@ -267,11 +267,9 @@ Request to list all usages (references, definitions, implementations etc) of a f
           },
         },
         required = {
-          "symbolName",
+          "symbol_name",
         },
-        additionalProperties = false,
       },
-      strict = true,
     },
   },
   handlers = {
@@ -282,7 +280,7 @@ Request to list all usages (references, definitions, implementations etc) of a f
   },
   output = {
     success = function(self, agent, cmd, stdout)
-      local symbol = self.args.symbolName
+      local symbol = self.args.symbol_name
       local chat_message_content = string.format("Found usages of symbol: %s \n", symbol)
 
       for operation, code_blocks in pairs(ListCodeUsagesTool.symbol_data) do

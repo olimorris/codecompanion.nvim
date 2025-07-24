@@ -26,23 +26,23 @@ local T = new_set({
         }
 
         -- Mock SymbolFinder
-        SymbolFinder.find_with_lsp_async = function(symbolName, filePaths, callback)
+        SymbolFinder.find_with_lsp_async = function(symbol_name, file_paths, callback)
           _G.mock_state.utils_calls[#_G.mock_state.utils_calls + 1] = {
             func = "find_with_lsp_async",
-            symbolName = symbolName,
-            filePaths = filePaths
+            symbol_name = symbol_name,
+            file_paths = file_paths
           }
           vim.schedule(function()
             callback(_G.mock_state.symbol_finder_lsp_results)
           end)
         end
 
-        SymbolFinder.find_with_grep_async = function(symbolName, file_extension, filePaths, callback)
+        SymbolFinder.find_with_grep_async = function(symbol_name, file_extension, file_paths, callback)
           _G.mock_state.utils_calls[#_G.mock_state.utils_calls + 1] = {
             func = "find_with_grep_async",
-            symbolName = symbolName,
+            symbol_name = symbol_name,
             file_extension = file_extension,
-            filePaths = filePaths
+            file_paths = file_paths
           }
           vim.schedule(function()
             callback(_G.mock_state.symbol_finder_grep_results)
@@ -203,7 +203,7 @@ T["main command function"] = new_set({
 
 T["main command function"]["validates symbol name is required"] = function()
   child.lua([[
-    local tool_context = create_mock_tool_context({ symbolName = "" })
+    local tool_context = create_mock_tool_context({ symbol_name = "" })
     local output_received = false
     local output_result = nil
 
@@ -229,7 +229,7 @@ end
 
 T["main command function"]["validates symbol name is not nil"] = function()
   child.lua([[
-    local tool_context = create_mock_tool_context({ symbolName = nil })
+    local tool_context = create_mock_tool_context({ symbol_name = nil })
     local output_received = false
     local output_result = nil
 
@@ -255,7 +255,7 @@ end
 
 T["main command function"]["executes successfully with valid symbol"] = function()
   child.lua([[
-    local tool_context = create_mock_tool_context({ symbolName = "testFunction" })
+    local tool_context = create_mock_tool_context({ symbol_name = "testFunction" })
     local output_received = false
     local output_result = nil
 
@@ -306,13 +306,13 @@ T["main command function"]["executes successfully with valid symbol"] = function
   end
   h.not_eq(nil, lsp_call)
   h.not_eq(nil, grep_call)
-  h.eq("testFunction", lsp_call.symbolName)
-  h.eq("testFunction", grep_call.symbolName)
+  h.eq("testFunction", lsp_call.symbol_name)
+  h.eq("testFunction", grep_call.symbol_name)
 end
 
 T["main command function"]["handles no results found"] = function()
   child.lua([[
-    local tool_context = create_mock_tool_context({ symbolName = "nonExistentFunction" })
+    local tool_context = create_mock_tool_context({ symbol_name = "nonExistentFunction" })
     local output_received = false
     local output_result = nil
 
@@ -345,7 +345,7 @@ end
 
 T["main command function"]["switches windows correctly"] = function()
   child.lua([[
-    local tool_context = create_mock_tool_context({ symbolName = "testFunction" })
+    local tool_context = create_mock_tool_context({ symbol_name = "testFunction" })
     local output_received = false
 
     -- Set up mock results to ensure success
@@ -387,8 +387,8 @@ end
 T["main command function"]["passes file paths to symbol finder"] = function()
   child.lua([[
     local tool_context = create_mock_tool_context({
-      symbolName = "testFunction",
-      filePaths = { "src/main.lua", "lib/utils.lua" }
+      symbol_name = "testFunction",
+      file_paths = { "src/main.lua", "lib/utils.lua" }
     })
     local output_received = false
 
@@ -425,10 +425,10 @@ T["main command function"]["passes file paths to symbol finder"] = function()
 
   h.not_eq(nil, lsp_call)
   h.not_eq(nil, grep_call)
-  h.eq(2, #lsp_call.filePaths)
-  h.eq(2, #grep_call.filePaths)
-  h.expect_tbl_contains("src/main.lua", lsp_call.filePaths)
-  h.expect_tbl_contains("lib/utils.lua", lsp_call.filePaths)
+  h.eq(2, #lsp_call.file_paths)
+  h.eq(2, #grep_call.file_paths)
+  h.expect_tbl_contains("src/main.lua", lsp_call.file_paths)
+  h.expect_tbl_contains("lib/utils.lua", lsp_call.file_paths)
 end
 
 T["output handlers"] = new_set({
@@ -441,7 +441,7 @@ T["output handlers"] = new_set({
 
 T["output handlers"]["error handler formats error correctly"] = function()
   child.lua([[
-    local tool_context = create_mock_tool_context({ symbolName = "testFunction" })
+    local tool_context = create_mock_tool_context({ symbol_name = "testFunction" })
     local mock_agent = {
       chat = tool_context.chat
     }
@@ -514,7 +514,7 @@ T["helper functions"]["get_file_extension extracts extension correctly"] = funct
 
     -- Test the get_file_extension function by calling the main command
     -- and checking what extension is passed to grep
-    local tool_context = create_mock_tool_context({ symbolName = "test" })
+    local tool_context = create_mock_tool_context({ symbol_name = "test" })
     tool_context.chat.context.bufnr = 1 -- Use buffer 1 (lua file)
 
     _G.mock_state.result_processor_counts = { references = 1 }
@@ -551,7 +551,7 @@ T["helper functions"]["get_file_extension handles files without extension"] = fu
       return "/test/Makefile" -- No extension
     end
 
-    local tool_context = create_mock_tool_context({ symbolName = "test" })
+    local tool_context = create_mock_tool_context({ symbol_name = "test" })
     _G.mock_state.result_processor_counts = { references = 1 }
 
     local output_handler = function(result) end
@@ -582,7 +582,7 @@ end
 
 T["helper functions"]["get_file_extension handles invalid buffer"] = function()
   child.lua([[
-    local tool_context = create_mock_tool_context({ symbolName = "test" })
+    local tool_context = create_mock_tool_context({ symbol_name = "test" })
     tool_context.chat.context.bufnr = -1 -- Invalid buffer
 
     _G.mock_state.result_processor_counts = { references = 1 }
