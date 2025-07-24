@@ -35,7 +35,6 @@ M.reject_change = {
       log:trace("[Inline] Rejecting diff for id=%s", tostring(inline.id))
       inline.diff:reject()
       clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
-      inline:reset()
     else
       log:warn("[Inline] No diff found to reject")
     end
