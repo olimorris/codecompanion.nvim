@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2025 July 11
+*codecompanion.txt*          For NVIM v0.11          Last change: 2025 July 24
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -35,7 +35,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - General                                      |codecompanion-usage-general|
   - Action Palette                        |codecompanion-usage-action-palette|
   - Chat Buffer                              |codecompanion-usage-chat-buffer|
-  - Agents and Tools                    |codecompanion-usage-agents-and-tools|
+  - Tools                                          |codecompanion-usage-tools|
   - Slash Commands                        |codecompanion-usage-slash-commands|
   - Variables                                  |codecompanion-usage-variables|
   - Events / Hooks                        |codecompanion-usage-events-/-hooks|
@@ -439,15 +439,12 @@ Commands` in the chat buffer.
 
 VARIABLES ~
 
-`Variables`, accessed via `#`, contain data about the present state of Neovim:
-
-- `buffer` - Shares the current buffer’s code. This can also receive |codecompanion-usage-chat-buffer-variables-buffer|
-- `lsp` - Shares LSP information and code for the current buffer
-- `viewport` - Shares the buffers and lines that you see in the Neovim viewport
+`Variables`, accessed via `#`, contain data about the present state of Neovim.
+You can find a list of available variables,
+|codecompanion-usage-chat-buffer-variables.html|.
 
 
-  [!TIP] Use them in your prompt like: `What does the code in #{buffer} do?`,
-  ensuring they’re wrapped in curly brackets
+  [!TIP] Use them in your prompt like: `What does the code in #{buffer} do?`
 
 SLASH COMMANDS ~
 
@@ -457,41 +454,19 @@ SLASH COMMANDS ~
   `<C-_>` in insert mode when in the chat buffer. Note: Slash commands should
   also work with coc.nvim.
 `Slash commands`, accessed via `/`, run commands to insert additional context
-into the chat buffer:
-
-- `/buffer` - Insert open buffers
-- `/fetch` - Insert URL contents
-- `/file` - Insert a file
-- `/quickfix` - Insert entries from the quickfix list
-- `/help` - Insert content from help tags
-- `/now` - Insert the current date and time
-- `/symbols` - Insert symbols from a selected file
-- `/terminal` - Insert terminal output
+into the chat buffer. You can find a list of available commands as well as how
+to use them, |codecompanion-usage-chat-buffer-slash-commands.html|.
 
 
 AGENTS / TOOLS ~
 
-`Tools`, accessed via `@`, allow the LLM to function as an agent and carry out
-actions:
-
-- `cmd_runner` - The LLM will run shell commands (subject to approval)
-- `create_file` - The LLM will create a file in the current working directory (subject to approval)
-- `file_search` - The LLM can search for a file in the CWD
-- `get_changed_files` - The LLM can get git diffs for any changed files in the CWD
-- `grep_search` - The LLM can search within files in the CWD
-- `insert_edit_into_file` - The LLM will edit code in a Neovim buffer or on the file system (subject to approval)
-- `next_edit_suggestion` - The LLM can show the user where the next edit is
-- `read_file` - The LLM can read a specific file
-- `web_search` - The LLM can search the internet for information
-
-Tools can also be grouped together, also accessible via `@` in the chat buffer:
-
-- `files` - Contains the `create_file`, `file_search`, `get_changed_files`, `grep_search`, `insert_edit_into_file` and `read_file` tools
+`Tools`, accessed via `@`, allow the LLM to function as an agent and leverage
+external tools. You can find a list of available tools as well as how to use
+them, |codecompanion-usage-chat-buffer-tools.html-available-tools|.
 
 
   [!TIP] Use them in your prompt like: `Can you use the @{grep_search} tool to
-  find occurrences of "add_message"`, ensuring they’re wrapped in curly
-  brackets
+  find occurrences of "add_message"`
 
 INLINE ASSISTANT              *codecompanion-getting-started-inline-assistant*
 
@@ -778,19 +753,34 @@ adapter, these sit within a schema table and can be configured during setup:
 >lua
     require("codecompanion").setup({
       adapters = {
-        llama3 = function()
+        qwen3 = function()
           return require("codecompanion.adapters").extend("ollama", {
-            name = "llama3", -- Give this adapter a different name to differentiate it from the default ollama adapter
+            name = "qwen3", -- Give this adapter a different name to differentiate it from the default ollama adapter
+            opts = {
+              vision = true,
+              stream = true,
+            },
             schema = {
               model = {
-                default = "llama3:latest",
+                default = "qwen3:latest",
               },
               num_ctx = {
                 default = 16384,
               },
-              num_predict = {
-                default = -1,
+              think = {
+                default = false,
+                -- or, if you want to automatically turn on `think` for certain models:
+                default = function(adapter)
+                  -- this'll set `think` to true if the model name contain `qwen3` or `deepseek-r1`
+                  local model_name = adapter.model.name:lower()
+                  return vim.iter({ "qwen3", "deepseek-r1" }):any(function(kw)
+                    return string.find(model_name, kw) ~= nil
+                  end)
+                end,
               },
+              keep_alive = {
+                default = '5m',
+              }
             },
           })
         end,
@@ -1219,7 +1209,7 @@ Slash Commands can also be called via keymaps, in the chat buffer. Simply add a
 <
 
 
-AGENTS AND TOOLS ~
+TOOLS ~
 
 Tools
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55>
@@ -1430,6 +1420,7 @@ configuration:
             width = 0.45,
             relative = "editor",
             full_height = true, -- when set to false, vsplit will be used to open the chat buffer vs. botright/topleft vsplit
+            sticky = false, -- when set to true and `layout` is not `"buffer"`, the chat buffer will remain opened when switching tabs
             opts = {
               breakindent = true,
               cursorcolumn = false,
@@ -2170,7 +2161,7 @@ The keymaps available to the user in normal mode are:
 - `}` to move to the next chat
 
 
-AGENTS AND TOOLS                        *codecompanion-usage-agents-and-tools*
+TOOLS                                              *codecompanion-usage-tools*
 
 
   [!IMPORTANT] As of `v17.5.0`, tools must be wrapped in curly braces, such as
@@ -2224,7 +2215,28 @@ can be found here
 <https://github.com/olimorris/codecompanion.nvim/discussions/categories/tools>.
 
 
-CMD_RUNNER ~
+SECURITY AND APPROVALS ~
+
+CodeCompanion takes security very seriously, especially in a world of agentic
+code development. To that end, every effort is made to ensure that LLMs are
+only given the information that they need to execute a tool successfully.
+CodeCompanion will endeavour to make sure that the full disk path to your
+current working directory (cwd) in Neovim is never shared. The impact of this
+is that the LLM can only work within the cwd when executing tools but will
+minimize actions that are hard to recover from
+<https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7>.
+
+The plugin also puts approvals at the heart of its workflow. Some tools, such
+as the `@cmd_runner`, require the user to approve any actions before they can
+be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt
+you for a response. You may also
+|codecompanion-configuration-chat-buffer-approvals| an approval for `any` tool.
+
+
+AVAILABLE TOOLS ~
+
+
+CMD_RUNNER
 
 The `@cmd_runner` tool enables an LLM to execute commands on your machine,
 subject to your authorization. For example:
@@ -2251,7 +2263,7 @@ This makes it ideal for |codecompanion-extending-workflows| to hook into.
 (Default: true)
 
 
-CREATE_FILE ~
+CREATE_FILE
 
 
   [!NOTE] By default, this tool requires user approval before it can be executed
@@ -2265,7 +2277,21 @@ Create a file within the current working directory:
 (Default: true)
 
 
-FILE_SEARCH ~
+FETCH_WEBPAGE
+
+This tools enables an LLM to fetch the content from a specific webpage. It will
+return the text in a text format, depending on which adapter you’ve
+configured for the tool.
+
+>md
+    Use the @{fetch_webpage} tool to tell me what the latest version on neovim.io is
+<
+
+**Options:** - `adapter` The adapter used to fetch, process and format the
+webpage’s content (Default: `jina`)
+
+
+FILE_SEARCH
 
 This tool enables an LLM to search for files in the current working directory
 by glob pattern. It will return a list of relative paths for any matching
@@ -2279,7 +2305,7 @@ files.
 the LLM in the response (Default: 500)
 
 
-GET_CHANGED_FILES ~
+GET_CHANGED_FILES
 
 This tool enables an LLM to get git diffs of any file changes in the current
 working directory. It will return a diff which can contain `staged`, `unstaged`
@@ -2293,7 +2319,7 @@ and `merge-conflicts`.
 LLM in the response (Default: 1000)
 
 
-GREP_SEARCH ~
+GREP_SEARCH
 
 
   [!IMPORTANT] This tool requires ripgrep <https://github.com/BurntSushi/ripgrep>
@@ -2311,7 +2337,7 @@ to the LLM in the response (Default: 100) - `respect_gitignore` (boolean)
 (Default: true)
 
 
-INSERT_EDIT_INTO_FILE ~
+INSERT_EDIT_INTO_FILE
 
 
   [!NOTE] By default, when editing files, this tool requires user approval before
@@ -2334,7 +2360,7 @@ use to determine how to edit files and buffers - `requires_approval.buffer`
 user before moving on in the chat buffer? (Default: true)
 
 
-NEXT_EDIT_SUGGESTION ~
+NEXT_EDIT_SUGGESTION
 
 Inspired by Copilot Next Edit Suggestion
 <https://code.visualstudio.com/blogs/2025/02/12/next-edit-suggestions>, the
@@ -2346,35 +2372,32 @@ context.
 next edit is made (Default: `tabnew`)
 
 
-READ_FILE ~
+READ_FILE
 
 This tool can read the contents of a specific file in the current working
 directory. This can be useful for an LLM to gain wider context of files that
 haven’t been shared with it.
 
 
-WEB_SEARCH ~
+SEARCH_WEB
 
-The `@web_search` tool enables an LLM to search the web for a specific query.
-This can be useful to supplement an LLMs knowledge cut off date with more up to
-date information.
+This tool enables an LLM to search the web for a specific query, enabling it to
+receive up to date information:
 
 >md
-    Can you use the @{web_search} tool to tell me the latest version of Neovim?
+    Use @{search_web} tool to find the latest version of Neovim?
+<
+
+>md
+    Use the @{search_web} tool to search neovim.io and explain how I can configure a new language server
 <
 
 Currently, the tool uses tavily <https://www.tavily.com> and you’ll need to
 ensure that an API key has been set accordingly, as per the adapter
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua>.
 
-You can also ask it to search under a specific domain:
 
->
-    Using the @web_search tool to search from `https://neovim.io` and explain how I can configure a new language server.
-<
-
-
-TOOL GROUPS ~
+GROUPS ~
 
 CodeCompanion comes with two built-in tool groups:
 
@@ -2387,13 +2410,6 @@ will be shown as a single `<group>name</group>` reference in the chat buffer.
 
 If you want to show all tools as references in the chat buffer, set the
 `opts.collapse_tools` option to `false` on the group itself.
-
-
-APPROVALS ~
-
-Some tools, such as the `@cmd_runner`, require the user to approve any actions
-before they can be executed. If the tool requires this a `vim.fn.confirm`
-dialog will prompt you for a response.
 
 
 USEFUL TIPS ~
@@ -4075,7 +4091,7 @@ LLM, identifying the tool and duly executing it.
 There are two types of tools that CodeCompanion can leverage:
 
 1. **Command-based**: These tools can execute a series of commands in the background using a plenary.job <https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/job.lua>. They’re non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
-2. **Function-based**: These tools, like @insert_edit_into_file <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/insert_edit_into_file.lua>, execute Lua functions directly in Neovim within the main process, one after another.
+2. **Function-based**: These tools, like insert_edit_into_file <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/agents/tools/insert_edit_into_file.lua>, execute Lua functions directly in Neovim within the main process, one after another.
 
 For the purposes of this section of the guide, we’ll be building a simple
 function-based calculator tool that an LLM can use to do basic maths.
@@ -4165,8 +4181,9 @@ by use of ${} brackets. The now removed `@code_runner` tool used them as below:
 
 
   [!IMPORTANT] Using the `handlers.setup()` function, it’s also possible to
-  create commands dynamically like in the
-  |codecompanion-usage-chat-buffer-agents.html-cmd-runner| tool.
+  create commands dynamically like in the cmd_runner
+  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/agents/tools/cmd_runner.lua>
+  tool.
 **Function-based Tools**
 
 Function-based tools use the `cmds` table to define functions that will be
@@ -4633,7 +4650,8 @@ This will notify the user with the message: `Perform the calculation 100
 multiply 50?`. The user can choose to proceed, reject or cancel. The latter
 will cancel any tools from running.
 
-You can also customize the output if a user rejects the approval:
+You can also customize the output if a user rejects the approval or cancels the
+tool execution:
 
 >lua
     output = {
@@ -4646,6 +4664,15 @@ You can also customize the output if a user rejects the approval:
       ---@return nil
       rejected = function(self, agent, cmd)
         agent.chat:add_tool_output(self, "The user declined to run the calculator tool")
+      end,
+    
+      ---Cancellation message back to the LLM
+      ---@param self CodeCompanion.Tool.Calculator
+      ---@param agent CodeCompanion.Agent
+      ---@param cmd table
+      ---@return nil
+      cancelled = function(self, agent, cmd)
+        agent.chat:add_tool_output(self, "The user cancelled the execution of the calculator tool")
       end,
     },
 <
