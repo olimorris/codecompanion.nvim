@@ -3,6 +3,8 @@ local ResultProcessor = require("codecompanion.strategies.chat.agents.tools.list
 local SymbolFinder = require("codecompanion.strategies.chat.agents.tools.list_code_usages.symbol_finder")
 local Utils = require("codecompanion.strategies.chat.agents.tools.list_code_usages.utils")
 
+local fmt = string.format
+
 ---@class CodeCompanion.Tool.ListCodeUsages: CodeCompanion.Agent.Tool
 local ListCodeUsagesTool = {}
 
@@ -281,16 +283,16 @@ Request to list all usages (references, definitions, implementations etc) of a f
   output = {
     success = function(self, agent, cmd, stdout)
       local symbol = self.args.symbol_name
-      local chat_message_content = string.format("Found usages of symbol: %s \n", symbol)
+      local chat_message_content = fmt("Searched for symbol `%s`", symbol)
 
       for operation, code_blocks in pairs(ListCodeUsagesTool.symbol_data) do
-        chat_message_content = chat_message_content .. string.format("\n%s: \n", operation, symbol)
+        chat_message_content = chat_message_content .. fmt("\n%s: \n", operation, symbol)
         for _, code_block in ipairs(code_blocks) do
           if operation == "documentation" then
-            chat_message_content = chat_message_content .. string.format("---\n%s\n", code_block.code_block)
+            chat_message_content = chat_message_content .. fmt("---\n%s\n", code_block.code_block)
           else
             chat_message_content = chat_message_content
-              .. string.format(
+              .. fmt(
                 "---\nFilename: %s:%s-%s\n```%s\n%s\n```\n",
                 code_block.filename,
                 code_block.start_line,
