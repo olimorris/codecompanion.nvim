@@ -1,5 +1,20 @@
 # Changelog
 
+## [17.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.10.0...v17.11.0) (2025-07-25)
+
+
+### Features
+
+* **adapters:** add function calling to Novita ([#1888](https://github.com/olimorris/codecompanion.nvim/issues/1888)) ([c6fcb28](https://github.com/olimorris/codecompanion.nvim/commit/c6fcb28a69f0ceb5ee43922a8aadc7c663942246))
+* **chat:** add `CodeCompanionChatDone` event ([#1881](https://github.com/olimorris/codecompanion.nvim/issues/1881)) ([e23e8e5](https://github.com/olimorris/codecompanion.nvim/commit/e23e8e5a5643b089607f21f576f6e63174cc44dc))
+* **tools:** add `list_code_usages` tool ([#1696](https://github.com/olimorris/codecompanion.nvim/issues/1696)) ([16b51b0](https://github.com/olimorris/codecompanion.nvim/commit/16b51b016d3bb1200e8c9350c5ced97f481916fe))
+
+
+### Bug Fixes
+
+* **adapters:** ollama model selection when changing adapter ([#1890](https://github.com/olimorris/codecompanion.nvim/issues/1890)) ([2695b92](https://github.com/olimorris/codecompanion.nvim/commit/2695b9221ba45071d7aefee49ad20880278e2344))
+* **prompt_library:** completion in the cmd line ([#1893](https://github.com/olimorris/codecompanion.nvim/issues/1893)) ([e8ab7ef](https://github.com/olimorris/codecompanion.nvim/commit/e8ab7eff9fb61dc7177a1d9bb830886eacbe3114))
+
 ## [17.10.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.9.0...v17.10.0) (2025-07-22)
 
 
