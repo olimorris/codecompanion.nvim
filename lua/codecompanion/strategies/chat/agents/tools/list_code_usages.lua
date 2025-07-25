@@ -6,6 +6,8 @@ local Utils = require("codecompanion.strategies.chat.agents.tools.list_code_usag
 local fmt = string.format
 
 ---@class CodeCompanion.Tool.ListCodeUsages: CodeCompanion.Agent.Tool
+---@field symbol_data table Storage for collected symbol data across different operations
+---@field filetype string The detected filetype for syntax highlighting in output
 local ListCodeUsagesTool = {}
 
 local CONSTANTS = {
@@ -19,10 +21,18 @@ local CONSTANTS = {
   },
 }
 
------------------------
--- Main Tool Implementation
------------------------
-
+--- Asynchronously processes LSP symbols by navigating to each symbol location
+--- and executing all LSP methods to gather comprehensive information.
+---
+--- This function handles the complex async flow of:
+--- 1. Opening each symbol's file
+--- 2. Setting cursor to symbol position
+--- 3. Executing all LSP methods (definition, references, implementations, etc.)
+--- 4. Collecting and processing results
+---
+---@param symbols table[] Array of symbol objects from LSP workspace symbol search
+---@param state table Shared state containing symbol_data and filetype
+---@param callback function Callback function called with total results count when complete
 local function process_lsp_symbols_async(symbols, state, callback)
   local results_count = 0
   local completed_symbols = 0
@@ -90,7 +100,15 @@ local function process_lsp_symbols_async(symbols, state, callback)
   end
 end
 
--- Async process grep results and collect data
+--- Asynchronously processes grep search results to gather symbol information.
+---
+--- When LSP doesn't find all symbol occurrences, this function processes the first
+--- grep match and executes LSP methods from that position to gather additional data.
+--- It also processes the entire quickfix list for comprehensive coverage.
+---
+---@param grep_result table|nil Grep result containing file, line, col, and qflist
+---@param state table Shared state containing symbol_data and filetype
+---@param callback function Callback function called with results count when complete
 local function process_grep_results_async(grep_result, state, callback)
   local results_count = 0
 
@@ -147,7 +165,13 @@ local function process_grep_results_async(grep_result, state, callback)
   end)
 end
 
--- Get file extension from context buffer
+--- Extracts file extension from the context buffer to help focus search results.
+---
+--- This is used to filter grep searches to files of the same type as the context,
+--- improving search relevance and performance.
+---
+---@param context_bufnr number Buffer number of the context buffer
+---@return string File extension without the dot, or "*" if not determinable
 local function get_file_extension(context_bufnr)
   if not Utils.is_valid_buffer(context_bufnr) then
     return ""
@@ -160,6 +184,10 @@ end
 return {
   name = "list_code_usages",
   cmds = {
+    ---@param self table Tool instance with access to chat context
+    ---@param args table Arguments containing symbol_name and optional file_paths
+    ---@param input any Input data (unused in this tool)
+    ---@param output_handler function Handler for tool output results
     function(self, args, input, output_handler)
       local symbol_name = args.symbol_name
       local file_paths = args.file_paths
@@ -275,12 +303,21 @@ Request to list all usages (references, definitions, implementations etc) of a f
     },
   },
   handlers = {
+
+    ---@param _ any Unused parameter
+    ---@param agent table The agent instance
     on_exit = function(_, agent)
       ListCodeUsagesTool.symbol_data = {}
       ListCodeUsagesTool.filetype = ""
     end,
   },
   output = {
+
+    ---@param self table Tool instance containing args and other data
+    ---@param agent table The agent instance
+    ---@param cmd any Command data (unused)
+    ---@param stdout any Standard output (unused)
+    ---@return any Result of adding tool output to chat
     success = function(self, agent, cmd, stdout)
       local symbol = self.args.symbol_name
       local chat_message_content = fmt("Searched for symbol `%s`", symbol)
@@ -307,6 +344,11 @@ Request to list all usages (references, definitions, implementations etc) of a f
       return agent.chat:add_tool_output(self, chat_message_content)
     end,
 
+    ---@param self table Tool instance
+    ---@param agent table The agent instance
+    ---@param cmd any Command data (unused)
+    ---@param stderr table Array of error messages
+    ---@return any Result of adding error output to chat
     error = function(self, agent, cmd, stderr)
       return agent.chat:add_tool_output(self, tostring(stderr[1]))
     end,

@@ -2,9 +2,18 @@ local CodeExtractor = require("codecompanion.strategies.chat.agents.tools.list_c
 local Utils = require("codecompanion.strategies.chat.agents.tools.list_code_usages.utils")
 local log = require("codecompanion.utils.log")
 
+---@class ListCodeUsages.ResultProcessor
 local ResultProcessor = {}
 
--- Check if a block is a duplicate or enclosed by existing blocks
+--- Checks if a new code block is a duplicate or enclosed by existing blocks
+---
+--- This function prevents redundant code blocks from being added to the results
+--- by checking if the new block is identical to or completely contained within
+--- any existing block across all operation types.
+---
+---@param new_block table Code block with filename, start_line, end_line fields
+---@param symbol_data table Existing symbol data organized by operation type
+---@return boolean True if the block is a duplicate or enclosed by an existing block
 function ResultProcessor.is_duplicate_or_enclosed(new_block, symbol_data)
   for _, blocks in pairs(symbol_data) do
     for _, existing_block in ipairs(blocks) do
@@ -46,7 +55,17 @@ function ResultProcessor.is_duplicate_or_enclosed(new_block, symbol_data)
   return false
 end
 
--- Process a single LSP result item
+--- Processes a single LSP result item and extracts its code block
+---
+--- This function takes an LSP result item (with URI and range) and extracts
+--- the corresponding code block using the CodeExtractor. It handles deduplication
+--- and adds the result to the appropriate operation category.
+---
+---@param uri string The file URI from the LSP result
+---@param range table LSP range object with start/end positions
+---@param operation string The type of LSP operation (e.g., "references", "definition")
+---@param symbol_data table Symbol data storage organized by operation type
+---@return table Result object indicating success or failure
 function ResultProcessor.process_lsp_item(uri, range, operation, symbol_data)
   if not (uri and range) then
     return Utils.create_result("error", "Missing uri or range")
@@ -74,6 +93,16 @@ function ResultProcessor.process_lsp_item(uri, range, operation, symbol_data)
   return Utils.create_result("success", "Symbol processed")
 end
 
+--- Processes documentation items from LSP hover responses
+---
+--- This function handles the special case of documentation/hover results,
+--- which contain text content rather than code locations. It extracts the
+--- documentation content and adds it to the results with deduplication.
+---
+---@param symbol_data table Symbol data storage organized by operation type
+---@param operation string The operation type (typically "documentation")
+---@param result table LSP hover result containing documentation content
+---@return table Result object indicating success or failure
 function ResultProcessor.process_documentation_item(symbol_data, operation, result)
   if not symbol_data[operation] then
     symbol_data[operation] = {}
@@ -99,7 +128,16 @@ function ResultProcessor.process_documentation_item(symbol_data, operation, resu
   return Utils.create_result("success", "documentation processed")
 end
 
--- Process LSP results
+--- Processes LSP results from multiple clients for a specific operation
+---
+--- This function handles the complex task of processing LSP results that can come
+--- in various formats (single items, arrays, documentation) from multiple LSP clients.
+--- It delegates to appropriate processing functions based on the result structure.
+---
+---@param lsp_results table Results from LSP clients, organized by client name
+---@param operation string The LSP operation type (e.g., "references", "definition")
+---@param symbol_data table Symbol data storage organized by operation type
+---@return number Count of successfully processed results
 function ResultProcessor.process_lsp_results(lsp_results, operation, symbol_data)
   local processed_count = 0
 
@@ -136,7 +174,16 @@ function ResultProcessor.process_lsp_results(lsp_results, operation, symbol_data
   return processed_count
 end
 
--- Process code references from quickfix list
+--- Processes code references from the quickfix list (grep results)
+---
+--- This function processes grep search results stored in Neovim's quickfix list.
+--- It extracts code blocks for each match and adds them to the symbol data with
+--- proper deduplication. This provides broader coverage when LSP doesn't find
+--- all symbol occurrences.
+---
+---@param qflist table Array of quickfix items from vim.fn.getqflist()
+---@param symbol_data table Symbol data storage organized by operation type
+---@return number Count of successfully processed quickfix items
 function ResultProcessor.process_quickfix_references(qflist, symbol_data)
   if not qflist or #qflist == 0 then
     return 0

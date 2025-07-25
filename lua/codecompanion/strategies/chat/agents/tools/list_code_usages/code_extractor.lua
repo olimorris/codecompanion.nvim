@@ -1,12 +1,23 @@
 local Utils = require("codecompanion.strategies.chat.agents.tools.list_code_usages.utils")
 local log = require("codecompanion.utils.log")
 
+---@class ListCodeUsages.CodeExtractor
 local CodeExtractor = {}
 
 local CONSTANTS = {
   MAX_BLOCK_SCAN_LINES = 100,
 }
 
+--- Finds the most appropriate code block using TreeSitter and locals queries
+---
+--- This function uses TreeSitter to find the most contextually relevant code block
+--- around a given position. It leverages locals queries to find scopes and attempts
+--- to return the smallest significant scope that contains the target position.
+---
+---@param bufnr number The buffer number to extract from
+---@param row number The row position (0-indexed)
+---@param col number The column position (0-indexed)
+---@return userdata|nil TreeSitter node representing the best code block, or nil if not found
 function CodeExtractor.get_block_with_locals(bufnr, row, col)
   local success, parser = pcall(vim.treesitter.get_parser, bufnr)
   if not success or not parser then
@@ -147,7 +158,15 @@ function CodeExtractor.get_block_with_locals(bufnr, row, col)
   return target_node
 end
 
--- Extract node data including comments
+--- Extracts code text and metadata from a TreeSitter node
+---
+--- This function converts a TreeSitter node into a structured data object
+--- containing the code text, line numbers, filename, and filetype information
+--- needed for display in the tool output.
+---
+---@param bufnr number The buffer number containing the node
+---@param node userdata TreeSitter node to extract data from
+---@return table Result object with status and extracted code data
 function CodeExtractor.extract_node_data(bufnr, node)
   local start_row, start_col, end_row, end_col = node:range()
 
@@ -173,7 +192,16 @@ function CodeExtractor.extract_node_data(bufnr, node)
   })
 end
 
--- Fallback method for when TreeSitter doesn't provide what we need
+--- Fallback code extraction using indentation-based heuristics
+---
+--- When TreeSitter is not available or doesn't provide useful results, this function
+--- uses indentation patterns to determine code block boundaries. It scans upward and
+--- downward from the target position to find lines with consistent indentation.
+---
+---@param bufnr number The buffer number to extract from
+---@param row number The row position (0-indexed)
+---@param col number The column position (0-indexed)
+---@return table Result object with status and extracted code data
 function CodeExtractor.get_fallback_code_block(bufnr, row, col)
   local lines = Utils.safe_get_lines(bufnr, row, row + 1)
   local line = lines[1]
@@ -233,7 +261,16 @@ function CodeExtractor.get_fallback_code_block(bufnr, row, col)
   })
 end
 
--- Main function to get code block at position
+--- Main entry point for extracting code blocks at a specific position
+---
+--- This function orchestrates the code extraction process by first attempting
+--- TreeSitter-based extraction and falling back to indentation-based extraction
+--- if TreeSitter is not available or doesn't provide useful results.
+---
+---@param bufnr number The buffer number to extract from
+---@param row number The row position (0-indexed)
+---@param col number The column position (0-indexed)
+---@return table Result object with status and extracted code data
 function CodeExtractor.get_code_block_at_position(bufnr, row, col)
   if not Utils.is_valid_buffer(bufnr) then
     return Utils.create_result("error", "Invalid buffer id: " .. tostring(bufnr))

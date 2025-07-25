@@ -1,13 +1,23 @@
 local Utils = require("codecompanion.strategies.chat.agents.tools.list_code_usages.utils")
 local log = require("codecompanion.utils.log")
 
+---@class ListCodeUsages.SymbolFinder
 local SymbolFinder = {}
 
 local CONSTANTS = {
+  --- Directories to exclude from grep searches to improve performance and relevance
   EXCLUDED_DIRS = { "node_modules", "dist", "vendor", ".git", "venv", ".env", "target", "build" },
 }
 
--- Async LSP symbol finder
+--- Asynchronously finds symbols using LSP workspace symbol search
+---
+--- This function queries all available LSP clients that support workspace symbol
+--- search to find symbols matching the given name. It filters results by file paths
+--- if provided and sorts them by symbol kind to prioritize definitions.
+---
+---@param symbolName string The name of the symbol to search for
+---@param filepaths string[]|nil Optional array of file paths to filter results
+---@param callback function Callback function called with array of found symbols
 function SymbolFinder.find_with_lsp_async(symbolName, filepaths, callback)
   local clients = vim.lsp.get_clients({
     method = vim.lsp.protocol.Methods.workspace_symbol,
@@ -72,7 +82,16 @@ function SymbolFinder.find_with_lsp_async(symbolName, filepaths, callback)
   end
 end
 
--- Async grep finder
+--- Asynchronously finds symbols using grep-based text search
+---
+--- This function performs a grep search for the symbol name, with optional filtering
+--- by file extension and specific file paths. It uses Neovim's built-in grep functionality
+--- and populates the quickfix list with results.
+---
+---@param symbolName string The name of the symbol to search for
+---@param file_extension string|nil Optional file extension to limit search scope
+---@param filepaths string[]|nil Optional array of file paths to search within
+---@param callback function Callback called with grep result object or nil if no matches
 function SymbolFinder.find_with_grep_async(symbolName, file_extension, filepaths, callback)
   vim.schedule(function()
     local search_pattern = vim.fn.escape(symbolName, "\\")

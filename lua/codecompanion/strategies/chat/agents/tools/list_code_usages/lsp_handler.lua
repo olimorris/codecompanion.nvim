@@ -1,6 +1,7 @@
 local Utils = require("codecompanion.strategies.chat.agents.tools.list_code_usages.utils")
 local log = require("codecompanion.utils.log")
 
+---@class ListCodeUsages.LspHandler
 local LspHandler = {}
 
 local CONSTANTS = {
@@ -10,7 +11,14 @@ local CONSTANTS = {
   },
 }
 
--- Filter references to only include those in the project directory
+--- Filters LSP references to only include files within the current project
+---
+--- This function removes references from external dependencies, system files,
+--- or other locations outside the current project directory to keep results
+--- focused and relevant.
+---
+---@param references table[] Array of LSP reference objects with uri fields
+---@return table[] Filtered array containing only project-local references
 function LspHandler.filter_project_references(references)
   local filtered_results = {}
 
@@ -33,7 +41,18 @@ function LspHandler.filter_project_references(references)
   return filtered_results
 end
 
--- Async LSP request execution
+--- Asynchronously executes an LSP request across all capable clients
+---
+--- This function handles the complex process of:
+--- 1. Finding all LSP clients that support the requested method
+--- 2. Ensuring clients are attached to the target buffer
+--- 3. Executing the request with proper position parameters
+--- 4. Collecting and processing results from all clients
+--- 5. Handling special cases like hover documentation and references
+---
+---@param bufnr number The buffer number to execute the request on
+---@param method string The LSP method to execute (e.g., textDocument_references)
+---@param callback function Callback called with collected results from all clients
 function LspHandler.execute_request_async(bufnr, method, callback)
   local clients = vim.lsp.get_clients({ method = method })
   local lsp_results = {}
