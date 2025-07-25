@@ -597,11 +597,16 @@ output = {
 
   ---Rejection message back to the LLM
   ---@param self CodeCompanion.Tool.Calculator
-  ---@param tools CodeCompanion.Tools
+  ---@param agent CodeCompanion.Tools
   ---@param cmd table
+  ---@param feedback? string
   ---@return nil
-  rejected = function(self, tools, cmd)
-    tools.chat:add_tool_output(self, "The user declined to run the calculator tool")
+  rejected = function(self, agent, cmd, feedback)
+    local message = "The user declined to run the calculator tool"
+    if feedback and feedback ~= "" then
+      message = message .. " with feedback: " .. feedback
+    end
+    agent.chat:add_tool_output(self, message)
   end,
 
   ---Cancellation message back to the LLM

@@ -368,12 +368,17 @@ return {
 
     ---Rejection message back to the LLM
     ---@param self CodeCompanion.Tool.InsertEditIntoFile
-    ---@param tools CodeCompanion.Tools
+    ---@param agent CodeCompanion.Tools
     ---@param cmd table
+    ---@param feedback? string
     ---@return nil
-    rejected = function(self, tools, cmd)
-      local chat = tools.chat
-      chat:add_tool_output(self, fmt("User rejected to edit `%s`", self.args.filepath))
+    rejected = function(self, agent, cmd, feedback)
+      local chat = agent.chat
+      local message = fmt("User rejected to edit `%s`", self.args.filepath)
+      if feedback and feedback ~= "" then
+        message = message .. fmt(" with feedback: %s", feedback)
+      end
+      chat:add_tool_output(self, message)
     end,
   },
 }

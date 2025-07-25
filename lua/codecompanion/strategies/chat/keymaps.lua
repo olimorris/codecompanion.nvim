@@ -704,4 +704,42 @@ M.copilot_stats = {
   end,
 }
 
+M.toggle_terminal_preview = {
+  desc = "Toggle terminal preview for command execution",
+  callback = function(chat)
+    local terminal_preview_state = _G.codecompanion_terminal_preview
+
+    if terminal_preview_state and terminal_preview_state.is_active then
+      if terminal_preview_state.winnr and vim.api.nvim_win_is_valid(terminal_preview_state.winnr) then
+        if terminal_preview_state.job_id then
+          vim.fn.jobstop(terminal_preview_state.job_id)
+          terminal_preview_state.job_id = nil
+        end
+
+        vim.api.nvim_win_close(terminal_preview_state.winnr, false)
+        terminal_preview_state.winnr = nil
+        terminal_preview_state.is_active = false
+
+        util.notify("Terminal preview closed", vim.log.levels.INFO)
+        return
+      else
+        terminal_preview_state.winnr = nil
+        terminal_preview_state.is_active = false
+      end
+    end
+
+    local help_text = [[Terminal Preview Help:
+
+To use terminal preview:
+1. Run a command with cmd_runner tool
+2. Add 'terminal_preview: true' to the tool parameters
+3. Example: @cmd_runner {"cmd": "ls -la", "flag": null, "terminal_preview": true}
+
+The terminal preview will show live command output in a split window.
+Press 'gt' again to close active terminal previews.]]
+
+    util.notify(help_text, vim.log.levels.INFO)
+  end,
+}
+
 return M

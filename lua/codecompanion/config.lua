@@ -71,6 +71,15 @@ local defaults = {
               collapse_tools = true,
             },
           },
+          ["reasoning_agents"] = {
+            description = "Meta-reasoning system for algorithm selection and dynamic tool management",
+            tools = {
+              "meta_reasoning_governor",
+            },
+            opts = {
+              collapse_tools = true,
+            },
+          },
           ["files"] = {
             description = "Tools related to creating, reading and editing files",
             tools = {
@@ -171,6 +180,32 @@ local defaults = {
         ["list_code_usages"] = {
           callback = "strategies.chat.tools.catalog.list_code_usages",
           description = "Find code symbol context",
+        },
+        ["tool_discovery"] = {
+          callback = "strategies.chat.tools.catalog.tool_discovery",
+          description = "Discover and get information about all available tools",
+          opts = {
+            requires_approval = true,
+          },
+        },
+        ["chain_of_thoughts_agent"] = {
+          callback = "strategies.chat.tools.catalog.chain_of_thought_agent",
+          description = "Chain of Thought reasoning agent that follows sequential logical steps to solve complex problems",
+        },
+        ["tree_of_thoughts_agent"] = {
+          callback = "strategies.chat.tools.catalog.tree_of_thoughts_agent",
+          description = "Tree of Thoughts agent that explores multiple reasoning paths through branching and evaluation",
+        },
+        ["graph_of_thoughts_agent"] = {
+          callback = "strategies.chat.tools.catalog.graph_of_thoughts_agent",
+          description = "Graph of Thoughts agent that uses operations and workflows for complex reasoning with dependencies",
+        },
+        ["meta_reasoning_governor"] = {
+          callback = "strategies.chat.tools.catalog.meta_reasoning_governor",
+          description = "Meta-reasoning algorithm selector that analyzes problems and selects the optimal reasoning algorithm",
+          opts = {
+            requires_approval = true,
+          },
         },
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
@@ -436,7 +471,7 @@ local defaults = {
           modes = {
             n = "gf",
           },
-          index = 15,
+          index = 16,
           callback = "keymaps.fold_code",
           description = "Fold code",
         },
@@ -444,7 +479,7 @@ local defaults = {
           modes = {
             n = "gd",
           },
-          index = 16,
+          index = 17,
           callback = "keymaps.debug",
           description = "View debug info",
         },
@@ -452,7 +487,7 @@ local defaults = {
           modes = {
             n = "gs",
           },
-          index = 17,
+          index = 18,
           callback = "keymaps.toggle_system_prompt",
           description = "Toggle the system prompt",
         },
@@ -460,21 +495,27 @@ local defaults = {
           modes = {
             n = "gta",
           },
-          index = 18,
+          index = 19,
           callback = "keymaps.auto_tool_mode",
           description = "Toggle automatic tool mode",
         },
         goto_file_under_cursor = {
           modes = { n = "gR" },
-          index = 19,
+          index = 20,
           callback = "keymaps.goto_file_under_cursor",
           description = "Open the file under cursor in a new tab.",
         },
         copilot_stats = {
           modes = { n = "gS" },
-          index = 20,
+          index = 21,
           callback = "keymaps.copilot_stats",
           description = "Show Copilot usage statistics",
+        },
+        toggle_terminal_preview = {
+          modes = { n = "gP" },
+          index = 22,
+          callback = "keymaps.toggle_terminal_preview",
+          description = "Toggle terminal preview for command execution",
         },
       },
       opts = {

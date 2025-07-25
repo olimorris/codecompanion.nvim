@@ -885,6 +885,7 @@ function Chat:submit(opts)
     if message then
       message = self.context:clear(self.messages[#self.messages])
       self:replace_vars_and_tools(message)
+
       self:check_images(message)
       self:check_context()
       add_pins(self)

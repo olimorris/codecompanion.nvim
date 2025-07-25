@@ -30,8 +30,12 @@ return {
     success = function(self, cmd, output)
       _G._test_order = (_G._test_order or "") .. "->Success"
     end,
-    rejected = function(self, tools, cmd)
+    rejected = function(self, agent, cmd, feedback)
       _G._test_order = (_G._test_order or "") .. "->Rejected"
+      -- Store the feedback for testing
+      if feedback and feedback ~= "" then
+        _G._test_feedback = feedback
+      end
     end,
   },
 }

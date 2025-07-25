@@ -130,12 +130,16 @@ function Orchestrator:setup_handlers()
         return self.tool.output.prompt(self.tool, self.tools)
       end
     end,
-    rejected = function(cmd)
+    rejected = function(cmd, feedback)
       if self.tool.output and self.tool.output.rejected then
-        self.tool.output.rejected(self.tool, self.tools, cmd)
+        self.tool.output.rejected(self.tool, self.agent, cmd, feedback)
       else
         -- If no handler is set then return a default message
-        send_response_to_chat(self, fmt("User rejected `%s`", self.tool.name))
+        local message = fmt("User rejected `%s`", self.tool.name)
+        if feedback and feedback ~= "" then
+          message = message .. fmt(" with feedback: %s", feedback)
+        end
+        send_response_to_chat(self, message)
       end
     end,
     error = function(cmd)
@@ -217,7 +221,7 @@ function Orchestrator:setup(input)
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      vim.ui.select({ "Yes", "No", "Cancel" }, {
+      vim.ui.select({ "Yes", "No", "No with feedback", "Cancel" }, {
         kind = "codecompanion.nvim",
         prompt = prompt,
         format_item = function(item)
@@ -225,6 +229,8 @@ function Orchestrator:setup(input)
             return "Yes"
           elseif item == "No" then
             return "No"
+          elseif item == "No with feedback" then
+            return "No with feedback"
           else
             return "Cancel"
           end
@@ -242,6 +248,22 @@ function Orchestrator:setup(input)
           log:debug("Orchestrator:execute - Tool rejected")
           self.output.rejected(cmd)
           self:setup()
+        elseif choice == "No with feedback" then -- Selected no with feedback
+          log:debug("Executor:execute - Tool rejected with feedback requested")
+          -- Prompt user for feedback
+          vim.ui.input({
+            prompt = "Feedback (why was this tool rejected?): ",
+            default = "",
+          }, function(feedback)
+            if feedback and feedback ~= "" then
+              -- Call rejected handler with feedback
+              self.output.rejected(cmd, feedback)
+            else
+              -- Fallback to regular rejection if no feedback provided
+              self.output.rejected(cmd)
+            end
+            self:setup()
+          end)
         end
       end)
     else
