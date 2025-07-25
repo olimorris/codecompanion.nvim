@@ -214,7 +214,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | GitHub Models     | All               | :x:                | Not supported yet                   |
 | Huggingface       | All               | :x:                | Not supported yet                   |
 | Mistral           | All               | :x:                | Not supported yet                   |
-| Novita            | All               | :x:                | Not supported yet                   |
+| Novita            |                   | :white_check_mark:                | Dependent on the model  |
 | Ollama            | Tested with Qwen3 | :white_check_mark: | Dependent on the model              |
 | OpenAI Compatible |                   | :exclamation:      | Dependent on the model and provider |
 | OpenAI            |                   | :white_check_mark: | Dependent on the model              |
