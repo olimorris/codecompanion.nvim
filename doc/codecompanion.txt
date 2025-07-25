@@ -2360,6 +2360,32 @@ use to determine how to edit files and buffers - `requires_approval.buffer`
 user before moving on in the chat buffer? (Default: true)
 
 
+LIST_CODE_USAGES
+
+
+  [!NOTE] This tool requires LSP to be configured and active for optimal results
+This tool enables an LLM to find all usages of a symbol (function, class,
+method, variable, etc.) throughout your codebase. It leverages LSP for accurate
+results and falls back to grep for broader text searching.
+
+>md
+    Use the @{list_code_usages} tool to find all usages of the `create_file` function
+<
+
+>md
+    Can you use @{list_code_usages} to show me how the `Agent` class is implemented and used?
+<
+
+The tool provides comprehensive information about symbols including references,
+definitions, implementations, declarations, type definitions, and documentation
+when available. This makes it ideal for code exploration, understanding how
+functions are used throughout the codebase, and preparing for refactoring.
+
+**Parameters:** - `symbolName` (string, required): The name of the symbol to
+search for - `filePaths` (array, optional): File paths that likely contain the
+symbol definition to improve search accuracy and speed
+
+
 NEXT_EDIT_SUGGESTION
 
 Inspired by Copilot Next Edit Suggestion
