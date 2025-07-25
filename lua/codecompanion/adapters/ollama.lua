@@ -85,8 +85,9 @@ local function get_models(self, opts)
     job:wait()
   end
 
-  if opts and opts.last then
-    return models[1]
+  local latest_model = json.models[1]
+  if opts and opts.last and latest_model then
+    return latest_model.name
   end
   return models
 end
