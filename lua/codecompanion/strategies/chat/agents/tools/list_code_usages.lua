@@ -320,17 +320,17 @@ Request to list all usages (references, definitions, implementations etc) of a f
     ---@return any Result of adding tool output to chat
     success = function(self, agent, cmd, stdout)
       local symbol = self.args.symbol_name
-      local chat_message_content = fmt("Searched for symbol `%s`", symbol)
+      local chat_message_content = fmt("Searched for symbol `%s`\n", symbol)
 
       for operation, code_blocks in pairs(ListCodeUsagesTool.symbol_data) do
-        chat_message_content = chat_message_content .. fmt("\n%s: \n", operation, symbol)
+        chat_message_content = chat_message_content .. fmt("\n%s:\n", operation, symbol)
         for _, code_block in ipairs(code_blocks) do
           if operation == "documentation" then
             chat_message_content = chat_message_content .. fmt("---\n%s\n", code_block.code_block)
           else
             chat_message_content = chat_message_content
               .. fmt(
-                "---\nFilename: %s:%s-%s\n```%s\n%s\n```\n",
+                "\n---\n\nFilename: %s:%s-%s\n```%s\n%s\n```\n",
                 code_block.filename,
                 code_block.start_line,
                 code_block.end_line,

@@ -2370,8 +2370,6 @@ results and falls back to grep for broader text searching.
 
 >md
     Use the @{list_code_usages} tool to find all usages of the `create_file` function
-<
-
 >md
     Can you use @{list_code_usages} to show me how the `Agent` class is implemented and used?
 <
