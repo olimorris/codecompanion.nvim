@@ -116,7 +116,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
 },
 ```
 
-The first prompt in a workflow should set the ask of the LLM and provide clear instructions. In this case, we're giving the LLM access to the [@insert_edit_into_file](/usage/chat-buffer/agents.html#files) and [@cmd_runner](/usage/chat-buffer/agents.html#cmd-runner) tools to edit a buffer and run tests, respectively.
+The first prompt in a workflow should set the ask of the LLM and provide clear instructions. In this case, we're giving the LLM access to the [@insert_edit_into_file](/usage/chat-buffer/tools.html#files) and [@cmd_runner](/usage/chat-buffer/tools.html#cmd-runner) tools to edit a buffer and run tests, respectively.
 
 We're giving the LLM knowledge of the buffer with the `#buffer` variable and also telling CodeCompanion to watch it for any changes with the `{watch}` parameter. Prior to sending a response to the LLM, the plugin will share any changes to that buffer, keeping the LLM updated.
 
@@ -146,9 +146,9 @@ Now let's look at how we trigger the automated reflection prompts:
 },
 ```
 
-Now there's a little bit more to unpack in this prompt. Firstly, we're automatically submitting the prompt to the LLM to save the user some time and keypresses. Next, we're scoping the prompt to only be sent to the chat buffer if the currently active tool is the [@cmd_runner](/usage/chat-buffer/agents.html#cmd-runner).
+Now there's a little bit more to unpack in this prompt. Firstly, we're automatically submitting the prompt to the LLM to save the user some time and keypresses. Next, we're scoping the prompt to only be sent to the chat buffer if the currently active tool is the [@cmd_runner](/usage/chat-buffer/tools.html#cmd-runner).
 
-We're also leveraging a function called `repeat_until`. This ensures that the prompt is always attached to the chat buffer until a condition is met. In this case, until the tests pass. In the [@cmd_runner](/usage/chat-buffer/agents.html#cmd-runner) tool, we ask the LLM to pass a flag if it detects a test suite is being run. The plugin picks up on that flag and puts the test outcome into the chat buffer class as a flag.
+We're also leveraging a function called `repeat_until`. This ensures that the prompt is always attached to the chat buffer until a condition is met. In this case, until the tests pass. In the [@cmd_runner](/usage/chat-buffer/tools.html#cmd-runner) tool, we ask the LLM to pass a flag if it detects a test suite is being run. The plugin picks up on that flag and puts the test outcome into the chat buffer class as a flag.
 
 Finally, we're letting the LLM know that the tests failed, and asking it to fix.
 

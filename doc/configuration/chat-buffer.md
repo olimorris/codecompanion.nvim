@@ -151,7 +151,7 @@ require("codecompanion").setup({
 
 ```
 
-## Agents and Tools
+## Tools
 
 [Tools](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55) perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` when in the chat buffer:
 
@@ -213,7 +213,7 @@ This is useful to ensure that a particular dependency is installed on the machin
 
 ### Approvals
 
-Some tools, such as [cmd_runner](/usage/chat-buffer/agents.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
+Some tools, such as [cmd_runner](/usage/chat-buffer/tools.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
 
 ```lua
 require("codecompanion").setup({

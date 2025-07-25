@@ -1,7 +1,3 @@
---[[
-  *Command Runner Tool*
-  This tool is used to run shell commands on your system
---]]
 local util = require("codecompanion.utils")
 
 local fmt = string.format
@@ -107,7 +103,7 @@ return {
     ---@param agent CodeCompanion.Agent
     ---@return string
     prompt = function(self, agent)
-      return fmt("Run the command `%s`?", table.concat(self.cmds[1].cmd, " "))
+      return fmt("Run the command `%s`?", self.args.cmd)
     end,
 
     ---Rejection message back to the LLM
@@ -116,20 +112,15 @@ return {
     ---@param cmd table
     ---@return nil
     rejected = function(self, agent, cmd)
-      agent.chat:add_tool_output(
-        self,
-        fmt("The user rejected the execution of the command `%s`?", table.concat(self.cmds[1].cmd, " "))
-      )
+      agent.chat:add_tool_output(self, fmt("The user rejected the execution of the command `%s`?", self.args.cmd))
     end,
 
     ---@param self CodeCompanion.Tool.CmdRunner
     ---@param agent CodeCompanion.Agent
     ---@param cmd table
     ---@param stderr table The error output from the command
-    ---@param stdout? table The output from the command
-    error = function(self, agent, cmd, stderr, stdout)
+    error = function(self, agent, cmd, stderr)
       local chat = agent.chat
-      local cmds = table.concat(cmd.cmd, " ")
       local errors = vim.iter(stderr):flatten():join("\n")
 
       local output = [[%s
@@ -137,23 +128,10 @@ return {
 %s
 ```]]
 
-      local llm_output = fmt(output, fmt("There was an error running the `%s` command:", cmds), errors)
-      local user_output = fmt(output, fmt("`%s` error", cmds), errors)
+      local llm_output = fmt(output, fmt("There was an error running the `%s` command:", cmd.cmd), errors)
+      local user_output = fmt(output, fmt("`%s` error", cmd.cmd), errors)
 
       chat:add_tool_output(self, llm_output, user_output)
-
-      if stdout and not vim.tbl_isempty(stdout) then
-        stdout = vim.iter(stdout):flatten():join("\n")
-        output = [[%s
-```txt
-%s
-```]]
-
-        llm_output = fmt(output, fmt("There was also some output from the `%s` command:", cmds), stdout)
-        user_output = fmt(output, fmt("`%s`", cmds), stdout)
-
-        chat:add_tool_output(self, llm_output, user_output)
-      end
     end,
 
     ---@param self CodeCompanion.Tool.CmdRunner
@@ -171,7 +149,7 @@ return {
 ```
 %s
 ```]],
-        table.concat(cmd.cmd, " "),
+        self.args.cmd,
         output
       )
       chat:add_tool_output(self, message)

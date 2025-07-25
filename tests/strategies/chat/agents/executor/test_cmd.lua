@@ -1,3 +1,7 @@
+--NOTE: These tests are used to test that tools which are commands, are executed
+--correctly. Originally, these were written for the executor/cmd.lua file
+--which has now been replaced by logic in the executor/init.lua file.
+
 local h = require("tests.helpers")
 
 local new_set = MiniTest.new_set
@@ -91,8 +95,8 @@ T["Agent"]["cmds"]["can run multiple commands"] = function()
   h.eq("Setup->Success->Success->Exit", child.lua_get("_G._test_order"))
 
   -- output.success should be called for each command
-  h.eq({ { "Hello World" } }, child.lua_get("_G._test_output[1]"))
-  h.eq({ { "Hello CodeCompanion" } }, child.lua_get("_G._test_output[2]"))
+  h.eq({ "Hello World" }, child.lua_get("_G._test_output[1]"))
+  h.eq({ "Hello CodeCompanion" }, child.lua_get("_G._test_output[2]"))
   h.eq(vim.NIL, child.lua_get("_G._test_output[3]"))
 end
 
