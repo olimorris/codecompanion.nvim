@@ -37,11 +37,6 @@
 ---@field config table The config for the variable
 ---@field params string
 
----@class CodeCompanion.Cmd
----@field adapter CodeCompanion.Adapter The adapter to use for the chat
----@field context table The context of the buffer that the chat was initiated from
----@field prompts table Any prompts to be sent to the LLM
-
 ---@class CodeCompanion.Watchers
 ---@field buffers table<number, CodeCompanion.WatcherState> Map of buffer numbers to their states
 ---@field augroup integer The autocmd group ID

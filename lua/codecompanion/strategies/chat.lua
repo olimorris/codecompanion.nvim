@@ -8,7 +8,7 @@
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
 ---@field aug number The ID for the autocmd group
 ---@field bufnr integer The buffer number of the chat
----@field context table The context of the buffer that the chat was initiated from
+---@field buffer_context table The context of the buffer that the chat was initiated from
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
@@ -34,7 +34,7 @@
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
----@field context? table Context of the buffer that the chat was initiated from
+---@field buffer_context? table Context of the buffer that the chat was initiated from
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
 ---@field last_role string The last role that was rendered in the chat buffer-
@@ -527,7 +527,7 @@ function Chat.new(args)
   log:trace("Chat created with ID %d", id)
 
   local self = setmetatable({
-    context = args.context,
+    buffer_context = args.buffer_context,
     cycle = 1,
     header_line = 1,
     from_prompt_library = args.from_prompt_library or false,
@@ -613,7 +613,7 @@ function Chat.new(args)
   end
 
   self.close_last_chat()
-  self.ui:open():render(self.context, self.messages, args)
+  self.ui:open():render(self.buffer_context, self.messages, args)
 
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then
@@ -845,7 +845,7 @@ function Chat:replace_vars_and_tools(message)
     message.content = self.agents:replace(message.content)
   end
   if self.variables:parse(self, message) then
-    message.content = self.variables:replace(message.content, self.context.bufnr)
+    message.content = self.variables:replace(message.content, self.buffer_context.bufnr)
   end
 end
 
@@ -883,7 +883,8 @@ function Chat:submit(opts)
     if not opts.regenerate then
       local chat_opts = config.strategies.chat.opts
       if message and message.content and chat_opts and chat_opts.prompt_decorator then
-        message.content = chat_opts.prompt_decorator(message.content, adapters.make_safe(self.adapter), self.context)
+        message.content =
+          chat_opts.prompt_decorator(message.content, adapters.make_safe(self.adapter), self.buffer_context)
       end
       self:add_message({
         role = config.constants.USER_ROLE,
@@ -1324,7 +1325,7 @@ function Chat:clear()
   self.tools:clear()
 
   log:trace("Clearing chat buffer")
-  self.ui:render(self.context, self.messages, self.opts):set_intro_msg()
+  self.ui:render(self.buffer_context, self.messages, self.opts):set_intro_msg()
   self:add_system_prompt()
   util.fire("ChatCleared", { bufnr = self.bufnr, id = self.id })
 end

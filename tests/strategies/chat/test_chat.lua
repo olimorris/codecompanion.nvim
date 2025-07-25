@@ -44,7 +44,7 @@ T["Chat"]["buffer variables are handled"] = function()
 
     -- Parse and replace variables in the message
     if chat.variables:parse(chat, message) then
-      message.content = chat.variables:replace(message.content, chat.context.bufnr)
+      message.content = chat.variables:replace(message.content, chat.buffer_context.bufnr)
     end
 
     -- Extract the properties we need to test into simple data types

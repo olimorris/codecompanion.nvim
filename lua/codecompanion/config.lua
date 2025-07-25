@@ -477,6 +477,7 @@ local defaults = {
         completion_provider = providers.completion, -- blink|cmp|coc|default
         register = "+", -- The register to use for yanking code
         yank_jump_delay_ms = 400, -- Delay in milliseconds before jumping back from the yanked code
+
         ---@type string|fun(path: string)
         goto_file_action = ui_utils.tabnew_reuse,
       },
@@ -1168,9 +1169,13 @@ local M = {
 ---@param args? table
 M.setup = function(args)
   args = args or {}
+
   if args.constants then
-    vim.notify("codecompanion.nvim: Your config table cannot have field 'constants', vim.log.levels.ERROR")
-    return
+    return vim.notify(
+      "Your config table cannot have the field `constants`",
+      vim.log.levels.ERROR,
+      { title = "CodeCompanion" }
+    )
   end
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
 end

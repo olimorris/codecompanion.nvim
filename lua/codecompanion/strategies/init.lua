@@ -14,21 +14,21 @@ local function add_adapter(strategy, opts)
 end
 
 ---@class CodeCompanion.Strategies
----@field context table
+---@field buffer_context table
 ---@field selected table
 local Strategies = {}
 
 ---@class CodeCompanion.StrategyArgs
----@field context table
+---@field buffer_context table
 ---@field selected table
 
 ---@param args CodeCompanion.StrategyArgs
 function Strategies.new(args)
-  log:trace("Context: %s", args.context)
+  log:trace("Buffer Context: %s", args.buffer_context)
 
   return setmetatable({
     called = {},
-    context = args.context,
+    buffer_context = args.buffer_context,
     selected = args.selected,
   }, { __index = Strategies })
 end
@@ -74,16 +74,16 @@ function Strategies:chat()
   local messages
 
   local opts = self.selected.opts
-  local mode = self.context.mode:lower()
+  local mode = self.buffer_context.mode:lower()
   local prompts = self.selected.prompts
 
   if type(prompts[mode]) == "function" then
     return prompts[mode]()
   elseif type(prompts[mode]) == "table" then
-    messages = self.evaluate_prompts(prompts[mode], self.context)
+    messages = self.evaluate_prompts(prompts[mode], self.buffer_context)
   else
     -- No mode specified
-    messages = self.evaluate_prompts(prompts, self.context)
+    messages = self.evaluate_prompts(prompts, self.buffer_context)
   end
 
   if not messages or #messages == 0 then
@@ -101,7 +101,7 @@ function Strategies:chat()
     log:info("[Strategy] Chat Initiated")
     return require("codecompanion.strategies.chat").new({
       adapter = self.selected.adapter,
-      context = self.context,
+      buffer_context = self.buffer_context,
       messages = messages,
       from_prompt_library = self.selected.description and true or false,
       auto_submit = (opts and opts.auto_submit) or false,
@@ -121,7 +121,9 @@ function Strategies:chat()
       end
 
       return vim.ui.input({
-        prompt = string.gsub(self.context.filetype, "^%l", string.upper) .. " " .. config.display.action_palette.prompt,
+        prompt = string.gsub(self.buffer_context.filetype, "^%l", string.upper)
+          .. " "
+          .. config.display.action_palette.prompt,
       }, function(input)
         if not input then
           return
@@ -156,7 +158,7 @@ function Strategies:workflow()
         :map(function(prompt)
           local p = vim.deepcopy(prompt)
           if type(p.content) == "function" then
-            p.content = p.content(self.context)
+            p.content = p.content(self.buffer_context)
           end
           if p.role == config.constants.SYSTEM_ROLE and not p.opts then
             p.opts = { visible = false, tags = { "from_custom_prompt" } }
@@ -173,7 +175,7 @@ function Strategies:workflow()
   local chat = require("codecompanion.strategies.chat").new({
     adapter = self.selected.adapter,
     auto_submit = (messages[#messages].opts and messages[#messages].opts.auto_submit) or false,
-    context = self.context,
+    buffer_context = self.buffer_context,
     messages = messages,
   })
 
@@ -193,7 +195,7 @@ function Strategies:workflow()
         local event = {
           callback = function()
             if type(val.content) == "function" then
-              val.content = val.content(self.context)
+              val.content = val.content(self.buffer_context)
             end
             chat:add_buf_message(val)
           end,
@@ -231,7 +233,7 @@ function Strategies:inline()
   -- Allow us to test the inline strategy
   self.called = require("codecompanion.strategies.inline").new({
     adapter = self.selected.adapter,
-    context = self.context,
+    buffer_context = self.buffer_context,
     opts = opts,
     prompts = self.selected.prompts,
   })

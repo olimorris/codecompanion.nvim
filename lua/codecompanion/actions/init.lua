@@ -60,10 +60,10 @@ end
 ---Resolve the selected item into a strategy
 ---@param item table
 ---@param context table
----@return nil
+---@return CodeCompanion.Strategies
 function Actions.resolve(item, context)
   return Strategy.new({
-    context = context,
+    buffer_context = context,
     selected = item,
   }):start(item.strategy)
 end

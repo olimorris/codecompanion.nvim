@@ -20,7 +20,7 @@ local function setup_sticky_chat_buffer()
     callback = function(args)
       local chat = CodeCompanion.last_chat()
       if chat and chat.ui:is_visible_non_curtab() then
-        chat.context = context_utils.get(args.buf)
+        chat.buffer_context = context_utils.get(args.buf)
         vim.schedule(function()
           CodeCompanion.close_last_chat()
           chat.ui:open({ toggled = true })
@@ -46,7 +46,7 @@ end
 ---@return nil
 CodeCompanion.inline = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
-  return require("codecompanion.strategies.inline").new({ context = context }):prompt(args.args)
+  return require("codecompanion.strategies.inline").new({ buffer_context = context }):prompt(args.args)
 end
 
 ---Initiate a prompt from the prompt library
@@ -65,7 +65,7 @@ CodeCompanion.prompt_library = function(prompt, args)
 
   return require("codecompanion.strategies")
     .new({
-      context = context,
+      buffer_context = context,
       selected = prompt,
     })
     :start(prompt.strategy)
@@ -93,7 +93,7 @@ CodeCompanion.prompt = function(name, args)
 
   return require("codecompanion.strategies")
     .new({
-      context = context,
+      buffer_context = context,
       selected = prompt,
     })
     :start(prompt.strategy)
@@ -166,8 +166,8 @@ CodeCompanion.chat = function(args)
   local has_messages = not vim.tbl_isempty(messages)
 
   return require("codecompanion.strategies.chat").new({
-    context = context,
     adapter = adapter,
+    buffer_context = context,
     messages = has_messages and messages or nil,
     auto_submit = has_messages,
   })
@@ -180,7 +180,7 @@ CodeCompanion.cmd = function(args)
 
   return require("codecompanion.strategies.cmd")
     .new({
-      context = context,
+      buffer_context = context,
       prompts = {
         {
           role = config.constants.SYSTEM_ROLE,
@@ -224,7 +224,7 @@ CodeCompanion.toggle = function()
     return chat.ui:hide()
   end
 
-  chat.context = context_utils.get(api.nvim_get_current_buf())
+  chat.buffer_context = context_utils.get(api.nvim_get_current_buf())
   CodeCompanion.close_last_chat()
   chat.ui:open({ toggled = true })
 end
