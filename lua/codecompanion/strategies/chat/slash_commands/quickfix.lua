@@ -261,7 +261,7 @@ end
 ---@param filepath string Path to the file
 ---@param file_data table File data with diagnostics
 ---@return string|nil description Formatted description for chat or nil if failed
----@return string id Reference ID for the file
+---@return string id Context ID for the file
 local function process_single_file(filepath, file_data)
   local relative_path = vim.fn.fnamemodify(filepath, ":.")
   local ft = vim.filetype.match({ filename = filepath })
@@ -286,9 +286,9 @@ local function process_single_file(filepath, file_data)
       end
       description = fmt(
         [[<attachment filepath="%s">Here is the content from the file with quickfix entries (small file, showing all content):
-  
+
   %s
-  
+
 ```%s
 %s
 ```
@@ -331,9 +331,9 @@ local function process_single_file(filepath, file_data)
 
       description = fmt(
         [[<attachment filepath="%s">Here is the content from the file with quickfix entries:
-  
+
   %s
-  
+
 ```%s
 %s
 ```
@@ -349,7 +349,7 @@ local function process_single_file(filepath, file_data)
     content = file_content
     description = fmt(
       [[<attachment filepath="%s">Here is the content from the file:
-  
+
 ```%s
 %s
 ```
@@ -376,9 +376,9 @@ function SlashCommand:output_entries(entries)
       self.Chat:add_message({
         role = config.constants.USER_ROLE,
         content = description,
-      }, { reference = id, visible = false })
+      }, { context_id = id, visible = false })
 
-      self.Chat.references:add({
+      self.Chat.context:add({
         id = id,
         path = filepath,
         source = "codecompanion.strategies.chat.slash_commands.qflist",

@@ -398,7 +398,7 @@ return {
         tool_success = "!!",
         tool_failure = "xx",
       },
-      show_references = true,
+      show_context = true,
       show_settings = false,
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer

@@ -29,7 +29,7 @@ function Variable:output(selected, opts)
   selected = selected or {}
   opts = opts or {}
 
-  local bufnr = selected.bufnr or self.Chat.context.bufnr
+  local bufnr = selected.bufnr or self.Chat.buffer_context.bufnr
   local params = selected.params or self.params
 
   if params and not vim.tbl_contains(reserved_params, params) then
@@ -58,7 +58,7 @@ function Variable:output(selected, opts)
     return
   end
 
-  self.Chat.references:add({
+  self.Chat.context:add({
     bufnr = bufnr,
     params = params,
     id = id,

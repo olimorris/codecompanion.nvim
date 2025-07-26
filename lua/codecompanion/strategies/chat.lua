@@ -19,8 +19,8 @@
 ---@field messages? table The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
----@field references CodeCompanion.Chat.References
----@field refs? table<CodeCompanion.Chat.Ref> References which are sent to the LLM e.g. buffers, slash command output
+---@field context CodeCompanion.Chat.Context
+---@field context_items? table<CodeCompanion.Chat.Context> Context which is sent to the LLM e.g. buffers, slash command output
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field tokens? nil|number The number of tokens in the chat
@@ -82,9 +82,9 @@ local user_role = config.strategies.chat.roles.user
 ---@return nil
 local function add_pins(chat)
   local pins = vim
-    .iter(chat.refs)
-    :filter(function(ref)
-      return ref.opts.pinned
+    .iter(chat.context_items)
+    :filter(function(ctx)
+      return ctx.opts.pinned
     end)
     :totable()
 
@@ -96,7 +96,7 @@ local function add_pins(chat)
     -- Don't add the pin twice in the same cycle
     local exists = false
     vim.iter(chat.messages):each(function(msg)
-      if msg.opts and msg.opts.reference == pin.id and msg.cycle == chat.cycle then
+      if msg.opts and msg.opts.context_id == pin.id and msg.cycle == chat.cycle then
         exists = true
       end
     end)
@@ -207,7 +207,7 @@ local function ready_chat_buffer(chat, opts)
 
     set_text_editing_area(chat, -2)
     chat.ui:display_tokens(chat.parser, chat.header_line)
-    chat.references:render()
+    chat.context:render()
 
     chat.subscribers:process(chat)
   end
@@ -293,7 +293,7 @@ local function ts_parse_messages(chat, start_range)
     end
   end
 
-  content = helpers.strip_references(content) -- If users send a blank message to the LLM, sometimes references are included
+  content = helpers.strip_context(content) -- If users send a blank message to the LLM, sometimes context is included
   if not vim.tbl_isempty(content) then
     return { content = vim.trim(table.concat(content, "\n\n")) }
   end
@@ -528,13 +528,13 @@ function Chat.new(args)
 
   local self = setmetatable({
     buffer_context = args.buffer_context,
+    context_items = {},
     cycle = 1,
     header_line = 1,
     from_prompt_library = args.from_prompt_library or false,
     id = id,
     messages = args.messages or {},
     opts = args,
-    refs = {},
     status = "",
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
@@ -569,7 +569,7 @@ function Chat.new(args)
 
   self.agents = require("codecompanion.strategies.chat.agents").new({ bufnr = self.bufnr, messages = self.messages })
   self.builder = require("codecompanion.strategies.chat.ui.builder").new({ chat = self })
-  self.references = require("codecompanion.strategies.chat.references").new({ chat = self })
+  self.context = require("codecompanion.strategies.chat.context").new({ chat = self })
   self.subscribers = require("codecompanion.strategies.chat.subscribers").new()
   self.tools = require("codecompanion.strategies.chat.tools").new({ chat = self })
   self.variables = require("codecompanion.strategies.chat.variables").new()
@@ -893,13 +893,13 @@ function Chat:submit(opts)
     end
 
     -- NOTE: There are instances when submit is called with no user message. Such
-    -- as in the case of tools auto-submitting responses. References should be
+    -- as in the case of tools auto-submitting responses. Context should be
     -- excluded and we can do this by checking for user messages.
     if message then
-      message = self.references:clear(self.messages[#self.messages])
+      message = self.context:clear(self.messages[#self.messages])
       self:replace_vars_and_tools(message)
       self:check_images(message)
-      self:check_references()
+      self:check_context()
       add_pins(self)
     end
 
@@ -1048,15 +1048,15 @@ function Chat:done(output, reasoning, tools)
   util.fire("ChatDone", { bufnr = self.bufnr, id = self.id })
 end
 
----Add a reference to the chat buffer (Useful for user's adding custom Slash Commands)
+---Add context to the chat buffer (Useful for user's adding custom Slash Commands)
 ---@param data { role: string, content: string }
 ---@param source string
 ---@param id string
 ---@param opts? table Options for the message
-function Chat:add_reference(data, source, id, opts)
-  opts = opts or { reference = id, visible = false }
+function Chat:add_context(data, source, id, opts)
+  opts = opts or { context_id = id, visible = false }
 
-  self.references:add({ source = source, id = id })
+  self.context:add({ source = source, id = id })
   self:add_message(data, opts)
 end
 
@@ -1083,11 +1083,11 @@ function Chat:check_images(message)
   end
 end
 
----Reconcile the references table to the references in the chat buffer
+---Reconcile the context_items table to the items in the chat buffer
 ---@return nil
-function Chat:check_references()
-  local refs_in_chat = self.references:get_from_chat()
-  if vim.tbl_isempty(refs_in_chat) and vim.tbl_isempty(self.refs) then
+function Chat:check_context()
+  local context_in_chat = self.context:get_from_chat()
+  if vim.tbl_isempty(context_in_chat) and vim.tbl_isempty(self.context_items) then
     return
   end
 
@@ -1099,25 +1099,25 @@ function Chat:check_references()
   end
 
   local groups_in_chat = {}
-  for _, id in ipairs(refs_in_chat) do
+  for _, id in ipairs(context_in_chat) do
     local group_name = id:match("<group>(.*)</group>")
     if group_name and vim.trim(group_name) ~= "" then
       table.insert(groups_in_chat, group_name)
     end
   end
-  -- Populate the refs_in_chat with tool refs from groups
+  -- Populate the context_in_chat with tool refs from groups
   vim.iter(groups_in_chat):each(function(group_name)
-    vim.list_extend(refs_in_chat, expand_group_ref(group_name))
+    vim.list_extend(context_in_chat, expand_group_ref(group_name))
   end)
 
-  -- Fetch references that exist on the chat object but not in the buffer
+  -- Fetch context items that exist on the chat object but not in the buffer
   local to_remove = vim
-    .iter(self.refs)
-    :filter(function(ref)
-      return not vim.tbl_contains(refs_in_chat, ref.id)
+    .iter(self.context_items)
+    :filter(function(ctx)
+      return not vim.tbl_contains(context_in_chat, ctx.id)
     end)
-    :map(function(ref)
-      return ref.id
+    :map(function(ctx)
+      return ctx.id
     end)
     :totable()
 
@@ -1138,18 +1138,18 @@ function Chat:check_references()
   self.messages = vim
     .iter(self.messages)
     :filter(function(msg)
-      if msg.opts and msg.opts.reference and vim.tbl_contains(to_remove, msg.opts.reference) then
+      if msg.opts and msg.opts.context_id and vim.tbl_contains(to_remove, msg.opts.context_id) then
         return false
       end
       return true
     end)
     :totable()
 
-  -- And from the refs table
-  self.refs = vim
-    .iter(self.refs)
-    :filter(function(ref)
-      return not vim.tbl_contains(to_remove, ref.id)
+  -- And from the context_items table
+  self.context_items = vim
+    .iter(self.context_items)
+    :filter(function(ctx)
+      return not vim.tbl_contains(to_remove, ctx.id)
     end)
     :totable()
 
@@ -1320,7 +1320,7 @@ function Chat:clear()
   self.cycle = 1
   self.header_line = 1
   self.messages = {}
-  self.refs = {}
+  self.context_items = {}
 
   self.tools:clear()
 

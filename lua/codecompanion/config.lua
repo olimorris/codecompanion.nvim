@@ -376,8 +376,8 @@ local defaults = {
             n = "gp",
           },
           index = 9,
-          callback = "keymaps.pin_reference",
-          description = "Pin Reference",
+          callback = "keymaps.pin_context",
+          description = "Pin context",
         },
         watch = {
           modes = {
@@ -1059,7 +1059,7 @@ You must create or modify a workspace file through a series of prompts over mult
       show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
       separator = "─", -- The separator between the different messages in the chat buffer
 
-      show_references = true, -- Show references (from slash commands and variables) in the chat buffer?
+      show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_tools_processing = true, -- Show the loading message when tools are being executed?
       show_token_count = true, -- Show the token count for each response?

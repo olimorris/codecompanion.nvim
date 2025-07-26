@@ -134,7 +134,7 @@ function SlashCommand:add_to_chat(group, item)
   -- Extract options if present
   local opts = resource.opts or {}
 
-  return slash_commands.references(self.Chat, resource.type, { path = path, description = description, opts = opts })
+  return slash_commands.context(self.Chat, resource.type, { path = path, description = description, opts = opts })
 end
 
 ---Execute the slash command

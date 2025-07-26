@@ -36,7 +36,7 @@ T["Chat"]["buffer variables are handled"] = function()
     -- Get the existing chat object
     local chat = _G.chat
 
-    -- Add a new message with a variable reference
+    -- Add a new message with a variable context
     table.insert(chat.messages, { role = "user", content = "#{foo} what does this file do?" })
 
     -- Get the message we just added
@@ -143,7 +143,7 @@ T["Chat"]["images are replaced in text and base64 encoded"] = function()
 
   h.eq({
     mimetype = "image/png",
-    reference = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fn.getcwd()),
+    context_id = string.format("<image>%s/tests/stubs/logo.png</image>", vim.fn.getcwd()),
     tag = "image",
     visible = false,
   }, message.opts)
@@ -171,7 +171,7 @@ T["Chat"]["can bring up keymap options in the chat buffer"] = function()
 end
 
 T["Chat"]["can load default tools"] = function()
-  local refs = child.lua([[
+  local ctx = child.lua([[
     codecompanion = require("codecompanion")
     h = require('tests.helpers')
     _G.chat, _G.agent = h.setup_chat_buffer({
@@ -186,12 +186,12 @@ T["Chat"]["can load default tools"] = function()
       }
     })
 
-    return _G.chat.refs
+    return _G.chat.context_items
   ]])
   h.eq(
     { "<tool>weather</tool>", "<group>tool_group</group>", "<tool>func</tool>", "<tool>cmd</tool>" },
     vim
-      .iter(refs)
+      .iter(ctx)
       :map(function(item)
         return item.id
       end)

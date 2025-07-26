@@ -173,7 +173,7 @@ function SlashCommand:output(selected, opts)
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = content,
-  }, { reference = id, visible = false })
+  }, { context_id = id, visible = false })
 
   if opts.pin then
     return
@@ -188,7 +188,7 @@ function SlashCommand:output(selected, opts)
     end
   end
 
-  self.Chat.references:add({
+  self.Chat.context:add({
     bufnr = selected.bufnr,
     id = id,
     path = selected.path,
