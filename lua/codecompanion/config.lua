@@ -63,6 +63,7 @@ local defaults = {
               "get_changed_files",
               "grep_search",
               "insert_edit_into_file",
+              "list_code_usages",
               "read_file",
               "search_web",
             },
@@ -166,6 +167,10 @@ local defaults = {
               max_results = 5,
             },
           },
+        },
+        ["list_code_usages"] = {
+          callback = "strategies.chat.agents.tools.list_code_usages",
+          description = "Find code symbol context",
         },
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
