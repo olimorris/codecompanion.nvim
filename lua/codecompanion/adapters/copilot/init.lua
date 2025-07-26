@@ -63,7 +63,7 @@ end
 ---specifically for GitHub Codespaces. If not found, it then attempts to load
 ---the token from configuration files located in the user's configuration path.
 ---@return CopilotOAuthToken
-local function get_token()
+local function get_token(self)
   if _oauth_token then
     return _oauth_token
   end
@@ -94,7 +94,7 @@ local function get_token()
 
       local userdata = vim.json.decode(userdata)
       for key, value in pairs(userdata) do
-        if string.find(key, "github.com") then
+        if key:find(self.opts.provider_url, 1, true) == 1 then
           return value.oauth_token
         end
       end
@@ -106,15 +106,20 @@ end
 
 ---Authorize the GitHub OAuth token
 ---@return CopilotToken
-local function authorize_token()
+local function authorize_token(self)
   if _github_token and _github_token.expires_at > os.time() then
     log:trace("Reusing GitHub Copilot token")
     return _github_token
   end
 
+  if not self then
+    log:error("Copilot Adapter: Unable to authorize token")
+  end
+
   log:debug("Authorizing GitHub Copilot token")
 
-  local request = curl.get("https://api.github.com/copilot_internal/v2/token", {
+  local api_url = "https://api." .. self.opts.provider_url .. "/copilot_internal/v2/token"
+  local request = curl.get(api_url, {
     headers = {
       Authorization = "Bearer " .. _oauth_token,
       ["Accept"] = "application/json",
@@ -134,17 +139,18 @@ end
 ---@param self CodeCompanion.Adapter
 ---@return boolean success
 local function get_and_authorize_token(self)
-  _oauth_token = get_token()
+  _oauth_token = get_token(self)
   if not _oauth_token then
     log:error("Copilot Adapter: No token found. Please refer to https://github.com/github/copilot.vim")
     return false
   end
 
-  _github_token = authorize_token()
+  _github_token = authorize_token(self)
   if not _github_token or vim.tbl_isempty(_github_token) then
     log:error("Copilot Adapter: Could not authorize your GitHub Copilot token")
     return false
   end
+  self.api = _github_token.endpoints.api
   self.url = _github_token.endpoints.api .. "/chat/completions"
 
   return true
@@ -163,11 +169,13 @@ return {
     stream = true,
     tools = true,
     vision = true,
+    provider_url = 'github.com',
   },
   features = {
     text = true,
     tokens = true,
   },
+  api = "https://api.githubcopilot.com",
   url = "https://api.githubcopilot.com/chat/completions",
   env = {
     ---@return string|nil
