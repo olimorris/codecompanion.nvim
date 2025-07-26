@@ -205,13 +205,13 @@ function SlashCommand:output(selected, opts)
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = description or "",
-  }, { reference = id, visible = false })
+  }, { context_id = id, visible = false })
 
   if opts.pin then
     return
   end
 
-  self.Chat.references:add({
+  self.Chat.context:add({
     id = id or "",
     path = selected.path,
     source = "codecompanion.strategies.chat.slash_commands.file",

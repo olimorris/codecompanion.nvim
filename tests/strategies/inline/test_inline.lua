@@ -64,25 +64,25 @@ T["Inline"]["handles different placements"] = function()
   -- Test 'add' placement
   inline:place("add")
   h.eq(inline.classification.pos, {
-    line = inline.context.end_line + 1,
+    line = inline.buffer_context.end_line + 1,
     col = 0,
-    bufnr = inline.context.bufnr,
+    bufnr = inline.buffer_context.bufnr,
   })
 
   -- Test 'replace' placement
   inline:place("replace")
   h.eq(inline.classification.pos, {
-    line = inline.context.start_line,
-    col = inline.context.start_col,
-    bufnr = inline.context.bufnr,
+    line = inline.buffer_context.start_line,
+    col = inline.buffer_context.start_col,
+    bufnr = inline.buffer_context.bufnr,
   })
 
   -- Test 'before' placement
   inline:place("before")
   h.eq(inline.classification.pos, {
-    line = inline.context.start_line - 1,
-    col = math.max(0, inline.context.start_col - 1),
-    bufnr = inline.context.bufnr,
+    line = inline.buffer_context.start_line - 1,
+    col = math.max(0, inline.buffer_context.start_col - 1),
+    bufnr = inline.buffer_context.bufnr,
   })
 end
 
@@ -96,8 +96,8 @@ T["Inline"]["forms correct prompts"] = function()
   }
 
   inline.prompts = prompts
-  inline.context.is_visual = true
-  inline.context.lines = { "local x = 1" }
+  inline.buffer_context.is_visual = true
+  inline.buffer_context.lines = { "local x = 1" }
 
   inline:prompt("Hello World")
 
@@ -161,7 +161,7 @@ T["Inline"]["can be called from the action palette"] = function()
   }
 
   local strategy = require("codecompanion.strategies").new({
-    context = inline.context,
+    buffer_context = inline.buffer_context,
     selected = prompt,
   })
   strategy:start("inline")

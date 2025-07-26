@@ -343,14 +343,14 @@ It may also be useful to create custom prompts that do not send the default syst
 }
 ```
 
-### Prompts with References
+### Prompts with Context
 
-It can be useful to pre-load a chat buffer with references to _files_, _symbols_ or even _urls_. This makes conversing with an LLM that much more productive. As per `v11.9.0`, this can now be accomplished, as per the example below:
+It can be useful to pre-load a chat buffer with context from _files_, _symbols_ or even _urls_. This makes conversing with an LLM that much more productive. This can now accomplished, as per the example below:
 
 ```lua
-["Test References"] = {
+["Test Context"] = {
   strategy = "chat",
-  description = "Add some references",
+  description = "Add some context",
   opts = {
     index = 11,
     is_default = true,
@@ -359,7 +359,7 @@ It can be useful to pre-load a chat buffer with references to _files_, _symbols_
     auto_submit = false,
   },
   -- These will appear at the top of the chat buffer
-  references = {
+  context = {
     {
       type = "file",
       path = { -- This can be a string or a table of values

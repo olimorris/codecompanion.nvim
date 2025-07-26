@@ -40,7 +40,11 @@ function M.resolve(context, config)
       description = description,
       name = name,
       opts = prompt.opts,
+
+      --TODO: Remove this in v18.0.0
       references = prompt.references,
+
+      context = prompt.context,
       picker = prompt.picker,
       prompts = prompt.prompts,
       strategy = prompt.strategy,

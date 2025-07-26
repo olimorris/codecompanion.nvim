@@ -381,8 +381,8 @@ local defaults = {
             n = "gp",
           },
           index = 9,
-          callback = "keymaps.pin_reference",
-          description = "Pin Reference",
+          callback = "keymaps.pin_context",
+          description = "Pin context",
         },
         watch = {
           modes = {
@@ -482,6 +482,7 @@ local defaults = {
         completion_provider = providers.completion, -- blink|cmp|coc|default
         register = "+", -- The register to use for yanking code
         yank_jump_delay_ms = 400, -- Delay in milliseconds before jumping back from the yanked code
+
         ---@type string|fun(path: string)
         goto_file_action = ui_utils.tabnew_reuse,
       },
@@ -948,7 +949,7 @@ This is the code, for context:
         is_default = true,
         short_name = "workspace",
       },
-      references = {
+      context = {
         {
           type = "file",
           path = {
@@ -1063,7 +1064,7 @@ You must create or modify a workspace file through a series of prompts over mult
       show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
       separator = "─", -- The separator between the different messages in the chat buffer
 
-      show_references = true, -- Show references (from slash commands and variables) in the chat buffer?
+      show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_tools_processing = true, -- Show the loading message when tools are being executed?
       show_token_count = true, -- Show the token count for each response?
@@ -1173,9 +1174,13 @@ local M = {
 ---@param args? table
 M.setup = function(args)
   args = args or {}
+
   if args.constants then
-    vim.notify("codecompanion.nvim: Your config table cannot have field 'constants', vim.log.levels.ERROR")
-    return
+    return vim.notify(
+      "Your config table cannot have the field `constants`",
+      vim.log.levels.ERROR,
+      { title = "CodeCompanion" }
+    )
   end
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
 end

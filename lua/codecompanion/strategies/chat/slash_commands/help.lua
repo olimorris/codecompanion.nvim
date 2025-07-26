@@ -86,9 +86,9 @@ Note the path to the help file is `%s`.
       content,
       selected.path
     ),
-  }, { reference = id, visible = false })
+  }, { context_id = id, visible = false })
 
-  Chat.references:add({
+  Chat.context:add({
     source = "slash_command",
     name = "help",
     id = id,

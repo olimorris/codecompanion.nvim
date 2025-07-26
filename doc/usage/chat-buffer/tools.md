@@ -208,7 +208,7 @@ CodeCompanion comes with two built-in tool groups:
 
 When you include a tool group in your chat (e.g., `@{files}`), all tools within that group become available to the LLM. By default, all the tools in the group will be shown as a single `<group>name</group>` reference in the chat buffer.
 
-If you want to show all tools as references in the chat buffer, set the `opts.collapse_tools` option to `false` on the group itself.
+If you want to show all tools as context items in the chat buffer, set the `opts.collapse_tools` option to `false` on the group itself.
 
 ## Useful Tips
 

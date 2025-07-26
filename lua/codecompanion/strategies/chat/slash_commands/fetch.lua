@@ -63,6 +63,7 @@ local function format_output(url, text)
 end
 
 ---Output the contents of the URL to the chat buffer @param chat CodeCompanion.Chat
+---@param chat CodeCompanion.Chat
 ---@param data table
 ---@param opts? table
 ---@return nil
@@ -73,9 +74,9 @@ local function output(chat, data, opts)
   chat:add_message({
     role = config.constants.USER_ROLE,
     content = format_output(data.url, data.content),
-  }, { reference = id, visible = false })
+  }, { context_id = id, visible = false })
 
-  chat.references:add({
+  chat.context:add({
     source = "slash_command",
     name = "fetch",
     id = id,

@@ -227,13 +227,13 @@ return {
             opts = { collapse_tools = true },
           },
           ["test_group2"] = {
-            description = "Group to be used for testing references",
+            description = "Group to be used for testing context",
             system_prompt = "Individual tools system prompt",
             tools = { "func", "weather" },
             opts = { collapse_tools = false },
           },
           ["remove_group"] = {
-            description = "Group to be removed during testing of references",
+            description = "Group to be removed during testing of context",
             system_prompt = "System prompt to be removed",
             tools = { "func", "weather" },
             opts = { collapse_tools = true },
@@ -367,9 +367,9 @@ return {
         },
       },
     },
-    ["Test References"] = {
+    ["Test Context"] = {
       strategy = "chat",
-      description = "Add some references",
+      description = "Add some context",
       opts = {
         index = 1,
         is_default = true,
@@ -377,7 +377,7 @@ return {
         short_name = "test_ref",
         auto_submit = false,
       },
-      references = {
+      context = {
         {
           type = "file",
           path = {
@@ -389,7 +389,7 @@ return {
       prompts = {
         {
           role = "foo",
-          content = "I need some references",
+          content = "I need some context",
         },
       },
     },
@@ -402,7 +402,7 @@ return {
         tool_success = "!!",
         tool_failure = "xx",
       },
-      show_references = true,
+      show_context = true,
       show_settings = false,
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer

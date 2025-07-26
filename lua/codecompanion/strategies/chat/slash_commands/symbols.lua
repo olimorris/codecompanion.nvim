@@ -253,9 +253,9 @@ Prompt the user if you need to see more than the symbolic outline.
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = description,
-  }, { reference = id, visible = false })
+  }, { context_id = id, visible = false })
 
-  self.Chat.references:add({
+  self.Chat.context:add({
     source = "slash_command",
     name = "symbols",
     id = id,

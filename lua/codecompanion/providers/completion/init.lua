@@ -53,8 +53,10 @@ end
 ---@return nil
 function M.slash_commands_execute(selected, chat)
   if selected.from_prompt_library then
-    if selected.config.references then
-      strategy.add_ref(selected.config, chat)
+    --TODO: Remove this check in v18.0.0
+    local context = selected.config.references or selected.config.context
+    if context then
+      strategy.add_context(selected.config, chat)
     end
 
     local prompts = strategy.evaluate_prompts(selected.config.prompts, selected.context)

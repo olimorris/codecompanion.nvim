@@ -1,6 +1,5 @@
 local base64 = require("codecompanion.utils.base64")
 local config = require("codecompanion.config")
-local log = require("codecompanion.utils.log")
 local path = require("plenary.path")
 local get_node_text = vim.treesitter.get_node_text
 
@@ -16,10 +15,10 @@ function M.format_role(role)
   return role
 end
 
----Strip any references from the messages
+---Strip any context from the messages
 ---@param messages table
 ---@return table
-function M.strip_references(messages)
+function M.strip_context(messages)
   local i = 1
   while messages[i] and messages[i]:sub(1, 1) == ">" do
     table.remove(messages, i)
@@ -76,9 +75,9 @@ function M.add_image(Chat, image, opts)
   Chat:add_message({
     role = opts.role or config.constants.USER_ROLE,
     content = image.base64,
-  }, { reference = id, mimetype = image.mimetype, tag = "image", visible = false })
+  }, { context_id = id, mimetype = image.mimetype, tag = "image", visible = false })
 
-  Chat.references:add({
+  Chat.context:add({
     bufnr = opts.bufnr or image.bufnr,
     id = id,
     path = image.path,

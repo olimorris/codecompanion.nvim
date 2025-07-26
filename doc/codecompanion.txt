@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2025 July 25
+*codecompanion.txt*          For NVIM v0.11          Last change: 2025 July 26
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1162,7 +1162,7 @@ You can also add your own slash commands:
                 if handle ~= nil then
                   local result = handle:read("*a")
                   handle:close()
-                  chat:add_reference({ role = "user", content = result }, "git", "<git_files>")
+                  chat:add_context({ role = "user", content = result }, "git", "<git_files>")
                 else
                   return vim.notify("No git files available", vim.log.levels.INFO, { title = "CodeCompanion" })
                 end
@@ -1566,7 +1566,7 @@ There are also a number of other options that you can customize:
           intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
           show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
           separator = "─", -- The separator between the different messages in the chat buffer
-          show_references = true, -- Show references (from slash commands and variables) in the chat buffer?
+          show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
           show_settings = false, -- Show LLM settings at the top of the chat buffer?
           show_token_count = true, -- Show the token count for each response?
           start_in_insert_mode = false, -- Open the chat buffer in insert mode?
@@ -1713,7 +1713,7 @@ Custom prompts can be added as follows:
             auto_submit = false,
             short_name = "docs",
           },
-          references = {
+          context = {
             {
               type = "file",
               path = {
@@ -2066,23 +2066,23 @@ endeavour to ensure that the image is not included in the messages payload
 that’s sent to the LLM.
 
 
-REFERENCES / CONTEXT ~
+CONTEXT ~
 
 
 
 Sharing context with an LLM is crucial in order to generate useful responses.
-In the plugin, references are defined as output that is shared with a chat
-buffer via a `Variable`, `Slash Command` or `Agent/Tool`. They appear in a
-blockquote entitled `Context`. In essence, this is context that you’re
-sharing with an LLM.
+In the plugin, context is defined as output that is shared with a chat buffer
+via a `Variable`, `Slash Command` or `Agent/Tool`. They appear in a blockquote
+entitled `Context`. In essence, this is context that you’re sharing with an
+LLM.
 
 
-  [!IMPORTANT] References contain the data of an object at a point in time. By
+  [!IMPORTANT] Context items contain the data of an object at a point in time. By
   default, they **are not** self-updating
-In order to allow for references to self-update, they can be `pinned` (for
-files and buffers) or `watched` (for buffers).
+In order to allow for context to self-update, they can be `pinned` (for files
+and buffers) or `watched` (for buffers).
 
-File and buffer references can be `pinned` to a chat buffer with the `gp`
+File and buffer context items can be `pinned` to a chat buffer with the `gp`
 keymap (when your cursor is on the line of the shared buffer in the “>
 Context section). Pinning results in the content from the object being reloaded
 and shared with the LLM on every turn. The advantage of this is that the LLM
@@ -2090,20 +2090,19 @@ will always receive a fresh copy of the source data regardless of any changes.
 This can be useful if you’re working with agents and tools. However, please
 note that this can consume a lot of tokens.
 
-Buffer references can be `watched` via the `gw` keymap (when your cursor is on
-the line of the shared buffer in the “> Context section). Watching, whilst
+Buffer context items can be `watched` via the `gw` keymap (when your cursor is
+on the line of the shared buffer in the “> Context section). Watching, whilst
 similar to pinning, is a more token-conscious way of keeping the LLM up to date
 on the contents of a buffer. Watchers track changes (adds, edits, deletes) in
 the underlying buffer and update the LLM on each turn, with only those changes.
 
-If a reference is added by mistake, it can be removed from the chat buffer by
-simply deleting it from the `Context` blockquote. On the next turn, all context
-related to that reference will be removed from the message history.
+If a context item is added by mistake, it can be removed from the chat buffer
+by simply deleting it from the `Context` blockquote. On the next turn, all data
+related to that context item will be removed from the message history.
 
 Finally, it’s important to note that all LLM endpoints require the sending of
 previous messages that make up the conversation. So even though you’ve shared
-a reference once, many messages ago, the LLM will always have that context to
-refer to.
+context once, many messages ago, the LLM will always have that it to refer to.
 
 
 SETTINGS ~
@@ -2145,8 +2144,8 @@ The keymaps available to the user in normal mode are:
 - `gc` to insert a codeblock in the chat buffer
 - `gd` to view/debug the chat buffer’s contents
 - `gf` to fold any codeblocks in the chat buffer
-- `gp` to pin a reference to the chat buffer
-- `gw` to watch a referenced buffer
+- `gp` to pin an item to the context in the chat buffer
+- `gw` to watch a buffer as context in the chat buffer
 - `gr` to regenerate the last response
 - `gR` to go to the file under cursor. If the file is already opened, it’ll jump
     to the existing window. Otherwise, it’ll be opened in a new tab.
@@ -2434,7 +2433,7 @@ When you include a tool group in your chat (e.g., `@{files}`), all tools within
 that group become available to the LLM. By default, all the tools in the group
 will be shown as a single `<group>name</group>` reference in the chat buffer.
 
-If you want to show all tools as references in the chat buffer, set the
+If you want to show all tools as context items in the chat buffer, set the
 `opts.collapse_tools` option to `false` on the group itself.
 
 
@@ -2631,7 +2630,7 @@ Variables allow you to share data about the current state of Neovim with an
 LLM. Simply type `#` in the chat buffer and trigger code completion if you’re
 not using blink.cmp or nvim-cmp (or coc.nvim). Alternatively, type the
 variables manually. After the response is sent to the LLM, you should see the
-variable output tagged as a reference in the chat buffer.
+variable output tagged as a context item in the chat buffer.
 
 Custom variables can be shared by adding them to the
 `strategies.chat.variables` table in your configuration.
@@ -2646,8 +2645,8 @@ Custom variables can be shared by adding them to the
 The `#{buffer}` variable shares the full contents from the buffer that the user
 was last in when they initiated `:CodeCompanionChat`. To select another buffer,
 use the `/buffer` slash command. These buffers can be
-|codecompanion-usage-chat-buffer-index-references| to enable updated content to
-be automatically shared with the LLM:
+|codecompanion-usage-chat-buffer-index-context| to enable updated content to be
+automatically shared with the LLM:
 
 - `#{buffer}{pin}` - To pin the current buffer
 - `#{buffer}{watch}` - To watch the current buffer
@@ -2707,7 +2706,7 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatCleared` - Fired after a chat has been cleared
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
-- `CodeCompanionChatPin` - Fired after a pinned reference has been updated in the messages table
+- `CodeCompanionChatPin` - Fired after a pinned context item has been updated in the messages table
 - `CodeCompanionAgentStarted` - Fired when an agent has been initiated to run tools
 - `CodeCompanionAgentFinished` - Fired when an agent has finished running all tools
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
@@ -3971,17 +3970,16 @@ system prompt with the request:
 <
 
 
-PROMPTS WITH REFERENCES
+PROMPTS WITH CONTEXT
 
-It can be useful to pre-load a chat buffer with references to `files`,
-`symbols` or even `urls`. This makes conversing with an LLM that much more
-productive. As per `v11.9.0`, this can now be accomplished, as per the example
-below:
+It can be useful to pre-load a chat buffer with context from `files`, `symbols`
+or even `urls`. This makes conversing with an LLM that much more productive.
+This can now accomplished, as per the example below:
 
 >lua
-    ["Test References"] = {
+    ["Test Context"] = {
       strategy = "chat",
-      description = "Add some references",
+      description = "Add some context",
       opts = {
         index = 11,
         is_default = true,
@@ -3990,7 +3988,7 @@ below:
         auto_submit = false,
       },
       -- These will appear at the top of the chat buffer
-      references = {
+      context = {
         {
           type = "file",
           path = { -- This can be a string or a table of values
@@ -5032,7 +5030,7 @@ and below is an extract of CodeCompanion’s own workspace file:
           "opts": {
             "remove_config_system_prompt": true
           },
-          "data": ["chat-buffer-init", "chat-references", "chat-watchers"]
+          "data": ["chat-buffer-init", "chat-context", "chat-watchers"]
         },
       ],
       "data": {
@@ -5041,10 +5039,10 @@ and below is an extract of CodeCompanion’s own workspace file:
           "path": "lua/codecompanion/strategies/chat/init.lua",
           "description": "The `${filename}` file is the entry point for the chat strategy. All methods directly relating to the chat buffer reside here."
         },
-        "chat-references": {
+        "chat-context": {
           "type": "symbols",
-          "path": "lua/codecompanion/strategies/chat/references.lua",
-          "description": "References are files, buffers, symbols or URLs that are shared with an LLM to provide additional context. The `${filename}` is where this logic sits and I've shared its symbolic outline below."
+          "path": "lua/codecompanion/strategies/chat/context.lua",
+          "description": "Context is files, buffers, symbols or URLs that are shared with an LLM to provide additional context. The `${filename}` is where this logic sits and I've shared its symbolic outline below."
         },
         "chat-watchers": {
           "type": "symbols",
@@ -5077,7 +5075,7 @@ data are defined. Exploring the `Chat Buffer` group in detail:
       "opts": {
         "remove_config_system_prompt": true
       },
-      "data": ["chat-buffer-init", "chat-references", "chat-watchers"]
+      "data": ["chat-buffer-init", "chat-context", "chat-watchers"]
     }
 <
 

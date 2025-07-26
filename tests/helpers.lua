@@ -71,7 +71,7 @@ Helpers.setup_chat_buffer = function(config, adapter)
   end
 
   local chat = require("codecompanion.strategies.chat").new({
-    context = { bufnr = 1, filetype = "lua" },
+    buffer_context = { bufnr = 1, filetype = "lua" },
     adapter = adapter and adapter.name or "test_adapter",
   })
   chat.vars = {
@@ -168,7 +168,7 @@ Helpers.setup_inline = function(config)
   config_module.setup(vim.tbl_deep_extend("force", test_config, config or {}))
 
   return require("codecompanion.strategies.inline").new({
-    context = {
+    buffer_context = {
       winnr = 0,
       bufnr = 0,
       filetype = "lua",

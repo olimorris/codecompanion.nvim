@@ -29,13 +29,13 @@ function Tools.new(args)
   return self
 end
 
----Add a reference to the tool in the chat buffer
+---Add context about the tool in the chat buffer
 ---@param chat CodeCompanion.Chat The chat buffer
 ---@param id string The id of the tool
----@param opts? table Optional parameters for the reference
+---@param opts? table Optional parameters for the context_item
 ---@return nil
-local function add_reference(chat, id, opts)
-  chat.references:add({
+local function add_context(chat, id, opts)
+  chat.context:add({
     source = "tool",
     name = "tool",
     id = id,
@@ -58,7 +58,7 @@ local function add_system_prompt(chat, tool, id)
     end
     chat:add_message(
       { role = config.constants.SYSTEM_ROLE, content = system_prompt },
-      { visible = false, tag = "tool", reference = id }
+      { visible = false, tag = "tool", context_id = id }
     )
   end
 end
@@ -87,7 +87,7 @@ function Tools:add(tool, tool_config, opts)
   end
 
   local id = "<tool>" .. tool .. "</tool>"
-  add_reference(self.chat, id, opts)
+  add_context(self.chat, id, opts)
   add_system_prompt(self.chat, resolved_tool, id)
   add_schema(self, resolved_tool, id)
 
@@ -121,11 +121,11 @@ function Tools:add_group(group, tools_config)
     self.chat:add_message({
       role = config.constants.SYSTEM_ROLE,
       content = system_prompt,
-    }, { tag = "tool", visible = false, reference = group_id })
+    }, { tag = "tool", visible = false, context_id = group_id })
   end
 
   if collapse_tools then
-    add_reference(self.chat, group_id)
+    add_context(self.chat, group_id)
   end
   for _, tool in ipairs(group_config.tools) do
     self:add(tool, tools_config[tool], { visible = not collapse_tools })
