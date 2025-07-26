@@ -50,6 +50,9 @@ T = new_set({
             "    return param * 2",
           }, vim.fs.joinpath(_G.TEMP_DIR, "test_symbols.py"))
 
+          -- Python script without extension
+          vim.fn.writefile({ "#!/usr/bin/env python" }, vim.fs.joinpath(_G.TEMP_DIR, "test_symbols_python"))
+
           -- Empty file
           vim.fn.writefile({}, vim.fs.joinpath(_G.TEMP_DIR, "empty_file.lua"))
 
@@ -68,16 +71,16 @@ T = new_set({
         -- Simple helper functions using buffer variables
         function _G.test_symbols(filename)
           local filepath = vim.fs.joinpath(_G.TEMP_DIR, filename)
-          local symbols, content = _G.helpers.extract_file_symbols(filepath)
+          local symbols, content, ft = _G.helpers.extract_file_symbols(filepath)
           vim.b.cc_test_symbols = symbols
-          return symbols, content
+          return { symbols, content, ft }
         end
 
         function _G.test_filtered_symbols(filename, target_kinds)
           local filepath = vim.fs.joinpath(_G.TEMP_DIR, filename)
-          local symbols, content = _G.helpers.extract_file_symbols(filepath, target_kinds)
+          local symbols, content, ft = _G.helpers.extract_file_symbols(filepath, target_kinds)
           vim.b.cc_test_symbols = symbols
-          return symbols, content
+          return { symbols, content, ft }
         end
 
         function _G.get_symbol_names()
@@ -120,18 +123,19 @@ T["Helpers"]["extract_file_symbols"] = new_set()
 
 T["Helpers"]["extract_file_symbols"]["extracts Lua symbols correctly"] = function()
   child.lua([[_G.create_test_files()]])
-  local symbols = child.lua_get("_G.test_symbols('test_symbols.lua')")
+  local symbols, content, filetype = unpack(child.lua_get("_G.test_symbols('test_symbols.lua')"))
   h.eq("table", type(symbols))
   h.eq(true, #symbols > 0)
   h.eq(true, child.lua_get("_G.validate_structure()"))
   local symbol_names = child.lua_get("_G.get_symbol_names()")
   h.eq(true, vim.tbl_contains(symbol_names, "M.public_function"))
   h.eq(true, vim.tbl_contains(symbol_names, "private_function"))
+  h.eq("lua", filetype)
 end
 
 T["Helpers"]["extract_file_symbols"]["extracts Python symbols correctly"] = function()
   child.lua([[_G.create_test_files()]])
-  local symbols = child.lua_get("_G.test_symbols('test_symbols.py')")
+  local symbols, content, filetype = unpack(child.lua_get("_G.test_symbols('test_symbols.py')"))
   if not symbols then
     return
   end
@@ -141,35 +145,48 @@ T["Helpers"]["extract_file_symbols"]["extracts Python symbols correctly"] = func
   local symbol_names = child.lua_get("_G.get_symbol_names()")
   h.eq(true, vim.tbl_contains(symbol_names, "MyClass"))
   h.eq(true, vim.tbl_contains(symbol_names, "global_function"))
+  h.eq("python", filetype)
 end
 
 T["Helpers"]["extract_file_symbols"]["filters by target kinds"] = function()
   child.lua([[_G.create_test_files()]])
-  local all_symbols = child.lua_get("_G.test_symbols('test_symbols.lua')")
-  local filtered_symbols = child.lua_get("_G.test_filtered_symbols('test_symbols.lua', {'Function'})")
+  local all_symbols = unpack(child.lua_get("_G.test_symbols('test_symbols.lua')"))
+  local filtered_symbols, content, filetype =
+    unpack(child.lua_get("_G.test_filtered_symbols('test_symbols.lua', {'Function'})"))
   h.eq("table", type(all_symbols))
   h.eq("table", type(filtered_symbols))
   h.eq(true, #filtered_symbols <= #all_symbols)
+  h.eq("lua", filetype)
 end
 
 T["Helpers"]["extract_file_symbols"]["handles empty file"] = function()
   child.lua([[_G.create_test_files()]])
-  local symbols = child.lua_get("_G.test_symbols('empty_file.lua')")
+  local symbols, content, filetype = unpack(child.lua_get("_G.test_symbols('empty_file.lua')"))
 
   h.eq("table", type(symbols))
   h.eq(0, #symbols)
+  h.eq("lua", filetype)
 end
 
 T["Helpers"]["extract_file_symbols"]["handles file with no symbols"] = function()
   child.lua([[_G.create_test_files()]])
-  local symbols = child.lua_get("_G.test_symbols('no_symbols.lua')")
+  local symbols, content, filetype = unpack(child.lua_get("_G.test_symbols('no_symbols.lua')"))
   h.eq("table", type(symbols))
   h.eq(0, #symbols)
+  h.eq("lua", filetype)
 end
 
 T["Helpers"]["extract_file_symbols"]["handles nonexistent file"] = function()
-  local symbols = child.lua_get("_G.test_symbols('nonexistent.lua')")
-  h.eq(symbols, vim.NIL)
+  local symbols, content, filetype = unpack(child.lua_get("_G.test_symbols('nonexistent.lua')"))
+  h.eq(symbols, nil)
+  h.eq(nil, filetype)
+end
+
+T["Helpers"]["extract_file_symbols"]["handles file without extension"] = function()
+  child.lua([[_G.create_test_files()]])
+  local symbols, content, filetype = unpack(child.lua_get("_G.test_symbols('test_symbols_python')"))
+  h.eq(symbols, {})
+  h.eq("python", filetype)
 end
 
 return T
