@@ -38,31 +38,45 @@ function Strategies:start(strategy)
   return self[strategy](self)
 end
 
----Add a reference to the chat buffer
+---Add context to the chat buffer
 ---@param prompt table
 ---@param chat CodeCompanion.Chat
-function Strategies.add_ref(prompt, chat)
-  if not prompt.references then
+function Strategies.add_context(prompt, chat)
+  --TODO: remove prompt.references in v18.0.0
+  local context = prompt.references or prompt.context
+
+  if not context or vim.tbl_isempty(context) then
     return
+  end
+
+  ---TODO: Remove this in v18.0.0
+  if prompt.references then
+    vim.deprecate(
+      "`references` in the prompt library are now deprecated",
+      "Please use `context` instead",
+      "v18.0.0",
+      "CodeCompanion",
+      false
+    )
   end
 
   local slash_commands = require("codecompanion.strategies.chat.slash_commands")
 
-  vim.iter(prompt.references):each(function(ref)
-    if ref.type == "file" or ref.type == "symbols" then
-      if type(ref.path) == "string" then
-        return slash_commands.references(chat, ref.type, { path = ref.path })
-      elseif type(ref.path) == "table" then
-        for _, path in ipairs(ref.path) do
-          slash_commands.references(chat, ref.type, { path = path })
+  vim.iter(context):each(function(item)
+    if item.type == "file" or item.type == "symbols" then
+      if type(item.path) == "string" then
+        return slash_commands.context(chat, item.type, { path = item.path })
+      elseif type(item.path) == "table" then
+        for _, path in ipairs(item.path) do
+          slash_commands.context(chat, item.type, { path = path })
         end
       end
-    elseif ref.type == "url" then
-      if type(ref.url) == "string" then
-        return slash_commands.references(chat, ref.type, { url = ref.url })
-      elseif type(ref.url) == "table" then
-        for _, url in ipairs(ref.url) do
-          slash_commands.references(chat, ref.type, { url = url })
+    elseif item.type == "url" then
+      if type(item.url) == "string" then
+        return slash_commands.context(chat, item.type, { url = item.url })
+      elseif type(item.url) == "table" then
+        for _, url in ipairs(item.url) do
+          slash_commands.context(chat, item.type, { url = url })
         end
       end
     end
@@ -130,16 +144,16 @@ function Strategies:chat()
         end
 
         local chat = create_chat(input)
-        return self.add_ref(self.selected, chat)
+        return self.add_context(self.selected, chat)
       end)
     else
       local chat = create_chat()
-      return self.add_ref(self.selected, chat)
+      return self.add_context(self.selected, chat)
     end
   end
 
   local chat = create_chat()
-  return self.add_ref(self.selected, chat)
+  return self.add_context(self.selected, chat)
 end
 
 ---@return CodeCompanion.Chat
@@ -179,8 +193,9 @@ function Strategies:workflow()
     messages = messages,
   })
 
-  if workflow.references then
-    self.add_ref(workflow, chat)
+  ---TODO: Remove workflow.references in v18.0.0
+  if workflow.references or workflow.context then
+    self.add_context(workflow, chat)
   end
 
   table.remove(prompts, 1)

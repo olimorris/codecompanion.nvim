@@ -285,7 +285,7 @@ end
 
 T["Context"]["Render invisible"] = function()
   child.lua([[
-     _G.chat.refs = {
+     _G.chat.context_items = {
        {
          id = "<buf>pinned example</buf>",
          path = "tests.stubs.file.txt",

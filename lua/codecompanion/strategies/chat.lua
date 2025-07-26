@@ -1060,6 +1060,24 @@ function Chat:add_context(data, source, id, opts)
   self:add_message(data, opts)
 end
 
+---TODO: Remove this method in v18.0.0
+---Add a reference to the chat buffer (Useful for user's adding custom Slash Commands)
+---@param data { role: string, content: string }
+---@param source string
+---@param id string
+---@param opts? table Options for the message
+function Chat:add_reference(data, source, id, opts)
+  vim.deprecate(
+    "`Chat:add_reference` is now deprecated.",
+    "Please use `chat:add_context` instead",
+    "v18.0.0",
+    "CodeCompanion",
+    false
+  )
+
+  return self:add_context(data, source, id, opts)
+end
+
 ---Check if there are any images in the chat buffer
 ---@param message table
 ---@return nil
