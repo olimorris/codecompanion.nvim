@@ -363,9 +363,9 @@ return {
         },
       },
     },
-    ["Test References"] = {
+    ["Test Context"] = {
       strategy = "chat",
-      description = "Add some references",
+      description = "Add some context",
       opts = {
         index = 1,
         is_default = true,
@@ -373,7 +373,7 @@ return {
         short_name = "test_ref",
         auto_submit = false,
       },
-      references = {
+      context = {
         {
           type = "file",
           path = {

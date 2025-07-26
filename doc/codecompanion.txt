@@ -2408,7 +2408,7 @@ When you include a tool group in your chat (e.g., `@{files}`), all tools within
 that group become available to the LLM. By default, all the tools in the group
 will be shown as a single `<group>name</group>` reference in the chat buffer.
 
-If you want to show all tools as references in the chat buffer, set the
+If you want to show all tools as context items in the chat buffer, set the
 `opts.collapse_tools` option to `false` on the group itself.
 
 
@@ -3945,17 +3945,16 @@ system prompt with the request:
 <
 
 
-PROMPTS WITH REFERENCES
+PROMPTS WITH CONTEXT
 
-It can be useful to pre-load a chat buffer with references to `files`,
-`symbols` or even `urls`. This makes conversing with an LLM that much more
-productive. As per `v11.9.0`, this can now be accomplished, as per the example
-below:
+It can be useful to pre-load a chat buffer with context from `files`, `symbols`
+or even `urls`. This makes conversing with an LLM that much more productive.
+This can now accomplished, as per the example below:
 
 >lua
-    ["Test References"] = {
+    ["Test Context"] = {
       strategy = "chat",
-      description = "Add some references",
+      description = "Add some context",
       opts = {
         index = 11,
         is_default = true,
@@ -3964,7 +3963,7 @@ below:
         auto_submit = false,
       },
       -- These will appear at the top of the chat buffer
-      references = {
+      context = {
         {
           type = "file",
           path = { -- This can be a string or a table of values

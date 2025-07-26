@@ -944,7 +944,7 @@ This is the code, for context:
         is_default = true,
         short_name = "workspace",
       },
-      references = {
+      context = {
         {
           type = "file",
           path = {
