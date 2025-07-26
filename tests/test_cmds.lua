@@ -39,6 +39,19 @@ T["cmds"][":CodeCompanionChat Toggle"] = function()
   expect.reference_screenshot(child.get_screenshot())
 end
 
+T["cmds"][":CodeCompanionChat Add"] = function()
+  child.cmd([[%bw!]])
+  child.api.nvim_buf_set_lines(0, 0, -1, false, { "foo line" })
+  child.api.nvim_feedkeys("V", "n", false)
+  child.cmd([[CodeCompanionChat Add]])
+  expect.reference_screenshot(child.get_screenshot(), nil, { ignore_text = { 8 } })
+  child.cmd([[tabnew]])
+  child.api.nvim_buf_set_lines(0, 0, -1, false, { "bar line" })
+  child.api.nvim_feedkeys("V", "n", false)
+  child.cmd([[CodeCompanionChat Add]])
+  expect.reference_screenshot(child.get_screenshot(), nil, { ignore_text = { 14 } })
+end
+
 T["cmds"]["sticky chat window"] = function()
   child.lua([[
     require('codecompanion').setup({

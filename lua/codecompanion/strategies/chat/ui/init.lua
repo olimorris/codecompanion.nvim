@@ -67,7 +67,9 @@ end
 function UI:open(opts)
   opts = opts or {}
 
-  if self:is_visible() then
+  if self:is_visible_non_curtab() then
+    self:hide()
+  elseif self:is_visible() then
     return
   end
   if config.display.chat.start_in_insert_mode then
