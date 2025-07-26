@@ -1,5 +1,12 @@
 # Changelog
 
+## [17.11.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.11.0...v17.11.1) (2025-07-26)
+
+
+### Bug Fixes
+
+* **tools:** error when trying to log nil tool ([#1896](https://github.com/olimorris/codecompanion.nvim/issues/1896)) ([63ce32a](https://github.com/olimorris/codecompanion.nvim/commit/63ce32aa44135ba863aa1e5ed49a0abfdaeb926e))
+
 ## [17.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.10.0...v17.11.0) (2025-07-25)
 
 
