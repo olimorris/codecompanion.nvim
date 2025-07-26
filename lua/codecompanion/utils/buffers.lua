@@ -80,7 +80,7 @@ end
 ---@param selected table Buffer info { bufnr: number, path: string, name?: string }
 ---@param opts? table Options { message?: string, range?: table }
 ---@return string content The XML-wrapped content
----@return string id The buffer reference ID
+---@return string id The buffer context ID
 ---@return string filename The buffer filename
 function M.format_for_llm(selected, opts)
   opts = opts or {}

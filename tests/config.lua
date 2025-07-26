@@ -227,13 +227,13 @@ return {
             opts = { collapse_tools = true },
           },
           ["test_group2"] = {
-            description = "Group to be used for testing references",
+            description = "Group to be used for testing context",
             system_prompt = "Individual tools system prompt",
             tools = { "func", "weather" },
             opts = { collapse_tools = false },
           },
           ["remove_group"] = {
-            description = "Group to be removed during testing of references",
+            description = "Group to be removed during testing of context",
             system_prompt = "System prompt to be removed",
             tools = { "func", "weather" },
             opts = { collapse_tools = true },
@@ -389,7 +389,7 @@ return {
       prompts = {
         {
           role = "foo",
-          content = "I need some references",
+          content = "I need some context",
         },
       },
     },

@@ -200,7 +200,7 @@ function SlashCommand:execute(SlashCommands)
   end)
 end
 
----Put a reference to the image in the chat buffer
+---Put a context item for the image in the chat buffer
 ---@param selected table The selected image { source = string, path = string }
 ---@param opts? table
 ---@return nil

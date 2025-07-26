@@ -35,24 +35,24 @@ Many LLMs have the ability to receive images as input (sometimes referred to as 
 
 If your adapter and model doesn't support images, then CodeCompanion will endeavour to ensure that the image is not included in the messages payload that's sent to the LLM.
 
-## References / Context
+## Context
 
 <img src="https://github.com/user-attachments/assets/e8a31214-ccba-407f-a8e4-32ba185a3ecd" />
 
-Sharing context with an LLM is crucial in order to generate useful responses. In the plugin, references are defined as output that is shared with a chat buffer via a _Variable_, _Slash Command_ or _Agent/Tool_. They appear in a blockquote entitled `Context`. In essence, this is context that you're sharing with an LLM.
+Sharing context with an LLM is crucial in order to generate useful responses. In the plugin, context is defined as output that is shared with a chat buffer via a _Variable_, _Slash Command_ or _Agent/Tool_. They appear in a blockquote entitled `Context`. In essence, this is context that you're sharing with an LLM.
 
 > [!IMPORTANT]
-> References contain the data of an object at a point in time. By default, they **are not** self-updating
+> Context items contain the data of an object at a point in time. By default, they **are not** self-updating
 
-In order to allow for references to self-update, they can be _pinned_ (for files and buffers) or _watched_ (for buffers).
+In order to allow for context to self-update, they can be _pinned_ (for files and buffers) or _watched_ (for buffers).
 
-File and buffer references can be _pinned_ to a chat buffer with the `gp` keymap (when your cursor is on the line of the shared buffer in the "> Context section). Pinning results in the content from the object being reloaded and shared with the LLM on every turn. The advantage of this is that the LLM will always receive a fresh copy of the source data regardless of any changes. This can be useful if you're working with agents and tools. However, please note that this can consume a lot of tokens.
+File and buffer context items can be _pinned_ to a chat buffer with the `gp` keymap (when your cursor is on the line of the shared buffer in the "> Context section). Pinning results in the content from the object being reloaded and shared with the LLM on every turn. The advantage of this is that the LLM will always receive a fresh copy of the source data regardless of any changes. This can be useful if you're working with agents and tools. However, please note that this can consume a lot of tokens.
 
-Buffer references can be _watched_ via the `gw` keymap (when your cursor is on the line of the shared buffer in the "> Context section). Watching, whilst similar to pinning, is a more token-conscious way of keeping the LLM up to date on the contents of a buffer. Watchers track changes (adds, edits, deletes) in the underlying buffer and update the LLM on each turn, with only those changes.
+Buffer context items can be _watched_ via the `gw` keymap (when your cursor is on the line of the shared buffer in the "> Context section). Watching, whilst similar to pinning, is a more token-conscious way of keeping the LLM up to date on the contents of a buffer. Watchers track changes (adds, edits, deletes) in the underlying buffer and update the LLM on each turn, with only those changes.
 
-If a reference is added by mistake, it can be removed from the chat buffer by simply deleting it from the `Context` blockquote. On the next turn, all context related to that reference will be removed from the message history.
+If a context item is added by mistake, it can be removed from the chat buffer by simply deleting it from the `Context` blockquote. On the next turn, all data related to that context item will be removed from the message history.
 
-Finally, it's important to note that all LLM endpoints require the sending of previous messages that make up the conversation. So even though you've shared a reference once, many messages ago, the LLM will always have that context to refer to.
+Finally, it's important to note that all LLM endpoints require the sending of previous messages that make up the conversation. So even though you've shared context once, many messages ago, the LLM will always have that it to refer to.
 
 ## Settings
 
@@ -83,8 +83,8 @@ The keymaps available to the user in normal mode are:
 - `gc` to insert a codeblock in the chat buffer
 - `gd` to view/debug the chat buffer's contents
 - `gf` to fold any codeblocks in the chat buffer
-- `gp` to pin a reference to the chat buffer
-- `gw` to watch a referenced buffer
+- `gp` to pin an item to the context in the chat buffer
+- `gw` to watch a buffer as context in the chat buffer
 - `gr` to regenerate the last response
 - `gR` to go to the file under cursor. If the file is already opened, it'll jump
   to the existing window. Otherwise, it'll be opened in a new tab.

@@ -7,7 +7,7 @@
   <img src="https://github.com/user-attachments/assets/642ef2df-f1c4-41c4-93e2-baa66d7f0801" />
 </p>
 
-Variables allow you to share data about the current state of Neovim with an LLM. Simply type `#` in the chat buffer and trigger code completion if you're not using blink.cmp or nvim-cmp (or coc.nvim). Alternatively, type the variables manually. After the response is sent to the LLM, you should see the variable output tagged as a reference in the chat buffer.
+Variables allow you to share data about the current state of Neovim with an LLM. Simply type `#` in the chat buffer and trigger code completion if you're not using blink.cmp or nvim-cmp (or coc.nvim). Alternatively, type the variables manually. After the response is sent to the LLM, you should see the variable output tagged as a context item in the chat buffer.
 
 Custom variables can be shared by adding them to the `strategies.chat.variables` table in your configuration.
 
@@ -16,7 +16,7 @@ Custom variables can be shared by adding them to the `strategies.chat.variables`
 > [!NOTE]
 > As of [v16.2.0](https://github.com/olimorris/codecompanion.nvim/releases/tag/v16.2.0), buffers are now watched by default
 
-The _#{buffer}_ variable shares the full contents from the buffer that the user was last in when they initiated `:CodeCompanionChat`. To select another buffer, use the _/buffer_ slash command. These buffers can be [pinned or watched](/usage/chat-buffer/index#references) to enable updated content to be automatically shared with the LLM:
+The _#{buffer}_ variable shares the full contents from the buffer that the user was last in when they initiated `:CodeCompanionChat`. To select another buffer, use the _/buffer_ slash command. These buffers can be [pinned or watched](/usage/chat-buffer/index#context) to enable updated content to be automatically shared with the LLM:
 
 - `#{buffer}{pin}` - To pin the current buffer
 - `#{buffer}{watch}` - To watch the current buffer
