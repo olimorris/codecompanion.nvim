@@ -68,7 +68,7 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
       end
 
       -- We don't need to mock the done method but we do need to mock some of the methods it calls
-      _G.chat.agents.execute = nil
+      _G.chat.tools.orchestrator = nil
 
       -- Force submit so that chat:done works
       _G.chat.status = "success"

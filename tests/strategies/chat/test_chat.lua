@@ -12,7 +12,7 @@ T = new_set({
       child.lua([[
         codecompanion = require("codecompanion")
         h = require('tests.helpers')
-        _G.chat, _G.agent = h.setup_chat_buffer()
+        _G.chat, _G.tools = h.setup_chat_buffer()
         ]])
     end,
     post_case = function()
@@ -174,7 +174,8 @@ T["Chat"]["can load default tools"] = function()
   local ctx = child.lua([[
     codecompanion = require("codecompanion")
     h = require('tests.helpers')
-    _G.chat, _G.agent = h.setup_chat_buffer({
+
+    _G.chat, _G.tools = h.setup_chat_buffer({
       strategies = {
         chat = {
           tools = {
