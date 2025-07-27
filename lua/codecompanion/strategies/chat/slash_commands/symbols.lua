@@ -8,7 +8,7 @@ https://github.com/stevearc/aerial.nvim/blob/master/lua/aerial/backends/treesitt
 --]]
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local symbol_utils = require("codecompanion.strategies.chat.helpers")
+local ts_utils = require("codecompanion.utils.treesitter")
 local util = require("codecompanion.utils")
 
 local fmt = string.format
@@ -187,7 +187,7 @@ function SlashCommand:output(selected, opts)
   opts = opts or {}
 
   local ft = vim.filetype.match({ filename = selected.path })
-  local symbols, content = symbol_utils.extract_file_symbols(selected.path)
+  local symbols, content = ts_utils.extract_file_symbols(selected.path)
 
   if not symbols then
     return no_query(ft)

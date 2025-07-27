@@ -1,8 +1,10 @@
+local Path = require("plenary.path")
+
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local path = require("plenary.path")
-local symbol_utils = require("codecompanion.strategies.chat.helpers")
+local ts_utils = require("codecompanion.utils.treesitter")
 local util = require("codecompanion.utils")
+
 local fmt = string.format
 
 ---Get quickfix list with type detection
@@ -49,7 +51,7 @@ end
 local function extract_file_symbols(filepath)
   -- Only include function/method/class symbols for quickfix
   local target_kinds = { "Function", "Method", "Class" }
-  return symbol_utils.extract_file_symbols(filepath, target_kinds)
+  return ts_utils.extract_file_symbols(filepath, target_kinds)
 end
 
 ---Find which symbol contains a diagnostic line
@@ -268,7 +270,7 @@ local function process_single_file(filepath, file_data)
   local id = "<quickfix>" .. relative_path .. "</quickfix>"
   -- Read file once
   local ok, file_content = pcall(function()
-    return path.new(filepath):read()
+    return Path.new(filepath):read()
   end)
   if not ok then
     log:warn("Could not read file: %s", filepath)

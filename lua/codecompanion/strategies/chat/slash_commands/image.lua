@@ -1,4 +1,5 @@
 local Curl = require("plenary.curl")
+
 local config = require("codecompanion.config")
 local helpers = require("codecompanion.strategies.chat.helpers")
 local log = require("codecompanion.utils.log")

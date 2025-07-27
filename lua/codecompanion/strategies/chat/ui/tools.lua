@@ -53,7 +53,7 @@ end
 ---@param content string The content from the tool
 ---@param opts? table Options for formatting
 ---@return table[]  list of {text, hl_group}
-local function format_summary(content, opts)
+local function format_output(content, opts)
   opts = opts or {}
 
   local chunks = {}
@@ -94,7 +94,7 @@ function Tools.fold_tools()
   local folds = Tools.fold_summaries[bufnr] or {}
   local content = folds[start] or api.nvim_buf_get_lines(bufnr, start, start + 1, false)[1] or ""
 
-  return format_summary(content)
+  return format_output(content)
 end
 
 ---Create a fold over the given range of lines for specific tool output
@@ -112,7 +112,7 @@ function Tools:create_fold(start_line, end_line, foldtext)
 
   -- Add the extmark icon
   api.nvim_buf_set_extmark(self.chat_bufnr, CONSTANTS.NS_FOLD_TOOLS, start_line, 0, {
-    virt_text = format_summary(foldtext, { show_icon_only = true }),
+    virt_text = format_output(foldtext, { show_icon_only = true }),
     virt_text_pos = "inline",
     priority = 200,
   })
