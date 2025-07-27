@@ -1,8 +1,8 @@
 local Path = require("plenary.path")
 
 local config = require("codecompanion.config")
+local helpers = require("codecompanion.strategies.chat.slash_commands.helpers")
 local log = require("codecompanion.utils.log")
-local ts_utils = require("codecompanion.utils.treesitter")
 local util = require("codecompanion.utils")
 
 local fmt = string.format
@@ -51,7 +51,7 @@ end
 local function extract_file_symbols(filepath)
   -- Only include function/method/class symbols for quickfix
   local target_kinds = { "Function", "Method", "Class" }
-  return ts_utils.extract_file_symbols(filepath, target_kinds)
+  return helpers.extract_file_symbols(filepath, target_kinds)
 end
 
 ---Find which symbol contains a diagnostic line
