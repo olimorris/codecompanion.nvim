@@ -354,8 +354,8 @@ return {
         if type(choices) == "function" then
           choices = choices(self)
         end
-        if choices and choices[model] and choices[model].opts then
-          return choices[model].opts.can_reason
+        if choices and choices[model] and choices[model].opts and choices[model].opts.can_reason then
+          return true
         end
         return false
       end,
