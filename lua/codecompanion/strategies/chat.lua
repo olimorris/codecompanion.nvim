@@ -1052,12 +1052,17 @@ end
 ---@param data { role: string, content: string }
 ---@param source string
 ---@param id string
----@param opts? table Options for the message
-function Chat:add_context(data, source, id, opts)
-  opts = opts or { context_id = id, visible = false }
+---@param msg_opts? table Options for the message
+---@param context_opts? table Options for the context
+function Chat:add_context(data, source, id, msg_opts, context_opts)
+  if not msg_opts or vim.tbl_isempty(msg_opts) then
+    msg_opts = { reference = id, visible = false }
+  end
+  context_opts = context_opts or {}
 
-  self.context:add({ source = source, id = id })
-  self:add_message(data, opts)
+  local context = vim.tbl_extend("force", { source = source, id = id }, context_opts)
+  self.context:add(context)
+  self:add_message(data, msg_opts)
 end
 
 ---TODO: Remove this method in v18.0.0
@@ -1065,8 +1070,9 @@ end
 ---@param data { role: string, content: string }
 ---@param source string
 ---@param id string
----@param opts? table Options for the message
-function Chat:add_reference(data, source, id, opts)
+---@param msg_opts? table Options for the message
+---@param context_opts? table Options for the context
+function Chat:add_reference(data, source, id, msg_opts, context_opts)
   vim.deprecate(
     "`Chat:add_reference` is now deprecated.",
     "Please use `chat:add_context` instead",
@@ -1075,7 +1081,7 @@ function Chat:add_reference(data, source, id, opts)
     false
   )
 
-  return self:add_context(data, source, id, opts)
+  return self:add_context(data, source, id, msg_opts, context_opts)
 end
 
 ---Check if there are any images in the chat buffer
