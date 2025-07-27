@@ -241,4 +241,56 @@ T["OpenAI adapter"]["No Streaming"]["can output for the inline assistant"] = fun
   h.eq("Elegant simplicity.", adapter.handlers.inline_output(adapter, json).output)
 end
 
+T["OpenAI adapter"]["reasoning_effort condition"] = function()
+  -- Test when choices is a function and model supports reasoning
+  local adapter_with_reasoning = require("codecompanion.adapters").extend("openai", {
+    schema = {
+      model = {
+        default = "o1-2024-12-17",
+        choices = function(self)
+          return {
+            ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
+            ["gpt-4o"] = { opts = { has_vision = true } },
+          }
+        end,
+      },
+    },
+  })
+  local condition_result = adapter_with_reasoning.schema.reasoning_effort.condition(adapter_with_reasoning)
+  h.eq(true, condition_result)
+
+  -- Test when choices is a function but model doesn't support reasoning
+  local adapter_without_reasoning = require("codecompanion.adapters").extend("openai", {
+    schema = {
+      model = {
+        default = "gpt-4o",
+        choices = function(self)
+          return {
+            ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
+            ["gpt-4o"] = { opts = { has_vision = true } },
+          }
+        end,
+      },
+    },
+  })
+  local condition_result_false = adapter_without_reasoning.schema.reasoning_effort.condition(adapter_without_reasoning)
+  h.eq(false, condition_result_false)
+
+  -- Test when model doesn't exist in choices
+  local adapter_missing_model = require("codecompanion.adapters").extend("openai", {
+    schema = {
+      model = {
+        default = "nonexistent-model",
+        choices = function(self)
+          return {
+            ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
+          }
+        end,
+      },
+    },
+  })
+  local condition_result_missing = adapter_missing_model.schema.reasoning_effort.condition(adapter_missing_model)
+  h.eq(false, condition_result_missing)
+end
+
 return T
