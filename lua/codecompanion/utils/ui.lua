@@ -69,6 +69,53 @@ end
 ---@param ns_id number
 ---@param message string
 ---@param opts? table
+---@return number The id of the extmark
+M.set_virtual_text_lines = function(bufnr, ns_id, message, opts)
+  local defaults = {
+    -- Truncate any text that goes past the window size (other optiton is 'scroll').
+    virt_lines_overflow = "trunc",
+    -- Place the virtual lines above the extmark.
+    virt_lines_above = true,
+    -- Do not start at the left-most column, bypassing sign and number columns.
+    virt_lines_leftcol = false,
+    -- Namespace group for the virtual lines.
+    hl_group = "CodeCompanionVirtualText",
+    -- Line number to begin the virtual text.
+    line = api.nvim_buf_line_count(bufnr) - 1,
+    -- Column number to begin the virtual text.
+    col = 0,
+    -- For single line virtual text, default to end of line.
+    virt_text_pos = "eol",
+  }
+
+  opts = vim.tbl_deep_extend("force", {}, defaults, opts or {})
+
+  local virt_lines = vim
+    .iter(vim.split(message, "\r?\n"))
+    :map(function(line)
+      return { { line, opts.hl_group } }
+    end)
+    :totable()
+
+  if #virt_lines > 1 then
+    return api.nvim_buf_set_extmark(bufnr, ns_id, opts.line, opts.col, {
+      virt_lines = virt_lines,
+      virt_lines_overflow = opts.virt_lines_overflow,
+      virt_lines_leftcol = opts.virt_lines_leftcol,
+      virt_lines_above = opts.virt_lines_above,
+    })
+  else
+    return api.nvim_buf_set_extmark(bufnr, ns_id, opts.line, opts.col, {
+      virt_text = { { message, opts.hl_group } },
+      virt_text_pos = opts.virt_text_pos,
+    })
+  end
+end
+
+---@param bufnr number
+---@param ns_id number
+---@param message string
+---@param opts? table
 ---@return nil
 M.set_virtual_text = function(bufnr, ns_id, message, opts)
   local defaults = {

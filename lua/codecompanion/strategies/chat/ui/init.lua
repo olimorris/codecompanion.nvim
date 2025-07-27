@@ -378,7 +378,8 @@ function UI:set_intro_msg()
   end
 
   if not config.display.chat.start_in_insert_mode then
-    local extmark_id = self:set_virtual_text(config.display.chat.intro_message, "eol")
+    local extmark_id =
+      ui.set_virtual_text_lines(self.chat_bufnr, CONSTANTS.NS_VIRTUAL_TEXT, config.display.chat.intro_message)
     api.nvim_create_autocmd("InsertEnter", {
       buffer = self.chat_bufnr,
       callback = function()
@@ -389,20 +390,6 @@ function UI:set_intro_msg()
   end
 
   return self
-end
-
----Set virtual text in the chat buffer
----@param message string
----@param method? string "eol", "inline" etc
----@param range? table<number, number>
----@return number The id of the extmark
-function UI:set_virtual_text(message, method, range)
-  range = range or { api.nvim_buf_line_count(self.chat_bufnr) - 1, 0 }
-
-  return api.nvim_buf_set_extmark(self.chat_bufnr, CONSTANTS.NS_VIRTUAL_TEXT, range[1], range[2], {
-    virt_text = { { message, "CodeCompanionVirtualText" } },
-    virt_text_pos = method or "eol",
-  })
 end
 
 ---Clear virtual text in the chat buffer
