@@ -91,7 +91,7 @@ _Variables_, accessed via `#`, contain data about the present state of Neovim. Y
 
 _Slash commands_, accessed via `/`, run commands to insert additional context into the chat buffer. You can find a list of available commands as well as how to use them, [here](/usage/chat-buffer/slash-commands.html).
 
-### Agents / Tools
+### Tools
 
 _Tools_, accessed via `@`, allow the LLM to function as an agent and leverage external tools. You can find a list of available tools as well as how to use them, [here](usage/chat-buffer/tools.html#available-tools).
 

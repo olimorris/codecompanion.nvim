@@ -88,42 +88,42 @@ local defaults = {
         },
         -- Tools
         ["cmd_runner"] = {
-          callback = "strategies.chat.agents.tools.cmd_runner",
+          callback = "strategies.chat.tools.catalog.cmd_runner",
           description = "Run shell commands initiated by the LLM",
           opts = {
             requires_approval = true,
           },
         },
         ["create_file"] = {
-          callback = "strategies.chat.agents.tools.create_file",
+          callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",
           opts = {
             requires_approval = true,
           },
         },
         ["fetch_webpage"] = {
-          callback = "strategies.chat.agents.tools.fetch_webpage",
+          callback = "strategies.chat.tools.catalog.fetch_webpage",
           description = "Fetches content from a webpage",
           opts = {
             adapter = "jina",
           },
         },
         ["file_search"] = {
-          callback = "strategies.chat.agents.tools.file_search",
+          callback = "strategies.chat.tools.catalog.file_search",
           description = "Search for files in the current working directory by glob pattern",
           opts = {
             max_results = 500,
           },
         },
         ["get_changed_files"] = {
-          callback = "strategies.chat.agents.tools.get_changed_files",
+          callback = "strategies.chat.tools.catalog.get_changed_files",
           description = "Get git diffs of current file changes in a git repository",
           opts = {
             max_lines = 1000,
           },
         },
         ["grep_search"] = {
-          callback = "strategies.chat.agents.tools.grep_search",
+          callback = "strategies.chat.tools.catalog.grep_search",
           enabled = function()
             -- Currently this tool only supports ripgrep
             return vim.fn.executable("rg") == 1
@@ -135,10 +135,10 @@ local defaults = {
           },
         },
         ["insert_edit_into_file"] = {
-          callback = "strategies.chat.agents.tools.insert_edit_into_file",
+          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
           description = "Insert code into an existing file",
           opts = {
-            patching_algorithm = "strategies.chat.agents.tools.helpers.patch",
+            patching_algorithm = "strategies.chat.tools.catalog.helpers.patch",
             requires_approval = { -- Require approval before the tool is executed?
               buffer = false, -- For editing buffers in Neovim
               file = true, -- For editing files in the current working directory
@@ -147,15 +147,15 @@ local defaults = {
           },
         },
         ["next_edit_suggestion"] = {
-          callback = "strategies.chat.agents.tools.next_edit_suggestion",
+          callback = "strategies.chat.tools.catalog.next_edit_suggestion",
           description = "Suggest and jump to the next position to edit",
         },
         ["read_file"] = {
-          callback = "strategies.chat.agents.tools.read_file",
+          callback = "strategies.chat.tools.catalog.read_file",
           description = "Read a file in the current working directory",
         },
         ["search_web"] = {
-          callback = "strategies.chat.agents.tools.search_web",
+          callback = "strategies.chat.tools.catalog.search_web",
           description = "Search the web for information",
           opts = {
             adapter = "tavily", -- tavily
@@ -169,7 +169,7 @@ local defaults = {
           },
         },
         ["list_code_usages"] = {
-          callback = "strategies.chat.agents.tools.list_code_usages",
+          callback = "strategies.chat.tools.catalog.list_code_usages",
           description = "Find code symbol context",
         },
         opts = {
@@ -667,7 +667,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
             -- Repeat until the tests pass, as indicated by the testing flag
             -- which the cmd_runner tool sets on the chat buffer
             repeat_until = function(chat)
-              return chat.tools.flags.testing == true
+              return chat.tool_registry.flags.testing == true
             end,
             content = "The tests have failed. Can you edit the buffer and run the test suite again?",
           },

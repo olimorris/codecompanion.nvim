@@ -278,7 +278,7 @@ end
 ---Refresh any of the caches used by the plugin
 ---@return nil
 CodeCompanion.refresh_cache = function()
-  local ToolFilter = require("codecompanion.strategies.chat.agents.tool_filter")
+  local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
   ToolFilter.refresh_cache()
   utils.notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
 end
