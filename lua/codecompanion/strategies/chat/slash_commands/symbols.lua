@@ -1,19 +1,17 @@
 --[[
 Uses Tree-sitter to parse a given file and extract symbol types and names. Then
-displays those symbols in the chat buffer as references. To support tools
-and agents, start and end lines for the symbols are also output.
+displays those symbols in the chat buffer as references. To support tools,
+start and end lines are also included in the output.
 
 Heavily modified from the awesome Aerial.nvim plugin by stevearc:
 https://github.com/stevearc/aerial.nvim/blob/master/lua/aerial/backends/treesitter/init.lua
 --]]
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local path = require("plenary.path")
 local symbol_utils = require("codecompanion.strategies.chat.helpers")
 local util = require("codecompanion.utils")
 
 local fmt = string.format
-local get_node_text = vim.treesitter.get_node_text --[[@type function]]
 
 local CONSTANTS = {
   NAME = "Symbols",

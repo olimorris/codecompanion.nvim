@@ -59,7 +59,7 @@ end
 ---Setup and mock a chat buffer
 ---@param config? table
 ---@param adapter? table
----@return CodeCompanion.Chat, CodeCompanion.Agent, CodeCompanion.Variables
+---@return CodeCompanion.Chat, CodeCompanion.Tools, CodeCompanion.Variables
 Helpers.setup_chat_buffer = function(config, adapter)
   local test_config = vim.deepcopy(require("tests.config"))
   local config_module = mock_config()
@@ -80,10 +80,10 @@ Helpers.setup_chat_buffer = function(config, adapter)
       description = "foo",
     },
   }
-  local agent = require("codecompanion.strategies.chat.agents").new({ bufnr = 1 })
+  local tools = require("codecompanion.strategies.chat.tools").new({ bufnr = 1 })
   local vars = require("codecompanion.strategies.chat.variables").new()
 
-  return chat, agent, vars
+  return chat, tools, vars
 end
 
 ---Mock the sending of a chat buffer to an LLM

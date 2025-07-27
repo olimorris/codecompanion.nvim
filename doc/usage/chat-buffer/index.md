@@ -3,7 +3,7 @@ prev:
   text: 'Action Palette'
   link: '/usage/action-palette'
 next:
-  text: 'Agents/Tools'
+  text: 'Tools'
   link: '/usage/chat-buffer/tools'
 ---
 
@@ -39,14 +39,14 @@ If your adapter and model doesn't support images, then CodeCompanion will endeav
 
 <img src="https://github.com/user-attachments/assets/e8a31214-ccba-407f-a8e4-32ba185a3ecd" />
 
-Sharing context with an LLM is crucial in order to generate useful responses. In the plugin, context is defined as output that is shared with a chat buffer via a _Variable_, _Slash Command_ or _Agent/Tool_. They appear in a blockquote entitled `Context`. In essence, this is context that you're sharing with an LLM.
+Sharing context with an LLM is crucial in order to generate useful responses. In the plugin, context is defined as output that is shared with a chat buffer via a _Variable_, _Slash Command_ or _Tool_. They appear in a blockquote entitled `Context`. In essence, this is context that you're sharing with an LLM.
 
 > [!IMPORTANT]
 > Context items contain the data of an object at a point in time. By default, they **are not** self-updating
 
 In order to allow for context to self-update, they can be _pinned_ (for files and buffers) or _watched_ (for buffers).
 
-File and buffer context items can be _pinned_ to a chat buffer with the `gp` keymap (when your cursor is on the line of the shared buffer in the "> Context section). Pinning results in the content from the object being reloaded and shared with the LLM on every turn. The advantage of this is that the LLM will always receive a fresh copy of the source data regardless of any changes. This can be useful if you're working with agents and tools. However, please note that this can consume a lot of tokens.
+File and buffer context items can be _pinned_ to a chat buffer with the `gp` keymap (when your cursor is on the line of the shared buffer in the "> Context section). Pinning results in the content from the object being reloaded and shared with the LLM on every turn. The advantage of this is that the LLM will always receive a fresh copy of the source data regardless of any changes. This can be useful if you're working with tools. However, please note that this can consume a lot of tokens.
 
 Buffer context items can be _watched_ via the `gw` keymap (when your cursor is on the line of the shared buffer in the "> Context section). Watching, whilst similar to pinning, is a more token-conscious way of keeping the LLM up to date on the contents of a buffer. Watchers track changes (adds, edits, deletes) in the underlying buffer and update the LLM on each turn, with only those changes.
 

@@ -1,10 +1,10 @@
 local SlashCommands = require("codecompanion.strategies.chat.slash_commands")
-local ToolFilter = require("codecompanion.strategies.chat.agents.tool_filter")
+local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
 local config = require("codecompanion.config")
 local strategy = require("codecompanion.strategies")
 
 local trigger = {
-  agents = "@",
+  tools = "@",
   variables = "#",
   slash_commands = "/",
 }
@@ -86,9 +86,9 @@ function M.tools()
     end)
     :map(function(label, v)
       return {
-        label = trigger.agents .. label,
+        label = trigger.tools .. label,
         name = label,
-        type = "agent",
+        type = "tool",
         callback = v.callback,
         detail = v.description,
       }
@@ -103,7 +103,7 @@ function M.tools()
     end)
     :each(function(label, v)
       table.insert(items, {
-        label = trigger.agents .. label,
+        label = trigger.tools .. label,
         name = label,
         type = "tool",
         callback = v.callback,

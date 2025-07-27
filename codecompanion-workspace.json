@@ -219,22 +219,22 @@
     },
     "agents-init": {
       "type": "file",
-      "path": "lua/codecompanion/strategies/chat/agents/init.lua",
+      "path": "lua/codecompanion/strategies/chat/tools/init.lua",
       "description": "This is the entry point for the agent. If an LLM's response includes a function call (or tool call) then this file is triggered which in turns add tools to a queue before calling the executor"
     },
     "executor-init": {
       "type": "file",
-      "path": "lua/codecompanion/strategies/chat/agents/executor/init.lua",
+      "path": "lua/codecompanion/strategies/chat/tools/executor/init.lua",
       "description": "The executor file then runs the tools in the queue, whether they're functions or commands:"
     },
     "executor-func": {
       "type": "file",
-      "path": "lua/codecompanion/strategies/chat/agents/executor/func.lua",
+      "path": "lua/codecompanion/strategies/chat/tools/executor/func.lua",
       "description": "This is how function tools are run:"
     },
     "executor-queue": {
       "type": "file",
-      "path": "lua/codecompanion/strategies/chat/agents/executor/queue.lua",
+      "path": "lua/codecompanion/strategies/chat/tools/executor/queue.lua",
       "description": "This is the queue implementation"
     },
     "queue-example": {
@@ -244,12 +244,12 @@
     },
     "read_file_tool": {
       "type": "file",
-      "path": "lua/codecompanion/strategies/chat/agents/tools/read_file.lua",
+      "path": "lua/codecompanion/strategies/chat/tools/catalog/read_file.lua",
       "description": "This is an example of a tool in CodeCompanion that reads a file in the current working directory. It's a great example of a function tool."
     },
     "read_file_tool_test": {
       "type": "file",
-      "path": "tests/strategies/chat/agents/tools/test_read_file.lua",
+      "path": "tests/strategies/chat/tools/catalog/test_read_file.lua",
       "description": "This is the corresponding test for the read file tool."
     }
   }

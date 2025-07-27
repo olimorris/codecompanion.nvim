@@ -4,7 +4,6 @@
 
 ---@class CodeCompanion.Chat
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
----@field agents CodeCompanion.Agent The agent that calls tools available to the user
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
 ---@field aug number The ID for the autocmd group
 ---@field bufnr integer The buffer number of the chat
@@ -24,7 +23,8 @@
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field tokens? nil|number The number of tokens in the chat
----@field tools CodeCompanion.Chat.Tools Methods for handling interactions between the chat buffer and tools
+---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
+---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field watchers CodeCompanion.Watchers The buffer watcher instance
@@ -567,11 +567,11 @@ function Chat.new(args)
     self.yaml_parser = yaml_parser
   end
 
-  self.agents = require("codecompanion.strategies.chat.agents").new({ bufnr = self.bufnr, messages = self.messages })
   self.builder = require("codecompanion.strategies.chat.ui.builder").new({ chat = self })
   self.context = require("codecompanion.strategies.chat.context").new({ chat = self })
   self.subscribers = require("codecompanion.strategies.chat.subscribers").new()
-  self.tools = require("codecompanion.strategies.chat.tools").new({ chat = self })
+  self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
+  self.tool_registry = require("codecompanion.strategies.chat.tool_registry").new({ chat = self })
   self.variables = require("codecompanion.strategies.chat.variables").new()
   self.watchers = require("codecompanion.strategies.chat.watchers").new()
 
@@ -658,9 +658,9 @@ function Chat.new(args)
   for _, tool_name in pairs(config.strategies.chat.tools.opts.default_tools or {}) do
     local tool_config = config.strategies.chat.tools[tool_name]
     if tool_config ~= nil then
-      self.tools:add(tool_name, tool_config)
+      self.tool_registry:add(tool_name, tool_config)
     elseif config.strategies.chat.tools.groups[tool_name] ~= nil then
-      self.tools:add_group(tool_name, config.strategies.chat.tools)
+      self.tool_registry:add_group(tool_name, config.strategies.chat.tools)
     end
   end
 
@@ -841,8 +841,8 @@ end
 ---@param message table
 ---@return nil
 function Chat:replace_vars_and_tools(message)
-  if self.agents:parse(self, message) then
-    message.content = self.agents:replace(message.content)
+  if self.tools:parse(self, message) then
+    message.content = self.tools:replace(message.content)
   end
   if self.variables:parse(self, message) then
     message.content = self.variables:replace(message.content, self.buffer_context.bufnr)
@@ -863,8 +863,8 @@ function Chat:submit(opts)
     opts.callback()
   end
 
-  -- Refresh agent tools before submitting to pick up any dynamically added tools
-  self.agents:refresh_tools()
+  -- Refresh tools before submitting to pick up any dynamically added tools
+  self.tools:refresh()
 
   local bufnr = self.bufnr
 
@@ -922,7 +922,7 @@ function Chat:submit(opts)
 
   local payload = {
     messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
-    tools = (not vim.tbl_isempty(self.tools.schemas) and { self.tools.schemas } or {}),
+    tools = (not vim.tbl_isempty(self.tool_registry.schemas) and { self.tool_registry.schemas } or {}),
   }
 
   log:trace("Settings:\n%s", mapped_settings)
@@ -1040,7 +1040,7 @@ function Chat:done(output, reasoning, tools)
     }, {
       visible = false,
     })
-    return self.agents:execute(self, tools)
+    return self.tools:execute(self, tools)
   end
 
   ready_chat_buffer(self)
@@ -1110,7 +1110,7 @@ function Chat:check_context()
   end
 
   local function expand_group_ref(group_name)
-    local group_config = self.agents.tools_config.groups[group_name] or {}
+    local group_config = self.tools.tools_config.groups[group_name] or {}
     return vim.tbl_map(function(tool)
       return "<tool>" .. tool .. "</tool>"
     end, group_config.tools or {})
@@ -1174,19 +1174,19 @@ function Chat:check_context()
   -- Clear any tool's schemas
   local schemas_to_keep = {}
   local tools_in_use_to_keep = {}
-  for id, schema in pairs(self.tools.schemas) do
+  for id, schema in pairs(self.tool_registry.schemas) do
     if not vim.tbl_contains(to_remove, id) then
       schemas_to_keep[id] = schema
       local tool_name = id:match("<tool>(.*)</tool>")
-      if tool_name and self.tools.in_use[tool_name] then
+      if tool_name and self.tool_registry.in_use[tool_name] then
         tools_in_use_to_keep[tool_name] = true
       end
     else
       log:debug("Removing tool schema and usage flag for ID: %s", id) -- Optional logging
     end
   end
-  self.tools.schemas = schemas_to_keep
-  self.tools.in_use = tools_in_use_to_keep
+  self.tool_registry.schemas = schemas_to_keep
+  self.tool_registry.in_use = tools_in_use_to_keep
 end
 
 ---Regenerate the response from the LLM
@@ -1340,7 +1340,7 @@ function Chat:clear()
   self.messages = {}
   self.context_items = {}
 
-  self.tools:clear()
+  self.tool_registry:clear()
 
   log:trace("Clearing chat buffer")
   self.ui:render(self.buffer_context, self.messages, self.opts):set_intro_msg()

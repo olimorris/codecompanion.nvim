@@ -112,7 +112,7 @@ T["Ollama adapter"]["it can form messages with tools"] = function()
 end
 
 T["Ollama adapter"]["it can form tools to be sent to the API"] = function()
-  local weather = require("tests/strategies/chat/agents/tools/stubs/weather").schema
+  local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
   local tools = { weather = { weather } }
 
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))

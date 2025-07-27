@@ -12,7 +12,7 @@ T = new_set({
         codecompanion = require("codecompanion")
         h = require('tests.helpers')
         config = require("tests.config")
-        _G.chat, _G.agent = h.setup_chat_buffer()
+        _G.chat, _G.tools = h.setup_chat_buffer()
       ]])
     end,
     post_case = function()
@@ -139,8 +139,8 @@ T["Context"]["Tools and their schema can be deleted"] = function()
   ]])
 
   h.eq(2, vim.tbl_count(child.lua_get([[_G.chat.context_items]])), "Should have 2 context items")
-  h.expect_tbl_contains("<tool>weather</tool>", child.lua_get([[_G.chat.tools.schemas]]))
-  h.expect_tbl_contains("<tool>func</tool>", child.lua_get([[_G.chat.tools.schemas]]))
+  h.expect_tbl_contains("<tool>weather</tool>", child.lua_get([[_G.chat.tool_registry.schemas]]))
+  h.expect_tbl_contains("<tool>func</tool>", child.lua_get([[_G.chat.tool_registry.schemas]]))
 
   -- Mock the get_from_chat method to pretend that the user has deleted the weather tool
   child.lua([[
@@ -154,7 +154,7 @@ T["Context"]["Tools and their schema can be deleted"] = function()
     ["<tool>func</tool>"] = {
       name = "func",
     },
-  }, child.lua_get([[chat.tools.schemas]]))
+  }, child.lua_get([[chat.tool_registry.schemas]]))
 end
 
 T["Context"]["Can be pinned"] = function()
@@ -351,24 +351,24 @@ T["Context"]["file context_items always have a relative id"] = function()
 end
 
 T["Context"]["Correctly removes tool schema and usage flag on context deletion"] = function()
-  -- 1. Add multiple tools via a message containing agent triggers
+  -- 1. Add multiple tools via a message containing triggers
   child.lua([[
-     -- Add a user message that triggers multiple tool agents
+     -- Add a user message that triggers multiple tool calls
      local message = {
        role = config.constants.USER_ROLE,
        content = "Whats the @{weather} like in London? Also adding a @{func} tool too.",
      }
      _G.chat:add_message(message) -- Add to message history
 
-     -- Simulate the pre-submit processing that adds tools based on agents
-     _G.chat:replace_vars_and_tools(message) -- This calls agents:parse -> tools:add
+     -- Simulate the pre-submit processing that adds tools to the chat buffer
+     _G.chat:replace_vars_and_tools(message) -- This calls tools:parse -> tools:add
      _G.chat:check_context() -- Sync the context table initially
    ]])
 
   -- 2. Verify initial state (both tools present)
-  local initial_schemas = child.lua_get([[_G.chat.tools.schemas]])
+  local initial_schemas = child.lua_get([[_G.chat.tool_registry.schemas]])
   local initial_context_count = child.lua_get([[#_G.chat.context_items]])
-  local initial_in_use = child.lua_get([[_G.chat.tools.in_use]])
+  local initial_in_use = child.lua_get([[_G.chat.tool_registry.in_use]])
 
   h.eq(2, vim.tbl_count(initial_schemas), "Should have 2 schemas initially")
   h.expect_truthy(initial_schemas["<tool>weather</tool>"], "Weather schema should exist")
@@ -389,9 +389,9 @@ T["Context"]["Correctly removes tool schema and usage flag on context deletion"]
    ]])
 
   -- 4. Verify final state (only 'func' tool remains)
-  local final_schemas = child.lua_get([[_G.chat.tools.schemas]])
+  local final_schemas = child.lua_get([[_G.chat.tool_registry.schemas]])
   local final_context_count = child.lua_get([[#_G.chat.context_items]])
-  local final_in_use = child.lua_get([[_G.chat.tools.in_use]])
+  local final_in_use = child.lua_get([[_G.chat.tool_registry.in_use]])
 
   -- Define the expected final state for the schemas map
   -- Only the func schema and still in a map keyed by ID
@@ -538,8 +538,8 @@ T["Context"]["Removing collapsed group removes all its tools and system message"
      _G.chat:check_context()
    ]])
 
-  local final_schemas = child.lua_get([[_G.chat.tools.schemas]])
-  local final_in_use = child.lua_get([[_G.chat.tools.in_use]])
+  local final_schemas = child.lua_get([[_G.chat.tool_registry.schemas]])
+  local final_in_use = child.lua_get([[_G.chat.tool_registry.in_use]])
 
   h.eq({}, final_schemas, "All tool schemas should be removed")
   h.eq({}, final_in_use, "All tools should be removed from in_use")
