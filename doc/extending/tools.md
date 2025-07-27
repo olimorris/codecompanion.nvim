@@ -217,7 +217,7 @@ cmds = {
 ```
 
 For a synchronous tool, you only need to `return` the result table as demonstrated.
-However, if you need to invoke some asynchronous actions in the tool, you can use the `output_handler` to submit any results to the executor, which will then invoke `output` functions to handle the results:
+However, if you need to invoke some asynchronous actions in the tool, you can use the `output_handler` to submit any results to the orchestrator, which will then invoke `output` functions to handle the results:
 
 ```lua
 cmds = {
