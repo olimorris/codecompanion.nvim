@@ -1,7 +1,7 @@
 {
   "name": "CodeCompanion.nvim",
   "version": "1.0.0",
-  "system_prompt": "CodeCompanion.nvim is an AI-powered productivity tool that seamlessly integrates large language models (LLMs) into the Neovim editing experience. The plugin is built around three core strategies: **Chat** (conversational interface), **Inline** (direct code generation), and **Agents** (tool execution).\n\n**Architecture Philosophy:**\n- **Adapter Pattern**: Unified interface for multiple LLM providers (OpenAI, Anthropic, Google Gemini, etc.)\n- **Strategy Pattern**: Different interaction modes (chat, inline, agents) with shared infrastructure\n- **Builder Pattern**: Complex UI operations broken into composable, testable components\n- **Event-Driven**: Extensible through subscribers, watchers, and workflows\n\n**Key Components:**\n- **Chat Buffer**: Markdown-formatted conversational interface with Tree-sitter parsing\n- **Adapters**: LLM-specific handlers for requests, responses, and capabilities\n- **Tools/Agents**: Function calling system for LLM-driven automation\n- **Variables & Context**: Context injection system for enhanced prompts\n- **Workflows**: Automated prompt chaining and response processing\n\n**Testing & Quality:**\nExtensively tested using Mini.Test with both unit tests and visual regression testing through screenshots. The codebase emphasizes maintainability through clear separation of concerns, comprehensive error handling, and modular design patterns that make extending functionality straightforward.",
+  "system_prompt": "CodeCompanion.nvim is an AI-powered productivity tool that seamlessly integrates large language models (LLMs) into the Neovim editing experience. The plugin is built around three core strategies: **Chat** (conversational interface), **Inline** (direct code generation), and **Tools** (tool execution).\n\n**Architecture Philosophy:**\n- **Adapter Pattern**: Unified interface for multiple LLM providers (OpenAI, Anthropic, Google Gemini, etc.)\n- **Strategy Pattern**: Different interaction modes (chat, inline, tools) with shared infrastructure\n- **Builder Pattern**: Complex UI operations broken into composable, testable components\n- **Event-Driven**: Extensible through subscribers, watchers, and workflows\n\n**Key Components:**\n- **Chat Buffer**: Markdown-formatted conversational interface with Tree-sitter parsing\n- **Adapters**: LLM-specific handlers for requests, responses, and capabilities\n- **Tools**: Function calling system for LLM-driven automation\n- **Variables & Context**: Context injection system for enhanced prompts\n- **Workflows**: Automated prompt chaining and response processing\n\n**Testing & Quality:**\nExtensively tested using Mini.Test with both unit tests and visual regression testing through screenshots. The codebase emphasizes maintainability through clear separation of concerns, comprehensive error handling, and modular design patterns that make extending functionality straightforward.",
   "groups": [
     {
       "name": "Chat Buffer",
@@ -72,15 +72,15 @@
     },
     {
       "name": "Tools",
-      "system_prompt": "In the CodeCompanion plugin, tools can be leveraged by an LLM to execute lua functions or shell commands on the users machine. CodeCompanion uses an LLM's native function calling to receive a response in JSON, parse the response and call the corresponding tool. This feature has been implemented via the agents.lua file, which passes all of the tools and adds them to a queue. Then those tools are run consecutively by the executor.lua file.",
+      "system_prompt": "In the CodeCompanion plugin, tools can be leveraged by an LLM to execute lua functions or shell commands on the users machine. CodeCompanion uses an LLM's native function calling to receive a response in JSON, parse the response and call the corresponding tool. This feature has been implemented via the tools/init.lua file, which passes all of the tools and adds them to a queue. Then those tools are run consecutively by the orchestrator.lua file.",
       "opts": {
         "remove_config_system_prompt": true
       },
       "data": [
-        "agents-init",
-        "executor-init",
-        "executor-func",
-        "executor-queue",
+        "tool-system-init",
+        "orchestrator",
+        "runtime-runner",
+        "runtime-queue",
         "queue-example",
         "read_file_tool",
         "read_file_tool_test"
@@ -217,24 +217,24 @@
       "path": "tests/strategies/inline/test_inline.lua",
       "description": "Including a link to the test file:"
     },
-    "agents-init": {
+    "tool-system-init": {
       "type": "file",
       "path": "lua/codecompanion/strategies/chat/tools/init.lua",
-      "description": "This is the entry point for the agent. If an LLM's response includes a function call (or tool call) then this file is triggered which in turns add tools to a queue before calling the executor"
+      "description": "This is the entry point for the tool system. If an LLM's response includes a function call (or tool call) then this file is triggered which in turns add tools to a queue before calling the orchestrator"
     },
-    "executor-init": {
+    "orchestrator": {
       "type": "file",
-      "path": "lua/codecompanion/strategies/chat/tools/executor/init.lua",
-      "description": "The executor file then runs the tools in the queue, whether they're functions or commands:"
+      "path": "lua/codecompanion/strategies/chat/tools/orchestrator.lua",
+      "description": "The orchestrator file then runs the tools in the queue, whether they're functions or commands:"
     },
-    "executor-func": {
+    "runtime-runner": {
       "type": "file",
-      "path": "lua/codecompanion/strategies/chat/tools/executor/func.lua",
+      "path": "lua/codecompanion/strategies/chat/tools/runtime/runner.lua",
       "description": "This is how function tools are run:"
     },
-    "executor-queue": {
+    "runtime-queue": {
       "type": "file",
-      "path": "lua/codecompanion/strategies/chat/tools/executor/queue.lua",
+      "path": "lua/codecompanion/strategies/chat/tools/runtime/queue.lua",
       "description": "This is the queue implementation"
     },
     "queue-example": {
