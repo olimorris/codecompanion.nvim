@@ -67,10 +67,12 @@ return {
   roles = {
     llm = "assistant",
     user = "user",
+    tool = "tool",
   },
   opts = {
     stream = true,
-    vision = false,
+    vision = true,
+    tools = true,
   },
   features = {
     text = true,
@@ -88,6 +90,24 @@ return {
     ---@param self CodeCompanion.Adapter
     ---@return boolean
     setup = function(self)
+      -- Check if the model supports tools
+      local model = self.schema.model.default
+      if type(model) == "function" then
+        model = model(self)
+      end
+
+      local model_opts = self.schema.model.choices
+      if type(model_opts) == "function" then
+        model_opts = model_opts(self)
+      end
+
+      -- Some HF models may not support tools
+      if model_opts and model_opts[model] and model_opts[model].opts then
+        if model_opts[model].opts.supports_tools == false then
+          self.opts.tools = false
+        end
+      end
+
       if self.opts and self.opts.stream then
         self.parameters.stream = true
       end
@@ -100,8 +120,11 @@ return {
     form_messages = function(self, messages)
       return openai.handlers.form_messages(self, messages)
     end,
-    chat_output = function(self, data)
-      return openai.handlers.chat_output(self, data)
+    form_tools = function(self, tools)
+      return openai.handlers.form_tools(self, tools)
+    end,
+    chat_output = function(self, data, tools)
+      return openai.handlers.chat_output(self, data, tools)
     end,
     inline_output = function(self, data, context)
       return openai.handlers.inline_output(self, data, context)
@@ -109,6 +132,14 @@ return {
     on_exit = function(self, data)
       return openai.handlers.on_exit(self, data)
     end,
+    tools = {
+      format_tool_calls = function(self, tools)
+        return openai.handlers.tools.format_tool_calls(self, tools)
+      end,
+      output_response = function(self, tool_call, output)
+        return openai.handlers.tools.output_response(self, tool_call, output)
+      end,
+    },
   },
   schema = {
     ---@type CodeCompanion.Schema
