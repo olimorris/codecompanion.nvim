@@ -30,7 +30,7 @@ end
 ---Get a list of available Copilot models
 ---@param adapter CodeCompanion.Adapter
 ---@param get_and_authorize_token_fn function Function to get and authorize token
----@param authorize_token_fn function Function to get fresh github token
+---@param authorize_token_fn function Function to get fresh Github token
 ---@return table
 function M.get_models(adapter, get_and_authorize_token_fn, authorize_token_fn)
   if _cached_models and _cache_expires and _cache_expires > os.time() then
