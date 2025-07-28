@@ -106,6 +106,9 @@ return {
         if model_opts[model].opts.supports_tools == false then
           self.opts.tools = false
         end
+        if model_opts[model].opts.has_vision == false then
+          self.opts.vision = false
+        end
       end
 
       if self.opts and self.opts.stream then
