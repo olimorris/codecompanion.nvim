@@ -71,7 +71,7 @@ return {
   },
   opts = {
     stream = true,
-    vision = true,
+    vision = false,
     tools = true,
   },
   features = {
