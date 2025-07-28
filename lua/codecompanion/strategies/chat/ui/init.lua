@@ -54,7 +54,13 @@ function UI.new(args)
     once = true,
     desc = "Clear the virtual text in the CodeCompanion chat buffer",
     callback = function()
-      api.nvim_buf_clear_namespace(self.chat_bufnr, CONSTANTS.NS_VIRTUAL_TEXT, 0, -1)
+      -- Clear intro message if it exists
+      if self.intro_extmark_ids and self.intro_line_count then
+        self:clear_intro_message()
+      else
+        -- Otherwise just clear the namespace
+        api.nvim_buf_clear_namespace(self.chat_bufnr, CONSTANTS.NS_VIRTUAL_TEXT, 0, -1)
+      end
     end,
   })
 
@@ -378,14 +384,56 @@ function UI:set_intro_msg()
   end
 
   if not config.display.chat.start_in_insert_mode then
-    local extmark_id =
-      ui.set_virtual_text_lines(self.chat_bufnr, CONSTANTS.NS_VIRTUAL_TEXT, config.display.chat.intro_message)
-    api.nvim_create_autocmd("InsertEnter", {
-      buffer = self.chat_bufnr,
-      callback = function()
-        self:clear_virtual_text(extmark_id)
-      end,
-    })
+    -- Get current cursor position
+    local cursor_line = api.nvim_win_get_cursor(self.winnr)[1] - 1
+    
+    -- Split intro message into lines
+    local intro_lines = vim.split(config.display.chat.intro_message, "\n", { plain = true })
+
+    -- Store the number of intro lines and starting position for cleanup
+    self.intro_line_count = #intro_lines
+    self.intro_start_line = cursor_line
+
+    -- First line uses the current line, additional lines need to be inserted
+    if #intro_lines > 1 then
+      -- Create empty lines for additional intro lines (all except the first)
+      -- Temporarily unlock to add lines
+      local was_modifiable = vim.bo[self.chat_bufnr].modifiable
+      vim.bo[self.chat_bufnr].modifiable = true
+      
+      local empty_lines = {}
+      for i = 2, #intro_lines do
+        table.insert(empty_lines, "")
+      end
+      -- Insert after the current line
+      api.nvim_buf_set_lines(self.chat_bufnr, cursor_line + 1, cursor_line + 1, false, empty_lines)
+      
+      -- Restore previous modifiable state (keep it unlocked for user input)
+      vim.bo[self.chat_bufnr].modifiable = was_modifiable
+    end
+
+    -- Add virtual text to each line
+    self.intro_extmark_ids = {}
+    for i, line in ipairs(intro_lines) do
+      local extmark_id = api.nvim_buf_set_extmark(self.chat_bufnr, CONSTANTS.NS_VIRTUAL_TEXT, cursor_line + i - 1, 0, {
+        virt_text = { { line, "CodeCompanionVirtualText" } },
+        virt_text_pos = "overlay",
+      })
+      table.insert(self.intro_extmark_ids, extmark_id)
+    end
+
+    -- Don't create duplicate autocmd if one already exists
+    if not self.intro_autocmd_created then
+      api.nvim_create_autocmd("InsertEnter", {
+        buffer = self.chat_bufnr,
+        once = true,
+        callback = function()
+          self:clear_intro_message()
+        end,
+      })
+      self.intro_autocmd_created = true
+    end
+    
     self.intro_message = true
   end
 
@@ -397,6 +445,40 @@ end
 ---@return nil
 function UI:clear_virtual_text(extmark_id)
   api.nvim_buf_del_extmark(self.chat_bufnr, CONSTANTS.NS_VIRTUAL_TEXT, extmark_id)
+end
+
+---Clear the intro message including virtual text and buffer lines
+---@return nil
+function UI:clear_intro_message()
+  if not self.intro_extmark_ids or not self.intro_line_count or not self.intro_start_line then
+    return
+  end
+
+  -- Clear all virtual text extmarks
+  for _, extmark_id in ipairs(self.intro_extmark_ids) do
+    pcall(api.nvim_buf_del_extmark, self.chat_bufnr, CONSTANTS.NS_VIRTUAL_TEXT, extmark_id)
+  end
+
+  -- Remove the empty lines from the buffer
+  -- Only remove lines if we have more than one intro line (since first line uses existing line)
+  if self.intro_line_count > 1 then
+    -- Temporarily unlock to remove lines
+    local was_modifiable = vim.bo[self.chat_bufnr].modifiable
+    vim.bo[self.chat_bufnr].modifiable = true
+    
+    -- Remove the additional lines we added (not the first line which already existed)
+    api.nvim_buf_set_lines(self.chat_bufnr, self.intro_start_line + 1, self.intro_start_line + self.intro_line_count, false, {})
+    
+    -- Restore previous modifiable state
+    vim.bo[self.chat_bufnr].modifiable = was_modifiable
+  end
+
+  -- Clean up references
+  self.intro_extmark_ids = nil
+  self.intro_line_count = nil
+  self.intro_start_line = nil
+  self.intro_autocmd_created = nil
+  self.intro_message = nil
 end
 
 ---Get the last line, column and line count in the chat buffer
