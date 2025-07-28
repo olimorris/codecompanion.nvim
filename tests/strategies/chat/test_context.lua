@@ -558,4 +558,52 @@ T["Context"]["Removing collapsed group removes all its tools and system message"
   h.eq(false, child.lua_get("_G.system_msg_exists"), "System message with group context should be removed")
 end
 
+T["Context"]["Supports function paths for file context items"] = function()
+  -- Define a test that uses the Strategies.add_context method directly
+  -- This bypasses the need to pass functions across child process boundaries
+
+  child.lua([[
+    -- First, let's mock the slash_commands.context function
+    local original_context_fn
+
+    _G.mock_path_result = nil
+    _G.mock_called = false
+
+    -- Create a new context item with a dynamic path that's computed by a function
+    local context_item = {
+      type = "file",
+      path = function()
+        _G.mock_called = true
+        return "lua/codecompanion/config.lua"
+      end
+    }
+
+    -- Save the original function
+    original_context_fn = require("codecompanion.strategies.chat.slash_commands").context
+
+    -- Mock the context function to capture its parameters
+    require("codecompanion.strategies.chat.slash_commands").context = function(_, type, opts)
+      -- Save the resolved path for testing
+      _G.mock_path_result = opts.path
+
+      -- Don't actually add anything to the chat buffer for this test
+      return { id = "<file>function-path-test</file>" }
+    end
+
+    -- Call the actual add_context function with our mock
+    require("codecompanion.strategies").add_context({ context = { context_item } }, _G.chat)
+
+    -- Restore the original function
+    require("codecompanion.strategies.chat.slash_commands").context = original_context_fn
+  ]])
+
+  -- Get the results from our mock
+  local mock_path_result = child.lua_get([[_G.mock_path_result]])
+  local mock_called = child.lua_get([[_G.mock_called]])
+
+  -- Assert that the function was called and the path was resolved correctly
+  h.eq("lua/codecompanion/config.lua", mock_path_result, "Path should be resolved from function")
+  h.eq(true, mock_called, "The function should have been called")
+end
+
 return T

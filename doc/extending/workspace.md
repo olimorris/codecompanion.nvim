@@ -4,6 +4,15 @@ Workspaces act as a context management system for your project. This context sit
 
 For the origin of workspaces in CodeCompanion, and why I settled on this design, please see the [original](https://github.com/olimorris/codecompanion.nvim/discussions/705) announcement.
 
+> [!NOTE]
+> You can customize the name and location (relative to your current working directory) of the workspace file by setting the `workspace_file` configuration option. For example:
+>
+> ```lua
+> require('codecompanion').setup({
+>   workspace_file = '.ai/workspace.json', -- relative to cwd
+> })
+> ```
+
 ## Structure
 
 The workspace file primarily consists of a groups array and data objects. A group defines a specific feature or functionality within the code base, which is made up of a number of individual data objects. These objects are simply a reference to code, which could be in the form of a file, a symbolic outline, or a URL.
@@ -130,7 +139,6 @@ An example of using the configuration options:
   }
 }
 ```
-
 
 ## Variables
 

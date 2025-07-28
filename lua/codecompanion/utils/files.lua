@@ -32,4 +32,18 @@ function M.create_dir_recursive(path)
   return true, nil
 end
 
+---Resolves a path relative to the current working directory.
+---@param path string? The path to resolve
+---@return string resolved_path The resolved absolute path
+M.resolve_path_relative_to_cwd = function(path)
+  return vim.fs.normalize(vim.fs.joinpath(vim.fn.getcwd(), path))
+end
+
+---Resolves the workspace path relative to the current working directory.
+---@return string workspace_file_path The resolved absolute path to the workspace file.
+M.get_workspace_file_path = function()
+  local config_file_name = require("codecompanion.config").workspace_file
+  return M.resolve_path_relative_to_cwd(config_file_name or "codecompanion-workspace.json")
+end
+
 return M

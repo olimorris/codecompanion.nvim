@@ -202,4 +202,46 @@ end
 --   h.eq("stubs.lua", messages[9].content)
 -- end
 
+T["Workspace"]["uses custom workspace file from config"] = function()
+  -- Read the custom workspace file for assertions
+  local custom_workspace_json = vim.json.decode(table.concat(vim.fn.readfile("tests/stubs/workspace_custom.json"), ""))
+
+  child.lua([[
+    -- Override the workspace_file config
+    require('codecompanion.config').workspace_file = 'tests/stubs/workspace_custom.json'
+
+    -- Create new workspace instance with the updated config
+    _G.custom_wks = require("codecompanion.strategies.chat.slash_commands.workspace").new({
+      Chat = chat,
+      context = {},
+      opts = {},
+    })
+
+    -- We need to store the return value of read_workspace_file in the workspace property
+    _G.custom_wks.workspace = _G.custom_wks:read_workspace_file()
+  ]])
+
+  -- Verify it reads the correct workspace file
+  local workspace = child.lua_get([[_G.custom_wks.workspace]])
+  h.eq("Custom Workspace", workspace.name)
+  h.eq("Custom workspace system prompt", workspace.system_prompt)
+
+  -- Test group output
+  child.lua([[_G.custom_wks:output("Custom Test")]])
+
+  -- Verify messages match the custom workspace content
+  local messages = child.lua_get([[_G.chat.messages]])
+
+  -- Verify system prompts were added
+  h.eq(custom_workspace_json.system_prompt, messages[2].content)
+  h.eq(custom_workspace_json.groups[1].system_prompt, messages[3].content)
+
+  -- Verify description
+  h.eq(custom_workspace_json.groups[1].description, messages[4].content)
+
+  -- Verify file content was added with the correct description
+  h.expect_starts_with("Custom test description for the file", messages[5].content)
+  h.expect_contains("stub.go", messages[5].content)
+end
+
 return T

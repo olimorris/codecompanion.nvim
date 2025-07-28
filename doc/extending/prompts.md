@@ -362,9 +362,12 @@ It can be useful to pre-load a chat buffer with context from _files_, _symbols_ 
   context = {
     {
       type = "file",
-      path = { -- This can be a string or a table of values
+      path = { -- This can be a string, a function, or a table of strings or functions
         "lua/codecompanion/health.lua",
         "lua/codecompanion/http.lua",
+        function() -- must return a path string
+          return vim.fs.normalize(vim.fs.joinpath(vim.fn.getcwd(), 'some/other/path.lua'))
+        end,
       },
     },
     {
@@ -395,4 +398,3 @@ It can be useful to pre-load a chat buffer with context from _files_, _symbols_ 
 ## Conclusion
 
 Hopefully this serves as a useful introduction on how you can expand CodeCompanion to create prompts that suit your workflow. It's worth checking out [config.lua](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua) files for more complex examples.
-

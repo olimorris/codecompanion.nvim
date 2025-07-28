@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2025 July 27
+*codecompanion.txt*          For NVIM v0.11          Last change: 2025 July 28
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -3991,9 +3991,12 @@ This can now accomplished, as per the example below:
       context = {
         {
           type = "file",
-          path = { -- This can be a string or a table of values
+          path = { -- This can be a string, a function, or a table of strings or functions
             "lua/codecompanion/health.lua",
             "lua/codecompanion/http.lua",
+            function() -- must return a path string
+              return vim.fs.normalize(vim.fs.joinpath(vim.fn.getcwd(), 'some/other/path.lua'))
+            end,
           },
         },
         {
@@ -5009,6 +5012,15 @@ For the origin of workspaces in CodeCompanion, and why I settled on this
 design, please see the original
 <https://github.com/olimorris/codecompanion.nvim/discussions/705> announcement.
 
+
+  [!NOTE] You can customize the name and location (relative to your current
+  working directory) of the workspace file by setting the `workspace_file`
+  configuration option. For example:
+  >lua
+      require('codecompanion').setup({
+        workspace_file = '.ai/workspace.json', -- relative to cwd
+      })
+  <
 
 STRUCTURE ~
 

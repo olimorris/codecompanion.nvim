@@ -5,12 +5,6 @@ local util = require("codecompanion.utils")
 
 local fmt = string.format
 
-local CONSTANTS = {
-  NAME = "Workspace",
-  PROMPT = "Select a workspace group",
-  WORKSPACE_FILE = vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json"),
-}
-
 ---Replace variables in a string
 ---@param workspace table
 ---@param group table
@@ -72,11 +66,7 @@ end
 ---@return table
 function SlashCommand:read_workspace_file(path)
   if not path then
-    path = CONSTANTS.WORKSPACE_FILE
-  end
-  if not path then
-    path = vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json")
-    CONSTANTS.WORKSPACE_FILE = vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json")
+    path = require("codecompanion.utils.files").get_workspace_file_path()
   end
 
   if not vim.uv.fs_stat(path) then

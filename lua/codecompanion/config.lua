@@ -37,6 +37,7 @@ local defaults = {
     },
   },
   constants = constants,
+  workspace_file = "codecompanion-workspace.json", -- Relative to cwd
   strategies = {
     -- CHAT STRATEGY ----------------------------------------------------------
     chat = {
@@ -952,9 +953,9 @@ This is the code, for context:
       context = {
         {
           type = "file",
-          path = {
-            vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json"),
-          },
+          path = function()
+            return require("codecompanion.utils.files").get_workspace_file_path()
+          end,
         },
       },
       prompts = {
@@ -994,7 +995,8 @@ You must create or modify a workspace file through a series of prompts over mult
           role = constants.USER_ROLE,
           content = function()
             local prompt = ""
-            if vim.fn.filereadable(vim.fs.joinpath(vim.fn.getcwd(), "codecompanion-workspace.json")) == 1 then
+            local path = require("codecompanion.utils.files").get_workspace_file_path()
+            if vim.fn.filereadable(path) == 1 then
               prompt = [[Can you help me add a group to an existing workspace file?]]
             else
               prompt = [[Can you help me create a workspace file?]]

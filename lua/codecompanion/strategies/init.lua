@@ -66,9 +66,15 @@ function Strategies.add_context(prompt, chat)
     if item.type == "file" or item.type == "symbols" then
       if type(item.path) == "string" then
         return slash_commands.context(chat, item.type, { path = item.path })
+      elseif type(item.path) == "function" then
+        return slash_commands.context(chat, item.type, { path = item.path() })
       elseif type(item.path) == "table" then
         for _, path in ipairs(item.path) do
-          slash_commands.context(chat, item.type, { path = path })
+          if type(path) == "string" then
+            slash_commands.context(chat, item.type, { path = path })
+          elseif type(path) == "function" then
+            slash_commands.context(chat, item.type, { path = path() })
+          end
         end
       end
     elseif item.type == "url" then

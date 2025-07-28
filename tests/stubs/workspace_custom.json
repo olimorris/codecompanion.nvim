@@ -1,0 +1,21 @@
+{
+  "name": "Custom Workspace",
+  "version": "1.0.0",
+  "workspace_spec": "1.0",
+  "system_prompt": "Custom workspace system prompt",
+  "groups": [
+    {
+      "name": "Custom Test",
+      "description": "This is a custom test group",
+      "system_prompt": "Custom test group system prompt",
+      "data": ["custom-stub-go"]
+    }
+  ],
+  "data": {
+    "custom-stub-go": {
+      "type": "file",
+      "path": "tests/stubs/stub.go",
+      "description": "Custom test description for the file ${filename} located at ${path}"
+    }
+  }
+}
