@@ -4,6 +4,7 @@
 <img src="https://raw.githubusercontent.com/olimorris/codecompanion.nvim/refs/heads/main/doc/media/logo.png" alt="CodeCompanion.nvim" />
 </p>
 
+
 <p align="center">
 <a href="https://github.com/olimorris/codecompanion.nvim/stargazers"><img src="https://img.shields.io/github/stars/olimorris/codecompanion.nvim?color=c678dd&logoColor=e06c75&style=for-the-badge"></a>
 <a href="https://github.com/olimorris/codecompanion.nvim/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/olimorris/codecompanion.nvim/ci.yml?branch=main&label=tests&style=for-the-badge"></a>
