@@ -399,10 +399,11 @@ return {
       icons = {
         buffer_pin = " ",
         buffer_watch = "👀 ",
-        tool_success = "!!",
-        tool_failure = "xx",
+        tool_success = "!! ",
+        tool_failure = "xx ",
       },
       show_context = true,
+      fold_context = false,
       show_settings = false,
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer

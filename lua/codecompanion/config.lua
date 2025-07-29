@@ -1026,8 +1026,9 @@ You must create or modify a workspace file through a series of prompts over mult
       icons = {
         buffer_pin = " ",
         buffer_watch = "󰂥 ",
-        tool_success = "",
-        tool_failure = "",
+        chat_context = " ",
+        tool_success = " ",
+        tool_failure = " ",
       },
       debug_window = {
         ---@return number|fun(): number
@@ -1065,6 +1066,8 @@ You must create or modify a workspace file through a series of prompts over mult
       separator = "─", -- The separator between the different messages in the chat buffer
 
       show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
+      fold_context = true, -- Fold context in the chat buffer?
+
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_tools_processing = true, -- Show the loading message when tools are being executed?
       show_token_count = true, -- Show the token count for each response?

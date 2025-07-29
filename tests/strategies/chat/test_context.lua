@@ -558,4 +558,25 @@ T["Context"]["Removing collapsed group removes all its tools and system message"
   h.eq(false, child.lua_get("_G.system_msg_exists"), "System message with group context should be removed")
 end
 
+T["Context"]["can be folded"] = function()
+  c.lua([[
+    _G.chat = h.setup_chat_buffer({
+      display = {
+        chat = {
+          fold_context = true
+        }
+      }
+    })
+  ]])
+  child.lua([[
+    --require("tests.log")
+    h.make_tool_call(_G.chat, _G.tool, "**Weather Tool**: Ran successfully:\nTemperature: 20°C\nCondition: Sunny\nPrecipitation: 0%", {
+      llm_initial_response = "I've found some awesome weather data for you:",
+      llm_final_response = "\nLet me know if you need anything else!",
+    })
+  ]])
+
+  expect.reference_screenshot(child.get_screenshot())
+end
+
 return T

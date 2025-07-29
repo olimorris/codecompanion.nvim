@@ -2,27 +2,30 @@ local config = require("codecompanion.config")
 local helpers = require("codecompanion.strategies.chat.helpers")
 
 local api = vim.api
+local get_node_range = vim.treesitter.get_node_range --[[@as function]]
+local get_node_text = vim.treesitter.get_node_text --[[@as function]]
+local query_get = vim.treesitter.query.get --[[@as function]]
+
 local user_role = config.strategies.chat.roles.user
 local icons_path = config.display.chat.icons
 local icons = {
   pinned = icons_path.pinned_buffer or icons_path.buffer_pin,
   watched = icons_path.watched_buffer or icons_path.buffer_watch,
 }
-
 local allowed_pins = {
   "<buf>",
   "<file>",
 }
-
 local allowed_watchers = {
   "<buf>",
 }
+local context_header = "> Context:"
 
 ---Parse the chat buffer to find where to add the context items
 ---@param chat CodeCompanion.Chat
 ---@return table|nil
 local function ts_parse_buffer(chat)
-  local query = vim.treesitter.query.get("markdown", "context")
+  local query = query_get("markdown", "context")
 
   local tree = chat.parser:parse({ chat.header_line - 1, -1 })[1]
   local root = tree:root()
@@ -49,7 +52,7 @@ local function ts_parse_buffer(chat)
   local role_node
   for id, node in query:iter_captures(root, chat.bufnr, chat.header_line - 1, -1) do
     if query.captures[id] == "role" then
-      role = vim.treesitter.get_node_text(node, chat.bufnr)
+      role = get_node_text(node, chat.bufnr)
       role_node = node
     end
   end
@@ -91,7 +94,7 @@ local function add(chat, context, row)
   table.insert(lines, context_text)
 
   if vim.tbl_count(chat.context_items) == 1 then
-    table.insert(lines, 1, "> Context:")
+    table.insert(lines, 1, context_header)
     table.insert(lines, "")
   end
 
@@ -153,6 +156,7 @@ function Context:add(context)
     -- If the context block already exists, add to it
     if parsed_buffer.capture == "context" then
       add(self.Chat, context, parsed_buffer.end_row - 1)
+      self:create_folds()
     -- If there are no context items then add a new block below the heading
     elseif parsed_buffer.capture == "role" then
       add(self.Chat, context, parsed_buffer.end_row + 1)
@@ -169,7 +173,7 @@ function Context:clear(message)
   end
 
   local parser = vim.treesitter.get_string_parser(message.content, "markdown")
-  local query = vim.treesitter.query.get("markdown", "context")
+  local query = query_get("markdown", "context")
   local root = parser:parse()[1]:root()
 
   local items = nil
@@ -191,6 +195,29 @@ function Context:clear(message)
   return message
 end
 
+---Get the range of the latest context block
+---@param chat CodeCompanion.Chat
+---@return number|nil, number|nil
+local function get_range(chat)
+  local query = query_get("markdown", "context")
+
+  local tree = chat.parser:parse()[1]
+  local root = tree:root()
+
+  local role = nil
+  local start_row, end_row = nil, nil
+
+  for id, node in query:iter_captures(root, chat.bufnr, chat.header_line - 1, -1) do
+    if query.captures[id] == "role" then
+      role = helpers.format_role(get_node_text(node, chat.bufnr))
+    elseif role == user_role and query.captures[id] == "context" then
+      start_row, _, end_row, _ = get_node_range(node)
+    end
+  end
+
+  return start_row, end_row
+end
+
 ---Render all the context items in the chat buffer after a response from the LLM
 ---@return nil
 function Context:render()
@@ -201,7 +228,7 @@ function Context:render()
   local start_row = chat.header_line + 1
 
   local lines = {}
-  table.insert(lines, "> Context:")
+  table.insert(lines, context_header)
 
   for _, context in pairs(chat.context_items) do
     if not context or (context.opts and context.opts.visible == false) then
@@ -222,7 +249,22 @@ function Context:render()
   end
   table.insert(lines, "")
 
-  return api.nvim_buf_set_lines(chat.bufnr, start_row, start_row, false, lines)
+  api.nvim_buf_set_lines(chat.bufnr, start_row, start_row, false, lines)
+  self:create_folds()
+end
+
+---Fold all of the context items in the chat buffer
+---@return nil
+function Context:create_folds()
+  if not config.display.chat.fold_context then
+    return
+  end
+
+  local start_row, end_row = get_range(self.Chat)
+  if start_row and end_row then
+    end_row = end_row - 1
+    self.Chat.ui.folds:create_context_fold(self.Chat.bufnr, start_row, end_row, context_header)
+  end
 end
 
 ---Make a unique ID from the buffer number
@@ -260,7 +302,7 @@ end
 ---Get the context items from the chat buffer
 ---@return table
 function Context:get_from_chat()
-  local query = vim.treesitter.query.get("markdown", "context")
+  local query = query_get("markdown", "context")
 
   local tree = self.Chat.parser:parse()[1]
   local root = tree:root()
@@ -272,9 +314,9 @@ function Context:get_from_chat()
 
   for id, node in query:iter_captures(root, chat.bufnr, chat.header_line - 1, -1) do
     if query.captures[id] == "role" then
-      role = helpers.format_role(vim.treesitter.get_node_text(node, chat.bufnr))
+      role = helpers.format_role(get_node_text(node, chat.bufnr))
     elseif role == user_role and query.captures[id] == "context_item" then
-      local context = vim.treesitter.get_node_text(node, chat.bufnr)
+      local context = get_node_text(node, chat.bufnr)
       -- Clean both pinned and watched icons
       context = vim.iter(vim.tbl_values(icons)):fold(select(1, context:gsub("^> %- ", "")), function(acc, icon)
         return select(1, acc:gsub(icon, ""))
