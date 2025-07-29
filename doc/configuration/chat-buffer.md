@@ -454,6 +454,9 @@ It's not uncommon for users to share many items, as context, with an LLM in a ch
 require("codecompanion").setup({
   display = {
     chat = {
+      icons = {
+        chat_context = " ", -- You can also apply an icon to the fold
+      },
       fold_context = true,
     },
   },
