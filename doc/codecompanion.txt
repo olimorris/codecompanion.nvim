@@ -1557,10 +1557,10 @@ can disable this behavior using a flag:
 
 FOLD CONTEXT
 
-It’s not uncommon for users to share many items, as context, with an LLM in a
-chat buffer. This can impact the UI significantly, leaving a large space
-between the LLM’s last response and the user input. To minimize this impact,
-the context can be folded:
+It’s not uncommon for users to share many items, as context, with an LLM.
+This can impact the chat buffer’s UI significantly, leaving a large space
+between the LLM’s last response and the user’s input. To minimize this
+impact, the context can be folded:
 
 >lua
     require("codecompanion").setup({
