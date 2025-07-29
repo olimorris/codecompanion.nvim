@@ -23,7 +23,7 @@
         "chat-ui-formatters-tools",
         "chat-ui-formatters-reasoning",
         "chat-ui-formatters-standard",
-        "chat-ui-tools",
+        "chat-ui-folds",
         "chat-ui-builder-test"
       ]
     },
@@ -138,10 +138,10 @@
       "path": "lua/codecompanion/strategies/chat/ui/formatters/standard.lua",
       "description": "The fallback formatter that handles regular message content. It manages transitions from reasoning to response content (adding '### Response' headers), handles spacing after tool output, and processes standard text content with proper line splitting."
     },
-    "chat-ui-tools": {
+    "chat-ui-folds": {
       "type": "file",
-      "path": "lua/codecompanion/strategies/chat/ui/tools.lua",
-      "description": "Manages visual presentation of tool output including folding functionality. It creates collapsible folds for tool output with custom fold text that shows success/failure icons and summarized content. The fold text adapts based on keywords in the tool output to indicate success or failure states."
+      "path": "lua/codecompanion/strategies/chat/ui/folds.lua",
+      "description": "Manages visual presentation of tool output and chat context including folding functionality. It creates collapsible folds for tool output with custom fold text that shows success/failure icons and summarized content alongside folding the chat context at the top of the chat buffer. The fold text adapts based on keywords in the tool output to indicate success or failure states."
     },
     "chat-ui-builder-test": {
       "type": "file",

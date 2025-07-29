@@ -48,6 +48,8 @@ function UI.new(args)
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.chat_bufnr, {
     clear = false,
   })
+  self.folds = require("codecompanion.strategies.chat.ui.folds")
+
   api.nvim_create_autocmd("InsertEnter", {
     group = self.aug,
     buffer = self.chat_bufnr,
@@ -151,13 +153,10 @@ function UI:open(opts)
     self:follow()
   end
 
+  self.folds:setup(self.winnr)
+
   log:trace("Chat opened with ID %d", self.chat_id)
   util.fire("ChatOpened", { bufnr = self.chat_bufnr, id = self.chat_id })
-
-  self.tools = require("codecompanion.strategies.chat.ui.tools").new({
-    chat_bufnr = self.chat_bufnr,
-    winnr = self.winnr,
-  })
 
   return self
 end

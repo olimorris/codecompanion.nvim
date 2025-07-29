@@ -195,7 +195,7 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
   if fold_info and opts.type == self.chat.MESSAGE_TYPES.TOOL_MESSAGE and #lines > 1 then
     local fold_start = last_line + fold_info.start_offset
     local fold_end = last_line + fold_info.end_offset
-    self.chat.ui.tools:create_fold(fold_start, fold_end, fold_info.first_line)
+    self.chat.ui.folds:create_tool_fold(self.chat.bufnr, fold_start, fold_end, fold_info.first_line)
   end
 
   if state.is_new_response then

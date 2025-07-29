@@ -1,10 +1,10 @@
 local h = require("tests.helpers")
 
-local new_set = MiniTest.new_set
-local T = new_set()
-
+local expect = MiniTest.expect
 local child = MiniTest.new_child_neovim()
-T = new_set({
+local new_set = MiniTest.new_set
+
+local T = new_set({
   hooks = {
     pre_case = function()
       h.child_start(child)
@@ -556,6 +556,37 @@ T["Context"]["Removing collapsed group removes all its tools and system message"
    ]])
 
   h.eq(false, child.lua_get("_G.system_msg_exists"), "System message with group context should be removed")
+end
+
+T["Context"]["does not fold single context item but applies extmark"] = function()
+  child.lua([[
+    _G.chat = h.setup_chat_buffer({
+      display = {
+        chat = {
+          fold_context = true,
+        },
+      },
+    })
+    -- Add two context items
+    _G.chat.context:add({
+      id = "<buf>foo.lua</buf>",
+      path = "foo.lua",
+      source = "test",
+    })
+    _G.chat.context:add({
+      id = "<buf>bar.lua</buf>",
+      path = "bar.lua",
+      source = "test",
+    })
+
+    -- Add a message
+    _G.chat:add_buf_message({
+      role = "user",
+      content = "Is our context folded yet?",
+    })
+  ]])
+
+  expect.reference_screenshot(child.get_screenshot())
 end
 
 return T
