@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2025 July 27
+*codecompanion.txt*          For NVIM v0.11          Last change: 2025 July 29
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1548,16 +1548,34 @@ can disable this behavior using a flag:
     require("codecompanion").setup({
       display = {
         chat = {
-          auto_scroll = false
+          auto_scroll = false,
         },
       },
     }),
 <
 
 
-ADDITIONAL OPTIONS ~
+FOLD CONTEXT
 
-There are also a number of other options that you can customize:
+It’s not uncommon for users to share many items, as context, with an LLM in a
+chat buffer. This can impact the UI significantly, leaving a large space
+between the LLM’s last response and the user input. To minimize this impact,
+the context can be folded:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          fold_context = true,
+        },
+      },
+    }),
+<
+
+
+ADDITIONAL UI OPTIONS
+
+There are also a number of other options that you can customize in the UI:
 
 >lua
     require("codecompanion").setup({

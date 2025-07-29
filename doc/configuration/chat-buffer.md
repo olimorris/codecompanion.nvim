@@ -432,25 +432,37 @@ require("codecompanion").setup({
 
 The plugin also supports [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), a native completion solution (`default`), and [coc.nvim](https://github.com/neoclide/coc.nvim).
 
-### Auto scrolling
+### Auto Scrolling
 
-By default, the page scrolls down automatically as the response streams, with the cursor placed at the end.
-This can be distracting if you are focusing on the earlier content while the page scrolls up away during a long response.
-You can disable this behavior using a flag:
+By default, the page scrolls down automatically as the response streams, with the cursor placed at the end. This can be distracting if you are focusing on the earlier content while the page scrolls up away during a long response. You can disable this behavior using a flag:
 
 ```lua
 require("codecompanion").setup({
   display = {
     chat = {
-      auto_scroll = false
+      auto_scroll = false,
     },
   },
 }),
 ```
 
-## Additional Options
+### Fold Context
 
-There are also a number of other options that you can customize:
+It's not uncommon for users to share many items, as context, with an LLM in a chat buffer. This can impact the UI significantly, leaving a large space between the LLM's last response and the user input. To minimize this impact, the context can be folded:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      fold_context = true,
+    },
+  },
+}),
+```
+
+### Additional UI Options
+
+There are also a number of other options that you can customize in the UI:
 
 ```lua
 require("codecompanion").setup({
