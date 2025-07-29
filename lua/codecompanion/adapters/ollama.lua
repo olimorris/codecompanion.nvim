@@ -22,7 +22,7 @@ local function get_models(self, opts)
     _cached_adapter = adapter
   end
 
-  _cached_adapter:get_env_vars()
+  utils.get_env_vars(_cached_adapter)
   local url = _cached_adapter.env_replaced.url
 
   local headers = {

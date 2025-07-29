@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils.adapters")
 
 ---@class CodeCompanion.Adapter
 ---@field name string The name of the adapter
@@ -33,98 +34,6 @@ local log = require("codecompanion.utils.log")
 ---@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
 ---@field methods table Methods that the adapter can perform e.g. for Slash Commands
 
----Check if a variable starts with "cmd:"
----@param var string
----@return boolean
-local function is_cmd(var)
-  return var:match("^cmd:")
-end
-
----Check if the variable is an environment variable
----@param var string
----@return boolean
-local function is_env_var(var)
-  local found_var = os.getenv(var)
-  if not found_var then
-    return false
-  end
-  return true
-end
-
----Run the command in the environment variable
----@param var string
----@return string|nil
-local function run_cmd(var)
-  log:trace("Detected cmd in environment variable")
-  local cmd = var:sub(5)
-  local handle = io.popen(cmd, "r")
-  if handle then
-    local result = handle:read("*a")
-    log:trace("Executed cmd: %s", cmd)
-    handle:close()
-    local r = result:gsub("%s+$", "")
-    return r
-  else
-    return log:error("Error: Could not execute cmd: %s", cmd)
-  end
-end
-
----Get the environment variable
----@param var string
----@return string|nil
-local function get_env_var(var)
-  log:trace("Fetching environment variable: %s", var)
-  return os.getenv(var) or nil
-end
-
----Get the schema value
----@param adapter CodeCompanion.Adapter
----@param var string
----@return string|nil
-local function get_schema(adapter, var)
-  log:trace("Fetching variable from schema: %s", var)
-
-  local keys = {}
-  for key in var:gmatch("[^%.]+") do
-    table.insert(keys, key)
-  end
-
-  local node = adapter
-  for _, key in ipairs(keys) do
-    if type(node) ~= "table" then
-      return nil
-    end
-    node = node[key]
-    if node == nil then
-      return nil
-    end
-  end
-
-  if not node then
-    return
-  end
-
-  return node
-end
-
----Replace a variable with its value e.g. "${var}" -> "value"
----@param adapter CodeCompanion.Adapter
----@param str string
----@return string
-local function replace_var(adapter, str)
-  if type(str) ~= "string" then
-    return str
-  end
-
-  local pattern = "${(.-)}"
-
-  local result = str:gsub(pattern, function(var)
-    return adapter.env_replaced[var]
-  end)
-
-  return result
-end
-
 ---@class CodeCompanion.Adapter
 local Adapter = {}
 
@@ -156,60 +65,6 @@ function Adapter:make_from_schema()
   end
 
   return settings
-end
-
----Get the variables from the env key of the adapter
----@return CodeCompanion.Adapter
-function Adapter:get_env_vars()
-  local env_vars = self.env or {}
-
-  if not env_vars then
-    return self
-  end
-
-  self.env_replaced = {}
-
-  for k, v in pairs(env_vars) do
-    if type(v) == "string" and is_cmd(v) then
-      self.env_replaced[k] = run_cmd(v)
-    elseif type(v) == "string" and is_env_var(v) then
-      self.env_replaced[k] = get_env_var(v)
-    elseif type(v) == "function" then
-      self.env_replaced[k] = v(self)
-    else
-      local schema = get_schema(self, v)
-      if schema then
-        self.env_replaced[k] = schema
-      else
-        self.env_replaced[k] = v
-      end
-    end
-  end
-
-  return self
-end
-
----Set env vars in a given object in the adapter
----@param object string|table
----@return string|table|nil
-function Adapter:set_env_vars(object)
-  local obj_copy = vim.deepcopy(object)
-
-  if type(obj_copy) == "string" then
-    return replace_var(self, obj_copy)
-  elseif type(obj_copy) == "table" then
-    local replaced = {}
-    for k, v in pairs(obj_copy) do
-      if type(v) == "string" then
-        replaced[k] = replace_var(self, v)
-      elseif type(v) == "function" then
-        replaced[k] = replace_var(self, v(self))
-      else
-        replaced[k] = v
-      end
-    end
-    return replaced
-  end
 end
 
 ---Set parameters based on the schema table's mappings
@@ -254,13 +109,7 @@ end
 ---@param messages table
 ---@return table
 function Adapter:map_roles(messages)
-  for _, message in ipairs(messages) do
-    if message.role then
-      message.role = self.roles[message.role:lower()] or message.role
-    end
-  end
-
-  return messages
+  return utils.map_roles(self.roles, messages)
 end
 
 ---Extend an existing adapter
@@ -315,6 +164,38 @@ function Adapter.set_model(adapter)
   return adapter
 end
 
+---Check if an adapter has already been resolved
+---@param adapter CodeCompanion.Adapter|string|function|nil
+---@return boolean
+function Adapter.resolved(adapter)
+  if adapter and getmetatable(adapter) and getmetatable(adapter).__index == Adapter then
+    return true
+  end
+  return false
+end
+
+---Get an adapter from a string path
+---@param adapter_str string
+---@return CodeCompanion.Adapter|nil
+function Adapter.get_from_string(adapter_str)
+  local ok, adapter = pcall(require, "codecompanion.adapters." .. adapter_str)
+  local err
+  if not ok then
+    adapter, err = loadfile(adapter_str)
+  end
+  if err then
+    return nil
+  end
+
+  adapter = utils.resolve(adapter)
+
+  if not adapter then
+    return nil
+  end
+
+  return adapter
+end
+
 ---Resolve an adapter from deep within the plugin...somewhere
 ---@param adapter? CodeCompanion.Adapter|string|function
 ---@param opts? table
@@ -352,38 +233,6 @@ function Adapter.resolve(adapter, opts)
   end
 
   return adapter.set_model(adapter)
-end
-
----Check if an adapter has already been resolved
----@param adapter CodeCompanion.Adapter|string|function|nil
----@return boolean
-function Adapter.resolved(adapter)
-  if adapter and getmetatable(adapter) and getmetatable(adapter).__index == Adapter then
-    return true
-  end
-  return false
-end
-
----Get an adapter from a string path
----@param adapter_str string
----@return CodeCompanion.Adapter|nil
-function Adapter.get_from_string(adapter_str)
-  local ok, adapter = pcall(require, "codecompanion.adapters." .. adapter_str)
-  local err
-  if not ok then
-    adapter, err = loadfile(adapter_str)
-  end
-  if err then
-    return nil
-  end
-
-  adapter = Adapter.resolve(adapter)
-
-  if not adapter then
-    return nil
-  end
-
-  return adapter
 end
 
 ---Make an adapter safe for serialization

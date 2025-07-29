@@ -1,5 +1,6 @@
 local Curl = require("plenary.curl")
 local Path = require("plenary.path")
+local adapter_utils = require("codecompanion.utils.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
@@ -84,13 +85,17 @@ function Client:request(payload, actions, opts)
     end
   end
 
-  adapter:get_env_vars()
+  adapter = adapter_utils.get_env_vars(adapter)
 
   local body = self.opts.encode(
     vim.tbl_extend(
       "keep",
       handlers.form_parameters
-          and handlers.form_parameters(adapter, adapter:set_env_vars(adapter.parameters), payload.messages)
+          and handlers.form_parameters(
+            adapter,
+            adapter_utils.set_env_vars(adapter, adapter.parameters),
+            payload.messages
+          )
         or {},
       handlers.form_messages and handlers.form_messages(adapter, payload.messages) or {},
       handlers.form_tools and handlers.form_tools(adapter, payload.tools) or {},
@@ -127,12 +132,12 @@ function Client:request(payload, actions, opts)
   end
 
   if adapter.raw then
-    vim.list_extend(raw, adapter:set_env_vars(adapter.raw))
+    vim.list_extend(raw, adapter_utils.set_env_vars(adapter, adapter.raw))
   end
 
   local request_opts = {
-    url = adapter:set_env_vars(adapter.url),
-    headers = adapter:set_env_vars(adapter.headers),
+    url = adapter_utils.set_env_vars(adapter, adapter.url),
+    headers = adapter_utils.set_env_vars(adapter, adapter.headers),
     insecure = config.adapters.opts.allow_insecure,
     proxy = config.adapters.opts.proxy,
     raw = raw,

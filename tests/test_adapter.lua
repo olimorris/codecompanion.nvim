@@ -142,8 +142,9 @@ end
 
 T["Adapter"]["can form environment variables"] = function()
   local result = child.lua([[
+    local utils = require("codecompanion.utils.adapters")
     local adapter = require("codecompanion.adapters").extend(test_adapter2)
-    return adapter:get_env_vars()
+    return utils.get_env_vars(adapter)
   ]])
 
   h.eq(child.lua_get([[_G.test_adapter2.schema.model.default]]), result.env_replaced.model)
@@ -152,16 +153,17 @@ end
 
 T["Adapter"]["can set environment variables in the adapter"] = function()
   local result = child.lua([[
+    local utils = require("codecompanion.utils.adapters")
     adapter = require("codecompanion.adapters").extend(_G.test_adapter2)
-    adapter:get_env_vars()
+    utils.get_env_vars(adapter)
 
-    return adapter:set_env_vars(adapter.url)
+    return utils.set_env_vars(adapter, adapter.url)
   ]])
 
   h.eq("https://api.oli.ai/v1/chat/oli_model_v2", result)
 
   local headers = child.lua([[
-    return adapter:set_env_vars(adapter.headers)
+    return utils.set_env_vars(adapter, adapter.headers)
   ]])
 
   h.eq({
@@ -172,9 +174,10 @@ end
 
 T["Adapter"]["will not set environment variables if it doesn't need to"] = function()
   local params = child.lua([[
+    local utils = require("codecompanion.utils.adapters")
     local adapter = require("codecompanion.adapters").extend(test_adapter2)
-    adapter:get_env_vars()
-    return adapter:set_env_vars(adapter.parameters)
+    utils.get_env_vars(adapter)
+    return utils.set_env_vars(adapter, adapter.parameters)
   ]])
 
   h.eq(child.lua_get([[_G.test_adapter2.parameters]]), params)
@@ -182,6 +185,7 @@ end
 
 T["Adapter"]["environment variables can be functions"] = function()
   local result = child.lua([[
+    local utils = require("codecompanion.utils.adapters")
     local adapter = require("codecompanion.adapters").extend("openai", {
       env = {
         api_key = function()
@@ -189,7 +193,7 @@ T["Adapter"]["environment variables can be functions"] = function()
         end,
       }
     })
-    return adapter:get_env_vars().env_replaced.api_key
+    return utils.get_env_vars(adapter).env_replaced.api_key
   ]])
 
   h.eq("test_api_key", result)
