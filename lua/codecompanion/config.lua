@@ -1026,7 +1026,7 @@ You must create or modify a workspace file through a series of prompts over mult
       icons = {
         buffer_pin = " ",
         buffer_watch = "󰂥 ",
-        chat_context = " ",
+        --chat_context = " ",
         tool_success = " ",
         tool_failure = " ",
       },
