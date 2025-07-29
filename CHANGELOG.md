@@ -1,5 +1,19 @@
 # Changelog
 
+## [17.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.11.0...v17.12.0) (2025-07-29)
+
+
+### Features
+
+* **adapters:** add tool support to HuggingFace ([#1907](https://github.com/olimorris/codecompanion.nvim/issues/1907)) ([afa34eb](https://github.com/olimorris/codecompanion.nvim/commit/afa34ebe3c48d74dc7e1c8b26d74f7f3a02cb531))
+
+
+### Bug Fixes
+
+* **adapters:** handle choices as function in reasoning for OpenAI ([#1902](https://github.com/olimorris/codecompanion.nvim/issues/1902)) ([ea99a1b](https://github.com/olimorris/codecompanion.nvim/commit/ea99a1b4b341286df9d39dfe101c649bf868d39b))
+* **adapters:** missing models in copilot ([#1899](https://github.com/olimorris/codecompanion.nvim/issues/1899)) ([30f7cc7](https://github.com/olimorris/codecompanion.nvim/commit/30f7cc7b768f4f0e694c1841e316d0cda91d7323))
+* **tools:** error when trying to log nil tool ([#1896](https://github.com/olimorris/codecompanion.nvim/issues/1896)) ([63ce32a](https://github.com/olimorris/codecompanion.nvim/commit/63ce32aa44135ba863aa1e5ed49a0abfdaeb926e))
+
 ## [17.11.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.10.0...v17.11.0) (2025-07-25)
 
 
