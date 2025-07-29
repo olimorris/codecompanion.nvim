@@ -1,10 +1,10 @@
 local h = require("tests.helpers")
 
-local new_set = MiniTest.new_set
-local T = new_set()
-
+local expect = MiniTest.expect
 local child = MiniTest.new_child_neovim()
-T = new_set({
+local new_set = MiniTest.new_set
+
+local T = new_set({
   hooks = {
     pre_case = function()
       h.child_start(child)
@@ -558,21 +558,31 @@ T["Context"]["Removing collapsed group removes all its tools and system message"
   h.eq(false, child.lua_get("_G.system_msg_exists"), "System message with group context should be removed")
 end
 
-T["Context"]["can be folded"] = function()
-  c.lua([[
+T["Context"]["does not fold single context item but applies extmark"] = function()
+  child.lua([[
     _G.chat = h.setup_chat_buffer({
       display = {
         chat = {
-          fold_context = true
-        }
-      }
+          fold_context = true,
+        },
+      },
     })
-  ]])
-  child.lua([[
-    --require("tests.log")
-    h.make_tool_call(_G.chat, _G.tool, "**Weather Tool**: Ran successfully:\nTemperature: 20°C\nCondition: Sunny\nPrecipitation: 0%", {
-      llm_initial_response = "I've found some awesome weather data for you:",
-      llm_final_response = "\nLet me know if you need anything else!",
+    -- Add two context items
+    _G.chat.context:add({
+      id = "<buf>foo.lua</buf>",
+      path = "foo.lua",
+      source = "test",
+    })
+    _G.chat.context:add({
+      id = "<buf>bar.lua</buf>",
+      path = "bar.lua",
+      source = "test",
+    })
+
+    -- Add a message
+    _G.chat:add_buf_message({
+      role = "user",
+      content = "Is our context folded yet?",
     })
   ]])
 
