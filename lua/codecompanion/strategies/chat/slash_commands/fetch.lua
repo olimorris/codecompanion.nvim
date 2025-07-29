@@ -1,4 +1,5 @@
 local Path = require("plenary.path")
+
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local config = require("codecompanion.config")

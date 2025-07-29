@@ -1,4 +1,4 @@
-local path = require("plenary.path")
+local Path = require("plenary.path")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
@@ -144,7 +144,7 @@ end
 ---@param selected { path: string, relative_path: string?, description: string? }
 function SlashCommand:read(selected)
   local ok, content = pcall(function()
-    return path.new(selected.path):read()
+    return Path.new(selected.path):read()
   end)
 
   if not ok then

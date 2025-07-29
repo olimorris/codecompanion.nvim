@@ -7,8 +7,8 @@ Heavily modified from the awesome Aerial.nvim plugin by stevearc:
 https://github.com/stevearc/aerial.nvim/blob/master/lua/aerial/backends/treesitter/init.lua
 --]]
 local config = require("codecompanion.config")
+local helpers = require("codecompanion.strategies.chat.slash_commands.helpers")
 local log = require("codecompanion.utils.log")
-local symbol_utils = require("codecompanion.strategies.chat.helpers")
 local util = require("codecompanion.utils")
 
 local fmt = string.format
@@ -17,20 +17,6 @@ local CONSTANTS = {
   NAME = "Symbols",
   PROMPT = "Select symbol(s)",
 }
-
----Get the range of two nodes
----@param start_node TSNode
----@param end_node TSNode
-local function range_from_nodes(start_node, end_node)
-  local row, col = start_node:start()
-  local end_row, end_col = end_node:end_()
-  return {
-    lnum = row + 1,
-    end_lnum = end_row + 1,
-    col = col,
-    end_col = end_col,
-  }
-end
 
 ---Return when no symbols query exists
 local function no_query(ft)
@@ -187,7 +173,7 @@ function SlashCommand:output(selected, opts)
   opts = opts or {}
 
   local ft = vim.filetype.match({ filename = selected.path })
-  local symbols, content = symbol_utils.extract_file_symbols(selected.path)
+  local symbols, content = helpers.extract_file_symbols(selected.path)
 
   if not symbols then
     return no_query(ft)
