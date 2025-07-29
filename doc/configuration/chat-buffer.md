@@ -455,7 +455,7 @@ require("codecompanion").setup({
   display = {
     chat = {
       icons = {
-        chat_context = " ", -- You can also apply an icon to the fold
+        chat_context = "📎️", -- You can also apply an icon to the fold
       },
       fold_context = true,
     },
