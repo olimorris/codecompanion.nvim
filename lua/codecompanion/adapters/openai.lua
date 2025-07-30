@@ -1,7 +1,7 @@
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.adapters")
 
----@class OpenAI.Adapter: CodeCompanion.Adapter
+---@class CodeCompanion.HTTPAdapter.OpenAI: CodeCompanion.HTTPAdapter
 return {
   name = "openai",
   formatted_name = "OpenAI",
@@ -28,7 +28,7 @@ return {
     Authorization = "Bearer ${api_key}",
   },
   handlers = {
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@return boolean
     setup = function(self)
       local model = self.schema.model.default
@@ -59,7 +59,7 @@ return {
     end,
 
     ---Set the parameters
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@param params table
     ---@param messages table
     ---@return table
@@ -68,7 +68,7 @@ return {
     end,
 
     ---Set the format of the role and content for the messages from the chat buffer
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
@@ -128,7 +128,7 @@ return {
     end,
 
     ---Provides the schemas of the tools that are available to the LLM to call
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@param tools table<string, table>
     ---@return table|nil
     form_tools = function(self, tools)
@@ -150,7 +150,7 @@ return {
     end,
 
     ---Returns the number of tokens generated from the LLM
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@param data table The data from the LLM
     ---@return number|nil
     tokens = function(self, data)
@@ -169,7 +169,7 @@ return {
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
     ---@param tools? table The table to write any tool output to
     ---@return table|nil [status: string, output: table]
@@ -260,7 +260,7 @@ return {
     end,
 
     ---Output the data from the API ready for inlining into the current buffer
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@param data string|table The streamed JSON data from the API, also formatted by the format_data handler
     ---@param context? table Useful context about the buffer to inline to
     ---@return {status: string, output: table}|nil
@@ -285,7 +285,7 @@ return {
     end,
     tools = {
       ---Format the LLM's tool calls for inclusion back in the request
-      ---@param self CodeCompanion.Adapter
+      ---@param self CodeCompanion.HTTPAdapter
       ---@param tools table The raw tools collected by chat_output
       ---@return table
       format_tool_calls = function(self, tools)
@@ -294,7 +294,7 @@ return {
       end,
 
       ---Output the LLM's tool call so we can include it in the messages
-      ---@param self CodeCompanion.Adapter
+      ---@param self CodeCompanion.HTTPAdapter
       ---@param tool_call {id: string, function: table, name: string}
       ---@param output string
       ---@return table
@@ -310,7 +310,7 @@ return {
     },
 
     ---Function to run when the request has completed. Useful to catch errors
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@param data? table
     ---@return nil
     on_exit = function(self, data)

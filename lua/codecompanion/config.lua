@@ -11,7 +11,7 @@ local constants = {
 
 local defaults = {
   adapters = {
-    -- LLMs -------------------------------------------------------------------
+    -- HTTP -------------------------------------------------------------------
     anthropic = "anthropic",
     azure_openai = "azure_openai",
     copilot = "copilot",
@@ -24,18 +24,17 @@ local defaults = {
     ollama = "ollama",
     openai = "openai",
     xai = "xai",
-    -- CLIs -------------------------------------------------------------------
-    codex = "codex",
-    -- OTHERS -----------------------------------------------------------------
     jina = "jina",
     tavily = "tavily",
-    -- OPTIONS ----------------------------------------------------------------
     opts = {
       allow_insecure = false, -- Allow insecure connections?
       cache_models_for = 1800, -- Cache adapter models for this long (seconds)
       proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
       show_defaults = true, -- Show default adapters
       show_model_choices = true, -- Show model choices when changing adapter
+    },
+    acp = {
+      codex = "codex",
     },
   },
   constants = constants,
