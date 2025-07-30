@@ -50,11 +50,19 @@
     },
     {
       "name": "Adapters",
-      "system_prompt": "In the CodeCompanion plugin, adapters are used to connect to LLMs. The adapters contain various options for the LLM's endpoint alongside a defined schema for properties such as the model, temperature, top k, top p etc. The adapters also contain various handler functions which define how messages which are sent to the LLM should be formatted alongside how output from the LLM should be received and displayed in the chat buffer. The adapters are defined in the `adapters` directory.",
+      "system_prompt": "In the CodeCompanion plugin, adapters are used to connect to LLMs or Agents. Adapters can come in two flavours: HTTP and ACP. HTTP adapters contain various options for the LLM's endpoint alongside a defined schema for properties such as the model, temperature, top k, top p etc. HTTP adapters also contain various handler functions which define how messages which are sent to the LLM should be formatted alongside how output from the LLM should be received and displayed in the chat buffer.The Agent Client Protocol (ACP) is a protocol that standardizes communication between code editors (interactive programs for viewing and editing source code) and coding agents (programs that use generative AI to autonomously modify code). ACP adapters connect to LLMs via the JSON-RPC 2.0 protocol as the Agents are ran from the terminal on a user's machine. As such ACP adapters look to implement the ACP protocol. The adapters are defined in the `adapters` directory.",
       "opts": {
         "remove_config_system_prompt": true
       },
-      "data": ["adapters-init", "http-client", "schema"]
+      "data": [
+        "adapters-init",
+        "adapters-shared",
+        "adapters-http",
+        "adapters-acp",
+        "http-client",
+        "acp-client",
+        "adapters-test"
+      ]
     },
     {
       "name": "Inline",
@@ -185,13 +193,39 @@
     "adapters-init": {
       "type": "file",
       "path": "lua/codecompanion/adapters/init.lua",
-      "description": "Each LLM has their own adapter. This allows for LLM settings to be generated from the schema table in an adapter before they're sent to the LLM via the http file."
+      "description": "Currently CodeCompanion supports two types of adapters, `http` and `acp`. The factory pattern has been used to handle the resolution of both adapter types and contains common methods across them both."
+    },
+    "adapters-shared": {
+      "type": "file",
+      "path": "lua/codecompanion/adapters/shared.lua",
+      "description": "There are some functions that are shared between the two adapter types and these are contained in this file."
+    },
+    "adapters-http": {
+      "type": "file",
+      "path": "lua/codecompanion/adapters/http/init.lua",
+      "description": "This is the logic for the HTTP adapters. Various logic sits within this file which allows the adapter to be resolved into a CodeCompanion.HTTPAdapter object before it's used throughout the plugin to connect to an LLM endpoint."
+    },
+    "adapters-acp": {
+      "type": "file",
+      "path": "lua/codecompanion/adapters/acp/init.lua",
+      "description": "This is the logic for the ACP adapters. Various logic sits within this file which allows the adapter to be resolved into a CodeCompanion.ACPAdapter object before it's used throughout the plugin to connect to an agents."
+    },
+    "adapters-test": {
+      "type": "file",
+      "path": "tests/adapters/test_adapters.lua",
+      "description": "This is an example test file which might give you more of an understand of what is required by an adapter deep within CodeCompanion."
     },
     "http-client": {
       "type": "file",
       "path": "lua/codecompanion/http.lua",
-      "description": "Adapters are then passed to the http client which sends requests to LLMs via Curl:"
+      "description": "HTTP Adapters are then passed to the http client which sends requests to LLMs via Curl:"
     },
+    "acp-client": {
+      "type": "file",
+      "path": "lua/codecompanion/acp.lua",
+      "description": "ACP Adapters are then passed to the  ACP client which sends requests to agents via JSON RPC 2.0:"
+    },
+
     "schema": {
       "type": "file",
       "path": "lua/codecompanion/schema.lua",
