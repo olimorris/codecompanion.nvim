@@ -19,7 +19,7 @@ return {
     "mcp",
   },
   defaults = {
-    manifest_path = "Cargo.toml",
+    manifest_path = "Users/Oli/Code/Neovim/Codex/codex-rs/Cargo.toml",
     timeout = 30000,
   },
   env = {
