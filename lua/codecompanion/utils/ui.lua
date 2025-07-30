@@ -30,7 +30,7 @@ M.create_float = function(lines, opts)
   local winnr = api.nvim_open_win(bufnr, true, {
     relative = opts.relative or "cursor",
     -- thanks to @mini.nvim for this, it's for >= 0.11, to respect users winborder style
-    border = (vim.fn.exists("+winborder") == 1 and vim.o.winborder ~= "") and vim.o.winborder or "single",
+    border = (vim.fn.exists("+winborder") == 0 or vim.o.winborder == "") and "single" or nil,
     width = width,
     height = height,
     style = "minimal",
