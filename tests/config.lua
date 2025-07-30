@@ -58,6 +58,14 @@ return {
         proxy = nil,
       },
     },
+    acp = {
+      test_acp = {
+        name = "test_acp",
+        type = "acp",
+        command = { "node", "test-agent.js" },
+        roles = { user = "user", assistant = "assistant" },
+      },
+    },
   },
   strategies = {
     chat = {

@@ -58,6 +58,10 @@ function Adapter.extend(adapter, opts)
     adapter_config = adapter
   end
 
+  if not adapter_config then
+    return log:error("Adapter not found: %s", adapter)
+  end
+
   adapter_config = vim.tbl_deep_extend("force", {}, vim.deepcopy(adapter_config), opts or {})
 
   return Adapter.new(adapter_config)
@@ -73,7 +77,8 @@ function Adapter.resolve(adapter, opts)
 
   if type(adapter) == "table" then
     if (adapter.type and adapter.type ~= "acp") or not adapter.type then
-      return log:trace("[ACP Adapter] Adapter is not an ACP adapter")
+      log:error("[ACP Adapter] Adapter is not an ACP adapter")
+      error("Adapter is not an ACP adapter")
     end
     if adapter.name and Adapter.resolved(adapter) then
       log:trace("[ACP Adapter] Returning existing resolved adapter: %s", adapter.name)
@@ -84,7 +89,11 @@ function Adapter.resolve(adapter, opts)
     end
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
-    adapter = Adapter.extend(config.adapters[adapter] or adapter, opts)
+    if not config.adapters.acp or not config.adapters.acp[adapter] then
+      log:error("[ACP Adapter] Adapter not found: %s", adapter)
+      error("Adapter not found: " .. adapter)
+    end
+    adapter = Adapter.extend(config.adapters.acp[adapter] or adapter, opts)
   elseif type(adapter) == "function" then
     adapter = adapter()
   end

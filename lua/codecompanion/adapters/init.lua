@@ -1,11 +1,12 @@
 local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 
 local M = {}
 
 ---Determine the adapter type
 ---@param adapter string|table
 ---@return string
-local function get_adapter_type(adapter)
+local function adapter_type(adapter)
   if type(adapter) == "table" and adapter.type then
     return adapter.type
   end
@@ -31,13 +32,10 @@ end
 ---@param opts? table
 ---@return CodeCompanion.ACPAdapter|CodeCompanion.HTTPAdapter
 function M.resolve(adapter, opts)
-  local adapter_type = get_adapter_type(adapter)
-
-  if adapter_type == "acp" then
+  if adapter_type(adapter) == "acp" then
     return require("codecompanion.adapters.acp").resolve(adapter, opts)
-  else
-    return require("codecompanion.adapters.http").resolve(adapter, opts)
   end
+  return require("codecompanion.adapters.http").resolve(adapter, opts)
 end
 
 ---Factory method to check if the adapter has been resolved
@@ -48,13 +46,10 @@ function M.resolved(adapter)
     return false
   end
 
-  local adapter_type = get_adapter_type(adapter)
-
-  if adapter_type == "acp" then
+  if adapter_type(adapter) == "acp" then
     return require("codecompanion.adapters.acp").resolved(adapter)
-  else
-    return require("codecompanion.adapters.http").resolved(adapter)
   end
+  return require("codecompanion.adapters.http").resolved(adapter)
 end
 
 ---Factory method to extend the adapter
@@ -62,26 +57,20 @@ end
 ---@param opts? table
 ---@return CodeCompanion.ACPAdapter|CodeCompanion.HTTPAdapter
 function M.extend(adapter, opts)
-  local adapter_type = get_adapter_type(adapter)
-
-  if adapter_type == "acp" then
+  if adapter_type(adapter) == "acp" then
     return require("codecompanion.adapters.acp").extend(adapter, opts)
-  else
-    return require("codecompanion.adapters.http").extend(adapter, opts)
   end
+  return require("codecompanion.adapters.http").extend(adapter, opts)
 end
 
 ---Factory method to make adapters safe for serialization
 ---@param adapter string|table
 ---@return table
 function M.make_safe(adapter)
-  local adapter_type = get_adapter_type(adapter)
-
-  if adapter_type == "acp" then
+  if adapter_type(adapter) == "acp" then
     return require("codecompanion.adapters.acp").make_safe(adapter)
-  else
-    return require("codecompanion.adapters.http").make_safe(adapter)
   end
+  return require("codecompanion.adapters.http").make_safe(adapter)
 end
 
 ---Backwards compatibility: expose HTTP methods directly at root level
