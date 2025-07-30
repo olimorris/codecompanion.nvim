@@ -138,8 +138,8 @@ function Client:request(payload, actions, opts)
   local request_opts = {
     url = adapter_utils.set_env_vars(adapter, adapter.url),
     headers = adapter_utils.set_env_vars(adapter, adapter.headers),
-    insecure = config.adapters.opts.allow_insecure,
-    proxy = config.adapters.opts.proxy,
+    insecure = config.adapters.http.opts.allow_insecure,
+    proxy = config.adapters.http.opts.proxy,
     raw = raw,
     body = body_file.filename or "",
     -- This is called when the request is finished. It will only ever be called

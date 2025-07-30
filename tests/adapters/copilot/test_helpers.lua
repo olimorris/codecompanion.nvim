@@ -1,4 +1,4 @@
-local copilot_helper = require("codecompanion.adapters.copilot.helpers")
+local copilot_helper = require("codecompanion.adapters.http.copilot.helpers")
 local h = require("tests.helpers")
 
 local new_set = MiniTest.new_set

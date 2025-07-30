@@ -3,7 +3,7 @@
 --=============================================================================
 
 ---@class CodeCompanion.Chat
----@field adapter CodeCompanion.Adapter The adapter to use for the chat
+---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
 ---@field aug number The ID for the autocmd group
 ---@field bufnr integer The buffer number of the chat
@@ -33,7 +33,7 @@
 ---@field _last_role string The last role that was rendered in the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
----@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
+---@field adapter? CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field buffer_context? table Context of the buffer that the chat was initiated from
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
@@ -214,7 +214,7 @@ local _cached_settings = {}
 ---Parse the chat buffer for settings
 ---@param bufnr integer
 ---@param parser vim.treesitter.LanguageTree
----@param adapter? CodeCompanion.Adapter
+---@param adapter? CodeCompanion.HTTPAdapter
 ---@return table
 local function ts_parse_settings(bufnr, parser, adapter)
   if _cached_settings[bufnr] then
@@ -930,7 +930,7 @@ function Chat:submit(opts)
   self.current_request = client.new({ adapter = mapped_settings }):request(payload, {
     ---@param err { message: string, stderr: string }
     ---@param data table
-    ---@param adapter CodeCompanion.Adapter The modified adapter from the http client
+    ---@param adapter CodeCompanion.HTTPAdapter The modified adapter from the http client
     callback = function(err, data, adapter)
       if err and err.stderr ~= "{}" then
         self.status = CONSTANTS.STATUS_ERROR

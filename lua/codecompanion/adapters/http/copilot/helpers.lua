@@ -1,7 +1,8 @@
+local Curl = require("plenary.curl")
 local config = require("codecompanion.config")
-local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
 local utils = require("codecompanion.utils.adapters")
+
 local M = {}
 
 -- Cache variables
@@ -28,7 +29,7 @@ local function calculate_usage(entitlement, remaining)
 end
 
 ---Get a list of available Copilot models
----@param adapter CodeCompanion.Adapter
+---@param adapter CodeCompanion.HTTPAdapter
 ---@param get_and_authorize_token_fn function Function to get and authorize token
 ---@param authorize_token_fn function Function to get fresh Github token
 ---@return table
@@ -61,11 +62,11 @@ function M.get_models(adapter, get_and_authorize_token_fn, authorize_token_fn)
   headers["Authorization"] = "Bearer " .. fresh_token.token
 
   local ok, response = pcall(function()
-    return curl.get(url, {
+    return Curl.get(url, {
       sync = true,
       headers = headers,
-      insecure = config.adapters.opts.allow_insecure,
-      proxy = config.adapters.opts.proxy,
+      insecure = config.adapters.http.opts.allow_insecure,
+      proxy = config.adapters.http.opts.proxy,
     })
   end)
   if not ok then
@@ -99,7 +100,7 @@ function M.get_models(adapter, get_and_authorize_token_fn, authorize_token_fn)
   end
 
   _cached_models = models
-  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.opts.cache_models_for)
+  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.http.opts.cache_models_for)
 
   return models
 end
@@ -117,15 +118,15 @@ function M.get_copilot_stats(get_and_authorize_token_fn, oauth_token)
   log:debug("Fetching Copilot usage statistics")
 
   local ok, response = pcall(function()
-    return curl.get("https://api.github.com/copilot_internal/user", {
+    return Curl.get("https://api.github.com/copilot_internal/user", {
       sync = true,
       headers = {
         Authorization = "Bearer " .. oauth_token,
         Accept = "*/*",
         ["User-Agent"] = "CodeCompanion.nvim",
       },
-      insecure = config.adapters.opts.allow_insecure,
-      proxy = config.adapters.opts.proxy,
+      insecure = config.adapters.http.opts.allow_insecure,
+      proxy = config.adapters.http.opts.proxy,
     })
   end)
   if not ok then
@@ -160,8 +161,10 @@ function M.show_copilot_stats(get_and_authorize_token_fn, oauth_token)
     return string.rep("█", filled) .. string.rep("░", width - filled)
   end
 
+  local premium
+
   if stats.quota_snapshots.premium_interactions then
-    local premium = stats.quota_snapshots.premium_interactions
+    premium = stats.quota_snapshots.premium_interactions
     table.insert(lines, "##  Premium Interactions")
     local used, usage_percent = calculate_usage(premium.entitlement, premium.remaining)
     table.insert(lines, string.format("   - Used: %d / %d ", used, premium.entitlement))
@@ -239,7 +242,7 @@ function M.show_copilot_stats(get_and_authorize_token_fn, oauth_token)
     end
   end
   vim.api.nvim_win_call(winnr, function()
-    local premium = stats.quota_snapshots.premium_interactions
+    premium = stats.quota_snapshots.premium_interactions
     if premium and not premium.unlimited then
       local used, usage_percent = calculate_usage(premium.entitlement, premium.remaining)
       local highlight = get_usage_highlight(usage_percent)

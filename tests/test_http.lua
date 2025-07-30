@@ -65,8 +65,7 @@ describe("Client", function()
 
     local cb = stub.new()
 
-    adapter = require("codecompanion.adapters").new(adapter)
-
+    adapter = require("codecompanion.adapters").resolve(adapter)
     Client.new({ adapter = adapter }):request({}, { callback = cb })
 
     assert.stub(mock_request).was_called(1)
@@ -80,8 +79,7 @@ describe("Client", function()
       encode = { default = stub.new().returns("{}") },
     }
 
-    adapter = require("codecompanion.adapters").new(adapter)
-
+    adapter = require("codecompanion.adapters").resolve(adapter)
     Client.new({ adapter = adapter }):request({}, { callback = stub.new() })
 
     assert.stub(mock_request).was_called(1)

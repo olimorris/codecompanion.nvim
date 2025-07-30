@@ -1,7 +1,7 @@
+local Curl = require("plenary.curl")
 local config = require("codecompanion.config")
-local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
-local openai = require("codecompanion.adapters.openai")
+local openai = require("codecompanion.adapters.http.openai")
 
 -- Cache variables for models
 local _cached_models
@@ -23,11 +23,11 @@ local function get_models(adapter)
     ["User-Agent"] = "CodeCompanion.nvim",
   }
   local ok, response = pcall(function()
-    return curl.get(url, {
+    return Curl.get(url, {
       sync = true,
       headers = headers,
-      insecure = config.adapters.opts.allow_insecure,
-      proxy = config.adapters.opts.proxy,
+      insecure = config.adapters.http.opts.allow_insecure,
+      proxy = config.adapters.http.opts.proxy,
     })
   end)
   if not ok then
@@ -55,7 +55,7 @@ local function get_models(adapter)
     }
   end
   _cached_models = models
-  _cache_expires = os.time() + (config.adapters.opts.cache_models_for or 1800)
+  _cache_expires = os.time() + (config.adapters.http.opts.cache_models_for or 1800)
   log:debug("Found %d Hugging Face models", vim.tbl_count(models))
   return models
 end

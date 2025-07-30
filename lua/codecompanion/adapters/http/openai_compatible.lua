@@ -4,10 +4,10 @@ It is simply provided as an example for how you can connect an OpenAI compatible
 to CodeCompanion via an adapter. Send any questions or queries to the discussions.
 --]]
 
+local Curl = require("plenary.curl")
 local config = require("codecompanion.config")
-local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
-local openai = require("codecompanion.adapters.openai")
+local openai = require("codecompanion.adapters.http.openai")
 local utils = require("codecompanion.utils.adapters")
 
 local _cache_expires
@@ -54,11 +54,11 @@ local function get_models(self, opts)
   local ok, response, json
 
   ok, response = pcall(function()
-    return curl.get(url .. models_endpoint, {
+    return Curl.get(url .. models_endpoint, {
       sync = true,
       headers = headers,
-      insecure = config.adapters.opts.allow_insecure,
-      proxy = config.adapters.opts.proxy,
+      insecure = config.adapters.http.opts.allow_insecure,
+      proxy = config.adapters.http.opts.proxy,
     })
   end)
   if not ok then
@@ -76,7 +76,7 @@ local function get_models(self, opts)
     table.insert(_cached_models, model.id)
   end
 
-  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.opts.cache_models_for)
+  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.http.opts.cache_models_for)
 
   return models(opts)
 end

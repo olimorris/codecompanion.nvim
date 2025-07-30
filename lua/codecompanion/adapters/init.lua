@@ -1,243 +1,81 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.adapters")
 
----@class CodeCompanion.HTTPAdapter
----@field name string The name of the adapter
----@field type string|"http" The type of the adapter, e.g. "http" or "acp"
----@field formatted_name string The formatted name of the adapter
----@field roles table The mapping of roles in the config to the LLM's defined roles
----@field features table The features that the adapter supports
----@field url string The URL of the generative AI service to connect to
----@field env? table Environment variables which can be referenced in the parameters
----@field env_replaced? table Replacement of environment variables with their actual values
----@field headers table The headers to pass to the request
----@field parameters table The parameters to pass to the request
----@field body table Additional body parameters to pass to the request
----@field temp? table A table to store temporary values which are not passed to the request
----@field raw? table Any additional curl arguments to pass to the request
----@field opts? table Additional options for the adapter
----@field model? { name: string, opts: table } The model to use for the request
----@field handlers table Functions which link the output from the request to CodeCompanion
----@field handlers.setup? fun(self: CodeCompanion.HTTPAdapter): boolean
----@field handlers.set_body? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil
----@field handlers.form_parameters fun(self: CodeCompanion.HTTPAdapter, params: table, messages: table): table
----@field handlers.form_messages fun(self: CodeCompanion.HTTPAdapter, messages: table): table
----@field handlers.form_reasoning? fun(self: CodeCompanion.HTTPAdapter, messages: table): nil|{ content: string, _data: table }
----@field handlers.form_tools? fun(self: CodeCompanion.HTTPAdapter, tools: table): table
----@field handlers.tokens? fun(self: CodeCompanion.HTTPAdapter, data: table): number|nil
----@field handlers.chat_output fun(self: CodeCompanion.HTTPAdapter, data: table, tools: table): table|nil
----@field handlers.inline_output fun(self: CodeCompanion.HTTPAdapter, data: table, context: table): table|nil
----@field handlers.tools.format? fun(self: CodeCompanion.HTTPAdapter, tools: table): table
----@field handlers.tools.output_tool_call? fun(self: CodeCompanion.HTTPAdapter, tool_call: table, output: string): table
----@field handlers.on_exit? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil
----@field handlers.teardown? fun(self: CodeCompanion.HTTPAdapter): any
----@field schema table Set of parameters for the generative AI service that the user can customise in the chat buffer
----@field methods table Methods that the adapter can perform e.g. for Slash Commands
+local M = {}
 
----@class CodeCompanion.HTTPAdapter
-local Adapter = {}
-
----@return CodeCompanion.HTTPAdapter
-function Adapter.new(args)
-  return setmetatable(args, { __index = Adapter })
-end
-
----Get the default settings from the schema
----@return table
-function Adapter:make_from_schema()
-  local settings = {}
-
-  -- Process regular schema values
-  for key, value in pairs(self.schema) do
-    if type(value.condition) == "function" and not value.condition(self) then
-      goto continue
-    end
-
-    local default = value.default
-    if default ~= nil then
-      if type(default) == "function" then
-        default = default(self)
-      end
-      settings[key] = default
-    end
-
-    ::continue::
+-- Auto-detect adapter type and route to appropriate implementation
+local function get_adapter_type(adapter)
+  if type(adapter) == "table" and adapter.type then
+    return adapter.type
   end
-
-  return settings
-end
-
----Set parameters based on the schema table's mappings
----@param settings? table
----@return CodeCompanion.HTTPAdapter
-function Adapter:map_schema_to_params(settings)
-  settings = settings or self:make_from_schema()
-
-  for k, v in pairs(settings) do
-    local mapping = self.schema[k] and self.schema[k].mapping
-    if mapping then
-      local segments = {}
-      for segment in string.gmatch(mapping, "[^.]+") do
-        table.insert(segments, segment)
-      end
-
-      local current = self
-      for i = 1, #segments - 1 do
-        if not current[segments[i]] then
-          current[segments[i]] = {}
-        end
-        current = current[segments[i]]
-      end
-
-      -- Before setting the value, ensure the target exists or initialize it.
-      local target = segments[#segments]
-      if not current[target] then
-        current[target] = {}
-      end
-
-      -- Ensure 'target' is not nil and 'k' can be assigned to the final segment.
-      if target then
-        current[target][k] = v
-      end
-    end
-  end
-
-  return self
-end
-
----Replace roles in the messages with the adapter's defined roles
----@param messages table
----@return table
-function Adapter:map_roles(messages)
-  return utils.map_roles(self.roles, messages)
-end
-
----Extend an existing adapter
----@param adapter table|string|function
----@param opts? table
----@return CodeCompanion.HTTPAdapter
-function Adapter.extend(adapter, opts)
-  local ok
-  local adapter_config
-  opts = opts or {}
-
   if type(adapter) == "string" then
-    ok, adapter_config = pcall(require, "codecompanion.adapters." .. adapter)
-    if not ok then
-      adapter_config = config.adapters[adapter]
-      if type(adapter_config) == "function" then
-        adapter_config = adapter_config()
-      end
+    -- Check if it's in the ACP config section
+    if config.adapters.acp and config.adapters.acp[adapter] then
+      return "acp"
     end
-  elseif type(adapter) == "function" then
-    adapter_config = adapter()
+    -- Check new http structure
+    if config.adapters.http and config.adapters.http[adapter] then
+      return "http"
+    end
+    -- Fallback: check root level (backwards compatibility)
+    if config.adapters[adapter] then
+      return "http" -- Default to http for backwards compatibility
+    end
+  end
+  return "http" -- Default fallback
+end
+
+-- Factory method to resolve adapters
+function M.resolve(adapter, opts)
+  local adapter_type = get_adapter_type(adapter)
+
+  if adapter_type == "acp" then
+    return require("codecompanion.adapters.acp").resolve(adapter, opts)
   else
-    adapter_config = adapter
+    return require("codecompanion.adapters.http").resolve(adapter, opts)
+  end
+end
+
+-- Factory method to check if adapter is resolved
+function M.resolved(adapter)
+  if not adapter then
+    return false
   end
 
-  adapter_config = vim.tbl_deep_extend("force", {}, vim.deepcopy(adapter_config), opts or {})
+  local adapter_type = get_adapter_type(adapter)
 
-  return Adapter.new(adapter_config)
-end
-
----Set the model name and options on the adapter for convenience
----@param adapter CodeCompanion.HTTPAdapter
----@return CodeCompanion.HTTPAdapter
-function Adapter.set_model(adapter)
-  -- Set the model dictionary as a convenience for the user. This can be string
-  -- or function values. If they're functions, these are likely to make http
-  -- requests to obtain a list of available models. This is expensive, so
-  -- we dont't execute them here. Instead, let the user decide when to.
-  if adapter.schema and adapter.schema.model then
-    adapter.model = {}
-    local model = adapter.schema.model.default
-    local choices = adapter.schema.model.choices
-
-    if type(model) == "string" then
-      adapter.model.name = model
-    end
-    if type(choices) == "table" then
-      adapter.model.opts = (choices[model] and choices[model].opts) and choices[model].opts
-    end
+  if adapter_type == "acp" then
+    return require("codecompanion.adapters.acp").resolved(adapter)
+  else
+    return require("codecompanion.adapters.http").resolved(adapter)
   end
-
-  return adapter
 end
 
----Resolve an adapter from deep within the plugin...somewhere
----@param adapter? CodeCompanion.HTTPAdapter|string|function
----@param opts? table
----@return CodeCompanion.HTTPAdapter
-function Adapter.resolve(adapter, opts)
-  adapter = adapter or config.strategies.chat.adapter
-  opts = opts or {}
+-- Factory method to extend adapters
+function M.extend(adapter, opts)
+  local adapter_type = get_adapter_type(adapter)
 
-  if type(adapter) == "table" then
-    if adapter.name and adapter.schema and Adapter.resolved(adapter) then
-      log:trace("[HTTP Adapter] Returning existing resolved adapter: %s", adapter.name)
-      return Adapter.set_model(adapter)
-    elseif adapter.name and adapter.model then
-      log:trace("[HTTP Adapter] Table adapter: %s", adapter.name)
-      local model_name = type(adapter.model) == "table" and adapter.model.name or adapter.model
-      return Adapter.resolve(adapter.name, { model = model_name })
-    end
-    adapter = Adapter.new(adapter)
-  elseif type(adapter) == "string" then
-    log:trace("[HTTP Adapter] Loading adapter: %s%s", adapter, opts.model and (" with model: " .. opts.model) or "")
-    opts = vim.tbl_deep_extend("force", opts, { name = adapter })
-    if opts.model then
-      opts = vim.tbl_deep_extend("force", opts, {
-        schema = {
-          model = {
-            default = opts.model,
-          },
-        },
-      })
-    end
-
-    adapter = Adapter.extend(config.adapters[adapter] or adapter, opts)
-  elseif type(adapter) == "function" then
-    adapter = adapter()
+  if adapter_type == "acp" then
+    return require("codecompanion.adapters.acp").extend(adapter, opts)
+  else
+    return require("codecompanion.adapters.http").extend(adapter, opts)
   end
-
-  return adapter.set_model(adapter)
 end
 
----Check if an adapter has already been resolved
----@param adapter CodeCompanion.HTTPAdapter|string|function|nil
----@return boolean
-function Adapter.resolved(adapter)
-  if adapter and getmetatable(adapter) and getmetatable(adapter).__index == Adapter then
-    return true
+-- Factory method to make adapters safe for serialization
+function M.make_safe(adapter)
+  local adapter_type = get_adapter_type(adapter)
+
+  if adapter_type == "acp" then
+    return require("codecompanion.adapters.acp").make_safe(adapter)
+  else
+    return require("codecompanion.adapters.http").make_safe(adapter)
   end
-  return false
 end
 
----Make an adapter safe for serialization
----@param adapter CodeCompanion.HTTPAdapter
----@return table
-function Adapter.make_safe(adapter)
-  return {
-    name = adapter.name,
-    model = adapter.model,
-    formatted_name = adapter.formatted_name,
-    features = adapter.features,
-    url = adapter.url,
-    headers = adapter.headers,
-    params = adapter.parameters,
-    opts = adapter.opts,
-    handlers = adapter.handlers,
-    schema = vim
-      .iter(adapter.schema)
-      :filter(function(n, _)
-        if n == "model" then
-          return false
-        end
-        return true
-      end)
-      :totable(),
-  }
+-- Backwards compatibility: expose HTTP methods directly at root level
+function M.set_model(adapter)
+  return require("codecompanion.adapters.http").set_model(adapter)
 end
 
-return Adapter
+return M

@@ -1,4 +1,4 @@
-local openai = require("codecompanion.adapters.openai")
+local openai = require("codecompanion.adapters.http.openai")
 
 ---@class Gemini.Adapter: CodeCompanion.Adapter
 return {

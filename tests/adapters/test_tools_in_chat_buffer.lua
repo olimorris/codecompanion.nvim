@@ -52,7 +52,7 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
       -- Setup the chat buffer
       _G.chat = h.setup_chat_buffer(config, {
         name = "%s",
-        config = require("codecompanion.adapters.%s")
+        config = require("codecompanion.adapters.http.%s")
       })
 
       -- Create a mocked submit method which we use to get the chat output and the tools

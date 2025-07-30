@@ -1,4 +1,4 @@
-local openai = require("codecompanion.adapters.openai")
+local openai = require("codecompanion.adapters.http.openai")
 
 ---@class Mistral.Adapter: CodeCompanion.Adapter
 return {

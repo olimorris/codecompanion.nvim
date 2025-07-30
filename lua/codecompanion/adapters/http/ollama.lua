@@ -1,7 +1,7 @@
+local Curl = require("plenary.curl")
 local config = require("codecompanion.config")
-local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")
-local openai = require("codecompanion.adapters.openai")
+local openai = require("codecompanion.adapters.http.openai")
 local utils = require("codecompanion.utils.adapters")
 
 local _cached_adapter
@@ -38,11 +38,11 @@ local function get_models(self, opts)
   end
 
   local ok, response = pcall(function()
-    return curl.get(url .. "/api/tags", {
+    return Curl.get(url .. "/api/tags", {
       sync = true,
       headers = headers,
-      insecure = config.adapters.opts.allow_insecure,
-      proxy = config.adapters.opts.proxy,
+      insecure = config.adapters.http.opts.allow_insecure,
+      proxy = config.adapters.http.opts.proxy,
     })
   end)
   if not ok then
@@ -61,10 +61,10 @@ local function get_models(self, opts)
 
   for _, model_obj in ipairs(json.models) do
     -- start async requests
-    local job = curl.post(url .. "/api/show", {
+    local job = Curl.post(url .. "/api/show", {
       headers = headers,
-      insecure = config.adapters.opts.allow_insecure,
-      proxy = config.adapters.opts.proxy,
+      insecure = config.adapters.http.opts.allow_insecure,
+      proxy = config.adapters.http.opts.proxy,
       body = vim.json.encode({ model = model_obj.name }),
       callback = function(output)
         models[model_obj.name] = { opts = {} }

@@ -1,7 +1,7 @@
 local Curl = require("plenary.curl")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local openai = require("codecompanion.adapters.openai")
+local openai = require("codecompanion.adapters.http.openai")
 local utils = require("codecompanion.utils.adapters")
 
 local _cache_expires
@@ -22,8 +22,8 @@ local function get_models(self, opts)
   local ok, response = pcall(function()
     return Curl.get(url, {
       sync = true,
-      insecure = config.adapters.opts.allow_insecure,
-      proxy = config.adapters.opts.proxy,
+      insecure = config.adapters.http.opts.allow_insecure,
+      proxy = config.adapters.http.opts.proxy,
     })
   end)
   if not ok then
@@ -51,7 +51,7 @@ local function get_models(self, opts)
   end
 
   _cached_models = models
-  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.opts.cache_models_for)
+  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.http.opts.cache_models_for)
 
   return models
 end

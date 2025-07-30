@@ -1,8 +1,8 @@
+local Curl = require("plenary.curl")
 local config = require("codecompanion.config")
-local copilot_helper = require("codecompanion.adapters.copilot.helpers")
-local curl = require("plenary.curl")
+local helpers = require("codecompanion.adapters.http.copilot.helpers")
 local log = require("codecompanion.utils.log")
-local openai = require("codecompanion.adapters.openai")
+local openai = require("codecompanion.adapters.http.openai")
 local utils = require("codecompanion.utils.adapters")
 
 -- Reference: https://github.com/yetone/avante.nvim/blob/22418bff8bcac4377ebf975cd48f716823867979/lua/avante/providers/copilot.lua#L5-L26
@@ -92,7 +92,7 @@ local function get_token()
         userdata = table.concat(userdata, " ")
       end
 
-      local userdata = vim.json.decode(userdata)
+      userdata = vim.json.decode(userdata)
       for key, value in pairs(userdata) do
         if string.find(key, "github.com") then
           return value.oauth_token
@@ -114,13 +114,13 @@ local function authorize_token()
 
   log:debug("Authorizing GitHub Copilot token")
 
-  local request = curl.get("https://api.github.com/copilot_internal/v2/token", {
+  local request = Curl.get("https://api.github.com/copilot_internal/v2/token", {
     headers = {
       Authorization = "Bearer " .. _oauth_token,
       ["Accept"] = "application/json",
     },
-    insecure = config.adapters.opts.allow_insecure,
-    proxy = config.adapters.opts.proxy,
+    insecure = config.adapters.http.opts.allow_insecure,
+    proxy = config.adapters.http.opts.proxy,
     on_error = function(err)
       log:error("Copilot Adapter: Token request error %s", err)
     end,
@@ -131,7 +131,7 @@ local function authorize_token()
 end
 
 ---Get and authorize a GitHub Copilot token
----@param self CodeCompanion.Adapter
+---@param self CodeCompanion.HTTPAdapter
 ---@return boolean success
 local function get_and_authorize_token(self)
   _oauth_token = get_token()
@@ -150,7 +150,7 @@ local function get_and_authorize_token(self)
   return true
 end
 
----@class Copilot.Adapter: CodeCompanion.Adapter
+---@class CodeCompanion.HTTPAdapter.Copilot: CodeCompanion.HTTPAdapter
 return {
   name = "copilot",
   formatted_name = "Copilot",
@@ -182,7 +182,7 @@ return {
     ["Editor-Version"] = "Neovim/" .. vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
   },
   get_copilot_stats = function()
-    return copilot_helper.get_copilot_stats(get_and_authorize_token, _oauth_token)
+    return helpers.get_copilot_stats(get_and_authorize_token, _oauth_token)
   end,
   show_copilot_stats = function()
     -- we need to ensure initialize token if no chat request has been done
@@ -190,11 +190,11 @@ return {
     if not get_and_authorize_token(dummy_adapter) then
       return nil
     end
-    return copilot_helper.show_copilot_stats(get_and_authorize_token, _oauth_token)
+    return helpers.show_copilot_stats(get_and_authorize_token, _oauth_token)
   end,
   handlers = {
     ---Check for a token before starting the request
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@return boolean
     setup = function(self)
       local model = self.schema.model.default
@@ -279,7 +279,7 @@ return {
       return openai.handlers.inline_output(self, data, context)
     end,
     on_exit = function(self, data)
-      copilot_helper.reset_cache()
+      helpers.reset_cache()
       return openai.handlers.on_exit(self, data)
     end,
   },
@@ -292,6 +292,7 @@ return {
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
       default = "gpt-4.1",
+      ---@type fun(self: CodeCompanion.HTTPAdapter): table
       choices = function(self)
         -- Ensure token is available before getting models
         if not _github_token then
@@ -300,7 +301,7 @@ return {
             return { ["gpt-4.1"] = { opts = {} } } -- fallback
           end
         end
-        return copilot_helper.get_models(self, get_and_authorize_token, authorize_token)
+        return helpers.get_models(self, get_and_authorize_token, authorize_token)
       end,
     },
     ---@type CodeCompanion.Schema
@@ -309,6 +310,7 @@ return {
       mapping = "parameters",
       type = "number",
       default = 0.1,
+      ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
       condition = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
@@ -331,6 +333,7 @@ return {
       mapping = "parameters",
       type = "number",
       default = 1,
+      ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
       condition = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
@@ -346,6 +349,7 @@ return {
       mapping = "parameters",
       type = "number",
       default = 1,
+      ---@type fun(self: CodeCompanion.HTTPAdapter): boolean
       condition = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then

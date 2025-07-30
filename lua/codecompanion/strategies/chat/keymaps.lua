@@ -521,7 +521,7 @@ M.change_adapter = {
       }
     end
 
-    local adapters = vim.deepcopy(config.adapters)
+    local adapters = vim.deepcopy(config.adapters.http)
     local current_adapter = chat.adapter.name
     local current_model = vim.deepcopy(chat.adapter.schema.model.default)
 
@@ -564,7 +564,7 @@ M.change_adapter = {
 
       -- Select a model
       local models = chat.adapter.schema.model.choices
-      if not config.adapters.opts.show_model_choices then
+      if not config.adapters.http.opts.show_model_choices then
         models = { chat.adapter.schema.model.default }
       end
       if type(models) == "function" then
