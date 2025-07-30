@@ -304,7 +304,7 @@ M.codeblock = {
     local cursor_pos = api.nvim_win_get_cursor(0)
     local line = cursor_pos[1]
 
-    local ft = chat.context.filetype or ""
+    local ft = chat.buffer_context.filetype or ""
 
     local codeblock = {
       "```" .. ft,
