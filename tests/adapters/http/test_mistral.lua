@@ -25,7 +25,7 @@ T["Mistral adapter"]["Streaming"] = new_set()
 
 T["Mistral adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
   local output = ""
-  local lines = vim.fn.readfile("tests/adapters/stubs/mistral_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/mistral_streaming.txt")
   for _, line in ipairs(lines) do
     local chat_output = adapter.handlers.chat_output(adapter, line)
     if chat_output and chat_output.output.content then
@@ -49,7 +49,7 @@ T["Mistral adapter"]["No Streaming"] = new_set({
 })
 
 T["Mistral adapter"]["No Streaming"]["can output for the chat buffer"] = function()
-  local data = vim.fn.readfile("tests/adapters/stubs/mistral_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/mistral_no_streaming.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request
@@ -59,7 +59,7 @@ T["Mistral adapter"]["No Streaming"]["can output for the chat buffer"] = functio
 end
 
 T["Mistral adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/stubs/mistral_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/mistral_no_streaming.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request

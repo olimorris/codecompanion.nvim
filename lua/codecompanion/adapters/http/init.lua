@@ -181,16 +181,6 @@ function Adapter.resolve(adapter, opts)
   adapter = adapter or config.strategies.chat.adapter
   opts = opts or {}
 
-  -- Helper function to get adapter from config with backwards compatibility
-  local function get_adapter_from_config(name)
-    -- Try new structure first
-    if config.adapters.http and config.adapters.http[name] then
-      return config.adapters.http[name]
-    end
-    -- Fallback to root level for backwards compatibility
-    return config.adapters[name]
-  end
-
   if type(adapter) == "table" then
     if adapter.name and adapter.schema and Adapter.resolved(adapter) then
       log:trace("[HTTP Adapter] Returning existing resolved adapter: %s", adapter.name)
@@ -214,7 +204,7 @@ function Adapter.resolve(adapter, opts)
       })
     end
 
-    local config_adapter = get_adapter_from_config(adapter)
+    local config_adapter = shared.get_adapter_from_config(adapter)
     adapter = Adapter.extend(config_adapter or adapter, opts)
   elseif type(adapter) == "function" then
     adapter = adapter()

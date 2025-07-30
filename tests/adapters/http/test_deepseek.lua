@@ -176,7 +176,7 @@ end
 T["DeepSeek adapter"]["Streaming"] = new_set()
 
 T["DeepSeek adapter"]["Streaming"]["can output streamed data into a format for the chat buffer"] = function()
-  local lines = vim.fn.readfile("tests/adapters/stubs/deepseek_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_streaming.txt")
   local output = ""
   for _, line in ipairs(lines) do
     output = output .. (adapter.handlers.chat_output(adapter, line).output.content or "")
@@ -195,7 +195,7 @@ T["DeepSeek adapter"]["Streaming"]["can handle reasoning content when streaming"
     },
   }
 
-  local lines = vim.fn.readfile("tests/adapters/stubs/deepseek_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_streaming.txt")
   for _, line in ipairs(lines) do
     local chat_output = adapter.handlers.chat_output(adapter, line)
     if chat_output then
@@ -213,7 +213,7 @@ end
 
 T["DeepSeek adapter"]["Streaming"]["can process tools"] = function()
   local tools = {}
-  local lines = vim.fn.readfile("tests/adapters/stubs/deepseek_tools_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/deepseek_tools_streaming.txt")
   for _, line in ipairs(lines) do
     adapter.handlers.chat_output(adapter, line, tools)
   end
@@ -257,14 +257,14 @@ T["DeepSeek adapter"]["No Streaming"] = new_set({
 })
 
 T["DeepSeek adapter"]["No Streaming"]["can output for the chat buffer"] = function()
-  local data = vim.fn.readfile("tests/adapters/stubs/deepseek_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/deepseek_no_streaming.txt")
   data = table.concat(data, "\n")
 
   h.eq("Elegant simplicity.", adapter.handlers.chat_output(adapter, data).output.content)
 end
 
 T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
-  local data = vim.fn.readfile("tests/adapters/stubs/deepseek_tools_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/deepseek_tools_no_streaming.txt")
   data = table.concat(data, "\n")
 
   local tools = {}
@@ -298,7 +298,7 @@ T["DeepSeek adapter"]["No Streaming"]["can process tools"] = function()
 end
 
 T["DeepSeek adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/stubs/deepseek_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/deepseek_no_streaming.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request

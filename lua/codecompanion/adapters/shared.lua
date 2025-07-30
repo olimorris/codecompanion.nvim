@@ -1,3 +1,4 @@
+local config = require("codecompanion.config")
 local utils = require("codecompanion.utils.adapters")
 
 local M = {}
@@ -11,28 +12,18 @@ function M.map_roles(adapter, messages)
 end
 
 ---Get adapter configuration from various sources
----@param name string
----@param config_table table
+---@param adapter string
 ---@return table|nil
-function M.get_adapter_config(name, config_table)
-  local ok, adapter_config
-
-  -- Try requiring from adapters directory first
-  ok, adapter_config = pcall(require, config_table.module_path .. name)
-  if ok then
-    return adapter_config
+function M.get_adapter_from_config(adapter)
+  if config.adapters.acp and config.adapters.acp[adapter] then
+    return config.adapters.acp[adapter]
+  end
+  if config.adapters.http and config.adapters.http[adapter] then
+    return config.adapters.http[adapter]
   end
 
-  -- Try config.adapters structure
-  adapter_config = config_table.config_source[name]
-  if adapter_config then
-    if type(adapter_config) == "function" then
-      return adapter_config()
-    end
-    return adapter_config
-  end
-
-  return nil
+  -- TODO: Remove in v19.0.0
+  return config.adapters[adapter]
 end
 
 return M

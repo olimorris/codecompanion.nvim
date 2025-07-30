@@ -559,7 +559,7 @@ T["Anthropic adapter"]["Streaming"] = new_set()
 
 T["Anthropic adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
   local output = ""
-  local lines = vim.fn.readfile("tests/adapters/stubs/anthropic_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/anthropic_streaming.txt")
   for _, line in ipairs(lines) do
     local chat_output = adapter.handlers.chat_output(adapter, line)
     if chat_output and chat_output.output.content then
@@ -572,7 +572,7 @@ end
 
 T["Anthropic adapter"]["Streaming"]["can process tools"] = function()
   local tools = {}
-  local lines = vim.fn.readfile("tests/adapters/stubs/anthropic_tools_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/anthropic_tools_streaming.txt")
   for _, line in ipairs(lines) do
     adapter.handlers.chat_output(adapter, line, tools)
   end
@@ -610,7 +610,7 @@ T["Anthropic adapter"]["Streaming"]["can process reasoning output"] = function()
       content = "",
     },
   }
-  local lines = vim.fn.readfile("tests/adapters/stubs/anthropic_reasoning_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/anthropic_reasoning_streaming.txt")
   for _, line in ipairs(lines) do
     local chat_output = adapter.handlers.chat_output(adapter, line)
     if chat_output then
@@ -640,7 +640,7 @@ T["Anthropic adapter"]["No Streaming"] = new_set({
 })
 
 T["Anthropic adapter"]["No Streaming"]["can output for the chat buffer"] = function()
-  local data = vim.fn.readfile("tests/adapters/stubs/anthropic_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/anthropic_no_streaming.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request
@@ -650,7 +650,7 @@ T["Anthropic adapter"]["No Streaming"]["can output for the chat buffer"] = funct
 end
 
 T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant with non reasoning models"] = function()
-  local data = vim.fn.readfile("tests/adapters/stubs/anthropic_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/anthropic_no_streaming.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request
@@ -660,7 +660,7 @@ T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant with
 end
 
 T["Anthropic adapter"]["No Streaming"]["can process tools"] = function()
-  local data = vim.fn.readfile("tests/adapters/stubs/anthropic_tools_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/anthropic_tools_no_streaming.txt")
   data = table.concat(data, "\n")
 
   local tools = {}
@@ -704,7 +704,7 @@ T["Anthropic adapter"]["No Streaming"]["can output for the inline assistant with
     },
   })
 
-  local data = vim.fn.readfile("tests/adapters/stubs/anthropic_reasoning_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/anthropic_reasoning_no_streaming.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request

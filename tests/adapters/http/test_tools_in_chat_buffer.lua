@@ -37,8 +37,8 @@ T["Test tools in chat buffer"] = new_set({
 })
 
 T["Test tools in chat buffer"]["with different adapters"] = function(adapter, file)
-  local response = "tests/adapters/stubs/" .. file .. "_streaming.txt"
-  local output = "tests/adapters/stubs/output/" .. file .. ".txt"
+  local response = "tests/adapters/http/stubs/" .. file .. "_streaming.txt"
+  local output = "tests/adapters/http/stubs/output/" .. file .. ".txt"
 
   child.lua([[
     local ollama = require("codecompanion.adapters.ollama")

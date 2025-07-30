@@ -1,5 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
+local shared = require("codecompanion.adapters.shared")
 local utils = require("codecompanion.utils.adapters")
 
 ---@class CodeCompanion.ACPAdapter
@@ -32,12 +33,7 @@ function Adapter.new(args)
   return setmetatable(args, { __index = Adapter })
 end
 
----Replace roles in the messages with the adapter's defined roles
----@param messages table
----@return table
-function Adapter:map_roles(messages)
-  return utils.map_roles(self.roles, messages)
-end
+Adapter.map_roles = shared.map_roles
 
 ---Extend an existing adapter
 ---@param adapter table|string|function

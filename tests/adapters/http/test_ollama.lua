@@ -122,7 +122,7 @@ T["Ollama adapter"]["Streaming"] = new_set()
 
 T["Ollama adapter"]["Streaming"]["can output streamed data into the chat buffer"] = function()
   local output = ""
-  local lines = vim.fn.readfile("tests/adapters/stubs/ollama_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/ollama_streaming.txt")
   for _, line in ipairs(lines) do
     local chat_output = adapter.handlers.chat_output(adapter, line)
     if chat_output and chat_output.output.content then
@@ -183,7 +183,7 @@ end
 
 T["Ollama adapter"]["Streaming"]["can process tools"] = function()
   local tools = {}
-  local lines = vim.fn.readfile("tests/adapters/stubs/ollama_tools_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/ollama_tools_streaming.txt")
   for _, line in ipairs(lines) do
     adapter.handlers.chat_output(adapter, line, tools)
   end
@@ -268,7 +268,7 @@ T["Ollama adapter"]["No Streaming"] = new_set({
 })
 
 T["Ollama adapter"]["No Streaming"]["can output for the chat buffer"] = function()
-  local data = vim.fn.readfile("tests/adapters/stubs/ollama_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/ollama_no_streaming.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request
@@ -278,7 +278,7 @@ T["Ollama adapter"]["No Streaming"]["can output for the chat buffer"] = function
 end
 
 T["Ollama adapter"]["No Streaming"]["can process tools"] = function()
-  local data = vim.fn.readfile("tests/adapters/stubs/ollama_tools_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/ollama_tools_no_streaming.txt")
   data = table.concat(data, "\n")
 
   local tools = {}
@@ -328,7 +328,7 @@ T["Ollama adapter"]["No Streaming"]["can process tools"] = function()
 end
 
 T["Ollama adapter"]["No Streaming"]["can output for the inline assistant"] = function()
-  local data = vim.fn.readfile("tests/adapters/stubs/ollama_no_streaming.txt")
+  local data = vim.fn.readfile("tests/adapters/http/stubs/ollama_no_streaming.txt")
   data = table.concat(data, "\n")
 
   -- Match the format of the actual request

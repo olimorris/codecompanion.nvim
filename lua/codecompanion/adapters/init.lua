@@ -1,31 +1,35 @@
 local config = require("codecompanion.config")
-local log = require("codecompanion.utils.log")
 
 local M = {}
 
--- Auto-detect adapter type and route to appropriate implementation
+---Determine the adapter type
+---@param adapter string|table
+---@return string
 local function get_adapter_type(adapter)
   if type(adapter) == "table" and adapter.type then
     return adapter.type
   end
   if type(adapter) == "string" then
-    -- Check if it's in the ACP config section
     if config.adapters.acp and config.adapters.acp[adapter] then
       return "acp"
     end
-    -- Check new http structure
     if config.adapters.http and config.adapters.http[adapter] then
       return "http"
     end
-    -- Fallback: check root level (backwards compatibility)
+    ---TODO: Remove after v19.0.0
     if config.adapters[adapter] then
-      return "http" -- Default to http for backwards compatibility
+      return "http"
     end
   end
-  return "http" -- Default fallback
+
+  -- The fallback
+  return "http"
 end
 
--- Factory method to resolve adapters
+---Factory method to resolve adapters
+---@param adapter string|table
+---@param opts? table
+---@return CodeCompanion.ACPAdapter|CodeCompanion.HTTPAdapter
 function M.resolve(adapter, opts)
   local adapter_type = get_adapter_type(adapter)
 
@@ -36,7 +40,9 @@ function M.resolve(adapter, opts)
   end
 end
 
--- Factory method to check if adapter is resolved
+---Factory method to check if the adapter has been resolved
+---@param adapter string|table
+---@return boolean
 function M.resolved(adapter)
   if not adapter then
     return false
@@ -51,7 +57,10 @@ function M.resolved(adapter)
   end
 end
 
--- Factory method to extend adapters
+---Factory method to extend the adapter
+---@param adapter string|table
+---@param opts? table
+---@return CodeCompanion.ACPAdapter|CodeCompanion.HTTPAdapter
 function M.extend(adapter, opts)
   local adapter_type = get_adapter_type(adapter)
 
@@ -62,7 +71,9 @@ function M.extend(adapter, opts)
   end
 end
 
--- Factory method to make adapters safe for serialization
+---Factory method to make adapters safe for serialization
+---@param adapter string|table
+---@return table
 function M.make_safe(adapter)
   local adapter_type = get_adapter_type(adapter)
 
@@ -73,7 +84,9 @@ function M.make_safe(adapter)
   end
 end
 
--- Backwards compatibility: expose HTTP methods directly at root level
+---Backwards compatibility: expose HTTP methods directly at root level
+---@param adapter CodeCompanion.HTTPAdapter
+---@return CodeCompanion.HTTPAdapter
 function M.set_model(adapter)
   return require("codecompanion.adapters.http").set_model(adapter)
 end
