@@ -5,8 +5,8 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
----@class CodeCompanion.Client
----@field adapter CodeCompanion.Adapter
+---@class CodeCompanion.HTTPClient
+---@field adapter CodeCompanion.HTTPAdapter
 ---@field static table
 ---@field opts nil|table
 ---@field user_args nil|table
@@ -33,12 +33,12 @@ local function transform_static(opts)
   return ret
 end
 
----@class CodeCompanion.ClientArgs
----@field adapter CodeCompanion.Adapter
+---@class CodeCompanion.HTTPClientArgs
+---@field adapter CodeCompanion.HTTPAdapter
 ---@field opts nil|table
 ---@field user_args nil|table
 
----@param args CodeCompanion.ClientArgs
+---@param args CodeCompanion.HTTPClientArgs
 ---@return table
 function Client.new(args)
   args = args or {}
@@ -50,13 +50,13 @@ function Client.new(args)
   }, { __index = Client })
 end
 
----@class CodeCompanion.Adapter.RequestActions
+---@class CodeCompanion.HTTPAdapter.RequestActions
 ---@field callback fun(err: nil|string, chunk: nil|table) Callback function, executed when the request has finished or is called multiple times if the request is streaming
 ---@field done? fun() Function to run when the request is complete
 
 ---Send a HTTP request
 ---@param payload { messages: table, tools: table|nil } The payload to be sent to the endpoint
----@param actions CodeCompanion.Adapter.RequestActions
+---@param actions CodeCompanion.HTTPAdapter.RequestActions
 ---@param opts? table Options that can be passed to the request
 ---@return table|nil The Plenary job
 function Client:request(payload, actions, opts)

@@ -1,29 +1,42 @@
-print("🧪 Testing CLI Adapter System")
+print("🧪 Testing ACP Adapter System")
 
-local cli_adapters = require("codecompanion.cli_adapters")
+local acp_client = require("codecompanion.acp")
+local adapters = require("codecompanion.adapters")
 
--- Test configuration
-local test_config = {
-  config = {
-    manifest_path = "/Users/Oli/Code/Neovim/Codex/codex-rs/Cargo.toml",
-  },
-  opts = {
-    env = {
-      OPENAI_API_KEY = "your-api-key-here", -- Replace with real key for actual testing
-    },
-  },
-}
+-- Setup CodeCompanion
+require("codecompanion").setup()
 
 print("📡 Creating Codex adapter...")
-local codex = cli_adapters.get_adapter("codex", test_config)
+local codex_adapter = adapters.resolve("codex")
 
-if not codex then
+if not codex_adapter then
   print("❌ Failed to create Codex adapter")
   return
 end
 
 print("✅ Codex adapter created successfully")
-print("📋 Active adapters:", vim.inspect(cli_adapters.list_active()))
+
+-- Create ACP client
+print("🔌 Creating ACP client...")
+local client = acp_client.new({ adapter = codex_adapter })
+
+-- Start the client
+print("🚀 Starting ACP client...")
+
+if not client:start() then
+  print("❌ Failed to start ACP client")
+  return
+end
+print(
+  "📋 Adapter details:",
+  vim.inspect({
+    name = client.adapter.name,
+    type = client.adapter.type,
+    command = client.adapter.command,
+  })
+)
+
+print("✅ ACP client started successfully")
 
 -- Test the full workflow
 local session_id = nil
@@ -31,13 +44,18 @@ local session_id = nil
 -- Step 1: Wait for initialization
 print("⏳ Waiting for initialization...")
 vim.defer_fn(function()
+  if not client:is_running() then
+    print("❌ Client is not running")
+    return
+  end
+
   print("🎯 Creating new session...")
 
   -- Step 2: Create session
-  codex:new_session({ cwd = "." }, function(sid, err)
+  client:new_session({ cwd = "." }, function(sid, err)
     if err then
       print("❌ Session creation error:", vim.inspect(err))
-      cli_adapters.stop_all()
+      client:stop()
       return
     end
 
@@ -50,7 +68,7 @@ vim.defer_fn(function()
       { content = "Hello! Can you tell me what directory I'm in?", role = "user" },
     }
 
-    codex:prompt(session_id, messages, function(result, err)
+    client:prompt(session_id, messages, function(result, err)
       if err then
         print("❌ Prompt error:", vim.inspect(err))
       else
@@ -61,16 +79,18 @@ vim.defer_fn(function()
 
       -- Step 4: Clean up
       print("🧹 Cleaning up...")
-      cli_adapters.stop_all()
+      client:stop()
       print("✅ Test complete!")
     end)
   end)
-end, 2000) -- Wait 2 seconds for initialization
+end, 3000) -- Wait 3 seconds for initialization
 
 -- Safety cleanup after 30 seconds
 vim.defer_fn(function()
   print("⏰ Test timeout - cleaning up")
-  cli_adapters.stop_all()
+  if client:is_running() then
+    client:stop()
+  end
 end, 30000)
 
 print("🚀 Test started - check output above...")
