@@ -101,7 +101,7 @@ _Tools_, accessed via `@`, allow the LLM to function as an agent and leverage ex
 ## Inline Assistant
 
 <p align="center">
-  <video controls muted src="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee"></video>
+  <video controls muted src="https://github.com/user-attachments/assets/11a42705-d9de-4eb5-a9ab-c8a2772fb4d4"></video>
 </p>
 
 > [!NOTE]
