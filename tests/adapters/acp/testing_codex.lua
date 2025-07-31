@@ -4,7 +4,29 @@ local acp_client = require("codecompanion.acp")
 local adapters = require("codecompanion.adapters")
 
 -- Setup CodeCompanion
-require("codecompanion").setup()
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      codex = function()
+        return require("codecompanion.adapters").extend("codex", {
+          command = {
+            "cargo",
+            "run",
+            "--bin",
+            "codex",
+            "--manifest-path",
+            "${manifest_path}",
+            "mcp",
+          },
+          env = {
+            -- api_key = "cmd:op read op://personal/Anthropic_API/credential --no-newline",
+            manifest_path = "/Users/Oli/Code/Neovim/codex/codex-rs/Cargo.toml",
+          },
+        })
+      end,
+    },
+  },
+})
 
 print("📡 Creating Codex adapter...")
 local codex_adapter = adapters.resolve("codex")
@@ -22,11 +44,12 @@ local client = acp_client.new({ adapter = codex_adapter })
 
 -- Start the client
 print("🚀 Starting ACP client...")
-
 if not client:start() then
   print("❌ Failed to start ACP client")
   return
 end
+
+print("✅ ACP client started successfully")
 print(
   "📋 Adapter details:",
   vim.inspect({
@@ -36,12 +59,7 @@ print(
   })
 )
 
-print("✅ ACP client started successfully")
-
 -- Test the full workflow
-local session_id = nil
-
--- Step 1: Wait for initialization
 print("⏳ Waiting for initialization...")
 vim.defer_fn(function()
   if not client:is_running() then
@@ -49,47 +67,55 @@ vim.defer_fn(function()
     return
   end
 
-  print("🎯 Creating new session...")
+  print("💬 Sending initialize request...")
 
-  -- Step 2: Create session
-  client:new_session({ cwd = "." }, function(sid, err)
+  -- Step 1: Initialize the connection
+  client:request("initialize", client.adapter.parameters, function(result, err)
     if err then
-      print("❌ Session creation error:", vim.inspect(err))
-      client:stop()
+      print("❌ Initialize error:", vim.inspect(err))
+      acp_client.stop(client)
       return
     end
 
-    session_id = sid
-    print("✅ Session created:", session_id)
+    print("✅ Initialize successful!")
+    print("📝 Server info:", vim.inspect(result))
 
-    -- Step 3: Send a prompt
-    print("💬 Sending prompt...")
-    local messages = {
-      { content = "Hello! Can you tell me what directory I'm in?", role = "user" },
-    }
-
-    client:prompt(session_id, messages, function(result, err)
-      if err then
-        print("❌ Prompt error:", vim.inspect(err))
-      else
-        print("✅ Prompt response:")
-        print("📝 Status:", result.status)
-        print("🤖 Content:", result.output.content)
+    -- Step 2: Create a new session
+    print("🎯 Creating new session...")
+    client:request("tools/call", {
+      name = "acp/new_session",
+      arguments = {
+        mcpServers = {},
+        clientTools = {
+          requestPermission = vim.NIL,
+          writeTextFile = vim.NIL,
+          readTextFile = vim.NIL,
+        },
+        cwd = ".",
+      },
+    }, function(session_result, session_err)
+      if session_err then
+        print("❌ Session creation error:", vim.inspect(session_err))
+        acp_client.stop(client)
+        return
       end
 
-      -- Step 4: Clean up
+      print("✅ Session created!")
+      print("📝 Session result:", vim.inspect(session_result))
+
+      -- Step 3: Clean up
       print("🧹 Cleaning up...")
-      client:stop()
+      acp_client.stop(client)
       print("✅ Test complete!")
     end)
   end)
-end, 3000) -- Wait 3 seconds for initialization
+end, 2000) -- Wait 2 seconds for process to start
 
 -- Safety cleanup after 30 seconds
 vim.defer_fn(function()
   print("⏰ Test timeout - cleaning up")
   if client:is_running() then
-    client:stop()
+    acp_client.stop(client)
   end
 end, 30000)
 
