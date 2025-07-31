@@ -476,6 +476,14 @@ local defaults = {
           callback = "keymaps.copilot_stats",
           description = "Show Copilot usage statistics",
         },
+        super_diff = {
+          modes = {
+            n = "gD",
+          },
+          index = 21,
+          callback = "keymaps.super_diff",
+          description = "Show super diff buffer",
+        },
       },
       opts = {
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt

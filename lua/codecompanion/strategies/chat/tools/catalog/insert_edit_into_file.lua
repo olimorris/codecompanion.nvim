@@ -3,6 +3,7 @@ local buffers = require("codecompanion.utils.buffers")
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local diff = require("codecompanion.strategies.chat.tools.catalog.helpers.diff")
+local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 local log = require("codecompanion.utils.log")
 local patch = require("codecompanion.strategies.chat.tools.catalog.helpers.patch") ---@type CodeCompanion.Patch
 local ui = require("codecompanion.utils.ui")
@@ -68,6 +69,18 @@ local function edit_file(action)
   -- 2. read file into lines
   local content = p:read()
   local lines = vim.split(content, "\n", { plain = true })
+  -- Capture original content for edit tracking
+  local original_content = vim.deepcopy(lines)
+
+  -- Register edit with tracker
+  local chat = _G.codecompanion_current_chat
+  if chat then
+    edit_tracker.register_edit(chat, {
+      filepath = p.filename,
+      original_content = original_content,
+      tool_name = "insert_edit_into_file",
+    })
+  end
 
   -- 3. apply edits
   local all_errors = {}
@@ -129,7 +142,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
   log:debug("[EditBuffer] Current buffer has %d lines before applying patches", #lines)
 
-  -- keep original content copy beofre applying changes
+  -- keep original content copy before applying changes
   if diff.should_create(bufnr) then
     log:debug("[EditBuffer] Diff should be created - capturing original content")
     original_content = vim.deepcopy(lines)
@@ -140,6 +153,19 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   else
     log:debug("[EditBuffer] Diff should NOT be created")
   end
+
+  -- Capture original content for edit tracking if not already captured
+  if not original_content then
+    original_content = vim.deepcopy(lines)
+  end
+
+  -- Register edit with tracker
+  edit_tracker.register_edit(require("codecompanion.strategies.chat").buf_get_chat(chat_bufnr), {
+    bufnr = bufnr,
+    filepath = action.filepath,
+    original_content = original_content,
+    tool_name = "insert_edit_into_file",
+  })
 
   -- Parse and apply patches to buffer
   local raw = action.code or ""
@@ -277,6 +303,8 @@ return {
     ---@param output_handler function Async callback for completion
     ---@return nil
     function(self, args, input, output_handler)
+      -- Store chat reference globally for file operations
+      _G.codecompanion_current_chat = self.chat
       local bufnr = buffers.get_bufnr_from_filepath(args.filepath)
       if bufnr then
         return edit_buffer(bufnr, self.chat.bufnr, args, output_handler, self.tool.opts)
