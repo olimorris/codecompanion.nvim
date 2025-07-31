@@ -10,29 +10,19 @@ return {
     user = "user",
   },
   command = {
-    "cargo",
-    "run",
-    "--bin",
     "codex",
-    "--manifest-path",
-    "${manifest_path}",
-    "mcp",
   },
   defaults = {
-    manifest_path = "Users/Oli/Code/Neovim/Codex/codex-rs/Cargo.toml",
     timeout = 30000,
   },
   env = {
     api_key = "OPENAI_API_KEY",
-    manifest_path = function(self)
-      return self.defaults.manifest_path
-    end,
   },
   parameters = {
     protocolVersion = "2024-11-05",
     capabilities = {},
     clientInfo = {
-      name = "codecompanion",
+      name = "CodeCompanion",
       version = "1.0.0",
     },
   },
