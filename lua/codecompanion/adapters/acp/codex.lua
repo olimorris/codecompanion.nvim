@@ -33,6 +33,14 @@ return {
       return true
     end,
 
+    ---Determine if the stream data is complete.
+    ---@param self CodeCompanion.ACPAdapter
+    ---@param data table
+    ---@return boolean
+    is_done = function(self, data)
+      return data.id and data.result and data.result.isError ~= nil
+    end,
+
     ---Function to run when the request has completed. Useful to catch errors
     ---@param self CodeCompanion.ACPAdapter
     ---@param data? table
