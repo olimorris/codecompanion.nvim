@@ -7,12 +7,12 @@ next:
 
 # Welcome to CodeCompanion.nvim
 
-> AI-powered coding, seamlessly in _Neovim_
+> AI Coding, Vim Style
 
 CodeCompanion is a productivity tool which streamlines how you develop with LLMs, in Neovim.
 
 <p>
-<video controls muted src="https://github.com/user-attachments/assets/aa109f1d-0ec9-4f08-bd9a-df99da03b9a4"></video>
+<video controls muted src="https://github.com/user-attachments/assets/2a06e0a4-adb9-42c0-8a93-0fd86295ade0"></video>
 </p>
 
 ## Features
