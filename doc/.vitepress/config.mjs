@@ -37,11 +37,11 @@ export default withMermaid(
     },
     // optionally set additional config for plugin itself with MermaidPluginConfig
     title: "CodeCompanion",
-    description: "AI-powered coding, seamlessly in Neovim",
+    description: "AI Coding, Vim Style",
     head: headers,
     sitemap: { hostname: siteUrl },
     themeConfig: {
-      logo: "https://github.com/user-attachments/assets/825fc040-9bc8-4743-be2a-71e257f8a7be",
+      logo: "logo.svg",
       nav: [
         {
           text: `${version}`,
