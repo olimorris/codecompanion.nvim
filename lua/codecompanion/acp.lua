@@ -88,13 +88,19 @@ function Client:start()
     return self
   end
 
+  log:debug("ACP process started with job handle: %d", self.job.handle)
+
   return self
 end
+
+-------------------------------------------------------------------------------
+-- Handle stdout data
+-------------------------------------------------------------------------------
 
 ---Handle stdout data
 ---@param data table
 function Client:_handle_stdout(data)
-  log:trace("Raw stdout: %s", vim.inspect(data))
+  log:debug("Raw stdout received: %s", vim.inspect(data))
 
   for _, chunk in ipairs(data) do
     if chunk == "" then
@@ -107,45 +113,70 @@ function Client:_handle_stdout(data)
     while true do
       local newline_pos = self.job.stdout:find("\n")
       if not newline_pos then
+        -- Check for complete JSON without newline at end of buffer
+        local trimmed = self.job.stdout:match("^%s*(.-)%s*$")
+        if trimmed ~= "" and (trimmed:match("^{.*}$") or trimmed:match("^%[.*%]$")) then
+          -- Try to parse as complete JSON
+          local ok, msg = pcall(self.opts.decode, trimmed)
+          if ok then
+            self.job.stdout = ""
+            log:trace("Parsed message: %s", vim.inspect(msg))
+            self.opts.schedule(function()
+              self:_handle_json_message(msg)
+            end)
+          end
+        end
         break
       end
 
       local line = self.job.stdout:sub(1, newline_pos - 1)
       self.job.stdout = self.job.stdout:sub(newline_pos + 1)
-
-      -- Process JSON line
-      if line ~= "" then
-        local ok, msg = pcall(self.opts.decode, line)
-        if ok then
-          log:trace("Parsed message: %s", vim.inspect(msg))
-
-          self.opts.schedule(function()
-            -- Handle JSON-RPC message
-            if msg.id then
-              -- Handle response
-              local cb = self.job.pending[msg.id]
-              self.job.pending[msg.id] = nil
-
-              if cb then
-                if msg.error then
-                  cb(nil, msg.error)
-                else
-                  cb(msg.result, nil)
-                end
-              end
-            elseif msg.method then
-              -- Handle notification (for future use)
-              log:debug("Received notification: %s", msg.method)
-            end
-          end)
-        else
-          log:error("JSON parse error: %s", msg)
-        end
-      end
+      self:_process_line(line)
     end
     ::continue::
   end
 end
+
+-- Extract line processing to separate method
+function Client:_process_line(line)
+  if line == "" then
+    return
+  end
+
+  local ok, msg = pcall(self.opts.decode, line)
+  if ok then
+    log:trace("Parsed message: %s", vim.inspect(msg))
+    self.opts.schedule(function()
+      self:_handle_json_message(msg)
+    end)
+  else
+    log:error("JSON parse error: %s", msg)
+  end
+end
+
+-- Extract message handling to separate method
+function Client:_handle_json_message(msg)
+  if msg.id then
+    -- Handle response
+    local cb = self.job.pending[msg.id]
+    self.job.pending[msg.id] = nil
+
+    if cb then
+      if msg.error then
+        cb(nil, msg.error)
+      else
+        cb(msg.result, nil)
+      end
+    end
+  elseif msg.method then
+    -- Handle notification (for future use)
+    log:debug("Received notification: %s", msg.method)
+  end
+end
+
+-------------------------------------------------------------------------------
+-- Handle the stderr and exit events
+-------------------------------------------------------------------------------
 
 ---Handle stderr data
 ---@param data table
@@ -210,6 +241,27 @@ function Client:request(method, params, callback)
   self.opts.chansend(self.job.handle, json_str)
 
   return id
+end
+
+---Send a JSON-RPC notification (no response expected)
+---@param method string
+---@param params table
+function Client:notify(method, params)
+  if not self.job.handle then
+    log:error("ACP client not running")
+    return
+  end
+
+  local notification = {
+    jsonrpc = "2.0",
+    method = method,
+    params = params or {},
+  }
+
+  local json_str = self.opts.encode(notification) .. "\n"
+  log:trace("Sending notification: %s", json_str:gsub("\n", "\\n"))
+
+  self.opts.chansend(self.job.handle, json_str)
 end
 
 ---Check if the client is running
