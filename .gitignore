@@ -54,6 +54,7 @@ assets/
 .repro/
 deps/
 todo.md
-/media/
-/examples/
+/media
+/llm_notes
+/examples
 chroma.log
