@@ -8,6 +8,15 @@ local diff_fn = vim.text.diff or vim.diff
 ---@field bufnr integer Buffer number to apply diff to
 ---@field contents string[] Original content lines
 ---@field id string Unique identifier for this diff
+---@class DiffHunk
+---@field old_start integer
+---@field old_count integer
+---@field new_start integer
+---@field new_count integer
+---@field old_lines string[]
+---@field new_lines string[]
+---@field context_before string[]
+---@field context_after string[]
 
 ---@class InlineDiff
 ---@field bufnr integer
@@ -48,6 +57,153 @@ function InlineDiff.new(args)
   return self
 end
 
+---Calculate diff hunks between two content arrays
+---@param old_lines string[] Original content
+---@param new_lines string[] New content
+---@param context_lines? integer Number of context lines (default: 3)
+---@return DiffHunk[] hunks
+function InlineDiff.calculate_hunks(old_lines, new_lines, context_lines)
+  context_lines = context_lines or 3
+  local old_text = table.concat(old_lines, "\n")
+  local new_text = table.concat(new_lines, "\n")
+  local ok, diff_result = pcall(diff_fn, old_text, new_text, {
+    result_type = "indices",
+    algorithm = "histogram",
+  })
+  if not ok or not diff_result or #diff_result == 0 then
+    return {}
+  end
+  local hunks = {}
+  for _, hunk in ipairs(diff_result) do
+    local old_start, old_count, new_start, new_count = unpack(hunk)
+    -- Extract changed lines
+    local hunk_old_lines = {}
+    for i = 0, old_count - 1 do
+      local line_idx = old_start + i
+      if old_lines[line_idx] then
+        table.insert(hunk_old_lines, old_lines[line_idx])
+      end
+    end
+
+    local hunk_new_lines = {}
+    for i = 0, new_count - 1 do
+      local line_idx = new_start + i
+      if new_lines[line_idx] then
+        table.insert(hunk_new_lines, new_lines[line_idx])
+      end
+    end
+
+    -- Extract context
+    local context_before = {}
+    local context_start = math.max(1, old_start - context_lines)
+    for i = context_start, old_start - 1 do
+      if old_lines[i] then
+        table.insert(context_before, old_lines[i])
+      end
+    end
+
+    local context_after = {}
+    local context_end = math.min(#old_lines, old_start + old_count + context_lines - 1)
+    for i = old_start + old_count, context_end do
+      if old_lines[i] then
+        table.insert(context_after, old_lines[i])
+      end
+    end
+
+    table.insert(hunks, {
+      old_start = old_start,
+      old_count = old_count,
+      new_start = new_start,
+      new_count = new_count,
+      old_lines = hunk_old_lines,
+      new_lines = hunk_new_lines,
+      context_before = context_before,
+      context_after = context_after,
+    })
+  end
+
+  return hunks
+end
+
+---Apply visual highlights to hunks in a buffer with sign column indicators
+---@param bufnr integer Buffer to apply highlights to
+---@param hunks DiffHunk[] Hunks to highlight
+---@param ns_id integer Namespace for extmarks
+---@param line_offset? integer Line offset (currently unused, kept for compatibility)
+---@param opts? table Options: {show_removed: boolean, full_width_removed: boolean}
+---@return integer[] extmark_ids
+function InlineDiff.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
+  line_offset = line_offset or 0
+  opts = opts or { show_removed = true, full_width_removed = true }
+  local extmark_ids = {}
+
+  log:debug("[InlineDiff] apply_hunk_highlights: %d hunks", #hunks)
+
+  for hunk_idx, hunk in ipairs(hunks) do
+    log:debug(
+      "[InlineDiff] Processing hunk %d: old(%d,%d) new(%d,%d)",
+      hunk_idx,
+      hunk.old_start,
+      hunk.old_count,
+      hunk.new_start,
+      hunk.new_count
+    )
+    -- Handle removed lines FIRST (virtual text above the change location)
+    if opts.show_removed and #hunk.old_lines > 0 then
+      local attach_line = math.max(0, hunk.new_start - 1)
+      if attach_line >= api.nvim_buf_line_count(bufnr) then
+        attach_line = api.nvim_buf_line_count(bufnr) - 1
+      end
+      local is_modification = #hunk.new_lines > 0
+      local sign_hl = is_modification and "DiagnosticWarn" or "DiffDelete"
+      -- Create virtual text for ALL removed lines in this hunk
+      local virt_lines = {}
+      for _, old_line in ipairs(hunk.old_lines) do
+        local display_line = old_line
+        local padding = opts.full_width_removed and math.max(0, vim.o.columns - #display_line - 2) or 0
+        table.insert(virt_lines, { { display_line .. string.rep(" ", padding), "DiffDelete" } })
+      end
+      -- Single extmark for all removed lines in this hunk
+      local extmark_id = api.nvim_buf_set_extmark(bufnr, ns_id, attach_line, 0, {
+        virt_lines = virt_lines,
+        virt_lines_above = true,
+        priority = 100,
+        sign_text = "▌",
+        sign_hl_group = sign_hl,
+      })
+      table.insert(extmark_ids, extmark_id)
+      log:debug(
+        "[InlineDiff] Added %d removed lines as virtual text at line %d with %s sign",
+        #hunk.old_lines,
+        attach_line,
+        sign_hl
+      )
+    end
+
+    -- Handle added/modified lines (highlight in green)
+    for i, new_line in ipairs(hunk.new_lines) do
+      local line_idx = hunk.new_start + i - 2 -- Correct 0-based conversion
+      if line_idx >= 0 and line_idx < api.nvim_buf_line_count(bufnr) then
+        -- Determine change type
+        local is_modification = #hunk.old_lines > 0
+        local sign_hl = is_modification and "DiagnosticWarn" or "DiffAdd"
+
+        local extmark_id = api.nvim_buf_set_extmark(bufnr, ns_id, line_idx, 0, {
+          line_hl_group = "DiffAdd",
+          priority = 100,
+          sign_text = "▌",
+          sign_hl_group = sign_hl,
+        })
+        table.insert(extmark_ids, extmark_id)
+        log:debug("[InlineDiff] Added green highlight at line %d with %s sign", line_idx, sign_hl)
+      end
+    end
+  end
+
+  log:debug("[InlineDiff] Applied %d total extmarks", #extmark_ids)
+  return extmark_ids
+end
+
 ---Compares two content arrays for equality
 ---@param content1 string[] First content array
 ---@param content2 string[] Second content array
@@ -64,65 +220,19 @@ function InlineDiff:contents_equal(content1, content2)
   return true
 end
 
----Applies visual diff highlights using extmarks and virtual text
----@param old_lines string[] Original content lines
----@param new_lines string[] New content lines
+---Apply diff highlights to this instance (REFACTORED to use shared functions)
+---@param old_lines string[]
+---@param new_lines string[]
 function InlineDiff:apply_diff_highlights(old_lines, new_lines)
-  local old_text = table.concat(old_lines, "\n")
-  local new_text = table.concat(new_lines, "\n")
-  log:debug("[InlineDiff] Generating diff between %d and %d chars", #old_text, #new_text)
-  local ok, diff_result = pcall(diff_fn, old_text, new_text, {
-    result_type = "indices",
-    algorithm = "histogram",
+  log:debug("[InlineDiff] Instance apply_diff_highlights called")
+  local hunks = InlineDiff.calculate_hunks(old_lines, new_lines)
+  log:debug("[InlineDiff] Calculated %d hunks", #hunks)
+  local extmark_ids = InlineDiff.apply_hunk_highlights(self.bufnr, hunks, self.ns_id, 0, {
+    show_removed = true,
+    full_width_removed = true,
   })
-  ---@cast diff_result integer[][]?
-  if not ok or not diff_result or #diff_result == 0 then
-    log:debug("[InlineDiff] No diff result generated")
-    return
-  end
-  log:debug("[InlineDiff] Processing %d diff hunks", #diff_result)
-  -- Process each hunk
-  for hunk_idx, hunk in ipairs(diff_result) do
-    local old_start, old_count, new_start, new_count = unpack(hunk)
-    log:debug("[InlineDiff] Hunk %d: old(%d,%d) new(%d,%d)", hunk_idx, old_start, old_count, new_start, new_count)
-    -- Handle removed lines (show as virtual text with full line highlight)
-    if old_count > 0 then
-      for i = 0, old_count - 1 do
-        local old_line_idx = old_start + i
-        if old_line_idx <= #old_lines then
-          local line_content = old_lines[old_line_idx]
-          -- Place virtual text strategically
-          local attach_line = math.max(0, new_start - 1)
-          if attach_line >= api.nvim_buf_line_count(self.bufnr) then
-            attach_line = api.nvim_buf_line_count(self.bufnr) - 1
-          end
-          -- Create full-width virtual line
-          local padding = math.max(0, vim.o.columns - #line_content - 2) -- Leave some margin
-          local extmark_id = api.nvim_buf_set_extmark(self.bufnr, self.ns_id, attach_line, 0, {
-            virt_lines = { { { line_content .. string.rep(" ", padding), "DiffDelete" } } },
-            virt_lines_above = true,
-            priority = 100,
-          })
-          table.insert(self.extmark_ids, extmark_id)
-        end
-      end
-    end
-
-    -- Handle added/modified lines (highlight in green)
-    if new_count > 0 then
-      for i = 0, new_count - 1 do
-        local new_line_idx = new_start + i - 1 -- Convert to 0-based indexing
-        if new_line_idx >= 0 and new_line_idx < api.nvim_buf_line_count(self.bufnr) then
-          log:debug("[InlineDiff] Adding green highlight at line %d", new_line_idx)
-          local extmark_id = api.nvim_buf_set_extmark(self.bufnr, self.ns_id, new_line_idx, 0, {
-            line_hl_group = "DiffAdd",
-            priority = 100,
-          })
-          table.insert(self.extmark_ids, extmark_id)
-        end
-      end
-    end
-  end
+  log:debug("[InlineDiff] Got %d extmark_ids from apply_hunk_highlights", #extmark_ids)
+  vim.list_extend(self.extmark_ids, extmark_ids)
   log:debug("[InlineDiff] Applied %d extmarks for diff visualization", #self.extmark_ids)
 end
 
