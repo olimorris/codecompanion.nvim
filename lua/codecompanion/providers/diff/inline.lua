@@ -155,7 +155,7 @@ function InlineDiff.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts
         attach_line = api.nvim_buf_line_count(bufnr) - 1
       end
       local is_modification = #hunk.new_lines > 0
-      local sign_hl = is_modification and "DiagnosticWarn" or "DiffDelete"
+      local sign_hl = is_modification and "DiagnosticWarn" or "DiagnosticError"
       -- Create virtual text for ALL removed lines in this hunk
       local virt_lines = {}
       for _, old_line in ipairs(hunk.old_lines) do
@@ -186,7 +186,7 @@ function InlineDiff.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts
       if line_idx >= 0 and line_idx < api.nvim_buf_line_count(bufnr) then
         -- Determine change type
         local is_modification = #hunk.old_lines > 0
-        local sign_hl = is_modification and "DiagnosticWarn" or "DiffAdd"
+        local sign_hl = is_modification and "DiagnosticWarn" or "DiagnosticOk"
 
         local extmark_id = api.nvim_buf_set_extmark(bufnr, ns_id, line_idx, 0, {
           line_hl_group = "DiffAdd",

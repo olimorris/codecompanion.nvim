@@ -184,7 +184,7 @@ local function apply_markdown_diff_highlights(bufnr, diff_info, ns_id)
       local attach_line = line_offset
       if attach_line < api.nvim_buf_line_count(bufnr) then
         local is_modification = #hunk.new_lines > 0
-        local sign_hl = is_modification and "DiffChange" or "DiffDelete"
+        local sign_hl = is_modification and "DiagnosticWarn" or "DiagnosticError"
 
         -- Create virtual text for ALL removed lines in this hunk
         local virt_lines = {}
@@ -211,7 +211,7 @@ local function apply_markdown_diff_highlights(bufnr, diff_info, ns_id)
       local line_idx = line_offset + i - 1 -- Correct line mapping for markdown buffer
       if line_idx >= 0 and line_idx < api.nvim_buf_line_count(bufnr) then
         local is_modification = #hunk.old_lines > 0
-        local sign_hl = is_modification and "DiffChange" or "DiffAdd"
+        local sign_hl = is_modification and "DiagnosticWarn" or "DiagnosticOk"
         local extmark_id = api.nvim_buf_set_extmark(bufnr, ns_id, line_idx, 0, {
           line_hl_group = "DiffAdd",
           priority = 100,
