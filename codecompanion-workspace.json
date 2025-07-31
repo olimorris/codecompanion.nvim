@@ -213,7 +213,7 @@
     "adapters-test": {
       "type": "file",
       "path": "tests/adapters/test_adapters.lua",
-      "description": "This is an example test file which might give you more of an understand of what is required by an adapter deep within CodeCompanion."
+      "description": "This is a test file for adapter's broadly, which might give you more of an understand of what is required by an adapter deep within CodeCompanion."
     },
     "http-client": {
       "type": "file",
