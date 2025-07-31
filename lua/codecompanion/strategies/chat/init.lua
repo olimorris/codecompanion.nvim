@@ -50,6 +50,7 @@ local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
+local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.strategies.chat.helpers")
 local keymaps = require("codecompanion.utils.keymaps")
@@ -1235,6 +1236,7 @@ function Chat:close()
   if self.current_request then
     self:stop()
   end
+  edit_tracker.clear(self)
 
   if last_chat and last_chat.bufnr == self.bufnr then
     last_chat = nil
