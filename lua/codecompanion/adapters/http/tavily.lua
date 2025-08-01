@@ -1,6 +1,6 @@
 local fmt = string.format
 
----@class CodeCompanion.Adapter
+---@class CodeCompanion.HTTPAdapter
 return {
   name = "tavily",
   formatted_name = "Tavily",
@@ -27,7 +27,7 @@ return {
     tools = {
       search_web = {
         ---Setup the adapter for the fetch webpage tool
-        ---@param self CodeCompanion.Adapter
+        ---@param self CodeCompanion.HTTPAdapter
         ---@param opts table Tool options
         ---@param data table The data from the LLM's tool call
         ---@return nil
@@ -54,7 +54,7 @@ return {
         end,
 
         ---Process the output from the fetch webpage tool
-        ---@param self CodeCompanion.Adapter
+        ---@param self CodeCompanion.HTTPAdapter
         ---@param data table The data returned from the fetch
         ---@return table{status: string, content: string}|nil
         callback = function(self, data)

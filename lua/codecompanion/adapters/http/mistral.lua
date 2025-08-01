@@ -1,6 +1,6 @@
 local openai = require("codecompanion.adapters.http.openai")
 
----@class Mistral.Adapter: CodeCompanion.Adapter
+---@class CodeCompanion.HTTPAdapter.Mistral: CodeCompanion.HTTPAdapter
 return {
   name = "mistral",
   formatted_name = "Mistral",

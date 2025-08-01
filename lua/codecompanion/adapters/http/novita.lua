@@ -9,7 +9,7 @@ local _cache_file = vim.fn.tempname()
 local _cached_models
 
 ---Get a list of available models
----@params self CodeCompanion.Adapter
+---@params self CodeCompanion.HTTPAdapter
 ---@params opts? table
 ---@return table
 local function get_models(self, opts)
@@ -56,7 +56,7 @@ local function get_models(self, opts)
   return models
 end
 
----@class Novita.Adapter: CodeCompanion.Adapter
+---@class CodeCompanion.HTTPAdapter.Novita: CodeCompanion.HTTPAdapter
 return {
   name = "novita",
   formatted_name = "Novita",
@@ -83,7 +83,7 @@ return {
   },
   handlers = {
     ---Check for a token before starting the request
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@return boolean
     setup = function(self)
       local model = self.schema.model.default

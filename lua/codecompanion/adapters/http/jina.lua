@@ -18,7 +18,7 @@ return {
   methods = {
     slash_commands = {
       fetch = {
-        ---@param self CodeCompanion.Adapter
+        ---@param self CodeCompanion.HTTPAdapter
         ---@param data table
         ---@return nil
         setup = function(self, data)
@@ -42,7 +42,7 @@ return {
         end,
 
         ---Process the output from the fetch slash command
-        ---@param self CodeCompanion.Adapter
+        ---@param self CodeCompanion.HTTPAdapter
         ---@param data table The data returned from the fetch
         ---@return table{status: string, content: string}|nil
         callback = function(self, data)
@@ -72,7 +72,7 @@ return {
     tools = {
       fetch_webpage = {
         ---Setup the adapter for the fetch webpage tool
-        ---@param self CodeCompanion.Adapter
+        ---@param self CodeCompanion.HTTPAdapter
         ---@param data table The data from the LLM's tool call
         ---@return nil
         setup = function(self, data)
@@ -83,7 +83,7 @@ return {
         end,
 
         ---Process the output from the fetch webpage tool
-        ---@param self CodeCompanion.Adapter
+        ---@param self CodeCompanion.HTTPAdapter
         ---@param data table The data returned from the fetch
         ---@return table{status: string, content: string}|nil
         callback = function(self, data)

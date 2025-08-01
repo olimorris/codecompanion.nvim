@@ -8,7 +8,7 @@ local _cached_models
 local _cache_expires
 
 ---Get a list of available Hugging Face models from inference providers
----@param adapter CodeCompanion.Adapter
+---@param adapter CodeCompanion.HTTPAdapter
 ---@return table
 local function get_models(adapter)
   if _cached_models and _cache_expires and _cache_expires > os.time() then
@@ -60,7 +60,7 @@ local function get_models(adapter)
   return models
 end
 
----@class HuggingFace.Adapter: CodeCompanion.Adapter
+---@class CodeCompanion.HTTPAdapter.HuggingFace: CodeCompanion.HTTPAdapter
 return {
   name = "huggingface",
   formatted_name = "Hugging Face",
@@ -87,7 +87,7 @@ return {
     Authorization = "Bearer ${api_key}",
   },
   handlers = {
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@return boolean
     setup = function(self)
       -- Check if the model supports tools
@@ -152,6 +152,7 @@ return {
       type = "enum",
       desc = "ID of the model to use from Hugging Face Inference Providers.",
       default = "Qwen/Qwen2.5-32B-Instruct",
+      ---@param adapter CodeCompanion.HTTPAdapter
       choices = function(adapter)
         return get_models(adapter)
       end,

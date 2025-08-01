@@ -81,7 +81,7 @@ local function get_models(self, opts)
   return models(opts)
 end
 
----@class OpenAICompatible.Adapter: CodeCompanion.Adapter
+---@class CodeCompanion.HTTPAdapter.OpenAICompatible: CodeCompanion.HTTPAdapter
 return {
   name = "openai_compatible",
   formatted_name = "OpenAI Compatible",
@@ -110,7 +110,7 @@ return {
     Authorization = "Bearer ${api_key}",
   },
   handlers = {
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@return boolean
     setup = function(self)
       if self.opts and self.opts.stream then

@@ -37,7 +37,7 @@ local function authorize_token()
   return _gh_token
 end
 
----@class GitHubModels.Adapter: CodeCompanion.Adapter
+---@class CodeCompanion.HTTPAdapter.GitHubModels: CodeCompanion.HTTPAdapter
 return {
   name = "githubmodels",
   formatted_name = "GitHub Models",
@@ -72,7 +72,7 @@ return {
   },
   handlers = {
     ---Check for a token before starting the request
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@return boolean
     setup = function(self)
       local model = self.schema.model.default
@@ -154,6 +154,7 @@ return {
       mapping = "parameters",
       type = "string",
       optional = true,
+      ---@param self CodeCompanion.HTTPAdapter
       condition = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
@@ -178,6 +179,7 @@ return {
       mapping = "parameters",
       type = "number",
       default = 0,
+      ---@param self CodeCompanion.HTTPAdapter
       condition = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
@@ -201,6 +203,7 @@ return {
       mapping = "parameters",
       type = "number",
       default = 1,
+      ---@param self CodeCompanion.HTTPAdapter
       condition = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then
@@ -216,6 +219,7 @@ return {
       mapping = "parameters",
       type = "number",
       default = 1,
+      ---@param self CodeCompanion.HTTPAdapter
       condition = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then

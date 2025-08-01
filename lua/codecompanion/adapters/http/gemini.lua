@@ -1,6 +1,6 @@
 local openai = require("codecompanion.adapters.http.openai")
 
----@class Gemini.Adapter: CodeCompanion.Adapter
+---@class CodeCompanion.HTTPAdapter.Gemini : CodeCompanion.HTTPAdapter
 return {
   name = "gemini",
   formatted_name = "Gemini",
@@ -137,6 +137,7 @@ return {
       mapping = "parameters",
       type = "string",
       optional = true,
+      ---@param self CodeCompanion.HTTPAdapter
       condition = function(self)
         local model = self.schema.model.default
         if type(model) == "function" then

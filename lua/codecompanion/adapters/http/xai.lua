@@ -1,6 +1,6 @@
 local openai = require("codecompanion.adapters.http.openai")
 
----@class xAI.Adapter: CodeCompanion.Adapter
+---@class CodeCompanion.HTTPAdapter.xAI: CodeCompanion.HTTPAdapter
 return {
   name = "xai",
   formatted_name = "xAI",

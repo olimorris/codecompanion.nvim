@@ -2,7 +2,7 @@ local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 local utils = require("codecompanion.utils.adapters")
 
----@class DeepSeek.Adapter: CodeCompanion.Adapter
+---@class CodeCompanion.HTTPAdapter.DeepSeek: CodeCompanion.HTTPAdapter
 return {
   name = "deepseek",
   formatted_name = "DeepSeek",
@@ -52,7 +52,7 @@ return {
     end,
 
     ---Set the format of the role and content for the messages from the chat buffer
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@param messages table Format is: { { role = "user", content = "Your prompt here" } }
     ---@return table
     form_messages = function(self, messages)
@@ -77,7 +77,7 @@ return {
     end,
 
     ---Output the data from the API ready for insertion into the chat buffer
-    ---@param self CodeCompanion.Adapter
+    ---@param self CodeCompanion.HTTPAdapter
     ---@param data table The streamed JSON data from the API, also formatted by the format_data handler
     ---@param tools? table The table to write any tool output to
     ---@return { status: string, output: { role: string, content: string, reasoning: string? } } | nil

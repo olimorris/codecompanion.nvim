@@ -1,6 +1,6 @@
 local openai = require("codecompanion.adapters.http.openai")
 
----@class AzureOpenAI.Adapter: CodeCompanion.Adapter
+---@class CodeCompanion.HTTPAdapter.AzureOpenAI: CodeCompanion.HTTPAdapter
 return {
   name = "azure_openai",
   formatted_name = "Azure OpenAI",
