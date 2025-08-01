@@ -1,6 +1,10 @@
 local Path = require("plenary.path")
 local log = require("codecompanion.utils.log")
 
+---@class CodeCompanion.Chat.EditTracker
+---@field tracked_files table Map of filepath/bufnr -> edit info
+---@field enabled boolean Whether edit tracking is enabled
+
 ---@class CodeCompanion.EditTracker
 local EditTracker = {}
 
