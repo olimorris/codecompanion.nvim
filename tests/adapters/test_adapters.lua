@@ -275,6 +275,18 @@ T["Adapter"]["can pass in the name of the model"] = function()
   h.eq("some_made_up_model", result)
 end
 
+T["Adapter"]["can extend a table"] = function()
+  local result = child.lua([[
+    return require("codecompanion.adapters").extend("openai", {
+      env = {
+        api_key = "test_api_key",
+      }
+    }).env.api_key
+  ]])
+
+  h.eq("test_api_key", result)
+end
+
 T["Adapter"]["utils"] = new_set()
 
 T["Adapter"]["utils"]["can consolidate consecutive messages"] = function()
