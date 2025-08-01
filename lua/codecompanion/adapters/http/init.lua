@@ -121,6 +121,9 @@ function Adapter.extend(adapter, opts)
   if type(adapter) == "string" then
     ok, adapter_config = pcall(require, "codecompanion.adapters.http." .. adapter)
     if not ok then
+      -- TODO: Remove this in v18.0.0
+      -- START
+
       -- Try new structure first
       if config.adapters.http and config.adapters.http[adapter] then
         adapter_config = config.adapters.http[adapter]
@@ -128,6 +131,10 @@ function Adapter.extend(adapter, opts)
         -- Fallback to root level for backwards compatibility
         adapter_config = config.adapters[adapter]
       end
+      -- END
+
+      --TODO: Uncomment this in v18.0.0
+      --adapter_config = config.adapters.http[adapter]
 
       if adapter_config and type(adapter_config) == "function" then
         adapter_config = adapter_config()
