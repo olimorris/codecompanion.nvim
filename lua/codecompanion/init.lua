@@ -331,7 +331,7 @@ end
 CodeCompanion.setup = function(opts)
   opts = opts or {}
 
-  -- TODO: Remove this in v19.0.0
+  -- TODO: Remove in v18.0.0
   -- // START -----------------------------------------------------------------
   if opts.adapters then
     local has_old_format = false
@@ -351,7 +351,7 @@ CodeCompanion.setup = function(opts)
       vim.deprecate(
         "`adapters.<adapter_name>` and `adapters.opts`",
         "`adapters.http.<adapter_name>` and `adapters.http.opts`",
-        "v19.0.0",
+        "v18.0.0",
         "CodeCompanion",
         false
       )

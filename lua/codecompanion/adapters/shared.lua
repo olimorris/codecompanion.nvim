@@ -22,7 +22,7 @@ function M.get_adapter_from_config(adapter)
     return config.adapters.http[adapter]
   end
 
-  -- TODO: Remove in v19.0.0
+  -- TODO: Remove in v18.0.0
   return config.adapters[adapter]
 end
 
