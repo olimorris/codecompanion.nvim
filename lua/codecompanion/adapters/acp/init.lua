@@ -1,7 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local shared = require("codecompanion.adapters.shared")
-local utils = require("codecompanion.utils.adapters")
 
 ---@class CodeCompanion.ACPAdapter
 ---@field name string The name of the adapter
@@ -59,7 +58,7 @@ function Adapter.extend(adapter, opts)
   end
 
   if not adapter_config then
-    return log:error("Adapter not found: %s", adapter)
+    return log:error("[adapters::acp::extend] Adapter not found: %s", adapter)
   end
 
   adapter_config = vim.tbl_deep_extend("force", {}, vim.deepcopy(adapter_config), opts or {})
@@ -77,20 +76,20 @@ function Adapter.resolve(adapter, opts)
 
   if type(adapter) == "table" then
     if (adapter.type and adapter.type ~= "acp") or not adapter.type then
-      log:error("[ACP Adapter] Adapter is not an ACP adapter")
+      log:error("[adapters::acp::resolve] Adapter is not an ACP adapter")
       error("Adapter is not an ACP adapter")
     end
     if adapter.name and Adapter.resolved(adapter) then
-      log:trace("[ACP Adapter] Returning existing resolved adapter: %s", adapter.name)
+      log:trace("[adapters::acp::resolve] Returning existing resolved adapter: %s", adapter.name)
       adapter = Adapter.new(adapter)
     elseif adapter.name then
-      log:trace("[ACP Adapter] Table adapter: %s", adapter.name)
+      log:trace("[adapters::acp::resolve] Table adapter: %s", adapter.name)
       adapter = Adapter.resolve(adapter.name)
     end
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
     if not config.adapters.acp or not config.adapters.acp[adapter] then
-      log:error("[ACP Adapter] Adapter not found: %s", adapter)
+      log:error("[adapters::acp::resolve] Adapter not found: %s", adapter)
       error("Adapter not found: " .. adapter)
     end
     adapter = Adapter.extend(config.adapters.acp[adapter] or adapter, opts)

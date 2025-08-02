@@ -1,7 +1,6 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local shared = require("codecompanion.adapters.shared")
-local utils = require("codecompanion.utils.adapters")
 
 ---@class CodeCompanion.HTTPAdapter
 ---@field name string The name of the adapter
@@ -148,7 +147,7 @@ function Adapter.extend(adapter, opts)
 
   -- Ensure we have a valid adapter_config before deep extending
   if not adapter_config then
-    return log:error("Adapter not found: %s", adapter)
+    return log:error("[adapters::http::extend] Adapter not found: %s", adapter)
   end
 
   adapter_config = vim.tbl_deep_extend("force", {}, vim.deepcopy(adapter_config), opts or {})
@@ -190,16 +189,20 @@ function Adapter.resolve(adapter, opts)
 
   if type(adapter) == "table" then
     if adapter.name and adapter.schema and Adapter.resolved(adapter) then
-      log:trace("[HTTP Adapter] Returning existing resolved adapter: %s", adapter.name)
+      log:trace("[adapters:http:resolve] Returning existing resolved adapter: %s", adapter.name)
       return Adapter.set_model(adapter)
     elseif adapter.name and adapter.model then
-      log:trace("[HTTP Adapter] Table adapter: %s", adapter.name)
+      log:trace("[adapters:http:resolve] Table adapter: %s", adapter.name)
       local model_name = type(adapter.model) == "table" and adapter.model.name or adapter.model
       return Adapter.resolve(adapter.name, { model = model_name })
     end
     adapter = Adapter.new(adapter)
   elseif type(adapter) == "string" then
-    log:trace("[HTTP Adapter] Loading adapter: %s%s", adapter, opts.model and (" with model: " .. opts.model) or "")
+    log:trace(
+      "[adapters:http:resolve] Loading adapter: %s%s",
+      adapter,
+      opts.model and (" with model: " .. opts.model) or ""
+    )
     opts = vim.tbl_deep_extend("force", opts, { name = adapter })
     if opts.model then
       opts = vim.tbl_deep_extend("force", opts, {
