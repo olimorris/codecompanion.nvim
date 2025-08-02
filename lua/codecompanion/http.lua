@@ -1,11 +1,12 @@
 local Curl = require("plenary.curl")
 local Path = require("plenary.path")
+local adapter_utils = require("codecompanion.utils.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
----@class CodeCompanion.Client
----@field adapter CodeCompanion.Adapter
+---@class CodeCompanion.HTTPClient
+---@field adapter CodeCompanion.HTTPAdapter
 ---@field static table
 ---@field opts nil|table
 ---@field user_args nil|table
@@ -32,12 +33,12 @@ local function transform_static(opts)
   return ret
 end
 
----@class CodeCompanion.ClientArgs
----@field adapter CodeCompanion.Adapter
+---@class CodeCompanion.HTTPClientArgs
+---@field adapter CodeCompanion.HTTPAdapter
 ---@field opts nil|table
 ---@field user_args nil|table
 
----@param args CodeCompanion.ClientArgs
+---@param args CodeCompanion.HTTPClientArgs
 ---@return table
 function Client.new(args)
   args = args or {}
@@ -49,13 +50,13 @@ function Client.new(args)
   }, { __index = Client })
 end
 
----@class CodeCompanion.Adapter.RequestActions
+---@class CodeCompanion.HTTPAdapter.RequestActions
 ---@field callback fun(err: nil|string, chunk: nil|table) Callback function, executed when the request has finished or is called multiple times if the request is streaming
 ---@field done? fun() Function to run when the request is complete
 
 ---Send a HTTP request
 ---@param payload { messages: table, tools: table|nil } The payload to be sent to the endpoint
----@param actions CodeCompanion.Adapter.RequestActions
+---@param actions CodeCompanion.HTTPAdapter.RequestActions
 ---@param opts? table Options that can be passed to the request
 ---@return table|nil The Plenary job
 function Client:request(payload, actions, opts)
@@ -84,13 +85,17 @@ function Client:request(payload, actions, opts)
     end
   end
 
-  adapter:get_env_vars()
+  adapter = adapter_utils.get_env_vars(adapter)
 
   local body = self.opts.encode(
     vim.tbl_extend(
       "keep",
       handlers.form_parameters
-          and handlers.form_parameters(adapter, adapter:set_env_vars(adapter.parameters), payload.messages)
+          and handlers.form_parameters(
+            adapter,
+            adapter_utils.set_env_vars(adapter, adapter.parameters),
+            payload.messages
+          )
         or {},
       handlers.form_messages and handlers.form_messages(adapter, payload.messages) or {},
       handlers.form_tools and handlers.form_tools(adapter, payload.tools) or {},
@@ -127,14 +132,14 @@ function Client:request(payload, actions, opts)
   end
 
   if adapter.raw then
-    vim.list_extend(raw, adapter:set_env_vars(adapter.raw))
+    vim.list_extend(raw, adapter_utils.set_env_vars(adapter, adapter.raw))
   end
 
   local request_opts = {
-    url = adapter:set_env_vars(adapter.url),
-    headers = adapter:set_env_vars(adapter.headers),
-    insecure = config.adapters.opts.allow_insecure,
-    proxy = config.adapters.opts.proxy,
+    url = adapter_utils.set_env_vars(adapter, adapter.url),
+    headers = adapter_utils.set_env_vars(adapter, adapter.headers),
+    insecure = config.adapters.http.opts.allow_insecure,
+    proxy = config.adapters.http.opts.proxy,
     raw = raw,
     body = body_file.filename or "",
     -- This is called when the request is finished. It will only ever be called
