@@ -227,7 +227,6 @@ function Debug:render()
   ui.create_float(lines, {
     bufnr = self.bufnr,
     filetype = "lua",
-    ignore_keymaps = true,
     relative = "editor",
     title = "Debug Chat",
     window = window,
