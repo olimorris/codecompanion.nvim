@@ -210,9 +210,7 @@ function Adapter.resolve(adapter, opts)
         },
       })
     end
-
-    local config_adapter = shared.get_adapter_from_config(adapter)
-    adapter = Adapter.extend(config_adapter or adapter, opts)
+    adapter = Adapter.extend(config.adapters.http[adapter] or adapter, opts)
   elseif type(adapter) == "function" then
     adapter = adapter()
   end

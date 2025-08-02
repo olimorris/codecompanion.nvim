@@ -288,18 +288,6 @@ T["Adapter"]["can extend an adapter"] = function()
   h.eq("test_api_key", result)
 end
 
-T["Adapter"]["can extend an adapter with type"] = function()
-  local result = child.lua([[
-    return require("codecompanion.adapters").extend("http.openai", {
-      env = {
-        api_key = "test_api_key",
-      }
-    }).env.api_key
-  ]])
-
-  h.eq("test_api_key", result)
-end
-
 T["Adapter"]["utils"] = new_set()
 
 T["Adapter"]["utils"]["can consolidate consecutive messages"] = function()
