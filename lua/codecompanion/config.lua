@@ -36,6 +36,7 @@ local defaults = {
     },
     acp = {
       codex = "codex",
+      gemini_cli = "gemini_cli",
     },
   },
   constants = constants,
