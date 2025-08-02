@@ -21,10 +21,12 @@ T["ACP Adapter"] = new_set()
 
 T["ACP Adapter"]["can resolve ACP adapter by type"] = function()
   local result = child.lua([[
-    --require("tests.log")
-    --local log = require("codecompanion.utils.log")
+    require("tests.log")
+    local log = require("codecompanion.utils.log")
 
     local adapter = require("codecompanion.adapters").resolve("test_acp")
+    log:info("Adapter %s", adapter)
+
 
     return {
       name = adapter.name,
@@ -40,26 +42,26 @@ T["ACP Adapter"]["can resolve ACP adapter by type"] = function()
   }, result)
 end
 
--- T["ACP Adapter"]["can resolve an adapter when the type is specified"] = function()
---   local result = child.lua([[
---     --require("tests.log")
---     --local log = require("codecompanion.utils.log")
---
---     local adapter = require("codecompanion.adapters").resolve("acp.test_acp")
---
---     return {
---       name = adapter.name,
---       type = adapter.type,
---       resolved = require("codecompanion.adapters").resolved(adapter)
---     }
---   ]])
---
---   h.eq({
---     name = "test_acp",
---     type = "acp",
---     resolved = true,
---   }, result)
--- end
+T["ACP Adapter"]["can resolve an adapter when the type is specified"] = function()
+  local result = child.lua([[
+    --require("tests.log")
+    --local log = require("codecompanion.utils.log")
+
+    local adapter = require("codecompanion.adapters").resolve("acp.test_acp")
+
+    return {
+      name = adapter.name,
+      type = adapter.type,
+      resolved = require("codecompanion.adapters").resolved(adapter)
+    }
+  ]])
+
+  h.eq({
+    name = "test_acp",
+    type = "acp",
+    resolved = true,
+  }, result)
+end
 
 T["ACP Adapter"]["handles missing adapter gracefully"] = function()
   local result = child.lua([[

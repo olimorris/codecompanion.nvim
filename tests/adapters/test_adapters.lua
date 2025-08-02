@@ -251,6 +251,7 @@ T["Adapter"]["can resolve custom adapters"] = function()
         }
       }
     })
+
     return require("codecompanion.adapters").resolve().env.api_key
   ]])
 
@@ -275,9 +276,21 @@ T["Adapter"]["can pass in the name of the model"] = function()
   h.eq("some_made_up_model", result)
 end
 
-T["Adapter"]["can extend a table"] = function()
+T["Adapter"]["can extend an adapter"] = function()
   local result = child.lua([[
     return require("codecompanion.adapters").extend("openai", {
+      env = {
+        api_key = "test_api_key",
+      }
+    }).env.api_key
+  ]])
+
+  h.eq("test_api_key", result)
+end
+
+T["Adapter"]["can extend an adapter with type"] = function()
+  local result = child.lua([[
+    return require("codecompanion.adapters").extend("http.openai", {
       env = {
         api_key = "test_api_key",
       }
