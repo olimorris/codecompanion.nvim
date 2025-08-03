@@ -9,21 +9,26 @@ local util = require("codecompanion.utils")
 ---@field adapter CodeCompanion.HTTPAdapter
 ---@field static table
 ---@field opts nil|table
+---@field methods table
 ---@field user_args nil|table
 local Client = {}
 Client.static = {}
 
--- This makes it easier to mock during testing
-Client.static.opts = {
+-- Define our static methods for the HTTP client making it easier to mock and test
+Client.static.methods = {
   post = { default = Curl.post },
   get = { default = Curl.get },
   encode = { default = vim.json.encode },
-  schedule = { default = vim.schedule_wrap },
+  schedule = { default = vim.schedule },
+  schedule_wrap = { default = vim.schedule_wrap },
 }
 
-local function transform_static(opts)
+---Allow for easier testing/mocking of the static methods
+---@param opts? table
+---@return table
+local function transform_static_methods(opts)
   local ret = {}
-  for k, v in pairs(Client.static.opts) do
+  for k, v in pairs(Client.static.methods) do
     if opts and opts[k] ~= nil then
       ret[k] = opts[k]
     else
@@ -35,7 +40,7 @@ end
 
 ---@class CodeCompanion.HTTPClientArgs
 ---@field adapter CodeCompanion.HTTPAdapter
----@field opts nil|table
+---@field opts? nil|table
 ---@field user_args nil|table
 
 ---@param args CodeCompanion.HTTPClientArgs
@@ -45,7 +50,8 @@ function Client.new(args)
 
   return setmetatable({
     adapter = args.adapter,
-    opts = args.opts or transform_static(args.opts),
+    methods = transform_static_methods(args.opts),
+    opts = args.opts or {},
     user_args = args.user_args or {},
   }, { __index = Client })
 end
@@ -87,7 +93,7 @@ function Client:request(payload, actions, opts)
 
   adapter = adapter_utils.get_env_vars(adapter)
 
-  local body = self.opts.encode(
+  local body = self.methods.encode(
     vim.tbl_extend(
       "keep",
       handlers.form_parameters
@@ -145,7 +151,7 @@ function Client:request(payload, actions, opts)
     -- This is called when the request is finished. It will only ever be called
     -- once, even if the endpoint is streaming.
     callback = function(data)
-      self.opts.schedule(function()
+      self.methods.schedule(function()
         if (not adapter.opts.stream) and data and data ~= "" then
           log:trace("Output data:\n%s", data)
           cb(nil, data, adapter)
@@ -177,7 +183,7 @@ function Client:request(payload, actions, opts)
       end)
     end,
     on_error = function(err)
-      self.opts.schedule(function()
+      self.methods.schedule(function()
         actions.callback(err, nil)
         if not opts.silent then
           util.fire("RequestFinished", opts)
@@ -193,7 +199,7 @@ function Client:request(payload, actions, opts)
     request_opts["compressed"] = adapter.opts.compress or false
 
     -- This will be called multiple times until the stream is finished
-    request_opts["stream"] = self.opts.schedule(function(_, data)
+    request_opts["stream"] = self.methods.schedule_wrap(function(_, data)
       if data and data ~= "" then
         log:trace("Output data:\n%s", data)
       end
@@ -212,8 +218,7 @@ function Client:request(payload, actions, opts)
     request = adapter.opts.method:lower()
   end
 
-  -- Use Curl to make the request
-  local job = self.opts[request](request_opts)
+  local job = self.methods[request](request_opts)
 
   -- Data to be sent via the request
   opts.id = math.random(10000000)

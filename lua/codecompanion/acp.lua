@@ -4,24 +4,29 @@ local log = require("codecompanion.utils.log")
 ---@class CodeCompanion.ACPClient
 ---@field adapter CodeCompanion.ACPAdapter The ACP adapter used by the client
 ---@field job {handle: integer, next_id: integer, pending: table, stdout: string}|nil The job handle for the ACP process
----@field static table Static functions
 ---@field opts nil|table
+---@field methods table
+
+---@class CodeCompanion.ACPClient
 local Client = {}
 Client.static = {}
 
--- Static options for easier testing/mocking
-Client.static.opts = {
-  jobstart = { default = vim.fn.jobstart },
+-- Define our static methods for the ACP client making it easier to mock and test
+Client.static.methods = {
   chansend = { default = vim.fn.chansend },
+  decode = { default = vim.json.decode },
+  encode = { default = vim.json.encode },
+  jobstart = { default = vim.fn.jobstart },
   jobstop = { default = vim.fn.jobstop },
   schedule = { default = vim.schedule },
-  encode = { default = vim.json.encode },
-  decode = { default = vim.json.decode },
 }
 
-local function transform_static(opts)
+---Allow for easier testing/mocking of the static methods
+---@param opts? table
+---@return table
+local function transform_static_methods(opts)
   local ret = {}
-  for k, v in pairs(Client.static.opts) do
+  for k, v in pairs(Client.static.methods) do
     if opts and opts[k] ~= nil then
       ret[k] = opts[k]
     else
@@ -43,7 +48,8 @@ function Client.new(args)
   return setmetatable({
     adapter = args.adapter,
     job = {},
-    opts = args.opts or transform_static(args.opts),
+    methods = transform_static_methods(args.opts),
+    opts = args.opts or {},
   }, { __index = Client })
 end
 
@@ -78,7 +84,7 @@ function Client:start()
     end,
   }
 
-  self.job.handle = self.opts.jobstart(command, job_opts)
+  self.job.handle = self.methods.jobstart(command, job_opts)
   self.job.next_id = 1
   self.job.pending = {}
   self.job.stdout = ""
@@ -117,11 +123,11 @@ function Client:_handle_stdout(data)
         local trimmed = self.job.stdout:match("^%s*(.-)%s*$")
         if trimmed ~= "" and (trimmed:match("^{.*}$") or trimmed:match("^%[.*%]$")) then
           -- Try to parse as complete JSON
-          local ok, msg = pcall(self.opts.decode, trimmed)
+          local ok, msg = pcall(self.methods.decode, trimmed)
           if ok then
             self.job.stdout = ""
             log:trace("Parsed message: %s", vim.inspect(msg))
-            self.opts.schedule(function()
+            self.methods.schedule(function()
               self:_handle_json_message(msg)
             end)
           end
@@ -143,10 +149,10 @@ function Client:_process_line(line)
     return
   end
 
-  local ok, msg = pcall(self.opts.decode, line)
+  local ok, msg = pcall(self.methods.decode, line)
   if ok then
     log:trace("Parsed message: %s", vim.inspect(msg))
-    self.opts.schedule(function()
+    self.methods.schedule(function()
       self:_handle_json_message(msg)
     end)
   else
@@ -196,7 +202,7 @@ function Client:_handle_exit(code)
   -- Fail all pending requests
   for _, cb in pairs(self.job.pending or {}) do
     if cb then
-      self.opts.schedule(function()
+      self.methods.schedule(function()
         cb(nil, { error = { message = "Process exited with code " .. code } })
       end)
     end
@@ -235,10 +241,10 @@ function Client:request(method, params, callback)
     params = params or {},
   }
 
-  local json_str = self.opts.encode(req) .. "\n"
+  local json_str = self.methods.encode(req) .. "\n"
   log:trace("Sending request: %s", json_str:gsub("\n", "\\n"))
 
-  self.opts.chansend(self.job.handle, json_str)
+  self.methods.chansend(self.job.handle, json_str)
 
   return id
 end
@@ -258,10 +264,10 @@ function Client:notify(method, params)
     params = params or {},
   }
 
-  local json_str = self.opts.encode(notification) .. "\n"
+  local json_str = self.methods.encode(notification) .. "\n"
   log:trace("Sending notification: %s", json_str:gsub("\n", "\\n"))
 
-  self.opts.chansend(self.job.handle, json_str)
+  self.methods.chansend(self.job.handle, json_str)
 end
 
 ---Check if the client is running
@@ -281,14 +287,14 @@ function Client.stop(client)
   -- Cancel pending requests
   for _, cb in pairs(client.job.pending or {}) do
     if cb then
-      client.opts.schedule(function()
+      client.methods.schedule(function()
         cb(nil, { error = { message = "Connection closed" } })
       end)
     end
   end
   client.job.pending = {}
 
-  local success = client.opts.jobstop(client.job.handle) == 1
+  local success = client.methods.jobstop(client.job.handle) == 1
   client.job.handle = nil
   client.job.stdout = ""
 
