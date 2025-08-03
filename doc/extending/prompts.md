@@ -343,6 +343,21 @@ It may also be useful to create custom prompts that do not send the default syst
 }
 ```
 
+### Setting a custom intro message
+
+To customize the chat buffer UI, you can set a custom intro message:
+
+```lua
+["Your_New_Prompt"] = {
+  strategy = "chat",
+  description = "Your Special New Prompt",
+  opts = {
+    intro_message = "Welcome to your Special New Prompt"
+  },
+  -- Your prompts here
+}
+```
+
 ### Prompts with Context
 
 It can be useful to pre-load a chat buffer with context from _files_, _symbols_ or even _urls_. This makes conversing with an LLM that much more productive. This can now accomplished, as per the example below:

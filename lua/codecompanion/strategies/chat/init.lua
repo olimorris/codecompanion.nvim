@@ -28,6 +28,7 @@
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field watchers CodeCompanion.Watchers The buffer watcher instance
+---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
 ---@field _last_role string The last role that was rendered in the chat buffer
 
@@ -43,6 +44,7 @@
 ---@field status? string The status of any running jobs in the chat buffe
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
 ---@field tokens? table Total tokens spent in the chat buffer so far
+---@field intro_message? string The welcome message that is displayed in the chat buffer
 
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
@@ -536,6 +538,7 @@ function Chat.new(args)
     messages = args.messages or {},
     opts = args,
     status = "",
+    intro_message = args.intro_message or config.display.chat.intro_message,
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
@@ -622,8 +625,8 @@ function Chat.new(args)
     self.header_line = header_line and (header_line + 1) or 1
   end
 
-  if vim.tbl_isempty(self.messages) then
-    self.ui:set_intro_msg()
+  if vim.tbl_isempty(self.messages) or not helpers.has_user_messages(args.messages) then
+    self.ui:set_intro_msg(self.intro_message)
   end
 
   if config.strategies.chat.keymaps then

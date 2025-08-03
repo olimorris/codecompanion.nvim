@@ -83,4 +83,13 @@ function M.add_image(Chat, image, opts)
   })
 end
 
+---Check if the messages contain any user messages
+---@param messages table The list of messages to check
+---@return boolean
+function M.has_user_messages(messages)
+  return vim.iter(messages):any(function(msg)
+    return msg.role == config.constants.USER_ROLE
+  end)
+end
+
 return M
