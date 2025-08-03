@@ -145,7 +145,7 @@ function Client:request(payload, actions, opts)
     -- This is called when the request is finished. It will only ever be called
     -- once, even if the endpoint is streaming.
     callback = function(data)
-      vim.schedule(function()
+      self.opts.schedule(function()
         if (not adapter.opts.stream) and data and data ~= "" then
           log:trace("Output data:\n%s", data)
           cb(nil, data, adapter)
@@ -177,7 +177,7 @@ function Client:request(payload, actions, opts)
       end)
     end,
     on_error = function(err)
-      vim.schedule(function()
+      self.opts.schedule(function()
         actions.callback(err, nil)
         if not opts.silent then
           util.fire("RequestFinished", opts)
@@ -212,6 +212,7 @@ function Client:request(payload, actions, opts)
     request = adapter.opts.method:lower()
   end
 
+  -- Use Curl to make the request
   local job = self.opts[request](request_opts)
 
   -- Data to be sent via the request
