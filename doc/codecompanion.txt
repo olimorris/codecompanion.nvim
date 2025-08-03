@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2025 July 31
+*codecompanion.txt*         For NVIM v0.11         Last change: 2025 August 03
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -3986,6 +3986,22 @@ system prompt with the request:
       description = "Your Special New Prompt",
       opts = {
         ignore_system_prompt = true,
+      },
+      -- Your prompts here
+    }
+<
+
+
+SETTING A CUSTOM INTRO MESSAGE
+
+To customize the chat buffer UI, you can set a custom intro message:
+
+>lua
+    ["Your_New_Prompt"] = {
+      strategy = "chat",
+      description = "Your Special New Prompt",
+      opts = {
+        intro_message = "Welcome to your Special New Prompt"
       },
       -- Your prompts here
     }
