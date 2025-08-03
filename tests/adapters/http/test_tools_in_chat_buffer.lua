@@ -41,7 +41,7 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
   local output = "tests/adapters/http/stubs/output/" .. file .. ".txt"
 
   child.lua([[
-    local ollama = require("codecompanion.adapters.ollama")
+    local ollama = require("codecompanion.adapters.http.ollama")
     ollama.schema.model.default = function() return "mock-model" end
     ollama.schema.model.choices = function() return { ["mock-model"] = { opts = {} } } end
   ]])
