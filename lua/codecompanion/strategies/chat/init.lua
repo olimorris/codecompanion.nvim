@@ -1346,7 +1346,7 @@ function Chat:clear()
   self.tool_registry:clear()
 
   log:trace("Clearing chat buffer")
-  self.ui:render(self.buffer_context, self.messages, self.opts):set_intro_msg()
+  self.ui:render(self.buffer_context, self.messages, self.opts):set_intro_msg(self.intro_message)
   self:add_system_prompt()
   util.fire("ChatCleared", { bufnr = self.bufnr, id = self.id })
 end
