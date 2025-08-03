@@ -1158,7 +1158,7 @@ You must:
 - Do not include line numbers in code blocks.
 - Avoid wrapping the whole response in triple backticks.
 - Only return code that's directly relevant to the task at hand. You may omit code that isn’t necessary for the solution.
-- Avoid using H1, H2 or H3 headers in your responses as these are reserved for the user.
+- Do not use H1 or H2 headers in your responses. Use H3 and above instead.
 - Use actual line breaks in your responses; only use "\n" when you want a literal backslash followed by 'n'.
 - All non-code text responses must be written in the %s language indicated.
 - Multiple, different tools can be called as part of the same response.
