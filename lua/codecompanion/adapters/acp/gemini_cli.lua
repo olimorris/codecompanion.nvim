@@ -45,13 +45,7 @@ return {
 
       local output = {}
 
-      if data.method == "streamAssistantMessageChunk" and data.params and data.params.chunk then
-        local chunk = data.params.chunk
-        local content = chunk.text or chunk.thought
-        if content then
-          output.content = content
-        end
-      end
+      log:debug("Processing chat output data: %s", data)
 
       return {
         status = "status",
@@ -72,37 +66,8 @@ return {
     ---@param data? table
     ---@return nil
     on_exit = function(self, data)
+      print("Closing Adapter")
       return
-    end,
-  },
-  protocol = {
-    ---Authenticate with the ACP service.
-    ---@param self CodeCompanion.ACPAdapter
-    ---@return nil
-    authenticate = function(self)
-      return
-    end,
-
-    ---Start a new ACP session with the adapter
-    ---@param self CodeCompanion.ACPAdapter
-    ---@return nil
-    new_session = function(self)
-      return
-    end,
-
-    ---Load a previously saved ACP session
-    ---@param self CodeCompanion.ACPAdapter
-    ---@return nil
-    load_session = function(self)
-      return
-    end,
-
-    ---Prompt the ACP adapter with messages
-    ---@param self CodeCompanion.ACPAdapter
-    ---@param messages table
-    ---@return table
-    prompt = function(self, messages)
-      return messages
     end,
   },
 }

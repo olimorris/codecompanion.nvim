@@ -89,14 +89,14 @@ client:request("initialize", {
       client:request("session/prompt", {
         sessionId = session_id,
         prompt = {
-          { type = "text", text = "Hello! What directory am I in? Just respond briefly." },
+          { type = "text", text = "Can you create a file called test.txt for me?" },
         },
-      }, function(prompt_result, prompt_err)
-        if prompt_err then
-          print("❌ session/prompt error:", vim.inspect(prompt_err))
+      }, function(data, err)
+        if err then
+          print("❌ session/prompt error:", vim.inspect(err))
         else
-          print("✅ session/prompt request sent! (Check for notifications for output)")
         end
+        client.on_notification(data)
         acp_client.stop(client)
         print("✅ Full ACP test complete!")
       end)
@@ -123,12 +123,8 @@ client:request("initialize", {
 end)
 
 -- Listen for notifications (streamed output)
-client.on_notification = function(msg)
-  if msg.sessionUpdate == "agentMessageChunk" and msg.content and msg.content.type == "text" then
-    print("🤖 Adapter says:", msg.content.text)
-  elseif msg.sessionUpdate then
-    print("🔔 ACP notification:", vim.inspect(msg))
-  end
+client.on_notification = function(data)
+  adapter.handlers.chat_output(adapter, data)
 end
 
 -- Safety cleanup after 30 seconds

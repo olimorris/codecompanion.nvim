@@ -106,8 +106,6 @@ end
 ---Handle stdout data
 ---@param data table
 function Client:_handle_stdout(data)
-  log:debug("Raw stdout received: %s", vim.inspect(data))
-
   for _, chunk in ipairs(data) do
     if chunk == "" then
       goto continue
@@ -126,7 +124,7 @@ function Client:_handle_stdout(data)
           local ok, msg = pcall(self.methods.decode, trimmed)
           if ok then
             self.job.stdout = ""
-            log:trace("Parsed message: %s", vim.inspect(msg))
+            log:debug("Parsed message: %s", msg)
             self.methods.schedule(function()
               self:_handle_json_message(msg)
             end)
@@ -151,7 +149,7 @@ function Client:_process_line(line)
 
   local ok, msg = pcall(self.methods.decode, line)
   if ok then
-    log:trace("Parsed message: %s", vim.inspect(msg))
+    log:debug("Parsed message: %s", msg)
     self.methods.schedule(function()
       self:_handle_json_message(msg)
     end)
@@ -176,7 +174,6 @@ function Client:_handle_json_message(msg)
     end
   elseif msg.method then
     -- Handle notification (for future use)
-    log:debug("Received notification: %s", msg.method)
   end
 end
 
