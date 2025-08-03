@@ -157,22 +157,6 @@ local function has_tag(tag, messages)
   )
 end
 
----Are there any user messages in the chat buffer?
----@param chat CodeCompanion.Chat
----@return boolean
-local function has_user_messages(chat)
-  local count = vim
-    .iter(chat.messages)
-    :filter(function(msg)
-      return msg.role == config.constants.USER_ROLE
-    end)
-    :totable()
-  if #count == 0 then
-    return false
-  end
-  return true
-end
-
 ---Increment the cycle count in the chat buffer
 ---@param chat CodeCompanion.Chat
 ---@return nil
@@ -876,7 +860,7 @@ function Chat:submit(opts)
   else
     local message = ts_parse_messages(self, self.header_line)
 
-    if not message and not has_user_messages(self) then
+    if not message and not helpers.has_user_messages(self) then
       return log:warn("No messages to submit")
     end
 
