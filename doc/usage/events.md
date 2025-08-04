@@ -11,13 +11,14 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatHidden` - Fired after a chat has been hidden
 - `CodeCompanionChatClosed` - Fired after a chat has been permanently closed
 - `CodeCompanionChatSubmitted` - Fired after a chat has been submitted
+- `CodeCompanionChatDone` - Fired after a chat has received the response
 - `CodeCompanionChatStopped` - Fired after a chat has been stopped
 - `CodeCompanionChatCleared` - Fired after a chat has been cleared
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
-- `CodeCompanionChatPin` - Fired after a pinned reference has been updated in the messages table
-- `CodeCompanionAgentStarted` - Fired when an agent has been initiated to run tools
-- `CodeCompanionAgentFinished` - Fired when an agent has finished running all tools
+- `CodeCompanionChatPin` - Fired after a pinned context item has been updated in the messages table
+- `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
+- `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
 - `CodeCompanionToolStarted` - Fired when a tool has started executing
 - `CodeCompanionToolFinished` - Fired when a tool has finished executing
@@ -88,4 +89,3 @@ vim.api.nvim_exec_autocmds("User", {
   pattern = "CodeCompanionChatRefreshCache",
 })
 ```
-

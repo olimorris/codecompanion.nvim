@@ -53,7 +53,7 @@ return {
     text = true,
     tokens = true,
   },
-  url = "https://models.inference.ai.azure.com/chat/completions",
+  url = "https://models.github.ai/inference/chat/completions",
   env = {
     ---@return string|nil
     api_key = function()

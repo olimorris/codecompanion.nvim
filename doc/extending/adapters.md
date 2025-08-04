@@ -53,7 +53,7 @@ env = {
 },
 ```
 
-The key `api_key` represents the name of the variable which can be injected in the adapter, and the value can represent one of:
+The key `api_key` represents the name of the variable which can be injected in the adapter via the `${}` notation, and the value can represent one of:
 
 - A command to execute on the user's system
 - An environment variable from the user's system
@@ -460,3 +460,12 @@ temperature = {
 
 You'll see we've specified a function call for the `condition` key. We're simply checking that the model name doesn't start with `o1` as these models don't accept temperature as a parameter. You'll also see we've specified a function call for the `validate` key. We're simply checking that the value of the temperature is between 0 and 2.
 
+## Function Calling / Tool Use
+
+In order to enable your adapter to make use of [Function Calling](https://platform.openai.com/docs/guides/function-calling?api-mode=chat), you need to setup some additional handlers:
+
+- `form_tools` - which transforms the tools provided by CodeCompanion into a schema supported by the adapter
+- `tools.format_tool_calls` - which [formats](https://platform.openai.com/docs/guides/function-calling?api-mode=chat#handling-function-calls) the adapters tool calls and puts them into the http request
+- `tools.output_response` - which formats and outputs the adapter's tool call so we it can be included in the chat buffer's messages stack
+
+You will also need to ensure that `opts.tools = true` and the `chat_output` handler has tools included as an optional final parameter like `chat_output = function(self, data, tools)`. From experience, whilst many LLMs claim to support the OpenAI API standard for function calling, they can require some additional configuration to work as expected.

@@ -33,4 +33,33 @@ T["cmds"][":CodeCompanionChat"] = function()
   expect.reference_screenshot(child.get_screenshot())
 end
 
+T["cmds"][":CodeCompanionChat Toggle"] = function()
+  child.cmd([[tabnew]])
+  child.cmd([[CodeCompanionChat Toggle]])
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["cmds"]["sticky chat window"] = function()
+  child.lua([[
+    require('codecompanion').setup({
+      display = {
+        chat = {
+          window = {
+            layout = "vertical",
+            sticky = true
+          }
+        }
+      }
+    })
+    vim.cmd("CodeCompanionChat")
+    vim.cmd("tabnew")
+  ]])
+
+  -- expect.reference_screenshot(child.get_screenshot())
+  -- window opened
+  h.eq(true, child.lua_get("require('codecompanion').last_chat().ui:is_visible()"))
+  -- window opened in the current tab (in other words, NOT in NON_CURRENT tab)
+  h.eq(false, child.lua_get("require('codecompanion').last_chat().ui:is_visible_non_curtab()"))
+end
+
 return T

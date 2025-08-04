@@ -1,10 +1,10 @@
 local SlashCommands = require("codecompanion.strategies.chat.slash_commands")
-local ToolFilter = require("codecompanion.strategies.chat.agents.tool_filter")
+local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
 local config = require("codecompanion.config")
 local strategy = require("codecompanion.strategies")
 
 local trigger = {
-  agents = "@",
+  tools = "@",
   variables = "#",
   slash_commands = "/",
 }
@@ -53,8 +53,10 @@ end
 ---@return nil
 function M.slash_commands_execute(selected, chat)
   if selected.from_prompt_library then
-    if selected.config.references then
-      strategy.add_ref(selected.config, chat)
+    --TODO: Remove this check in v18.0.0
+    local context = selected.config.references or selected.config.context
+    if context then
+      strategy.add_context(selected.config, chat)
     end
 
     local prompts = strategy.evaluate_prompts(selected.config.prompts, selected.context)
@@ -84,9 +86,9 @@ function M.tools()
     end)
     :map(function(label, v)
       return {
-        label = trigger.agents .. label,
+        label = trigger.tools .. label,
         name = label,
-        type = "agent",
+        type = "tool",
         callback = v.callback,
         detail = v.description,
       }
@@ -101,7 +103,7 @@ function M.tools()
     end)
     :each(function(label, v)
       table.insert(items, {
-        label = trigger.agents .. label,
+        label = trigger.tools .. label,
         name = label,
         type = "tool",
         callback = v.callback,

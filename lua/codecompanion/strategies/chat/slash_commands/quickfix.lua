@@ -1,8 +1,10 @@
+local Path = require("plenary.path")
+
 local config = require("codecompanion.config")
+local helpers = require("codecompanion.strategies.chat.slash_commands.helpers")
 local log = require("codecompanion.utils.log")
-local path = require("plenary.path")
-local symbol_utils = require("codecompanion.strategies.chat.helpers")
 local util = require("codecompanion.utils")
+
 local fmt = string.format
 
 ---Get quickfix list with type detection
@@ -49,7 +51,7 @@ end
 local function extract_file_symbols(filepath)
   -- Only include function/method/class symbols for quickfix
   local target_kinds = { "Function", "Method", "Class" }
-  return symbol_utils.extract_file_symbols(filepath, target_kinds)
+  return helpers.extract_file_symbols(filepath, target_kinds)
 end
 
 ---Find which symbol contains a diagnostic line
@@ -261,14 +263,14 @@ end
 ---@param filepath string Path to the file
 ---@param file_data table File data with diagnostics
 ---@return string|nil description Formatted description for chat or nil if failed
----@return string id Reference ID for the file
+---@return string id Context ID for the file
 local function process_single_file(filepath, file_data)
   local relative_path = vim.fn.fnamemodify(filepath, ":.")
   local ft = vim.filetype.match({ filename = filepath })
   local id = "<quickfix>" .. relative_path .. "</quickfix>"
   -- Read file once
   local ok, file_content = pcall(function()
-    return path.new(filepath):read()
+    return Path.new(filepath):read()
   end)
   if not ok then
     log:warn("Could not read file: %s", filepath)
@@ -286,9 +288,9 @@ local function process_single_file(filepath, file_data)
       end
       description = fmt(
         [[<attachment filepath="%s">Here is the content from the file with quickfix entries (small file, showing all content):
-  
+
   %s
-  
+
 ```%s
 %s
 ```
@@ -331,9 +333,9 @@ local function process_single_file(filepath, file_data)
 
       description = fmt(
         [[<attachment filepath="%s">Here is the content from the file with quickfix entries:
-  
+
   %s
-  
+
 ```%s
 %s
 ```
@@ -349,7 +351,7 @@ local function process_single_file(filepath, file_data)
     content = file_content
     description = fmt(
       [[<attachment filepath="%s">Here is the content from the file:
-  
+
 ```%s
 %s
 ```
@@ -376,9 +378,9 @@ function SlashCommand:output_entries(entries)
       self.Chat:add_message({
         role = config.constants.USER_ROLE,
         content = description,
-      }, { reference = id, visible = false })
+      }, { context_id = id, visible = false })
 
-      self.Chat.references:add({
+      self.Chat.context:add({
         id = id,
         path = filepath,
         source = "codecompanion.strategies.chat.slash_commands.qflist",

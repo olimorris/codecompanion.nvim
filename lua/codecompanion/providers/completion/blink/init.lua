@@ -88,7 +88,7 @@ function M:get_completions(ctx, callback)
         :totable(),
     })
 
-  -- Agents and tools
+  -- Tools
   elseif trigger_char == "@" then
     callback({
       context = ctx,

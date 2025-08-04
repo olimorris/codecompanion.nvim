@@ -63,8 +63,9 @@ local defaults = {
               "get_changed_files",
               "grep_search",
               "insert_edit_into_file",
+              "list_code_usages",
               "read_file",
-              "web_search",
+              "search_web",
             },
             opts = {
               collapse_tools = true,
@@ -85,36 +86,44 @@ local defaults = {
             },
           },
         },
+        -- Tools
         ["cmd_runner"] = {
-          callback = "strategies.chat.agents.tools.cmd_runner",
+          callback = "strategies.chat.tools.catalog.cmd_runner",
           description = "Run shell commands initiated by the LLM",
           opts = {
             requires_approval = true,
           },
         },
         ["create_file"] = {
-          callback = "strategies.chat.agents.tools.create_file",
+          callback = "strategies.chat.tools.catalog.create_file",
           description = "Create a file in the current working directory",
           opts = {
             requires_approval = true,
           },
         },
+        ["fetch_webpage"] = {
+          callback = "strategies.chat.tools.catalog.fetch_webpage",
+          description = "Fetches content from a webpage",
+          opts = {
+            adapter = "jina",
+          },
+        },
         ["file_search"] = {
-          callback = "strategies.chat.agents.tools.file_search",
+          callback = "strategies.chat.tools.catalog.file_search",
           description = "Search for files in the current working directory by glob pattern",
           opts = {
             max_results = 500,
           },
         },
         ["get_changed_files"] = {
-          callback = "strategies.chat.agents.tools.get_changed_files",
+          callback = "strategies.chat.tools.catalog.get_changed_files",
           description = "Get git diffs of current file changes in a git repository",
           opts = {
             max_lines = 1000,
           },
         },
         ["grep_search"] = {
-          callback = "strategies.chat.agents.tools.grep_search",
+          callback = "strategies.chat.tools.catalog.grep_search",
           enabled = function()
             -- Currently this tool only supports ripgrep
             return vim.fn.executable("rg") == 1
@@ -126,26 +135,32 @@ local defaults = {
           },
         },
         ["insert_edit_into_file"] = {
-          callback = "strategies.chat.agents.tools.insert_edit_into_file",
+          callback = "strategies.chat.tools.catalog.insert_edit_into_file",
           description = "Insert code into an existing file",
           opts = {
+            patching_algorithm = "strategies.chat.tools.catalog.helpers.patch",
             requires_approval = { -- Require approval before the tool is executed?
               buffer = false, -- For editing buffers in Neovim
               file = true, -- For editing files in the current working directory
             },
-            user_confirmation = true, -- Require confirmation from the user before moving on in the chat buffer?
+            user_confirmation = true, -- Require confirmation from the user before accepting the edit?
           },
         },
+        ["next_edit_suggestion"] = {
+          callback = "strategies.chat.tools.catalog.next_edit_suggestion",
+          description = "Suggest and jump to the next position to edit",
+        },
         ["read_file"] = {
-          callback = "strategies.chat.agents.tools.read_file",
+          callback = "strategies.chat.tools.catalog.read_file",
           description = "Read a file in the current working directory",
         },
-        ["web_search"] = {
-          callback = "strategies.chat.agents.tools.web_search",
+        ["search_web"] = {
+          callback = "strategies.chat.tools.catalog.search_web",
           description = "Search the web for information",
           opts = {
             adapter = "tavily", -- tavily
             opts = {
+              -- Tavily options
               search_depth = "advanced",
               topic = "general",
               chunks_per_source = 3,
@@ -153,9 +168,9 @@ local defaults = {
             },
           },
         },
-        ["next_edit_suggestion"] = {
-          callback = "strategies.chat.agents.tools.next_edit_suggestion",
-          description = "Suggest and jump to the next position to edit",
+        ["list_code_usages"] = {
+          callback = "strategies.chat.tools.catalog.list_code_usages",
+          description = "Find code symbol context",
         },
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
@@ -163,8 +178,10 @@ local defaults = {
           folds = {
             enabled = true, -- Fold tool output in the buffer?
             failure_words = { -- Words that indicate an error in the tool output. Used to apply failure highlighting
+              "cancelled",
               "error",
               "failed",
+              "incorrect",
               "invalid",
               "rejected",
             },
@@ -364,8 +381,8 @@ local defaults = {
             n = "gp",
           },
           index = 9,
-          callback = "keymaps.pin_reference",
-          description = "Pin Reference",
+          callback = "keymaps.pin_context",
+          description = "Pin context",
         },
         watch = {
           modes = {
@@ -465,6 +482,7 @@ local defaults = {
         completion_provider = providers.completion, -- blink|cmp|coc|default
         register = "+", -- The register to use for yanking code
         yank_jump_delay_ms = 400, -- Delay in milliseconds before jumping back from the yanked code
+
         ---@type string|fun(path: string)
         goto_file_action = ui_utils.tabnew_reuse,
       },
@@ -485,6 +503,7 @@ local defaults = {
           modes = {
             n = "gr",
           },
+          opts = { nowait = true },
           index = 2,
           callback = "keymaps.reject_change",
           description = "Reject change",
@@ -649,7 +668,7 @@ We'll repeat this cycle until the tests pass. Ensure no deviations from these st
             -- Repeat until the tests pass, as indicated by the testing flag
             -- which the cmd_runner tool sets on the chat buffer
             repeat_until = function(chat)
-              return chat.tools.flags.testing == true
+              return chat.tool_registry.flags.testing == true
             end,
             content = "The tests have failed. Can you edit the buffer and run the test suite again?",
           },
@@ -931,7 +950,7 @@ This is the code, for context:
         is_default = true,
         short_name = "workspace",
       },
-      references = {
+      context = {
         {
           type = "file",
           path = {
@@ -1008,8 +1027,9 @@ You must create or modify a workspace file through a series of prompts over mult
       icons = {
         buffer_pin = " ",
         buffer_watch = "󰂥 ",
-        tool_success = "",
-        tool_failure = "",
+        --chat_context = " ",
+        tool_success = " ",
+        tool_failure = " ",
       },
       debug_window = {
         ---@return number|fun(): number
@@ -1026,6 +1046,7 @@ You must create or modify a workspace file through a series of prompts over mult
         width = 0.45,
         relative = "editor",
         full_height = true,
+        sticky = false, -- chat buffer remains open when switching tabs
         opts = {
           breakindent = true,
           cursorcolumn = false,
@@ -1045,7 +1066,9 @@ You must create or modify a workspace file through a series of prompts over mult
       show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
       separator = "─", -- The separator between the different messages in the chat buffer
 
-      show_references = true, -- Show references (from slash commands and variables) in the chat buffer?
+      show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
+      fold_context = false, -- Fold context in the chat buffer?
+
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_tools_processing = true, -- Show the loading message when tools are being executed?
       show_token_count = true, -- Show the token count for each response?
@@ -1155,9 +1178,13 @@ local M = {
 ---@param args? table
 M.setup = function(args)
   args = args or {}
+
   if args.constants then
-    vim.notify("codecompanion.nvim: Your config table cannot have field 'constants', vim.log.levels.ERROR")
-    return
+    return vim.notify(
+      "Your config table cannot have the field `constants`",
+      vim.log.levels.ERROR,
+      { title = "CodeCompanion" }
+    )
   end
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), args)
 end
