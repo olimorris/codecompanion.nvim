@@ -145,7 +145,8 @@ CodeCompanion.chat = function(args)
     local prompt = args.fargs[1]:lower()
 
     -- Check if the adapter is available
-    adapter = config.adapters[prompt]
+    --TODO: Remove `config.adapters[prompt]` in V18.0.0
+    adapter = config.adapters[prompt] or config.adapters.http[prompt] or config.adapters.acp[prompt]
 
     if not adapter then
       if prompt == "add" then

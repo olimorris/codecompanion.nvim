@@ -3,6 +3,7 @@
 --=============================================================================
 
 ---@class CodeCompanion.Chat
+---@field acp_session_id? string The ACP session ID which links to this chat buffer
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
 ---@field aug number The ID for the autocmd group
@@ -33,6 +34,7 @@
 ---@field _last_role string The last role that was rendered in the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
+---@field acp_session_id? string The ACP session ID which links to this chat buffer
 ---@field adapter? CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field buffer_context? table Context of the buffer that the chat was initiated from
@@ -284,7 +286,7 @@ local function ts_parse_settings(bufnr, parser, adapter)
   end
 
   if not settings then
-    log:error("Failed to parse settings in chat buffer")
+    log:error("[chat::init::ts_parse_settings] Failed to parse settings in chat buffer")
     return {}
   end
 
@@ -460,6 +462,10 @@ local function set_autocmds(chat)
       buffer = bufnr,
       desc = "Show settings information in the CodeCompanion chat buffer",
       callback = function()
+        if chat.adapter.type ~= "http" then
+          return
+        end
+
         local key_name, node = get_settings_key(chat)
         if not key_name or not node then
           vim.diagnostic.set(config.INFO_NS, chat.bufnr, {})
@@ -488,12 +494,16 @@ local function set_autocmds(chat)
       buffer = bufnr,
       desc = "Parse the settings in the CodeCompanion chat buffer for any errors",
       callback = function()
-        if chat.adapter ~= "http" then
+        if chat.adapter.type ~= "http" then
           return
         end
-        local settings = ts_parse_settings(bufnr, chat.yaml_parser, chat.adapter)
 
-        local errors = schema.validate(chat.adapter.schema, settings, chat.adapter)
+        local adapter = chat.adapter
+        ---@cast adapter CodeCompanion.HTTPAdapter
+
+        local settings = ts_parse_settings(bufnr, chat.yaml_parser, adapter)
+
+        local errors = schema.validate(adapter.schema, settings, adapter)
         local node = settings.__ts_node
 
         local items = {}
@@ -549,6 +559,7 @@ function Chat.new(args)
   log:trace("Chat created with ID %d", id)
 
   local self = setmetatable({
+    acp_session_id = args.acp_session_id or nil,
     buffer_context = args.buffer_context,
     context_items = {},
     cycle = 1,
@@ -578,7 +589,7 @@ function Chat.new(args)
   local ok, parser, yaml_parser
   ok, parser = pcall(vim.treesitter.get_parser, self.bufnr, "markdown")
   if not ok then
-    return log:error("Could not find the Markdown Tree-sitter parser")
+    return log:error("[chat::init::new] Could not find the Markdown Tree-sitter parser")
   end
   self.parser = parser
 
@@ -619,9 +630,14 @@ function Chat.new(args)
     bufnr = self.bufnr,
     id = self.id,
   })
-  util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = self.adapter.schema.model.default })
+  util.fire(
+    "ChatModel",
+    { bufnr = self.bufnr, id = self.id, model = self.adapter.schema and self.adapter.schema.model.default }
+  )
 
-  self:apply_settings(schema.get_default(self.adapter, args.settings))
+  if self.adapter.type == "http" then
+    self:apply_settings(schema.get_default(self.adapter, args.settings))
+  end
 
   self.ui = require("codecompanion.strategies.chat.ui").new({
     adapter = self.adapter,
@@ -699,8 +715,11 @@ end
 ---@param settings? table
 ---@return nil
 function Chat:apply_settings(settings)
-  self.settings = settings or schema.get_default(self.adapter)
+  if self.adapter.type ~= "http" then
+    return
+  end
 
+  self.settings = settings or schema.get_default(self.adapter)
   if not config.display.chat.show_settings then
     _cached_settings[self.bufnr] = self.settings
   end
@@ -710,6 +729,10 @@ end
 ---@param model string
 ---@return self
 function Chat:apply_model(model)
+  if self.adapter.type ~= "http" then
+    return self
+  end
+
   if _cached_settings[self.bufnr] then
     _cached_settings[self.bufnr].model = model
   end
@@ -724,6 +747,10 @@ end
 ---@param callback fun(request: table)
 ---@return nil
 function Chat:complete_models(callback)
+  if self.adapter.type ~= "http" then
+    return
+  end
+
   local items = {}
   local cursor = api.nvim_win_get_cursor(0)
   local key_name, node = get_settings_key(self, { pos = { cursor[1] - 1, 1 } })
@@ -876,35 +903,36 @@ end
 ---@param payload table The payload to send to the LLM
 ---@return nil
 function Chat:_submit_http(payload)
-  local settings = ts_parse_settings(self.bufnr, self.yaml_parser, self.adapter)
+  local adapter = self.adapter ---@cast adapter CodeCompanion.HTTPAdapter
+
+  local settings = ts_parse_settings(self.bufnr, self.yaml_parser, adapter)
   self:apply_settings(settings)
-  local mapped_settings = self.adapter:map_schema_to_params(settings)
+  local mapped_settings = adapter:map_schema_to_params(settings)
 
   log:trace("Settings:\n%s", mapped_settings)
 
   local output = {}
   local reasoning = {}
   local tools = {}
-  self.current_request = get_client(self.adapter).new({ adapter = mapped_settings }):request(payload, {
+  self.current_request = get_client(adapter).new({ adapter = mapped_settings }):request(payload, {
     ---@param err { message: string, stderr: string }
     ---@param data table
-    ---@param adapter CodeCompanion.HTTPAdapter The modified adapter from the http client
-    callback = function(err, data, adapter)
+    callback = function(err, data)
       if err and err.stderr ~= "{}" then
         self.status = CONSTANTS.STATUS_ERROR
-        log:error("Error: %s", err.stderr)
+        log:error("[chat::init::_submit_http] Error: %s", err.stderr)
         return self:done(output)
       end
 
       if data then
         if adapter.features.tokens then
-          local tokens = self.adapter.handlers.tokens(adapter, data)
+          local tokens = adapter.handlers.tokens(adapter, data)
           if tokens then
             self.ui.tokens = tokens
           end
         end
 
-        local result = self.adapter.handlers.chat_output(adapter, data, tools)
+        local result = adapter.handlers.chat_output(adapter, data, tools)
         if result and result.status then
           self.status = result.status
           if self.status == CONSTANTS.STATUS_SUCCESS then
@@ -925,7 +953,59 @@ function Chat:_submit_http(payload)
               { type = self.MESSAGE_TYPES.LLM_MESSAGE }
             )
           elseif self.status == CONSTANTS.STATUS_ERROR then
-            log:error("Error: %s", result.output)
+            log:error("[chat::init::_submit_http] Error: %s", result.output)
+            return self:done(output)
+          end
+        end
+      end
+    end,
+    done = function()
+      self:done(output, reasoning, tools)
+    end,
+  }, { bufnr = self.bufnr, strategy = "chat" })
+end
+
+---Make a request to the LLM using the ACP client
+---@param payload table The payload to send to the LLM
+---@return nil
+function Chat:_submit_acp(payload)
+  local output = {}
+  local reasoning = {}
+  local tools = {}
+
+  self.current_request = get_client(self.adapter).new({ adapter = self.adapter }):request(payload, {
+    ---@param err { message: string, stderr: string }|nil
+    ---@param data table|nil
+    callback = function(err, data)
+      if err then
+        self.status = CONSTANTS.STATUS_ERROR
+        log:error("[chat::init::_submit_acp] ACP Error: %s", err.message or err.stderr or "Unknown error")
+        return self:done(output)
+      end
+
+      if data then
+        local result = self.adapter.handlers.chat_output(self.adapter, data, tools)
+        if result and result.status then
+          self.status = result.status
+          if self.status == CONSTANTS.STATUS_SUCCESS then
+            if result.output.role then
+              self._last_role = result.output.role
+              result.output.role = config.constants.LLM_ROLE
+            end
+            if result.output.reasoning then
+              table.insert(reasoning, result.output.reasoning)
+              self:add_buf_message(
+                { role = result.output.role, content = result.output.reasoning.content },
+                { type = self.MESSAGE_TYPES.REASONING_MESSAGE }
+              )
+            end
+            table.insert(output, result.output.content)
+            self:add_buf_message(
+              { role = result.output.role, content = result.output.content },
+              { type = self.MESSAGE_TYPES.LLM_MESSAGE }
+            )
+          elseif self.status == CONSTANTS.STATUS_ERROR then
+            log:error("[chat::init::_submit_acp] ACP Error: %s", result.output)
             return self:done(output)
           end
         end
@@ -1260,9 +1340,9 @@ function Chat:check_context()
   -- Clear any tool's schemas
   local schemas_to_keep = {}
   local tools_in_use_to_keep = {}
-  for id, schema in pairs(self.tool_registry.schemas) do
+  for id, tool_schema in pairs(self.tool_registry.schemas) do
     if not vim.tbl_contains(to_remove, id) then
-      schemas_to_keep[id] = schema
+      schemas_to_keep[id] = tool_schema
       local tool_name = id:match("<tool>(.*)</tool>")
       if tool_name and self.tool_registry.in_use[tool_name] then
         tools_in_use_to_keep[tool_name] = true
@@ -1310,7 +1390,10 @@ function Chat:stop()
         job:shutdown()
       end)
     end
-    self.adapter.handlers.on_exit(self.adapter)
+
+    if self.adapter.handlers and self.adapter.handlers.on_exit then
+      self.adapter.handlers.on_exit(self.adapter)
+    end
   end
 
   self.subscribers:stop()
@@ -1442,7 +1525,8 @@ function Chat:debug()
 
   local settings = {}
   if self.adapter.type == "http" then
-    settings = ts_parse_settings(self.bufnr, self.yaml_parser, self.adapter)
+    local adapter = self.adapter ---@cast adapter CodeCompanion.HTTPAdapter
+    settings = ts_parse_settings(self.bufnr, self.yaml_parser, adapter)
   end
 
   return settings, self.messages
