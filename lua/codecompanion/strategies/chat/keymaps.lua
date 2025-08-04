@@ -280,8 +280,7 @@ M.close = {
       return
     end
 
-    local prev_ui = chat.ui
-    local window = prev_ui.window or { default = true }
+    local window = chat.ui.window or { default = true }
     chats[1].chat.ui:open({ window = window })
   end,
 }
