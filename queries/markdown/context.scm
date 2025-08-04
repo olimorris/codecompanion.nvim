@@ -1,4 +1,3 @@
-; This file is called `chat_context.scm` to ensure it doesn't clash with the nvim-treesitter-context plugin
 (section
   (atx_heading
     (atx_h2_marker)

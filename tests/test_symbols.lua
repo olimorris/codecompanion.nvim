@@ -44,7 +44,7 @@ print("Product.__annotations__:", Product.__annotations__)
 ]]
 
 T["Symbols"]["can be parsed"] = function()
-  local query = vim.treesitter.query.get("python", "cc_symbols")
+  local query = vim.treesitter.query.get("python", "symbols")
 
   local parser = vim.treesitter.get_string_parser(python, "python")
   local root = parser:parse()[1]:root()

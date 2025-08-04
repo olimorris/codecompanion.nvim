@@ -46,7 +46,7 @@ function M.extract_file_symbols(filepath, target_kinds)
     return nil, nil
   end
 
-  local query = vim.treesitter.query.get(ft, "cc_symbols")
+  local query = vim.treesitter.query.get(ft, "symbols")
   if not query then
     return nil, content
   end
