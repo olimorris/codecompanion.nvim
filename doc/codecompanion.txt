@@ -1,4 +1,4 @@
-*codecompanion.txt*          For NVIM v0.11          Last change: 2025 July 03
+*codecompanion.txt*         For NVIM v0.11         Last change: 2025 August 04
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -476,8 +476,9 @@ actions:
 
 - `cmd_runner` - The LLM will run shell commands (subject to approval)
 - `create_file` - The LLM will create a file in the current working directory (subject to approval)
-- `file_search` - The LLM can search for a file in the current working directory
-- `grep_search` - The LLM can search within files in the current working directory
+- `file_search` - The LLM can search for a file in the CWD
+- `get_changed_files` - The LLM can get git diffs for any changed files in the CWD
+- `grep_search` - The LLM can search within files in the CWD
 - `insert_edit_into_file` - The LLM will edit code in a Neovim buffer or on the file system (subject to approval)
 - `next_edit_suggestion` - The LLM can show the user where the next edit is
 - `read_file` - The LLM can read a specific file
@@ -485,7 +486,7 @@ actions:
 
 Tools can also be grouped together, also accessible via `@` in the chat buffer:
 
-- `files` - Contains the `create_file`, `file_search`, `grep_search`, `insert_edit_into_file` and `read_file` tools
+- `files` - Contains the `create_file`, `file_search`, `get_changed_files`, `grep_search`, `insert_edit_into_file` and `read_file` tools
 
 
   [!TIP] Use them in your prompt like: `Can you use the @{grep_search} tool to
@@ -1456,8 +1457,9 @@ configuration:
 <
 
 The chat buffer’s window settings may be overridden. For example:
-`require("codecompanion").toggle({ window = { layout = "float", width = 0.6 }
-})`
+`require("codecompanion").toggle({ layout = "float", width = 0.6 })` or:
+`require("codecompanion").chat({window_opts: {layout = "float", width = 0.6
+}})`
 
 
 DIFF ~
@@ -1963,7 +1965,7 @@ The fastest way to copy an LLM’s code output is with `gy`. This will yank the
 nearest codeblock.
 
 
-APPLYING AN LLM'S EDITS TO A BUFFER OR FILE ~
+APPLYING AN LLM�S EDITS TO A BUFFER OR FILE ~
 
 The |codecompanion-usage-chat-buffer-agents-files| tool, combined with the
 |codecompanion-usage-chat-buffer-variables.html-buffer| variable or
@@ -2250,6 +2252,9 @@ and if so, to insert a flag in its request. This is then detected and the
 outcome of the test is stored in the corresponding flag on the chat buffer.
 This makes it ideal for |codecompanion-extending-workflows| to hook into.
 
+**Options:** - `requires_approval` require approval before running a command?
+(Default: true)
+
 
 CREATE_FILE ~
 
@@ -2261,6 +2266,9 @@ Create a file within the current working directory:
     Can you create some test fixtures using the @{create_file} tool?
 <
 
+**Options:** - `requires_approval` require approval before creating a file?
+(Default: true)
+
 
 FILE_SEARCH ~
 
@@ -2271,6 +2279,23 @@ files.
 >md
     Use the @{file_search} tool to list all the lua files in my project
 <
+
+**Options:** - `max_results` limits the amount of results that can be sent to
+the LLM in the response (Default: 500)
+
+
+GET_CHANGED_FILES ~
+
+This tool enables an LLM to get git diffs of any file changes in the current
+working directory. It will return a diff which can contain `staged`, `unstaged`
+and `merge-conflicts`.
+
+>md
+    Use the @{get_changed_files} tool see what's changed
+<
+
+**Options:** - `max_lines` limits the amount of lines that can be sent to the
+LLM in the response (Default: 1000)
 
 
 GREP_SEARCH ~
@@ -2285,6 +2310,10 @@ working directory. For every match, the output (`{filename}:{line number}
 >md
     Use the @{grep_search} tool to find all occurrences of `buf_add_message`?
 <
+
+**Options:** - `max_files` (number) limits the amount of files that can be sent
+to the LLM in the response (Default: 100) - `respect_gitignore` (boolean)
+(Default: true)
 
 
 INSERT_EDIT_INTO_FILE ~
@@ -2301,6 +2330,12 @@ This tool can edit buffers and files for code changes from an LLM:
 >md
     Can you apply the suggested changes to the buffer with the @{insert_edit_into_file} tool?
 <
+
+**Options:** - `requires_approval.buffer` (boolean) Require approval before
+editng a buffer? (Default: false) - `requires_approval.file` (boolean) Require
+approval before editng a file? (Default: true) - `user_confirmation` (boolean)
+require confirmation from the user before moving on in the chat buffer?
+(Default: true)
 
 
 NEXT_EDIT_SUGGESTION ~
@@ -2370,8 +2405,8 @@ TOOL GROUPS ~
 
 CodeCompanion comes with two built-in tool groups:
 
-- `full_stack_dev` - Contains `cmd_runner`, `create_file`, `read_file`, and `insert_edit_into_file` tools
-- `files` - Contains `create_file`, `read_file`, and `insert_edit_into_file` tools
+- `full_stack_dev` - Containing all of the tools
+- `files` - Containing `create_file`, `file_search`, `get_changed_files`, `grep_search`, `insert_edit_into_file` and `read_file` tools
 
 When you include a tool group in your chat (e.g., `@{files}`), all tools within
 that group become available to the LLM. By default, all the tools in the group
@@ -3127,7 +3162,7 @@ OpenAI adapter.
   as a great reference to understand how they’re working with the output of the
   API
 
-OPENAI'S API OUTPUT
+OPENAI�S API OUTPUT
 
 If we reference the OpenAI documentation
 <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>
@@ -4085,7 +4120,7 @@ LLM, identifying the tool and duly executing it.
 There are two types of tools that CodeCompanion can leverage:
 
 1. **Command-based**: These tools can execute a series of commands in the background using a plenary.job <https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/job.lua>. They’re non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
-2. **Function-based**: These tools, like @insert_edit_into_file <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/insert_edit_into_file.lua>, execute Lua functions directly in Neovim within the main process, one after another.
+2. **Function-based**: These tools, like insert_edit_into_file <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/agents/tools/insert_edit_into_file.lua>, execute Lua functions directly in Neovim within the main process, one after another.
 
 For the purposes of this section of the guide, we’ll be building a simple
 function-based calculator tool that an LLM can use to do basic maths.
@@ -4175,8 +4210,9 @@ by use of ${} brackets. The now removed `@code_runner` tool used them as below:
 
 
   [!IMPORTANT] Using the `handlers.setup()` function, it’s also possible to
-  create commands dynamically like in the
-  |codecompanion-usage-chat-buffer-agents.html-cmd-runner| tool.
+  create commands dynamically like in the cmd_runner
+  <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/agents/tools/cmd_runner.lua>
+  tool.
 **Function-based Tools**
 
 Function-based tools use the `cmds` table to define functions that will be
