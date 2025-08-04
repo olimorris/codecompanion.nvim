@@ -53,8 +53,7 @@ T["ACP Adapter"]["can make adapter safe for serialization"] = function()
     local adapter_config = {
       name = "test_acp",
       formatted_name = "Test ACP Adapter",
-      type = "acp",
-      command = { "node", "agent.js" },
+      type = "acp", command = { "node", "agent.js" },
       defaults = { model = "test-model" },
       parameters = { temperature = 0.7 },
       handlers = {

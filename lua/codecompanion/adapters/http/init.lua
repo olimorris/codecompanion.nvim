@@ -151,6 +151,9 @@ function Adapter.extend(adapter, opts)
   end
 
   adapter_config = vim.tbl_deep_extend("force", {}, vim.deepcopy(adapter_config), opts or {})
+  if not adapter_config.type then
+    adapter_config.type = "http"
+  end
 
   return Adapter.new(adapter_config)
 end
@@ -216,6 +219,10 @@ function Adapter.resolve(adapter, opts)
     adapter = Adapter.extend(config.adapters.http[adapter] or adapter, opts)
   elseif type(adapter) == "function" then
     adapter = adapter()
+  end
+
+  if not adapter.type then
+    adapter.type = "http"
   end
 
   return Adapter.set_model(adapter)

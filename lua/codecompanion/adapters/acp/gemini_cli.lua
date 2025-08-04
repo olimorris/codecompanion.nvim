@@ -43,22 +43,22 @@ return {
         return nil
       end
 
-      local output = {}
+      local session_update = data.sessionUpdate
+      local content = data.content
 
-      log:debug("Processing chat output data: %s", data)
+      -- Only process agent message chunks for streaming
+      if session_update ~= "agentMessageChunk" or not content or not content.text then
+        return nil
+      end
+
+      log:debug("Processing chat output: %s", content.text)
 
       return {
-        status = "status",
-        output = output,
+        status = "success",
+        output = {
+          content = content.text,
+        },
       }
-    end,
-
-    ---Determine if the stream data is complete.
-    ---@param self CodeCompanion.ACPAdapter
-    ---@param data table
-    ---@return boolean
-    is_done = function(self, data)
-      return
     end,
 
     ---Function to run when the request has completed. Useful to catch errors
@@ -66,8 +66,7 @@ return {
     ---@param data? table
     ---@return nil
     on_exit = function(self, data)
-      print("Closing Adapter")
-      return
+      log:debug("Gemini CLI adapter exiting")
     end,
   },
 }

@@ -1,6 +1,4 @@
 local config = require("codecompanion.config")
-local log = require("codecompanion.utils.log")
-local shared = require("codecompanion.adapters.shared")
 
 local M = {}
 
