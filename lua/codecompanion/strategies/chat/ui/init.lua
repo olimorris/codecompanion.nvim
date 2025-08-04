@@ -43,7 +43,7 @@ function UI.new(args)
     settings = args.settings,
     tokens = args.tokens,
     winnr = args.winnr,
-    window = args.window,
+    window_opts = args.window_opts,
   }, { __index = UI })
 
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.chat_bufnr, {
@@ -79,16 +79,16 @@ function UI:open(opts)
     end)
   end
 
-  if opts.window then
-    if opts.window.default then
-      self.window = nil
+  if opts.window_opts then
+    if opts.window_opts.default then
+      self.window_opts = nil
     else
-      self.window = opts.window
+      self.window_opts = opts.window_opts
     end
   end
   local window
-  if self.window then
-    window = vim.tbl_deep_extend("force", {}, config.display.chat.window, self.window)
+  if self.window_opts then
+    window = vim.tbl_deep_extend("force", {}, config.display.chat.window, self.window_opts)
   else
     window = config.display.chat.window
   end
@@ -179,8 +179,8 @@ end
 ---@return nil
 function UI:hide()
   local layout
-  if self.window then
-    layout = vim.tbl_deep_extend("force", {}, config.display.chat.window, self.window).layout
+  if self.window_opts then
+    layout = vim.tbl_deep_extend("force", {}, config.display.chat.window, self.window_opts).layout
   else
     layout = config.display.chat.window.layout
   end
