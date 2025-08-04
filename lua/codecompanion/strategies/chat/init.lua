@@ -602,6 +602,10 @@ function Chat.new(args)
   self.close_last_chat()
   self.ui:open():render(self.buffer_context, self.messages, args)
 
+  if args.stop_context_insertion then
+    self.opts.stop_context_insertion = true
+  end
+
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then
     ---@cast self CodeCompanion.Chat

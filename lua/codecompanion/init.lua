@@ -113,7 +113,7 @@ CodeCompanion.add = function(args)
   local chat = CodeCompanion.last_chat()
 
   if not chat then
-    chat = CodeCompanion.chat()
+    chat = CodeCompanion.chat({ stop_context_insertion = true })
 
     if not chat then
       return log:warn("Could not create chat buffer")
@@ -170,6 +170,7 @@ CodeCompanion.chat = function(args)
     buffer_context = context,
     messages = has_messages and messages or nil,
     auto_submit = has_messages,
+    stop_context_insertion = args and args.stop_context_insertion,
   })
 end
 
