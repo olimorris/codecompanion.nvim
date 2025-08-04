@@ -25,7 +25,7 @@ local context_header = "> Context:"
 ---@param chat CodeCompanion.Chat
 ---@return table|nil
 local function ts_parse_buffer(chat)
-  local query = query_get("markdown", "context")
+  local query = query_get("markdown", "cc_context")
 
   local tree = chat.parser:parse({ chat.header_line - 1, -1 })[1]
   local root = tree:root()
@@ -173,7 +173,7 @@ function Context:clear(message)
   end
 
   local parser = vim.treesitter.get_string_parser(message.content, "markdown")
-  local query = query_get("markdown", "context")
+  local query = query_get("markdown", "cc_context")
   local root = parser:parse()[1]:root()
 
   local items = nil
@@ -199,7 +199,7 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return number|nil, number|nil
 local function get_range(chat)
-  local query = query_get("markdown", "context")
+  local query = query_get("markdown", "cc_context")
 
   local tree = chat.parser:parse()[1]
   local root = tree:root()
@@ -302,7 +302,7 @@ end
 ---Get the context items from the chat buffer
 ---@return table
 function Context:get_from_chat()
-  local query = query_get("markdown", "context")
+  local query = query_get("markdown", "cc_context")
 
   local tree = self.Chat.parser:parse()[1]
   local root = tree:root()
