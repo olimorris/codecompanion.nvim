@@ -28,7 +28,6 @@ const headers = inProd ? [baseHeaders, umamiScript] : baseHeaders;
 
 const siteUrl = "https://codecompanion.olimorris.dev";
 
-
 // https://vitepress.dev/reference/site-config
 export default withMermaid(
   defineConfig({
@@ -38,11 +37,11 @@ export default withMermaid(
     },
     // optionally set additional config for plugin itself with MermaidPluginConfig
     title: "CodeCompanion",
-    description: "AI-powered coding, seamlessly in Neovim",
+    description: "AI Coding, Vim Style",
     head: headers,
     sitemap: { hostname: siteUrl },
     themeConfig: {
-      logo: "https://github.com/user-attachments/assets/825fc040-9bc8-4743-be2a-71e257f8a7be",
+      logo: "https://github.com/user-attachments/assets/dbd85651-cba4-4f60-a4fb-d58d386cc516",
       nav: [
         {
           text: `${version}`,
@@ -92,11 +91,11 @@ export default withMermaid(
               link: "/usage/chat-buffer/",
               collapsed: true,
               items: [
-                { text: "Agents/Tools", link: "/usage/chat-buffer/agents" },
                 {
                   text: "Slash Commands",
                   link: "/usage/chat-buffer/slash-commands",
                 },
+                { text: "Tools", link: "/usage/chat-buffer/tools" },
                 { text: "Variables", link: "/usage/chat-buffer/variables" },
               ],
             },

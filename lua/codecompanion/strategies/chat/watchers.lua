@@ -15,7 +15,7 @@ local Watchers = {}
 function Watchers.new()
   return setmetatable({
     buffers = {},
-    augroup = api.nvim_create_augroup("CodeCompanionWatcher", { clear = true }),
+    augroup = api.nvim_create_augroup("codecompanion.watchers", { clear = true }),
   }, { __index = Watchers })
 end
 
@@ -130,27 +130,32 @@ end
 ---Check all watched buffers for changes
 ---@param chat CodeCompanion.Chat
 function Watchers:check_for_changes(chat)
-  for _, ref in ipairs(chat.refs) do
-    if ref.bufnr and ref.opts and ref.opts.watched then
-      local has_changed, old_content = self:get_changes(ref.bufnr)
+  for _, item in ipairs(chat.context_items) do
+    if item.bufnr and item.opts and item.opts.watched then
+      local has_changed, old_content = self:get_changes(item.bufnr)
 
       if has_changed and old_content then
-        local filename = vim.fn.fnamemodify(api.nvim_buf_get_name(ref.bufnr), ":.")
-        local current_content = api.nvim_buf_get_lines(ref.bufnr, 0, -1, false)
+        local filename = vim.fn.fnamemodify(api.nvim_buf_get_name(item.bufnr), ":.")
+        local current_content = api.nvim_buf_get_lines(item.bufnr, 0, -1, false)
         local diff_content = format_changes_as_diff(old_content, current_content)
 
         if diff_content ~= "" then
           local delta = fmt("The file `%s`, has been modified. Here are the changes:\n%s", filename, diff_content)
           chat:add_message({
             role = config.constants.USER_ROLE,
-            content = fmt([[<attachment filepath="%s" buffer_number="%s">%s</attachment>]], filename, ref.bufnr, delta),
+            content = fmt(
+              [[<attachment filepath="%s" buffer_number="%s">%s</attachment>]],
+              filename,
+              item.bufnr,
+              delta
+            ),
           }, { visible = false })
         end
       elseif has_changed then
         -- buffer is now invalid
         chat:add_message({
           role = config.constants.USER_ROLE,
-          content = fmt([[buffer %d has been removed.]], ref.bufnr),
+          content = fmt([[buffer %d has been removed.]], item.bufnr),
         }, { visible = false })
       end
     end

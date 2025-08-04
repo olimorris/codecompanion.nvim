@@ -1,3 +1,9 @@
+--[[
+PLEASE NOTE: This adapter is not supported by CodeCompanion.nvim.
+It is simply provided as an example for how you can connect an OpenAI compatible endpoint
+to CodeCompanion via an adapter. Send any questions or queries to the discussions.
+--]]
+
 local config = require("codecompanion.config")
 local curl = require("plenary.curl")
 local log = require("codecompanion.utils.log")

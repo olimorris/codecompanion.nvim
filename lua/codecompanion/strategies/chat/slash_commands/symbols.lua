@@ -1,38 +1,22 @@
 --[[
 Uses Tree-sitter to parse a given file and extract symbol types and names. Then
-displays those symbols in the chat buffer as references. To support tools
-and agents, start and end lines for the symbols are also output.
+displays those symbols in the chat buffer as references. To support tools,
+start and end lines are also included in the output.
 
 Heavily modified from the awesome Aerial.nvim plugin by stevearc:
 https://github.com/stevearc/aerial.nvim/blob/master/lua/aerial/backends/treesitter/init.lua
 --]]
 local config = require("codecompanion.config")
+local helpers = require("codecompanion.strategies.chat.slash_commands.helpers")
 local log = require("codecompanion.utils.log")
-local path = require("plenary.path")
-local symbol_utils = require("codecompanion.strategies.chat.helpers")
 local util = require("codecompanion.utils")
 
 local fmt = string.format
-local get_node_text = vim.treesitter.get_node_text --[[@type function]]
 
 local CONSTANTS = {
   NAME = "Symbols",
   PROMPT = "Select symbol(s)",
 }
-
----Get the range of two nodes
----@param start_node TSNode
----@param end_node TSNode
-local function range_from_nodes(start_node, end_node)
-  local row, col = start_node:start()
-  local end_row, end_col = end_node:end_()
-  return {
-    lnum = row + 1,
-    end_lnum = end_row + 1,
-    col = col,
-    end_col = end_col,
-  }
-end
 
 ---Return when no symbols query exists
 local function no_query(ft)
@@ -189,7 +173,7 @@ function SlashCommand:output(selected, opts)
   opts = opts or {}
 
   local ft = vim.filetype.match({ filename = selected.path })
-  local symbols, content = symbol_utils.extract_file_symbols(selected.path)
+  local symbols, content = helpers.extract_file_symbols(selected.path)
 
   if not symbols then
     return no_query(ft)
@@ -253,9 +237,9 @@ Prompt the user if you need to see more than the symbolic outline.
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = description,
-  }, { reference = id, visible = false })
+  }, { context_id = id, visible = false })
 
-  self.Chat.references:add({
+  self.Chat.context:add({
     source = "slash_command",
     name = "symbols",
     id = id,

@@ -22,7 +22,7 @@ doc/configuration/others.md
 doc/usage/introduction.md
 doc/usage/action-palette.md
 doc/usage/chat-buffer/index.md
-doc/usage/chat-buffer/agents.md
+doc/usage/chat-buffer/tools.md
 doc/usage/chat-buffer/slash-commands.md
 doc/usage/chat-buffer/variables.md
 doc/usage/events.md

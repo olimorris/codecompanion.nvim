@@ -162,10 +162,13 @@ T["Copilot Helper Get Models"]["retrieves models with correct structure"] = func
   local mock_get_and_authorize_token = function()
     return true -- Simulate successful token retrieval
   end
-  local mock_oauth_token = "mock_oauth_token"
-
-  local models = copilot_helper.get_models(mock_adapter, mock_get_and_authorize_token, mock_oauth_token)
-
+  local mock_authorize_token = function()
+    return {
+      token = "mock_github_token",
+      expires_at = os.time() + 3600, -- Expires in 1 hour
+    }
+  end
+  local models = copilot_helper.get_models(mock_adapter, mock_get_and_authorize_token, mock_authorize_token)
   h.eq(2, vim.tbl_count(models), "Expected two models to be returned")
   h.eq({
     opts = {

@@ -1,4 +1,4 @@
-local path = require("plenary.path")
+local Path = require("plenary.path")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
@@ -144,7 +144,7 @@ end
 ---@param selected { path: string, relative_path: string?, description: string? }
 function SlashCommand:read(selected)
   local ok, content = pcall(function()
-    return path.new(selected.path):read()
+    return Path.new(selected.path):read()
   end)
 
   if not ok then
@@ -205,13 +205,13 @@ function SlashCommand:output(selected, opts)
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = description or "",
-  }, { reference = id, visible = false })
+  }, { context_id = id, visible = false })
 
   if opts.pin then
     return
   end
 
-  self.Chat.references:add({
+  self.Chat.context:add({
     id = id or "",
     path = selected.path,
     source = "codecompanion.strategies.chat.slash_commands.file",

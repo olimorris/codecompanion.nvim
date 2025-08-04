@@ -12,6 +12,24 @@ local CodeCompanion = {
   extensions = _extensions.manager,
 }
 
+---Keep the chat buffer open when switching tabs
+---@return nil
+local function setup_sticky_chat_buffer()
+  api.nvim_create_autocmd("TabEnter", {
+    group = api.nvim_create_augroup("codecompanion.sticky_buffer", { clear = true }),
+    callback = function(args)
+      local chat = CodeCompanion.last_chat()
+      if chat and chat.ui:is_visible_non_curtab() then
+        chat.buffer_context = context_utils.get(args.buf)
+        vim.schedule(function()
+          CodeCompanion.close_last_chat()
+          chat.ui:open({ toggled = true })
+        end)
+      end
+    end,
+  })
+end
+
 ---Register an extension with setup and exports
 ---@param name string The name of the extension
 ---@param extension CodeCompanion.Extension The extension implementation
@@ -28,7 +46,7 @@ end
 ---@return nil
 CodeCompanion.inline = function(args)
   local context = context_utils.get(api.nvim_get_current_buf(), args)
-  return require("codecompanion.strategies.inline").new({ context = context }):prompt(args.args)
+  return require("codecompanion.strategies.inline").new({ buffer_context = context }):prompt(args.args)
 end
 
 ---Initiate a prompt from the prompt library
@@ -47,7 +65,7 @@ CodeCompanion.prompt_library = function(prompt, args)
 
   return require("codecompanion.strategies")
     .new({
-      context = context,
+      buffer_context = context,
       selected = prompt,
     })
     :start(prompt.strategy)
@@ -75,7 +93,7 @@ CodeCompanion.prompt = function(name, args)
 
   return require("codecompanion.strategies")
     .new({
-      context = context,
+      buffer_context = context,
       selected = prompt,
     })
     :start(prompt.strategy)
@@ -148,8 +166,8 @@ CodeCompanion.chat = function(args)
   local has_messages = not vim.tbl_isempty(messages)
 
   return require("codecompanion.strategies.chat").new({
-    context = context,
     adapter = adapter,
+    buffer_context = context,
     messages = has_messages and messages or nil,
     auto_submit = has_messages,
     window_opts = args and args.window_opts,
@@ -163,7 +181,7 @@ CodeCompanion.cmd = function(args)
 
   return require("codecompanion.strategies.cmd")
     .new({
-      context = context,
+      buffer_context = context,
       prompts = {
         {
           role = config.constants.SYSTEM_ROLE,
@@ -202,11 +220,13 @@ CodeCompanion.toggle = function(window_opts)
     return CodeCompanion.chat({ window_opts = window_opts })
   end
 
-  if chat.ui:is_visible() then
+  if chat.ui:is_visible_non_curtab() then
+    chat.ui:hide()
+  elseif chat.ui:is_visible() then
     return chat.ui:hide()
   end
 
-  chat.context = context_utils.get(api.nvim_get_current_buf())
+  chat.buffer_context = context_utils.get(api.nvim_get_current_buf())
   CodeCompanion.close_last_chat()
   chat.ui:open({ toggled = true, window_opts = window_opts })
 end
@@ -260,7 +280,7 @@ end
 ---Refresh any of the caches used by the plugin
 ---@return nil
 CodeCompanion.refresh_cache = function()
-  local ToolFilter = require("codecompanion.strategies.chat.agents.tool_filter")
+  local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
   ToolFilter.refresh_cache()
   utils.notify("Refreshed the cache for all chat buffers", vim.log.levels.INFO)
 end
@@ -359,6 +379,11 @@ CodeCompanion.setup = function(opts)
         log:error("Error loading extension %s: %s", name, ext_error)
       end
     end
+  end
+
+  local window_config = config.display.chat.window
+  if window_config.sticky and (window_config.layout ~= "buffer") then
+    setup_sticky_chat_buffer()
   end
 end
 

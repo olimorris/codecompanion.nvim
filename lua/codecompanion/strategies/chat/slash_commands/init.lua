@@ -84,12 +84,12 @@ function SlashCommands:execute(item, chat)
     :execute(self)
 end
 
----Function for external objects to add references via Slash Commands
+---Function for external objects to add context via Slash Commands
 ---@param chat CodeCompanion.Chat
 ---@param slash_command string
 ---@param opts { path: string, url?: string, description: string, [any]: any }
 ---@return nil
-function SlashCommands.references(chat, slash_command, opts)
+function SlashCommands.context(chat, slash_command, opts)
   local slash_commands = {
     buffer = require("codecompanion.strategies.chat.slash_commands.buffer").new({
       Chat = chat,
@@ -136,8 +136,8 @@ function SlashCommands.references(chat, slash_command, opts)
     opts.silent = true
     opts.url = opts.url or opts.path
     opts.description = opts.description
-    opts.auto_restore_cache = opts.opts.auto_restore_cache
-    opts.ignore_cache = opts.opts.ignore_cache
+    opts.auto_restore_cache = opts.opts and opts.opts.auto_restore_cache
+    opts.ignore_cache = opts.opts and opts.opts.ignore_cache
 
     return slash_commands[slash_command]:output(opts.url, opts)
   end

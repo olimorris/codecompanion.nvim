@@ -98,7 +98,7 @@ function Variables:find(message)
   return found
 end
 
----Parse a message to detect if it references any variables
+---Parse a message to detect if it contains any variables
 ---@param chat CodeCompanion.Chat
 ---@param message table
 ---@return boolean

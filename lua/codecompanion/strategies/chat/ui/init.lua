@@ -3,6 +3,7 @@ Manages the UI for the chat buffer such as opening and closing splits/windows,
 parsing settings and rendering extmarks.
 --]]
 local config = require("codecompanion.config")
+local helpers = require("codecompanion.strategies.chat.helpers")
 local log = require("codecompanion.utils.log")
 local schema = require("codecompanion.schema")
 local ui = require("codecompanion.utils.ui")
@@ -49,6 +50,8 @@ function UI.new(args)
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.chat_bufnr, {
     clear = false,
   })
+  self.folds = require("codecompanion.strategies.chat.ui.folds")
+
   api.nvim_create_autocmd("InsertEnter", {
     group = self.aug,
     buffer = self.chat_bufnr,
@@ -164,13 +167,10 @@ function UI:open(opts)
     self:follow()
   end
 
+  self.folds:setup(self.winnr)
+
   log:trace("Chat opened with ID %d", self.chat_id)
   util.fire("ChatOpened", { bufnr = self.chat_bufnr, id = self.chat_id })
-
-  self.tools = require("codecompanion.strategies.chat.ui.tools").new({
-    chat_bufnr = self.chat_bufnr,
-    winnr = self.winnr,
-  })
 
   return self
 end
@@ -226,6 +226,12 @@ end
 ---@return boolean
 function UI:is_visible()
   return self.winnr and api.nvim_win_is_valid(self.winnr) and api.nvim_win_get_buf(self.winnr) == self.chat_bufnr
+end
+
+---Chat buffer is visible but not in the current tab
+---@return boolean
+function UI:is_visible_non_curtab()
+  return self:is_visible() and api.nvim_get_current_tabpage() ~= api.nvim_win_get_tabpage(self.winnr)
 end
 
 ---Get the formatted header for the chat buffer
@@ -323,7 +329,7 @@ function UI:render(context, messages, opts)
     spacer()
   end
 
-  if vim.tbl_isempty(messages) then
+  if vim.tbl_isempty(messages) or not helpers.has_user_messages(messages) then
     log:trace("Setting the header for the chat buffer")
     self:set_header(lines, self.roles.user)
     spacer()
@@ -383,14 +389,15 @@ function UI:render_headers()
 end
 
 ---Set the welcome message in the chat buffer
+---@param message string The intro message to display
 ---@return CodeCompanion.Chat.UI|nil
-function UI:set_intro_msg()
+function UI:set_intro_msg(message)
   if self.intro_message then
     return self
   end
 
   if not config.display.chat.start_in_insert_mode then
-    local extmark_id = self:set_virtual_text(config.display.chat.intro_message, "eol")
+    local extmark_id = self:set_virtual_text(message, "eol")
     api.nvim_create_autocmd("InsertEnter", {
       buffer = self.chat_bufnr,
       callback = function()

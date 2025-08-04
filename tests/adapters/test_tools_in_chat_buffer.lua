@@ -32,12 +32,19 @@ T["Test tools in chat buffer"] = new_set({
     -- Others
     { "anthropic", "anthropic_tools" },
     { "deepseek", "deepseek_tools" },
+    { "ollama", "ollama_tools" },
   },
 })
 
 T["Test tools in chat buffer"]["with different adapters"] = function(adapter, file)
   local response = "tests/adapters/stubs/" .. file .. "_streaming.txt"
   local output = "tests/adapters/stubs/output/" .. file .. ".txt"
+
+  child.lua([[
+    local ollama = require("codecompanion.adapters.ollama")
+    ollama.schema.model.default = function() return "mock-model" end
+    ollama.schema.model.choices = function() return { ["mock-model"] = { opts = {} } } end
+  ]])
 
   -- Setup the chat with the specified adapter
   child.lua(string.format(
@@ -67,7 +74,7 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
       end
 
       -- We don't need to mock the done method but we do need to mock some of the methods it calls
-      _G.chat.agents.execute = nil
+      _G.chat.tools.orchestrator = nil
 
       -- Force submit so that chat:done works
       _G.chat.status = "success"
