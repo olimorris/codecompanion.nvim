@@ -1161,9 +1161,9 @@ function Chat:check_context()
   -- Clear any tool's schemas
   local schemas_to_keep = {}
   local tools_in_use_to_keep = {}
-  for id, schema in pairs(self.tool_registry.schemas) do
+  for id, tool_schemas in pairs(self.tool_registry.schemas) do
     if not vim.tbl_contains(to_remove, id) then
-      schemas_to_keep[id] = schema
+      schemas_to_keep[id] = tool_schemas
       local tool_name = id:match("<tool>(.*)</tool>")
       if tool_name and self.tool_registry.in_use[tool_name] then
         tools_in_use_to_keep[tool_name] = true
