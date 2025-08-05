@@ -10,18 +10,22 @@ return {
     user = "user",
   },
   command = {
-    "gemini",
+    "node",
+    "/Users/Oli/Code/Neovim/gemini-cli/packages/cli",
     "--experimental-acp",
   },
   defaults = {
-    timeout = 30000,
+    timeout = 20000, -- 20 seconds
+    auth_method = "gemini-api-key",
   },
   env = {
-    GEMINI_API_KEY = "YOUR-GEMINI-API-KEY-HERE",
+    GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
   },
   parameters = {
-    protocolVersion = "2024-11-05",
-    capabilities = {},
+    protocolVersion = 1,
+    clientCapabilities = {
+      fs = { readTextFile = true, writeTextFile = true },
+    },
     clientInfo = {
       name = "CodeCompanion",
       version = "1.0.0",
@@ -63,9 +67,9 @@ return {
 
     ---Function to run when the request has completed. Useful to catch errors
     ---@param self CodeCompanion.ACPAdapter
-    ---@param data? table
+    ---@param code number
     ---@return nil
-    on_exit = function(self, data)
+    on_exit = function(self, code)
       log:debug("Gemini CLI adapter exiting")
     end,
   },

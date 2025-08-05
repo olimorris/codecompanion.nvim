@@ -1,15 +1,31 @@
+--[[
+==========================================================
+  File:       codecompanion/acp.lua
+  Author:     Oli Morris
+----------------------------------------------------------
+  Description:
+    This module implements the ACP client for CodeCompanion.
+    It handles the connection to the ACP process, manages sessions,
+    and provides methods for making requests and handling responses.
+    The client uses JSON-RPC 2.0 for communication with the ACP server.
+
+  References:
+    - https://www.jsonrpc.org/specification
+==========================================================
+--]]
+
 local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
+local util = require("codecompanion.utils")
 
 ---@class CodeCompanion.ACPClient
 ---@field adapter CodeCompanion.ACPAdapter The ACP adapter used by the client
 ---@field job {handle: integer, next_id: integer, pending: table, stdout: string}|nil The job handle for the ACP process
----@field session {id: string|nil, state: "disconnected"|"initializing"|"authenticating"|"ready"|"prompting"} Session management
----@field opts nil|table
----@field methods table
----@field current_request {callback: function, done: function, id: integer}|nil
-
----@class CodeCompanion.ACPClient
+---@field methods table Static methods for testing/mocking
+---@field opts table Client options
+---@field session_id string|nil The session ID for the current ACP session
+---@field _initialized boolean Has the client has been initialized
+---@field _authenticated boolean Has the client has been authenticated
 local Client = {}
 Client.static = {}
 
@@ -41,38 +57,105 @@ end
 
 ---@class CodeCompanion.ACPClientArgs
 ---@field adapter CodeCompanion.ACPAdapter
+---@field session_id? string The session ID to load, if any
 ---@field opts? table
 
 ---@param args CodeCompanion.ACPClientArgs
+---@return CodeCompanion.ACPClient
 function Client.new(args)
   args = args or {}
 
   return setmetatable({
     adapter = args.adapter,
-    job = {},
-    session = { id = nil, state = "disconnected" },
+    job = { handle = nil, next_id = 1, pending = {}, stdout = "" },
     methods = transform_static_methods(args.opts),
     opts = args.opts or {},
-    current_request = nil,
+    session_id = args.session_id or nil,
   }, { __index = Client })
 end
 
----Start the ACP process
----@return CodeCompanion.ACPClient
-function Client:start()
-  if self.job.handle then
-    log:debug("ACP client already running")
-    return self
+---Setup the adapter, ensuring the environment variables are set correctly
+---@param adapter CodeCompanion.ACPAdapter
+---@return CodeCompanion.ACPAdapter
+local function setup_adapter(adapter)
+  adapter = vim.deepcopy(adapter)
+  adapter = adapter_utils.get_env_vars(adapter)
+  adapter.parameters = adapter_utils.set_env_vars(adapter, adapter.parameters)
+  adapter.defaults.auth_method = adapter_utils.set_env_vars(adapter, adapter.defaults.auth_method)
+  adapter.command = adapter_utils.set_env_vars(adapter, adapter.command)
+
+  return adapter
+end
+
+---Connect to ACP process and establish session
+---@return string The session ID of the connected session
+function Client:connect()
+  if not self.job.handle then
+    self:_create_job()
   end
 
-  local adapter = vim.deepcopy(self.adapter)
-  adapter = adapter_utils.get_env_vars(adapter)
-  local command = adapter_utils.set_env_vars(adapter, adapter.command)
+  local adapter = setup_adapter(self.adapter)
+
+  if not self._initialized then
+    local initialized = self:_make_rpc_call("initialize", adapter.parameters)
+    if not initialized then
+      self.opts.status = "error"
+      self:_on_done()
+      return log:error("[acp::connect] Failed to initialize ACP client")
+    end
+    self._initialized = true
+    log:debug("ACP client initialized")
+  end
+
+  if not self._authenticated then
+    local authenticated = self:_make_rpc_call("authenticate", { methodId = adapter.defaults.auth_method })
+    if not authenticated then
+      self.opts.status = "error"
+      self:_on_done()
+      return log:error("[acp::connect] Failed to authenticate ACP client")
+    end
+    self._authenticated = true
+    log:debug("ACP client authenticated")
+  end
+
+  -- Try loading a session if session_id is provided
+  if self.session_id then
+    local session_loaded = self:_make_rpc_call("session/load", { sessionId = self.session_id })
+    if session_loaded then
+      log:debug("Loaded existing ACP session: %s", self.session_id)
+      return self.session_id
+    end
+  end
+
+  -- Otherwise, create a new session
+  local new_session = self:_make_rpc_call("session/new", {
+    cwd = vim.fn.getcwd(),
+    mcpServers = {},
+  })
+
+  if not new_session or not new_session.sessionId then
+    self.opts.status = "error"
+    self:_on_done()
+    return log:error("[acp::connect] Failed to create new session")
+  end
+
+  self.session_id = new_session.sessionId
+  log:debug("Created new ACP session: %s", self.session_id)
+  return self.session_id
+end
+
+---Create the job for the ACP process
+---@return nil
+function Client:_create_job()
+  local adapter = setup_adapter(self.adapter)
+
+  log:debug("Starting ACP process with command: %s", adapter.command)
+  log:debug("Environment variables: %s", adapter.env_replaced)
 
   if adapter.handlers and adapter.handlers.setup then
     local ok = adapter.handlers.setup(adapter)
     if not ok then
-      return log:error("Failed to setup adapter")
+      error("Failed to setup adapter")
     end
   end
 
@@ -82,268 +165,199 @@ function Client:start()
     stderr = "pipe",
     env = adapter.env_replaced or {},
     on_stdout = function(_, data, _)
-      self:_handle_stdout(data)
+      self:_on_stdout(data)
     end,
     on_stderr = function(_, data, _)
       self:_handle_stderr(data)
     end,
     on_exit = function(_, code, _)
-      self:_handle_exit(code)
+      self:_on_exit(code)
     end,
   }
 
-  self.job.handle = self.methods.jobstart(command, job_opts)
-  self.job.next_id = 1
-  self.job.pending = {}
-  self.job.stdout = ""
-
+  self.job.handle = self.methods.jobstart(adapter.command, job_opts)
   if self.job.handle <= 0 then
-    log:error("Failed to start ACP client: %s", self.adapter.name)
-    return self
+    error("Failed to start ACP process: " .. adapter.name)
   end
 
   log:debug("ACP process started with job handle: %d", self.job.handle)
-  return self
 end
 
----Main request interface matching HTTP client
----@param payload { messages: table, tools: table|nil }
----@param actions { callback: function, done: function }
----@param opts? table
+---Make a synchronous RPC call (blocks until response)
+---@param method string
+---@param params table
 ---@return table|nil
-function Client:request(payload, actions, opts)
-  opts = opts or {}
-
-  -- Store current request for streaming callbacks
-  self.current_request = {
-    callback = actions.callback,
-    done = actions.done,
-    id = math.random(10000000),
-  }
-
-  -- Start process if not running
+function Client:_make_rpc_call(method, params)
   if not self.job.handle then
-    self:start()
+    self.opts.status = "error"
+    self:_on_done()
+    return log:error("[acp::_make_rpc_call] ACP client not running")
   end
 
-  -- Ensure we have a ready session
-  self:_ensure_session(function(err)
-    if err then
-      return actions.callback(err, nil)
-    end
+  local id = self.job.next_id
+  self.job.next_id = id + 1
 
-    -- Convert payload to ACP format and send prompt
-    self:_send_prompt(payload, actions, opts)
-  end)
-
-  -- Return a job-like object for compatibility
-  return {
-    shutdown = function()
-      self:_cancel_current_request()
-    end,
+  local request = {
+    jsonrpc = "2.0",
+    id = id,
+    method = method,
+    params = params or {},
   }
-end
 
----Ensure we have a ready session (initialize -> authenticate -> session/new)
----@param callback function
-function Client:_ensure_session(callback)
-  if self.session.state == "ready" and self.session.id then
-    return callback(nil)
-  end
+  --TODO: Remove this line break
+  local json = self.methods.encode(request) .. "\n"
+  log:debug("Sending sync request: %s", json:gsub("\n", "\\n"))
 
-  if self.session.state ~= "disconnected" then
-    -- Session in progress, wait
-    return vim.defer_fn(function()
-      self:_ensure_session(callback)
-    end, 100)
-  end
+  self.methods.chansend(self.job.handle, json)
+  log:debug("Request sent successfully, waiting for response with ID: %d", id)
 
-  self.session.state = "initializing"
+  local start_time = vim.loop.hrtime()
+  local timeout = self.adapter.defaults.timeout or 20000 -- Default to 20 seconds if not set
 
-  -- Initialize
-  self:_rpc_request("initialize", self.adapter.parameters or {}, function(result, err)
-    if err then
-      self.session.state = "disconnected"
-      return callback({ message = "Initialization failed", stderr = vim.json.encode(err) })
-    end
+  while true do
+    vim.wait(20) -- Apply a small 10ms buffer
 
-    self.session.state = "authenticating"
-
-    -- Authenticate (hardcoded to API key for now)
-    self:_rpc_request("authenticate", { methodId = "gemini-api-key" }, function(auth_result, auth_err)
-      if auth_err then
-        self.session.state = "disconnected"
-        return callback({ message = "Authentication failed", stderr = vim.json.encode(auth_err) })
+    -- Check for a response
+    if self.job.pending[id] then
+      local result, err = unpack(self.job.pending[id])
+      self.job.pending[id] = nil
+      log:debug("Received response for ID %d: result=%s, err=%s", id, result, err)
+      if err then
+        self.opts.status = "error"
+        self:_on_done()
+        return log:error("[acp::_make_rpc_call] Error making RPC call: %s", err)
       end
+      return result
+    end
 
-      -- Create new session
-      local cwd = vim.fn.getcwd()
-      self:_rpc_request("session/new", { cwd = cwd, mcpServers = {} }, function(session_result, session_err)
-        if session_err then
-          self.session.state = "disconnected"
-          return callback({ message = "Session creation failed", stderr = vim.json.encode(session_err) })
-        end
-
-        self.session.id = session_result.sessionId
-        self.session.state = "ready"
-        log:debug("ACP session ready: %s", self.session.id)
-        callback(nil)
-      end)
-    end)
-  end)
-end
-
----Send prompt to ACP and handle streaming
----@param payload table
----@param actions table
----@param opts table
-function Client:_send_prompt(payload, actions, opts)
-  -- Convert messages to ACP format
-  local acp_prompt = {}
-  for _, message in ipairs(payload.messages) do
-    if message.role == "user" or message.role == "assistant" then
-      table.insert(acp_prompt, {
-        type = "text",
-        text = message.content,
-      })
+    -- Timeout check
+    local elapsed = (vim.loop.hrtime() - start_time) / 1000000
+    if elapsed > timeout then
+      self.opts.status = "error"
+      self:_on_done()
+      return log:error(
+        "[acp::_make_rpc_call] Timeout waiting for response to %s (ID: %d, elapsed: %dms)",
+        method,
+        id,
+        elapsed
+      )
     end
   end
-
-  self.session.state = "prompting"
-
-  self:_rpc_request("session/prompt", {
-    sessionId = self.session.id,
-    prompt = acp_prompt,
-  }, function(result, err)
-    if err then
-      self.session.state = "ready"
-      return actions.callback({ message = "Prompt failed", stderr = vim.json.encode(err) }, nil)
-    end
-
-    -- Prompt sent successfully - responses will come via notifications
-    log:debug("Prompt sent to session: %s", self.session.id)
-  end)
 end
 
----Handle stdout data and route notifications
+---Handle stdout data and route messages
 ---@param data table
-function Client:_handle_stdout(data)
+function Client:_on_stdout(data)
+  log:debug("Raw stdout data received: %s", data)
+
   for _, chunk in ipairs(data) do
     if chunk == "" then
       goto continue
     end
 
-    self.job.stdout = self.job.stdout .. chunk
+    log:debug("Processing stdout chunk: %s", chunk)
 
-    -- Process complete JSON lines
-    while true do
-      local newline_pos = self.job.stdout:find("\n")
-      if not newline_pos then
-        -- Check for complete JSON without newline at end of buffer
-        local trimmed = self.job.stdout:match("^%s*(.-)%s*$")
-        if trimmed ~= "" and (trimmed:match("^{.*}$") or trimmed:match("^%[.*%]$")) then
-          local ok, msg = pcall(self.methods.decode, trimmed)
-          if ok then
-            self.job.stdout = ""
-            self.methods.schedule(function()
-              self:_handle_json_message(msg)
-            end)
+    chunk = vim.trim(chunk)
+    if chunk == "" then
+      goto continue
+    end
+
+    local ok, decoded_chunk = pcall(self.methods.decode, chunk)
+    if not ok then
+      goto continue
+    end
+
+    if decoded_chunk then
+      log:debug("Successfully parsed complete JSON: %s", decoded_chunk)
+
+      if decoded_chunk.id then
+        self:_handle_response(decoded_chunk)
+
+        -- Detect the final response
+        if decoded_chunk.result == vim.NIL then
+          if self._done then
+            self:_on_done()
           end
         end
-        break
+      elseif decoded_chunk.method then
+        self:_handle_notification(decoded_chunk)
       end
 
-      local line = self.job.stdout:sub(1, newline_pos - 1)
-      self.job.stdout = self.job.stdout:sub(newline_pos + 1)
-      self:_process_line(line)
+      if decoded_chunk.error then
+        self.opts.status = "error"
+        self:_on_done()
+        return log:error("[acp::_on_stdout] Error in ACP response: %s", decoded_chunk.error)
+      end
     end
+
     ::continue::
   end
 end
 
----Process a complete JSON line
----@param line string
-function Client:_process_line(line)
-  if line == "" then
-    return
+---Handle the completion of a request
+---@return nil
+function Client:_on_done()
+  if self.opts then
+    if not self.opts.status then
+      self.opts.status = "success"
+    end
+    if not self.opts.silent then
+      util.fire("RequestFinished", self.opts)
+    end
   end
 
-  local ok, msg = pcall(self.methods.decode, line)
-  if ok then
-    log:debug("Parsed message: %s", msg)
-    self.methods.schedule(function()
-      self:_handle_json_message(msg)
-    end)
+  self.opts = {}
+  self._done()
+end
+
+---Method for when the ACP client exits
+---@param code integer
+function Client:_on_exit(code)
+  log:debug("ACP client %s exited with code: %d", self.adapter.name, code)
+
+  -- Reset state
+  self.job = {}
+  self.opts = {}
+  self._initialized = false
+  self._authenticated = false
+
+  if self.adapter.handlers and self.adapter.handlers.on_exit then
+    self.adapter.handlers.on_exit(self.adapter, code)
+  end
+end
+
+---Handle any notifications that come from the RPC server
+---@param data table
+function Client:_handle_notification(data)
+  if data.method == "session/request_permission" then
+    self:_permission_request(data.id, data.params)
+  elseif data.method == "session/update" then
+    if self._callback then
+      self.methods.schedule(function()
+        self._callback(data.method, data.params)
+      end)
+    end
+  end
+end
+
+---Handle JSON-RPC responses (replies to our requests)
+---@param response table
+function Client:_handle_response(response)
+  log:debug("Storing response for ID %d", response.id)
+
+  if response.error then
+    self.job.pending[response.id] = { nil, response.error }
+    log:error("RPC error for ID %d: %s", response.id, response.error)
   else
-    log:error("JSON parse error: %s", msg)
-  end
-end
-
----Handle parsed JSON messages (responses and notifications)
----@param msg table
-function Client:_handle_json_message(msg)
-  if msg.id then
-    -- Handle response
-    local cb = self.job.pending[msg.id]
-    self.job.pending[msg.id] = nil
-
-    if cb then
-      if msg.error then
-        cb(nil, msg.error)
-      else
-        cb(msg.result, nil)
-      end
-    end
-  elseif msg.method then
-    -- Handle notification
-    self:_handle_notification(msg)
-  end
-end
-
----Handle ACP notifications
----@param msg table
-function Client:_handle_notification(msg)
-  local method = msg.method
-  local params = msg.params
-
-  if method == "session/update" then
-    self:_handle_session_update(params)
-  elseif method == "session/request_permission" then
-    self:_handle_permission_request(msg.id, params)
-  end
-end
-
----Handle session update notifications (streaming content)
----@param params table
-function Client:_handle_session_update(params)
-  if not self.current_request then
-    return
-  end
-
-  local session_update = params.sessionUpdate
-  local content = params.content
-
-  -- Process different types of session updates
-  if session_update == "agentMessageChunk" and content and content.text then
-    -- Stream content through adapter's chat_output handler
-    local result = self.adapter.handlers.chat_output(self.adapter, params)
-    if result then
-      self.current_request.callback(nil, result, self.adapter)
-    end
-  elseif session_update == "agentMessageComplete" then
-    -- Message complete - trigger done callback
-    self.session.state = "ready"
-    if self.current_request.done then
-      self.current_request.done()
-    end
-    self.current_request = nil
+    self.job.pending[response.id] = { response.result, nil }
+    log:debug("RPC success for ID %d", response.id)
   end
 end
 
 ---Handle permission requests from agent
----@param id integer
+---@param id integer|nil
 ---@param params table
-function Client:_handle_permission_request(id, params)
+function Client:_permission_request(id, params)
   local tool_call = params.toolCall
   local options = params.options
 
@@ -363,47 +377,15 @@ function Client:_handle_permission_request(id, params)
   -- Send permission response
   local option_id = choice > 0 and option_map[choice] or "cancel"
 
-  self:_rpc_response(id, {
-    optionId = option_id,
-  })
-end
-
----Send JSON-RPC request with callback
----@param method string
----@param params table
----@param callback function
----@return integer|nil
-function Client:_rpc_request(method, params, callback)
-  if not self.job.handle then
-    log:error("ACP client not running")
-    if callback then
-      callback(nil, { message = "Client not running" })
-    end
-    return nil
+  if id then
+    self:_send_response(id, { optionId = option_id })
   end
-
-  local id = self.job.next_id
-  self.job.next_id = id + 1
-  self.job.pending[id] = callback or function() end
-
-  local req = {
-    jsonrpc = "2.0",
-    id = id,
-    method = method,
-    params = params or {},
-  }
-
-  local json_str = self.methods.encode(req) .. "\n"
-  log:trace("Sending request: %s", json_str:gsub("\n", "\\n"))
-
-  self.methods.chansend(self.job.handle, json_str)
-  return id
 end
 
----Send JSON-RPC response (for permission requests)
+---Send JSON-RPC response
 ---@param id integer
 ---@param result table
-function Client:_rpc_response(id, result)
+function Client:_send_response(id, result)
   if not self.job.handle then
     return
   end
@@ -416,17 +398,7 @@ function Client:_rpc_response(id, result)
 
   local json_str = self.methods.encode(response) .. "\n"
   log:trace("Sending response: %s", json_str:gsub("\n", "\\n"))
-
   self.methods.chansend(self.job.handle, json_str)
-end
-
----Cancel current request
-function Client:_cancel_current_request()
-  if self.current_request and self.session.id then
-    self:_rpc_request("session/cancelled", { sessionId = self.session.id }, function() end)
-    self.current_request = nil
-    self.session.state = "ready"
-  end
 end
 
 ---Handle stderr data
@@ -434,72 +406,79 @@ end
 function Client:_handle_stderr(data)
   for _, err in ipairs(data) do
     if err ~= "" then
-      log:warn("ACP stderr (%s): %s", self.adapter.name, err)
+      log:debug("ACP stderr (%s): %s", self.adapter.name, err)
     end
   end
 end
 
----Handle process exit
----@param code integer
-function Client:_handle_exit(code)
-  log:debug("ACP client %s exited with code: %d", self.adapter.name, code)
-
-  -- Fail all pending requests
-  for _, cb in pairs(self.job.pending or {}) do
-    if cb then
-      self.methods.schedule(function()
-        cb(nil, { message = "Process exited with code " .. code })
-      end)
+---Send prompt to the session
+---@param payload table
+---@param actions table
+---@return table job-like object for compatibility
+function Client:request(payload, actions)
+  --TODO: use adapter form_messages handler
+  -- payload = self.client.adapter.handlers.form_messages(payload, opts)
+  local acp_prompt = {}
+  for _, message in ipairs(payload) do
+    if message.role == "user" or message.role == "assistant" then
+      table.insert(acp_prompt, {
+        type = "text",
+        text = message.content,
+      })
     end
   end
 
-  -- Reset state
-  self.job.pending = {}
-  self.job.handle = nil
-  self.session = { id = nil, state = "disconnected" }
+  -- We store the objects on the object so they can be called by the job, later
+  self._callback = actions.callback --[[@type function]]
+  self._done = actions.done --[[@type function]]
 
-  if self.adapter.handlers and self.adapter.handlers.on_exit then
-    self.adapter.handlers.on_exit(self.adapter, code)
+  -- Send prompt (async)
+  local prompt_req = {
+    jsonrpc = "2.0",
+    id = self.job.next_id,
+    method = "session/prompt",
+    params = {
+      sessionId = self.session_id,
+      prompt = acp_prompt,
+    },
+  }
+
+  self.job.next_id = self.job.next_id + 1
+  local json_str = self.methods.encode(prompt_req) .. "\n"
+  log:trace("Sending prompt: %s", json_str:gsub("\n", "\\n"))
+
+  if self.opts and not self.opts.silent then
+    util.fire("RequestStarted", self.opts)
   end
+  self.methods.chansend(self.job.handle, json_str)
+
+  self.state = "prompting"
+
+  -- Return job-like object for compatibility with the http adapter
+  return {
+    shutdown = function()
+      self:shutdown()
+    end,
+  }
 end
 
----Check if the client is running
----@return boolean
-function Client:is_running()
-  return self.job.handle ~= nil
-end
+---Cancel and shutdown the current request
+function Client:shutdown()
+  if self.state == "prompting" then
+    local cancel_req = {
+      jsonrpc = "2.0",
+      id = self.job.next_id,
+      method = "session/cancelled",
+      params = { sessionId = self.session_id },
+    }
 
----Stop the ACP process
----@param client CodeCompanion.ACPClient
----@return boolean success
-function Client.stop(client)
-  if not client or not client.job or not client.job.handle then
-    return false
+    self.job.next_id = self.job.next_id + 1
+    local json_str = self.methods.encode(cancel_req) .. "\n"
+    self.methods.chansend(self.job.handle, json_str)
+
+    self.state = "ready"
+    self._callback = nil
   end
-
-  -- Cancel current request
-  client:_cancel_current_request()
-
-  -- Cancel pending requests
-  for _, cb in pairs(client.job.pending or {}) do
-    if cb then
-      client.methods.schedule(function()
-        cb(nil, { message = "Connection closed" })
-      end)
-    end
-  end
-  client.job.pending = {}
-
-  local success = client.methods.jobstop(client.job.handle) == 1
-  client.job.handle = nil
-  client.job.stdout = ""
-  client.session = { id = nil, state = "disconnected" }
-
-  if client.adapter.handlers and client.adapter.handlers.teardown then
-    client.adapter.handlers.teardown(client.adapter)
-  end
-
-  return success
 end
 
 return Client

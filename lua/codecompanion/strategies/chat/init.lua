@@ -957,48 +957,61 @@ function Chat:_submit_acp(payload)
   local reasoning = {}
   local tools = {}
 
-  self.current_request = get_client(self.adapter).new({ adapter = self.adapter }):request(payload, {
-    ---@param err { message: string, stderr: string }|nil
-    ---@param data table|nil
-    callback = function(err, data)
-      if err then
-        self.status = CONSTANTS.STATUS_ERROR
-        log:error("[chat::init::_submit_acp] ACP Error: %s", err.message or err.stderr or "Unknown error")
-        return self:done(output)
-      end
+  local opts = {
+    id = math.random(10000000),
+    bufnr = self.bufnr,
+    strategy = "chat",
+    adapter = {
+      name = self.adapter.name,
+      formatted_name = self.adapter.formatted_name,
+      model = nil,
+    },
+  }
 
-      if data then
-        local result = self.adapter.handlers.chat_output(self.adapter, data, tools)
-        if result and result.status then
-          self.status = result.status
-          if self.status == CONSTANTS.STATUS_SUCCESS then
-            if result.output.role then
-              self._last_role = result.output.role
-              result.output.role = config.constants.LLM_ROLE
-            end
-            if result.output.reasoning then
-              table.insert(reasoning, result.output.reasoning)
-              self:add_buf_message(
-                { role = result.output.role, content = result.output.reasoning.content },
-                { type = self.MESSAGE_TYPES.REASONING_MESSAGE }
-              )
-            end
+  local client = get_client(self.adapter).new({ adapter = self.adapter, opts = opts, session_id = self.acp_session_id })
+
+  -- Attempt to connect and create or load a session
+  local ok, session_id = pcall(function()
+    return client:connect({ session_id = self.acp_session_id })
+  end)
+  if not ok then
+    self.status = CONSTANTS.STATUS_ERROR
+    return self:done(output)
+  end
+
+  -- Store session ID for future requests
+  if not self.acp_session_id then
+    self.acp_session_id = session_id
+  end
+
+  self.current_request = client:request(payload.messages, {
+    ---@param err { message: string, stderr: string }
+    ---@param data table
+    callback = function(err, data)
+      local result = self.adapter.handlers.chat_output(self.adapter, data)
+
+      if result and result.status then
+        self.status = result.status
+
+        if self.status == CONSTANTS.STATUS_SUCCESS then
+          if result.output.content then
             table.insert(output, result.output.content)
             self:add_buf_message(
-              { role = result.output.role, content = result.output.content },
+              { role = config.constants.LLM_ROLE, content = result.output.content },
               { type = self.MESSAGE_TYPES.LLM_MESSAGE }
             )
-          elseif self.status == CONSTANTS.STATUS_ERROR then
-            log:error("[chat::init::_submit_acp] ACP Error: %s", result.output)
-            return self:done(output)
           end
+        elseif self.status == CONSTANTS.STATUS_ERROR then
+          log:error("[chat::init::_submit_acp] Error: %s", result.output)
+          return self:done(output)
         end
       end
     end,
     done = function()
       self:done(output, reasoning, tools)
     end,
-  }, { bufnr = self.bufnr, strategy = "chat" })
+  })
+  --TODO: Need to ensure we fire an event when a prompt is made
 end
 
 ---Make a request to the LLM using the ACP client
