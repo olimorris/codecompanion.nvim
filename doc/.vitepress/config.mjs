@@ -41,7 +41,7 @@ export default withMermaid(
     head: headers,
     sitemap: { hostname: siteUrl },
     themeConfig: {
-      logo: "https://github.com/user-attachments/assets/dbd85651-cba4-4f60-a4fb-d58d386cc516",
+      logo: "https://github.com/user-attachments/assets/7083eeb1-2f6c-4cf6-82ff-bc3171cab801",
       nav: [
         {
           text: `${version}`,
