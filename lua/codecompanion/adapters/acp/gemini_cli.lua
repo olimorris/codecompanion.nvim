@@ -10,9 +10,7 @@ return {
     user = "user",
   },
   command = {
-    "node",
-    "/Users/Oli/Code/Neovim/gemini-cli/packages/cli",
-    "--experimental-acp",
+    "gemini",
   },
   defaults = {
     auth_method = "gemini-api-key",
@@ -20,7 +18,7 @@ return {
     timeout = 20000, -- 20 seconds
   },
   env = {
-    GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
+    GEMINI_API_KEY = "GEMINI_API_KEY",
   },
   parameters = {
     protocolVersion = 1,
@@ -28,7 +26,7 @@ return {
       fs = { readTextFile = true, writeTextFile = true },
     },
     clientInfo = {
-      name = "CodeCompanion",
+      name = "CodeCompanion.nvim",
       version = "1.0.0",
     },
   },
@@ -52,33 +50,6 @@ return {
           return { type = "text", text = msg.content }
         end)
         :totable()
-    end,
-
-    ---Determine if the stream data is complete.
-    ---@param self CodeCompanion.ACPAdapter
-    ---@param data table
-    ---@return table|nil [status: string, output: table]
-    chat_output = function(self, data)
-      if type(data) ~= "table" then
-        return nil
-      end
-
-      local session_update = data.sessionUpdate
-      local content = data.content
-
-      -- Only process agent message chunks for streaming
-      if session_update ~= "agentMessageChunk" or not content or not content.text then
-        return nil
-      end
-
-      log:debug("Processing chat output: %s", content.text)
-
-      return {
-        status = "success",
-        output = {
-          content = content.text,
-        },
-      }
     end,
 
     ---Function to run when the request has completed. Useful to catch errors
