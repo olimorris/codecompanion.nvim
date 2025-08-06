@@ -87,6 +87,10 @@ function Actions.launch(context, args)
     provider_opts = args.provider.opts or {}
   end
 
+  if config.display.action_palette.opts then
+    provider_opts.prompt = config.display.action_palette.opts.prompt
+  end
+
   return require("codecompanion.providers.actions." .. provider)
     .new({ context = context, validate = Actions.validate, resolve = Actions.resolve })
     :picker(items, provider_opts)
