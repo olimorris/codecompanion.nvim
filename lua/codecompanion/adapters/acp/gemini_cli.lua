@@ -15,8 +15,9 @@ return {
     "--experimental-acp",
   },
   defaults = {
-    timeout = 20000, -- 20 seconds
     auth_method = "gemini-api-key",
+    mcpServers = {},
+    timeout = 20000, -- 20 seconds
   },
   env = {
     GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
@@ -36,6 +37,21 @@ return {
     ---@return boolean
     setup = function(self)
       return true
+    end,
+
+    ---@param self CodeCompanion.ACPAdapter
+    ---@param messages table
+    ---@return table
+    form_messages = function(self, messages)
+      return vim
+        .iter(messages)
+        :filter(function(msg)
+          return msg.role == self.roles.user
+        end)
+        :map(function(msg)
+          return { type = "text", text = msg.content }
+        end)
+        :totable()
     end,
 
     ---Determine if the stream data is complete.

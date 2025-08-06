@@ -957,18 +957,7 @@ function Chat:_submit_acp(payload)
   local reasoning = {}
   local tools = {}
 
-  local opts = {
-    id = math.random(10000000),
-    bufnr = self.bufnr,
-    strategy = "chat",
-    adapter = {
-      name = self.adapter.name,
-      formatted_name = self.adapter.formatted_name,
-      model = nil,
-    },
-  }
-
-  local client = get_client(self.adapter).new({ adapter = self.adapter, opts = opts, session_id = self.acp_session_id })
+  local client = get_client(self.adapter).new({ adapter = self.adapter, session_id = self.acp_session_id })
 
   -- Attempt to connect and create or load a session
   local ok, session_id = pcall(function()
@@ -990,6 +979,10 @@ function Chat:_submit_acp(payload)
     callback = function(err, data)
       local result = self.adapter.handlers.chat_output(self.adapter, data)
 
+      if err then
+        return self:done(output)
+      end
+
       if result and result.status then
         self.status = result.status
 
@@ -1010,8 +1003,7 @@ function Chat:_submit_acp(payload)
     done = function()
       self:done(output, reasoning, tools)
     end,
-  })
-  --TODO: Need to ensure we fire an event when a prompt is made
+  }, { bufnr = self.bufnr, strategy = "chat" })
 end
 
 ---Make a request to the LLM using the ACP client
@@ -1161,8 +1153,9 @@ end
 ---@param output? table The message output from the LLM
 ---@param reasoning? table The reasoning output from the LLM
 ---@param tools? table The tools output from the LLM
+---@param status? "stopped" The reason the done method was called
 ---@return nil
-function Chat:done(output, reasoning, tools)
+function Chat:done(output, reasoning, tools, status)
   self.current_request = nil
 
   -- Commonly, a status may not be set if the message exceeds a token limit
@@ -1397,7 +1390,7 @@ function Chat:stop()
 
   vim.schedule(function()
     log:debug("Chat request cancelled")
-    self:done()
+    self:done(nil, nil, nil, "stopped")
   end)
 end
 
