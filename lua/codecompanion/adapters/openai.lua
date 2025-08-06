@@ -252,13 +252,14 @@ return {
 
       local output = {
         role = delta.role,
-        content = delta.content,
       }
 
       if delta.reasoning then
-        output["reasoning"] = {
+        output.reasoning = {
           content = delta.reasoning,
         }
+      elseif delta.content then
+        output.content = delta.content
       end
 
       return {
