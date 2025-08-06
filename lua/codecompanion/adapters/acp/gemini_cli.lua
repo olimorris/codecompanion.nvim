@@ -41,15 +41,19 @@ return {
     ---@param messages table
     ---@return table
     form_messages = function(self, messages)
-      return vim
+      local message = vim
         .iter(messages)
         :filter(function(msg)
           return msg.role == self.roles.user
         end)
-        :map(function(msg)
-          return { type = "text", text = msg.content }
-        end)
-        :totable()
+        :last()
+
+      return {
+        {
+          type = "text",
+          text = message.content,
+        },
+      }
     end,
 
     ---Function to run when the request has completed. Useful to catch errors

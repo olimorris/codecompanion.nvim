@@ -3,7 +3,7 @@
 --=============================================================================
 
 ---@class CodeCompanion.Chat
----@field acp_session_id? string The ACP session ID which links to this chat buffer
+---@field acp? CodeCompanion.ACPConnection The ACP session ID and connection
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
 ---@field aug number The ID for the autocmd group
@@ -957,22 +957,20 @@ function Chat:_submit_acp(payload)
   local reasoning = {}
   local tools = {}
 
-  local connection = get_client(self.adapter).new({
-    adapter = self.adapter,
-    session_id = self.acp_session_id,
-  })
+  if not self.acp then
+    self.acp = get_client(self.adapter).new({
+      adapter = self.adapter,
+    })
 
-  -- Connect and send prompt with fluent API
-  local connected = connection:connect()
-  if not connected then
-    self.status = CONSTANTS.STATUS_ERROR
-    return self:done(output)
+    -- Connect and send prompt with fluent API
+    local connected = self.acp:connect()
+    if not connected then
+      self.status = CONSTANTS.STATUS_ERROR
+      return self:done(output)
+    end
   end
 
-  -- Store session for future requests
-  self.acp_session_id = connection.session_id
-
-  self.current_request = connection
+  self.current_request = self.acp
     :prompt(payload.messages)
     :on_message_chunk(function(content)
       table.insert(output, content)
