@@ -957,53 +957,53 @@ function Chat:_submit_acp(payload)
   local reasoning = {}
   local tools = {}
 
-  local client = get_client(self.adapter).new({ adapter = self.adapter, session_id = self.acp_session_id })
+  local connection = get_client(self.adapter).new({
+    adapter = self.adapter,
+    session_id = self.acp_session_id,
+  })
 
-  -- Attempt to connect and create or load a session
-  local ok, session_id = pcall(function()
-    return client:connect({ session_id = self.acp_session_id })
-  end)
-  if not ok then
+  -- Connect and send prompt with fluent API
+  local connected = connection:connect()
+  if not connected then
     self.status = CONSTANTS.STATUS_ERROR
     return self:done(output)
   end
 
-  -- Store session ID for future requests
-  if not self.acp_session_id then
-    self.acp_session_id = session_id
-  end
+  -- Store session for future requests
+  self.acp_session_id = connection.session_id
 
-  self.current_request = client:request(payload.messages, {
-    ---@param err { message: string, stderr: string }
-    ---@param data table
-    callback = function(err, data)
-      local result = self.adapter.handlers.chat_output(self.adapter, data)
-
-      if err then
-        return self:done(output)
+  self.current_request = connection
+    :prompt(payload.messages)
+    :on_message_chunk(function(content)
+      table.insert(output, content)
+      self:add_buf_message(
+        { role = config.constants.LLM_ROLE, content = content },
+        { type = self.MESSAGE_TYPES.LLM_MESSAGE }
+      )
+    end)
+    :on_thought_chunk(function(content)
+      table.insert(reasoning, content)
+      self:add_buf_message(
+        { role = config.constants.LLM_ROLE, content = content },
+        { type = self.MESSAGE_TYPES.REASONING_MESSAGE }
+      )
+    end)
+    :on_tool_call(function(tool_call)
+      -- Handle tool call
+    end)
+    :on_complete(function(stop_reason)
+      if not self.status or self.status == "" then
+        self.status = CONSTANTS.STATUS_SUCCESS
       end
-
-      if result and result.status then
-        self.status = result.status
-
-        if self.status == CONSTANTS.STATUS_SUCCESS then
-          if result.output.content then
-            table.insert(output, result.output.content)
-            self:add_buf_message(
-              { role = config.constants.LLM_ROLE, content = result.output.content },
-              { type = self.MESSAGE_TYPES.LLM_MESSAGE }
-            )
-          end
-        elseif self.status == CONSTANTS.STATUS_ERROR then
-          log:error("[chat::init::_submit_acp] Error: %s", result.output)
-          return self:done(output)
-        end
-      end
-    end,
-    done = function()
       self:done(output, reasoning, tools)
-    end,
-  }, { bufnr = self.bufnr, strategy = "chat" })
+    end)
+    :on_error(function(error)
+      self.status = CONSTANTS.STATUS_ERROR
+      log:error("[chat::_submit_acp] Error: %s", error)
+      self:done(output)
+    end)
+    :with_options({ bufnr = self.bufnr, strategy = "chat" })
+    :send()
 end
 
 ---Make a request to the LLM using the ACP client
@@ -1157,6 +1157,7 @@ end
 ---@return nil
 function Chat:done(output, reasoning, tools, status)
   self.current_request = nil
+  print("DONE")
 
   -- Commonly, a status may not be set if the message exceeds a token limit
   if not self.status or self.status == "" then
