@@ -151,7 +151,7 @@ CodeCompanion.chat = function(args)
       if prompt == "add" then
         return CodeCompanion.add(args)
       elseif prompt == "toggle" then
-        return CodeCompanion.toggle()
+        return CodeCompanion.toggle(args.window_opts)
       elseif prompt == "refreshcache" then
         return CodeCompanion.refresh_cache()
       else
@@ -170,6 +170,7 @@ CodeCompanion.chat = function(args)
     buffer_context = context,
     messages = has_messages and messages or nil,
     auto_submit = has_messages,
+    window_opts = args and args.window_opts,
   })
 end
 
@@ -210,12 +211,13 @@ CodeCompanion.cmd = function(args)
 end
 
 ---Toggle the chat buffer
+---@param window_opts? table
 ---@return nil
-CodeCompanion.toggle = function()
+CodeCompanion.toggle = function(window_opts)
   local chat = CodeCompanion.last_chat()
 
   if not chat then
-    return CodeCompanion.chat()
+    return CodeCompanion.chat({ window_opts = window_opts })
   end
 
   if chat.ui:is_visible_non_curtab() then
@@ -226,7 +228,7 @@ CodeCompanion.toggle = function()
 
   chat.buffer_context = context_utils.get(api.nvim_get_current_buf())
   CodeCompanion.close_last_chat()
-  chat.ui:open({ toggled = true })
+  chat.ui:open({ toggled = true, window_opts = window_opts })
 end
 
 ---Make a previously hidden chat buffer, visible again
