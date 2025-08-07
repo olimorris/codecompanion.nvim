@@ -176,6 +176,31 @@ T["OpenAI adapter"]["Streaming"]["can process tools"] = function()
   h.eq(tool_output, tools)
 end
 
+T["OpenAI adapter"]["Streaming"]["can handle reasoning content when streaming"] = function()
+  local output = {
+    content = "",
+    reasoning = {
+      content = "",
+    },
+  }
+
+  local lines = vim.fn.readfile("tests/adapters/stubs/openai_reasoning_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.chat_output(adapter, line)
+    if chat_output then
+      if chat_output.output.reasoning and chat_output.output.reasoning.content then
+        output.reasoning.content = output.reasoning.content .. chat_output.output.reasoning.content
+      end
+      if chat_output.output.content then
+        output.content = output.content .. chat_output.output.content
+      end
+    end
+  end
+
+  h.expect_starts_with("The user is asking me to explain Ruby in two words.", output.reasoning.content)
+  h.eq("Elegant simplicity.", output.content)
+end
+
 T["OpenAI adapter"]["No Streaming"] = new_set({
   hooks = {
     pre_case = function()
