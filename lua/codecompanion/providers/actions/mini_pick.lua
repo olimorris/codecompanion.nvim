@@ -93,6 +93,38 @@ end
 ---@param item table The selected item
 ---@return nil
 function Provider:select(item)
+  -- Handle picker actions (like "Open chats ...")
+  if item.picker then
+    local picker_items = {}
+    local items = item.picker.items()
+
+    for _, picker_item in ipairs(items) do
+      local description = picker_item.description and " - " .. picker_item.description or ""
+      table.insert(picker_items, {
+        text = string.format("%s%s", picker_item.name, description),
+        item = picker_item,
+      })
+    end
+
+    local source = {
+      items = picker_items,
+      name = item.picker.prompt or item.name,
+      choose = function(chosen_item)
+        if chosen_item and chosen_item.item and chosen_item.item.callback then
+          chosen_item.item.callback()
+        end
+        return false -- Close picker
+      end,
+      show = function(buf_id, items_to_show, query)
+        MiniPick.default_show(buf_id, items_to_show, query)
+      end,
+    }
+
+    MiniPick.start({ source = source })
+    return
+  end
+
+  -- Handle normal actions through existing logic
   if self.resolve then
     return self.resolve(item, self.context)
   end
