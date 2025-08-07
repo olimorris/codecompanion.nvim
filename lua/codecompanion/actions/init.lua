@@ -70,7 +70,7 @@ end
 
 ---Launch the action palette
 ---@param context table The buffer context
----@param args? { name: string, opts: table } The provider to use
+---@param args? { provider: {name: string, opts: table } } The provider to use
 ---@return nil
 function Actions.launch(context, args)
   local items = Actions.items(context)
@@ -85,10 +85,6 @@ function Actions.launch(context, args)
   if args and args.provider and args.provider.name then
     provider = args.provider.name
     provider_opts = args.provider.opts or {}
-  end
-
-  if config.display.action_palette.opts then
-    provider_opts.prompt = config.display.action_palette.opts.prompt
   end
 
   return require("codecompanion.providers.actions." .. provider)
