@@ -264,7 +264,7 @@ function Connection:_setup_adapter()
   return adapter
 end
 
----Handle stdout data - JSON-RPC doesn't gurantee message boundaries align
+---Handle stdout data - JSON-RPC doesn't guarantee message boundaries align
 ---with I/O boundaries, so we need to buffer and handle this carefully.
 ---@param data string
 function Connection:_handle_stdout(data)
