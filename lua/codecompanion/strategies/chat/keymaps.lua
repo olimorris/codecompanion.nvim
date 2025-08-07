@@ -555,6 +555,7 @@ M.change_adapter = {
       end
 
       if current_adapter ~= selected_adapter then
+        chat.acp_connection = nil
         chat.adapter = require("codecompanion.adapters").resolve(adapters[selected_adapter])
         util.fire(
           "ChatAdapter",

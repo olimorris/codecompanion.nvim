@@ -41,19 +41,16 @@ return {
     ---@param messages table
     ---@return table
     form_messages = function(self, messages)
-      local message = vim
+      return vim
         .iter(messages)
         :filter(function(msg)
-          return msg.role == self.roles.user
+          -- Ensure we're only sending user messages that Gemini hasn't seen before
+          return msg.role == self.roles.user and not msg._meta.sent
         end)
-        :last()
-
-      return {
-        {
-          type = "text",
-          text = message.content,
-        },
-      }
+        :map(function(msg)
+          return { type = "text", text = msg.content }
+        end)
+        :totable()
     end,
 
     ---Function to run when the request has completed. Useful to catch errors

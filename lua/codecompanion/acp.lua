@@ -303,7 +303,7 @@ function Connection:_handle_message(line)
 
   log:debug("Processing message: %s", message)
 
-  if message.id then
+  if message.id and not message.method then
     self:_handle_response(message)
 
     if message.result == vim.NIL and self._active_prompt then
@@ -583,7 +583,7 @@ function PromptBuilder:_handle_done()
 
   -- Fire request finished event
   if self.options and not self.options.silent then
-    self.options.status = "completed"
+    self.options.status = "success"
     util.fire("RequestFinished", self.options)
   end
 

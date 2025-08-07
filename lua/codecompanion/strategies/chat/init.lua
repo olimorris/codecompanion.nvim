@@ -3,7 +3,7 @@
 --=============================================================================
 
 ---@class CodeCompanion.Chat
----@field acp? CodeCompanion.ACPConnection The ACP session ID and connection
+---@field acp_connection? CodeCompanion.ACPConnection The ACP session ID and connection
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
 ---@field aug number The ID for the autocmd group
@@ -862,6 +862,7 @@ function Chat:add_message(data, opts)
   message.id = make_id(message)
   message.cycle = self.cycle
   message.opts = opts
+  message._meta = {}
   if opts.index then
     table.insert(self.messages, opts.index, message)
   else
@@ -957,20 +958,19 @@ function Chat:_submit_acp(payload)
   local reasoning = {}
   local tools = {}
 
-  if not self.acp then
-    self.acp = get_client(self.adapter).new({
+  if not self.acp_connection then
+    self.acp_connection = get_client(self.adapter).new({
       adapter = self.adapter,
     })
 
-    -- Connect and send prompt with fluent API
-    local connected = self.acp:connect()
+    local connected = self.acp_connection:connect()
     if not connected then
       self.status = CONSTANTS.STATUS_ERROR
       return self:done(output)
     end
   end
 
-  self.current_request = self.acp
+  self.current_request = self.acp_connection
     :prompt(payload.messages)
     :on_message_chunk(function(content)
       table.insert(output, content)
@@ -1147,6 +1147,18 @@ function Chat:tools_done(opts)
   return ready_chat_buffer(self, opts)
 end
 
+---Label messages that have been sent to the LLM, by the user. For adapters that
+---store state on our behalf, this prevents us from sending the same message
+---multiple times.
+---@return nil
+function Chat:label_sent_items()
+  vim.iter(self.messages):each(function(msg)
+    if msg.role == config.constants.USER_ROLE and (msg._meta and not msg._meta.sent) then
+      msg._meta.sent = true
+    end
+  end)
+end
+
 ---Method to call after the response from the LLM is received
 ---@param output? table The message output from the LLM
 ---@param reasoning? table The reasoning output from the LLM
@@ -1155,7 +1167,6 @@ end
 ---@return nil
 function Chat:done(output, reasoning, tools, status)
   self.current_request = nil
-  print("DONE")
 
   -- Commonly, a status may not be set if the message exceeds a token limit
   if not self.status or self.status == "" then
@@ -1183,6 +1194,12 @@ function Chat:done(output, reasoning, tools, status)
       reasoning = reasoning_content,
     })
     reasoning_content = nil
+  end
+
+  -- If a user stops the request, we should be prepared to send the last message
+  -- again as we can't be sure what the LLM had actually received
+  if not status or status ~= "stopped" then
+    self:label_sent_items()
   end
 
   -- Process tools last
