@@ -1021,6 +1021,7 @@ You must create or modify a workspace file through a series of prompts over mult
       opts = {
         show_default_actions = true, -- Show the default actions in the action palette?
         show_default_prompt_library = true, -- Show the default prompt library in the action palette?
+        title = "CodeCompanion actions", -- The title of the action palette
       },
     },
     chat = {

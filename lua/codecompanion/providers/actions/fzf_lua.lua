@@ -1,6 +1,5 @@
-local builtin = require("fzf-lua.previewer.builtin")
+local config = require("codecompanion.config")
 local fzf = require("fzf-lua")
-local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Actions.Provider.FZF: CodeCompanion.SlashCommand.Provider
 ---@field context table
@@ -17,7 +16,7 @@ end
 ---@return nil
 function FZF:picker(items, opts)
   opts = opts or {}
-  opts.prompt = opts.prompt or "CodeCompanion actions"
+  opts.prompt = opts.prompt or config.display.action_palette.opts.title or "CodeCompanion actions"
 
   local item_names = {}
   local name_to_item = {}
