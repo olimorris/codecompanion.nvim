@@ -1,5 +1,22 @@
 # Changelog
 
+## [17.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.12.0...v17.13.0) (2025-08-06)
+
+
+### Features
+
+* **chat:** context can be folded in the chat buffer ([#1911](https://github.com/olimorris/codecompanion.nvim/issues/1911)) ([acfa69b](https://github.com/olimorris/codecompanion.nvim/commit/acfa69b6f712035dfc24c1aa2da3c8e5094e1699))
+* **prompts:** custom intro messages and no user prompt requirements ([#1927](https://github.com/olimorris/codecompanion.nvim/issues/1927)) ([17dc923](https://github.com/olimorris/codecompanion.nvim/commit/17dc923059ec1b793d9f881785571493adfca4de))
+
+
+### Bug Fixes
+
+* **chat:** codeblock formatting in chat buffer ([#1916](https://github.com/olimorris/codecompanion.nvim/issues/1916)) ([3d4d85f](https://github.com/olimorris/codecompanion.nvim/commit/3d4d85f03acc3a31ea2ec9bd34db5194ed7696ff))
+* **inline:** events are fired with the correct names ([#1919](https://github.com/olimorris/codecompanion.nvim/issues/1919)) ([18cf425](https://github.com/olimorris/codecompanion.nvim/commit/18cf425c837d6e3745b4872d5bf48a2be18b414e))
+* **ui:** enable keymaps in debug chat float for easier quitting ([#1923](https://github.com/olimorris/codecompanion.nvim/issues/1923)) ([5e7d451](https://github.com/olimorris/codecompanion.nvim/commit/5e7d451098f61afdb13710844aaf0d83530e4128))
+* **ui:** handle custom winborder characters ([#1915](https://github.com/olimorris/codecompanion.nvim/issues/1915)) ([9e23ef1](https://github.com/olimorris/codecompanion.nvim/commit/9e23ef19429e17d68c0bda28c687b85b6741e666))
+* **ui:** reduce delay in using `gr` to reject diff ([#1917](https://github.com/olimorris/codecompanion.nvim/issues/1917)) ([55c29d9](https://github.com/olimorris/codecompanion.nvim/commit/55c29d920380c5a83ca00902dd5d3c3dd22a9211))
+
 ## [17.12.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.11.0...v17.12.0) (2025-07-29)
 
 
