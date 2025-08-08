@@ -465,7 +465,7 @@ function Inline:done(output)
   end
 
   vim.schedule(function()
-    local original_content = api.nvim_buf_get_lines(self.context.bufnr, 0, -1, true)
+    local original_content = api.nvim_buf_get_lines(self.buffer_context.bufnr, 0, -1, true)
     log:debug("[Inline] Captured %d lines of original content", #original_content)
     self:place(placement)
     pcall(vim.cmd.undojoin)
