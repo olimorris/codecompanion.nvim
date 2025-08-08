@@ -22,8 +22,6 @@ M.accept_change = {
       log:trace("[Inline] Accepting diff for id=%s", tostring(inline.id))
       inline.diff:accept()
       clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
-    else
-      log:warn("[Inline] No diff found to accept")
     end
   end,
 }
@@ -32,11 +30,9 @@ M.reject_change = {
   desc = "Reject the change from the LLM",
   callback = function(inline)
     if inline.diff then
-      log:trace("[Inline] Rejecting diff for id=%s", tostring(inline.id))
+      log:trace("[Inline] Rejecting diff for id=%d", tostring(inline.id))
       inline.diff:reject()
       clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
-    else
-      log:warn("[Inline] No diff found to reject")
     end
   end,
 }

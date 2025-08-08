@@ -1,8 +1,11 @@
-local api = vim.api
 local Path = require("plenary.path")
 local diff_utils = require("codecompanion.providers.diff.utils")
 local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 local log = require("codecompanion.utils.log")
+local utils = require("codecompanion.utils")
+
+local api = vim.api
+local fmt = string.format
 
 local M = {}
 
@@ -118,8 +121,8 @@ local function generate_markdown_super_diff(tracked_files)
         table.insert(tool_names, op.tool_name)
       end
     end
-    local header = string.format("## %s", display_name)
-    local stats_line = string.format(
+    local header = fmt("## %s", display_name)
+    local stats_line = fmt(
       "*%d edits by %s: %d ✔️accepted, %d ❌ rejected*",
       #file_data.operations,
       table.concat(tool_names, ", "),
@@ -137,7 +140,6 @@ local function generate_markdown_super_diff(tracked_files)
       -- Get the earliest original content and determine final content
       local earliest_original = nil
       local final_content = nil
-      local earliest_time = math.huge
       -- Sort operations by timestamp to get correct sequence
       local sorted_operations = vim.deepcopy(file_data.operations)
       table.sort(sorted_operations, function(a, b)
@@ -167,10 +169,10 @@ local function generate_markdown_super_diff(tracked_files)
           local lang = tracked_file.filepath and get_file_extension(tracked_file.filepath) or "text"
           -- Show tool operations summary
           table.insert(lines, "**Operations:**")
-          for i, operation in ipairs(file_data.operations) do
+          for _, operation in ipairs(file_data.operations) do
             local status_icon, _ = get_status_indicator(operation.status)
             local timestamp_str = format_timestamp(operation.timestamp)
-            local summary = string.format(
+            local summary = fmt(
               "- %s %s by %s at %s",
               status_icon,
               operation.status == "rejected" and "REJECTED" or "ACCEPTED",
@@ -191,7 +193,7 @@ local function generate_markdown_super_diff(tracked_files)
           local buffer_line = code_content_start
           for hunk_idx, hunk in ipairs(hunks) do
             -- Add a line number indicator for context
-            local line_indicator = string.format("@@ Line %d @@", hunk.old_start)
+            local line_indicator = fmt("@@ Line %d @@", hunk.old_start)
             table.insert(lines, line_indicator)
             buffer_line = buffer_line + 1
             -- Add removed lines with - prefix
@@ -306,8 +308,7 @@ end
 function M.show_super_diff(chat)
   local tracked_files = edit_tracker.get_tracked_edits(chat)
   if vim.tbl_isempty(tracked_files) then
-    vim.notify("No edits to show in this chat session", vim.log.levels.INFO, { title = "CodeCompanion" })
-    return
+    return utils.notify("No edits to show in this chat session")
   end
   -- Get comprehensive stats
   local stats = edit_tracker.get_edit_stats(chat)
@@ -316,7 +317,7 @@ function M.show_super_diff(chat)
   local ui = require("codecompanion.utils.ui")
   -- Simplify stats - treat pending as accepted
   local simplified_accepted = stats.accepted_operations + stats.pending_operations
-  local title = string.format(
+  local title = fmt(
     "Super Diff - Chat %d (%d files, %d operations: %d ✔️ %d  )",
     chat.id,
     stats.total_files,
@@ -388,9 +389,9 @@ function M.setup_keymaps(bufnr, chat, file_sections, ns_id)
     end
     cleanup()
     if total_count > 0 then
-      vim.notify(string.format("✔️Accepted all changes (%d operations)", total_count, { title = "CodeCompanion" }))
+      utils.notify(fmt("✔️Accepted all changes (%d operations)", total_count))
     else
-      vim.notify("No changes to accept", vim.log.levels.INFO, { title = "CodeCompanion" })
+      utils.notify("No changes to accept")
     end
     api.nvim_buf_delete(bufnr, { force = true })
   end
@@ -428,12 +429,9 @@ function M.setup_keymaps(bufnr, chat, file_sections, ns_id)
     end
     cleanup()
     if pending_count > 0 then
-      vim.notify(
-        string.format(" Rejected all pending changes and reverted content (%d operations)", pending_count),
-        { title = "CodeCompanion" }
-      )
+      utils.notify(fmt(" Rejected all pending changes and reverted content (%d operations)", pending_count))
     else
-      vim.notify("No pending changes to reject", vim.log.levels.INFO, { title = "CodeCompanion" })
+      utils.notify("No pending changes to reject")
     end
     api.nvim_buf_delete(bufnr, { force = true })
   end
