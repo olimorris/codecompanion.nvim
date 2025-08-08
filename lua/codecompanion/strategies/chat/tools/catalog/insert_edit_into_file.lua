@@ -347,16 +347,8 @@ return {
 
     ---@param tools CodeCompanion.Tools The tool object
     ---@return nil
-<<<<<<< HEAD:lua/codecompanion/strategies/chat/tools/catalog/insert_edit_into_file.lua
     on_exit = function(tools)
       log:trace("[Insert Edit Into File Tool] on_exit handler executed")
-||||||| parent of f2e2cdc0 (fix(diff): improve integration of diff with tools):lua/codecompanion/strategies/chat/agents/tools/insert_edit_into_file.lua
-    on_exit = function(agent)
-      log:trace("[Insert Edit Into File Tool] on_exit handler executed")
-=======
-    on_exit = function(agent)
-      log:trace("[InsertEdit] Tool on_exit handler executed")
->>>>>>> f2e2cdc0 (fix(diff): improve integration of diff with tools):lua/codecompanion/strategies/chat/agents/tools/insert_edit_into_file.lua
     end,
   },
   output = {
