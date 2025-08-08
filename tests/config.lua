@@ -211,6 +211,10 @@ return {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/tool_group_tool.lua",
           description = "Tool group extended",
         },
+        ["fast_apply"] = {
+          callback = "strategies.chat.tools.catalog.fast_apply",
+          description = "Apply code changes to a file using the morphllm for fast code modifications",
+        },
         groups = {
           ["tool_group"] = {
             description = "Tool Group",

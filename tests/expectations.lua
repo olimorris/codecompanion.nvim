@@ -51,6 +51,12 @@ end, function(pattern, str)
   return string.format("\nExpected string to contain:\n%s\n\nObserved string:\n%s", vim.inspect(pattern), str)
 end)
 
+H.not_expect_contains = MiniTest.new_expectation("string does not contain", function(pattern, str)
+  return str:find(pattern, 1, true) == nil
+end, function(pattern, str)
+  return string.format("\nExpected string to NOT contain:\n%s\n\nObserved string:\n%s", vim.inspect(pattern), str)
+end)
+
 --[[@type function]]
 H.expect_match = MiniTest.new_expectation("string matching", function(str, pattern)
   return str:find(pattern) ~= nil

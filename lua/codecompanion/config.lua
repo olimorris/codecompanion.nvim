@@ -172,6 +172,15 @@ local defaults = {
           callback = "strategies.chat.tools.catalog.list_code_usages",
           description = "Find code symbol context",
         },
+        ["fast_apply"] = {
+          callback = "strategies.chat.tools.catalog.fast_apply",
+          description = "Apply code changes to a file using morphllm for fast code modifications",
+          opts = {
+            adapter = "openai_compatible",
+            model = "morph-v3-large",
+            url = "https://api.morphllm.com/v1",
+          },
+        },
         opts = {
           auto_submit_errors = false, -- Send any errors to the LLM automatically?
           auto_submit_success = true, -- Send any successful output to the LLM automatically?
