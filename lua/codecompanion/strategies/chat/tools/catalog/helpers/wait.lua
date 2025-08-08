@@ -17,7 +17,7 @@ function M.for_decision(id, events, callback, opts)
   -- Auto-approve if in auto mode
   -- Generally, most tools will avoid us reaching this point, but it's a good fallback
   if vim.g.codecompanion_auto_tool_mode then
-    return callback({ accepted = true })
+    return callback({ accepted = true, auto_approved = true })
   end
 
   local aug = api.nvim_create_augroup("codecompanion.agent.tools.wait_" .. tostring(id), { clear = true })
