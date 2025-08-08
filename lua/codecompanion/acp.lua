@@ -16,6 +16,10 @@ local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
+--=============================================================================
+-- ACP Connection Class - Handles the connection to ACP agents
+--=============================================================================
+
 ---@class CodeCompanion.ACPConnection
 ---@field adapter CodeCompanion.ACPAdapter
 ---@field process {handle: table, next_id: integer, stdout_buffer: string}
@@ -96,7 +100,6 @@ function Connection:connect()
 
   local adapter = self:_setup_adapter()
 
-  -- Initialize if needed
   if not self._initialized then
     local initialized = self:_send_request("initialize", adapter.parameters)
     if not initialized then
@@ -107,7 +110,6 @@ function Connection:connect()
     log:debug("[acp::connect] ACP connection initialized")
   end
 
-  -- Authenticate if needed
   if not self._authenticated then
     local authenticated = self:_send_request("authenticate", {
       methodId = adapter.defaults.auth_method,
@@ -120,8 +122,6 @@ function Connection:connect()
     log:debug("[acp::connect] Connection authenticated")
   end
 
-  -- Always create new session
-  -- NOTE: Check with the Zed team about this
   local new_session = self:_send_request("session/new", {
     cwd = vim.fn.getcwd(),
     mcpServers = adapter.defaults.mcpServers or {},
@@ -328,7 +328,7 @@ function Connection:_handle_response(response)
   self.pending_responses[response.id] = { response.result, nil }
 end
 
----Handle notification from server
+---Handle notifications from the ACP process
 ---@param notification? table
 function Connection:_handle_notification(notification)
   if not notification then
@@ -344,7 +344,7 @@ function Connection:_handle_notification(notification)
   end
 end
 
----Send data to process
+---Send data to the ACP process
 ---@param data string
 ---@return boolean
 function Connection:_send_data(data)
@@ -401,14 +401,20 @@ function Connection:_handle_permission_request(id, params)
   local options = params.options
   local tool_call = params.toolCall
 
-  log:debug("[acp::_handle_permission_request] Tool: %s, Options: %s", tool_call.toolCallId, options)
-
   local choices = {}
   local choices_map = {}
+  local nvim_choices = {
+    ["allow_always"] = "1 Allow always",
+    ["allow_once"] = "2 Allow once",
+    ["reject_once"] = "3 Reject",
+    ["reject_always"] = "4 Reject always",
+  }
+
+  log:debug("[acp::_handle_permission_request] Tool: %s, Options: %s", tool_call.toolCallId, options)
 
   -- Format the options ready for the confirm dialog
   for i, option in ipairs(options) do
-    table.insert(choices, "&" .. option.name)
+    table.insert(choices, "&" .. nvim_choices[option.kind])
     choices_map[i] = option.optionId
   end
 
