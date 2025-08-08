@@ -72,7 +72,7 @@ end
 function Connection.new(args)
   args = args or {}
 
-  return setmetatable({
+  local self = setmetatable({
     adapter = args.adapter,
     process = { handle = nil, next_id = 1, stdout_buffer = "" },
     pending_responses = {},
@@ -80,7 +80,9 @@ function Connection.new(args)
     methods = transform_static_methods(args.opts),
     _initialized = false,
     _authenticated = false,
-  }, { __index = Connection })
+  }, { __index = Connection }) ---@cast self CodeCompanion.ACPConnection
+
+  return self
 end
 
 ---Connect to ACP process and establish session
@@ -102,7 +104,7 @@ function Connection:connect()
       return nil
     end
     self._initialized = true
-    log:debug("ACP connection initialized")
+    log:debug("[acp::connect] ACP connection initialized")
   end
 
   -- Authenticate if needed
@@ -115,7 +117,7 @@ function Connection:connect()
       return nil
     end
     self._authenticated = true
-    log:debug("ACP connection authenticated")
+    log:debug("[acp::connect] Connection authenticated")
   end
 
   -- Always create new session
@@ -141,7 +143,7 @@ end
 ---@return CodeCompanion.ACPPromptBuilder
 function Connection:prompt(messages)
   if not self.session_id then
-    return log:error("Connection not established. Call connect() first.")
+    return log:error("[acp::prompt] Connection not established. Call connect() first.")
   end
   return PromptBuilder.new(self, messages)
 end
@@ -297,22 +299,18 @@ end
 function Connection:_handle_message(line)
   local ok, message = pcall(self.methods.decode, line)
   if not ok then
-    log:error("[acp::_handle_message] Invalid JSON: %s", line)
-    return
+    return log:error("[acp::_handle_message] Invalid JSON: %s", line)
   end
-
-  log:debug("Processing message: %s", message)
 
   if message.id and not message.method then
     self:_handle_response(message)
-
-    if message.result == vim.NIL and self._active_prompt then
+    if message.result ~= vim.NIL and message.result.stopReason then
       self._active_prompt:_handle_done()
     end
   elseif message.method then
     self:_handle_notification(message)
   else
-    log:error("Invalid message format")
+    log:error("[acp::_handle_message] Invalid message format: %s", message)
   end
 
   if message.error then
@@ -338,9 +336,11 @@ function Connection:_handle_notification(notification)
   end
 
   if notification.method == "session/update" and self._active_prompt then
-    self._active_prompt:_handle_session_update(notification.params)
+    self._active_prompt:_handle_session_update(notification.params.update)
   elseif notification.method == "session/request_permission" then
     self:_handle_permission_request(notification.id, notification.params)
+  else
+    log:debug("[acp::_handle_notification] Unhandled notification method: %s", notification.method)
   end
 end
 
@@ -349,16 +349,17 @@ end
 ---@return boolean
 function Connection:_send_data(data)
   if not self.process.handle then
-    log:error("Process not running")
+    log:error("[acp::_send_data] Process not running")
     return false
   end
 
   local ok, err = pcall(function()
+    log:debug("[acp::_send_data] Sending data: %s", data)
     self.process.handle:write(data)
   end)
 
   if not ok then
-    log:error("Failed to send data: %s", err)
+    log:error("[acp::_send_data] Failed to send data: %s", err)
     return false
   end
 
@@ -371,7 +372,7 @@ function Connection:_handle_stderr(data)
   if data and data ~= "" then
     for line in data:gmatch("[^\r\n]+") do
       if line ~= "" then
-        log:debug("ACP stderr: %s", line)
+        log:debug("[acp::_handle_stderr] Stderr: %s", line)
       end
     end
   end
@@ -381,7 +382,7 @@ end
 ---@param code integer
 ---@param signal integer
 function Connection:_handle_exit(code, signal)
-  log:debug("ACP process exited: code=%d, signal=%d", code, signal or 0)
+  log:debug("[acp::_handle_exit] Process exited: code=%d, signal=%d", code, signal or 0)
 
   self.process.handle = nil
   self.process.stdout_buffer = ""
@@ -397,42 +398,59 @@ end
 ---@param id integer
 ---@param params table
 function Connection:_handle_permission_request(id, params)
-  local tool_call = params.toolCall
   local options = params.options
+  local tool_call = params.toolCall
+
+  log:debug("[acp::_handle_permission_request] Tool: %s, Options: %s", tool_call.toolCallId, options)
 
   local choices = {}
-  local option_map = {}
+  local choices_map = {}
 
+  -- Format the options ready for the confirm dialog
   for i, option in ipairs(options) do
     table.insert(choices, "&" .. option.name)
-    option_map[i] = option.optionId
+    choices_map[i] = option.optionId
   end
 
   local choice_str = table.concat(choices, "\n")
-  local choice = self.methods.confirm(string.format("Tool Permission:\n%s", tool_call.title), choice_str, 1, "Question")
+  local choice = self.methods.confirm(
+    string.format([[%s: %s ?]], util.capitalize(tool_call.kind), tool_call.title),
+    choice_str,
+    2, -- Default to allow once
+    "Question"
+  )
 
-  local response = {
-    outcome = choice > 0 and {
-      outcome = "selected",
-      optionId = option_map[choice],
-    } or {
-      outcome = "cancelled",
-    },
-  }
-
-  if id then
-    local response_msg = {
-      jsonrpc = "2.0",
-      id = id,
-      result = response,
-    }
-    local json_str = self.methods.encode(response_msg) .. "\n"
-    self:_send_data(json_str)
+  if not id then
+    return log:error("[acp::_handle_permission_request] No ID provided for permission response")
   end
+
+  local response
+  if choice > 0 and choices_map[choice] then
+    response = {
+      outcome = {
+        outcome = "selected",
+        optionId = choices_map[choice],
+      },
+    }
+  else
+    response = {
+      outcome = {
+        outcome = "cancelled",
+      },
+    }
+  end
+
+  local response_msg = {
+    jsonrpc = "2.0",
+    id = id,
+    result = response,
+  }
+  local json_str = self.methods.encode(response_msg) .. "\n"
+  self:_send_data(json_str)
 end
 
 --=============================================================================
--- PromptBuilder - Fluent API for building prompts
+-- PromptBuilder - Build the prompt which goes to the agent
 --=============================================================================
 
 ---Create new prompt builder
@@ -440,13 +458,15 @@ end
 ---@param messages table
 ---@return CodeCompanion.ACPPromptBuilder
 function PromptBuilder.new(connection, messages)
-  return setmetatable({
+  local self = setmetatable({
     connection = connection,
-    messages = connection.adapter.handlers.form_messages(connection.adapter, messages),
     handlers = {},
+    messages = connection.adapter.handlers.form_messages(connection.adapter, messages),
     options = {},
     _sent = false,
-  }, { __index = PromptBuilder })
+  }, { __index = PromptBuilder }) ---@cast self CodeCompanion.ACPPromptBuilder
+
+  return self
 end
 
 ---Set handler for agent message chunks
@@ -559,15 +579,23 @@ function PromptBuilder:_handle_session_update(params)
     end
   end
 
-  if params.sessionUpdate == "agentMessageChunk" then
+  log:debug("Session update received: %s", params)
+
+  if params.sessionUpdate == "agent_message_chunk" then
     if self.handlers.message_chunk then
       self.handlers.message_chunk(params.content.text)
     end
-  elseif params.sessionUpdate == "agentThoughtChunk" then
+  elseif params.sessionUpdate == "agent_thought_chunk" then
     if self.handlers.thought_chunk then
       self.handlers.thought_chunk(params.content.text)
     end
-  elseif params.sessionUpdate == "toolCall" then
+  elseif params.sessionUpdate == "tool_call" then
+    log:debug("Tool call started: %s", params.toolCallId)
+    if self.handlers.tool_call then
+      self.handlers.tool_call(params)
+    end
+  elseif params.sessionUpdate == "tool_call_update" then
+    log:debug("Tool call updated: %s (status: %s)", params.toolCallId, params.status)
     if self.handlers.tool_call then
       self.handlers.tool_call(params)
     end
