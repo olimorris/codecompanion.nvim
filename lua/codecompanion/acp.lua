@@ -304,7 +304,7 @@ function Connection:_handle_message(line)
 
   if message.id and not message.method then
     self:_handle_response(message)
-    if message.result ~= vim.NIL and message.result.stopReason then
+    if message.result and message.result ~= vim.NIL and message.result.stopReason then
       self._active_prompt:_handle_done()
     end
   elseif message.method then
@@ -335,8 +335,10 @@ function Connection:_handle_notification(notification)
     return self._active_prompt:_handle_done()
   end
 
-  if notification.method == "session/update" and self._active_prompt then
-    self._active_prompt:_handle_session_update(notification.params.update)
+  if notification.method == "session/update" then
+    if self._active_prompt then
+      self._active_prompt:_handle_session_update(notification.params.update)
+    end
   elseif notification.method == "session/request_permission" then
     self:_handle_permission_request(notification.id, notification.params)
   else
@@ -403,7 +405,7 @@ function Connection:_handle_permission_request(id, params)
 
   local choices = {}
   local choices_map = {}
-  local nvim_choices = {
+  local nvim_labels = {
     ["allow_always"] = "1 Allow always",
     ["allow_once"] = "2 Allow once",
     ["reject_once"] = "3 Reject",
@@ -414,7 +416,7 @@ function Connection:_handle_permission_request(id, params)
 
   -- Format the options ready for the confirm dialog
   for i, option in ipairs(options) do
-    table.insert(choices, "&" .. nvim_choices[option.kind])
+    table.insert(choices, "&" .. nvim_labels[option.kind])
     choices_map[i] = option.optionId
   end
 
@@ -631,7 +633,7 @@ function PromptBuilder:cancel()
     local cancel_req = {
       jsonrpc = "2.0",
       id = self.connection.process.next_id,
-      method = "session/cancelled",
+      method = "session/cancel",
       params = { sessionId = self.connection.session_id },
     }
 
