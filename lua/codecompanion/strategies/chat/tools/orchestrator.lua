@@ -269,6 +269,11 @@ function Orchestrator:error(action, error)
   log:debug("Orchestrator:error")
   self.tools.status = self.tools.constants.STATUS_ERROR
   table.insert(self.tools.stderr, error)
+  -- Finish tool monitoring with error status
+  if self.tool and self.tool.name then
+    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+    edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, false)
+  end
   self.output.error(action)
   self:setup()
 end
@@ -280,6 +285,11 @@ end
 function Orchestrator:success(action, output)
   log:debug("Orchestrator:success")
   self.tools.status = self.tools.constants.STATUS_SUCCESS
+  -- Direct call to finish tool monitoring
+  if self.tool and self.tool.name then
+    local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+    edit_tracker.finish_tool_monitoring(self.tool.name, self.tools.chat, true)
+  end
   if output then
     table.insert(self.tools.stdout, output)
   end
