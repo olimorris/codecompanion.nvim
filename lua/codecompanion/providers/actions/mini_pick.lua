@@ -50,12 +50,7 @@ function Provider:picker(items, opts)
 
         -- Switch to target window and perform selection
         vim.api.nvim_win_call(win_target, function()
-          if provider.resolve then
-            -- Try direct resolution if select fails
-            provider.resolve(chosen_item.item, provider.context)
-          else
-            provider:select(chosen_item.item)
-          end
+          provider:select(chosen_item.item)
           MiniPick.set_picker_target_window(vim.api.nvim_get_current_win())
         end)
         return false -- Close picker after selection
@@ -111,7 +106,17 @@ function Provider:select(item)
       name = item.picker.prompt or item.name,
       choose = function(chosen_item)
         if chosen_item and chosen_item.item and chosen_item.item.callback then
-          chosen_item.item.callback()
+          -- Get the target window before closing the picker
+          local win_target = MiniPick.get_picker_state().windows.target
+          if not vim.api.nvim_win_is_valid(win_target) then
+            win_target = vim.api.nvim_get_current_win()
+          end
+
+          -- Switch to target window and perform callback
+          vim.api.nvim_win_call(win_target, function()
+            chosen_item.item.callback()
+            MiniPick.set_picker_target_window(vim.api.nvim_get_current_win())
+          end)
         end
         return false -- Close picker
       end,
