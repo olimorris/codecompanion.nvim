@@ -338,6 +338,34 @@ function EditTracker.handle_chat_close(chat)
   end
 end
 
+---Validate and normalize a filepath from tool args
+---@param filepath string Raw filepath from tool args
+---@return string|nil normalized_path Returns nil if path is invalid
+local function validate_and_normalize_filepath(filepath)
+  local stat = vim.uv.fs_stat(filepath)
+  if stat then
+    return vim.fs.normalize(filepath)
+  end
+  local abs_path = vim.fs.abspath(filepath)
+  local normalized_path = vim.fs.normalize(abs_path)
+  stat = vim.uv.fs_stat(normalized_path)
+  if stat then
+    return normalized_path
+  end
+  -- Check for duplicate CWD and fix it
+  local cwd = vim.uv.cwd()
+  if normalized_path:find(cwd, 1, true) and normalized_path:find(cwd, #cwd + 2, true) then
+    local fixed_path = normalized_path:gsub("^" .. vim.pesc(cwd) .. "/", "")
+    fixed_path = vim.fs.normalize(fixed_path)
+    stat = vim.uv.fs_stat(fixed_path)
+    if stat then
+      return fixed_path
+    end
+  end
+
+  return nil
+end
+
 ---Start monitoring a tool execution
 ---@param tool_name string Name of the tool being executed
 ---@param chat CodeCompanion.Chat Chat instance
@@ -353,48 +381,49 @@ function EditTracker.start_tool_monitoring(tool_name, chat, tool_args)
   local target_files = {}
   local buffer_snapshots = {}
   if tool_args and tool_args.filepath then
-    local filepath = vim.fs.joinpath(vim.fn.getcwd(), tool_args.filepath)
-    filepath = vim.fs.normalize(filepath)
+    log:debug("[Edit Tracker] Tool args provided, file path is: %s", tool_args.filepath)
+    local filepath = validate_and_normalize_filepath(tool_args.filepath)
 
-    log:debug("[Edit Tracker] Target file from args: %s", filepath)
-    local bufnr = vim.fn.bufnr(filepath)
-    if bufnr ~= -1 and api.nvim_buf_is_loaded(bufnr) then
-      local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
-      buffer_snapshots[filepath] = {
-        bufnr = bufnr,
-        content = vim.deepcopy(content),
-        lines_count = #content,
-      }
-      log:debug("[Edit Tracker] Monitoring target buffer %d: %s (%d lines)", bufnr, filepath, #content)
-    elseif vim.fn.filereadable(filepath) == 1 then
-      local content = vim.fn.readfile(filepath)
-      target_files[filepath] = {
-        content = vim.deepcopy(content),
-        lines_count = #content,
-      }
-      log:debug("[Edit Tracker] Monitoring target file: %s (%d lines)", filepath, #content)
+    if filepath then
+      log:debug("[Edit Tracker] Target file from args: %s", filepath)
+      local bufnr = vim.fn.bufnr(filepath)
+      if bufnr ~= -1 and api.nvim_buf_is_loaded(bufnr) then
+        local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+        buffer_snapshots[filepath] = {
+          bufnr = bufnr,
+          content = vim.deepcopy(content),
+          lines_count = #content,
+        }
+        log:debug("[Edit Tracker] Monitoring target buffer %d: %s (%d lines)", bufnr, filepath, #content)
+      elseif vim.fn.filereadable(filepath) == 1 then
+        local content = vim.fn.readfile(filepath)
+        target_files[filepath] = {
+          content = vim.deepcopy(content),
+          lines_count = #content,
+        }
+        log:debug("[Edit Tracker] Monitoring target file: %s (%d lines)", filepath, #content)
+      else
+        target_files[filepath] = {
+          content = {},
+          lines_count = 0,
+        }
+        log:debug("[Edit Tracker] Monitoring non-existent target file: %s (will be created)", filepath)
+      end
     else
-      -- File doesn't exist yet (e.g., create_file tool)
-      target_files[filepath] = {
-        content = {},
-        lines_count = 0,
-      }
-      log:debug("[Edit Tracker] Monitoring non-existent target file: %s (will be created)", filepath)
-    end
-  else
-    -- Fallback: monitor all loaded buffers if no specific target
-    log:debug("[Edit Tracker] No target filepath in args, monitoring all loaded buffers")
-    for _, bufnr in ipairs(api.nvim_list_bufs()) do
-      if api.nvim_buf_is_loaded(bufnr) and api.nvim_buf_is_valid(bufnr) then
-        local filepath = api.nvim_buf_get_name(bufnr)
-        if filepath ~= "" and vim.fn.filereadable(filepath) == 1 then
-          local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
-          buffer_snapshots[filepath] = {
-            bufnr = bufnr,
-            content = vim.deepcopy(content),
-            lines_count = #content,
-          }
-          log:trace("[Edit Tracker] Monitoring buffer %d: %s (%d lines)", bufnr, filepath, #content)
+      -- Fallback: monitor all loaded buffers if no specific target
+      log:debug("[Edit Tracker] No target filepath in args, monitoring all loaded buffers")
+      for _, bufnr in ipairs(api.nvim_list_bufs()) do
+        if api.nvim_buf_is_loaded(bufnr) and api.nvim_buf_is_valid(bufnr) then
+          filepath = api.nvim_buf_get_name(bufnr)
+          if filepath ~= "" and vim.fn.filereadable(filepath) == 1 then
+            local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+            buffer_snapshots[filepath] = {
+              bufnr = bufnr,
+              content = vim.deepcopy(content),
+              lines_count = #content,
+            }
+            log:trace("[Edit Tracker] Monitoring buffer %d: %s (%d lines)", bufnr, filepath, #content)
+          end
         end
       end
     end
