@@ -111,6 +111,7 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
       local extmark_id = api.nvim_buf_set_extmark(bufnr, ns_id, attach_line, 0, {
         virt_lines = virt_lines,
         virt_lines_above = true,
+        virt_lines_overflow = "scroll",
         priority = 100,
         sign_text = "▌",
         sign_hl_group = sign_hl,
