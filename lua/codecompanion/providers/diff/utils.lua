@@ -1,10 +1,11 @@
-local api = vim.api
 local log = require("codecompanion.utils.log")
 
----@class CodeCompanion.DiffUtils
+local api = vim.api
+
+---@class CodeCompanion.Diff.Utils
 local M = {}
 
----@class DiffHunk
+---@class CodeCompanion.Diff.Utils.DiffHunk
 ---@field old_start integer
 ---@field old_count integer
 ---@field new_start integer
@@ -18,7 +19,7 @@ local M = {}
 ---@param old_lines string[] Original content
 ---@param new_lines string[] New content
 ---@param context_lines? integer Number of context lines (default: 3)
----@return DiffHunk[] hunks
+---@return CodeCompanion.Diff.Utils.DiffHunk[] hunks
 function M.calculate_hunks(old_lines, new_lines, context_lines)
   context_lines = context_lines or 3
   local diff_fn = vim.text.diff or vim.diff
@@ -81,7 +82,7 @@ end
 
 ---Apply visual highlights to hunks in a buffer with sign column indicators
 ---@param bufnr integer Buffer to apply highlights to
----@param hunks DiffHunk[] Hunks to highlight
+---@param hunks CodeCompanion.Diff.Utils.DiffHunk[] Hunks to highlight
 ---@param ns_id integer Namespace for extmarks
 ---@param line_offset? integer Line offset (default: 0)
 ---@param opts? table Options: {show_removed: boolean, full_width_removed: boolean, status: string}
@@ -116,7 +117,7 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
       })
       table.insert(extmark_ids, extmark_id)
       log:debug(
-        "[DiffUtils] Added %d removed lines as virtual text at line %d with %s sign",
+        "[providers::diff::utils::apply_hunk_highlights] Added %d removed lines as virtual text at line %d with %s sign",
         #hunk.old_lines,
         attach_line,
         sign_hl
@@ -139,12 +140,17 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
           sign_hl_group = sign_hl,
         })
         table.insert(extmark_ids, extmark_id)
-        log:debug("[DiffUtils] Added %s highlight at line %d with %s sign", line_hl, line_idx, sign_hl)
+        log:debug(
+          "[providers::diff::utils::apply_hunk_highlights] Added %s highlight at line %d with %s sign",
+          line_hl,
+          line_idx,
+          sign_hl
+        )
       end
     end
   end
 
-  log:debug("[DiffUtils] Applied %d total extmarks", #extmark_ids)
+  log:debug("[providers::diff::utils::apply_hunk_highlights] Applied %d total extmarks", #extmark_ids)
   return extmark_ids
 end
 
@@ -184,7 +190,7 @@ function M.contents_equal(content1, content2)
 end
 
 ---Create a unified diff display combining multiple hunks
----@param hunks DiffHunk[] Hunks to display
+---@param hunks CodeCompanion.Diff.Utils.DiffHunk[] Hunks to display
 ---@param opts? table Options for diff display
 ---@return string[] lines, table ranges Line content and highlighting ranges
 function M.create_unified_diff_display(hunks, opts)

@@ -162,7 +162,7 @@ T["for_decision()"]["cleans up autocmds after decision"] = function()
   local augroups_before = child.lua([[
     local groups = {}
     for _, group in ipairs(vim.api.nvim_get_autocmds({})) do
-      if group.group_name and group.group_name:match("codecompanion.agent.tools.wait_") then
+      if group.group_name and group.group_name:match("codecompanion.tools.wait_") then
         table.insert(groups, group.group_name)
       end
     end

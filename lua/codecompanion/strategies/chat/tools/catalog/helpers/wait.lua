@@ -20,7 +20,7 @@ function M.for_decision(id, events, callback, opts)
     return callback({ accepted = true, auto_approved = true })
   end
 
-  local aug = api.nvim_create_augroup("codecompanion.agent.tools.wait_" .. tostring(id), { clear = true })
+  local aug = api.nvim_create_augroup("codecompanion.tools.wait_" .. tostring(id), { clear = true })
   local decision_made = false
 
   -- Show waiting indicator in the chat buffer
@@ -29,9 +29,11 @@ function M.for_decision(id, events, callback, opts)
     chat_extmark_id = M.show_waiting_indicator(opts.chat_bufnr, opts)
   end
 
+  ---@param result table Result of the decision
+  ---@return nil
   local function cleanup_and_callback(result)
     if decision_made then
-      return -- Prevent double execution
+      return
     end
     decision_made = true
     if chat_extmark_id and opts.chat_bufnr then

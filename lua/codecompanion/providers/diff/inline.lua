@@ -1,14 +1,10 @@
 local diff_utils = require("codecompanion.providers.diff.utils")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
+
 local api = vim.api
 
----@class InlineDiffArgs
----@field bufnr integer Buffer number to apply diff to
----@field contents string[] Original content lines
----@field id string Unique identifier for this diff
-
----@class InlineDiff
+---@class CodeCompanion.Diff.Inline
 ---@field bufnr integer
 ---@field contents string[]
 ---@field id string
@@ -17,11 +13,15 @@ local api = vim.api
 ---@field has_changes boolean
 local InlineDiff = {}
 
+---@class CodeCompanion.Diff.InlineArgs
+---@field bufnr integer Buffer number to apply diff to
+---@field contents string[] Original content lines
+---@field id string Unique identifier for this diff
+
 ---Creates a new InlineDiff instance and applies diff highlights
----@param args InlineDiffArgs
----@return InlineDiff
+---@param args CodeCompanion.Diff.InlineArgs
+---@return CodeCompanion.Diff.Inline
 function InlineDiff.new(args)
-  log:debug("[InlineDiff] Version 4 test - with virtual text")
   local self = setmetatable({
     bufnr = args.bufnr,
     contents = args.contents,
@@ -32,15 +32,15 @@ function InlineDiff.new(args)
     extmark_ids = {},
     has_changes = false,
   }, { __index = InlineDiff })
-  ---@cast self InlineDiff
+  ---@cast self CodeCompanion.Diff.Inline
 
   local current_content = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
   if self:contents_equal(self.contents, current_content) then
-    log:debug("[InlineDiff] No changes detected")
+    log:debug("[providers::diff::inline::new] No changes detected")
     util.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
     return self
   end
-  log:debug("[InlineDiff] Changes detected - applying diff highlights")
+  log:debug("[providers::diff::inline::new] Changes detected - applying diff highlights")
   self.has_changes = true
   self:apply_diff_highlights(self.contents, current_content)
   util.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
@@ -80,17 +80,21 @@ end
 ---@param old_lines string[]
 ---@param new_lines string[]
 function InlineDiff:apply_diff_highlights(old_lines, new_lines)
-  log:debug("[InlineDiff] Instance apply_diff_highlights called")
+  log:debug("[providers::diff::inline::apply_diff_highlights] Called")
   local hunks = InlineDiff.calculate_hunks(old_lines, new_lines)
   local extmark_ids = InlineDiff.apply_hunk_highlights(self.bufnr, hunks, self.ns_id, 0, {
     show_removed = true,
     full_width_removed = true,
   })
   vim.list_extend(self.extmark_ids, extmark_ids)
-  log:debug("[InlineDiff] Applied %d extmarks for diff visualization", #self.extmark_ids)
+  log:debug(
+    "[providers::diff::inline::apply_diff_highlights] Applied %d extmarks for diff visualization",
+    #self.extmark_ids
+  )
 end
 
 ---Clears all diff highlights and extmarks
+---@return nil
 function InlineDiff:clear_highlights()
   if api.nvim_buf_is_valid(self.bufnr) then
     api.nvim_buf_clear_namespace(self.bufnr, self.ns_id, 0, -1)
@@ -99,16 +103,18 @@ function InlineDiff:clear_highlights()
 end
 
 ---Accepts the diff changes and clears highlights
+---@return nil
 function InlineDiff:accept()
-  log:debug("[InlineDiff] Accept called")
+  log:debug("[providers::diff::inline::accept] Called")
   util.fire("DiffAccepted", { diff = "inline", bufnr = self.bufnr, id = self.id, accept = true })
   self:clear_highlights()
 end
 
 ---Rejects the diff changes, restores original content, and clears highlights
+---@return nil
 function InlineDiff:reject()
   util.fire("DiffRejected", { diff = "inline", bufnr = self.bufnr, id = self.id, accept = false })
-  log:debug("[InlineDiff] Reject called")
+  log:debug("[providers::diff::inline::reject] Called")
   if api.nvim_buf_is_valid(self.bufnr) then
     api.nvim_buf_set_lines(self.bufnr, 0, -1, true, self.contents)
   end
@@ -116,8 +122,9 @@ function InlineDiff:reject()
 end
 
 ---Cleans up the diff instance and fires detachment event
+---@return nil
 function InlineDiff:teardown()
-  log:debug("[InlineDiff] Teardown called")
+  log:debug("[providers::diff::inline::teardown] Called")
   self:clear_highlights()
   util.fire("DiffDetached", { diff = "inline", bufnr = self.bufnr, id = self.id })
 end

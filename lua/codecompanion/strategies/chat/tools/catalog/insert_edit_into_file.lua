@@ -1,12 +1,14 @@
 local Path = require("plenary.path")
-local buffers = require("codecompanion.utils.buffers")
+
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local diff = require("codecompanion.strategies.chat.tools.catalog.helpers.diff")
-local log = require("codecompanion.utils.log")
 local patch = require("codecompanion.strategies.chat.tools.catalog.helpers.patch") ---@type CodeCompanion.Patch
-local ui = require("codecompanion.utils.ui")
 local wait = require("codecompanion.strategies.chat.tools.catalog.helpers.wait")
+
+local buffers = require("codecompanion.utils.buffers")
+local log = require("codecompanion.utils.log")
+local ui = require("codecompanion.utils.ui")
 
 local api = vim.api
 local fmt = string.format
@@ -122,21 +124,14 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   local should_diff
   local diff_id = math.random(10000000)
-  local original_content = nil
-  local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  -- keep original content copy before applying changes
-  if diff.should_create(bufnr) then
-    original_content = vim.deepcopy(lines)
-  else
-  end
 
-  -- Capture original content for edit tracking if not already captured
-  if not original_content then
-    original_content = vim.deepcopy(lines)
-  end
+  local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local original_content = vim.deepcopy(lines)
+
   -- Parse and apply patches to buffer
   local raw = action.code or ""
   local edits, had_begin_end_markers, parse_error = patch.parse_edits(raw)
+
   -- Apply each edit
   local start_line = nil
   local all_errors = {}
@@ -146,10 +141,9 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   end
 
   for i, edit in ipairs(edits) do
-    log:debug("[InsertEdit] Applying buffer edit %d/%d", i, #edits)
+    log:debug("[Insert Edit Into File Tool] Applying buffer edit %d/%d", i, #edits)
     local new_lines, error_msg = patch.apply(lines, edit)
     if error_msg then
-      log:error("[InsertEdit] Buffer edit %d failed: %s", i, error_msg)
       table.insert(all_errors, fmt("Edit %d: %s", i, error_msg))
       if not had_begin_end_markers then
         table.insert(all_errors, "Hint: Try wrapping your patch in *** Begin Patch / *** End Patch markers")
@@ -157,55 +151,53 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     elseif new_lines then
       if not start_line then
         start_line = patch.start_line(lines, edit)
-        log:debug("[InsertEdit] Buffer edit start line: %d", start_line or -1)
+        log:debug("[Insert Edit Into File Tool] Buffer edit start line: %d", start_line or -1)
       end
-      log:debug("[InsertEdit] Buffer edit %d successful, new line count: %d", i, #new_lines)
+      log:debug("[Insert Edit Into File Tool] Buffer edit %d successful, new line count: %d", i, #new_lines)
       lines = new_lines
     else
-      log:error("[InsertEdit] Buffer edit %d: Unknown error applying patch", i)
       table.insert(all_errors, fmt("Edit %d: Unknown error applying patch", i))
     end
   end
 
   if #all_errors > 0 then
     local error_output = table.concat(all_errors, "\n")
-    log:error("[InsertEdit] Buffer edit failed with %d errors", #all_errors)
     return output_handler({
       status = "error",
       data = error_output,
     })
   end
 
-  log:debug("[InsertEdit] All buffer edits applied successfully, final line count: %d", #lines)
+  log:debug("[Insert Edit Into File Tool] All buffer edits applied successfully, final line count: %d", #lines)
 
   -- Update the buffer with the edited code
   api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-  log:debug("[InsertEdit] Buffer content updated")
+  log:debug("[Insert Edit Into File Tool] Buffer content updated")
 
   -- Create diff with original content
   if original_content then
-    log:debug("[InsertEdit] Creating diff with original content (%d lines)", #original_content)
+    log:debug("[Insert Edit Into File Tool] Creating diff with original content (%d lines)", #original_content)
     should_diff = diff.create(bufnr, diff_id, {
       original_content = original_content,
     })
     if should_diff then
-      log:debug("[InsertEdit] Diff created successfully with ID: %s", diff_id)
+      log:debug("[Insert Edit Into File Tool] Diff created successfully with ID: %s", diff_id)
     else
-      log:warn("[InsertEdit] Diff creation returned nil")
+      log:warn("[Insert Edit Into File Tool] Diff creation returned nil")
     end
   else
-    log:debug("[InsertEdit] No original content captured, skipping diff creation")
+    log:debug("[Insert Edit Into File Tool] No original content captured, skipping diff creation")
   end
 
   -- Scroll to the editing location
   if start_line then
-    log:debug("[InsertEdit] Scrolling to line %d", start_line)
+    log:debug("[Insert Edit Into File Tool] Scrolling to line %d", start_line)
     ui.scroll_to_line(bufnr, start_line)
   end
 
   -- Auto-save if enabled
   if vim.g.codecompanion_auto_tool_mode then
-    log:info("[InsertEdit] Auto-saving buffer %d", bufnr)
+    log:info("[Insert Edit Into File Tool] Auto-saving buffer %d", bufnr)
     api.nvim_buf_call(bufnr, function()
       vim.cmd("silent write")
     end)
@@ -217,7 +209,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   }
 
   if should_diff and opts.user_confirmation then
-    log:debug("[InsertEdit] Setting up diff approval workflow")
+    log:debug("[Insert Edit Into File Tool] Setting up diff approval workflow")
     local accept = config.strategies.inline.keymaps.accept_change.modes.n
     local reject = config.strategies.inline.keymaps.reject_change.modes.n
 
@@ -231,7 +223,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
       local response
       if result.accepted then
-        log:info("[InsertEdit] User accepted changes")
+        log:debug("[Insert Edit Into File Tool] User accepted changes")
         -- Save the buffer
         pcall(function()
           api.nvim_buf_call(bufnr, function()
@@ -240,7 +232,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
         end)
         response = success
       else
-        log:info("[InsertEdit] User rejected changes")
+        log:debug("[Insert Edit Into File Tool] User rejected changes")
         response = {
           status = "error",
           data = result.timeout and "User failed to accept the edits in time" or "User rejected the edits",
@@ -251,7 +243,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
       return output_handler(response)
     end, wait_opts)
   else
-    log:debug("[InsertEdit] No user confirmation needed, returning success")
+    log:debug("[Insert Edit Into File Tool] No user confirmation needed, returning success")
   end
 
   return output_handler(success)
@@ -268,7 +260,7 @@ return {
     ---@param output_handler function Async callback for completion
     ---@return nil
     function(self, args, input, output_handler)
-      log:debug("[InsertEdit] Tool execution started for: %s", args.filepath)
+      log:debug("[Insert Edit Into File Tool] Execution started for: %s", args.filepath)
 
       local bufnr = buffers.get_bufnr_from_filepath(args.filepath)
       if bufnr then
@@ -379,7 +371,6 @@ return {
       local chat = tools.chat
       local args = self.args
       local errors = vim.iter(stderr):flatten():join("\n")
-      log:error("[InsertEdit] Tool execution error for %s: %s", args.filepath, errors)
 
       local error_output = fmt(
         [[Error editing `%s`

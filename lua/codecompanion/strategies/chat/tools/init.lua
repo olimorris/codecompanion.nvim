@@ -12,8 +12,10 @@
 ---@field tool CodeCompanion.Tools.Tool The current tool that's being run
 ---@field tools_ns integer The namespace for the virtual text that appears in the header
 
+local EditTracker = require("codecompanion.strategies.chat.edit_tracker")
 local Orchestrator = require("codecompanion.strategies.chat.tools.orchestrator")
 local ToolFilter = require("codecompanion.strategies.chat.tools.tool_filter")
+
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local regex = require("codecompanion.utils.regex")
@@ -197,12 +199,10 @@ function Tools:execute(chat, tools)
   self:set_autocmds()
 
   util.fire("ToolsStarted", { id = id, bufnr = self.bufnr })
-  -- Direct monitoring setup for each tool
-  local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+
   for _, tool in ipairs(tools) do
     local tool_name = tool["function"].name
     local tool_args = tool["function"].arguments
-    -- Parse arguments if they're a string
     if type(tool_args) == "string" then
       local success, decoded = pcall(vim.json.decode, tool_args)
       if success then
@@ -211,7 +211,7 @@ function Tools:execute(chat, tools)
         tool_args = nil
       end
     end
-    edit_tracker.start_tool_monitoring(tool_name, self.chat, tool_args)
+    EditTracker.start_tool_monitoring(tool_name, self.chat, tool_args)
   end
   xpcall(function()
     orchestrator:setup()

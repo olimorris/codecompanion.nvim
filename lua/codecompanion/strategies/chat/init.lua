@@ -32,6 +32,7 @@
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
 ---@field _last_role string The last role that was rendered in the chat buffer
+---@field _tool_monitors? table A table of tool monitors that are currently running in the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
