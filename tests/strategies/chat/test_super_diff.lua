@@ -10,7 +10,7 @@ local T = new_set({
       child.lua([[
         h = require('tests.helpers')
         chat, agent = h.setup_chat_buffer()
-        super_diff = require("codecompanion.strategies.chat.super_diff")
+        super_diff = require("codecompanion.helpers.super_diff")
         edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 
         -- Initialize edit tracker for the chat
