@@ -197,6 +197,22 @@ function Tools:execute(chat, tools)
   self:set_autocmds()
 
   util.fire("ToolsStarted", { id = id, bufnr = self.bufnr })
+  -- Direct monitoring setup for each tool
+  local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
+  for _, tool in ipairs(tools) do
+    local tool_name = tool["function"].name
+    local tool_args = tool["function"].arguments
+    -- Parse arguments if they're a string
+    if type(tool_args) == "string" then
+      local success, decoded = pcall(vim.json.decode, tool_args)
+      if success then
+        tool_args = decoded
+      else
+        tool_args = nil
+      end
+    end
+    edit_tracker.start_tool_monitoring(tool_name, self.chat, tool_args)
+  end
   xpcall(function()
     orchestrator:setup()
   end, function(err)

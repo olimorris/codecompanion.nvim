@@ -1237,6 +1237,7 @@ function Chat:close()
   if self.current_request then
     self:stop()
   end
+  edit_tracker.handle_chat_close(self)
   edit_tracker.clear(self)
 
   if last_chat and last_chat.bufnr == self.bufnr then
