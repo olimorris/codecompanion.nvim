@@ -244,12 +244,16 @@ return {
       end
       local output = {
         role = message.role,
+        content = message.content,
       }
 
       if message.thinking then
         output.reasoning = { content = message.thinking }
-      else
-        output.content = message.content
+        if output.content == "" then
+          -- NOTE: without this, the chat will produce an alternating sequence
+          -- of `Reasoning` and empty `Response` blocks.
+          output.content = nil
+        end
       end
 
       return {
