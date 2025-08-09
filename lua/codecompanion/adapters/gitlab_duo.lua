@@ -56,5 +56,10 @@ return {
                 }
             }
         end,
-    }
+    },
+    schema = {
+        model = {
+            default = "gitlab_duo",
+        },
+    },
 }
