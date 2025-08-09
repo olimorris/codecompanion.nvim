@@ -21,8 +21,8 @@ return {
         chat_url = "/api/v4/chat/completions",
     },
     headers = {
-        Authorization = "Bearer ${api_key}",
         ["Content-Type"] = "application/json",
+        ["Authorization"] = "Bearer ${api_key}",
     },
     handlers = {
         form_messages = function(self, messages)
