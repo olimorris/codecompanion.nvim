@@ -1,38 +1,7 @@
 local Path = require("plenary.path")
+local log = require("codecompanion.utils.log")
 
 local M = {}
-
----Ensure a table is a proper array (with sequential integer keys starting from 1)
----@param tbl table The table to convert
----@return table The same table converted to an array
-function M.ensure_array(tbl)
-  local islist = vim.islist or vim.tbl_islist ---@type function
-
-  if islist(tbl) then
-    return tbl
-  end
-
-  if vim.tbl_count(tbl) == 0 then
-    return tbl
-  end
-
-  -- Convert to array
-  local array = {}
-  for _, v in pairs(tbl) do
-    table.insert(array, v)
-  end
-
-  -- Clear original table and refill with array values
-  for k in pairs(tbl) do
-    tbl[k] = nil
-  end
-
-  for i, v in ipairs(array) do
-    tbl[i] = v
-  end
-
-  return tbl
-end
 
 ---Refresh when we should next check the model cache
 ---@param file string
@@ -83,39 +52,6 @@ function M.extend(base_tbl, new_tbl)
       end
     end
   end
-end
-
----Get the indexes for messages with a specific role
----@param role string
----@param messages table
----@return table|nil
-function M.get_msg_index(role, messages)
-  local prompts = {}
-  for i = 1, #messages do
-    if messages[i].role == role then
-      table.insert(prompts, i)
-    end
-  end
-
-  if #prompts > 0 then
-    return prompts
-  end
-end
-
----Pluck messages from a table with a specific role
----@param messages table
----@param role string
----@return table
-function M.pluck_messages(messages, role)
-  local output = {}
-
-  for _, message in ipairs(messages) do
-    if message.role == role then
-      table.insert(output, message)
-    end
-  end
-
-  return output
 end
 
 ---Merge consecutive messages with the same role, together
@@ -235,6 +171,171 @@ function M.clean_streamed_data(data)
   end
   local find_json_start = string.find(data, "{") or 1
   return string.sub(data, find_json_start)
+end
+
+-------------------------------------------------------------------------------
+-- Utility functions extracted from adapters/init.lua
+------------------------------------------------------------------------------
+
+---Check if a variable starts with "cmd:"
+---@param var string
+---@return boolean
+local function is_cmd(var)
+  return var:match("^cmd:")
+end
+
+---Check if the variable is an environment variable
+---@param var string
+---@return boolean
+local function is_env_var(var)
+  local found_var = os.getenv(var)
+  if not found_var then
+    return false
+  end
+  return true
+end
+
+---Run the command in the environment variable
+---@param var string
+---@return string|nil
+local function run_cmd(var)
+  log:trace("Detected cmd in environment variable")
+  local cmd = var:sub(5)
+  local handle = io.popen(cmd, "r")
+  if handle then
+    local result = handle:read("*a")
+    log:trace("Executed cmd: %s", cmd)
+    handle:close()
+    local r = result:gsub("%s+$", "")
+    return r
+  else
+    return log:error("Error: Could not execute cmd: %s", cmd)
+  end
+end
+
+---Get the environment variable
+---@param var string
+---@return string|nil
+local function get_env_var(var)
+  log:trace("Fetching environment variable: %s", var)
+  return os.getenv(var) or nil
+end
+
+---Get the schema value
+---@param adapter table
+---@param var string
+---@return string|nil
+local function get_schema(adapter, var)
+  log:trace("Fetching variable from schema: %s", var)
+
+  local keys = {}
+  for key in var:gmatch("[^%.]+") do
+    table.insert(keys, key)
+  end
+
+  local node = adapter
+  for _, key in ipairs(keys) do
+    if type(node) ~= "table" then
+      return nil
+    end
+    node = node[key]
+    if node == nil then
+      return nil
+    end
+  end
+
+  if not node then
+    return
+  end
+
+  return node
+end
+
+---Replace a variable with its value e.g. "${var}" -> "value"
+---@param adapter table
+---@param str string
+---@return string
+local function replace_var(adapter, str)
+  if type(str) ~= "string" then
+    return str
+  end
+
+  local pattern = "${(.-)}"
+
+  local result = str:gsub(pattern, function(var)
+    return adapter.env_replaced[var]
+  end)
+
+  return result
+end
+
+---Get the variables from the env key of the adapter
+---@param adapter table
+---@return table
+function M.get_env_vars(adapter)
+  local env_vars = adapter.env or {}
+
+  if not env_vars then
+    return adapter
+  end
+
+  adapter.env_replaced = {}
+
+  for k, v in pairs(env_vars) do
+    if type(v) == "string" and is_cmd(v) then
+      adapter.env_replaced[k] = run_cmd(v)
+    elseif type(v) == "string" and is_env_var(v) then
+      adapter.env_replaced[k] = get_env_var(v)
+    elseif type(v) == "function" then
+      adapter.env_replaced[k] = v(adapter)
+    else
+      local schema = get_schema(adapter, v)
+      if schema then
+        adapter.env_replaced[k] = schema
+      else
+        adapter.env_replaced[k] = v
+      end
+    end
+  end
+
+  return adapter
+end
+
+---Set env vars in a given object in the adapter
+---@param adapter table
+---@param object string|table
+---@return string|table|nil
+function M.set_env_vars(adapter, object)
+  local obj_copy = vim.deepcopy(object)
+
+  if type(obj_copy) == "string" then
+    return replace_var(adapter, obj_copy)
+  elseif type(obj_copy) == "table" then
+    local replaced = {}
+    for k, v in pairs(obj_copy) do
+      if type(v) == "string" then
+        replaced[k] = replace_var(adapter, v)
+      elseif type(v) == "function" then
+        replaced[k] = replace_var(adapter, v(adapter))
+      else
+        replaced[k] = v
+      end
+    end
+    return replaced
+  end
+end
+
+---Replace roles in the messages with the adapter's defined roles
+---@param roles table The roles mapping, e.g. { user = "human", assistant = "ai" }
+---@param messages table
+---@return table
+function M.map_roles(roles, messages)
+  for _, message in ipairs(messages) do
+    if message.role then
+      message.role = roles[message.role:lower()] or message.role
+    end
+  end
+  return messages
 end
 
 return M

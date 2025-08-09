@@ -11,29 +11,31 @@ local constants = {
 
 local defaults = {
   adapters = {
-    -- LLMs -------------------------------------------------------------------
-    anthropic = "anthropic",
-    azure_openai = "azure_openai",
-    copilot = "copilot",
-    deepseek = "deepseek",
-    gemini = "gemini",
-    githubmodels = "githubmodels",
-    huggingface = "huggingface",
-    novita = "novita",
-    mistral = "mistral",
-    ollama = "ollama",
-    openai = "openai",
-    xai = "xai",
-    -- Non LLMs
-    jina = "jina",
-    tavily = "tavily",
-    -- OPTIONS ----------------------------------------------------------------
-    opts = {
-      allow_insecure = false, -- Allow insecure connections?
-      cache_models_for = 1800, -- Cache adapter models for this long (seconds)
-      proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
-      show_defaults = true, -- Show default adapters
-      show_model_choices = true, -- Show model choices when changing adapter
+    http = {
+      anthropic = "anthropic",
+      azure_openai = "azure_openai",
+      copilot = "copilot",
+      deepseek = "deepseek",
+      gemini = "gemini",
+      githubmodels = "githubmodels",
+      huggingface = "huggingface",
+      novita = "novita",
+      mistral = "mistral",
+      ollama = "ollama",
+      openai = "openai",
+      xai = "xai",
+      jina = "jina",
+      tavily = "tavily",
+      opts = {
+        allow_insecure = false, -- Allow insecure connections?
+        cache_models_for = 1800, -- Cache adapter models for this long (seconds)
+        proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
+        show_defaults = true, -- Show default adapters
+        show_model_choices = true, -- Show model choices when changing adapter
+      },
+    },
+    acp = {
+      gemini_cli = "gemini_cli",
     },
   },
   constants = constants,
@@ -1154,7 +1156,7 @@ You must:
 - Do not include line numbers in code blocks.
 - Avoid wrapping the whole response in triple backticks.
 - Only return code that's directly relevant to the task at hand. You may omit code that isn’t necessary for the solution.
-- Avoid using H1, H2 or H3 headers in your responses as these are reserved for the user.
+- Do not use H1 or H2 headers in your responses. Use H3 and above instead.
 - Use actual line breaks in your responses; only use "\n" when you want a literal backslash followed by 'n'.
 - All non-code text responses must be written in the %s language indicated.
 - Multiple, different tools can be called as part of the same response.

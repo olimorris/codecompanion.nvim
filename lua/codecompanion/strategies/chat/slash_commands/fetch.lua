@@ -431,7 +431,7 @@ end
 function SlashCommand:output(url, opts)
   opts = opts or {}
 
-  local adapter = adapters.get_from_string(self.config.opts.adapter)
+  local adapter = adapters.resolve(self.config.opts.adapter)
   if not adapter then
     return log:error("Could not resolve adapter for the fetch slash command")
   end

@@ -4,9 +4,9 @@
 ---@field mapping? string Where to map the item to the request
 ---@field order nil|integer The order to display the item when the full schema is shown
 ---@field optional nil|boolean
----@field choices nil|table|fun(self: CodeCompanion.Adapter): table<string>
+---@field choices nil|table|fun(self: CodeCompanion.HTTPAdapter): table<string>
 ---@field desc string The description of the schema item
----@field condition? nil|fun(self: CodeCompanion.Adapter): boolean
+---@field condition? nil|fun(self: CodeCompanion.HTTPAdapter): boolean
 ---@field validate? fun(value: any): boolean, nil|string
 
 local M = {}
@@ -14,7 +14,7 @@ local M = {}
 local islist = vim.islist or vim.tbl_islist
 
 ---Return the default values for a schema
----@param adapter CodeCompanion.Adapter
+---@param adapter CodeCompanion.HTTPAdapter
 ---@param defaults? table Any default values to use (will override schema defaults)
 M.get_default = function(adapter, defaults)
   local schema = adapter.schema
@@ -39,7 +39,7 @@ end
 
 ---@param schema CodeCompanion.Schema
 ---@param value any
----@param adapter CodeCompanion.Adapter
+---@param adapter CodeCompanion.HTTPAdapter
 ---@return boolean
 ---@return nil|string
 local function validate_type(schema, value, adapter)
@@ -83,7 +83,7 @@ end
 
 ---@param schema CodeCompanion.Schema
 ---@param value any
----@param adapter CodeCompanion.Adapter
+---@param adapter CodeCompanion.HTTPAdapter
 ---@return boolean
 ---@return nil|string
 local function validate_field(schema, value, adapter)
@@ -99,7 +99,7 @@ end
 
 ---@param schema CodeCompanion.Schema
 ---@param values table
----@param adapter CodeCompanion.Adapter
+---@param adapter CodeCompanion.HTTPAdapter
 ---@return nil|table<string, string>
 M.validate = function(schema, values, adapter)
   local errors = {}
@@ -115,7 +115,7 @@ M.validate = function(schema, values, adapter)
 end
 
 ---Order the keys of the schema
----@param adapter CodeCompanion.Adapter
+---@param adapter CodeCompanion.HTTPAdapter
 ---@return string[]
 M.get_ordered_keys = function(adapter)
   local schema = adapter.schema

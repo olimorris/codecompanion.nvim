@@ -50,11 +50,17 @@
     },
     {
       "name": "Adapters",
-      "system_prompt": "In the CodeCompanion plugin, adapters are used to connect to LLMs. The adapters contain various options for the LLM's endpoint alongside a defined schema for properties such as the model, temperature, top k, top p etc. The adapters also contain various handler functions which define how messages which are sent to the LLM should be formatted alongside how output from the LLM should be received and displayed in the chat buffer. The adapters are defined in the `adapters` directory.",
+      "system_prompt": "In the CodeCompanion plugin, adapters are used to connect to LLMs or Agents. HTTP adapters contain various options for the LLM's endpoint alongside a defined schema for properties such as the model, temperature, top k, top p etc. HTTP adapters also contain various handler functions which define how messages which are sent to the LLM should be formatted alongside how output from the LLM should be received and displayed in the chat buffer. The adapters are defined in the `adapters` directory.",
       "opts": {
         "remove_config_system_prompt": true
       },
-      "data": ["adapters-init", "http-client", "schema"]
+      "data": [
+        "adapters-init",
+        "adapters-shared",
+        "adapters-http",
+        "http-client",
+        "adapters-test"
+      ]
     },
     {
       "name": "Inline",
@@ -170,7 +176,7 @@
     },
     "test-screenshot-example": {
       "type": "file",
-      "path": "tests/adapters/test_tools_in_chat_buffer.lua",
+      "path": "tests/adapters/http/test_tools_in_chat_buffer.lua",
       "description": "I've included an example test file that highlights the capability of mini.test and the approach I've taken to testing in CodeCompanion. Whilst I'm not a fan of using screenshots for all tests, in this case it was useful as it made up part of a much larger integration test."
     },
     "minitest-docs": {
@@ -181,16 +187,30 @@
         "auto_restore_cache": true
       }
     },
-
     "adapters-init": {
       "type": "file",
       "path": "lua/codecompanion/adapters/init.lua",
-      "description": "Each LLM has their own adapter. This allows for LLM settings to be generated from the schema table in an adapter before they're sent to the LLM via the http file."
+      "description": "Currently CodeCompanion supports http adapters."
+    },
+    "adapters-shared": {
+      "type": "file",
+      "path": "lua/codecompanion/adapters/shared.lua",
+      "description": "There are some functions that are shared between the two adapter types and these are contained in this file."
+    },
+    "adapters-http": {
+      "type": "file",
+      "path": "lua/codecompanion/adapters/http/init.lua",
+      "description": "This is the logic for the HTTP adapters. Various logic sits within this file which allows the adapter to be resolved into a CodeCompanion.HTTPAdapter object before it's used throughout the plugin to connect to an LLM endpoint."
+    },
+    "adapters-test": {
+      "type": "file",
+      "path": "tests/adapters/test_adapters.lua",
+      "description": "This is a test file for adapter's broadly, which might give you more of an understand of what is required by an adapter deep within CodeCompanion."
     },
     "http-client": {
       "type": "file",
       "path": "lua/codecompanion/http.lua",
-      "description": "Adapters are then passed to the http client which sends requests to LLMs via Curl:"
+      "description": "HTTP Adapters are then passed to the http client which sends requests to LLMs via Curl:"
     },
     "schema": {
       "type": "file",

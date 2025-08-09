@@ -32,7 +32,7 @@ return {
       end
 
       local tool_adapter = config.strategies.chat.tools.fetch_webpage.opts.adapter
-      local adapter = vim.deepcopy(adapters.resolve(config.adapters[tool_adapter]))
+      local adapter = vim.deepcopy(adapters.resolve(tool_adapter))
       adapter.methods.tools.fetch_webpage.setup(adapter, args)
 
       if not url:match("^https?://") then

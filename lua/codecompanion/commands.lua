@@ -17,10 +17,13 @@ local prompts = vim.iter(config.prompt_library):fold({}, function(acc, key, valu
   return acc
 end)
 
+--TODO: Remove `config.adapters` in V18.0.0
+local config_adapters = vim.tbl_deep_extend("force", {}, config.adapters.acp, config.adapters.http, config.adapters)
+
 local adapters = vim
-  .iter(config.adapters)
+  .iter(config_adapters)
   :filter(function(k, _)
-    return k ~= "non_llm" and k ~= "opts"
+    return k ~= "acp" and k ~= "http" and k ~= "opts"
   end)
   :map(function(k, _)
     return k

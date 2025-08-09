@@ -56,7 +56,7 @@ describe("Client", function()
     local mock_decode = stub.new().returns({ choices = { { finish_reason = nil } } })
     local mock_schedule = stub.new().returns(1)
 
-    Client.static.opts = {
+    Client.static.methods = {
       post = { default = mock_request },
       encode = { default = mock_encode },
       decode = { default = mock_decode },
@@ -65,8 +65,7 @@ describe("Client", function()
 
     local cb = stub.new()
 
-    adapter = require("codecompanion.adapters").new(adapter)
-
+    adapter = require("codecompanion.adapters").resolve(adapter)
     Client.new({ adapter = adapter }):request({}, { callback = cb })
 
     assert.stub(mock_request).was_called(1)
@@ -75,13 +74,12 @@ describe("Client", function()
   it("substitutes variables", function()
     local mock_request = stub.new().returns(nil)
 
-    Client.static.opts = {
+    Client.static.methods = {
       post = { default = mock_request },
       encode = { default = stub.new().returns("{}") },
     }
 
-    adapter = require("codecompanion.adapters").new(adapter)
-
+    adapter = require("codecompanion.adapters").resolve(adapter)
     Client.new({ adapter = adapter }):request({}, { callback = stub.new() })
 
     assert.stub(mock_request).was_called(1)
