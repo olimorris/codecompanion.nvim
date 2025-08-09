@@ -35,7 +35,7 @@ return {
             return { content = merged_content }
         end,
         chat_output = function(self, data, tools)
-            vim.print(data.body)
+            vim.print(data)
             local ok, body = pcall(vim.json.decode, data.body)
             if not ok then
                 return {
