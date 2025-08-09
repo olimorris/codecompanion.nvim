@@ -51,14 +51,14 @@ end
 ---@param old_lines string[] Original content
 ---@param new_lines string[] New content
 ---@param context_lines? integer Number of context lines (default: 3)
----@return DiffHunk[] hunks
+---@return CodeCompanion.Diff.Utils.DiffHunk[] hunks
 function InlineDiff.calculate_hunks(old_lines, new_lines, context_lines)
   return diff_utils.calculate_hunks(old_lines, new_lines, context_lines)
 end
 
 ---Apply visual highlights to hunks in a buffer with sign column indicators
 ---@param bufnr integer Buffer to apply highlights to
----@param hunks DiffHunk[] Hunks to highlight
+---@param hunks CodeCompanion.Diff.Utils.DiffHunk[] Hunks to highlight
 ---@param ns_id integer Namespace for extmarks
 ---@param line_offset? integer Line offset
 ---@param opts? table Options: {show_removed: boolean, full_width_removed: boolean, status?: string}
@@ -81,10 +81,14 @@ end
 ---@param new_lines string[]
 function InlineDiff:apply_diff_highlights(old_lines, new_lines)
   log:debug("[providers::diff::inline::apply_diff_highlights] Called")
-  local hunks = InlineDiff.calculate_hunks(old_lines, new_lines)
+  -- Get inline diff configuration (lazy load to avoid circular dependency)
+  local config = require("codecompanion.config")
+  local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
+  local context_lines = inline_config.context_lines or 3
+  local hunks = InlineDiff.calculate_hunks(old_lines, new_lines, context_lines)
   local extmark_ids = InlineDiff.apply_hunk_highlights(self.bufnr, hunks, self.ns_id, 0, {
-    show_removed = true,
-    full_width_removed = true,
+    show_removed = inline_config.show_removed ~= false,
+    full_width_removed = inline_config.full_width_removed ~= false,
   })
   vim.list_extend(self.extmark_ids, extmark_ids)
   log:debug(

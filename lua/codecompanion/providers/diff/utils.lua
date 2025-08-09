@@ -91,6 +91,17 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
   line_offset = line_offset or 0
   opts = opts or { show_removed = true, full_width_removed = true, status = "pending" }
   local extmark_ids = {}
+
+  -- Get sign configuration from config (lazy load to avoid circular dependency)
+  local config = require("codecompanion.config")
+  local sign_config = config.display and config.display.diff and config.display.diff.signs or {}
+  local sign_text = sign_config.text or "▌"
+  local highlight_groups = sign_config.highlight_groups
+    or {
+      addition = "DiagnosticOk",
+      deletion = "DiagnosticError",
+      modification = "DiagnosticWarn",
+    }
   for _, hunk in ipairs(hunks) do
     -- Handle removed lines FIRST (virtual text above the change location)
     if opts.show_removed and #hunk.old_lines > 0 then
@@ -99,7 +110,7 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
         attach_line = api.nvim_buf_line_count(bufnr) - 1
       end
       local is_modification = #hunk.new_lines > 0
-      local sign_hl = M.get_sign_highlight_for_change("removed", is_modification, opts.status)
+      local sign_hl = M.get_sign_highlight_for_change("removed", is_modification, highlight_groups)
       -- Create virtual text for ALL removed lines in this hunk
       local virt_lines = {}
       for _, old_line in ipairs(hunk.old_lines) do
@@ -113,7 +124,7 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
         virt_lines_above = true,
         virt_lines_overflow = "scroll",
         priority = 100,
-        sign_text = "▌",
+        sign_text = sign_text,
         sign_hl_group = sign_hl,
       })
       table.insert(extmark_ids, extmark_id)
@@ -131,9 +142,8 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
       if line_idx >= 0 and line_idx < api.nvim_buf_line_count(bufnr) then
         -- Determine change type and status
         local is_modification = #hunk.old_lines > 0
-        local sign_hl = M.get_sign_highlight_for_change("added", is_modification, opts.status)
-        local line_hl = opts.status == "rejected" and "DiffDelete" or "DiffAdd"
-        local sign_text = opts.status == "rejected" and "✗" or "▌"
+        local sign_hl = M.get_sign_highlight_for_change("added", is_modification, highlight_groups)
+        local line_hl = "DiffAdd"
         local extmark_id = api.nvim_buf_set_extmark(bufnr, ns_id, line_idx, 0, {
           line_hl_group = line_hl,
           priority = 100,
@@ -158,20 +168,22 @@ end
 ---Get appropriate sign highlight color for a change type
 ---@param change_type "added"|"removed" Type of change
 ---@param is_modification boolean Whether this is a modification or pure add/delete
----@param status? string Status of the edit operation ("pending"|"accepted"|"rejected")
+---@param highlight_groups table Highlight group configuration
 ---@return string highlight_group
-function M.get_sign_highlight_for_change(change_type, is_modification, status)
-  status = status or "pending"
-  if status == "rejected" then
-    return "DiagnosticError" -- Red for rejected changes
-  end
+function M.get_sign_highlight_for_change(change_type, is_modification, highlight_groups)
+  highlight_groups = highlight_groups
+    or {
+      addition = "DiagnosticOk",
+      deletion = "DiagnosticError",
+      modification = "DiagnosticWarn",
+    }
   if change_type == "removed" then
-    return is_modification and "DiagnosticWarn" or "DiagnosticError" -- Orange for modifications, red for deletions
+    return is_modification and highlight_groups.modification or highlight_groups.deletion
   elseif change_type == "added" then
-    return is_modification and "DiagnosticWarn" or "DiagnosticOk" -- Orange for modifications, green for pure additions
+    return is_modification and highlight_groups.modification or highlight_groups.addition
   end
 
-  return "DiagnosticWarn"
+  return highlight_groups.modification
 end
 
 ---Compare two content arrays for equality
