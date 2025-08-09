@@ -9,6 +9,9 @@ end
 
 local config = require("codecompanion.config")
 local api = vim.api
+local visual_hl = api.nvim_get_hl(0, { name = "Visual" })
+local special_hl = api.nvim_get_hl(0, { name = "Special" })
+local comment_hl = api.nvim_get_hl(0, { name = "Comment" })
 
 -- Set the highlight groups
 api.nvim_set_hl(0, "CodeCompanionChatInfo", { link = "DiagnosticInfo", default = true })
@@ -26,6 +29,12 @@ api.nvim_set_hl(0, "CodeCompanionChatToolFailure", { link = "DiagnosticError", d
 api.nvim_set_hl(0, "CodeCompanionChatToolFailureIcon", { link = "Error", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
 api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
+api.nvim_set_hl(0, "CodeCompanionSuperDiffDirectory", { bg = visual_hl.bg, fg = comment_hl.fg, default = true })
+api.nvim_set_hl(
+  0,
+  "CodeCompanionSuperDiffFilename",
+  { bg = visual_hl.bg, fg = special_hl.fg, bold = true, default = true }
+)
 
 -- Setup syntax highlighting for the chat buffer
 local group = "codecompanion.syntax"

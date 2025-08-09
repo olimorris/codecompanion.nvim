@@ -476,6 +476,14 @@ local defaults = {
           callback = "keymaps.copilot_stats",
           description = "Show Copilot usage statistics",
         },
+        super_diff = {
+          modes = {
+            n = "gD",
+          },
+          index = 21,
+          callback = "keymaps.super_diff",
+          description = "Show super diff buffer",
+        },
       },
       opts = {
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
@@ -1093,7 +1101,7 @@ You must create or modify a workspace file through a series of prompts over mult
         "followwrap",
         "linematch:120",
       },
-      provider = providers.diff, -- mini_diff|default
+      provider = providers.diff, -- inline|mini_diff|default
     },
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?

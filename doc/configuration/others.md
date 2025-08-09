@@ -53,6 +53,8 @@ The plugin sets the following highlight groups during setup:
 - `CodeCompanionChatSubtext` - Messages that appear under the information, error or warning messages in the chat buffer
 - `CodeCompanionChatHeader` - The headers in the chat buffer
 - `CodeCompanionChatSeparator` - Separator between headings in the chat buffer
+- `CodeCompanionSuperDiffDirectory` - Highlight directories in a Super Diff buffer
+- `CodeCompanionSuperDiffFilename` - Highlight filenames in a Super Diff buffer
 - `CodeCompanionChatTokens` - Virtual text in the chat buffer showing the token count
 - `CodeCompanionChatTool` - Tools in the chat buffer
 - `CodeCompanionChatToolGroups` - Tool groups in the chat buffer
