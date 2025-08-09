@@ -169,6 +169,7 @@ local function overwrite_selection(context)
     context.end_col,
     { "" }
   )
+  vim.api.nvim_set_current_buf(context.bufnr) -- in case user switched buffer in the meantime
   api.nvim_win_set_cursor(context.winnr, { context.start_line, context.start_col })
 end
 
