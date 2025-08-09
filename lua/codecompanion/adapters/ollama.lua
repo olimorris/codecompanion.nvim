@@ -218,10 +218,9 @@ return {
         return nil
       end
 
+      local message = json.message
       -- Process tool calls from all choices
       if self.opts.tools and tools then
-        local message = json.message
-
         if message and message.tool_calls and #message.tool_calls > 0 then
           for i, tool in ipairs(message.tool_calls) do
             local tool_index = tool.index and tonumber(tool.index) or i
@@ -243,20 +242,23 @@ return {
           end
         end
       end
+      local output = {
+        role = message.role,
+        content = message.content,
+      }
 
-      local delta = json.message
-
-      if not delta then
-        return nil
+      if message.thinking then
+        output.reasoning = { content = message.thinking }
+        if output.content == "" then
+          -- NOTE: without this, the chat will produce an alternating sequence
+          -- of `Reasoning` and empty `Response` blocks.
+          output.content = nil
+        end
       end
 
       return {
         status = "success",
-        output = {
-          role = delta.role,
-          content = delta.content,
-          reasoning = delta.thinking,
-        },
+        output = output,
       }
     end,
     tools = {
@@ -296,8 +298,20 @@ return {
     ---@param data table The reasoning output from the LLM
     ---@return nil|{ content: string, _data: table }
     form_reasoning = function(self, data)
+      if data == nil or not vim.iter(data):any(function(item)
+        return item ~= nil
+      end) then
+        return
+      end
+
       local content = vim
         .iter(data)
+        :map(function(item)
+          local val = item.content or item
+          if type(val) == "string" then
+            return val
+          end
+        end)
         :filter(function(content)
           return content ~= nil
         end)
