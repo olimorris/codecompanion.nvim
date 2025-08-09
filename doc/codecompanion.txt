@@ -62,7 +62,7 @@ LLMs, in Neovim.
 FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
--  Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs out of the box (or bring your own!)
+-  Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace, xAI and Gitlab Dui LLMs out of the box (or bring your own!)
 -  User contributed and supported |codecompanion-configuration-adapters-community-adapters|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
@@ -90,6 +90,7 @@ of the box, the plugin supports:
 - OpenAI (`openai`) - Requires an API key
 - Azure OpenAI (`azure_openai`) - Requires an Azure OpenAI service with a model deployment
 - xAI (`xai`) - Requires an API key
+- Gitlab Duo (gitlab_duo) - Requires and API key
 
 The plugin utilises objects called `strategies`. These are the different ways
 that a user can interact with the plugin. The `chat` strategy harnesses a
@@ -2515,6 +2516,8 @@ Below is the tool use status of various adapters and models in CodeCompanion:
   OpenAI                                      Dependent on the model
 
   xAI            All                          Not supported yet
+
+  Gitlab Dui                                  Not supported yet
   ------------------------------------------------------------------------
 
 SLASH COMMANDS                            *codecompanion-usage-slash-commands*
