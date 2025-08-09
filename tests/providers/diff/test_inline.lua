@@ -469,4 +469,194 @@ T["InlineDiff"]["integration - edge case with file becoming empty"] = function()
   h.eq(final_content, original_contents)
 end
 
+-- Screenshot tests for visual display
+local child = MiniTest.new_child_neovim()
+
+T["InlineDiff Screenshots"] = MiniTest.new_set({
+  hooks = {
+    pre_case = function()
+      h.child_start(child)
+      child.lua([[
+        _G.h = require('tests.helpers')
+        h.setup_plugin()
+      ]])
+    end,
+    post_case = function()
+      child.lua([[
+        -- Clean up any buffers or diffs
+        vim.cmd('bufdo bdelete!')
+      ]])
+    end,
+    post_once = child.stop,
+  },
+})
+
+T["InlineDiff Screenshots"]["Shows simple line modification"] = function()
+  child.lua([[
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_set_current_buf(bufnr)
+    vim.bo.filetype = "lua"
+
+    local original_content = {
+      "local function greet(name)",
+      "  print('Hello, ' .. name)",
+      "end",
+      "",
+      "greet('World')"
+    }
+
+    local new_content = {
+      "local function greet(name)",
+      "  print('Hi there, ' .. name .. '!')",
+      "end",
+      "",
+      "greet('World')"
+    }
+
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_content)
+
+    local InlineDiff = require("codecompanion.providers.diff.inline")
+    local diff = InlineDiff.new({
+      bufnr = bufnr,
+      contents = original_content,
+      id = "screenshot_test_1",
+    })
+  ]])
+
+  local expect = MiniTest.expect
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["InlineDiff Screenshots"]["Shows addition of new lines"] = function()
+  child.lua([[
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_set_current_buf(bufnr)
+    vim.bo.filetype = "javascript"
+
+    local original_content = {
+      "function calculateSum(a, b) {",
+      "  return a + b;",
+      "}"
+    }
+
+    local new_content = {
+      "function calculateSum(a, b) {",
+      "  // Validate inputs",
+      "  if (typeof a !== 'number' || typeof b !== 'number') {",
+      "    throw new Error('Both arguments must be numbers');",
+      "  }",
+      "  return a + b;",
+      "}"
+    }
+
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_content)
+
+    local InlineDiff = require("codecompanion.providers.diff.inline")
+    local diff = InlineDiff.new({
+      bufnr = bufnr,
+      contents = original_content,
+      id = "screenshot_test_2",
+    })
+  ]])
+
+  local expect = MiniTest.expect
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["InlineDiff Screenshots"]["Shows deletion of lines"] = function()
+  child.lua([[
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_set_current_buf(bufnr)
+    vim.bo.filetype = "python"
+
+    local original_content = {
+      "def process_data(data):",
+      "    # TODO: Add validation",
+      "    # This is a temporary comment",
+      "    # Remove this later",
+      "    result = []",
+      "    for item in data:",
+      "        result.append(item.strip())",
+      "    return result"
+    }
+
+    local new_content = {
+      "def process_data(data):",
+      "    result = []",
+      "    for item in data:",
+      "        result.append(item.strip())",
+      "    return result"
+    }
+
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_content)
+
+    local InlineDiff = require("codecompanion.providers.diff.inline")
+    local diff = InlineDiff.new({
+      bufnr = bufnr,
+      contents = original_content,
+      id = "screenshot_test_3",
+    })
+  ]])
+
+  local expect = MiniTest.expect
+  expect.reference_screenshot(child.get_screenshot())
+end
+
+T["InlineDiff Screenshots"]["Shows complex mixed changes"] = function()
+  child.lua([[
+    local bufnr = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_set_current_buf(bufnr)
+    vim.bo.filetype = "rust"
+
+    local original_content = {
+      "struct User {",
+      "    name: String,",
+      "    email: String,",
+      "}",
+      "",
+      "impl User {",
+      "    fn new(name: String, email: String) -> Self {",
+      "        User { name, email }",
+      "    }",
+      "}"
+    }
+
+    local new_content = {
+      "struct User {",
+      "    name: String,",
+      "    email: String,",
+      "    active: bool,",
+      "    created_at: DateTime<Utc>,",
+      "}",
+      "",
+      "impl User {",
+      "    fn new(name: String, email: String) -> Self {",
+      "        User { ",
+      "            name, ",
+      "            email,",
+      "            active: true,",
+      "            created_at: Utc::now(),",
+      "        }",
+      "    }",
+      "",
+      "    fn is_active(&self) -> bool {",
+      "        self.active",
+      "    }",
+      "}"
+    }
+
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_content)
+
+    local InlineDiff = require("codecompanion.providers.diff.inline")
+    local diff = InlineDiff.new({
+      bufnr = bufnr,
+      contents = original_content,
+      id = "screenshot_test_4",
+    })
+  ]])
+
+  local expect = MiniTest.expect
+  expect.reference_screenshot(child.get_screenshot())
+end
+
 return T
