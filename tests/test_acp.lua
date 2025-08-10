@@ -88,7 +88,7 @@ T["ACP Connection"]["can handle real initialize response"] = function()
     connection = ACP.new({
       adapter = test_adapter,
       opts = {
-        jobstart = function() return mock_process end,
+        job = function() return mock_process end,
         schedule_wrap = function(fn) return fn end
       }
     })
@@ -99,7 +99,7 @@ T["ACP Connection"]["can handle real initialize response"] = function()
     connection.process.handle = mock_process
 
     -- Test handling real initialize response
-    connection:_handle_message(load_acp_stub('initialize_response.txt'))
+    connection:_process_json_message(load_acp_stub('initialize_response.txt'))
   ]])
 
   local result = child.lua([[
@@ -123,7 +123,7 @@ T["ACP Connection"]["connect() end-to-end with real responses"] = function()
     local connection = ACP.new({
       adapter = test_adapter,
       opts = {
-        jobstart = function() return { write = function() end } end,
+        job = function() return { write = function() end } end,
         schedule_wrap = function(fn) return fn end,
       },
     })
@@ -175,15 +175,15 @@ T["ACP Responses"]["handles partial JSON messages correctly"] = function()
 
     -- Track processed messages
     local processed_messages = {}
-    function connection:_handle_message(line)
+    function connection:_process_json_message(line)
       table.insert(processed_messages, line)
     end
 
     -- Simulate partial JSON arriving in chunks
-    connection:_handle_stdout('{"jsonrpc":"2.0","id":1,')
-    connection:_handle_stdout('"result":{"test":"value"}}\n')
-    connection:_handle_stdout('{"jsonrpc":"2.0","id":2,"result":null}\n{"jsonrpc"')
-    connection:_handle_stdout(':"2.0","id":3,"result":{}}\n')
+    connection:_process_output('{"jsonrpc":"2.0","id":1,')
+    connection:_process_output('"result":{"test":"value"}}\n')
+    connection:_process_output('{"jsonrpc":"2.0","id":2,"result":null}\n{"jsonrpc"')
+    connection:_process_output(':"2.0","id":3,"result":{}}\n')
 
     return {
       message_count = #processed_messages,
@@ -218,7 +218,7 @@ T["ACP Responses"]["processes real streaming prompt responses"] = function()
     local lines = vim.fn.readfile('tests/stubs/acp/prompt_response.txt')
     local prompt_data = table.concat(lines, '\n') .. '\n'
 
-    connection:_handle_stdout(prompt_data)
+    connection:_process_output(prompt_data)
 
     return {
       update_count = #updates,
@@ -248,7 +248,7 @@ T["ACP Responses"]["PromptBuilder"] = function()
     local handler_calls = {}
     local sent_data = ""
 
-    connection._send_data = function(self, data)
+    connection._write_to_process = function(self, data)
       sent_data = data
       return true
     end
