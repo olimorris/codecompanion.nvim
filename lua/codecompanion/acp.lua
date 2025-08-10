@@ -305,7 +305,7 @@ function Connection:_handle_message(line)
   if message.id and not message.method then
     self:_handle_response(message)
     if message.result and message.result ~= vim.NIL and message.result.stopReason then
-      self._active_prompt:_handle_done()
+      self._active_prompt:_handle_done(message.result.stopReason)
     end
   elseif message.method then
     self:_handle_notification(message)
@@ -332,6 +332,7 @@ end
 ---@param notification? table
 function Connection:_handle_notification(notification)
   if not notification then
+    log:debug("[acp::_handle_notification] No notification provided")
     return self._active_prompt:_handle_done()
   end
 
@@ -611,10 +612,11 @@ function PromptBuilder:_handle_session_update(params)
 end
 
 ---Handle done event from the server
+---@param stop_reason? string
 ---@return nil
-function PromptBuilder:_handle_done()
+function PromptBuilder:_handle_done(stop_reason)
   if self.handlers.complete then
-    self.handlers.complete("completed")
+    self.handlers.complete(stop_reason)
   end
 
   -- Fire request finished event
