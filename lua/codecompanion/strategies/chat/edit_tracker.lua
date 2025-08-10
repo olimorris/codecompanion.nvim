@@ -45,6 +45,7 @@ function EditTracker.init(chat)
     tracked_files = {}, -- Map of filepath/bufnr -> tracked file info
     enabled = true,
     edit_counter = 0,
+    baseline_content = {}, -- Map of filepath/bufnr -> true original content
   }
   log:info("[Edit Tracker] Initialized edit tracking for chat %d", chat.id)
 end
@@ -121,6 +122,11 @@ function EditTracker.register_edit_operation(chat, edit_info)
       first_edit_timestamp = current_timestamp,
       last_edit_timestamp = current_timestamp,
     }
+    -- Store the baseline original content (before any tools ran)
+    if not chat.edit_tracker.baseline_content[key] then
+      chat.edit_tracker.baseline_content[key] = vim.deepcopy(edit_info.original_content)
+      log:debug("[Edit Tracker] Stored baseline content for: %s", key)
+    end
   else
     log:debug("[Edit Tracker] Additional edit operation for: %s", key)
     tracked[key].last_edit_timestamp = current_timestamp
@@ -310,7 +316,9 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return nil
 function EditTracker.clear(chat)
+  log:info("[Edit Tracker] Clearing all tracked edits for chat %d", chat.id)
   if chat.edit_tracker then
+    log:debug("[Edit Tracker] Clearing tracked edits for chat %d", chat.id)
     EditTracker.get_edit_stats(chat)
     chat.edit_tracker.tracked_files = {}
     chat.edit_tracker.edit_counter = 0
@@ -461,12 +469,15 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
     return 0
   end
   local monitor = chat._tool_monitors[tool_name]
-  log:info("[Edit Tracker] Finishing monitoring and detecting changes for tool: %s", tool_name)
-  if not success then
-    log:debug("[Edit Tracker] Tool %s reported failure, skipping change detection", tool_name)
-    chat._tool_monitors[tool_name] = nil
-    return 0
-  end
+  log:info(
+    "[Edit Tracker] Finishing monitoring and detecting changes for tool: %s (success=%s)",
+    tool_name,
+    tostring(success)
+  )
+
+  -- Don't skip change detection for rejected tools - we want to track them
+  -- Only skip for actual errors where no meaningful changes were made
+  -- For now, we'll detect changes for all cases and let the status be determined later
 
   local detected_edits = 0
   local detection_results = {
@@ -501,6 +512,13 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
             tool_execution_time = vim.loop.hrtime() - monitor.start_time,
           },
         })
+
+        -- Mark as rejected if tool was not successful (rejected by user)
+        if edit_id and not success then
+          log:debug("[Edit Tracker] Marking edit %s as rejected for tool %s", edit_id, tool_name)
+          EditTracker.update_edit_status(chat, edit_id, "rejected")
+          log:debug("[Edit Tracker] Edit %s status updated to rejected", edit_id)
+        end
 
         if edit_id then
           detected_edits = detected_edits + 1
@@ -566,6 +584,13 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
           change_type = change_type,
         },
       })
+
+      -- Mark as rejected if tool was not successful (rejected by user)
+      if edit_id and not success then
+        log:debug("[Edit Tracker] Marking file edit %s as rejected for tool %s", edit_id, tool_name)
+        EditTracker.update_edit_status(chat, edit_id, "rejected")
+        log:debug("[Edit Tracker] File edit %s status updated to rejected", edit_id)
+      end
       if edit_id then
         detected_edits = detected_edits + 1
         table.insert(detection_results.file_changes, {
@@ -597,9 +622,22 @@ function EditTracker.finish_tool_monitoring(tool_name, chat, success)
 
   -- Report results
   if detected_edits > 0 then
-    utils.notify(fmt("Auto-detected %d file changes from %s", detected_edits, tool_name))
-  else
-    log:debug("[Edit Tracker] No file changes detected for tool: %s", tool_name)
+    log:debug(
+      "[Edit Tracker] %d file changes detected for tool: %s (success=%s)",
+      detected_edits,
+      tool_name,
+      tostring(success)
+    )
+
+    -- Debug: Log current state of all tracked edits
+    local stats = EditTracker.get_edit_stats(chat)
+    log:debug(
+      "[Edit Tracker] Current stats after %s: %d accepted, %d rejected, %d total",
+      tool_name,
+      stats.accepted_operations,
+      stats.rejected_operations,
+      stats.total_operations
+    )
   end
   if #detection_results.errors > 0 then
     log:warn("[Edit Tracker] %d errors during auto-detection for tool %s", #detection_results.errors, tool_name)

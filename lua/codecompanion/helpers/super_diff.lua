@@ -6,6 +6,15 @@ local utils = require("codecompanion.utils")
 
 local api = vim.api
 local fmt = string.format
+local ICONS = {
+  accepted = " ",
+  rejected = " ",
+}
+
+local COLORS = {
+  accepted = "DiffAdded",
+  rejected = "DiffDeleted",
+}
 
 local M = {}
 
@@ -29,20 +38,6 @@ local function get_file_extension(filepath)
   return ext_map[ext] or ext
 end
 
----Get status indicator for edit operation
----@param status string
----@return string, string # Icon and color
-local function get_status_indicator(status)
-  if status == "accepted" then
-    return "✔️", "DiffAdd"
-  elseif status == "rejected" then
-    return " ", "DiffDelete"
-  else
-    -- Convert pending to accepted for simplicity
-    return "✔️", "DiffAdd"
-  end
-end
-
 ---Format timestamp for display
 ---@param timestamp number
 ---@return string|osdate
@@ -51,15 +46,22 @@ local function format_timestamp(timestamp)
   return os.date("%H:%M:%S", seconds)
 end
 
----Generate unified markdown content showing consolidated file changes
+-- Helper function to debug log input from edit tracker
 ---@param tracked_files table
----@return string[] lines, table[] file_sections, table[] diff_info
-local function generate_markdown_super_diff(tracked_files)
-  local lines = {}
-  local file_sections = {}
-  local diff_info = {}
-  log:info("[SuperDiff] Generating unified markdown for %d tracked files", vim.tbl_count(tracked_files))
-  -- Group files by actual filepath to avoid duplicates
+local function debug_log_input(tracked_files)
+  for key, tracked_file in pairs(tracked_files) do
+    log:debug("[SuperDiff] Input tracked file '%s' has %d operations", key, #tracked_file.edit_operations)
+    for i, op in ipairs(tracked_file.edit_operations) do
+      log:debug("[SuperDiff]   Operation %d: id=%s, tool=%s, status=%s", i, op.id, op.tool_name, op.status)
+    end
+  end
+end
+
+-- Helper function to group files by filepath and deduplicate operations
+---@param tracked_files table
+---@return table unique_files
+local function group_and_deduplicate_files(tracked_files)
+  debug_log_input(tracked_files)
   local unique_files = {}
   for key, tracked_file in pairs(tracked_files) do
     -- Create a normalized key based on file path
@@ -79,14 +81,11 @@ local function generate_markdown_super_diff(tracked_files)
         display_name = display_name,
       }
     end
-    -- Add all operations to this file, avoiding duplicates by ID and timestamp
+    -- Add all operations to this file, avoiding duplicates by ID
     for _, op in ipairs(tracked_file.edit_operations) do
       local duplicate = false
       for _, existing_op in ipairs(unique_files[normalized_key].operations) do
-        if
-          existing_op.id == op.id
-          or (existing_op.tool_name == op.tool_name and math.abs(existing_op.timestamp - op.timestamp) < 1000000000)
-        then -- 1 second window
+        if existing_op.id == op.id then
           duplicate = true
           log:trace("[SuperDiff] Skipping duplicate operation: %s", op.id)
           break
@@ -94,168 +93,381 @@ local function generate_markdown_super_diff(tracked_files)
       end
       if not duplicate then
         table.insert(unique_files[normalized_key].operations, op)
+        log:debug(
+          "[SuperDiff] Added operation %s to file operations (total now: %d)",
+          op.id,
+          #unique_files[normalized_key].operations
+        )
+      else
+        log:debug("[SuperDiff] Skipped duplicate operation %s", op.id)
       end
     end
   end
-  for _, file_data in pairs(unique_files) do
-    local section_start = #lines + 1
-    local tracked_file = file_data.tracked_file
-    -- File header in markdown
-    local display_name = file_data.display_name
-      or tracked_file.filepath
-      or ("Buffer " .. (tracked_file.bufnr or "unknown"))
-    if tracked_file.filepath then
-      local p = Path:new(tracked_file.filepath)
-      display_name = p:make_relative(vim.fn.getcwd())
-    end
-    -- Count operations by status (treat pending as accepted)
-    local stats = { accepted = 0, rejected = 0 }
-    local tool_names = {}
-    for _, op in ipairs(file_data.operations) do
-      if op.status == "rejected" then
-        stats.rejected = stats.rejected + 1
-      else
-        stats.accepted = stats.accepted + 1
-      end
-      if not vim.tbl_contains(tool_names, op.tool_name) then
-        table.insert(tool_names, op.tool_name)
-      end
-    end
-    local header = fmt("## %s", display_name)
-    local stats_line = fmt(
-      "*%d edits by %s: %d ✔️accepted, %d ❌ rejected*",
-      #file_data.operations,
-      table.concat(tool_names, ", "),
-      stats.accepted,
-      stats.rejected
-    )
-    table.insert(lines, header)
-    table.insert(lines, stats_line)
-    table.insert(lines, "")
-    log:debug("[SuperDiff] Processing file %s with %d operations", display_name, #file_data.operations)
-    if #file_data.operations == 0 then
-      table.insert(lines, "*No edit operations recorded*")
-      table.insert(lines, "")
+  return unique_files
+end
+
+-- Helper function to calculate file stats and display name
+---@param file_data table
+---@return table stats, string display_name, table tool_names
+local function calculate_file_stats(file_data)
+  local tracked_file = file_data.tracked_file
+  local display_name = file_data.display_name
+    or tracked_file.filepath
+    or ("Buffer " .. (tracked_file.bufnr or "unknown"))
+  if tracked_file.filepath then
+    local p = Path:new(tracked_file.filepath)
+    display_name = p:make_relative(vim.uv.cwd())
+  end
+
+  local stats = { accepted = 0, rejected = 0 }
+  local tool_names = {}
+  for _, op in ipairs(file_data.operations) do
+    if op.status == "rejected" then
+      stats.rejected = stats.rejected + 1
     else
-      -- Get the earliest original content and determine final content
-      local earliest_original = nil
-      local final_content = nil
-      -- Sort operations by timestamp to get correct sequence
-      local sorted_operations = vim.deepcopy(file_data.operations)
-      table.sort(sorted_operations, function(a, b)
-        return a.timestamp < b.timestamp
-      end)
-      if #sorted_operations > 0 then
-        earliest_original = sorted_operations[1].original_content
-        -- For final content, use the last operation's new_content if available
-        local last_op = sorted_operations[#sorted_operations]
-        final_content = last_op.new_content
-      end
-      -- Get current content as fallback
-      local current_content
-      if tracked_file.type == "buffer" and tracked_file.bufnr and api.nvim_buf_is_valid(tracked_file.bufnr) then
-        current_content = api.nvim_buf_get_lines(tracked_file.bufnr, 0, -1, false)
-      elseif tracked_file.filepath and vim.fn.filereadable(tracked_file.filepath) == 1 then
-        current_content = vim.fn.readfile(tracked_file.filepath)
-      end
-      -- Use best available content
-      local old_content = earliest_original or current_content
-      local new_content = final_content or current_content
-      if old_content and new_content and not diff_utils.contents_equal(old_content, new_content) then
-        -- Calculate hunks with minimal context (0 lines) to show only changes
-        local hunks = diff_utils.calculate_hunks(old_content, new_content, 0)
-        log:debug("[SuperDiff] File %s: calculated %d hunks", display_name, #hunks)
-        if #hunks > 0 then
-          local lang = tracked_file.filepath and get_file_extension(tracked_file.filepath) or "text"
-          -- Show tool operations summary
-          table.insert(lines, "**Operations:**")
-          for _, operation in ipairs(file_data.operations) do
-            local status_icon, _ = get_status_indicator(operation.status)
-            local timestamp_str = format_timestamp(operation.timestamp)
-            local summary = fmt(
-              "- %s %s by %s at %s",
-              status_icon,
-              operation.status == "rejected" and "REJECTED" or "ACCEPTED",
-              operation.tool_name,
-              timestamp_str
-            )
+      stats.accepted = stats.accepted + 1
+    end
+    if not vim.tbl_contains(tool_names, op.tool_name) then
+      table.insert(tool_names, op.tool_name)
+    end
+  end
+
+  return stats, display_name, tool_names
+end
+
+-- Helper function to process and sort operations
+---@param file_data table
+---@return table sorted_operations, table accepted_operations, table rejected_operations
+local function process_operations(file_data)
+  local sorted_operations = vim.deepcopy(file_data.operations)
+  table.sort(sorted_operations, function(a, b)
+    return a.timestamp < b.timestamp
+  end)
+
+  local accepted_operations = {}
+  local rejected_operations = {}
+  for _, op in ipairs(sorted_operations) do
+    if op.status == "rejected" then
+      table.insert(rejected_operations, op)
+    else
+      table.insert(accepted_operations, op)
+    end
+  end
+
+  return sorted_operations, accepted_operations, rejected_operations
+end
+
+-- Helper function to get current content from buffer or file
+---@param tracked_file table
+---@return table|nil current_content
+local function get_current_content(tracked_file)
+  if tracked_file.type == "buffer" and tracked_file.bufnr and api.nvim_buf_is_valid(tracked_file.bufnr) then
+    return api.nvim_buf_get_lines(tracked_file.bufnr, 0, -1, false)
+  elseif tracked_file.filepath and vim.fn.filereadable(tracked_file.filepath) == 1 then
+    return vim.fn.readfile(tracked_file.filepath)
+  end
+  return nil
+end
+
+-- Helper function to determine content for diff
+---@param sorted_operations table
+---@param accepted_operations table
+---@param tracked_file table
+---@return table|nil old_content, table|nil new_content
+local function determine_diff_content(sorted_operations, accepted_operations, tracked_file)
+  local earliest_original = nil
+  local final_content = nil
+  if #sorted_operations > 0 then
+    earliest_original = sorted_operations[1].original_content
+    -- For final content, use the last accepted operation's new_content if available
+    if #accepted_operations > 0 then
+      local last_accepted_op = accepted_operations[#accepted_operations]
+      final_content = last_accepted_op.new_content
+    else
+      final_content = get_current_content(tracked_file) -- use it if no accepted operations
+    end
+  end
+  local current_content = get_current_content(tracked_file) -- as fallback
+  local old_content = earliest_original or current_content
+  local new_content = final_content or current_content
+
+  return old_content, new_content
+end
+
+-- Helper function to generate operations summary
+---@param lines table
+---@param file_data table
+local function add_operations_summary(lines, file_data)
+  table.insert(lines, "**Operations:**")
+  for _, operation in ipairs(file_data.operations) do
+    local status_icon = operation.status == "rejected" and ICONS.rejected or ICONS.accepted
+    local timestamp_str = format_timestamp(operation.timestamp)
+    local summary = fmt(
+      "- %s %s by %s at %s",
+      status_icon,
+      operation.status == "rejected" and "REJECTED" or "ACCEPTED",
+      operation.tool_name,
+      timestamp_str
+    )
+    if operation.metadata and operation.metadata.explanation then
+      summary = summary .. " - " .. operation.metadata.explanation
+    end
+    table.insert(lines, summary)
+  end
+  table.insert(lines, "")
+end
+
+-- Helper function to generate diff hunks display
+---@param lines table
+---@param diff_info table
+---@param hunks table
+---@param tracked_file table
+---@param display_name string
+---@return table line_mappings
+local function add_diff_hunks(lines, diff_info, hunks, tracked_file, display_name)
+  local lang = tracked_file.filepath and get_file_extension(tracked_file.filepath) or "text"
+  table.insert(lines, "**Current State (Accepted Changes):**")
+  table.insert(lines, "```" .. lang)
+  local code_content_start = #lines
+  local line_mappings = {}
+  local buffer_line = code_content_start
+
+  for hunk_idx, hunk in ipairs(hunks) do
+    -- Add a line number indicator for context
+    local line_indicator = fmt("@@ Line %d @@", hunk.old_start)
+    table.insert(lines, line_indicator)
+    buffer_line = buffer_line + 1
+
+    -- Add removed lines
+    for _, old_line in ipairs(hunk.old_lines) do
+      table.insert(lines, old_line)
+      buffer_line = buffer_line + 1
+      table.insert(line_mappings, {
+        buffer_line = buffer_line - 1,
+        type = "removed",
+        is_modification = #hunk.new_lines > 0,
+      })
+    end
+
+    -- Add new lines
+    for _, new_line in ipairs(hunk.new_lines) do
+      table.insert(lines, new_line)
+      buffer_line = buffer_line + 1
+      table.insert(line_mappings, {
+        buffer_line = buffer_line - 1,
+        type = "added",
+        is_modification = #hunk.old_lines > 0,
+      })
+    end
+
+    -- Add spacing between hunks
+    if hunk_idx < #hunks then
+      table.insert(lines, "")
+      buffer_line = buffer_line + 1
+    end
+  end
+
+  table.insert(lines, "```")
+  table.insert(lines, "")
+
+  return line_mappings
+end
+
+-- Helper function to process accepted changes diff
+---@param lines table
+---@param diff_info table
+---@param old_content table
+---@param new_content table
+---@param tracked_file table
+---@param display_name string
+---@param stats table
+---@param file_data table
+local function process_accepted_diff(
+  lines,
+  diff_info,
+  old_content,
+  new_content,
+  tracked_file,
+  display_name,
+  stats,
+  file_data
+)
+  if old_content and new_content and not diff_utils.contents_equal(old_content, new_content) then
+    local hunks = diff_utils.calculate_hunks(old_content, new_content, 0)
+    log:debug("[SuperDiff] File %s: calculated %d hunks for accepted changes", display_name, #hunks)
+    if #hunks > 0 then
+      local code_content_start = #lines + 1
+      local line_mappings = add_diff_hunks(lines, diff_info, hunks, tracked_file, display_name)
+
+      -- Store diff info for highlighting
+      table.insert(diff_info, {
+        start_line = code_content_start,
+        end_line = #lines - 2,
+        hunks = hunks,
+        old_content = old_content,
+        new_content = new_content,
+        status = stats.rejected > 0 and "mixed" or "accepted",
+        file_data = file_data,
+        line_mappings = line_mappings,
+      })
+    else
+      table.insert(lines, "*No content changes detected in accepted operations*")
+      table.insert(lines, "")
+    end
+  else
+    table.insert(lines, "*No differences found between original and current content*")
+    table.insert(lines, "")
+  end
+end
+
+-- Helper function to process rejected operations
+---@param lines table
+---@param diff_info table
+---@param rejected_operations table
+---@param tracked_file table
+---@param file_data table
+local function process_rejected_operations(lines, diff_info, rejected_operations, tracked_file, file_data)
+  if #rejected_operations > 0 then
+    table.insert(lines, "**Rejected Changes:**")
+    for _, operation in ipairs(rejected_operations) do
+      if operation.original_content and operation.new_content then
+        local op_old_content = operation.original_content
+        local op_new_content = operation.new_content
+
+        if not diff_utils.contents_equal(op_old_content, op_new_content) then
+          local op_hunks = diff_utils.calculate_hunks(op_old_content, op_new_content, 0)
+          if #op_hunks > 0 then
+            table.insert(lines, fmt("* REJECTED: %s*", operation.tool_name))
             if operation.metadata and operation.metadata.explanation then
-              summary = summary .. " - " .. operation.metadata.explanation
-            end
-            table.insert(lines, summary)
-          end
-          table.insert(lines, "")
-          -- Single unified code block showing only actual changes
-          table.insert(lines, "```" .. lang)
-          local code_content_start = #lines
-          -- Create simplified diff showing only changed lines with minimal context
-          local line_mappings = {}
-          local buffer_line = code_content_start
-          for hunk_idx, hunk in ipairs(hunks) do
-            -- Add a line number indicator for context
-            local line_indicator = fmt("@@ Line %d @@", hunk.old_start)
-            table.insert(lines, line_indicator)
-            buffer_line = buffer_line + 1
-            -- Add removed lines with - prefix
-            for _, old_line in ipairs(hunk.old_lines) do
-              local display_line = old_line
-              table.insert(lines, display_line)
-              buffer_line = buffer_line + 1
-              table.insert(line_mappings, {
-                buffer_line = buffer_line - 1,
-                type = "removed",
-                is_modification = #hunk.new_lines > 0,
-              })
+              table.insert(lines, fmt("*%s*", operation.metadata.explanation))
             end
 
-            -- Add new lines with + prefix
-            for _, new_line in ipairs(hunk.new_lines) do
-              local display_line = new_line
-              table.insert(lines, display_line)
+            local lang = tracked_file.filepath and get_file_extension(tracked_file.filepath) or "text"
+            table.insert(lines, "```" .. lang)
+            local code_content_start = #lines
+
+            -- Create diff for this rejected operation
+            local line_mappings = {}
+            local buffer_line = code_content_start
+            for hunk_idx, hunk in ipairs(op_hunks) do
+              local line_indicator = fmt("@@ Line %d @@", hunk.old_start)
+              table.insert(lines, line_indicator)
               buffer_line = buffer_line + 1
-              table.insert(line_mappings, {
-                buffer_line = buffer_line - 1,
-                type = "added",
-                is_modification = #hunk.old_lines > 0,
-              })
+
+              -- Add removed lines
+              for _, old_line in ipairs(hunk.old_lines) do
+                table.insert(lines, old_line)
+                buffer_line = buffer_line + 1
+                table.insert(line_mappings, {
+                  buffer_line = buffer_line - 1,
+                  type = "removed",
+                  is_modification = #hunk.new_lines > 0,
+                })
+              end
+
+              -- Add new lines
+              for _, new_line in ipairs(hunk.new_lines) do
+                table.insert(lines, new_line)
+                buffer_line = buffer_line + 1
+                table.insert(line_mappings, {
+                  buffer_line = buffer_line - 1,
+                  type = "added",
+                  is_modification = #hunk.old_lines > 0,
+                })
+              end
+
+              if hunk_idx < #op_hunks then
+                table.insert(lines, "")
+                buffer_line = buffer_line + 1
+              end
             end
-            -- Add spacing between hunks
-            if hunk_idx < #hunks then
-              table.insert(lines, "")
-              buffer_line = buffer_line + 1
-            end
+            table.insert(lines, "```")
+            table.insert(lines, "")
+
+            -- Store diff info for highlighting rejected operations
+            table.insert(diff_info, {
+              start_line = code_content_start,
+              end_line = #lines - 2,
+              hunks = op_hunks,
+              old_content = op_old_content,
+              new_content = op_new_content,
+              status = "rejected",
+              file_data = file_data,
+              line_mappings = line_mappings,
+            })
           end
-          table.insert(lines, "```")
-          table.insert(lines, "")
-          -- Store diff info for highlighting
-          table.insert(diff_info, {
-            start_line = code_content_start,
-            end_line = #lines - 2,
-            hunks = hunks,
-            old_content = old_content,
-            new_content = new_content,
-            status = stats.rejected > 0 and "mixed" or "accepted",
-            file_data = file_data,
-            line_mappings = line_mappings,
-          })
-        else
-          table.insert(lines, "*No content changes detected*")
-          table.insert(lines, "")
         end
-      else
-        table.insert(lines, "*No differences found between original and current content*")
-        table.insert(lines, "")
       end
     end
-    table.insert(lines, "---")
+  end
+end
+
+-- Helper function to process a single file's data
+---@param file_data table
+---@param lines table
+---@param diff_info table
+local function process_single_file(file_data, lines, diff_info)
+  local section_start = #lines + 1
+  local tracked_file = file_data.tracked_file
+
+  local stats, display_name, tool_names = calculate_file_stats(file_data)
+
+  local header = fmt("## %s", display_name)
+  local accepted_icon = ICONS.accepted
+  local rejected_icon = ICONS.rejected
+  local stats_line = fmt(
+    "*%d edits by %s: %d %s accepted, %d %s rejected*",
+    #file_data.operations,
+    table.concat(tool_names, ", "),
+    stats.accepted,
+    accepted_icon,
+    stats.rejected,
+    rejected_icon
+  )
+  table.insert(lines, header)
+  table.insert(lines, stats_line)
+  table.insert(lines, "")
+  log:debug("[SuperDiff] Processing file %s with %d operations", display_name, #file_data.operations)
+
+  -- Debug: Log the operations we're actually processing
+  for i, op in ipairs(file_data.operations) do
+    log:debug("[SuperDiff]   Processing operation %d: id=%s, tool=%s, status=%s", i, op.id, op.tool_name, op.status)
+  end
+
+  if #file_data.operations == 0 then
+    table.insert(lines, "*No edit operations recorded*")
     table.insert(lines, "")
-    table.insert(file_sections, {
-      key = file_data.key,
-      tracked_file = tracked_file,
-      start_line = section_start,
-      end_line = #lines,
-      operations = file_data.operations,
-    })
+  else
+    local sorted_operations, accepted_operations, rejected_operations = process_operations(file_data)
+    local old_content, new_content = determine_diff_content(sorted_operations, accepted_operations, tracked_file)
+    add_operations_summary(lines, file_data)
+    process_accepted_diff(lines, diff_info, old_content, new_content, tracked_file, display_name, stats, file_data)
+    process_rejected_operations(lines, diff_info, rejected_operations, tracked_file, file_data)
+  end
+
+  table.insert(lines, "---")
+  table.insert(lines, "")
+
+  return {
+    start_line = section_start,
+    end_line = #lines,
+    display_name = display_name,
+    file_data = file_data,
+  }
+end
+
+---Generate unified markdown content showing consolidated file changes
+---@param tracked_files table
+---@return string[] lines, table[] file_sections, table[] diff_info
+local function generate_markdown_super_diff(tracked_files)
+  local lines = {}
+  local file_sections = {}
+  local diff_info = {}
+  log:info("[SuperDiff] Generating unified markdown for %d tracked files", vim.tbl_count(tracked_files))
+  local unique_files = group_and_deduplicate_files(tracked_files)
+  for _, file_data in pairs(unique_files) do
+    local file_section = process_single_file(file_data, lines, diff_info)
+    table.insert(file_sections, file_section)
   end
   return lines, file_sections, diff_info
 end
@@ -278,14 +490,24 @@ local function apply_super_diff_highlights(bufnr, diff_info, ns_id)
           local status = section.status == "mixed" and "pending" or section.status or "accepted"
           -- Get appropriate colors based on change type
           local line_hl, sign_text, sign_hl
+          -- Get sign configuration from config (lazy load to avoid circular dependency)
+          local config = require("codecompanion.config")
+          local sign_config = config.display and config.display.diff and config.display.diff.signs or {}
+          local highlight_groups = sign_config.highlight_groups
+            or {
+              addition = "DiagnosticOk",
+              deletion = "DiagnosticError",
+              modification = "DiagnosticWarn",
+            }
+
           if change_type == "removed" then
             line_hl = "DiffDelete"
             sign_text = "▌"
-            sign_hl = diff_utils.get_sign_highlight_for_change("removed", is_modification, status)
+            sign_hl = diff_utils.get_sign_highlight_for_change("removed", is_modification, highlight_groups)
           else -- added
             line_hl = status == "rejected" and "DiffDelete" or "DiffAdd"
             sign_text = status == "rejected" and "✗" or "▌"
-            sign_hl = diff_utils.get_sign_highlight_for_change("added", is_modification, status)
+            sign_hl = diff_utils.get_sign_highlight_for_change("added", is_modification, highlight_groups)
           end
           local extmark_id = api.nvim_buf_set_extmark(bufnr, ns_id, line_idx, 0, {
             line_hl_group = line_hl,
@@ -305,53 +527,81 @@ end
 
 ---Create and show the markdown super diff buffer
 ---@param chat CodeCompanion.Chat
-function M.show_super_diff(chat)
+---@param opts? table Optional window configuration overrides
+function M.show_super_diff(chat, opts)
+  opts = opts or {}
   local tracked_files = edit_tracker.get_tracked_edits(chat)
   if vim.tbl_isempty(tracked_files) then
     return utils.notify("No edits to show in this chat session")
   end
+
+  -- Get super diff configuration with user overrides (lazy load to avoid circular dependency)
+  local config = require("codecompanion.config")
+  local super_diff_config = config.display and config.display.diff and config.display.diff.super_diff or {}
+  local win_opts = vim.tbl_deep_extend("force", super_diff_config.win_opts or {}, opts or {})
+
+  -- Set defaults for win_opts if not provided
+  local default_win_opts = {
+    relative = "editor",
+    anchor = "NW",
+    width = math.floor(vim.o.columns * 0.9),
+    height = math.floor(vim.o.lines * 0.8),
+    row = math.floor((vim.o.lines - math.floor(vim.o.lines * 0.8)) / 2),
+    col = math.floor((vim.o.columns - math.floor(vim.o.columns * 0.9)) / 2),
+    border = "rounded",
+    title = " Super Diff ",
+    title_pos = "center",
+  }
+  win_opts = vim.tbl_deep_extend("keep", win_opts, default_win_opts)
+
   -- Get comprehensive stats
   local stats = edit_tracker.get_edit_stats(chat)
   local lines, file_sections, diff_info = generate_markdown_super_diff(tracked_files)
+
   -- Create floating buffer with markdown filetype
   local ui = require("codecompanion.utils.ui")
-  -- Simplify stats - treat pending as accepted
-  local simplified_accepted = stats.accepted_operations + stats.pending_operations
-  local title = fmt(
-    "Super Diff - Chat %d (%d files, %d operations: %d ✔️ %d  )",
-    chat.id,
-    stats.total_files,
-    stats.total_operations,
-    simplified_accepted,
-    stats.rejected_operations
-  )
-  local bufnr, winnr = ui.create_float(lines, {
-    filetype = "markdown",
-    title = title,
-    window = {
-      width = math.min(160, vim.o.columns - 20),
-      height = math.min(60, vim.o.lines - 10),
-      row = "center",
-      col = "center",
-    },
-    relative = "editor",
-    lock = true,
-    ignore_keymaps = true,
-  })
+
+  -- Update title with stats if not overridden
+  if not opts or not opts.title then
+    local simplified_accepted = stats.accepted_operations + stats.pending_operations
+    win_opts.title = fmt(
+      " Super Diff - Chat %d (%d files, %d operations: %d    %d  ) ",
+      chat.id,
+      stats.total_files,
+      stats.total_operations,
+      simplified_accepted,
+      stats.rejected_operations
+    )
+  end
+
+  -- Create window with configured options
+  local bufnr = api.nvim_create_buf(false, true)
+  api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+  vim.bo[bufnr].filetype = "markdown"
+  vim.bo[bufnr].bufhidden = "wipe"
+  vim.bo[bufnr].buftype = "nofile"
+  vim.bo[bufnr].swapfile = false
+  vim.bo[bufnr].modifiable = false
+
+  local winnr = api.nvim_open_win(bufnr, true, win_opts)
   vim.wo[winnr].number = true
   vim.wo[winnr].relativenumber = false
+
   local ns_id = api.nvim_create_namespace("codecompanion_super_diff")
   local _ = apply_super_diff_highlights(bufnr, diff_info, ns_id)
   M.setup_sticky_header(bufnr, winnr, lines)
   M.setup_keymaps(bufnr, chat, file_sections, ns_id)
+  vim.api.nvim_win_call(winnr, function()
+    vim.fn.matchadd(COLORS.accepted, vim.fn.escape(ICONS.accepted, "[]\\^$.*"), 100)
+    vim.fn.matchadd(COLORS.rejected, vim.fn.escape(ICONS.rejected, "[]\\^$.*"), 100)
+  end)
 end
 
 ---Setup keymaps for the super diff buffer
 ---@param bufnr integer Buffer number for the super diff
----@param chat CodeCompanion.Chat
----@param file_sections table[] File sections with edit operations
+---@param chat CodeCompanion.Chat Chat instance with tracked edits
 ---@param ns_id integer Namespace ID for highlights
-function M.setup_keymaps(bufnr, chat, file_sections, ns_id)
+function M.setup_keymaps(bufnr, chat, file_actions, ns_id)
   local function cleanup()
     if api.nvim_buf_is_valid(bufnr) then
       api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
@@ -389,7 +639,7 @@ function M.setup_keymaps(bufnr, chat, file_sections, ns_id)
     end
     cleanup()
     if total_count > 0 then
-      utils.notify(fmt("✔️Accepted all changes (%d operations)", total_count))
+      utils.notify(fmt(" Accepted all changes (%d operations)", total_count))
     else
       utils.notify("No changes to accept")
     end
@@ -429,7 +679,7 @@ function M.setup_keymaps(bufnr, chat, file_sections, ns_id)
     end
     cleanup()
     if pending_count > 0 then
-      utils.notify(fmt(" Rejected all pending changes and reverted content (%d operations)", pending_count))
+      utils.notify(fmt(" Rejected all pending changes and reverted content (%d operations)", pending_count))
     else
       utils.notify("No pending changes to reject")
     end
@@ -437,11 +687,14 @@ function M.setup_keymaps(bufnr, chat, file_sections, ns_id)
   end
   vim.keymap.set("n", "ga", accept_all, { buffer = bufnr, desc = "Accept all pending changes", nowait = true })
   vim.keymap.set("n", "gr", reject_all, { buffer = bufnr, desc = "Reject all pending changes", nowait = true })
+  vim.keymap.set("n", "gq", function()
+    M.create_quickfix_list(chat)
+  end, { buffer = bufnr, desc = "Add changes to quickfix list", nowait = true })
   vim.keymap.set("n", "q", function()
     cleanup()
     api.nvim_buf_delete(bufnr, { force = true })
   end, { buffer = bufnr, desc = "Close super diff" })
-  log:debug("[SuperDiff] Keymaps configured: ga (accept all), gr (reject all), q (close)")
+  log:debug("[SuperDiff] Keymaps configured: ga (accept all), gr (reject all), gq (quickfix), q (close)")
 end
 
 ---Setup sticky header that follows cursor position and shows current file

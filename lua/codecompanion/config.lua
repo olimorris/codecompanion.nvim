@@ -1103,6 +1103,35 @@ You must create or modify a workspace file through a series of prompts over mult
         "linematch:120",
       },
       provider = providers.diff, -- inline|mini_diff|default
+      signs = {
+        text = "▌", -- Sign text in sign column
+        highlight_groups = {
+          addition = "DiagnosticOk",
+          deletion = "DiagnosticError",
+          modification = "DiagnosticWarn",
+        },
+      },
+      -- Super diff floating window configuration
+      super_diff = {
+        win_opts = { -- Window options (passed to nvim_open_win)
+          relative = "editor",
+          anchor = "NW",
+          width = math.floor(vim.o.columns * 0.7),
+          height = math.floor(vim.o.lines * 0.9),
+          row = math.floor((vim.o.lines - math.floor(vim.o.lines * 0.9)) / 2),
+          col = math.floor((vim.o.columns - math.floor(vim.o.columns * 0.7)) / 2),
+          border = "rounded",
+          title = " Super Diff ",
+          title_pos = "center",
+        },
+      },
+      -- Inline diff specific options
+      inline = {
+        show_removed = true, -- Show removed lines as virtual text
+        full_width_removed = true, -- Make removed lines span full width
+        priority = 100, -- Extmark priority - exposed if people inlay hints activated
+        context_lines = 3, -- Number of context lines in hunks
+      },
     },
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?
