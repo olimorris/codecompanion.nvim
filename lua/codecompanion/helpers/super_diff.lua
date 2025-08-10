@@ -786,4 +786,55 @@ function M.setup_sticky_header(bufnr, winnr, lines)
   log:debug("[SuperDiff] Sticky header setup complete for buffer %d", bufnr)
 end
 
+---Create quickfix list from accepted changes
+---@param chat CodeCompanion.Chat
+---@param opts? table Options: {include_rejected: boolean}
+---@return number count Number of entries created
+function M.create_quickfix_list(chat, opts)
+  opts = opts or {}
+  local tracked_files = edit_tracker.get_tracked_edits(chat)
+  if vim.tbl_isempty(tracked_files) then
+    utils.notify("No changes to add to quickfix list")
+    return 0
+  end
+  local _, _, diff_info = generate_markdown_super_diff(tracked_files)
+  local qf_items = {}
+  for _, section in ipairs(diff_info) do
+    if section.status == "rejected" and not opts.include_rejected then
+      goto continue
+    end
+    local file_data = section.file_data
+    local filename = file_data.tracked_file.filepath or ""
+    if section.line_mappings then
+      for _, mapping in ipairs(section.line_mappings) do
+        if mapping.type ~= "context" then
+          local icon = section.status == "rejected" and ICONS.rejected or ICONS.accepted
+          local change = mapping.type == "added" and "Added" or "Deleted"
+
+          table.insert(qf_items, {
+            filename = filename,
+            bufnr = file_data.tracked_file.bufnr,
+            lnum = mapping.buffer_line + 1,
+            col = 1,
+            text = fmt("%s %s", icon, change),
+            type = section.status == "rejected" and "E" or "I",
+            valid = 1,
+          })
+        end
+      end
+    end
+
+    ::continue::
+  end
+
+  if #qf_items > 0 then
+    vim.fn.setqflist(qf_items, "r")
+    vim.fn.setqflist({}, "a", { title = fmt("CodeCompanion Chat %d Changes", chat.id) })
+    vim.cmd("copen")
+    utils.notify(fmt("📝 Added %d changes to quickfix", #qf_items))
+  end
+
+  return #qf_items
+end
+
 return M
