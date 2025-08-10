@@ -92,6 +92,25 @@ local function get_models(self, opts)
   return models
 end
 
+---Return `true` if the model of the adapter supports thinking.
+---@param self CodeCompanion.Adapter
+---@param model?
+---@return boolean
+local function check_thinking_capability(self, model)
+  model = model or self.schema.model.default
+  if type(model) == "function" then
+    model = model(self)
+  end
+  local choices = self.schema.model.choices
+  if type(choices) == "function" then
+    choices = choices(self)
+  end
+  if choices and choices[model] and choices[model].opts and choices[model].opts.can_reason then
+    return true
+  end
+  return false
+end
+
 ---@class Ollama.Adapter: CodeCompanion.Adapter
 return {
   name = "ollama",
@@ -345,7 +364,8 @@ return {
       mapping = "parameters",
       type = "boolean",
       desc = "Whether to enable thinking mode.",
-      default = false,
+      condition = check_thinking_capability,
+      default = check_thinking_capability,
     },
     ---@type CodeCompanion.Schema
     temperature = {
