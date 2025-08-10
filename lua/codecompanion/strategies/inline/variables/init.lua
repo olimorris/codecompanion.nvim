@@ -114,7 +114,7 @@ function Variables:output()
 
     ::append::
 
-    local output = var_output.new({ context = self.inline.context }):output()
+    local output = var_output.new({ context = self.inline.buffer_context }):output()
     if output then
       table.insert(outputs, output)
     end
