@@ -358,6 +358,11 @@ require("codecompanion").setup({
 }),
 ```
 
+The chat buffer's window settings may be overridden. For example:
+`require("codecompanion").toggle({ layout = "float", width = 0.6 })`
+or:
+`require("codecompanion").chat({window_opts: {layout = "float", width = 0.6 }})`
+
 ## Diff
 
 > [!NOTE]

@@ -593,6 +593,7 @@ function Chat.new(args)
     chat_bufnr = self.bufnr,
     roles = { user = user_role, llm = llm_role },
     settings = self.settings,
+    window_opts = args.window_opts,
   })
 
   if args.messages then
