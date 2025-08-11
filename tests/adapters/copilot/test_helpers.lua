@@ -47,7 +47,7 @@ T["Copilot Helper Stats"]["can determine correct highlight colors based on usage
   h.eq("MoreMsg", get_usage_highlight(0))
 end
 
-T["Copilot Helper Stats"]["show_copilot_stats handles overage_permitted for premium"] = function()
+T["Copilot Helper Stats"]["show_stats handles overage_permitted for premium"] = function()
   -- Mock vim.notify to capture output
   local notify_called = false
   local notify_message = ""
@@ -97,7 +97,7 @@ T["Copilot Helper Stats"]["show_copilot_stats handles overage_permitted for prem
   vim.fn.matchadd = function() end
 
   -- Test the function
-  copilot_helper.show_copilot_stats(function()
+  copilot_helper.show_stats(function()
     return true
   end, "test_token")
 

@@ -181,10 +181,10 @@ return {
     ["Copilot-Integration-Id"] = "vscode-chat",
     ["Editor-Version"] = "Neovim/" .. vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
   },
-  get_copilot_stats = function()
+  get_stats = function()
     return copilot_helper.get_copilot_stats(get_and_authorize_token, _oauth_token)
   end,
-  show_copilot_stats = function()
+  show_stats = function()
     -- we need to ensure initialize token if no chat request has been done
     local dummy_adapter = { url = "" }
     if not get_and_authorize_token(dummy_adapter) then
