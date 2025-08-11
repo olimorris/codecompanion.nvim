@@ -70,7 +70,7 @@ end
 
 ---Launch the action palette
 ---@param context table The buffer context
----@param args? { name: string, opts: table } The provider to use
+---@param args? { provider: {name: string, opts: table } } The provider to use
 ---@return nil
 function Actions.launch(context, args)
   local items = Actions.items(context)

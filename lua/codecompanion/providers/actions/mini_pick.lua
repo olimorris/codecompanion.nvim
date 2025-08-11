@@ -1,4 +1,5 @@
 local MiniPick = require("mini.pick")
+local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Actions.Provider.MiniPick: CodeCompanion.SlashCommand.Provider
@@ -39,7 +40,7 @@ function Provider:picker(items, opts)
 
   local source = {
     items = picker_items,
-    name = opts.prompt or "CodeCompanion actions",
+    name = opts.prompt or config.display.action_palette.opts.title or "CodeCompanion actions",
     choose = function(chosen_item)
       if chosen_item and chosen_item.item then
         -- Get the target window before closing the picker
