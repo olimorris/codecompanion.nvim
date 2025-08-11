@@ -1,5 +1,20 @@
 # Changelog
 
+## [17.14.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.13.0...v17.14.0) (2025-08-11)
+
+
+### Features
+
+* **action_palette:** title is configurable ([#1937](https://github.com/olimorris/codecompanion.nvim/issues/1937)) ([f3b1ff0](https://github.com/olimorris/codecompanion.nvim/commit/f3b1ff08e458708b51de4c7abf1be4ad5d25242a))
+
+
+### Bug Fixes
+
+* **action_palette:** mini_pick handles picker actions ([#1944](https://github.com/olimorris/codecompanion.nvim/issues/1944)) ([3d336e2](https://github.com/olimorris/codecompanion.nvim/commit/3d336e25a15ec7862403d674aacb31a20233c06b))
+* **adapters:** ollama reasoning output ([#1950](https://github.com/olimorris/codecompanion.nvim/issues/1950)) ([940159d](https://github.com/olimorris/codecompanion.nvim/commit/940159de970105f9499f4b7e6dc980a70f50ba9e))
+* **chat:** default completions and add omnifunc ([#1953](https://github.com/olimorris/codecompanion.nvim/issues/1953)) ([bf69033](https://github.com/olimorris/codecompanion.nvim/commit/bf690335d0c6f1370b76a3b0b19c7a8afa3014c1))
+* **inline:** variables ([#1955](https://github.com/olimorris/codecompanion.nvim/issues/1955)) ([4c1cd7e](https://github.com/olimorris/codecompanion.nvim/commit/4c1cd7e5612bc083234877cf3299bb740ee64112)), closes [#1954](https://github.com/olimorris/codecompanion.nvim/issues/1954)
+
 ## [17.13.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.12.0...v17.13.0) (2025-08-06)
 
 
