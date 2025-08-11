@@ -85,7 +85,7 @@ local function open_buffer_in_window(winnr, bufnr_or_filepath)
     end
     return api.nvim_win_get_buf(winnr)
   else
-    local bufnr = bufnr_or_filepath
+    local bufnr = bufnr_or_filepath --[[@as number|nil]]
     local ok = pcall(api.nvim_win_set_buf, winnr, bufnr)
     if not ok then
       log:warn("[catalog::helpers::diff::create] Failed to set buffer in window")
@@ -110,7 +110,7 @@ function M.create(bufnr_or_filepath, diff_id, opts)
     local bufnr = vim.fn.bufnr(bufnr_or_filepath)
     existing_bufnr = (bufnr ~= -1) and bufnr or nil
   else
-    existing_bufnr = bufnr_or_filepath
+    existing_bufnr = bufnr_or_filepath --[[@as number|nil]]
   end
   log:debug("[catalog::helpers::diff::create] Called - diff_id=%s", tostring(diff_id))
 

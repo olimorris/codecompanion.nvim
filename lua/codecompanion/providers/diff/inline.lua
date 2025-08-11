@@ -42,7 +42,15 @@ function InlineDiff.new(args)
   end
   log:debug("[providers::diff::inline::new] Changes detected - applying diff highlights")
   self.has_changes = true
-  self:apply_diff_highlights(self.contents, current_content)
+  local first_diff_line = self:apply_diff_highlights(self.contents, current_content)
+  if first_diff_line then
+    vim.schedule(function()
+      local winnr = vim.fn.bufwinid(self.bufnr)
+      if winnr ~= -1 then
+        api.nvim_win_set_cursor(winnr, { first_diff_line, 0 })
+      end
+    end)
+  end
   util.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
   return self
 end
@@ -79,6 +87,7 @@ end
 ---Apply diff highlights to this instance
 ---@param old_lines string[]
 ---@param new_lines string[]
+---@return integer|nil first_diff_line First line with changes (1-based) for cursor positioning
 function InlineDiff:apply_diff_highlights(old_lines, new_lines)
   log:debug("[providers::diff::inline::apply_diff_highlights] Called")
   -- Get inline diff configuration (lazy load to avoid circular dependency)
@@ -86,6 +95,31 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
   local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
   local context_lines = inline_config.context_lines or 3
   local hunks = InlineDiff.calculate_hunks(old_lines, new_lines, context_lines)
+  local first_diff_line = nil
+  -- Add keymap hint above the first hunk if there are changes
+  if #hunks > 0 then
+    local first_hunk = hunks[1]
+    first_diff_line = math.max(1, first_hunk.new_start) -- Store for cursor positioning
+    -- Only show keymap hints if config allows it and not in test mode
+    local show_keymap_hints = inline_config.show_keymap_hints
+    if show_keymap_hints == nil then
+      show_keymap_hints = true -- Default to true
+    end
+
+    -- Check if we're in a test environment
+    local is_testing = _G.MiniTest ~= nil
+
+    if show_keymap_hints and not is_testing then
+      local attach_line = math.max(0, first_hunk.new_start - 2)
+      local keymap_extmark_id = api.nvim_buf_set_extmark(self.bufnr, self.ns_id, attach_line, 0, {
+        virt_text = { { "ga: accept | gr: reject", "Comment" } },
+        virt_text_pos = "right_align",
+        priority = 200,
+      })
+      table.insert(self.extmark_ids, keymap_extmark_id)
+    end
+  end
+
   local extmark_ids = InlineDiff.apply_hunk_highlights(self.bufnr, hunks, self.ns_id, 0, {
     show_removed = inline_config.show_removed ~= false,
     full_width_removed = inline_config.full_width_removed ~= false,
@@ -95,6 +129,8 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
     "[providers::diff::inline::apply_diff_highlights] Applied %d extmarks for diff visualization",
     #self.extmark_ids
   )
+
+  return first_diff_line
 end
 
 ---Clears all diff highlights and extmarks

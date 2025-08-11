@@ -1131,6 +1131,7 @@ You must create or modify a workspace file through a series of prompts over mult
         full_width_removed = true, -- Make removed lines span full width
         priority = 100, -- Extmark priority - exposed if people inlay hints activated
         context_lines = 3, -- Number of context lines in hunks
+        show_keymap_hints = true, -- Show "ga: accept | gr: reject" hints above diff
       },
     },
     inline = {
