@@ -28,12 +28,12 @@ local TIMEOUTS = {
 ---@class CodeCompanion.ACPConnection
 ---@field adapter CodeCompanion.ACPAdapter
 ---@field adapter_modified CodeCompanion.ACPAdapter Modified adapter with environment variables set
----@field process {handle: table, next_id: integer, stdout_buffer: string}
 ---@field pending_responses table<integer, CodeCompanion.ACPConnection.PendingResponse>
 ---@field session_id string|nil
 ---@field _initialized boolean
 ---@field _authenticated boolean
 ---@field _active_prompt CodeCompanion.ACPPromptBuilder|nil
+---@field _state {handle: table, next_id: integer, stdout_buffer: string}
 ---@field methods table
 local Connection = {}
 Connection.static = {}
@@ -85,12 +85,12 @@ function Connection.new(args)
   local self = setmetatable({
     adapter = args.adapter,
     adapter_modified = {},
-    process = { handle = nil, next_id = 1, stdout_buffer = "" },
     pending_responses = {},
     session_id = args.session_id,
     methods = transform_static_methods(args.opts),
     _initialized = false,
     _authenticated = false,
+    _state = { handle = nil, next_id = 1, stdout_buffer = "" },
   }, { __index = Connection }) ---@cast self CodeCompanion.ACPConnection
 
   return self
@@ -99,7 +99,7 @@ end
 ---Check if the connection is ready
 ---@return boolean
 function Connection:is_ready()
-  return self.process.handle and self._initialized and self._authenticated and self.session_id ~= nil
+  return self._state.handle and self._initialized and self._authenticated and self.session_id ~= nil
 end
 
 ---Connect to ACP process and establish session
@@ -151,64 +151,6 @@ function Connection:connect()
   return self
 end
 
----Initiate a prompt
----@param messages table
----@return CodeCompanion.ACPPromptBuilder
-function Connection:prompt(messages)
-  if not self.session_id then
-    return log:error("[acp::prompt] Connection not established. Call connect() first.")
-  end
-  return PromptBuilder.new(self, messages)
-end
-
----Send a synchronous request and wait for response
----@param method string
----@param params table
----@return table|nil
-function Connection:_send_request(method, params)
-  if not self.process.handle then
-    return nil
-  end
-
-  local id = self.process.next_id
-  self.process.next_id = id + 1
-
-  local request = {
-    jsonrpc = "2.0",
-    id = id,
-    method = method,
-    params = params or {},
-  }
-
-  if not self:_write_to_process(self.methods.encode(request) .. "\n") then
-    return nil
-  end
-
-  -- Simple polling wait
-  return self:_wait_for_response(id)
-end
-
----Wait for a specific response ID
----@param id integer
----@return nil
-function Connection:_wait_for_response(id)
-  local start_time = vim.uv.hrtime()
-  local timeout = (self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT) * 1e6
-
-  while vim.uv.hrtime() - start_time < timeout do
-    vim.wait(TIMEOUTS.RESPONSE_POLL)
-
-    if self.pending_responses[id] then
-      local result, err = unpack(self.pending_responses[id])
-      self.pending_responses[id] = nil
-      return err and nil or result
-    end
-  end
-
-  log:error("[acp::_wait_for_response] Request timeout: %s", id)
-  return nil
-end
-
 ---Create the ACP process
 ---@return boolean success
 function Connection:_spawn_process()
@@ -224,7 +166,7 @@ function Connection:_spawn_process()
     end
   end
 
-  self.process.stdout_buffer = ""
+  self._state.stdout_buffer = ""
 
   local ok, sysobj_or_err = pcall(
     self.methods.job,
@@ -262,9 +204,57 @@ function Connection:_spawn_process()
     return false
   end
 
-  self.process.handle = sysobj_or_err
+  self._state.handle = sysobj_or_err
   log:debug("ACP process started")
   return true
+end
+
+---Send a synchronous request and wait for response
+---@param method string
+---@param params table
+---@return table|nil
+function Connection:_send_request(method, params)
+  if not self._state.handle then
+    return nil
+  end
+
+  local id = self._state.next_id
+  self._state.next_id = id + 1
+
+  local request = {
+    jsonrpc = "2.0",
+    id = id,
+    method = method,
+    params = params or {},
+  }
+
+  if not self:_write_to_process(self.methods.encode(request) .. "\n") then
+    return nil
+  end
+
+  -- Simple polling wait
+  return self:_wait_for_response(id)
+end
+
+---Wait for a specific response ID
+---@param id integer
+---@return nil
+function Connection:_wait_for_response(id)
+  local start_time = vim.uv.hrtime()
+  local timeout = (self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT) * 1e6
+
+  while vim.uv.hrtime() - start_time < timeout do
+    vim.wait(TIMEOUTS.RESPONSE_POLL)
+
+    if self.pending_responses[id] then
+      local result, err = unpack(self.pending_responses[id])
+      self.pending_responses[id] = nil
+      return err and nil or result
+    end
+  end
+
+  log:error("[acp::_wait_for_response] Request timeout: %s", id)
+  return nil
 end
 
 ---Setup adapter with environment variables
@@ -279,6 +269,13 @@ function Connection:_setup_adapter()
   return adapter
 end
 
+---Disconnect and clean up the ACP process
+---@return nil
+function Connection:disconnect()
+  self:_handle_exit(0, 0)
+  assert(self._state.handle):kill(9)
+end
+
 ---Handle stdout data - JSON-RPC doesn't guarantee message boundaries align
 ---with I/O boundaries, so we need to buffer and handle this carefully.
 ---@param data string
@@ -288,17 +285,17 @@ function Connection:_process_output(data)
   end
 
   log:debug("Received stdout: %s", data)
-  self.process.stdout_buffer = self.process.stdout_buffer .. data
+  self._state.stdout_buffer = self._state.stdout_buffer .. data
 
   -- Extract complete lines
   while true do
-    local newline_pos = self.process.stdout_buffer:find("\n")
+    local newline_pos = self._state.stdout_buffer:find("\n")
     if not newline_pos then
       break
     end
 
-    local line = vim.trim(self.process.stdout_buffer:sub(1, newline_pos - 1))
-    self.process.stdout_buffer = self.process.stdout_buffer:sub(newline_pos + 1)
+    local line = vim.trim(self._state.stdout_buffer:sub(1, newline_pos - 1))
+    self._state.stdout_buffer = self._state.stdout_buffer:sub(newline_pos + 1)
 
     if line ~= "" then
       self:_process_json_message(line)
@@ -363,14 +360,14 @@ end
 ---@param data string
 ---@return boolean
 function Connection:_write_to_process(data)
-  if not self.process.handle then
+  if not self._state.handle then
     log:error("[acp::_write_to_process] Process not running")
     return false
   end
 
   local ok, err = pcall(function()
     log:debug("[acp::_write_to_process] Sending data: %s", data)
-    self.process.handle:write(data)
+    self._state.handle:write(data)
   end)
 
   if not ok then
@@ -387,15 +384,16 @@ end
 function Connection:_handle_exit(code, signal)
   log:debug("[acp::_handle_exit] Process exited: code=%d, signal=%d", code, signal or 0)
 
-  if self.adapter_modified.handlers and self.adapter_modified.handlers.on_exit then
+  if self.adapter_modified and self.adapter_modified.handlers and self.adapter_modified.handlers.on_exit then
     self.adapter_modified.handlers.on_exit(self.adapter, code)
   end
 
+  -- Always clean up state
   self.adapter_modified = nil
-  self.process.handle = nil
-  self.process.stdout_buffer = ""
   self._initialized = false
   self._authenticated = false
+  self.session_id = nil
+  self.pending_responses = {}
 end
 
 ---Handle permission request from agent
@@ -456,7 +454,18 @@ function Connection:_handle_permission_request(id, params)
     result = response,
   }
   local json_str = self.methods.encode(response_msg) .. "\n"
+
   self:_write_to_process(json_str)
+end
+
+---Initiate a prompt
+---@param messages table
+---@return CodeCompanion.ACPPromptBuilder
+function Connection:prompt(messages)
+  if not self.session_id then
+    return log:error("[acp::prompt] Connection not established. Call connect() first.")
+  end
+  return PromptBuilder.new(self, messages)
 end
 
 --=============================================================================
@@ -557,7 +566,7 @@ function PromptBuilder:send()
   -- Send the prompt
   local prompt_req = {
     jsonrpc = "2.0",
-    id = self.connection.process.next_id,
+    id = self.connection._state.next_id,
     method = "session/prompt",
     params = {
       sessionId = self.connection.session_id,
@@ -565,7 +574,7 @@ function PromptBuilder:send()
     },
   }
 
-  self.connection.process.next_id = self.connection.process.next_id + 1
+  self.connection._state.next_id = self.connection._state.next_id + 1
   local json_str = self.connection.methods.encode(prompt_req) .. "\n"
 
   self.connection:_write_to_process(json_str)
@@ -588,8 +597,6 @@ function PromptBuilder:_handle_session_update(params)
       util.fire("RequestStreaming", self.options)
     end
   end
-
-  log:debug("Session update received: %s", params)
 
   if params.sessionUpdate == "agent_message_chunk" then
     if self.handlers.message_chunk then
@@ -635,12 +642,12 @@ function PromptBuilder:cancel()
   if self.connection.session_id then
     local cancel_req = {
       jsonrpc = "2.0",
-      id = self.connection.process.next_id,
+      id = self.connection._state.next_id,
       method = "session/cancel",
       params = { sessionId = self.connection.session_id },
     }
 
-    self.connection.process.next_id = self.connection.process.next_id + 1
+    self.connection._state.next_id = self.connection._state.next_id + 1
     local json_str = self.connection.methods.encode(cancel_req) .. "\n"
     self.connection:_write_to_process(json_str)
 

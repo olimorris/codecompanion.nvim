@@ -1,6 +1,5 @@
 local h = require("tests.helpers")
 local new_set = MiniTest.new_set
-local eq = MiniTest.expect.equality
 
 local child = MiniTest.new_child_neovim()
 
@@ -96,7 +95,7 @@ T["ACP Connection"]["can handle real initialize response"] = function()
     -- Simulate the connection flow
     connection._initialized = false
     connection._authenticated = false
-    connection.process.handle = mock_process
+    connection._state.handle = mock_process
 
     -- Test handling real initialize response
     connection:_process_json_message(load_acp_stub('initialize_response.txt'))
@@ -142,7 +141,7 @@ T["ACP Connection"]["connect() end-to-end with real responses"] = function()
     end
 
     -- Skip process creation
-    connection.process.handle = { write = function() end }
+    connection._state.handle = { write = function() end }
 
     -- Avoid env/command munging
     function connection:_setup_adapter()

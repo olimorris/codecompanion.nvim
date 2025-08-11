@@ -1410,7 +1410,7 @@ function Chat:stop()
   end)
 end
 
----Close the current chat buffer
+---Close the current chat buffer and clean up any resources
 ---@return nil
 function Chat:close()
   if self.current_request then
@@ -1435,6 +1435,10 @@ function Chat:close()
   if self.ui.aug then
     api.nvim_clear_autocmds({ group = self.ui.aug })
   end
+  if self.adapter.type == "acp" and self.acp_connection then
+    self.acp_connection:disconnect()
+  end
+
   util.fire("ChatClosed", { bufnr = self.bufnr, id = self.id })
   util.fire("ChatAdapter", { bufnr = self.bufnr, id = self.id, adapter = nil })
   util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
