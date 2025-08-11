@@ -99,6 +99,15 @@ function Debug:render()
   local lines = {}
 
   table.insert(lines, '-- Adapter: "' .. adapter.formatted_name .. '"')
+  if adapter.type == "acp" then
+    local command
+    if adapter.commands and adapter.commands.selected then
+      command = adapter.commands.selected
+    else
+      command = adapter.commands.default
+    end
+    table.insert(lines, '-- With Command: "' .. table.concat(command, " ") .. '"')
+  end
   table.insert(lines, "-- Buffer Number: " .. self.chat.bufnr)
   table.insert(lines, '-- Current Context: "' .. bufname .. '" (' .. self.chat.buffer_context.bufnr .. ")")
 

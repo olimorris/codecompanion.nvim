@@ -9,8 +9,16 @@ return {
     llm = "assistant",
     user = "user",
   },
-  command = {
-    "gemini",
+  commands = {
+    default = {
+      "gemini",
+      "--experimental-acp",
+    },
+    yolo = {
+      "gemini",
+      "--yolo",
+      "--experimental-acp",
+    },
   },
   defaults = {
     auth_method = "gemini-api-key",

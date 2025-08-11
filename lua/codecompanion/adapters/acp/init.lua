@@ -7,7 +7,8 @@ local shared = require("codecompanion.adapters.shared")
 ---@field type string|"acp" The type of the adapter, e.g. "http" or "acp"
 ---@field formatted_name string The formatted name of the adapter
 ---@field roles table The mapping of roles in the config to the LLM's defined roles
----@field command table The command to trigger the ACP adapter
+---@field command table The command to execute
+---@field commands { default: table, [string]: table } The list of possible commands for the adapter. Must include a 'default' key
 ---@field defaults? table Additional options for the adapter
 ---@field env? table Environment variables which can be referenced in the parameters
 ---@field env_replaced? table Replacement of environment variables with their actual values
@@ -95,6 +96,10 @@ function Adapter.resolve(adapter, opts)
     adapter = Adapter.extend(config.adapters.acp[adapter] or adapter, opts)
   elseif type(adapter) == "function" then
     adapter = adapter()
+  end
+
+  if adapter.commands and adapter.commands.default then
+    adapter.command = adapter.commands.default
   end
 
   return adapter

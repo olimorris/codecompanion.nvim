@@ -539,6 +539,7 @@ M.change_adapter = {
     local adapters_list = vim
       .iter(adapters)
       :filter(function(adapter)
+        -- Clear out the acp and http keys
         return adapter ~= "opts" and adapter ~= "acp" and adapter ~= "http" and adapter ~= current_adapter
       end)
       :map(function(adapter, _)
@@ -618,6 +619,34 @@ M.change_adapter = {
 
           chat:apply_model(selected_model)
           chat:apply_settings()
+        end)
+      end
+
+      -- Select a command
+      if chat.adapter.type == "acp" then
+        local commands = chat.adapter.commands
+        if not commands or vim.tbl_count(commands) < 2 then
+          return
+        end
+
+        commands = vim
+          .iter(commands)
+          :map(function(key, _)
+            if type(key) == "string" then
+              return key
+            end
+          end)
+          :filter(function(key)
+            return key ~= "selected"
+          end)
+          :totable()
+        table.sort(commands)
+
+        vim.ui.select(commands, select_opts("Select a Command", commands), function(selected_command)
+          if not selected_command then
+            return
+          end
+          chat.adapter.commands.selected = chat.adapter.commands[selected_command]
         end)
       end
     end)

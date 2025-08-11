@@ -161,14 +161,14 @@ function Connection:_spawn_process()
 
   if adapter.handlers and adapter.handlers.setup then
     if not adapter.handlers.setup(adapter) then
-      log:error("[acp::_spawn_process] Setup failed")
+      log:error("[acp::_spawn_process] Adapter setup failed")
       return false
     end
   end
 
   self._state.stdout_buffer = ""
 
-  local ok, sysobj_or_err = pcall(
+  local ok, sysobj = pcall(
     self.methods.job,
     adapter.command,
     {
@@ -200,11 +200,11 @@ function Connection:_spawn_process()
   )
 
   if not ok then
-    log:error("[acp::_spawn_process] Failed: %s", sysobj_or_err)
+    log:error("[acp::_spawn_process] Failed: %s", sysobj)
     return false
   end
 
-  self._state.handle = sysobj_or_err
+  self._state.handle = sysobj
   log:debug("ACP process started")
   return true
 end
@@ -257,7 +257,7 @@ function Connection:_wait_for_response(id)
   return nil
 end
 
----Setup adapter with environment variables
+---Setup the adapter, making a copy and setting environment variables
 ---@return CodeCompanion.ACPAdapter
 function Connection:_setup_adapter()
   local adapter = vim.deepcopy(self.adapter)
@@ -265,7 +265,8 @@ function Connection:_setup_adapter()
   adapter.parameters = adapter_utils.set_env_vars(adapter, adapter.parameters)
   adapter.defaults.auth_method = adapter_utils.set_env_vars(adapter, adapter.defaults.auth_method)
   adapter.defaults.mcpServers = adapter_utils.set_env_vars(adapter, adapter.defaults.mcpServers)
-  adapter.command = adapter_utils.set_env_vars(adapter, adapter.command)
+  adapter.command = adapter_utils.set_env_vars(adapter, adapter.commands.selected or adapter.commands.default)
+
   return adapter
 end
 
@@ -275,7 +276,7 @@ function Connection:disconnect()
   assert(self._state.handle):kill(9)
 end
 
----Handle stdout data - JSON-RPC doesn't guarantee message boundaries align
+---Process the output - JSON-RPC doesn't guarantee message boundaries align
 ---with I/O boundaries, so we need to buffer and handle this carefully.
 ---@param data string
 function Connection:_process_output(data)
@@ -283,7 +284,7 @@ function Connection:_process_output(data)
     return
   end
 
-  log:debug("Received stdout: %s", data)
+  log:debug("Received stdout:\n%s", data)
   self._state.stdout_buffer = self._state.stdout_buffer .. data
 
   -- Extract complete lines
@@ -307,7 +308,7 @@ end
 function Connection:_process_json_message(line)
   local ok, message = pcall(self.methods.decode, line)
   if not ok then
-    return log:error("[acp::_process_json_message] Invalid JSON: %s", line)
+    return log:error("[acp::_process_json_message] Invalid JSON:\n%s", line)
   end
 
   if message.id and not message.method then
@@ -606,12 +607,12 @@ function PromptBuilder:_handle_session_update(params)
       self.handlers.thought_chunk(params.content.text)
     end
   elseif params.sessionUpdate == "tool_call" then
-    log:debug("Tool call started: %s", params.toolCallId)
+    log:trace("Tool call started: %s", params.toolCallId)
     if self.handlers.tool_call then
       self.handlers.tool_call(params)
     end
   elseif params.sessionUpdate == "tool_call_update" then
-    log:debug("Tool call updated: %s (status: %s)", params.toolCallId, params.status)
+    log:trace("Tool call updated: %s (status: %s)", params.toolCallId, params.status)
     if self.handlers.tool_call then
       self.handlers.tool_call(params)
     end
