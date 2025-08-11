@@ -879,6 +879,7 @@ function Chat:submit(opts)
         message.content =
           chat_opts.prompt_decorator(message.content, adapters.make_safe(self.adapter), self.buffer_context)
       end
+      self.builder.state.last_type = "user_message"
       self:add_message({
         role = config.constants.USER_ROLE,
         content = (message and message.content or config.strategies.chat.opts.blank_prompt),
