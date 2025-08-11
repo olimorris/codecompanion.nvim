@@ -4,6 +4,8 @@ local Reasoning = require("codecompanion.strategies.chat.ui.formatters.reasoning
 local Standard = require("codecompanion.strategies.chat.ui.formatters.standard")
 local Tools = require("codecompanion.strategies.chat.ui.formatters.tools")
 
+local api = vim.api
+
 ---@class CodeCompanion.Chat.UI.Builder
 ---@field chat CodeCompanion.Chat
 ---@field state table
@@ -188,8 +190,8 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
     last_column = 0
   end
 
-  local cursor_moved = vim.api.nvim_win_get_cursor(0)[1] == line_count
-  vim.api.nvim_buf_set_text(self.chat.bufnr, last_line, last_column, last_line, last_column, lines)
+  local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
+  api.nvim_buf_set_text(self.chat.bufnr, last_line, last_column, last_line, last_column, lines)
 
   -- Handle folding
   if fold_info and opts.type == self.chat.MESSAGE_TYPES.TOOL_MESSAGE and #lines > 1 then

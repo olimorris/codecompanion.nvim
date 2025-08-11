@@ -505,7 +505,7 @@ function UI:add_line_break()
   local _, _, line_count = self:last()
 
   self:unlock_buf()
-  vim.api.nvim_buf_set_lines(self.chat_bufnr, line_count, line_count, false, { "" })
+  api.nvim_buf_set_lines(self.chat_bufnr, line_count, line_count, false, { "" })
   self:lock_buf()
 
   self:move_cursor(true)

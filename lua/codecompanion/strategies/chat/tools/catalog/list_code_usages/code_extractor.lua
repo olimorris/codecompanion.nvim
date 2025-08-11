@@ -1,6 +1,8 @@
 local Utils = require("codecompanion.strategies.chat.tools.catalog.list_code_usages.utils")
 local log = require("codecompanion.utils.log")
 
+local api = vim.api
+
 ---@class ListCodeUsages.CodeExtractor
 local CodeExtractor = {}
 
@@ -231,7 +233,7 @@ function CodeExtractor.get_fallback_code_block(bufnr, row, col)
 
   -- Find end of block (going downward)
   local end_row = row
-  local total_lines = vim.api.nvim_buf_line_count(bufnr)
+  local total_lines = api.nvim_buf_line_count(bufnr)
   for i = row + 1, math.min(row + CONSTANTS.MAX_BLOCK_SCAN_LINES, total_lines - 1) do
     local curr_lines = Utils.safe_get_lines(bufnr, i, i + 1)
     local curr_line = curr_lines[1]
