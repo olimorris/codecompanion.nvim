@@ -238,7 +238,7 @@ T["Ollama adapter"]["Streaming"]["can process reasoning chat output"] = function
       content = "",
     },
   }
-  local lines = vim.fn.readfile("tests/adapters/stubs/ollama_reasoning_streaming.txt")
+  local lines = vim.fn.readfile("tests/adapters/http/stubs/ollama_reasoning_streaming.txt")
   for _, line in ipairs(lines) do
     local chat_output = adapter.handlers.chat_output(adapter, line)
     if chat_output then
