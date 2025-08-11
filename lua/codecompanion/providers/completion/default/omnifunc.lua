@@ -96,4 +96,3 @@ function M.omnifunc(findstart, base)
 end
 
 return M
-
