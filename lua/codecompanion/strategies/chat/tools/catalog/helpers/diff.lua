@@ -105,9 +105,13 @@ function M.create(bufnr_or_filepath, diff_id, opts)
   opts = opts or {}
 
   local is_filepath = type(bufnr_or_filepath) == "string"
-  local existing_bufnr = is_filepath
-      and (vim.fn.bufexists(bufnr_or_filepath) == 1 and vim.fn.bufnr(bufnr_or_filepath) or nil)
-    or bufnr_or_filepath
+  local existing_bufnr
+  if is_filepath then
+    local bufnr = vim.fn.bufnr(bufnr_or_filepath)
+    existing_bufnr = (bufnr ~= -1) and bufnr or nil
+  else
+    existing_bufnr = bufnr_or_filepath
+  end
   log:debug("[catalog::helpers::diff::create] Called - diff_id=%s", tostring(diff_id))
 
   if vim.g.codecompanion_auto_tool_mode or not config.display.diff.enabled then
@@ -119,9 +123,16 @@ function M.create(bufnr_or_filepath, diff_id, opts)
     return nil
   end
   -- Check if existing buffer is terminal (skip terminal buffers)
-  if existing_bufnr and vim.bo[existing_bufnr].buftype == "terminal" then
-    log:debug("[catalog::helpers::diff::create] Skipping diff - terminal buffer")
-    return nil
+  if existing_bufnr and type(existing_bufnr) == "number" and existing_bufnr > 0 then
+    local ok, buftype = pcall(function()
+      return vim.bo[existing_bufnr].buftype
+    end)
+    if ok and buftype == "terminal" then
+      log:debug("[catalog::helpers::diff::create] Skipping diff - terminal buffer")
+      return nil
+    elseif not ok then
+      log:debug("[catalog::helpers::diff::create] Could not check buftype for buffer %s", existing_bufnr)
+    end
   end
 
   local provider = config.display.diff.provider
