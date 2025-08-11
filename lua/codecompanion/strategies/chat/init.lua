@@ -527,11 +527,11 @@ function Chat.new(args)
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
       vim.bo[bufnr].filetype = "codecompanion"
-      
+
       -- Set up omnifunc for automatic completion when no other completion provider is active
       local completion_provider = config.strategies.chat.opts.completion_provider
       if completion_provider == "default" then
-        vim.bo[bufnr].omnifunc = "v:lua.require'codecompanion.providers.completion.omnifunc'.omnifunc"
+        vim.bo[bufnr].omnifunc = "v:lua.require'codecompanion.providers.completion.default.omnifunc'.omnifunc"
       end
 
       return bufnr
