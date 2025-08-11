@@ -3,6 +3,7 @@ local ResultProcessor = require("codecompanion.strategies.chat.tools.catalog.lis
 local SymbolFinder = require("codecompanion.strategies.chat.tools.catalog.list_code_usages.symbol_finder")
 local Utils = require("codecompanion.strategies.chat.tools.catalog.list_code_usages.utils")
 
+local api = vim.api
 local fmt = string.format
 
 ---@class CodeCompanion.Tool.ListCodeUsages: CodeCompanion.Tools.Tool
@@ -52,7 +53,7 @@ local function process_lsp_symbols_async(symbols, state, callback)
       if edit_success then
         Utils.async_set_cursor(line, col, function(cursor_success)
           if cursor_success then
-            local current_bufnr = vim.api.nvim_get_current_buf()
+            local current_bufnr = api.nvim_get_current_buf()
             local methods_to_process = {}
 
             -- Collect all methods to process
@@ -121,7 +122,7 @@ local function process_grep_results_async(grep_result, state, callback)
     if edit_success then
       Utils.async_set_cursor(grep_result.line, grep_result.col, function(cursor_success)
         if cursor_success then
-          local current_bufnr = vim.api.nvim_get_current_buf()
+          local current_bufnr = api.nvim_get_current_buf()
           local methods_to_process = {}
 
           -- Collect all methods to process
@@ -204,14 +205,14 @@ return {
       -- Save current state of view
       local context_winnr = self.chat.context.winnr
       local context_bufnr = self.chat.context.bufnr
-      local chat_winnr = vim.api.nvim_get_current_win()
+      local chat_winnr = api.nvim_get_current_win()
 
       -- Get file extension from context buffer if available
       local file_extension = get_file_extension(context_bufnr)
 
       -- Exit insert mode and switch focus to context window
       vim.cmd("stopinsert")
-      vim.api.nvim_set_current_win(context_winnr)
+      api.nvim_set_current_win(context_winnr)
 
       -- Start async processing
       SymbolFinder.find_with_lsp_async(symbol_name, file_paths, function(all_lsp_symbols)
@@ -227,7 +228,7 @@ return {
 
             -- Handle case where we have no results
             if total_results == 0 then
-              vim.api.nvim_set_current_win(chat_winnr)
+              api.nvim_set_current_win(chat_winnr)
               local filetype_msg = file_extension and (" in " .. file_extension .. " files") or ""
               output_handler(
                 Utils.create_result(
@@ -241,8 +242,8 @@ return {
             end
 
             -- Restore original state of view
-            vim.api.nvim_set_current_buf(context_bufnr)
-            vim.api.nvim_set_current_win(chat_winnr)
+            api.nvim_set_current_buf(context_bufnr)
+            api.nvim_set_current_win(chat_winnr)
 
             -- Store state for output handler
             ListCodeUsagesTool.symbol_data = state.symbol_data

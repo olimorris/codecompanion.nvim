@@ -81,7 +81,7 @@ function M.goto_node(node, goto_end, avoid_set_jump)
 
   -- Enter visual mode if we are in operator pending mode
   -- If we don't do this, it will miss the last character.
-  local mode = vim.api.nvim_get_mode()
+  local mode = api.nvim_get_mode()
 
   if mode.mode == "no" then
     vim.cmd("normal! v")

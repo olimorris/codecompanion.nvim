@@ -1,3 +1,5 @@
+local api = vim.api
+
 ---@class ListCodeUsages.Utils
 local Utils = {}
 
@@ -52,7 +54,7 @@ end
 ---@param bufnr number|nil The buffer number to validate
 ---@return boolean True if the buffer is valid and exists
 function Utils.is_valid_buffer(bufnr)
-  return bufnr and vim.api.nvim_buf_is_valid(bufnr)
+  return bufnr and api.nvim_buf_is_valid(bufnr)
 end
 
 ---@param bufnr number The buffer number to get filetype from
@@ -62,7 +64,7 @@ function Utils.safe_get_filetype(bufnr)
     return ""
   end
 
-  local success, filetype = pcall(vim.api.nvim_get_option_value, "filetype", { buf = bufnr })
+  local success, filetype = pcall(api.nvim_get_option_value, "filetype", { buf = bufnr })
   return success and filetype or ""
 end
 
@@ -73,7 +75,7 @@ function Utils.safe_get_buffer_name(bufnr)
     return ""
   end
 
-  local success, name = pcall(vim.api.nvim_buf_get_name, bufnr)
+  local success, name = pcall(api.nvim_buf_get_name, bufnr)
   return success and name or ""
 end
 
@@ -87,7 +89,7 @@ function Utils.safe_get_lines(bufnr, start_row, end_row, strict_indexing)
     return {}
   end
 
-  local success, lines = pcall(vim.api.nvim_buf_get_lines, bufnr, start_row, end_row, strict_indexing or false)
+  local success, lines = pcall(api.nvim_buf_get_lines, bufnr, start_row, end_row, strict_indexing or false)
   return success and lines or {}
 end
 
@@ -105,7 +107,7 @@ end
 ---@param callback function Callback function called with success boolean
 function Utils.async_set_cursor(line, col, callback)
   vim.schedule(function()
-    local success = pcall(vim.api.nvim_win_set_cursor, 0, { line, col })
+    local success = pcall(api.nvim_win_set_cursor, 0, { line, col })
     if success then
       pcall(vim.cmd, "normal! zz")
     end

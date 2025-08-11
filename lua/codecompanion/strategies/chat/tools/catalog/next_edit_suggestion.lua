@@ -1,5 +1,7 @@
 local log = require("codecompanion.utils.log")
 
+local api = vim.api
+
 ---@class CodeCompanion.Tool.NextEditSuggestion.Args
 ---@field filepath string
 ---@field line integer
@@ -78,19 +80,19 @@ When you suggest a change to the codebase, you may call this tool to jump to the
         ---@type jump_action
         self.tool.opts.jump_action = function(path)
           vim.cmd(action_command .. " " .. path)
-          return vim.api.nvim_get_current_win()
+          return api.nvim_get_current_win()
         end
       end
       local winnr = self.tool.opts.jump_action(args.filepath)
       if args.line >= 0 and winnr then
-        local ok = pcall(vim.api.nvim_win_set_cursor, winnr, { args.line + 1, 0 })
+        local ok = pcall(api.nvim_win_set_cursor, winnr, { args.line + 1, 0 })
         if not ok then
-          local bufnr = vim.api.nvim_win_get_buf(winnr)
+          local bufnr = api.nvim_win_get_buf(winnr)
           return {
             status = "error",
             data = string.format(
               "The jump to the file was successful, but This file only has %d lines. Unable to jump to line %d",
-              vim.api.nvim_buf_line_count(bufnr),
+              api.nvim_buf_line_count(bufnr),
               args.line
             ),
           }
