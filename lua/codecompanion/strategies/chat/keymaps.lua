@@ -694,10 +694,7 @@ M.copilot_stats = {
   desc = "Show Copilot usage statistics",
   callback = function(chat)
     if not chat.adapter.show_copilot_stats then
-      return util.notify(
-        "Copilot stats are only available when using the Copilot adapter",
-        vim.log.levels.WARN
-      )
+      return util.notify("Copilot stats are only available when using the Copilot adapter", vim.log.levels.WARN)
     end
     chat.adapter.show_copilot_stats()
   end,
