@@ -99,7 +99,7 @@ function Adapter.resolve(adapter, opts)
   end
 
   if adapter.commands and adapter.commands.default then
-    adapter.command = adapter.commands.default
+    adapter.commands.selected = adapter.commands.default
   end
 
   return adapter
