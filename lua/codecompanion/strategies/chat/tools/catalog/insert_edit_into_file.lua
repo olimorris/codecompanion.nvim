@@ -3,6 +3,7 @@ local Path = require("plenary.path")
 local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 local diff = require("codecompanion.strategies.chat.tools.catalog.helpers.diff")
+local helpers = require("codecompanion.strategies.chat.helpers")
 local patch = require("codecompanion.strategies.chat.tools.catalog.helpers.patch") ---@type CodeCompanion.Patch
 local wait = require("codecompanion.strategies.chat.tools.catalog.helpers.wait")
 
@@ -14,23 +15,20 @@ local api = vim.api
 local fmt = string.format
 
 local PROMPT = [[<editFileInstructions>
+CRITICAL: ALL patches MUST be wrapped in *** Begin Patch / *** End Patch markers!
+
 Before editing a file, ensure you have its content via the provided context or read_file tool.
 Use the insert_edit_into_file tool to modify files.
 NEVER show the code edits to the user - only call the tool. The system will apply and display the edits.
 For each file, give a short description of what needs to be edited, then use the insert_edit_into_file tools. You can use the tool multiple times in a response, and you can keep writing text after using a tool.
 The insert_edit_into_file tool is very smart and can understand how to apply your edits to the user's files, you just need to follow the patch format instructions carefully and to the letter.
 
-## Patch Format
-CRITICAL: You MUST always wrap your patch code with the markers:
-*** Begin Patch
-[your patch content here]
-*** End Patch
-
-WITHOUT these markers, the patch will fail to parse and the edit will not work.
 
 ## Patch Format
 ]] .. patch.prompt .. [[
 The system uses fuzzy matching and confidence scoring so focus on providing enough context to uniquely identify the location.
+
+REMEMBER: No *** Begin Patch / *** End Patch markers = FAILED EDIT! and this could led to you being fired.
 </editFileInstructions>]]
 
 ---Resolve the patching algorithm module used to apply the edits to a file
@@ -67,9 +65,15 @@ end
 ---@return nil
 local function edit_file(action, chat_bufnr, output_handler, opts)
   opts = opts or {}
-  local filepath = vim.fs.joinpath(vim.fn.getcwd(), action.filepath)
+  local filepath = helpers.validate_and_normalize_filepath(action.filepath)
+  if not filepath then
+    return output_handler({
+      status = "error",
+      data = fmt("Error: Invalid or non-existent filepath `%s`", action.filepath),
+    })
+  end
+
   local p = Path:new(filepath)
-  p.filename = p:expand()
 
   if not p:exists() or not p:is_file() then
     return output_handler({

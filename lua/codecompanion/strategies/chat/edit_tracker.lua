@@ -1,4 +1,5 @@
 local Path = require("plenary.path")
+local helpers = require("codecompanion.strategies.chat.helpers")
 
 local diff_utils = require("codecompanion.providers.diff.utils")
 local log = require("codecompanion.utils.log")
@@ -346,34 +347,6 @@ function EditTracker.handle_chat_close(chat)
   end
 end
 
----Validate and normalize a filepath from tool args
----@param filepath string Raw filepath from tool args
----@return string|nil normalized_path Returns nil if path is invalid
-local function validate_and_normalize_filepath(filepath)
-  local stat = vim.uv.fs_stat(filepath)
-  if stat then
-    return vim.fs.normalize(filepath)
-  end
-  local abs_path = vim.fs.abspath(filepath)
-  local normalized_path = vim.fs.normalize(abs_path)
-  stat = vim.uv.fs_stat(normalized_path)
-  if stat then
-    return normalized_path
-  end
-  -- Check for duplicate CWD and fix it
-  local cwd = vim.uv.cwd()
-  if normalized_path:find(cwd, 1, true) and normalized_path:find(cwd, #cwd + 2, true) then
-    local fixed_path = normalized_path:gsub("^" .. vim.pesc(cwd) .. "/", "")
-    fixed_path = vim.fs.normalize(fixed_path)
-    stat = vim.uv.fs_stat(fixed_path)
-    if stat then
-      return fixed_path
-    end
-  end
-
-  return nil
-end
-
 ---Start monitoring a tool execution
 ---@param tool_name string Name of the tool being executed
 ---@param chat CodeCompanion.Chat Chat instance
@@ -390,7 +363,7 @@ function EditTracker.start_tool_monitoring(tool_name, chat, tool_args)
   local buffer_snapshots = {}
   if tool_args and tool_args.filepath then
     log:debug("[Edit Tracker] Tool args provided, file path is: %s", tool_args.filepath)
-    local filepath = validate_and_normalize_filepath(tool_args.filepath)
+    local filepath = helpers.validate_and_normalize_filepath(tool_args.filepath)
 
     if filepath then
       log:debug("[Edit Tracker] Target file from args: %s", filepath)
