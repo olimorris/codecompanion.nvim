@@ -161,6 +161,8 @@ local function overwrite_selection(context)
     context.end_col = line_length
   end
 
+  -- NOTE: Ensure that focus is set to the correct buffer in case the user has navigated away
+  api.nvim_set_current_buf(context.bufnr)
   api.nvim_buf_set_text(
     context.bufnr,
     context.start_line - 1,
@@ -169,7 +171,6 @@ local function overwrite_selection(context)
     context.end_col,
     { "" }
   )
-  vim.api.nvim_set_current_buf(context.bufnr) -- in case user switched buffer in the meantime
   api.nvim_win_set_cursor(context.winnr, { context.start_line, context.start_col })
 end
 
