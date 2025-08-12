@@ -1,12 +1,12 @@
-local copilot_helper = require("codecompanion.adapters.copilot.helpers")
+local ce_helpers = require("codecompanion.adapters.copilot_enterprise.helpers")
 local h = require("tests.helpers")
 
 local new_set = MiniTest.new_set
 T = new_set()
 
-T["Copilot Helper Stats"] = new_set()
+T["Copilot Enterprise stats helpers"] = new_set()
 
-T["Copilot Helper Stats"]["can calculate usage percentages correctly"] = function()
+T["Copilot Enterprise stats helpers"]["can calculate usage percentages correctly"] = function()
   local entitlement, remaining = 300, 250
   local used = entitlement - remaining
   local usage_percent = entitlement > 0 and (used / entitlement * 100) or 0
@@ -26,7 +26,7 @@ T["Copilot Helper Stats"]["can calculate usage percentages correctly"] = functio
   h.eq(100.0, full_percent)
 end
 
-T["Copilot Helper Stats"]["can determine correct highlight colors based on usage"] = function()
+T["Copilot Enterprise stats helpers"]["can determine correct highlight colors based on usage"] = function()
   local function get_usage_highlight(usage_percent)
     if usage_percent >= 80 then
       return "Error"
@@ -47,7 +47,7 @@ T["Copilot Helper Stats"]["can determine correct highlight colors based on usage
   h.eq("MoreMsg", get_usage_highlight(0))
 end
 
-T["Copilot Helper Stats"]["show_stats handles overage_permitted for premium"] = function()
+T["Copilot Enterprise stats helpers"]["show_stats handles overage_permitted for premium"] = function()
   -- Mock vim.notify to capture output
   local notify_called = false
   local notify_message = ""
@@ -72,8 +72,8 @@ T["Copilot Helper Stats"]["show_stats handles overage_permitted for premium"] = 
   }
 
   -- Mock the get_stats function to return our test data
-  local original_get_stats = copilot_helper.get_stats
-  copilot_helper.get_stats = function()
+  local original_get_stats = ce_helpers.get_stats
+  ce_helpers.get_stats = function()
     return mock_stats
   end
 
@@ -97,7 +97,7 @@ T["Copilot Helper Stats"]["show_stats handles overage_permitted for premium"] = 
   vim.fn.matchadd = function() end
 
   -- Test the function
-  copilot_helper.show_stats(function()
+  ce_helpers.show_stats(function()
     return true
   end, "test_token")
 
@@ -111,8 +111,8 @@ T["Copilot Helper Stats"]["show_stats handles overage_permitted for premium"] = 
   end
 
   -- Restore original functions
-  vim.notify = original_notify
-  copilot_helper.get_stats = original_get_stats
+  ce_helpers.notify = original_notify
+  ce_helpers.get_stats = original_get_stats
   ui.create_float = original_create_float
   vim.api.nvim_win_call = original_win_call
   vim.fn.matchadd = original_matchadd
@@ -120,9 +120,9 @@ T["Copilot Helper Stats"]["show_stats handles overage_permitted for premium"] = 
   h.eq(true, found_overage, "Expected overage_permitted to be displayed in stats")
 end
 
-T["Copilot Helper Get Models"] = new_set()
+T["Copilot Enterprise models helpers"] = new_set()
 
-T["Copilot Helper Get Models"]["retrieves models with correct structure"] = function()
+T["Copilot Enterprise models helpers"]["retrieves models with correct structure"] = function()
   local mock_models = {
     {
       id = "model1",
@@ -143,7 +143,7 @@ T["Copilot Helper Get Models"]["retrieves models with correct structure"] = func
   local curl = require("plenary.curl")
   local original_curl_get = curl.get
   curl.get = function(url, _)
-    if url == "https://api.githubcopilot.com/models" then
+    if url == "https://copilot-api.acme.ghe.com/models" then
       return {
         body = vim.json.encode({ data = mock_models }),
         status = 200,
@@ -158,17 +158,19 @@ T["Copilot Helper Get Models"]["retrieves models with correct structure"] = func
     return 0
   end
   utils.refresh_cache = refresh_cache_mock
-  local mock_adapter = { url = "https://api.githubcopilot.com", headers = {} }
+  local mock_adapter = {
+    url = "https://api.githubcopilot.com",
+    headers = {}
+  }
   local mock_get_and_authorize_token = function()
-    return true -- Simulate successful token retrieval
-  end
-  local mock_authorize_token = function()
-    return {
+    -- Simulate successful token retrieval
+    return true, {
       token = "mock_github_token",
+      endpoints = { api = "https://copilot-api.acme.ghe.com" },
       expires_at = os.time() + 3600, -- Expires in 1 hour
     }
   end
-  local models = copilot_helper.get_models(mock_adapter, mock_get_and_authorize_token, mock_authorize_token)
+  local models = ce_helpers.get_models(mock_adapter, mock_get_and_authorize_token)
   h.eq(2, vim.tbl_count(models), "Expected two models to be returned")
   h.eq({
     opts = {
@@ -184,14 +186,14 @@ T["Copilot Helper Get Models"]["retrieves models with correct structure"] = func
   curl.get = original_curl_get
 end
 
-T["Copilot Helper Get Models"]["returns empty table when Copilot token refresh is not OK"] = function()
+T["Copilot Enterprise models helpers"]["returns empty table when Copilot token refresh is not OK"] = function()
   local mock_adapter = { url = "https://api.githubcopilot.com", headers = {} }
   local mock_get_and_authorize_token = function()
     return false -- Simulate unsuccessful token retrieval
   end
   local mock_oauth_token = "mock_oauth_token"
 
-  local models = copilot_helper.get_models(mock_adapter, mock_get_and_authorize_token, mock_oauth_token)
+  local models = ce_helpers.get_models(mock_adapter, mock_get_and_authorize_token)
 
   h.eq(0, vim.tbl_count(models), "Expected no models to be returned")
 end
