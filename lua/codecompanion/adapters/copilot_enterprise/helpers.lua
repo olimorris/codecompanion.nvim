@@ -49,7 +49,7 @@ function M.get_models(adapter, get_and_authorize_token_fn)
 
   local headers = vim.deepcopy(_cached_adapter.headers)
   headers["Authorization"] = "Bearer " .. token.token
-  
+
   local ok, response = pcall(function()
     return curl.get(url, {
       sync = true,
@@ -80,14 +80,14 @@ function M.get_models(adapter, get_and_authorize_token_fn)
     if model.model_picker_enabled and model.capabilities.type == "chat" then
       models[model.id] = {
         opts = {
-          can_stream    = model.capabilities.supports.streaming,
+          can_stream = model.capabilities.supports.streaming,
           can_use_tools = model.capabilities.supports.tool_calls,
-          has_vision    = model.capabilities.supports.vision,
+          has_vision = model.capabilities.supports.vision,
         },
       }
     end
   end
-  
+
   _cached_models = models
   _cache_expires = utils.refresh_cache(_cache_file, config.adapters.opts.cache_models_for)
 

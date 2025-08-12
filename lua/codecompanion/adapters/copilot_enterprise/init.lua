@@ -1,9 +1,9 @@
 local config = require("codecompanion.config")
-local openai = require("codecompanion.adapters.openai")
 local copilot = require("codecompanion.adapters.copilot")
-local helpers = require("codecompanion.adapters.copilot_enterprise.helpers")
 local curl = require("plenary.curl")
+local helpers = require("codecompanion.adapters.copilot_enterprise.helpers")
 local log = require("codecompanion.utils.log")
+local openai = require("codecompanion.adapters.openai")
 
 ---@alias CopilotEnterpriseOAuthToken string|nil
 local _oauth_token
@@ -51,7 +51,7 @@ local function get_token(self)
   if token and codespaces then
     return token
   end
-  
+
   token = os.getenv("GHE_COPILOT_TOKEN")
   if token then
     return token
@@ -123,7 +123,9 @@ end
 local function get_and_authorize_token(self)
   _oauth_token = get_token(self)
   if not _oauth_token then
-    log:error("Copilot Enterprise Adapter: No token found. Please ensure you've configured your Copilot Enterprise token")
+    log:error(
+      "Copilot Enterprise Adapter: No token found. Please ensure you've configured your Copilot Enterprise token"
+    )
     return false
   end
 
@@ -132,7 +134,7 @@ local function get_and_authorize_token(self)
     log:error("Copilot Enterprise Adapter: Could not authorize your Copilot Enterprise token")
     return false
   end
-  
+
   self.url = _github_token.endpoints.api .. "/chat/completions"
   return true, _github_token
 end
@@ -177,12 +179,21 @@ return {
       end
       local model_opts = choices[model]
 
-      self.parameters.stream =
-        self.opts and self.opts.stream and model_opts and model_opts.opts and model_opts.opts.can_stream
-      self.opts.tools =
-        self.opts and self.opts.tools and model_opts and model_opts.opts and model_opts.opts.can_use_tools
-      self.opts.vision =
-        self.opts and self.opts.vision and model_opts and model_opts.opts and model_opts.opts.has_vision
+      self.parameters.stream = self.opts
+        and self.opts.stream
+        and model_opts
+        and model_opts.opts
+        and model_opts.opts.can_stream
+      self.opts.tools = self.opts
+        and self.opts.tools
+        and model_opts
+        and model_opts.opts
+        and model_opts.opts.can_use_tools
+      self.opts.vision = self.opts
+        and self.opts.vision
+        and model_opts
+        and model_opts.opts
+        and model_opts.opts.has_vision
 
       return get_and_authorize_token(self)
     end,

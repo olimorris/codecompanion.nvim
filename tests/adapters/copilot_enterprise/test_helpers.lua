@@ -160,15 +160,16 @@ T["Copilot Enterprise models helpers"]["retrieves models with correct structure"
   utils.refresh_cache = refresh_cache_mock
   local mock_adapter = {
     url = "https://api.githubcopilot.com",
-    headers = {}
+    headers = {},
   }
   local mock_get_and_authorize_token = function()
     -- Simulate successful token retrieval
-    return true, {
-      token = "mock_github_token",
-      endpoints = { api = "https://copilot-api.acme.ghe.com" },
-      expires_at = os.time() + 3600, -- Expires in 1 hour
-    }
+    return true,
+      {
+        token = "mock_github_token",
+        endpoints = { api = "https://copilot-api.acme.ghe.com" },
+        expires_at = os.time() + 3600, -- Expires in 1 hour
+      }
   end
   local models = ce_helpers.get_models(mock_adapter, mock_get_and_authorize_token)
   h.eq(2, vim.tbl_count(models), "Expected two models to be returned")
