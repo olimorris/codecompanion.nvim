@@ -7,10 +7,10 @@ local chat, vars
 
 T["Variables"] = new_set({
   hooks = {
-    pre_once = function()
+    pre_case = function()
       chat, _, vars = h.setup_chat_buffer()
     end,
-    post_once = function()
+    post_case = function()
       h.teardown_chat_buffer()
     end,
   },
@@ -94,6 +94,25 @@ T["Variables"][":parse"]["should parse a message with special characters in vari
   h.eq("Resolved screenshot variable", message.content)
 end
 
+T["Variables"][":parse"]["multiple buffer vars"] = function()
+  vim.cmd("edit lua/codecompanion/init.lua")
+  vim.cmd("edit lua/codecompanion/config.lua")
+
+  table.insert(chat.messages, {
+    role = "user",
+    content = "Look at #{buffer:init.lua} and then #{buffer:config.lua}",
+  })
+
+  local result = vars:parse(chat, chat.messages[#chat.messages])
+  h.eq(true, result)
+
+  local buffer_messages = vim.tbl_filter(function(msg)
+    return msg.opts and msg.opts.tag == "variable"
+  end, chat.messages)
+
+  h.eq(2, #buffer_messages)
+end
+
 T["Variables"][":replace"]["should replace the variable in the message"] = function()
   local message = "#{foo} #{bar} replace this var"
   local result = vars:replace(message, 0)
@@ -103,7 +122,16 @@ end
 T["Variables"][":replace"]["should partly replace #buffer in the message"] = function()
   local message = "what does #{buffer} do?"
   local result = vars:replace(message, 0)
-  h.expect_starts_with("what does buffer 0", result)
+  h.expect_starts_with("what does buffer", result)
+end
+
+T["Variables"][":replace"]["should replace buffer and the buffer name"] = function()
+  vim.cmd("edit lua/codecompanion/init.lua")
+  vim.cmd("edit lua/codecompanion/config.lua")
+
+  local message = "what does #{buffer:init.lua} do?"
+  local result = vars:replace(message, 0)
+  h.expect_starts_with("what does file `lua/codecompanion/init.lua`", result)
 end
 
 T["Variables"][":replace"]["should partly replace #buffer in the message"] = function()

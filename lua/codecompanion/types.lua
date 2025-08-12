@@ -30,12 +30,14 @@
 ---@class CodeCompanion.Variable
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config for the variable
----@field params string
+---@field target string The buffer that's being targeted by the variable
+---@field params string Any additional parameters for the variable
 
 ---@class CodeCompanion.VariableArgs
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config for the variable
----@field params string
+---@field target string The buffer that's being targeted by the variable
+---@field params string Any additional parameters for the variable
 
 ---@class CodeCompanion.Watchers
 ---@field buffers table<number, CodeCompanion.WatcherState> Map of buffer numbers to their states
