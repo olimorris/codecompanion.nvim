@@ -37,4 +37,18 @@ M.reject_change = {
   end,
 }
 
+M.always_accept = {
+  desc = "Accept and enable auto mode",
+  callback = function(inline)
+    if inline.diff then
+      log:trace("[Inline] Auto-accepting diff for id=%s", tostring(inline.id))
+      inline.diff:accept()
+      clear_map(config.strategies.inline.keymaps, inline.diff.bufnr)
+    end
+    vim.g.codecompanion_auto_tool_mode = true
+    vim.notify("Auto tool mode enabled - future edits will be automatically accepted", vim.log.levels.INFO)
+    log:trace("[Inline] Auto tool mode enabled")
+  end,
+}
+
 return M
