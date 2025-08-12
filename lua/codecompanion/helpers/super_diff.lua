@@ -16,7 +16,7 @@ local ICONS = diff_signs_config.icons or {
 
 local COLORS = diff_signs_config.colors or {
   accepted = "DiagnosticOk",
-  rejected = "DiagnosticErro",
+  rejected = "DiagnosticError",
 }
 
 local SIGNS = diff_signs_config.signs
