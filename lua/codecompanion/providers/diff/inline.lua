@@ -105,14 +105,13 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
     if show_keymap_hints == nil then
       show_keymap_hints = true -- Default to true
     end
-
     -- Check if we're in a test environment
     local is_testing = _G.MiniTest ~= nil
-
     if show_keymap_hints and not is_testing then
       local attach_line = math.max(0, first_hunk.new_start - 2)
+      local hint_text = "ga: accept | gr: reject | gt: always accept"
       local keymap_extmark_id = api.nvim_buf_set_extmark(self.bufnr, self.ns_id, attach_line, 0, {
-        virt_text = { { "ga: accept | gr: reject", "Comment" } },
+        virt_text = { { hint_text, "Comment" } },
         virt_text_pos = "right_align",
         priority = 200,
       })
