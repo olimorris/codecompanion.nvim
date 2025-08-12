@@ -516,6 +516,14 @@ local defaults = {
           callback = "keymaps.reject_change",
           description = "Reject change",
         },
+        always_accept = {
+          modes = {
+            n = "gt",
+          },
+          index = 3,
+          callback = "keymaps.always_accept",
+          description = "Accept and enable auto mode",
+        },
       },
       variables = {
         ["buffer"] = {
@@ -1040,11 +1048,18 @@ You must create or modify a workspace file through a series of prompts over mult
         tool_success = " ",
         tool_failure = " ",
       },
-      debug_window = {
-        ---@return number|fun(): number
+      -- Shared configuration for debug window and super diff window
+      debug_and_super_diff_window = {
         width = vim.o.columns - 5,
-        ---@return number|fun(): number
         height = vim.o.lines - 2,
+        row = "center",
+        col = "center",
+        relative = "editor",
+        opts = {
+          wrap = true,
+          number = true,
+          relativenumber = false,
+        },
       },
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer
@@ -1103,26 +1118,24 @@ You must create or modify a workspace file through a series of prompts over mult
         "linematch:120",
       },
       provider = providers.diff, -- inline|mini_diff|default
-      signs = {
-        text = "▌", -- Sign text in sign column
-        highlight_groups = {
-          addition = "DiagnosticOk",
-          deletion = "DiagnosticError",
-          modification = "DiagnosticWarn",
+      diff_signs = {
+        signs = {
+          text = "▌", -- Sign text for normal changes
+          reject = "✗", -- Sign text for rejected changes in super_diff
+          highlight_groups = {
+            addition = "DiagnosticOk",
+            deletion = "DiagnosticError",
+            modification = "DiagnosticWarn",
+          },
         },
-      },
-      -- Super diff floating window configuration
-      super_diff = {
-        win_opts = { -- Window options (passed to nvim_open_win)
-          relative = "editor",
-          anchor = "NW",
-          width = math.floor(vim.o.columns * 0.7),
-          height = math.floor(vim.o.lines * 0.9),
-          row = math.floor((vim.o.lines - math.floor(vim.o.lines * 0.9)) / 2),
-          col = math.floor((vim.o.columns - math.floor(vim.o.columns * 0.7)) / 2),
-          border = "rounded",
-          title = " Super Diff ",
-          title_pos = "center",
+        -- Super Diff options
+        icons = {
+          accepted = " ",
+          rejected = " ",
+        },
+        colors = {
+          accepted = "DiagnosticOk",
+          rejected = "DiagnosticError",
         },
       },
       -- Inline diff specific options
