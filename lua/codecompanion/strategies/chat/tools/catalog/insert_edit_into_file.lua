@@ -28,7 +28,7 @@ The insert_edit_into_file tool is very smart and can understand how to apply you
 ]] .. patch.prompt .. [[
 The system uses fuzzy matching and confidence scoring so focus on providing enough context to uniquely identify the location.
 
-REMEMBER: No *** Begin Patch / *** End Patch markers = FAILED EDIT! and this could led to you being fired.
+REMEMBER: No *** Begin Patch / *** End Patch markers = FAILED EDIT!
 </editFileInstructions>]]
 
 ---Resolve the patching algorithm module used to apply the edits to a file
@@ -256,7 +256,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
     if should_diff then
       log:debug("[Insert Edit Into File Tool] Diff created successfully with ID: %s", diff_id)
     else
-      log:warn("[Insert Edit Into File Tool] Diff creation returned nil")
+      log:debug("[Insert Edit Into File Tool] Diff creation returned nil")
     end
   else
     log:debug("[Insert Edit Into File Tool] No original content captured, skipping diff creation")
