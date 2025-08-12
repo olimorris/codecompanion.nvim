@@ -13,6 +13,27 @@ local T = new_set({
         super_diff = require("codecompanion.helpers.super_diff")
         edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 
+        -- Mock config to include debug_and_super_diff_window
+        local config = require("codecompanion.config")
+        if not config.display then
+          config.display = {}
+        end
+        if not config.display.chat then
+          config.display.chat = {}
+        end
+        config.display.chat.debug_and_super_diff_window = {
+          width = 80,
+          height = 20,
+          row = "center",
+          col = "center",
+          relative = "editor",
+          opts = {
+            wrap = true,
+            number = true,
+            relativenumber = false,
+          },
+        }
+
         -- Initialize edit tracker for the chat
         edit_tracker.init(chat)
 
@@ -106,12 +127,14 @@ T["show_super_diff - creates buffer with tracked files"] = function()
     local orig_notify = vim.notify
     vim.notify = function() end
 
-    super_diff.show_super_diff(chat)
+    local success = pcall(function()
+      super_diff.show_super_diff(chat)
+    end)
 
     vim.notify = orig_notify
 
     local final_buffers = #vim.api.nvim_list_bufs()
-    _G.test_result = final_buffers > initial_buffers
+    _G.test_result = success and (final_buffers > initial_buffers)
   ]])
 
   local result = child.lua_get("_G.test_result")
@@ -125,7 +148,9 @@ T["show_super_diff - creates markdown buffer"] = function()
     local orig_notify = vim.notify
     vim.notify = function() end
 
-    super_diff.show_super_diff(chat)
+    local success = pcall(function()
+      super_diff.show_super_diff(chat)
+    end)
 
     vim.notify = orig_notify
 
@@ -139,6 +164,7 @@ T["show_super_diff - creates markdown buffer"] = function()
     end
 
     _G.test_result = {
+      success = success,
       buffer_found = markdown_buf ~= nil,
       has_content = false,
       has_file_headers = false
@@ -158,6 +184,7 @@ T["show_super_diff - creates markdown buffer"] = function()
   ]])
 
   local result = child.lua_get("_G.test_result")
+  h.expect_truthy(result.success)
   h.expect_truthy(result.buffer_found)
   h.expect_truthy(result.has_content)
   h.expect_truthy(result.has_file_headers)
@@ -230,7 +257,9 @@ T["buffer contains expected content structure"] = function()
     local orig_notify = vim.notify
     vim.notify = function() end
 
-    super_diff.show_super_diff(chat)
+    local success = pcall(function()
+      super_diff.show_super_diff(chat)
+    end)
 
     vim.notify = orig_notify
 
@@ -244,6 +273,7 @@ T["buffer contains expected content structure"] = function()
     end
 
     _G.test_result = {
+      success = success,
       has_operations_section = false,
       has_code_blocks = false,
       has_status_indicators = false,
@@ -269,6 +299,7 @@ T["buffer contains expected content structure"] = function()
   ]])
 
   local result = child.lua_get("_G.test_result")
+  h.expect_truthy(result.success)
   h.expect_truthy(result.line_count > 0)
   h.expect_truthy(result.has_operations_section)
   h.expect_truthy(result.has_status_indicators)
@@ -317,7 +348,9 @@ T["handles mixed operation statuses"] = function()
     local orig_notify = vim.notify
     vim.notify = function() end
 
-    super_diff.show_super_diff(chat)
+    local success = pcall(function()
+      super_diff.show_super_diff(chat)
+    end)
 
     vim.notify = orig_notify
 
@@ -331,6 +364,7 @@ T["handles mixed operation statuses"] = function()
     end
 
     _G.test_result = {
+      success = success,
       has_accepted = false,
       has_pending = false,
       has_rejected = false
@@ -354,6 +388,7 @@ T["handles mixed operation statuses"] = function()
   ]])
 
   local result = child.lua_get("_G.test_result")
+  h.expect_truthy(result.success)
   h.expect_truthy(result.has_accepted)
   h.expect_truthy(result.has_rejected)
 end

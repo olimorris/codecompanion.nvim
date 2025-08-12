@@ -540,6 +540,11 @@ function M.show_super_diff(chat, opts)
 
   local ui = require("codecompanion.utils.ui")
   local window_config = config.display.chat.debug_and_super_diff_window
+    or { opts = {
+      wrap = false,
+      number = true,
+      relativenumber = false,
+    } }
   local title = opts.title
   if not title then
     local simplified_accepted = stats.accepted_operations + stats.pending_operations
