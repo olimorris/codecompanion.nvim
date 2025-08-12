@@ -322,6 +322,38 @@ require("codecompanion").setup({
 }),
 ```
 
+## Example: Copilot Enterprise
+
+If you have a GitHub Copilot Enterprise subscription provided by an organization, you can configure CodeCompanion to point to your custom provider URL.
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    copilot_enterprise = function()
+      return require("codecompanion.adapters").extend("copilot_enterprise", {
+        opts = {
+          provider_url = "acme.ghe.com",
+        },
+      })
+    end,
+  },
+  strategies = {
+    chat = {
+      adapter = {
+        name = "copilot_enterprise",
+        model = "claude-sonnet-4",
+      },
+    },
+    inline = {
+      adapter = "copilot_enterprise",
+    },
+    cmd = {
+      adapter = "copilot_enterprise",
+    }
+  },
+}),
+```
+
 ## Hiding Default Adapters
 
 By default, the plugin shows all available adapters, including the defaults. If you prefer to only display the adapters defined in your user configuration, you can set the `show_defaults` option to `false`:
