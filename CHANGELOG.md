@@ -1,5 +1,20 @@
 # Changelog
 
+## [17.15.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.14.0...v17.15.0) (2025-08-13)
+
+
+### Features
+
+* **chat:** add global metadata ([#1973](https://github.com/olimorris/codecompanion.nvim/issues/1973)) ([f962b2e](https://github.com/olimorris/codecompanion.nvim/commit/f962b2e33ffd9dfa91641fe21af648436a016906))
+* **chat:** improve buffer variables ([#1967](https://github.com/olimorris/codecompanion.nvim/issues/1967)) ([5d2f49a](https://github.com/olimorris/codecompanion.nvim/commit/5d2f49a770c41fa26cb9200c592f0dca7af8d5a2))
+
+
+### Bug Fixes
+
+* **chat:** buffer var with no context ([#1974](https://github.com/olimorris/codecompanion.nvim/issues/1974)) ([0bfe9e2](https://github.com/olimorris/codecompanion.nvim/commit/0bfe9e2be02d3f396ad66c8e8995e0581f4ef65b))
+* **inline:** user moving to other buffer before edits are applied ([#1952](https://github.com/olimorris/codecompanion.nvim/issues/1952)) ([ddfb8cc](https://github.com/olimorris/codecompanion.nvim/commit/ddfb8cc91b4e80e5afb16e832c334d86040ff0c0))
+* **ui:** tool spacing in chat buffer ([#1962](https://github.com/olimorris/codecompanion.nvim/issues/1962)) ([a61730e](https://github.com/olimorris/codecompanion.nvim/commit/a61730e84f92453390a4e1250482033482c33e84))
+
 ## [17.14.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.13.0...v17.14.0) (2025-08-11)
 
 
