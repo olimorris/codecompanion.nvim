@@ -1,43 +1,52 @@
 # Using Variables
 
-> [!IMPORTANT]
-> As of `v17.5.0`, variables must be wrapped in curly braces, such as `#{buffer}` or `#{lsp}`
-
 <p align="center">
   <img src="https://github.com/user-attachments/assets/642ef2df-f1c4-41c4-93e2-baa66d7f0801" />
 </p>
 
-Variables allow you to share data about the current state of Neovim with an LLM. Simply type `#` in the chat buffer and trigger code completion if you're not using blink.cmp or nvim-cmp (or coc.nvim). Alternatively, type the variables manually. After the response is sent to the LLM, you should see the variable output tagged as a context item in the chat buffer.
+Variables allow you to dynamically insert Neovim context into your chat messages using the `#{variable_name}` syntax. They're processed when you send your message to the LLM, automatically including relevant content like buffer contents, LSP diagnostics, or your current viewport. Type `#` in the chat buffer to see available variables through code completion, or type them manually.
 
-Custom variables can be shared by adding them to the `strategies.chat.variables` table in your configuration.
+Custom variables can be shared in the chat buffer by adding them to the `strategies.chat.variables` table in your configuration.
+
+## Basic Usage
+
+Variables use the `#{variable_name}` syntax to dynamically insert content into your chat. For example `#{buffer}`. Variables are processed when you send your message to the LLM.
 
 ## #buffer
 
-> [!NOTE]
-> As of [v16.2.0](https://github.com/olimorris/codecompanion.nvim/releases/tag/v16.2.0), buffers are now watched by default
+> [!IMPORTANT]
+> By default, CodeCompanion automatically applies `{watch}` to all buffers
 
-The _#{buffer}_ variable shares the full contents from the buffer that the user was last in when they initiated `:CodeCompanionChat`. To select another buffer, use the _/buffer_ slash command. These buffers can be [pinned or watched](/usage/chat-buffer/index#context) to enable updated content to be automatically shared with the LLM:
+The `#{buffer}` variable shares buffer contents with the LLM. It has two special parameters which control how content is shared with the LLM:
 
-- `#{buffer}{pin}` - To pin the current buffer
-- `#{buffer}{watch}` - To watch the current buffer
+**`{pin}`** - Sends the entire buffer content to the LLM whenever the buffer changes. Use this when you want the LLM to always have the complete, up-to-date file context.
 
-To pin or watch buffers by default, you can add this configuration:
+**`{watch}`** - Sends only the changed portions of the buffer to the LLM. Use this for large files where you only want to share incremental changes to reduce token usage.
 
-```lua
-require("codecompanion").setup({
-  strategies = {
-    chat = {
-      variables = {
-        ["buffer"] = {
-          opts = {
-            default_params = 'pin', -- or 'watch'
-          },
-        },
-      },
-    },
-  },
-})
+
+### Basic Usage
+
+- `#{buffer}` - Shares the current buffer (last one you were in)
+
+### Target Specific Buffers
+
+- `#{buffer:init.lua}` - Shares a specific file by name
+- `#{buffer:src/main.rs}` - Shares a file by relative path
+- `#{buffer:utils}` - Shares a file containing "utils" in the path
+
+### With Parameters
+
+- `#{buffer}{pin}` - Pins the buffer (sends entire buffer on changes)
+- `#{buffer}{watch}` - Watches for changes (sends only changes)
+- `#{buffer:config.lua}{pin}` - Combines targeting with parameters
+
+### Multiple Buffers
+
 ```
+Compare #{buffer:old_file.js} with #{buffer:new_file.js} and explain the differences.
+```
+
+> **Note:** For selecting multiple buffers with more control, use the `/buffer` slash command.
 
 ## #lsp
 

@@ -50,13 +50,14 @@ function M.get_info(bufnr)
     number = bufnr,
     name = vim.fn.fnamemodify(bufname, ":t"),
     path = bufname,
+    short_path = vim.fn.fnamemodify(bufname, ":h:t") .. "/" .. vim.fn.fnamemodify(bufname, ":t"),
     relative_path = relative_path,
   }
 end
 
 ---Return metadata on all of the currently valid and loaded buffers
 ---@param ft? string The filetype to filter the buffers by
----@return table
+---@return {name: string, bufnr: number, filetype: string, path: string, relative_path: string}[]
 function M.get_open(ft)
   local buffers = {}
 
