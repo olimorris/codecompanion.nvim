@@ -61,6 +61,27 @@ require("codecompanion").setup({
 })
 ```
 
+### Pinning and Watching
+
+To [pin or watch](/usage/chat-buffer/variables#with-parameters) buffers by default, you can add this configuration:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      variables = {
+        ["buffer"] = {
+          opts = {
+            default_params = 'pin', -- or 'watch'
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+
 ## Slash Commands
 
 [Slash Commands](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114) (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.

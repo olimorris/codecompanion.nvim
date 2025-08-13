@@ -8,34 +8,45 @@ Variables allow you to share Neovim context with an LLM. Typing `#` in the chat 
 
 Custom variables can be shared in the chat buffer by adding them to the `strategies.chat.variables` table in your configuration.
 
+## Basic Usage
+
+Variables use the `#{variable_name}` syntax to dynamically insert content into your chat. For example `#{buffer}`. Variables are processed when you send your message to the LLM.
+
 ## #buffer
 
-The _#{buffer}_ variable shares the full contents from the last buffer that the user was in (as determined by `BufEnter`). To select multiple buffers, it's recommended to use the _/buffer_ slash command.
+> [!IMPORTANT]
+> By default, CodeCompanion automatically applies `{watch}` to all buffers
 
-By default, buffers are [watched](/usage/chat-buffer/index#context) to enable updated content to be automatically shared with the LLM. They can also be pinned:
+The `#{buffer}` variable shares buffer contents with the LLM. It has two special parameters which control how content is shared with the LLM:
 
-- `#{buffer}{watch}` - Sends the changes in the underlying buffer to the LLM
-- `#{buffer}{pin}` - Sends the entire buffer (regardless of changes) to the LLM
+**`{pin}`** - Sends the entire buffer content to the LLM whenever the buffer changes. Use this when you want the LLM to always have the complete, up-to-date file context.
 
-You can also share specific buffers using the completion menus with something like `#{buffer:http/init.lua}`.
+**`{watch}`** - Sends only the changed portions of the buffer to the LLM. Use this for large files where you only want to share incremental changes to reduce token usage.
 
-To pin or watch buffers by default, you can add this configuration:
 
-```lua
-require("codecompanion").setup({
-  strategies = {
-    chat = {
-      variables = {
-        ["buffer"] = {
-          opts = {
-            default_params = 'pin', -- or 'watch'
-          },
-        },
-      },
-    },
-  },
-})
+### Basic Usage
+
+- `#{buffer}` - Shares the current buffer (last one you were in)
+
+### Target Specific Buffers
+
+- `#{buffer:init.lua}` - Shares a specific file by name
+- `#{buffer:src/main.rs}` - Shares a file by relative path
+- `#{buffer:utils}` - Shares a file containing "utils" in the path
+
+### With Parameters
+
+- `#{buffer}{pin}` - Pins the buffer (sends entire buffer on changes)
+- `#{buffer}{watch}` - Watches for changes (sends only changes)
+- `#{buffer:config.lua}{pin}` - Combines targeting with parameters
+
+### Multiple Buffers
+
 ```
+Compare #{buffer:old_file.js} with #{buffer:new_file.js} and explain the differences.
+```
+
+> **Note:** For selecting multiple buffers with more control, use the `/buffer` slash command.
 
 ## #lsp
 
