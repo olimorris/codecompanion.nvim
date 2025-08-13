@@ -152,22 +152,16 @@ function M.create(bufnr_or_filepath, diff_id, opts)
       log:warn("[catalog::helpers::diff::create] Failed to open buffer/file in window %s", winnr)
       return nil
     end
-
     pcall(api.nvim_set_current_win, winnr)
   else
-    -- Fallback to floating window
-    if is_filepath then
-      if not vim.fn.filereadable(bufnr_or_filepath) then
-        return nil
-      end
-      bufnr = existing_bufnr or vim.fn.bufadd(bufnr_or_filepath)
-      vim.fn.bufload(bufnr)
-    else
-      bufnr = bufnr_or_filepath
+    vim.cmd("topleft vnew")
+    winnr = api.nvim_get_current_win()
+    bufnr = open_buffer_in_window(winnr, bufnr_or_filepath)
+    if not bufnr then
+      pcall(vim.cmd, "close")
+      log:warn("[catalog::helpers::diff::create] Failed to open buffer/file in new window")
+      return nil
     end
-
-    log:warn("[catalog::helpers::diff::create] Float fallback not implemented yet")
-    return nil
   end
 
   -- Use provided content or fallback to current buffer content
