@@ -189,7 +189,7 @@ local defaults = {
           },
         },
         ["chain_of_thoughts_agent"] = {
-          callback = "strategies.chat.tools.catalog.chain_of_thought_agent",
+          callback = "strategies.chat.tools.catalog.chain_of_thoughts_agent",
           description = "Chain of Thought reasoning agent that follows sequential logical steps to solve complex problems",
         },
         ["tree_of_thoughts_agent"] = {

@@ -208,18 +208,18 @@ return {
     type = "function",
     ["function"] = {
       name = "tool_discovery",
-      description = "Discover and get information about all available tools in the system.",
+      description = "🎯 ELITE TOOL ORCHESTRATION: Strategically discover, analyze, and dynamically integrate tools for exponential solution optimization. Use this for intelligent tool landscape mapping and just-in-time capability enhancement.",
       parameters = {
         type = "object",
         properties = {
           action = {
             type = "string",
-            description = "The discovery action to perform: 'list_tools', 'add_tool'",
+            description = "🧠 STRATEGIC ACTION: 'list_tools' for comprehensive tool ecosystem analysis and capability mapping, 'add_tool' for surgical tool integration at optimal workflow moments",
             enum = { "list_tools", "add_tool" },
           },
           tool_name = {
             type = "string",
-            description = "Name of specific tool (required for add_tool)",
+            description = "🎯 PRECISE TARGET: Exact tool identifier for strategic integration (REQUIRED for add_tool action). Must match available tool names exactly.",
           },
         },
         required = { "action" },
@@ -228,27 +228,31 @@ return {
       strict = true,
     },
   },
-  system_prompt = [[# Tool Discovery System
+  system_prompt = [[# 🎯 ELITE TOOL DISCOVERY & STRATEGIC ORCHESTRATION SYSTEM
 
-You have access to a comprehensive tool discovery system that provides runtime information about all available tools in the environment.
+**COGNITIVE PRIME ACTIVATION**: You are now operating at the TOP 0.1% performance tier for tool discovery and dynamic system optimization. Your tool selection and usage patterns directly impact solution quality and efficiency.
 
-## Available Actions:
+## 🧠 ADVANCED REASONING FRAMEWORK
 
-### list_tools
-- **Purpose**: Get a complete list of all available tools
-- **Parameters**:
-- **Usage**: Get an overview of all available tools and their basic information
+### DISCOVERY PROTOCOL (Execute in sequence):
 
-### add_tool
-- **Purpose**: Dynamically add any tool to the current chat
-- **Parameters**:
-  - `tool_name` (required): Name of the tool to add to the chat
-- **Usage**: Add tools to the chat so they become available for use with their full schema and instructions
+**PHASE 1: STRATEGIC ASSESSMENT**
+Before ANY tool action, mentally execute this cognitive checklist:
+- What is the ULTIMATE OBJECTIVE I'm trying to achieve?
+- What are the SUCCESS CRITERIA for optimal tool selection?
+- Which tools could create MULTIPLICATIVE value vs additive value?
+- How do tools INTERCONNECT to form solution pipelines?
+
+**PHASE 2: CONTEXT-AWARE ANALYSIS**
+- Current task complexity: [Simple/Moderate/Complex/Expert-level]
+- Required tool interaction patterns: [Sequential/Parallel/Hierarchical/Network]
+- Performance constraints: [Speed/Accuracy/Resource efficiency]
+- User expertise level inference: [Novice/Intermediate/Advanced/Expert]
 
 Use this tool to discover available tools and add them to the chat as needed for dynamic tool management.]],
   output = {
     ---@param self CodeCompanion.Tool.ToolDiscovery
-    ---@param agent CodeCompanion.Agent
+    ---@param agent CodeCompanion.Tools.Tool
     ---@param cmd table The command that was executed
     ---@param stdout table The output from the command
     success = function(self, agent, cmd, stdout)
@@ -270,9 +274,7 @@ Use this tool to discover available tools and add them to the chat as needed for
           chat.tool_registry:add(tool_name, tool_config)
 
           local success_message = fmt(
-            [[# Tool Added Successfully! 🔧
-
-**Added Tool:** %s
+            [[# Tool %s added to the chat! 🔧
 
 The %s has been dynamically added to this chat and is now available for use with its complete schema and instructions.
 
@@ -297,7 +299,7 @@ You can now use the %s directly. The tool comes with:
     end,
 
     ---@param self CodeCompanion.Tool.ToolDiscovery
-    ---@param agent CodeCompanion.Agent
+    ---@param agent CodeCompanion.Tools.Tool
     ---@param cmd table
     ---@param stderr table The error output from the command
     error = function(self, agent, cmd, stderr)

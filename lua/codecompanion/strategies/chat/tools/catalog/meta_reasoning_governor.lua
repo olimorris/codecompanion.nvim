@@ -2,9 +2,9 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local fmt = string.format
 
--- Simple meta-reasoning governor: problem in, algorithm out
+-- Simple meta-reasoning governor: problem in, agent out
 -- The LLM reads the descriptions and picks the best match
--- Then dynamically adds the selected algorithm to the chat
+-- Then dynamically adds the selected agent to the chat
 
 -- Store the algorithm to add in global state so success handler can access it
 local pending_algorithm_addition = nil
@@ -28,7 +28,7 @@ local function handle_action(args)
 
 ### chain_of_thought_agent
 **Best for:** Step-by-step problems, debugging, sequential analysis, linear reasoning
-**Description:** Follows logical steps one by one, validates each step, good for systematic problem solving
+**Description:** Follows logical steps one by one, good for systematic problem solving
 
 ### tree_of_thoughts_agent
 **Best for:** Exploring multiple solutions, creative problems, coding tasks, when you need different approaches
@@ -74,7 +74,7 @@ The selected algorithm will be dynamically added to this chat and become availab
   end
 end
 
----@class CodeCompanion.Tool.MetaReasoningGovernor: CodeCompanion.Agent.Tool
+---@class CodeCompanion.Tool.MetaReasoningGovernor: CodeCompanion.Tools.Tool
 return {
   name = "meta_reasoning_governor",
   cmds = {
@@ -113,11 +113,11 @@ return {
 
 You help select the best reasoning algorithm for a problem and dynamically add it to the chat.
 
-## Two-Step Workflow:
+**Instructions**:
 1. First call `select_algorithm` with the problem - shows algorithm options
 2. Then call `add_algorithm` with chosen algorithm - adds it to the chat dynamically
 
-## Result:
+**Result**:
 After adding, selected algorithm will be available in the chat.]],
   output = {
     success = function(self, agent, cmd, stdout)
@@ -146,9 +146,9 @@ After adding, selected algorithm will be available in the chat.]],
           end
 
           local success_message = fmt(
-            [[# Algorithm Added Successfully! 🎯
+            [[# Agent Selected Successfully! 🎯
 
-**Selected Algorithm:** %s
+**Selected Agent:** %s
 
 The %s and tool_discovery have been dynamically added to this chat.
 

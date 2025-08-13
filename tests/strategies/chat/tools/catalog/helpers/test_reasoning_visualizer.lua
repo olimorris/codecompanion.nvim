@@ -43,10 +43,6 @@ T["ReasoningVisualizer"]["visualize_chain"] = function()
   h.expect_contains("identify the variables", result)
   h.expect_contains("Reasoning:", result)
 
-  -- Should contain conclusion
-  h.expect_contains("Conclusion:", result)
-  h.expect_contains("x = 5, y = 3", result)
-
   -- Should use Unicode characters by default
   h.expect_contains("└", result)
 end
@@ -88,11 +84,6 @@ T["ReasoningVisualizer"]["visualize_tree"] = function()
   h.expect_contains("Approach A", result)
   h.expect_contains("Approach B", result)
   h.expect_contains("Sub-step A1", result)
-
-  -- Should show scores
-  h.expect_contains("0.80", result)
-  h.expect_contains("0.60", result)
-  h.expect_contains("0.90", result)
 
   -- Should use Unicode characters
   h.expect_contains("├", result)

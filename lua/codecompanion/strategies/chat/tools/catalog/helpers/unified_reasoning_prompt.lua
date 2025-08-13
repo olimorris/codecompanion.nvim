@@ -52,7 +52,7 @@ local function generate_enhanced_section(section, config)
 
 **DISCOVERY PROTOCOL:**
 1. **ALWAYS START** → Use `tool_discovery` to identify ALL available tools before beginning any task
-4. **PERFORMANCE MONITORING** → Track tool effectiveness and adapt selection strategy
+4. **PERFORMANCE TRACKING** → Track tool effectiveness and adapt selection strategy
 
 **STRATEGIC USAGE PATTERNS:**
 • **Discovery First:** Always run `tool_discovery` when facing unfamiliar tasks or domains
@@ -65,11 +65,12 @@ local function generate_enhanced_section(section, config)
   elseif section == "execution_mastery" then
     local patterns = ""
     if #config.specialized_patterns > 0 then
-      patterns = fmt("\n\n**Specialized Execution Patterns:**\n%s", table.concat(config.specialized_patterns, "\n"))
+      patterns = "\n\n**Specialized Execution Patterns:**\n" .. table.concat(config.specialized_patterns, "\n")
     end
 
-    return fmt(
-      [[## EXECUTION MASTERY (Non-Negotiable Standards)
+    local quality_standard = config.quality_standard or "production-ready"
+
+    return [[## EXECUTION MASTERY (Non-Negotiable Standards)
 
 **WORKFLOW STAGES WITH QUALITY GATES:**
 
@@ -84,11 +85,7 @@ local function generate_enhanced_section(section, config)
 
 **TOOL-ENHANCED COMPLETION TRIGGER:** Only mark complete when:
 • Selected tools achieved optimal performance metrics
-• Solution quality meets %s standards
-%s]],
-      config.quality_standard,
-      patterns
-    )
+• Solution quality meets ]] .. quality_standard .. [[ standards]] .. patterns
   elseif section == "error_elimination" then
     return fmt(
       [[## ERROR ELIMINATION PROTOCOL (%s Standard)
@@ -128,7 +125,7 @@ local function generate_enhanced_section(section, config)
   end
 end
 
----Generate complete ultra-optimized system prompt
+---Generate complete system prompt
 ---@param config table Agent configuration
 ---@return string Enhanced system prompt
 function UnifiedReasoningPrompt.generate(config)
@@ -145,30 +142,18 @@ function UnifiedReasoningPrompt.generate(config)
   }
 
   for _, section in ipairs(section_order) do
-    if config.sections[section] then
-      local success, content = pcall(generate_enhanced_section, section, config)
-      if success and content and content ~= "" then
-        table.insert(sections, content)
-      elseif not success then
-        table.insert(sections, fmt("Error generating section '%s': %s", section, content))
-      end
+    local success, content = pcall(generate_enhanced_section, section, config)
+    if success and content and content ~= "" then
+      table.insert(sections, content)
+    elseif not success then
+      table.insert(sections, fmt("Error generating section '%s': %s", section, content))
     end
   end
 
-  -- Add any custom sections
-  for section, enabled in pairs(config.sections) do
-    if enabled and not vim.tbl_contains(section_order, section) then
-      local content = generate_enhanced_section(section, config)
-      if content and content ~= "" then
-        table.insert(sections, content)
-      end
-    end
-  end
-
-  return table.concat(sections, "\n\n")
+  return table.concat(sections, "\n")
 end
 
----Ultra-optimized Chain of Thought configuration
+---Chain of Thought configuration
 ---@return table Enhanced agent configuration
 function UnifiedReasoningPrompt.chain_of_thought_config()
   return {
@@ -193,18 +178,10 @@ function UnifiedReasoningPrompt.chain_of_thought_config()
       "• **Debug Workflows:** Combine debugging tools with systematic root cause analysis and comprehensive logging",
       "• **Test-Driven Development:** Use testing tools and frameworks identified through discovery for comprehensive coverage",
     },
-    sections = {
-      identity_mission = true,
-      cognitive_prime = true,
-      tool_mastery = true,
-      execution_mastery = true,
-      error_elimination = true,
-      performance_monitoring = true,
-    },
   }
 end
 
----Ultra-optimized Tree of Thoughts configuration
+---Tree of Thoughts configuration
 ---@return table Enhanced agent configuration
 function UnifiedReasoningPrompt.tree_of_thoughts_config()
   return {
@@ -229,18 +206,10 @@ function UnifiedReasoningPrompt.tree_of_thoughts_config()
       "• **Technology Assessment:** Employ discovery tools to evaluate frameworks systematically with production metrics",
       "• **Risk Analysis:** Use available risk assessment tools and impact analysis frameworks found through discovery",
     },
-    sections = {
-      identity_mission = true,
-      cognitive_prime = true,
-      tool_mastery = true,
-      execution_mastery = true,
-      error_elimination = true,
-      performance_monitoring = true,
-    },
   }
 end
 
----Ultra-optimized Graph of Thoughts configuration
+---Graph of Thoughts configuration
 ---@return table Enhanced agent configuration
 function UnifiedReasoningPrompt.graph_of_thoughts_config()
   return {
@@ -265,14 +234,6 @@ function UnifiedReasoningPrompt.graph_of_thoughts_config()
       "• **Integration Orchestration:** Employ discovery-identified orchestration tools for complex system coordination",
       "• **Scalability Engineering:** Use discovery tools for automated scaling analysis and resource optimization frameworks",
     },
-    sections = {
-      identity_mission = true,
-      cognitive_prime = true,
-      tool_mastery = true,
-      execution_mastery = true,
-      error_elimination = true,
-      performance_monitoring = true,
-    },
   }
 end
 
@@ -280,19 +241,19 @@ end
 ---@param reasoning_type string Type of reasoning: "chain", "tree", or "graph"
 ---@return table Complete optimized configuration
 function UnifiedReasoningPrompt.get_optimized_config(reasoning_type)
-  local base_config
+  local agent_config
 
   if reasoning_type == "chain" then
-    base_config = UnifiedReasoningPrompt.chain_of_thought_config()
+    agent_config = UnifiedReasoningPrompt.chain_of_thought_config()
   elseif reasoning_type == "tree" then
-    base_config = UnifiedReasoningPrompt.tree_of_thoughts_config()
+    agent_config = UnifiedReasoningPrompt.tree_of_thoughts_config()
   elseif reasoning_type == "graph" then
-    base_config = UnifiedReasoningPrompt.graph_of_thoughts_config()
+    agent_config = UnifiedReasoningPrompt.graph_of_thoughts_config()
   else
     error("Invalid reasoning type. Must be 'chain', 'tree', or 'graph'")
   end
 
-  return base_config
+  return agent_config
 end
 
 ---Generate complete system prompt for specific reasoning type

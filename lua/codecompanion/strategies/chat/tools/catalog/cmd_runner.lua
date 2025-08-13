@@ -140,7 +140,7 @@ local function run_command_in_preview(cmd, callback)
   return terminal_preview.job_id
 end
 
----@class CodeCompanion.Tool.CmdRunner: CodeCompanion.Agent.Tool
+---@class CodeCompanion.Tool.CmdRunner: CodeCompanion.Tools.Tool
 return {
   name = "cmd_runner",
   cmds = {

@@ -1,8 +1,8 @@
-local ChainOfThought = {}
-ChainOfThought.__index = ChainOfThought
+local ChainOfThoughts = {}
+ChainOfThoughts.__index = ChainOfThoughts
 
-function ChainOfThought.new(problem)
-  local self = setmetatable({}, ChainOfThought)
+function ChainOfThoughts.new(problem)
+  local self = setmetatable({}, ChainOfThoughts)
   self.problem = problem or ""
   self.steps = {}
   self.current_step = 0
@@ -17,7 +17,7 @@ local STEP_TYPES = {
 }
 
 -- Add a step to the chain
-function ChainOfThought:add_step(step_type, content, reasoning, step_id)
+function ChainOfThoughts:add_step(step_type, content, reasoning, step_id)
   -- Validate step type
   if STEP_TYPES[step_type] == nil then
     return false, "Invalid step type. Valid types are: " .. table.concat(vim.tbl_keys(STEP_TYPES), ", ")
@@ -48,7 +48,7 @@ function ChainOfThought:add_step(step_type, content, reasoning, step_id)
 end
 
 -- Reflect on the reasoning process
-function ChainOfThought:reflect()
+function ChainOfThoughts:reflect()
   local insights = {}
   local improvements = {}
 
@@ -115,7 +115,7 @@ function ChainOfThought:reflect()
 end
 
 -- Helper function to convert table to strings
-function ChainOfThought:table_to_strings(t)
+function ChainOfThoughts:table_to_strings(t)
   local result = {}
   for k, v in pairs(t) do
     table.insert(result, k .. ":" .. tostring(v))
@@ -124,6 +124,4 @@ function ChainOfThought:table_to_strings(t)
 end
 
 -- Export the module
-return {
-  ChainOfThought = ChainOfThought,
-}
+return ChainOfThoughts

@@ -1,7 +1,6 @@
 ---@class CodeCompanion.ChainOfThoughtEngine
 
-local ChainOfThought =
-  require("codecompanion.strategies.chat.tools.catalog.helpers.reasoning.chain_of_thoughts").ChainOfThought
+local ChainOfThoughts = require("codecompanion.strategies.chat.tools.catalog.helpers.reasoning.chain_of_thoughts")
 local ReasoningVisualizer =
   require("codecompanion.strategies.chat.tools.catalog.helpers.reasoning.reasoning_visualizer")
 local log = require("codecompanion.utils.log")
@@ -12,7 +11,6 @@ local ChainOfThoughtEngine = {}
 local Actions = {}
 
 function Actions.initialize(args, agent_state)
-  -- Validate problem parameter
   if not args.problem or args.problem == "" then
     return { status = "error", data = "Problem description cannot be empty" }
   end
@@ -20,13 +18,13 @@ function Actions.initialize(args, agent_state)
   log:debug("[Chain of Thought Engine] Initializing session: %s", args.problem)
 
   agent_state.session_id = tostring(os.time())
-  agent_state.current_instance = ChainOfThought.new(args.problem)
+  agent_state.current_instance = ChainOfThoughts.new(args.problem)
   agent_state.current_instance.agent_type = "Chain of Thought Agent"
 
   return {
     status = "success",
     data = fmt(
-      "Chain of Thought initialized.\nProblem: %s\nSession ID: %s\n\nActions available:\n- add_step: Add step to chain\n- view_chain: See full chain\n- reflect: Analyze reasoning chain",
+      "Problem: %s\nCoT initialized\nSession ID: %s\n\nActions available:\n- add_step: Add step to chain\n- view_chain: See full chain\n- reflect: Analyze reasoning chain",
       args.problem,
       agent_state.session_id
     ),
@@ -38,7 +36,6 @@ function Actions.add_step(args, agent_state)
     return { status = "error", data = "No active chain. Initialize first." }
   end
 
-  -- Enhanced validation
   if not args.content or args.content == "" then
     return { status = "error", data = "Step content cannot be empty" }
   end
@@ -47,7 +44,10 @@ function Actions.add_step(args, agent_state)
     return { status = "error", data = "Step ID cannot be empty" }
   end
 
-  -- Check for duplicate step IDs
+  if not args.step_type or args.step_type == "" then
+    return { status = "error", data = "Step type must be specified (analysis, reasoning, task, validation)" }
+  end
+
   for _, step in ipairs(agent_state.current_instance.steps) do
     if step.id == args.step_id then
       return { status = "error", data = fmt("Step ID '%s' already exists. Please use a unique ID.", args.step_id) }
@@ -101,25 +101,25 @@ function Actions.reflect(args, agent_state)
 
   local output_parts = {}
 
-  table.insert(output_parts, "## Reflection Analysis")
+  table.insert(output_parts, "Reflection Analysis")
   table.insert(output_parts, fmt("Total steps: %d", reflection_analysis.total_steps))
 
   if #reflection_analysis.insights > 0 then
-    table.insert(output_parts, "\n### Insights:")
+    table.insert(output_parts, "\nInsights:")
     for _, insight in ipairs(reflection_analysis.insights) do
       table.insert(output_parts, fmt("• %s", insight))
     end
   end
 
   if #reflection_analysis.improvements > 0 then
-    table.insert(output_parts, "\n### Suggested Improvements:")
+    table.insert(output_parts, "\nSuggested Improvements:")
     for _, improvement in ipairs(reflection_analysis.improvements) do
       table.insert(output_parts, fmt("• %s", improvement))
     end
   end
 
   if args.reflection and args.reflection ~= "" then
-    table.insert(output_parts, fmt("\n### User Reflection:\n%s", args.reflection))
+    table.insert(output_parts, fmt("\nUser Reflection:\n%s", args.reflection))
   end
 
   return {
@@ -133,9 +133,9 @@ end
 -- ============================================================================
 function ChainOfThoughtEngine.get_config()
   return {
-    agent_type = "Chain of Thought Agent",
+    agent_type = "Chain of Thoughts Agent",
     tool_name = "chain_of_thoughts_agent",
-    description = "Chain of Thought agent that follows sequential logical steps to solve complex problems systematically.",
+    description = "Agent that follows sequential logical steps to solve problems systematically.",
     actions = Actions,
     validation_rules = {
       initialize = { "problem" },
