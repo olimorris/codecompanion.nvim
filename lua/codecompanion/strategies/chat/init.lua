@@ -180,20 +180,6 @@ local function set_text_editing_area(chat, modifier)
   chat.header_line = api.nvim_buf_line_count(chat.bufnr) + modifier
 end
 
----Set a global UI object that users can access in their config
----@param chat CodeCompanion.Chat
----@return nil
-local function set_ui_state(chat)
-  _G.codecompanion_chat_ui[chat.bufnr] = {
-    adapter = adapters.make_safe(chat.adapter),
-    context_items = #chat.context_items,
-    cycles = chat.cycle,
-    id = chat.id,
-    tokens = chat.ui.tokens or 0,
-    tools = vim.tbl_count(chat.tool_registry.in_use) or 0,
-  }
-end
-
 ---Ready the chat buffer for the next round of conversation
 ---@param chat CodeCompanion.Chat
 ---@param opts? table
@@ -212,7 +198,7 @@ local function ready_chat_buffer(chat, opts)
     chat.subscribers:process(chat)
   end
 
-  set_ui_state(chat)
+  chat:update_metadata()
 
   -- If we're automatically responding to a tool output, we need to leave some
   -- space for the LLM's response so we can then display the user prompt again
@@ -512,7 +498,7 @@ local chatmap = {}
 _G.codecompanion_buffers = {}
 
 ---@type table
-_G.codecompanion_chat_ui = {}
+_G.codecompanion_chat_metadata = {}
 
 ---@class CodeCompanion.Chat
 local Chat = {}
@@ -621,7 +607,7 @@ function Chat.new(args)
     settings = self.settings,
   })
 
-  set_ui_state(self)
+  self:update_metadata()
 
   if args.messages then
     self.messages = args.messages
@@ -708,6 +694,7 @@ function Chat:apply_model(model)
 
   self.adapter.schema.model.default = model
   self.adapter = adapters.set_model(self.adapter)
+  self:update_metadata()
 
   return self
 end
@@ -1268,6 +1255,12 @@ function Chat:close()
       return v == self.bufnr
     end)
   )
+  table.remove(
+    _G.codecompanion_chat_metadata,
+    vim.iter(_G.codecompanion_chat_metadata):enumerate():find(function(_, v)
+      return v == self.bufnr
+    end)
+  )
   chatmap[self.bufnr] = nil
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
   if self.aug then
@@ -1371,6 +1364,22 @@ function Chat:debug()
   end
 
   return ts_parse_settings(self.bufnr, self.yaml_parser, self.adapter), self.messages
+end
+
+---Update a global state object that users can access in their config
+---@return nil
+function Chat:update_metadata()
+  _G.codecompanion_chat_metadata[self.bufnr] = {
+    adapter = {
+      name = self.adapter.formatted_name,
+      model = self.adapter.schema.model.default,
+    },
+    context_items = #self.context_items,
+    cycles = self.cycle,
+    id = self.id,
+    tokens = self.ui.tokens or 0,
+    tools = vim.tbl_count(self.tool_registry.in_use) or 0,
+  }
 end
 
 ---Returns the chat object(s) based on the buffer number
