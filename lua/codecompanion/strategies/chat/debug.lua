@@ -84,8 +84,8 @@ function Debug:render()
   self.adapter = adapter
 
   local bufname
-  if _G.codecompanion_last_buffer and api.nvim_buf_is_valid(_G.codecompanion_last_buffer) then
-    bufname = buf_utils.name_from_bufnr(_G.codecompanion_last_buffer)
+  if _G.codecompanion_current_context and api.nvim_buf_is_valid(_G.codecompanion_current_context) then
+    bufname = buf_utils.name_from_bufnr(_G.codecompanion_current_context)
   end
 
   -- Get the current settings from the chat buffer rather than making new ones
@@ -102,7 +102,7 @@ function Debug:render()
   table.insert(lines, '-- Adapter: "' .. adapter.formatted_name .. '"')
   table.insert(lines, "-- Buffer Number: " .. self.chat.bufnr)
   if bufname then
-    table.insert(lines, '-- Following Buffer: "' .. bufname .. '" (' .. _G.codecompanion_last_buffer .. ")")
+    table.insert(lines, '-- Following Buffer: "' .. bufname .. '" (' .. _G.codecompanion_current_context .. ")")
   end
 
   -- Add settings

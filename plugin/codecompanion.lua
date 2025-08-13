@@ -8,6 +8,7 @@ if vim.fn.has("nvim-0.11") == 0 then
 end
 
 local config = require("codecompanion.config")
+local util = require("codecompanion.utils")
 local api = vim.api
 
 -- Set the highlight groups
@@ -33,10 +34,10 @@ api.nvim_create_autocmd("FileType", {
   pattern = "codecompanion",
   group = syntax_group,
   callback = vim.schedule_wrap(function()
-    vim.iter(config.strategies.chat.variables):each(function(name, var)
+    vim.iter(config.strategies.chat.variables):each(function(name)
       vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}"')
       vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}"')
-      vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}{[^}]*}"')
+      vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}{[^}]*}"')
     end)
     vim
       .iter(config.strategies.chat.tools)
@@ -81,7 +82,7 @@ api.nvim_create_autocmd("TermEnter", {
   end,
 })
 
-_G.codecompanion_last_buffer = nil
+_G.codecompanion_current_context = nil
 api.nvim_create_autocmd("BufEnter", {
   group = buf_group,
   desc = "Capture the last buffer the user was in",
@@ -96,7 +97,8 @@ api.nvim_create_autocmd("BufEnter", {
       not vim.tbl_contains(excluded_fts, vim.bo[bufnr].filetype)
       and not vim.tbl_contains(excluded_buftypes, vim.bo[bufnr].buftype)
     then
-      _G.codecompanion_last_buffer = bufnr
+      _G.codecompanion_current_context = bufnr
+      util.fire("ContextChanged", { bufnr = bufnr })
     end
   end,
 })
