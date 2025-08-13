@@ -4,7 +4,7 @@
   <img src="https://github.com/user-attachments/assets/642ef2df-f1c4-41c4-93e2-baa66d7f0801" />
 </p>
 
-Variables allow you to share Neovim context with an LLM. Typing `#` in the chat buffer will trigger a code completion menu. Alternatively, you can type variables manually. After the response is sent to the LLM, you will see the variable output tagged as a context item in the chat buffer.
+Variables allow you to dynamically insert Neovim context into your chat messages using the `#{variable_name}` syntax. They're processed when you send your message to the LLM, automatically including relevant content like buffer contents, LSP diagnostics, or your current viewport. Type `#` in the chat buffer to see available variables through code completion, or type them manually.
 
 Custom variables can be shared in the chat buffer by adding them to the `strategies.chat.variables` table in your configuration.
 
