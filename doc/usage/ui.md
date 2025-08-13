@@ -15,6 +15,8 @@ CodeCompanion exposes a global dictionary, `_G.codecompanion_chat_metadata` whic
 - `tokens` - The running total of tokens for the chat buffer
 - `tools` - The number of tools in the chat buffer
 
+You can also leverage `_G.codecompanion_current_context` to fetch the number of the buffer which the `#{buffer}` variable points at.
+
 Below are some examples of how you can customize the UI related to CodeCompanion.
 
 ## Progress updates with Fidget.nvim by [@jessevdp](https://github.com/jessevdp)

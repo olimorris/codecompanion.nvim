@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11         Last change: 2025 August 07
+*codecompanion.txt*         For NVIM v0.11         Last change: 2025 August 13
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -1095,6 +1095,28 @@ You can even define your own variables to share specific content:
                 contains_code = false,
                 --has_params = true,    -- Set this if your variable supports parameters
                 --default_params = nil, -- Set default parameters
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+
+PINNING AND WATCHING
+
+To |codecompanion-usage-chat-buffer-variables-with-parameters| buffers by
+default, you can add this configuration:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          variables = {
+            ["buffer"] = {
+              opts = {
+                default_params = 'pin', -- or 'watch'
               },
             },
           },
@@ -2646,52 +2668,69 @@ your own.
 
 VARIABLES                                      *codecompanion-usage-variables*
 
+Variables allow you to dynamically insert Neovim context into your chat
+messages using the `#{variable_name}` syntax. They’re processed when you send
+your message to the LLM, automatically including relevant content like buffer
+contents, LSP diagnostics, or your current viewport. Type `#` in the chat
+buffer to see available variables through code completion, or type them
+manually.
 
-  [!IMPORTANT] As of `v17.5.0`, variables must be wrapped in curly braces, such
-  as `#{buffer}` or `#{lsp}`
-Variables allow you to share data about the current state of Neovim with an
-LLM. Simply type `#` in the chat buffer and trigger code completion if you’re
-not using blink.cmp or nvim-cmp (or coc.nvim). Alternatively, type the
-variables manually. After the response is sent to the LLM, you should see the
-variable output tagged as a context item in the chat buffer.
-
-Custom variables can be shared by adding them to the
+Custom variables can be shared in the chat buffer by adding them to the
 `strategies.chat.variables` table in your configuration.
+
+
+BASIC USAGE ~
+
+Variables use the `#{variable_name}` syntax to dynamically insert content into
+your chat. For example `#{buffer}`. Variables are processed when you send your
+message to the LLM.
 
 
 #BUFFER ~
 
 
-  [!NOTE] As of v16.2.0
-  <https://github.com/olimorris/codecompanion.nvim/releases/tag/v16.2.0>, buffers
-  are now watched by default
-The `#{buffer}` variable shares the full contents from the buffer that the user
-was last in when they initiated `:CodeCompanionChat`. To select another buffer,
-use the `/buffer` slash command. These buffers can be
-|codecompanion-usage-chat-buffer-index-context| to enable updated content to be
-automatically shared with the LLM:
+  [!IMPORTANT] By default, CodeCompanion automatically applies `{watch}` to all
+  buffers
+The `#{buffer}` variable shares buffer contents with the LLM. It has two
+special parameters which control how content is shared with the LLM:
 
-- `#{buffer}{pin}` - To pin the current buffer
-- `#{buffer}{watch}` - To watch the current buffer
+**{pin}** - Sends the entire buffer content to the LLM whenever the buffer
+changes. Use this when you want the LLM to always have the complete, up-to-date
+file context.
 
-To pin or watch buffers by default, you can add this configuration:
+**{watch}** - Sends only the changed portions of the buffer to the LLM. Use
+this for large files where you only want to share incremental changes to reduce
+token usage.
 
->lua
-    require("codecompanion").setup({
-      strategies = {
-        chat = {
-          variables = {
-            ["buffer"] = {
-              opts = {
-                default_params = 'pin', -- or 'watch'
-              },
-            },
-          },
-        },
-      },
-    })
+
+BASIC USAGE
+
+- `#{buffer}` - Shares the current buffer (last one you were in)
+
+
+TARGET SPECIFIC BUFFERS
+
+- `#{buffer:init.lua}` - Shares a specific file by name
+- `#{buffer:src/main.rs}` - Shares a file by relative path
+- `#{buffer:utils}` - Shares a file containing "utils" in the path
+
+
+WITH PARAMETERS
+
+- `#{buffer}{pin}` - Pins the buffer (sends entire buffer on changes)
+- `#{buffer}{watch}` - Watches for changes (sends only changes)
+- `#{buffer:config.lua}{pin}` - Combines targeting with parameters
+
+
+MULTIPLE BUFFERS
+
+>
+    Compare #{buffer:old_file.js} with #{buffer:new_file.js} and explain the differences.
 <
 
+
+  **Note:** For selecting multiple buffers with more control, use the `/buffer`
+  slash command.
 
 #LSP ~
 
@@ -2730,6 +2769,7 @@ The events that are fired from within the plugin are:
 - `CodeCompanionChatAdapter` - Fired after the adapter has been set in the chat
 - `CodeCompanionChatModel` - Fired after the model has been set in the chat
 - `CodeCompanionChatPin` - Fired after a pinned context item has been updated in the messages table
+- `CodeCompanionContextChanged` - Fired when the context that a chat buffer follows, changes
 - `CodeCompanionToolsStarted` - Fired when the tool system has been initiated
 - `CodeCompanionToolsFinished` - Fired when the tool system has finished running all tools
 - `CodeCompanionToolAdded` - Fired when a tool has been added to a chat
@@ -2886,6 +2926,20 @@ Aesthetics, especially in Neovim, are highly subjective. So whilst it won’t
 set much by default, it does endeavour to allow users to hook into the plugin
 and customize the UI to their liking via |codecompanion-events|.
 
+CodeCompanion exposes a global dictionary, `_G.codecompanion_chat_metadata`
+which users can leverage throughout their configuration. Using the chat
+buffer’s buffer number as the key, the dictionary contains:
+
+- `adapter` - The `name` and `model` of the chat buffer’s current adapter
+- `context_items` - The number of context items current in the chat buffer
+- `cycles` - The number of cycles (User->LLM->User) that have taken place in the chat buffer
+- `id` - The ID of the chat buffer
+- `tokens` - The running total of tokens for the chat buffer
+- `tools` - The number of tools in the chat buffer
+
+You can also leverage `_G.codecompanion_current_context` to fetch the buffer
+number of the buffer which the `#{buffer}` variable points at.
+
 Below are some examples of how you can customize the UI related to
 CodeCompanion.
 
@@ -2968,8 +3022,13 @@ statusline when a request is being sent to an LLM:
 
 HEIRLINE.NVIM INTEGRATION ~
 
-The plugin can also be integrated into heirline.nvim to show an icon when a
-request is being sent to an LLM:
+The plugin can also be integrated into heirline.nvim
+<https://github.com/rebelot/heirline.nvim> to show an icon when a request is
+being sent to an LLM and also to show useful meta information about the chat
+buffer.
+
+In the video at the top of this page, you can see the fidget spinner alongside
+the heirline.nvim integration below:
 
 >lua
     local CodeCompanion = {
@@ -2994,6 +3053,91 @@ request is being sent to an LLM:
         end,
         provider = " ",
         hl = { fg = "yellow" },
+      },
+    }
+    
+    local IsCodeCompanion = function()
+      return package.loaded.codecompanion and vim.bo.filetype == "codecompanion"
+    end
+    
+    local CodeCompanionCurrentContext = {
+      static = {
+        enabled = true,
+      },
+      condition = function(self)
+        return IsCodeCompanion() and _G.codecompanion_current_context ~= nil and self.enabled
+      end,
+      provider = function()
+        local bufname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(_G.codecompanion_current_context), ":t")
+        return "[  " .. bufname .. " ] "
+      end,
+      hl = { fg = "gray", bg = "bg" },
+      update = {
+        "User",
+        pattern = { "CodeCompanionRequest*", "CodeCompanionContextChanged" },
+        callback = vim.schedule_wrap(function(self, args)
+          if args.match == "CodeCompanionRequestStarted" then
+            self.enabled = false
+          elseif args.match == "CodeCompanionRequestFinished" then
+            self.enabled = true
+          end
+          vim.cmd("redrawstatus")
+        end),
+      },
+    }
+    
+    local CodeCompanionStats = {
+      condition = function(self)
+        return IsCodeCompanion()
+      end,
+      static = {
+        chat_values = {},
+      },
+      init = function(self)
+        local bufnr = vim.api.nvim_get_current_buf()
+        self.chat_values = _G.codecompanion_chat_metadata[bufnr]
+      end,
+      -- Tokens block
+      {
+        condition = function(self)
+          return self.chat_values.tokens > 0
+        end,
+        RightSlantStart,
+        {
+          provider = function(self)
+            return "   " .. self.chat_values.tokens .. " "
+          end,
+          hl = { fg = "gray", bg = "statusline_bg" },
+          update = {
+            "User",
+            pattern = { "CodeCompanionChatOpened", "CodeCompanionRequestFinished" },
+            callback = vim.schedule_wrap(function()
+              vim.cmd("redrawstatus")
+            end),
+          },
+        },
+        RightSlantEnd,
+      },
+      -- Cycles block
+      {
+        condition = function(self)
+          return self.chat_values.cycles > 0
+        end,
+        RightSlantStart,
+        {
+          provider = function(self)
+            return "  " .. self.chat_values.cycles .. " "
+          end,
+          hl = { fg = "gray", bg = "statusline_bg" },
+          update = {
+            "User",
+            pattern = { "CodeCompanionChatOpened", "CodeCompanionRequestFinished" },
+            callback = vim.schedule_wrap(function()
+              vim.cmd("redrawstatus")
+            end),
+          },
+        },
+        RightSlantEnd,
       },
     }
 <
