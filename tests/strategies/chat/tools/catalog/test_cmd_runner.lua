@@ -73,7 +73,7 @@ T["cmd_runner tool"] = function()
       {
         ["function"] = {
           name = "cmd_runner",
-          arguments = '{"cmd": "echo hello world"}',
+          arguments = '{"cmd": "echo hello world", "flag": null, "terminal_preview": false}',
         },
       },
     }
@@ -340,7 +340,7 @@ T["handles nil args gracefully"] = function()
     tool.args = {
       cmd = "echo test",
       flag = nil,  -- explicitly nil
-      terminal_preview = nil  -- should default to false
+      terminal_preview = nil  -- should default to true
     }
 
     cmd_runner.handlers.setup(tool, {})
@@ -354,9 +354,9 @@ T["handles nil args gracefully"] = function()
 
   local nil_handling = child.lua_get("nil_handling")
 
-  h.eq(false, nil_handling.terminal_preview_value)
+  h.eq(true, nil_handling.terminal_preview_value)
   h.eq(true, nil_handling.cmds_created)
-  h.eq("table", nil_handling.cmd_type)
+  h.eq("function", nil_handling.cmd_type)
 end
 
 return T

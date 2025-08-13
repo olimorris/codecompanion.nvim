@@ -20,37 +20,84 @@ local terminal_preview = _G.codecompanion_terminal_preview
 local function create_terminal_preview(cmd)
   local title = fmt("Terminal Preview: %s", cmd)
 
-  -- Create terminal buffer if it doesn't exist
-  if not terminal_preview.bufnr or not vim.api.nvim_buf_is_valid(terminal_preview.bufnr) then
-    terminal_preview.bufnr = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_name(terminal_preview.bufnr, title)
-
-    -- Set buffer options
-    vim.api.nvim_buf_set_option(terminal_preview.bufnr, "buftype", "nofile")
-    vim.api.nvim_buf_set_option(terminal_preview.bufnr, "swapfile", false)
-    vim.api.nvim_buf_set_option(terminal_preview.bufnr, "filetype", "terminal")
+  -- Always create a fresh buffer for termopen to work properly
+  -- Close previous buffer if it exists
+  if terminal_preview.bufnr and vim.api.nvim_buf_is_valid(terminal_preview.bufnr) then
+    vim.api.nvim_buf_delete(terminal_preview.bufnr, { force = true })
   end
 
-  -- Create window if it doesn't exist or is not visible
-  if not terminal_preview.winnr or not vim.api.nvim_win_is_valid(terminal_preview.winnr) then
-    -- Create horizontal split at bottom
-    vim.cmd("botright split")
-    terminal_preview.winnr = vim.api.nvim_get_current_win()
-    vim.api.nvim_win_set_buf(terminal_preview.winnr, terminal_preview.bufnr)
+  -- Create fresh terminal buffer
+  terminal_preview.bufnr = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_name(terminal_preview.bufnr, title)
 
-    -- Set window size to 1/3 of screen height
-    local total_height = vim.o.lines
-    local preview_height = math.floor(total_height / 3)
-    vim.api.nvim_win_set_height(terminal_preview.winnr, preview_height)
+  -- Set buffer options
+  vim.api.nvim_buf_set_option(terminal_preview.bufnr, "buftype", "nofile")
+  vim.api.nvim_buf_set_option(terminal_preview.bufnr, "swapfile", false)
+  vim.api.nvim_buf_set_option(terminal_preview.bufnr, "filetype", "terminal")
+
+  -- Create floating window if it doesn't exist or is not visible
+  if not terminal_preview.winnr or not vim.api.nvim_win_is_valid(terminal_preview.winnr) then
+    -- Calculate floating window dimensions (80% of screen width/height)
+    local width = math.floor(vim.o.columns * 0.8)
+    local height = math.floor(vim.o.lines * 0.6)
+    local row = math.floor((vim.o.lines - height) / 2)
+    local col = math.floor((vim.o.columns - width) / 2)
+
+    -- Create floating window
+    terminal_preview.winnr = vim.api.nvim_open_win(terminal_preview.bufnr, false, {
+      relative = "editor",
+      width = width,
+      height = height,
+      row = row,
+      col = col,
+      style = "minimal",
+      border = "rounded",
+      title = " Terminal Preview ",
+      title_pos = "center",
+    })
 
     -- Set window options
-    vim.api.nvim_win_set_option(terminal_preview.winnr, "winfixheight", true)
     vim.wo[terminal_preview.winnr].number = false
     vim.wo[terminal_preview.winnr].relativenumber = false
     vim.wo[terminal_preview.winnr].signcolumn = "no"
+    vim.wo[terminal_preview.winnr].wrap = false
+
+    -- Set up keymap to close window with 'q'
+    vim.api.nvim_buf_set_keymap(terminal_preview.bufnr, "n", "q", "", {
+      noremap = true,
+      silent = true,
+      callback = function()
+        if terminal_preview.job_id then
+          vim.fn.jobstop(terminal_preview.job_id)
+          terminal_preview.job_id = nil
+        end
+        if terminal_preview.winnr and vim.api.nvim_win_is_valid(terminal_preview.winnr) then
+          vim.api.nvim_win_close(terminal_preview.winnr, false)
+          terminal_preview.winnr = nil
+          terminal_preview.is_active = false
+        end
+      end,
+    })
   else
-    -- Window exists, just focus it
-    vim.api.nvim_set_current_win(terminal_preview.winnr)
+    -- Window exists, update it with the new buffer
+    vim.api.nvim_win_set_buf(terminal_preview.winnr, terminal_preview.bufnr)
+
+    -- Set up keymap for the new buffer
+    vim.api.nvim_buf_set_keymap(terminal_preview.bufnr, "n", "q", "", {
+      noremap = true,
+      silent = true,
+      callback = function()
+        if terminal_preview.job_id then
+          vim.fn.jobstop(terminal_preview.job_id)
+          terminal_preview.job_id = nil
+        end
+        if terminal_preview.winnr and vim.api.nvim_win_is_valid(terminal_preview.winnr) then
+          vim.api.nvim_win_close(terminal_preview.winnr, false)
+          terminal_preview.winnr = nil
+          terminal_preview.is_active = false
+        end
+      end,
+    })
   end
 
   return terminal_preview.bufnr, terminal_preview.winnr
@@ -65,77 +112,50 @@ local function run_command_in_preview(cmd, callback)
 
   terminal_preview.is_active = true
 
-  -- Clear buffer
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
+  -- Focus the terminal window to ensure termopen works correctly
+  if winnr and vim.api.nvim_win_is_valid(winnr) then
+    local current_win = vim.api.nvim_get_current_win()
+    vim.api.nvim_set_current_win(winnr)
 
-  -- Add header
-  local header = {
-    fmt("=== Terminal Preview: %s ===", cmd_str),
-    fmt("Started at: %s", os.date("%H:%M:%S")),
-    "",
-  }
-  vim.api.nvim_buf_set_lines(bufnr, 0, 0, false, header)
-
-  -- Start terminal job
-  terminal_preview.job_id = vim.fn.termopen(cmd_str, {
-    cwd = vim.fn.getcwd(),
-    on_stdout = function(_, data, _)
-      if data then
+    -- Start terminal job - buffer is already fresh and ready
+    terminal_preview.job_id = vim.fn.termopen(cmd_str, {
+      cwd = vim.fn.getcwd(),
+      on_stdout = function(job_id, data, event)
+        -- Auto-scroll to follow content in terminal mode
         vim.schedule(function()
-          if vim.api.nvim_buf_is_valid(bufnr) then
-            -- Scroll to bottom
-            local line_count = vim.api.nvim_buf_line_count(bufnr)
-            if winnr and vim.api.nvim_win_is_valid(winnr) then
-              vim.api.nvim_win_set_cursor(winnr, { line_count, 0 })
-            end
+          if terminal_preview.winnr and vim.api.nvim_win_is_valid(terminal_preview.winnr) then
+            -- Get the last line of the buffer
+            local last_line = vim.api.nvim_buf_line_count(terminal_preview.bufnr)
+            -- Move cursor to the last line to follow output
+            vim.api.nvim_win_set_cursor(terminal_preview.winnr, { last_line, 0 })
           end
         end)
-      end
-    end,
-    on_stderr = function(_, data, _)
-      if data then
+      end,
+      on_stderr = function(job_id, data, event)
+        -- Auto-scroll to follow content for stderr too
         vim.schedule(function()
-          if vim.api.nvim_buf_is_valid(bufnr) then
-            -- Scroll to bottom
-            local line_count = vim.api.nvim_buf_line_count(bufnr)
-            if winnr and vim.api.nvim_win_is_valid(winnr) then
-              vim.api.nvim_win_set_cursor(winnr, { line_count, 0 })
-            end
+          if terminal_preview.winnr and vim.api.nvim_win_is_valid(terminal_preview.winnr) then
+            local last_line = vim.api.nvim_buf_line_count(terminal_preview.bufnr)
+            vim.api.nvim_win_set_cursor(terminal_preview.winnr, { last_line, 0 })
           end
         end)
-      end
-    end,
-    on_exit = function(job_id, exit_code, event_type)
-      vim.schedule(function()
-        if vim.api.nvim_buf_is_valid(bufnr) then
-          -- Add completion footer
-          local footer = {
-            "",
-            fmt("=== Command completed with exit code: %d ===", exit_code),
-            fmt("Finished at: %s", os.date("%H:%M:%S")),
-          }
-          vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, footer)
+      end,
+      on_exit = function(job_id, exit_code, event_type)
+        vim.schedule(function()
+          terminal_preview.job_id = nil
 
-          -- Scroll to bottom
-          if winnr and vim.api.nvim_win_is_valid(winnr) then
-            local line_count = vim.api.nvim_buf_line_count(bufnr)
-            vim.api.nvim_win_set_cursor(winnr, { line_count, 0 })
+          if callback then
+            callback(exit_code)
           end
-        end
 
-        terminal_preview.job_id = nil
+          log:debug("[cmd_runner] Terminal preview command completed with exit code: %d", exit_code)
+        end)
+      end,
+    })
 
-        if callback then
-          callback(exit_code)
-        end
-
-        log:debug("[cmd_runner] Terminal preview command completed with exit code: %d", exit_code)
-      end)
-    end,
-  })
-
-  -- Focus back to original window after starting
-  vim.cmd("wincmd p")
+    -- Return focus to original window
+    vim.api.nvim_set_current_win(current_win)
+  end
 
   return terminal_preview.job_id
 end
@@ -167,7 +187,7 @@ return {
           },
           terminal_preview = {
             type = "boolean",
-            description = "Whether to show command output in a live terminal preview window (default: false)",
+            description = "Whether to show command output in a live terminal preview window (default: true)",
           },
         },
         required = {
@@ -187,7 +207,7 @@ return {
 - You can use it to run shell commands on the user's system.
 - You may be asked to run a specific command or to determine the appropriate command to fulfil the user's request.
 - All tool executions take place in the current working directory %s.
-- You can optionally show command output in a live terminal preview window using the `terminal_preview` parameter.
+- By default, command output is shown in a live terminal preview window. Set `terminal_preview: false` to disable this.
 
 ## OBJECTIVE
 - Follow the tool's schema.
@@ -231,8 +251,8 @@ return {
     setup = function(self, tool)
       local args = self.args
 
-      -- Store terminal_preview preference for later use
-      self._terminal_preview = args.terminal_preview or false
+      -- Store terminal_preview preference for later use (defaults to true)
+      self._terminal_preview = args.terminal_preview ~= false
 
       -- If terminal preview is requested, use terminal preview mode
       if self._terminal_preview then
@@ -340,22 +360,25 @@ return {
     ---@param stdout table The output from the command
     success = function(self, tool, cmd, stdout)
       local chat = tool.chat
+
+      -- If using terminal preview, just acknowledge completion without duplicating output
+      if self._terminal_preview then
+        local message = fmt("Command `%s` completed successfully in terminal preview", self.args.cmd)
+        return chat:add_tool_output(self, message)
+      end
+
+      -- Standard mode - show output in chat
       if stdout and vim.tbl_isempty(stdout) then
         local message = "There was no output from the cmd_runner tool"
-        if self._terminal_preview then
-          message = message .. " (executed in terminal preview)"
-        end
         return chat:add_tool_output(self, message)
       end
       local output = vim.iter(stdout[#stdout]):flatten():join("\n")
-      local preview_note = self._terminal_preview and " (with terminal preview)" or ""
       local message = fmt(
-        [[`%s`%s
+        [[`%s`
 ```
 %s
 ```]],
         self.args.cmd,
-        preview_note,
         output
       )
       chat:add_tool_output(self, message)

@@ -707,8 +707,18 @@ M.copilot_stats = {
 M.toggle_terminal_preview = {
   desc = "Toggle terminal preview for command execution",
   callback = function(chat)
+    -- Initialize global state if it doesn't exist
+    if not _G.codecompanion_terminal_preview then
+      _G.codecompanion_terminal_preview = {
+        bufnr = nil,
+        winnr = nil,
+        job_id = nil,
+        is_active = false,
+      }
+    end
     local terminal_preview_state = _G.codecompanion_terminal_preview
 
+    -- If terminal preview is active, close it
     if terminal_preview_state and terminal_preview_state.is_active then
       if terminal_preview_state.winnr and vim.api.nvim_win_is_valid(terminal_preview_state.winnr) then
         if terminal_preview_state.job_id then
@@ -728,17 +738,84 @@ M.toggle_terminal_preview = {
       end
     end
 
-    local help_text = [[Terminal Preview Help:
+    -- Create or show terminal preview as floating window
+    local title = "Terminal Preview"
 
-To use terminal preview:
-1. Run a command with cmd_runner tool
-2. Add 'terminal_preview: true' to the tool parameters
-3. Example: @cmd_runner {"cmd": "ls -la", "flag": null, "terminal_preview": true}
+    -- Create terminal buffer if it doesn't exist
+    if not terminal_preview_state.bufnr or not vim.api.nvim_buf_is_valid(terminal_preview_state.bufnr) then
+      terminal_preview_state.bufnr = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_name(terminal_preview_state.bufnr, title)
 
-The terminal preview will show live command output in a split window.
-Press 'gt' again to close active terminal previews.]]
+      -- Set buffer options
+      vim.api.nvim_buf_set_option(terminal_preview_state.bufnr, "buftype", "nofile")
+      vim.api.nvim_buf_set_option(terminal_preview_state.bufnr, "swapfile", false)
+      vim.api.nvim_buf_set_option(terminal_preview_state.bufnr, "filetype", "terminal")
+    end
 
-    util.notify(help_text, vim.log.levels.INFO)
+    -- Create floating window if it doesn't exist or is not visible
+    if not terminal_preview_state.winnr or not vim.api.nvim_win_is_valid(terminal_preview_state.winnr) then
+      -- Calculate floating window dimensions (80% of screen width/height)
+      local width = math.floor(vim.o.columns * 0.8)
+      local height = math.floor(vim.o.lines * 0.6)
+      local row = math.floor((vim.o.lines - height) / 2)
+      local col = math.floor((vim.o.columns - width) / 2)
+
+      -- Create floating window
+      terminal_preview_state.winnr = vim.api.nvim_open_win(terminal_preview_state.bufnr, true, {
+        relative = "editor",
+        width = width,
+        height = height,
+        row = row,
+        col = col,
+        style = "minimal",
+        border = "rounded",
+        title = " Terminal Preview ",
+        title_pos = "center",
+      })
+
+      -- Set window options
+      vim.wo[terminal_preview_state.winnr].number = false
+      vim.wo[terminal_preview_state.winnr].relativenumber = false
+      vim.wo[terminal_preview_state.winnr].signcolumn = "no"
+      vim.wo[terminal_preview_state.winnr].wrap = false
+
+      -- Set up keymap to close window with 'q'
+      vim.api.nvim_buf_set_keymap(terminal_preview_state.bufnr, "n", "q", "", {
+        noremap = true,
+        silent = true,
+        callback = function()
+          if terminal_preview_state.job_id then
+            vim.fn.jobstop(terminal_preview_state.job_id)
+            terminal_preview_state.job_id = nil
+          end
+          if terminal_preview_state.winnr and vim.api.nvim_win_is_valid(terminal_preview_state.winnr) then
+            vim.api.nvim_win_close(terminal_preview_state.winnr, false)
+            terminal_preview_state.winnr = nil
+            terminal_preview_state.is_active = false
+          end
+        end,
+      })
+    else
+      -- Window exists, just focus it
+      vim.api.nvim_set_current_win(terminal_preview_state.winnr)
+    end
+
+    terminal_preview_state.is_active = true
+
+    -- Show current buffer content if it exists, otherwise show ready message
+    if vim.api.nvim_buf_line_count(terminal_preview_state.bufnr) <= 1 then
+      local initial_content = {
+        "=== Terminal Preview ===",
+        "Ready to show command output from cmd_runner",
+        "",
+        "Commands with terminal_preview enabled will display here in real-time.",
+        "",
+        "Press 'q' or 'gP' to close this window.",
+      }
+      vim.api.nvim_buf_set_lines(terminal_preview_state.bufnr, 0, -1, false, initial_content)
+    end
+
+    util.notify("Terminal preview opened (floating)", vim.log.levels.INFO)
   end,
 }
 
