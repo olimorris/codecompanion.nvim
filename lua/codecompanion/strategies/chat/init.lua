@@ -180,6 +180,20 @@ local function set_text_editing_area(chat, modifier)
   chat.header_line = api.nvim_buf_line_count(chat.bufnr) + modifier
 end
 
+---Set a global UI object that users can access in their config
+---@param chat CodeCompanion.Chat
+---@return nil
+local function set_ui_state(chat)
+  _G.codecompanion_chat_ui[chat.bufnr] = {
+    adapter = adapters.make_safe(chat.adapter),
+    context_items = #chat.context_items,
+    cycles = chat.cycle,
+    id = chat.id,
+    tokens = chat.ui.tokens or 0,
+    tools = vim.tbl_count(chat.tool_registry.in_use) or 0,
+  }
+end
+
 ---Ready the chat buffer for the next round of conversation
 ---@param chat CodeCompanion.Chat
 ---@param opts? table
@@ -197,6 +211,8 @@ local function ready_chat_buffer(chat, opts)
 
     chat.subscribers:process(chat)
   end
+
+  set_ui_state(chat)
 
   -- If we're automatically responding to a tool output, we need to leave some
   -- space for the LLM's response so we can then display the user prompt again
@@ -495,6 +511,9 @@ local chatmap = {}
 ---@type table
 _G.codecompanion_buffers = {}
 
+---@type table
+_G.codecompanion_chat_ui = {}
+
 ---@class CodeCompanion.Chat
 local Chat = {}
 
@@ -538,6 +557,7 @@ function Chat.new(args)
     end,
     _last_role = args.last_role or config.constants.USER_ROLE,
   }, { __index = Chat })
+  ---@cast self CodeCompanion.Chat
 
   self.bufnr = self.create_buf()
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, {
@@ -600,6 +620,8 @@ function Chat.new(args)
     roles = { user = user_role, llm = llm_role },
     settings = self.settings,
   })
+
+  set_ui_state(self)
 
   if args.messages then
     self.messages = args.messages

@@ -2,6 +2,15 @@
 
 CodeCompanion aims to keep any changes to the user's UI to a minimum. Aesthetics, especially in Neovim, are highly subjective. So whilst it won't set much by default, it does endeavour to allow users to hook into the plugin and customize the UI to their liking via [Events](events).
 
+CodeCompanion exposes a global dictionary, `_G.codecompanion_chat_ui` which users can leverage throughout their configuration. Using the chat buffer's buffer number as the key, the dictionary contains:
+
+- `adapter` - The chat buffer's current adapter
+- `context_items` - The number of context items current in the chat buffer
+- `cycles` - The number of cycles (User->LLM->User) in the chat buffer
+- `id` - The ID of the chat buffer
+- `tokens` - The running total of tokens in the chat buffer
+- `tools` - The number of tools in the chat buffer
+
 Below are some examples of how you can customize the UI related to CodeCompanion.
 
 ## Progress updates with Fidget.nvim by [@jessevdp](https://github.com/jessevdp)
