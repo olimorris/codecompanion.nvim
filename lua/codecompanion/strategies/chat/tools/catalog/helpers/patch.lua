@@ -8,16 +8,19 @@ local log = require("codecompanion.utils.log")
 ---@field format fun(edit: CodeCompanion.Patch.Edit): string Format an edit object as a readable string for display/logging
 local Patch = {}
 
-Patch.prompt = [[*** Begin Patch
+Patch.prompt = [[ Use this exact format for all file edits:
+*** Begin Patch
 [PATCH]
 *** End Patch
 
 The `[PATCH]` is the series of diffs to be applied for each edit in the file. Each diff should be in this format:
 
- [3 lines of pre-context]
--[old code]
-+[new code]
- [3 lines of post-context]
+*** Begin Patch
+ [3 lines of context before]
+-[lines to remove]
++[lines to add]
+ [3 lines of context after]
+*** End Patch
 
 The context blocks are 3 lines of existing code, immediately before and after the modified lines of code.
 Lines to be modified should be prefixed with a `+` or `-` sign.

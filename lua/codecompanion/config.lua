@@ -489,6 +489,14 @@ local defaults = {
           callback = "keymaps.copilot_stats",
           description = "Show Copilot usage statistics",
         },
+        super_diff = {
+          modes = {
+            n = "gD",
+          },
+          index = 21,
+          callback = "keymaps.super_diff",
+          description = "Show super diff buffer",
+        },
       },
       opts = {
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
@@ -520,6 +528,14 @@ local defaults = {
           index = 2,
           callback = "keymaps.reject_change",
           description = "Reject change",
+        },
+        always_accept = {
+          modes = {
+            n = "gt",
+          },
+          index = 3,
+          callback = "keymaps.always_accept",
+          description = "Accept and enable auto mode",
         },
       },
       variables = {
@@ -1045,11 +1061,18 @@ You must create or modify a workspace file through a series of prompts over mult
         tool_success = " ",
         tool_failure = " ",
       },
-      debug_window = {
-        ---@return number|fun(): number
+      -- Shared configuration for debug window and super diff window
+      debug_and_super_diff_window = {
         width = vim.o.columns - 5,
-        ---@return number|fun(): number
         height = vim.o.lines - 2,
+        row = "center",
+        col = "center",
+        relative = "editor",
+        opts = {
+          wrap = true,
+          number = true,
+          relativenumber = false,
+        },
       },
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer
@@ -1107,7 +1130,35 @@ You must create or modify a workspace file through a series of prompts over mult
         "followwrap",
         "linematch:120",
       },
-      provider = providers.diff, -- mini_diff|default
+      provider = providers.diff, -- inline|mini_diff|default
+      diff_signs = {
+        signs = {
+          text = "▌", -- Sign text for normal changes
+          reject = "✗", -- Sign text for rejected changes in super_diff
+          highlight_groups = {
+            addition = "DiagnosticOk",
+            deletion = "DiagnosticError",
+            modification = "DiagnosticWarn",
+          },
+        },
+        -- Super Diff options
+        icons = {
+          accepted = " ",
+          rejected = " ",
+        },
+        colors = {
+          accepted = "DiagnosticOk",
+          rejected = "DiagnosticError",
+        },
+      },
+      -- Inline diff specific options
+      inline = {
+        show_removed = true, -- Show removed lines as virtual text
+        full_width_removed = true, -- Make removed lines span full width
+        priority = 100, -- Extmark priority - exposed if people inlay hints activated
+        context_lines = 3, -- Number of context lines in hunks
+        show_keymap_hints = true, -- Show "ga: accept | gr: reject" hints above diff
+      },
     },
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?

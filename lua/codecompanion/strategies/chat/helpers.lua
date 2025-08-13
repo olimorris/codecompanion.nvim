@@ -92,4 +92,32 @@ function M.has_user_messages(messages)
   end)
 end
 
+---Validate and normalize a filepath from tool args
+---@param filepath string Raw filepath from tool args
+---@return string|nil normalized_path Returns nil if path is invalid
+function M.validate_and_normalize_filepath(filepath)
+  local stat = vim.uv.fs_stat(filepath)
+  if stat then
+    return vim.fs.normalize(filepath)
+  end
+  local abs_path = vim.fs.abspath(filepath)
+  local normalized_path = vim.fs.normalize(abs_path)
+  stat = vim.uv.fs_stat(normalized_path)
+  if stat then
+    return normalized_path
+  end
+  -- Check for duplicate CWD and fix it
+  local cwd = vim.uv.cwd()
+  if normalized_path:find(cwd, 1, true) and normalized_path:find(cwd, #cwd + 2, true) then
+    local fixed_path = normalized_path:gsub("^" .. vim.pesc(cwd) .. "/", "")
+    fixed_path = vim.fs.normalize(fixed_path)
+    stat = vim.uv.fs_stat(fixed_path)
+    if stat then
+      return fixed_path
+    end
+  end
+
+  return nil
+end
+
 return M
