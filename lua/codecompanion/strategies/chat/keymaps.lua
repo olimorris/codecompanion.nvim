@@ -550,6 +550,7 @@ M.change_adapter = {
           { bufnr = chat.bufnr, adapter = require("codecompanion.adapters").make_safe(chat.adapter) }
         )
         chat.ui.adapter = chat.adapter
+        chat:update_metadata()
         chat:apply_settings()
       end
 
@@ -604,6 +605,7 @@ M.change_adapter = {
         end
 
         chat:apply_model(selected)
+        chat:update_metadata()
         chat:apply_settings()
       end)
     end)
