@@ -113,6 +113,24 @@ T["Variables"][":parse"]["multiple buffer vars"] = function()
   h.eq(2, #buffer_messages)
 end
 
+T["Variables"][":parse"]["buffer vars with params"] = function()
+  vim.cmd("edit lua/codecompanion/init.lua")
+
+  table.insert(chat.messages, {
+    role = "user",
+    content = "Look at #{buffer:init.lua}{pin} Isn't it marvellous?",
+  })
+
+  vars:parse(chat, chat.messages[#chat.messages])
+
+  local buffer_messages = vim.tbl_filter(function(msg)
+    return msg.opts and msg.opts.tag == "variable"
+  end, chat.messages)
+
+  h.eq(1, #buffer_messages)
+  h.eq(true, chat.context_items[1].opts.pinned)
+end
+
 T["Variables"][":replace"]["should replace the variable in the message"] = function()
   local message = "#{foo} #{bar} replace this var"
   local result = vars:replace(message, 0)

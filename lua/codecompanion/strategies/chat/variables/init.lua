@@ -9,9 +9,18 @@ local CONSTANTS = {
 ---Check a message for any parameters that have been given to the variable
 ---@param message table
 ---@param var string
+---@param target? string If provided, look for params after this specific target
 ---@return string|nil
-local function find_params(message, var)
-  local pattern = CONSTANTS.PREFIX .. "{" .. var .. "}{([^}]*)}"
+local function find_params(message, var, target)
+  local pattern
+  if target then
+    -- #{var:target}{params}
+    pattern = CONSTANTS.PREFIX .. "{" .. var .. ":" .. vim.pesc(target) .. "}{([^}]*)}"
+  else
+    -- #{var}{params}
+    pattern = CONSTANTS.PREFIX .. "{" .. var .. "}{([^}]*)}"
+  end
+
   local params = message.content:match(pattern)
   if params then
     log:trace("Params found for variable: %s", params)
@@ -165,7 +174,7 @@ function Variables:parse(chat, message)
 
       -- Check for regular params
       if var_config.opts and var_config.opts.has_params then
-        params = find_params(message, var)
+        params = find_params(message, var, target)
       end
 
       resolve(chat, var_config, params, target)

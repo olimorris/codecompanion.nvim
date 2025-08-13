@@ -62,7 +62,7 @@ function Variable:output(selected, opts)
   selected = selected or {}
   opts = opts or {}
 
-  local bufnr = selected.bufnr or _G.codecompanion_last_buffer
+  local bufnr = selected.bufnr or _G.codecompanion_current_context
   local params = selected.params or self.params
 
   if self.target then
