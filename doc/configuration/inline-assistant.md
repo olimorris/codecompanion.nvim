@@ -21,6 +21,7 @@ require("codecompanion").setup({
         },
         reject_change = {
           modes = { n = "gr" },
+          opts = { nowait = true },
           description = "Reject the suggested change",
         },
       },

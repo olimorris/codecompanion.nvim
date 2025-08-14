@@ -9,9 +9,18 @@ local CONSTANTS = {
 ---Check a message for any parameters that have been given to the variable
 ---@param message table
 ---@param var string
+---@param target? string If provided, look for params after this specific target
 ---@return string|nil
-local function find_params(message, var)
-  local pattern = CONSTANTS.PREFIX .. "{" .. var .. "}{([^}]*)}"
+local function find_params(message, var, target)
+  local pattern
+  if target then
+    -- #{var:target}{params}
+    pattern = CONSTANTS.PREFIX .. "{" .. var .. ":" .. vim.pesc(target) .. "}{([^}]*)}"
+  else
+    -- #{var}{params}
+    pattern = CONSTANTS.PREFIX .. "{" .. var .. "}{([^}]*)}"
+  end
+
   local params = message.content:match(pattern)
   if params then
     log:trace("Params found for variable: %s", params)
@@ -23,8 +32,9 @@ end
 ---@param chat CodeCompanion.Chat
 ---@param var_config table
 ---@param params? string
+---@param target? string
 ---@return table
-local function resolve(chat, var_config, params)
+local function resolve(chat, var_config, params, target)
   if type(var_config.callback) == "string" then
     local splits = vim.split(var_config.callback, ".", { plain = true })
     local path = table.concat(splits, ".", 1, #splits - 1)
@@ -36,6 +46,7 @@ local function resolve(chat, var_config, params)
       Chat = chat,
       config = var_config,
       params = params or (var_config.opts and var_config.opts.default_params),
+      target = target,
     }
 
     -- User is using a custom callback
@@ -53,6 +64,7 @@ local function resolve(chat, var_config, params)
       Chat = chat,
       config = var_config,
       params = params,
+      target = target,
     })
     :output()
 end
@@ -71,12 +83,25 @@ end
 ---Creates a regex pattern to match a variable in a message
 ---@param var string The variable name to create a pattern for
 ---@param include_params? boolean Whether to include parameters in the pattern
+---@param include_display_option? boolean Whether to include display options in the pattern
 ---@return string The compiled regex pattern
-function Variables:_pattern(var, include_params)
-  return CONSTANTS.PREFIX .. "{" .. var .. "}" .. (include_params and "{[^}]*}" or "")
+function Variables:_pattern(var, include_params, include_display_option)
+  local base_pattern = CONSTANTS.PREFIX .. "{" .. var
+
+  if include_display_option then
+    base_pattern = base_pattern .. ":[^}]*"
+  end
+
+  base_pattern = base_pattern .. "}"
+
+  if include_params then
+    base_pattern = base_pattern .. "{[^}]*}"
+  end
+
+  return base_pattern
 end
 
----Check a message for a variable
+---Check a message for a variable and return all instances
 ---@param message table
 ---@return table|nil
 function Variables:find(message)
@@ -85,9 +110,36 @@ function Variables:find(message)
   end
 
   local found = {}
+  local content = message.content
+
   for var, _ in pairs(self.vars) do
-    if regex.find(message.content, self:_pattern(var)) then
-      table.insert(found, var)
+    local display_pattern = CONSTANTS.PREFIX .. "{" .. var .. ":([^}]*)}"
+    for target in content:gmatch(display_pattern) do
+      table.insert(found, {
+        var = var,
+        target = target,
+      })
+    end
+
+    -- Check for regular syntax (#{var}) - but avoid duplicating display option matches
+    local regular_pattern = CONSTANTS.PREFIX .. "{" .. var .. "}"
+    local start_pos = 1
+    while true do
+      local match_start, match_end = content:find(regular_pattern, start_pos, true)
+      if not match_start then
+        break
+      end
+
+      -- Make sure this isn't part of a display option by checking if there's a colon before the brace
+      local char_before_brace = content:sub(match_end - 1, match_end - 1)
+      if char_before_brace ~= ":" then
+        table.insert(found, {
+          var = var,
+          target = nil,
+        })
+      end
+
+      start_pos = match_end + 1
     end
   end
 
@@ -98,16 +150,17 @@ function Variables:find(message)
   return found
 end
 
----Parse a message to detect if it references any variables
+---Parse a message to detect if it contains any variables
 ---@param chat CodeCompanion.Chat
 ---@param message table
 ---@return boolean
 function Variables:parse(chat, message)
-  local vars = self:find(message)
-  if vars then
-    for _, var in ipairs(vars) do
+  local instances = self:find(message)
+  if instances then
+    for _, instance in ipairs(instances) do
+      local var = instance.var
       local var_config = self.vars[var]
-      log:debug("Variable found: %s", var)
+      log:debug("Variable found: %s (target: %s)", var, instance.target or "none")
 
       var_config["name"] = var
 
@@ -116,12 +169,15 @@ function Variables:parse(chat, message)
         goto continue
       end
 
+      local target = instance.target
       local params = nil
+
+      -- Check for regular params
       if var_config.opts and var_config.opts.has_params then
-        params = find_params(message, var)
+        params = find_params(message, var, target)
       end
 
-      resolve(chat, var_config, params)
+      resolve(chat, var_config, params, target)
 
       ::continue::
     end
@@ -143,6 +199,11 @@ function Variables:replace(message, bufnr)
     if var:match("^buffer") then
       message = require("codecompanion.strategies.chat.variables.buffer").replace(CONSTANTS.PREFIX, message, bufnr)
     else
+      -- Remove display option syntax first
+      message = regex.replace(message, self:_pattern(var, true, true), "")
+      message = regex.replace(message, self:_pattern(var, false, true), "")
+
+      -- Then remove regular syntax
       message = regex.replace(message, self:_pattern(var, true), "")
       message = vim.trim(regex.replace(message, self:_pattern(var), ""))
     end

@@ -61,6 +61,27 @@ require("codecompanion").setup({
 })
 ```
 
+### Pinning and Watching
+
+To [pin or watch](/usage/chat-buffer/variables#with-parameters) buffers by default, you can add this configuration:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    chat = {
+      variables = {
+        ["buffer"] = {
+          opts = {
+            default_params = 'pin', -- or 'watch'
+          },
+        },
+      },
+    },
+  },
+})
+```
+
+
 ## Slash Commands
 
 [Slash Commands](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L114) (invoked with `/`) let you dynamically insert context into the chat buffer, such as file contents or date/time.
@@ -107,7 +128,7 @@ require("codecompanion").setup({
             if handle ~= nil then
               local result = handle:read("*a")
               handle:close()
-              chat:add_reference({ role = "user", content = result }, "git", "<git_files>")
+              chat:add_context({ role = "user", content = result }, "git", "<git_files>")
             else
               return vim.notify("No git files available", vim.log.levels.INFO, { title = "CodeCompanion" })
             end
@@ -151,7 +172,7 @@ require("codecompanion").setup({
 
 ```
 
-## Agents and Tools
+## Tools
 
 [Tools](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua#L55) perform specific tasks (e.g., running shell commands, editing buffers, etc.) when invoked by an LLM. Multiple tools can be grouped together. Both can be referenced with `@` when in the chat buffer:
 
@@ -213,7 +234,7 @@ This is useful to ensure that a particular dependency is installed on the machin
 
 ### Approvals
 
-Some tools, such as [cmd_runner](/usage/chat-buffer/agents.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
+Some tools, such as [cmd_runner](/usage/chat-buffer/tools.html#cmd-runner), require the user to approve any commands before they're executed. This can be changed by altering the config for each tool:
 
 ```lua
 require("codecompanion").setup({
@@ -432,25 +453,40 @@ require("codecompanion").setup({
 
 The plugin also supports [nvim-cmp](https://github.com/hrsh7th/nvim-cmp), a native completion solution (`default`), and [coc.nvim](https://github.com/neoclide/coc.nvim).
 
-### Auto scrolling
+### Auto Scrolling
 
-By default, the page scrolls down automatically as the response streams, with the cursor placed at the end.
-This can be distracting if you are focusing on the earlier content while the page scrolls up away during a long response.
-You can disable this behavior using a flag:
+By default, the page scrolls down automatically as the response streams, with the cursor placed at the end. This can be distracting if you are focusing on the earlier content while the page scrolls up away during a long response. You can disable this behavior using a flag:
 
 ```lua
 require("codecompanion").setup({
   display = {
     chat = {
-      auto_scroll = false
+      auto_scroll = false,
     },
   },
 }),
 ```
 
-## Additional Options
+### Fold Context
 
-There are also a number of other options that you can customize:
+It's not uncommon for users to share many items, as context, with an LLM. This can impact the chat buffer's UI significantly, leaving a large space between the LLM's last response and the user's input. To minimize this impact, the context can be folded:
+
+```lua
+require("codecompanion").setup({
+  display = {
+    chat = {
+      icons = {
+        chat_context = "📎️", -- You can also apply an icon to the fold
+      },
+      fold_context = true,
+    },
+  },
+}),
+```
+
+### Additional UI Options
+
+There are also a number of other options that you can customize in the UI:
 
 ```lua
 require("codecompanion").setup({
@@ -459,7 +495,7 @@ require("codecompanion").setup({
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
       show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
       separator = "─", -- The separator between the different messages in the chat buffer
-      show_references = true, -- Show references (from slash commands and variables) in the chat buffer?
+      show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_token_count = true, -- Show the token count for each response?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?

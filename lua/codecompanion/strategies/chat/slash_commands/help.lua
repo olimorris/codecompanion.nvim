@@ -1,4 +1,4 @@
-local path = require("plenary.path")
+local Path = require("plenary.path")
 
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
@@ -86,9 +86,9 @@ Note the path to the help file is `%s`.
       content,
       selected.path
     ),
-  }, { reference = id, visible = false })
+  }, { context_id = id, visible = false })
 
-  Chat.references:add({
+  Chat.context:add({
     source = "slash_command",
     name = "help",
     id = id,
@@ -106,7 +106,7 @@ local function output(SlashCommand, selected)
     return log:warn("Sending of code has been disabled")
   end
 
-  local content = path.new(selected.path):read()
+  local content = Path.new(selected.path):read()
   line_count = #vim.split(content, "\n")
 
   if line_count > CONSTANTS.MAX_LINES then

@@ -5,12 +5,17 @@ local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Cmd
+---@field adapter CodeCompanion.Adapter The adapter to use for the chat
+---@field buffer_context table The context of the buffer that the chat was initiated from
+---@field prompts table Any prompts to be sent to the LLM
+
+---@class CodeCompanion.Cmd
 local Cmd = {}
 
 ---@param args table
 function Cmd.new(args)
   local self = setmetatable({
-    context = args.context,
+    buffer_context = args.buffer_context,
     prompts = args.prompts,
     opts = args.opts,
   }, { __index = Cmd })
@@ -67,7 +72,7 @@ function Cmd:start()
       end,
       done = function() end,
     }, {
-      bufnr = self.context.bufnr,
+      bufnr = self.buffer_context.bufnr,
       strategy = "cmd",
     })
 end

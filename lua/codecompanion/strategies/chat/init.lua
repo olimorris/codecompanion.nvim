@@ -4,11 +4,10 @@
 
 ---@class CodeCompanion.Chat
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
----@field agents CodeCompanion.Agent The agent that calls tools available to the user
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
 ---@field aug number The ID for the autocmd group
 ---@field bufnr integer The buffer number of the chat
----@field context table The context of the buffer that the chat was initiated from
+---@field buffer_context table The context of the buffer that the chat was initiated from
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
@@ -19,22 +18,24 @@
 ---@field messages? table The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
----@field references CodeCompanion.Chat.References
----@field refs? table<CodeCompanion.Chat.Ref> References which are sent to the LLM e.g. buffers, slash command output
+---@field context CodeCompanion.Chat.Context
+---@field context_items? table<CodeCompanion.Chat.Context> Context which is sent to the LLM e.g. buffers, slash command output
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field subscribers table The subscribers to the chat buffer
 ---@field tokens? nil|number The number of tokens in the chat
----@field tools CodeCompanion.Chat.Tools Methods for handling interactions between the chat buffer and tools
+---@field tools CodeCompanion.Tools The tools coordinator that executes available tools
+---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field variables? CodeCompanion.Variables The variables available to the user
 ---@field watchers CodeCompanion.Watchers The buffer watcher instance
+---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
 ---@field _last_role string The last role that was rendered in the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
----@field context? table Context of the buffer that the chat was initiated from
+---@field buffer_context? table Context of the buffer that the chat was initiated from
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
 ---@field last_role string The last role that was rendered in the chat buffer-
@@ -43,6 +44,7 @@
 ---@field status? string The status of any running jobs in the chat buffe
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
 ---@field tokens? table Total tokens spent in the chat buffer so far
+---@field intro_message? string The welcome message that is displayed in the chat buffer
 
 local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
@@ -82,9 +84,9 @@ local user_role = config.strategies.chat.roles.user
 ---@return nil
 local function add_pins(chat)
   local pins = vim
-    .iter(chat.refs)
-    :filter(function(ref)
-      return ref.opts.pinned
+    .iter(chat.context_items)
+    :filter(function(ctx)
+      return ctx.opts.pinned
     end)
     :totable()
 
@@ -96,7 +98,7 @@ local function add_pins(chat)
     -- Don't add the pin twice in the same cycle
     local exists = false
     vim.iter(chat.messages):each(function(msg)
-      if msg.opts and msg.opts.reference == pin.id and msg.cycle == chat.cycle then
+      if msg.opts and msg.opts.context_id == pin.id and msg.cycle == chat.cycle then
         exists = true
       end
     end)
@@ -155,22 +157,6 @@ local function has_tag(tag, messages)
   )
 end
 
----Are there any user messages in the chat buffer?
----@param chat CodeCompanion.Chat
----@return boolean
-local function has_user_messages(chat)
-  local count = vim
-    .iter(chat.messages)
-    :filter(function(msg)
-      return msg.role == config.constants.USER_ROLE
-    end)
-    :totable()
-  if #count == 0 then
-    return false
-  end
-  return true
-end
-
 ---Increment the cycle count in the chat buffer
 ---@param chat CodeCompanion.Chat
 ---@return nil
@@ -207,10 +193,12 @@ local function ready_chat_buffer(chat, opts)
 
     set_text_editing_area(chat, -2)
     chat.ui:display_tokens(chat.parser, chat.header_line)
-    chat.references:render()
+    chat.context:render()
 
     chat.subscribers:process(chat)
   end
+
+  chat:update_metadata()
 
   -- If we're automatically responding to a tool output, we need to leave some
   -- space for the LLM's response so we can then display the user prompt again
@@ -293,7 +281,7 @@ local function ts_parse_messages(chat, start_range)
     end
   end
 
-  content = helpers.strip_references(content) -- If users send a blank message to the LLM, sometimes references are included
+  content = helpers.strip_context(content) -- If users send a blank message to the LLM, sometimes context is included
   if not vim.tbl_isempty(content) then
     return { content = vim.trim(table.concat(content, "\n\n")) }
   end
@@ -509,6 +497,9 @@ local chatmap = {}
 ---@type table
 _G.codecompanion_buffers = {}
 
+---@type table
+_G.codecompanion_chat_metadata = {}
+
 ---@class CodeCompanion.Chat
 local Chat = {}
 
@@ -527,24 +518,32 @@ function Chat.new(args)
   log:trace("Chat created with ID %d", id)
 
   local self = setmetatable({
-    context = args.context,
+    buffer_context = args.buffer_context,
+    context_items = {},
     cycle = 1,
     header_line = 1,
     from_prompt_library = args.from_prompt_library or false,
     id = id,
     messages = args.messages or {},
     opts = args,
-    refs = {},
     status = "",
+    intro_message = args.intro_message or config.display.chat.intro_message,
     create_buf = function()
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
       vim.bo[bufnr].filetype = "codecompanion"
 
+      -- Set up omnifunc for automatic completion when no other completion provider is active
+      local completion_provider = config.strategies.chat.opts.completion_provider
+      if completion_provider == "default" then
+        vim.bo[bufnr].omnifunc = "v:lua.require'codecompanion.providers.completion.default.omnifunc'.omnifunc"
+      end
+
       return bufnr
     end,
     _last_role = args.last_role or config.constants.USER_ROLE,
   }, { __index = Chat })
+  ---@cast self CodeCompanion.Chat
 
   self.bufnr = self.create_buf()
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, {
@@ -567,11 +566,11 @@ function Chat.new(args)
     self.yaml_parser = yaml_parser
   end
 
-  self.agents = require("codecompanion.strategies.chat.agents").new({ bufnr = self.bufnr, messages = self.messages })
   self.builder = require("codecompanion.strategies.chat.ui.builder").new({ chat = self })
-  self.references = require("codecompanion.strategies.chat.references").new({ chat = self })
+  self.context = require("codecompanion.strategies.chat.context").new({ chat = self })
   self.subscribers = require("codecompanion.strategies.chat.subscribers").new()
-  self.tools = require("codecompanion.strategies.chat.tools").new({ chat = self })
+  self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
+  self.tool_registry = require("codecompanion.strategies.chat.tool_registry").new({ chat = self })
   self.variables = require("codecompanion.strategies.chat.variables").new()
   self.watchers = require("codecompanion.strategies.chat.watchers").new()
 
@@ -608,12 +607,14 @@ function Chat.new(args)
     settings = self.settings,
   })
 
+  self:update_metadata()
+
   if args.messages then
     self.messages = args.messages
   end
 
   self.close_last_chat()
-  self.ui:open():render(self.context, self.messages, args)
+  self.ui:open():render(self.buffer_context, self.messages, args)
 
   -- Set the header line for the chat buffer
   if args.messages and vim.tbl_count(args.messages) > 0 then
@@ -622,8 +623,8 @@ function Chat.new(args)
     self.header_line = header_line and (header_line + 1) or 1
   end
 
-  if vim.tbl_isempty(self.messages) then
-    self.ui:set_intro_msg()
+  if vim.tbl_isempty(self.messages) or not helpers.has_user_messages(args.messages) then
+    self.ui:set_intro_msg(self.intro_message)
   end
 
   if config.strategies.chat.keymaps then
@@ -658,9 +659,9 @@ function Chat.new(args)
   for _, tool_name in pairs(config.strategies.chat.tools.opts.default_tools or {}) do
     local tool_config = config.strategies.chat.tools[tool_name]
     if tool_config ~= nil then
-      self.tools:add(tool_name, tool_config)
+      self.tool_registry:add(tool_name, tool_config)
     elseif config.strategies.chat.tools.groups[tool_name] ~= nil then
-      self.tools:add_group(tool_name, config.strategies.chat.tools)
+      self.tool_registry:add_group(tool_name, config.strategies.chat.tools)
     end
   end
 
@@ -693,6 +694,7 @@ function Chat:apply_model(model)
 
   self.adapter.schema.model.default = model
   self.adapter = adapters.set_model(self.adapter)
+  self:update_metadata()
 
   return self
 end
@@ -841,11 +843,11 @@ end
 ---@param message table
 ---@return nil
 function Chat:replace_vars_and_tools(message)
-  if self.agents:parse(self, message) then
-    message.content = self.agents:replace(message.content)
+  if self.tools:parse(self, message) then
+    message.content = self.tools:replace(message.content)
   end
   if self.variables:parse(self, message) then
-    message.content = self.variables:replace(message.content, self.context.bufnr)
+    message.content = self.variables:replace(message.content, self.buffer_context.bufnr)
   end
 end
 
@@ -863,8 +865,8 @@ function Chat:submit(opts)
     opts.callback()
   end
 
-  -- Refresh agent tools before submitting to pick up any dynamically added tools
-  self.agents:refresh_tools()
+  -- Refresh tools before submitting to pick up any dynamically added tools
+  self.tools:refresh()
 
   local bufnr = self.bufnr
 
@@ -873,7 +875,7 @@ function Chat:submit(opts)
   else
     local message = ts_parse_messages(self, self.header_line)
 
-    if not message and not has_user_messages(self) then
+    if not message and not helpers.has_user_messages(self) then
       return log:warn("No messages to submit")
     end
 
@@ -883,8 +885,10 @@ function Chat:submit(opts)
     if not opts.regenerate then
       local chat_opts = config.strategies.chat.opts
       if message and message.content and chat_opts and chat_opts.prompt_decorator then
-        message.content = chat_opts.prompt_decorator(message.content, adapters.make_safe(self.adapter), self.context)
+        message.content =
+          chat_opts.prompt_decorator(message.content, adapters.make_safe(self.adapter), self.buffer_context)
       end
+      self.builder.state.last_type = "user_message"
       self:add_message({
         role = config.constants.USER_ROLE,
         content = (message and message.content or config.strategies.chat.opts.blank_prompt),
@@ -892,13 +896,13 @@ function Chat:submit(opts)
     end
 
     -- NOTE: There are instances when submit is called with no user message. Such
-    -- as in the case of tools auto-submitting responses. References should be
+    -- as in the case of tools auto-submitting responses. Context should be
     -- excluded and we can do this by checking for user messages.
     if message then
-      message = self.references:clear(self.messages[#self.messages])
+      message = self.context:clear(self.messages[#self.messages])
       self:replace_vars_and_tools(message)
       self:check_images(message)
-      self:check_references()
+      self:check_context()
       add_pins(self)
     end
 
@@ -921,7 +925,7 @@ function Chat:submit(opts)
 
   local payload = {
     messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
-    tools = (not vim.tbl_isempty(self.tools.schemas) and { self.tools.schemas } or {}),
+    tools = (not vim.tbl_isempty(self.tool_registry.schemas) and { self.tool_registry.schemas } or {}),
   }
 
   log:trace("Settings:\n%s", mapped_settings)
@@ -1039,22 +1043,42 @@ function Chat:done(output, reasoning, tools)
     }, {
       visible = false,
     })
-    return self.agents:execute(self, tools)
+    return self.tools:execute(self, tools)
   end
 
   ready_chat_buffer(self)
+
+  util.fire("ChatDone", { bufnr = self.bufnr, id = self.id })
 end
 
+---Add context to the chat buffer (Useful for user's adding custom Slash Commands)
+---@param data { role: string, content: string }
+---@param source string
+---@param id string
+---@param opts? table Options for the message
+function Chat:add_context(data, source, id, opts)
+  opts = opts or { context_id = id, visible = false }
+
+  self.context:add({ source = source, id = id })
+  self:add_message(data, opts)
+end
+
+---TODO: Remove this method in v18.0.0
 ---Add a reference to the chat buffer (Useful for user's adding custom Slash Commands)
 ---@param data { role: string, content: string }
 ---@param source string
 ---@param id string
 ---@param opts? table Options for the message
 function Chat:add_reference(data, source, id, opts)
-  opts = opts or { reference = id, visible = false }
+  vim.deprecate(
+    "`Chat:add_reference` is now deprecated.",
+    "Please use `chat:add_context` instead",
+    "v18.0.0",
+    "CodeCompanion",
+    false
+  )
 
-  self.references:add({ source = source, id = id })
-  self:add_message(data, opts)
+  return self:add_context(data, source, id, opts)
 end
 
 ---Check if there are any images in the chat buffer
@@ -1080,41 +1104,41 @@ function Chat:check_images(message)
   end
 end
 
----Reconcile the references table to the references in the chat buffer
+---Reconcile the context_items table to the items in the chat buffer
 ---@return nil
-function Chat:check_references()
-  local refs_in_chat = self.references:get_from_chat()
-  if vim.tbl_isempty(refs_in_chat) and vim.tbl_isempty(self.refs) then
+function Chat:check_context()
+  local context_in_chat = self.context:get_from_chat()
+  if vim.tbl_isempty(context_in_chat) and vim.tbl_isempty(self.context_items) then
     return
   end
 
   local function expand_group_ref(group_name)
-    local group_config = self.agents.tools_config.groups[group_name] or {}
+    local group_config = self.tools.tools_config.groups[group_name] or {}
     return vim.tbl_map(function(tool)
       return "<tool>" .. tool .. "</tool>"
     end, group_config.tools or {})
   end
 
   local groups_in_chat = {}
-  for _, id in ipairs(refs_in_chat) do
+  for _, id in ipairs(context_in_chat) do
     local group_name = id:match("<group>(.*)</group>")
     if group_name and vim.trim(group_name) ~= "" then
       table.insert(groups_in_chat, group_name)
     end
   end
-  -- Populate the refs_in_chat with tool refs from groups
+  -- Populate the context_in_chat with tool refs from groups
   vim.iter(groups_in_chat):each(function(group_name)
-    vim.list_extend(refs_in_chat, expand_group_ref(group_name))
+    vim.list_extend(context_in_chat, expand_group_ref(group_name))
   end)
 
-  -- Fetch references that exist on the chat object but not in the buffer
+  -- Fetch context items that exist on the chat object but not in the buffer
   local to_remove = vim
-    .iter(self.refs)
-    :filter(function(ref)
-      return not vim.tbl_contains(refs_in_chat, ref.id)
+    .iter(self.context_items)
+    :filter(function(ctx)
+      return not vim.tbl_contains(context_in_chat, ctx.id)
     end)
-    :map(function(ref)
-      return ref.id
+    :map(function(ctx)
+      return ctx.id
     end)
     :totable()
 
@@ -1135,37 +1159,37 @@ function Chat:check_references()
   self.messages = vim
     .iter(self.messages)
     :filter(function(msg)
-      if msg.opts and msg.opts.reference and vim.tbl_contains(to_remove, msg.opts.reference) then
+      if msg.opts and msg.opts.context_id and vim.tbl_contains(to_remove, msg.opts.context_id) then
         return false
       end
       return true
     end)
     :totable()
 
-  -- And from the refs table
-  self.refs = vim
-    .iter(self.refs)
-    :filter(function(ref)
-      return not vim.tbl_contains(to_remove, ref.id)
+  -- And from the context_items table
+  self.context_items = vim
+    .iter(self.context_items)
+    :filter(function(ctx)
+      return not vim.tbl_contains(to_remove, ctx.id)
     end)
     :totable()
 
   -- Clear any tool's schemas
   local schemas_to_keep = {}
   local tools_in_use_to_keep = {}
-  for id, schema in pairs(self.tools.schemas) do
+  for id, tool_schemas in pairs(self.tool_registry.schemas) do
     if not vim.tbl_contains(to_remove, id) then
-      schemas_to_keep[id] = schema
+      schemas_to_keep[id] = tool_schemas
       local tool_name = id:match("<tool>(.*)</tool>")
-      if tool_name and self.tools.in_use[tool_name] then
+      if tool_name and self.tool_registry.in_use[tool_name] then
         tools_in_use_to_keep[tool_name] = true
       end
     else
       log:debug("Removing tool schema and usage flag for ID: %s", id) -- Optional logging
     end
   end
-  self.tools.schemas = schemas_to_keep
-  self.tools.in_use = tools_in_use_to_keep
+  self.tool_registry.schemas = schemas_to_keep
+  self.tool_registry.in_use = tools_in_use_to_keep
 end
 
 ---Regenerate the response from the LLM
@@ -1228,6 +1252,12 @@ function Chat:close()
   table.remove(
     _G.codecompanion_buffers,
     vim.iter(_G.codecompanion_buffers):enumerate():find(function(_, v)
+      return v == self.bufnr
+    end)
+  )
+  table.remove(
+    _G.codecompanion_chat_metadata,
+    vim.iter(_G.codecompanion_chat_metadata):enumerate():find(function(_, v)
       return v == self.bufnr
     end)
   )
@@ -1317,12 +1347,12 @@ function Chat:clear()
   self.cycle = 1
   self.header_line = 1
   self.messages = {}
-  self.refs = {}
+  self.context_items = {}
 
-  self.tools:clear()
+  self.tool_registry:clear()
 
   log:trace("Clearing chat buffer")
-  self.ui:render(self.context, self.messages, self.opts):set_intro_msg()
+  self.ui:render(self.buffer_context, self.messages, self.opts):set_intro_msg(self.intro_message)
   self:add_system_prompt()
   util.fire("ChatCleared", { bufnr = self.bufnr, id = self.id })
 end
@@ -1334,6 +1364,22 @@ function Chat:debug()
   end
 
   return ts_parse_settings(self.bufnr, self.yaml_parser, self.adapter), self.messages
+end
+
+---Update a global state object that users can access in their config
+---@return nil
+function Chat:update_metadata()
+  _G.codecompanion_chat_metadata[self.bufnr] = {
+    adapter = {
+      name = self.adapter.formatted_name,
+      model = self.adapter.schema.model.default,
+    },
+    context_items = #self.context_items,
+    cycles = self.cycle,
+    id = self.id,
+    tokens = self.ui.tokens or 0,
+    tools = vim.tbl_count(self.tool_registry.in_use) or 0,
+  }
 end
 
 ---Returns the chat object(s) based on the buffer number

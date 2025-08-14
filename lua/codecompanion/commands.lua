@@ -75,11 +75,19 @@ return {
       -- Reference:
       -- https://github.com/nvim-neorocks/nvim-best-practices?tab=readme-ov-file#speaking_head-user-commands
       complete = function(arg_lead, cmdline, _)
-        if cmdline:match("^['<,'>]*CodeCompanion[!]*%s+%w*$") then
+        if cmdline:match("^['<,'>]*CodeCompanion[!]*%s+/?%w*$") then
           return vim
             .iter(inline_subcommands)
             :filter(function(key)
               return key:find(arg_lead) ~= nil
+            end)
+            :map(function(key)
+              -- Remove the leading "/" if it has already been typed.
+              -- This allows matching on /<prompt library> without placing "//".
+              if arg_lead:sub(1, 1) == "/" and key:sub(1, 1) == "/" then
+                return key:sub(2)
+              end
+              return key
             end)
             :totable()
         end

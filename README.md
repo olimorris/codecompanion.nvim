@@ -1,7 +1,7 @@
 <!-- panvimdoc-ignore-start -->
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/olimorris/codecompanion.nvim/refs/heads/main/doc/media/logo.png" alt="CodeCompanion.nvim" />
+<img src="https://github.com/user-attachments/assets/64da6a69-a54d-4799-b034-59d9efd27b76" alt="CodeCompanion.nvim" />
 </p>
 
 <p align="center">
@@ -19,8 +19,10 @@
 Thank you to the following people:
 
 <p align="center">
-<!-- sponsors --><a href="https://github.com/carlosflorencio"><img src="https:&#x2F;&#x2F;github.com&#x2F;carlosflorencio.png" width="60px" alt="User avatar: Carlos Florêncio" /></a><a href="https://github.com/jfgordon2"><img src="https:&#x2F;&#x2F;github.com&#x2F;jfgordon2.png" width="60px" alt="User avatar: Jeff Gordon" /></a><a href="https://github.com/llinfeng"><img src="https:&#x2F;&#x2F;github.com&#x2F;llinfeng.png" width="60px" alt="User avatar: Linfeng Li" /></a><a href="https://github.com/prettymuchbryce"><img src="https:&#x2F;&#x2F;github.com&#x2F;prettymuchbryce.png" width="60px" alt="User avatar: Bryce Neal" /></a><a href="https://github.com/jupblb"><img src="https:&#x2F;&#x2F;github.com&#x2F;jupblb.png" width="60px" alt="User avatar: Michał Kiełbowicz" /></a><a href="https://github.com/pratyushmittal"><img src="https:&#x2F;&#x2F;github.com&#x2F;pratyushmittal.png" width="60px" alt="User avatar: Pratyush Mittal" /></a><a href="https://github.com/kxzk"><img src="https:&#x2F;&#x2F;github.com&#x2F;kxzk.png" width="60px" alt="User avatar: kade" /></a><a href="https://github.com/toupeira"><img src="https:&#x2F;&#x2F;github.com&#x2F;toupeira.png" width="60px" alt="User avatar: Markus Koller" /></a><!-- sponsors -->
+<!-- sponsors --><a href="https://github.com/unicell"><img src="https:&#x2F;&#x2F;github.com&#x2F;unicell.png" width="60px" alt="User avatar: Qiu Yu" /></a><a href="https://github.com/carlosflorencio"><img src="https:&#x2F;&#x2F;github.com&#x2F;carlosflorencio.png" width="60px" alt="User avatar: Carlos Florêncio" /></a><a href="https://github.com/adam-e-trepanier"><img src="https:&#x2F;&#x2F;github.com&#x2F;adam-e-trepanier.png" width="60px" alt="User avatar: Adam Trepanier" /></a><a href="https://github.com/jfgordon2"><img src="https:&#x2F;&#x2F;github.com&#x2F;jfgordon2.png" width="60px" alt="User avatar: Jeff Gordon" /></a><a href="https://github.com/llinfeng"><img src="https:&#x2F;&#x2F;github.com&#x2F;llinfeng.png" width="60px" alt="User avatar: Linfeng Li" /></a><a href="https://github.com/prettymuchbryce"><img src="https:&#x2F;&#x2F;github.com&#x2F;prettymuchbryce.png" width="60px" alt="User avatar: Bryce Neal" /></a><a href="https://github.com/pratyushmittal"><img src="https:&#x2F;&#x2F;github.com&#x2F;pratyushmittal.png" width="60px" alt="User avatar: Pratyush Mittal" /></a><a href="https://github.com/toupeira"><img src="https:&#x2F;&#x2F;github.com&#x2F;toupeira.png" width="60px" alt="User avatar: Markus Koller" /></a><a href="https://github.com/JuanCrg90"><img src="https:&#x2F;&#x2F;github.com&#x2F;JuanCrg90.png" width="60px" alt="User avatar: Juan Carlos Ruiz" /></a><a href="https://github.com/Alexander-Garcia"><img src="https:&#x2F;&#x2F;github.com&#x2F;Alexander-Garcia.png" width="60px" alt="User avatar: Alexander Garcia" /></a><!-- sponsors -->
 </p>
+
+<p align="center">If <i>you</i> love CodeCompanion and use it in your workflow, please consider <a href="https://github.com/sponsors/olimorris">sponsoring me</a></p>
 
 <!-- panvimdoc-ignore-end -->
 
@@ -30,7 +32,7 @@ Thank you to the following people:
 - :electric_plug: Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs (or [bring your own](https://codecompanion.olimorris.dev/extending/adapters.html))
 - :heart_hands: User contributed and supported [adapters](https://codecompanion.olimorris.dev/configuration/adapters#community-adapters)
 - :rocket: [Inline transformations](https://codecompanion.olimorris.dev/usage/inline-assistant.html), code creation and refactoring
-- :robot: [Variables](https://codecompanion.olimorris.dev/usage/chat-buffer/variables.html), [Slash Commands](https://codecompanion.olimorris.dev/usage/chat-buffer/slash-commands.html), [Agents/Tools](https://codecompanion.olimorris.dev/usage/chat-buffer/agents.html) and [Workflows](https://codecompanion.olimorris.dev/usage/workflows.html) to improve LLM output
+- :robot: [Variables](https://codecompanion.olimorris.dev/usage/chat-buffer/variables.html), [Slash Commands](https://codecompanion.olimorris.dev/usage/chat-buffer/slash-commands.html), [Tools](https://codecompanion.olimorris.dev/usage/chat-buffer/tools.html) and [Workflows](https://codecompanion.olimorris.dev/usage/workflows.html) to improve LLM output
 - :sparkles: Built in [prompt library](https://codecompanion.olimorris.dev/usage/action-palette.html) for common tasks like advice on LSP errors and code explanations
 - :building_construction: Create your own [custom prompts](https://codecompanion.olimorris.dev/extending/prompts.html), Variables and Slash Commands
 - :books: Have [multiple chats](https://codecompanion.olimorris.dev/usage/introduction.html#quickly-accessing-a-chat-buffer) open at the same time
@@ -44,15 +46,15 @@ Thank you to the following people:
 <div align="center">
   <p>
     <h3><a href="https://github.com/user-attachments/assets/aa109f1d-0ec9-4f08-bd9a-df99da03b9a4">The Chat Buffer</a></h3>
-    <video controls muted src="https://github.com/user-attachments/assets/aa109f1d-0ec9-4f08-bd9a-df99da03b9a4"></video>
+    <video controls muted src="https://github.com/user-attachments/assets/2a06e0a4-adb9-42c0-8a93-0fd86295ade0"></video>
   </p>
   <p>
     <h3><a href="https://github.com/user-attachments/assets/362b7cfd-e794-4d9c-9a74-90d5e2a87a32">Tools + Agentic Workflows</a></h3>
-    <video controls muted src="https://github.com/user-attachments/assets/362b7cfd-e794-4d9c-9a74-90d5e2a87a32"></video>
+    <video controls muted src="https://github.com/user-attachments/assets/59efa262-e768-4f36-9901-9d02b018fcf0"></video>
   </p>
   <p>
     <h3><a href="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee">Inline Assistant</a></h3>
-    <video controls muted src="https://github.com/user-attachments/assets/dcddcb85-cba0-4017-9723-6e6b7f080fee"></video>
+    <video controls muted src="https://github.com/user-attachments/assets/11a42705-d9de-4eb5-a9ab-c8a2772fb4d4"></video>
   </p>
 </div>
 

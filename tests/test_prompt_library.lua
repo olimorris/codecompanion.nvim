@@ -53,6 +53,7 @@ T["Prompt Library"]["can specify separate adapter and model"] = function()
   h.eq("gpt-4.1", adapter.model)
 end
 
+--TODO: Remove this test in v18.0.0
 T["Prompt Library"]["can add references"] = function()
   local refs = child.lua([[
     codecompanion.setup({
@@ -64,7 +65,7 @@ T["Prompt Library"]["can add references"] = function()
             index = 1,
             is_default = true,
             is_slash_cmd = false,
-            short_name = "test_ref",
+            short_name = "test_context",
             auto_submit = false,
           },
           references = {
@@ -85,14 +86,57 @@ T["Prompt Library"]["can add references"] = function()
         },
       }
     })
-    codecompanion.prompt("test_ref")
+    codecompanion.prompt("test_context")
     local chat = codecompanion.last_chat()
-    return chat.refs
+    return chat.context_items
   ]])
 
   h.eq(2, #refs)
   h.eq("<file>lua/codecompanion/health.lua</file>", refs[1].id)
   h.eq("<file>lua/codecompanion/http.lua</file>", refs[2].id)
+end
+
+T["Prompt Library"]["can add context"] = function()
+  local items = child.lua([[
+    codecompanion.setup({
+      prompt_library = {
+        ["Test context"] = {
+          strategy = "chat",
+          description = "Add some references",
+          opts = {
+            index = 1,
+            is_default = true,
+            is_slash_cmd = false,
+            short_name = "test_context",
+            auto_submit = false,
+          },
+          context = {
+            {
+              type = "file",
+              path = {
+                "lua/codecompanion/health.lua",
+                "lua/codecompanion/http.lua",
+              },
+            },
+          },
+          prompts = {
+            {
+              role = "foo",
+              content = "I need some references",
+            },
+          },
+        },
+      },
+    })
+
+    codecompanion.prompt("test_context")
+    local chat = codecompanion.last_chat()
+    return chat.context_items
+  ]])
+
+  h.eq(2, #items)
+  h.eq("<file>lua/codecompanion/health.lua</file>", items[1].id)
+  h.eq("<file>lua/codecompanion/http.lua</file>", items[2].id)
 end
 
 return T

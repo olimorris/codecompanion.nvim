@@ -83,7 +83,10 @@ function Debug:render()
   local adapter = vim.deepcopy(self.chat.adapter)
   self.adapter = adapter
 
-  local bufname = buf_utils.name_from_bufnr(self.chat.context.bufnr)
+  local bufname
+  if _G.codecompanion_current_context and api.nvim_buf_is_valid(_G.codecompanion_current_context) then
+    bufname = buf_utils.name_from_bufnr(_G.codecompanion_current_context)
+  end
 
   -- Get the current settings from the chat buffer rather than making new ones
   local current_settings = self.settings or {}
@@ -97,8 +100,10 @@ function Debug:render()
   local lines = {}
 
   table.insert(lines, '-- Adapter: "' .. adapter.formatted_name .. '"')
-  table.insert(lines, "-- Buffer: " .. self.chat.bufnr)
-  table.insert(lines, '-- Context: "' .. bufname .. '" (' .. self.chat.context.bufnr .. ")")
+  table.insert(lines, "-- Buffer Number: " .. self.chat.bufnr)
+  if bufname then
+    table.insert(lines, '-- Following Buffer: "' .. bufname .. '" (' .. _G.codecompanion_current_context .. ")")
+  end
 
   -- Add settings
   if not config.display.chat.show_settings then
@@ -227,7 +232,6 @@ function Debug:render()
   ui.create_float(lines, {
     bufnr = self.bufnr,
     filetype = "lua",
-    ignore_keymaps = true,
     relative = "editor",
     title = "Debug Chat",
     window = window,
