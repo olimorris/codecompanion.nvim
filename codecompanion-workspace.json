@@ -91,6 +91,21 @@
         "read_file_tool",
         "read_file_tool_test"
       ]
+    },
+    {
+      "name": "ACP Integration",
+      "system_prompt": "This group covers the ACP (Agent Communication Protocol) integration in CodeCompanion.nvim. ACP enables session-based, schema-driven communication with LLM agents, supporting authentication, streaming responses, tool calls, and permission handling. Key components:\n\n- **ACPAdapter**: Encapsulates ACP-specific logic for agent communication.\n- **ACPConnection**: Manages agent process, session lifecycle, authentication, and streaming.\n- **PromptBuilder**: Fluent API for sending prompts and handling streamed responses, tool calls, and errors.\n- **Chat Buffer**: Parses user messages, submits prompts via ACP, and streams agent responses into the buffer.\n\nRelevant files:\n- `lua/codecompanion/acp.lua` (ACPConnection, PromptBuilder)\n- `lua/codecompanion/adapters/acp/init.lua` (ACPAdapter)\n- `lua/codecompanion/strategies/chat/init.lua` (Chat Buffer logic)\n- [ACP JSON Schema](llm_notes/acp_json_schema.json) (for schema awareness)\n\nRefer to the ACP documentation for message flow, schema types, and extensibility.",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "data": [
+        "acp-implementation-notes",
+        "acp-schema",
+        "acp-connection",
+        "acp-adapter",
+        "gemini-cli",
+        "chat-buffer-init"
+      ]
     }
   ],
   "data": {
@@ -271,6 +286,31 @@
       "type": "file",
       "path": "tests/strategies/chat/tools/catalog/test_read_file.lua",
       "description": "This is the corresponding test for the read file tool."
+    },
+    "acp-connection": {
+      "type": "file",
+      "path": "lua/codecompanion/acp.lua",
+      "description": "Implements ACPConnection and PromptBuilder for session management, prompt submission, and streaming agent responses."
+    },
+    "acp-adapter": {
+      "type": "file",
+      "path": "lua/codecompanion/adapters/acp/init.lua",
+      "description": "Defines the ACPAdapter abstraction for ACP-specific agent communication."
+    },
+    "acp-schema": {
+      "type": "file",
+      "path": "llm_notes/acp_json_schema.json",
+      "description": "ACP JSON schema defining request, response, and notification types for agent communication."
+    },
+    "acp-implementation-notes": {
+      "type": "file",
+      "path": "llm_notes/acp.md",
+      "description": "This document explains how ACP works in CodeCompanion.nvim."
+    },
+    "gemini-cli": {
+      "type": "file",
+      "path": "lua/codecompanion/adapters/acp/gemini_cli.lua",
+      "description": "An example ACP implementation for Google Gemini CLI, demonstrating how to use the ACPAdapter with a specific LLM."
     }
   }
 }

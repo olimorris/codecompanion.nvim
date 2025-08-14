@@ -55,6 +55,5 @@ assets/
 deps/
 todo.md
 /media
-/llm_notes
 /examples
 chroma.log

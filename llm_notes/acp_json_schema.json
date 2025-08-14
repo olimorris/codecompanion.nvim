@@ -1,0 +1,1209 @@
+{
+  "$defs": {
+    "AgentCapabilities": {
+      "properties": {
+        "loadSession": {
+          "default": false,
+          "description": "Agent supports `session/load`",
+          "type": "boolean"
+        }
+      },
+      "required": ["loadSession"],
+      "type": "object"
+    },
+    "AgentNotification": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SessionNotification",
+          "title": "SessionNotification"
+        }
+      ],
+      "description": "Notifications the agent sends to the client"
+    },
+    "AgentRequest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WriteTextFileRequest",
+          "title": "WriteTextFileRequest"
+        },
+        {
+          "$ref": "#/$defs/ReadTextFileRequest",
+          "title": "ReadTextFileRequest"
+        },
+        {
+          "$ref": "#/$defs/RequestPermissionRequest",
+          "title": "RequestPermissionRequest"
+        }
+      ],
+      "description": "Requests the agent sends to the client"
+    },
+    "AgentResponse": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/InitializeResponse",
+          "title": "InitializeResponse"
+        },
+        {
+          "title": "AuthenticateResponse",
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/NewSessionResponse",
+          "title": "NewSessionResponse"
+        },
+        {
+          "title": "LoadSessionResponse",
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/PromptResponse",
+          "title": "PromptResponse"
+        }
+      ],
+      "description": "Responses the agent sends to the client"
+    },
+    "Annotations": {
+      "description": "Optional annotations for the client. The client can use annotations to inform how objects are used or displayed",
+      "properties": {
+        "audience": {
+          "items": {
+            "$ref": "#/$defs/Role"
+          },
+          "type": ["array", "null"]
+        },
+        "lastModified": {
+          "type": ["string", "null"]
+        },
+        "priority": {
+          "format": "double",
+          "type": ["number", "null"]
+        }
+      },
+      "type": "object"
+    },
+    "AudioContent": {
+      "description": "Audio provided to or from an LLM.",
+      "properties": {
+        "annotations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Annotations"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "data": {
+          "type": "string"
+        },
+        "mimeType": {
+          "type": "string"
+        }
+      },
+      "required": ["data", "mimeType"],
+      "type": "object"
+    },
+    "AuthMethod": {
+      "properties": {
+        "description": {
+          "type": ["string", "null"]
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "name", "description"],
+      "type": "object"
+    },
+    "AuthenticateRequest": {
+      "properties": {
+        "methodId": {
+          "type": "string"
+        }
+      },
+      "required": ["methodId"],
+      "type": "object"
+    },
+    "BlobResourceContents": {
+      "properties": {
+        "blob": {
+          "type": "string"
+        },
+        "mimeType": {
+          "type": ["string", "null"]
+        },
+        "uri": {
+          "type": "string"
+        }
+      },
+      "required": ["blob", "uri"],
+      "type": "object"
+    },
+    "CancelNotification": {
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId"],
+      "type": "object"
+    },
+    "ClientCapabilities": {
+      "description": "Capabilities supported by the client",
+      "properties": {
+        "fs": {
+          "$ref": "#/$defs/FileSystemCapability",
+          "default": {
+            "readTextFile": false,
+            "writeTextFile": false
+          },
+          "description": "FileSystem capabilities supported by the client."
+        }
+      },
+      "required": ["fs"],
+      "type": "object"
+    },
+    "ClientNotification": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CancelNotification",
+          "title": "CancelNotification"
+        }
+      ],
+      "description": "Notifications the client sends to the agent"
+    },
+    "ClientRequest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/InitializeRequest",
+          "title": "InitializeRequest"
+        },
+        {
+          "$ref": "#/$defs/AuthenticateRequest",
+          "title": "AuthenticateRequest"
+        },
+        {
+          "$ref": "#/$defs/NewSessionRequest",
+          "title": "NewSessionRequest"
+        },
+        {
+          "$ref": "#/$defs/LoadSessionRequest",
+          "title": "LoadSessionRequest"
+        },
+        {
+          "$ref": "#/$defs/PromptRequest",
+          "title": "PromptRequest"
+        }
+      ],
+      "description": "Requests the client sends to the agent"
+    },
+    "ClientResponse": {
+      "anyOf": [
+        {
+          "title": "WriteTextFileResponse",
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/ReadTextFileResponse",
+          "title": "ReadTextFileResponse"
+        },
+        {
+          "$ref": "#/$defs/RequestPermissionResponse",
+          "title": "RequestPermissionResponse"
+        }
+      ],
+      "description": "Responses the client sends to the agent"
+    },
+    "ContentBlock": {
+      "oneOf": [
+        {
+          "properties": {
+            "annotations": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Annotations"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "text": {
+              "type": "string"
+            },
+            "type": {
+              "const": "text",
+              "type": "string"
+            }
+          },
+          "required": ["type", "text"],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "annotations": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Annotations"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "data": {
+              "type": "string"
+            },
+            "mimeType": {
+              "type": "string"
+            },
+            "type": {
+              "const": "image",
+              "type": "string"
+            }
+          },
+          "required": ["type", "data", "mimeType"],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "annotations": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Annotations"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "data": {
+              "type": "string"
+            },
+            "mimeType": {
+              "type": "string"
+            },
+            "type": {
+              "const": "audio",
+              "type": "string"
+            }
+          },
+          "required": ["type", "data", "mimeType"],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "annotations": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Annotations"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": {
+              "type": ["string", "null"]
+            },
+            "mimeType": {
+              "type": ["string", "null"]
+            },
+            "name": {
+              "type": "string"
+            },
+            "size": {
+              "format": "int64",
+              "type": ["integer", "null"]
+            },
+            "title": {
+              "type": ["string", "null"]
+            },
+            "type": {
+              "const": "resource_link",
+              "type": "string"
+            },
+            "uri": {
+              "type": "string"
+            }
+          },
+          "required": ["type", "name", "uri"],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "annotations": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Annotations"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "resource": {
+              "$ref": "#/$defs/EmbeddedResourceResource"
+            },
+            "type": {
+              "const": "resource",
+              "type": "string"
+            }
+          },
+          "required": ["type", "resource"],
+          "type": "object"
+        }
+      ]
+    },
+    "EmbeddedResource": {
+      "description": "The contents of a resource, embedded into a prompt or tool call result.\n\nIt is up to the client how best to render embedded resources for the benefit\nof the LLM and/or the user.",
+      "properties": {
+        "annotations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Annotations"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resource": {
+          "$ref": "#/$defs/EmbeddedResourceResource"
+        }
+      },
+      "required": ["resource"],
+      "type": "object"
+    },
+    "EmbeddedResourceResource": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TextResourceContents",
+          "title": "TextResourceContents"
+        },
+        {
+          "$ref": "#/$defs/BlobResourceContents",
+          "title": "BlobResourceContents"
+        }
+      ]
+    },
+    "EnvVariable": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": ["name", "value"],
+      "type": "object"
+    },
+    "FileSystemCapability": {
+      "properties": {
+        "readTextFile": {
+          "default": false,
+          "description": "Client supports `fs/read_text_file`",
+          "type": "boolean"
+        },
+        "writeTextFile": {
+          "default": false,
+          "description": "Client supports `fs/write_text_file`",
+          "type": "boolean"
+        }
+      },
+      "required": ["readTextFile", "writeTextFile"],
+      "type": "object"
+    },
+    "ImageContent": {
+      "description": "An image provided to or from an LLM.",
+      "properties": {
+        "annotations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Annotations"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "data": {
+          "type": "string"
+        },
+        "mimeType": {
+          "type": "string"
+        }
+      },
+      "required": ["data", "mimeType"],
+      "type": "object"
+    },
+    "InitializeRequest": {
+      "properties": {
+        "clientCapabilities": {
+          "$ref": "#/$defs/ClientCapabilities",
+          "default": {
+            "fs": {
+              "readTextFile": false,
+              "writeTextFile": false
+            }
+          },
+          "description": "Capabilities supported by the client"
+        },
+        "protocolVersion": {
+          "$ref": "#/$defs/ProtocolVersion",
+          "description": "The latest protocol version supported by the client"
+        }
+      },
+      "required": ["protocolVersion", "clientCapabilities"],
+      "type": "object"
+    },
+    "InitializeResponse": {
+      "properties": {
+        "agentCapabilities": {
+          "$ref": "#/$defs/AgentCapabilities",
+          "default": {
+            "loadSession": false
+          },
+          "description": "Capabilities supported by the agent"
+        },
+        "authMethods": {
+          "default": [],
+          "description": "Authentication methods supported by the agent",
+          "items": {
+            "$ref": "#/$defs/AuthMethod"
+          },
+          "type": "array"
+        },
+        "protocolVersion": {
+          "$ref": "#/$defs/ProtocolVersion",
+          "description": "The protocol version the client specified if supported by the agent,\nor the latest protocol version supported by the agent.\n\nThe client should disconnect, if it doesn't support this version."
+        }
+      },
+      "required": ["protocolVersion", "agentCapabilities", "authMethods"],
+      "type": "object"
+    },
+    "LoadSessionRequest": {
+      "properties": {
+        "cwd": {
+          "type": "string"
+        },
+        "mcpServers": {
+          "items": {
+            "$ref": "#/$defs/McpServer"
+          },
+          "type": "array"
+        },
+        "sessionId": {
+          "type": "string"
+        }
+      },
+      "required": ["mcpServers", "cwd", "sessionId"],
+      "type": "object"
+    },
+    "McpServer": {
+      "properties": {
+        "args": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "command": {
+          "type": "string"
+        },
+        "env": {
+          "items": {
+            "$ref": "#/$defs/EnvVariable"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["name", "command", "args", "env"],
+      "type": "object"
+    },
+    "NewSessionRequest": {
+      "properties": {
+        "cwd": {
+          "type": "string"
+        },
+        "mcpServers": {
+          "items": {
+            "$ref": "#/$defs/McpServer"
+          },
+          "type": "array"
+        }
+      },
+      "required": ["mcpServers", "cwd"],
+      "type": "object"
+    },
+    "NewSessionResponse": {
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId"],
+      "type": "object"
+    },
+    "PermissionOption": {
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/PermissionOptionKind"
+        },
+        "name": {
+          "type": "string"
+        },
+        "optionId": {
+          "type": "string"
+        }
+      },
+      "required": ["optionId", "name", "kind"],
+      "type": "object"
+    },
+    "PermissionOptionKind": {
+      "enum": ["allow_once", "allow_always", "reject_once", "reject_always"],
+      "type": "string"
+    },
+    "Plan": {
+      "properties": {
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/PlanEntry"
+          },
+          "type": "array"
+        }
+      },
+      "required": ["entries"],
+      "type": "object"
+    },
+    "PlanEntry": {
+      "description": "A single entry in the execution plan.\n\nRepresents a task or goal that the assistant intends to accomplish\nas part of fulfilling the user's request.",
+      "properties": {
+        "content": {
+          "description": "Description of what this task aims to accomplish",
+          "type": "string"
+        },
+        "priority": {
+          "$ref": "#/$defs/PlanEntryPriority",
+          "description": "Relative importance of this task"
+        },
+        "status": {
+          "$ref": "#/$defs/PlanEntryStatus",
+          "description": "Current progress of this task"
+        }
+      },
+      "required": ["content", "priority", "status"],
+      "type": "object"
+    },
+    "PlanEntryPriority": {
+      "description": "Priority levels for plan entries.\n\nUsed to indicate the relative importance or urgency of different\ntasks in the execution plan.",
+      "enum": ["high", "medium", "low"],
+      "type": "string"
+    },
+    "PlanEntryStatus": {
+      "description": "Status of a plan entry in the execution flow.\n\nTracks the lifecycle of each task from planning through completion.",
+      "enum": ["pending", "in_progress", "completed"],
+      "type": "string"
+    },
+    "PromptRequest": {
+      "properties": {
+        "prompt": {
+          "items": {
+            "$ref": "#/$defs/ContentBlock"
+          },
+          "type": "array"
+        },
+        "sessionId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId", "prompt"],
+      "type": "object"
+    },
+    "PromptResponse": {
+      "properties": {
+        "stopReason": {
+          "$ref": "#/$defs/StopReason"
+        }
+      },
+      "required": ["stopReason"],
+      "type": "object"
+    },
+    "ProtocolVersion": {
+      "description": "Protocol version identifier.\n\nThis version is only bumped for breaking changes.\nNon-breaking changes should be introduced via capabilities.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "ReadTextFileRequest": {
+      "properties": {
+        "limit": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "line": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "path": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId", "path"],
+      "type": "object"
+    },
+    "ReadTextFileResponse": {
+      "properties": {
+        "content": {
+          "type": "string"
+        }
+      },
+      "required": ["content"],
+      "type": "object"
+    },
+    "RequestPermissionOutcome": {
+      "oneOf": [
+        {
+          "properties": {
+            "outcome": {
+              "const": "cancelled",
+              "type": "string"
+            }
+          },
+          "required": ["outcome"],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "optionId": {
+              "type": "string"
+            },
+            "outcome": {
+              "const": "selected",
+              "type": "string"
+            }
+          },
+          "required": ["outcome", "optionId"],
+          "type": "object"
+        }
+      ]
+    },
+    "RequestPermissionRequest": {
+      "properties": {
+        "options": {
+          "items": {
+            "$ref": "#/$defs/PermissionOption"
+          },
+          "type": "array"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "toolCall": {
+          "$ref": "#/$defs/ToolCall"
+        }
+      },
+      "required": ["sessionId", "toolCall", "options"],
+      "type": "object"
+    },
+    "RequestPermissionResponse": {
+      "properties": {
+        "outcome": {
+          "$ref": "#/$defs/RequestPermissionOutcome"
+        }
+      },
+      "required": ["outcome"],
+      "type": "object"
+    },
+    "ResourceLink": {
+      "description": "A resource that the server is capable of reading, included in a prompt or tool call result.\n\nNote: resource links returned by tools are not guaranteed to appear in the results of `resources/list` requests.",
+      "properties": {
+        "annotations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Annotations"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "mimeType": {
+          "type": ["string", "null"]
+        },
+        "name": {
+          "type": "string"
+        },
+        "size": {
+          "format": "int64",
+          "type": ["integer", "null"]
+        },
+        "title": {
+          "type": ["string", "null"]
+        },
+        "uri": {
+          "type": "string"
+        }
+      },
+      "required": ["name", "uri"],
+      "type": "object"
+    },
+    "Role": {
+      "description": "The sender or recipient of messages and data in a conversation.",
+      "enum": ["assistant", "user"],
+      "type": "string"
+    },
+    "SessionNotification": {
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "update": {
+          "$ref": "#/$defs/SessionUpdate"
+        }
+      },
+      "required": ["sessionId", "update"],
+      "type": "object"
+    },
+    "SessionUpdate": {
+      "oneOf": [
+        {
+          "properties": {
+            "content": {
+              "$ref": "#/$defs/ContentBlock"
+            },
+            "sessionUpdate": {
+              "const": "user_message_chunk",
+              "type": "string"
+            }
+          },
+          "required": ["sessionUpdate", "content"],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "content": {
+              "$ref": "#/$defs/ContentBlock"
+            },
+            "sessionUpdate": {
+              "const": "agent_message_chunk",
+              "type": "string"
+            }
+          },
+          "required": ["sessionUpdate", "content"],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "content": {
+              "$ref": "#/$defs/ContentBlock"
+            },
+            "sessionUpdate": {
+              "const": "agent_thought_chunk",
+              "type": "string"
+            }
+          },
+          "required": ["sessionUpdate", "content"],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "content": {
+              "items": {
+                "$ref": "#/$defs/ToolCallContent"
+              },
+              "type": "array"
+            },
+            "kind": {
+              "$ref": "#/$defs/ToolKind"
+            },
+            "locations": {
+              "items": {
+                "$ref": "#/$defs/ToolCallLocation"
+              },
+              "type": "array"
+            },
+            "rawInput": true,
+            "rawOutput": true,
+            "sessionUpdate": {
+              "const": "tool_call",
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/$defs/ToolCallStatus"
+            },
+            "title": {
+              "type": "string"
+            },
+            "toolCallId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "sessionUpdate",
+            "toolCallId",
+            "title",
+            "kind",
+            "status"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "content": {
+              "items": {
+                "$ref": "#/$defs/ToolCallContent"
+              },
+              "type": ["array", "null"]
+            },
+            "kind": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolKind"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "locations": {
+              "items": {
+                "$ref": "#/$defs/ToolCallLocation"
+              },
+              "type": ["array", "null"]
+            },
+            "rawInput": true,
+            "rawOutput": true,
+            "sessionUpdate": {
+              "const": "tool_call_update",
+              "type": "string"
+            },
+            "status": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ToolCallStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": {
+              "type": ["string", "null"]
+            },
+            "toolCallId": {
+              "type": "string"
+            }
+          },
+          "required": ["sessionUpdate", "toolCallId"],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "entries": {
+              "items": {
+                "$ref": "#/$defs/PlanEntry"
+              },
+              "type": "array"
+            },
+            "sessionUpdate": {
+              "const": "plan",
+              "type": "string"
+            }
+          },
+          "required": ["sessionUpdate", "entries"],
+          "type": "object"
+        }
+      ]
+    },
+    "StopReason": {
+      "oneOf": [
+        {
+          "const": "end_turn",
+          "description": "The turn ended successfully.",
+          "type": "string"
+        },
+        {
+          "const": "max_tokens",
+          "description": "The turn ended because the agent reached the maximum number of tokens.",
+          "type": "string"
+        },
+        {
+          "const": "max_turn_requests",
+          "description": "The turn ended because the agent reached the maximum number of allowed\nagent requests between user turns.",
+          "type": "string"
+        },
+        {
+          "const": "refusal",
+          "description": "The turn ended because the agent refused to continue. The user prompt\nand everything that comes after it won't be included in the next\nprompt, so this should be reflected in the UI.",
+          "type": "string"
+        },
+        {
+          "const": "cancelled",
+          "description": "The turn was cancelled by the client.",
+          "type": "string"
+        }
+      ]
+    },
+    "TextContent": {
+      "description": "Text provided to or from an LLM.",
+      "properties": {
+        "annotations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Annotations"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": ["text"],
+      "type": "object"
+    },
+    "TextResourceContents": {
+      "properties": {
+        "mimeType": {
+          "type": ["string", "null"]
+        },
+        "text": {
+          "type": "string"
+        },
+        "uri": {
+          "type": "string"
+        }
+      },
+      "required": ["text", "uri"],
+      "type": "object"
+    },
+    "ToolCall": {
+      "properties": {
+        "content": {
+          "items": {
+            "$ref": "#/$defs/ToolCallContent"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "$ref": "#/$defs/ToolKind"
+        },
+        "locations": {
+          "items": {
+            "$ref": "#/$defs/ToolCallLocation"
+          },
+          "type": "array"
+        },
+        "rawInput": true,
+        "rawOutput": true,
+        "status": {
+          "$ref": "#/$defs/ToolCallStatus"
+        },
+        "title": {
+          "type": "string"
+        },
+        "toolCallId": {
+          "type": "string"
+        }
+      },
+      "required": ["toolCallId", "title", "kind", "status"],
+      "type": "object"
+    },
+    "ToolCallContent": {
+      "oneOf": [
+        {
+          "properties": {
+            "content": {
+              "$ref": "#/$defs/ContentBlock"
+            },
+            "type": {
+              "const": "content",
+              "type": "string"
+            }
+          },
+          "required": ["type", "content"],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "newText": {
+              "type": "string"
+            },
+            "oldText": {
+              "type": ["string", "null"]
+            },
+            "path": {
+              "type": "string"
+            },
+            "type": {
+              "const": "diff",
+              "type": "string"
+            }
+          },
+          "required": ["type", "path", "oldText", "newText"],
+          "type": "object"
+        }
+      ]
+    },
+    "ToolCallLocation": {
+      "properties": {
+        "line": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": ["integer", "null"]
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": ["path"],
+      "type": "object"
+    },
+    "ToolCallStatus": {
+      "oneOf": [
+        {
+          "const": "pending",
+          "description": "The tool call hasn't started running yet because the input is either\nstreaming or we're awaiting approval.",
+          "type": "string"
+        },
+        {
+          "const": "in_progress",
+          "description": "The tool call is currently running.",
+          "type": "string"
+        },
+        {
+          "const": "completed",
+          "description": "The tool call completed successfully.",
+          "type": "string"
+        },
+        {
+          "const": "failed",
+          "description": "The tool call failed.",
+          "type": "string"
+        }
+      ]
+    },
+    "ToolCallUpdate": {
+      "properties": {
+        "content": {
+          "items": {
+            "$ref": "#/$defs/ToolCallContent"
+          },
+          "type": ["array", "null"]
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "locations": {
+          "items": {
+            "$ref": "#/$defs/ToolCallLocation"
+          },
+          "type": ["array", "null"]
+        },
+        "rawInput": true,
+        "rawOutput": true,
+        "status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolCallStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "title": {
+          "type": ["string", "null"]
+        },
+        "toolCallId": {
+          "type": "string"
+        }
+      },
+      "required": ["toolCallId"],
+      "type": "object"
+    },
+    "ToolKind": {
+      "enum": [
+        "read",
+        "edit",
+        "delete",
+        "move",
+        "search",
+        "execute",
+        "think",
+        "fetch",
+        "other"
+      ],
+      "type": "string"
+    },
+    "WriteTextFileRequest": {
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        }
+      },
+      "required": ["sessionId", "path", "content"],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/AgentRequest",
+      "title": "ClientRequest"
+    },
+    {
+      "$ref": "#/$defs/ClientResponse",
+      "title": "ClientResponse"
+    },
+    {
+      "$ref": "#/$defs/ClientNotification",
+      "title": "ClientNotification"
+    },
+    {
+      "$ref": "#/$defs/ClientRequest",
+      "title": "AgentRequest"
+    },
+    {
+      "$ref": "#/$defs/AgentResponse",
+      "title": "AgentResponse"
+    },
+    {
+      "$ref": "#/$defs/AgentNotification",
+      "title": "AgentNotification"
+    }
+  ]
+}
