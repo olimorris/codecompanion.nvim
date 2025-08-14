@@ -7,20 +7,19 @@ local utils = require("codecompanion.utils")
 
 local api = vim.api
 local fmt = string.format
+
 local diff_signs_config = config.display.diff.diff_signs or {}
 
-local ICONS = diff_signs_config.icons or {
-  accepted = " ",
-  rejected = " ",
-}
-
-local COLORS = diff_signs_config.colors or {
-  accepted = "DiagnosticOk",
-  rejected = "DiagnosticError",
-}
-
-local SIGNS = diff_signs_config.signs
-  or {
+local CONSTANTS = {
+  icons = diff_signs_config.icons or {
+    accepted = " ",
+    rejected = " ",
+  },
+  colors = diff_signs_config.colors or {
+    accepted = "DiagnosticOk",
+    rejected = "DiagnosticError",
+  },
+  signs = diff_signs_config.signs or {
     text = "▌",
     reject = "✗",
     highlight_groups = {
@@ -28,7 +27,8 @@ local SIGNS = diff_signs_config.signs
       deletion = "DiagnosticError",
       modification = "DiagnosticWarn",
     },
-  }
+  },
+}
 
 local M = {}
 
@@ -195,7 +195,7 @@ end
 local function add_operations_summary(lines, file_data)
   table.insert(lines, "**Operations:**")
   for _, operation in ipairs(file_data.operations) do
-    local status_icon = operation.status == "rejected" and ICONS.rejected or ICONS.accepted
+    local status_icon = operation.status == "rejected" and CONSTANTS.icons.rejected or CONSTANTS.icons.accepted
     local timestamp_str = format_timestamp(operation.timestamp)
     local summary = fmt(
       "- %s %s by %s at %s",
@@ -423,8 +423,8 @@ local function process_single_file(file_data, lines, diff_info)
   local stats, display_name, tool_names = calculate_file_stats(file_data)
 
   local header = fmt("## %s", display_name)
-  local accepted_icon = ICONS.accepted
-  local rejected_icon = ICONS.rejected
+  local accepted_icon = CONSTANTS.icons.accepted
+  local rejected_icon = CONSTANTS.icons.rejected
   local stats_line = fmt(
     "*%d edits by %s: %d %s accepted, %d %s rejected*",
     #file_data.operations,
@@ -502,12 +502,14 @@ local function apply_super_diff_highlights(bufnr, diff_info, ns_id)
 
           if change_type == "removed" then
             line_hl = "DiffDelete"
-            sign_text = status == "rejected" and SIGNS.reject or SIGNS.text
-            sign_hl = diff_utils.get_sign_highlight_for_change("removed", is_modification, SIGNS.highlight_groups)
+            sign_text = status == "rejected" and CONSTANTS.signs.reject or CONSTANTS.signs.text
+            sign_hl =
+              diff_utils.get_sign_highlight_for_change("removed", is_modification, CONSTANTS.signs.highlight_groups)
           else -- added
             line_hl = "DiffAdd"
-            sign_text = status == "rejected" and SIGNS.reject or SIGNS.text
-            sign_hl = diff_utils.get_sign_highlight_for_change("added", is_modification, SIGNS.highlight_groups)
+            sign_text = status == "rejected" and CONSTANTS.signs.reject or CONSTANTS.signs.text
+            sign_hl =
+              diff_utils.get_sign_highlight_for_change("added", is_modification, CONSTANTS.signs.highlight_groups)
           end
           local _, extmark_id = pcall(api.nvim_buf_set_extmark, bufnr, ns_id, line_idx, 0, {
             line_hl_group = line_hl,
@@ -554,9 +556,9 @@ function M.show_super_diff(chat, opts)
       stats.total_files,
       stats.total_operations,
       simplified_accepted,
-      ICONS.accepted,
+      CONSTANTS.icons.accepted,
       stats.rejected_operations,
-      ICONS.rejected
+      CONSTANTS.icons.rejected
     )
   end
 
@@ -583,8 +585,8 @@ function M.show_super_diff(chat, opts)
   M.setup_sticky_header(bufnr, winnr, lines)
   M.setup_keymaps(bufnr, chat, file_sections, ns_id)
   vim.api.nvim_win_call(winnr, function()
-    vim.fn.matchadd(COLORS.accepted, ICONS.accepted, 100)
-    vim.fn.matchadd(COLORS.rejected, ICONS.rejected, 100)
+    vim.fn.matchadd(CONSTANTS.colors.accepted, CONSTANTS.icons.accepted, 100)
+    vim.fn.matchadd(CONSTANTS.colors.rejected, CONSTANTS.icons.rejected, 100)
   end)
 end
 
@@ -911,7 +913,7 @@ function M.create_quickfix_list(chat)
           bufnr = tracked_file.bufnr,
           lnum = line_num,
           col = 1,
-          text = fmt("%s %s", ICONS.accepted, change_type),
+          text = fmt("%s %s", CONSTANTS.icons.accepted, change_type),
           type = "I",
           valid = 1,
         })
