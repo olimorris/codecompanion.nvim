@@ -14,78 +14,73 @@ In order to create tools, you do not need to understand the underlying architect
 sequenceDiagram
     participant C as Chat Buffer
     participant L as LLM
-    participant A as Agent
-    participant E as Tool Executor
+    participant TS as Tool System
+    participant O as Orchestrator
     participant T as Tool
 
-    C->>L: Prompt
-    L->>C: Response with Tool(s) request
+    C->>L: Prompt with tool schemas
+    L->>C: Response with tool call(s)
 
-    C->>A: Parse response
+    C->>TS: Parse LLM response
 
-    loop For each detected tool
-        A<<->>T: Resolve Tool config
-        A->>A: Add Tool to queue
+    loop For each tool call detected
+        TS->>TS: Tool.resolve(tool_config)
+        TS->>TS: Add tool to queue
     end
 
-    A->>E: Begin executing Tools
+    TS->>O: Create Orchestrator with queue
+    TS->>C: Fire "ToolsStarted" autocmd
 
     loop While queue not empty
-        E<<->>T: Fetch Tool implementation
+        O->>O: Pop tool from queue
+        O->>O: Setup handlers and output functions
+        O->>T: handlers.setup()
 
-        E->>E: Setup handlers and output functions
-        T<<->>E: handlers.setup()
+        Note over O,C: If approval required, prompt user
+        O->>C: User approval (if needed)
 
-        alt
-        Note over C,E: Some Tools require human approvals
-            E->>C: Prompt for approval
-            C->>E: User decision
+        Note over O,T: If rejected/cancelled, call output handlers and continue
+        Note over O,T: If approved or no approval needed, execute tool
+
+        loop For each cmd in tool.cmds
+            O->>T: Execute function(tool_system, args, input, output_handler)
+            Note over T,O: Returns {status, data} (sync) or calls output_handler (async)
+            O->>T: output.success() OR output.error()
+            T->>C: add_tool_output()
         end
 
-
-        alt
-        Note over E,T: If Tool runs with success
-            T-->>A: Update stdout
-            E<<->>T: output.success()
-        else
-        Note over E,T: If Tool runs with errors
-            T-->>A: Update stderr
-            E<<->>T: output.error()
-        end
-
-        Note over E,T: When Tool completes
-        E<<->>T: handlers.on_exit()
+        O->>T: handlers.on_exit()
     end
 
-    E-->>A: Fire autocmd
-
-    A->>A: reset()
+    TS->>TS: reset()
+    TS->>C: Fire "ToolsFinished" autocmd
+    TS->>C: tools_done()
 ```
 
 ## Building Your First Tool
 
-Before we begin, it's important to familiarise yourself with the directory structure of the agents and tools implementation:
+Before we begin, it's important to familiarise yourself with the directory structure of the tools implementation:
 
 ```
-strategies/chat/agents
+strategies/chat/tools
 ├── init.lua
-├── executor/
-│   ├── cmd.lua
-│   ├── func.lua
-│   ├── init.lua
+├── orchestrator.lua
+├── runtime/
 │   ├── queue.lua
-├── tools/
+│   ├── runner.lua
+├── catalog/
 │   ├── cmd_runner.lua
-│   ├── editor.lua
-│   ├── files.lua
+│   ├── insert_edit_into_file.lua
+│   ├── create_file.lua
+│   ├── ...
 ```
 
-When a tool is detected, the chat buffer sends any output to the `agents/init.lua` file (I will commonly refer to that as the _"agent file"_ throughout this document). The agent file then parses the response from the LLM, identifying the tool and duly executing it.
+When a tool is detected, the chat buffer sends any output to the `tools/init.lua` file (I will commonly refer to that as the _"tool system file"_ throughout this document). The tool system file then parses the response from the LLM, identifying the tool and duly executing it.
 
 There are two types of tools that CodeCompanion can leverage:
 
-1. **Command-based**: These tools can execute a series of commands in the background using a [plenary.job](https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/job.lua). They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
-2. **Function-based**: These tools, like [insert_edit_into_file](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/agents/tools/insert_edit_into_file.lua), execute Lua functions directly in Neovim within the main process, one after another.
+1. **Command-based**: These tools can execute a series of commands in the background using `vim.system`. They're non-blocking, meaning you can carry out other activities in Neovim whilst they run. Useful for heavy/time-consuming tasks.
+2. **Function-based**: These tools, like [insert_edit_into_file](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/catalog/insert_edit_into_file.lua), execute Lua functions directly in Neovim within the main process, one after another. They can also be executed asynchronously.
 
 For the purposes of this section of the guide, we'll be building a simple function-based calculator tool that an LLM can use to do basic maths.
 
@@ -94,9 +89,8 @@ For the purposes of this section of the guide, we'll be building a simple functi
 All tools must implement the following structure which the bulk of this guide will focus on explaining:
 
 ```lua
----@class CodeCompanion.Agent.Tool
+---@class CodeCompanion.Tools.Tool
 ---@field name string The name of the tool
----@field args table The arguments sent over by the LLM when making the function call
 ---@field cmds table The commands to execute
 ---@field function_call table The function call from the LLM
 ---@field schema table The schema that the LLM must use in its response to execute a tool
@@ -104,20 +98,24 @@ All tools must implement the following structure which the bulk of this guide wi
 ---@field opts? table The options for the tool
 ---@field env? fun(schema: table): table|nil Any environment variables that can be used in the *_cmd fields. Receives the parsed schema from the LLM
 ---@field handlers table Functions which handle the execution of a tool
----@field handlers.setup? fun(self: CodeCompanion.Agent.Tool, agent: CodeCompanion.Agent): any Function used to setup the tool. Called before any commands
----@field handlers.on_exit? fun(self: CodeCompanion.Agent.Tool, agent: CodeCompanion.Agent): any Function to call at the end of a group of commands or functions
+---@field handlers.setup? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools): any Function used to setup the tool. Called before any commands
+---@field handlers.prompt_condition? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools, config: table): boolean Function to determine whether to show the promp to the user or not
+---@field handlers.on_exit? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools): any Function to call at the end of a group of commands or functions
 ---@field output? table Functions which handle the output after every execution of a tool
----@field output.prompt fun(self: CodeCompanion.Agent.Tool, agent: CodeCompanion.Agent): string The message which is shared with the user when asking for their approval
----@field output.rejected? fun(self: CodeCompanion.Agent.Tool, agent: CodeCompanion.Agent, cmd: table): any Function to call if the user rejects running a command
----@field output.error? fun(self: CodeCompanion.Agent.Tool, agent: CodeCompanion.Agent, cmd: table, stderr: table, stdout?: table): any The function to call if an error occurs
----@field output.success? fun(self: CodeCompanion.Agent.Tool, agent: CodeCompanion.Agent, cmd: table, stdout: table): any Function to call if the tool is successful
+---@field output.prompt fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools): string The message which is shared with the user when asking for their approval
+---@field output.rejected? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools, cmd: table): any Function to call if the user rejects running a command
+---@field output.error? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools, cmd: table, stderr: table, stdout?: table): any The function to call if an error occurs
+---@field output.success? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools, cmd: table, stdout: table): any Function to call if the tool is successful
+---@field output.cancelled? fun(self: CodeCompanion.Tools.Tool, tools: CodeCompanion.Tools, cmd: table): any Function to call if the tool is cancelled
+---@field args table The arguments sent over by the LLM when making the request
+---@field tool table The tool configuration from the config file
 ```
 
 ### `cmds`
 
 **Command-Based Tools**
 
-The `cmds` table is a collection of commands which the agent will execute one after another, asynchronously, using [plenary.job](https://github.com/nvim-lua/plenary.nvim/blob/master/lua/plenary/job.lua).
+The `cmds` table is a collection of commands which the tool system will execute one after another, asynchronously, using `vim.system`.
 
 ```lua
 cmds = {
@@ -126,7 +124,7 @@ cmds = {
 }
 ```
 
-In this example, the plugin will execute `make test` followed by `echo hello`. After each command executes, the plugin will automatically send the output to a corresponding table on the agent file. If the command ran with success the output will be written to `stdout`, otherwise it will go to `stderr`. We'll be covering how you access that data in the output section below.
+In this example, the plugin will execute `make test` followed by `echo hello`. After each command executes, the plugin will automatically send the output to a corresponding table on the tool system file. If the command ran with success the output will be written to `stdout`, otherwise it will go to `stderr`. We'll be covering how you access that data in the output section below.
 
 It's also possible to pass in environment variables (from the `env` function) by use of ${} brackets. The now removed _@code_runner_ tool used them as below:
 
@@ -145,7 +143,7 @@ cmds = {
     },
   },
 },
----@param self CodeCompanion.Agent.Tool
+---@param self CodeCompanion.Tools.Tool
 ---@return table
 env = function(self)
   local temp_input = vim.fn.tempname()
@@ -163,7 +161,7 @@ end,
 ```
 
 > [!IMPORTANT]
-> Using the `handlers.setup()` function, it's also possible to create commands dynamically like in the [cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/agents/tools/cmd_runner.lua) tool.
+> Using the `handlers.setup()` function, it's also possible to create commands dynamically like in the [cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/catalog/cmd_runner.lua) tool.
 
 **Function-based Tools**
 
@@ -219,14 +217,14 @@ cmds = {
 ```
 
 For a synchronous tool, you only need to `return` the result table as demonstrated.
-However, if you need to invoke some asynchronous actions in the tool, you can use the `output_handler` to submit any results to the executor, which will then invoke `output` functions to handle the results:
+However, if you need to invoke some asynchronous actions in the tool, you can use the `output_handler` to submit any results to the orchestrator, which will then invoke `output` functions to handle the results:
 
 ```lua
 cmds = {
   function(self, args, input, output_handler)
     -- This is for demonstration only
     vim.lsp.client.request(lsp_method, lsp_param, function(err, result, _, _)
-      self.agent.chat:add_message({ role = "user", content = vim.json.encode(result) })
+      self.tools.chat:add_message({ role = "user", content = vim.json.encode(result) })
       output_handler({ status = "success", data = result })
     end, buf_nr)
   end
@@ -239,19 +237,19 @@ Note that:
 2. A tool function should EITHER return the result table (synchronous), OR call the `output_handler` with the result table as the only argument (asynchronous), but not both.
 If a function tries to both return the result and call the `output_handler`, the result will be undefined because there's no guarantee which output will be handled first.
 
-Similarly with command-based tools, the output is written to the `stdout` or `stderr` tables on the agent file. However, with function-based tools, the user must manually specify the outcome of the execution which in turn redirects the output to the correct table:
+Similarly with command-based tools, the output is written to the `stdout` or `stderr` tables on the tool system file. However, with function-based tools, the user must manually specify the outcome of the execution which in turn redirects the output to the correct table:
 
 ```lua
 return { status = "error", data = "Invalid operation: must be add, subtract, multiply, or divide" }
 ```
 
-Will cause execution of the tool to stop and populate `stderr` on the agent file.
+Will cause execution of the tool to stop and populate `stderr` on the tool system file.
 
 ```lua
 return { status = "success", data = result }
 ```
 
-Will populate the `stdout` table on the agent file and allow for execution to continue.
+Will populate the `stdout` table on the tool system file and allow for execution to continue.
 
 ### `schema`
 
@@ -296,9 +294,12 @@ schema = {
 
 ### `system_prompt`
 
-In the plugin, LLMs are given knowledge about a tool and how it can be used via a system prompt. This method also informs the LLM on how to use the tool to achieve a desired outcome.
+In the plugin, LLMs are given knowledge about a tool and how it can be used via the schema. However, for a particularly complicated tool, you can choose to include a system prompt. This is something that CodeCompanion does for the `insert_edit_into_file` tool.
 
-For our calculator tool, our `system_prompt` could look something like:
+> [!TIP]
+> From experience, a system prompt should be used sparingly. It's often an indication that your tool is too complicated and should be split out into multiple tools.
+
+For our calculator tool, we're going to use a `system_prompt` just to demonstrate the functionality:
 
 ````lua
 system_prompt = [[## Calculator Tool (`calculator`)
@@ -320,29 +321,29 @@ system_prompt = [[## Calculator Tool (`calculator`)
 
 The _handlers_ table contains two functions that are executed before and after a tool completes:
 
-1. `setup` - Is called **before** anything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the [@cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/agents/tools/cmd_runner.lua) tool.
+1. `setup` - Is called **before** anything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table. This is useful if you wish to set the cmds dynamically on the tool itself, like in the [@cmd_runner](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/strategies/chat/tools/catalog/cmd_runner.lua) tool.
 2. `on_exit` - Is called **after** everything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table.
 3. `prompt_condition` - Is called **before** anything in the [cmds](/extending/tools.html#cmds) and [output](/extending/tools.html#output) table and is used to determine _if_ the user should be prompted for approval. This is used in the `@insert_edit_into_file` tool to allow users to determine if they'd like to apply an approval to _buffer_ or _file_ edits.
 
-For the purposes of our calculator, let's just return some notifications so you can see the agent and tool flow:
+For the purposes of our calculator, let's just return some notifications so you can see the tool system and tool flow:
 
 ```lua
 handlers = {
   ---@param self CodeCompanion.Tool.Calculator
-  ---@param agent CodeCompanion.Agent The tool object
-  setup = function(self, agent)
+  ---@param tools CodeCompanion.Tools The tool object
+  setup = function(self, tools)
     return vim.notify("setup function called", vim.log.levels.INFO)
   end,
   ---@param self CodeCompanion.Tool.Calculator
-  ---@param agent CodeCompanion.Agent
-  on_exit = function(self, agent)
+  ---@param tools CodeCompanion.Tools
+  on_exit = function(self, tools)
     return vim.notify("on_exit function called", vim.log.levels.INFO)
   end,
 },
 ```
 
 > [!TIP]
-> The chat buffer can be accessed via `agent.chat` in the handler and output tables
+> The chat buffer can be accessed via `tools.chat` in the handler and output tables
 
 ### `output`
 
@@ -358,19 +359,18 @@ Let's consider how me might implement this for our calculator tool:
 ```lua
 output = {
   ---@param self CodeCompanion.Tool.Calculator
-  ---@param agent CodeCompanion.Agent
+  ---@param tools CodeCompanion.Tools
   ---@param cmd table The command that was executed
   ---@param stdout table
-  success = function(self, agent, cmd, stdout)
-    local chat = agent.chat
+  success = function(self, tools, cmd, stdout)
+    local chat = tools.chat
     return chat:add_tool_output(self, tostring(stdout[1]))
   end,
   ---@param self CodeCompanion.Tool.Calculator
-  ---@param agent CodeCompanion.Agent
+  ---@param tools CodeCompanion.Tools
   ---@param cmd table
   ---@param stderr table The error output from the command
-  ---@param stdout? table The output from the command
-  error = function(self, agent, cmd, stderr, stdout)
+  error = function(self, tools, cmd, stderr)
     return vim.notify("An error occurred", vim.log.levels.ERROR)
   end,
 },
@@ -498,31 +498,30 @@ require("codecompanion").setup({
             },
             handlers = {
               ---@param self CodeCompanion.Tool.Calculator
-              ---@param agent CodeCompanion.Agent The tool object
-              setup = function(self, agent)
+              ---@param tools CodeCompanion.Tools The tool object
+              setup = function(self, tools)
                 return vim.notify("setup function called", vim.log.levels.INFO)
               end,
               ---@param self CodeCompanion.Tool.Calculator
-              ---@param agent CodeCompanion.Agent
-              on_exit = function(self, agent)
+              ---@param tools CodeCompanion.Tools
+              on_exit = function(self, tools)
                 return vim.notify("on_exit function called", vim.log.levels.INFO)
               end,
             },
             output = {
               ---@param self CodeCompanion.Tool.Calculator
-              ---@param agent CodeCompanion.Agent
+              ---@param tools CodeCompanion.Tools
               ---@param cmd table The command that was executed
               ---@param stdout table
-              success = function(self, agent, cmd, stdout)
-                local chat = agent.chat
+              success = function(self, tools, cmd, stdout)
+                local chat = tools.chat
                 return chat:add_tool_output(self, tostring(stdout[1]))
               end,
               ---@param self CodeCompanion.Tool.Calculator
-              ---@param agent CodeCompanion.Agent
+              ---@param tools CodeCompanion.Tools
               ---@param cmd table
               ---@param stderr table The error output from the command
-              ---@param stdout? table The output from the command
-              error = function(self, agent, cmd, stderr, stdout)
+              error = function(self, tools, cmd, stderr)
                 return vim.notify("An error occurred", vim.log.levels.ERROR)
               end,
             },
@@ -567,7 +566,7 @@ require("codecompanion").setup({
 ```
 
 > [!NOTE]
-> `opts.requires_approval` can also be a function that receives the tool and agent classes as parameters
+> `opts.requires_approval` can also be a function that receives the tool and tool system classes as parameters
 
 To account for the user being prompted for an approval, we can add a `output.prompt` to the tool:
 
@@ -577,9 +576,9 @@ output = {
 
   ---The message which is shared with the user when asking for their approval
   ---@param self CodeCompanion.Tool.Calculator
-  ---@param agent CodeCompanion.Agent
+  ---@param tools CodeCompanion.Tools
   ---@return string
-  prompt = function(self, agent)
+  prompt = function(self, tools)
     return string.format(
       "Perform the calculation `%s`?",
       self.args.num1 .. " " .. self.args.operation .. " " .. self.args.num2
@@ -598,20 +597,20 @@ output = {
 
   ---Rejection message back to the LLM
   ---@param self CodeCompanion.Tool.Calculator
-  ---@param agent CodeCompanion.Agent
+  ---@param tools CodeCompanion.Tools
   ---@param cmd table
   ---@return nil
-  rejected = function(self, agent, cmd)
-    agent.chat:add_tool_output(self, "The user declined to run the calculator tool")
+  rejected = function(self, tools, cmd)
+    tools.chat:add_tool_output(self, "The user declined to run the calculator tool")
   end,
 
   ---Cancellation message back to the LLM
   ---@param self CodeCompanion.Tool.Calculator
-  ---@param agent CodeCompanion.Agent
+  ---@param tools CodeCompanion.Tools
   ---@param cmd table
   ---@return nil
-  cancelled = function(self, agent, cmd)
-    agent.chat:add_tool_output(self, "The user cancelled the execution of the calculator tool")
+  cancelled = function(self, tools, cmd)
+    tools.chat:add_tool_output(self, "The user cancelled the execution of the calculator tool")
   end,
 },
 ```

@@ -6,10 +6,10 @@ The Inline Assistant - This is where code is applied directly to a Neovim buffer
 ---@field id integer The ID of the inline prompt
 ---@field adapter CodeCompanion.Adapter The adapter to use for the inline prompt
 ---@field aug number The ID for the autocmd group
+---@field buffer_context table The context of the buffer the inline prompt was initiated from
 ---@field bufnr number The buffer number to apply the inline edits to
 ---@field chat_context? table The content from the last opened chat buffer
 ---@field classification CodeCompanion.Inline.Classification Where to place the generated code in Neovim
----@field context table The context of the buffer the inline prompt was initiated from
 ---@field current_request? table The current request that's being processed
 ---@field diff? table The diff provider
 ---@field lines table Lines in the buffer before the inline changes
@@ -18,8 +18,8 @@ The Inline Assistant - This is where code is applied directly to a Neovim buffer
 
 ---@class CodeCompanion.InlineArgs
 ---@field adapter? CodeCompanion.Adapter
+---@field buffer_context? table The context of the buffer the inline prompt was initiated from
 ---@field chat_context? table Messages from a chat buffer
----@field context? table The context of the buffer the inline prompt was initiated from
 ---@field diff? table The diff provider
 ---@field lines? table The lines in the buffer before the inline changes
 ---@field opts? table
@@ -149,7 +149,7 @@ local function code_block(message, filetype, code)
 end
 
 ---Overwrite the given selection in the buffer with an empty string
----@param context table
+---@param context table The buffer context in the inline class
 local function overwrite_selection(context)
   log:trace("[Inline] Overwriting selection: %s", context)
   if context.start_col > 0 then
@@ -161,6 +161,8 @@ local function overwrite_selection(context)
     context.end_col = line_length
   end
 
+  -- NOTE: Ensure that focus is set to the correct buffer in case the user has navigated away
+  api.nvim_set_current_buf(context.bufnr)
   api.nvim_buf_set_text(
     context.bufnr,
     context.start_line - 1,
@@ -186,13 +188,13 @@ function Inline.new(args)
     aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. id, {
       clear = false,
     }),
-    bufnr = args.context.bufnr,
+    buffer_context = args.buffer_context,
+    bufnr = args.buffer_context.bufnr,
     classification = {
       placement = args and args.placement,
       pos = {},
     },
     chat_context = args.chat_context or {},
-    context = args.context,
     diff = args.diff or {},
     lines = {},
     opts = args.opts or {},
@@ -248,7 +250,7 @@ function Inline:prompt(user_prompt)
     role = config.constants.SYSTEM_ROLE,
     content = fmt(
       CONSTANTS.SYSTEM_PROMPT,
-      self.context.filetype,
+      self.buffer_context.filetype,
       (self.classification.placement and CONSTANTS.RESPONSE_WITHOUT_PLACEMENT or CONSTANTS.RESPONSE_WITH_PLACEMENT),
       config.opts.language
     ),
@@ -293,7 +295,7 @@ function Inline:prompt(user_prompt)
 
   -- From the prompt library, user's can explicitly ask to be prompted for input
   if self.opts and self.opts.user_prompt then
-    local title = string.gsub(self.context.filetype, "^%l", string.upper)
+    local title = string.gsub(self.buffer_context.filetype, "^%l", string.upper)
     vim.schedule(function()
       vim.ui.input({ prompt = title .. " " .. config.display.action_palette.prompt }, function(input)
         if not input then
@@ -324,11 +326,11 @@ function Inline:make_ext_prompts()
       if prompt.opts and prompt.opts.contains_code and not config.can_send_code() then
         goto continue
       end
-      if prompt.condition and not prompt.condition(self.context) then
+      if prompt.condition and not prompt.condition(self.buffer_context) then
         goto continue
       end
       if type(prompt.content) == "function" then
-        prompt.content = prompt.content(self.context)
+        prompt.content = prompt.content(self.buffer_context)
       end
       table.insert(prompts, {
         role = prompt.role,
@@ -341,14 +343,14 @@ function Inline:make_ext_prompts()
 
   -- Add any visual selections to the prompt
   if config.can_send_code() then
-    if self.context.is_visual and not self.opts.stop_context_insertion then
+    if self.buffer_context.is_visual and not self.opts.stop_context_insertion then
       log:trace("[Inline] Sending visual selection")
       table.insert(prompts, {
         role = user_role,
         content = code_block(
           "For context, this is the code that I've visually selected in the buffer, which is relevant to my prompt:",
-          self.context.filetype,
-          self.context.lines
+          self.buffer_context.filetype,
+          self.buffer_context.lines
         ),
         opts = {
           tag = "visual",
@@ -402,7 +404,7 @@ function Inline:submit(prompt)
         end
 
         if data then
-          data = self.adapter.handlers.inline_output(adapter, data, self.context)
+          data = self.adapter.handlers.inline_output(adapter, data, self.buffer_context)
           if data.status == CONSTANTS.STATUS_SUCCESS then
             return self:done(data.output)
           else
@@ -412,7 +414,7 @@ function Inline:submit(prompt)
       end,
     }, {
       bufnr = self.bufnr,
-      context = self.context or {},
+      buffer_context = self.buffer_context or {},
       strategy = "inline",
     })
 end
@@ -475,7 +477,7 @@ end
 ---@return nil
 function Inline:setup_buffer()
   -- Add a keymap to cancel the request
-  api.nvim_buf_set_keymap(self.context.bufnr, "n", "q", "", {
+  api.nvim_buf_set_keymap(self.buffer_context.bufnr, "n", "q", "", {
     desc = "Stop the request",
     callback = function()
       log:trace("[Inline] Cancelling the request")
@@ -578,28 +580,40 @@ end
 ---@param placement string
 ---@return CodeCompanion.Inline
 function Inline:place(placement)
-  local pos = { line = self.context.start_line, col = 0, bufnr = 0 }
+  local pos = { line = self.buffer_context.start_line, col = 0, bufnr = 0 }
 
   if placement == "replace" then
-    self.lines = api.nvim_buf_get_lines(self.context.bufnr, 0, -1, true)
-    overwrite_selection(self.context)
-    local cursor_pos = api.nvim_win_get_cursor(self.context.winnr)
+    self.lines = api.nvim_buf_get_lines(self.buffer_context.bufnr, 0, -1, true)
+    overwrite_selection(self.buffer_context)
+    local cursor_pos = api.nvim_win_get_cursor(self.buffer_context.winnr)
     pos.line = cursor_pos[1]
     pos.col = cursor_pos[2]
-    pos.bufnr = self.context.bufnr
+    pos.bufnr = self.buffer_context.bufnr
   elseif placement == "add" then
-    self.lines = api.nvim_buf_get_lines(self.context.bufnr, 0, -1, true)
-    api.nvim_buf_set_lines(self.context.bufnr, self.context.end_line, self.context.end_line, false, { "" })
-    pos.line = self.context.end_line + 1
+    self.lines = api.nvim_buf_get_lines(self.buffer_context.bufnr, 0, -1, true)
+    api.nvim_buf_set_lines(
+      self.buffer_context.bufnr,
+      self.buffer_context.end_line,
+      self.buffer_context.end_line,
+      false,
+      { "" }
+    )
+    pos.line = self.buffer_context.end_line + 1
     pos.col = 0
-    pos.bufnr = self.context.bufnr
+    pos.bufnr = self.buffer_context.bufnr
   elseif placement == "before" then
-    self.lines = api.nvim_buf_get_lines(self.context.bufnr, 0, -1, true)
-    api.nvim_buf_set_lines(self.context.bufnr, self.context.start_line - 1, self.context.start_line - 1, false, { "" })
-    self.context.start_line = self.context.start_line + 1
-    pos.line = self.context.start_line - 1
-    pos.col = math.max(0, self.context.start_col - 1)
-    pos.bufnr = self.context.bufnr
+    self.lines = api.nvim_buf_get_lines(self.buffer_context.bufnr, 0, -1, true)
+    api.nvim_buf_set_lines(
+      self.buffer_context.bufnr,
+      self.buffer_context.start_line - 1,
+      self.buffer_context.start_line - 1,
+      false,
+      { "" }
+    )
+    self.buffer_context.start_line = self.buffer_context.start_line + 1
+    pos.line = self.buffer_context.start_line - 1
+    pos.col = math.max(0, self.buffer_context.start_col - 1)
+    pos.bufnr = self.buffer_context.bufnr
   elseif placement == "new" then
     local bufnr
     if self.opts and type(self.opts.pre_hook) == "function" then
@@ -608,7 +622,7 @@ function Inline:place(placement)
       assert(type(bufnr) == "number", "No buffer number returned from the pre_hook function")
     else
       bufnr = api.nvim_create_buf(true, false)
-      local ft = util.safe_filetype(self.context.filetype)
+      local ft = util.safe_filetype(self.buffer_context.filetype)
       util.set_option(bufnr, "filetype", ft)
     end
 
@@ -658,7 +672,7 @@ function Inline:to_chat()
       table.remove(prompt, i)
     end
     -- Remove any visual selections as the chat buffer adds these from the context
-    if self.context.is_visual and (prompt[i].opts and prompt[i].opts.tag == "visual") then
+    if self.buffer_context.is_visual and (prompt[i].opts and prompt[i].opts.tag == "visual") then
       table.remove(prompt, i)
     end
   end
@@ -667,10 +681,10 @@ function Inline:to_chat()
   self.adapter.opts.stream = _streaming
 
   return require("codecompanion.strategies.chat").new({
-    context = self.context,
     adapter = self.adapter,
-    messages = prompt,
     auto_submit = true,
+    buffer_context = self.buffer_context,
+    messages = prompt,
   })
 end
 
@@ -687,7 +701,7 @@ function Inline:start_diff()
 
   keymaps
     .new({
-      bufnr = self.context.bufnr,
+      bufnr = self.buffer_context.bufnr,
       callbacks = require("codecompanion.strategies.inline.keymaps"),
       data = self,
       keymaps = config.strategies.inline.keymaps,
@@ -702,11 +716,11 @@ function Inline:start_diff()
 
   ---@type CodeCompanion.Diff
   self.diff = diff.new({
-    bufnr = self.context.bufnr,
-    cursor_pos = self.context.cursor_pos,
-    filetype = self.context.filetype,
+    bufnr = self.buffer_context.bufnr,
+    cursor_pos = self.buffer_context.cursor_pos,
+    filetype = self.buffer_context.filetype,
     contents = self.lines,
-    winnr = self.context.winnr,
+    winnr = self.buffer_context.winnr,
   })
 end
 

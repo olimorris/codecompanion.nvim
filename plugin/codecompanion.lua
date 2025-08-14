@@ -8,6 +8,7 @@ if vim.fn.has("nvim-0.11") == 0 then
 end
 
 local config = require("codecompanion.config")
+local util = require("codecompanion.utils")
 local api = vim.api
 
 -- Set the highlight groups
@@ -28,15 +29,15 @@ api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default =
 api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
 
 -- Setup syntax highlighting for the chat buffer
-local group = "codecompanion.syntax"
-api.nvim_create_augroup(group, { clear = true })
+local syntax_group = api.nvim_create_augroup("codecompanion.syntax", { clear = true })
 api.nvim_create_autocmd("FileType", {
   pattern = "codecompanion",
-  group = group,
+  group = syntax_group,
   callback = vim.schedule_wrap(function()
-    vim.iter(config.strategies.chat.variables):each(function(name, var)
+    vim.iter(config.strategies.chat.variables):each(function(name)
       vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}"')
-      vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. '}{[^}]*}"')
+      vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}"')
+      vim.cmd.syntax('match CodeCompanionChatVariable "#{' .. name .. ':[^}]*}{[^}]*}"')
     end)
     vim
       .iter(config.strategies.chat.tools)
@@ -67,14 +68,37 @@ local diagnostic_config = {
 vim.diagnostic.config(diagnostic_config, config.INFO_NS)
 vim.diagnostic.config(diagnostic_config, config.ERROR_NS)
 
--- Capture the last terminal buffer
+local buf_group = api.nvim_create_augroup("codecompanion.buffers", { clear = true })
+
 _G.codecompanion_last_terminal = nil
 api.nvim_create_autocmd("TermEnter", {
+  group = buf_group,
   desc = "Capture the last terminal buffer",
-  callback = function()
-    local bufnr = api.nvim_get_current_buf()
+  callback = function(args)
+    local bufnr = args.buf
     if vim.bo[bufnr].buftype == "terminal" then
       _G.codecompanion_last_terminal = bufnr
+    end
+  end,
+})
+
+_G.codecompanion_current_context = nil
+api.nvim_create_autocmd("BufEnter", {
+  group = buf_group,
+  desc = "Capture the last buffer the user was in",
+  callback = function(args)
+    local bufnr = args.buf
+    local buffer_config = config.strategies.chat.variables.buffer.opts
+    local excluded = (buffer_config and buffer_config.excluded) or {}
+    local excluded_fts = excluded.fts or {}
+    local excluded_buftypes = excluded.buftypes or {}
+
+    if
+      not vim.tbl_contains(excluded_fts, vim.bo[bufnr].filetype)
+      and not vim.tbl_contains(excluded_buftypes, vim.bo[bufnr].buftype)
+    then
+      _G.codecompanion_current_context = bufnr
+      util.fire("ContextChanged", { bufnr = bufnr })
     end
   end,
 })

@@ -22,7 +22,7 @@ The exact JSON schema for a workspace file can be seen [here](https://github.com
       "opts": {
         "remove_config_system_prompt": true
       },
-      "data": ["chat-buffer-init", "chat-references", "chat-watchers"]
+      "data": ["chat-buffer-init", "chat-context", "chat-watchers"]
     },
   ],
   "data": {
@@ -31,10 +31,10 @@ The exact JSON schema for a workspace file can be seen [here](https://github.com
       "path": "lua/codecompanion/strategies/chat/init.lua",
       "description": "The `${filename}` file is the entry point for the chat strategy. All methods directly relating to the chat buffer reside here."
     },
-    "chat-references": {
+    "chat-context": {
       "type": "symbols",
-      "path": "lua/codecompanion/strategies/chat/references.lua",
-      "description": "References are files, buffers, symbols or URLs that are shared with an LLM to provide additional context. The `${filename}` is where this logic sits and I've shared its symbolic outline below."
+      "path": "lua/codecompanion/strategies/chat/context.lua",
+      "description": "Context is files, buffers, symbols or URLs that are shared with an LLM to provide additional context. The `${filename}` is where this logic sits and I've shared its symbolic outline below."
     },
     "chat-watchers": {
       "type": "symbols",
@@ -62,7 +62,7 @@ Groups are the core of the workspace file. They are where logical groupings of d
   "opts": {
     "remove_config_system_prompt": true
   },
-  "data": ["chat-buffer-init", "chat-references", "chat-watchers"]
+  "data": ["chat-buffer-init", "chat-context", "chat-watchers"]
 }
 ```
 

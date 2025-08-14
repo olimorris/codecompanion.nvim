@@ -30,9 +30,9 @@ end
 ---Get a list of available Copilot models
 ---@param adapter CodeCompanion.Adapter
 ---@param get_and_authorize_token_fn function Function to get and authorize token
----@param oauth_token string The oauth token
+---@param authorize_token_fn function Function to get fresh Github token
 ---@return table
-function M.get_models(adapter, get_and_authorize_token_fn, oauth_token)
+function M.get_models(adapter, get_and_authorize_token_fn, authorize_token_fn)
   if _cached_models and _cache_expires and _cache_expires > os.time() then
     return _cached_models
   end
@@ -47,10 +47,18 @@ function M.get_models(adapter, get_and_authorize_token_fn, oauth_token)
   if not get_and_authorize_token_fn(adapter) then
     return {}
   end
+  -- Get a fresh token (authorize_token_fn handles expiry automatically)
+  local fresh_token = authorize_token_fn()
+  -- Ensure we have a fresh GitHub token
+  if not fresh_token or not fresh_token.token then
+    log:error("Could not get valid GitHub Copilot token")
+    return {}
+  end
 
-  local url = "https://api.githubcopilot.com/models"
+  local base_url = (fresh_token.endpoints and fresh_token.endpoints.api) or "https://api.githubcopilot.com"
+  local url = base_url .. "/models"
   local headers = vim.deepcopy(_cached_adapter.headers)
-  headers["Authorization"] = "Bearer " .. oauth_token
+  headers["Authorization"] = "Bearer " .. fresh_token.token
 
   local ok, response = pcall(function()
     return curl.get(url, {

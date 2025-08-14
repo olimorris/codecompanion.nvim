@@ -25,7 +25,7 @@ function Variable:output()
     [4] = "HINT",
   }
 
-  local bufnr = self.Chat.context.bufnr
+  local bufnr = self.Chat.buffer_context.bufnr
 
   local diagnostics = vim.diagnostic.get(bufnr, {
     severity = { min = vim.diagnostic.severity.HINT },
@@ -59,7 +59,7 @@ Code:
 ]],
         severity[diagnostic.severity],
         diagnostic.message,
-        self.Chat.context.filetype,
+        self.Chat.buffer_context.filetype,
         table.concat(diagnostic.lines, "\n")
       )
     )

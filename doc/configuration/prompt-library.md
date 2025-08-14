@@ -21,7 +21,7 @@ require("codecompanion").setup({
         auto_submit = false,
         short_name = "docs",
       },
-      references = {
+      context = {
         {
           type = "file",
           path = {

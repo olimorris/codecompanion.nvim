@@ -350,8 +350,12 @@ return {
         if type(model) == "function" then
           model = model()
         end
-        if self.schema.model.choices[model] and self.schema.model.choices[model].opts then
-          return self.schema.model.choices[model].opts.can_reason
+        local choices = self.schema.model.choices
+        if type(choices) == "function" then
+          choices = choices(self)
+        end
+        if choices and choices[model] and choices[model].opts and choices[model].opts.can_reason then
+          return true
         end
         return false
       end,

@@ -207,7 +207,15 @@ M.completion = {
         -- Process each item to match the completion format
         for _, item in ipairs(items) do
           if item.label then
-            item.word = item.label
+            -- Add bracket wrapping for variables and tools like cmp/blink do
+            if item.type == "variable" then
+              item.word = string.format("#{%s}", item.label:sub(2))
+            elseif item.type == "tool" then
+              item.word = string.format("@{%s}", item.label:sub(2))
+            else
+              item.word = item.label
+            end
+
             item.abbr = item.label:sub(2)
             item.menu = item.description or item.detail
             item.icase = 1
@@ -249,7 +257,7 @@ M.completion = {
         vim.fn.complete(
           start + 1,
           vim.tbl_filter(function(item)
-            return vim.startswith(item.word:lower(), prefix:lower())
+            return vim.startswith(item.label:lower(), prefix:lower())
           end, items)
         )
       end)
@@ -304,7 +312,7 @@ M.codeblock = {
     local cursor_pos = api.nvim_win_get_cursor(0)
     local line = cursor_pos[1]
 
-    local ft = chat.context.filetype or ""
+    local ft = chat.buffer_context.filetype or ""
 
     local codeblock = {
       "```" .. ft,
@@ -345,8 +353,8 @@ M.yank_code = {
   end,
 }
 
-M.pin_reference = {
-  desc = "Pin Reference",
+M.pin_context = {
+  desc = "Pin Context",
   callback = function(chat)
     local current_line = vim.api.nvim_win_get_cursor(0)[1]
     local line = vim.api.nvim_buf_get_lines(chat.bufnr, current_line - 1, current_line, true)[1]
@@ -358,8 +366,8 @@ M.pin_reference = {
     local icon = config.display.chat.icons.pinned_buffer or config.display.chat.icons.buffer_pin
     local id = line:gsub("^> %- ", "")
 
-    if not chat.references:can_be_pinned(id) then
-      return util.notify("This reference type cannot be pinned", vim.log.levels.WARN)
+    if not chat.context:can_be_pinned(id) then
+      return util.notify("This context type cannot be pinned", vim.log.levels.WARN)
     end
 
     local filename = id
@@ -375,10 +383,10 @@ M.pin_reference = {
       or string.format("> - %s%s", icon, filename)
     api.nvim_buf_set_lines(chat.bufnr, current_line - 1, current_line, true, { new_line })
 
-    -- Update the references on the chat buffer
-    for _, ref in ipairs(chat.refs) do
-      if ref.id == id then
-        ref.opts.pinned = not ref.opts.pinned
+    -- Update the context items on the chat buffer
+    for _, item in ipairs(chat.context_items) do
+      if item.id == id then
+        item.opts.pinned = not item.opts.pinned
         break
       end
     end
@@ -397,35 +405,35 @@ M.toggle_watch = {
 
     local icons = config.display.chat.icons
     local id = line:gsub("^> %- ", "")
-    if not chat.references:can_be_watched(id) then
-      return util.notify("This reference type cannot be watched", vim.log.levels.WARN)
+    if not chat.context:can_be_watched(id) then
+      return util.notify("This context type cannot be watched", vim.log.levels.WARN)
     end
 
-    -- Find the reference and toggle watch state
-    for _, ref in ipairs(chat.refs) do
+    -- Find the context and toggle watch state
+    for _, item in ipairs(chat.context_items) do
       local clean_id = id:gsub(icons.pinned_buffer or icons.buffer_pin, "")
         :gsub(icons.watched_buffer or icons.buffer_watch, "")
-      if ref.id == clean_id then
-        if not ref.opts then
-          ref.opts = {}
+      if item.id == clean_id then
+        if not item.opts then
+          item.opts = {}
         end
-        ref.opts.watched = not ref.opts.watched
+        item.opts.watched = not item.opts.watched
 
         -- Update the UI for just this line
         local new_line
-        if ref.opts.watched then
+        if item.opts.watched then
           -- Check if buffer is still valid before watching
-          if vim.api.nvim_buf_is_valid(ref.bufnr) and vim.api.nvim_buf_is_loaded(ref.bufnr) then
-            chat.watchers:watch(ref.bufnr)
+          if vim.api.nvim_buf_is_valid(item.bufnr) and vim.api.nvim_buf_is_loaded(item.bufnr) then
+            chat.watchers:watch(item.bufnr)
             new_line = string.format("> - %s%s", icons.watched_buffer or icons.buffer_watch, clean_id)
           else
             -- Buffer is invalid, can't watch it
-            ref.opts.watched = false
+            item.opts.watched = false
             new_line = string.format("> - %s", clean_id)
-            util.notify("Cannot watch invalid or unloaded buffer " .. ref.id, vim.log.levels.WARN)
+            util.notify("Cannot watch invalid or unloaded buffer " .. item.id, vim.log.levels.WARN)
           end
         else
-          chat.watchers:unwatch(ref.bufnr)
+          chat.watchers:unwatch(item.bufnr)
           new_line = string.format("> - %s", clean_id)
         end
 
@@ -542,6 +550,7 @@ M.change_adapter = {
           { bufnr = chat.bufnr, adapter = require("codecompanion.adapters").make_safe(chat.adapter) }
         )
         chat.ui.adapter = chat.adapter
+        chat:update_metadata()
         chat:apply_settings()
       end
 
@@ -596,6 +605,7 @@ M.change_adapter = {
         end
 
         chat:apply_model(selected)
+        chat:update_metadata()
         chat:apply_settings()
       end)
     end)
@@ -693,14 +703,10 @@ M.goto_file_under_cursor = {
 M.copilot_stats = {
   desc = "Show Copilot usage statistics",
   callback = function(chat)
-    if chat.adapter.name ~= "copilot" then
-      return util.notify("Copilot stats are only available when using the Copilot adapter", vim.log.levels.WARN)
+    if not chat.adapter.show_copilot_stats then
+      return util.notify("Stats are only available when using the Copilot adapter", vim.log.levels.WARN)
     end
-    if chat.adapter.show_copilot_stats then
-      chat.adapter.show_copilot_stats()
-    else
-      util.notify("Copilot stats function not available", vim.log.levels.ERROR)
-    end
+    chat.adapter.show_copilot_stats()
   end,
 }
 

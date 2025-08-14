@@ -112,7 +112,7 @@ T["Ollama adapter"]["it can form messages with tools"] = function()
 end
 
 T["Ollama adapter"]["it can form tools to be sent to the API"] = function()
-  local weather = require("tests/strategies/chat/agents/tools/stubs/weather").schema
+  local weather = require("tests.strategies.chat.tools.catalog.stubs.weather").schema
   local tools = { weather = { weather } }
 
   h.eq({ tools = { weather } }, adapter.handlers.form_tools(adapter, tools))
@@ -148,7 +148,7 @@ T["Ollama adapter"]["Streaming"]["can form messages with images"] = function()
       role = "user",
       opts = {
         mimetype = "image/jpg",
-        reference = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
+        context_id = "<image>https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg</image>",
         tag = "image",
         visible = false,
       },
@@ -229,6 +229,30 @@ T["Ollama adapter"]["Streaming"]["can process tools"] = function()
   -- }
   --
   -- h.eq(formatted_tools, adapter.handlers.tools.format_tool_calls(adapter, tools))
+end
+
+T["Ollama adapter"]["Streaming"]["can process reasoning chat output"] = function()
+  local output = {
+    content = "",
+    reasoning = {
+      content = "",
+    },
+  }
+  local lines = vim.fn.readfile("tests/adapters/stubs/ollama_reasoning_streaming.txt")
+  for _, line in ipairs(lines) do
+    local chat_output = adapter.handlers.chat_output(adapter, line)
+    if chat_output then
+      if chat_output.output.reasoning and chat_output.output.reasoning.content then
+        output.reasoning.content = output.reasoning.content .. chat_output.output.reasoning.content
+      end
+      if chat_output.output.content then
+        output.content = output.content .. chat_output.output.content
+      end
+    end
+  end
+
+  h.eq("This is a dummy thinking process.", output.reasoning.content)
+  h.eq("**Dynamic Object-Oriented**", output.content)
 end
 
 T["Ollama adapter"]["No Streaming"] = new_set({
