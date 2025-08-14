@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11         Last change: 2025 August 13
+*codecompanion.txt*         For NVIM v0.11         Last change: 2025 August 14
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -476,20 +476,18 @@ INLINE ASSISTANT              *codecompanion-getting-started-inline-assistant*
 The inline assistant enables an LLM to write code directly into a Neovim
 buffer.
 
-Run `:CodeCompanion <your prompt>` to call the inline assistant. The assistant
+Run `:CodeCompanion your prompt` to call the inline assistant. The assistant
 will evaluate the prompt and either write code or open a chat buffer. You can
 also make a visual selection and call the assistant. To send additional context
 alongside your prompt, you can leverage
 |codecompanion-usage-inline-assistant-variables| such as `:CodeCompanion
-#{buffer} <your prompt>`:
+#{buffer} <your prompt>`.
 
-- `buffer` - shares the contents of the current buffer
-- `chat` - shares the LLM’s messages from the last chat buffer
-
-For convenience, you can call prompts from the
-|codecompanion-configuration-prompt-library| via the cmd line, such as
-`:'<,'>CodeCompanion /explain`. The prompt library comes with the following
-defaults:
+For convenience, you can call prompts with their `short_name` from the prompt
+library
+<https://github.com/olimorris/codecompanion.nvim/blob/6a4341a4cfe8988a57ad9e8b7dc01ccd6f3e1628/lua/codecompanion/config.lua#L565>
+such as `:'<,'>CodeCompanion /explain`. The prompt library comes with the
+following defaults:
 
 - `/commit` - Generate a commit message
 - `/explain` - Explain how selected code in a buffer works
@@ -2871,20 +2869,23 @@ notion of variables:
 
 - `buffer` - shares the contents of the current buffer
 - `chat` - shares the LLM’s messages from the last chat buffer
+- `clipboard` - shares the data on your clipboard with the LLM
 
 Simply include them in your prompt. For example `:CodeCompanion #{buffer} add a
 new method to this file`. Multiple variables can be sent as part of the same
 prompt. You can even add your own custom variables as per the
 |codecompanion-configuration-inline-assistant-variables|.
 
+You can also have multiple variables a part of a prompt, for example:
+`:CodeCompanion #{buffer} #{clipboard} analyze this code`.
+
 
 ADAPTERS ~
 
 You can specify a different adapter to that in the configuration
 (`strategies.inline.adapter`) when sending an inline prompt. Simply include the
-adapter name as the first word in the prompt. For example `:<','>CodeCompanion
-deepseek can you refactor this?`. This approach can also be combined with
-variables.
+adapter name within `<>`. For example `:<','>CodeCompanion <deepseek> can you
+refactor this?`. This approach can also be combined with variables.
 
 
 CLASSIFICATION ~
@@ -2937,8 +2938,8 @@ buffer’s buffer number as the key, the dictionary contains:
 - `tokens` - The running total of tokens for the chat buffer
 - `tools` - The number of tools in the chat buffer
 
-You can also leverage `_G.codecompanion_current_context` to fetch the buffer
-number of the buffer which the `#{buffer}` variable points at.
+You can also leverage `_G.codecompanion_current_context` to fetch the number of
+the buffer which the `#{buffer}` variable points at.
 
 Below are some examples of how you can customize the UI related to
 CodeCompanion.
