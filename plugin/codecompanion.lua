@@ -10,22 +10,32 @@ end
 local config = require("codecompanion.config")
 local api = vim.api
 
--- Set the highlight groups
-api.nvim_set_hl(0, "CodeCompanionChatInfo", { link = "DiagnosticInfo", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatError", { link = "DiagnosticError", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatWarn", { link = "DiagnosticWarn", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatSubtext", { link = "Comment", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatHeader", { link = "@markup.heading.2.markdown", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatSeparator", { link = "@punctuation.special.markdown", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatTokens", { link = "Comment", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatTool", { link = "Special", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatToolGroup", { link = "Constant", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatToolSuccess", { link = "DiagnosticOK", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatToolSuccessIcon", { link = "DiagnosticOK", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatToolFailure", { link = "DiagnosticError", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatToolFailureIcon", { link = "Error", default = true })
-api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
-api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
+local function set_codecompanion_highlights()
+  api.nvim_set_hl(0, "CodeCompanionChatInfo", { link = "DiagnosticInfo", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatError", { link = "DiagnosticError", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatWarn", { link = "DiagnosticWarn", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatSubtext", { link = "Comment", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatHeader", { link = "@markup.heading.2.markdown", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatSeparator", { link = "@punctuation.special.markdown", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatTokens", { link = "Comment", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatTool", { link = "Special", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatToolGroup", { link = "Constant", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatToolSuccess", { link = "DiagnosticOK", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatToolSuccessIcon", { link = "DiagnosticOK", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatToolFailure", { link = "DiagnosticError", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatToolFailureIcon", { link = "Error", default = true })
+  api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
+  api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
+  local visual_hl = api.nvim_get_hl(0, { name = "Visual" })
+  pcall(api.nvim_set_hl, 0, "CodeCompanionInlineDiffHint", { bg = visual_hl.bg, default = true })
+end
+
+set_codecompanion_highlights()
+
+api.nvim_create_autocmd("ColorScheme", {
+  group = api.nvim_create_augroup("CodeCompanionHighlights", { clear = true }),
+  callback = set_codecompanion_highlights,
+})
 
 -- Setup syntax highlighting for the chat buffer
 local group = "codecompanion.syntax"
