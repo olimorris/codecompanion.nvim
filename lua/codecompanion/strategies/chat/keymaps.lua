@@ -619,6 +619,7 @@ M.change_adapter = {
           end
 
           chat:apply_model(selected_model)
+          chat:update_metadata()
           chat:apply_settings()
         end)
       end
@@ -647,18 +648,12 @@ M.change_adapter = {
           if not selected_command then
             return
           end
-          chat.adapter.commands.selected = chat.adapter.commands[selected_command]
+          local selected = chat.adapter.commands[selected_command]
+          chat.adapter.commands.selected = selected
+          util.fire("ChatModel", { bufnr = chat.bufnr, model = selected })
+          chat:update_metadata()
         end)
       end
-
-        if current_model ~= selected then
-          util.fire("ChatModel", { bufnr = chat.bufnr, model = selected })
-        end
-
-        chat:apply_model(selected)
-        chat:update_metadata()
-        chat:apply_settings()
-      end)
     end)
   end,
 }

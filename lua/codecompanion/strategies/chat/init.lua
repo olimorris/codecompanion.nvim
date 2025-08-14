@@ -1512,10 +1512,15 @@ end
 ---Update a global state object that users can access in their config
 ---@return nil
 function Chat:update_metadata()
+  local model
+  if self.adapter.type == "http" then
+    model = self.adapter.schema and self.adapter.schema.model and self.adapter.schema.model.default
+  end
+
   _G.codecompanion_chat_metadata[self.bufnr] = {
     adapter = {
       name = self.adapter.formatted_name,
-      model = self.adapter.schema.model.default,
+      model = model,
     },
     context_items = #self.context_items,
     cycles = self.cycle,
