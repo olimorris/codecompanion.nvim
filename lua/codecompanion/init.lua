@@ -312,6 +312,7 @@ CodeCompanion.has = function(feature)
     "prompt-library",
     "function-calling",
     "extensions",
+    "autocompletion",
   }
 
   if type(feature) == "string" then
