@@ -229,6 +229,32 @@ function Inline:set_adapter(adapter)
   end
 end
 
+---Parse special syntax from user prompt (adapters and maintain variables)
+---@param prompt string
+---@return string The cleaned prompt
+function Inline:parse_special_syntax(prompt)
+  -- 1. Handle adapter syntax: <adapter_name>
+  local adapter_pattern = "<([%w_]+)>"
+  local adapter_match = prompt:match(adapter_pattern)
+  if adapter_match and config.adapters[adapter_match] then
+    self:set_adapter(config.adapters[adapter_match])
+    prompt = prompt:gsub(adapter_pattern, "", 1) -- Remove only the first occurrence
+  end
+
+  -- 2. Handle legacy first-word adapter detection for backward compatibility
+  if not adapter_match then
+    local split = vim.split(prompt, " ")
+    local first_word = split[1]
+    if config.adapters[first_word] then
+      self:set_adapter(config.adapters[first_word])
+      table.remove(split, 1)
+      prompt = table.concat(split, " ")
+    end
+  end
+
+  return vim.trim(prompt)
+end
+
 ---Prompt the LLM
 ---@param user_prompt? string The prompt supplied by the user
 ---@return nil
@@ -270,16 +296,10 @@ function Inline:prompt(user_prompt)
   end
 
   if user_prompt then
-    -- 1. Check if the first word is an adapter
-    local split = vim.split(user_prompt, " ")
-    local adapter = config.adapters[split[1]]
-    if adapter then
-      self:set_adapter(adapter)
-      table.remove(split, 1)
-      user_prompt = table.concat(split, " ")
-    end
+    -- Parse adapters and variables from the entire prompt
+    user_prompt = self:parse_special_syntax(user_prompt)
 
-    -- 2. Check for any variables
+    -- Check for any variables
     local vars = variables.new({ inline = self, prompt = user_prompt })
     local found = vars:find():replace():output()
     if found then
@@ -289,7 +309,7 @@ function Inline:prompt(user_prompt)
       user_prompt = vars.prompt
     end
 
-    -- 3. Add the user's prompt
+    -- Add the user's prompt
     add_prompt("<prompt>" .. user_prompt .. "</prompt>")
     log:debug("[Inline] Modified user prompt: %s", user_prompt)
   end
