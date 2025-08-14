@@ -120,7 +120,7 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
         table.insert(virt_lines, { { display_line .. string.rep(" ", padding), "DiffDelete" } })
       end
       -- Single extmark for all removed lines in this hunk
-      local extmark_id = api.nvim_buf_set_extmark(bufnr, ns_id, attach_line, 0, {
+      local _, extmark_id = pcall(api.nvim_buf_set_extmark, bufnr, ns_id, attach_line, 0, {
         virt_lines = virt_lines,
         virt_lines_above = true,
         virt_lines_overflow = "scroll",
@@ -145,7 +145,7 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
         local is_modification = #hunk.old_lines > 0
         local sign_hl = M.get_sign_highlight_for_change("added", is_modification, highlight_groups)
         local line_hl = "DiffAdd"
-        local extmark_id = api.nvim_buf_set_extmark(bufnr, ns_id, line_idx, 0, {
+        local _, extmark_id = pcall(api.nvim_buf_set_extmark, bufnr, ns_id, line_idx, 0, {
           line_hl_group = line_hl,
           priority = 100,
           sign_text = sign_text,

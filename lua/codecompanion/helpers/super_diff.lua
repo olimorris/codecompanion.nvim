@@ -509,7 +509,7 @@ local function apply_super_diff_highlights(bufnr, diff_info, ns_id)
             sign_text = status == "rejected" and SIGNS.reject or SIGNS.text
             sign_hl = diff_utils.get_sign_highlight_for_change("added", is_modification, SIGNS.highlight_groups)
           end
-          local extmark_id = api.nvim_buf_set_extmark(bufnr, ns_id, line_idx, 0, {
+          local _, extmark_id = pcall(api.nvim_buf_set_extmark, bufnr, ns_id, line_idx, 0, {
             line_hl_group = line_hl,
             priority = 100,
             sign_text = sign_text,
@@ -734,7 +734,7 @@ function M.setup_sticky_header(bufnr, winnr, lines)
     -- Color the filename part [filename]
     local filename_start = padding_left
     local filename_end = filename_start + vim.fn.strdisplaywidth(filename_part)
-    api.nvim_buf_set_extmark(buffer, ns_id, 0, filename_start, {
+    pcall(api.nvim_buf_set_extmark, buffer, ns_id, 0, filename_start, {
       end_col = filename_end,
       hl_group = "CodeCompanionChatError",
     })
@@ -742,7 +742,7 @@ function M.setup_sticky_header(bufnr, winnr, lines)
     if dir_part ~= "" then
       local dir_start = filename_end
       local dir_end = dir_start + vim.fn.strdisplaywidth(dir_part)
-      api.nvim_buf_set_extmark(buffer, ns_id, 0, dir_start, {
+      pcall(api.nvim_buf_set_extmark, buffer, ns_id, 0, dir_start, {
         end_col = dir_end,
         hl_group = "CodeCompanionChatInfo",
       })
@@ -750,7 +750,7 @@ function M.setup_sticky_header(bufnr, winnr, lines)
     -- Color the keymap part
     local keymap_start = filename_end + vim.fn.strdisplaywidth(dir_part)
     local keymap_end = keymap_start + vim.fn.strdisplaywidth(keymap_part)
-    api.nvim_buf_set_extmark(buffer, ns_id, 0, keymap_start, {
+    pcall(api.nvim_buf_set_extmark, buffer, ns_id, 0, keymap_start, {
       end_col = keymap_end,
       hl_group = "CodeCompanionChatTokens",
     })
@@ -771,7 +771,7 @@ function M.setup_sticky_header(bufnr, winnr, lines)
     local keymap_part = " | ga: accept all | gr: reject all | gq: quickfix"
     local full_text = filename_part .. dir_part .. keymap_part
     local auto_mode = vim.g.codecompanion_auto_tool_mode
-    local auto_status = auto_mode and " [AUTO: ON]" or " [AUTO: OFF]"
+    local auto_status = auto_mode and " [AUTO EDIT: ON]" or " [AUTO EDIT: OFF]"
     local text_width = vim.fn.strdisplaywidth(full_text)
     local padding_left = math.max(0, math.floor((win_width - text_width) / 2))
     local padding_right = math.max(0, win_width - text_width - padding_left)

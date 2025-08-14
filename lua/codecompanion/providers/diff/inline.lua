@@ -47,7 +47,7 @@ function InlineDiff.new(args)
     vim.schedule(function()
       local winnr = vim.fn.bufwinid(self.bufnr)
       if winnr ~= -1 then
-        api.nvim_win_set_cursor(winnr, { first_diff_line, 0 })
+        pcall(api.nvim_win_set_cursor, winnr, { first_diff_line, 0 })
       end
     end)
   end
@@ -106,6 +106,7 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
       show_keymap_hints = true -- Default to true
     end
     -- Check if we're in a test environment
+    ---@diagnostic disable-next-line: undefined-field
     local is_testing = _G.MiniTest ~= nil
     if show_keymap_hints and not is_testing then
       local attach_line = math.max(0, first_hunk.new_start - 2)
