@@ -203,6 +203,19 @@ local defaults = {
             contains_code = true,
             default_params = "watch", -- watch|pin
             has_params = true,
+            excluded = {
+              buftypes = {
+                "nofile",
+                "quickfix",
+                "prompt",
+                "popup",
+              },
+              fts = {
+                "codecompanion",
+                "help",
+                "terminal",
+              },
+            },
           },
         },
         ["lsp"] = {

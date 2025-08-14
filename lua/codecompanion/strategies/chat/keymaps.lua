@@ -563,6 +563,7 @@ M.change_adapter = {
           { bufnr = chat.bufnr, adapter = require("codecompanion.adapters").make_safe(chat.adapter) }
         )
         chat.ui.adapter = chat.adapter
+        chat:update_metadata()
         chat:apply_settings()
       end
 
@@ -649,6 +650,15 @@ M.change_adapter = {
           chat.adapter.commands.selected = chat.adapter.commands[selected_command]
         end)
       end
+
+        if current_model ~= selected then
+          util.fire("ChatModel", { bufnr = chat.bufnr, model = selected })
+        end
+
+        chat:apply_model(selected)
+        chat:update_metadata()
+        chat:apply_settings()
+      end)
     end)
   end,
 }

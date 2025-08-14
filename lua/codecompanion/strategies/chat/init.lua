@@ -6,6 +6,7 @@
 ---@field acp_connection? CodeCompanion.ACPConnection The ACP session ID and connection
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
+---@field create_buf fun(): integer The function that creates a new buffer for the chat
 ---@field aug number The ID for the autocmd group
 ---@field bufnr integer The buffer number of the chat
 ---@field buffer_context table The context of the buffer that the chat was initiated from
@@ -216,6 +217,8 @@ local function ready_chat_buffer(chat, opts)
 
     chat.subscribers:process(chat)
   end
+
+  chat:update_metadata()
 
   -- If we're automatically responding to a tool output, we need to leave some
   -- space for the LLM's response so we can then display the user prompt again
@@ -525,6 +528,9 @@ local chatmap = {}
 ---@type table
 _G.codecompanion_buffers = {}
 
+---@type table
+_G.codecompanion_chat_metadata = {}
+
 ---@class CodeCompanion.Chat
 local Chat = {}
 
@@ -563,6 +569,7 @@ function Chat.new(args)
     end,
     _last_role = args.last_role or config.constants.USER_ROLE,
   }, { __index = Chat })
+  ---@cast self CodeCompanion.Chat
 
   self.bufnr = self.create_buf()
   self.aug = api.nvim_create_augroup(CONSTANTS.AUTOCMD_GROUP .. ":" .. self.bufnr, {
@@ -630,6 +637,13 @@ function Chat.new(args)
     roles = { user = user_role, llm = llm_role },
     settings = self.settings,
   })
+
+  self:update_metadata()
+
+  -- Likely this hasn't been set by the time the user opens the chat buffer
+  if not _G.codecompanion_current_context then
+    _G.codecompanion_current_context = self.buffer_context.bufnr
+  end
 
   if args.messages then
     self.messages = args.messages
@@ -723,6 +737,7 @@ function Chat:apply_model(model)
 
   self.adapter.schema.model.default = model
   self.adapter = adapters.set_model(self.adapter)
+  self:update_metadata()
 
   return self
 end
@@ -1373,6 +1388,12 @@ function Chat:close()
       return v == self.bufnr
     end)
   )
+  table.remove(
+    _G.codecompanion_chat_metadata,
+    vim.iter(_G.codecompanion_chat_metadata):enumerate():find(function(_, v)
+      return v == self.bufnr
+    end)
+  )
   chatmap[self.bufnr] = nil
   pcall(api.nvim_buf_delete, self.bufnr, { force = true })
   if self.aug then
@@ -1486,6 +1507,22 @@ function Chat:debug()
   end
 
   return settings, self.messages
+end
+
+---Update a global state object that users can access in their config
+---@return nil
+function Chat:update_metadata()
+  _G.codecompanion_chat_metadata[self.bufnr] = {
+    adapter = {
+      name = self.adapter.formatted_name,
+      model = self.adapter.schema.model.default,
+    },
+    context_items = #self.context_items,
+    cycles = self.cycle,
+    id = self.id,
+    tokens = self.ui.tokens or 0,
+    tools = vim.tbl_count(self.tool_registry.in_use) or 0,
+  }
 end
 
 ---Returns the chat object(s) based on the buffer number
