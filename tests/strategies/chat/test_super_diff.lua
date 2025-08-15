@@ -13,7 +13,7 @@ local T = new_set({
         super_diff = require("codecompanion.strategies.chat.helpers.super_diff")
         edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 
-        -- Mock config to include debug_and_super_diff_window
+        -- Mock config to include child_window
         local config = require("codecompanion.config")
         if not config.display then
           config.display = {}
@@ -21,7 +21,7 @@ local T = new_set({
         if not config.display.chat then
           config.display.chat = {}
         end
-        config.display.chat.debug_and_super_diff_window = {
+        config.display.chat.child_window = {
           width = 80,
           height = 20,
           row = "center",

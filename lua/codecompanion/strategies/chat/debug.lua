@@ -213,7 +213,7 @@ function Debug:render()
     })
     :set()
 
-  local window_config = config.display.chat.debug_and_super_diff_window
+  local window_config = config.display.chat.child_window
 
   ui.create_float(lines, {
     bufnr = self.bufnr,

@@ -1051,7 +1051,7 @@ You must create or modify a workspace file through a series of prompts over mult
         tool_failure = " ",
       },
       -- Shared configuration for debug window and super diff window
-      debug_and_super_diff_window = {
+      child_window = {
         width = vim.o.columns - 5,
         height = vim.o.lines - 2,
         row = "center",

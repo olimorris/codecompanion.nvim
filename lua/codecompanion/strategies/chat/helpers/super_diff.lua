@@ -541,7 +541,7 @@ function M.show_super_diff(chat, opts)
   local lines, file_sections, diff_info = generate_markdown_super_diff(tracked_files)
 
   local ui = require("codecompanion.utils.ui")
-  local window_config = config.display.chat.debug_and_super_diff_window
+  local window_config = config.display.chat.child_window
     or { opts = {
       wrap = false,
       number = true,
