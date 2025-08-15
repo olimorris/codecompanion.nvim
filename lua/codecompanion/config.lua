@@ -503,6 +503,7 @@ local defaults = {
           modes = {
             n = "ga",
           },
+          opts = { nowait = true },
           index = 1,
           callback = "keymaps.accept_change",
           description = "Accept change",
@@ -520,6 +521,7 @@ local defaults = {
           modes = {
             n = "gt",
           },
+          opts = { nowait = true },
           index = 3,
           callback = "keymaps.always_accept",
           description = "Accept and enable auto mode",
