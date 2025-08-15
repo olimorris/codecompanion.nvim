@@ -170,7 +170,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
         response = success
       else
         log:debug("[Insert Edit Into File Tool] User rejected file changes")
-        -- Clean up diff or timeout
+        -- Clean up diff on timeout
         if should_diff and should_diff.reject then
           should_diff:reject()
         end
@@ -310,7 +310,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
         response = success
       else
         log:debug("[Insert Edit Into File Tool] User rejected changes")
-        -- Clean up diff or timeout
+        -- Clean up diff on timeout
         if should_diff and should_diff.reject then
           should_diff:reject()
         end

@@ -228,7 +228,31 @@ function M.create(bufnr_or_filepath, diff_id, opts)
   local diff = diff_module.new(diff_args)
 
   if diff then
-    M.setup_keymaps(diff, opts)
+    local keymaps_setup = false
+    local function setup_keymaps_once()
+      if not keymaps_setup then
+        keymaps_setup = true
+        M.setup_keymaps(diff, opts)
+        log:debug("[catalog::helpers::diff::create] Keymaps set up successfully")
+      end
+    end
+    -- Try LSP approach first
+    local autocmd_id = vim.api.nvim_create_autocmd("LspAttach", {
+      buffer = diff.bufnr,
+      once = true,
+      callback = function(args)
+        if args.buf == diff.bufnr then
+          log:debug("[catalog::helpers::diff::create] LSP attached, setting up keymaps")
+          vim.defer_fn(setup_keymaps_once, 100)
+        end
+      end,
+    })
+    -- Fallback with timeout
+    vim.defer_fn(function()
+      pcall(vim.api.nvim_del_autocmd, autocmd_id)
+      log:debug("[catalog::helpers::diff::create] Fallback triggered")
+      setup_keymaps_once() -- Only runs if LSP didn't trigger
+    end, 200)
   end
 
   return diff
@@ -245,16 +269,37 @@ function M.setup_keymaps(diff, opts)
     return
   end
 
-  vim.schedule(function()
-    keymaps
-      .new({
-        bufnr = diff.bufnr,
-        callbacks = require("codecompanion.strategies.inline.keymaps"),
-        data = { diff = diff },
-        keymaps = inline_config.keymaps,
-      })
-      :set()
-  end)
+  -- Store only conflicting original keymaps and set new ones
+  log:debug("[catalog::helpers::diff::setup_keymaps] Starting keymap setup for buffer %d", diff.bufnr)
+  local existing_maps = {}
+  for _, keymap_config in pairs(inline_config.keymaps) do
+    for mode, lhs in pairs(keymap_config.modes) do
+      local keys_to_check = type(lhs) == "table" and lhs or { lhs }
+      local existing_keymaps = vim.api.nvim_buf_get_keymap(diff.bufnr, mode)
+
+      -- Handle all keys
+      for _, key in ipairs(keys_to_check) do
+        for _, existing in ipairs(existing_keymaps) do
+          if existing.lhs == key then
+            local map_key = mode .. ":" .. key
+            existing_maps[map_key] = existing
+            break
+          end
+        end
+      end
+    end
+  end
+
+  diff._original_keymaps = existing_maps
+  -- Set new keymaps
+  keymaps
+    .new({
+      bufnr = diff.bufnr,
+      callbacks = require("codecompanion.strategies.inline.keymaps"),
+      data = { diff = diff },
+      keymaps = inline_config.keymaps,
+    })
+    :set()
 end
 
 ---Check if a diff should be created for this context

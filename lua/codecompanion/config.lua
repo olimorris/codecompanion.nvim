@@ -503,7 +503,7 @@ local defaults = {
           modes = {
             n = "ga",
           },
-          opts = { nowait = true },
+          opts = { nowait = true, noremap = true },
           index = 1,
           callback = "keymaps.accept_change",
           description = "Accept change",
@@ -512,7 +512,7 @@ local defaults = {
           modes = {
             n = "gr",
           },
-          opts = { nowait = true },
+          opts = { nowait = true, noremap = true },
           index = 2,
           callback = "keymaps.reject_change",
           description = "Reject change",
