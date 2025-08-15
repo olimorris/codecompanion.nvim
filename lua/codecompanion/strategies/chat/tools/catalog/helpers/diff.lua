@@ -30,68 +30,152 @@ local function is_suitable_window(win_id)
   return not ((cfg.relative ~= "" and cfg.relative ~= nil) or cfg.external == true)
 end
 
----Find the best window for displaying a buffer
----@param target_bufnr number|nil The buffer we want to display (nil for file-only case)
----@return number|nil winnr The best window number, or nil if should use float
-local function find_best_window_for_buffer(target_bufnr)
-  -- 1. Check if buffer already visible (only if we have a buffer)
-  if target_bufnr then
-    local existing_win = ui.buf_get_win(target_bufnr)
-    if existing_win then
-      log:debug("[catalog::helpers::diff::create] Buffer %s already visible in window %s", target_bufnr, existing_win)
-      return existing_win
-    end
-  end
-  -- 2. Get all buffers sorted by most recently used
+---Check if buffer exists for a file path
+---@param filepath string
+---@return number|nil bufnr Buffer number if exists, nil otherwise
+local function get_existing_buffer(filepath)
+  local bufnr = vim.fn.bufnr(filepath)
+  return bufnr ~= -1 and bufnr or nil
+end
+
+---Find a suitable window for displaying content
+---@return number|nil winnr Window number if found
+local function find_suitable_window()
   local buffers = vim.fn.getbufinfo({ buflisted = 1 })
   table.sort(buffers, function(a, b)
     if a.lastused == b.lastused then
-      return a.bufnr > b.bufnr -- fallback to buffer number for stable sort
+      return a.bufnr > b.bufnr
     end
-    return a.lastused > b.lastused -- most recent first
+    return a.lastused > b.lastused
   end)
-  -- 3. Find the most recently used buffer that's in a good window
+
   for _, buf_info in ipairs(buffers) do
     if is_suitable_buffer(buf_info) then
       for _, win_id in ipairs(buf_info.windows) do
         if is_suitable_window(win_id) then
-          log:debug("[catalog::helpers::diff::create] Found suitable window %s for buffer %s", win_id, buf_info.bufnr)
           return win_id
         end
       end
     end
   end
-
-  return nil -- fallback to float
+  return nil
 end
 
----Open buffer or file in the specified window
----@param winnr number Window to use
----@param bufnr_or_filepath number|string Buffer number or file path
----@return number|nil bufnr The buffer number if successful
-local function open_buffer_in_window(winnr, bufnr_or_filepath)
-  local is_filepath = type(bufnr_or_filepath) == "string"
-  if is_filepath then
-    if not vim.fn.filereadable(bufnr_or_filepath) then
-      log:warn("[catalog::helpers::diff::create] File not readable: %s", bufnr_or_filepath)
-      return nil
-    end
-    local ok = pcall(api.nvim_win_call, winnr, function()
-      vim.cmd.edit(vim.fn.fnameescape(bufnr_or_filepath))
+---Open buffer in existing window
+---@param bufnr number
+---@param winnr number
+---@return number bufnr
+local function use_buffer_in_window(bufnr, winnr)
+  log:debug("[catalog::helpers::diff::create] Using buffer %d in window %d", bufnr, winnr)
+  pcall(api.nvim_set_current_win, winnr)
+  return bufnr
+end
+
+---Set existing buffer in a window
+---@param bufnr number
+---@param winnr number
+---@return number|nil bufnr
+local function set_buffer_in_window(bufnr, winnr)
+  log:debug("[catalog::helpers::diff::create] Setting buffer %d in window %d", bufnr, winnr)
+  local ok = pcall(api.nvim_win_set_buf, winnr, bufnr)
+  if ok then
+    pcall(api.nvim_set_current_win, winnr)
+    return bufnr
+  end
+  log:debug("[catalog::helpers::diff::create] Failed to set buffer %d in window %d", bufnr, winnr)
+  return nil
+end
+
+---Create new buffer from file in window
+---@param filepath string
+---@param winnr number
+---@return number|nil bufnr
+local function create_buffer_in_window(filepath, winnr)
+  if not vim.fn.filereadable(filepath) then
+    log:debug("[catalog::helpers::diff::create] File not readable: %s", filepath)
+    return nil
+  end
+
+  log:debug("[catalog::helpers::diff::create] Creating buffer for file: %s in window %d", filepath, winnr)
+  local ok = pcall(api.nvim_win_call, winnr, function()
+    vim.cmd.edit(vim.fn.fnameescape(filepath))
+    vim.schedule(function()
+      pcall(api.nvim_set_current_win, winnr)
     end)
-    if not ok then
-      log:warn("[catalog::helpers::diff::create] Failed to open file: %s", bufnr_or_filepath)
-      return nil
-    end
+  end)
+
+  if ok then
     return api.nvim_win_get_buf(winnr)
-  else
-    local bufnr = bufnr_or_filepath --[[@as number|nil]]
-    local ok = pcall(api.nvim_win_set_buf, winnr, bufnr)
-    if not ok then
-      log:warn("[catalog::helpers::diff::create] Failed to set buffer in window")
+  end
+  log:warn("[catalog::helpers::diff::create] Failed to create buffer for: %s", filepath)
+  return nil
+end
+
+---Create new split window with buffer
+---@param bufnr_or_filepath number|string
+---@return number|nil bufnr
+local function create_split_window(bufnr_or_filepath)
+  vim.cmd("topleft vnew")
+  local winnr = api.nvim_get_current_win()
+
+  if type(bufnr_or_filepath) == "string" then
+    local bufnr = create_buffer_in_window(bufnr_or_filepath, winnr)
+    if not bufnr then
+      pcall(vim.cmd, "close")
       return nil
     end
     return bufnr
+  else
+    return set_buffer_in_window(bufnr_or_filepath, winnr)
+  end
+end
+
+---Open buffer or file and return buffer number and window
+---@param bufnr_or_filepath number|string
+---@return number|nil bufnr, number|nil winnr
+local function open_buffer_and_window(bufnr_or_filepath)
+  local is_filepath = type(bufnr_or_filepath) == "string"
+
+  if is_filepath then
+    local filepath = bufnr_or_filepath
+    local existing_bufnr = get_existing_buffer(filepath)
+
+    if existing_bufnr then
+      -- Case 1: Buffer exists and is visible
+      local existing_win = ui.buf_get_win(existing_bufnr)
+      if existing_win then
+        return use_buffer_in_window(existing_bufnr, existing_win), existing_win
+      end
+      -- Case 2: Buffer exists but not visible
+      local winnr = find_suitable_window()
+      if winnr then
+        local bufnr = set_buffer_in_window(existing_bufnr, winnr)
+        return bufnr, winnr
+      end
+    else
+      -- Case 3: Buffer doesn't exist
+      local winnr = find_suitable_window()
+      if winnr then
+        local bufnr = create_buffer_in_window(filepath, winnr)
+        return bufnr, winnr
+      end
+    end
+
+    return create_split_window(filepath), api.nvim_get_current_win() -- Fallback
+  else
+    local bufnr = bufnr_or_filepath
+    local existing_win = ui.buf_get_win(bufnr)
+
+    if existing_win then
+      return use_buffer_in_window(bufnr, existing_win), existing_win
+    end
+    local winnr = find_suitable_window()
+    if winnr then
+      local result_bufnr = set_buffer_in_window(bufnr, winnr)
+      return result_bufnr, winnr
+    end
+
+    return create_split_window(bufnr), api.nvim_get_current_win() -- Fallback
   end
 end
 
@@ -103,15 +187,6 @@ end
 ---@return table|nil diff The diff object, or nil if no diff was created
 function M.create(bufnr_or_filepath, diff_id, opts)
   opts = opts or {}
-
-  local is_filepath = type(bufnr_or_filepath) == "string"
-  local existing_bufnr
-  if is_filepath then
-    local bufnr = vim.fn.bufnr(bufnr_or_filepath)
-    existing_bufnr = (bufnr ~= -1) and bufnr or nil
-  else
-    existing_bufnr = bufnr_or_filepath --[[@as number|nil]]
-  end
   log:debug("[catalog::helpers::diff::create] Called - diff_id=%s", tostring(diff_id))
 
   if vim.g.codecompanion_auto_tool_mode or not config.display.diff.enabled then
@@ -122,18 +197,6 @@ function M.create(bufnr_or_filepath, diff_id, opts)
     )
     return nil
   end
-  -- Check if existing buffer is terminal (skip terminal buffers)
-  if existing_bufnr and type(existing_bufnr) == "number" and existing_bufnr > 0 then
-    local ok, buftype = pcall(function()
-      return vim.bo[existing_bufnr].buftype
-    end)
-    if ok and buftype == "terminal" then
-      log:debug("[catalog::helpers::diff::create] Skipping diff - terminal buffer")
-      return nil
-    elseif not ok then
-      log:debug("[catalog::helpers::diff::create] Could not check buftype for buffer %s", existing_bufnr)
-    end
-  end
 
   local provider = config.display.diff.provider
   local ok, diff_module = pcall(require, "codecompanion.providers.diff." .. provider)
@@ -141,27 +204,14 @@ function M.create(bufnr_or_filepath, diff_id, opts)
     log:error("[catalog::helpers::diff::create] Failed to load provider '%s'", provider)
     return nil
   end
-
-  -- Find the best window for displaying the buffer/file
-  local winnr = find_best_window_for_buffer(existing_bufnr)
-  local bufnr
-  if winnr then
-    log:debug("[catalog::helpers::diff::create] Using window %s for diff", winnr)
-    bufnr = open_buffer_in_window(winnr, existing_bufnr or bufnr_or_filepath)
-    if not bufnr then
-      log:warn("[catalog::helpers::diff::create] Failed to open buffer/file in window %s", winnr)
-      return nil
-    end
-    pcall(api.nvim_set_current_win, winnr)
-  else
-    vim.cmd("topleft vnew")
-    winnr = api.nvim_get_current_win()
-    bufnr = open_buffer_in_window(winnr, bufnr_or_filepath)
-    if not bufnr then
-      pcall(vim.cmd, "close")
-      log:warn("[catalog::helpers::diff::create] Failed to open buffer/file in new window")
-      return nil
-    end
+  local bufnr, winnr = open_buffer_and_window(bufnr_or_filepath)
+  if not bufnr then
+    log:warn("[catalog::helpers::diff::create] Failed to open buffer/file")
+    return nil
+  end
+  if vim.bo[bufnr].buftype == "terminal" then
+    log:debug("[catalog::helpers::diff::create] Skipping diff - terminal buffer")
+    return nil
   end
 
   -- Use provided content or fallback to current buffer content
