@@ -170,6 +170,10 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
         response = success
       else
         log:debug("[Insert Edit Into File Tool] User rejected file changes")
+        -- Clean up diff or timeout
+        if should_diff and should_diff.reject then
+          should_diff:reject()
+        end
         response = {
           status = "error",
           data = result.timeout and "User failed to accept the edits in time" or "User rejected the edits",
@@ -306,6 +310,10 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
         response = success
       else
         log:debug("[Insert Edit Into File Tool] User rejected changes")
+        -- Clean up diff or timeout
+        if should_diff and should_diff.reject then
+          should_diff:reject()
+        end
         response = {
           status = "error",
           data = result.timeout and "User failed to accept the edits in time" or "User rejected the edits",
