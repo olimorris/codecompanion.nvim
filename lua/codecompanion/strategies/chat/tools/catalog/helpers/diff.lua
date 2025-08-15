@@ -206,6 +206,7 @@ function M.setup_keymaps(diff, opts)
         if is_buffer_local then
           local key = mode .. ":" .. lhs
           existing_maps[key] = existing
+          pcall(vim.keymap.del, mode, lhs, { buffer = diff.bufnr })
         end
       end
     end
