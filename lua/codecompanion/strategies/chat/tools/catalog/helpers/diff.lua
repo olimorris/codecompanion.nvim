@@ -195,37 +195,16 @@ function M.setup_keymaps(diff, opts)
     return
   end
 
-  -- Store existing keymaps that might conflict
-  local existing_maps = {}
-  for _, keymap_config in pairs(inline_config.keymaps) do
-    for mode, lhs in pairs(keymap_config.modes) do
-      -- Check if a buffer-local mapping exists for this buffer
-      local existing = vim.fn.maparg(lhs, mode, false, true)
-      if existing and existing ~= {} then
-        local is_buffer_local = existing.buffer and (existing.buffer == 1 or existing.buffer == diff.bufnr)
-        if is_buffer_local then
-          local key = mode .. ":" .. lhs
-          existing_maps[key] = existing
-          pcall(vim.keymap.del, mode, lhs, { buffer = diff.bufnr })
-        end
-      end
-    end
-  end
-  diff._original_keymaps = existing_maps
-  if vim.tbl_count(existing_maps) > 0 then
-    log:debug(
-      "[catalog::helpers::diff::setup_keymaps] Stored %d original keymaps for restoration",
-      vim.tbl_count(existing_maps)
-    )
-  end
-  keymaps
-    .new({
-      bufnr = diff.bufnr,
-      callbacks = require("codecompanion.strategies.inline.keymaps"),
-      data = { diff = diff },
-      keymaps = inline_config.keymaps,
-    })
-    :set()
+  vim.schedule(function()
+    keymaps
+      .new({
+        bufnr = diff.bufnr,
+        callbacks = require("codecompanion.strategies.inline.keymaps"),
+        data = { diff = diff },
+        keymaps = inline_config.keymaps,
+      })
+      :set()
+  end)
 end
 
 ---Check if a diff should be created for this context
