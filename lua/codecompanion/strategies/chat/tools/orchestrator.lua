@@ -339,10 +339,11 @@ end
 ---Close the execution of the tool
 ---@return nil
 function Orchestrator:close()
-  --TODO: This is a workaround that avoids the close method being called more than once
   if self.tool then
     log:debug("Orchestrator:close")
-    self.handlers.on_exit()
+    pcall(function()
+      self.handlers.on_exit()
+    end)
     utils.fire("ToolFinished", { id = self.id, name = self.tool.name, bufnr = self.tools.bufnr })
     self.tool = nil
   end
