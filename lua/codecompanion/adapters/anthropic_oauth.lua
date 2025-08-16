@@ -8,10 +8,24 @@ local fmt = string.format
 
 local _access_token
 
+---Proper URL encoding function
+---@param str string
+---@return string
+local function url_encode(str)
+  if str then
+    str = string.gsub(str, "\n", "\r\n")
+    str = string.gsub(str, "([^%w %-%_%.%~])", function(c)
+      return string.format("%%%02X", string.byte(c))
+    end)
+    str = string.gsub(str, " ", "+")
+  end
+  return str
+end
+
 local CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
 local REDIRECT_URI = "https://console.anthropic.com/oauth/code/callback"
 local AUTH_URL = "https://console.anthropic.com/oauth/authorize"
-local TOKEN_URL = "https://console.anthropic.com/v1/oauth/token"
+local TOKEN_URL = "https://api.anthropic.com/v1/oauth/token"
 local SCOPES = "org:create_api_key user:profile user:inference"
 
 local function generate_random_string(length)
@@ -54,7 +68,7 @@ local function sha256_base64url(input)
 end
 
 local function generate_pkce()
-  local verifier = generate_random_string(43) -- PKCE spec: 43-128 characters
+  local verifier = generate_random_string(128) -- Use maximum length for better security
   local challenge = sha256_base64url(verifier)
   return {
     verifier = verifier,
@@ -172,7 +186,10 @@ local function exchange_code_for_token(code, verifier)
     client_id = CLIENT_ID,
     redirect_uri = REDIRECT_URI,
     code_verifier = verifier,
+    scope = SCOPES,
   }
+
+  log:debug("Anthropic OAuth: Token exchange request data: %s", vim.inspect(request_data))
 
   local response = curl.post(TOKEN_URL, {
     headers = {
@@ -197,6 +214,8 @@ local function exchange_code_for_token(code, verifier)
     return nil
   end
 
+  log:debug("Anthropic OAuth: Token response data: %s", vim.inspect(token_data))
+
   local oauth_token = {
     access_token = token_data.access_token,
     refresh_token = token_data.refresh_token,
@@ -218,6 +237,7 @@ local function refresh_access_token(refresh_token)
     grant_type = "refresh_token",
     refresh_token = refresh_token,
     client_id = CLIENT_ID,
+    scope = SCOPES,
   }
 
   local response = curl.post(TOKEN_URL, {
@@ -254,27 +274,24 @@ local function refresh_access_token(refresh_token)
   return oauth_token
 end
 
----Generate OAuth authorization URL
----@return table {url: string, verifier: string}
 local function generate_auth_url()
   local pkce = generate_pkce()
 
-  local params = {
-    client_id = CLIENT_ID,
-    response_type = "code",
-    redirect_uri = REDIRECT_URI,
-    scope = SCOPES,
-    code_challenge = pkce.challenge,
-    code_challenge_method = "S256",
-    state = pkce.verifier,
+  -- Build query string manually to ensure proper encoding and order
+  local query_params = {
+    "code=true",
+    "client_id=" .. url_encode(CLIENT_ID),
+    "response_type=code",
+    "redirect_uri=" .. url_encode(REDIRECT_URI),
+    "scope=" .. url_encode(SCOPES),
+    "code_challenge=" .. url_encode(pkce.challenge),
+    "code_challenge_method=S256",
+    "state=" .. url_encode(pkce.verifier),
   }
 
-  local query_string = {}
-  for key, value in pairs(params) do
-    table.insert(query_string, key .. "=" .. vim.uri_encode(value))
-  end
+  local auth_url = AUTH_URL .. "?" .. table.concat(query_params, "&")
 
-  local auth_url = AUTH_URL .. "?" .. table.concat(query_string, "&")
+  log:debug("Anthropic OAuth: Generated auth URL: %s", auth_url)
 
   return {
     url = auth_url,
@@ -282,8 +299,6 @@ local function generate_auth_url()
   }
 end
 
----Get valid access token (load from cache, refresh if needed, or prompt for OAuth)
----@return string|nil
 local function get_access_token()
   if _access_token and _access_token.expires_at > os.time() + 60 then -- 60 second buffer
     return _access_token.access_token
@@ -306,7 +321,9 @@ local function get_access_token()
   end
 
   -- Need new OAuth flow
-  log:error("Anthropic OAuth: No valid token found. Please run :AnthropicOAuthSetup to authenticate")
+  log:error(
+    "Anthropic OAuth: No valid token found or token lacks required scopes. Please run :AnthropicOAuthClear and then :AnthropicOAuthSetup to re-authenticate"
+  )
   return nil
 end
 
@@ -402,17 +419,31 @@ local adapter = vim.tbl_deep_extend("force", vim.deepcopy(anthropic), {
   },
 })
 
--- Override headers to use OAuth authentication
 adapter.headers = {
   ["content-type"] = "application/json",
   ["authorization"] = "Bearer ${api_key}",
   ["anthropic-version"] = "2023-06-01",
-  ["anthropic-beta"] = "prompt-caching-2024-07-31",
+  ["anthropic-beta"] = "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14",
 }
--- Remove the x-api-key header that comes from the base adapter
 adapter.headers["x-api-key"] = nil
 
--- Override handlers
+-- Add the filter_out_messages function
+local function filter_out_messages(message)
+  local allowed = {
+    "content",
+    "role",
+    "reasoning",
+    "tool_calls",
+  }
+
+  for key, _ in pairs(message) do
+    if not vim.tbl_contains(allowed, key) then
+      message[key] = nil
+    end
+  end
+  return message
+end
+
 adapter.handlers = vim.tbl_extend("force", anthropic.handlers, {
   ---Check for a valid OAuth token before starting the request
   ---@param self CodeCompanion.Adapter
@@ -421,12 +452,191 @@ adapter.handlers = vim.tbl_extend("force", anthropic.handlers, {
     -- Get access token (this will handle refresh if needed)
     local token = get_access_token()
     if not token then
-      vim.notify("No valid Anthropic OAuth token. Run :AnthropicOAuthSetup to authenticate.", vim.log.levels.ERROR)
+      vim.notify(
+        "No valid Anthropic OAuth token or token lacks required scopes. Run :AnthropicOAuthClear then :AnthropicOAuthSetup to re-authenticate.",
+        vim.log.levels.ERROR
+      )
       return false
     end
 
-    -- Call the original setup function from anthropic adapter
-    return anthropic.handlers.setup(self)
+    -- Same as current setup function but removing additional headers
+    if self.opts and self.opts.stream then
+      self.parameters.stream = true
+    end
+
+    local model = self.schema.model.default
+    local model_opts = self.schema.model.choices[model]
+    if model_opts and model_opts.opts then
+      self.opts = vim.tbl_deep_extend("force", self.opts, model_opts.opts)
+      if not model_opts.opts.has_vision then
+        self.opts.vision = false
+      end
+    end
+
+    return true
+  end,
+
+  ---Format messages with Claude Code system message at the beginning
+  ---@param self CodeCompanion.Adapter
+  ---@param messages table
+  ---@return table
+  form_messages = function(self, messages)
+    local utils = require("codecompanion.utils.adapters")
+    local tokens = require("codecompanion.utils.tokens")
+
+    local has_tools = false
+
+    local system = vim
+      .iter(messages)
+      :filter(function(msg)
+        return msg.role == "system"
+      end)
+      :map(function(msg)
+        return {
+          type = "text",
+          text = msg.content,
+          cache_control = nil,
+        }
+      end)
+      :totable()
+
+    -- Add the Claude Code system message at the beginning (required for OAuth to work)
+    table.insert(system, 1, {
+      type = "text",
+      text = "You are Claude Code, Anthropic's official CLI for Claude.",
+      cache_control = {
+        type = "ephemeral",
+      },
+    })
+
+    system = next(system) and system or nil
+
+    messages = vim
+      .iter(messages)
+      :filter(function(msg)
+        return msg.role ~= "system"
+      end)
+      :totable()
+
+    messages = vim.tbl_map(function(message)
+      if message.opts and message.opts.tag == "image" and message.opts.mimetype then
+        if self.opts and self.opts.vision then
+          message.content = {
+            {
+              type = "image",
+              source = {
+                type = "base64",
+                media_type = message.opts.mimetype,
+                data = message.content,
+              },
+            },
+          }
+        else
+          return nil
+        end
+      end
+
+      message = filter_out_messages(message)
+
+      if message.role == self.roles.user or message.role == self.roles.llm then
+        if message.role == self.roles.user and message.content == "" then
+          message.content = "<prompt></prompt>"
+        end
+
+        if type(message.content) == "string" then
+          message.content = {
+            { type = "text", text = message.content },
+          }
+        end
+      end
+
+      if message.tool_calls and vim.tbl_count(message.tool_calls) > 0 then
+        has_tools = true
+      end
+
+      if message.role == "tool" then
+        message.role = self.roles.user
+      end
+
+      if has_tools and message.role == self.roles.llm and message.tool_calls then
+        message.content = message.content or {}
+        for _, call in ipairs(message.tool_calls) do
+          table.insert(message.content, {
+            type = "tool_use",
+            id = call.id,
+            name = call["function"].name,
+            input = vim.json.decode(call["function"].arguments),
+          })
+        end
+        message.tool_calls = nil
+      end
+
+      if message.reasoning and type(message.content) == "table" then
+        table.insert(message.content, 1, {
+          type = "thinking",
+          thinking = message.reasoning.content,
+          signature = message.reasoning._data.signature,
+        })
+      end
+
+      return message
+    end, messages)
+
+    messages = utils.merge_messages(messages)
+
+    if has_tools then
+      for _, m in ipairs(messages) do
+        if m.role == self.roles.user and m.content and m.content ~= "" then
+          if type(m.content) == "table" and m.content.type then
+            m.content = { m.content }
+          end
+
+          if type(m.content) == "table" and vim.islist(m.content) then
+            local consolidated = {}
+            for _, block in ipairs(m.content) do
+              if block.type == "tool_result" then
+                local prev = consolidated[#consolidated]
+                if prev and prev.type == "tool_result" and prev.tool_use_id == block.tool_use_id then
+                  prev.content = prev.content .. block.content
+                else
+                  table.insert(consolidated, block)
+                end
+              else
+                table.insert(consolidated, block)
+              end
+            end
+            m.content = consolidated
+          end
+        end
+      end
+    end
+
+    local breakpoints_used = 0
+    for i = #messages, 1, -1 do
+      local msgs = messages[i]
+      if msgs.role == self.roles.user then
+        for _, msg in ipairs(msgs.content) do
+          if msg.type ~= "text" or msg.text == "" then
+            goto continue
+          end
+          if tokens.calculate(msg.text) >= self.opts.cache_over and breakpoints_used < self.opts.cache_breakpoints then
+            msg.cache_control = { type = "ephemeral" }
+            breakpoints_used = breakpoints_used + 1
+          end
+          ::continue::
+        end
+      end
+    end
+    if system and breakpoints_used < self.opts.cache_breakpoints then
+      for _, prompt in ipairs(system) do
+        if breakpoints_used < self.opts.cache_breakpoints then
+          prompt.cache_control = { type = "ephemeral" }
+          breakpoints_used = breakpoints_used + 1
+        end
+      end
+    end
+
+    return { system = system, messages = messages }
   end,
 })
 
