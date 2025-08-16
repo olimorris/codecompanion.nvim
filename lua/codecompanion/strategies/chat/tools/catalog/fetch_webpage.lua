@@ -90,7 +90,37 @@ return {
       local args = self.args
       local chat = tools.chat
 
-      local content = vim.iter(stdout):flatten():join("\n")
+      local content
+      if type(stdout) == "table" then
+        if #stdout == 1 and type(stdout[1]) == "string" then
+          content = stdout[1]
+        elseif #stdout == 1 and type(stdout[1]) == "table" then
+          -- If stdout[1] is a table, try to extract content
+          local first_item = stdout[1]
+          if type(first_item) == "table" and first_item.content then
+            content = first_item.content
+          else
+            -- Fallback: convert to string representation
+            content = vim.inspect(first_item)
+          end
+        else
+          -- Multiple items or other structure
+          content = vim
+            .iter(stdout)
+            :map(function(item)
+              if type(item) == "string" then
+                return item
+              elseif type(item) == "table" and item.content then
+                return item.content
+              else
+                return vim.inspect(item)
+              end
+            end)
+            :join("\n")
+        end
+      else
+        content = tostring(stdout)
+      end
 
       local llm_output = fmt([[<attachment url="%s">%s</attachment>]], args.url, content)
       local user_output = fmt("Fetched content from `%s`", args.url)

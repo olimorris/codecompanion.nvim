@@ -106,18 +106,29 @@ end
 function Orchestrator:setup_handlers()
   self.handlers = {
     setup = function()
+      if not self.tool then
+        return
+      end
       _G.codecompanion_current_tool = self.tool.name
       if self.tool.handlers and self.tool.handlers.setup then
         return self.tool.handlers.setup(self.tool, self.tools)
       end
     end,
     prompt_condition = function()
+      if not self.tool then
+        return
+      end
+
       if self.tool.handlers and self.tool.handlers.prompt_condition then
         return self.tool.handlers.prompt_condition(self.tool, self.tools, self.tools.tools_config)
       end
       return true
     end,
     on_exit = function()
+      if not self.tool then
+        return
+      end
+
       if self.tool.handlers and self.tool.handlers.on_exit then
         return self.tool.handlers.on_exit(self.tool, self.tools)
       end
@@ -126,11 +137,19 @@ function Orchestrator:setup_handlers()
 
   self.output = {
     prompt = function()
+      if not self.tool then
+        return
+      end
+
       if self.tool.output and self.tool.output.prompt then
         return self.tool.output.prompt(self.tool, self.tools)
       end
     end,
     rejected = function(cmd)
+      if not self.tool then
+        return
+      end
+
       if self.tool.output and self.tool.output.rejected then
         self.tool.output.rejected(self.tool, self.tools, cmd)
       else
@@ -139,6 +158,10 @@ function Orchestrator:setup_handlers()
       end
     end,
     error = function(cmd)
+      if not self.tool then
+        return
+      end
+
       if self.tool.output and self.tool.output.error then
         self.tool.output.error(self.tool, self.tools, cmd, self.tools.stderr)
       else
@@ -146,6 +169,10 @@ function Orchestrator:setup_handlers()
       end
     end,
     cancelled = function(cmd)
+      if not self.tool then
+        return
+      end
+
       if self.tool.output and self.tool.output.cancelled then
         self.tool.output.cancelled(self.tool, self.tools, cmd)
       else
@@ -153,6 +180,10 @@ function Orchestrator:setup_handlers()
       end
     end,
     success = function(cmd)
+      if not self.tool then
+        return
+      end
+
       if self.tool.output and self.tool.output.success then
         self.tool.output.success(self.tool, self.tools, cmd, self.tools.stdout)
       else
@@ -269,7 +300,17 @@ function Orchestrator:error(action, error)
   log:debug("Orchestrator:error")
   self.tools.status = self.tools.constants.STATUS_ERROR
   table.insert(self.tools.stderr, error)
-  self.output.error(action)
+
+  local ok, err = pcall(function()
+    self.output.error(action)
+  end)
+  if not ok then
+    log:error("Internal error with the %s error handler: %s", self.tool.name, err)
+    if self.tool and self.tool.function_call then
+      self.tools.chat:add_tool_output(self.tool, string.format("Internal error with `%s` tool", self.tool.name))
+    end
+  end
+
   self:setup()
 end
 
@@ -283,7 +324,16 @@ function Orchestrator:success(action, output)
   if output then
     table.insert(self.tools.stdout, output)
   end
-  self.output.success(action)
+  local ok, err = pcall(function()
+    self.output.success(action)
+  end)
+
+  if not ok then
+    log:error("Internal error with the %s success handler: %s", self.tool.name, err)
+    if self.tool and self.tool.function_call then
+      self.tools.chat:add_tool_output(self.tool, string.format("Internal error with `%s` tool", self.tool.name))
+    end
+  end
 end
 
 ---Close the execution of the tool

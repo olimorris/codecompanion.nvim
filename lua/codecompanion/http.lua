@@ -57,7 +57,7 @@ function Client.new(args)
 end
 
 ---@class CodeCompanion.HTTPAdapter.RequestActions
----@field callback fun(err: nil|string, chunk: nil|table) Callback function, executed when the request has finished or is called multiple times if the request is streaming
+---@field callback fun(err: nil|table, chunk: nil|table) Callback function, executed when the request has finished or is called multiple times if the request is streaming
 ---@field done? fun() Function to run when the request is complete
 
 ---Send a HTTP request
@@ -169,6 +169,7 @@ function Client:request(payload, actions, opts)
         opts.status = "success"
         if data.status >= 400 then
           opts.status = "error"
+          actions.callback({ message = string.format([[%d error: ]], data.status), stderr = data }, nil)
         end
 
         if not opts.silent then

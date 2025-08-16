@@ -35,6 +35,12 @@ end
 ---@param output any The output from the previous function
 ---@return nil
 function Runner:proceed_to_next(output)
+  local current_tool = self.orchestrator.tool
+  if not current_tool then
+    self.orchestrator:close()
+    return self.orchestrator:setup(output)
+  end
+
   if self.index < #self.orchestrator.tool.cmds then
     local next_func = self.orchestrator.tool.cmds[self.index + 1]
     local next_executor = Runner.new(self.orchestrator, next_func, self.index + 1)
