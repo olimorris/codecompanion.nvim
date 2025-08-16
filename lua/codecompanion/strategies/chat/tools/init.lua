@@ -130,10 +130,6 @@ function Tools:execute(chat, tools)
     ---@param orchestrator CodeCompanion.Tools.Orchestrator The orchestrator instance
     ---@param tool table The tool to run
     local function enqueue_tool(orchestrator, tool)
-      if self.status == CONSTANTS.STATUS_ERROR then
-        return
-      end
-
       local name = tool["function"].name
       local tool_config = self.tools_config[name]
       local function handle_missing_tool(tool_call, err_message)
