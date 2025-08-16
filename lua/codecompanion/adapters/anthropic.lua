@@ -6,25 +6,6 @@ local utils = require("codecompanion.utils.adapters")
 local input_tokens = 0
 local output_tokens = 0
 
----Remove any keys from the message that are not allowed by the API
----@param message table The message to filter
----@return table The filtered message
-local function filter_out_messages(message)
-  local allowed = {
-    "content",
-    "role",
-    "reasoning",
-    "tool_calls",
-  }
-
-  for key, _ in pairs(message) do
-    if not vim.tbl_contains(allowed, key) then
-      message[key] = nil
-    end
-  end
-  return message
-end
-
 ---@class Anthropic.Adapter: CodeCompanion.Adapter
 return {
   name = "anthropic",
@@ -159,7 +140,15 @@ return {
         end
 
         -- 4. Remove disallowed keys
-        message = filter_out_messages(message)
+        message = utils.filter_out_messages({
+          message,
+          allowed_word = {
+            "content",
+            "role",
+            "reasoning",
+            "tool_calls",
+          },
+        })
 
         -- 5. Turn string content into { { type = "text", text } } and add in the reasoning
         if message.role == self.roles.user or message.role == self.roles.llm then

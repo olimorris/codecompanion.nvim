@@ -34,6 +34,21 @@ function M.ensure_array(tbl)
   return tbl
 end
 
+---@param params table Table containing message and allowed_words
+---@return table The filtered message
+function M.filter_out_messages(params)
+  local message = params.message
+
+  local allowed = params.allowed_words
+
+  for key, _ in pairs(message) do
+    if not vim.tbl_contains(allowed, key) then
+      message[key] = nil
+    end
+  end
+  return message
+end
+
 ---Refresh when we should next check the model cache
 ---@param file string
 ---@param cache_for number
