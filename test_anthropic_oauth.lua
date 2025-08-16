@@ -1,0 +1,5 @@
+local adapter = require("lua.codecompanion.adapters.anthropic_oauth")
+print("Adapter loaded successfully:", adapter.name)
+print("Formatted name:", adapter.formatted_name)
+print("URL:", adapter.url)
+print("Features:", vim.inspect(adapter.features))

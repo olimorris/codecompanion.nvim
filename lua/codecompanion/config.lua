@@ -13,6 +13,7 @@ local defaults = {
   adapters = {
     -- LLMs -------------------------------------------------------------------
     anthropic = "anthropic",
+    anthropic_oauth = "anthropic_oauth",
     azure_openai = "azure_openai",
     copilot = "copilot",
     deepseek = "deepseek",
