@@ -34,19 +34,22 @@ function M.ensure_array(tbl)
   return tbl
 end
 
+--- Filters a message table by creating a new table containing only keys that are in the allowed list.
+--- This function does not modify the original message table, instead returning a new filtered copy.
 ---@param params table Table containing message and allowed_words
----@return table The filtered message
+---@return table A new filtered message table
 function M.filter_out_messages(params)
   local message = params.message
-
   local allowed = params.allowed_words
+  local filtered_message = {}
 
-  for key, _ in pairs(message) do
-    if not vim.tbl_contains(allowed, key) then
-      message[key] = nil
+  for key, value in pairs(message) do
+    if vim.tbl_contains(allowed, key) then
+      filtered_message[key] = value
     end
   end
-  return message
+
+  return filtered_message
 end
 
 ---Refresh when we should next check the model cache
