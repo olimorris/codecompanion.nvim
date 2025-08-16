@@ -305,7 +305,7 @@ function Orchestrator:error(action, error)
     self.output.error(action)
   end)
   if not ok then
-    log:error("Error in %s error handler: %s", self.tool.name, err)
+    log:error("Internal error with the %s error handler: %s", self.tool.name, err)
     if self.tool and self.tool.function_call then
       self.tools.chat:add_tool_output(self.tool, string.format("Internal error with `%s` tool", self.tool.name))
     end
@@ -329,7 +329,7 @@ function Orchestrator:success(action, output)
   end)
 
   if not ok then
-    log:error("Error in tool success handler: %s", err)
+    log:error("Internal error with the %s success handler: %s", self.tool.name, err)
     if self.tool and self.tool.function_call then
       self.tools.chat:add_tool_output(self.tool, string.format("Internal error with `%s` tool", self.tool.name))
     end
