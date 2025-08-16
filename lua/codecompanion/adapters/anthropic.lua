@@ -141,8 +141,8 @@ return {
 
         -- 4. Remove disallowed keys
         message = utils.filter_out_messages({
-          message,
-          allowed_word = {
+          message = message,
+          allowed_words = {
             "content",
             "role",
             "reasoning",
