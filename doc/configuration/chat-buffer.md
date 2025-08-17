@@ -427,6 +427,28 @@ require("codecompanion").setup({
 }),
 ```
 
+The keymaps for accepting and rejecting the diff sit within the `inline` configuration and can be changed via:
+
+```lua
+require("codecompanion").setup({
+    strategies = {
+        inline = {
+            keymaps = {
+                accept_change = {
+                    modes = { n = "gda" },
+                },
+                reject_change = {
+                    modes = { n = "gdr" },
+                },
+                always_accept = {
+                    modes = { n = "gdt" },
+                },
+            },
+        },
+    },
+})
+```
+
 ## User Interface (UI)
 
 > [!NOTE]

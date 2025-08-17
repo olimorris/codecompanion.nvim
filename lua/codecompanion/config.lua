@@ -475,27 +475,21 @@ local defaults = {
       adapter = "copilot",
       keymaps = {
         accept_change = {
-          modes = {
-            n = "gda",
-          },
+          modes = { n = "gda" },
           opts = { nowait = true, noremap = true },
           index = 1,
           callback = "keymaps.accept_change",
           description = "Accept change",
         },
         reject_change = {
-          modes = {
-            n = "gdr",
-          },
+          modes = { n = "gdr" },
           opts = { nowait = true, noremap = true },
           index = 2,
           callback = "keymaps.reject_change",
           description = "Reject change",
         },
         always_accept = {
-          modes = {
-            n = "gt",
-          },
+          modes = { n = "gdt" },
           opts = { nowait = true },
           index = 3,
           callback = "keymaps.always_accept",
