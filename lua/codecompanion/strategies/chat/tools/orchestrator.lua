@@ -318,7 +318,7 @@ function Orchestrator:error(action, error)
       self.tools.chat:add_tool_output(self.tool, string.format("Internal error with `%s` tool", self.tool.name))
     end
   end
-  
+
   self:setup()
 end
 
