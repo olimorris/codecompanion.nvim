@@ -190,11 +190,12 @@ return {
         if has_tools and message.role == self.roles.llm and message.tool_calls then
           message.content = message.content or {}
           for _, call in ipairs(message.tool_calls) do
+            local args = call["function"].arguments
             table.insert(message.content, {
               type = "tool_use",
               id = call.id,
               name = call["function"].name,
-              input = vim.json.decode(call["function"].arguments),
+              input = args ~= "" and vim.json.decode(args) or "",
             })
           end
           message.tool_calls = nil

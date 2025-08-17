@@ -167,6 +167,29 @@ T["Tools"][":execute"]["a response from the LLM"] = function()
   h.eq("The weather in London, UK is 15° celsius", output)
 end
 
+T["Tools"][":execute"]["empty response from the LLM"] = function()
+  child.lua([[
+    --require("tests.log")
+    local tools = {
+      {
+        id = 1,
+        type = "function",
+        ["function"] = {
+          name = "weather_with_default",
+          arguments = "",
+        },
+      },
+    }
+
+    local chat = _G.chat
+    _G.tools:execute(chat, tools)
+  ]])
+
+  local output = child.lua_get([[_G.weather_output]])
+
+  h.eq("The weather in London, UK is 15° celsius", output)
+end
+
 T["Tools"][":execute"]["a malformed response from the LLM is handled"] = function()
   child.lua([[
     --require("tests.log")

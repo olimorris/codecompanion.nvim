@@ -126,6 +126,10 @@ return {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/weather.lua",
           description = "Get the latest weather",
         },
+        ["weather_with_default"] = {
+          callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/weather_with_default.lua",
+          description = "Get the latest weather",
+        },
         ["func"] = {
           callback = vim.fn.getcwd() .. "/tests/strategies/chat/tools/catalog/stubs/func.lua",
           description = "Some function tool to test",

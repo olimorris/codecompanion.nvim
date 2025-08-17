@@ -169,6 +169,9 @@ function Tools:execute(chat, tools)
         -- For some adapter's that aren't streaming, the args are strings rather than tables
         if type(args) == "string" then
           local decoded
+          if args == "" then
+            args = "{}"
+          end
           xpcall(function()
             decoded = vim.json.decode(args)
           end, function(err)
