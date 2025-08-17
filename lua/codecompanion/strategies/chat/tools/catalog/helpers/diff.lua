@@ -137,7 +137,7 @@ local function open_buffer_and_window(bufnr_or_filepath)
   local is_filepath = type(bufnr_or_filepath) == "string"
 
   if is_filepath then
-    local filepath = bufnr_or_filepath
+    local filepath = bufnr_or_filepath --[[@as string]]
     local existing_bufnr = get_existing_buffer(filepath)
 
     if existing_bufnr then
@@ -163,7 +163,7 @@ local function open_buffer_and_window(bufnr_or_filepath)
 
     return create_split_window(filepath), api.nvim_get_current_win() -- Fallback
   else
-    local bufnr = bufnr_or_filepath
+    local bufnr = bufnr_or_filepath --[[@as number]]
     local existing_win = ui.buf_get_win(bufnr)
 
     if existing_win then
@@ -237,7 +237,7 @@ function M.create(bufnr_or_filepath, diff_id, opts)
       end
     end
     -- Try LSP approach first
-    local autocmd_id = vim.api.nvim_create_autocmd("LspAttach", {
+    local autocmd_id = api.nvim_create_autocmd("LspAttach", {
       buffer = diff.bufnr,
       once = true,
       callback = function(args)
@@ -249,7 +249,7 @@ function M.create(bufnr_or_filepath, diff_id, opts)
     })
     -- Fallback with timeout
     vim.defer_fn(function()
-      pcall(vim.api.nvim_del_autocmd, autocmd_id)
+      pcall(api.nvim_del_autocmd, autocmd_id)
       log:debug("[catalog::helpers::diff::create] Fallback triggered")
       setup_keymaps_once() -- Only runs if LSP didn't trigger
     end, 200)
@@ -275,7 +275,7 @@ function M.setup_keymaps(diff, opts)
   for _, keymap_config in pairs(inline_config.keymaps) do
     for mode, lhs in pairs(keymap_config.modes) do
       local keys_to_check = type(lhs) == "table" and lhs or { lhs }
-      local existing_keymaps = vim.api.nvim_buf_get_keymap(diff.bufnr, mode)
+      local existing_keymaps = api.nvim_buf_get_keymap(diff.bufnr, mode)
 
       -- Handle all keys
       for _, key in ipairs(keys_to_check) do
