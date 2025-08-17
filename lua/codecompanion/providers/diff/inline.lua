@@ -113,13 +113,25 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
       if first_diff_line == 1 then
         attach_line = attach_line + 1
       end
-      local hint_text = "ga: accept | gr: reject | gt: always accept"
-      local _, keymap_extmark_id = pcall(api.nvim_buf_set_extmark, self.bufnr, self.ns_id, attach_line, 0, {
-        virt_text = { { hint_text, "CodeCompanionInlineDiffHint" } },
-        virt_text_pos = "right_align",
-        priority = 300,
-      })
-      table.insert(self.extmark_ids, keymap_extmark_id)
+      -- Build hint text from configured keymaps
+      local keymaps_config = config.strategies.inline.keymaps
+      if keymaps_config then
+        local hint_parts = {}
+        table.insert(hint_parts, keymaps_config.accept_change.modes.n .. ": accept")
+        table.insert(hint_parts, keymaps_config.reject_change.modes.n .. ": reject")
+        table.insert(hint_parts, keymaps_config.always_accept.modes.n .. ": always accept")
+
+        local hint_text = table.concat(hint_parts, " | ")
+        local success, keymap_extmark_id = pcall(api.nvim_buf_set_extmark, self.bufnr, self.ns_id, attach_line, 0, {
+          virt_text = { { hint_text, "CodeCompanionInlineDiffHint" } },
+          virt_text_pos = "right_align",
+          priority = 300,
+        })
+        if not success then
+          log:debug("[providers::diff::inline] Failed to create keymap hint: %s", keymap_extmark_id)
+        end
+        table.insert(self.extmark_ids, keymap_extmark_id)
+      end
     end
   end
 
@@ -150,6 +162,11 @@ end
 function InlineDiff:accept()
   log:debug("[providers::diff::inline::accept] Called")
   util.fire("DiffAccepted", { diff = "inline", bufnr = self.bufnr, id = self.id, accept = true })
+  pcall(function()
+    api.nvim_buf_call(self.bufnr, function()
+      vim.cmd("silent update")
+    end)
+  end)
   self:clear_highlights()
 end
 
@@ -161,6 +178,11 @@ function InlineDiff:reject()
   if api.nvim_buf_is_valid(self.bufnr) then
     api.nvim_buf_set_lines(self.bufnr, 0, -1, true, self.contents)
   end
+  pcall(function()
+    api.nvim_buf_call(self.bufnr, function()
+      vim.cmd("silent update")
+    end)
+  end)
   self:clear_highlights()
 end
 
@@ -168,6 +190,11 @@ end
 ---@return nil
 function InlineDiff:teardown()
   log:debug("[providers::diff::inline::teardown] Called")
+  pcall(function()
+    api.nvim_buf_call(self.bufnr, function()
+      vim.cmd("silent update")
+    end)
+  end)
   self:clear_highlights()
   util.fire("DiffDetached", { diff = "inline", bufnr = self.bufnr, id = self.id })
 end
