@@ -1,4 +1,4 @@
-local InlineDiff = require("codecompanion.providers.diff.inline_default")
+local InlineDiff = require("codecompanion.providers.diff.inline")
 local h = require("tests.helpers")
 
 local T = MiniTest.new_set()
@@ -515,7 +515,7 @@ T["InlineDiff Screenshots"]["Shows simple line modification"] = function()
 
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_content)
 
-    local InlineDiff = require("codecompanion.providers.diff.inline_default")
+    local InlineDiff = require("codecompanion.providers.diff.inline")
     local diff = InlineDiff.new({
       bufnr = bufnr,
       contents = original_content,
@@ -551,7 +551,7 @@ T["InlineDiff Screenshots"]["Shows addition of new lines"] = function()
 
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_content)
 
-    local InlineDiff = require("codecompanion.providers.diff.inline_default")
+    local InlineDiff = require("codecompanion.providers.diff.inline")
     local diff = InlineDiff.new({
       bufnr = bufnr,
       contents = original_content,
@@ -590,7 +590,7 @@ T["InlineDiff Screenshots"]["Shows deletion of lines"] = function()
 
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_content)
 
-    local InlineDiff = require("codecompanion.providers.diff.inline_default")
+    local InlineDiff = require("codecompanion.providers.diff.inline")
     local diff = InlineDiff.new({
       bufnr = bufnr,
       contents = original_content,
@@ -647,7 +647,7 @@ T["InlineDiff Screenshots"]["Shows complex mixed changes"] = function()
 
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_content)
 
-    local InlineDiff = require("codecompanion.providers.diff.inline_default")
+    local InlineDiff = require("codecompanion.providers.diff.inline")
     local diff = InlineDiff.new({
       bufnr = bufnr,
       contents = original_content,

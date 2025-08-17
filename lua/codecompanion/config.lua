@@ -1080,9 +1080,11 @@ You must create or modify a workspace file through a series of prompts over mult
     },
     diff = {
       enabled = true,
-      provider = providers.diff, -- mini_diff|default|inline_default
+      provider = providers.diff, -- mini_diff|split|inline
       close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-      layout = "vertical", -- vertical|horizontal split for default provider
+
+      -- Options for the `default` diff provider
+      layout = "vertical", -- vertical|horizontal split
       opts = {
         "internal",
         "filler",
@@ -1092,6 +1094,7 @@ You must create or modify a workspace file through a series of prompts over mult
         "followwrap",
         "linematch:120",
       },
+
       diff_signs = {
         signs = {
           text = "▌", -- Sign text for normal changes

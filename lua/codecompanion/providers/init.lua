@@ -21,9 +21,9 @@ local configs = {
   },
 
   -- Diffs
-  inline_default = {
-    module = "codecompanion.providers.diff.inline_default", -- Internal module path
-    name = "inline_default",
+  inline = {
+    module = "codecompanion.providers.diff.inline", -- Internal module path
+    name = "inline",
     -- No condition needed - always available since it's internal
   },
   mini_diff = {
@@ -92,8 +92,8 @@ end
 ---Get the default Diff provider
 ---@return string
 local function diff_providers()
-  local providers = { "default", "mini_diff" }
-  return find_provider(providers, configs, "inline_default")
+  local providers = { "split", "mini_diff" }
+  return find_provider(providers, configs, "inline")
 end
 
 ---Get the default Completion provider
