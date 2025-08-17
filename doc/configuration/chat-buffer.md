@@ -381,7 +381,7 @@ require("codecompanion").setup({
 
 ## Diff
 
-CodeCompanion has built-in inline and split diffs available to you. If you utilize the `insert_edit_into_file` tool, then the plugin can update files and buffers and a diff will be created so you can see the changes made by the LLM. The `inline_default` is the default diff.
+CodeCompanion has built-in inline and split diffs available to you. If you utilize the `insert_edit_into_file` tool, then the plugin can update files and buffers and a diff will be created so you can see the changes made by the LLM. The `inline` is the default diff.
 
 There are a number of diff settings available to you:
 
@@ -390,9 +390,11 @@ require("codecompanion").setup({
   display = {
     diff = {
       enabled = true,
-      provider = providers.diff, -- mini_diff|default|inline_default
+      provider = providers.diff, -- mini_diff|split|inline
       close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-      layout = "vertical", -- vertical|horizontal split for default provider
+
+    -- Options for the split diff provider
+      layout = "vertical", -- vertical|horizontal split
       opts = {
         "internal",
         "filler",
@@ -402,6 +404,7 @@ require("codecompanion").setup({
         "followwrap",
         "linematch:120",
       },
+
       diff_signs = {
         signs = {
           text = "▌", -- Sign text for normal changes
@@ -431,21 +434,21 @@ The keymaps for accepting and rejecting the diff sit within the `inline` configu
 
 ```lua
 require("codecompanion").setup({
-    strategies = {
-        inline = {
-            keymaps = {
-                accept_change = {
-                    modes = { n = "gda" },
-                },
-                reject_change = {
-                    modes = { n = "gdr" },
-                },
-                always_accept = {
-                    modes = { n = "gdt" },
-                },
-            },
+  strategies = {
+    inline = {
+      keymaps = {
+        accept_change = {
+          modes = { n = "gda" }, -- gDiffAccept
         },
+        reject_change = {
+          modes = { n = "gdr" }, -- gDiffReject
+        },
+        always_accept = {
+          modes = { n = "gdt" },
+        },
+      },
     },
+  },
 })
 ```
 
