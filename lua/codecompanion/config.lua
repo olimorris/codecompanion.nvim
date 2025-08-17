@@ -476,7 +476,7 @@ local defaults = {
       keymaps = {
         accept_change = {
           modes = {
-            n = "ga",
+            n = "gda",
           },
           opts = { nowait = true, noremap = true },
           index = 1,
@@ -485,7 +485,7 @@ local defaults = {
         },
         reject_change = {
           modes = {
-            n = "gr",
+            n = "gdr",
           },
           opts = { nowait = true, noremap = true },
           index = 2,
