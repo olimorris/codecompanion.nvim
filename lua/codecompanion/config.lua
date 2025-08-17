@@ -45,7 +45,7 @@ local defaults = {
       adapter = "copilot",
       roles = {
         ---The header name for the LLM's messages
-        ---@type string|fun(adapter: CodeCompanion.Adapter): string
+        ---@type string|fun(adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter): string
         llm = function(adapter)
           return "CodeCompanion (" .. adapter.formatted_name .. ")"
         end,
@@ -1091,7 +1091,7 @@ You must create or modify a workspace file through a series of prompts over mult
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
 
       ---@param tokens number
-      ---@param adapter CodeCompanion.Adapter
+      ---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
       token_count = function(tokens, adapter) -- The function to display the token count
         return " (" .. tokens .. " tokens)"
       end,
