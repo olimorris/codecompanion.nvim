@@ -47,7 +47,7 @@ Thank you to the following people:
 <div align="center">
   <p>
     <h3><a href="https://github.com/user-attachments/assets/aa109f1d-0ec9-4f08-bd9a-df99da03b9a4">The Chat Buffer</a></h3>
-    https://github.com/user-attachments/assets/3cc83544-2690-49b5-8be6-51e671db52ef
+    <video controls muted src="https://github.com/user-attachments/assets/3cc83544-2690-49b5-8be6-51e671db52ef"></video>
   </p>
   <p>
     <h3><a href="https://github.com/user-attachments/assets/362b7cfd-e794-4d9c-9a74-90d5e2a87a32">Tools + Agentic Workflows</a></h3>
