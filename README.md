@@ -33,7 +33,8 @@ Thank you to the following people:
 - :heart_hands: User contributed and supported [adapters](https://codecompanion.olimorris.dev/configuration/adapters#community-adapters)
 - :rocket: [Inline transformations](https://codecompanion.olimorris.dev/usage/inline-assistant.html), code creation and refactoring
 - :robot: [Variables](https://codecompanion.olimorris.dev/usage/chat-buffer/variables.html), [Slash Commands](https://codecompanion.olimorris.dev/usage/chat-buffer/slash-commands.html), [Tools](https://codecompanion.olimorris.dev/usage/chat-buffer/tools.html) and [Workflows](https://codecompanion.olimorris.dev/usage/workflows.html) to improve LLM output
-- :sparkles: Built in [prompt library](https://codecompanion.olimorris.dev/usage/action-palette.html) for common tasks like advice on LSP errors and code explanations
+- :crystal_ball: Native [Super Diff](https://codecompanion.olimorris.dev/usage/chat-buffer/index.html#super-diff) for tracking agent edits
+- :sparkles: Built-in [prompt library](https://codecompanion.olimorris.dev/usage/action-palette.html) for common tasks like advice on LSP errors and code explanations
 - :building_construction: Create your own [custom prompts](https://codecompanion.olimorris.dev/extending/prompts.html), Variables and Slash Commands
 - :books: Have [multiple chats](https://codecompanion.olimorris.dev/usage/introduction.html#quickly-accessing-a-chat-buffer) open at the same time
 - :art: Support for [vision and images](https://codecompanion.olimorris.dev/usage/chat-buffer/#images-vision) as input
