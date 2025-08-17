@@ -4,7 +4,7 @@
     Author:     Oli Morris
 ----------------------------------------------------------
     Description:
-      This module implements the ACP Connection for CodeCompanion.
+      This module implements ACP communication in CodeCompanion.
       It provides a fluent API for interacting with ACP agents,
       handling session management, and processing responses.
 
@@ -469,7 +469,7 @@ function Connection:prompt(messages)
 end
 
 --=============================================================================
--- PromptBuilder - Build the prompt which goes to the agent
+-- PromptBuilder - Fluidly build the prompt which is sent to the agent
 --=============================================================================
 
 ---Create new prompt builder
