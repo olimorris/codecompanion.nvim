@@ -32,6 +32,7 @@ return {
         ---@param data table The data from the LLM's tool call
         ---@return nil
         setup = function(self, opts, data)
+          opts = opts or {}
           self.handlers.set_body = function()
             local body = {
               query = data.query,

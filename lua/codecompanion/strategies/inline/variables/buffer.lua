@@ -13,21 +13,18 @@ end
 ---Fetch and output a buffer's contents
 ---@return string|nil
 function Buffer:output()
-  local ok, content = pcall(buf_utils.get_content, self.context.bufnr)
+  local message = "To help you assist with my user prompt, I'm attaching the contents of a buffer"
+
+  local ok, content, _, _ = pcall(buf_utils.format_for_llm, {
+    bufnr = self.context.bufnr,
+    path = buf_utils.get_info(self.context.bufnr).path,
+  }, { message = message })
 
   if not ok then
     return
   end
 
-  return string.format(
-    [[To help you assist with my user prompt, I'm attaching the contents of a buffer:
-
-```%s
-%s
-```]],
-    self.context.filetype,
-    content
-  )
+  return content
 end
 
 return Buffer

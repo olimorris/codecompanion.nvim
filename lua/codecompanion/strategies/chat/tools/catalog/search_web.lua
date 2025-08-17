@@ -117,7 +117,7 @@ return {
     error = function(self, tools, _, stderr, _)
       local chat = tools.chat
       local args = self.args
-      log:debug("[Web Search Tool] Error output: %s", stderr)
+      log:debug("[Search Web Tool] Error output: %s", stderr)
 
       local error_output = fmt([[Error searching for `%s`]], args.query)
 
