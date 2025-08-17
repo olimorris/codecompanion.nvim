@@ -135,7 +135,7 @@ Referencing [`acp_json_schema.json`](llm_notes/acp_json_schema.json):
 }
 ```
 
-**Agent Streaming Response:**
+**Agent Thinking Response:**
 ```json
 {
   "jsonrpc": "2.0",
@@ -149,6 +149,23 @@ Referencing [`acp_json_schema.json`](llm_notes/acp_json_schema.json):
   }
 }
 ```
+
+**Agent Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "session/update",
+  "params": {
+    "sessionId": "abc123",
+    "update": {
+      "sessionUpdate": "agent_message_chunk",
+      "content": { "type": "text", "text": "Here are the results of your search..." }
+    }
+  }
+}
+```
+
+**Agent Requesting Permission:**
 ```json
 {
     "jsonrpc": "2.0",
@@ -190,34 +207,48 @@ Referencing [`acp_json_schema.json`](llm_notes/acp_json_schema.json):
         }
     }
 }
-
 ```
+
+**Tool Call In Progress:**
 ```json
 {
   "jsonrpc": "2.0",
   "method": "session/update",
   "params": {
-    "sessionId": "abc123",
+    "sessionId": "711e49ae-79d1-4d6e-8481-8844a71f997a",
     "update": {
       "sessionUpdate": "tool_call",
-      "toolCallId": "call_xyz",
-      "title": "Grep Search",
-      "kind": "search",
-      "status": "pending",
-      "content": []
+      "toolCallId": "google_web_search-1755377262369",
+      "status": "in_progress",
+      "title": "Searching the web for: \"neovim nightly vim.pack.add\"",
+      "content": [],
+      "locations": [],
+      "kind": "search"
     }
   }
 }
 ```
+
+**Completed Tool Call:**
 ```json
 {
   "jsonrpc": "2.0",
   "method": "session/update",
   "params": {
-    "sessionId": "abc123",
+    "sessionId": "711e49ae-79d1-4d6e-8481-8844a71f997a",
     "update": {
-      "sessionUpdate": "agent_message_chunk",
-      "content": { "type": "text", "text": "Here are the results of your search..." }
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "google_web_search-1755377262369",
+      "status": "completed",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "Search results for \"neovim nightly vim.pack.add\" returned."
+          }
+        }
+      ]
     }
   }
 }
