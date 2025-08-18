@@ -88,6 +88,10 @@ api.nvim_create_autocmd("BufEnter", {
   desc = "Capture the last buffer the user was in",
   callback = function(args)
     local bufnr = args.buf
+    if not api.nvim_buf_is_valid(bufnr) then
+      return
+    end
+
     local buffer_config = config.strategies.chat.variables.buffer.opts
     local excluded = (buffer_config and buffer_config.excluded) or {}
     local excluded_fts = excluded.fts or {}
