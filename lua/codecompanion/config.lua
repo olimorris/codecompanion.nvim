@@ -318,17 +318,13 @@ local defaults = {
       },
       keymaps = {
         options = {
-          modes = {
-            n = "?",
-          },
+          modes = { n = "?" },
           callback = "keymaps.options",
           description = "Options",
           hide = true,
         },
         completion = {
-          modes = {
-            i = "<C-_>",
-          },
+          modes = { i = "<C-_>" },
           index = 1,
           callback = "keymaps.completion",
           description = "Completion Menu",
@@ -343,9 +339,7 @@ local defaults = {
           description = "Send",
         },
         regenerate = {
-          modes = {
-            n = "gr",
-          },
+          modes = { n = "gr" },
           index = 3,
           callback = "keymaps.regenerate",
           description = "Regenerate the last response",
@@ -360,121 +354,91 @@ local defaults = {
           description = "Close Chat",
         },
         stop = {
-          modes = {
-            n = "q",
-          },
+          modes = { n = "q" },
           index = 5,
           callback = "keymaps.stop",
           description = "Stop Request",
         },
         clear = {
-          modes = {
-            n = "gx",
-          },
+          modes = { n = "gx" },
           index = 6,
           callback = "keymaps.clear",
           description = "Clear Chat",
         },
         codeblock = {
-          modes = {
-            n = "gc",
-          },
+          modes = { n = "gc" },
           index = 7,
           callback = "keymaps.codeblock",
           description = "Insert Codeblock",
         },
         yank_code = {
-          modes = {
-            n = "gy",
-          },
+          modes = { n = "gy" },
           index = 8,
           callback = "keymaps.yank_code",
           description = "Yank Code",
         },
         pin = {
-          modes = {
-            n = "gp",
-          },
+          modes = { n = "gp" },
           index = 9,
           callback = "keymaps.pin_context",
           description = "Pin context",
         },
         watch = {
-          modes = {
-            n = "gw",
-          },
+          modes = { n = "gw" },
           index = 10,
           callback = "keymaps.toggle_watch",
           description = "Watch Buffer",
         },
         next_chat = {
-          modes = {
-            n = "}",
-          },
+          modes = { n = "}" },
           index = 11,
           callback = "keymaps.next_chat",
           description = "Next Chat",
         },
         previous_chat = {
-          modes = {
-            n = "{",
-          },
+          modes = { n = "{" },
           index = 12,
           callback = "keymaps.previous_chat",
           description = "Previous Chat",
         },
         next_header = {
-          modes = {
-            n = "]]",
-          },
+          modes = { n = "]]" },
           index = 13,
           callback = "keymaps.next_header",
           description = "Next Header",
         },
         previous_header = {
-          modes = {
-            n = "[[",
-          },
+          modes = { n = "[[" },
           index = 14,
           callback = "keymaps.previous_header",
           description = "Previous Header",
         },
         change_adapter = {
-          modes = {
-            n = "ga",
-          },
+          modes = { n = "ga" },
           index = 15,
           callback = "keymaps.change_adapter",
           description = "Change adapter",
         },
         fold_code = {
-          modes = {
-            n = "gf",
-          },
+          modes = { n = "gf" },
           index = 15,
           callback = "keymaps.fold_code",
           description = "Fold code",
         },
         debug = {
-          modes = {
-            n = "gd",
-          },
+          modes = { n = "gd" },
           index = 16,
           callback = "keymaps.debug",
           description = "View debug info",
         },
         system_prompt = {
-          modes = {
-            n = "gs",
-          },
+          modes = { n = "gs" },
           index = 17,
           callback = "keymaps.toggle_system_prompt",
           description = "Toggle the system prompt",
         },
         auto_tool_mode = {
-          modes = {
-            n = "gta",
-          },
+          modes = { n = "gta" },
           index = 18,
           callback = "keymaps.auto_tool_mode",
           description = "Toggle automatic tool mode",
@@ -490,6 +454,12 @@ local defaults = {
           index = 20,
           callback = "keymaps.copilot_stats",
           description = "Show Copilot usage statistics",
+        },
+        super_diff = {
+          modes = { n = "gD" },
+          index = 21,
+          callback = "keymaps.super_diff",
+          description = "Show Super Diff",
         },
       },
       opts = {
@@ -507,21 +477,25 @@ local defaults = {
       adapter = "copilot",
       keymaps = {
         accept_change = {
-          modes = {
-            n = "ga",
-          },
+          modes = { n = "gda" },
+          opts = { nowait = true, noremap = true },
           index = 1,
           callback = "keymaps.accept_change",
           description = "Accept change",
         },
         reject_change = {
-          modes = {
-            n = "gr",
-          },
-          opts = { nowait = true },
+          modes = { n = "gdr" },
+          opts = { nowait = true, noremap = true },
           index = 2,
           callback = "keymaps.reject_change",
           description = "Reject change",
+        },
+        always_accept = {
+          modes = { n = "gdt" },
+          opts = { nowait = true },
+          index = 3,
+          callback = "keymaps.always_accept",
+          description = "Accept and enable auto mode",
         },
       },
       variables = {
@@ -1047,12 +1021,7 @@ You must create or modify a workspace file through a series of prompts over mult
         tool_success = " ",
         tool_failure = " ",
       },
-      debug_window = {
-        ---@return number|fun(): number
-        width = vim.o.columns - 5,
-        ---@return number|fun(): number
-        height = vim.o.lines - 2,
-      },
+      -- Window options for the chat buffer
       window = {
         layout = "vertical", -- float|vertical|horizontal|buffer
         position = nil, -- left|right|top|bottom (nil will default depending on vim.opt.splitright|vim.opt.splitbelow)
@@ -1076,7 +1045,21 @@ You must create or modify a workspace file through a series of prompts over mult
           wrap = true,
         },
       },
-      auto_scroll = true, -- Automatically scroll down and place the cursor at the end
+      -- Window options for any windows that open within the chat buffer
+      child_window = {
+        width = vim.o.columns - 5,
+        height = vim.o.lines - 2,
+        row = "center",
+        col = "center",
+        relative = "editor",
+        opts = {
+          wrap = true,
+          number = false,
+          relativenumber = false,
+        },
+      },
+
+      auto_scroll = true, -- Automatically scroll down and place the cursor at the end?
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
 
       show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
@@ -1090,6 +1073,7 @@ You must create or modify a workspace file through a series of prompts over mult
       show_token_count = true, -- Show the token count for each response?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
 
+      ---The function to display the token count
       ---@param tokens number
       ---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
       token_count = function(tokens, adapter) -- The function to display the token count
@@ -1098,8 +1082,11 @@ You must create or modify a workspace file through a series of prompts over mult
     },
     diff = {
       enabled = true,
+      provider = providers.diff, -- mini_diff|split|inline
       close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-      layout = "vertical", -- vertical|horizontal split for default provider
+
+      -- Options for the `default` diff provider
+      layout = "vertical", -- vertical|horizontal split
       opts = {
         "internal",
         "filler",
@@ -1109,7 +1096,36 @@ You must create or modify a workspace file through a series of prompts over mult
         "followwrap",
         "linematch:120",
       },
-      provider = providers.diff, -- mini_diff|default
+
+      -- Options for inline diff
+      diff_signs = {
+        signs = {
+          text = "▌", -- Sign text for normal changes
+          reject = "✗", -- Sign text for rejected changes in super_diff
+          highlight_groups = {
+            addition = "DiagnosticOk",
+            deletion = "DiagnosticError",
+            modification = "DiagnosticWarn",
+          },
+        },
+        -- Super Diff options
+        icons = {
+          accepted = " ",
+          rejected = " ",
+        },
+        colors = {
+          accepted = "DiagnosticOk",
+          rejected = "DiagnosticError",
+        },
+      },
+      -- Inline diff specific options
+      inline = {
+        show_removed = true, -- Show removed lines as virtual text
+        full_width_removed = true, -- Make removed lines span full width
+        priority = 100, -- Highlight priority for diffs; increase if using inlay hints or if highlights are not visible.
+        context_lines = 3, -- Number of context lines in hunks
+        show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
+      },
     },
     inline = {
       -- If the inline prompt creates a new buffer, how should we display this?

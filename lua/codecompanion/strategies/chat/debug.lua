@@ -206,6 +206,7 @@ function Debug:render()
 
   self.bufnr = api.nvim_create_buf(false, true)
 
+  api.nvim_buf_set_name(self.bufnr, "CodeCompanion_debug")
   -- Set the keymaps as per the user's chat buffer config
   local maps = {}
   local config_maps = vim.deepcopy(config.strategies.chat.keymaps)
@@ -234,25 +235,14 @@ function Debug:render()
     })
     :set()
 
-  local window = vim.deepcopy(config.display.chat.window)
-  if type(config.display.chat.debug_window.height) == "function" then
-    window.height = config.display.chat.debug_window.height()
-  else
-    window.height = config.display.chat.debug_window.height
-  end
-  if type(config.display.chat.debug_window.width) == "function" then
-    window.width = config.display.chat.debug_window.width()
-  else
-    window.width = config.display.chat.debug_window.width
-  end
+  local window_config = config.display.chat.child_window
 
   ui.create_float(lines, {
     bufnr = self.bufnr,
     filetype = "lua",
-    relative = "editor",
     title = "Debug Chat",
-    window = window,
-    opts = {
+    window = window_config,
+    opts = window_config.opts or {
       wrap = true,
     },
   })
