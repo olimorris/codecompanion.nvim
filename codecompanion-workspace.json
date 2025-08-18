@@ -94,7 +94,7 @@
     },
     {
       "name": "ACP Integration",
-      "system_prompt": "This group covers the ACP (Agent Communication Protocol) integration in CodeCompanion.nvim. ACP enables session-based, schema-driven communication with LLM agents, supporting authentication, streaming responses, tool calls, and permission handling. Key components:\n\n- **ACPAdapter**: Encapsulates ACP-specific logic for agent communication.\n- **ACPConnection**: Manages agent process, session lifecycle, authentication, and streaming.\n- **PromptBuilder**: Fluent API for sending prompts and handling streamed responses, tool calls, and errors.\n- **Chat Buffer**: Parses user messages, submits prompts via ACP, and streams agent responses into the buffer.\n\nRelevant files:\n- `lua/codecompanion/acp.lua` (ACPConnection, PromptBuilder)\n- `lua/codecompanion/adapters/acp/init.lua` (ACPAdapter)\n- `lua/codecompanion/strategies/chat/init.lua` (Chat Buffer logic)\n- [ACP JSON Schema](llm_notes/acp_json_schema.json) (for schema awareness)\n\nRefer to the ACP documentation for message flow, schema types, and extensibility.",
+      "system_prompt": "This group covers the ACP (Agent Communication Protocol) integration in CodeCompanion.nvim. ACP enables session-based, schema-driven communication with LLM agents, supporting authentication, streaming responses, tool calls, and permission handling. Key components:\n\n- **ACPAdapter**: Encapsulates ACP-specific logic for agent communication.\n- **ACPConnection**: Manages agent process, session lifecycle, authentication, and streaming.\n- **PromptBuilder**: Fluent API for sending prompts and handling streamed responses, tool calls, and errors.\n- **Chat Buffer**: Parses user messages, submits prompts via ACP, and streams agent responses into the buffer.\n\nRelevant files:\n- `lua/codecompanion/acp.lua` (ACPConnection, PromptBuilder)\n- `lua/codecompanion/adapters/acp/init.lua` (ACPAdapter)\n- `lua/codecompanion/strategies/chat/init.lua` (Chat Buffer logic)\n- [ACP JSON Schema](.codecompanion/acp_json_schema.json) (for schema awareness)\n\nRefer to the ACP documentation for message flow, schema types, and extensibility.",
       "opts": {
         "remove_config_system_prompt": true
       },
@@ -104,7 +104,8 @@
         "acp-connection",
         "acp-adapter",
         "gemini-cli",
-        "chat-buffer-init"
+        "chat-buffer-init",
+        "chat-acp-handler"
       ]
     }
   ],
@@ -133,6 +134,11 @@
       "type": "symbols",
       "path": "lua/codecompanion/strategies/chat/watchers.lua",
       "description": "A watcher is when a user has toggled a specific buffer to be watched. When a message is sent to the LLM by the user, any changes made to the watched buffer are also sent, giving the LLM up to date context. The `${filename}` is where this logic sits and I've shared its symbolic outline below."
+    },
+    "chat-acp-handler": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/acp_handler.lua",
+      "description": "Extracted ACP submission logic from the chat buffer. Handles ACP connection management, message streaming with multiple handlers (message chunks, thought chunks, tool calls), output collection, error handling, and completion logic. This separation keeps the main chat buffer focused on orchestration while isolating ACP-specific complexity."
     },
     "chat-ui-builder": {
       "type": "file",
@@ -299,12 +305,12 @@
     },
     "acp-schema": {
       "type": "file",
-      "path": "llm_notes/acp_json_schema.json",
+      "path": ".codecompanion/acp_json_schema.json",
       "description": "ACP JSON schema defining request, response, and notification types for agent communication."
     },
     "acp-implementation-notes": {
       "type": "file",
-      "path": "llm_notes/acp.md",
+      "path": ".codecompanion/acp.md",
       "description": "This document explains how ACP works in CodeCompanion.nvim."
     },
     "gemini-cli": {

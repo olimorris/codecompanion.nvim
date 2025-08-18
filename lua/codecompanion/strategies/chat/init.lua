@@ -972,54 +972,8 @@ end
 ---@param payload table The payload to send to the LLM
 ---@return nil
 function Chat:_submit_acp(payload)
-  local output = {}
-  local reasoning = {}
-  local tools = {}
-
-  if not self.acp_connection then
-    self.acp_connection = get_client(self.adapter).new({
-      adapter = self.adapter,
-    })
-
-    local connected = self.acp_connection:connect()
-    if not connected then
-      self.status = CONSTANTS.STATUS_ERROR
-      return self:done(output)
-    end
-  end
-
-  self.current_request = self.acp_connection
-    :prompt(payload.messages)
-    :on_message_chunk(function(content)
-      table.insert(output, content)
-      self:add_buf_message(
-        { role = config.constants.LLM_ROLE, content = content },
-        { type = self.MESSAGE_TYPES.LLM_MESSAGE }
-      )
-    end)
-    :on_thought_chunk(function(content)
-      table.insert(reasoning, content)
-      self:add_buf_message(
-        { role = config.constants.LLM_ROLE, content = content },
-        { type = self.MESSAGE_TYPES.REASONING_MESSAGE }
-      )
-    end)
-    :on_tool_call(function(tool_call)
-      -- Handle tool call
-    end)
-    :on_complete(function(stop_reason)
-      if not self.status or self.status == "" then
-        self.status = CONSTANTS.STATUS_SUCCESS
-      end
-      self:done(output, reasoning, tools)
-    end)
-    :on_error(function(error)
-      self.status = CONSTANTS.STATUS_ERROR
-      log:error("[chat::_submit_acp] Error: %s", error)
-      self:done(output)
-    end)
-    :with_options({ bufnr = self.bufnr, strategy = "chat" })
-    :send()
+  local acp_handler = require("codecompanion.strategies.chat.acp_handler").new(self)
+  self.current_request = acp_handler:submit(payload)
 end
 
 ---Submit the chat buffer's contents to the LLM
