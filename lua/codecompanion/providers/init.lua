@@ -92,7 +92,7 @@ end
 ---Get the default Diff provider
 ---@return string
 local function diff_providers()
-  local providers = { "split", "mini_diff" }
+  local providers = { "inline", "split", "mini_diff" }
   return find_provider(providers, configs, "inline")
 end
 

@@ -1095,6 +1095,7 @@ You must create or modify a workspace file through a series of prompts over mult
         "linematch:120",
       },
 
+      -- Options for inline diff
       diff_signs = {
         signs = {
           text = "▌", -- Sign text for normal changes
@@ -1119,9 +1120,9 @@ You must create or modify a workspace file through a series of prompts over mult
       inline = {
         show_removed = true, -- Show removed lines as virtual text
         full_width_removed = true, -- Make removed lines span full width
-        priority = 100, -- Extmark priority - exposed if people inlay hints activated
+        priority = 100, -- Highlight priority for diffs; increase if using inlay hints or if highlights are not visible.
         context_lines = 3, -- Number of context lines in hunks
-        show_keymap_hints = true, -- Show "ga: accept | gr: reject" hints above diff
+        show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
       },
     },
     inline = {
