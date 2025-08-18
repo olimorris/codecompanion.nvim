@@ -491,8 +491,8 @@ function Inline:done(output)
     pcall(vim.cmd.undojoin)
     self:output(json.code)
     -- After auto-applying inline edits (e.g., no_diff), move cursor to end of insertion
-    if self.opts and self.opts.no_diff and self.classification and self.context then
-      api.nvim_win_set_cursor(self.context.winnr, { self.classification.pos.line, self.classification.pos.col })
+    if self.opts and self.opts.no_diff and self.classification and self.buffer_context then
+      api.nvim_win_set_cursor(self.buffer_context.winnr, { self.classification.pos.line, self.classification.pos.col })
     end
     self:reset()
   end)
