@@ -5,6 +5,7 @@
 ---@class CodeCompanion.Chat
 ---@field adapter CodeCompanion.Adapter The adapter to use for the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
+---@field create_buf fun(): integer The function that creates a new buffer for the chat
 ---@field aug number The ID for the autocmd group
 ---@field bufnr integer The buffer number of the chat
 ---@field buffer_context table The context of the buffer that the chat was initiated from
@@ -608,6 +609,11 @@ function Chat.new(args)
   })
 
   self:update_metadata()
+
+  -- Likely this hasn't been set by the time the user opens the chat buffer
+  if not _G.codecompanion_current_context then
+    _G.codecompanion_current_context = self.buffer_context.bufnr
+  end
 
   if args.messages then
     self.messages = args.messages

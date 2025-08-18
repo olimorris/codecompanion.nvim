@@ -10,7 +10,7 @@ local codecompanion = require("codecompanion")
 local config = require("codecompanion.config")
 
 -- Create the short name prompt library items table
-local prompts = vim.iter(config.prompt_library):fold({}, function(acc, key, value)
+local prompts = vim.iter(config.prompt_library):fold({}, function(acc, _, value)
   if value.opts and value.opts.short_name then
     acc[value.opts.short_name] = value
   end
@@ -31,6 +31,13 @@ local inline_subcommands = vim.deepcopy(adapters)
 vim.iter(prompts):each(function(k, _)
   table.insert(inline_subcommands, "/" .. k)
 end)
+
+-- Add inline variables
+for key, _ in pairs(config.strategies.inline.variables) do
+  if key ~= "opts" then
+    table.insert(inline_subcommands, "#{" .. key .. "}")
+  end
+end
 
 local chat_subcommands = vim.deepcopy(adapters)
 table.insert(chat_subcommands, "Toggle")
@@ -74,23 +81,44 @@ return {
       nargs = "*",
       -- Reference:
       -- https://github.com/nvim-neorocks/nvim-best-practices?tab=readme-ov-file#speaking_head-user-commands
-      complete = function(arg_lead, cmdline, _)
-        if cmdline:match("^['<,'>]*CodeCompanion[!]*%s+/?%w*$") then
-          return vim
-            .iter(inline_subcommands)
-            :filter(function(key)
-              return key:find(arg_lead) ~= nil
-            end)
-            :map(function(key)
-              -- Remove the leading "/" if it has already been typed.
-              -- This allows matching on /<prompt library> without placing "//".
-              if arg_lead:sub(1, 1) == "/" and key:sub(1, 1) == "/" then
-                return key:sub(2)
-              end
-              return key
-            end)
-            :totable()
+      complete = function(arg_lead, cmdline, cursor_pos)
+        local args = vim.split(cmdline, "%s+")
+        local current_arg_index = #args
+
+        -- If we're typing in the middle of an argument, adjust the index
+        if cmdline:sub(cursor_pos, cursor_pos) ~= " " and arg_lead ~= "" then
+          current_arg_index = current_arg_index
+        else
+          current_arg_index = current_arg_index + 1
         end
+
+        -- Always provide completions for adapters, prompt library, and variables
+        local completions = {}
+
+        -- Add adapters (with angle bracket syntax)
+        for _, adapter in ipairs(adapters) do
+          table.insert(completions, "<" .. adapter .. ">")
+        end
+
+        -- Add prompt library items
+        vim.iter(prompts):each(function(k, _)
+          table.insert(completions, "/" .. k)
+        end)
+
+        -- Add inline variables
+        for key, _ in pairs(config.strategies.inline.variables) do
+          if key ~= "opts" then
+            table.insert(completions, "#{" .. key .. "}")
+          end
+        end
+
+        -- Filter based on what the user is typing
+        return vim
+          .iter(completions)
+          :filter(function(completion)
+            return completion:find(vim.pesc(arg_lead), 1, true) == 1
+          end)
+          :totable()
       end,
     },
   },

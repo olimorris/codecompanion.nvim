@@ -103,7 +103,7 @@ T["Inline"]["forms correct prompts"] = function()
 
   h.eq(#inline.prompts, 4)
   -- System prompt
-  h.expect_starts_with("## CONTEXT", inline.prompts[1].content)
+  h.expect_starts_with("You are a knowledgeable", inline.prompts[1].content)
   -- Visual selection
   h.eq(
     "For context, this is the code that I've visually selected in the buffer, which is relevant to my prompt:\n<code>\n```lua\nlocal x = 1\n```\n</code>",
@@ -184,6 +184,39 @@ T["Inline"]["integration"] = function()
 
   h.eq("The output from foo variable", submitted_prompts[2].content)
   h.eq("<prompt>can you print hello world?</prompt>", submitted_prompts[3].content)
+end
+
+T["Inline"]["can parse adapter syntax"] = function()
+  local submitted_prompts = {}
+  function inline:submit(prompts)
+    submitted_prompts = prompts
+  end
+
+  -- Mock the buffer variable to return predictable content
+  local original_buffer_variable = require("codecompanion.config").strategies.inline.variables.buffer
+  require("codecompanion.config").strategies.inline.variables.buffer = {
+    callback = function()
+      return "mocked buffer content"
+    end,
+    description = "Mock buffer for testing",
+  }
+
+  -- Default adapter
+  h.eq(inline.adapter.name, "test_adapter")
+
+  inline:prompt("<fake_adapter> #{buffer} print hello world")
+  h.eq("fake_adapter", inline.adapter.name)
+
+  -- Should be system + buffer content + user prompt
+  h.eq(3, #submitted_prompts)
+
+  h.eq("mocked buffer content", submitted_prompts[2].content)
+
+  -- Check We've cleaned up the prompt
+  h.eq("<prompt>print hello world</prompt>", submitted_prompts[#submitted_prompts].content)
+
+  -- Restore original buffer variable
+  require("codecompanion.config").strategies.inline.variables.buffer = original_buffer_variable
 end
 
 return T
