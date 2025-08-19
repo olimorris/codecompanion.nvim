@@ -328,6 +328,9 @@ return {
       ---@type string|fun(): string
       default = "gpt-4.1",
       choices = {
+        ["gpt-5"] = { opts = { has_vision = true, can_reason = true } },
+        ["gpt-5-mini"] = { opts = { has_vision = true, can_reason = true } },
+        ["gpt-5-nano"] = { opts = { has_vision = true, can_reason = true } },
         ["o4-mini-2025-04-16"] = { opts = { has_vision = true, can_reason = true } },
         ["o3-mini-2025-01-31"] = { opts = { can_reason = true } },
         ["o3-2025-04-16"] = { opts = { has_vision = true, can_reason = true } },
@@ -365,6 +368,7 @@ return {
         "high",
         "medium",
         "low",
+        "minimal",
       },
     },
     temperature = {
