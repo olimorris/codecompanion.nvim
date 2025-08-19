@@ -173,6 +173,8 @@ function Connection:_spawn_process()
     adapter.command,
     {
       stdin = true,
+      cwd = vim.fn.getcwd(),
+      env = adapter.env_replaced or {},
       stdout = self.methods.schedule_wrap(function(err, data)
         if err then
           log:error("[acp::_spawn_process::stdout] Error: %s", err)
@@ -191,8 +193,6 @@ function Connection:_spawn_process()
           end
         end
       end),
-      env = adapter.env_replaced or {},
-      cwd = vim.fn.getcwd(),
     },
     self.methods.schedule_wrap(function(obj)
       self:_handle_exit(obj.code, obj.signal)
@@ -232,7 +232,6 @@ function Connection:_send_request(method, params)
     return nil
   end
 
-  -- Simple polling wait
   return self:_wait_for_response(id)
 end
 
