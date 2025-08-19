@@ -6,7 +6,7 @@ local log = require("codecompanion.utils.log")
 
 local fmt = string.format
 
-local _access_token
+local _api_key
 
 ---Proper URL encoding function
 ---@param str string
@@ -118,11 +118,11 @@ local function get_token_file_path()
   return anthropic_dir .. "/oauth_token.json"
 end
 
----Load OAuth token from file
----@return AnthropicOAuthToken|nil
-local function load_oauth_token()
-  if _oauth_token_cache then
-    return _oauth_token_cache
+---Load API key from file
+---@return string|nil
+local function load_api_key()
+  if _api_key then
+    return _api_key
   end
 
   local token_file = get_token_file_path()
@@ -135,43 +135,82 @@ local function load_oauth_token()
     return nil
   end
 
-  local token_data = vim.json.decode(table.concat(content, "\n"))
-  if token_data and token_data.expires_at and token_data.expires_at > os.time() then
-    _oauth_token_cache = token_data
-    return token_data
+  local data = vim.json.decode(table.concat(content, "\n"))
+  if data and data.api_key then
+    _api_key = data.api_key
+    return data.api_key
   end
 
   return nil
 end
 
----Save OAuth token to file
----@param token AnthropicOAuthToken
+---Save API key to file
+---@param api_key string
 ---@return boolean
-local function save_oauth_token(token)
+local function save_api_key(api_key)
   local token_file = get_token_file_path()
   if not token_file then
     log:error("Anthropic OAuth: Could not determine token file path")
     return false
   end
 
+  local data = {
+    api_key = api_key,
+    created_at = os.time(),
+  }
+
   local success, err = pcall(function()
-    vim.fn.writefile({ vim.json.encode(token) }, token_file)
+    vim.fn.writefile({ vim.json.encode(data) }, token_file)
   end)
 
   if success then
-    _oauth_token_cache = token
+    _api_key = api_key
     return true
   else
-    log:error("Anthropic OAuth: Failed to save token: %s", err)
+    log:error("Anthropic OAuth: Failed to save API key: %s", err)
     return false
   end
 end
 
----Exchange authorization code for access token
+---Create an API key using the OAuth access token
+---@param access_token string
+---@return string|nil
+local function create_api_key(access_token)
+  log:debug("Anthropic OAuth: Creating API key")
+
+  local response = curl.post("https://api.anthropic.com/api/oauth/claude_cli/create_api_key", {
+    headers = {
+      ["Content-Type"] = "application/json",
+      ["authorization"] = "Bearer " .. access_token,
+    },
+    body = vim.json.encode({}),
+    insecure = config.adapters.opts.allow_insecure,
+    proxy = config.adapters.opts.proxy,
+    on_error = function(err)
+      log:error("Anthropic OAuth: Create API key error %s", err)
+    end,
+  })
+
+  if response.status >= 400 then
+    log:error("Anthropic OAuth: Create API key failed with status %d: %s", response.status, response.body)
+    return nil
+  end
+
+  local api_key_data = vim.json.decode(response.body)
+  if not api_key_data or not api_key_data.raw_key then
+    log:error("Anthropic OAuth: Invalid API key response")
+    return nil
+  end
+
+  log:debug("Anthropic OAuth: API key created successfully")
+  return api_key_data.raw_key
+end
+
+---Exchange authorization code for access token and create API key
 ---@param code string
 ---@param verifier string
----@return AnthropicOAuthToken|nil
-local function exchange_code_for_token(code, verifier)
+---@return string|nil
+local function exchange_code_for_api_key(code, verifier)
   log:debug("Anthropic OAuth: Exchanging authorization code for access token")
 
   -- Parse code and state from the callback URL fragment
@@ -216,63 +255,17 @@ local function exchange_code_for_token(code, verifier)
 
   log:debug("Anthropic OAuth: Token response data: %s", vim.inspect(token_data))
 
-  local oauth_token = {
-    access_token = token_data.access_token,
-    refresh_token = token_data.refresh_token,
-    expires_at = os.time() + (token_data.expires_in or 3600),
-    token_type = token_data.token_type or "Bearer",
-  }
-
-  save_oauth_token(oauth_token)
-  return oauth_token
-end
-
----Refresh the access token using refresh token
----@param refresh_token string
----@return AnthropicOAuthToken|nil
-local function refresh_access_token(refresh_token)
-  log:debug("Anthropic OAuth: Refreshing access token")
-
-  local request_data = {
-    grant_type = "refresh_token",
-    refresh_token = refresh_token,
-    client_id = CLIENT_ID,
-    scope = SCOPES,
-  }
-
-  local response = curl.post(TOKEN_URL, {
-    headers = {
-      ["Content-Type"] = "application/json",
-    },
-    body = vim.json.encode(request_data),
-    insecure = config.adapters.opts.allow_insecure,
-    proxy = config.adapters.opts.proxy,
-    on_error = function(err)
-      log:error("Anthropic OAuth: Token refresh error %s", err)
-    end,
-  })
-
-  if response.status >= 400 then
-    log:error("Anthropic OAuth: Token refresh failed with status %d: %s", response.status, response.body)
-    return nil
+  -- Now use the access token to create an API key
+  local api_key = create_api_key(token_data.access_token)
+  if api_key then
+    save_api_key(api_key)
+    return api_key
   end
 
-  local token_data = vim.json.decode(response.body)
-  if not token_data or not token_data.access_token then
-    log:error("Anthropic OAuth: Invalid refresh response")
-    return nil
-  end
-
-  local oauth_token = {
-    access_token = token_data.access_token,
-    refresh_token = token_data.refresh_token or refresh_token,
-    expires_at = os.time() + (token_data.expires_in or 3600),
-    token_type = token_data.token_type or "Bearer",
-  }
-
-  save_oauth_token(oauth_token)
-  return oauth_token
+  return nil
 end
+
+
 
 local function generate_auth_url()
   local pkce = generate_pkce()
@@ -299,30 +292,16 @@ local function generate_auth_url()
   }
 end
 
-local function get_access_token()
-  if _access_token and _access_token.expires_at > os.time() + 60 then -- 60 second buffer
-    return _access_token.access_token
-  end
-
+local function get_api_key()
   -- Try to load from file
-  local stored_token = load_oauth_token()
-  if stored_token then
-    if stored_token.expires_at > os.time() + 60 then
-      _access_token = stored_token
-      return stored_token.access_token
-    elseif stored_token.refresh_token then
-      -- Try to refresh
-      local refreshed_token = refresh_access_token(stored_token.refresh_token)
-      if refreshed_token then
-        _access_token = refreshed_token
-        return refreshed_token.access_token
-      end
-    end
+  local api_key = load_api_key()
+  if api_key then
+    return api_key
   end
 
   -- Need new OAuth flow
   log:error(
-    "Anthropic OAuth: No valid token found or token lacks required scopes. Please run :AnthropicOAuthClear and then :AnthropicOAuthSetup to re-authenticate"
+    "Anthropic OAuth: No API key found. Please run :AnthropicOAuthClear and then :AnthropicOAuthSetup to authenticate"
   )
   return nil
 end
@@ -354,10 +333,10 @@ local function setup_oauth()
       return
     end
 
-    local token = exchange_code_for_token(code, auth_data.verifier)
-    if token then
-      _access_token = token
-      vim.notify("Anthropic OAuth authentication successful!", vim.log.levels.INFO)
+    local api_key = exchange_code_for_api_key(code, auth_data.verifier)
+    if api_key then
+      _api_key = api_key
+      vim.notify("Anthropic OAuth authentication successful! API key created.", vim.log.levels.INFO)
     else
       vim.notify("Anthropic OAuth authentication failed", vim.log.levels.ERROR)
     end
@@ -374,37 +353,29 @@ end, {
 
 -- Create user command to check OAuth status
 vim.api.nvim_create_user_command("AnthropicOAuthStatus", function()
-  local stored_token = load_oauth_token()
-  if not stored_token then
-    vim.notify("No Anthropic OAuth token found. Run :AnthropicOAuthSetup to authenticate.", vim.log.levels.WARN)
+  local api_key = load_api_key()
+  if not api_key then
+    vim.notify("No Anthropic API key found. Run :AnthropicOAuthSetup to authenticate.", vim.log.levels.WARN)
     return
   end
 
-  local time_remaining = stored_token.expires_at - os.time()
-  if time_remaining > 0 then
-    local hours = math.floor(time_remaining / 3600)
-    local minutes = math.floor((time_remaining % 3600) / 60)
-    vim.notify(fmt("Anthropic OAuth token is valid. Expires in %dh %dm", hours, minutes), vim.log.levels.INFO)
-  else
-    vim.notify("Anthropic OAuth token has expired. Run :AnthropicOAuthSetup to re-authenticate.", vim.log.levels.WARN)
-  end
+  vim.notify("Anthropic API key is configured and ready to use.", vim.log.levels.INFO)
 end, {
-  desc = "Check Anthropic OAuth token status",
+  desc = "Check Anthropic OAuth API key status",
 })
 
--- Create user command to clear OAuth token
+-- Create user command to clear OAuth API key
 vim.api.nvim_create_user_command("AnthropicOAuthClear", function()
   local token_file = get_token_file_path()
   if token_file and vim.fn.filereadable(token_file) == 1 then
     vim.fn.delete(token_file)
-    _oauth_token_cache = nil
-    _access_token = nil
-    vim.notify("Anthropic OAuth token cleared.", vim.log.levels.INFO)
+    _api_key = nil
+    vim.notify("Anthropic API key cleared.", vim.log.levels.INFO)
   else
-    vim.notify("No Anthropic OAuth token found to clear.", vim.log.levels.WARN)
+    vim.notify("No Anthropic API key found to clear.", vim.log.levels.WARN)
   end
 end, {
-  desc = "Clear stored Anthropic OAuth token",
+  desc = "Clear stored Anthropic OAuth API key",
 })
 
 local adapter = vim.tbl_deep_extend("force", vim.deepcopy(anthropic), {
@@ -414,18 +385,17 @@ local adapter = vim.tbl_deep_extend("force", vim.deepcopy(anthropic), {
   env = {
     ---@return string|nil
     api_key = function()
-      return get_access_token()
+      return get_api_key()
     end,
   },
 })
 
 adapter.headers = {
   ["content-type"] = "application/json",
-  ["authorization"] = "Bearer ${api_key}",
+  ["x-api-key"] = "${api_key}",
   ["anthropic-version"] = "2023-06-01",
   ["anthropic-beta"] = "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14",
 }
-adapter.headers["x-api-key"] = nil
 
 -- Add the filter_out_messages function
 local function filter_out_messages(message)
@@ -445,15 +415,15 @@ local function filter_out_messages(message)
 end
 
 adapter.handlers = vim.tbl_extend("force", anthropic.handlers, {
-  ---Check for a valid OAuth token before starting the request
+  ---Check for a valid API key before starting the request
   ---@param self CodeCompanion.Adapter
   ---@return boolean
   setup = function(self)
-    -- Get access token (this will handle refresh if needed)
-    local token = get_access_token()
-    if not token then
+    -- Get API key
+    local api_key = get_api_key()
+    if not api_key then
       vim.notify(
-        "No valid Anthropic OAuth token or token lacks required scopes. Run :AnthropicOAuthClear then :AnthropicOAuthSetup to re-authenticate.",
+        "No Anthropic API key found. Run :AnthropicOAuthClear then :AnthropicOAuthSetup to authenticate.",
         vim.log.levels.ERROR
       )
       return false
@@ -559,7 +529,13 @@ adapter.handlers = vim.tbl_extend("force", anthropic.handlers, {
       end
 
       if has_tools and message.role == self.roles.llm and message.tool_calls then
-        message.content = message.content or {}
+        if type(message.content) == "string" then
+          message.content = {
+            { type = "text", text = message.content },
+          }
+        elseif not message.content then
+          message.content = {}
+        end
         for _, call in ipairs(message.tool_calls) do
           table.insert(message.content, {
             type = "tool_use",
