@@ -360,6 +360,10 @@ function Connection:_process_notification(notification)
     end
   elseif notification.method == "session/request_permission" then
     self:_handle_permission_request(notification.id, notification.params)
+  elseif notification.method == "fs/read_text_file" then
+    -- self:_handle_read_file_request(notification.id, notification.params)
+  elseif notification.method == "fs/write_text_file" then
+    -- self:_handle_write_file_request(notification.id, notification.params)
   else
     log:debug("[acp::_process_notification] Unhandled notification method: %s", notification.method)
   end
