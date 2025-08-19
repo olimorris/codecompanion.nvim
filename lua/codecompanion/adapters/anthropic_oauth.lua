@@ -394,8 +394,28 @@ adapter.headers = {
   ["content-type"] = "application/json",
   ["x-api-key"] = "${api_key}",
   ["anthropic-version"] = "2023-06-01",
-  ["anthropic-beta"] = "claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14",
+  ["anthropic-beta"] = "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14",
 }
+
+-- Override model schema with latest models
+adapter.schema = vim.tbl_deep_extend("force", anthropic.schema or {}, {
+  model = {
+    order = 1,
+    mapping = "parameters",
+    type = "enum",
+    desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
+    default = "claude-sonnet-4-20250514",
+    choices = {
+      ["claude-opus-4-1-20250805"] = { opts = { can_reason = true, has_vision = true } },
+      ["claude-opus-4-20250514"] = { opts = { can_reason = true, has_vision = true } },
+      ["claude-sonnet-4-20250514"] = { opts = { can_reason = true, has_vision = true } },
+      ["claude-3-7-sonnet-20250219"] = { 
+        opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true } 
+      },
+      ["claude-3-5-haiku-20241022"] = { opts = { has_vision = true } },
+    },
+  },
+})
 
 -- Add the filter_out_messages function
 local function filter_out_messages(message)
