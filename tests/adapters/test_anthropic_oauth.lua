@@ -30,9 +30,11 @@ T["Anthropic OAuth adapter"]["has OAuth-specific configuration"] = function()
   -- Should use OAuth token instead of API key
   h.eq("function", type(adapter.env.api_key))
 
-  -- Should have authorization header instead of x-api-key
-  h.eq("Bearer ${api_key}", adapter.headers.authorization)
-  h.eq(nil, adapter.headers["x-api-key"])
+  -- Should have x-api-key header with token variable
+  h.eq("${api_key}", adapter.headers["x-api-key"])
+  h.eq("application/json", adapter.headers["content-type"])
+  h.eq("2023-06-01", adapter.headers["anthropic-version"])
+  h.not_eq(nil, adapter.headers["anthropic-beta"])
 end
 
 T["Anthropic OAuth adapter"]["form_messages"] = new_set()
@@ -45,7 +47,32 @@ T["Anthropic OAuth adapter"]["form_messages"]["works the same as base adapter"] 
 
   local output = adapter.handlers.form_messages(adapter, messages)
 
-  h.eq("Hello", output.system[1].text)
+  -- Should have Claude Code system message first, then original system message
+  h.eq("You are Claude Code, Anthropic's official CLI for Claude.", output.system[1].text)
+  h.eq("Hello", output.system[2].text)
+  h.eq({
+    {
+      content = {
+        {
+          type = "text",
+          text = "What can you do?!",
+        },
+      },
+      role = "user",
+    },
+  }, output.messages)
+end
+
+T["Anthropic OAuth adapter"]["form_messages"]["adds Claude Code system message even with no existing system messages"] = function()
+  local messages = {
+    { content = "What can you do?!", role = "user" },
+  }
+
+  local output = adapter.handlers.form_messages(adapter, messages)
+
+  -- Should have Claude Code system message
+  h.eq(1, #output.system)
+  h.eq("You are Claude Code, Anthropic's official CLI for Claude.", output.system[1].text)
   h.eq({
     {
       content = {
