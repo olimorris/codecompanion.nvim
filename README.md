@@ -6,7 +6,7 @@ Implementation of ACP within CodeCompanion.
 
 1. Ensure you have [gemini-cli](https://github.com/google-gemini/gemini-cli) installed
 2. [Install](https://codecompanion.olimorris.dev/installation.html) CodeCompanion
-3. Setup CodeCompanion with:
+3. Setup with:
 
 ```lua
 require("codecompanion").setup({
@@ -32,3 +32,6 @@ require("codecompanion").setup({
 })
 ```
 
+## In Action
+
+https://github.com/user-attachments/assets/7f15d877-eb27-45a8-bc79-c6ff859937ce
