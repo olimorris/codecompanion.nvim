@@ -264,6 +264,9 @@
             "type": {
               "const": "image",
               "type": "string"
+            },
+            "uri": {
+              "type": ["string", "null"]
             }
           },
           "required": ["type", "data", "mimeType"],
@@ -437,6 +440,9 @@
         },
         "mimeType": {
           "type": "string"
+        },
+        "uri": {
+          "type": ["string", "null"]
         }
       },
       "required": ["data", "mimeType"],
@@ -680,7 +686,7 @@
         {
           "properties": {
             "outcome": {
-              "const": "cancelled",
+              "const": "canceled",
               "type": "string"
             }
           },
@@ -714,7 +720,7 @@
           "type": "string"
         },
         "toolCall": {
-          "$ref": "#/$defs/ToolCall"
+          "$ref": "#/$defs/ToolCallUpdate"
         }
       },
       "required": ["sessionId", "toolCall", "options"],
@@ -856,13 +862,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "sessionUpdate",
-            "toolCallId",
-            "title",
-            "kind",
-            "status"
-          ],
+          "required": ["sessionUpdate", "toolCallId", "title"],
           "type": "object"
         },
         {
@@ -956,8 +956,8 @@
           "type": "string"
         },
         {
-          "const": "cancelled",
-          "description": "The turn was cancelled by the client.",
+          "const": "canceled",
+          "description": "The turn was canceled by the client.",
           "type": "string"
         }
       ]
@@ -1026,7 +1026,7 @@
           "type": "string"
         }
       },
-      "required": ["toolCallId", "title", "kind", "status"],
+      "required": ["toolCallId", "title"],
       "type": "object"
     },
     "ToolCallContent": {

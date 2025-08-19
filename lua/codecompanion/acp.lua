@@ -305,6 +305,16 @@ end
 ---Handle incoming JSON message
 ---@param line string
 function Connection:_process_json_message(line)
+  if not line or line == "" then
+    return
+  end
+
+  -- If it doesn't look like JSON-RPC, then silently log it
+  if not line:match("^%s*{") then
+    log:debug("[acp::_process_json_message] Non-JSON output from agent: %s", line)
+    return
+  end
+
   local ok, message = pcall(self.methods.decode, line)
   if not ok then
     return log:error("[acp::_process_json_message] Invalid JSON:\n%s", line)
@@ -442,7 +452,7 @@ function Connection:_handle_permission_request(id, params)
   else
     response = {
       outcome = {
-        outcome = "cancelled",
+        outcome = "canceled",
       },
     }
   end
