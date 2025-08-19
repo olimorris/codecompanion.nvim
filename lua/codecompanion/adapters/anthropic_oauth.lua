@@ -265,8 +265,6 @@ local function exchange_code_for_api_key(code, verifier)
   return nil
 end
 
-
-
 local function generate_auth_url()
   local pkce = generate_pkce()
 
@@ -409,8 +407,8 @@ adapter.schema = vim.tbl_deep_extend("force", anthropic.schema or {}, {
       ["claude-opus-4-1-20250805"] = { opts = { can_reason = true, has_vision = true } },
       ["claude-opus-4-20250514"] = { opts = { can_reason = true, has_vision = true } },
       ["claude-sonnet-4-20250514"] = { opts = { can_reason = true, has_vision = true } },
-      ["claude-3-7-sonnet-20250219"] = { 
-        opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true } 
+      ["claude-3-7-sonnet-20250219"] = {
+        opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true },
       },
       ["claude-3-5-haiku-20241022"] = { opts = { has_vision = true } },
     },
