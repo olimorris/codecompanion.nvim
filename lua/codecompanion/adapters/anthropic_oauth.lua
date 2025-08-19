@@ -492,9 +492,6 @@ adapter.handlers = vim.tbl_extend("force", anthropic.handlers, {
     table.insert(system, 1, {
       type = "text",
       text = "You are Claude Code, Anthropic's official CLI for Claude.",
-      cache_control = {
-        type = "ephemeral",
-      },
     })
 
     system = next(system) and system or nil
