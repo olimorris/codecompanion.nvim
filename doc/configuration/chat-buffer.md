@@ -381,10 +381,7 @@ require("codecompanion").setup({
 
 ## Diff
 
-> [!NOTE]
-> Currently the plugin only supports native Neovim diff or [mini.diff](https://github.com/echasnovski/mini.diff)
-
-If you utilize the `insert_edit_into_file` tool, then the plugin can update a given chat buffer. A diff will be created so you can see the changes made by the LLM.
+CodeCompanion has built-in inline and split diffs available to you. If you utilize the `insert_edit_into_file` tool, then the plugin can update files and buffers and a diff will be created so you can see the changes made by the LLM. The `inline` is the default diff.
 
 There are a number of diff settings available to you:
 
@@ -393,13 +390,66 @@ require("codecompanion").setup({
   display = {
     diff = {
       enabled = true,
+      provider = providers.diff, -- mini_diff|split|inline
       close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-      layout = "vertical", -- vertical|horizontal split for default provider
-      opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
-      provider = "default", -- default|mini_diff
+
+    -- Options for the split diff provider
+      layout = "vertical", -- vertical|horizontal split
+      opts = {
+        "internal",
+        "filler",
+        "closeoff",
+        "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
+        "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
+        "followwrap",
+        "linematch:120",
+      },
+
+      diff_signs = {
+        signs = {
+          text = "▌", -- Sign text for normal changes
+          reject = "✗", -- Sign text for rejected changes in super_diff
+          highlight_groups = {
+            addition = "DiagnosticOk",
+            deletion = "DiagnosticError",
+            modification = "DiagnosticWarn",
+          },
+        },
+        -- Super Diff options
+        icons = {
+          accepted = " ",
+          rejected = " ",
+        },
+        colors = {
+          accepted = "DiagnosticOk",
+          rejected = "DiagnosticError",
+        },
+      },
     },
   },
 }),
+```
+
+The keymaps for accepting and rejecting the diff sit within the `inline` configuration and can be changed via:
+
+```lua
+require("codecompanion").setup({
+  strategies = {
+    inline = {
+      keymaps = {
+        accept_change = {
+          modes = { n = "gda" }, -- gDiffAccept
+        },
+        reject_change = {
+          modes = { n = "gdr" }, -- gDiffReject
+        },
+        always_accept = {
+          modes = { n = "gdt" },
+        },
+      },
+    },
+  },
+})
 ```
 
 ## User Interface (UI)
