@@ -9,6 +9,9 @@ return {
     llm = "assistant",
     user = "user",
   },
+  opts = {
+    vision = false,
+  },
   commands = {
     default = {
       "gemini",
@@ -56,7 +59,22 @@ return {
           return msg.role == self.roles.user and not msg._meta.sent
         end)
         :map(function(msg)
-          return { type = "text", text = msg.content }
+          -- TODO: Not yet supported
+          if msg.opts and msg.opts.tag == "image" then
+            return {
+              type = "image",
+              data = msg.content,
+              mimeType = msg.opts.mimetype,
+            }
+          end
+
+          -- Add text content
+          if msg.content and msg.content ~= "" then
+            return {
+              type = "text",
+              text = msg.content,
+            }
+          end
         end)
         :totable()
     end,
