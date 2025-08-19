@@ -195,7 +195,7 @@ return {
               type = "tool_use",
               id = call.id,
               name = call["function"].name,
-              input = args ~= "" and vim.json.decode(args) or "",
+              input = args ~= "" and vim.json.decode(args) or vim.empty_dict(),
             })
           end
           message.tool_calls = nil
