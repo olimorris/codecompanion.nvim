@@ -1018,8 +1018,9 @@ You must create or modify a workspace file through a series of prompts over mult
         buffer_pin = " ",
         buffer_watch = "󰂥 ",
         --chat_context = " ",
-        tool_success = " ",
+        tool_in_progress = " ",
         tool_failure = " ",
+        tool_success = " ",
       },
       -- Window options for the chat buffer
       window = {
@@ -1132,7 +1133,6 @@ You must create or modify a workspace file through a series of prompts over mult
       layout = "vertical", -- vertical|horizontal|buffer
     },
     icons = {
-      loading = " ",
       warning = " ",
     },
   },
