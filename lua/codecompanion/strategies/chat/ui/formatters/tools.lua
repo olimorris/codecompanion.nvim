@@ -23,25 +23,31 @@ end
 
 function Tools:format(message, opts, state)
   local lines = {}
+  local content_line_offset = 0
 
   if state.has_reasoning_output then
     state:mark_reasoning_complete()
     table.insert(lines, "")
     table.insert(lines, "")
     table.insert(lines, "### Response")
+    content_line_offset = 3
   end
 
   if state.is_new_section then
     table.insert(lines, "")
-  end
-  if state.last_type == self.chat.MESSAGE_TYPES.LLM_MESSAGE then
-    table.insert(lines, "")
+    content_line_offset = content_line_offset + 1
   end
 
   -- Simple content formatting with status icons
   local content = message.content or ""
   if opts.status then
-    content = CONSTANTS.icons[opts.status] .. " " .. content
+    local icon = CONSTANTS.icons[opts.status]
+    content = icon .. " " .. content
+    opts._icon_info = {
+      status = opts.status,
+      has_icon = true,
+      line_offset = content_line_offset,
+    }
   end
 
   local content_start = #lines + 1

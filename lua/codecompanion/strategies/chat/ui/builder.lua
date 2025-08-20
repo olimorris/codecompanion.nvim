@@ -129,9 +129,11 @@ function Builder:_should_start_new_section(opts, state)
 
   local tags = self.chat.MESSAGE_TYPES
 
-  return (opts.type == tags.TOOL_MESSAGE and state.last_type ~= tags.TOOL_MESSAGE)
+  local should_start = (opts.type == tags.TOOL_MESSAGE and state.last_type ~= tags.TOOL_MESSAGE)
     or (opts.type == tags.REASONING_MESSAGE and state.last_type ~= tags.REASONING_MESSAGE)
     or (opts.type == tags.LLM_MESSAGE and state.last_type ~= tags.LLM_MESSAGE)
+
+  return should_start
 end
 
 ---Check if we need to add a header to the chat buffer
@@ -192,6 +194,14 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
 
   local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
   api.nvim_buf_set_text(self.chat.bufnr, last_line, last_column, last_line, last_column, lines)
+
+  if opts._icon_info and opts._icon_info.has_icon then
+    vim.schedule(function()
+      local Icons = require("codecompanion.strategies.chat.ui.icons")
+      local target_line = last_line + (opts._icon_info.line_offset or 0)
+      Icons.apply_tool_icon(self.chat.bufnr, target_line, opts._icon_info.status)
+    end)
+  end
 
   -- Handle folding
   if fold_info and opts.type == self.chat.MESSAGE_TYPES.TOOL_MESSAGE and #lines > 1 then

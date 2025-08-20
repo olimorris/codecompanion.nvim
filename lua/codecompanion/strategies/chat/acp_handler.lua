@@ -108,20 +108,12 @@ function ACPHandler:_handle_tool_call(tool_call)
     return
   end
 
-  local opts = {
+  self.chat:add_message({ role = config.constants.LLM_ROLE, content = tool_call.title })
+  self.chat:add_buf_message({ role = config.constants.LLM_ROLE, content = tool_call.title }, {
     status = "in_progress",
     tool_call_id = tool_call.toolCallId,
     type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
-  }
-
-  self.chat:add_message({
-    role = config.constants.LLM_ROLE,
-    content = tool_call.title,
-  }, opts)
-  self.chat:add_buf_message({
-    role = config.constants.LLM_ROLE,
-    content = tool_call.title,
-  }, opts)
+  })
 end
 
 ---Handle tool call updates and their respective status
@@ -134,31 +126,20 @@ function ACPHandler:_handle_tool_update(tool_call)
         and tool_call.content[1].content.text
       or "Tool completed successfully"
 
-    local opts = {
+    self.chat:add_message({ role = config.constants.LLM_ROLE, content = content })
+    self.chat:add_buf_message({ role = config.constants.LLM_ROLE, content = content }, {
       status = "completed",
       tool_call_id = tool_call.toolCallId,
       type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
-    }
-
-    self.chat:add_message({
-      role = config.constants.LLM_ROLE,
-      content = content,
-    }, opts)
-    self.chat:add_buf_message({
-      role = config.constants.LLM_ROLE,
-      content = content,
-    }, opts)
+    })
   elseif tool_call.status == "failed" then
-    local error_content = tool_call.title or "Tool failed"
-    local opts = {
+    local content = tool_call.title or "Tool failed"
+    self.chat:add_message({ role = config.constants.LLM_ROLE, content = content })
+    self.chat:add_buf_message({ role = config.constants.LLM_ROLE, content = content }, {
       status = "failed",
       tool_call_id = tool_call.toolCallId,
       type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
-    }
-    self.chat:add_buf_message({
-      role = config.constants.LLM_ROLE,
-      content = error_content,
-    }, opts)
+    })
   end
 end
 
