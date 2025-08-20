@@ -33,9 +33,14 @@ T["Test tools in chat buffer"] = new_set({
     { "anthropic", "anthropic_tools" },
     { "deepseek", "deepseek_tools" },
     { "ollama", "ollama_tools" },
+
+    -- Tools called with NO parameters
+    { "anthropic", "anthropic_tools_no_params" },
   },
 })
 
+---@param adapter string
+---@param file string
 T["Test tools in chat buffer"]["with different adapters"] = function(adapter, file)
   local response = "tests/adapters/stubs/" .. file .. "_streaming.txt"
   local output = "tests/adapters/stubs/output/" .. file .. ".txt"
@@ -47,6 +52,10 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
   ]])
 
   -- Setup the chat with the specified adapter
+  local tool_name = "weather"
+  if file:find("no_params") then
+    tool_name = "weather_with_default"
+  end
   child.lua(string.format(
     [[
       -- Setup the chat buffer
@@ -82,7 +91,7 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
       -- Just adding this to make the chat buffer look more real
       _G.chat:add_buf_message({
         role = "user",
-        content = "What's the @{weather} like in London and Paris?"
+        content = "What's the @{%s} like in London and Paris?"
       }, { type = "user_message" })
       _G.chat:add_message({
         role = "user",
@@ -95,7 +104,8 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
     ]],
     adapter,
     adapter,
-    response
+    response,
+    tool_name
   ))
 
   local messages = child.lua([[
