@@ -50,28 +50,6 @@ function Tools:_pattern(tool)
   return CONSTANTS.PREFIX .. "{" .. tool .. "}"
 end
 
----Parse and normalize tool arguments
----@param tool table The tool with function and arguments
----@return table|nil args The parsed arguments or nil if parsing failed
----@return string|nil error_msg Error message if parsing failed
-function Tools:_parse_tool_arguments(tool)
-  local args = tool["function"].arguments
-  if not args then
-    return nil, nil
-  end
-
-  if type(args) == "string" then
-    local success, decoded = pcall(vim.json.decode, args)
-    if success then
-      return decoded, nil
-    else
-      local tool_name = tool["function"].name or "unknown"
-      return nil, string.format("Couldn't decode JSON arguments for tool '%s': %s", tool_name, args)
-    end
-  end
-
-  return args, nil
-end
 
 ---Handle missing or invalid tool errors
 ---@param tool table The tool that failed
@@ -110,12 +88,13 @@ end
 ---@param tool table The tool call from the LLM
 ---@return table|nil resolved_tool The resolved tool or nil if failed
 ---@return string|nil error_msg Error message if resolution failed
+---@return boolean|nil is_json_error Whether this is a JSON parsing error that needs special handling
 function Tools:_resolve_and_prepare_tool(tool)
   local name = tool["function"].name
   local tool_config = self.tools_config[name]
   
   if not tool_config then
-    return nil, string.format("Couldn't find the tool `%s`", name)
+    return nil, string.format("Couldn't find the tool `%s`", name), false
   end
 
   local ok, resolved_tool = pcall(function()
@@ -123,19 +102,39 @@ function Tools:_resolve_and_prepare_tool(tool)
   end)
   
   if not ok or not resolved_tool then
-    return nil, string.format("Couldn't resolve the tool `%s`", name)
+    return nil, string.format("Couldn't resolve the tool `%s`", name), false
   end
 
   local prepared_tool = vim.deepcopy(resolved_tool)
   prepared_tool.name = name
   prepared_tool.function_call = tool
 
-  -- Parse and set arguments
-  local args, parse_error = self:_parse_tool_arguments(tool)
-  if parse_error then
-    return nil, parse_error
+  -- Parse and set arguments - handle JSON errors specially like the original code
+  if tool["function"].arguments then
+    local args = tool["function"].arguments
+    -- For some adapter's that aren't streaming, the args are strings rather than tables
+    if type(args) == "string" then
+      local decoded
+      local json_ok = xpcall(function()
+        decoded = vim.json.decode(args)
+      end, function(err)
+        log:error("Couldn't decode the tool arguments: %s", args)
+        self.chat:add_tool_output(
+          prepared_tool,
+          string.format('You made an error in calling the %s tool: "%s"', name, err),
+          ""
+        )
+        return util.fire("ToolsFinished", { bufnr = self.bufnr })
+      end)
+      
+      if not json_ok then
+        return nil, "JSON parsing failed", true -- Special flag to indicate this was handled
+      end
+      
+      args = decoded
+    end
+    prepared_tool.args = args
   end
-  prepared_tool.args = args
 
   -- Merge options
   prepared_tool.opts = vim.tbl_extend("force", prepared_tool.opts or {}, tool_config.opts or {})
@@ -146,7 +145,7 @@ function Tools:_resolve_and_prepare_tool(tool)
     util.replace_placeholders(prepared_tool.cmds, env)
   end
 
-  return prepared_tool, nil
+  return prepared_tool, nil, false
 end
 
 ---Start edit tracking for all tools
@@ -267,10 +266,15 @@ function Tools:execute(chat, tools)
     
     -- Process each tool
     for _, tool in ipairs(tools) do
-      local resolved_tool, error_msg = self:_resolve_and_prepare_tool(tool)
+      local resolved_tool, error_msg, is_json_error = self:_resolve_and_prepare_tool(tool)
       
       if not resolved_tool then
-        return self:_handle_tool_error(tool, error_msg)
+        if is_json_error then
+          -- JSON error was already handled by _resolve_and_prepare_tool
+          return
+        else
+          return self:_handle_tool_error(tool, error_msg)
+        end
       end
       
       self.tool = resolved_tool
