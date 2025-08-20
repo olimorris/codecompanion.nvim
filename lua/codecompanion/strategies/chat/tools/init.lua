@@ -155,7 +155,18 @@ end
 function Tools:_start_edit_tracking(tools)
   for _, tool in ipairs(tools) do
     local tool_name = tool["function"].name
-    local tool_args, _ = self:_parse_tool_arguments(tool)
+    local tool_args = tool["function"].arguments
+    
+    -- Handle argument parsing more robustly, like the original code
+    if type(tool_args) == "string" then
+      local success, decoded = pcall(vim.json.decode, tool_args)
+      if success then
+        tool_args = decoded
+      else
+        tool_args = nil
+      end
+    end
+    
     EditTracker.start_tool_monitoring(tool_name, self.chat, tool_args)
   end
 end
@@ -445,6 +456,7 @@ function Tools.resolve(tool)
   local err
   module, err = loadfile(callback)
   if err then
+    log:error("[Tools] Failed to load tool from %s: %s", callback, err)
     return nil
   end
 
