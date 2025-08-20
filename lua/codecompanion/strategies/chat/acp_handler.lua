@@ -1,3 +1,5 @@
+local config = require("codecompanion.config")
+
 ---Return the ACP client
 local get_client = function()
   return require("codecompanion.acp")
@@ -66,6 +68,9 @@ function ACPHandler:_create_prompt_request(payload)
     :on_tool_call(function(tool_call)
       self:_handle_tool_call(tool_call)
     end)
+    :on_tool_update(function(tool_update)
+      self:_handle_tool_update(tool_update)
+    end)
     :on_complete(function(stop_reason)
       self:_handle_completion(stop_reason)
     end)
@@ -99,8 +104,62 @@ end
 ---Handle tool call notifications
 ---@param tool_call table
 function ACPHandler:_handle_tool_call(tool_call)
-  -- TODO: Implement tool call handling
-  -- This is where the complex tool execution logic would go
+  if tool_call.status ~= "in_progress" then
+    return
+  end
+
+  local opts = {
+    status = "in_progress",
+    tool_call_id = tool_call.toolCallId,
+    type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
+  }
+
+  self.chat:add_message({
+    role = config.constants.LLM_ROLE,
+    content = tool_call.title,
+  }, opts)
+  self.chat:add_buf_message({
+    role = config.constants.LLM_ROLE,
+    content = tool_call.title,
+  }, opts)
+end
+
+---Handle tool call updates and their respective status
+---@param tool_call table
+function ACPHandler:_handle_tool_update(tool_call)
+  if tool_call.status == "completed" then
+    local content = tool_call.content
+        and tool_call.content[1]
+        and tool_call.content[1].content
+        and tool_call.content[1].content.text
+      or "Tool completed successfully"
+
+    local opts = {
+      status = "completed",
+      tool_call_id = tool_call.toolCallId,
+      type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
+    }
+
+    self.chat:add_message({
+      role = config.constants.LLM_ROLE,
+      content = content,
+    }, opts)
+    self.chat:add_buf_message({
+      role = config.constants.LLM_ROLE,
+      content = content,
+    }, opts)
+  elseif tool_call.status == "failed" then
+    local error_content = tool_call.title or "Tool failed"
+    local opts = {
+      status = "failed",
+      tool_call_id = tool_call.toolCallId,
+      type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
+    }
+    self.chat:add_buf_message({
+      role = config.constants.LLM_ROLE,
+      content = error_content,
+    }, opts)
+  end
 end
 
 ---Handle completion

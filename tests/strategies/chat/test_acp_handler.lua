@@ -43,6 +43,11 @@ T = new_set({
                 return self
               end,
 
+              on_tool_update = function(self, handler)
+                self.handlers.tool_update = handler
+                return self
+              end,
+
               on_complete = function(self, handler)
                 self.handlers.complete = handler
                 return self

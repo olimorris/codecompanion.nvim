@@ -272,6 +272,7 @@ end
 ---Disconnect and clean up the ACP process
 ---@return nil
 function Connection:disconnect()
+  log:debug("[acp::disconnect] Disconnecting ACP connection: %s", self.session_id or "[No session ID]")
   assert(self._state.handle):kill(9)
 end
 
@@ -525,6 +526,14 @@ function PromptBuilder:on_tool_call(handler)
   return self
 end
 
+---Set handler for tool call updates
+---@param handler fun(tool_update: table)
+---@return CodeCompanion.ACPPromptBuilder
+function PromptBuilder:on_tool_update(handler)
+  self.handlers.tool_update = handler
+  return self
+end
+
 ---Set handler for completion
 ---@param handler fun(stop_reason: string)
 ---@return CodeCompanion.ACPPromptBuilder
@@ -626,8 +635,8 @@ function PromptBuilder:_handle_session_update(params)
     end
   elseif params.sessionUpdate == "tool_call_update" then
     log:trace("Tool call updated: %s (status: %s)", params.toolCallId, params.status)
-    if self.handlers.tool_call then
-      self.handlers.tool_call(params)
+    if self.handlers.tool_update then
+      self.handlers.tool_update(params)
     end
   end
 end

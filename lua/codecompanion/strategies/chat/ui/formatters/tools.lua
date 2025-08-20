@@ -1,6 +1,13 @@
+local BaseFormatter = require("codecompanion.strategies.chat.ui.formatters.base")
 local config = require("codecompanion.config")
 
-local BaseFormatter = require("codecompanion.strategies.chat.ui.formatters.base")
+local CONSTANTS = {
+  icons = {
+    in_progress = config.display.chat.icons.tool_in_progress or "⚡",
+    failed = config.display.chat.icons.tool_failure or "❌",
+    completed = config.display.chat.icons.tool_success or "✅",
+  },
+}
 
 ---@class CodeCompanion.Chat.UI.Formatters.Tools : CodeCompanion.Chat.UI.Formatters.Base
 local Tools = setmetatable({}, { __index = BaseFormatter })
@@ -31,14 +38,21 @@ function Tools:format(message, opts, state)
     table.insert(lines, "")
   end
 
-  local content_start = #lines + 1
+  -- Simple content formatting with status icons
   local content = message.content or ""
+  if opts.status then
+    content = CONSTANTS.icons[opts.status] .. " " .. content
+  end
+
+  local content_start = #lines + 1
   for _, line in ipairs(vim.split(content, "\n", { plain = true, trimempty = false })) do
     table.insert(lines, line)
   end
   table.insert(lines, "")
 
-  if not config.strategies.chat.tools.opts.folds.enabled then
+  -- If there's a status being passed then we know it's an ACP tool and we can
+  -- prevent any folds from being created
+  if not config.strategies.chat.tools.opts.folds.enabled or opts.status then
     return lines, nil
   end
 

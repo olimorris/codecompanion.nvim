@@ -11,14 +11,7 @@ local configs = {
   telescope = { module = "telescope", name = "telescope" },
   mini_pick = { module = "mini.pick", name = "mini_pick" },
   fzf_lua = { module = "fzf-lua", name = "fzf_lua" },
-  snacks = {
-    module = "snacks",
-    name = "snacks",
-    condition = function(snacks)
-      -- Snacks can be installed but the Picker is disabled
-      return snacks and snacks.config.picker.enabled
-    end,
-  },
+  snacks = { module = "snacks", name = "snacks" },
 
   -- Diffs
   inline = {
