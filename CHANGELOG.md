@@ -1,5 +1,21 @@
 # Changelog
 
+## [17.16.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.15.0...v17.16.0) (2025-08-19)
+
+
+### Features
+
+* **adapter:** support for OpenAI gpt-5 models ([#1993](https://github.com/olimorris/codecompanion.nvim/issues/1993)) ([69d7579](https://github.com/olimorris/codecompanion.nvim/commit/69d75795d82bc7d1ff77cf4461d59104b432c740))
+* **diff:** native inline diff and super diff ([#1884](https://github.com/olimorris/codecompanion.nvim/issues/1884)) ([6bc36af](https://github.com/olimorris/codecompanion.nvim/commit/6bc36af3898d6ad3e813f0d19c7e32972731ef37))
+* **inline:** multiple variables, better completion and `#{clipboard}` ([#1981](https://github.com/olimorris/codecompanion.nvim/issues/1981)) ([c5aa3c6](https://github.com/olimorris/codecompanion.nvim/commit/c5aa3c6231f861f2ab20c886e0776c5b2f43bbe8))
+
+
+### Bug Fixes
+
+* ensure buffer is valid ([#1985](https://github.com/olimorris/codecompanion.nvim/issues/1985)) ([ff248ec](https://github.com/olimorris/codecompanion.nvim/commit/ff248ec17cc1797883ac122e1b3d4a69492b541e)), closes [#1983](https://github.com/olimorris/codecompanion.nvim/issues/1983)
+* **tools:** additional resiliency ([#1987](https://github.com/olimorris/codecompanion.nvim/issues/1987)) ([bc5ec92](https://github.com/olimorris/codecompanion.nvim/commit/bc5ec92b5f4b8542150a6ae2e77422ec50f440a1))
+* **tools:** ensure errors are handled throughout implementation ([#1986](https://github.com/olimorris/codecompanion.nvim/issues/1986)) ([705f0cf](https://github.com/olimorris/codecompanion.nvim/commit/705f0cf1d15dabd7db478c4ef751d86744726d2b)), closes [#1940](https://github.com/olimorris/codecompanion.nvim/issues/1940)
+
 ## [17.15.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.14.0...v17.15.0) (2025-08-13)
 
 
