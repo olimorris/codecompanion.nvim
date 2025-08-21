@@ -17,15 +17,30 @@ function M.for_decision(id, events, callback, opts)
   -- Auto-approve if in auto mode
   -- Generally, most tools will avoid us reaching this point, but it's a good fallback
   if vim.g.codecompanion_auto_tool_mode then
-    return callback({ accepted = true })
+    return callback({ accepted = true, auto_approved = true })
   end
 
   local aug = api.nvim_create_augroup("codecompanion.tools.wait_" .. tostring(id), { clear = true })
+  local decision_made = false
 
   -- Show waiting indicator in the chat buffer
   local chat_extmark_id = nil
   if opts.chat_bufnr then
     chat_extmark_id = M.show_waiting_indicator(opts.chat_bufnr, opts)
+  end
+
+  ---@param result table Result of the decision
+  ---@return nil
+  local function cleanup_and_callback(result)
+    if decision_made then
+      return
+    end
+    decision_made = true
+    if chat_extmark_id and opts.chat_bufnr then
+      M.clear_waiting_indicator(opts.chat_bufnr)
+    end
+    api.nvim_clear_autocmds({ group = aug })
+    callback(result)
   end
 
   api.nvim_create_autocmd("User", {
@@ -38,13 +53,7 @@ function M.for_decision(id, events, callback, opts)
       end
 
       local accepted = (event.match == events[1])
-
-      if chat_extmark_id and opts.chat_bufnr then
-        M.clear_waiting_indicator(opts.chat_bufnr)
-      end
-
-      api.nvim_clear_autocmds({ group = aug })
-      callback({
+      cleanup_and_callback({
         accepted = accepted,
         event = event.match,
         data = event_data,
@@ -58,12 +67,7 @@ function M.for_decision(id, events, callback, opts)
 
   opts.timeout = opts.timeout or config.strategies.chat.tools.opts.wait_timeout or 30000
   vim.defer_fn(function()
-    if chat_extmark_id and opts.chat_bufnr then
-      M.clear_waiting_indicator(opts.chat_bufnr)
-    end
-
-    api.nvim_clear_autocmds({ group = aug })
-    callback({
+    cleanup_and_callback({
       accepted = false,
       timeout = true,
     })

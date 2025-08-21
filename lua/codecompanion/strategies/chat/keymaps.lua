@@ -710,4 +710,11 @@ M.copilot_stats = {
   end,
 }
 
+M.super_diff = {
+  desc = "Show super diff buffer",
+  callback = function(chat)
+    require("codecompanion.strategies.chat.helpers.super_diff").show_super_diff(chat)
+  end,
+}
+
 return M
