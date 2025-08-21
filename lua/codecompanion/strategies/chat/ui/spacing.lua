@@ -28,19 +28,11 @@ function Spacing.get_pre_content_spacing(context, message_types)
 
   -- Handle new sections (when type changes but role stays the same)
   if context.is_new_section then
-    -- Less spacing for section transitions within same role
+    -- Only add spacing for LLM to Tool transitions
     if context.previous_type == message_types.LLM_MESSAGE 
        and context.current_type == message_types.TOOL_MESSAGE then
       table.insert(lines, "")
-    elseif context.previous_type == message_types.TOOL_MESSAGE 
-           and context.current_type == message_types.LLM_MESSAGE then
-      table.insert(lines, "")
     end
-    return lines
-  end
-
-  -- For reasoning start, no extra spacing needed as header handles it
-  if context.is_reasoning_start then
     return lines
   end
 
