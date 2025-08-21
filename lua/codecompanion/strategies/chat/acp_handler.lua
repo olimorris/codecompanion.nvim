@@ -8,9 +8,9 @@ end
 
 ---@class CodeCompanion.Chat.ACPHandler
 ---@field chat CodeCompanion.Chat
----@field output table
----@field reasoning table
----@field tools table
+---@field output table Standard output message from the Agent
+---@field reasoning table Reasoning output from the Agent
+---@field tools table Tools currently being used by the Agent
 local ACPHandler = {}
 
 ---@param chat CodeCompanion.Chat
@@ -105,46 +105,46 @@ function ACPHandler:_handle_thought_chunk(content)
   )
 end
 
----Handle tool call notifications
+---Output tool call to the chat
 ---@param tool_call table
-function ACPHandler:_handle_tool_call(tool_call)
-  if tool_call.status ~= "in_progress" then
-    return
+---@return nil
+function ACPHandler:_process_tool_call(tool_call)
+  local content = tool_call.title
+  if tool_call.status == "completed" then
+    content = tool_call.content
+        and tool_call.content[1]
+        and tool_call.content[1].content
+        and tool_call.content[1].content.text
+      or "Tool completed successfully"
+    self.tools[tool_call.toolCallId] = nil
+  else
+    self.tools[tool_call.toolCallId] = {
+      status = tool_call.status,
+      title = ("`" .. tool_call.title .. "`") or "Tool Call",
+    }
   end
 
-  self.chat:add_message({ role = config.constants.LLM_ROLE, content = tool_call.title })
-  self.chat:add_buf_message({ role = config.constants.LLM_ROLE, content = tool_call.title }, {
-    status = "in_progress",
+  table.insert(self.output, content)
+  self.chat:add_buf_message({
+    role = config.constants.LLM_ROLE,
+    content = content,
+  }, {
+    status = tool_call.status,
     tool_call_id = tool_call.toolCallId,
     type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
   })
 end
 
+---Handle tool call notifications
+---@param tool_call table
+function ACPHandler:_handle_tool_call(tool_call)
+  return self:_process_tool_call(tool_call)
+end
+
 ---Handle tool call updates and their respective status
 ---@param tool_call table
 function ACPHandler:_handle_tool_update(tool_call)
-  if tool_call.status == "completed" then
-    local content = tool_call.content
-        and tool_call.content[1]
-        and tool_call.content[1].content
-        and tool_call.content[1].content.text
-      or "Tool completed successfully"
-
-    self.chat:add_message({ role = config.constants.LLM_ROLE, content = content })
-    self.chat:add_buf_message({ role = config.constants.LLM_ROLE, content = content }, {
-      status = "completed",
-      tool_call_id = tool_call.toolCallId,
-      type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
-    })
-  elseif tool_call.status == "failed" then
-    local content = tool_call.title or "Tool failed"
-    self.chat:add_message({ role = config.constants.LLM_ROLE, content = content })
-    self.chat:add_buf_message({ role = config.constants.LLM_ROLE, content = content }, {
-      status = "failed",
-      tool_call_id = tool_call.toolCallId,
-      type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
-    })
-  end
+  return self:_process_tool_call(tool_call)
 end
 
 ---Handle permission requests from the agent
@@ -175,6 +175,11 @@ function ACPHandler:_handle_permission_request(req)
     req.tool_call and req.tool_call.title or "Agent requested permission"
   )
 
+  -- Check if there's a tool call as part of this, if so, display it
+  if req.tool_call then
+    self:_process_tool_call(req.tool_call)
+  end
+
   local picked = vim.fn.confirm(prompt, table.concat(choices, "\n"), 2, "Question")
 
   if picked > 0 and index_to_option[picked] then
@@ -190,7 +195,7 @@ function ACPHandler:_handle_completion(stop_reason)
   if not self.chat.status or self.chat.status == "" then
     self.chat.status = "success"
   end
-  self.chat:done(self.output, self.reasoning, self.tools)
+  self.chat:done(self.output, self.reasoning, {})
 end
 
 ---Handle errors

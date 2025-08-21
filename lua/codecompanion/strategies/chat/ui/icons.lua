@@ -14,6 +14,10 @@ local CONSTANTS = {
 ---@param status string The tool status (in_progress, completed, failed)
 function Icons.apply_tool_icon(bufnr, line, status)
   local icon_configs = {
+    pending = {
+      icon = config.display.chat.icons.tool_pending or "⚡",
+      hl_group = "CodeCompanionChatToolPending",
+    },
     in_progress = {
       icon = config.display.chat.icons.tool_in_progress or "⚡",
       hl_group = "CodeCompanionChatToolInProgress",

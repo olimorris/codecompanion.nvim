@@ -3,6 +3,7 @@ local config = require("codecompanion.config")
 
 local CONSTANTS = {
   icons = {
+    pending = config.display.chat.icons.tool_pending or "⏳",
     in_progress = config.display.chat.icons.tool_in_progress or "⚡",
     failed = config.display.chat.icons.tool_failure or "❌",
     completed = config.display.chat.icons.tool_success or "✅",
@@ -31,6 +32,9 @@ function Tools:format(message, opts, state)
     table.insert(lines, "")
     table.insert(lines, "### Response")
     content_line_offset = 3
+  elseif state.last_type == self.chat.MESSAGE_TYPES.LLM_MESSAGE then
+    table.insert(lines, "")
+    content_line_offset = content_line_offset + 1
   end
 
   if state.is_new_section then
