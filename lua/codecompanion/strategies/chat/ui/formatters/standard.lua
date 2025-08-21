@@ -23,8 +23,6 @@ function Standard:format(message, opts, state)
     table.insert(lines, "")
     table.insert(lines, "### Response")
     table.insert(lines, "")
-  elseif state.last_type == self.chat.MESSAGE_TYPES.TOOL_MESSAGE then
-    table.insert(lines, "")
   end
 
   -- Add content
