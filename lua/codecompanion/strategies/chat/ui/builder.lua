@@ -3,6 +3,7 @@ local config = require("codecompanion.config")
 local Reasoning = require("codecompanion.strategies.chat.ui.formatters.reasoning")
 local Standard = require("codecompanion.strategies.chat.ui.formatters.standard")
 local Tools = require("codecompanion.strategies.chat.ui.formatters.tools")
+local Spacing = require("codecompanion.strategies.chat.ui.spacing")
 
 local api = vim.api
 
@@ -143,17 +144,22 @@ function Builder:_should_add_header(data, opts, state)
   return (data.role and data.role ~= state.last_role) or (opts and opts.force_role)
 end
 
----Add appropriate spacing before header
+---Add appropriate spacing before header using centralized spacing manager
 ---@param lines table
 ---@param state table
 ---@return nil
 function Builder:_add_header_spacing(lines, state)
-  if state.last_type == self.chat.MESSAGE_TYPES.TOOL_MESSAGE then
-    table.insert(lines, "")
-  else
-    table.insert(lines, "")
-    table.insert(lines, "")
-  end
+  local spacing_context = {
+    is_new_role = true,
+    is_new_section = false,
+    previous_type = state.last_type,
+    current_type = nil, -- Headers are for roles, not specific message types
+    has_reasoning_transition = false,
+    is_reasoning_start = false,
+  }
+
+  local spacing_lines = Spacing.get_header_spacing(spacing_context, self.chat.MESSAGE_TYPES)
+  vim.list_extend(lines, spacing_lines)
 end
 
 ---Get the appropriate formatter
