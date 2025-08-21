@@ -52,7 +52,6 @@ local PromptBuilder = {}
 
 -- Static methods for testing/mocking
 Connection.static.methods = {
-  confirm = { default = vim.fn.confirm },
   decode = { default = vim.json.decode },
   encode = { default = vim.json.encode },
   job = { default = vim.system },
@@ -360,7 +359,12 @@ function Connection:_process_notification(notification)
       self._active_prompt:_handle_session_update(notification.params.update)
     end
   elseif notification.method == "session/request_permission" then
-    self:_handle_permission_request(notification.id, notification.params)
+    -- FORWARDED: handled by PromptBuilder/ACPHandler
+    if self._active_prompt then
+      self._active_prompt:_handle_permission_request(notification.id, notification.params)
+    else
+      log:debug("[acp::_process_notification] Permission request with no active prompt; ignoring")
+    end
   elseif notification.method == "fs/read_text_file" then
     -- self:_handle_read_file_request(notification.id, notification.params)
   elseif notification.method == "fs/write_text_file" then
@@ -410,68 +414,6 @@ function Connection:_handle_exit(code, signal)
   self.pending_responses = {}
 end
 
----Handle permission request from agent
----@param id integer
----@param params table
-function Connection:_handle_permission_request(id, params)
-  local options = params.options
-  local tool_call = params.toolCall
-
-  local choices = {}
-  local choices_map = {}
-  local nvim_labels = {
-    ["allow_always"] = "1 Allow always",
-    ["allow_once"] = "2 Allow once",
-    ["reject_once"] = "3 Reject",
-    ["reject_always"] = "4 Reject always",
-  }
-
-  log:debug("[acp::_handle_permission_request] Tool: %s, Options: %s", tool_call.toolCallId, options)
-
-  -- Format the options ready for the confirm dialog
-  for i, option in ipairs(options) do
-    table.insert(choices, "&" .. nvim_labels[option.kind])
-    choices_map[i] = option.optionId
-  end
-
-  local choice_str = table.concat(choices, "\n")
-  local choice = self.methods.confirm(
-    string.format([[%s: %s ?]], util.capitalize(tool_call.kind), tool_call.title),
-    choice_str,
-    2, -- Default to allow once
-    "Question"
-  )
-
-  if not id then
-    return log:error("[acp::_handle_permission_request] No ID provided for permission response")
-  end
-
-  local response
-  if choice > 0 and choices_map[choice] then
-    response = {
-      outcome = {
-        outcome = "selected",
-        optionId = choices_map[choice],
-      },
-    }
-  else
-    response = {
-      outcome = {
-        outcome = "canceled",
-      },
-    }
-  end
-
-  local response_msg = {
-    jsonrpc = "2.0",
-    id = id,
-    result = response,
-  }
-  local json_str = self.methods.encode(response_msg) .. "\n"
-
-  self:_write_to_process(json_str)
-end
-
 ---Initiate a prompt
 ---@param messages table
 ---@return CodeCompanion.ACPPromptBuilder
@@ -515,6 +457,14 @@ end
 ---@return CodeCompanion.ACPPromptBuilder
 function PromptBuilder:on_thought_chunk(handler)
   self.handlers.thought_chunk = handler
+  return self
+end
+
+---Set handler for permission requests
+---@param handler fun(tool_call: table)
+---@return CodeCompanion.ACPPromptBuilder
+function PromptBuilder:on_permission_request(handler)
+  self.handlers.permission_request = handler
   return self
 end
 
@@ -638,6 +588,63 @@ function PromptBuilder:_handle_session_update(params)
     if self.handlers.tool_update then
       self.handlers.tool_update(params)
     end
+  end
+end
+
+---Handle permission request from the agent
+---@param id string
+---@param params table
+---@return nil
+function PromptBuilder:_handle_permission_request(id, params)
+  if not id or not params then
+    return
+  end
+
+  local tool_call = params.toolCall
+  local options = params.options or {}
+
+  local has_diff = false
+  if tool_call and tool_call.content then
+    for _, entry in ipairs(tool_call.content) do
+      if entry.type == "diff" then
+        has_diff = true
+        break
+      end
+    end
+  end
+
+  ---Send the user's response back
+  ---@param outcome table
+  ---@return nil
+  local function send_permission_response(outcome)
+    local response_msg = {
+      jsonrpc = "2.0",
+      id = id,
+      result = { outcome = outcome },
+    }
+    self.connection:_write_to_process(self.connection.methods.encode(response_msg) .. "\n")
+  end
+
+  local req = {
+    id = id,
+    session_id = params.sessionId,
+    tool_call = tool_call,
+    options = options,
+    has_diff = has_diff,
+    respond = function(option_id, canceled)
+      if canceled or not option_id then
+        send_permission_response({ outcome = "canceled" })
+      else
+        send_permission_response({ outcome = "selected", optionId = option_id })
+      end
+    end,
+  }
+
+  if self.handlers.permission_request then
+    self.handlers.permission_request(req)
+  else
+    -- Safe default to avoid hanging agent
+    req.respond(nil, true)
   end
 end
 

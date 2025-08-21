@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local util = require("codecompanion.utils")
 
 ---Return the ACP client
 local get_client = function()
@@ -71,6 +72,9 @@ function ACPHandler:_create_prompt_request(payload)
     :on_tool_update(function(tool_update)
       self:_handle_tool_update(tool_update)
     end)
+    :on_permission_request(function(req)
+      self:_handle_permission_request(req)
+    end)
     :on_complete(function(stop_reason)
       self:_handle_completion(stop_reason)
     end)
@@ -140,6 +144,43 @@ function ACPHandler:_handle_tool_update(tool_call)
       tool_call_id = tool_call.toolCallId,
       type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
     })
+  end
+end
+
+---Handle permission requests from the agent
+---@param req table
+---@return nil
+function ACPHandler:_handle_permission_request(req)
+  local options = req.options or {}
+  if vim.tbl_isempty(options) then
+    return req.respond(nil, true)
+  end
+
+  local labels = {
+    allow_always = "1 Allow always",
+    allow_once = "2 Allow once",
+    reject_once = "3 Reject",
+    reject_always = "4 Reject always",
+  }
+
+  local choices, index_to_option = {}, {}
+  for i, opt in ipairs(options) do
+    table.insert(choices, "&" .. (labels[opt.kind] or (tostring(i) .. " " .. opt.name)))
+    index_to_option[i] = opt.optionId
+  end
+
+  local prompt = string.format(
+    "%s: %s ?",
+    util.capitalize(req.tool_call and req.tool_call.kind or "permission"),
+    req.tool_call and req.tool_call.title or "Agent requested permission"
+  )
+
+  local picked = vim.fn.confirm(prompt, table.concat(choices, "\n"), 2, "Question")
+
+  if picked > 0 and index_to_option[picked] then
+    req.respond(index_to_option[picked], false)
+  else
+    req.respond(nil, true)
   end
 end
 

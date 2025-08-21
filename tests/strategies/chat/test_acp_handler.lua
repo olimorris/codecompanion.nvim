@@ -48,6 +48,11 @@ T = new_set({
                 return self
               end,
 
+              on_permission_request = function(self, handler)
+                self.handlers.permission_request = handler
+                return self
+              end,
+
               on_complete = function(self, handler)
                 self.handlers.complete = handler
                 return self
