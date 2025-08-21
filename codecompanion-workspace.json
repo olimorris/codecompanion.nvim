@@ -24,6 +24,7 @@
         "chat-ui-formatters-reasoning",
         "chat-ui-formatters-standard",
         "chat-ui-folds",
+        "chat-ui-icons",
         "chat-ui-builder-test"
       ]
     },
@@ -169,6 +170,11 @@
       "type": "file",
       "path": "lua/codecompanion/strategies/chat/ui/folds.lua",
       "description": "Manages visual presentation of tool output and chat context including folding functionality. It creates collapsible folds for tool output with custom fold text that shows success/failure icons and summarized content alongside folding the chat context at the top of the chat buffer. The fold text adapts based on keywords in the tool output to indicate success or failure states."
+    },
+    "chat-ui-icons": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/ui/icons.lua",
+      "description": "Manages the overlaying of icons in the chat buffer for tools, based on their status. It manages this by applying extmarks in a given position which places the icon at the start of a given line. The icons are then used to indicate the status of a tool, whether it was successful or not"
     },
     "chat-ui-builder-test": {
       "type": "file",
