@@ -120,7 +120,7 @@ Referencing [`acp_json_schema.json`](llm_notes/acp_json_schema.json):
 
 ## 6. **Example ACP Message Exchange**
 
-**User Prompt:**
+**User prompt:**
 ```json
 {
   "jsonrpc": "2.0",
@@ -135,7 +135,7 @@ Referencing [`acp_json_schema.json`](llm_notes/acp_json_schema.json):
 }
 ```
 
-**Agent Thinking Response:**
+**Agent thinking response:**
 ```json
 {
   "jsonrpc": "2.0",
@@ -150,7 +150,7 @@ Referencing [`acp_json_schema.json`](llm_notes/acp_json_schema.json):
 }
 ```
 
-**Agent Response:**
+**Agent response:**
 ```json
 {
   "jsonrpc": "2.0",
@@ -165,7 +165,7 @@ Referencing [`acp_json_schema.json`](llm_notes/acp_json_schema.json):
 }
 ```
 
-**Agent Requesting Permission:**
+**Agent requesting permission with diff:**
 ```json
 {
     "jsonrpc": "2.0",
@@ -209,7 +209,45 @@ Referencing [`acp_json_schema.json`](llm_notes/acp_json_schema.json):
 }
 ```
 
-**Tool Call In Progress:**
+**Agent requesting permission with no diff**:
+
+```json
+{
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "session/request_permission",
+    "params": {
+        "sessionId": "06d32abb-9ecc-46f3-af80-c5aeb4aafc0c",
+        "options": [
+            {
+                "optionId": "proceed_always",
+                "name": "Always Allow ls",
+                "kind": "allow_always"
+            },
+            {
+                "optionId": "proceed_once",
+                "name": "Allow",
+                "kind": "allow_once"
+            },
+            {
+                "optionId": "cancel",
+                "name": "Reject",
+                "kind": "reject_once"
+            }
+        ],
+        "toolCall": {
+            "toolCallId": "run_shell_command-1755793277864",
+            "status": "pending",
+            "title": "ls -F (Lists the files and directories in the current working directory, adding symbols to indicate their type (e.g., a '/' for directories).)",
+            "content": [],
+            "locations": [],
+            "kind": "execute"
+        }
+    }
+}
+```
+
+**Tool call in progress:**
 ```json
 {
   "jsonrpc": "2.0",
@@ -229,7 +267,7 @@ Referencing [`acp_json_schema.json`](llm_notes/acp_json_schema.json):
 }
 ```
 
-**Completed Tool Call:**
+**Completed tool call:**
 ```json
 {
   "jsonrpc": "2.0",
