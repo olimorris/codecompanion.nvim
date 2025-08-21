@@ -25,10 +25,6 @@ function Standard:format(message, opts, state)
     table.insert(lines, "")
   end
 
-  if state.is_new_section then
-    table.insert(lines, "")
-  end
-
   -- Add content
   for _, line in ipairs(vim.split(message.content, "\n", { plain = true, trimempty = false })) do
     table.insert(lines, line)
