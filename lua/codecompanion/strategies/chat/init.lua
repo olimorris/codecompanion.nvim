@@ -667,12 +667,20 @@ function Chat.new(args)
   end
 
   if config.strategies.chat.keymaps then
+    -- Filter out any private keymaps
+    local filtered_keymaps = {}
+    for k, v in pairs(config.strategies.chat.keymaps) do
+      if k:sub(1, 1) ~= "_" then
+        filtered_keymaps[k] = v
+      end
+    end
+
     keymaps
       .new({
         bufnr = self.bufnr,
         callbacks = require("codecompanion.strategies.chat.keymaps"),
         data = self,
-        keymaps = config.strategies.chat.keymaps,
+        keymaps = filtered_keymaps,
       })
       :set()
   end

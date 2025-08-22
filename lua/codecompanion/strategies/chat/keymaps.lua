@@ -80,8 +80,14 @@ M.options = {
       end
     end
 
+    -- Filter out private keymaps
+    local keymaps = {}
+    for k, v in pairs(config.strategies.chat.keymaps) do
+      if k:sub(1, 1) ~= "_" then
+        keymaps[k] = v
+      end
+    end
     -- Workout the column spacing
-    local keymaps = config.strategies.chat.keymaps
     local keymaps_max = max("description", keymaps)
 
     local vars = {}

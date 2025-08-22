@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local helpers = require("codecompanion.strategies.chat.helpers.acp_interactions")
 local util = require("codecompanion.utils")
 
 ---Return the ACP client
@@ -72,8 +73,8 @@ function ACPHandler:_create_prompt_request(payload)
     :on_tool_update(function(tool_update)
       self:_handle_tool_update(tool_update)
     end)
-    :on_permission_request(function(req)
-      self:_handle_permission_request(req)
+    :on_permission_request(function(request)
+      self:_handle_permission_request(request)
     end)
     :on_complete(function(stop_reason)
       self:_handle_completion(stop_reason)
@@ -148,13 +149,10 @@ function ACPHandler:_handle_tool_update(tool_call)
 end
 
 ---Handle permission requests from the agent
----@param req table
+---@param request table
 ---@return nil
-function ACPHandler:_handle_permission_request(req)
-  local options = req.options or {}
-  if vim.tbl_isempty(options) then
-    return req.respond(nil, true)
-  end
+function ACPHandler:_handle_permission_request(request)
+  local options = request.options
 
   local labels = {
     allow_always = "1 Allow always",
@@ -171,21 +169,25 @@ function ACPHandler:_handle_permission_request(req)
 
   local prompt = string.format(
     "%s: %s ?",
-    util.capitalize(req.tool_call and req.tool_call.kind or "permission"),
-    req.tool_call and req.tool_call.title or "Agent requested permission"
+    util.capitalize(request.tool_call and request.tool_call.kind or "permission"),
+    request.tool_call and request.tool_call.title or "Agent requested permission"
   )
 
-  -- Check if there's a tool call as part of this, if so, display it
-  if req.tool_call then
-    self:_process_tool_call(req.tool_call)
+  if request.tool_call then
+    self:_process_tool_call(request.tool_call)
+  end
+
+  if helpers.tool_has_diff(request.tool_call) then
+    -- Display the diff to the user and halt any further execution until they respond
+    return helpers.show_diff(request)
   end
 
   local picked = vim.fn.confirm(prompt, table.concat(choices, "\n"), 2, "Question")
 
   if picked > 0 and index_to_option[picked] then
-    req.respond(index_to_option[picked], false)
+    request.respond(index_to_option[picked], false)
   else
-    req.respond(nil, true)
+    request.respond(nil, true)
   end
 end
 

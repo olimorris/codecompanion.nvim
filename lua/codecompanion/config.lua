@@ -461,6 +461,23 @@ local defaults = {
           callback = "keymaps.super_diff",
           description = "Show Super Diff",
         },
+        -- Keymaps for ACP permission requests
+        _acp_allow_always = {
+          modes = { n = "g1" },
+          description = "Allow Always",
+        },
+        _acp_allow_once = {
+          modes = { n = "g2" },
+          description = "Allow Once",
+        },
+        _acp_reject_once = {
+          modes = { n = "g3" },
+          description = "Reject Once",
+        },
+        _acp_reject_always = {
+          modes = { n = "g4" },
+          description = "Reject Always",
+        },
       },
       opts = {
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt

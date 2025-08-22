@@ -603,16 +603,6 @@ function PromptBuilder:_handle_permission_request(id, params)
   local tool_call = params.toolCall
   local options = params.options or {}
 
-  local has_diff = false
-  if tool_call and tool_call.content then
-    for _, entry in ipairs(tool_call.content) do
-      if entry.type == "diff" then
-        has_diff = true
-        break
-      end
-    end
-  end
-
   ---Send the user's response back
   ---@param outcome table
   ---@return nil
@@ -625,12 +615,11 @@ function PromptBuilder:_handle_permission_request(id, params)
     self.connection:_write_to_process(self.connection.methods.encode(response_msg) .. "\n")
   end
 
-  local req = {
+  local request = {
     id = id,
     session_id = params.sessionId,
     tool_call = tool_call,
     options = options,
-    has_diff = has_diff,
     respond = function(option_id, canceled)
       if canceled or not option_id then
         send_permission_response({ outcome = "canceled" })
@@ -641,10 +630,10 @@ function PromptBuilder:_handle_permission_request(id, params)
   }
 
   if self.handlers.permission_request then
-    self.handlers.permission_request(req)
+    self.handlers.permission_request(request)
   else
     -- Safe default to avoid hanging agent
-    req.respond(nil, true)
+    request.respond(nil, true)
   end
 end
 
