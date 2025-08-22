@@ -40,8 +40,10 @@ function InlineDiff.new(args)
     util.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
     return self
   end
-  log:debug("[providers::diff::inline::new] Changes detected - applying diff highlights")
+
   self.has_changes = true
+  log:debug("[providers::diff::inline::new] Changes detected - applying diff highlights")
+
   local first_diff_line = self:apply_diff_highlights(self.contents, current_content)
   if first_diff_line then
     vim.schedule(function()
@@ -51,7 +53,9 @@ function InlineDiff.new(args)
       end
     end)
   end
+
   util.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
+
   return self
 end
 
@@ -96,6 +100,7 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
   local context_lines = inline_config.context_lines or 3
   local hunks = InlineDiff.calculate_hunks(old_lines, new_lines, context_lines)
   local first_diff_line = nil
+
   -- Add keymap hint above the first hunk if there are changes
   if #hunks > 0 then
     local first_hunk = hunks[1]
