@@ -158,7 +158,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
 
     local wait_opts = {
       chat_bufnr = chat_bufnr,
-      notify = config.display.icons.warning .. " Waiting for diff approval ...",
+      notify = config.display.icons.warning .. " Waiting for decision ...",
       sub_text = fmt("`%s` - Accept edits / `%s` - Reject edits", accept, reject),
     }
 
