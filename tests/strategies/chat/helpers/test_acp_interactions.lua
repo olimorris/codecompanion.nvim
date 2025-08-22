@@ -13,6 +13,13 @@ T = new_set({
         _G.TEST_FILE = vim.fs.joinpath('tests/stubs/test_acp_interactions', 'file.txt')
       ]])
     end,
+    post_case = function()
+      child.lua([[
+	package.loaded["codecompanion.strategies.chat.helpers.acp_interactions"] = nil
+	package.loaded["codecompanion.strategies.chat.tools.catalog.helpers.diff"] = nil
+	package.loaded["codecompanion.strategies.chat.tools.catalog.helpers.wait"] = nil
+]])
+    end,
     post_once = child.stop,
   },
 })
@@ -20,11 +27,6 @@ T = new_set({
 -- Utility to reset and mock modules inside child
 local function with_mocks(lua_body)
   return child.lua(([[
-    -- Reset modules
-    package.loaded["codecompanion.strategies.chat.helpers.acp_interactions"] = nil
-    package.loaded["codecompanion.strategies.chat.tools.catalog.helpers.diff"] = nil
-    package.loaded["codecompanion.strategies.chat.tools.catalog.helpers.wait"] = nil
-
     -- Capture table
     _G.__capt = {}
 
@@ -165,7 +167,6 @@ end
 
 T["show_diff cancels when no diff content"] = function()
   local result = child.lua([[
-    package.loaded["codecompanion.strategies.chat.helpers.acp_interactions"] = nil
 
     local interactions = require("codecompanion.strategies.chat.helpers.acp_interactions")
     local responded = {}
@@ -191,6 +192,101 @@ T["show_diff cancels when no diff content"] = function()
 
   h.eq(nil, result.option_id)
   h.eq(true, result.canceled)
+end
+
+T["show_diff installs keymaps only for present kinds and triggers respond via mapping"] = function()
+  local result = child.lua([[
+    -- Minimal diff.create mock that returns accept/reject methods
+    package.loaded["codecompanion.strategies.chat.tools.catalog.helpers.diff"] = {
+      create = function(bufnr, diff_id, opts)
+        -- Ensure mappings will be set on the right buffer (current)
+        return {
+          accept = function() _G.__acp_accept_called = true end,
+          reject = function() _G.__acp_reject_called = true end,
+        }
+      end
+    }
+
+    -- Don't auto-resolve; allow keymaps to drive decision
+    package.loaded["codecompanion.strategies.chat.tools.catalog.helpers.wait"] = {
+      for_decision = function(diff_id, events, cb, opts)
+        _G.__acp_wait = { diff_id = diff_id, cb = cb, opts = opts }
+      end
+    }
+
+    -- Configure ACP keymaps explicitly
+    local cfg = require("codecompanion.config")
+    cfg.strategies = cfg.strategies or {}
+    cfg.strategies.chat = cfg.strategies.chat or {}
+    cfg.strategies.chat.keymaps = {
+      _acp_allow_always = { modes = { n = "ga" } },
+      _acp_allow_once   = { modes = { n = "g2" } },
+      _acp_reject_once  = { modes = { n = "g3" } },
+      _acp_reject_always= { modes = { n = "g4" } },
+    }
+
+    -- Open the target file to ensure buffer/window focus exists
+    vim.cmd.edit(_G.TEST_FILE)
+    local bufnr = vim.api.nvim_get_current_buf()
+
+    local interactions = require("codecompanion.strategies.chat.helpers.acp_interactions")
+
+    local responded = {}
+    local chat = { bufnr = 0 }
+    -- Provide options missing 'reject_always' to validate dynamic mapping
+    local request = {
+      tool_call = {
+        toolCallId = "tc-keys",
+        kind = "edit",
+        title = "Apply changes",
+        status = "pending",
+        content = { { type = "diff", path = _G.TEST_FILE, oldText = "old", newText = "new" } },
+      },
+      options = {
+        { optionId = "allow_always_id", name = "Always", kind = "allow_always" },
+        { optionId = "allow_once_id",   name = "Allow",  kind = "allow_once" },
+        { optionId = "reject_once_id",  name = "Reject", kind = "reject_once" },
+        -- Intentionally omit 'reject_always'
+      },
+      respond = function(option_id, canceled) responded = { option_id = option_id, canceled = canceled } end,
+    }
+
+    interactions.show_diff(chat, request)
+
+    -- Check buffer-local mappings
+    local function map_exists(lhs)
+      for _, m in ipairs(vim.api.nvim_buf_get_keymap(bufnr, "n")) do
+        if m.lhs == lhs then return true end
+      end
+      return false
+    end
+
+    local has_g2 = map_exists("g2")     -- allow_once present -> should exist
+    local has_g3 = map_exists("g3")     -- reject_once present -> should exist
+    local has_g4 = map_exists("g4")     -- reject_always absent -> should NOT exist
+
+    -- Trigger allow_once via 'g2'
+    vim.api.nvim_feedkeys("g2", "n", false)
+    vim.cmd("redraw") -- process feedkeys
+
+    return {
+      has_g2 = has_g2,
+      has_g3 = has_g3,
+      has_g4 = has_g4,
+      responded = responded,
+      accept_called = _G.__acp_accept_called == true,
+    }
+  ]])
+
+  -- Mappings should exist only for present kinds
+  h.eq(true, result.has_g2)
+  h.eq(true, result.has_g3)
+  h.eq(false, result.has_g4)
+
+  -- Pressing g2 should accept with allow_once_id
+  h.eq("allow_once_id", result.responded.option_id)
+  h.eq(false, result.responded.canceled)
+  h.eq(true, result.accept_called)
 end
 
 return T

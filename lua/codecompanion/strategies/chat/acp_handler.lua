@@ -179,7 +179,7 @@ function ACPHandler:_handle_permission_request(request)
 
   if helpers.tool_has_diff(request.tool_call) then
     -- Display the diff to the user and halt any further execution until they respond
-    return helpers.show_diff(request)
+    return helpers.show_diff(self.chat, request)
   end
 
   local picked = vim.fn.confirm(prompt, table.concat(choices, "\n"), 2, "Question")
