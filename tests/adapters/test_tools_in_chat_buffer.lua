@@ -40,6 +40,7 @@ T["Test tools in chat buffer"] = new_set({
     { "gemini", "openai_tools_no_params" },
 
     { "anthropic", "anthropic_tools_no_params" },
+    { "deepseek", "deepseek_tools_no_params" },
   },
 })
 
