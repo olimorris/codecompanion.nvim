@@ -280,7 +280,16 @@ function UI:render(context, messages, opts)
         end
 
         local trimempty = not (msg.role == "user" and msg.content == "")
-        for _, text in ipairs(vim.split(msg.content or "", "\n", { plain = true, trimempty = trimempty })) do
+        local display_content = msg.content or ""
+        -- For anthropic adapter, the tool output is in msg.content.content
+        if type(display_content) == "table" then
+          if type(msg.content.content) == "string" then
+            display_content = msg.content.content
+          else
+            display_content = "[Message Cannot Be Displayed]"
+          end
+        end
+        for _, text in ipairs(vim.split(display_content or "", "\n", { plain = true, trimempty = trimempty })) do
           table.insert(lines, text)
         end
 
