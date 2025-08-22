@@ -660,7 +660,6 @@ function PromptBuilder:cancel()
   if self.connection.session_id then
     local cancel_req = {
       jsonrpc = "2.0",
-      id = self.connection._state.next_id,
       method = "session/cancel",
       params = { sessionId = self.connection.session_id },
     }
