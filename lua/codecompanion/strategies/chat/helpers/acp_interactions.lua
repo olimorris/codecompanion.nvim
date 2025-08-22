@@ -6,6 +6,18 @@ local wait = require("codecompanion.strategies.chat.tools.catalog.helpers.wait")
 
 local api = vim.api
 
+local CONSTANTS = {
+  MAPPINGS_PREFIX = "_acp_",
+  TIMEOUT_RESPONSE = config.strategies.chat.opts.acp_timeout_response or "reject_once",
+}
+
+local ALLOWED_KINDS = {
+  allow_once = true,
+  allow_always = true,
+  reject_once = true,
+  reject_always = true,
+}
+
 local M = {}
 
 ---Determine if the tool call contains a diff object
@@ -38,34 +50,38 @@ function M.get_diff(tool_call)
   }
 end
 
----Pick an optionId from options by trying kinds in order
+---Map possible kinds with their optionIDs from the agent
 ---@param options table
----@param prefer_kinds string[]
----@return string|nil
-local function pick_option_id(options, prefer_kinds)
-  local by_kind = {}
+---@return table<string, string> -- kind -> optionId
+local function build_kind_map(options)
+  local map = {}
+
   for _, opt in ipairs(options or {}) do
-    by_kind[opt.kind] = opt.optionId
-  end
-  for _, k in ipairs(prefer_kinds or {}) do
-    if by_kind[k] then
-      return by_kind[k]
+    if ALLOWED_KINDS[opt.kind] then
+      map[opt.kind] = opt.optionId
     end
   end
-  return nil
+
+  return map
 end
 
----Resolve a specific optionId for a given kind
----@param options table
----@param kind string
----@return string|nil
-local function option_id_for_kind(options, kind)
-  for _, opt in ipairs(options or {}) do
-    if opt.kind == kind then
-      return opt.optionId
+---We allow users to set acp keymaps in the same way as any other keymap
+---Whilst this is convenient, we need to normalize the input to a
+---simpler structure so we can set them properly in the diff
+---@param keymaps table
+---@return table<string, string> kind -> lhs
+local function normalize_maps(keymaps)
+  local normalized = {}
+  for name, entry in pairs(keymaps or {}) do
+    if type(name) == "string" and name:sub(1, #CONSTANTS.MAPPINGS_PREFIX) == CONSTANTS.MAPPINGS_PREFIX then
+      local kind = (type(entry) == "table" and entry.kind) or name:match("^" .. CONSTANTS.MAPPINGS_PREFIX .. "(.*)$")
+      local lhs = entry and entry.modes and entry.modes.n
+      if kind and ALLOWED_KINDS[kind] and lhs then
+        normalized[kind] = lhs
+      end
     end
   end
-  return nil
+  return normalized
 end
 
 ---Open an existing buffer or the file path in a window; return bufnr (or nil)
@@ -92,149 +108,117 @@ local function open_target_buffer(path)
   return nil
 end
 
--- Build map of present kinds -> optionId from agent options
----@param options table
----@return table<string, string>
-local function build_kind_map(options)
-  local m = {}
-  for _, opt in ipairs(options or {}) do
-    if
-      opt.kind == "allow_once"
-      or opt.kind == "allow_always"
-      or opt.kind == "reject_once"
-      or opt.kind == "reject_always"
-    then
-      m[opt.kind] = opt.optionId
-    end
-  end
-  return m
-end
-
 -- Remove any mappings from a buffer
----@param bufnr integer
+---@param bufnr number
 ---@param mapped_keys string[]
 local function cleanup_mappings(bufnr, mapped_keys)
-  for _, lhs in ipairs(mapped_keys or {}) do
+  for _, lhs in ipairs(mapped_keys) do
     pcall(vim.keymap.del, "n", lhs, { buffer = bufnr })
   end
 end
 
--- Install ACP-specific buffer-local keymaps dynamically based on options present
--- It scans config.strategies.chat.keymaps for entries starting with "_acp_".
--- Supports reserved names or an explicit entry.kind field.
----@param bufnr integer
----@param keymaps_cfg table
----@param kind_map table<string,string> -- kind -> optionId (present kinds)
----@param finish fun(accepted:boolean, timed_out:boolean, exact_kind:string|nil)
----@return string[] mapped_keys
-local function setup_acp_keymaps(bufnr, keymaps_cfg, kind_map, finish)
-  local mapped = {}
-
-  local reserved = {
-    _acp_allow_once = "allow_once",
-    _acp_allow_always = "allow_always",
-    _acp_reject_once = "reject_once",
-    _acp_reject_always = "reject_always",
-  }
-
-  local function resolve_kind(key, entry)
-    if entry and type(entry.kind) == "string" and kind_map[entry.kind] then
-      return entry.kind
-    end
-    if reserved[key] and kind_map[reserved[key]] then
-      return reserved[key]
-    end
-    -- As a fallback, try to parse suffix after _acp_
-    local suffix = key:match("^_acp_(.*)$")
-    if suffix and kind_map[suffix] then
-      return suffix
-    end
-    return nil
-  end
-
-  for key, entry in pairs(keymaps_cfg or {}) do
-    -- Only consider acp-specific entries
-    if type(key) == "string" and key:sub(1, 5) == "_acp_" then
-      local kind = resolve_kind(key, entry)
-      local lhs = entry and entry.modes and entry.modes.n
-      if kind and lhs then
-        local accepted = (kind == "allow_once" or kind == "allow_always")
-        table.insert(mapped, lhs)
-        vim.keymap.set("n", lhs, function()
-          finish(accepted, false, kind)
-        end, { buffer = bufnr, silent = true, nowait = true })
-      end
+---Set up keymaps in the buffer for the user to respond
+---@param bufnr number
+---@param normalized table<string, string> kind -> lhs
+---@param kind_map table<string, string> kind -> optionId
+---@param finish fun(accepted: boolean, timed_out: boolean, kind: string)
+---@param mapped_lhs_out string[] (output param to collect mapped lhs for cleanup)
+local function setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs_out)
+  for kind, lhs in pairs(normalized or {}) do
+    if kind_map[kind] and lhs then
+      local accepted = (kind == "allow_once" or kind == "allow_always")
+      table.insert(mapped_lhs_out, lhs)
+      vim.keymap.set("n", lhs, function()
+        finish(accepted, false, kind)
+      end, { buffer = bufnr, silent = true, nowait = true })
     end
   end
-
-  return mapped
 end
 
 ---Function to call when the user has provided a response
 ---@param request table
----@param diff_obj table
----@param bufnr integer
+---@param diff table
+---@param bufnr number
 ---@param using_scratch boolean
----@param mapped_keys string[]
----@return fun(accepted:boolean, timed_out:boolean, exact_kind:string|nil)
-local function on_response(request, diff_obj, bufnr, using_scratch, mapped_keys)
+---@param mapped_lhs string[]
+---@return fun(accepted: boolean, timed_out: boolean, kind: string|nil)
+local function on_user_response(request, diff, bufnr, using_scratch, mapped_lhs)
   local done = false
 
-  return function(accepted, timed_out, exact_kind)
+  local function option_id_for_kind(kind)
+    for _, opt in ipairs(request.options or {}) do
+      if opt.kind == kind then
+        return opt.optionId
+      end
+    end
+  end
+
+  local function pick(prefer)
+    for _, kind in ipairs(prefer) do
+      local id = option_id_for_kind(kind)
+      if id then
+        return id
+      end
+    end
+  end
+
+  return function(accepted, timed_out, kind)
     if done then
       return
     end
     done = true
 
     local option_id
-    if exact_kind then
-      option_id = option_id_for_kind(request.options, exact_kind)
+    if kind then
+      option_id = option_id_for_kind(kind)
     else
-      local allow_pref = { "allow_once", "allow_always" }
-      local reject_pref = { "reject_once", "reject_always" }
-      option_id = accepted and pick_option_id(request.options, allow_pref)
-        or pick_option_id(request.options, reject_pref)
+      if timed_out then
+        option_id = option_id_for_kind(CONSTANTS.TIMEOUT_RESPONSE) or option_id_for_kind("reject_once")
+      else
+        option_id = accepted and pick({ "allow_once", "allow_always" }) or pick({ "reject_once", "reject_always" })
+      end
     end
 
     if not option_id then
-      if (not accepted) and timed_out and diff_obj.reject then
+      if (not accepted) and timed_out and diff.reject then
         pcall(function()
-          diff_obj:reject()
+          diff:reject()
         end)
       end
-      cleanup_mappings(bufnr, mapped_keys)
+      cleanup_mappings(bufnr, mapped_lhs)
       return request.respond(nil, true)
     end
 
     if accepted then
-      if diff_obj.accept then
+      if diff.accept then
         pcall(function()
-          diff_obj:accept()
+          diff:accept()
         end)
       end
       if not using_scratch then
         pcall(function()
           api.nvim_buf_call(bufnr, function()
-            vim.cmd("silent write")
+            vim.cmd("silent update!")
           end)
         end)
       end
     else
-      if diff_obj.reject then
+      if diff.reject then
         pcall(function()
-          diff_obj:reject()
+          diff:reject()
         end)
       end
     end
 
-    cleanup_mappings(bufnr, mapped_keys)
+    cleanup_mappings(bufnr, mapped_lhs)
     request.respond(option_id, false)
   end
 end
 
 ---Display the diff preview and resolve permission by user decision
 ---@param chat CodeCompanion.Chat
----@param request { id: integer, session_id: string, tool_call: table, options: table, respond: fun(option_id:string|nil, canceled:boolean) }
+---@param request table
+---@return nil
 function M.show_diff(chat, request)
   local tool_call = request.tool_call
   if not M.tool_has_diff(tool_call) then
@@ -263,20 +247,24 @@ function M.show_diff(chat, request)
   end
 
   local diff_id = math.random(10000000)
-  local diff_obj = diff_helper.create(bufnr, diff_id, {
+  local diff = diff_helper.create(bufnr, diff_id, {
     original_content = old_lines,
+    set_keymaps = false,
   })
-  if not diff_obj then
+  if not diff then
     log:debug("[chat::helpers::acp_interactions] Failed to create diff; auto-canceling permission")
     return request.respond(nil, true)
   end
 
-  local kind_map = build_kind_map(request.options or {})
+  -- Build present kinds and normalize keymaps from config
+  local kind_map = build_kind_map(request.options)
+  local normalized = normalize_maps(config.strategies.chat.keymaps)
 
-  local finish = on_response(request, diff_obj, bufnr, using_scratch, {})
-  local mapped_keys =
-    setup_acp_keymaps(bufnr, (config.strategies.chat and config.strategies.chat.keymaps) or {}, kind_map, finish)
-  finish = on_response(request, diff_obj, bufnr, using_scratch, mapped_keys)
+  -- Single finisher + single cleanup for both paths
+  local mapped_lhs = {}
+  local finish = on_user_response(request, diff, bufnr, using_scratch, mapped_lhs)
+
+  setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs)
 
   return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
     if result.accepted then
@@ -287,7 +275,7 @@ function M.show_diff(chat, request)
   end, {
     chat_bufnr = chat.bufnr,
     notify = config.display.icons.warning .. " Waiting for decision ...",
-  })
+  }, { timeout = 2e6 }) -- c. 30 mins wait
 end
 
 return M

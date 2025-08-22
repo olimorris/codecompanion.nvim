@@ -669,7 +669,7 @@ function PromptBuilder:cancel()
     self.connection:_write_to_process(json_str)
 
     if self.options and not self.options.silent then
-      self.options.status = "cancelled"
+      self.options.status = "cancelled" -- Keep this as UK spelling
       util.fire("RequestFinished", self.options)
     end
   end
