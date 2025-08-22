@@ -35,6 +35,10 @@ T["Test tools in chat buffer"] = new_set({
     { "ollama", "ollama_tools" },
 
     -- Tools called with NO parameters
+    { "openai", "openai_tools_no_params" },
+    { "copilot", "openai_tools_no_params" },
+    { "gemini", "openai_tools_no_params" },
+
     { "anthropic", "anthropic_tools_no_params" },
   },
 })
