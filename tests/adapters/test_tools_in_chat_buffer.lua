@@ -41,6 +41,7 @@ T["Test tools in chat buffer"] = new_set({
 
     { "anthropic", "anthropic_tools_no_params" },
     { "deepseek", "deepseek_tools_no_params" },
+    { "ollama", "ollama_tools_no_params" },
   },
 })
 
