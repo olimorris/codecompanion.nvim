@@ -36,13 +36,13 @@ function InlineDiff.new(args)
 
   local current_content = api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
   if self:contents_equal(self.contents, current_content) then
-    log:debug("[providers::diff::inline::new] No changes detected")
+    log:trace("[providers::diff::inline::new] No changes detected")
     util.fire("DiffAttached", { diff = "inline", bufnr = self.bufnr, id = self.id })
     return self
   end
 
   self.has_changes = true
-  log:debug("[providers::diff::inline::new] Changes detected - applying diff highlights")
+  log:trace("[providers::diff::inline::new] Changes detected - applying diff highlights")
 
   local first_diff_line = self:apply_diff_highlights(self.contents, current_content)
   if first_diff_line then
@@ -93,8 +93,9 @@ end
 ---@param new_lines string[]
 ---@return integer|nil first_diff_line First line with changes (1-based) for cursor positioning
 function InlineDiff:apply_diff_highlights(old_lines, new_lines)
-  log:debug("[providers::diff::inline::apply_diff_highlights] Called")
-  -- Get inline diff configuration (lazy load to avoid circular dependency)
+  log:trace("[providers::diff::inline::apply_diff_highlights] Called")
+
+  -- WARN: We need to lazy load the config here to avoid a circular dependency issue
   local config = require("codecompanion.config")
   local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
   local context_lines = inline_config.context_lines or 3
@@ -145,7 +146,7 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
     full_width_removed = inline_config.full_width_removed ~= false,
   })
   vim.list_extend(self.extmark_ids, extmark_ids)
-  log:debug(
+  log:trace(
     "[providers::diff::inline::apply_diff_highlights] Applied %d extmarks for diff visualization",
     #self.extmark_ids
   )
@@ -163,31 +164,52 @@ function InlineDiff:clear_highlights()
 end
 
 ---Accepts the diff changes and clears highlights
+---@param opts? table
 ---@return nil
-function InlineDiff:accept()
+function InlineDiff:accept(opts)
+  opts = opts or {}
+  if opts.save == nil then
+    opts.save = true
+  end
+
   log:debug("[providers::diff::inline::accept] Called")
+
   util.fire("DiffAccepted", { diff = "inline", bufnr = self.bufnr, id = self.id, accept = true })
-  pcall(function()
-    api.nvim_buf_call(self.bufnr, function()
-      vim.cmd("silent update")
+  if opts.save then
+    pcall(function()
+      api.nvim_buf_call(self.bufnr, function()
+        vim.cmd("silent update")
+      end)
     end)
-  end)
+  end
+
   self:clear_highlights()
 end
 
 ---Rejects the diff changes, restores original content, and clears highlights
+---@param opts? table
 ---@return nil
-function InlineDiff:reject()
-  util.fire("DiffRejected", { diff = "inline", bufnr = self.bufnr, id = self.id, accept = false })
+function InlineDiff:reject(opts)
+  opts = opts or {}
+  if opts.save == nil then
+    opts.save = true
+  end
+
   log:debug("[providers::diff::inline::reject] Called")
+
+  util.fire("DiffRejected", { diff = "inline", bufnr = self.bufnr, id = self.id, accept = false })
   if api.nvim_buf_is_valid(self.bufnr) then
     api.nvim_buf_set_lines(self.bufnr, 0, -1, true, self.contents)
   end
-  pcall(function()
-    api.nvim_buf_call(self.bufnr, function()
-      vim.cmd("silent update")
+
+  if opts.save then
+    pcall(function()
+      api.nvim_buf_call(self.bufnr, function()
+        vim.cmd("silent update")
+      end)
     end)
-  end)
+  end
+
   self:clear_highlights()
 end
 

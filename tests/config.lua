@@ -251,7 +251,6 @@ return {
         },
         opts = {
           system_prompt = "My tool system prompt",
-          wait_timeout = 3000,
           folds = {
             enabled = false,
             failure_words = {
@@ -332,6 +331,7 @@ return {
       },
       opts = {
         blank_prompt = "",
+        wait_timeout = 3000,
       },
     },
     inline = {

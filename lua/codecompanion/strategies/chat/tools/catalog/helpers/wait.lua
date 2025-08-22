@@ -65,7 +65,7 @@ function M.for_decision(id, events, callback, opts)
     utils.notify(opts.notify or "Waiting for user decision ...")
   end
 
-  opts.timeout = opts.timeout or config.strategies.chat.tools.opts.wait_timeout or 30000
+  opts.timeout = opts.timeout or config.strategies.chat.opts.wait_timeout or 30000
   vim.defer_fn(function()
     cleanup_and_callback({
       accepted = false,

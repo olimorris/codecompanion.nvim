@@ -1,5 +1,5 @@
 local providers = require("codecompanion.providers")
-local ui_utils = require("codecompanion.utils.ui")
+local ui = require("codecompanion.utils.ui")
 
 local fmt = string.format
 
@@ -188,8 +188,6 @@ local defaults = {
               "rejected",
             },
           },
-          wait_timeout = 30000, -- How long to wait for user input before timing out (milliseconds)
-
           ---Tools and/or groups that are always loaded in a chat buffer
           ---@type string[]
           default_tools = {},
@@ -483,10 +481,14 @@ local defaults = {
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
         completion_provider = providers.completion, -- blink|cmp|coc|default
         register = "+", -- The register to use for yanking code
-        yank_jump_delay_ms = 400, -- Delay in milliseconds before jumping back from the yanked code
+        yank_jump_delay_ms = 400, -- Delay before jumping back from the yanked code (milliseconds )
+        wait_timeout = 30000, -- Time to wait for user response before timing out (milliseconds)
+
+        -- What to do when an ACP permission request times out? (allow_once|reject_once)
+        acp_timeout_response = "reject_once",
 
         ---@type string|fun(path: string)
-        goto_file_action = ui_utils.tabnew_reuse,
+        goto_file_action = ui.tabnew_reuse,
       },
     },
     -- INLINE STRATEGY --------------------------------------------------------
