@@ -106,7 +106,8 @@
         "acp-adapter",
         "gemini-cli",
         "chat-buffer-init",
-        "chat-acp-handler"
+        "chat-acp-handler",
+        "chat-acp-interactions"
       ]
     }
   ],
@@ -140,6 +141,11 @@
       "type": "file",
       "path": "lua/codecompanion/strategies/chat/acp_handler.lua",
       "description": "Extracted ACP submission logic from the chat buffer. Handles ACP connection management, message streaming with multiple handlers (message chunks, thought chunks, tool calls), output collection, error handling, and completion logic. This separation keeps the main chat buffer focused on orchestration while isolating ACP-specific complexity."
+    },
+    "chat-acp-interactions": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/helpers/acp_interactions.lua",
+      "description": "Contains helper functions that can be called by the handler to manage interactions from the chat buffer with an ACP adapter and Neovim itself. For example, showing diffs, setting keymaps to accept/reject diffs etc."
     },
     "chat-ui-builder": {
       "type": "file",
