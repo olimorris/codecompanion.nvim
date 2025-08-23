@@ -217,4 +217,41 @@ function M.add_line_numbers(content)
   return table.concat(formatted, "\n")
 end
 
+---Write content to a given buffer
+---@param bufnr number
+---@param content string|table
+---@return boolean, string|nil
+function M.write(bufnr, content)
+  local old = {
+    modifiable = vim.bo[bufnr].modifiable,
+    readonly = vim.bo[bufnr].readonly,
+  }
+  if not old.modifiable then
+    vim.bo[bufnr].modifiable = true
+  end
+  if old.readonly then
+    vim.bo[bufnr].readonly = false
+  end
+
+  local lines = content
+  if type(lines) == "string" then
+    lines = vim.split(content or "", "\n", { plain = true })
+  end
+
+  api.nvim_buf_set_lines(bufnr, 0, -1, true, lines)
+
+  api.nvim_buf_call(bufnr, function()
+    vim.cmd("silent update!")
+  end)
+
+  if not old.modifiable then
+    vim.bo[bufnr].modifiable = false
+  end
+  if old.readonly then
+    vim.bo[bufnr].readonly = true
+  end
+
+  return true
+end
+
 return M

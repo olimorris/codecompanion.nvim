@@ -16,6 +16,20 @@ local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
+local METHODS = {
+  INITIALIZE = "initialize",
+  AUTHENTICATE = "authenticate",
+  SESSION_NEW = "session/new",
+  SESSION_PROMPT = "session/prompt",
+  SESSION_UPDATE = "session/update",
+  SESSION_REQUEST_PERMISSION = "session/request_permission",
+  SESSION_CANCEL = "session/cancel",
+  FS_READ_TEXT_FILE = "fs/read_text_file",
+  FS_WRITE_TEXT_FILE = "fs/write_text_file",
+}
+
+-- TODO: Add output like chunk etc
+
 local TIMEOUTS = {
   DEFAULT = 2e4, -- 20 seconds
   RESPONSE_POLL = 10, -- 10ms
@@ -28,12 +42,12 @@ local TIMEOUTS = {
 ---@class CodeCompanion.ACPConnection
 ---@field adapter CodeCompanion.ACPAdapter
 ---@field adapter_modified CodeCompanion.ACPAdapter Modified adapter with environment variables set
----@field pending_responses table<integer, CodeCompanion.ACPConnection.PendingResponse>
+---@field pending_responses table<number, CodeCompanion.ACPConnection.PendingResponse>
 ---@field session_id string|nil
 ---@field _initialized boolean
 ---@field _authenticated boolean
 ---@field _active_prompt CodeCompanion.ACPPromptBuilder|nil
----@field _state {handle: table, next_id: integer, stdout_buffer: string}
+---@field _state {handle: table, next_id: number, stdout_buffer: string}
 ---@field methods table
 local Connection = {}
 Connection.static = {}
@@ -113,7 +127,7 @@ function Connection:connect()
   end
 
   if not self._initialized then
-    local initialized = self:_send_request("initialize", self.adapter_modified.parameters)
+    local initialized = self:_send_request(METHODS.INITIALIZE, self.adapter_modified.parameters)
     if not initialized then
       log:error("[acp::connect] Failed to initialize")
       return nil
@@ -123,7 +137,7 @@ function Connection:connect()
   end
 
   if not self._authenticated then
-    local authenticated = self:_send_request("authenticate", {
+    local authenticated = self:_send_request(METHODS.AUTHENTICATE, {
       methodId = self.adapter_modified.defaults.auth_method,
     })
     if not authenticated then
@@ -134,7 +148,7 @@ function Connection:connect()
     log:debug("[acp::connect] Connection authenticated")
   end
 
-  local new_session = self:_send_request("session/new", {
+  local new_session = self:_send_request(METHODS.SESSION_NEW, {
     cwd = vim.fn.getcwd(),
     mcpServers = self.adapter_modified.defaults.mcpServers or {},
   })
@@ -234,8 +248,27 @@ function Connection:_send_request(method, params)
   return self:_wait_for_response(id)
 end
 
+---Send a result response to the ACP process
+---@param id number
+---@param result table
+---@return nil
+function Connection:_send_result(id, result)
+  local msg = { jsonrpc = "2.0", id = id, result = result }
+  self:_write_to_process(self.methods.encode(msg) .. "\n")
+end
+
+---Send an error response to the ACP process
+---@param id number
+---@param message string
+---@param code? number
+---@return nil
+function Connection:_send_error(id, message, code)
+  local msg = { jsonrpc = "2.0", id = id, error = { code = code or -32000, message = message } }
+  self:_write_to_process(self.methods.encode(msg) .. "\n")
+end
+
 ---Wait for a specific response ID
----@param id integer
+---@param id number
 ---@return nil
 function Connection:_wait_for_response(id)
   local start_time = vim.uv.hrtime()
@@ -354,21 +387,21 @@ function Connection:_process_notification(notification)
     return self._active_prompt:_handle_done()
   end
 
-  if notification.method == "session/update" then
+  if notification.method == METHODS.SESSION_UPDATE then
     if self._active_prompt then
       self._active_prompt:_handle_session_update(notification.params.update)
     end
-  elseif notification.method == "session/request_permission" then
+  elseif notification.method == METHODS.SESSION_REQUEST_PERMISSION then
     -- FORWARDED: handled by PromptBuilder/ACPHandler
     if self._active_prompt then
       self._active_prompt:_handle_permission_request(notification.id, notification.params)
     else
       log:debug("[acp::_process_notification] Permission request with no active prompt; ignoring")
     end
-  elseif notification.method == "fs/read_text_file" then
+  elseif notification.method == METHODS.FS_READ_TEXT_FILE then
     -- self:_handle_read_file_request(notification.id, notification.params)
-  elseif notification.method == "fs/write_text_file" then
-    -- self:_handle_write_file_request(notification.id, notification.params)
+  elseif notification.method == METHODS.FS_WRITE_TEXT_FILE then
+    self:_handle_write_file_request(notification.id, notification.params)
   else
     log:debug("[acp::_process_notification] Unhandled notification method: %s", notification.method)
   end
@@ -396,9 +429,39 @@ function Connection:_write_to_process(data)
   return true
 end
 
+---Handle fs/write_text_file requests
+---We carry this out here as they could arrive outside of the standard prompt flow
+---@param id number
+---@param params { path: string, content: string, sessionId?: string }
+function Connection:_handle_write_file_request(id, params)
+  if not id or type(params) ~= "table" then
+    return
+  end
+
+  -- To be safe, we verify the session
+  if params.sessionId and self.session_id and params.sessionId ~= self.session_id then
+    return self:_send_error(id, "invalid sessionId for fs/write_text_file", -32602)
+  end
+
+  local path = params.path
+  local content = params.content or ""
+  if type(path) ~= "string" or type(content) ~= "string" then
+    return self:_send_error(id, "invalid params", -32602)
+  end
+
+  local fs_api = require("codecompanion.strategies.chat.acp.fs")
+  local ok, err = fs_api.write_text_file(path, content)
+  if ok then
+    -- Spec: WriteTextFileResponse is null
+    self:_send_result(id, vim.NIL)
+  else
+    self:_send_error(id, ("fs/write_text_file failed: %s"):format(err or "unknown"))
+  end
+end
+
 ---Handle process exit
----@param code integer
----@param signal integer
+---@param code number
+---@param signal number
 function Connection:_handle_exit(code, signal)
   log:debug("[acp::_handle_exit] Process exited: code=%d, signal=%d", code, signal or 0)
 
@@ -484,6 +547,14 @@ function PromptBuilder:on_tool_update(handler)
   return self
 end
 
+---Set handler for file writes
+---@param handler fun(info: { path: string, bytes: number, sessionId?: string })
+---@return CodeCompanion.ACPPromptBuilder
+function PromptBuilder:on_write_text_file(handler)
+  self.handlers.write_text_file = handler
+  return self
+end
+
 ---Set handler for completion
 ---@param handler fun(stop_reason: string)
 ---@return CodeCompanion.ACPPromptBuilder
@@ -539,7 +610,7 @@ function PromptBuilder:send()
   local prompt_req = {
     jsonrpc = "2.0",
     id = self.connection._state.next_id,
-    method = "session/prompt",
+    method = METHODS.SESSION_PROMPT,
     params = {
       sessionId = self.connection.session_id,
       prompt = self.messages,
@@ -660,7 +731,7 @@ function PromptBuilder:cancel()
   if self.connection.session_id then
     local cancel_req = {
       jsonrpc = "2.0",
-      method = "session/cancel",
+      method = METHODS.SESSION_CANCEL,
       params = { sessionId = self.connection.session_id },
     }
 

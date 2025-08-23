@@ -1,4 +1,3 @@
--- tests/strategies/chat/helpers/test_acp_interactions.lua
 local h = require("tests.helpers")
 
 local new_set = MiniTest.new_set
@@ -15,7 +14,7 @@ T = new_set({
     end,
     post_case = function()
       child.lua([[
-	package.loaded["codecompanion.strategies.chat.helpers.acp_interactions"] = nil
+	package.loaded["codecompanion.strategies.chat.acp.permissions"] = nil
 	package.loaded["codecompanion.strategies.chat.tools.catalog.helpers.diff"] = nil
 	package.loaded["codecompanion.strategies.chat.tools.catalog.helpers.wait"] = nil
 ]])
@@ -43,7 +42,7 @@ local function with_mocks(lua_body)
 
     %s
 
-    local interactions = require("codecompanion.strategies.chat.helpers.acp_interactions")
+    local interactions = require("codecompanion.strategies.chat.acp.permissions")
     return (function()
       %s
     end)()
@@ -59,7 +58,7 @@ T["show_diff maps accept to allow_* optionId"] = function()
       }
     ]],
     body = [[
-      local interactions = require("codecompanion.strategies.chat.helpers.acp_interactions")
+      local interactions = require("codecompanion.strategies.chat.acp.permissions")
       local responded = {}
       local chat = { bufnr = 0 }
       local request = {
@@ -96,7 +95,7 @@ T["show_diff maps reject to reject_* optionId"] = function()
       }
     ]],
     body = [[
-      local interactions = require("codecompanion.strategies.chat.helpers.acp_interactions")
+      local interactions = require("codecompanion.strategies.chat.acp.permissions")
       local responded = {}
       local chat = { bufnr = 0 }
       local request = {
@@ -136,7 +135,7 @@ T["show_diff reuses existing buffer for file path"] = function()
       vim.cmd.edit(_G.TEST_FILE)
       local existing_buf = vim.api.nvim_get_current_buf()
 
-      local interactions = require("codecompanion.strategies.chat.helpers.acp_interactions")
+      local interactions = require("codecompanion.strategies.chat.acp.permissions")
       local responded = {}
       local chat = { bufnr = 0 }
       local request = {
@@ -168,7 +167,7 @@ end
 T["show_diff cancels when no diff content"] = function()
   local result = child.lua([[
 
-    local interactions = require("codecompanion.strategies.chat.helpers.acp_interactions")
+    local interactions = require("codecompanion.strategies.chat.acp.permissions")
     local responded = {}
     local chat = { bufnr = 0 }
     local request = {
@@ -229,7 +228,7 @@ T["show_diff installs keymaps only for present kinds and triggers respond via ma
     vim.cmd.edit(_G.TEST_FILE)
     local bufnr = vim.api.nvim_get_current_buf()
 
-    local interactions = require("codecompanion.strategies.chat.helpers.acp_interactions")
+    local interactions = require("codecompanion.strategies.chat.acp.permissions")
 
     local responded = {}
     local chat = { bufnr = 0 }

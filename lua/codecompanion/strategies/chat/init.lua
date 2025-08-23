@@ -981,7 +981,7 @@ end
 ---@param payload table The payload to send to the LLM
 ---@return nil
 function Chat:_submit_acp(payload)
-  local acp_handler = require("codecompanion.strategies.chat.acp_handler").new(self)
+  local acp_handler = require("codecompanion.strategies.chat.acp.handler").new(self)
   self.current_request = acp_handler:submit(payload)
 end
 

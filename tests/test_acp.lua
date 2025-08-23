@@ -236,6 +236,101 @@ T["ACP Responses"]["processes real streaming prompt responses"] = function()
   h.eq(result.message_chunks[1].content.text, "Expressive, elegant.")
 end
 
+T["ACP Responses"]["handles fs/write_text_file and responds with null"] = function()
+  local result = child.lua([[
+    -- Stub the fs module to capture writes
+    local writes = {}
+    package.loaded["codecompanion.strategies.chat.acp.fs"] = {
+      write_text_file = function(path, content)
+        table.insert(writes, { path = path, content = content })
+        return true
+      end
+    }
+
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = { schedule_wrap = function(fn) return fn end }
+    })
+    connection.session_id = "test-session-123"
+
+    -- Capture what we send back to the agent
+    local sent = {}
+    connection._write_to_process = function(self, data)
+      table.insert(sent, vim.trim(data))
+      return true
+    end
+
+    -- Simulate agent request
+    local req = vim.json.encode({
+      jsonrpc = "2.0",
+      id = 42,
+      method = "fs/write_text_file",
+      params = {
+        sessionId = "test-session-123",
+        path = "/tmp/cc_write.lua",
+        content = "print('ok')\n",
+      }
+    })
+    connection:_process_output(req .. "\n")
+
+    return {
+      writes = writes,
+      sent = vim.tbl_map(function(s) return vim.json.decode(s) end, sent),
+    }
+  ]])
+
+  -- Verify the write happened and we responded result=null
+  h.eq(#result.writes, 1)
+  h.eq(result.writes[1].path, "/tmp/cc_write.lua")
+  h.eq(result.writes[1].content, "print('ok')\n")
+
+  h.eq(#result.sent, 1)
+  h.eq(result.sent[1].id, 42)
+  h.eq(result.sent[1].result, vim.NIL)
+end
+
+T["ACP Responses"]["fs/write_text_file rejects invalid sessionId"] = function()
+  local result = child.lua([[
+    package.loaded["codecompanion.strategies.chat.acp.fs"] = {
+      write_text_file = function(path, content)
+        error("should not be called for wrong session")
+      end
+    }
+
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = { schedule_wrap = function(fn) return fn end }
+    })
+    connection.session_id = "correct-session"
+
+    local sent = {}
+    connection._write_to_process = function(self, data)
+      table.insert(sent, vim.trim(data))
+      return true
+    end
+
+    local req = vim.json.encode({
+      jsonrpc = "2.0",
+      id = 7,
+      method = "fs/write_text_file",
+      params = {
+        sessionId = "wrong-session",
+        path = "/tmp/cc_write_bad.lua",
+        content = "nope",
+      }
+    })
+    connection:_process_output(req .. "\n")
+
+    return vim.tbl_map(function(s) return vim.json.decode(s) end, sent)
+  ]])
+
+  h.eq(#result, 1)
+  h.eq(result[1].id, 7)
+  -- JSON-RPC error response expected
+  h.eq(type(result[1].error), "table")
+  h.eq(result[1].error.code, -32602)
+end
+
 T["ACP Responses"]["PromptBuilder"] = function()
   local result = child.lua([[
     local connection = ACP.new({ adapter = test_adapter })
@@ -298,6 +393,31 @@ T["ACP Responses"]["PromptBuilder"] = function()
   h.eq(result.has_shutdown, true)
   h.eq(result.sent_request.method, "session/prompt")
   h.eq(result.sent_request.params.sessionId, "test-session-123")
+end
+
+T["ACP Responses"]["PromptBuilder cancel sends notification (no id)"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({ adapter = test_adapter })
+    connection.session_id = "test-session-123"
+    connection.methods = { encode = vim.json.encode }
+    connection._state = { next_id = 1 } -- ensure state
+
+    local sent = {}
+    connection._write_to_process = function(self, data)
+      table.insert(sent, vim.trim(data))
+      return true
+    end
+
+    local prompt = connection:prompt({ { role = "user", content = "hi" } })
+    prompt:cancel()
+
+    local obj = vim.json.decode(sent[#sent])
+    return { has_id = obj.id ~= nil, method = obj.method, params = obj.params }
+  ]])
+
+  h.eq(result.has_id, false)
+  h.eq(result.method, "session/cancel")
+  h.eq(result.params.sessionId, "test-session-123")
 end
 
 return T

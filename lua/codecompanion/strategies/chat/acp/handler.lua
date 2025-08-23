@@ -1,5 +1,5 @@
 local config = require("codecompanion.config")
-local helpers = require("codecompanion.strategies.chat.helpers.acp_interactions")
+local permissions = require("codecompanion.strategies.chat.acp.permissions")
 local util = require("codecompanion.utils")
 
 ---Return the ACP client
@@ -177,9 +177,9 @@ function ACPHandler:_handle_permission_request(request)
     self:_process_tool_call(request.tool_call)
   end
 
-  if helpers.tool_has_diff(request.tool_call) then
+  if permissions.tool_has_diff(request.tool_call) then
     -- Display the diff to the user and halt any further execution until they respond
-    return helpers.show_diff(self.chat, request)
+    return permissions.show_diff(self.chat, request)
   end
 
   local picked = vim.fn.confirm(prompt, table.concat(choices, "\n"), 2, "Question")

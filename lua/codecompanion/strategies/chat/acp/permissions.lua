@@ -1,5 +1,4 @@
 local config = require("codecompanion.config")
-local diff_helper = require("codecompanion.strategies.chat.tools.catalog.helpers.diff")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
 local wait = require("codecompanion.strategies.chat.tools.catalog.helpers.wait")
@@ -7,15 +6,14 @@ local wait = require("codecompanion.strategies.chat.tools.catalog.helpers.wait")
 local api = vim.api
 
 local CONSTANTS = {
+  ALLOWED_KINDS = {
+    allow_once = true,
+    allow_always = true,
+    reject_once = true,
+    reject_always = true,
+  },
   MAPPINGS_PREFIX = "_acp_",
   TIMEOUT_RESPONSE = config.strategies.chat.opts.acp_timeout_response or "reject_once",
-}
-
-local ALLOWED_KINDS = {
-  allow_once = true,
-  allow_always = true,
-  reject_once = true,
-  reject_always = true,
 }
 
 local M = {}
@@ -57,7 +55,7 @@ local function build_kind_map(options)
   local map = {}
 
   for _, opt in ipairs(options or {}) do
-    if ALLOWED_KINDS[opt.kind] then
+    if CONSTANTS.ALLOWED_KINDS[opt.kind] then
       map[opt.kind] = opt.optionId
     end
   end
@@ -76,36 +74,12 @@ local function normalize_maps(keymaps)
     if type(name) == "string" and name:sub(1, #CONSTANTS.MAPPINGS_PREFIX) == CONSTANTS.MAPPINGS_PREFIX then
       local kind = (type(entry) == "table" and entry.kind) or name:match("^" .. CONSTANTS.MAPPINGS_PREFIX .. "(.*)$")
       local lhs = entry and entry.modes and entry.modes.n
-      if kind and ALLOWED_KINDS[kind] and lhs then
+      if kind and CONSTANTS.ALLOWED_KINDS[kind] and lhs then
         normalized[kind] = lhs
       end
     end
   end
   return normalized
-end
-
----Open an existing buffer or the file path in a window; return bufnr (or nil)
----@param path string
----@return number|nil
-local function open_target_buffer(path)
-  -- Try and find existing buffer first...
-  local bufnr = vim.fn.bufnr(path)
-  if bufnr ~= -1 and api.nvim_buf_is_valid(bufnr) then
-    local win = ui.buf_get_win(bufnr)
-    if win then
-      pcall(api.nvim_set_current_win, win)
-    end
-    return bufnr
-  end
-
-  -- ...Before trying to open the file directly
-  if vim.fn.filereadable(path) == 1 then
-    -- Open in current window (simple, non-floating)
-    pcall(vim.cmd.edit, vim.fn.fnameescape(path))
-    return api.nvim_get_current_buf()
-  end
-
-  return nil
 end
 
 -- Remove any mappings from a buffer
@@ -138,14 +112,13 @@ end
 ---Function to call when the user has provided a response
 ---@param request table
 ---@param diff table
----@param bufnr number
----@param using_scratch boolean
----@param mapped_lhs string[]
+---@param opts { bufnr: number, mapped_lhs: string[], winnr: number }
 ---@return fun(accepted: boolean, timed_out: boolean, kind: string|nil)
-local function on_user_response(request, diff, bufnr, using_scratch, mapped_lhs)
+local function on_user_response(request, diff, opts)
   local done = false
 
-  local function option_id_for_kind(kind)
+  -- Find the optionId for a given kind
+  local function get_option_id(kind)
     for _, opt in ipairs(request.options or {}) do
       if opt.kind == kind then
         return opt.optionId
@@ -153,12 +126,25 @@ local function on_user_response(request, diff, bufnr, using_scratch, mapped_lhs)
     end
   end
 
-  local function pick(prefer)
-    for _, kind in ipairs(prefer) do
-      local id = option_id_for_kind(kind)
+  -- Pick the first available optionId from a list of preferred kinds
+  local function pick(from)
+    for _, kind in ipairs(from) do
+      local id = get_option_id(kind)
       if id then
         return id
       end
+    end
+  end
+
+  -- Close floating window and delete buffer
+  local function close_float()
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if api.nvim_win_is_valid(win) and api.nvim_win_get_buf(win) == opts.bufnr then
+        pcall(api.nvim_win_close, win, true)
+      end
+    end
+    if api.nvim_buf_is_valid(opts.bufnr) then
+      pcall(api.nvim_buf_delete, opts.bufnr, { force = true })
     end
   end
 
@@ -170,10 +156,10 @@ local function on_user_response(request, diff, bufnr, using_scratch, mapped_lhs)
 
     local option_id
     if kind then
-      option_id = option_id_for_kind(kind)
+      option_id = get_option_id(kind)
     else
       if timed_out then
-        option_id = option_id_for_kind(CONSTANTS.TIMEOUT_RESPONSE) or option_id_for_kind("reject_once")
+        option_id = get_option_id(CONSTANTS.TIMEOUT_RESPONSE) or get_option_id("reject_once")
       else
         option_id = accepted and pick({ "allow_once", "allow_always" }) or pick({ "reject_once", "reject_always" })
       end
@@ -182,35 +168,30 @@ local function on_user_response(request, diff, bufnr, using_scratch, mapped_lhs)
     if not option_id then
       if (not accepted) and timed_out and diff.reject then
         pcall(function()
-          diff:reject()
+          diff:reject({ save = false })
         end)
       end
-      cleanup_mappings(bufnr, mapped_lhs)
+      cleanup_mappings(opts.bufnr, opts.mapped_lhs)
+      close_float()
       return request.respond(nil, true)
     end
 
     if accepted then
       if diff.accept then
         pcall(function()
-          diff:accept()
-        end)
-      end
-      if not using_scratch then
-        pcall(function()
-          api.nvim_buf_call(bufnr, function()
-            vim.cmd("silent update!")
-          end)
+          diff:accept({ save = false })
         end)
       end
     else
       if diff.reject then
         pcall(function()
-          diff:reject()
+          diff:reject({ save = false })
         end)
       end
     end
 
-    cleanup_mappings(bufnr, mapped_lhs)
+    cleanup_mappings(opts.bufnr, opts.mapped_lhs)
+    close_float()
     request.respond(option_id, false)
   end
 end
@@ -229,30 +210,31 @@ function M.show_diff(chat, request)
   local old_lines = vim.split(d.old or "", "\n", { plain = true })
   local new_lines = vim.split(d.new or "", "\n", { plain = true })
 
-  local bufnr = open_target_buffer(d.path)
-  local using_scratch = false
-  if not bufnr then
-    using_scratch = true
-    bufnr = api.nvim_create_buf(true, false)
-  end
+  local window_config = config.display.chat.child_window
 
-  pcall(function()
-    vim.bo[bufnr].modifiable = true
-    api.nvim_buf_set_lines(bufnr, 0, -1, true, new_lines)
-  end)
-
-  local ft = vim.filetype.match({ filename = d.path })
-  if ft then
-    pcall(vim.api.nvim_set_option_value, "filetype", ft, { buf = bufnr })
-  end
+  local bufnr, winnr = ui.create_float(new_lines, {
+    window = { width = window_config.width, height = window_config.height },
+    row = window_config.row or "center",
+    col = window_config.col or "center",
+    relative = window_config.relative or "editor",
+    filetype = vim.filetype.match({ filename = d.path }),
+    title = "Edit Requested: " .. vim.fn.fnamemodify(d.path or "", ":."),
+    lock = true,
+    ignore_keymaps = true,
+    opts = window_config.opts,
+  })
 
   local diff_id = math.random(10000000)
-  local diff = diff_helper.create(bufnr, diff_id, {
-    original_content = old_lines,
-    set_keymaps = false,
+  -- Force users to use the inline diff
+  -- TODO: Possibly allow mini.diff in this scenario?
+  local InlineDiff = require("codecompanion.providers.diff.inline")
+  local diff = InlineDiff.new({
+    bufnr = bufnr,
+    contents = old_lines,
+    id = diff_id,
   })
   if not diff then
-    log:debug("[chat::helpers::acp_interactions] Failed to create diff; auto-canceling permission")
+    log:debug("[chat::acp::interactions] Failed to create diff; auto-canceling permission")
     return request.respond(nil, true)
   end
 
@@ -260,9 +242,12 @@ function M.show_diff(chat, request)
   local kind_map = build_kind_map(request.options)
   local normalized = normalize_maps(config.strategies.chat.keymaps)
 
-  -- Single finisher + single cleanup for both paths
   local mapped_lhs = {}
-  local finish = on_user_response(request, diff, bufnr, using_scratch, mapped_lhs)
+  local finish = on_user_response(request, diff, {
+    bufnr = bufnr,
+    mapped_lhs = mapped_lhs,
+    winnr = winnr,
+  })
 
   setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs)
 

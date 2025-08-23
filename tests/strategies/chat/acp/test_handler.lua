@@ -113,7 +113,7 @@ T["ACPHandler"]["establishes connection when needed"] = function()
       }
     })
 
-    local ACPHandler = require("codecompanion.strategies.chat.acp_handler")
+    local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
     local handler = ACPHandler.new(chat)
 
     -- Mock the ACP client to return our mock connection
@@ -153,7 +153,7 @@ T["ACPHandler"]["handles streaming message chunks"] = function()
       }
     })
 
-    local ACPHandler = require("codecompanion.strategies.chat.acp_handler")
+    local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
     local handler = ACPHandler.new(chat)
 
     -- Track what gets added to the buffer
@@ -191,7 +191,7 @@ T["ACPHandler"]["handles thought chunks"] = function()
       }
     })
 
-    local ACPHandler = require("codecompanion.strategies.chat.acp_handler")
+    local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
     local handler = ACPHandler.new(chat)
 
     local buffer_messages = {}
@@ -228,7 +228,7 @@ T["ACPHandler"]["coordinates completion flow"] = function()
       }
     })
 
-    local ACPHandler = require("codecompanion.strategies.chat.acp_handler")
+    local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
     local handler = ACPHandler.new(chat)
 
     -- Track completion calls
@@ -268,7 +268,7 @@ T["ACPHandler"]["handles connection errors"] = function()
       }
     })
 
-    local ACPHandler = require("codecompanion.strategies.chat.acp_handler")
+    local ACPHandler = require("codecompanion.strategies.chat.acp.handler")
     local handler = ACPHandler.new(chat)
 
     -- Mock connection failure
