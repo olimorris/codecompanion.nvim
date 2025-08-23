@@ -163,6 +163,111 @@ T["ACP Connection"]["connect() end-to-end with real responses"] = function()
   h.eq(result.session_id, "4fecd096-bb15-492e-a0da-95f6b9f4145a")
 end
 
+T["ACP Connection"]["skips authenticate when agent has no auth methods"] = function()
+  local result = child.lua([[
+    local calls = {}
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = {
+        job = function() return { write = function() end } end,
+        schedule_wrap = function(fn) return fn end,
+      }
+    })
+    function connection:_setup_adapter() return test_adapter end
+    connection._state.handle = { write = function() end }
+
+    function connection:_send_request(method, params)
+      table.insert(calls, method)
+      if method == "initialize" then
+        return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = false } }
+      elseif method == "session/new" then
+        return { sessionId = "sid-1" }
+      end
+    end
+
+    local ok = connection:connect()
+    return {
+      ok = ok ~= nil,
+      session_id = connection.session_id,
+      authed = connection._authenticated,
+      called = calls
+    }
+  ]])
+
+  h.eq(result.ok, true)
+  h.eq(result.session_id, "sid-1")
+  h.eq(result.authed, true)
+  h.eq(true, not vim.tbl_contains(result.called, "authenticate"))
+end
+
+T["ACP Connection"]["uses session/load when agent supports it"] = function()
+  local result = child.lua([[
+    local calls = {}
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = {
+        job = function() return { write = function() end } end,
+        schedule_wrap = function(fn) return fn end,
+      }
+    })
+    function connection:_setup_adapter() return test_adapter end
+    connection._state.handle = { write = function() end }
+    connection.session_id = "prev-session"
+
+    function connection:_send_request(method, params)
+      table.insert(calls, method)
+      if method == "initialize" then
+        return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
+      elseif method == "session/load" then
+        return {} -- success
+      end
+    end
+
+    local ok = connection:connect()
+    return { ok = ok ~= nil, called = calls, session_id = connection.session_id }
+  ]])
+
+  h.eq(result.ok, true)
+  h.eq(true, vim.tbl_contains(result.called, "session/load"))
+  h.eq(true, not vim.tbl_contains(result.called, "session/new"))
+  h.eq(result.session_id, "prev-session")
+end
+
+T["ACP Connection"]["falls back to session/new if session/load fails"] = function()
+  local result = child.lua([[
+    local calls = {}
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = {
+        job = function() return { write = function() end } end,
+        schedule_wrap = function(fn) return fn end,
+      }
+    })
+    function connection:_setup_adapter() return test_adapter end
+    connection._state.handle = { write = function() end }
+    connection.session_id = "prev-session"
+
+    function connection:_send_request(method, params)
+      table.insert(calls, method)
+      if method == "initialize" then
+        return { protocolVersion = 1, authMethods = {}, agentCapabilities = { loadSession = true } }
+      elseif method == "session/load" then
+        return nil -- simulate failure
+      elseif method == "session/new" then
+        return { sessionId = "new-session" }
+      end
+    end
+
+    local ok = connection:connect()
+    return { ok = ok ~= nil, called = calls, session_id = connection.session_id }
+  ]])
+
+  h.eq(result.ok, true)
+  h.eq(true, vim.tbl_contains(result.called, "session/load"))
+  h.eq(true, vim.tbl_contains(result.called, "session/new"))
+  h.eq(result.session_id, "new-session")
+end
+
 T["ACP Responses"] = new_set()
 
 T["ACP Responses"]["handles partial JSON messages correctly"] = function()
@@ -234,6 +339,41 @@ T["ACP Responses"]["processes real streaming prompt responses"] = function()
   h.eq(#result.thought_chunks, 4)
   h.eq(#result.message_chunks, 1)
   h.eq(result.message_chunks[1].content.text, "Expressive, elegant.")
+end
+
+T["ACP Responses"]["handles fs/read_text_file and returns content"] = function()
+  local result = child.lua([[
+    -- Create a temp file
+    local tmp = vim.fn.tempname()
+    vim.fn.writefile({ "line1", "line2" }, tmp)
+
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = { schedule_wrap = function(fn) return fn end }
+    })
+    connection.session_id = "test-session-123"
+
+    local sent = {}
+    connection._write_to_process = function(self, data)
+      table.insert(sent, vim.trim(data))
+      return true
+    end
+
+    local req = vim.json.encode({
+      jsonrpc = "2.0",
+      id = 77,
+      method = "fs/read_text_file",
+      params = { sessionId = "test-session-123", path = tmp }
+    })
+    connection:_process_output(req .. "\n")
+
+    local reply = vim.json.decode(sent[#sent])
+    return reply
+  ]])
+
+  h.eq(result.id, 77)
+  h.eq(true, result.result and type(result.result.content) == "string")
+  h.eq(true, result.result.content:find("line1") ~= nil)
 end
 
 T["ACP Responses"]["handles fs/write_text_file and responds with null"] = function()
@@ -331,6 +471,66 @@ T["ACP Responses"]["fs/write_text_file rejects invalid sessionId"] = function()
   h.eq(result[1].error.code, -32602)
 end
 
+T["ACP Responses"]["ignores notifications for other sessions"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({
+      adapter = test_adapter,
+      opts = { schedule_wrap = function(fn) return fn end }
+    })
+    connection.session_id = "session-A"
+
+    local updates = {}
+    connection._active_prompt = {
+      _handle_session_update = function(self, u)
+        table.insert(updates, u)
+      end
+    }
+
+    -- Notification for a different session (should be ignored)
+    local other = vim.json.encode({
+      jsonrpc = "2.0",
+      method = "session/update",
+      params = { sessionId = "session-B", update = { sessionUpdate = "agent_message_chunk", content = { type="text", text="ignored" } } }
+    })
+    -- Notification for current session (should be processed)
+    local ours = vim.json.encode({
+      jsonrpc = "2.0",
+      method = "session/update",
+      params = { sessionId = "session-A", update = { sessionUpdate = "agent_message_chunk", content = { type="text", text="seen" } } }
+    })
+
+    connection:_process_output(other .. "\n" .. ours .. "\n")
+    return { count = #updates, last = updates[#updates] and updates[#updates].content and updates[#updates].content.text }
+  ]])
+
+  h.eq(result.count, 1)
+  h.eq(result.last, "seen")
+end
+
+T["ACP Responses"]["PromptBuilder cancel sends notification (no id)"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({ adapter = test_adapter })
+    connection.session_id = "test-session-123"
+    connection.methods = { encode = vim.json.encode }
+    connection._state = { next_id = 1 }
+
+    local sent = {}
+    connection._write_to_process = function(self, data)
+      table.insert(sent, vim.trim(data))
+      return true
+    end
+
+    local prompt = connection:prompt({ { role = "user", content = "hi" } })
+    prompt:cancel()
+    local obj = vim.json.decode(sent[#sent])
+    return { has_id = obj.id ~= nil, method = obj.method, sessionId = obj.params.sessionId }
+  ]])
+
+  h.eq(result.has_id, false)
+  h.eq(result.method, "session/cancel")
+  h.eq(result.sessionId, "test-session-123")
+end
+
 T["ACP Responses"]["PromptBuilder"] = function()
   local result = child.lua([[
     local connection = ACP.new({ adapter = test_adapter })
@@ -366,11 +566,11 @@ T["ACP Responses"]["PromptBuilder"] = function()
     local job = prompt:send()
     prompt:_handle_session_update({
       sessionUpdate = "agent_thought_chunk",
-      content = { text = "Thinking..." }
+      content = { type = "text", text = "Thinking..." }
     })
     prompt:_handle_session_update({
       sessionUpdate = "agent_message_chunk",
-      content = { text = "Hello!" }
+      content = { type = "text", text = "Hello!" }
     })
     prompt:_handle_done()
 
@@ -393,6 +593,39 @@ T["ACP Responses"]["PromptBuilder"] = function()
   h.eq(result.has_shutdown, true)
   h.eq(result.sent_request.method, "session/prompt")
   h.eq(result.sent_request.params.sessionId, "test-session-123")
+end
+
+T["ACP Responses"]["PromptBuilder extracts text safely from non-text content"] = function()
+  local result = child.lua([[
+    local connection = ACP.new({ adapter = test_adapter })
+    connection.session_id = "test-session-123"
+
+    local seen = {}
+    local prompt = connection:prompt({ { role = "user", content = "hi" } })
+      :on_message_chunk(function(text) table.insert(seen, text) end)
+      :on_thought_chunk(function(text) table.insert(seen, "T:" .. text) end)
+
+    -- Simulate image and resource_link chunks
+    prompt:_handle_session_update({
+      sessionUpdate = "agent_message_chunk",
+      content = { type = "image", data = "..." }
+    })
+    prompt:_handle_session_update({
+      sessionUpdate = "agent_message_chunk",
+      content = { type = "resource_link", uri = "file:///tmp/x.txt", name = "x" }
+    })
+    prompt:_handle_session_update({
+      sessionUpdate = "agent_thought_chunk",
+      content = { type = "text", text = "thinking" }
+    })
+
+    return seen
+  ]])
+
+  -- Expect placeholders for image/resource_link and proper text for thought
+  h.eq(result[1], "[image]")
+  h.eq(true, result[2]:match("^%[resource: ") ~= nil)
+  h.eq(result[3], "T:thinking")
 end
 
 T["ACP Responses"]["PromptBuilder cancel sends notification (no id)"] = function()

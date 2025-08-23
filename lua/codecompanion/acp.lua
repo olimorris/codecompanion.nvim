@@ -438,8 +438,17 @@ function Connection:_process_notification(notification)
   end
 
   local sid = notification.params and notification.params.sessionId
+  local is_request = notification.id ~= nil
   if sid and self.session_id and sid ~= self.session_id then
-    return log:debug("[acp::_process_notification] Ignoring update for session %s (current: %s)", sid, self.session_id)
+    if is_request then
+      return self:_send_error(notification.id, "invalid sessionId", -32602)
+    else
+      return log:debug(
+        "[acp::_process_notification] Ignoring update for session %s (current: %s)",
+        sid,
+        self.session_id
+      )
+    end
   end
 
   if not notification then
