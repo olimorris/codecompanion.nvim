@@ -136,10 +136,10 @@ T["ACPHandler"]["establishes connection when needed"] = function()
     }
   ]])
 
-  h.eq(true, result.has_connection)
-  h.eq(true, result.connection_established)
+  h.is_true(result.has_connection)
+  h.is_true(result.connection_established)
   h.eq("test-session-123", result.session_id)
-  h.eq(true, result.request_sent)
+  h.is_true(result.request_sent)
 end
 
 T["ACPHandler"]["handles streaming message chunks"] = function()
@@ -297,7 +297,7 @@ T["ACPHandler"]["handles connection errors"] = function()
   ]])
 
   h.eq("error", result.status)
-  h.eq(true, result.completion_called)
+  h.is_true(result.completion_called)
   h.eq(nil, result.request_returned)
 end
 
@@ -346,9 +346,9 @@ T["ACPHandler"]["integrates with chat submit flow"] = function()
   ]])
 
   h.eq("acp", result.adapter_type)
-  h.eq(true, result.payload_submitted)
-  h.eq(true, result.has_messages)
-  h.eq(true, result.last_prompt_set)
+  h.is_true(result.payload_submitted)
+  h.is_true(result.has_messages)
+  h.is_true(result.last_prompt_set)
 end
 
 return T
