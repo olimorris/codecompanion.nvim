@@ -567,6 +567,7 @@ function Chat.new(args)
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
       vim.bo[bufnr].filetype = "codecompanion"
+      vim.bo[bufnr].undolevels = config.strategies.chat.opts.undolevels or 10
 
       return bufnr
     end,

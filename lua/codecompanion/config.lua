@@ -482,6 +482,7 @@ local defaults = {
         completion_provider = providers.completion, -- blink|cmp|coc|default
         register = "+", -- The register to use for yanking code
         yank_jump_delay_ms = 400, -- Delay before jumping back from the yanked code (milliseconds )
+        undo_levels = 10, -- Number of undo levels to add to chat buffers
         wait_timeout = 30000, -- Time to wait for user response before timing out (milliseconds)
 
         -- What to do when an ACP permission request times out? (allow_once|reject_once)
@@ -1074,7 +1075,7 @@ You must create or modify a workspace file through a series of prompts over mult
         col = "center",
         relative = "editor",
         opts = {
-          wrap = true,
+          wrap = false,
           number = false,
           relativenumber = false,
         },

@@ -292,6 +292,20 @@ Referencing [`acp_json_schema.json`](llm_notes/acp_json_schema.json):
 }
 ```
 
+**fs/write_text_file call**
+
+```json
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "fs/write_text_file",
+    "params": {
+        "path": "/Users/Oli/Code/Neovim/codecompanion.nvim/quotes.lua",
+        "content": "local quotes = {\n  [\"Oli Morris\"] = \"CodeCompanion is the best\",\n  [\"Edsger W. Dijkstra\"] = \"Simplicity is a prerequisite for reliability.\",\n  [\"Brian Kernighan\"] = \"Debugging is twice as hard as writing the code in the first place. Therefore, if you write the code as cleverly as possible, you are, by definition, not smart enough to debug it.\",\n  [\"Linus Torvalds\"] = \"Talk is cheap. Show me the code.\",\n  [\"Grace Hopper\"] = \"The most damaging phrase in the language is: 'It's always been done that way.'\",\n}\n\nreturn quotes",
+        "sessionId": "f13b85cb-fc4e-4bec-902f-95be32325f99"
+    }
+}
+```
 ---
 
 ## 7. **Summary Table: ACP Workflow in CodeCompanion**
