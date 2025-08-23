@@ -1,0 +1,46 @@
+{
+    "messages": [
+        {
+            "role": "system",
+            "content": "default system prompt"
+        },
+        {
+            "role": "user",
+            "content": "What's the weather like in London and Paris?"
+        },
+        {
+            "role": "assistant",
+            "tool_calls": [
+                {
+                    "type": "function",
+                    "function": {
+                        "arguments": "",
+                        "name": "weather_with_default"
+                    },
+                    "_index": 0,
+                    "id": "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea"
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "arguments": "{\"location\": \"Paris\", \"units\": \"celsius\"}",
+                        "name": "weather_with_default"
+                    },
+                    "_index": 1,
+                    "id": "call_1_a460d461-60a7-468c-a699-ef9e2dced125"
+                }
+            ],
+            "content": ""
+        },
+        {
+            "tool_call_id": "call_0_bb2a2194-a723-44a6-a1f8-bd05e9829eea",
+            "role": "tool",
+            "content": "Ran the weather tool The weather in London, UK is 15° celsius"
+        },
+        {
+            "tool_call_id": "call_1_a460d461-60a7-468c-a699-ef9e2dced125",
+            "role": "tool",
+            "content": "Ran the weather tool The weather in Paris is 15° celsius"
+        }
+    ]
+}
