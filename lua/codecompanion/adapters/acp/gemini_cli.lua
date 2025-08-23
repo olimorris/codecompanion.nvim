@@ -34,7 +34,7 @@ return {
   parameters = {
     protocolVersion = 1,
     clientCapabilities = {
-      fs = { readTextFile = false, writeTextFile = true },
+      fs = { readTextFile = true, writeTextFile = true },
     },
     clientInfo = {
       name = "CodeCompanion.nvim",

@@ -35,6 +35,8 @@ local TIMEOUTS = {
   RESPONSE_POLL = 10, -- 10ms
 }
 
+local uv = vim.uv
+
 --=============================================================================
 -- ACP Connection Class - Handles the connection to ACP agents
 --=============================================================================
@@ -271,10 +273,10 @@ end
 ---@param id number
 ---@return nil
 function Connection:_wait_for_response(id)
-  local start_time = vim.uv.hrtime()
+  local start_time = uv.hrtime()
   local timeout = (self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT) * 1e6
 
-  while vim.uv.hrtime() - start_time < timeout do
+  while uv.hrtime() - start_time < timeout do
     vim.wait(TIMEOUTS.RESPONSE_POLL)
 
     if self.pending_responses[id] then
@@ -399,7 +401,7 @@ function Connection:_process_notification(notification)
       log:debug("[acp::_process_notification] Permission request with no active prompt; ignoring")
     end
   elseif notification.method == METHODS.FS_READ_TEXT_FILE then
-    -- self:_handle_read_file_request(notification.id, notification.params)
+    self:_handle_read_file_request(notification.id, notification.params)
   elseif notification.method == METHODS.FS_WRITE_TEXT_FILE then
     self:_handle_write_file_request(notification.id, notification.params)
   else
@@ -427,6 +429,35 @@ function Connection:_write_to_process(data)
   end
 
   return true
+end
+
+---Handle fs/read_text_file requests
+---@param id number
+---@param params { path: string, sessionId?: string }
+---@return nil
+function Connection:_handle_read_file_request(id, params)
+  if not id or type(params) ~= "table" then
+    return
+  end
+  if params.sessionId and self.session_id and params.sessionId ~= self.session_id then
+    return self:_send_error(id, "invalid sessionId for fs/read_text_file", -32602)
+  end
+  local path = params.path
+  if type(path) ~= "string" then
+    return self:_send_error(id, "invalid params", -32602)
+  end
+  local ok, content_or_err = pcall(function()
+    local fd = assert(uv.fs_open(path, "r", 420))
+    local stat = assert(uv.fs_fstat(fd))
+    local data = assert(uv.fs_read(fd, stat.size, 0)) or ""
+    assert(uv.fs_close(fd))
+    return data
+  end)
+  if ok then
+    self:_send_result(id, { content = content_or_err })
+  else
+    self:_send_error(id, ("fs/read_text_file failed: %s"):format(content_or_err))
+  end
 end
 
 ---Handle fs/write_text_file requests
