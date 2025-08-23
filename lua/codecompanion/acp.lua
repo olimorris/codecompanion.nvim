@@ -19,11 +19,12 @@ local util = require("codecompanion.utils")
 local METHODS = {
   INITIALIZE = "initialize",
   AUTHENTICATE = "authenticate",
+  SESSION_CANCEL = "session/cancel",
+  SESSION_LOAD = "session/load",
   SESSION_NEW = "session/new",
   SESSION_PROMPT = "session/prompt",
-  SESSION_UPDATE = "session/update",
   SESSION_REQUEST_PERMISSION = "session/request_permission",
-  SESSION_CANCEL = "session/cancel",
+  SESSION_UPDATE = "session/update",
   FS_READ_TEXT_FILE = "fs/read_text_file",
   FS_WRITE_TEXT_FILE = "fs/write_text_file",
 }
@@ -46,6 +47,7 @@ local uv = vim.uv
 ---@field adapter_modified CodeCompanion.ACPAdapter Modified adapter with environment variables set
 ---@field pending_responses table<number, CodeCompanion.ACPConnection.PendingResponse>
 ---@field session_id string|nil
+---@field _agent_info table|nil
 ---@field _initialized boolean
 ---@field _authenticated boolean
 ---@field _active_prompt CodeCompanion.ACPPromptBuilder|nil
@@ -131,37 +133,84 @@ function Connection:connect()
   if not self._initialized then
     local initialized = self:_send_request(METHODS.INITIALIZE, self.adapter_modified.parameters)
     if not initialized then
-      log:error("[acp::connect] Failed to initialize")
-      return nil
+      return log:error("[acp::connect] Failed to initialize")
     end
+    self._agent_info = initialized
+
+    -- Ensure the protocol version matches
+    if
+      initialized.protocolVersion and initialized.protocolVersion ~= self.adapter_modified.parameters.protocolVersion
+    then
+      log:warn(
+        "[acp::connect] Agent selected protocolVersion=%s (client sent=%s)",
+        initialized.protocolVersion,
+        self.adapter_modified.parameters.protocolVersion
+      )
+    end
+
     self._initialized = true
     log:debug("[acp::connect] ACP connection initialized")
   end
 
+  -- Authenticate only if agent supports it (authMethods not empty)
   if not self._authenticated then
-    local authenticated = self:_send_request(METHODS.AUTHENTICATE, {
-      methodId = self.adapter_modified.defaults.auth_method,
-    })
-    if not authenticated then
-      log:error("[acp::connect] Failed to authenticate")
-      return nil
+    local auth_methods = (self._agent_info and self._agent_info.authMethods) or {}
+    if #auth_methods > 0 then
+      local wanted = self.adapter_modified.defaults.auth_method
+      local methodId
+      for _, m in ipairs(auth_methods) do
+        if m.id == wanted then
+          methodId = m.id
+          break
+        end
+      end
+      methodId = methodId or (auth_methods[1] and auth_methods[1].id)
+
+      if methodId then
+        local ok = self:_send_request(METHODS.AUTHENTICATE, { methodId = methodId })
+        if not ok then
+          log:error("[acp::connect] Failed to authenticate with method %s", methodId)
+          return nil
+        end
+        log:debug("[acp::connect] Authenticated using %s", methodId)
+      else
+        log:debug("[acp::connect] No compatible auth method; skipping authenticate")
+      end
+    else
+      log:debug("[acp::connect] Agent requires no authentication; skipping")
     end
     self._authenticated = true
-    log:debug("[acp::connect] Connection authenticated")
   end
 
-  local new_session = self:_send_request(METHODS.SESSION_NEW, {
+  -- Create or load session
+  local can_load = self._agent_info
+    and self._agent_info.agentCapabilities
+    and self._agent_info.agentCapabilities.loadSession
+  local session_args = {
     cwd = vim.fn.getcwd(),
     mcpServers = self.adapter_modified.defaults.mcpServers or {},
-  })
+  }
 
-  if not new_session or not new_session.sessionId then
-    log:error("[acp::connect] Failed to create session")
-    return nil
+  if self.session_id and can_load then
+    local ok =
+      self:_send_request(METHODS.SESSION_LOAD, vim.tbl_extend("force", session_args, { sessionId = self.session_id }))
+    if ok ~= nil then
+      log:debug("Loaded ACP session: %s", self.session_id)
+    else
+      log:debug("[acp::connect] session/load failed; falling back to session/new")
+      can_load = false
+    end
   end
 
-  self.session_id = new_session.sessionId
-  log:debug("Created ACP session: %s", self.session_id)
+  if not self.session_id or not can_load then
+    local new_session = self:_send_request(METHODS.SESSION_NEW, session_args)
+    if not new_session or not new_session.sessionId then
+      log:error("[acp::connect] Failed to create session")
+      return nil
+    end
+    self.session_id = new_session.sessionId
+    log:debug("Created ACP session: %s", self.session_id)
+  end
 
   return self
 end
@@ -384,6 +433,15 @@ end
 ---Handle notifications from the ACP process
 ---@param notification? table
 function Connection:_process_notification(notification)
+  if type(notification) ~= "table" or type(notification.method) ~= "string" then
+    return log:debug("[acp::_process_notification] Malformed notification")
+  end
+
+  local sid = notification.params and notification.params.sessionId
+  if sid and self.session_id and sid ~= self.session_id then
+    return log:debug("[acp::_process_notification] Ignoring update for session %s (current: %s)", sid, self.session_id)
+  end
+
   if not notification then
     log:debug("[acp::_process_notification] No notification provided")
     return self._active_prompt:_handle_done()
@@ -661,6 +719,37 @@ function PromptBuilder:send()
   }
 end
 
+---Extract renderable text from a ContentBlock (defensive)
+---@param block table|nil
+---@return string|nil
+function PromptBuilder:_extract_text(block)
+  if not block or type(block) ~= "table" then
+    return nil
+  end
+  if block.type == "text" and type(block.text) == "string" then
+    return block.text
+  end
+  if block.type == "resource_link" and type(block.uri) == "string" then
+    return string.format("[resource: %s]", block.uri)
+  end
+  if block.type == "resource" and block.resource then
+    local r = block.resource
+    if type(r.text) == "string" then
+      return r.text
+    end
+    if type(r.uri) == "string" then
+      return string.format("[resource: %s]", r.uri)
+    end
+  end
+  if block.type == "image" then
+    return "[image]"
+  end
+  if block.type == "audio" then
+    return "[audio]"
+  end
+  return nil
+end
+
 ---Handle session update from the server
 ---@param params table
 function PromptBuilder:_handle_session_update(params)
@@ -674,11 +763,15 @@ function PromptBuilder:_handle_session_update(params)
 
   if params.sessionUpdate == "agent_message_chunk" then
     if self.handlers.message_chunk then
-      self.handlers.message_chunk(params.content.text)
+      local text = self:_extract_text(params.content)
+      if text and text ~= "" then
+        self.handlers.message_chunk(text)
+      end
     end
   elseif params.sessionUpdate == "agent_thought_chunk" then
-    if self.handlers.thought_chunk then
-      self.handlers.thought_chunk(params.content.text)
+    local text = self:_extract_text(params.content)
+    if text and text ~= "" then
+      self.handlers.thought_chunk(text)
     end
   elseif params.sessionUpdate == "tool_call" then
     log:trace("Tool call started: %s", params.toolCallId)
