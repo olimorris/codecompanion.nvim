@@ -22,12 +22,11 @@ function Tools:format(message, opts, state)
     table.insert(lines, "")
     table.insert(lines, "")
     table.insert(lines, "### Response")
+  elseif state.last_type == self.chat.MESSAGE_TYPES.LLM_MESSAGE then
+    table.insert(lines, "")
   end
 
   if state.is_new_section then
-    table.insert(lines, "")
-  end
-  if state.last_type == self.chat.MESSAGE_TYPES.LLM_MESSAGE then
     table.insert(lines, "")
   end
 
