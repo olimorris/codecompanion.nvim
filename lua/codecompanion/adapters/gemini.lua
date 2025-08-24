@@ -57,7 +57,46 @@ return {
       return openai.handlers.form_tools(self, tools)
     end,
     form_messages = function(self, messages)
-      return openai.handlers.form_messages(self, messages)
+      -- Gemini does not support system messages, so we need to prepend the content
+      local formatted = openai.handlers.form_messages(self, messages)
+      local formatted_messages = formatted.messages
+
+      local system_message = vim.iter(formatted_messages):find(function(msg)
+        return msg.role == "system"
+      end)
+
+      if not system_message then
+        return formatted
+      end
+
+      local system_content = system_message.content
+
+      local other_messages = vim
+        .iter(formatted_messages)
+        :filter(function(msg)
+          return msg.role ~= "system"
+        end)
+        :totable()
+
+      local first_user_message = vim.iter(other_messages):find(function(msg)
+        return msg.role == self.roles.user
+      end)
+
+      if first_user_message then
+        -- Prepend system content to the first user message
+        if type(first_user_message.content) == "string" and type(system_content) == "string" then
+          first_user_message.content = system_content .. "\n\n" .. first_user_message.content
+        elseif type(first_user_message.content) == "table" then
+          -- Handle multipart (vision) messages by adding system prompt as first text part
+          table.insert(first_user_message.content, 1, { type = "text", text = system_content })
+        end
+      else
+        -- If no user message, add system message as a user message at the beginning
+        table.insert(other_messages, 1, { role = self.roles.user, content = system_content })
+      end
+
+      formatted.messages = other_messages
+      return formatted
     end,
     chat_output = function(self, data, tools)
       return openai.handlers.chat_output(self, data, tools)
