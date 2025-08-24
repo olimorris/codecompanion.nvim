@@ -483,7 +483,7 @@ local defaults = {
         register = "+", -- The register to use for yanking code
         yank_jump_delay_ms = 400, -- Delay before jumping back from the yanked code (milliseconds )
         undo_levels = 10, -- Number of undo levels to add to chat buffers
-        wait_timeout = 30000, -- Time to wait for user response before timing out (milliseconds)
+        wait_timeout = 2e6, -- Time to wait for user response before timing out (milliseconds)
 
         -- What to do when an ACP permission request times out? (allow_once|reject_once)
         acp_timeout_response = "reject_once",

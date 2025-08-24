@@ -29,6 +29,7 @@ api.nvim_set_hl(0, "CodeCompanionChatToolPendingIcon", { link = "DiagnosticWarn"
 api.nvim_set_hl(0, "CodeCompanionChatToolSuccess", { link = "DiagnosticOK", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatToolSuccessIcon", { link = "DiagnosticOK", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
+api.nvim_set_hl(0, "CodeCompanionChatInfoBanner", { link = "WildMenu", default = true })
 api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
 local visual_hl = api.nvim_get_hl(0, { name = "Visual" })
 pcall(api.nvim_set_hl, 0, "CodeCompanionInlineDiffHint", { bg = visual_hl.bg, default = true })

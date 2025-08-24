@@ -14,6 +14,8 @@ local CONSTANTS = {
   },
   MAPPINGS_PREFIX = "_acp_",
   TIMEOUT_RESPONSE = config.strategies.chat.opts.acp_timeout_response or "reject_once",
+
+  NS = api.nvim_create_namespace("codecompanion.acp.diff"),
 }
 
 local M = {}
@@ -53,13 +55,11 @@ end
 ---@return table<string, string> -- kind -> optionId
 local function build_kind_map(options)
   local map = {}
-
   for _, opt in ipairs(options or {}) do
-    if CONSTANTS.ALLOWED_KINDS[opt.kind] then
+    if type(opt.kind) == "string" and type(opt.optionId) == "string" then
       map[opt.kind] = opt.optionId
     end
   end
-
   return map
 end
 
@@ -74,7 +74,7 @@ local function normalize_maps(keymaps)
     if type(name) == "string" and name:sub(1, #CONSTANTS.MAPPINGS_PREFIX) == CONSTANTS.MAPPINGS_PREFIX then
       local kind = (type(entry) == "table" and entry.kind) or name:match("^" .. CONSTANTS.MAPPINGS_PREFIX .. "(.*)$")
       local lhs = entry and entry.modes and entry.modes.n
-      if kind and CONSTANTS.ALLOWED_KINDS[kind] and lhs then
+      if kind and lhs then
         normalized[kind] = lhs
       end
     end
@@ -95,18 +95,89 @@ end
 ---@param bufnr number
 ---@param normalized table<string, string> kind -> lhs
 ---@param kind_map table<string, string> kind -> optionId
----@param finish fun(accepted: boolean, timed_out: boolean, kind: string)
+---@param finish fun(accepted: boolean, timed_out: boolean, kind: string|nil)
 ---@param mapped_lhs_out string[] (output param to collect mapped lhs for cleanup)
 local function setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs_out)
-  for kind, lhs in pairs(normalized or {}) do
-    if kind_map[kind] and lhs then
-      local accepted = (kind == "allow_once" or kind == "allow_always")
+  for kind, option_id in pairs(kind_map or {}) do
+    local lhs = normalized[kind]
+    if option_id and lhs then
+      local accepted = (kind:find("allow", 1, true) ~= nil)
       table.insert(mapped_lhs_out, lhs)
       vim.keymap.set("n", lhs, function()
         finish(accepted, false, kind)
       end, { buffer = bufnr, silent = true, nowait = true })
     end
   end
+
+  -- Quick cancel
+  table.insert(mapped_lhs_out, "q")
+  vim.keymap.set("n", "q", function()
+    finish(false, false, nil)
+  end, { buffer = bufnr, silent = true, nowait = true })
+end
+
+---Simple human label from kind (no hardcoded enum)
+---@param kind string
+---@return string
+local function format_kind(kind)
+  local s = kind:gsub("_", " ")
+  return s:sub(1, 1):upper() .. s:sub(2)
+end
+
+---Place banner below the last line; only show keys that actually exist
+---@param bufnr number
+---@param normalized table<string, string>
+---@param kind_map table<string, string>
+local function place_banner(bufnr, normalized, kind_map)
+  local maps = {}
+  for kind, _ in pairs(kind_map or {}) do
+    local lhs = normalized[kind]
+    if lhs then
+      table.insert(maps, ("[" .. format_kind(kind) .. ": " .. lhs .. "]"))
+    end
+  end
+  table.sort(maps)
+  table.insert(maps, "[Close: q]")
+
+  local banner = table.concat(maps, " | ")
+  banner = " Keymaps: " .. banner .. " "
+  local line_count = api.nvim_buf_line_count(bufnr)
+  local row = math.max(line_count - 1, 0)
+
+  api.nvim_buf_set_extmark(bufnr, CONSTANTS.NS, row, 0, {
+    virt_lines = {
+      { { "", "Comment" } },
+      { { banner, "CodeCompanionChatInfoBanner" } },
+    },
+    virt_lines_above = false, -- render below the last line
+  })
+end
+
+---Setup autocmds that cancel the permission if the diff is closed manually
+---
+---@param bufnr number
+---@param winnr number
+---@param finish fun(accepted: boolean, timed_out: boolean, kind: string|nil)
+local function setup_autocmds(bufnr, winnr, finish)
+  -- If the buffer is wiped, consider it a cancel
+  api.nvim_create_autocmd("BufWipeout", {
+    buffer = bufnr,
+    once = true,
+    callback = function()
+      pcall(finish, false, false, nil)
+    end,
+  })
+
+  -- If the window is closed, consider it a cancel
+  api.nvim_create_autocmd("WinClosed", {
+    once = true,
+    callback = function(args)
+      -- args.match is the closed window id as a string
+      if tonumber(args.match) == winnr then
+        pcall(finish, false, false, nil)
+      end
+    end,
+  })
 end
 
 ---Function to call when the user has provided a response
@@ -250,6 +321,8 @@ function M.show_diff(chat, request)
   })
 
   setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs)
+  place_banner(bufnr, normalized, kind_map)
+  setup_autocmds(bufnr, winnr, finish)
 
   return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
     if result.accepted then
@@ -260,7 +333,7 @@ function M.show_diff(chat, request)
   end, {
     chat_bufnr = chat.bufnr,
     notify = config.display.icons.warning .. " Waiting for decision ...",
-  }, { timeout = 2e6 }) -- c. 30 mins wait
+  })
 end
 
 return M

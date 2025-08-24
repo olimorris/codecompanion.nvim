@@ -1,8 +1,10 @@
 local config = require("codecompanion.config")
+local formatter = require("codecompanion.strategies.chat.acp.formatters")
 local permissions = require("codecompanion.strategies.chat.acp.permissions")
 local util = require("codecompanion.utils")
 
 ---Return the ACP client
+---@return CodeCompanion.ACP.Connection
 local get_client = function()
   return require("codecompanion.acp")
 end
@@ -44,7 +46,7 @@ end
 function ACPHandler:_ensure_connection()
   if not self.chat.acp_connection then
     self.chat.acp_connection = get_client().new({
-      adapter = self.chat.adapter,
+      adapter = self.chat.adapter, --[[@type CodeCompanion.ACPAdapter]]
     })
 
     local connected = self.chat.acp_connection:connect()
@@ -110,18 +112,15 @@ end
 ---@param tool_call table
 ---@return nil
 function ACPHandler:_process_tool_call(tool_call)
-  local content = tool_call.title
+  local content = formatter.tool_message(tool_call)
+
   if tool_call.status == "completed" then
-    content = tool_call.content
-        and tool_call.content[1]
-        and tool_call.content[1].content
-        and tool_call.content[1].content.text
-      or "Tool completed successfully"
     self.tools[tool_call.toolCallId] = nil
   else
     self.tools[tool_call.toolCallId] = {
       status = tool_call.status,
-      title = ("`" .. tool_call.title .. "`") or "Tool Call",
+      title = ("`" .. (tool_call.title or "Tool Call") .. "`"),
+      kind = tool_call.kind,
     }
   end
 
@@ -132,6 +131,7 @@ function ACPHandler:_process_tool_call(tool_call)
   }, {
     status = tool_call.status,
     tool_call_id = tool_call.toolCallId,
+    kind = tool_call.kind,
     type = self.chat.MESSAGE_TYPES.TOOL_MESSAGE,
   })
 end
@@ -178,7 +178,6 @@ function ACPHandler:_handle_permission_request(request)
   end
 
   if permissions.tool_has_diff(request.tool_call) then
-    -- Display the diff to the user and halt any further execution until they respond
     return permissions.show_diff(self.chat, request)
   end
 
