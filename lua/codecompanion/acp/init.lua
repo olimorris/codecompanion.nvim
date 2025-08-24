@@ -1,6 +1,6 @@
 --[[
 ==========================================================
-    File:       codecompanion/acp.lua
+    File:       codecompanion/acp/init.lua
     Author:     Oli Morris
 ----------------------------------------------------------
     Description:
@@ -12,24 +12,10 @@
 ==========================================================
 --]]
 
+local METHODS = require("codecompanion.acp.methods")
+local PromptBuilder = require("codecompanion.acp.prompt_builder")
 local adapter_utils = require("codecompanion.utils.adapters")
 local log = require("codecompanion.utils.log")
-local util = require("codecompanion.utils")
-
-local METHODS = {
-  INITIALIZE = "initialize",
-  AUTHENTICATE = "authenticate",
-  SESSION_CANCEL = "session/cancel",
-  SESSION_LOAD = "session/load",
-  SESSION_NEW = "session/new",
-  SESSION_PROMPT = "session/prompt",
-  SESSION_REQUEST_PERMISSION = "session/request_permission",
-  SESSION_UPDATE = "session/update",
-  FS_READ_TEXT_FILE = "fs/read_text_file",
-  FS_WRITE_TEXT_FILE = "fs/write_text_file",
-}
-
--- TODO: Add output like chunk etc
 
 local TIMEOUTS = {
   DEFAULT = 2e4, -- 20 seconds
@@ -42,31 +28,25 @@ local uv = vim.uv
 -- ACP Connection Class - Handles the connection to ACP agents
 --=============================================================================
 
----@class CodeCompanion.ACPConnection
+---@class CodeCompanion.ACP.Connection
 ---@field adapter CodeCompanion.ACPAdapter
 ---@field adapter_modified CodeCompanion.ACPAdapter Modified adapter with environment variables set
----@field pending_responses table<number, CodeCompanion.ACPConnection.PendingResponse>
+---@field pending_responses table<number, CodeCompanion.ACP.Connection.PendingResponse>
 ---@field session_id string|nil
 ---@field _agent_info table|nil
 ---@field _initialized boolean
 ---@field _authenticated boolean
----@field _active_prompt CodeCompanion.ACPPromptBuilder|nil
+---@field _active_prompt CodeCompanion.ACP.PromptBuilder|nil
 ---@field _state {handle: table, next_id: number, stdout_buffer: string}
 ---@field methods table
 local Connection = {}
 Connection.static = {}
 
----@class CodeCompanion.ACPConnection.PendingResponse
+Connection.METHODS = METHODS
+
+---@class CodeCompanion.ACP.Connection.PendingResponse
 ---@field result any
 ---@field error any
-
----@class CodeCompanion.ACPPromptBuilder
----@field connection CodeCompanion.ACPConnection
----@field messages table
----@field handlers table
----@field options table
----@field _sent boolean
-local PromptBuilder = {}
 
 -- Static methods for testing/mocking
 Connection.static.methods = {
@@ -95,7 +75,7 @@ end
 
 ---Create new ACP connection
 ---@param args CodeCompanion.ACPConnectionArgs
----@return CodeCompanion.ACPConnection
+---@return CodeCompanion.ACP.Connection
 function Connection.new(args)
   args = args or {}
 
@@ -108,7 +88,7 @@ function Connection.new(args)
     _initialized = false,
     _authenticated = false,
     _state = { handle = nil, next_id = 1, stdout_buffer = "" },
-  }, { __index = Connection }) ---@cast self CodeCompanion.ACPConnection
+  }, { __index = Connection }) ---@cast self CodeCompanion.ACP.Connection
 
   return self
 end
@@ -120,7 +100,7 @@ function Connection:is_ready()
 end
 
 ---Connect to ACP process and establish session
----@return CodeCompanion.ACPConnection|nil self for chaining, nil on error
+---@return CodeCompanion.ACP.Connection|nil self for chaining, nil on error
 function Connection:connect()
   if self:is_ready() then
     return self
@@ -377,7 +357,7 @@ function Connection:_process_output(data)
       break
     end
 
-    local line = vim.trim(self._state.stdout_buffer:sub(1, newline_pos - 1))
+    local line = self._state.stdout_buffer:sub(1, newline_pos - 1):gsub("\r$", "")
     self._state.stdout_buffer = self._state.stdout_buffer:sub(newline_pos + 1)
 
     if line ~= "" then
@@ -407,10 +387,12 @@ function Connection:_process_json_message(line)
   if message.id and not message.method then
     self:_store_response(message)
     if message.result and message.result ~= vim.NIL and message.result.stopReason then
-      self._active_prompt:_handle_done(message.result.stopReason)
+      if self._active_prompt and self._active_prompt._handle_done then
+        self._active_prompt:_handle_done(message.result.stopReason)
+      end
     end
   elseif message.method then
-    self:_process_notification(message)
+    self:_process_incoming(message)
   else
     log:error("[acp::_process_json_message] Invalid message format: %s", message)
   end
@@ -430,11 +412,20 @@ function Connection:_store_response(response)
   self.pending_responses[response.id] = { response.result, nil }
 end
 
----Handle notifications from the ACP process
+---Send a notification to the ACP process
+---@param method string
+---@param params table
+---@return nil
+function Connection:_notify(method, params)
+  local msg = { jsonrpc = "2.0", method = method, params = params or {} }
+  self:_write_to_process(self.methods.encode(msg) .. "\n")
+end
+
+---Handle incoming requests and notifications from the ACP agent process
 ---@param notification? table
-function Connection:_process_notification(notification)
+function Connection:_process_incoming(notification)
   if type(notification) ~= "table" or type(notification.method) ~= "string" then
-    return log:debug("[acp::_process_notification] Malformed notification")
+    return log:debug("[acp::_process_incoming] Malformed notification")
   end
 
   local sid = notification.params and notification.params.sessionId
@@ -442,38 +433,38 @@ function Connection:_process_notification(notification)
   if sid and self.session_id and sid ~= self.session_id then
     if is_request then
       return self:_send_error(notification.id, "invalid sessionId", -32602)
-    else
-      return log:debug(
-        "[acp::_process_notification] Ignoring update for session %s (current: %s)",
-        sid,
-        self.session_id
-      )
     end
+    return log:debug("[acp::_process_incoming] Ignoring update for session %s (current: %s)", sid, self.session_id)
   end
 
-  if not notification then
-    log:debug("[acp::_process_notification] No notification provided")
-    return self._active_prompt:_handle_done()
-  end
+  local DISPATCH = self._dispatch
+    or {
+      [self.METHODS.SESSION_UPDATE] = function(s, m)
+        if s._active_prompt then
+          s._active_prompt:_handle_session_update(m.params.update)
+        end
+      end,
+      [self.METHODS.SESSION_REQUEST_PERMISSION] = function(s, m)
+        if s._active_prompt then
+          s._active_prompt:_handle_permission_request(m.id, m.params)
+        else
+          log:debug("[acp::_process_incoming] Permission request with no active prompt; ignoring")
+        end
+      end,
+      [self.METHODS.FS_READ_TEXT_FILE] = function(s, m)
+        s:_handle_read_file_request(m.id, m.params)
+      end,
+      [self.METHODS.FS_WRITE_TEXT_FILE] = function(s, m)
+        s:_handle_write_file_request(m.id, m.params)
+      end,
+    }
+  self._dispatch = DISPATCH
 
-  if notification.method == METHODS.SESSION_UPDATE then
-    if self._active_prompt then
-      self._active_prompt:_handle_session_update(notification.params.update)
-    end
-  elseif notification.method == METHODS.SESSION_REQUEST_PERMISSION then
-    -- FORWARDED: handled by PromptBuilder/ACPHandler
-    if self._active_prompt then
-      self._active_prompt:_handle_permission_request(notification.id, notification.params)
-    else
-      log:debug("[acp::_process_notification] Permission request with no active prompt; ignoring")
-    end
-  elseif notification.method == METHODS.FS_READ_TEXT_FILE then
-    self:_handle_read_file_request(notification.id, notification.params)
-  elseif notification.method == METHODS.FS_WRITE_TEXT_FILE then
-    self:_handle_write_file_request(notification.id, notification.params)
-  else
-    log:debug("[acp::_process_notification] Unhandled notification method: %s", notification.method)
+  local handler = DISPATCH[notification.method]
+  if handler then
+    return handler(self, notification)
   end
+  log:debug("[acp::_process_incoming] Unhandled notification method: %s", notification.method)
 end
 
 ---Send data to the ACP process
@@ -552,6 +543,10 @@ function Connection:_handle_write_file_request(id, params)
   if ok then
     -- Spec: WriteTextFileResponse is null
     self:_send_result(id, vim.NIL)
+    local info = { path = path, bytes = #content, sessionId = params.sessionId }
+    if self._active_prompt and self._active_prompt.handlers and self._active_prompt.handlers.write_text_file then
+      pcall(self._active_prompt.handlers.write_text_file, info)
+    end
   else
     self:_send_error(id, ("fs/write_text_file failed: %s"):format(err or "unknown"))
   end
@@ -564,7 +559,7 @@ function Connection:_handle_exit(code, signal)
   log:debug("[acp::_handle_exit] Process exited: code=%d, signal=%d", code, signal or 0)
 
   if self.adapter_modified and self.adapter_modified.handlers and self.adapter_modified.handlers.on_exit then
-    self.adapter_modified.handlers.on_exit(self.adapter, code)
+    self.adapter_modified.handlers.on_exit(self.adapter_modified, code)
   end
 
   -- Always clean up state
@@ -573,312 +568,23 @@ function Connection:_handle_exit(code, signal)
   self._authenticated = false
   self.session_id = nil
   self.pending_responses = {}
+
+  if self._active_prompt and self._active_prompt._handle_done then
+    pcall(function()
+      self._active_prompt:_handle_done("canceled")
+    end)
+  end
+  self._active_prompt = nil
 end
 
 ---Initiate a prompt
 ---@param messages table
----@return CodeCompanion.ACPPromptBuilder
+---@return CodeCompanion.ACP.PromptBuilder
 function Connection:prompt(messages)
   if not self.session_id then
     return log:error("[acp::prompt] Connection not established. Call connect() first.")
   end
   return PromptBuilder.new(self, messages)
-end
-
---=============================================================================
--- PromptBuilder - Fluidly build the prompt which is sent to the agent
---=============================================================================
-
----Create new prompt builder
----@param connection CodeCompanion.ACPConnection
----@param messages table
----@return CodeCompanion.ACPPromptBuilder
-function PromptBuilder.new(connection, messages)
-  local self = setmetatable({
-    connection = connection,
-    handlers = {},
-    messages = connection.adapter.handlers.form_messages(connection.adapter, messages),
-    options = {},
-    _sent = false,
-  }, { __index = PromptBuilder }) ---@cast self CodeCompanion.ACPPromptBuilder
-
-  return self
-end
-
----Set handler for agent message chunks
----@param handler fun(content: string)
----@return CodeCompanion.ACPPromptBuilder
-function PromptBuilder:on_message_chunk(handler)
-  self.handlers.message_chunk = handler
-  return self
-end
-
----Set handler for agent thought chunks
----@param handler fun(content: string)
----@return CodeCompanion.ACPPromptBuilder
-function PromptBuilder:on_thought_chunk(handler)
-  self.handlers.thought_chunk = handler
-  return self
-end
-
----Set handler for permission requests
----@param handler fun(tool_call: table)
----@return CodeCompanion.ACPPromptBuilder
-function PromptBuilder:on_permission_request(handler)
-  self.handlers.permission_request = handler
-  return self
-end
-
----Set handler for tool calls
----@param handler fun(tool_call: table)
----@return CodeCompanion.ACPPromptBuilder
-function PromptBuilder:on_tool_call(handler)
-  self.handlers.tool_call = handler
-  return self
-end
-
----Set handler for tool call updates
----@param handler fun(tool_update: table)
----@return CodeCompanion.ACPPromptBuilder
-function PromptBuilder:on_tool_update(handler)
-  self.handlers.tool_update = handler
-  return self
-end
-
----Set handler for file writes
----@param handler fun(info: { path: string, bytes: number, sessionId?: string })
----@return CodeCompanion.ACPPromptBuilder
-function PromptBuilder:on_write_text_file(handler)
-  self.handlers.write_text_file = handler
-  return self
-end
-
----Set handler for completion
----@param handler fun(stop_reason: string)
----@return CodeCompanion.ACPPromptBuilder
-function PromptBuilder:on_complete(handler)
-  self.handlers.complete = handler
-  return self
-end
-
----Set handler for errors
----@param handler fun(error: string)
----@return CodeCompanion.ACPPromptBuilder
-function PromptBuilder:on_error(handler)
-  self.handlers.error = handler
-  return self
-end
-
----Set request options
----@param opts table
----@return CodeCompanion.ACPPromptBuilder
-function PromptBuilder:with_options(opts)
-  self.options = vim.tbl_extend("force", self.options, opts or {})
-  return self
-end
-
----Send the prompt
----@return table job-like object for compatibility
-function PromptBuilder:send()
-  if self._sent then
-    error("Prompt already sent")
-  end
-  self._sent = true
-
-  -- Store active prompt on connection for notifications
-  self.connection._active_prompt = self
-
-  -- Set up request options for events
-  if not vim.tbl_isempty(self.options) then
-    self.options.id = math.random(10000000)
-    self.options.adapter = {
-      name = self.connection.adapter.name,
-      formatted_name = self.connection.adapter.formatted_name,
-      type = self.connection.adapter.type,
-      model = nil,
-    }
-
-    -- Fire request started
-    if not self.options.silent then
-      util.fire("RequestStarted", self.options)
-    end
-  end
-
-  -- Send the prompt
-  local prompt_req = {
-    jsonrpc = "2.0",
-    id = self.connection._state.next_id,
-    method = METHODS.SESSION_PROMPT,
-    params = {
-      sessionId = self.connection.session_id,
-      prompt = self.messages,
-    },
-  }
-
-  self.connection._state.next_id = self.connection._state.next_id + 1
-  local json_str = self.connection.methods.encode(prompt_req) .. "\n"
-
-  self.connection:_write_to_process(json_str)
-  self._streaming_started = false
-
-  return {
-    shutdown = function()
-      self:cancel()
-    end,
-  }
-end
-
----Extract renderable text from a ContentBlock (defensive)
----@param block table|nil
----@return string|nil
-function PromptBuilder:_extract_text(block)
-  if not block or type(block) ~= "table" then
-    return nil
-  end
-  if block.type == "text" and type(block.text) == "string" then
-    return block.text
-  end
-  if block.type == "resource_link" and type(block.uri) == "string" then
-    return string.format("[resource: %s]", block.uri)
-  end
-  if block.type == "resource" and block.resource then
-    local r = block.resource
-    if type(r.text) == "string" then
-      return r.text
-    end
-    if type(r.uri) == "string" then
-      return string.format("[resource: %s]", r.uri)
-    end
-  end
-  if block.type == "image" then
-    return "[image]"
-  end
-  if block.type == "audio" then
-    return "[audio]"
-  end
-  return nil
-end
-
----Handle session update from the server
----@param params table
-function PromptBuilder:_handle_session_update(params)
-  -- Fire streaming event on first chunk
-  if self.options and not self._streaming_started then
-    self._streaming_started = true
-    if not self.options.silent then
-      util.fire("RequestStreaming", self.options)
-    end
-  end
-
-  if params.sessionUpdate == "agent_message_chunk" then
-    if self.handlers.message_chunk then
-      local text = self:_extract_text(params.content)
-      if text and text ~= "" then
-        self.handlers.message_chunk(text)
-      end
-    end
-  elseif params.sessionUpdate == "agent_thought_chunk" then
-    local text = self:_extract_text(params.content)
-    if text and text ~= "" then
-      self.handlers.thought_chunk(text)
-    end
-  elseif params.sessionUpdate == "tool_call" then
-    log:trace("Tool call started: %s", params.toolCallId)
-    if self.handlers.tool_call then
-      self.handlers.tool_call(params)
-    end
-  elseif params.sessionUpdate == "tool_call_update" then
-    log:trace("Tool call updated: %s (status: %s)", params.toolCallId, params.status)
-    if self.handlers.tool_update then
-      self.handlers.tool_update(params)
-    end
-  end
-end
-
----Handle permission request from the agent
----@param id string
----@param params table
----@return nil
-function PromptBuilder:_handle_permission_request(id, params)
-  if not id or not params then
-    return
-  end
-
-  local tool_call = params.toolCall
-  local options = params.options or {}
-
-  ---Send the user's response back
-  ---@param outcome table
-  ---@return nil
-  local function send_permission_response(outcome)
-    local response_msg = {
-      jsonrpc = "2.0",
-      id = id,
-      result = { outcome = outcome },
-    }
-    self.connection:_write_to_process(self.connection.methods.encode(response_msg) .. "\n")
-  end
-
-  local request = {
-    id = id,
-    session_id = params.sessionId,
-    tool_call = tool_call,
-    options = options,
-    respond = function(option_id, canceled)
-      if canceled or not option_id then
-        send_permission_response({ outcome = "canceled" })
-      else
-        send_permission_response({ outcome = "selected", optionId = option_id })
-      end
-    end,
-  }
-
-  if self.handlers.permission_request then
-    self.handlers.permission_request(request)
-  else
-    -- Safe default to avoid hanging agent
-    request.respond(nil, true)
-  end
-end
-
----Handle done event from the server
----@param stop_reason? string
----@return nil
-function PromptBuilder:_handle_done(stop_reason)
-  if self.handlers.complete then
-    self.handlers.complete(stop_reason)
-  end
-
-  -- Fire request finished event
-  if self.options and not self.options.silent then
-    self.options.status = "success"
-    util.fire("RequestFinished", self.options)
-  end
-
-  -- Clear active prompt
-  self.connection._active_prompt = nil
-end
-
----Cancel the prompt
-function PromptBuilder:cancel()
-  if self.connection.session_id then
-    local cancel_req = {
-      jsonrpc = "2.0",
-      method = METHODS.SESSION_CANCEL,
-      params = { sessionId = self.connection.session_id },
-    }
-
-    self.connection._state.next_id = self.connection._state.next_id + 1
-    local json_str = self.connection.methods.encode(cancel_req) .. "\n"
-    self.connection:_write_to_process(json_str)
-
-    if self.options and not self.options.silent then
-      self.options.status = "cancelled" -- Keep this as UK spelling
-      util.fire("RequestFinished", self.options)
-    end
-  end
-
-  self.connection._active_prompt = nil
 end
 
 return Connection

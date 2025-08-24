@@ -103,7 +103,8 @@
         "acp-implementation-notes",
         "acp-schema",
         "acp-connection",
-        "acp-adapter",
+        "acp-methods",
+        "acp-prompt-builder",
         "acp-handler",
         "acp-permissions",
         "acp-fs",
@@ -312,13 +313,18 @@
     },
     "acp-connection": {
       "type": "file",
-      "path": "lua/codecompanion/acp.lua",
-      "description": "Implements ACPConnection and PromptBuilder for session management, prompt submission, and streaming agent responses."
+      "path": "lua/codecompanion/acp/init.lua",
+      "description": "Implements ACP.Connection session management, prompt submission, and streaming agent responses."
     },
-    "acp-adapter": {
+    "acp-prompt-builder": {
       "type": "file",
-      "path": "lua/codecompanion/adapters/acp/init.lua",
-      "description": "Defines the ACPAdapter abstraction for ACP-specific agent communication."
+      "path": "lua/codecompanion/acp/prompt_builder.lua",
+      "description": "Implements a fluent API for building and sending prompts via ACP, handling streamed responses, tool calls, and errors."
+    },
+    "acp-methods": {
+      "type": "file",
+      "path": "lua/codecompanion/acp/methods.lua",
+      "description": "The various ACP methods that can be called by the ACP connection."
     },
     "acp-schema": {
       "type": "file",

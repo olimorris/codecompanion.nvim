@@ -3,7 +3,7 @@
 --=============================================================================
 
 ---@class CodeCompanion.Chat
----@field acp_connection? CodeCompanion.ACPConnection The ACP session ID and connection
+---@field acp_connection? CodeCompanion.ACP.Connection The ACP session ID and connection
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
 ---@field create_buf fun(): integer The function that creates a new buffer for the chat
