@@ -175,7 +175,7 @@ function Connection:connect()
     local ok =
       self:_send_request(METHODS.SESSION_LOAD, vim.tbl_extend("force", session_args, { sessionId = self.session_id }))
     if ok ~= nil then
-      log:debug("Loaded ACP session: %s", self.session_id)
+      log:debug("[acp::connect]: Loaded session %s", self.session_id)
     else
       log:debug("[acp::connect] session/load failed; falling back to session/new")
       can_load = false
@@ -214,7 +214,7 @@ function Connection:_spawn_process()
 
   local ok, sysobj = pcall(
     self.methods.job,
-    adapter.command,
+    self.adapter_modified.command,
     {
       stdin = true,
       cwd = vim.fn.getcwd(),
@@ -249,7 +249,7 @@ function Connection:_spawn_process()
   end
 
   self._state.handle = sysobj
-  log:debug("ACP process started")
+  log:debug("[acp::_spawn_process] ACP process started")
   return true
 end
 
