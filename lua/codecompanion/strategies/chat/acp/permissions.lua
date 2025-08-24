@@ -1,7 +1,7 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
-local wait = require("codecompanion.strategies.chat.tools.catalog.helpers.wait")
+local wait = require("codecompanion.strategies.chat.helpers.wait")
 
 local api = vim.api
 

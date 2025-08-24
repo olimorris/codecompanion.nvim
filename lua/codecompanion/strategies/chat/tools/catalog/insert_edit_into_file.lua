@@ -5,7 +5,7 @@ local config = require("codecompanion.config")
 local diff = require("codecompanion.strategies.chat.tools.catalog.helpers.diff")
 local helpers = require("codecompanion.strategies.chat.helpers")
 local patch = require("codecompanion.strategies.chat.tools.catalog.helpers.patch") ---@type CodeCompanion.Patch
-local wait = require("codecompanion.strategies.chat.tools.catalog.helpers.wait")
+local wait = require("codecompanion.strategies.chat.helpers.wait")
 
 local buffers = require("codecompanion.utils.buffers")
 local log = require("codecompanion.utils.log")

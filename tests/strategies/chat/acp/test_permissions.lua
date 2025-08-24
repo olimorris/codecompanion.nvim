@@ -28,7 +28,7 @@ T = new_set({
       child.lua([[
         package.loaded["codecompanion.strategies.chat.acp.permissions"] = nil
         package.loaded["codecompanion.providers.diff.inline"] = nil
-        package.loaded["codecompanion.strategies.chat.tools.catalog.helpers.wait"] = nil
+        package.loaded["codecompanion.strategies.chat.helpers.wait"] = nil
         package.loaded["codecompanion.utils.ui"] = nil
       ]])
     end,
@@ -75,7 +75,7 @@ local function with_mocks(opts)
     }
 
     -- Mock wait helper
-    package.loaded["codecompanion.strategies.chat.tools.catalog.helpers.wait"] = {
+    package.loaded["codecompanion.strategies.chat.helpers.wait"] = {
       for_decision = function(diff_id, _events, cb, _opts)
         _G.__CAPT.wait = { id = diff_id, cb = cb }
         %s

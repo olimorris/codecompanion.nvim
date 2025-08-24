@@ -11,7 +11,7 @@ T = new_set({
     pre_case = function()
       h.child_start(child)
       child.lua([[
-        wait = require('codecompanion.strategies.chat.tools.catalog.helpers.wait')
+        wait = require('codecompanion.strategies.chat.helpers.wait')
         utils = require('codecompanion.utils')
 
         -- Mock utils.notify to avoid actual notifications in tests
@@ -223,8 +223,8 @@ T["for_decision()"]["uses default timeout from config"] = function()
     vim.g.codecompanion_auto_tool_mode = false
 
     -- Reload wait module to pick up mocked config
-    package.loaded["codecompanion.strategies.chat.tools.catalog.helpers.wait"] = nil
-    wait = require('codecompanion.strategies.chat.tools.catalog.helpers.wait')
+    package.loaded["codecompanion.strategies.chat.helpers.wait"] = nil
+    wait = require('codecompanion.strategies.chat.helpers.wait')
 
     -- Start timer to track roughly when timeout occurs
     _G.start_time = vim.loop.hrtime()
