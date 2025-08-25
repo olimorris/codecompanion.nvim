@@ -49,6 +49,8 @@ T["Test tools in chat buffer"]["with different adapters"] = function(adapter, fi
   -- Setup the chat with the specified adapter
   child.lua(string.format(
     [[
+      --require("tests.log")
+
       -- Setup the chat buffer
       _G.chat = h.setup_chat_buffer(config, {
         name = "%s",
