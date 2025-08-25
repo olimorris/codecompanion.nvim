@@ -10,7 +10,7 @@ return {
     user = "user",
   },
   opts = {
-    vision = false,
+    vision = true,
   },
   commands = {
     default = {
