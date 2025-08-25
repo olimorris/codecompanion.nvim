@@ -303,7 +303,7 @@ end
 ---@return nil
 function Connection:_wait_for_response(id)
   local start_time = uv.hrtime()
-  local timeout = (self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT) * 1e6
+  local timeout = (self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT) * 1e6 -- Nanoseconds to milliseconds
 
   while uv.hrtime() - start_time < timeout do
     vim.wait(TIMEOUTS.RESPONSE_POLL)
