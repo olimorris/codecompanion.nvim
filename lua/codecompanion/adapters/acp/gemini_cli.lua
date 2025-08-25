@@ -66,8 +66,6 @@ return {
               mimeType = msg.opts.mimetype,
             }
           end
-
-          -- Add text content
           if msg.content and msg.content ~= "" then
             return {
               type = "text",
@@ -82,8 +80,6 @@ return {
     ---@param self CodeCompanion.ACPAdapter
     ---@param code number
     ---@return nil
-    on_exit = function(self, code)
-      log:debug("Gemini CLI adapter exiting")
-    end,
+    on_exit = function(self, code) end,
   },
 }
