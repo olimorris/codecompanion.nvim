@@ -1,4 +1,5 @@
 local BaseFormatter = require("codecompanion.strategies.chat.ui.formatters.base")
+local log = require("codecompanion.utils.log")
 
 ---@class CodeCompanion.Chat.UI.Formatters.Standard : CodeCompanion.Chat.UI.Formatters.Base
 local Standard = setmetatable({}, { __index = BaseFormatter })
@@ -22,10 +23,12 @@ function Standard:format(message, opts, state)
     table.insert(lines, "")
     table.insert(lines, "")
     table.insert(lines, "### Response")
+  end
+
+  if state.is_new_block and state.block_index > 0 then
     table.insert(lines, "")
   end
 
-  -- Add content
   for _, line in ipairs(vim.split(message.content, "\n", { plain = true, trimempty = false })) do
     table.insert(lines, line)
   end
