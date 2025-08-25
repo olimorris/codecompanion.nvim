@@ -1,5 +1,12 @@
 # Changelog
 
+## [17.16.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.16.0...v17.16.1) (2025-08-25)
+
+
+### Bug Fixes
+
+* **ui:** snacks being completely ignored ([#2010](https://github.com/olimorris/codecompanion.nvim/issues/2010)) ([b02a7da](https://github.com/olimorris/codecompanion.nvim/commit/b02a7da50e8d1ee473a31f79152dcdf8f7abf5d5)), closes [#2009](https://github.com/olimorris/codecompanion.nvim/issues/2009)
+
 ## [17.16.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.15.0...v17.16.0) (2025-08-19)
 
 
