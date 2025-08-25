@@ -59,7 +59,6 @@ return {
           return msg.role == self.roles.user and not msg._meta.sent
         end)
         :map(function(msg)
-          -- TODO: Not yet supported
           if msg.opts and msg.opts.tag == "image" then
             return {
               type = "image",
