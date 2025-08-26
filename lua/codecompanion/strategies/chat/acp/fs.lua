@@ -37,7 +37,7 @@ end
 ---@return boolean,any The file content or nil on error
 function M.read_text_file(path)
   return pcall(function()
-    file_utils.read(path)
+    return file_utils.read(path)
   end)
 end
 
