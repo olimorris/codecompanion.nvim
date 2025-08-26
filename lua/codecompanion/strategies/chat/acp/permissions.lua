@@ -30,6 +30,11 @@ function M.tool_has_diff(tool_call)
     and tool_call.content[1].type
     and tool_call.content[1].type == "diff"
   then
+    -- Don't show a diff if there's nothing to diff...
+    local content = tool_call.content[1]
+    if (content.oldText == nil or content.oldText == "") and (content.newText == nil or content.newText == "") then
+      return false
+    end
     return true
   end
   return false

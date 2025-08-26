@@ -49,4 +49,16 @@ function M.write_to_path(path, content)
   return true
 end
 
+---Read the content of a file at a given path
+---@param path string The file path to write to
+---@return string
+function M.read(path)
+  local fd = assert(uv.fs_open(path, "r", 420))
+  local stat = assert(uv.fs_fstat(fd))
+  local data = assert(uv.fs_read(fd, stat.size, 0)) or ""
+  assert(uv.fs_close(fd))
+
+  return data
+end
+
 return M

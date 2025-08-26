@@ -1,6 +1,8 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local file_utils = require("codecompanion.utils.files")
 
+local uv = vim.uv
+
 local M = {}
 
 ---Write a full-text replacement to path
@@ -28,6 +30,15 @@ function M.write_text_file(path, content)
     return nil, ("File write failed for %s: %s"):format(path, tostring(err))
   end
   return true
+end
+
+---Read the full text content of a file
+---@param path string The file path to write to
+---@return boolean,any The file content or nil on error
+function M.read_text_file(path)
+  return pcall(function()
+    file_utils.read(path)
+  end)
 end
 
 return M

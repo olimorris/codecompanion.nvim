@@ -504,18 +504,23 @@ function Connection:_handle_read_file_request(id, params)
   if type(path) ~= "string" then
     return self:_send_error(id, "invalid params", -32602)
   end
-  local ok, content_or_err = pcall(function()
-    local fd = assert(uv.fs_open(path, "r", 420))
-    local stat = assert(uv.fs_fstat(fd))
-    local data = assert(uv.fs_read(fd, stat.size, 0)) or ""
-    assert(uv.fs_close(fd))
-    return data
-  end)
+
+  local fs_api = require("codecompanion.strategies.chat.acp.fs")
+
+  local ok, content_or_err = fs_api.read_text_file(path)
   if ok then
-    self:_send_result(id, { content = content_or_err })
-  else
-    self:_send_error(id, ("fs/read_text_file failed: %s"):format(content_or_err))
+    return self:_send_result(id, { content = content_or_err })
   end
+
+  -- If the file does not exist, treat as empty content so the agent can proceed to create it
+  local errstr = tostring(content_or_err)
+  if errstr:find("ENOENT", 1, true) then
+    self:_send_result(id, { content = "" })
+    return
+  end
+
+  -- Other errors: send as JSON-RPC error
+  self:_send_error(id, ("fs/read_text_file failed: %s"):format(errstr))
 end
 
 ---Handle fs/write_text_file requests
