@@ -14,19 +14,6 @@ local ui = require("codecompanion.utils.ui")
 local api = vim.api
 local fmt = string.format
 
----Hide chat if floating diff is being used
----@param chat_bufnr number The chat buffer number
-local function hide_chat_for_floating_diff(chat_bufnr)
-  local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
-  local diff_layout = inline_config.layout or "non_float"
-  if diff_layout == "float" and config.display.chat.window.layout == "float" then
-    local chat = codecompanion.buf_get_chat(chat_bufnr)
-    if chat and chat.ui:is_visible() then
-      chat.ui:hide()
-    end
-  end
-end
-
 local PROMPT = [[<editFileInstructions>
 CRITICAL: ALL patches MUST be wrapped in *** Begin Patch / *** End Patch markers!
 
@@ -138,10 +125,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   -- 5. refresh and format the buffer if the file is open
   local bufnr = vim.fn.bufnr(p.filename)
   if bufnr ~= -1 and api.nvim_buf_is_loaded(bufnr) then
-    pcall(function()
-      api.nvim_command("checktime " .. bufnr)
-      vim.lsp.buf.format({ bufnr = bufnr })
-    end)
+    pcall(api.nvim_command, "checktime " .. bufnr)
   end
 
   -- Auto-save if enabled
@@ -154,7 +138,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   end
 
   -- 6. Create diff for the file using new file path capability
-  hide_chat_for_floating_diff(chat_bufnr)
+  helpers.hide_chat_for_floating_diff(chat_bufnr)
   local diff_id = math.random(10000000)
   local should_diff = diff.create(p.filename, diff_id, {
     original_content = original_content,
@@ -267,11 +251,10 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
   -- Update the buffer with the edited code
   api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
   log:debug("[Insert Edit Into File Tool] Buffer content updated")
-  pcall(vim.lsp.buf.format, { bufnr = bufnr })
 
   -- Create diff with original content
   if original_content then
-    hide_chat_for_floating_diff(chat_bufnr)
+    helpers.hide_chat_for_floating_diff(chat_bufnr)
     log:debug("[Insert Edit Into File Tool] Creating diff with original content (%d lines)", #original_content)
     should_diff = diff.create(bufnr, diff_id, {
       original_content = original_content,
