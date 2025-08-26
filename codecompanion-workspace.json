@@ -24,7 +24,7 @@
         "chat-ui-formatters-reasoning",
         "chat-ui-formatters-standard",
         "chat-ui-icons",
-        "chat-ui-builder-test"
+        "chat-ui-builder-test",
         "chat-ui-folds"
       ]
     },
