@@ -1,5 +1,3 @@
-local log = require("codecompanion.utils.log")
-
 ---@class CodeCompanion.Chat.UI.Formatters.Base
 ---@field chat CodeCompanion.Chat
 ---@field is_new_response boolean
