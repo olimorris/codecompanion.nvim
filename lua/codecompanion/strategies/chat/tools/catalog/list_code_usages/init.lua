@@ -203,8 +203,8 @@ return {
       end
 
       -- Save current state of view
-      local context_winnr = self.chat.context.winnr
-      local context_bufnr = self.chat.context.bufnr
+      local context_winnr = self.chat.buffer_context.winnr
+      local context_bufnr = self.chat.buffer_context.bufnr
       local chat_winnr = api.nvim_get_current_win()
 
       -- Get file extension from context buffer if available
