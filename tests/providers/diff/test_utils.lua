@@ -260,63 +260,6 @@ T["DiffUtils"]["contents_equal - handles one empty array"] = function()
   h.eq(result, false)
 end
 
-T["DiffUtils"]["create_unified_diff_display - creates display lines"] = function()
-  local hunks = {
-    {
-      old_start = 2,
-      old_count = 1,
-      new_start = 2,
-      new_count = 1,
-      old_lines = { "old line" },
-      new_lines = { "new line" },
-      context_before = { "line 1" },
-      context_after = { "line 3" },
-    },
-  }
-  local combined_lines, ranges = diff_utils.create_unified_diff_display(hunks)
-
-  h.eq(type(combined_lines), "table")
-  h.eq(type(ranges), "table")
-  h.eq(type(ranges.line_types), "table")
-  h.eq(type(ranges.hunk_types), "table")
-  h.eq(#combined_lines, #ranges.line_types)
-  h.eq(#combined_lines, #ranges.hunk_types)
-end
-
-T["DiffUtils"]["create_unified_diff_display - handles empty hunks"] = function()
-  local combined_lines, ranges = diff_utils.create_unified_diff_display({})
-
-  h.eq(type(combined_lines), "table")
-  h.eq(type(ranges), "table")
-  h.eq(type(ranges.line_types), "table")
-  h.eq(type(ranges.hunk_types), "table")
-  h.eq(#combined_lines, 0)
-  h.eq(#ranges.line_types, 0)
-  h.eq(#ranges.hunk_types, 0)
-end
-
-T["DiffUtils"]["create_unified_diff_display - respects options"] = function()
-  local hunks = {
-    {
-      old_start = 1,
-      old_count = 1,
-      new_start = 1,
-      new_count = 1,
-      old_lines = { "old line" },
-      new_lines = { "new line" },
-      context_before = {},
-      context_after = {},
-    },
-  }
-  local opts = { show_line_numbers = true }
-  local combined_lines, ranges = diff_utils.create_unified_diff_display(hunks, opts)
-
-  h.eq(type(combined_lines), "table")
-  h.eq(type(ranges), "table")
-  h.eq(type(ranges.line_types), "table")
-  h.eq(type(ranges.hunk_types), "table")
-end
-
 -- Integration tests
 T["DiffUtils"]["integration - full diff workflow"] = function()
   local old_lines = {
@@ -340,9 +283,6 @@ T["DiffUtils"]["integration - full diff workflow"] = function()
 
   local extmark_ids = diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id)
   h.eq(type(extmark_ids), "table")
-
-  local combined_lines, _ = diff_utils.create_unified_diff_display(hunks)
-  h.expect_truthy(#combined_lines > 0)
 
   h.eq(diff_utils.contents_equal(old_lines, new_lines), false)
   h.eq(diff_utils.contents_equal(old_lines, old_lines), true)
@@ -371,18 +311,6 @@ T["DiffUtils"]["integration - complex multi-hunk diff"] = function()
 
   local hunks = diff_utils.calculate_hunks(old_lines, new_lines)
   h.expect_truthy(#hunks > 0)
-
-  local combined_lines, ranges = diff_utils.create_unified_diff_display(hunks)
-  h.expect_truthy(#combined_lines > 0)
-
-  local has_context = false
-  for _, line_type in ipairs(ranges.line_types) do
-    if line_type == "context" then
-      has_context = true
-    end
-  end
-
-  h.eq(has_context, true)
 end
 
 -- Screenshot tests for visual display
@@ -407,7 +335,7 @@ T["DiffUtils Screenshots"] = MiniTest.new_set({
   },
 })
 
-T["DiffUtils Screenshots"]["Shows unified diff display"] = function()
+T["DiffUtils Screenshots"]["Shows hunk highlights with modifications"] = function()
   child.lua([[
     local bufnr = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_set_current_buf(bufnr)
@@ -415,6 +343,7 @@ T["DiffUtils Screenshots"]["Shows unified diff display"] = function()
 
     local diff_utils = require("codecompanion.providers.diff.utils")
 
+    -- Set up buffer with original content
     local old_lines = {
       "local function calculate(a, b)",
       "  local result = a + b",
@@ -433,33 +362,19 @@ T["DiffUtils Screenshots"]["Shows unified diff display"] = function()
       "end"
     }
 
+    -- Set buffer to new content (what the user sees)
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_lines)
+
+    -- Calculate hunks and apply highlights to show the diff
     local hunks = diff_utils.calculate_hunks(old_lines, new_lines, 1)
-    local combined_lines, ranges = diff_utils.create_unified_diff_display(hunks)
+    local ns_id = vim.api.nvim_create_namespace("screenshot_hunk_highlights")
 
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, combined_lines)
-
-    local ns_id = vim.api.nvim_create_namespace("screenshot_diff")
-    for i, line_type in ipairs(ranges.line_types) do
-      local line_idx = i - 1
-      if line_type == "removed" then
-        vim.api.nvim_buf_set_extmark(bufnr, ns_id, line_idx, 0, {
-          line_hl_group = "DiffDelete",
-          sign_text = "-",
-          sign_hl_group = "DiagnosticError"
-        })
-      elseif line_type == "added" then
-        vim.api.nvim_buf_set_extmark(bufnr, ns_id, line_idx, 0, {
-          line_hl_group = "DiffAdd",
-          sign_text = "+",
-          sign_hl_group = "DiagnosticOk"
-        })
-      elseif line_type == "context" then
-        vim.api.nvim_buf_set_extmark(bufnr, ns_id, line_idx, 0, {
-          sign_text = " ",
-          sign_hl_group = "Normal"
-        })
-      end
-    end
+    -- Apply the actual hunk highlights that the code uses
+    diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id, 0, {
+      show_removed = true,
+      full_width_removed = true,
+      status = "pending"
+    })
   ]])
 
   local expect = MiniTest.expect
@@ -547,7 +462,7 @@ T["DiffUtils Screenshots"]["Shows rejected changes highlighting"] = function()
   expect.reference_screenshot(child.get_screenshot())
 end
 
-T["DiffUtils Screenshots"]["Shows complex multi-hunk diff display"] = function()
+T["DiffUtils Screenshots"]["Shows complex multi-hunk highlights"] = function()
   child.lua([[
     local bufnr = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_set_current_buf(bufnr)
@@ -590,42 +505,19 @@ T["DiffUtils Screenshots"]["Shows complex multi-hunk diff display"] = function()
       "}"
     }
 
+    -- Set buffer to new content (what the user sees)
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_lines)
+
+    -- Calculate hunks and apply highlights using the actual functions
     local hunks = diff_utils.calculate_hunks(old_lines, new_lines, 2)
-
-    local combined_lines, ranges = diff_utils.create_unified_diff_display(hunks, { show_line_numbers = true })
-
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, combined_lines)
-
     local ns_id = vim.api.nvim_create_namespace("screenshot_multi_hunk")
-    for i, line_type in ipairs(ranges.line_types) do
-      local line_idx = i - 1
-      local hunk_type = ranges.hunk_types[i]
 
-      if line_type == "removed" then
-        vim.api.nvim_buf_set_extmark(bufnr, ns_id, line_idx, 0, {
-          line_hl_group = "DiffDelete",
-          sign_text = "-",
-          sign_hl_group = "DiagnosticError"
-        })
-      elseif line_type == "added" then
-        vim.api.nvim_buf_set_extmark(bufnr, ns_id, line_idx, 0, {
-          line_hl_group = "DiffAdd",
-          sign_text = "+",
-          sign_hl_group = "DiagnosticOk"
-        })
-      elseif line_type == "context" then
-        vim.api.nvim_buf_set_extmark(bufnr, ns_id, line_idx, 0, {
-          sign_text = " ",
-          sign_hl_group = "Normal"
-        })
-      elseif line_type == "header" then
-        vim.api.nvim_buf_set_extmark(bufnr, ns_id, line_idx, 0, {
-          line_hl_group = "DiffText",
-          sign_text = "@",
-          sign_hl_group = "DiagnosticWarn"
-        })
-      end
-    end
+    -- Apply the actual hunk highlights with complex multi-hunk changes
+    diff_utils.apply_hunk_highlights(bufnr, hunks, ns_id, 0, {
+      show_removed = true,
+      full_width_removed = true,
+      status = "pending"
+    })
   ]])
 
   local expect = MiniTest.expect
