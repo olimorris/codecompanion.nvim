@@ -1,8 +1,6 @@
 local buf_utils = require("codecompanion.utils.buffers")
 local file_utils = require("codecompanion.utils.files")
 
-local uv = vim.uv
-
 local M = {}
 
 ---Write a full-text replacement to path
