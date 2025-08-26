@@ -536,6 +536,7 @@ function Chat.new(args)
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
       vim.bo[bufnr].filetype = "codecompanion"
+      vim.bo[bufnr].undolevels = config.strategies.chat.opts.undolevels or 10
 
       -- Set up omnifunc for automatic completion when no other completion provider is active
       local completion_provider = config.strategies.chat.opts.completion_provider
