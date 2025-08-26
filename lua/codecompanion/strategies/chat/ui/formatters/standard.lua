@@ -6,7 +6,7 @@ local Standard = setmetatable({}, { __index = BaseFormatter })
 Standard.__class = "Standard"
 
 function Standard:can_handle(message, opts, tags)
-  return message.content ~= nil -- Has content to display
+  return opts and opts.type == tags.LLM_MESSAGE
 end
 
 function Standard:get_type(opts)
