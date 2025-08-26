@@ -135,10 +135,13 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   -- 4. write back
   p:write(table.concat(lines, "\n"), "w")
 
-  -- 5. refresh the buffer if the file is open
+  -- 5. refresh and format the buffer if the file is open
   local bufnr = vim.fn.bufnr(p.filename)
   if bufnr ~= -1 and api.nvim_buf_is_loaded(bufnr) then
-    api.nvim_command("checktime " .. bufnr)
+    pcall(function()
+      api.nvim_command("checktime " .. bufnr)
+      vim.lsp.buf.format({ bufnr = bufnr })
+    end)
   end
 
   -- Auto-save if enabled
