@@ -1038,6 +1038,7 @@ You must create or modify a workspace file through a series of prompts over mult
         buffer_pin = " ",
         buffer_watch = "󰂥 ",
         --chat_context = " ",
+        chat_fold = " ",
         tool_pending = " ",
         tool_in_progress = " ",
         tool_failure = " ",
@@ -1089,6 +1090,7 @@ You must create or modify a workspace file through a series of prompts over mult
 
       show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
       fold_context = false, -- Fold context in the chat buffer?
+      fold_reasoning = true, -- Fold the reasoning content from the LLM in the chat buffer?
 
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_tools_processing = true, -- Show the loading message when tools are being executed?

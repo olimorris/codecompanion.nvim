@@ -8,7 +8,7 @@ function Reasoning:can_handle(message, opts, tags)
   return opts and opts.type == tags.REASONING_MESSAGE
 end
 
-function Reasoning:get_type()
+function Reasoning:get_type(opts)
   return self.chat.MESSAGE_TYPES.REASONING_MESSAGE
 end
 

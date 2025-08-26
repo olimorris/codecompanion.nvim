@@ -569,6 +569,12 @@ function Chat.new(args)
       vim.bo[bufnr].filetype = "codecompanion"
       vim.bo[bufnr].undolevels = config.strategies.chat.opts.undolevels or 10
 
+      -- Set up omnifunc for automatic completion when no other completion provider is active
+      local completion_provider = config.strategies.chat.opts.completion_provider
+      if completion_provider == "default" then
+        vim.bo[bufnr].omnifunc = "v:lua.require'codecompanion.providers.completion.default.omnifunc'.omnifunc"
+      end
+
       return bufnr
     end,
     _last_role = args.last_role or config.constants.USER_ROLE,

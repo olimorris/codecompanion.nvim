@@ -19,7 +19,7 @@ function Tools:can_handle(message, opts, tags)
   return opts and opts.type == tags.TOOL_MESSAGE
 end
 
-function Tools:get_type()
+function Tools:get_type(opts)
   return self.chat.MESSAGE_TYPES.TOOL_MESSAGE
 end
 

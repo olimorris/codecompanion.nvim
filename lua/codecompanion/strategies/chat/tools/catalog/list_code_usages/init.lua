@@ -179,7 +179,9 @@ local function get_file_extension(context_bufnr)
   end
 
   local filename = Utils.safe_get_buffer_name(context_bufnr)
-  return filename:match("%.([^%.]+)$") or "*"
+  local name_only = filename:match("([^/\\]+)$") or filename
+
+  return (name_only:match("%.([^%.]+)$")) or "*"
 end
 
 return {
@@ -203,8 +205,8 @@ return {
       end
 
       -- Save current state of view
-      local context_winnr = self.chat.context.winnr
-      local context_bufnr = self.chat.context.bufnr
+      local context_winnr = self.chat.buffer_context.winnr
+      local context_bufnr = self.chat.buffer_context.bufnr
       local chat_winnr = api.nvim_get_current_win()
 
       -- Get file extension from context buffer if available
@@ -241,9 +243,12 @@ return {
               return
             end
 
-            -- Restore original state of view
-            api.nvim_set_current_buf(context_bufnr)
-            api.nvim_set_current_win(chat_winnr)
+            if Utils.is_valid_buffer(context_bufnr) then
+              pcall(api.nvim_set_current_buf, context_bufnr)
+            end
+            if chat_winnr and api.nvim_win_is_valid(chat_winnr) then
+              pcall(api.nvim_set_current_win, chat_winnr)
+            end
 
             -- Store state for output handler
             ListCodeUsagesTool.symbol_data = state.symbol_data
