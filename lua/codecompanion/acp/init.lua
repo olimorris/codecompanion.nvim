@@ -506,7 +506,6 @@ function Connection:_handle_read_file_request(id, params)
   end
 
   local fs_api = require("codecompanion.strategies.chat.acp.fs")
-
   local ok, content_or_err = fs_api.read_text_file(path)
   if ok then
     return self:_send_result(id, { content = content_or_err })
