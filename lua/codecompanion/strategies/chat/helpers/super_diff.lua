@@ -160,7 +160,7 @@ end
 local function get_current_content(tracked_file)
   if tracked_file.type == "buffer" and tracked_file.bufnr and api.nvim_buf_is_valid(tracked_file.bufnr) then
     return api.nvim_buf_get_lines(tracked_file.bufnr, 0, -1, false)
-  elseif tracked_file.filepath and vim.fn.filereadable(tracked_file.filepath) == 1 then
+  elseif tracked_file.filepath and vim.uv.fs_stat(vim.fs.normalize(tracked_file.filepath)) then
     return vim.fn.readfile(tracked_file.filepath)
   end
   return nil

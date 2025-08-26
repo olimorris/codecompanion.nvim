@@ -95,7 +95,7 @@ end
 ---@param winnr number
 ---@return number|nil bufnr
 local function create_buffer_in_window(filepath, winnr)
-  if not vim.fn.filereadable(filepath) then
+  if not vim.uv.fs_stat(vim.fs.normalize(filepath)) then
     log:debug("[catalog::helpers::diff::create] File not readable: %s", filepath)
     return nil
   end
@@ -169,8 +169,23 @@ local function create_floating_window_only(bufnr, filepath)
     end
   end
   if display_filepath then
-    local filename = vim.fn.fnamemodify(display_filepath, ":t") -- Get just the filename
-    title = "CodeCompanion Diff - " .. filename
+    local filename = vim.fs.basename(display_filepath)
+    -- Helper function to format directory path
+    ---@param path string
+    ---@return string
+    local function format_dirname(path)
+      local dirname = vim.fs.dirname(path)
+      if dirname and dirname ~= "." and dirname ~= "" then
+        return dirname .. "/"
+      end
+      return ""
+    end
+    -- Try to get relative path, fallback to original path
+    local ok, relative_path = pcall(function()
+      return vim.fs.relpath(vim.uv.cwd(), vim.fs.normalize(display_filepath))
+    end)
+    local path_to_use = (ok and relative_path and relative_path ~= "") and relative_path or display_filepath
+    title = " Diff: [" .. filename .. "]:" .. format_dirname(path_to_use) .. " "
   end
 
   local winnr = api.nvim_open_win(bufnr, true, {
@@ -214,7 +229,7 @@ local function open_buffer_and_window(bufnr_or_filepath)
     if existing_bufnr then
       bufnr = existing_bufnr
     else
-      if not vim.fn.filereadable(filepath) then
+      if not vim.uv.fs_stat(vim.fs.normalize(filepath)) then
         log:debug("[catalog::helpers::diff::create] File not readable: %s", filepath)
         return nil, nil
       end
