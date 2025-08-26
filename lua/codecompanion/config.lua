@@ -465,6 +465,7 @@ local defaults = {
         completion_provider = providers.completion, -- blink|cmp|coc|default
         register = "+", -- The register to use for yanking code
         yank_jump_delay_ms = 400, -- Delay in milliseconds before jumping back from the yanked code
+        undo_levels = 10, -- Number of undo levels to add to chat buffers
 
         ---@type string|fun(path: string)
         goto_file_action = ui_utils.tabnew_reuse,
