@@ -66,7 +66,6 @@ export default withMermaid(
           text: "Configuration",
           collapsed: true,
           items: [
-            { text: "Introduction", link: "/configuration/introduction" },
             { text: "Action Palette", link: "/configuration/action-palette" },
             { text: "Adapters", link: "/configuration/adapters" },
             { text: "Chat Buffer", link: "/configuration/chat-buffer" },
