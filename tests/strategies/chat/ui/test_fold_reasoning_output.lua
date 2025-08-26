@@ -154,4 +154,33 @@ T["Reasoning folds"]["does not fold when no body under header"] = function()
   end
 end
 
+T["Reasoning folds"]["preserves earlier folds when adding a new reasoning fold"] = function()
+  child.lua([[
+    -- First reasoning block
+    _G.chat:add_buf_message(
+      { role = "llm", content = "phase 1: thinking...\nphase 1: more thoughts" },
+      { type = _G.MT.REASONING_MESSAGE }
+    )
+    _G.chat:add_buf_message(
+      { role = "llm", content = "phase 1: answer" },
+      { type = _G.MT.LLM_MESSAGE }
+    )
+
+    -- Second reasoning block within the same section
+    _G.chat:add_buf_message(
+      { role = "llm", content = "phase 2: thinking...\nphase 2: more thoughts" },
+      { type = _G.MT.REASONING_MESSAGE }
+    )
+    _G.chat:add_buf_message(
+      { role = "llm", content = "phase 2: answer" },
+      { type = _G.MT.LLM_MESSAGE }
+    )
+
+    -- Allow scheduled fold creation to run
+    vim.wait(300, function() return false end)
+  ]])
+
+  expect.reference_screenshot(child.get_screenshot())
+end
+
 return T
