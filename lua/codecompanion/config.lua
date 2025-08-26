@@ -1281,6 +1281,8 @@ You must create or modify a workspace file through a series of prompts over mult
         priority = 100, -- Highlight priority for diffs; increase if using inlay hints or if highlights are not visible.
         context_lines = 3, -- Number of context lines in hunks
         show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
+        layout = "non_float", -- float|non_float - how to display diffs (float always uses floating window with child_window config)
+        dim = 30, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
       },
     },
     inline = {
