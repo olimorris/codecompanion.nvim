@@ -12,6 +12,7 @@ local api = vim.api
 ---@field extmark_ids number[]
 ---@field has_changes boolean
 ---@field winnr number|nil
+---@field is_floating boolean
 local InlineDiff = {}
 
 ---@class CodeCompanion.Diff.InlineArgs
@@ -19,6 +20,7 @@ local InlineDiff = {}
 ---@field contents string[] Original content lines
 ---@field id string Unique identifier for this diff
 ---@field winnr? number Window number (optional)
+---@field is_floating boolean|nil Whether this diff is in a floating window
 
 ---Creates a new InlineDiff instance and applies diff highlights
 ---@param args CodeCompanion.Diff.InlineArgs
@@ -28,6 +30,8 @@ function InlineDiff.new(args)
     bufnr = args.bufnr,
     contents = args.contents,
     id = args.id,
+    winnr = args.winnr,
+    is_floating = args.is_floating or false,
     ns_id = api.nvim_create_namespace(
       "codecompanion_inline_diff_" .. (args.id ~= nil and args.id or math.random(1, 100000))
     ),
@@ -147,6 +151,7 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
   local extmark_ids = InlineDiff.apply_hunk_highlights(self.bufnr, hunks, self.ns_id, 0, {
     show_removed = inline_config.show_removed ~= false,
     full_width_removed = inline_config.full_width_removed ~= false,
+    is_floating = self.is_floating,
   })
   vim.list_extend(self.extmark_ids, extmark_ids)
   log:trace(
@@ -187,6 +192,7 @@ function InlineDiff:accept(opts)
   end
 
   self:clear_highlights()
+  self:close_floating_window()
 end
 
 ---Rejects the diff changes, restores original content, and clears highlights
@@ -214,6 +220,7 @@ function InlineDiff:reject(opts)
   end
 
   self:clear_highlights()
+  self:close_floating_window()
 end
 
 ---Cleans up the diff instance and fires detachment event
@@ -226,7 +233,20 @@ function InlineDiff:teardown()
     end)
   end)
   self:clear_highlights()
+  self:close_floating_window()
   util.fire("DiffDetached", { diff = "inline", bufnr = self.bufnr, id = self.id })
+end
+
+---Close floating window if this diff is in a floating window
+---@return nil
+function InlineDiff:close_floating_window()
+  if self.is_floating and self.winnr and api.nvim_win_is_valid(self.winnr) then
+    log:debug("[providers::diff::inline::close_floating_window] Closing floating window %d", self.winnr)
+    pcall(api.nvim_win_close, self.winnr, true)
+    self.winnr = nil
+    local ui = require("codecompanion.utils.ui")
+    ui.close_background_window()
+  end
 end
 
 return InlineDiff
