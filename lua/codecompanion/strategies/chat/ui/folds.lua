@@ -31,7 +31,11 @@ function Folds:setup(winnr)
         vim.wo.foldmethod = "manual"
       end
     end)
-    api.nvim_win_set_option(winnr, "foldtext", 'v:lua.require("codecompanion.strategies.chat.ui.folds").fold_text()')
+    api.nvim_set_option_value(
+      "foldtext",
+      'v:lua.require("codecompanion.strategies.chat.ui.folds").fold_text()',
+      { win = winnr }
+    )
   end
 end
 
