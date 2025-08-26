@@ -16,7 +16,7 @@ function M.create_background_window()
   end
   local config = require("codecompanion.config")
   local inline_config = config.display and config.display.diff and config.display.diff.inline or {}
-  local winblend = inline_config.winblend or 30
+  local winblend = inline_config.dim or 30
   M._background_buf = api.nvim_create_buf(false, true)
 
   M._background_win = api.nvim_open_win(M._background_buf, false, {
