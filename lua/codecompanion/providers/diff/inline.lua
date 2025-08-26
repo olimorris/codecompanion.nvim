@@ -129,15 +129,10 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
       -- Build hint text from configured keymaps
       local keymaps_config = config.strategies.inline.keymaps
       if keymaps_config then
-        local keymap_items = {
-          { config = keymaps_config.accept_change, desc = "accept" },
-          { config = keymaps_config.reject_change, desc = "reject" },
-          { config = keymaps_config.always_accept, desc = "always accept" },
-        }
         local hint_parts = {}
-        for _, item in ipairs(keymap_items) do
-          table.insert(hint_parts, item.config.modes.n .. ": " .. item.desc)
-        end
+        table.insert(hint_parts, keymaps_config.accept_change.modes.n .. ": accept")
+        table.insert(hint_parts, keymaps_config.reject_change.modes.n .. ": reject")
+        table.insert(hint_parts, keymaps_config.always_accept.modes.n .. ": always accept")
         local hint_text = table.concat(hint_parts, " | ")
         local success, keymap_extmark_id = pcall(api.nvim_buf_set_extmark, self.bufnr, self.ns_id, attach_line, 0, {
           virt_text = { { hint_text, "CodeCompanionInlineDiffHint" } },

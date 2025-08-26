@@ -156,8 +156,8 @@ local function create_floating_window_only(bufnr, filepath)
     }
   local width = window_config.width > 1 and window_config.width or vim.o.columns - 5
   local height = window_config.height > 1 and window_config.height or vim.o.lines - 2
-  local row = window_config.row == "center" and math.floor((vim.o.lines - height) / 2) or window_config.row or 10 --[[@as integer]]
-  local col = window_config.col == "center" and math.floor((vim.o.columns - width) / 2) or window_config.col or 0 --[[@as integer]]
+  local row = window_config.row == "center" and math.floor((vim.o.lines - height) / 2) or window_config.row or 10 --[[@as number]]
+  local col = window_config.col == "center" and math.floor((vim.o.columns - width) / 2) or window_config.col or 0 --[[@as number]]
 
   -- Title logic
   local title = "CodeCompanion Diff"
