@@ -269,24 +269,37 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
   end
 
   local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
-  api.nvim_buf_set_text(self.chat.bufnr, last_line, last_column, last_line, last_column, lines)
 
+  -- BUGFIX: write at insert_line (not last_line) so bounds/states are correct
+  api.nvim_buf_set_text(self.chat.bufnr, insert_line, last_column, insert_line, last_column, lines)
+
+  -- Record write bounds
   local end_line_written = insert_line + (#lines > 0 and (#lines - 1) or 0)
   self.state.last_write_start = insert_line
   self.state.last_write_end = end_line_written
 
+  -- If a new role header was rendered, update section anchors and headers
   if state.is_new_response then
     self.state.last_section_start = self.state.current_section_start
     self.state.current_section_start = insert_line
     self.chat.ui:render_headers()
   end
 
+  -- Tool folds
   if fold_info then
-    local fold_start = last_line + fold_info.start_offset
-    local fold_end = last_line + fold_info.end_offset
-
+    local fold_start = insert_line + fold_info.start_offset
+    local fold_end = insert_line + fold_info.end_offset
     vim.schedule(function()
       self.chat.ui.folds:create_tool_fold(self.chat.bufnr, fold_start, fold_end, fold_info.first_line)
+    end)
+  end
+
+  -- Reasoning folds
+  if self.state.has_reasoning_output and not state.has_reasoning_output and config.display.chat.fold_reasoning then
+    local range_start = self.state.current_section_start or 0
+    local range_end = insert_line
+    vim.schedule(function()
+      self.chat.ui.folds:create_reasoning_fold(self.chat, range_start, range_end)
     end)
   end
 
