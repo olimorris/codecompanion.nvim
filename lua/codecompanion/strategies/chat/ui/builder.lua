@@ -15,7 +15,6 @@
 ===============================================================================
 --]]
 local config = require("codecompanion.config")
-local log = require("codecompanion.utils.log")
 
 local Reasoning = require("codecompanion.strategies.chat.ui.formatters.reasoning")
 local Standard = require("codecompanion.strategies.chat.ui.formatters.standard")
@@ -23,10 +22,49 @@ local Tools = require("codecompanion.strategies.chat.ui.formatters.tools")
 
 local api = vim.api
 
+local EPHEMERAL_STATE = {
+  __index = {
+    update_role = function(self, role)
+      self.last_role = role
+      self.is_new_response = true
+    end,
+    mark_reasoning_complete = function(self)
+      self.has_reasoning_output = false
+    end,
+    mark_reasoning_started = function(self)
+      self.has_reasoning_output = true
+    end,
+    update_type = function(self, type)
+      self.last_type = type
+    end,
+    start_new_block = function(self)
+      self.is_new_block = true
+    end,
+  },
+}
+
 ---@class CodeCompanion.Chat.UI.Builder
 ---@field chat CodeCompanion.Chat
----@field state table
+---@field state CodeCompanion.Chat.UI.BuilderState
+---@field _formatters CodeCompanion.Chat.UI.Formatters.Base[]
+---@field _fmt_state table
 local Builder = {}
+
+-- Type additions (place near the other annotations in builder.lua)
+---@class CodeCompanion.Chat.UI.BuilderState
+---@field last_role? string
+---@field last_type? string
+---@field has_reasoning_output boolean
+---@field last_block_type? string
+---@field current_block_type? string
+---@field chunks_in_block number
+---@field total_chunks number
+---@field section_index number
+---@field block_index number
+---@field last_write_start number -- 0-based
+---@field last_write_end number -- 0-based
+---@field current_section_start? number -- 0-based
+---@field last_section_start? number -- 0-based
 
 ---@class CodeCompanion.Chat.UI.BuilderArgs
 ---@field chat CodeCompanion.Chat
@@ -48,61 +86,50 @@ function Builder.new(args)
       -- Section tracking
       section_index = 0,
       block_index = 0,
+
+      -- Write bounds
+      last_write_start = 0,
+      last_write_end = 0,
+      current_section_start = nil,
+      last_section_start = nil,
     },
+
+    -- Cache the formatter instances
+    _formatters = {
+      Tools:new(args.chat),
+      Reasoning:new(args.chat),
+      Standard:new(args.chat),
+    },
+    _fmt_state = setmetatable({}, EPHEMERAL_STATE),
   }, { __index = Builder })
 end
 
----Create a rich formatting state object for this message
+---Create a rich formatting state object for this cycle in the chat buffer
+---@param out table The reusable ephemeral state table
 ---@param base_state table The persistent state from builder
 ---@return table Rich formatting state with methods
-local function create_state(base_state)
-  local state = {
-    last_role = base_state.last_role,
-    last_type = base_state.last_type,
-    has_reasoning_output = base_state.has_reasoning_output,
+local function create_state(out, base_state)
+  local state = out
 
-    -- Block tracking
-    last_block_type = base_state.last_block_type,
-    current_block_type = base_state.current_block_type,
-    chunks_in_block = base_state.chunks_in_block or 0,
-    total_chunks = base_state.total_chunks or 0,
+  state.last_role = base_state.last_role
+  state.last_type = base_state.last_type
+  state.has_reasoning_output = base_state.has_reasoning_output
 
-    -- Section tracking (copied from persistent state)
-    section_index = base_state.section_index or 0,
-    block_index = base_state.block_index or 0,
+  -- Block tracking
+  state.last_block_type = base_state.last_block_type
+  state.current_block_type = base_state.current_block_type
+  state.chunks_in_block = base_state.chunks_in_block or 0
+  state.total_chunks = base_state.total_chunks or 0
 
-    -- Block-local flags
-    last_block = nil,
-    current_block = nil,
-    is_new_response = false,
-    is_new_block = false,
-  }
+  -- Section tracking
+  state.section_index = base_state.section_index or 0
+  state.block_index = base_state.block_index or 0
 
-  -- Helper methods
-  function state:set_new_response()
-    self.is_new_response = true
-  end
-
-  function state:update_role(role)
-    self.last_role = role
-    self.is_new_response = true
-  end
-
-  function state:mark_reasoning_complete()
-    self.has_reasoning_output = false
-  end
-
-  function state:mark_reasoning_started()
-    self.has_reasoning_output = true
-  end
-
-  function state:update_type(type)
-    self.last_type = type
-  end
-
-  function state:start_new_block()
-    self.is_new_block = true
-  end
+  -- Block-local flags
+  state.last_block = nil
+  state.current_block = nil
+  state.is_new_response = false
+  state.is_new_block = false
 
   return state
 end
@@ -115,7 +142,7 @@ function Builder:add_message(data, opts)
   opts = opts or {}
   local lines, fold_info, current_type, formatter = {}, nil, nil, nil
 
-  local state = create_state(self.state)
+  local state = create_state(self._fmt_state, self.state)
 
   local needs_header = self:_should_add_header(data, opts, state)
   local needs_block = self:_should_start_new_block(opts, state)
@@ -125,11 +152,17 @@ function Builder:add_message(data, opts)
     self:_add_header_spacing(lines, state)
     self.chat.ui:set_header(lines, config.strategies.chat.roles[data.role])
 
-    -- Section started: reset block trackers for new block
+    -- Section started: reset block trackers
     self.state.section_index = (self.state.section_index or 0) + 1
     self.state.block_index = 0
     self.state.current_block_type = nil
     self.state.chunks_in_block = 0
+
+    -- Mirror resets into ephemeral state so formatters see correct indices
+    state.section_index = self.state.section_index
+    state.block_index = 0
+    state.current_block_type = nil
+    state.chunks_in_block = 0
 
     -- We intentionally do NOT set is_new_block in the same message as a role header
   elseif needs_block then
@@ -151,7 +184,7 @@ function Builder:add_message(data, opts)
 
     -- This role check is more of a testing fix than a real logic check
     if data.content ~= "" and data.role ~= config.constants.USER_ROLE then
-      current_type = formatter:get_type()
+      current_type = formatter:get_type(opts)
     end
   end
 
@@ -186,15 +219,7 @@ end
 ---@param state table
 ---@return boolean
 function Builder:_should_start_new_block(opts, state)
-  if not opts.type then
-    return false
-  end
-
-  local tags = self.chat.MESSAGE_TYPES
-
-  return (opts.type == tags.TOOL_MESSAGE and state.last_type ~= tags.TOOL_MESSAGE)
-    or (opts.type == tags.REASONING_MESSAGE and state.last_type ~= tags.REASONING_MESSAGE)
-    or (opts.type == tags.LLM_MESSAGE and state.last_type ~= tags.LLM_MESSAGE)
+  return opts.type ~= nil and opts.type ~= state.last_type
 end
 
 ---Check if we need to add a header to the chat buffer
@@ -220,19 +245,12 @@ end
 ---@param opts table
 ---@return CodeCompanion.Chat.UI.Formatters.Base
 function Builder:_get_formatter(data, opts)
-  local formatters = {
-    Tools:new(self.chat),
-    Reasoning:new(self.chat),
-    Standard:new(self.chat),
-  }
-
-  for _, formatter in ipairs(formatters) do
+  for _, formatter in ipairs(self._formatters) do
     if formatter:can_handle(data, opts, self.chat.MESSAGE_TYPES) then
       return formatter
     end
   end
-
-  return Standard:new(self.chat)
+  return self._formatters[#self._formatters]
 end
 
 ---Write lines to buffer with all the buffer management
@@ -244,25 +262,45 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
   self.chat.ui:unlock_buf()
   local last_line, last_column, line_count = self.chat.ui:last()
 
+  local insert_line = last_line
   if opts.insert_at then
-    last_line = opts.insert_at
+    insert_line = opts.insert_at
     last_column = 0
   end
 
   local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
-  api.nvim_buf_set_text(self.chat.bufnr, last_line, last_column, last_line, last_column, lines)
 
+  -- BUGFIX: write at insert_line (not last_line) so bounds/states are correct
+  api.nvim_buf_set_text(self.chat.bufnr, insert_line, last_column, insert_line, last_column, lines)
+
+  -- Record write bounds
+  local end_line_written = insert_line + (#lines > 0 and (#lines - 1) or 0)
+  self.state.last_write_start = insert_line
+  self.state.last_write_end = end_line_written
+
+  -- If a new role header was rendered, update section anchors and headers
+  if state.is_new_response then
+    self.state.last_section_start = self.state.current_section_start
+    self.state.current_section_start = insert_line
+    self.chat.ui:render_headers()
+  end
+
+  -- Tool folds
   if fold_info then
-    local fold_start = last_line + fold_info.start_offset
-    local fold_end = last_line + fold_info.end_offset
-
+    local fold_start = insert_line + fold_info.start_offset
+    local fold_end = insert_line + fold_info.end_offset
     vim.schedule(function()
       self.chat.ui.folds:create_tool_fold(self.chat.bufnr, fold_start, fold_end, fold_info.first_line)
     end)
   end
 
-  if state.is_new_response then
-    self.chat.ui:render_headers()
+  -- Reasoning folds
+  if self.state.has_reasoning_output and not state.has_reasoning_output and config.display.chat.fold_reasoning then
+    local range_start = self.state.current_section_start or 0
+    local range_end = insert_line
+    vim.schedule(function()
+      self.chat.ui.folds:create_reasoning_fold(self.chat, range_start, range_end)
+    end)
   end
 
   if state.last_role ~= config.constants.USER_ROLE then

@@ -1,5 +1,3 @@
-local log = require("codecompanion.utils.log")
-
 ---@class CodeCompanion.Chat.UI.Formatters.Base
 ---@field chat CodeCompanion.Chat
 ---@field is_new_response boolean
@@ -34,8 +32,9 @@ function BaseFormatter:can_handle(message, opts, tags)
 end
 
 ---Get the message type for this formatter
+---@param opts table
 ---@return string
-function BaseFormatter:get_type()
+function BaseFormatter:get_type(opts)
   error("Must implement get_type method")
 end
 
