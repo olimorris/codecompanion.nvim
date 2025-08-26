@@ -15,7 +15,6 @@ end
 function Reasoning:format(message, opts, state)
   local lines = {}
 
-  -- Use rich state methods
   if not state.has_reasoning_output then
     table.insert(lines, "### Reasoning")
     table.insert(lines, "")

@@ -328,6 +328,13 @@ return {
       ---@type string|fun(): string
       default = "gpt-4.1",
       choices = {
+        -- gpt-5 and gpt-5-mini (but not gpt-5-nano) require organizational
+        -- verification with biometric data when streaming is enabled:
+        -- https://news.ycombinator.com/item?id=44837367
+        ["gpt-5"] = { opts = { has_vision = true, can_reason = true, stream = false } },
+        ["gpt-5-mini"] = { opts = { has_vision = true, can_reason = true, stream = false } },
+        ["gpt-5-nano"] = { opts = { has_vision = true, can_reason = true, stream = true } },
+
         ["o4-mini-2025-04-16"] = { opts = { has_vision = true, can_reason = true } },
         ["o3-mini-2025-01-31"] = { opts = { can_reason = true } },
         ["o3-2025-04-16"] = { opts = { has_vision = true, can_reason = true } },
@@ -365,6 +372,7 @@ return {
         "high",
         "medium",
         "low",
+        "minimal",
       },
     },
     temperature = {

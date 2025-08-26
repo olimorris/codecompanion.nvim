@@ -484,17 +484,23 @@ function Inline:done(output)
     self:reset()
     return self:to_chat()
   end
-  self:place(placement)
 
   vim.schedule(function()
-    self:start_diff()
+    local original_content = api.nvim_buf_get_lines(self.buffer_context.bufnr, 0, -1, true)
+    log:debug("[Inline] Captured %d lines of original content", #original_content)
+    self:place(placement)
     pcall(vim.cmd.undojoin)
     self:output(json.code)
-    -- After auto-applying inline edits (e.g., no_diff), move cursor to end of insertion
-    if self.opts and self.opts.no_diff and self.classification and self.buffer_context then
-      api.nvim_win_set_cursor(self.buffer_context.winnr, { self.classification.pos.line, self.classification.pos.col })
+    log:debug("[Inline] Code output applied")
+    if config.display.diff.enabled and self.classification.placement ~= "new" then
+      self:start_diff(original_content)
+    else
+      -- After auto-applying inline edits (e.g., no_diff), move cursor to end of insertion
+      if self.opts and self.opts.no_diff and self.classification and self.buffer_context then
+        api.nvim_win_set_cursor(self.buffer_context.winnr, { self.classification.pos.line, self.classification.pos.col })
+      end
+      self:reset()
     end
-    self:reset()
   end)
 end
 
@@ -714,18 +720,26 @@ function Inline:to_chat()
 end
 
 ---Start the diff process
+---@param original_content string[] The original buffer content before changes
 ---@return nil
+<<<<<<< HEAD
 function Inline:start_diff()
   -- Skip diff when no_diff option is set
   if self.opts and self.opts.no_diff then
     return
   end
+||||||| 0eb178f
+function Inline:start_diff()
+=======
+function Inline:start_diff(original_content)
+  log:debug("[Inline] Starting diff with provider: %s", config.display.diff.provider)
+>>>>>>> main
   if config.display.diff.enabled == false then
-    return
+    return self:reset()
   end
 
   if self.classification.placement == "new" then
-    return
+    return self:reset()
   end
 
   keymaps
@@ -740,17 +754,20 @@ function Inline:start_diff()
   local provider = config.display.diff.provider
   local ok, diff = pcall(require, "codecompanion.providers.diff." .. provider)
   if not ok then
-    return log:error("[Inline] Diff provider not found: %s", provider)
+    log:error("[Inline] Diff provider not found: %s", provider)
+    return self:reset()
   end
 
-  ---@type CodeCompanion.Diff
   self.diff = diff.new({
     bufnr = self.buffer_context.bufnr,
     cursor_pos = self.buffer_context.cursor_pos,
     filetype = self.buffer_context.filetype,
-    contents = self.lines,
+    contents = original_content,
     winnr = self.buffer_context.winnr,
+    id = self.id,
   })
+
+  log:debug("[Inline] Diff created with id=%d, provider=%s", self.id, provider)
 end
 
 return Inline

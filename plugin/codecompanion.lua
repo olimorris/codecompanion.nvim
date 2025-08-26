@@ -11,7 +11,6 @@ local config = require("codecompanion.config")
 local util = require("codecompanion.utils")
 local api = vim.api
 
--- Set the highlight groups
 api.nvim_set_hl(0, "CodeCompanionChatInfo", { link = "DiagnosticInfo", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatError", { link = "DiagnosticError", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatWarn", { link = "DiagnosticWarn", default = true })
@@ -27,6 +26,8 @@ api.nvim_set_hl(0, "CodeCompanionChatToolFailure", { link = "DiagnosticError", d
 api.nvim_set_hl(0, "CodeCompanionChatToolFailureIcon", { link = "Error", default = true })
 api.nvim_set_hl(0, "CodeCompanionChatVariable", { link = "Identifier", default = true })
 api.nvim_set_hl(0, "CodeCompanionVirtualText", { link = "Comment", default = true })
+local visual_hl = api.nvim_get_hl(0, { name = "Visual" })
+pcall(api.nvim_set_hl, 0, "CodeCompanionInlineDiffHint", { bg = visual_hl.bg, default = true })
 
 -- Setup syntax highlighting for the chat buffer
 local syntax_group = api.nvim_create_augroup("codecompanion.syntax", { clear = true })

@@ -1,4 +1,5 @@
 local config = require("codecompanion.config")
+local log = require("codecompanion.utils.log")
 
 local BaseFormatter = require("codecompanion.strategies.chat.ui.formatters.base")
 
@@ -16,42 +17,51 @@ end
 
 function Tools:format(message, opts, state)
   local lines = {}
+  local content_line_offset = 0
 
   if state.has_reasoning_output then
     state:mark_reasoning_complete()
     table.insert(lines, "")
     table.insert(lines, "")
     table.insert(lines, "### Response")
+    content_line_offset = 3
   end
 
-  if state.is_new_section then
+  if state.last_type == self.chat.MESSAGE_TYPES.TOOL_MESSAGE then
     table.insert(lines, "")
-  end
-  if state.last_type == self.chat.MESSAGE_TYPES.LLM_MESSAGE then
-    table.insert(lines, "")
+    content_line_offset = 1
   end
 
-  local content_start = #lines + 1
+  if state.is_new_block then
+    if state.block_index > 0 then
+      table.insert(lines, "")
+      table.insert(lines, "")
+      content_line_offset = content_line_offset + 2
+    else
+      table.insert(lines, "")
+      content_line_offset = content_line_offset + 1
+    end
+  end
+
   local content = message.content or ""
-  for _, line in ipairs(vim.split(content, "\n", { plain = true, trimempty = false })) do
+  local content_start_index = #lines + 1
+  local content_lines = vim.split(content, "\n", { plain = true, trimempty = false })
+
+  for _, line in ipairs(content_lines) do
     table.insert(lines, line)
   end
-  table.insert(lines, "")
 
   if not config.strategies.chat.tools.opts.folds.enabled then
     return lines, nil
   end
 
-  -- Folds can only work up to the penultimate line in the buffer, so an extra
-  -- line has been added as a result. But, we don't want to fold this line
-  local content_end = #lines - 1
-
+  -- Calculate fold positions relative to the buffer
   local fold_info = nil
-  if content_end >= content_start then
+  if #content_lines > 1 then
     fold_info = {
-      start_offset = content_start - 1, -- 0-based index
-      end_offset = content_end - 1, -- 0-based index
-      first_line = lines[content_start] or "",
+      start_offset = content_start_index - 1, -- 0-based: first content line
+      end_offset = content_start_index + #content_lines - 2, -- 0-based: last content line
+      first_line = content_lines[1] or "",
     }
   end
 

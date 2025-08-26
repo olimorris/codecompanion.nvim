@@ -12,6 +12,7 @@
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
 ---@field cycle number Records the number of turn-based interactions (User -> LLM) that have taken place
+---@field edit_tracker? CodeCompanion.Chat.EditTracker Edit tracking information for the chat
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field header_ns integer The namespace for the virtual text that appears in the header
@@ -32,6 +33,7 @@
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
 ---@field _last_role string The last role that was rendered in the chat buffer
+---@field _tool_monitors? table A table of tool monitors that are currently running in the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
 ---@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
@@ -51,6 +53,7 @@ local adapters = require("codecompanion.adapters")
 local client = require("codecompanion.http")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
+local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
 local hash = require("codecompanion.utils.hash")
 local helpers = require("codecompanion.strategies.chat.helpers")
 local keymaps = require("codecompanion.utils.keymaps")
@@ -966,21 +969,21 @@ function Chat:submit(opts)
           self.status = result.status
           if self.status == CONSTANTS.STATUS_SUCCESS then
             if result.output.role then
-              self._last_role = result.output.role
               result.output.role = config.constants.LLM_ROLE
+              self._last_role = result.output.role
             end
             if result.output.reasoning then
               table.insert(reasoning, result.output.reasoning)
-              self:add_buf_message(
-                { role = result.output.role, content = result.output.reasoning.content },
-                { type = self.MESSAGE_TYPES.REASONING_MESSAGE }
-              )
+              self:add_buf_message({
+                role = config.constants.LLM_ROLE,
+                content = result.output.reasoning.content,
+              }, { type = self.MESSAGE_TYPES.REASONING_MESSAGE })
             end
             table.insert(output, result.output.content)
-            self:add_buf_message(
-              { role = result.output.role, content = result.output.content },
-              { type = self.MESSAGE_TYPES.LLM_MESSAGE }
-            )
+            self:add_buf_message({
+              role = config.constants.LLM_ROLE,
+              content = result.output.content,
+            }, { type = self.MESSAGE_TYPES.LLM_MESSAGE })
           elseif self.status == CONSTANTS.STATUS_ERROR then
             log:error("Error: %s", result.output)
             return self:done(output)
@@ -1250,6 +1253,8 @@ function Chat:close()
   if self.current_request then
     self:stop()
   end
+  edit_tracker.handle_chat_close(self)
+  edit_tracker.clear(self)
 
   if last_chat and last_chat.bufnr == self.bufnr then
     last_chat = nil
