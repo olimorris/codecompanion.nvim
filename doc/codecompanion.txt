@@ -354,11 +354,12 @@ for a complete reference of how to setup the plugin.
 DOCUMENTATION                    *codecompanion-getting-started-documentation*
 
 Throughout the documentation you will see examples that are wrapped in a
-`require("codecompanion").setup({})` block. This is so that the examples can
-work for all plugin managers.
+`require("codecompanion").setup({})` block. This is purposefully done so that
+users can apply them to their own Neovim configuration.
 
-However, if you’re using Lazy.nvim <https://github.com/folke/lazy.nvim>, you
-can apply config changes in the `opts` table which is much cleaner:
+If you’re using lazy.nvim <https://github.com/folke/lazy.nvim>, you can apply
+the examples that you see in this documentation in the `opts` table, which is
+much cleaner:
 
 >lua
     {
@@ -1462,7 +1463,7 @@ There are a number of diff settings available to you:
           provider = providers.diff, -- mini_diff|split|inline
           close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
     
-        -- Options for the split diff provider
+          -- Options for the split diff provider
           layout = "vertical", -- vertical|horizontal split
           opts = {
             "internal",
@@ -1496,7 +1497,7 @@ There are a number of diff settings available to you:
           },
         },
       },
-    }),
+    })
 <
 
 The keymaps for accepting and rejecting the diff sit within the `inline`
@@ -1508,13 +1509,13 @@ configuration and can be changed via:
         inline = {
           keymaps = {
             accept_change = {
-              modes = { n = "gda" }, -- gDiffAccept
+              modes = { n = "gda" }, -- Remember this as DiffAccept
             },
             reject_change = {
-              modes = { n = "gdr" }, -- gDiffReject
+              modes = { n = "gdr" }, -- Remember this as DiffReject
             },
             always_accept = {
-              modes = { n = "gdt" },
+              modes = { n = "gdy" }, -- Remember this as DiffYolo
             },
           },
         },
@@ -1600,7 +1601,7 @@ can disable this behavior using a flag:
           auto_scroll = false,
         },
       },
-    }),
+    })
 <
 
 
@@ -1621,7 +1622,7 @@ impact, the context can be folded:
           fold_context = true,
         },
       },
-    }),
+    })
 <
 
 
@@ -1634,15 +1635,17 @@ There are also a number of other options that you can customize in the UI:
       display = {
         chat = {
           intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
-          show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
+          fold_reasoning = true, -- Fold the reasoning content from the LLM in the chat buffer?
           separator = "─", -- The separator between the different messages in the chat buffer
           show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
+          show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
           show_settings = false, -- Show LLM settings at the top of the chat buffer?
           show_token_count = true, -- Show the token count for each response?
+          show_tools_processing = true, -- Show the loading message when tools are being executed?
           start_in_insert_mode = false, -- Open the chat buffer in insert mode?
         },
       },
-    }),
+    })
 <
 
 
@@ -1676,6 +1679,8 @@ your code. Unlike the chat buffer, the inline assistant integrates responses
 directly into the current buffer—allowing the LLM to add or replace code as
 needed.
 
+Only `http` adapters are supported for the inline assistant.
+
 
 KEYMAPS ~
 
@@ -1698,7 +1703,7 @@ The inline assistant supports keymaps for accepting or rejecting changes:
           },
         },
       },
-    }),
+    })
 <
 
 In this example, `<leader>a` (or `ga` on some keyboards) accepts inline
@@ -1744,7 +1749,7 @@ should be output in a vertical/horizontal split or a new buffer:
           layout = "vertical", -- vertical|horizontal|buffer
         },
       }
-    }),
+    })
 <
 
 

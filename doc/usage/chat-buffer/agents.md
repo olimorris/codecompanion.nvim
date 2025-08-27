@@ -32,4 +32,4 @@ You can halt the execution of a request at any point by pressing `q` in normal m
 
 ## Images
 
-The [image](/usage/chat-buffer/slash-commands.html#image) slash command can be leveraged to share images with the agent.
+The [/image](/usage/chat-buffer/slash-commands.html#image) slash command can be leveraged to share images with the agent.

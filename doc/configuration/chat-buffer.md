@@ -393,7 +393,7 @@ require("codecompanion").setup({
       provider = providers.diff, -- mini_diff|split|inline
       close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
 
-    -- Options for the split diff provider
+      -- Options for the split diff provider
       layout = "vertical", -- vertical|horizontal split
       opts = {
         "internal",
@@ -427,7 +427,7 @@ require("codecompanion").setup({
       },
     },
   },
-}),
+})
 ```
 
 The keymaps for accepting and rejecting the diff sit within the `inline` configuration and can be changed via:
@@ -438,13 +438,13 @@ require("codecompanion").setup({
     inline = {
       keymaps = {
         accept_change = {
-          modes = { n = "gda" }, -- gDiffAccept
+          modes = { n = "gda" }, -- Remember this as DiffAccept
         },
         reject_change = {
-          modes = { n = "gdr" }, -- gDiffReject
+          modes = { n = "gdr" }, -- Remember this as DiffReject
         },
         always_accept = {
-          modes = { n = "gdt" },
+          modes = { n = "gdy" }, -- Remember this as DiffYolo
         },
       },
     },
@@ -514,7 +514,7 @@ require("codecompanion").setup({
       auto_scroll = false,
     },
   },
-}),
+})
 ```
 
 ### Fold Context
@@ -531,7 +531,7 @@ require("codecompanion").setup({
       fold_context = true,
     },
   },
-}),
+})
 ```
 
 ### Additional UI Options
@@ -543,15 +543,17 @@ require("codecompanion").setup({
   display = {
     chat = {
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
-      show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
+      fold_reasoning = true, -- Fold the reasoning content from the LLM in the chat buffer?
       separator = "─", -- The separator between the different messages in the chat buffer
       show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
+      show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_token_count = true, -- Show the token count for each response?
+      show_tools_processing = true, -- Show the loading message when tools are being executed?
       start_in_insert_mode = false, -- Open the chat buffer in insert mode?
     },
   },
-}),
+})
 ```
 
 ## Jump Action
