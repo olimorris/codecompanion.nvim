@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11         Last change: 2025 August 14
+*codecompanion.txt*         For NVIM v0.11         Last change: 2025 August 27
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -14,6 +14,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Completion                         |codecompanion-installation-completion|
   - Help                                     |codecompanion-installation-help|
 3. Getting Started                             |codecompanion-getting-started|
+  - Documentation                |codecompanion-getting-started-documentation|
   - With an Adapter            |codecompanion-getting-started-with-an-adapter|
   - Chat Buffer                    |codecompanion-getting-started-chat-buffer|
   - Inline Assistant          |codecompanion-getting-started-inline-assistant|
@@ -22,7 +23,6 @@ Table of Contents                            *codecompanion-table-of-contents*
   - List of Commands          |codecompanion-getting-started-list-of-commands|
   - Suggested Workflow      |codecompanion-getting-started-suggested-workflow|
 4. Configuration                                 |codecompanion-configuration|
-  - General                              |codecompanion-configuration-general|
   - Action Palette                |codecompanion-configuration-action-palette|
   - Adapters                            |codecompanion-configuration-adapters|
   - Chat Buffer                      |codecompanion-configuration-chat-buffer|
@@ -35,6 +35,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - General                                      |codecompanion-usage-general|
   - Action Palette                        |codecompanion-usage-action-palette|
   - Chat Buffer                              |codecompanion-usage-chat-buffer|
+  - Agents                                        |codecompanion-usage-agents|
   - Tools                                          |codecompanion-usage-tools|
   - Slash Commands                        |codecompanion-usage-slash-commands|
   - Variables                                  |codecompanion-usage-variables|
@@ -62,11 +63,13 @@ LLMs, in Neovim.
 FEATURES                                      *codecompanion-welcome-features*
 
 -  Copilot Chat <https://github.com/features/copilot> meets Zed AI <https://zed.dev/blog/zed-ai>, in Neovim
--  Support for Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI LLMs out of the box (or bring your own!)
+-  Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
+-  Support for Agent Client Protocol <https://agentclientprotocol.com/overview/introduction>, enabling coding with agents like Gemini CLI <https://github.com/google-gemini/gemini-cli>
 -  User contributed and supported |codecompanion-configuration-adapters-community-adapters|
 -  |codecompanion-usage-inline-assistant.html|, code creation and refactoring
 -  |codecompanion-usage-chat-buffer-variables|, |codecompanion-usage-chat-buffer-slash-commands|, |codecompanion-usage-chat-buffer-tools| and |codecompanion-usage-workflows| to improve LLM output
--  Built in |codecompanion-usage-action-palette.html| for common tasks like advice on LSP errors and code explanations
+-  Native |codecompanion-usage-chat-buffer-index-super-diff| for tracking agent edits
+-  Built-in |codecompanion-usage-action-palette.html| for common tasks like advice on LSP errors and code explanations
 -  Create your own |codecompanion-extending-prompts|, Variables and Slash Commands
 -  Have |codecompanion-usage-introduction-quickly-accessing-a-chat-buffer| open at the same time
 -  Support for |codecompanion-usage-chat-buffer--images-vision| as input
@@ -156,13 +159,13 @@ VIM-PLUG ~
 
 >vim
     call plug#begin()
-
+    
     Plug 'nvim-lua/plenary.nvim'
     Plug 'nvim-treesitter/nvim-treesitter'
     Plug 'olimorris/codecompanion.nvim'
-
+    
     call plug#end()
-
+    
     lua << EOF
       require("codecompanion").setup()
     EOF
@@ -348,6 +351,40 @@ for a complete reference of how to setup the plugin.
   <https://github.com/zbirenbaum/copilot.lua> installed then expect CodeCompanion
   to work out of the box.
 
+DOCUMENTATION                    *codecompanion-getting-started-documentation*
+
+Throughout the documentation you will see examples that are wrapped in a
+`require("codecompanion").setup({})` block. This is purposefully done so that
+users can apply them to their own Neovim configuration.
+
+If you’re using lazy.nvim <https://github.com/folke/lazy.nvim>, you can apply
+the examples that you see in this documentation in the `opts` table, which is
+much cleaner:
+
+>lua
+    {
+      "olimorris/codecompanion.nvim",
+      dependencies = {
+        "nvim-lua/plenary.nvim",
+        "nvim-treesitter/nvim-treesitter",
+      },
+      opts = {
+        strategies = {
+          -- Change the default chat adapter and model
+          chat = {
+            adapter = "anthropic",
+            model = "claude-sonnet-4-20250514"
+          },
+        },
+        -- NOTE: The log_level is in `opts.opts`
+        opts = {
+          log_level = "DEBUG",
+        },
+      },
+    },
+<
+
+
 WITH AN ADAPTER                *codecompanion-getting-started-with-an-adapter*
 
 
@@ -355,27 +392,36 @@ WITH AN ADAPTER                *codecompanion-getting-started-with-an-adapter*
   <https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters>.
   Or, see the user contributed adapters
   |codecompanion-configuration-adapters.html-community-adapters|
-An adapter is what connects Neovim to an LLM. It’s the interface that allows
-data to be sent, received and processed. In order to use the plugin, you need
-to make sure you’ve configured an adapter first:
+An adapter is what connects Neovim to an LLM or an agent. It’s the interface
+that allows data to be sent, received and processed. In order to use the
+plugin, you need to make sure you’ve configured an adapter first:
 
 >lua
     require("codecompanion").setup({
       strategies = {
         chat = {
-          adapter = "anthropic",
+          name = "copilot",
+          model = "gpt-4.1",
         },
         inline = {
           adapter = "anthropic",
         },
       },
-    }),
+    })
 <
 
-In the example above, we’re using the Anthropic adapter for both the chat and
-inline strategies. Refer to the
-|codecompanion-configuration-adapters-changing-a-model| section to understand
-how to change the default model.
+In the example above, we’re using the Copilot adapter for the chat strategy
+and the Anthropic one for the inline strategy.
+
+There are two "types" of adapter in CodeCompanion; **http** adapters which
+connect you to an LLM and **ACP** adapters which leverage the Agent Client
+Protocol <https://agentclientprotocol.com> to connect you to an agent.
+
+Refer to the |codecompanion-configuration-adapters| section to understand more
+about working with adapters.
+
+
+SETTING AN API KEY ~
 
 Because most LLMs require an API key you’ll need to share that with the
 adapter. By default, adapters will look in your environment for a `*_API_KEY`
@@ -385,15 +431,17 @@ you can extend the adapter and change the API key like so:
 >lua
     require("codecompanion").setup({
       adapters = {
-        anthropic = function()
-          return require("codecompanion.adapters").extend("anthropic", {
-            env = {
-              api_key = "MY_OTHER_ANTHROPIC_KEY"
-            },
-          })
-        end,
+        http = {
+          anthropic = function()
+            return require("codecompanion.adapters").extend("anthropic", {
+              env = {
+                api_key = "MY_OTHER_ANTHROPIC_KEY",
+              },
+            })
+          end,
+        },
       },
-    }),
+    })
 <
 
 Having API keys in plain text in your shell is not always safe. Thanks to this
@@ -404,15 +452,17 @@ below, we’re using the 1Password CLI to read an OpenAI credential.
 >lua
     require("codecompanion").setup({
       adapters = {
-        openai = function()
-          return require("codecompanion.adapters").extend("openai", {
-            env = {
-              api_key = "cmd:op read op://personal/OpenAI/credential --no-newline",
-            },
-          })
-        end,
+        acp = {
+          gemini_cli = function()
+            return require("codecompanion.adapters").extend("gemini_cli", {
+              env = {
+                api_key = "cmd:op read op://personal/Gemini/credential --no-newline",
+              },
+            })
+          end,
+        },
       },
-    }),
+    })
 <
 
 
@@ -546,7 +596,7 @@ For an optimum plugin workflow, I recommend the following:
     vim.keymap.set({ "n", "v" }, "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
     vim.keymap.set({ "n", "v" }, "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
     vim.keymap.set("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true })
-
+    
     -- Expand 'cc' into 'CodeCompanion' in the command line
     vim.cmd([[cab cc CodeCompanion]])
 <
@@ -558,40 +608,6 @@ For an optimum plugin workflow, I recommend the following:
 
 ==============================================================================
 4. Configuration                                 *codecompanion-configuration*
-
-
-GENERAL                                  *codecompanion-configuration-general*
-
-This section sets out how various elements of CodeCompanion’s config can be
-changed. The examples are shown wrapped in a
-`require("codecompanion").setup({})` block to work with all plugin managers.
-
-However, if you’re using Lazy.nvim <https://github.com/folke/lazy.nvim>, you
-can apply config changes in the `opts` table which is much cleaner:
-
->lua
-    {
-      "olimorris/codecompanion.nvim",
-      dependencies = {
-        "nvim-lua/plenary.nvim",
-        "nvim-treesitter/nvim-treesitter",
-      },
-      opts = {
-        strategies = {
-          -- Change the default chat adapter
-          chat = {
-            adapter = "anthropic",
-          },
-        },
-        opts = {
-          -- Set debug logging
-          log_level = "DEBUG",
-        },
-      },
-    },
-<
-
-Of course, peruse the rest of this section for more configuration options.
 
 
 ACTION PALETTE                    *codecompanion-configuration-action-palette*
@@ -638,14 +654,25 @@ ADAPTERS                                *codecompanion-configuration-adapters*
   out |codecompanion--community-adapters| user contributed adapters,
   |codecompanion-extending-adapters.html| your own or post in the discussions
   <https://github.com/olimorris/codecompanion.nvim/discussions>
-An adapter is what connects Neovim to an LLM. It’s the interface that allows
-data to be sent, received and processed and there are a multitude of ways to
-customize them.
+An adapter is what connects Neovim to an LLM provider and model. It’s the
+interface that allows data to be sent, received and processed. There are a
+multitude of ways to customize them.
+
+There are two "types" of adapter in CodeCompanion; **http** adapters which
+connect you to an LLM and **ACP** adapters which leverage the Agent Client
+Protocol <https://agentclientprotocol.com> to connect you to an agent.
+
+The configuration for both types of adapters is exactly the same, however they
+sit within their own tables (`adapters.http.*` and `adapters.acp.*`) and have
+different options available. HTTP adapters use `models` to allow users to
+select the specific LLM they’d like to interact with. ACP adapters use
+`commands` to allow users to customize their interaction with agents (e.g.�
+enabling `yolo` mode).
 
 
 CHANGING THE DEFAULT ADAPTER ~
 
-You can change the default adapter as follows:
+You can change the default adapter for each strategy as follows:
 
 >lua
     require("codecompanion").setup({
@@ -671,15 +698,17 @@ Extend a base adapter to set options like `api_key` or `model`:
 >lua
     require("codecompanion").setup({
       adapters = {
-        anthropic = function()
-          return require("codecompanion.adapters").extend("anthropic", {
-            env = {
-              api_key = "MY_OTHER_ANTHROPIC_KEY",
-            },
-          })
-        end,
+        http = {
+          anthropic = function()
+            return require("codecompanion.adapters").extend("anthropic", {
+              env = {
+                api_key = "MY_OTHER_ANTHROPIC_KEY",
+              },
+            })
+          end,
+        },
       },
-    }),
+    })
 <
 
 If you do not want to store secrets in plain text, prefix commands with `cmd:`:
@@ -687,19 +716,21 @@ If you do not want to store secrets in plain text, prefix commands with `cmd:`:
 >lua
     require("codecompanion").setup({
       adapters = {
-        openai = function()
-          return require("codecompanion.adapters").extend("openai", {
-            env = {
-              api_key = "cmd:op read op://personal/OpenAI/credential --no-newline",
-            },
-          })
-        end,
+        acp = {
+          gemini_cli = function()
+            return require("codecompanion.adapters").extend("gemini_cli", {
+              env = {
+                api_key = "cmd:op read op://personal/Gemini/credential --no-newline",
+              },
+            })
+          end,
+        },
       },
-    }),
+    })
 <
 
 
-  [!NOTE] In this example, we’re using the 1Password CLI to extract the OpenAI
+  [!NOTE] In this example, we’re using the 1Password CLI to extract the Gemini
   API Key. You could also use gpg as outlined here
   <https://github.com/olimorris/codecompanion.nvim/discussions/601>
 Environment variables can also be functions and as a parameter, they receive a
@@ -708,8 +739,8 @@ copy of the adapter itself.
 
 CHANGING A MODEL ~
 
-To more easily change a model associated with a strategy you can pass in the
-`name` and `model` to the adapter:
+To more easily change a model for a HTTP adapter, you can pass in the `name`
+and `model` to the adapter:
 
 >lua
     require("codecompanion").setup({
@@ -746,43 +777,70 @@ To change the default model on an adapter you can modify the
 
 ADAPTER SETTINGS ~
 
+
+  [!NOTE] When extending an adapter with `.extend`, use it’s key from the
+  `adapters` dictionary
 LLMs have many settings such as model, temperature and max_tokens. In an
 adapter, these sit within a schema table and can be configured during setup:
 
 >lua
     require("codecompanion").setup({
       adapters = {
-        qwen3 = function()
-          return require("codecompanion.adapters").extend("ollama", {
-            name = "qwen3", -- Give this adapter a different name to differentiate it from the default ollama adapter
-            opts = {
-              vision = true,
-              stream = true,
-            },
-            schema = {
-              model = {
-                default = "qwen3:latest",
+        http = {
+          qwen3 = function()
+            return require("codecompanion.adapters").extend("ollama", {
+              name = "qwen3", -- Give this adapter a different name to differentiate it from the default ollama adapter
+              opts = {
+                vision = true,
+                stream = true,
               },
-              num_ctx = {
-                default = 16384,
+              schema = {
+                model = {
+                  default = "qwen3:latest",
+                },
+                num_ctx = {
+                  default = 16384,
+                },
+                think = {
+                  default = false,
+                },
+                keep_alive = {
+                  default = "5m",
+                },
               },
-              think = {
-                default = false,
-                -- or, if you want to automatically turn on `think` for certain models:
-                default = function(adapter)
-                  -- this'll set `think` to true if the model name contain `qwen3` or `deepseek-r1`
-                  local model_name = adapter.model.name:lower()
-                  return vim.iter({ "qwen3", "deepseek-r1" }):any(function(kw)
-                    return string.find(model_name, kw) ~= nil
-                  end)
-                end,
+            })
+          end,
+        },
+      },
+    })
+<
+
+Or, in the case of an ACP adapter:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          gemini_cli = function()
+            return require("codecompanion.adapters").extend("gemini_cli", {
+              commands = {
+                default = {
+                  "node",
+                  "/Users/Oli/Code/try/gemini-cli/packages/cli",
+                  "--experimental-acp",
+                },
               },
-              keep_alive = {
-                default = '5m',
-              }
-            },
-          })
-        end,
+              defaults = {
+                auth_method = "gemini-api-key",
+                mcpServers = {},
+                timeout = 20000, -- 20 seconds
+              },
+              env = {
+                GEMINI_API_KEY = "GEMINI_API_KEY",
+              },
+            })
+          end,
+        },
       },
     })
 <
@@ -797,12 +855,14 @@ Custom adapters can be added to the plugin as follows:
 
 >lua
     require("codecompanion").setup({
-      adapters = {
-        my_custom_adapter = function()
-          return {} -- My adapter logic
-        end,
+      http = {
+        adapters = {
+          my_custom_adapter = function()
+            return {} -- My adapter logic
+          end,
+        },
       },
-    }),
+    })
 <
 
 
@@ -837,87 +897,45 @@ Use these individual threads as a place to raise issues and ask questions about
 your specific adapters.
 
 
-EXAMPLE: USING OPENAI COMPATIBLE MODELS ~
+HIDING DEFAULT ADAPTERS ~
 
-If your LLM states that it is `“OpenAI compatible”`, then you can leverage
-the `openai_compatible` adapter, modifying some elements such as the URL in the
-env table, the API key and altering the schema:
+By default, the plugin shows all available adapters, including the defaults. If
+you prefer to only display the adapters defined in your user configuration, you
+can set the `show_defaults` option to `false`:
 
-
-  [!NOTE] The schema in this instance is provided only as an example and must be
-  modified according to the requirements of the model you use. The options are
-  chosen to show how to use different types of parameters.
 >lua
     require("codecompanion").setup({
       adapters = {
-        my_openai = function()
-          return require("codecompanion.adapters").extend("openai_compatible", {
-            env = {
-              url = "http[s]://open_compatible_ai_url", -- optional: default value is ollama url http://127.0.0.1:11434
-              api_key = "OpenAI_API_KEY", -- optional: if your endpoint is authenticated
-              chat_url = "/v1/chat/completions", -- optional: default value, override if different
-              models_endpoint = "/v1/models", -- optional: attaches to the end of the URL to form the endpoint to retrieve models
-            },
-            schema = {
-              model = {
-                default = "deepseek-r1-671b",  -- define llm model to be used
-              },
-              temperature = {
-                order = 2,
-                mapping = "parameters",
-                type = "number",
-                optional = true,
-                default = 0.8,
-                desc = "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.",
-                validate = function(n)
-                  return n >= 0 and n <= 2, "Must be between 0 and 2"
-                end,
-              },
-              max_completion_tokens = {
-                order = 3,
-                mapping = "parameters",
-                type = "integer",
-                optional = true,
-                default = nil,
-                desc = "An upper bound for the number of tokens that can be generated for a completion.",
-                validate = function(n)
-                  return n > 0, "Must be greater than 0"
-                end,
-              },
-              stop = {
-                order = 4,
-                mapping = "parameters",
-                type = "string",
-                optional = true,
-                default = nil,
-                desc = "Sets the stop sequences to use. When this pattern is encountered the LLM will stop generating text and return. Multiple stop patterns may be set by specifying multiple separate stop parameters in a modelfile.",
-                validate = function(s)
-                  return s:len() > 0, "Cannot be an empty string"
-                end,
-              },
-              logit_bias = {
-                order = 5,
-                mapping = "parameters",
-                type = "map",
-                optional = true,
-                default = nil,
-                desc = "Modify the likelihood of specified tokens appearing in the completion. Maps tokens (specified by their token ID) to an associated bias value from -100 to 100. Use https://platform.openai.com/tokenizer to find token IDs.",
-                subtype_key = {
-                  type = "integer",
-                },
-                subtype = {
-                  type = "integer",
-                  validate = function(n)
-                    return n >= -100 and n <= 100, "Must be between -100 and 100"
-                  end,
-                },
-              },
-            },
-          })
-        end,
+        opts = {
+          show_defaults = false,
+        },
+        -- Define your custom adapters here
       },
     })
 <
+
+
+CONTROLLING MODEL CHOICES ~
+
+When switching between adapters, the plugin typically displays all available
+model choices for the selected adapter. If you want to simplify the interface
+and have the default model automatically chosen (without showing any model
+selection UI), you can set the `show_model_choices` option to `false`:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        opts = {
+          show_model_choices = false,
+        },
+        -- Define your custom adapters here
+      },
+    })
+<
+
+With `show_model_choices = false`, the default model (as defined in the
+adapter’s schema) will be automatically selected when changing adapters, and
+no model selection will be shown to the user.
 
 
 EXAMPLE: USING OLLAMA REMOTELY ~
@@ -980,47 +998,6 @@ the plugin:
       },
     }),
 <
-
-
-HIDING DEFAULT ADAPTERS ~
-
-By default, the plugin shows all available adapters, including the defaults. If
-you prefer to only display the adapters defined in your user configuration, you
-can set the `show_defaults` option to `false`:
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        opts = {
-          show_defaults = false,
-        },
-        -- Define your custom adapters here
-      },
-    })
-<
-
-
-CONTROLLING MODEL CHOICES ~
-
-When switching between adapters, the plugin typically displays all available
-model choices for the selected adapter. If you want to simplify the interface
-and have the default model automatically chosen (without showing any model
-selection UI), you can set the `show_model_choices` option to `false`:
-
->lua
-    require("codecompanion").setup({
-      adapters = {
-        opts = {
-          show_model_choices = false,
-        },
-        -- Define your custom adapters here
-      },
-    })
-<
-
-With `show_model_choices = false`, the default model (as defined in the
-adapter’s schema) will be automatically selected when changing adapters, and
-no model selection will be shown to the user.
 
 
 CHAT BUFFER                          *codecompanion-configuration-chat-buffer*
@@ -1423,7 +1400,7 @@ configuration:
             buffer_pin = " ",
             buffer_watch = "👀 ",
           },
-
+    
           -- Alter the sizing of the debug window
           debug_window = {
             ---@return number|fun(): number
@@ -1431,7 +1408,7 @@ configuration:
             ---@return number|fun(): number
             height = vim.o.lines - 2,
           },
-
+    
           -- Options to customize the UI of the chat buffer
           window = {
             layout = "vertical", -- float|vertical|horizontal|buffer
@@ -1455,7 +1432,7 @@ configuration:
               wrap = true,
             },
           },
-
+    
           ---Customize how tokens are displayed
           ---@param tokens number
           ---@param adapter CodeCompanion.Adapter
@@ -1471,12 +1448,10 @@ configuration:
 
 DIFF ~
 
-
-  [!NOTE] Currently the plugin only supports native Neovim diff or mini.diff
-  <https://github.com/echasnovski/mini.diff>
-If you utilize the `insert_edit_into_file` tool, then the plugin can update a
-given chat buffer. A diff will be created so you can see the changes made by
-the LLM.
+CodeCompanion has built-in inline and split diffs available to you. If you
+utilize the `insert_edit_into_file` tool, then the plugin can update files and
+buffers and a diff will be created so you can see the changes made by the LLM.
+The `inline` is the default diff.
 
 There are a number of diff settings available to you:
 
@@ -1485,13 +1460,67 @@ There are a number of diff settings available to you:
       display = {
         diff = {
           enabled = true,
+          provider = providers.diff, -- mini_diff|split|inline
           close_chat_at = 240, -- Close an open chat buffer if the total columns of your display are less than...
-          layout = "vertical", -- vertical|horizontal split for default provider
-          opts = { "internal", "filler", "closeoff", "algorithm:patience", "followwrap", "linematch:120" },
-          provider = "default", -- default|mini_diff
+    
+          -- Options for the split diff provider
+          layout = "vertical", -- vertical|horizontal split
+          opts = {
+            "internal",
+            "filler",
+            "closeoff",
+            "algorithm:histogram", -- https://adamj.eu/tech/2024/01/18/git-improve-diff-histogram/
+            "indent-heuristic", -- https://blog.k-nut.eu/better-git-diffs
+            "followwrap",
+            "linematch:120",
+          },
+    
+          diff_signs = {
+            signs = {
+              text = "▌", -- Sign text for normal changes
+              reject = "✗", -- Sign text for rejected changes in super_diff
+              highlight_groups = {
+                addition = "DiagnosticOk",
+                deletion = "DiagnosticError",
+                modification = "DiagnosticWarn",
+              },
+            },
+            -- Super Diff options
+            icons = {
+              accepted = " ",
+              rejected = " ",
+            },
+            colors = {
+              accepted = "DiagnosticOk",
+              rejected = "DiagnosticError",
+            },
+          },
         },
       },
-    }),
+    })
+<
+
+The keymaps for accepting and rejecting the diff sit within the `inline`
+configuration and can be changed via:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        inline = {
+          keymaps = {
+            accept_change = {
+              modes = { n = "gda" }, -- Remember this as DiffAccept
+            },
+            reject_change = {
+              modes = { n = "gdr" }, -- Remember this as DiffReject
+            },
+            always_accept = {
+              modes = { n = "gdy" }, -- Remember this as DiffYolo
+            },
+          },
+        },
+      },
+    })
 <
 
 
@@ -1516,7 +1545,7 @@ customized in the configuration:
             llm = function(adapter)
               return "CodeCompanion (" .. adapter.formatted_name .. ")"
             end,
-
+    
             ---The header name for your messages
             ---@type string
             user = "Me",
@@ -1533,6 +1562,130 @@ If you opt for a function, the first parameter will always be the adapter from
 the chat buffer.
 
 The user role is currently only available as a string.
+
+
+FLOATING CHILD WINDOWS
+
+The plugin leverages floating windows to display content to a user in a variety
+of scenarios, such as with the |codecompanion-usage-chat-buffer--super-diff|,
+|codecompanion-usage-chat-buffer--messages| or agent
+|codecompanion-usage-chat-buffer-agents.html-permissions|.
+
+The default sizing of this window can be configured:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          child_window = {
+            width = vim.o.columns - 5,
+            height = vim.o.lines - 2,
+            row = "center",
+            col = "center",
+            relative = "editor",
+            opts = {
+              wrap = false,
+              number = false,
+              relativenumber = false,
+            },
+          },
+        },
+      },
+    })
+<
+
+The plugin also enables you to apply some customization to any window which
+displays a diff (taking precedence over `child_window`):
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          diff_window = {
+            opts = {
+              number = true, -- Always show line numbers in a diff window
+            },
+          },
+        },
+      },
+    })
+<
+
+
+AUTO SCROLLING
+
+By default, the page scrolls down automatically as the response streams, with
+the cursor placed at the end. This can be distracting if you are focusing on
+the earlier content while the page scrolls up away during a long response. You
+can disable this behavior using a flag:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          auto_scroll = false,
+        },
+      },
+    })
+<
+
+
+FOLDING
+
+It’s not uncommon for users to share many items, as context, with an LLM.
+This can impact the chat buffer’s UI significantly, leaving a large space
+between the LLM’s last response and the user’s input. To minimize this
+impact, the context can be folded:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          icons = {
+            chat_context = "📎️", -- You can also apply an icon to the fold
+          },
+          fold_context = true,
+        },
+      },
+    })
+<
+
+Reasoning content is also folded by default:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          icons = {
+            chat_fold = " ",
+          },
+          fold_reasoning = true,
+        },
+      },
+    })
+<
+
+
+ADDITIONAL UI OPTIONS
+
+There are also a number of other options that you can customize in the UI:
+
+>lua
+    require("codecompanion").setup({
+      display = {
+        chat = {
+          intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
+          separator = "─", -- The separator between the different messages in the chat buffer
+          show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
+          show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
+          show_settings = false, -- Show LLM settings at the top of the chat buffer?
+          show_token_count = true, -- Show the token count for each response?
+          show_tools_processing = true, -- Show the loading message when tools are being executed?
+          start_in_insert_mode = false, -- Open the chat buffer in insert mode?
+        },
+      },
+    })
+<
 
 
 COMPLETION
@@ -1556,66 +1709,6 @@ commands and tools. However, you can override this in your config:
 The plugin also supports nvim-cmp <https://github.com/hrsh7th/nvim-cmp>, a
 native completion solution (`default`), and coc.nvim
 <https://github.com/neoclide/coc.nvim>.
-
-
-AUTO SCROLLING
-
-By default, the page scrolls down automatically as the response streams, with
-the cursor placed at the end. This can be distracting if you are focusing on
-the earlier content while the page scrolls up away during a long response. You
-can disable this behavior using a flag:
-
->lua
-    require("codecompanion").setup({
-      display = {
-        chat = {
-          auto_scroll = false,
-        },
-      },
-    }),
-<
-
-
-FOLD CONTEXT
-
-It’s not uncommon for users to share many items, as context, with an LLM.
-This can impact the chat buffer’s UI significantly, leaving a large space
-between the LLM’s last response and the user’s input. To minimize this
-impact, the context can be folded:
-
->lua
-    require("codecompanion").setup({
-      display = {
-        chat = {
-          icons = {
-            chat_context = "📎️", -- You can also apply an icon to the fold
-          },
-          fold_context = true,
-        },
-      },
-    }),
-<
-
-
-ADDITIONAL UI OPTIONS
-
-There are also a number of other options that you can customize in the UI:
-
->lua
-    require("codecompanion").setup({
-      display = {
-        chat = {
-          intro_message = "Welcome to CodeCompanion ✨! Press ? for options",
-          show_header_separator = false, -- Show header separators in the chat buffer? Set this to false if you're using an external markdown formatting plugin
-          separator = "─", -- The separator between the different messages in the chat buffer
-          show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
-          show_settings = false, -- Show LLM settings at the top of the chat buffer?
-          show_token_count = true, -- Show the token count for each response?
-          start_in_insert_mode = false, -- Open the chat buffer in insert mode?
-        },
-      },
-    }),
-<
 
 
 JUMP ACTION ~
@@ -1648,6 +1741,8 @@ your code. Unlike the chat buffer, the inline assistant integrates responses
 directly into the current buffer—allowing the LLM to add or replace code as
 needed.
 
+Only `http` adapters are supported for the inline assistant.
+
 
 KEYMAPS ~
 
@@ -1670,7 +1765,7 @@ The inline assistant supports keymaps for accepting or rejecting changes:
           },
         },
       },
-    }),
+    })
 <
 
 In this example, `<leader>a` (or `ga` on some keyboards) accepts inline
@@ -1716,7 +1811,7 @@ should be output in a vertical/horizontal split or a new buffer:
           layout = "vertical", -- vertical|horizontal|buffer
         },
       }
-    }),
+    })
 <
 
 
@@ -1770,9 +1865,9 @@ Custom prompts can be added as follows:
             {
               role = "user",
               content = [[I'm rewriting the documentation for my plugin CodeCompanion.nvim, as I'm moving to a vitepress website. Can you help me rewrite it?
-
+    
     I'm sharing my vitepress config file so you have the context of how the documentation website is structured in the `sidebar` section of that file.
-
+    
     I'm also sharing my `config.lua` file which I'm mapping to the `configuration` section of the sidebar.
     ]],
             },
@@ -1807,7 +1902,7 @@ The plugin comes with the following system prompt:
 
 >txt
     You are an AI programming assistant named "CodeCompanion". You are currently plugged in to the Neovim text editor on a user's machine.
-
+    
     Your core tasks include:
     - Answering general programming questions.
     - Explaining how the code in a Neovim buffer works.
@@ -1819,7 +1914,7 @@ The plugin comes with the following system prompt:
     - Proposing fixes for test failures.
     - Answering questions about Neovim.
     - Running tools.
-
+    
     You must:
     - Follow the user's requirements carefully and to the letter.
     - Keep your answers short and impersonal, especially if the user responds with context outside of your tasks.
@@ -1832,7 +1927,7 @@ The plugin comes with the following system prompt:
     - Use actual line breaks instead of '\n' in your response to begin new lines.
     - Use '\n' only when you want a literal backslash followed by a character 'n'.
     - All non-code responses must be in %s.
-
+    
     When given a task:
     1. Think step-by-step and describe your plan for what to build in pseudocode, written out in great detail, unless asked not to do so.
     2. Output the code in a single code block, being careful to only return relevant code.
@@ -1880,7 +1975,7 @@ lazy.nvim:
       "olimorris/codecompanion.nvim",
       dependencies = {
         -- Add mcphub.nvim as a dependency
-        "ravitemer/mcphub.nvim"
+        "ravitemer/mcphub.nvim" 
       }
     }
 <
@@ -1894,9 +1989,9 @@ lazy.nvim:
         mcphub = {
           callback = "mcphub.extensions.codecompanion",
           opts = {
-            make_vars = true,
+            make_vars = true,       
             make_slash_commands = true,
-            show_result_in_chat = true
+            show_result_in_chat = true  
           }
         }
       }
@@ -1965,9 +2060,11 @@ HIGHLIGHT GROUPS ~
 The plugin sets the following highlight groups during setup:
 
 - `CodeCompanionChatInfo` - Information messages in the chat buffer
+- `CodeCompanionChatInfoBanner` - Banner showing useful information in the chat buffer
 - `CodeCompanionChatError` - Error messages in the chat buffer
 - `CodeCompanionChatWarn` - Warning messages in the chat buffer
 - `CodeCompanionChatSubtext` - Messages that appear under the information, error or warning messages in the chat buffer
+- `CodeCompanionChatFold` - For any folds in the chat buffer (not including tool output)
 - `CodeCompanionChatHeader` - The headers in the chat buffer
 - `CodeCompanionChatSeparator` - Separator between headings in the chat buffer
 - `CodeCompanionSuperDiffDirectory` - Highlight directories in a Super Diff buffer
@@ -2080,6 +2177,19 @@ into the buffer. A response is sent to the LLM by pressing `<CR>` or `<C-s>`.
 This can of course be changed as per the |codecompanion--keymaps| section.
 
 
+CHANGING ADAPTER ~
+
+
+
+One of the joys of working with CodeCompanion is being able to switch between
+conversing with an LLM and an agent, all from within the chat buffer.
+
+To do this, simply press `ga` to open up the `Select Adapter` select window. If
+your chosen adapter has more than one model (in the case of HTTP adapters) or
+command (in the case of ACP adapters) then you’ll be prompted to make another
+selection.
+
+
 MESSAGES ~
 
 
@@ -2150,6 +2260,24 @@ previous messages that make up the conversation. So even though you’ve shared
 context once, many messages ago, the LLM will always have that it to refer to.
 
 
+SUPER DIFF ~
+
+
+
+When an LLM uses tools like
+|codecompanion-usage-chat-buffer-tools-insert-edit-into-file| to make changes
+across multiple files and buffers, it can be difficult to keep track. This is
+amplified if the tools are working without requiring approvals (perhaps via
+|codecompanion-usage-chat-buffer-tools.html-automatic-tool-mode|) and it simply
+isn’t impossible to keep track of what an LLM has added, deleted or modified.
+
+Super Diff gives you a single, unified view of all edits made in via the chat
+buffer. Open it with `gD` to review every change, grouped by file, with visual
+diffs and status indicators. You can accept or reject changes before they’re
+applied, keeping you in control of your codebase. You can even send changes to
+the quickfix list for easier navigation and review.
+
+
 SETTINGS ~
 
 
@@ -2188,15 +2316,16 @@ The keymaps available to the user in normal mode are:
 - `ga` to change the adapter for the currentchat
 - `gc` to insert a codeblock in the chat buffer
 - `gd` to view/debug the chat buffer’s contents
+- `gD` to view the chat buffer’s super diff feature
 - `gf` to fold any codeblocks in the chat buffer
 - `gp` to pin an item to the context in the chat buffer
-- `gw` to watch a buffer as context in the chat buffer
 - `gr` to regenerate the last response
 - `gR` to go to the file under cursor. If the file is already opened, it’ll jump
     to the existing window. Otherwise, it’ll be opened in a new tab.
 - `gs` to toggle the system prompt on/off
 - `gS` to show copilot usage stats
 - `gta` to toggle auto tool mode
+- `gw` to watch a buffer as context in the chat buffer
 - `gx` to clear the chat buffer’s contents
 - `gy` to yank the last codeblock in the chat buffer
 - `[[` to move to the previous header
@@ -2205,11 +2334,87 @@ The keymaps available to the user in normal mode are:
 - `}` to move to the next chat
 
 
+AGENTS                                            *codecompanion-usage-agents*
+
+CodeCompanion enables you to work with agents such as Gemini
+<https://github.com/google-gemini/gemini-cli> by leveraging the Agent Client
+Protocol <https://agentclientprotocol.com>.
+
+
+GETTING STARTED ~
+
+To start coding with agents right away, open a chat buffer with
+`:CodeCompanionChat` and |codecompanion-usage-chat-buffer--changing-adapter| to
+an ACP adapter such as `gemini_cli`, if it’s not set as your default.
+
+Currently, CodeCompanion only supports agent authentication via an API key. In
+the case of `gemini_cli`, ensure you’ve
+|codecompanion-configuration-adapters.html-setting-an-api-key| the correct
+<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/acp/gemini_cli.lua#L31>
+API key.
+
+A key difference in working with agents versus LLMs is the matter of state.
+LLMs, via `http` adapters, are stateless. This means that CodeCompanion sends
+the entire message history over with every request. Agents differ in that they
+are the ones responsible for managing state. As a result, CodeCompanion only
+sends the latest messages over with every prompt. From a UX perspective
+however, neither of these have an impact on how it feels to work with
+CodeCompanion.
+
+
+PROMPTING ~
+
+Conversing with an agent in CodeCompanion is done in exactly the same way as
+with an LLM. Simply type your prompt and press `<C-CR>` in insert mode or
+`<CR>` in normal mode to send it to the agent.
+
+|codecompanion-usage-chat-buffer-slash-commands| and
+|codecompanion-usage-chat-buffer-variables| are available to share additional
+context with the agent. However, |codecompanion-usage-chat-buffer-tools| are
+disabled as the agent has their own tool set and the autonomy to decide what to
+run and when.
+
+As outlined in the Agent Client Protocol documentation
+<https://agentclientprotocol.com/protocol/initialization>, there are a number
+of steps which take place internally before a response is received from the
+agent. The initialization and creating of a session inevitably lead to the
+first prompt waiting slightly longer to receive a response than future ones.
+
+
+PERMISSIONS ~
+
+At various points during the agent’s lifecycle, you may be prompted for
+permission
+<https://agentclientprotocol.com/protocol/schema#session%2Frequest-permission>
+to execute a tool.
+
+If the agent wishes to edit a file, then you will be shown a diff and presented
+with the various options available to you. You can send a response back to the
+agent via the keymaps defined in your config at
+`strategies.chat.keymaps._acp_*` (which are also displayed to you in the diff).
+If there is no diff associated with the tool call then you will be prompted via
+|vim.fn.confirm|.
+
+By default, the chat buffer will wait for c. 30 mins for you to respond to a
+permission request. This can be configured in
+`strategies.chat.opts.wait_timeout` with the default response, after a timeout,
+being defined at `strategies.chat.opts.acp_timeout_response`.
+
+
+CANCELLING A REQUEST ~
+
+You can halt the execution of a request at any point by pressing `q` in normal
+mode which will send a cancellation notification to the agent.
+
+
+IMAGES ~
+
+The |codecompanion-usage-chat-buffer-slash-commands.html-image| slash command
+can be leveraged to share images with the agent.
+
+
 TOOLS                                              *codecompanion-usage-tools*
 
-
-  [!IMPORTANT] As of `v17.5.0`, tools must be wrapped in curly braces, such as
-  `@{grep_search}` or `@{files}`
 
   [!IMPORTANT] Not all LLMs support function calling and the use of tools. Please
   see the |codecompanion--compatibility| section for more information.
@@ -2506,6 +2711,8 @@ will toggle the feature whist from the chat buffer.
 
 COMPATIBILITY ~
 
+
+  [!NOTE] Tools are not supported for ACP adapters.
 Below is the tool use status of various adapters and models in CodeCompanion:
 
   ------------------------------------------------------------------------
@@ -2530,10 +2737,7 @@ Below is the tool use status of various adapters and models in CodeCompanion:
   Novita                                      Dependent on the model
 
   Ollama         Tested with                  Dependent on the model
-                 Qwen3
-
-  OpenAI                                      Dependent on the model and
-  Compatible                                  provider
+                 Qwen3                        
 
   OpenAI                                      Dependent on the model
 
@@ -2826,7 +3030,7 @@ Events can be hooked into as follows:
 
 >lua
     local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
-
+    
     vim.api.nvim_create_autocmd({ "User" }, {
       pattern = "CodeCompanionInline*",
       group = group,
@@ -2972,10 +3176,10 @@ statusline when a request is being sent to an LLM:
 
 >lua
     local M = require("lualine.component"):extend()
-
+    
     M.processing = false
     M.spinner_index = 1
-
+    
     local spinner_symbols = {
       "⠋",
       "⠙",
@@ -2989,13 +3193,13 @@ statusline when a request is being sent to an LLM:
       "⠏",
     }
     local spinner_symbols_len = 10
-
+    
     -- Initializer
     function M:init(options)
       M.super.init(self, options)
-
+    
       local group = vim.api.nvim_create_augroup("CodeCompanionHooks", {})
-
+    
       vim.api.nvim_create_autocmd({ "User" }, {
         pattern = "CodeCompanionRequest*",
         group = group,
@@ -3008,7 +3212,7 @@ statusline when a request is being sent to an LLM:
         end,
       })
     end
-
+    
     -- Function that runs every time statusline is updated
     function M:update_status()
       if self.processing then
@@ -3018,7 +3222,7 @@ statusline when a request is being sent to an LLM:
         return nil
       end
     end
-
+    
     return M
 <
 
@@ -3358,7 +3562,7 @@ The chat buffer, which is structured like:
 
 >markdown
     ## Me
-
+    
     Explain Ruby in two words
 <
 
@@ -3423,7 +3627,7 @@ comes with some handy utility functions to work with this:
 >lua
     -- Put this at the top of your adapter
     local utils = require("codecompanion.utils.adapters")
-
+    
     handlers = {
       chat_output = function(self, data)
         data = utils.clean_streamed_data(data)
@@ -3468,7 +3672,7 @@ chat buffer, with:
         local output = {}
         ---
         local delta = json.choices[1].delta
-
+    
         if delta.content then
           output.content = delta.content
           output.role = delta.role or nil
@@ -3498,17 +3702,17 @@ we have data in our response:
     handlers = {
       chat_output = function(self, data)
         local output = {}
-
+    
         if data and data ~= "" then
           data = utils.clean_streamed_data(data)
           local ok, json = pcall(vim.json.decode, data, { luanil = { object = true } })
-
+    
           local delta = json.choices[1].delta
-
+    
           if delta.content then
             output.content = delta.content
             output.role = delta.role or nil
-
+    
             return {
               status = "success",
               output = output,
@@ -3890,7 +4094,7 @@ builtin to the plugin as the `Code Advisor` action:
               role = "user",
               content = function(context)
                 local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-
+    
                 return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
               end,
               opts = {
@@ -3951,7 +4155,7 @@ advice on the code:
         role = "user",
         content = function(context)
           local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-
+    
           return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
         end,
         opts = {
@@ -4006,7 +4210,7 @@ Lets now take a look at the second prompt:
       role = "user",
       content = function(context)
         local text = require("codecompanion.helpers.actions").get_code(context.start_line, context.end_line)
-
+    
         return "I have the following code:\n\n```" .. context.filetype .. "\n" .. text .. "\n```\n\n"
       end,
       opts = {
@@ -4246,41 +4450,41 @@ please see the diagram below:
         participant TS as Tool System
         participant O as Orchestrator
         participant T as Tool
-
+    
         C->>L: Prompt with tool schemas
         L->>C: Response with tool call(s)
-
+    
         C->>TS: Parse LLM response
-
+    
         loop For each tool call detected
             TS->>TS: Tool.resolve(tool_config)
             TS->>TS: Add tool to queue
         end
-
+    
         TS->>O: Create Orchestrator with queue
         TS->>C: Fire "ToolsStarted" autocmd
-
+    
         loop While queue not empty
             O->>O: Pop tool from queue
             O->>O: Setup handlers and output functions
             O->>T: handlers.setup()
-
+    
             Note over O,C: If approval required, prompt user
             O->>C: User approval (if needed)
-
+    
             Note over O,T: If rejected/cancelled, call output handlers and continue
             Note over O,T: If approved or no approval needed, execute tool
-
+    
             loop For each cmd in tool.cmds
                 O->>T: Execute function(tool_system, args, input, output_handler)
                 Note over T,O: Returns {status, data} (sync) or calls output_handler (async)
                 O->>T: output.success() OR output.error()
                 T->>C: add_tool_output()
             end
-
+    
             O->>T: handlers.on_exit()
         end
-
+    
         TS->>TS: reset()
         TS->>C: Fire "ToolsFinished" autocmd
         TS->>C: tools_done()
@@ -4394,7 +4598,7 @@ by use of ${} brackets. The now removed `@code_runner` tool used them as below:
       local temp_dir = temp_input:match("(.*/)")
       local lang = self.args.lang
       local code = self.args.code
-
+    
       return {
         code = code,
         lang = lang,
@@ -4429,20 +4633,20 @@ you can ignore it. For the purpose of our calculator example:
         local num1 = tonumber(args.num1)
         local num2 = tonumber(args.num2)
         local operation = args.operation
-
+    
         -- Validate input
         if not num1 then
           return { status = "error", data = "First number is missing or invalid" }
         end
-
+    
         if not num2 then
           return { status = "error", data = "Second number is missing or invalid" }
         end
-
+    
         if not operation then
           return { status = "error", data = "Operation is missing" }
         end
-
+    
         -- Perform the calculation
         local result
         if operation == "add" then
@@ -4459,7 +4663,7 @@ you can ignore it. For the purpose of our calculator example:
         else
           return { status = "error", data = "Invalid operation: must be add, subtract, multiply, or divide" }
         end
-
+    
         return { status = "success", data = result }
       end,
     },
@@ -4575,14 +4779,14 @@ demonstrate the functionality:
 
 >lua
     system_prompt = [[## Calculator Tool (`calculator`)
-
+    
     ## CONTEXT
     - You have access to a calculator tool running within CodeCompanion, in Neovim.
     - You can use it to add, subtract, multiply or divide two numbers.
-
+    
     ### OBJECTIVE
     - Do a mathematical operation on two numbers when the user asks
-
+    
     ### RESPONSE
     - Always use the structure above for consistency.
     ]],
@@ -4696,20 +4900,20 @@ If we put this all together in our config:
                     local num1 = tonumber(args.num1)
                     local num2 = tonumber(args.num2)
                     local operation = args.operation
-
+    
                     -- Validate input
                     if not num1 then
                       return { status = "error", data = "First number is missing or invalid" }
                     end
-
+    
                     if not num2 then
                       return { status = "error", data = "Second number is missing or invalid" }
                     end
-
+    
                     if not operation then
                       return { status = "error", data = "Operation is missing" }
                     end
-
+    
                     -- Perform the calculation
                     local result
                     if operation == "add" then
@@ -4729,23 +4933,23 @@ If we put this all together in our config:
                         data = "Invalid operation: must be add, subtract, multiply, or divide",
                       }
                     end
-
+    
                     return { status = "success", data = result }
                   end,
                 },
                 system_prompt = [[## Calculator Tool (`calculator`)
-
+    
     ## CONTEXT
     - You have access to a calculator tool running within CodeCompanion, in Neovim.
     - You can use it to add, subtract, multiply or divide two numbers.
-
+    
     ### OBJECTIVE
     - Do a mathematical operation on two numbers when the user asks
-
+    
     ### RESPONSE
     - Always use the structure above for consistency.
     ]],
-
+    
                 schema = {
                   type = "function",
                   ["function"] = {
@@ -4861,7 +5065,7 @@ To account for the user being prompted for an approval, we can add a
 >lua
     output = {
       -- success and error functions remain the same ...
-
+    
       ---The message which is shared with the user when asking for their approval
       ---@param self CodeCompanion.Tool.Calculator
       ---@param tools CodeCompanion.Tools
@@ -4885,7 +5089,7 @@ tool execution:
 >lua
     output = {
       -- success, error and prompt functions remain the same ...
-
+    
       ---Rejection message back to the LLM
       ---@param self CodeCompanion.Tool.Calculator
       ---@param tools CodeCompanion.Tools
@@ -4894,7 +5098,7 @@ tool execution:
       rejected = function(self, tools, cmd)
         tools.chat:add_tool_output(self, "The user declined to run the calculator tool")
       end,
-
+    
       ---Cancellation message back to the LLM
       ---@param self CodeCompanion.Tool.Calculator
       ---@param tools CodeCompanion.Tools
@@ -5058,20 +5262,20 @@ Let’s breakdown the prompts in that workflow:
           content = function()
             -- Leverage auto_tool_mode which disables the requirement of approvals and automatically saves any edited buffer
             vim.g.codecompanion_auto_tool_mode = true
-
+    
             -- Some clear instructions for the LLM to follow
             return [[### Instructions
-
+    
     Your instructions here
-
+    
     ### Steps to Follow
-
+    
     You are required to write code following the instructions provided above and test the correctness by running the designated test suite. Follow these steps exactly:
-
+    
     1. Update the code in #{buffer}{watch} using the @{insert_edit_into_file} tool
     2. Then use the @{cmd_runner} tool to run the test suite with `<test_cmd>` (do this after you have updated the code)
     3. Make sure you trigger both tools in the same response
-
+    
     We'll repeat this cycle until the tests pass. Ensure no deviations from these steps.]]
           end,
         },
@@ -5428,7 +5632,7 @@ Extensions are configured in your CodeCompanion setup:
         "author/codecompanion_history.nvim" -- history extension
       }
     }
-
+    
     -- Configure in your setup
     require("codecompanion").setup({
       extensions = {
@@ -5467,19 +5671,19 @@ exports:
     ---@field setup fun(opts: table) Function called when extension is loaded
     ---@field exports? table Functions exposed via codecompanion.extensions.your_extension
     local Extension = {}
-
+    
     ---Setup the extension
-    ---@param opts table Configuration options
+    ---@param opts table Configuration options 
     function Extension.setup(opts)
       -- Initialize extension
       -- Add actions, keymaps etc.
     end
-
+    
     -- Optional: Functions exposed via codecompanion.extensions.your_extension
     Extension.exports = {
       clear_history = function() end
     }
-
+    
     return Extension
 <
 
@@ -5495,10 +5699,10 @@ codecompanion.config object inside setup function.
     function Extension.setup(opts)
       -- Add action to chat keymaps
       local chat_keymaps = require("codecompanion.config").strategies.chat.keymaps
-
+      
       chat_keymaps.open_saved_chats = {
         modes = {
-          n = opts.keymap or "gh",
+          n = opts.keymap or "gh", 
         },
         description = "Open Saved Chats",
         callback = function(chat)
@@ -5544,12 +5748,12 @@ cases:
                   vim.notify("Editor opened for chat " .. chat.id)
                 end,
               }
-
+    
               -- Add the action to chat keymaps config
               local chat_keymaps = require("codecompanion.config").strategies.chat.keymaps
               chat_keymaps.open_editor = open_editor
             end,
-
+    
             -- Optional: Expose functions
             exports = {
               is_editor_open = function()

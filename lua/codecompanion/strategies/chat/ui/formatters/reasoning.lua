@@ -8,14 +8,19 @@ function Reasoning:can_handle(message, opts, tags)
   return opts and opts.type == tags.REASONING_MESSAGE
 end
 
-function Reasoning:get_type()
+function Reasoning:get_type(opts)
   return self.chat.MESSAGE_TYPES.REASONING_MESSAGE
 end
 
 function Reasoning:format(message, opts, state)
   local lines = {}
 
-  -- Use rich state methods
+  if state.is_new_block and state.block_index > 0 then
+    table.insert(lines, "")
+    table.insert(lines, "")
+  end
+
+  -- Add header on first chunk of a reasoning sequence (and on later re-entry)
   if not state.has_reasoning_output then
     table.insert(lines, "### Reasoning")
     table.insert(lines, "")

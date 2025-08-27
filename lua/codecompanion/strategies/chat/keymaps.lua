@@ -80,8 +80,14 @@ M.options = {
       end
     end
 
+    -- Filter out private keymaps
+    local keymaps = {}
+    for k, v in pairs(config.strategies.chat.keymaps) do
+      if k:sub(1, 1) ~= "_" then
+        keymaps[k] = v
+      end
+    end
     -- Workout the column spacing
-    local keymaps = config.strategies.chat.keymaps
     local keymaps_max = max("description", keymaps)
 
     local vars = {}
@@ -424,7 +430,7 @@ M.toggle_watch = {
         if item.opts.watched then
           -- Check if buffer is still valid before watching
           if vim.api.nvim_buf_is_valid(item.bufnr) and vim.api.nvim_buf_is_loaded(item.bufnr) then
-            chat.watchers:watch(item.bufnr)
+            chat.watched_buffers:watch(item.bufnr)
             new_line = string.format("> - %s%s", icons.watched_buffer or icons.buffer_watch, clean_id)
           else
             -- Buffer is invalid, can't watch it
@@ -433,7 +439,7 @@ M.toggle_watch = {
             util.notify("Cannot watch invalid or unloaded buffer " .. item.id, vim.log.levels.WARN)
           end
         else
-          chat.watchers:unwatch(item.bufnr)
+          chat.watched_buffers:unwatch(item.bufnr)
           new_line = string.format("> - %s", clean_id)
         end
 
@@ -521,14 +527,26 @@ M.change_adapter = {
       }
     end
 
-    local adapters = vim.deepcopy(config.adapters)
+    --TODO: Remove `config.adapters` in V18.0.0
+    local adapters = vim.tbl_deep_extend(
+      "force",
+      {},
+      vim.deepcopy(config.adapters.acp),
+      vim.deepcopy(config.adapters.http),
+      vim.deepcopy(config.adapters)
+    )
     local current_adapter = chat.adapter.name
-    local current_model = vim.deepcopy(chat.adapter.schema.model.default)
+    local current_model
+
+    if current_adapter.type == "http" then
+      current_model = vim.deepcopy(chat.adapter.schema.model.default)
+    end
 
     local adapters_list = vim
       .iter(adapters)
       :filter(function(adapter)
-        return adapter ~= "opts" and adapter ~= "non_llm" and adapter ~= current_adapter
+        -- Clear out the acp and http keys
+        return adapter ~= "opts" and adapter ~= "acp" and adapter ~= "http" and adapter ~= current_adapter
       end)
       :map(function(adapter, _)
         return adapter
@@ -538,13 +556,14 @@ M.change_adapter = {
     table.sort(adapters_list)
     table.insert(adapters_list, 1, current_adapter)
 
-    vim.ui.select(adapters_list, select_opts("Select Adapter", current_adapter), function(selected)
-      if not selected then
+    vim.ui.select(adapters_list, select_opts("Select Adapter", current_adapter), function(selected_adapter)
+      if not selected_adapter then
         return
       end
 
-      if current_adapter ~= selected then
-        chat.adapter = require("codecompanion.adapters").resolve(adapters[selected])
+      if current_adapter ~= selected_adapter then
+        chat.acp_connection = nil
+        chat.adapter = require("codecompanion.adapters").resolve(adapters[selected_adapter])
         util.fire(
           "ChatAdapter",
           { bufnr = chat.bufnr, adapter = require("codecompanion.adapters").make_safe(chat.adapter) }
@@ -564,50 +583,83 @@ M.change_adapter = {
       end
 
       -- Select a model
-      local models = chat.adapter.schema.model.choices
-      if not config.adapters.opts.show_model_choices then
-        models = { chat.adapter.schema.model.default }
-      end
-      if type(models) == "function" then
-        models = models(chat.adapter)
-      end
-      if not models or vim.tbl_count(models) < 2 then
-        return
-      end
-
-      local new_model = chat.adapter.schema.model.default
-      if type(new_model) == "function" then
-        new_model = new_model(chat.adapter)
-      end
-
-      models = vim
-        .iter(models)
-        :map(function(model, value)
-          if type(model) == "string" then
-            return model
-          else
-            return value -- This is for the table entry case
-          end
-        end)
-        :filter(function(model)
-          return model ~= new_model
-        end)
-        :totable()
-      table.insert(models, 1, new_model)
-
-      vim.ui.select(models, select_opts("Select Model", new_model), function(selected)
-        if not selected then
+      if chat.adapter.type == "http" then
+        local models = chat.adapter.schema.model.choices
+        if not config.adapters.http.opts.show_model_choices then
+          models = { chat.adapter.schema.model.default }
+        end
+        if type(models) == "function" then
+          models = models(chat.adapter)
+        end
+        if not models or vim.tbl_count(models) < 2 then
           return
         end
 
-        if current_model ~= selected then
-          util.fire("ChatModel", { bufnr = chat.bufnr, model = selected })
+        local new_model = chat.adapter.schema.model.default
+        if type(new_model) == "function" then
+          new_model = new_model(chat.adapter)
         end
 
-        chat:apply_model(selected)
-        chat:update_metadata()
-        chat:apply_settings()
-      end)
+        models = vim
+          .iter(models)
+          :map(function(model, value)
+            if type(model) == "string" then
+              return model
+            else
+              return value -- This is for the table entry case
+            end
+          end)
+          :filter(function(model)
+            return model ~= new_model
+          end)
+          :totable()
+        table.insert(models, 1, new_model)
+
+        vim.ui.select(models, select_opts("Select Model", new_model), function(selected_model)
+          if not selected_model then
+            return
+          end
+
+          if current_model ~= selected_model then
+            util.fire("ChatModel", { bufnr = chat.bufnr, model = selected_model })
+          end
+
+          chat:apply_model(selected_model)
+          chat:update_metadata()
+          chat:apply_settings()
+        end)
+      end
+
+      -- Select a command
+      if chat.adapter.type == "acp" then
+        local commands = chat.adapter.commands
+        if not commands or vim.tbl_count(commands) < 2 then
+          return
+        end
+
+        commands = vim
+          .iter(commands)
+          :map(function(key, _)
+            if type(key) == "string" then
+              return key
+            end
+          end)
+          :filter(function(key)
+            return key ~= "selected"
+          end)
+          :totable()
+        table.sort(commands)
+
+        vim.ui.select(commands, select_opts("Select a Command", commands), function(selected_command)
+          if not selected_command then
+            return
+          end
+          local selected = chat.adapter.commands[selected_command]
+          chat.adapter.commands.selected = selected
+          util.fire("ChatModel", { bufnr = chat.bufnr, model = selected })
+          chat:update_metadata()
+        end)
+      end
     end)
   end,
 }

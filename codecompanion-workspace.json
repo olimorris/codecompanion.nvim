@@ -23,8 +23,9 @@
         "chat-ui-formatters-tools",
         "chat-ui-formatters-reasoning",
         "chat-ui-formatters-standard",
-        "chat-ui-folds",
-        "chat-ui-builder-test"
+        "chat-ui-icons",
+        "chat-ui-builder-test",
+        "chat-ui-folds"
       ]
     },
     {
@@ -50,11 +51,17 @@
     },
     {
       "name": "Adapters",
-      "system_prompt": "In the CodeCompanion plugin, adapters are used to connect to LLMs. The adapters contain various options for the LLM's endpoint alongside a defined schema for properties such as the model, temperature, top k, top p etc. The adapters also contain various handler functions which define how messages which are sent to the LLM should be formatted alongside how output from the LLM should be received and displayed in the chat buffer. The adapters are defined in the `adapters` directory.",
+      "system_prompt": "In the CodeCompanion plugin, adapters are used to connect to LLMs or Agents. HTTP adapters contain various options for the LLM's endpoint alongside a defined schema for properties such as the model, temperature, top k, top p etc. HTTP adapters also contain various handler functions which define how messages which are sent to the LLM should be formatted alongside how output from the LLM should be received and displayed in the chat buffer. The adapters are defined in the `adapters` directory.",
       "opts": {
         "remove_config_system_prompt": true
       },
-      "data": ["adapters-init", "http-client", "schema"]
+      "data": [
+        "adapters-init",
+        "adapters-shared",
+        "adapters-http",
+        "http-client",
+        "adapters-test"
+      ]
     },
     {
       "name": "Inline",
@@ -85,6 +92,24 @@
         "read_file_tool",
         "read_file_tool_test"
       ]
+    },
+    {
+      "name": "ACP Integration",
+      "system_prompt": "This group covers the ACP (Agent Communication Protocol) integration in CodeCompanion.nvim. ACP enables session-based, schema-driven communication with LLM agents, supporting authentication, streaming responses, tool calls, and permission handling. Key components:\n\n- **ACPAdapter**: Encapsulates ACP-specific logic for agent communication.\n- **ACPConnection**: Manages agent process, session lifecycle, authentication, and streaming.\n- **PromptBuilder**: Fluent API for sending prompts and handling streamed responses, tool calls, and errors.\n- **Chat Buffer**: Parses user messages, submits prompts via ACP, and streams agent responses into the buffer.\n\nRelevant files:\n- `lua/codecompanion/acp.lua` (ACPConnection, PromptBuilder)\n- `lua/codecompanion/adapters/acp/init.lua` (ACPAdapter)\n- `lua/codecompanion/strategies/chat/init.lua` (Chat Buffer logic)\n- [ACP JSON Schema](.codecompanion/acp_json_schema.json) (for schema awareness)\n\nRefer to the ACP documentation for message flow, schema types, and extensibility.",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "data": [
+        "acp-implementation-notes",
+        "acp-schema",
+        "acp-connection",
+        "acp-methods",
+        "acp-prompt-builder",
+        "acp-handler",
+        "acp-permissions",
+        "acp-fs",
+        "gemini-cli"
+      ]
     }
   ],
   "data": {
@@ -112,6 +137,21 @@
       "type": "symbols",
       "path": "lua/codecompanion/strategies/chat/watchers.lua",
       "description": "A watcher is when a user has toggled a specific buffer to be watched. When a message is sent to the LLM by the user, any changes made to the watched buffer are also sent, giving the LLM up to date context. The `${filename}` is where this logic sits and I've shared its symbolic outline below."
+    },
+    "acp-handler": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/acp/handler.lua",
+      "description": "Extracted ACP submission logic from the chat buffer. Handles ACP connection management, message streaming with multiple handlers (message chunks, thought chunks, tool calls), output collection, error handling, and completion logic. This separation keeps the main chat buffer focused on orchestration while isolating ACP-specific complexity."
+    },
+    "acp-permissions": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/acp/permissions.lua",
+      "description": "Contains helper functions that can be called by the handler to manage permissions from the chat buffer with an ACP adapter and Neovim itself. For example, showing diffs, setting keymaps to accept/reject diffs etc."
+    },
+    "acp-fs": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/acp/fs.lua",
+      "description": "File which handles the fs/* commands from the ACP schema. This includes the reading and writing of files in the current working directory of the user's machine"
     },
     "chat-ui-builder": {
       "type": "file",
@@ -143,6 +183,11 @@
       "path": "lua/codecompanion/strategies/chat/ui/folds.lua",
       "description": "Manages visual presentation of tool output and chat context including folding functionality. It creates collapsible folds for tool output with custom fold text that shows success/failure icons and summarized content alongside folding the chat context at the top of the chat buffer. The fold text adapts based on keywords in the tool output to indicate success or failure states."
     },
+    "chat-ui-icons": {
+      "type": "file",
+      "path": "lua/codecompanion/strategies/chat/ui/icons.lua",
+      "description": "Manages the overlaying of icons in the chat buffer for tools, based on their status. It manages this by applying extmarks in a given position which places the icon at the start of a given line. The icons are then used to indicate the status of a tool, whether it was successful or not"
+    },
     "chat-ui-builder-test": {
       "type": "file",
       "path": "tests/strategies/chat/test_builder.lua",
@@ -170,7 +215,7 @@
     },
     "test-screenshot-example": {
       "type": "file",
-      "path": "tests/adapters/test_tools_in_chat_buffer.lua",
+      "path": "tests/adapters/http/test_tools_in_chat_buffer.lua",
       "description": "I've included an example test file that highlights the capability of mini.test and the approach I've taken to testing in CodeCompanion. Whilst I'm not a fan of using screenshots for all tests, in this case it was useful as it made up part of a much larger integration test."
     },
     "minitest-docs": {
@@ -181,16 +226,30 @@
         "auto_restore_cache": true
       }
     },
-
     "adapters-init": {
       "type": "file",
       "path": "lua/codecompanion/adapters/init.lua",
-      "description": "Each LLM has their own adapter. This allows for LLM settings to be generated from the schema table in an adapter before they're sent to the LLM via the http file."
+      "description": "Currently CodeCompanion supports http adapters."
+    },
+    "adapters-shared": {
+      "type": "file",
+      "path": "lua/codecompanion/adapters/shared.lua",
+      "description": "There are some functions that are shared between the two adapter types and these are contained in this file."
+    },
+    "adapters-http": {
+      "type": "file",
+      "path": "lua/codecompanion/adapters/http/init.lua",
+      "description": "This is the logic for the HTTP adapters. Various logic sits within this file which allows the adapter to be resolved into a CodeCompanion.HTTPAdapter object before it's used throughout the plugin to connect to an LLM endpoint."
+    },
+    "adapters-test": {
+      "type": "file",
+      "path": "tests/adapters/test_adapters.lua",
+      "description": "This is a test file for adapter's broadly, which might give you more of an understand of what is required by an adapter deep within CodeCompanion."
     },
     "http-client": {
       "type": "file",
       "path": "lua/codecompanion/http.lua",
-      "description": "Adapters are then passed to the http client which sends requests to LLMs via Curl:"
+      "description": "HTTP Adapters are then passed to the http client which sends requests to LLMs via Curl:"
     },
     "schema": {
       "type": "file",
@@ -251,6 +310,36 @@
       "type": "file",
       "path": "tests/strategies/chat/tools/catalog/test_read_file.lua",
       "description": "This is the corresponding test for the read file tool."
+    },
+    "acp-connection": {
+      "type": "file",
+      "path": "lua/codecompanion/acp/init.lua",
+      "description": "Implements ACP.Connection session management, prompt submission, and streaming agent responses."
+    },
+    "acp-prompt-builder": {
+      "type": "file",
+      "path": "lua/codecompanion/acp/prompt_builder.lua",
+      "description": "Implements a fluent API for building and sending prompts via ACP, handling streamed responses, tool calls, and errors."
+    },
+    "acp-methods": {
+      "type": "file",
+      "path": "lua/codecompanion/acp/methods.lua",
+      "description": "The various ACP methods that can be called by the ACP connection."
+    },
+    "acp-schema": {
+      "type": "file",
+      "path": ".codecompanion/acp_json_schema.json",
+      "description": "ACP JSON schema defining request, response, and notification types for agent communication."
+    },
+    "acp-implementation-notes": {
+      "type": "file",
+      "path": ".codecompanion/acp.md",
+      "description": "This document explains how ACP works in CodeCompanion.nvim."
+    },
+    "gemini-cli": {
+      "type": "file",
+      "path": "lua/codecompanion/adapters/acp/gemini_cli.lua",
+      "description": "An example ACP implementation for Google Gemini CLI, demonstrating how to use the ACPAdapter with a specific LLM."
     }
   }
 }

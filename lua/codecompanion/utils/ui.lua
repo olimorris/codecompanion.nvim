@@ -402,4 +402,19 @@ function M.tabnew_reuse(path)
   return api.nvim_get_current_win()
 end
 
+---Set a winbar for a specific window
+---@param winnr number
+---@param text string Text to set in the winbar
+---@param hl string Highlight group to use for the winbar
+---@return nil
+function M.set_winbar(winnr, text, hl)
+  if not vim.api.nvim_win_is_valid(winnr) then
+    return
+  end
+
+  local centered = "%=" .. (text or ""):gsub("%%", "%%%%") .. "%="
+  vim.wo[winnr].winhighlight = "WinBar:" .. hl .. ",WinBarNC:" .. hl
+  vim.wo[winnr].winbar = centered
+end
+
 return M
