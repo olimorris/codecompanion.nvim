@@ -511,7 +511,7 @@ local defaults = {
           description = "Reject change",
         },
         always_accept = {
-          modes = { n = "gdt" },
+          modes = { n = "gdy" },
           opts = { nowait = true },
           index = 3,
           callback = "keymaps.always_accept",
