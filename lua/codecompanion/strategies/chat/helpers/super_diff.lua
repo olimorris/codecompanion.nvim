@@ -566,6 +566,7 @@ function M.show_super_diff(chat, opts)
     filetype = "markdown",
     title = title,
     window = window_config,
+    style = "minimal",
     ignore_keymaps = true,
   })
 

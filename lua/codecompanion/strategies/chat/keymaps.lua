@@ -17,6 +17,7 @@ M.options = {
       title = "Options",
       lock = true,
       window = config.display.chat.window,
+      style = "minimal",
     }
 
     if next(_cached_options) ~= nil then

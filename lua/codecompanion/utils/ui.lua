@@ -33,7 +33,7 @@ M.create_float = function(lines, opts)
     border = (vim.fn.exists("+winborder") == 0 or vim.o.winborder == "") and "single" or nil,
     width = width,
     height = height,
-    style = "minimal",
+    style = opts.style or "minimal",
     row = row,
     col = col,
     title = opts.title or "Options",
