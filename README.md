@@ -79,6 +79,22 @@ Run `:checkhealth codecompanion` and check all dependencies are installed correc
 Update your config and turn debug logging on:
 
 ```lua
+-- lazy.nvim
+{
+  "olimorris/codecompanion.nvim",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "nvim-treesitter/nvim-treesitter",
+  },
+  opts = {
+    -- NOTE: The log_level is in `opts.opts`
+    opts = {
+      log_level = "DEBUG", -- or "TRACE"
+    },
+  },
+},
+
+-- Other package managers
 require("codecompanion").setup({
   opts = {
     log_level = "DEBUG", -- or "TRACE"
