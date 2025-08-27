@@ -1,6 +1,7 @@
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local ui = require("codecompanion.utils.ui")
+local util = require("codecompanion.utils")
 local wait = require("codecompanion.strategies.chat.helpers.wait")
 
 local api = vim.api
@@ -129,11 +130,11 @@ local function format_kind(kind)
   return s:sub(1, 1):upper() .. s:sub(2)
 end
 
----Place banner below the last line; only show keys that actually exist
----@param bufnr number
----@param normalized table<string, string>
----@param kind_map table<string, string>
-local function place_banner(bufnr, normalized, kind_map)
+---Build a single banner string from available keymaps
+---@param normalized table<string, string> kind -> lhs
+---@param kind_map table<string, string> kind -> optionId
+---@return string
+local function build_banner(normalized, kind_map)
   local maps = {}
   for kind, _ in pairs(kind_map or {}) do
     local lhs = normalized[kind]
@@ -143,19 +144,26 @@ local function place_banner(bufnr, normalized, kind_map)
   end
   table.sort(maps)
   table.insert(maps, "[Close: q]")
+  return " Keymaps: " .. table.concat(maps, " | ") .. " "
+end
 
-  local banner = table.concat(maps, " | ")
-  banner = " Keymaps: " .. banner .. " "
-  local line_count = api.nvim_buf_line_count(bufnr)
-  local row = math.max(line_count - 1, 0)
+---Place banner below the last line; only show keys that actually exist
+---@param winnr number
+---@param normalized table<string, string>
+---@param kind_map table<string, string>
+local function place_banner(winnr, normalized, kind_map)
+  local banner = build_banner(normalized, kind_map)
 
-  api.nvim_buf_set_extmark(bufnr, CONSTANTS.NS, row, 0, {
-    virt_lines = {
-      { { "", "Comment" } },
-      { { banner, "CodeCompanionChatInfoBanner" } },
-    },
-    virt_lines_above = false, -- render below the last line
-  })
+  local ok = false
+  if winnr and api.nvim_win_is_valid(winnr) then
+    ok = pcall(function()
+      ui.set_winbar(winnr, banner, "CodeCompanionChatInfoBanner")
+    end)
+  end
+
+  if not ok then
+    util.notify(banner)
+  end
 end
 
 ---Setup autocmds that cancel the permission if the diff is closed manually
@@ -308,6 +316,7 @@ function M.show_diff(chat, request)
     bufnr = bufnr,
     contents = old_lines,
     id = diff_id,
+    winnr = winnr,
   })
   if not diff then
     log:debug("[chat::acp::interactions] Failed to create diff; auto-canceling permission")
@@ -326,7 +335,7 @@ function M.show_diff(chat, request)
   })
 
   setup_keymaps(bufnr, normalized, kind_map, finish, mapped_lhs)
-  place_banner(bufnr, normalized, kind_map)
+  place_banner(winnr, normalized, kind_map)
   setup_autocmds(bufnr, winnr, finish)
 
   return wait.for_decision(diff_id, { "CodeCompanionDiffAccepted", "CodeCompanionDiffRejected" }, function(result)
