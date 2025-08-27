@@ -1081,6 +1081,12 @@ You must create or modify a workspace file through a series of prompts over mult
           relativenumber = false,
         },
       },
+      -- You can also extend/override the child_window options for a diff
+      diff_window = {
+        opts = {
+          number = true,
+        },
+      },
 
       auto_scroll = true, -- Automatically scroll down and place the cursor at the end?
       intro_message = "Welcome to CodeCompanion ✨! Press ? for options",

@@ -1,7 +1,5 @@
 local config = require("codecompanion.config")
 local formatter = require("codecompanion.strategies.chat.acp.formatters")
-local permissions = require("codecompanion.strategies.chat.acp.permissions")
-local util = require("codecompanion.utils")
 
 ---Return the ACP client
 ---@return CodeCompanion.ACP.Connection
@@ -152,42 +150,7 @@ end
 ---@param request table
 ---@return nil
 function ACPHandler:_handle_permission_request(request)
-  local options = request.options
-
-  local labels = {
-    allow_always = "1 Allow always",
-    allow_once = "2 Allow once",
-    reject_once = "3 Reject",
-    reject_always = "4 Reject always",
-  }
-
-  local choices, index_to_option = {}, {}
-  for i, opt in ipairs(options) do
-    table.insert(choices, "&" .. (labels[opt.kind] or (tostring(i) .. " " .. opt.name)))
-    index_to_option[i] = opt.optionId
-  end
-
-  local prompt = string.format(
-    "%s: %s ?",
-    util.capitalize(request.tool_call and request.tool_call.kind or "permission"),
-    request.tool_call and request.tool_call.title or "Agent requested permission"
-  )
-
-  if request.tool_call then
-    self:_process_tool_call(request.tool_call)
-  end
-
-  if permissions.tool_has_diff(request.tool_call) then
-    return permissions.show_diff(self.chat, request)
-  end
-
-  local picked = vim.fn.confirm(prompt, table.concat(choices, "\n"), 2, "Question")
-
-  if picked > 0 and index_to_option[picked] then
-    request.respond(index_to_option[picked], false)
-  else
-    request.respond(nil, true)
-  end
+  return require("codecompanion.strategies.chat.acp.request_permission").show(self.chat, request)
 end
 
 ---Handle completion

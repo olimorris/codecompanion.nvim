@@ -26,7 +26,7 @@ T = new_set({
     end,
     post_case = function()
       child.lua([[
-        package.loaded["codecompanion.strategies.chat.acp.permissions"] = nil
+        package.loaded["codecompanion.strategies.chat.acp.request_permission"] = nil
         package.loaded["codecompanion.providers.diff.inline"] = nil
         package.loaded["codecompanion.strategies.chat.helpers.wait"] = nil
         package.loaded["codecompanion.utils.ui"] = nil
@@ -82,7 +82,7 @@ local function with_mocks(opts)
       end
     }
 
-    local permissions = require("codecompanion.strategies.chat.acp.permissions")
+    local permissions = require("codecompanion.strategies.chat.acp.request_permission")
 
     return (function()
       %s
@@ -116,7 +116,7 @@ T["accept path selects allow_* and calls diff.accept"] = function()
         end,
       }
 
-      permissions.show_diff(chat, request)
+      permissions.show(chat, request)
 
       return {
         option_id = responded.option_id,
@@ -161,7 +161,7 @@ T["reject path selects reject_* and calls diff.reject"] = function()
         end,
       }
 
-      permissions.show_diff(chat, request)
+      permissions.show(chat, request)
 
       return {
         option_id = responded.option_id,
@@ -176,12 +176,17 @@ T["reject path selects reject_* and calls diff.reject"] = function()
   h.eq(true, result.reject_called)
 end
 
-T["cancels when no diff content"] = function()
+T["no diff -> confirm -> return reject option"] = function()
   local result = with_mocks({
     wait_behavior = [[
-      -- Shouldn't be called; no diff -> immediate cancel
+      -- no diff flow doesn't call wait.for_decision
     ]],
     body = [[
+      -- Stub confirm to pick the second choice ("Reject" given options order)
+      vim.fn.confirm = function(_, _, _)
+        return 2
+      end
+
       local responded = {}
       local chat = { bufnr = 0 }
       local request = {
@@ -201,13 +206,160 @@ T["cancels when no diff content"] = function()
         end,
       }
 
-      permissions.show_diff(chat, request)
+      local permissions = require("codecompanion.strategies.chat.acp.request_permission")
+      permissions.show(chat, request)
       return responded
     ]],
   })
 
+  -- Expect we selected "Reject" via confirm
+  h.eq("reject_once_id", result.option_id)
+  h.eq(false, result.canceled)
+end
+
+T["no diff -> confirm -> return cancel option"] = function()
+  local result = with_mocks({
+    wait_behavior = [[
+      -- no diff flow doesn't call wait.for_decision
+    ]],
+    body = [[
+      -- Stub confirm to cancel
+      vim.fn.confirm = function(_, _, _)
+        return 0
+      end
+
+      local responded = {}
+      local chat = { bufnr = 0 }
+      local request = {
+        tool_call = {
+          toolCallId = "tc-nodiff",
+          kind = "execute",
+          title = "Run command",
+          status = "pending",
+          content = {}, -- no diff entries
+        },
+        options = {
+          { optionId = "allow_once_id", name = "Allow", kind = "allow_once" },
+          { optionId = "reject_once_id", name = "Reject", kind = "reject_once" },
+        },
+        respond = function(option_id, canceled)
+          responded = { option_id = option_id, canceled = canceled }
+        end,
+      }
+
+      local permissions = require("codecompanion.strategies.chat.acp.request_permission")
+      permissions.show(chat, request)
+      return responded
+    ]],
+  })
+
+  -- Expect cancellation when confirm returns 0
   h.eq(nil, result.option_id)
   h.eq(true, result.canceled)
+end
+
+T["diff flow -> timeout uses TIMEOUT_RESPONSE and rejects"] = function()
+  local result = with_mocks({
+    wait_behavior = [[
+      -- Resolve as timeout (not accepted)
+      cb({ accepted = false, timeout = true })
+    ]],
+    body = [[
+      local responded = {}
+      local chat = { bufnr = 0 }
+      local request = {
+        tool_call = {
+          toolCallId = "tc-timeout",
+          kind = "edit",
+          title = "Apply changes",
+          status = "pending",
+          content = { { type = "diff", path = "file.txt", oldText = "old", newText = "new" } },
+        },
+        options = {
+          { optionId = "allow_once_id",  name = "Allow",  kind = "allow_once"  },
+          { optionId = "reject_once_id", name = "Reject", kind = "reject_once" },
+        },
+        respond = function(option_id, canceled)
+          responded = { option_id = option_id, canceled = canceled }
+        end,
+      }
+
+      local permissions = require("codecompanion.strategies.chat.acp.request_permission")
+      permissions.show(chat, request)
+
+      return {
+        option_id = responded.option_id,
+        canceled = responded.canceled,
+        reject_called = _G.__CAPT.reject_called == true,
+      }
+    ]],
+  })
+
+  -- TIMEOUT_RESPONSE is 'reject_once' in pre_case
+  h.eq("reject_once_id", result.option_id)
+  h.eq(false, result.canceled)
+  h.eq(true, result.reject_called)
+end
+
+T["diff flow -> autocmd rejects (WinClosed)"] = function()
+  local result = with_mocks({
+    wait_behavior = [[
+      -- Do not resolve automatically; let WinClosed autocmd drive decision
+    ]],
+    body = [[
+      local responded = {}
+      local chat = { bufnr = 0 }
+      local request = {
+        tool_call = {
+          toolCallId = "tc-autocmd",
+          kind = "edit",
+          title = "Apply changes",
+          status = "pending",
+          content = { { type = "diff", path = "file.txt", oldText = "old", newText = "new" } },
+        },
+        options = {
+          { optionId = "allow_once_id",  name = "Allow",  kind = "allow_once"  },
+          { optionId = "reject_once_id", name = "Reject", kind = "reject_once" },
+        },
+        respond = function(option_id, canceled)
+          responded = { option_id = option_id, canceled = canceled }
+        end,
+      }
+
+      local permissions = require("codecompanion.strategies.chat.acp.request_permission")
+      permissions.show(chat, request)
+
+      -- Find the diff window created for the inline provider
+      local bufnr = _G.__CAPT.inline_new.bufnr
+      local winnr
+      for _, win in ipairs(vim.api.nvim_list_wins()) do
+        if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == bufnr then
+          winnr = win
+          break
+        end
+      end
+
+      if winnr then
+        vim.api.nvim_win_close(winnr, true)
+      end
+
+      -- Wait briefly for autocmd to fire and respond() to be called
+      vim.wait(300, function()
+        return responded.canceled ~= nil or responded.option_id ~= nil
+      end, 10)
+
+      return {
+        option_id = responded.option_id,
+        canceled = responded.canceled,
+        reject_called = _G.__CAPT.reject_called == true,
+      }
+    ]],
+  })
+
+  -- Closing the window should pick a reject option (prefer reject_once) and not cancel
+  h.eq("reject_once_id", result.option_id)
+  h.eq(false, result.canceled)
+  h.eq(true, result.reject_called)
 end
 
 T["installs keymaps only for present kinds and mapping triggers respond"] = function()
@@ -246,8 +398,8 @@ T["installs keymaps only for present kinds and mapping triggers respond"] = func
         end,
       }
 
-      local permissions = require("codecompanion.strategies.chat.acp.permissions")
-      permissions.show_diff(chat, request)
+      local permissions = require("codecompanion.strategies.chat.acp.request_permission")
+      permissions.show(chat, request)
 
       -- The float and buffer were created in ui.create_float; switch to it to use buffer-local mappings
       local bufnr = _G.__CAPT.inline_new.bufnr

@@ -7,12 +7,20 @@ local wait = require("codecompanion.strategies.chat.helpers.wait")
 local api = vim.api
 
 local CONSTANTS = {
+  LABELS = {
+    allow_always = "1 Allow always",
+    allow_once = "2 Allow once",
+    reject_once = "3 Reject",
+    reject_always = "4 Reject always",
+  },
+
   ALLOWED_KINDS = {
-    allow_once = true,
     allow_always = true,
+    allow_once = true,
     reject_once = true,
     reject_always = true,
   },
+
   MAPPINGS_PREFIX = "_acp_",
   TIMEOUT_RESPONSE = config.strategies.chat.opts.acp_timeout_response or "reject_once",
 
@@ -21,39 +29,22 @@ local CONSTANTS = {
 
 local M = {}
 
----Determine if the tool call contains a diff object
----@param tool_call table
----@return boolean
-function M.tool_has_diff(tool_call)
-  if
-    tool_call.content
-    and tool_call.content[1]
-    and tool_call.content[1].type
-    and tool_call.content[1].type == "diff"
-  then
-    -- Don't show a diff if there's nothing to diff...
-    local content = tool_call.content[1]
-    if (content.oldText == nil or content.oldText == "") and (content.newText == nil or content.newText == "") then
-      return false
-    end
-    return true
-  end
-  return false
-end
+---Build out the choices available to the user from the request
+---@param request table
+---@return string, string[], table<number, string>
+local function build_choices(request)
+  local prompt = string.format(
+    "%s: %s ?",
+    util.capitalize(request.tool_call and request.tool_call.kind or "permission"),
+    request.tool_call and request.tool_call.title or "Agent requested permission"
+  )
 
----Get the diff object from the tool call
----@param tool_call table
----@return table
-function M.get_diff(tool_call)
-  return {
-    kind = tool_call.kind,
-    new = tool_call.content[1].newText,
-    old = tool_call.content[1].oldText,
-    path = vim.fs.joinpath(vim.fn.getcwd(), tool_call.content[1].path),
-    status = tool_call.status,
-    title = tool_call.title,
-    tool_call_id = tool_call.toolCallId,
-  }
+  local choices, index_to_option = {}, {}
+  for i, opt in ipairs(request.options or {}) do
+    table.insert(choices, "&" .. (CONSTANTS.LABELS[opt.kind] or (tostring(i) .. " " .. opt.name)))
+    index_to_option[i] = opt.optionId
+  end
+  return prompt, choices, index_to_option
 end
 
 ---Map possible kinds with their optionIDs from the agent
@@ -172,22 +163,28 @@ end
 ---@param winnr number
 ---@param finish fun(accepted: boolean, timed_out: boolean, kind: string|nil)
 local function setup_autocmds(bufnr, winnr, finish)
+  local group_name = ("codecompanion.acp.diff.%d.%d"):format(bufnr, winnr)
+  local group = api.nvim_create_augroup(group_name, { clear = true })
+
   -- If the buffer is wiped, consider it a cancel
   api.nvim_create_autocmd("BufWipeout", {
     buffer = bufnr,
+    group = group,
     once = true,
     callback = function()
       pcall(finish, false, false, nil)
+      pcall(api.nvim_clear_autocmds, { group = group })
     end,
   })
 
   -- If the window is closed, consider it a cancel
   api.nvim_create_autocmd("WinClosed", {
+    group = group,
     once = true,
     callback = function(args)
-      -- args.match is the closed window id as a string
       if tonumber(args.match) == winnr then
         pcall(finish, false, false, nil)
+        pcall(api.nvim_clear_autocmds, { group = group })
       end
     end,
   })
@@ -280,21 +277,57 @@ local function on_user_response(request, diff, opts)
   end
 end
 
+---Determine if the tool call contains a diff object
+---@param tool_call table
+---@return boolean
+local function tool_has_diff(tool_call)
+  if
+    tool_call.content
+    and tool_call.content[1]
+    and tool_call.content[1].type
+    and tool_call.content[1].type == "diff"
+  then
+    -- Don't show a diff if there's nothing to diff...
+    local content = tool_call.content[1]
+    if (content.oldText == nil or content.oldText == "") and (content.newText == nil or content.newText == "") then
+      return false
+    end
+    return true
+  end
+  return false
+end
+
+---Get the diff object from the tool call
+---@param tool_call table
+---@return table
+local function get_diff(tool_call)
+  return {
+    kind = tool_call.kind,
+    new = tool_call.content[1].newText,
+    old = tool_call.content[1].oldText,
+    path = vim.fs.joinpath(vim.fn.getcwd(), tool_call.content[1].path),
+    status = tool_call.status,
+    title = tool_call.title,
+    tool_call_id = tool_call.toolCallId,
+  }
+end
+
 ---Display the diff preview and resolve permission by user decision
 ---@param chat CodeCompanion.Chat
 ---@param request table
 ---@return nil
-function M.show_diff(chat, request)
+local function show_diff(chat, request)
   local tool_call = request.tool_call
-  if not M.tool_has_diff(tool_call) then
+  if not tool_has_diff(tool_call) then
     return request.respond(nil, true)
   end
 
-  local d = M.get_diff(tool_call)
+  local d = get_diff(tool_call)
   local old_lines = vim.split(d.old or "", "\n", { plain = true })
   local new_lines = vim.split(d.new or "", "\n", { plain = true })
 
-  local window_config = config.display.chat.child_window
+  local window_config =
+    vim.tbl_deep_extend("force", config.display.chat.child_window, config.display.chat.diff_window or {})
 
   local bufnr, winnr = ui.create_float(new_lines, {
     window = { width = window_config.width, height = window_config.height },
@@ -348,6 +381,25 @@ function M.show_diff(chat, request)
     chat_bufnr = chat.bufnr,
     notify = config.display.icons.warning .. " Waiting for decision ...",
   })
+end
+
+---Show the permission request to the user and handle their response
+---@param chat CodeCompanion.Chat
+---@param request table
+---@return nil
+function M.show(chat, request)
+  if request.tool_call and tool_has_diff(request.tool_call) then
+    return show_diff(chat, request)
+  end
+
+  local prompt, choices, index_to_option = build_choices(request)
+
+  local picked = vim.fn.confirm(prompt, table.concat(choices, "\n"), 2, "Question")
+  if picked > 0 and index_to_option[picked] then
+    request.respond(index_to_option[picked], false)
+  else
+    request.respond(nil, true)
+  end
 end
 
 return M
