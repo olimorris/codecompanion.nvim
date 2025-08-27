@@ -9,7 +9,7 @@ Please see the author's own [config](https://github.com/olimorris/dotfiles/blob/
 
 Throughout the documentation you will see examples that are wrapped in a `require("codecompanion").setup({})` block. This is purposefully done so that users can apply them to their own Neovim configuration.
 
-If you're using [lazy.nvim](https://github.com/folke/lazy.nvim), you can apply the examples that you see in this documentation in the `opts` table, which is much cleaner:
+If you're using [lazy.nvim](https://github.com/folke/lazy.nvim), you can apply the examples that you see in this documentation in the `opts` table, without the need for `require("codecompanion").setup({})`:
 
 ```lua
 {
