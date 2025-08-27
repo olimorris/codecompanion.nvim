@@ -19,7 +19,7 @@ CodeCompanion is a productivity tool which streamlines how you develop with LLMs
 
 - :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
 - :electric_plug: Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI out of the box (or bring your own!)
-- :robot: Support for the [Agent Client Protocol](https://agentclientprotocol.com/overview/introduction) enabling coding with agents like [Gemini](https://github.com/google-gemini/gemini-cli)
+- :robot: Support for [Agent Client Protocol](https://agentclientprotocol.com/overview/introduction) enabling coding with agents like [Gemini](https://github.com/google-gemini/gemini-cli)
 - :heart_hands: User contributed and supported [adapters](/configuration/adapters#community-adapters)
 - :rocket: [Inline transformations](/usage/inline-assistant.html), code creation and refactoring
 - :robot: [Variables](/usage/chat-buffer/variables), [Slash Commands](/usage/chat-buffer/slash-commands), [Tools](/usage/chat-buffer/tools) and [Workflows](/usage/workflows) to improve LLM output
