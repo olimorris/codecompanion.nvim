@@ -18,7 +18,7 @@ local InlineDiff = {}
 ---@field bufnr number Buffer number to apply diff to
 ---@field contents string[] Original content lines
 ---@field id string Unique identifier for this diff
----@field winnr? number Window nubmer (optional)
+---@field winnr? number Window number (optional)
 
 ---Creates a new InlineDiff instance and applies diff highlights
 ---@param args CodeCompanion.Diff.InlineArgs
