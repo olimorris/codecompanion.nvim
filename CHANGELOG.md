@@ -1,5 +1,23 @@
 # Changelog
 
+## [17.17.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.16.0...v17.17.0) (2025-08-26)
+
+
+### Features
+
+* **ui:** fold reasoning content ([#2020](https://github.com/olimorris/codecompanion.nvim/issues/2020)) ([b7bab43](https://github.com/olimorris/codecompanion.nvim/commit/b7bab43133fcc8e7baaba62b8148ccda1c381f61))
+
+
+### Bug Fixes
+
+* **tools:** list code usages tool ([#2019](https://github.com/olimorris/codecompanion.nvim/issues/2019)) ([3c9224e](https://github.com/olimorris/codecompanion.nvim/commit/3c9224e3a0084d6c251b9f81d5cb3c6ac12878e6)), closes [#2018](https://github.com/olimorris/codecompanion.nvim/issues/2018)
+* **ui:** snacks being completely ignored ([#2010](https://github.com/olimorris/codecompanion.nvim/issues/2010)) ([b02a7da](https://github.com/olimorris/codecompanion.nvim/commit/b02a7da50e8d1ee473a31f79152dcdf8f7abf5d5)), closes [#2009](https://github.com/olimorris/codecompanion.nvim/issues/2009)
+
+
+### Performance Improvements
+
+* **chat:** set undolevels to 10 ([#2022](https://github.com/olimorris/codecompanion.nvim/issues/2022)) ([94784eb](https://github.com/olimorris/codecompanion.nvim/commit/94784eb7050ad349870a0d0f2331fcd9d408d5cc))
+
 ## [17.16.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.15.0...v17.16.0) (2025-08-19)
 
 
