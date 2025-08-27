@@ -1,5 +1,12 @@
 # Changelog
 
+## [17.18.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.17.0...v17.18.0) (2025-08-27)
+
+
+### Features
+
+* **chat:** add support for Agent Client Protocol ([#2025](https://github.com/olimorris/codecompanion.nvim/issues/2025)) ([c71f51f](https://github.com/olimorris/codecompanion.nvim/commit/c71f51f0c4b35f2c35ed0c2f1a4d911f56e55866))
+
 ## [17.17.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.16.0...v17.17.0) (2025-08-26)
 
 
