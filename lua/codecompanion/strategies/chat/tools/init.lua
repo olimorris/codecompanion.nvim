@@ -50,7 +50,6 @@ function Tools:_pattern(tool)
   return CONSTANTS.PREFIX .. "{" .. tool .. "}"
 end
 
-
 ---Handle missing or invalid tool errors
 ---@param tool table The tool that failed
 ---@param error_message string The error message
@@ -62,24 +61,25 @@ function Tools:_handle_tool_error(tool, error_message)
   tool_call.function_call = tool_call
 
   log:error(error_message)
-  
+
   local available_tools_msg = ""
   if self.chat and self.chat.tool_registry and self.chat.tool_registry.in_use then
     local available_tools = vim.tbl_keys(self.chat.tool_registry.in_use)
     if next(available_tools) then
-      available_tools_msg = "The available tools are: " .. table.concat(
-        vim.tbl_map(function(t)
-          return "`" .. t .. "`"
-        end, available_tools),
-        ", "
-      )
+      available_tools_msg = "The available tools are: "
+        .. table.concat(
+          vim.tbl_map(function(t)
+            return "`" .. t .. "`"
+          end, available_tools),
+          ", "
+        )
     else
       available_tools_msg = "No tools available"
     end
   else
     available_tools_msg = "No tools available"
   end
-  
+
   self.chat:add_tool_output(tool_call, string.format("Tool `%s` not found. %s", name, available_tools_msg), "")
   return util.fire("ToolsFinished", { bufnr = self.bufnr })
 end
@@ -92,7 +92,7 @@ end
 function Tools:_resolve_and_prepare_tool(tool)
   local name = tool["function"].name
   local tool_config = self.tools_config[name]
-  
+
   if not tool_config then
     return nil, string.format("Couldn't find the tool `%s`", name), false
   end
@@ -100,7 +100,7 @@ function Tools:_resolve_and_prepare_tool(tool)
   local ok, resolved_tool = pcall(function()
     return Tools.resolve(tool_config)
   end)
-  
+
   if not ok or not resolved_tool then
     return nil, string.format("Couldn't resolve the tool `%s`", name), false
   end
@@ -126,11 +126,11 @@ function Tools:_resolve_and_prepare_tool(tool)
         )
         return util.fire("ToolsFinished", { bufnr = self.bufnr })
       end)
-      
+
       if not json_ok then
         return nil, "JSON parsing failed", true -- Special flag to indicate this was handled
       end
-      
+
       args = decoded
     end
     prepared_tool.args = args
@@ -155,7 +155,7 @@ function Tools:_start_edit_tracking(tools)
   for _, tool in ipairs(tools) do
     local tool_name = tool["function"].name
     local tool_args = tool["function"].arguments
-    
+
     -- Handle argument parsing more robustly, like the original code
     if type(tool_args) == "string" then
       local success, decoded = pcall(vim.json.decode, tool_args)
@@ -165,7 +165,7 @@ function Tools:_start_edit_tracking(tools)
         tool_args = nil
       end
     end
-    
+
     EditTracker.start_tool_monitoring(tool_name, self.chat, tool_args)
   end
 end
@@ -263,11 +263,11 @@ function Tools:execute(chat, tools)
   -- Wrap the entire tool execution in error handling
   local function safe_execute()
     local orchestrator = Orchestrator.new(self, id)
-    
+
     -- Process each tool
     for _, tool in ipairs(tools) do
       local resolved_tool, error_msg, is_json_error = self:_resolve_and_prepare_tool(tool)
-      
+
       if not resolved_tool then
         if is_json_error then
           -- JSON error was already handled by _resolve_and_prepare_tool
@@ -276,7 +276,7 @@ function Tools:execute(chat, tools)
           return self:_handle_tool_error(tool, error_msg)
         end
       end
-      
+
       self.tool = resolved_tool
       orchestrator.queue:push(self.tool)
     end
