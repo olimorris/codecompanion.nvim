@@ -90,6 +90,7 @@ export default withMermaid(
               link: "/usage/chat-buffer/",
               collapsed: true,
               items: [
+                { text: "Agents", link: "/usage/chat-buffer/agents" },
                 {
                   text: "Slash Commands",
                   link: "/usage/chat-buffer/slash-commands",
