@@ -1,6 +1,7 @@
 --=============================================================================
 -- PromptBuilder - Fluidly build the prompt which is sent to the agent
 --=============================================================================
+local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
 ---@class CodeCompanion.ACP.PromptBuilder
@@ -222,14 +223,33 @@ function PromptBuilder:_handle_permission_request(id, params)
 end
 
 ---Handle done event from the server
----@param stop_reason? string
+---@param stop_reason string
 ---@return nil
 function PromptBuilder:_handle_done(stop_reason)
+  local status = "success"
+  if stop_reason == "refusal" then
+    status = "error"
+  elseif stop_reason == "max_tokens" then
+    status = "error"
+  elseif stop_reason == "max_turn_requests" then
+    status = "error"
+  elseif stop_reason == "canceled" then
+    status = "cancelled"
+  elseif stop_reason == "end_turn" or stop_reason == nil then
+    status = "success"
+  else
+    status = tostring(stop_reason)
+  end
+
+  if status ~= "success" then
+    log:warn("[acp::prompt_builder] Turn ended with stop_reason=%s", stop_reason or "unknown")
+  end
+
   if self.handlers.complete then
     self.handlers.complete(stop_reason)
   end
   if self.options and not self.options.silent then
-    self.options.status = "success"
+    self.options.status = status
     util.fire("RequestFinished", self.options)
   end
   self.connection._active_prompt = nil
