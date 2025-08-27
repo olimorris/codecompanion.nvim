@@ -48,6 +48,10 @@ function InlineDiff.new(args)
       local winnr = vim.fn.bufwinid(self.bufnr)
       if winnr ~= -1 then
         pcall(api.nvim_win_set_cursor, winnr, { first_diff_line, 0 })
+
+        if vim.api.nvim_get_mode().mode ~= "n" then
+          vim.api.nvim_input("<ESC>")
+        end
       end
     end)
   end
