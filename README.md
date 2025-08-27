@@ -30,7 +30,7 @@ Thank you to the following people:
 
 - :speech_balloon: [Copilot Chat](https://github.com/features/copilot) meets [Zed AI](https://zed.dev/blog/zed-ai), in Neovim
 - :electric_plug: Support for LLMs from Anthropic, Copilot, GitHub Models, DeepSeek, Gemini, Mistral AI, Novita, Ollama, OpenAI, Azure OpenAI, HuggingFace and xAI (or [bring your own](https://codecompanion.olimorris.dev/extending/adapters.html))
-- :robot: Support for [Agent Client Protocol](https://agentclientprotocol.com) enabling coding with agents like [Gemini](https://github.com/google-gemini/gemini-cli)
+- :robot: Support for [Agent Client Protocol](https://agentclientprotocol.com), enabling coding with agents like [Gemini](https://github.com/google-gemini/gemini-cli)
 - :heart_hands: User contributed and supported [adapters](https://codecompanion.olimorris.dev/configuration/adapters#community-adapters)
 - :rocket: [Inline transformations](https://codecompanion.olimorris.dev/usage/inline-assistant.html), code creation and refactoring
 - :art: [Variables](https://codecompanion.olimorris.dev/usage/chat-buffer/variables.html), [Slash Commands](https://codecompanion.olimorris.dev/usage/chat-buffer/slash-commands.html), [Tools](https://codecompanion.olimorris.dev/usage/chat-buffer/tools.html) and [Workflows](https://codecompanion.olimorris.dev/usage/workflows.html) to improve LLM output
