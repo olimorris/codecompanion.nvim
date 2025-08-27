@@ -231,6 +231,7 @@ function M.show_copilot_stats(get_and_authorize_token_fn, oauth_token)
       height = math.min(#lines + 2, 20),
     },
     ignore_keymaps = false,
+    style = "minimal",
   }
   local _, winnr = ui.create_float(lines, float_opts)
 
