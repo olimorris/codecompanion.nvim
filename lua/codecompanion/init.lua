@@ -310,6 +310,7 @@ CodeCompanion.has = function(feature)
     "prompt-library",
     "function-calling",
     "extensions",
+    "acp",
   }
 
   if type(feature) == "string" then
