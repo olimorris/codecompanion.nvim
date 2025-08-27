@@ -32,6 +32,27 @@ local function set_llm_role(role, adapter)
 end
 
 ---@class CodeCompanion.Chat.UI
+---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter in use for the chat
+---@field aug number The autocmd group ID
+---@field chat_bufnr number The buffer number of the chat
+---@field chat_id number The unique ID of the chat
+---@field folds CodeCompanion.Chat.UI.Folds The folds for the chat
+---@field header_ns number The namespace for the header
+---@field roles table The roles in the chat
+---@field winnr number The window number of the chat
+---@field settings table The settings for the chat
+---@field tokens number The current token count in the chat
+
+---@class CodeCompanion.Chat.UIArgs
+---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+---@field chat_bufnr number
+---@field chat_id number
+---@field roles table
+---@field winnr number
+---@field settings table
+---@field tokens number
+
+---@class CodeCompanion.Chat.UI
 local UI = {}
 
 ---@param args CodeCompanion.Chat.UIArgs

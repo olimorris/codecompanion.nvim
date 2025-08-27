@@ -95,29 +95,36 @@ function Folds._format_fold_text(content, fold_type, opts)
   return chunks
 end
 
----Delete a fold at the specified line
+---Delete a fold exactly at the specified line, without affecting outer folds
 ---@param bufnr number
----@param line number (0-based)
+---@param line number  -- 0-based start line of the exact fold to remove
 function Folds:_delete(bufnr, line)
-  local success, err = pcall(function()
+  local ok, err = pcall(function()
     api.nvim_buf_call(bufnr, function()
-      local vim_line = line + 1
-      local fold_start = vim.fn.foldclosed(vim_line)
+      local lnum = line + 1
 
-      if fold_start ~= -1 then
-        api.nvim_win_set_cursor(0, { fold_start, 0 })
+      -- Ensure outer folds are open so we don't target a parent fold
+      vim.fn.cursor(lnum, 1)
+      vim.cmd("normal! zv")
+
+      -- If the target fold is open, close just that fold at its start
+      if vim.fn.foldclosed(lnum) == -1 then
+        vim.cmd("normal! zc")
+      end
+
+      -- Now delete exactly one fold at this line (if present)
+      if vim.fn.foldclosed(lnum) ~= -1 then
         vim.cmd("normal! zd")
+      end
 
-        -- Clean up stored data
-        if self.fold_summaries[bufnr] then
-          self.fold_summaries[bufnr][fold_start - 1] = nil
-        end
+      -- Keep our summaries in sync
+      if Folds.fold_summaries[bufnr] then
+        Folds.fold_summaries[bufnr][line] = nil
       end
     end)
   end)
-
-  if not success then
-    log:trace("[Folds] Failed to delete fold at line %d: %s", line, err)
+  if not ok then
+    log:trace("[Folds] Failed to delete exact fold at line %d: %s", line, err)
   end
 end
 

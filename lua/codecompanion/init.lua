@@ -145,7 +145,8 @@ CodeCompanion.chat = function(args)
     local prompt = args.fargs[1]:lower()
 
     -- Check if the adapter is available
-    adapter = config.adapters[prompt]
+    --TODO: Remove `config.adapters[prompt]` in V18.0.0
+    adapter = config.adapters[prompt] or config.adapters.http[prompt] or config.adapters.acp[prompt]
 
     if not adapter then
       if prompt == "add" then
@@ -309,6 +310,7 @@ CodeCompanion.has = function(feature)
     "prompt-library",
     "function-calling",
     "extensions",
+    "acp",
   }
 
   if type(feature) == "string" then
@@ -329,13 +331,60 @@ end
 ---@param opts? table
 ---@return nil
 CodeCompanion.setup = function(opts)
+  opts = opts or {}
+
+  -- TODO: Remove in v18.0.0
+  -- // START -----------------------------------------------------------------
+  if opts.adapters then
+    local has_old_format = false
+    local migrated_adapters = {}
+
+    -- Check if user has the old adapter format
+    for key, value in pairs(opts.adapters) do
+      if key ~= "http" and key ~= "acp" then
+        if type(value) == "function" or type(value) == "table" then
+          has_old_format = true
+          migrated_adapters[key] = value
+        end
+      end
+    end
+
+    if has_old_format then
+      vim.deprecate(
+        "`adapters.<adapter_name>` and `adapters.opts`",
+        "`adapters.http.<adapter_name>` and `adapters.http.opts`",
+        "v18.0.0",
+        "CodeCompanion",
+        false
+      )
+
+      -- Begin the migration to the new format
+      if not opts.adapters.http then
+        opts.adapters.http = {}
+      end
+      for adapter_name, adapter_config in pairs(migrated_adapters) do
+        if not opts.adapters.http[adapter_name] then
+          opts.adapters.http[adapter_name] = adapter_config
+        end
+      end
+      -- Remove the adapters from the old format
+      for adapter_name, _ in pairs(migrated_adapters) do
+        opts.adapters[adapter_name] = nil
+      end
+    end
+  end
+  --// END --------------------------------------------------------------------
+
   -- Setup the plugin's config
   config.setup(opts)
-  if opts and opts.adapters then
-    if config.adapters.opts.show_defaults then
-      config.adapters = require("codecompanion.utils.adapters").extend(config.adapters, opts.adapters)
+
+  -- Handle adapter configuration
+  if opts and opts.adapters and opts.adapters.http then
+    if config.adapters.http.opts.show_defaults then
+      require("codecompanion.utils.adapters").extend(config.adapters.http, opts.adapters.http)
     else
-      config.adapters = vim.deepcopy(opts.adapters)
+      local copied = vim.deepcopy(opts.adapters.http)
+      config.adapters.http = copied
     end
   end
 

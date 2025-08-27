@@ -15,6 +15,12 @@ end
 function Reasoning:format(message, opts, state)
   local lines = {}
 
+  if state.is_new_block and state.block_index > 0 then
+    table.insert(lines, "")
+    table.insert(lines, "")
+  end
+
+  -- Add header on first chunk of a reasoning sequence (and on later re-entry)
   if not state.has_reasoning_output then
     table.insert(lines, "### Reasoning")
     table.insert(lines, "")

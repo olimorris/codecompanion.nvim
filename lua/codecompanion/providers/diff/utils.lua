@@ -129,7 +129,7 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
         sign_hl_group = sign_hl,
       })
       table.insert(extmark_ids, extmark_id)
-      log:debug(
+      log:trace(
         "[providers::diff::utils::apply_hunk_highlights] Added %d removed lines as virtual text at line %d with %s sign",
         #hunk.old_lines,
         attach_line,
@@ -152,7 +152,7 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
           sign_hl_group = sign_hl,
         })
         table.insert(extmark_ids, extmark_id)
-        log:debug(
+        log:trace(
           "[providers::diff::utils::apply_hunk_highlights] Added %s highlight at line %d with %s sign",
           line_hl,
           line_idx,
@@ -162,7 +162,7 @@ function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
     end
   end
 
-  log:debug("[providers::diff::utils::apply_hunk_highlights] Applied %d total extmarks", #extmark_ids)
+  log:trace("[providers::diff::utils::apply_hunk_highlights] Applied %d total extmarks", #extmark_ids)
   return extmark_ids
 end
 

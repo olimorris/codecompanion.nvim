@@ -1,0 +1,27 @@
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+        "protocolVersion": 1,
+        "authMethods": [
+            {
+                "id": "oauth-personal",
+                "name": "Log in with Google",
+                "description": null
+            },
+            {
+                "id": "gemini-api-key",
+                "name": "Use Gemini API key",
+                "description": "Requires setting the `GEMINI_API_KEY` environment variable"
+            },
+            {
+                "id": "vertex-ai",
+                "name": "Vertex AI",
+                "description": null
+            }
+        ],
+        "agentCapabilities": {
+            "loadSession": false
+        }
+    }
+}

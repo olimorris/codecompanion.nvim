@@ -4,7 +4,7 @@ The Inline Assistant - This is where code is applied directly to a Neovim buffer
 
 ---@class CodeCompanion.Inline
 ---@field id integer The ID of the inline prompt
----@field adapter CodeCompanion.Adapter The adapter to use for the inline prompt
+---@field adapter CodeCompanion.HTTPAdapter The adapter to use for the inline prompt
 ---@field aug number The ID for the autocmd group
 ---@field buffer_context table The context of the buffer the inline prompt was initiated from
 ---@field bufnr number The buffer number to apply the inline edits to
@@ -17,7 +17,7 @@ The Inline Assistant - This is where code is applied directly to a Neovim buffer
 ---@field prompts table The prompts to send to the LLM
 
 ---@class CodeCompanion.InlineArgs
----@field adapter? CodeCompanion.Adapter
+---@field adapter? CodeCompanion.HTTPAdapter
 ---@field buffer_context? table The context of the buffer the inline prompt was initiated from
 ---@field chat_context? table Messages from a chat buffer
 ---@field diff? table The diff provider
@@ -221,7 +221,7 @@ function Inline.new(args)
 end
 
 ---Set the adapter for the inline prompt
----@param adapter CodeCompanion.Adapter|string|function
+---@param adapter CodeCompanion.HTTPAdapter|string|function
 ---@return nil
 function Inline:set_adapter(adapter)
   if not self.adapter or not adapters.resolved(adapter) then
@@ -414,7 +414,7 @@ function Inline:submit(prompt)
     :request({ messages = self.adapter:map_roles(prompt) }, {
       ---@param err string
       ---@param data table
-      ---@param adapter CodeCompanion.Adapter The modified adapter from the http client
+      ---@param adapter CodeCompanion.HTTPAdapter The modified adapter from the http client
       callback = function(err, data, adapter)
         local function error(msg)
           log:error("[Inline] Request failed with error %s", msg)

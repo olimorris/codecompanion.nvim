@@ -10,7 +10,7 @@ local M = {}
 ---Check if a buffer is suitable for taking over
 ---@param buf_info table Buffer info from getbufinfo()
 ---@return boolean
-local function is_suitable_buffer(buf_info)
+local function is_correct_buftype(buf_info)
   local buftype = vim.bo[buf_info.bufnr].buftype
   return buf_info.listed
     and buf_info.loaded
@@ -50,7 +50,7 @@ local function find_suitable_window()
   end)
 
   for _, buf_info in ipairs(buffers) do
-    if is_suitable_buffer(buf_info) then
+    if is_correct_buftype(buf_info) then
       for _, win_id in ipairs(buf_info.windows) do
         if is_suitable_window(win_id) then
           return win_id
@@ -58,6 +58,7 @@ local function find_suitable_window()
       end
     end
   end
+
   return nil
 end
 
@@ -68,6 +69,7 @@ end
 local function use_buffer_in_window(bufnr, winnr)
   log:debug("[catalog::helpers::diff::create] Using buffer %d in window %d", bufnr, winnr)
   pcall(api.nvim_set_current_win, winnr)
+
   return bufnr
 end
 
@@ -77,11 +79,13 @@ end
 ---@return number|nil bufnr
 local function set_buffer_in_window(bufnr, winnr)
   log:debug("[catalog::helpers::diff::create] Setting buffer %d in window %d", bufnr, winnr)
+
   local ok = pcall(api.nvim_win_set_buf, winnr, bufnr)
   if ok then
     pcall(api.nvim_set_current_win, winnr)
     return bufnr
   end
+
   log:debug("[catalog::helpers::diff::create] Failed to set buffer %d in window %d", bufnr, winnr)
   return nil
 end
@@ -107,6 +111,7 @@ local function create_buffer_in_window(filepath, winnr)
   if ok then
     return api.nvim_win_get_buf(winnr)
   end
+
   log:warn("[catalog::helpers::diff::create] Failed to create buffer for: %s", filepath)
   return nil
 end
@@ -182,15 +187,18 @@ end
 ---Create a diff for a buffer or file and set up keymaps
 ---@param bufnr_or_filepath number|string The buffer number or file path to create diff for
 ---@param diff_id number|string Unique identifier for this diff
----@param opts? table Optional configuration
----@original_content: string[] The original buffer content before changes (optional)
+---@param opts? { original_content: string[], set_keymaps: boolean }
 ---@return table|nil diff The diff object, or nil if no diff was created
 function M.create(bufnr_or_filepath, diff_id, opts)
   opts = opts or {}
+  if opts.set_keymaps == nil then
+    opts.set_keymaps = true
+  end
+
   log:debug("[catalog::helpers::diff::create] Called - diff_id=%s", tostring(diff_id))
 
   if vim.g.codecompanion_auto_tool_mode or not config.display.diff.enabled then
-    log:debug(
+    log:trace(
       "[catalog::helpers::diff::create] Skipping diff - auto_mode=%s, enabled=%s",
       tostring(vim.g.codecompanion_auto_tool_mode),
       tostring(config.display.diff.enabled)
@@ -204,34 +212,33 @@ function M.create(bufnr_or_filepath, diff_id, opts)
     log:error("[catalog::helpers::diff::create] Failed to load provider '%s'", provider)
     return nil
   end
+
   local bufnr, winnr = open_buffer_and_window(bufnr_or_filepath)
   if not bufnr then
     log:warn("[catalog::helpers::diff::create] Failed to open buffer/file")
     return nil
   end
+
   if vim.bo[bufnr].buftype == "terminal" then
     log:debug("[catalog::helpers::diff::create] Skipping diff - terminal buffer")
     return nil
   end
 
-  -- Use provided content or fallback to current buffer content
-  local original_content = opts.original_content or api.nvim_buf_get_lines(bufnr, 0, -1, true)
-
-  local diff_args = {
+  local diff = diff_module.new({
     bufnr = bufnr,
-    contents = original_content,
+    -- Use provided content or fallback to current buffer content
+    contents = opts.original_content or api.nvim_buf_get_lines(bufnr, 0, -1, true),
     filetype = api.nvim_get_option_value("filetype", { buf = bufnr }),
     id = diff_id,
     winnr = winnr,
-  }
+  })
 
-  local diff = diff_module.new(diff_args)
-
-  if diff then
+  if diff and opts.set_keymaps then
     vim.schedule(function()
       M.setup_keymaps(diff, opts)
     end)
   end
+
   return diff
 end
 
