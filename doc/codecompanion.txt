@@ -2278,7 +2278,7 @@ GETTING STARTED ~
 
 To start coding with agents right away, open a chat buffer with
 `:CodeCompanionChat` and |codecompanion-usage-chat-buffer--changing-adapter| to
-an ACP adapter such as `gemini_cli`, if it’s not your default.
+an ACP adapter such as `gemini_cli`, if it’s not set as your default.
 
 Currently, CodeCompanion only supports agent authentication via an API key. In
 the case of `gemini_cli`, ensure you’ve
@@ -2286,12 +2286,26 @@ the case of `gemini_cli`, ensure you’ve
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/acp/gemini_cli.lua#L31>
 API key.
 
+A key difference in working with agents versus LLMs is the matter of state.
+LLMs, via `http` adapters, are stateless. This means that CodeCompanion sends
+the entire message history over with every request. Agents differ in that they
+are the ones responsible for managing state. As a result, CodeCompanion only
+sends the latest messages over with every prompt. From a UX perspective
+however, neither of these have an impact on how it feels to work with
+CodeCompanion.
+
 
 PROMPTING ~
 
 Conversing with an agent in CodeCompanion is done in exactly the same way as
 with an LLM. Simply type your prompt and press `<C-CR>` in insert mode or
 `<CR>` in normal mode to send it to the agent.
+
+|codecompanion-usage-chat-buffer-slash-commands| and
+|codecompanion-usage-chat-buffer-variables| are available to share additional
+context with the agent. However, |codecompanion-usage-chat-buffer-tools| are
+disabled as the agent has their own tool set and the autonomy to decide what to
+run and when.
 
 As outlined in the Agent Client Protocol documentation
 <https://agentclientprotocol.com/protocol/initialization>, there are a number
@@ -2310,9 +2324,9 @@ to execute a tool.
 If the agent wishes to edit a file, then you will be shown a diff and presented
 with the various options available to you. You can send a response back to the
 agent via the keymaps defined in your config at
-`strategies.chat.keymaps._acp_*` (which are also displayed in the diff). If
-there is no diff associated with the tool call then you will simply be prompted
-via `vim.fn.confirm`.
+`strategies.chat.keymaps._acp_*` (which are also displayed to you in the diff).
+If there is no diff associated with the tool call then you will be prompted via
+|vim.fn.confirm|.
 
 By default, the chat buffer will wait for c. 30 mins for you to respond to a
 permission request. This can be configured in
