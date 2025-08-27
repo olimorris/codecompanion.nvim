@@ -1,7 +1,7 @@
 # Using Tools
 
 > [!IMPORTANT]
-> As of `v17.5.0`, tools must be wrapped in curly braces, such as `@{grep_search}` or `@{files}`
+> Tool use is not supported in ACP adapters - The agents have their own.
 
 > [!IMPORTANT]
 > Not all LLMs support function calling and the use of tools. Please see the [compatibility](#compatibility) section for more information.
