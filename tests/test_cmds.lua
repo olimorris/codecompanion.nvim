@@ -61,5 +61,49 @@ T["cmds"]["sticky chat window"] = function()
   -- window opened in the current tab (in other words, NOT in NON_CURRENT tab)
   h.eq(false, child.lua_get("require('codecompanion').last_chat().ui:is_visible_non_curtab()"))
 end
+-- Verify that CodeCompanionComplete is registered as a user command
+T["cmds"][":CodeCompanionComplete should be registered"] = function()
+  child.lua([[
+    local cmds = vim.api.nvim_get_commands({ builtin = false })
+    assert(cmds["CodeCompanionComplete"] ~= nil)
+  ]])
+end
+
+-- Ensure CodeCompanionComplete invokes the inline strategy
+T["cmds"][":CodeCompanionComplete invokes inline"] = function()
+  child.lua([[
+    local called = false
+    require('codecompanion').inline = function(opts) called = true end
+    vim.cmd("CodeCompanionComplete")
+    assert(called)
+  ]])
+end
+
+-- End-to-end test for CodeCompanionComplete: simple insertion at cursor
+T["cmds"][":CodeCompanionComplete end-to-end simple insertion"] = function()
+  child.lua([[
+    local h = require('tests.helpers')
+    h.setup_plugin()
+    -- Prepare a Python buffer with a cursor placeholder
+    vim.bo.filetype = 'py'
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+      '# print "Hello World!"',
+      'print(',
+    })
+    -- Place cursor after the opening parenthesis on line 2
+    vim.api.nvim_win_set_cursor(0, {2, 6})
+    -- Mock inline to perform the expected insertion
+    require('codecompanion').inline = function(opts)
+      vim.api.nvim_buf_set_lines(0, 1, 2, false, {
+        'print("Hello World!")',
+      })
+    end
+    -- call command
+    vim.cmd('CodeCompanionComplete')
+  ]])
+  -- Verify buffer content was updated as expected
+  local lines = child.lua_get("require('tests.helpers').get_buf_lines(0)")
+  h.eq({ '# print "Hello World!"', 'print("Hello World!")' }, lines)
+end
 
 return T
