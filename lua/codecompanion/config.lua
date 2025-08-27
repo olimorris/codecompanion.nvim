@@ -1,5 +1,5 @@
 local providers = require("codecompanion.providers")
-local ui_utils = require("codecompanion.utils.ui")
+local ui = require("codecompanion.utils.ui")
 
 local fmt = string.format
 
@@ -11,29 +11,31 @@ local constants = {
 
 local defaults = {
   adapters = {
-    -- LLMs -------------------------------------------------------------------
-    anthropic = "anthropic",
-    azure_openai = "azure_openai",
-    copilot = "copilot",
-    deepseek = "deepseek",
-    gemini = "gemini",
-    githubmodels = "githubmodels",
-    huggingface = "huggingface",
-    novita = "novita",
-    mistral = "mistral",
-    ollama = "ollama",
-    openai = "openai",
-    xai = "xai",
-    -- Non LLMs
-    jina = "jina",
-    tavily = "tavily",
-    -- OPTIONS ----------------------------------------------------------------
-    opts = {
-      allow_insecure = false, -- Allow insecure connections?
-      cache_models_for = 1800, -- Cache adapter models for this long (seconds)
-      proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
-      show_defaults = true, -- Show default adapters
-      show_model_choices = true, -- Show model choices when changing adapter
+    http = {
+      anthropic = "anthropic",
+      azure_openai = "azure_openai",
+      copilot = "copilot",
+      deepseek = "deepseek",
+      gemini = "gemini",
+      githubmodels = "githubmodels",
+      huggingface = "huggingface",
+      novita = "novita",
+      mistral = "mistral",
+      ollama = "ollama",
+      openai = "openai",
+      xai = "xai",
+      jina = "jina",
+      tavily = "tavily",
+      opts = {
+        allow_insecure = false, -- Allow insecure connections?
+        cache_models_for = 1800, -- Cache adapter models for this long (seconds)
+        proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
+        show_defaults = true, -- Show default adapters
+        show_model_choices = true, -- Show model choices when changing adapter
+      },
+    },
+    acp = {
+      gemini_cli = "gemini_cli",
     },
   },
   constants = constants,
@@ -43,7 +45,7 @@ local defaults = {
       adapter = "copilot",
       roles = {
         ---The header name for the LLM's messages
-        ---@type string|fun(adapter: CodeCompanion.Adapter): string
+        ---@type string|fun(adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter): string
         llm = function(adapter)
           return "CodeCompanion (" .. adapter.formatted_name .. ")"
         end,
@@ -186,8 +188,6 @@ local defaults = {
               "rejected",
             },
           },
-          wait_timeout = 30000, -- How long to wait for user input before timing out (milliseconds)
-
           ---Tools and/or groups that are always loaded in a chat buffer
           ---@type string[]
           default_tools = {},
@@ -459,16 +459,37 @@ local defaults = {
           callback = "keymaps.super_diff",
           description = "Show Super Diff",
         },
+        -- Keymaps for ACP permission requests
+        _acp_allow_always = {
+          modes = { n = "g1" },
+          description = "Allow Always",
+        },
+        _acp_allow_once = {
+          modes = { n = "g2" },
+          description = "Allow Once",
+        },
+        _acp_reject_once = {
+          modes = { n = "g3" },
+          description = "Reject Once",
+        },
+        _acp_reject_always = {
+          modes = { n = "g4" },
+          description = "Reject Always",
+        },
       },
       opts = {
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
         completion_provider = providers.completion, -- blink|cmp|coc|default
         register = "+", -- The register to use for yanking code
-        yank_jump_delay_ms = 400, -- Delay in milliseconds before jumping back from the yanked code
+        yank_jump_delay_ms = 400, -- Delay before jumping back from the yanked code (milliseconds )
         undo_levels = 10, -- Number of undo levels to add to chat buffers
+        wait_timeout = 2e6, -- Time to wait for user response before timing out (milliseconds)
+
+        -- What to do when an ACP permission request times out? (allow_once|reject_once)
+        acp_timeout_response = "reject_once",
 
         ---@type string|fun(path: string)
-        goto_file_action = ui_utils.tabnew_reuse,
+        goto_file_action = ui.tabnew_reuse,
       },
     },
     -- INLINE STRATEGY --------------------------------------------------------
@@ -490,7 +511,7 @@ local defaults = {
           description = "Reject change",
         },
         always_accept = {
-          modes = { n = "gdt" },
+          modes = { n = "gdy" },
           opts = { nowait = true },
           index = 3,
           callback = "keymaps.always_accept",
@@ -1018,8 +1039,10 @@ You must create or modify a workspace file through a series of prompts over mult
         buffer_watch = "󰂥 ",
         --chat_context = " ",
         chat_fold = " ",
-        tool_success = " ",
-        tool_failure = " ",
+        tool_pending = " ",
+        tool_in_progress = " ",
+        tool_failure = " ",
+        tool_success = " ",
       },
       -- Window options for the chat buffer
       window = {
@@ -1053,9 +1076,15 @@ You must create or modify a workspace file through a series of prompts over mult
         col = "center",
         relative = "editor",
         opts = {
-          wrap = true,
+          wrap = false,
           number = false,
           relativenumber = false,
+        },
+      },
+      -- You can also extend/override the child_window options for a diff
+      diff_window = {
+        opts = {
+          number = true,
         },
       },
 
@@ -1076,8 +1105,8 @@ You must create or modify a workspace file through a series of prompts over mult
 
       ---The function to display the token count
       ---@param tokens number
-      ---@param adapter CodeCompanion.Adapter
-      token_count = function(tokens, adapter)
+      ---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+      token_count = function(tokens, adapter) -- The function to display the token count
         return " (" .. tokens .. " tokens)"
       end,
     },
@@ -1133,7 +1162,6 @@ You must create or modify a workspace file through a series of prompts over mult
       layout = "vertical", -- vertical|horizontal|buffer
     },
     icons = {
-      loading = " ",
       warning = " ",
     },
   },
@@ -1187,7 +1215,7 @@ You must:
 - Do not include line numbers in code blocks.
 - Avoid wrapping the whole response in triple backticks.
 - Only return code that's directly relevant to the task at hand. You may omit code that isn’t necessary for the solution.
-- Avoid using H1, H2 or H3 headers in your responses as these are reserved for the user.
+- Do not use H1 or H2 headers in your responses. Use H3 and above instead.
 - Use actual line breaks in your responses; only use "\n" when you want a literal backslash followed by 'n'.
 - All non-code text responses must be written in the %s language indicated.
 - Multiple, different tools can be called as part of the same response.

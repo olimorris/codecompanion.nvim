@@ -270,7 +270,14 @@ function Builder:_write_to_buffer(lines, opts, fold_info, state)
 
   local cursor_moved = api.nvim_win_get_cursor(0)[1] == line_count
 
-  -- BUGFIX: write at insert_line (not last_line) so bounds/states are correct
+  if opts._icon_info and opts._icon_info.has_icon then
+    vim.schedule(function()
+      local Icons = require("codecompanion.strategies.chat.ui.icons")
+      local target_line = last_line + (opts._icon_info.line_offset or 0)
+      Icons.apply_tool_icon(self.chat.bufnr, target_line, opts._icon_info.status)
+    end)
+  end
+
   api.nvim_buf_set_text(self.chat.bufnr, insert_line, last_column, insert_line, last_column, lines)
 
   -- Record write bounds

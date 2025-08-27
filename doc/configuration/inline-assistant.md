@@ -6,6 +6,8 @@
 
 CodeCompanion provides an _inline_ strategy for quick, direct interaction with your code. Unlike the chat buffer, the inline assistant integrates responses directly into the current buffer—allowing the LLM to add or replace code as needed.
 
+Only _http_ adapters are supported for the inline assistant.
+
 ## Keymaps
 
 The inline assistant supports keymaps for accepting or rejecting changes:
@@ -27,7 +29,7 @@ require("codecompanion").setup({
       },
     },
   },
-}),
+})
 ```
 
 In this example, `<leader>a` (or `ga` on some keyboards) accepts inline changes, while `gr` rejects them.
@@ -66,7 +68,7 @@ require("codecompanion").setup({
       layout = "vertical", -- vertical|horizontal|buffer
     },
   }
-}),
+})
 ```
 
 ## Diff

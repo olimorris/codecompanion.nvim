@@ -1,0 +1,7 @@
+{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": {
+        "sessionId": "4fecd096-bb15-492e-a0da-95f6b9f4145a"
+    }
+}

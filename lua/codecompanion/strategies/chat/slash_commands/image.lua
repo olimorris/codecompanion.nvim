@@ -217,7 +217,8 @@ end
 ---@param chat CodeCompanion.Chat
 ---@return boolean,string
 function SlashCommand.enabled(chat)
-  return chat.adapter.opts.vision, "The image Slash Command is not enabled for this adapter"
+  return (chat.adapter.opts and chat.adapter.opts.vision or false),
+    "The image Slash Command is not enabled for this adapter"
 end
 
 return SlashCommand

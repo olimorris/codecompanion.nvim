@@ -1,28 +1,34 @@
 local Curl = require("plenary.curl")
 local Path = require("plenary.path")
+local adapter_utils = require("codecompanion.utils.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local util = require("codecompanion.utils")
 
----@class CodeCompanion.Client
----@field adapter CodeCompanion.Adapter
+---@class CodeCompanion.HTTPClient
+---@field adapter CodeCompanion.HTTPAdapter
 ---@field static table
 ---@field opts nil|table
+---@field methods table
 ---@field user_args nil|table
 local Client = {}
 Client.static = {}
 
--- This makes it easier to mock during testing
-Client.static.opts = {
+-- Define our static methods for the HTTP client making it easier to mock and test
+Client.static.methods = {
   post = { default = Curl.post },
   get = { default = Curl.get },
   encode = { default = vim.json.encode },
-  schedule = { default = vim.schedule_wrap },
+  schedule = { default = vim.schedule },
+  schedule_wrap = { default = vim.schedule_wrap },
 }
 
-local function transform_static(opts)
+---Allow for easier testing/mocking of the static methods
+---@param opts? table
+---@return table
+local function transform_static_methods(opts)
   local ret = {}
-  for k, v in pairs(Client.static.opts) do
+  for k, v in pairs(Client.static.methods) do
     if opts and opts[k] ~= nil then
       ret[k] = opts[k]
     else
@@ -32,30 +38,31 @@ local function transform_static(opts)
   return ret
 end
 
----@class CodeCompanion.ClientArgs
----@field adapter CodeCompanion.Adapter
----@field opts nil|table
+---@class CodeCompanion.HTTPClientArgs
+---@field adapter CodeCompanion.HTTPAdapter
+---@field opts? nil|table
 ---@field user_args nil|table
 
----@param args CodeCompanion.ClientArgs
+---@param args CodeCompanion.HTTPClientArgs
 ---@return table
 function Client.new(args)
   args = args or {}
 
   return setmetatable({
     adapter = args.adapter,
-    opts = args.opts or transform_static(args.opts),
+    methods = transform_static_methods(args.opts),
+    opts = args.opts or {},
     user_args = args.user_args or {},
   }, { __index = Client })
 end
 
----@class CodeCompanion.Adapter.RequestActions
+---@class CodeCompanion.HTTPAdapter.RequestActions
 ---@field callback fun(err: nil|table, chunk: nil|table) Callback function, executed when the request has finished or is called multiple times if the request is streaming
 ---@field done? fun() Function to run when the request is complete
 
 ---Send a HTTP request
 ---@param payload { messages: table, tools: table|nil } The payload to be sent to the endpoint
----@param actions CodeCompanion.Adapter.RequestActions
+---@param actions CodeCompanion.HTTPAdapter.RequestActions
 ---@param opts? table Options that can be passed to the request
 ---@return table|nil The Plenary job
 function Client:request(payload, actions, opts)
@@ -84,13 +91,17 @@ function Client:request(payload, actions, opts)
     end
   end
 
-  adapter:get_env_vars()
+  adapter = adapter_utils.get_env_vars(adapter)
 
-  local body = self.opts.encode(
+  local body = self.methods.encode(
     vim.tbl_extend(
       "keep",
       handlers.form_parameters
-          and handlers.form_parameters(adapter, adapter:set_env_vars(adapter.parameters), payload.messages)
+          and handlers.form_parameters(
+            adapter,
+            adapter_utils.set_env_vars(adapter, adapter.parameters),
+            payload.messages
+          )
         or {},
       handlers.form_messages and handlers.form_messages(adapter, payload.messages) or {},
       handlers.form_tools and handlers.form_tools(adapter, payload.tools) or {},
@@ -127,20 +138,20 @@ function Client:request(payload, actions, opts)
   end
 
   if adapter.raw then
-    vim.list_extend(raw, adapter:set_env_vars(adapter.raw))
+    vim.list_extend(raw, adapter_utils.set_env_vars(adapter, adapter.raw))
   end
 
   local request_opts = {
-    url = adapter:set_env_vars(adapter.url),
-    headers = adapter:set_env_vars(adapter.headers),
-    insecure = config.adapters.opts.allow_insecure,
-    proxy = config.adapters.opts.proxy,
+    url = adapter_utils.set_env_vars(adapter, adapter.url),
+    headers = adapter_utils.set_env_vars(adapter, adapter.headers),
+    insecure = config.adapters.http.opts.allow_insecure,
+    proxy = config.adapters.http.opts.proxy,
     raw = raw,
     body = body_file.filename or "",
     -- This is called when the request is finished. It will only ever be called
     -- once, even if the endpoint is streaming.
     callback = function(data)
-      vim.schedule(function()
+      self.methods.schedule(function()
         if (not adapter.opts.stream) and data and data ~= "" then
           log:trace("Output data:\n%s", data)
           cb(nil, data, adapter)
@@ -173,7 +184,7 @@ function Client:request(payload, actions, opts)
       end)
     end,
     on_error = function(err)
-      vim.schedule(function()
+      self.methods.schedule(function()
         actions.callback(err, nil)
         if not opts.silent then
           util.fire("RequestFinished", opts)
@@ -189,7 +200,7 @@ function Client:request(payload, actions, opts)
     request_opts["compressed"] = adapter.opts.compress or false
 
     -- This will be called multiple times until the stream is finished
-    request_opts["stream"] = self.opts.schedule(function(_, data)
+    request_opts["stream"] = self.methods.schedule_wrap(function(_, data)
       if data and data ~= "" then
         log:trace("Output data:\n%s", data)
       end
@@ -208,7 +219,7 @@ function Client:request(payload, actions, opts)
     request = adapter.opts.method:lower()
   end
 
-  local job = self.opts[request](request_opts)
+  local job = self.methods[request](request_opts)
 
   -- Data to be sent via the request
   opts.id = math.random(10000000)

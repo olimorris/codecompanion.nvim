@@ -5,42 +5,80 @@ Please see the author's own [config](https://github.com/olimorris/dotfiles/blob/
 > [!IMPORTANT]
 > The default adapter in CodeCompanion is [GitHub Copilot](https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/asking-github-copilot-questions-in-your-ide). If you have [copilot.vim](https://github.com/github/copilot.vim) or [copilot.lua](https://github.com/zbirenbaum/copilot.lua) installed then expect CodeCompanion to work out of the box.
 
+## Using the Documentation
+
+Throughout the documentation you will see examples that are wrapped in a `require("codecompanion").setup({})` block. This is purposefully done so that users can apply them to their own Neovim configuration.
+
+If you're using [lazy.nvim](https://github.com/folke/lazy.nvim), you can apply the examples that you see in this documentation in the `opts` table, which is much cleaner:
+
+```lua
+{
+  "olimorris/codecompanion.nvim",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "nvim-treesitter/nvim-treesitter",
+  },
+  opts = {
+    strategies = {
+      -- Change the default chat adapter and model
+      chat = {
+        adapter = "anthropic",
+        model = "claude-sonnet-4-20250514"
+      },
+    },
+    -- NOTE: The log_level is in `opts.opts`
+    opts = {
+      log_level = "DEBUG",
+    },
+  },
+},
+```
+
 ## Configuring an Adapter
 
 > [!NOTE]
 > The adapters that the plugin supports out of the box can be found [here](https://github.com/olimorris/codecompanion.nvim/tree/main/lua/codecompanion/adapters). Or, see the user contributed adapters [here](configuration/adapters.html#community-adapters)
 
-An adapter is what connects Neovim to an LLM. It's the interface that allows data to be sent, received and processed. In order to use the plugin, you need to make sure you've configured an adapter first:
+An adapter is what connects Neovim to an LLM or an agent. It's the interface that allows data to be sent, received and processed. In order to use the plugin, you need to make sure you've configured an adapter first:
 
 ```lua
 require("codecompanion").setup({
   strategies = {
     chat = {
-      adapter = "anthropic",
+      name = "copilot",
+      model = "gpt-4.1",
     },
     inline = {
       adapter = "anthropic",
     },
   },
-}),
+})
 ```
 
-In the example above, we're using the Anthropic adapter for both the chat and inline strategies. Refer to the [adapter](configuration/adapters#changing-a-model) section to understand how to change the default model.
+In the example above, we're using the Copilot adapter for the chat strategy and the Anthropic one for the inline strategy.
+
+There are two "types" of adapter in CodeCompanion; **http** adapters which connect you to an LLM and **ACP** adapters which leverage the [Agent Client Protocol](https://agentclientprotocol.com) to connect you to an agent.
+
+Refer to the [adapter](configuration/adapters) section to understand more about working with adapters.
+
+### Setting an API Key
 
 Because most LLMs require an API key you'll need to share that with the adapter. By default, adapters will look in your environment for a `*_API_KEY` where `*` is the name of the adapter such as `ANTHROPIC` or `OPENAI`. However, you can extend the adapter and change the API key like so:
 
 ```lua
 require("codecompanion").setup({
   adapters = {
-    anthropic = function()
-      return require("codecompanion.adapters").extend("anthropic", {
-        env = {
-          api_key = "MY_OTHER_ANTHROPIC_KEY"
-        },
-      })
-    end,
+    http = {
+      anthropic = function()
+        return require("codecompanion.adapters").extend("anthropic", {
+          env = {
+            api_key = "MY_OTHER_ANTHROPIC_KEY",
+          },
+        })
+      end,
+    },
   },
-}),
+})
 ```
 
 Having API keys in plain text in your shell is not always safe. Thanks to [this PR](https://github.com/olimorris/codecompanion.nvim/pull/24), you can run commands from within your config by prefixing them with `cmd:`. In the example below, we're using the 1Password CLI to read an OpenAI credential.
@@ -48,15 +86,17 @@ Having API keys in plain text in your shell is not always safe. Thanks to [this 
 ```lua
 require("codecompanion").setup({
   adapters = {
-    openai = function()
-      return require("codecompanion.adapters").extend("openai", {
-        env = {
-          api_key = "cmd:op read op://personal/OpenAI/credential --no-newline",
-        },
-      })
-    end,
+    acp = {
+      gemini_cli = function()
+        return require("codecompanion.adapters").extend("gemini_cli", {
+          env = {
+            api_key = "cmd:op read op://personal/Gemini/credential --no-newline",
+          },
+        })
+      end,
+    },
   },
-}),
+})
 ```
 
 > [!IMPORTANT]
