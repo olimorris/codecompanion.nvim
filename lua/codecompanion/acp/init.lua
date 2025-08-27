@@ -294,7 +294,8 @@ end
 ---@param code? number
 ---@return nil
 function Connection:_send_error(id, message, code)
-  local msg = { jsonrpc = "2.0", id = id, error = { code = code or -32000, message = message } }
+  code = code or -32000
+  local msg = { jsonrpc = "2.0", id = id, error = { code = code, message = message } }
   self:_write_to_process(self.methods.encode(msg) .. "\n")
 end
 
@@ -497,9 +498,11 @@ function Connection:_handle_read_file_request(id, params)
   if not id or type(params) ~= "table" then
     return
   end
+
   if params.sessionId and self.session_id and params.sessionId ~= self.session_id then
     return self:_send_error(id, "invalid sessionId for fs/read_text_file", -32602)
   end
+
   local path = params.path
   if type(path) ~= "string" then
     return self:_send_error(id, "invalid params", -32602)
@@ -511,7 +514,7 @@ function Connection:_handle_read_file_request(id, params)
     return self:_send_result(id, { content = content_or_err })
   end
 
-  -- If the file does not exist, treat as empty content so the agent can proceed to create it
+  -- If the file does not exist we treat it as empty so the agent can create it
   local errstr = tostring(content_or_err)
   if errstr:find("ENOENT", 1, true) then
     self:_send_result(id, { content = "" })
@@ -531,7 +534,6 @@ function Connection:_handle_write_file_request(id, params)
     return
   end
 
-  -- To be safe, we verify the session
   if params.sessionId and self.session_id and params.sessionId ~= self.session_id then
     return self:_send_error(id, "invalid sessionId for fs/write_text_file", -32602)
   end

@@ -1,7 +1,6 @@
 --=============================================================================
 -- PromptBuilder - Fluidly build the prompt which is sent to the agent
 --=============================================================================
-
 local util = require("codecompanion.utils")
 
 ---@class CodeCompanion.ACP.PromptBuilder
@@ -116,7 +115,7 @@ function PromptBuilder:send()
   }
 end
 
----Extract renderable text from a ContentBlock (defensive)
+---Extract renderable text from a content block
 ---@param block table|nil
 ---@return string|nil
 function PromptBuilder:_extract_text(block)
