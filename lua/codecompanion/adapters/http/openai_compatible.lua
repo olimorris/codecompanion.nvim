@@ -40,7 +40,7 @@ local function get_models(self, opts)
     return {}
   end
 
-  adapter:get_env_vars()
+  utils.get_env_vars(adapter)
   local url = adapter.env_replaced.url
   local models_endpoint = adapter.env_replaced.models_endpoint
 
