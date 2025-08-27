@@ -1,15 +1,21 @@
 --[[
-==========================================================
+===============================================================================
     File:       codecompanion/acp/init.lua
     Author:     Oli Morris
-----------------------------------------------------------
+-------------------------------------------------------------------------------
     Description:
       This module implements ACP communication in CodeCompanion.
       It provides a fluent API for interacting with ACP agents,
       handling session management, and processing responses.
 
       Inspired by Zed's ACP implementation patterns.
-==========================================================
+
+      This code is licensed under the MIT License.
+-------------------------------------------------------------------------------
+    Attribution:
+      If you use or distribute this code, please credit:
+      Oli Morris (https://github.com/olimorris)
+===============================================================================
 --]]
 
 local METHODS = require("codecompanion.acp.methods")
