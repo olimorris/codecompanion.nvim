@@ -250,12 +250,21 @@ return {
         return nil
       end
 
+      local output = {
+        role = delta.role,
+      }
+
+      if delta.reasoning then
+        output.reasoning = {
+          content = delta.reasoning,
+        }
+      elseif delta.content then
+        output.content = delta.content
+      end
+
       return {
         status = "success",
-        output = {
-          role = delta.role,
-          content = delta.content,
-        },
+        output = output,
       }
     end,
 
