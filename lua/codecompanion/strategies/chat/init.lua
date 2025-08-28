@@ -755,7 +755,7 @@ function Chat:apply_model(model)
 
   self.adapter.schema.model.default = model
   self.adapter = adapters.set_model(self.adapter)
-  self:update_metadata()
+  self:add_system_prompt()
 
   return self
 end
@@ -802,14 +802,15 @@ function Chat:add_system_prompt(prompt, opts)
     return self
   end
 
-  opts = opts or { visible = false, tag = "from_config" }
+  prompt = prompt or config.opts.system_prompt
+  opts = opts or { visible = false, tag = "system_prompt_from_config" }
 
-  -- Don't add the same system prompt twice
+  -- If the system prompt already exists, update it
   if has_tag(opts.tag, self.messages) then
-    return self
+    self:remove_tagged_message(opts.tag)
   end
 
-  -- Get the index of the last system prompt
+  -- Workout in the message stack the last system prompt is
   local index
   if not opts.index then
     for i = #self.messages, 1, -1 do
@@ -820,18 +821,16 @@ function Chat:add_system_prompt(prompt, opts)
     end
   end
 
-  prompt = prompt or config.opts.system_prompt
-  if prompt ~= "" then
-    if type(prompt) == "function" then
-      prompt = prompt({
-        adapter = self.adapter,
-        language = config.opts.language,
-      })
+  ---Add a system prompt to the messages table
+  ---@param p string
+  ---@return nil
+  local function insert_prompt(p)
+    if not p or p == "" then
+      return
     end
-
     local system_prompt = {
       role = config.constants.SYSTEM_ROLE,
-      content = prompt,
+      content = p,
     }
     system_prompt.id = make_id(system_prompt)
     system_prompt.cycle = self.cycle
@@ -839,6 +838,38 @@ function Chat:add_system_prompt(prompt, opts)
 
     table.insert(self.messages, index or 1, system_prompt)
   end
+
+  -- If prompt is a function, then resolve it asynchronously. This is because
+  -- some adapters, like Copilot, need to make a HTTP request to fetch the
+  -- models and other metadata that the system prompt func will need.
+  if type(prompt) == "function" or prompt == nil then
+    local a = require("codecompanion.utils.async")
+
+    local compute_prompt = a.wrap(function(cb)
+      vim.schedule(function()
+        local ok, out = pcall(prompt, {
+          adapter = self.adapter,
+          language = config.opts.language,
+        })
+        if not ok then
+          log:error("Error inserting the system prompt: %s", out)
+        end
+        cb(out)
+      end)
+    end)
+
+    a.sync(function()
+      local text = a.wait(compute_prompt())
+      a.wait(function(cb)
+        vim.schedule(cb)
+      end)
+      insert_prompt(text)
+    end)()
+
+    return self
+  end
+
+  insert_prompt(prompt)
   return self
 end
 
@@ -849,11 +880,11 @@ function Chat:toggle_system_prompt()
     vim.tbl_map(function(msg)
       return msg.opts.tag
     end, self.messages),
-    "from_config"
+    "system_prompt_from_config"
   )
 
   if has_system_prompt then
-    self:remove_tagged_message("from_config")
+    self:remove_tagged_message("system_prompt_from_config")
     util.notify("Removed system prompt")
   else
     self:add_system_prompt()

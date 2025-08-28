@@ -95,7 +95,7 @@ function M.get_models(adapter, get_and_authorize_token_fn, authorize_token_fn)
         choice_opts.has_vision = true
       end
 
-      models[model.id] = { opts = choice_opts }
+      models[model.id] = { vendor = model.vendor, nice_name = model.name, opts = choice_opts }
     end
   end
 

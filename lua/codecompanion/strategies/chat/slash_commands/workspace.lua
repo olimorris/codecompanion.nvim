@@ -176,10 +176,8 @@ function SlashCommand:output(selected_group, opts)
     return g.name == selected_group
   end, self.workspace.groups)[1]
 
-  if group.opts then
-    if group.opts.remove_config_system_prompt then
-      self.Chat:remove_tagged_message("from_config")
-    end
+  if group.opts and group.opts.remove_config_system_prompt then
+    self.Chat:remove_tagged_message("system_prompt_from_config")
   end
 
   -- Add the system prompts

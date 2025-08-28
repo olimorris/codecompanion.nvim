@@ -1,5 +1,3 @@
-local log = require("codecompanion.utils.log")
-
 local Helpers = {}
 
 Helpers = vim.tbl_extend("error", Helpers, require("tests.expectations"))
