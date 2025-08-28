@@ -60,7 +60,7 @@ T["Workspace"]["system prompts are added in the correct order along with a group
   h.eq(workspace_json.system_prompt, messages[2].content)
   h.eq(workspace_json.groups[1].system_prompt, messages[3].content)
 
-  h.eq(workspace_json.groups[1].description, messages[4].content)
+  h.eq(workspace_json.groups[1].description, messages[5].content)
 end
 
 T["Workspace"]["can remove the default system prompt"] = function()
@@ -73,6 +73,17 @@ T["Workspace"]["can remove the default system prompt"] = function()
 
   h.eq(workspace_json.system_prompt, messages[1].content)
   h.eq(workspace_json.groups[2].system_prompt, messages[2].content)
+end
+
+T["Workspace"]["can add workspace descriptions"] = function()
+  child.lua([[
+  _G.set_workspace()
+  _G.wks:output("Test")
+  ]])
+
+  local messages = child.lua_get([[_G.chat.messages]])
+
+  h.eq(workspace_json.description, messages[4].content)
 end
 
 T["Workspace"]["files and symbols are added to the chat"] = function()
@@ -89,11 +100,11 @@ T["Workspace"]["files and symbols are added to the chat"] = function()
 
   h.eq(
     'Test description for the file stub.go located at tests/stubs/stub.go\n\n```go\nimport (\n\t"math"\n)\n\ntype ExampleStruct struct {\n\tValue float64\n}\n\nfunc (e ExampleStruct) Compute() float64 {\n\treturn math.Sqrt(e.Value)\n}\n\n\n```',
-    messages[5].content
+    messages[6].content
   )
   h.expect_starts_with(
     "Test symbol description for the file stub.lua located at tests/stubs/stub.lua",
-    messages[6].content
+    messages[7].content
   )
 end
 
@@ -108,7 +119,7 @@ T["Workspace"]["can open a file as a buffer if it's already open"] = function()
 
   local messages = child.lua_get([[_G.chat.messages]])
 
-  h.expect_starts_with([[Test description for the file stub.go located at tests/stubs/stub.go]], messages[5].content)
+  h.expect_starts_with([[Test description for the file stub.go located at tests/stubs/stub.go]], messages[6].content)
 end
 
 T["Workspace"]["top-level prompts are not duplicated and are ordered correctly"] = function()

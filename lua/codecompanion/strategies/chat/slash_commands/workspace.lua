@@ -180,10 +180,16 @@ function SlashCommand:output(selected_group, opts)
     self.Chat:remove_tagged_message("system_prompt_from_config")
   end
 
-  -- Add the system prompts
+  -- Add the high-level prompts first
   if self.workspace.system_prompt then
     self.Chat:add_system_prompt(
       replace_vars(self.workspace, group, self.workspace.system_prompt),
+      { visible = false, tag = self.workspace.name .. " // Workspace" }
+    )
+  end
+  if self.workspace.description then
+    self.Chat:add_message(
+      { role = config.constants.USER_ROLE, content = replace_vars(self.workspace, group, self.workspace.description) },
       { visible = false, tag = self.workspace.name .. " // Workspace" }
     )
   end
