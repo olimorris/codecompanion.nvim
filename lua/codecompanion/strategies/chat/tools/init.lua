@@ -114,6 +114,9 @@ function Tools:_resolve_and_prepare_tool(tool)
     local args = tool["function"].arguments
     -- For some adapter's that aren't streaming, the args are strings rather than tables
     if type(args) == "string" then
+      if args == "" then
+        args = "{}"
+      end
       local decoded
       local json_ok = xpcall(function()
         decoded = vim.json.decode(args)
@@ -158,9 +161,6 @@ function Tools:_start_edit_tracking(tools)
 
     -- Handle argument parsing more robustly, like the original code
     if type(tool_args) == "string" then
-      if tool_args == "" then
-        tool_args = "{}"
-      end
       local success, decoded = pcall(vim.json.decode, tool_args)
       if success then
         tool_args = decoded
