@@ -276,7 +276,7 @@ function Tools:execute(chat, tools)
           -- JSON error was already handled by _resolve_and_prepare_tool
           return
         else
-          return self:_handle_tool_error(tool, error_msg)
+          return self:_handle_tool_error(tool, error_msg or "Unknown Error occurred")
         end
       end
 
@@ -463,8 +463,7 @@ function Tools.resolve(tool)
   local err
   module, err = loadfile(callback)
   if err then
-    log:error("[Tools] Failed to load tool from %s: %s", callback, err)
-    return nil
+    return log:error("[Tools] Failed to load tool from %s: %s", callback, err)
   end
 
   if module then
