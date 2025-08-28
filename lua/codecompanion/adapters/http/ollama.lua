@@ -67,7 +67,7 @@ local function get_models(self, opts)
       proxy = config.adapters.http.opts.proxy,
       body = vim.json.encode({ model = model_obj.name }),
       callback = function(output)
-        models[model_obj.name] = { opts = {} }
+        models[model_obj.name] = { nice_name = model_obj.name, opts = {} }
         if output.status == 200 then
           local ok, model_info_json = pcall(vim.json.decode, output.body, { array = true, object = true })
           if ok then
@@ -89,6 +89,7 @@ local function get_models(self, opts)
   if opts and opts.last and latest_model then
     return latest_model.name
   end
+
   return models
 end
 
