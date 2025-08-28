@@ -6,9 +6,9 @@
 ---@field acp_connection? CodeCompanion.ACP.Connection The ACP session ID and connection
 ---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
----@field create_buf fun(): integer The function that creates a new buffer for the chat
+---@field create_buf fun(): number The function that creates a new buffer for the chat
 ---@field aug number The ID for the autocmd group
----@field bufnr integer The buffer number of the chat
+---@field bufnr number The buffer number of the chat
 ---@field buffer_context table The context of the buffer that the chat was initiated from
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
@@ -16,8 +16,8 @@
 ---@field edit_tracker? CodeCompanion.Chat.EditTracker Edit tracking information for the chat
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
----@field header_ns integer The namespace for the virtual text that appears in the header
----@field id integer The unique identifier for the chat
+---@field header_ns number The namespace for the virtual text that appears in the header
+---@field id number The unique identifier for the chat
 ---@field messages? table The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
@@ -237,7 +237,7 @@ end
 local _cached_settings = {}
 
 ---Parse the chat buffer for settings
----@param bufnr integer
+---@param bufnr number
 ---@param parser vim.treesitter.LanguageTree
 ---@param adapter? CodeCompanion.HTTPAdapter
 ---@return table
@@ -1505,7 +1505,7 @@ function Chat:update_metadata()
 end
 
 ---Returns the chat object(s) based on the buffer number
----@param bufnr? integer
+---@param bufnr? number
 ---@return CodeCompanion.Chat|table
 function Chat.buf_get_chat(bufnr)
   if not bufnr then

@@ -14,12 +14,12 @@ local utils = require("codecompanion.utils.adapters")
 ---@field codesearch boolean
 ---@field copilotignore_enabled boolean
 ---@field endpoints {api: string, ["origin-tracker"]: string, proxy: string, telemetry: string}
----@field expires_at integer
+---@field expires_at number
 ---@field individual boolean
 ---@field nes_enabled boolean
 ---@field prompt_8k boolean
 ---@field public_suggestions string
----@field refresh_in integer
+---@field refresh_in number
 ---@field sku string
 ---@field snippy_load_test_enabled boolean
 ---@field telemetry string

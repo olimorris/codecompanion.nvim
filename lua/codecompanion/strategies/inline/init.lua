@@ -3,7 +3,7 @@ The Inline Assistant - This is where code is applied directly to a Neovim buffer
 --]]
 
 ---@class CodeCompanion.Inline
----@field id integer The ID of the inline prompt
+---@field id number The ID of the inline prompt
 ---@field adapter CodeCompanion.HTTPAdapter The adapter to use for the inline prompt
 ---@field aug number The ID for the autocmd group
 ---@field buffer_context table The context of the buffer the inline prompt was initiated from

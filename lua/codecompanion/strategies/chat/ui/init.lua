@@ -435,7 +435,7 @@ function UI:clear_virtual_text(extmark_id)
 end
 
 ---Get the last line, column and line count in the chat buffer
----@return integer, integer, integer
+---@return number, integer, integer
 function UI:last()
   local line_count = api.nvim_buf_line_count(self.chat_bufnr)
 
@@ -456,7 +456,7 @@ end
 
 ---Display the tokens in the chat buffer
 ---@param parser table
----@param start_row integer
+---@param start_row number
 ---@return nil
 function UI:display_tokens(parser, start_row)
   if config.display.chat.show_token_count and self.tokens then

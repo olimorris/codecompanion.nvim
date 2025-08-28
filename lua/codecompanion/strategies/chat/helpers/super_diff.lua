@@ -483,9 +483,9 @@ local function generate_markdown_super_diff(tracked_files)
 end
 
 ---Apply highlights to show edit operation status and changes
----@param bufnr integer
+---@param bufnr number
 ---@param diff_info table[]
----@param ns_id integer
+---@param ns_id number
 local function apply_super_diff_highlights(bufnr, diff_info, ns_id)
   local all_extmark_ids = {}
   for i, section in ipairs(diff_info) do
@@ -592,9 +592,9 @@ function M.show_super_diff(chat, opts)
 end
 
 ---Setup keymaps for the super diff buffer
----@param bufnr integer Buffer number for the super diff
+---@param bufnr number Buffer number for the super diff
 ---@param chat CodeCompanion.Chat Chat instance with tracked edits
----@param ns_id integer Namespace ID for highlights
+---@param ns_id number Namespace ID for highlights
 function M.setup_keymaps(bufnr, chat, file_actions, ns_id)
   local function cleanup()
     if api.nvim_buf_is_valid(bufnr) then
@@ -691,14 +691,14 @@ function M.setup_keymaps(bufnr, chat, file_actions, ns_id)
 end
 
 ---Setup sticky header that follows cursor position and shows current file
----@param bufnr integer Buffer number for the super diff
----@param winnr integer Window number for the super diff
+---@param bufnr number Buffer number for the super diff
+---@param winnr number Window number for the super diff
 ---@param lines string[] All lines in the buffer
 function M.setup_sticky_header(bufnr, winnr, lines)
   local sticky_win = nil
   local sticky_buf = nil
   ---Find the current file header based on cursor position
-  ---@param cursor_line integer 1-based cursor line number
+  ---@param cursor_line number 1-based cursor line number
   ---@return string|nil filename, string|nil relative_dir
   local function find_current_file_header(cursor_line)
     -- Look backwards from cursor to find the nearest ## header
