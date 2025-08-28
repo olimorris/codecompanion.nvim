@@ -10,7 +10,7 @@
 ---@field stdout table The stdout of the tool
 ---@field stderr table The stderr of the tool
 ---@field tool CodeCompanion.Tools.Tool The current tool that's being run
----@field tools_ns integer The namespace for the virtual text that appears in the header
+---@field tools_ns number The namespace for the virtual text that appears in the header
 
 local EditTracker = require("codecompanion.strategies.chat.edit_tracker")
 local Orchestrator = require("codecompanion.strategies.chat.tools.orchestrator")
@@ -158,6 +158,9 @@ function Tools:_start_edit_tracking(tools)
 
     -- Handle argument parsing more robustly, like the original code
     if type(tool_args) == "string" then
+      if tool_args == "" then
+        tool_args = "{}"
+      end
       local success, decoded = pcall(vim.json.decode, tool_args)
       if success then
         tool_args = decoded

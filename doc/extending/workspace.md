@@ -14,14 +14,11 @@ The exact JSON schema for a workspace file can be seen [here](https://github.com
 {
   "name": "CodeCompanion.nvim",
   "version": "1.0.0",
-  "system_prompt": "CodeCompanion.nvim is an AI-powered productivity tool integrated into Neovim, designed to enhance the development workflow by seamlessly interacting with various large language models (LLMs). It offers features like inline code transformations, code creation, refactoring, and supports multiple LLMs such as OpenAI, Anthropic, and Google Gemini, among others. With tools for variable management, agents, and custom workflows, CodeCompanion.nvim streamlines coding tasks and facilitates intelligent code assistance directly within the Neovim editor.",
+  "description": "CodeCompanion.nvim is an AI-powered productivity tool integrated into Neovim, designed to enhance the development workflow by seamlessly interacting with various large language models (LLMs). It offers features like inline code transformations, code creation, refactoring, and supports multiple LLMs such as OpenAI, Anthropic, and Google Gemini, among others. With tools for variable management, agents, and custom workflows, CodeCompanion.nvim streamlines coding tasks and facilitates intelligent code assistance directly within the Neovim editor.",
   "groups": [
     {
       "name": "Chat Buffer",
-      "system_prompt": "I've grouped a number of files together into a group I'm calling \"${group_name}\". The chat buffer is a Neovim buffer which allows a user to interact with an LLM. The buffer is formatted as Markdown with a user's content residing under a H2 header. The user types their message, saves the buffer and the plugin then uses Tree-sitter to parse the buffer, extracting the contents and sending to an adapter which connects to the user's chosen LLM. The response back from the LLM is streamed into the buffer under another H2 header. The user is then free to respond back to the LLM.\n\nBelow are the relevant files which we will be discussing:\n\n${group_files}",
-      "opts": {
-        "remove_config_system_prompt": true
-      },
+      "description": "I've grouped a number of files together into a group I'm calling \"${group_name}\". The chat buffer is a Neovim buffer which allows a user to interact with an LLM. The buffer is formatted as Markdown with a user's content residing under a H2 header. The user types their message, saves the buffer and the plugin then uses Tree-sitter to parse the buffer, extracting the contents and sending to an adapter which connects to the user's chosen LLM. The response back from the LLM is streamed into the buffer under another H2 header. The user is then free to respond back to the LLM.\n\nBelow are the relevant files which we will be discussing:\n\n${group_files}",
       "data": ["chat-buffer-init", "chat-context", "chat-watchers"]
     },
   ],
@@ -45,11 +42,14 @@ The exact JSON schema for a workspace file can be seen [here](https://github.com
 }
 ```
 
-- The `system_prompt` value contains the prompt that will be sent to the LLM as a system prompt
+- The `description` value contains the prompt that will be sent to the LLM as a user.
 - The `groups` array contains the grouping of data that will be shared with the LLM.
-- The `data` object contains the files that will be shared as part of the group
+- The `data` object contains the files that will be shared as part of the group.
 
-When a user leverages the workspace slash command in the chat buffer, the high-level system prompt is added as a message, followed by the system prompt from the group. After that, the individual items in the data array on the group are added along with their descriptions as a regular user prompt.
+> [!TIP]
+> Use `description` to add a user prompt to the chat buffer or `system_prompt` to add it as a system prompt.
+
+When a user leverages the workspace slash command in the chat buffer, the high-level _description_ or _system prompt_ is added as a message, followed by the _description_ or _system prompt_ from the group. After that, the individual items in the data array on the group are added along with their descriptions as a regular user prompt.
 
 ## Groups
 

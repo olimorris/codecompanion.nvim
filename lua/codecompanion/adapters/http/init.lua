@@ -17,7 +17,7 @@ local shared = require("codecompanion.adapters.shared")
 ---@field temp? table A table to store temporary values which are not passed to the request
 ---@field raw? table Any additional curl arguments to pass to the request
 ---@field opts? table Additional options for the adapter
----@field model? { name: string, opts: table } The model to use for the request
+---@field model? { name: string, nice_name?: string, vendor?: string, opts: table } The model to use for the request
 ---@field handlers table Functions which link the output from the request to CodeCompanion
 ---@field handlers.setup? fun(self: CodeCompanion.HTTPAdapter): boolean
 ---@field handlers.set_body? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil

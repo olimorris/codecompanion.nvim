@@ -9,8 +9,8 @@ local CONSTANTS = {
 }
 
 ---Apply colored icon overlay at column 0
----@param bufnr integer
----@param line integer 0-based line number
+---@param bufnr number
+---@param line number 0-based line number
 ---@param status string The tool status (in_progress, completed, failed)
 function Icons.apply_tool_icon(bufnr, line, status)
   local icon_configs = {
@@ -45,7 +45,7 @@ function Icons.apply_tool_icon(bufnr, line, status)
 end
 
 ---Clear all tool icons from buffer
----@param bufnr integer
+---@param bufnr number
 function Icons.clear_tool_icons(bufnr)
   api.nvim_buf_clear_namespace(bufnr, CONSTANTS.NS_TOOL_ICONS, 0, -1)
 end

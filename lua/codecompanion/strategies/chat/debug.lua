@@ -242,6 +242,7 @@ function Debug:render()
     filetype = "lua",
     title = "Debug Chat",
     window = window_config,
+    style = "minimal",
     opts = window_config.opts or {
       wrap = true,
     },

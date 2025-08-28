@@ -1,5 +1,22 @@
 # Changelog
 
+## [17.19.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.18.0...v17.19.0) (2025-08-28)
+
+
+### Features
+
+* **chat:** system prompt has improved knowledge ([#2038](https://github.com/olimorris/codecompanion.nvim/issues/2038)) ([32ebe36](https://github.com/olimorris/codecompanion.nvim/commit/32ebe36019b224d41943f2535bb306dce78144f9))
+* **slash_cmd:** workspaces can now take user prompts ([#2039](https://github.com/olimorris/codecompanion.nvim/issues/2039)) ([529902d](https://github.com/olimorris/codecompanion.nvim/commit/529902da176f411052d3de00a315c7fe5c7d5bd3))
+
+
+### Bug Fixes
+
+* **adapters:** `gpt-5-nano` streaming error ([#2017](https://github.com/olimorris/codecompanion.nvim/issues/2017)) ([ad2f08c](https://github.com/olimorris/codecompanion.nvim/commit/ad2f08c5d401708c1bec3b7fb2f6e96132cb4efb))
+* **chat:** prevent duplicate # and @ in CoC completions ([#2027](https://github.com/olimorris/codecompanion.nvim/issues/2027)) ([adb3126](https://github.com/olimorris/codecompanion.nvim/commit/adb312667a55fe59a559fd6cf16ecd17b6db6914))
+* doubled # and @ in CoC completion ([7d9e142](https://github.com/olimorris/codecompanion.nvim/commit/7d9e142a768d3649518515d0827dd7b66c558965))
+* **ui:** display the correct `sign_text` in floating diffs ([#2031](https://github.com/olimorris/codecompanion.nvim/issues/2031)) ([54b9502](https://github.com/olimorris/codecompanion.nvim/commit/54b9502b796ee18b491f77f24af7209ec80d306a))
+* **ui:** floating diff style ([#2035](https://github.com/olimorris/codecompanion.nvim/issues/2035)) ([3e8188f](https://github.com/olimorris/codecompanion.nvim/commit/3e8188f87465c851b2e8f081f714928d6577675f))
+
 ## [17.18.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.17.0...v17.18.0) (2025-08-27)
 
 

@@ -6,10 +6,10 @@ local api = vim.api
 local M = {}
 
 ---@class CodeCompanion.Diff.Utils.DiffHunk
----@field old_start integer
----@field old_count integer
----@field new_start integer
----@field new_count integer
+---@field old_start number
+---@field old_count number
+---@field new_start number
+---@field new_count number
 ---@field old_lines string[]
 ---@field new_lines string[]
 ---@field context_before string[]
@@ -18,7 +18,7 @@ local M = {}
 ---Calculate diff hunks between two content arrays
 ---@param old_lines string[] Original content
 ---@param new_lines string[] New content
----@param context_lines? integer Number of context lines (default: 3)
+---@param context_lines? number Number of context lines (default: 3)
 ---@return CodeCompanion.Diff.Utils.DiffHunk[] hunks
 function M.calculate_hunks(old_lines, new_lines, context_lines)
   context_lines = context_lines or 3
@@ -81,12 +81,12 @@ function M.calculate_hunks(old_lines, new_lines, context_lines)
 end
 
 ---Apply visual highlights to hunks in a buffer with sign column indicators
----@param bufnr integer Buffer to apply highlights to
+---@param bufnr number Buffer to apply highlights to
 ---@param hunks CodeCompanion.Diff.Utils.DiffHunk[] Hunks to highlight
----@param ns_id integer Namespace for extmarks
----@param line_offset? integer Line offset (default: 0)
+---@param ns_id number Namespace for extmarks
+---@param line_offset? number Line offset (default: 0)
 ---@param opts? table Options: {show_removed: boolean, full_width_removed: boolean, status: string}
----@return integer[] extmark_ids
+---@return number[] extmark_ids
 function M.apply_hunk_highlights(bufnr, hunks, ns_id, line_offset, opts)
   line_offset = line_offset or 0
   opts = opts or { show_removed = true, full_width_removed = true, status = "pending" }
