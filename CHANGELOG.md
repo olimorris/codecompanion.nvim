@@ -17,11 +17,6 @@
 * **ui:** display the correct `sign_text` in floating diffs ([#2031](https://github.com/olimorris/codecompanion.nvim/issues/2031)) ([54b9502](https://github.com/olimorris/codecompanion.nvim/commit/54b9502b796ee18b491f77f24af7209ec80d306a))
 * **ui:** floating diff style ([#2035](https://github.com/olimorris/codecompanion.nvim/issues/2035)) ([3e8188f](https://github.com/olimorris/codecompanion.nvim/commit/3e8188f87465c851b2e8f081f714928d6577675f))
 
-
-### Performance Improvements
-
-* **chat:** set undolevels to 10 ([#2022](https://github.com/olimorris/codecompanion.nvim/issues/2022)) ([3cf980e](https://github.com/olimorris/codecompanion.nvim/commit/3cf980e36db2f7136079d73b927908cedd5863c6))
-
 ## [17.18.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.17.0...v17.18.0) (2025-08-27)
 
 
