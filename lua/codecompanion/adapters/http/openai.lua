@@ -331,6 +331,7 @@ return {
         -- gpt-5 and gpt-5-mini (but not gpt-5-nano) require organizational
         -- verification with biometric data when streaming is enabled:
         -- https://news.ycombinator.com/item?id=44837367
+        -- (see also #2017)
         ["gpt-5"] = {
           nice_name = "GPT 5",
           opts = { has_vision = true, can_reason = true, stream = false },
@@ -341,7 +342,7 @@ return {
         },
         ["gpt-5-nano"] = {
           nice_name = "GPT 5 Nano",
-          opts = { has_vision = true, can_reason = true, stream = true },
+          opts = { has_vision = true, can_reason = true },
         },
         ["o4-mini-2025-04-16"] = {
           nice_name = "o4 Mini",
