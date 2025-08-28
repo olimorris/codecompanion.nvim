@@ -331,18 +331,50 @@ return {
         -- gpt-5 and gpt-5-mini (but not gpt-5-nano) require organizational
         -- verification with biometric data when streaming is enabled:
         -- https://news.ycombinator.com/item?id=44837367
-        ["gpt-5"] = { opts = { has_vision = true, can_reason = true, stream = false } },
-        ["gpt-5-mini"] = { opts = { has_vision = true, can_reason = true, stream = false } },
-        ["gpt-5-nano"] = { opts = { has_vision = true, can_reason = true, stream = true } },
-
-        ["o4-mini-2025-04-16"] = { opts = { has_vision = true, can_reason = true } },
-        ["o3-mini-2025-01-31"] = { opts = { can_reason = true } },
-        ["o3-2025-04-16"] = { opts = { has_vision = true, can_reason = true } },
-        ["o1-2024-12-17"] = { opts = { has_vision = true, can_reason = true } },
-        ["gpt-4.1"] = { opts = { has_vision = true } },
-        ["gpt-4o"] = { opts = { has_vision = true } },
-        ["gpt-4o-mini"] = { opts = { has_vision = true } },
-        ["gpt-4-turbo-preview"] = { opts = { has_vision = true } },
+        ["gpt-5"] = {
+          nice_name = "GPT 5",
+          opts = { has_vision = true, can_reason = true, stream = false },
+        },
+        ["gpt-5-mini"] = {
+          nice_name = "GPT 5 Mini",
+          opts = { has_vision = true, can_reason = true, stream = false },
+        },
+        ["gpt-5-nano"] = {
+          nice_name = "GPT 5 Nano",
+          opts = { has_vision = true, can_reason = true, stream = true },
+        },
+        ["o4-mini-2025-04-16"] = {
+          nice_name = "o4 Mini",
+          opts = { has_vision = true, can_reason = true },
+        },
+        ["o3-mini-2025-01-31"] = {
+          nice_name = "o3 Mini",
+          opts = { can_reason = true },
+        },
+        ["o3-2025-04-16"] = {
+          nice_name = "o3",
+          opts = { has_vision = true, can_reason = true },
+        },
+        ["o1-2024-12-17"] = {
+          nice_name = "o1",
+          opts = { has_vision = true, can_reason = true },
+        },
+        ["gpt-4.1"] = {
+          nice_name = "GPT 4.1",
+          opts = { has_vision = true },
+        },
+        ["gpt-4o"] = {
+          nice_name = "GPT-4o",
+          opts = { has_vision = true },
+        },
+        ["gpt-4o-mini"] = {
+          nice_name = "GPT-4o Mini",
+          opts = { has_vision = true },
+        },
+        ["gpt-4-turbo-preview"] = {
+          nice_name = "GPT-4 Turbo Preview",
+          opts = { has_vision = true },
+        },
         "gpt-4",
         "gpt-3.5-turbo",
       },

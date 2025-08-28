@@ -115,18 +115,18 @@ T["Workspace"]["top-level prompts are not duplicated and are ordered correctly"]
   workspace_json = vim.json.decode(table.concat(vim.fn.readfile("tests/stubs/workspace_multiple.json"), ""))
 
   child.lua([[
-  _G.set_workspace("tests/stubs/workspace_multiple.json")
+    _G.set_workspace("tests/stubs/workspace_multiple.json")
   ]])
 
   child.lua([[
-  _G.wks:output("Test 1")
-  _G.wks:output("Test 2")
+    _G.wks:output("Test 1")
+    _G.wks:output("Test 2")
   ]])
 
   local messages = child.lua_get([[_G.chat.messages]])
 
-  h.eq(workspace_json.system_prompt, messages[1].content)
-  h.eq(workspace_json.groups[1].system_prompt, messages[2].content)
+  h.eq(workspace_json.groups[1].system_prompt, messages[1].content)
+  h.eq(workspace_json.system_prompt, messages[2].content)
   h.eq(workspace_json.groups[2].system_prompt, messages[3].content)
   h.expect_starts_with(workspace_json.data["test1-file"].description, messages[4].content)
 end

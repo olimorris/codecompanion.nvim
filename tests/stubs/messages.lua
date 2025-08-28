@@ -4,7 +4,7 @@ local messages = {
     cycle = 1,
     id = 126646444,
     opts = {
-      tag = "from_config",
+      tag = "system_prompt_from_config",
       visible = false,
     },
     role = "system",
