@@ -331,9 +331,10 @@ return {
         -- gpt-5 and gpt-5-mini (but not gpt-5-nano) require organizational
         -- verification with biometric data when streaming is enabled:
         -- https://news.ycombinator.com/item?id=44837367
+        -- (see also #2017)
         ["gpt-5"] = { opts = { has_vision = true, can_reason = true, stream = false } },
         ["gpt-5-mini"] = { opts = { has_vision = true, can_reason = true, stream = false } },
-        ["gpt-5-nano"] = { opts = { has_vision = true, can_reason = true, stream = true } },
+        ["gpt-5-nano"] = { opts = { has_vision = true, can_reason = true } },
 
         ["o4-mini-2025-04-16"] = { opts = { has_vision = true, can_reason = true } },
         ["o3-mini-2025-01-31"] = { opts = { can_reason = true } },
