@@ -19,7 +19,7 @@ local function clear_cache()
 end
 
 ---Check if the cache is valid (time + config unchanged)
----@param tools_config_hash integer The hash of the tools config
+---@param tools_config_hash number The hash of the tools config
 ---@return boolean
 local function is_cache_valid(tools_config_hash)
   local time_valid = vim.loop.now() - _cache_timestamp < CACHE_TTL

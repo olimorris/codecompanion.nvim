@@ -6,7 +6,7 @@ local M = {}
 
 ---Clear a keymap from a specific buffer
 ---@param keymaps table
----@param bufnr? integer
+---@param bufnr? number
 local function clear_map(keymaps, bufnr)
   bufnr = bufnr or 0
 

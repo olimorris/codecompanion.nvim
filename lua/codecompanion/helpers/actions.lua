@@ -2,8 +2,8 @@ local api = vim.api
 
 local M = {}
 
----@param start_line integer
----@param end_line integer
+---@param start_line number
+---@param end_line number
 ---@param opts table|nil
 function M.get_code(start_line, end_line, opts)
   local lines = {}
@@ -21,9 +21,9 @@ function M.get_code(start_line, end_line, opts)
 end
 
 ---Taken from the excellent plugin: https://github.com/piersolenski/wtf.nvim
----@param start_line integer
----@param end_line integer
----@param bufnr integer|nil
+---@param start_line number
+---@param end_line number
+---@param bufnr number|nil
 ---@return table
 function M.get_diagnostics(start_line, end_line, bufnr)
   if end_line == nil then

@@ -4,7 +4,7 @@ local log = require("codecompanion.utils.log")
 ---@field prompt string The prompt text explaining the patch format to the LLM
 ---@field parse_edits fun(raw: string): CodeCompanion.Patch.Edit[], boolean, nil|string Parse raw LLM output into changes and whether markers were found
 ---@field apply fun(lines: string[], edit: CodeCompanion.Patch.Edit): string[]|nil,string|nil Apply an edit to file lines, returns nil if can't be confidently applied
----@field start_line fun(lines: string[], edit: CodeCompanion.Patch.Edit): integer|nil Get the line number (1-based) where edit would be applied
+---@field start_line fun(lines: string[], edit: CodeCompanion.Patch.Edit): number|nil Get the line number (1-based) where edit would be applied
 ---@field format fun(edit: CodeCompanion.Patch.Edit): string Format an edit object as a readable string for display/logging
 local Patch = {}
 
@@ -175,9 +175,9 @@ end
 
 ---Score how many lines from needle match haystack lines
 ---@param haystack string[] All file lines
----@param pos integer Starting index to check (1-based)
+---@param pos number Starting index to check (1-based)
 ---@param needle string[] Lines to match
----@return integer Score: 10 per perfect line, or 9 per trimmed match
+---@return number Score: 10 per perfect line, or 9 per trimmed match
 local function get_score(haystack, pos, needle)
   local score = 0
   for i, needle_line in ipairs(needle) do
@@ -193,9 +193,9 @@ end
 
 ---Compute the match score for focus lines above a position.
 ---@param lines string[] Lines of source file
----@param before_pos integer Scan up to this line (exclusive; 1-based)
+---@param before_pos number Scan up to this line (exclusive; 1-based)
 ---@param focus string[] Focus lines/context
----@return integer Score: 20 per matching focus line before position
+---@return number Score: 20 per matching focus line before position
 local function get_focus_score(lines, before_pos, focus)
   local start = 1
   local score = 0
@@ -214,7 +214,7 @@ end
 ---Get the overall score for placing an edit on a given line
 ---@param lines string[] File lines
 ---@param edit CodeCompanion.Patch.Edit To match
----@param i integer Line position
+---@param i number Line position
 ---@return number Score from 0.0 to 1.0
 local function get_match_score(lines, edit, i)
   local max_score = (#edit.focus * 2 + #edit.pre + #edit.old + #edit.post) * 10
@@ -228,7 +228,7 @@ end
 ---Determine best insertion spot for an edit and its match score
 ---@param lines string[] File lines
 ---@param edit CodeCompanion.Patch.Edit Patch block
----@return integer, number location (1-based), Score (0-1)
+---@return number, number location (1-based), Score (0-1)
 local function get_best_location(lines, edit)
   -- try applying patch in flexible spaces mode
   -- there is no standardised way to of spaces in diffs
@@ -256,7 +256,7 @@ end
 ---Get the start line location where an edit would be applied without actually applying it
 ---@param lines string[] File lines
 ---@param edit CodeCompanion.Patch.Edit Edit description
----@return integer|nil location The line number (1-based) where the edit would be applied
+---@return number|nil location The line number (1-based) where the edit would be applied
 function Patch.start_line(lines, edit)
   local location, score = get_best_location(lines, edit)
   if score < 0.5 then
