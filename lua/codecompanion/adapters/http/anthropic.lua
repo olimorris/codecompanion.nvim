@@ -190,11 +190,12 @@ return {
         if has_tools and message.role == self.roles.llm and message.tool_calls then
           message.content = message.content or {}
           for _, call in ipairs(message.tool_calls) do
+            local args = call["function"].arguments
             table.insert(message.content, {
               type = "tool_use",
               id = call.id,
               name = call["function"].name,
-              input = vim.json.decode(call["function"].arguments),
+              input = args ~= "" and vim.json.decode(args) or vim.empty_dict(),
             })
           end
           message.tool_calls = nil
@@ -533,14 +534,30 @@ return {
       desc = "The model that will complete your prompt. See https://docs.anthropic.com/claude/docs/models-overview for additional details and options.",
       default = "claude-sonnet-4-20250514",
       choices = {
-        ["claude-opus-4-20250514"] = { opts = { can_reason = true, has_vision = true } },
-        ["claude-sonnet-4-20250514"] = { opts = { can_reason = true, has_vision = true } },
+        ["claude-opus-4-20250514"] = {
+          nice_name = "Claude Opus 4",
+          opts = { can_reason = true, has_vision = true },
+        },
+        ["claude-sonnet-4-20250514"] = {
+          nice_name = "Claude Sonnet 4",
+          opts = { can_reason = true, has_vision = true },
+        },
         ["claude-3-7-sonnet-20250219"] = {
+          nice_name = "Claude 3.7 Sonnet",
           opts = { can_reason = true, has_vision = true, has_token_efficient_tools = true },
         },
-        ["claude-3-5-sonnet-20241022"] = { opts = { has_vision = true } },
-        ["claude-3-5-haiku-20241022"] = { opts = { has_vision = true } },
-        ["claude-3-opus-20240229"] = { opts = { has_vision = true } },
+        ["claude-3-5-sonnet-20241022"] = {
+          nice_name = "Claude Sonnet 3.5",
+          opts = { has_vision = true },
+        },
+        ["claude-3-5-haiku-20241022"] = {
+          nice_name = "Claude Haiku 3.5",
+          opts = { has_vision = true },
+        },
+        ["claude-3-opus-20240229"] = {
+          nice_name = "Claude Opus 3",
+          opts = { has_vision = true },
+        },
         "claude-2.1",
       },
     },

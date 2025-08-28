@@ -176,8 +176,8 @@ return {
       ---@type string|fun(): string
       default = "deepseek-reasoner",
       choices = {
-        ["deepseek-reasoner"] = { opts = { can_reason = true, can_use_tools = false } },
-        ["deepseek-chat"] = { opts = { can_use_tools = true } },
+        ["deepseek-reasoner"] = { nice_name = "DeepSeek", opts = { can_reason = true, can_use_tools = false } },
+        ["deepseek-chat"] = { nice_name = "DeepSeek", opts = { can_use_tools = true } },
       },
     },
     ---@type CodeCompanion.Schema
