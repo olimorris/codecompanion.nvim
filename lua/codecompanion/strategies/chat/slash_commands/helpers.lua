@@ -1,4 +1,5 @@
 local Path = require("plenary.path")
+local log = require("codecompanion.utils.log")
 
 local M = {}
 
@@ -43,6 +44,7 @@ function M.extract_file_symbols(filepath, target_kinds)
   end)
 
   if not ok then
+    log:error("[chat::slash_commands::helpers] Could not read the file at %s", filepath)
     return nil, nil
   end
 
@@ -51,7 +53,11 @@ function M.extract_file_symbols(filepath, target_kinds)
     return nil, content
   end
 
-  local parser = vim.treesitter.get_string_parser(content, ft)
+  local ok, parser = pcall(vim.treesitter.get_string_parser, content, ft)
+  if not ok then
+    log:error("[chat::slash_commands::helpers] Failed to get parser for %s", ft)
+    return nil, content
+  end
   local tree = parser:parse()[1]
 
   local symbols = {}
