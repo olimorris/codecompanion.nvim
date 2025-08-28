@@ -74,7 +74,7 @@ end
 ---Add context to the chat buffer
 ---@param chat CodeCompanion.Chat
 ---@param context CodeCompanion.Chat.ContextItem
----@param row integer
+---@param row number
 local function add(chat, context, row)
   if not context.opts.visible then
     return

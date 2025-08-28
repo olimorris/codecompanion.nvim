@@ -4,7 +4,7 @@ local M = {}
 
 local ESC_FEEDKEY = api.nvim_replace_termcodes("<ESC>", true, false, true)
 
----@param bufnr nil|integer
+---@param bufnr nil|number
 ---@return string
 M.get_filetype = function(bufnr)
   bufnr = bufnr or 0
@@ -29,7 +29,7 @@ local function is_normal_mode(mode)
   return mode == "n" or mode == "no" or mode == "nov" or mode == "noV" or mode == "no"
 end
 
----@param bufnr nil|integer
+---@param bufnr nil|number
 ---@return table,number,number,number,number
 function M.get_visual_selection(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
@@ -93,7 +93,7 @@ function M.get_visual_selection(bufnr)
 end
 
 ---Get the context of the current buffer.
----@param bufnr? integer
+---@param bufnr? number
 ---@param args? table
 ---@return table
 function M.get(bufnr, args)

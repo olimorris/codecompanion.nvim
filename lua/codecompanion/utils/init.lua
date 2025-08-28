@@ -129,7 +129,7 @@ function M.safe_filetype(filetype)
 end
 
 ---Set an option in Neovim
----@param bufnr integer
+---@param bufnr number
 ---@param opt string
 ---@param value any
 function M.set_option(bufnr, opt, value)

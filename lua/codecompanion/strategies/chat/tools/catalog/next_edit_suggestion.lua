@@ -4,9 +4,9 @@ local api = vim.api
 
 ---@class CodeCompanion.Tool.NextEditSuggestion.Args
 ---@field filepath string
----@field line integer
+---@field line number
 
----@alias jump_action fun(path: string):integer?
+---@alias jump_action fun(path: string):number?
 
 ---@class CodeCompanion.Tool.NextEditSuggestion: CodeCompanion.Tools.Tool
 return {

@@ -17,7 +17,7 @@ local CONSTANTS = {
 ---Find the tag row
 ---@param tag string The tag to find
 ---@param content string The content of the file
----@return integer The row of the tag
+---@return number The row of the tag
 local function get_tag_row(tag, content)
   local ft = "vimdoc"
   local parser = vim.treesitter.get_string_parser(content, "vimdoc")

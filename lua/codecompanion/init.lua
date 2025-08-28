@@ -231,7 +231,7 @@ CodeCompanion.toggle = function()
 end
 
 ---Make a previously hidden chat buffer, visible again
----@param bufnr integer
+---@param bufnr number
 ---@return nil
 CodeCompanion.restore = function(bufnr)
   if not bufnr or not api.nvim_buf_is_valid(bufnr) then
@@ -250,7 +250,7 @@ CodeCompanion.restore = function(bufnr)
 end
 
 ---Return a chat buffer
----@param bufnr? integer
+---@param bufnr? number
 ---@return CodeCompanion.Chat|table
 CodeCompanion.buf_get_chat = function(bufnr)
   return require("codecompanion.strategies.chat").buf_get_chat(bufnr)
