@@ -24,7 +24,7 @@
     },
     {
       "name": "Workflows",
-      "system_prompt": "Within the plugin, workflows are a way for users to be able to automatically send or chain multiple prompts, sequentially, to an LLM. They do this by \"subscribing\" to a chat buffer.\n\nFocus on:\n 1. How workflows integrate with the chat buffer\n2. How they can be refactored\n3. How they can work better with the chat buffer itself.\n\nThe files to analyze are:\n${group_files}",
+      "description": "Within the plugin, workflows are a way for users to be able to automatically send or chain multiple prompts, sequentially, to an LLM. They do this by \"subscribing\" to a chat buffer.\n\nFocus on:\n 1. How workflows integrate with the chat buffer\n2. How they can be refactored\n3. How they can work better with the chat buffer itself.\n\nThe files to analyze are:\n${group_files}",
       "data": [
         "strategies-init",
         "chat-subscribers",
@@ -34,12 +34,12 @@
     },
     {
       "name": "Tests",
-      "system_prompt": "The plugin uses a testing framework called Mini.Test. The tests are written in Lua and are located in the `tests` directory. The tests are run using the `make test` command. The tests are written in a BDD style and are used to ensure the plugin is functioning as expected.",
+      "description": "The plugin uses a testing framework called Mini.Test. The tests are written in Lua and are located in the `tests` directory. The tests are run using the `make test` command. The tests are written in a BDD style and are used to ensure the plugin is functioning as expected.",
       "data": ["test-helpers", "minitest-docs", "test-screenshot-example"]
     },
     {
       "name": "Adapters",
-      "system_prompt": "In the CodeCompanion plugin, adapters are used to connect to LLMs or Agents. HTTP adapters contain various options for the LLM's endpoint alongside a defined schema for properties such as the model, temperature, top k, top p etc. HTTP adapters also contain various handler functions which define how messages which are sent to the LLM should be formatted alongside how output from the LLM should be received and displayed in the chat buffer. The adapters are defined in the `adapters` directory.",
+      "description": "In the CodeCompanion plugin, adapters are used to connect to LLMs or Agents. HTTP adapters contain various options for the LLM's endpoint alongside a defined schema for properties such as the model, temperature, top k, top p etc. HTTP adapters also contain various handler functions which define how messages which are sent to the LLM should be formatted alongside how output from the LLM should be received and displayed in the chat buffer. The adapters are defined in the `adapters` directory.",
       "data": [
         "adapters-init",
         "adapters-shared",
@@ -50,7 +50,7 @@
     },
     {
       "name": "Inline",
-      "system_prompt": "In the CodeCompanion plugin, the inline strategy allows user's to prompt LLMs to write code directly into a Neovim buffer. To make the experience as smooth as possible, the user can just send a prompt like 'refactor this class' and the LLM will generate code to answer the question, alongside providing a determination on where to place the code. This is called the placement.",
+      "description": "In the CodeCompanion plugin, the inline strategy allows user's to prompt LLMs to write code directly into a Neovim buffer. To make the experience as smooth as possible, the user can just send a prompt like 'refactor this class' and the LLM will generate code to answer the question, alongside providing a determination on where to place the code. This is called the placement.",
       "data": [
         "inline-init",
         "http-client",
@@ -61,7 +61,7 @@
     },
     {
       "name": "Tools",
-      "system_prompt": "In the CodeCompanion plugin, tools can be leveraged by an LLM to execute lua functions or shell commands on the users machine. CodeCompanion uses an LLM's native function calling to receive a response in JSON, parse the response and call the corresponding tool. This feature has been implemented via the tools/init.lua file, which passes all of the tools and adds them to a queue. Then those tools are run consecutively by the orchestrator.lua file.",
+      "description": "In the CodeCompanion plugin, tools can be leveraged by an LLM to execute lua functions or shell commands on the users machine. CodeCompanion uses an LLM's native function calling to receive a response in JSON, parse the response and call the corresponding tool. This feature has been implemented via the tools/init.lua file, which passes all of the tools and adds them to a queue. Then those tools are run consecutively by the orchestrator.lua file.",
       "data": [
         "tool-system-init",
         "orchestrator",
@@ -74,7 +74,7 @@
     },
     {
       "name": "ACP Integration",
-      "system_prompt": "This group covers the ACP (Agent Communication Protocol) integration in CodeCompanion.nvim. ACP enables session-based, schema-driven communication with LLM agents, supporting authentication, streaming responses, tool calls, and permission handling. Key components:\n\n- **ACPAdapter**: Encapsulates ACP-specific logic for agent communication.\n- **ACPConnection**: Manages agent process, session lifecycle, authentication, and streaming.\n- **PromptBuilder**: Fluent API for sending prompts and handling streamed responses, tool calls, and errors.\n- **Chat Buffer**: Parses user messages, submits prompts via ACP, and streams agent responses into the buffer.\n\nRelevant files:\n- `lua/codecompanion/acp.lua` (ACPConnection, PromptBuilder)\n- `lua/codecompanion/adapters/acp/init.lua` (ACPAdapter)\n- `lua/codecompanion/strategies/chat/init.lua` (Chat Buffer logic)\n- [ACP JSON Schema](.codecompanion/acp_json_schema.json) (for schema awareness)\n\nRefer to the ACP documentation for message flow, schema types, and extensibility.",
+      "description": "This group covers the ACP (Agent Communication Protocol) integration in CodeCompanion.nvim. ACP enables session-based, schema-driven communication with LLM agents, supporting authentication, streaming responses, tool calls, and permission handling. Key components:\n\n- **ACPAdapter**: Encapsulates ACP-specific logic for agent communication.\n- **ACPConnection**: Manages agent process, session lifecycle, authentication, and streaming.\n- **PromptBuilder**: Fluent API for sending prompts and handling streamed responses, tool calls, and errors.\n- **Chat Buffer**: Parses user messages, submits prompts via ACP, and streams agent responses into the buffer.\n\nRelevant files:\n- `lua/codecompanion/acp.lua` (ACPConnection, PromptBuilder)\n- `lua/codecompanion/adapters/acp/init.lua` (ACPAdapter)\n- `lua/codecompanion/strategies/chat/init.lua` (Chat Buffer logic)\n- [ACP JSON Schema](.codecompanion/acp_json_schema.json) (for schema awareness)\n\nRefer to the ACP documentation for message flow, schema types, and extensibility.",
       "data": [
         "acp-implementation-notes",
         "acp-schema",
