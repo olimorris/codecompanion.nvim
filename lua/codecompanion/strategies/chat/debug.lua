@@ -93,7 +93,7 @@ function Debug:render()
 
   if adapter.schema and adapter.schema.model then
     if type(adapter.schema.model.choices) == "function" then
-      models = adapter.schema.model.choices(adapter)
+      models = adapter.schema.model.choices(adapter, { async = false })
     else
       models = adapter.schema.model.choices
     end
