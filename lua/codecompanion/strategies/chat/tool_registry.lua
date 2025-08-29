@@ -133,7 +133,7 @@ function ToolRegistry:add_group(group, tools_config)
   end
 end
 
----Determine if the chat buffer has any tools in use
+---Add a tool system prompt to the chat buffer, updated for every tool addition
 ---@return nil
 function ToolRegistry:add_tool_system_prompt()
   local opts = config.strategies.chat.tools.opts.system_prompt
@@ -146,11 +146,13 @@ function ToolRegistry:add_tool_system_prompt()
     prompt = prompt({ tools = vim.tbl_keys(self.in_use) })
   end
 
+  local index = 2 -- Add after the main system prompt if not replacing
   if opts.replace_main_system_prompt then
+    index = 1
     self.chat:remove_tagged_message("system_prompt_from_config")
   end
 
-  self.chat:add_system_prompt(prompt, { visible = false, tag = "tool_system_prompt" })
+  self.chat:add_system_prompt(prompt, { index = index, visible = false, tag = "tool_system_prompt" })
 end
 
 ---Determine if the chat buffer has any tools in use

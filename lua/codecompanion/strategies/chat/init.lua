@@ -837,7 +837,7 @@ function Chat:add_system_prompt(prompt, opts)
     system_prompt.cycle = self.cycle
     system_prompt.opts = opts
 
-    table.insert(self.messages, index or 1, system_prompt)
+    table.insert(self.messages, index or opts.index or 1, system_prompt)
   end
 
   return self
