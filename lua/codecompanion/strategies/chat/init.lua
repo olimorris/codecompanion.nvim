@@ -821,16 +821,18 @@ function Chat:add_system_prompt(prompt, opts)
     end
   end
 
-  ---Add a system prompt to the messages table
-  ---@param p string
-  ---@return nil
-  local function insert_prompt(p)
-    if not p or p == "" then
-      return
+  prompt = prompt or config.opts.system_prompt
+  if prompt ~= "" then
+    if type(prompt) == "function" then
+      prompt = prompt({
+        adapter = self.adapter,
+        language = config.opts.language,
+      })
     end
+
     local system_prompt = {
       role = config.constants.SYSTEM_ROLE,
-      content = p,
+      content = prompt,
     }
     system_prompt.id = make_id(system_prompt)
     system_prompt.cycle = self.cycle
@@ -839,37 +841,6 @@ function Chat:add_system_prompt(prompt, opts)
     table.insert(self.messages, index or 1, system_prompt)
   end
 
-  -- If prompt is a function, then resolve it asynchronously. This is because
-  -- some adapters, like Copilot, need to make a HTTP request to fetch the
-  -- models and other metadata that the system prompt func will need.
-  if type(prompt) == "function" or prompt == nil then
-    local a = require("codecompanion.utils.async")
-
-    local compute_prompt = a.wrap(function(cb)
-      vim.schedule(function()
-        local ok, out = pcall(prompt, {
-          adapter = self.adapter,
-          language = config.opts.language,
-        })
-        if not ok then
-          log:error("Error inserting the system prompt: %s", out)
-        end
-        cb(out)
-      end)
-    end)
-
-    a.sync(function()
-      local text = a.wait(compute_prompt())
-      a.wait(function(cb)
-        vim.schedule(cb)
-      end)
-      insert_prompt(text)
-    end)()
-
-    return self
-  end
-
-  insert_prompt(prompt)
   return self
 end
 
