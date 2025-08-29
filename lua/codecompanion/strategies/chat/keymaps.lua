@@ -590,7 +590,7 @@ M.change_adapter = {
           models = { chat.adapter.schema.model.default }
         end
         if type(models) == "function" then
-          models = models(chat.adapter)
+          models = models(chat.adapter, { async = false })
         end
         if not models or vim.tbl_count(models) < 2 then
           return
