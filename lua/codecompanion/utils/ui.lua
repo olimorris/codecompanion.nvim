@@ -471,4 +471,77 @@ function M.confirm(prompt, choices, opts)
   return vim.fn.confirm(prompt, formatted_choices, opts.default, opts.highlight_group)
 end
 
+---Create a basic floating window with title and background dim
+---@param bufnr number Buffer to display in the floating window
+---@param opts table Options for the floating window
+---@return number|nil winnr Window number of the created floating window
+function M.create_basic_floating_window(bufnr, opts)
+  opts = opts or {}
+
+  -- Create background window for dimming effect
+  if opts.show_dim ~= false then
+    M.create_background_window()
+  end
+
+  local config = require("codecompanion.config")
+  local base_window_config = config.display.chat.child_window or {}
+  local diff_window_config = config.display.chat.diff_window or {}
+
+  -- Merge configurations with diff_window taking precedence
+  local window_config = vim.tbl_deep_extend("force", base_window_config, diff_window_config)
+
+  local width = window_config.width > 1 and window_config.width or vim.o.columns - 14
+  local height = window_config.height > 1 and window_config.height or vim.o.lines - 7
+  local row = window_config.row == "center" and math.floor((vim.o.lines - height) / 2 - 1) or window_config.row or 10
+  local col = window_config.col == "center" and math.floor((vim.o.columns - width) / 2) or window_config.col or 5
+
+  -- Build title
+  local title = opts.title or "CodeCompanion"
+  if opts.filepath then
+    local filename = vim.fs.basename(opts.filepath)
+    local function format_dirname(path)
+      local dirname = vim.fs.dirname(path)
+      if dirname and dirname ~= "." and dirname ~= "" then
+        return dirname .. "/"
+      end
+      return ""
+    end
+    local ok, relative_path = pcall(function()
+      return vim.fs.relpath(vim.uv.cwd(), vim.fs.normalize(opts.filepath))
+    end)
+    local path_to_use = (ok and relative_path and relative_path ~= "") and relative_path or opts.filepath
+    title = " " .. (opts.title_prefix or "Diff ") .. ": [" .. filename .. "]:" .. format_dirname(path_to_use) .. " "
+  end
+
+  local winnr = api.nvim_open_win(bufnr, true, {
+    relative = window_config.relative or "editor",
+    border = (vim.fn.exists("+winborder") == 0 or vim.o.winborder == "") and "single" or nil,
+    title = title,
+    title_pos = "center",
+    width = width,
+    height = height,
+    row = row,
+    col = col,
+    zindex = 100, -- Higher than background window
+  })
+
+  -- Set window options if provided
+  if window_config.opts then
+    M.set_win_options(winnr, window_config.opts)
+  end
+
+  -- Set up autocmd to clean up background window
+  if winnr and opts.show_dim ~= false then
+    api.nvim_create_autocmd("WinClosed", {
+      pattern = tostring(winnr),
+      callback = function()
+        M.close_background_window()
+      end,
+      once = true,
+    })
+  end
+
+  return winnr
+end
+
 return M
