@@ -1260,7 +1260,7 @@ The user is working on a %s machine. Please respond with system specific command
       -- vendor name, so we have to do this asynchronously.
       local adapter_utils = require("codecompanion.utils.adapters")
       local model = adapter_utils.get_model(opts.adapter, { resolve_choices = true })
-      if model.nice_name then
+      if model and model.nice_name then
         prompt = prompt .. "\nYou use the " .. model.nice_name .. " large language model."
       end
 
