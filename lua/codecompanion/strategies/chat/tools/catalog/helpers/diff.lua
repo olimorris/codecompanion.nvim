@@ -167,7 +167,7 @@ end
 local function create_diff_floating_window(bufnr, filepath)
   local winnr = ui.create_basic_floating_window(bufnr, {
     filepath = filepath,
-    title_prefix = "Diff",
+    title_prefix = " Diff:",
     show_dim = true,
   })
 

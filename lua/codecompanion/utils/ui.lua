@@ -496,7 +496,7 @@ function M.create_basic_floating_window(bufnr, opts)
   local col = window_config.col == "center" and math.floor((vim.o.columns - width) / 2) or window_config.col or 5
 
   -- Build title
-  local title = opts.title or "CodeCompanion"
+  local title = opts.title or opts.title_prefix or "CodeCompanion"
   if opts.filepath then
     local filename = vim.fs.basename(opts.filepath)
     local function format_dirname(path)
@@ -510,7 +510,7 @@ function M.create_basic_floating_window(bufnr, opts)
       return vim.fs.relpath(vim.uv.cwd(), vim.fs.normalize(opts.filepath))
     end)
     local path_to_use = (ok and relative_path and relative_path ~= "") and relative_path or opts.filepath
-    title = " " .. (opts.title_prefix or "Diff ") .. ": [" .. filename .. "]:" .. format_dirname(path_to_use) .. " "
+    title = " " .. (opts.title_prefix or " Diff") .. ": [" .. filename .. "]:" .. format_dirname(path_to_use) .. " "
   end
 
   local winnr = api.nvim_open_win(bufnr, true, {
