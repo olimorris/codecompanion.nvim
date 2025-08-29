@@ -135,32 +135,54 @@ local function create_split_window(bufnr_or_filepath)
   end
 end
 
+---Setup winbar for diff window with keymap hints
+---@param winnr number Window number to set up winbar for
+---@return nil
+local function place_diff_winbar(winnr)
+  local keymaps_config = config.strategies.inline.keymaps
+  if not keymaps_config then
+    return
+  end
+
+  local parts = {}
+  if keymaps_config.accept_change.modes.n then
+    table.insert(parts, "[Accept: " .. keymaps_config.accept_change.modes.n .. "]")
+  end
+  if keymaps_config.reject_change.modes.n then
+    table.insert(parts, "[Reject: " .. keymaps_config.reject_change.modes.n .. "]")
+  end
+  if keymaps_config.always_accept.modes.n then
+    table.insert(parts, "[Always Accept: " .. keymaps_config.always_accept.modes.n .. "]")
+  end
+  table.insert(parts, "[Close: q]")
+
+  local banner = " Keymaps: " .. table.concat(parts, " | ") .. " "
+  ui.set_winbar(winnr, banner, "CodeCompanionChatInfoBanner")
+end
+
+---Create diff floating window with winbar
+---@param bufnr number Buffer to display in the floating window
+---@param filepath string|nil Optional filepath for window title
+---@return number? winnr Window number of the created floating window
+local function create_diff_floating_window(bufnr, filepath)
+  local winnr = ui.create_basic_floating_window(bufnr, {
+    filepath = filepath,
+    title_prefix = "Diff",
+    show_dim = true,
+  })
+
+  if winnr then
+    place_diff_winbar(winnr)
+  end
+
+  return winnr
+end
+
 ---Create floating window only (no buffer creation)
 ---@param bufnr number Buffer number to display in the floating window
 ---@param filepath string|nil Optional filepath for window title
 ---@return number|nil winnr Window number of the floating window
 local function create_floating_window_only(bufnr, filepath)
-  ui.create_background_window()
-  local window_config = config.display.chat.child_window
-    or {
-      width = vim.o.columns - 10,
-      height = vim.o.lines - 7,
-      row = "center",
-      col = "center",
-      relative = "editor",
-      opts = {
-        wrap = false,
-        number = true,
-        relativenumber = false,
-      },
-    }
-  local width = window_config.width > 1 and window_config.width or vim.o.columns - 5
-  local height = window_config.height > 1 and window_config.height or vim.o.lines - 2
-  local row = window_config.row == "center" and math.floor((vim.o.lines - height) / 2) or window_config.row or 10 --[[@as number]]
-  local col = window_config.col == "center" and math.floor((vim.o.columns - width) / 2) or window_config.col or 0 --[[@as number]]
-
-  -- Title logic
-  local title = "CodeCompanion Diff"
   local display_filepath = filepath
   if not display_filepath and bufnr and api.nvim_buf_is_valid(bufnr) then
     local buf_name = api.nvim_buf_get_name(bufnr)
@@ -168,49 +190,8 @@ local function create_floating_window_only(bufnr, filepath)
       display_filepath = buf_name
     end
   end
-  if display_filepath then
-    local filename = vim.fs.basename(display_filepath)
-    -- Helper function to format directory path
-    ---@param path string
-    ---@return string
-    local function format_dirname(path)
-      local dirname = vim.fs.dirname(path)
-      if dirname and dirname ~= "." and dirname ~= "" then
-        return dirname .. "/"
-      end
-      return ""
-    end
-    -- Try to get relative path, fallback to original path
-    local ok, relative_path = pcall(function()
-      return vim.fs.relpath(vim.uv.cwd(), vim.fs.normalize(display_filepath))
-    end)
-    local path_to_use = (ok and relative_path and relative_path ~= "") and relative_path or display_filepath
-    title = " Diff: [" .. filename .. "]:" .. format_dirname(path_to_use) .. " "
-  end
 
-  local winnr = api.nvim_open_win(bufnr, true, {
-    relative = window_config.relative or "editor",
-    border = (vim.fn.exists("+winborder") == 0 or vim.o.winborder == "") and "single" or nil,
-    title = title,
-    title_pos = "center",
-    width = width,
-    height = height,
-    row = row,
-    col = col,
-    zindex = 100, -- Higher than background window
-  })
-
-  if winnr then
-    api.nvim_create_autocmd("WinClosed", {
-      pattern = tostring(winnr),
-      callback = function()
-        ui.close_background_window()
-      end,
-      once = true,
-    })
-  end
-
-  return winnr
+  return create_diff_floating_window(bufnr, display_filepath)
 end
 
 ---Open buffer or file and return buffer number and window
@@ -355,6 +336,8 @@ function M.create(bufnr_or_filepath, diff_id, opts)
     is_floating = layout == "float",
   }
 
+  local diff = diff_module.new(diff_args)
+
   if diff and opts.set_keymaps then
     vim.schedule(function()
       M.setup_keymaps(diff, opts)
@@ -375,6 +358,8 @@ function M.setup_keymaps(diff, opts)
     return
   end
 
+  -- For floating windows, we show keymaps in winbar and still set them up
+  -- For non-floating windows, we just set them up normally
   keymaps
     .new({
       bufnr = diff.bufnr,
