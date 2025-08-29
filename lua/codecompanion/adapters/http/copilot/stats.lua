@@ -81,7 +81,7 @@ function M.show()
     table.insert(lines, "## Premium Interactions ")
     local used, usage_percent = calculate_usage(premium.entitlement, premium.remaining)
     table.insert(lines, fmt("- Used: %d / %d ", used, premium.entitlement))
-    local bar = make_progress_bar(usage_percent, 20)
+    local bar = make_progress_bar(usage_percent, PROGRESS_BAR_WIDTH)
     table.insert(lines, fmt(" %s (%.1f%%)", bar, usage_percent))
     table.insert(lines, fmt("- Remaining: %d", premium.remaining))
     table.insert(lines, fmt("- Percentage: %.1f%%", premium.percent_remaining))
@@ -104,7 +104,7 @@ function M.show()
     if chat.unlimited then
       table.insert(lines, "- Status: Unlimited ")
     else
-      local used, usage_percent = calculate_usage(premium.entitlement, premium.remaining)
+      local used, usage_percent = calculate_usage(chat.entitlement, chat.remaining)
       table.insert(lines, fmt("- Used: %d / %d (%.1f%%)", used, chat.entitlement, usage_percent))
     end
     table.insert(lines, "")
@@ -116,10 +116,11 @@ function M.show()
     if completions.unlimited then
       table.insert(lines, "- Status: Unlimited ")
     else
-      local used, usage_percent = calculate_usage(premium.entitlement, premium.remaining)
+      local used, usage_percent = calculate_usage(completions.entitlement, completions.remaining)
       table.insert(lines, fmt("- Used: %d / %d (%.1f%%)", used, completions.entitlement, usage_percent))
     end
   end
+
   if stats.quota_reset_date then
     table.insert(lines, "")
     table.insert(lines, fmt("> Quota resets on: %s", stats.quota_reset_date))
