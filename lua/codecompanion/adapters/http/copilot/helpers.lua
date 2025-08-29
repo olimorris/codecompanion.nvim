@@ -5,6 +5,8 @@ local utils = require("codecompanion.utils.adapters")
 
 local M = {}
 
+local fmt = string.format
+
 -- Cache variables
 local _cached_models
 local _cached_adapter
@@ -155,7 +157,11 @@ function M.show_copilot_stats(get_and_authorize_token_fn, oauth_token)
 
   local lines = {}
   local ui = require("codecompanion.utils.ui")
-  -- Progress bar for premium
+
+  -- Progress bar for premium interactions
+  -- @param percent number
+  -- @param width number
+  -- @return string
   local function make_progress_bar(percent, width)
     local filled = math.floor(width * percent / 100)
     return string.rep("█", filled) .. string.rep("░", width - filled)
@@ -165,63 +171,63 @@ function M.show_copilot_stats(get_and_authorize_token_fn, oauth_token)
 
   if stats.quota_snapshots.premium_interactions then
     premium = stats.quota_snapshots.premium_interactions
-    table.insert(lines, "##  Premium Interactions")
+    table.insert(lines, "## Premium Interactions ")
     local used, usage_percent = calculate_usage(premium.entitlement, premium.remaining)
-    table.insert(lines, string.format("   - Used: %d / %d ", used, premium.entitlement))
+    table.insert(lines, fmt("- Used: %d / %d ", used, premium.entitlement))
     local bar = make_progress_bar(usage_percent, 20)
-    table.insert(lines, string.format("     %s (%.1f%%)", bar, usage_percent))
-    table.insert(lines, string.format("   - Remaining: %d", premium.remaining))
-    table.insert(lines, string.format("   - Percentage: %.1f%%", premium.percent_remaining))
+    table.insert(lines, fmt(" %s (%.1f%%)", bar, usage_percent))
+    table.insert(lines, fmt("- Remaining: %d", premium.remaining))
+    table.insert(lines, fmt("- Percentage: %.1f%%", premium.percent_remaining))
     if premium.unlimited then
-      table.insert(lines, "   - Status: Unlimited ✨")
+      table.insert(lines, "- Status: Unlimited ")
     else
-      table.insert(lines, "   - Status: Limited")
+      table.insert(lines, "- Status: Limited")
     end
     if premium.overage_permitted then
-      table.insert(lines, "   - Overage: Permitted :✔️")
+      table.insert(lines, "- Overage: Permitted ")
     else
-      table.insert(lines, "   - Overage: Not Permitted ")
+      table.insert(lines, "- Overage: Not Permitted ")
     end
     table.insert(lines, "")
   end
 
   if stats.quota_snapshots.chat then
     local chat = stats.quota_snapshots.chat
-    table.insert(lines, "## 󰭹 Chat")
+    table.insert(lines, "## Chat 󰭹 ")
     if chat.unlimited then
-      table.insert(lines, "   - Status: Unlimited ✨")
+      table.insert(lines, "- Status: Unlimited ")
     else
       local used, usage_percent = calculate_usage(premium.entitlement, premium.remaining)
-      table.insert(lines, string.format("   - Used: %d / %d (%.1f%%)", used, chat.entitlement, usage_percent))
+      table.insert(lines, fmt("- Used: %d / %d (%.1f%%)", used, chat.entitlement, usage_percent))
     end
     table.insert(lines, "")
   end
 
   if stats.quota_snapshots.completions then
     local completions = stats.quota_snapshots.completions
-    table.insert(lines, "##  Completions")
+    table.insert(lines, "## Completions ")
     if completions.unlimited then
-      table.insert(lines, "   - Status: Unlimited ✨")
+      table.insert(lines, "- Status: Unlimited ")
     else
       local used, usage_percent = calculate_usage(premium.entitlement, premium.remaining)
-      table.insert(lines, string.format("   - Used: %d / %d (%.1f%%)", used, completions.entitlement, usage_percent))
+      table.insert(lines, fmt("- Used: %d / %d (%.1f%%)", used, completions.entitlement, usage_percent))
     end
   end
   if stats.quota_reset_date then
     table.insert(lines, "")
-    table.insert(lines, string.format("> Quota resets on: %s", stats.quota_reset_date))
+    table.insert(lines, fmt("> Quota resets on: %s", stats.quota_reset_date))
     local y, m, d = stats.quota_reset_date:match("^(%d+)%-(%d+)%-(%d+)$")
     if y and m and d then
       local days_left = (os.time({ year = tonumber(y), month = tonumber(m), day = tonumber(d) }) - os.time()) / 86400
       local percent = math.max(0, math.min(((30 - days_left) / 30) * 100, 100))
-      table.insert(lines, string.format("> %s (%d days left)", make_progress_bar(percent, 20), days_left))
+      table.insert(lines, fmt("> %s (%d days left)", make_progress_bar(percent, 20), days_left))
     end
     table.insert(lines, "")
   end
 
   -- Create floating window
   local float_opts = {
-    title = " 󰍘 Copilot Stats ",
+    title = "   Copilot Stats ",
     lock = true,
     relative = "editor",
     row = "center",
@@ -235,6 +241,8 @@ function M.show_copilot_stats(get_and_authorize_token_fn, oauth_token)
   }
   local _, winnr = ui.create_float(lines, float_opts)
 
+  ---@param usage_percent number
+  ---@return string
   local function get_usage_highlight(usage_percent)
     if usage_percent >= 80 then
       return "Error"
@@ -242,14 +250,16 @@ function M.show_copilot_stats(get_and_authorize_token_fn, oauth_token)
       return "MoreMsg"
     end
   end
+
+  -- Apply the highlights to the window
   vim.api.nvim_win_call(winnr, function()
     premium = stats.quota_snapshots.premium_interactions
     if premium and not premium.unlimited then
       local used, usage_percent = calculate_usage(premium.entitlement, premium.remaining)
       local highlight = get_usage_highlight(usage_percent)
-      vim.fn.matchadd(highlight, string.format("   - Used: %d / %d", used, premium.entitlement))
+      vim.fn.matchadd(highlight, fmt("- Used: %d / %d", used, premium.entitlement))
       local bar = make_progress_bar(usage_percent, PROGRESS_BAR_WIDTH)
-      vim.fn.matchadd(highlight, string.format("     %s (%.1f%%)", bar, usage_percent))
+      vim.fn.matchadd(highlight, fmt(" %s (%.1f%%)", bar, usage_percent))
     end
   end)
 end
