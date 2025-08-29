@@ -1,24 +1,14 @@
 local Curl = require("plenary.curl")
+
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
-local utils = require("codecompanion.utils.adapters")
+local token = require("codecompanion.adapters.http.copilot.token")
 
 local M = {}
 
 local fmt = string.format
 
--- Cache variables
-local _cached_models
-local _cached_adapter
-local _cache_expires
-local _cache_file = vim.fn.tempname()
 local PROGRESS_BAR_WIDTH = 20
-
----Function to reset the Copilot cache
----@return nil
-function M.reset_cache()
-  _cached_adapter = nil
-end
 
 ---Calculate usage statistics
 ---@param entitlement number Total quota
@@ -30,94 +20,12 @@ local function calculate_usage(entitlement, remaining)
   return used, usage_percent
 end
 
----Get a list of available Copilot models
----@param adapter CodeCompanion.HTTPAdapter
----@param get_and_authorize_token_fn function Function to get and authorize token
----@param authorize_token_fn function Function to get fresh Github token
----@return table
-function M.get_models(adapter, get_and_authorize_token_fn, authorize_token_fn)
-  if _cached_models and _cache_expires and _cache_expires > os.time() then
-    return _cached_models
-  end
-
-  if not _cached_adapter then
-    if not adapter then
-      return {}
-    end
-    _cached_adapter = adapter
-  end
-
-  if not get_and_authorize_token_fn(adapter) then
-    return {}
-  end
-  -- Get a fresh token (authorize_token_fn handles expiry automatically)
-  local fresh_token = authorize_token_fn()
-  -- Ensure we have a fresh GitHub token
-  if not fresh_token or not fresh_token.token then
-    log:error("Could not get valid GitHub Copilot token")
-    return {}
-  end
-
-  local base_url = (fresh_token.endpoints and fresh_token.endpoints.api) or "https://api.githubcopilot.com"
-  local url = base_url .. "/models"
-  local headers = vim.deepcopy(_cached_adapter.headers)
-  headers["Authorization"] = "Bearer " .. fresh_token.token
-
-  local ok, response = pcall(function()
-    return Curl.get(url, {
-      sync = true,
-      headers = headers,
-      insecure = config.adapters.http.opts.allow_insecure,
-      proxy = config.adapters.http.opts.proxy,
-    })
-  end)
-  if not ok then
-    log:error("Could not get the Copilot models from " .. url .. ".\nError: %s", response)
-    return {}
-  end
-
-  local ok, json = pcall(vim.json.decode, response.body)
-  if not ok then
-    log:error("Error parsing the response from " .. url .. ".\nError: %s", response.body)
-    return {}
-  end
-
-  local models = {}
-  for _, model in ipairs(json.data) do
-    if model.model_picker_enabled and model.capabilities.type == "chat" then
-      local choice_opts = {}
-
-      if model.capabilities.supports.streaming then
-        choice_opts.can_stream = true
-      end
-      if model.capabilities.supports.tool_calls then
-        choice_opts.can_use_tools = true
-      end
-      if model.capabilities.supports.vision then
-        choice_opts.has_vision = true
-      end
-
-      models[model.id] = { vendor = model.vendor, nice_name = model.name, opts = choice_opts }
-    end
-  end
-
-  _cached_models = models
-  _cache_expires = utils.refresh_cache(_cache_file, config.adapters.http.opts.cache_models_for)
-
-  return models
-end
-
 ---Get Copilot usage statistics
----@param get_and_authorize_token_fn function Function to get and authorize token
----@param oauth_token string The oauth token
 ---@return table|nil
-function M.get_copilot_stats(get_and_authorize_token_fn, oauth_token)
-  local dummy_adapter = { url = "" }
-  if not get_and_authorize_token_fn(dummy_adapter) then
-    return nil
-  end
+local function get_statistics()
+  log:debug("Copilot Adapter: Fetching Copilot usage statistics")
 
-  log:debug("Fetching Copilot usage statistics")
+  local oauth_token = token.fetch().oauth_token
 
   local ok, response = pcall(function()
     return Curl.get("https://api.github.com/copilot_internal/user", {
@@ -131,14 +39,15 @@ function M.get_copilot_stats(get_and_authorize_token_fn, oauth_token)
       proxy = config.adapters.http.opts.proxy,
     })
   end)
+
   if not ok then
-    log:error("Could not get Copilot stats: %s", response)
+    log:error("Copilot Adapter: Could not get stats: %s", response)
     return nil
   end
 
   local ok, json = pcall(vim.json.decode, response.body)
   if not ok then
-    log:error("Error parsing Copilot stats response: %s", response.body)
+    log:error("Copilot Adapter: Error parsing stats response: %s", response.body)
     return nil
   end
 
@@ -146,11 +55,9 @@ function M.get_copilot_stats(get_and_authorize_token_fn, oauth_token)
 end
 
 ---Show Copilot usage statistics in a floating window
----@param get_and_authorize_token_fn function Function to get and authorize token
----@param oauth_token string The oauth token
 ---@return nil
-function M.show_copilot_stats(get_and_authorize_token_fn, oauth_token)
-  local stats = M.get_copilot_stats(get_and_authorize_token_fn, oauth_token)
+function M.show()
+  local stats = get_statistics()
   if not stats then
     return vim.notify("Could not retrieve Copilot stats", vim.log.levels.ERROR)
   end
@@ -174,7 +81,7 @@ function M.show_copilot_stats(get_and_authorize_token_fn, oauth_token)
     table.insert(lines, "## Premium Interactions ")
     local used, usage_percent = calculate_usage(premium.entitlement, premium.remaining)
     table.insert(lines, fmt("- Used: %d / %d ", used, premium.entitlement))
-    local bar = make_progress_bar(usage_percent, 20)
+    local bar = make_progress_bar(usage_percent, PROGRESS_BAR_WIDTH)
     table.insert(lines, fmt(" %s (%.1f%%)", bar, usage_percent))
     table.insert(lines, fmt("- Remaining: %d", premium.remaining))
     table.insert(lines, fmt("- Percentage: %.1f%%", premium.percent_remaining))
@@ -197,7 +104,7 @@ function M.show_copilot_stats(get_and_authorize_token_fn, oauth_token)
     if chat.unlimited then
       table.insert(lines, "- Status: Unlimited ")
     else
-      local used, usage_percent = calculate_usage(premium.entitlement, premium.remaining)
+      local used, usage_percent = calculate_usage(chat.entitlement, chat.remaining)
       table.insert(lines, fmt("- Used: %d / %d (%.1f%%)", used, chat.entitlement, usage_percent))
     end
     table.insert(lines, "")
@@ -209,10 +116,11 @@ function M.show_copilot_stats(get_and_authorize_token_fn, oauth_token)
     if completions.unlimited then
       table.insert(lines, "- Status: Unlimited ")
     else
-      local used, usage_percent = calculate_usage(premium.entitlement, premium.remaining)
+      local used, usage_percent = calculate_usage(completions.entitlement, completions.remaining)
       table.insert(lines, fmt("- Used: %d / %d (%.1f%%)", used, completions.entitlement, usage_percent))
     end
   end
+
   if stats.quota_reset_date then
     table.insert(lines, "")
     table.insert(lines, fmt("> Quota resets on: %s", stats.quota_reset_date))

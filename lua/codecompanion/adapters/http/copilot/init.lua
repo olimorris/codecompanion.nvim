@@ -1,154 +1,11 @@
-local Curl = require("plenary.curl")
-local config = require("codecompanion.config")
-local helpers = require("codecompanion.adapters.http.copilot.helpers")
+local get_models = require("codecompanion.adapters.http.copilot.get_models")
 local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
+local stats = require("codecompanion.adapters.http.copilot.stats")
+local token = require("codecompanion.adapters.http.copilot.token")
 local utils = require("codecompanion.utils.adapters")
 
--- Reference: https://github.com/yetone/avante.nvim/blob/22418bff8bcac4377ebf975cd48f716823867979/lua/avante/providers/copilot.lua#L5-L26
----@class CopilotToken
----@field annotations_enabled boolean
----@field chat_enabled boolean
----@field chat_jetbrains_enabled boolean
----@field code_quote_enabled boolean
----@field codesearch boolean
----@field copilotignore_enabled boolean
----@field endpoints {api: string, ["origin-tracker"]: string, proxy: string, telemetry: string}
----@field expires_at number
----@field individual boolean
----@field nes_enabled boolean
----@field prompt_8k boolean
----@field public_suggestions string
----@field refresh_in number
----@field sku string
----@field snippy_load_test_enabled boolean
----@field telemetry string
----@field token string
----@field tracking_id string
----@field vsc_electron_fetcher boolean
----@field xcode boolean
----@field xcode_chat boolean
-
----@alias CopilotOAuthToken string|nil
-local _oauth_token
-
----@type CopilotToken|nil
-local _github_token
-
----Finds the configuration path
----@return string|nil
-local function find_config_path()
-  if os.getenv("CODECOMPANION_TOKEN_PATH") then
-    return os.getenv("CODECOMPANION_TOKEN_PATH")
-  end
-
-  local path = vim.fs.normalize("$XDG_CONFIG_HOME")
-
-  if path and vim.fn.isdirectory(path) > 0 then
-    return path
-  elseif vim.fn.has("win32") > 0 then
-    path = vim.fs.normalize("~/AppData/Local")
-    if vim.fn.isdirectory(path) > 0 then
-      return path
-    end
-  else
-    path = vim.fs.normalize("~/.config")
-    if vim.fn.isdirectory(path) > 0 then
-      return path
-    end
-  end
-end
-
----The function first attempts to load the token from the environment variables,
----specifically for GitHub Codespaces. If not found, it then attempts to load
----the token from configuration files located in the user's configuration path.
----@return CopilotOAuthToken
-local function get_token()
-  if _oauth_token then
-    return _oauth_token
-  end
-
-  local token = os.getenv("GITHUB_TOKEN")
-  local codespaces = os.getenv("CODESPACES")
-  if token and codespaces then
-    return token
-  end
-
-  local config_path = find_config_path()
-  if not config_path then
-    return nil
-  end
-
-  local file_paths = {
-    config_path .. "/github-copilot/hosts.json",
-    config_path .. "/github-copilot/apps.json",
-  }
-
-  for _, file_path in ipairs(file_paths) do
-    if vim.uv.fs_stat(file_path) then
-      local userdata = vim.fn.readfile(file_path)
-
-      if vim.islist(userdata) then
-        userdata = table.concat(userdata, " ")
-      end
-
-      userdata = vim.json.decode(userdata)
-      for key, value in pairs(userdata) do
-        if string.find(key, "github.com") then
-          return value.oauth_token
-        end
-      end
-    end
-  end
-
-  return nil
-end
-
----Authorize the GitHub OAuth token
----@return CopilotToken
-local function authorize_token()
-  if _github_token and _github_token.expires_at > os.time() then
-    log:trace("Reusing GitHub Copilot token")
-    return _github_token
-  end
-
-  log:debug("Authorizing GitHub Copilot token")
-
-  local request = Curl.get("https://api.github.com/copilot_internal/v2/token", {
-    headers = {
-      Authorization = "Bearer " .. _oauth_token,
-      ["Accept"] = "application/json",
-    },
-    insecure = config.adapters.http.opts.allow_insecure,
-    proxy = config.adapters.http.opts.proxy,
-    on_error = function(err)
-      log:error("Copilot Adapter: Token request error %s", err)
-    end,
-  })
-
-  _github_token = vim.json.decode(request.body)
-  return _github_token
-end
-
----Get and authorize a GitHub Copilot token
----@param self CodeCompanion.HTTPAdapter
----@return boolean success
-local function get_and_authorize_token(self)
-  _oauth_token = get_token()
-  if not _oauth_token then
-    log:error("Copilot Adapter: No token found. Please refer to https://github.com/github/copilot.vim")
-    return false
-  end
-
-  _github_token = authorize_token()
-  if not _github_token or vim.tbl_isempty(_github_token) then
-    log:error("Copilot Adapter: Could not authorize your GitHub Copilot token")
-    return false
-  end
-  self.url = _github_token.endpoints.api .. "/chat/completions"
-
-  return true
-end
+local version = vim.version()
 
 ---@class CodeCompanion.HTTPAdapter.Copilot: CodeCompanion.HTTPAdapter
 return {
@@ -170,27 +27,19 @@ return {
   },
   url = "https://api.githubcopilot.com/chat/completions",
   env = {
-    ---@return string|nil
+    ---@return string
     api_key = function()
-      return authorize_token().token
+      return token.fetch().copilot_token
     end,
   },
   headers = {
     Authorization = "Bearer ${api_key}",
     ["Content-Type"] = "application/json",
     ["Copilot-Integration-Id"] = "vscode-chat",
-    ["Editor-Version"] = "Neovim/" .. vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
+    ["Editor-Version"] = "Neovim/" .. version.major .. "." .. version.minor .. "." .. version.patch,
   },
-  get_copilot_stats = function()
-    return helpers.get_copilot_stats(get_and_authorize_token, _oauth_token)
-  end,
   show_copilot_stats = function()
-    -- we need to ensure initialize token if no chat request has been done
-    local dummy_adapter = { url = "" }
-    if not get_and_authorize_token(dummy_adapter) then
-      return nil
-    end
-    return helpers.show_copilot_stats(get_and_authorize_token, _oauth_token)
+    return stats.show()
   end,
   handlers = {
     ---Check for a token before starting the request
@@ -203,7 +52,7 @@ return {
         model = model(self)
       end
       if type(choices) == "function" then
-        choices = choices(self)
+        choices = choices(self, { async = false })
       end
       local model_opts = choices[model]
 
@@ -219,7 +68,7 @@ return {
         self.opts.vision = false
       end
 
-      return get_and_authorize_token(self)
+      return token.init(self)
     end,
 
     --- Use the OpenAI adapter for the bulk of the work
@@ -279,7 +128,7 @@ return {
       return openai.handlers.inline_output(self, data, context)
     end,
     on_exit = function(self, data)
-      helpers.reset_cache()
+      get_models.reset_cache()
       return openai.handlers.on_exit(self, data)
     end,
   },
@@ -292,16 +141,13 @@ return {
       desc = "ID of the model to use. See the model endpoint compatibility table for details on which models work with the Chat API.",
       ---@type string|fun(): string
       default = "gpt-4.1",
-      ---@type fun(self: CodeCompanion.HTTPAdapter): table
-      choices = function(self)
+      ---@type fun(self: CodeCompanion.HTTPAdapter, opts?: table): table
+      choices = function(self, opts)
         -- Ensure token is available before getting models
-        if not _github_token then
-          local success = get_and_authorize_token(self)
-          if not success then
-            return { ["gpt-4.1"] = { opts = {} } } -- fallback
-          end
+        if not token.fetch().copilot_token then
+          return { ["gpt-4.1"] = { opts = {} } }
         end
-        return helpers.get_models(self, get_and_authorize_token, authorize_token)
+        return get_models.choices(self, opts)
       end,
     },
     ---@type CodeCompanion.Schema
