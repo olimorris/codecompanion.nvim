@@ -7,7 +7,7 @@ local api = vim.api
 ---@class CodeCompanion.Diff.Inline
 ---@field bufnr number
 ---@field contents string[]
----@field id string
+---@field id number
 ---@field ns_id number
 ---@field extmark_ids number[]
 ---@field has_changes boolean
@@ -18,7 +18,7 @@ local InlineDiff = {}
 ---@class CodeCompanion.Diff.InlineArgs
 ---@field bufnr number Buffer number to apply diff to
 ---@field contents string[] Original content lines
----@field id string Unique identifier for this diff
+---@field id number|string Unique identifier for this diff
 ---@field winnr? number Window number (optional)
 ---@field is_floating boolean|nil Whether this diff is in a floating window
 
@@ -37,7 +37,6 @@ function InlineDiff.new(args)
     ),
     extmark_ids = {},
     has_changes = false,
-    winnr = args.winnr,
   }, { __index = InlineDiff })
   ---@cast self CodeCompanion.Diff.Inline
 
@@ -113,7 +112,7 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
   if #hunks > 0 then
     local first_hunk = hunks[1]
     first_diff_line = math.max(1, first_hunk.new_start) -- Store for cursor positioning
-    -- Only show keymap hints if config allows it and not in test mode
+    -- Only show keymap hints if config allows it, not in test mode, and not floating
     local show_keymap_hints = inline_config.show_keymap_hints
     if show_keymap_hints == nil then
       show_keymap_hints = true -- Default to true
@@ -121,7 +120,8 @@ function InlineDiff:apply_diff_highlights(old_lines, new_lines)
     -- Check if we're in a test environment
     ---@diagnostic disable-next-line: undefined-field
     local is_testing = _G.MiniTest ~= nil
-    if show_keymap_hints and not is_testing then
+    -- Don't show hints for floating windows since they use winbar instead
+    if show_keymap_hints and not is_testing and not self.is_floating then
       local attach_line = math.max(0, first_hunk.new_start - 2)
       if first_diff_line == 1 then
         attach_line = attach_line + 1

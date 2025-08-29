@@ -1209,6 +1209,8 @@ You must create or modify a workspace file through a series of prompts over mult
       },
       -- You can also extend/override the child_window options for a diff
       diff_window = {
+        width = vim.o.columns - 20,
+        height = vim.o.lines - 4,
         opts = {
           number = true,
         },
@@ -1282,7 +1284,7 @@ You must create or modify a workspace file through a series of prompts over mult
         context_lines = 3, -- Number of context lines in hunks
         show_keymap_hints = true, -- Show "gda: accept | gdr: reject" hints above diff
         layout = "non_float", -- float|non_float - how to display diffs (float always uses floating window with child_window config)
-        dim = 30, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
+        dim = 25, -- Background dim level for floating diff (0-100, [100 full transparent], only applies when layout = "float")
       },
     },
     inline = {
