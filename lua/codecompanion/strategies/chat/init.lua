@@ -3,11 +3,12 @@
 --=============================================================================
 
 ---@class CodeCompanion.Chat
----@field adapter CodeCompanion.Adapter The adapter to use for the chat
+---@field acp_connection? CodeCompanion.ACP.Connection The ACP session ID and connection
+---@field adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter to use for the chat
 ---@field builder CodeCompanion.Chat.UI.Builder The builder for the chat UI
----@field create_buf fun(): integer The function that creates a new buffer for the chat
+---@field create_buf fun(): number The function that creates a new buffer for the chat
 ---@field aug number The ID for the autocmd group
----@field bufnr integer The buffer number of the chat
+---@field bufnr number The buffer number of the chat
 ---@field buffer_context table The context of the buffer that the chat was initiated from
 ---@field current_request table|nil The current request being executed
 ---@field current_tool table The current tool being executed
@@ -15,8 +16,8 @@
 ---@field edit_tracker? CodeCompanion.Chat.EditTracker Edit tracking information for the chat
 ---@field header_line number The line number of the user header that any Tree-sitter parsing should start from
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
----@field header_ns integer The namespace for the virtual text that appears in the header
----@field id integer The unique identifier for the chat
+---@field header_ns number The namespace for the virtual text that appears in the header
+---@field id number The unique identifier for the chat
 ---@field messages? table The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
@@ -29,14 +30,15 @@
 ---@field tool_registry CodeCompanion.Chat.ToolRegistry Methods for handling interactions between the chat buffer and tools
 ---@field ui CodeCompanion.Chat.UI The UI of the chat buffer
 ---@field variables? CodeCompanion.Variables The variables available to the user
----@field watchers CodeCompanion.Watchers The buffer watcher instance
+---@field watched_buffers CodeCompanion.Watchers The buffer watcher instance
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 ---@field yaml_parser vim.treesitter.LanguageTree The Yaml Tree-sitter parser for the chat buffer
 ---@field _last_role string The last role that was rendered in the chat buffer
 ---@field _tool_monitors? table A table of tool monitors that are currently running in the chat buffer
 
 ---@class CodeCompanion.ChatArgs Arguments that can be injected into the chat
----@field adapter? CodeCompanion.Adapter The adapter used in this chat buffer
+---@field acp_session_id? string The ACP session ID which links to this chat buffer
+---@field adapter? CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter The adapter used in this chat buffer
 ---@field auto_submit? boolean Automatically submit the chat when the chat buffer is created
 ---@field buffer_context? table Context of the buffer that the chat was initiated from
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
@@ -50,7 +52,6 @@
 ---@field intro_message? string The welcome message that is displayed in the chat buffer
 
 local adapters = require("codecompanion.adapters")
-local client = require("codecompanion.http")
 local completion = require("codecompanion.providers.completion")
 local config = require("codecompanion.config")
 local edit_tracker = require("codecompanion.strategies.chat.edit_tracker")
@@ -76,6 +77,7 @@ local CONSTANTS = {
   BLANK_DESC = "[No messages]",
 }
 
+local clients = {} -- Cache for HTTP and ACP clients
 local llm_role = config.strategies.chat.roles.llm
 local user_role = config.strategies.chat.roles.user
 
@@ -115,17 +117,21 @@ local function add_pins(chat)
   end
 end
 
----Find a message in the table that has a specific tool call ID
----@param id string
----@param messages table
----@return table|nil
-local function find_tool_call(id, messages)
-  for _, msg in ipairs(messages) do
-    if msg.tool_call_id and msg.tool_call_id == id then
-      return msg
+---Get the appropriate client for the adapter type
+---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+---@return table
+local function get_client(adapter)
+  if adapter.type == "acp" then
+    if not clients.acp then
+      clients.acp = require("codecompanion.acp")
     end
+    return clients.acp
+  else
+    if not clients.http then
+      clients.http = require("codecompanion.http")
+    end
+    return clients.http
   end
-  return nil
 end
 
 ---Get the settings key at the current cursor position
@@ -146,6 +152,19 @@ local function get_settings_key(chat, opts)
   local key_node = node:named_child(0)
   local key_name = get_node_text(key_node, chat.bufnr)
   return key_name, node
+end
+
+---Find a message in the table that has a specific tool call ID
+---@param id string
+---@param messages table
+---@return table|nil
+local function find_tool_call(id, messages)
+  for _, msg in ipairs(messages) do
+    if msg.tool_call_id and msg.tool_call_id == id then
+      return msg
+    end
+  end
+  return nil
 end
 
 ---Determine if a tag exists in the messages table
@@ -218,9 +237,9 @@ end
 local _cached_settings = {}
 
 ---Parse the chat buffer for settings
----@param bufnr integer
+---@param bufnr number
 ---@param parser vim.treesitter.LanguageTree
----@param adapter? CodeCompanion.Adapter
+---@param adapter? CodeCompanion.HTTPAdapter
 ---@return table
 local function ts_parse_settings(bufnr, parser, adapter)
   if _cached_settings[bufnr] then
@@ -257,7 +276,7 @@ local function ts_parse_settings(bufnr, parser, adapter)
   end
 
   if not settings then
-    log:error("Failed to parse settings in chat buffer")
+    log:error("[chat::init::ts_parse_settings] Failed to parse settings in chat buffer")
     return {}
   end
 
@@ -433,6 +452,10 @@ local function set_autocmds(chat)
       buffer = bufnr,
       desc = "Show settings information in the CodeCompanion chat buffer",
       callback = function()
+        if chat.adapter.type ~= "http" then
+          return
+        end
+
         local key_name, node = get_settings_key(chat)
         if not key_name or not node then
           vim.diagnostic.set(config.INFO_NS, chat.bufnr, {})
@@ -461,9 +484,16 @@ local function set_autocmds(chat)
       buffer = bufnr,
       desc = "Parse the settings in the CodeCompanion chat buffer for any errors",
       callback = function()
-        local settings = ts_parse_settings(bufnr, chat.yaml_parser, chat.adapter)
+        if chat.adapter.type ~= "http" then
+          return
+        end
 
-        local errors = schema.validate(chat.adapter.schema, settings, chat.adapter)
+        local adapter = chat.adapter
+        ---@cast adapter CodeCompanion.HTTPAdapter
+
+        local settings = ts_parse_settings(bufnr, chat.yaml_parser, adapter)
+
+        local errors = schema.validate(adapter.schema, settings, adapter)
         local node = settings.__ts_node
 
         local items = {}
@@ -522,6 +552,7 @@ function Chat.new(args)
   log:trace("Chat created with ID %d", id)
 
   local self = setmetatable({
+    acp_session_id = args.acp_session_id or nil,
     buffer_context = args.buffer_context,
     context_items = {},
     cycle = 1,
@@ -536,6 +567,7 @@ function Chat.new(args)
       local bufnr = api.nvim_create_buf(false, true)
       api.nvim_buf_set_name(bufnr, string.format("[CodeCompanion] %d", id))
       vim.bo[bufnr].filetype = "codecompanion"
+      vim.bo[bufnr].undolevels = config.strategies.chat.opts.undolevels or 10
 
       -- Set up omnifunc for automatic completion when no other completion provider is active
       local completion_provider = config.strategies.chat.opts.completion_provider
@@ -558,7 +590,7 @@ function Chat.new(args)
   local ok, parser, yaml_parser
   ok, parser = pcall(vim.treesitter.get_parser, self.bufnr, "markdown")
   if not ok then
-    return log:error("Could not find the Markdown Tree-sitter parser")
+    return log:error("[chat::init::new] Could not find the Markdown Tree-sitter parser")
   end
   self.parser = parser
 
@@ -576,7 +608,7 @@ function Chat.new(args)
   self.tools = require("codecompanion.strategies.chat.tools").new({ bufnr = self.bufnr, messages = self.messages })
   self.tool_registry = require("codecompanion.strategies.chat.tool_registry").new({ chat = self })
   self.variables = require("codecompanion.strategies.chat.variables").new()
-  self.watchers = require("codecompanion.strategies.chat.watchers").new()
+  self.watched_buffers = require("codecompanion.strategies.chat.watchers").new()
 
   table.insert(_G.codecompanion_buffers, self.bufnr)
   chatmap[self.bufnr] = {
@@ -599,9 +631,14 @@ function Chat.new(args)
     bufnr = self.bufnr,
     id = self.id,
   })
-  util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = self.adapter.schema.model.default })
+  util.fire(
+    "ChatModel",
+    { bufnr = self.bufnr, id = self.id, model = self.adapter.schema and self.adapter.schema.model.default }
+  )
 
-  self:apply_settings(schema.get_default(self.adapter, args.settings))
+  if self.adapter.type == "http" then
+    self:apply_settings(schema.get_default(self.adapter, args.settings))
+  end
 
   self.ui = require("codecompanion.strategies.chat.ui").new({
     adapter = self.adapter,
@@ -637,12 +674,20 @@ function Chat.new(args)
   end
 
   if config.strategies.chat.keymaps then
+    -- Filter out any private keymaps
+    local filtered_keymaps = {}
+    for k, v in pairs(config.strategies.chat.keymaps) do
+      if k:sub(1, 1) ~= "_" then
+        filtered_keymaps[k] = v
+      end
+    end
+
     keymaps
       .new({
         bufnr = self.bufnr,
         callbacks = require("codecompanion.strategies.chat.keymaps"),
         data = self,
-        keymaps = config.strategies.chat.keymaps,
+        keymaps = filtered_keymaps,
       })
       :set()
   end
@@ -686,8 +731,11 @@ end
 ---@param settings? table
 ---@return nil
 function Chat:apply_settings(settings)
-  self.settings = settings or schema.get_default(self.adapter)
+  if self.adapter.type ~= "http" then
+    return
+  end
 
+  self.settings = settings or schema.get_default(self.adapter)
   if not config.display.chat.show_settings then
     _cached_settings[self.bufnr] = self.settings
   end
@@ -697,13 +745,17 @@ end
 ---@param model string
 ---@return self
 function Chat:apply_model(model)
+  if self.adapter.type ~= "http" then
+    return self
+  end
+
   if _cached_settings[self.bufnr] then
     _cached_settings[self.bufnr].model = model
   end
 
   self.adapter.schema.model.default = model
   self.adapter = adapters.set_model(self.adapter)
-  self:update_metadata()
+  self:add_system_prompt()
 
   return self
 end
@@ -712,6 +764,10 @@ end
 ---@param callback fun(request: table)
 ---@return nil
 function Chat:complete_models(callback)
+  if self.adapter.type ~= "http" then
+    return
+  end
+
   local items = {}
   local cursor = api.nvim_win_get_cursor(0)
   local key_name, node = get_settings_key(self, { pos = { cursor[1] - 1, 1 } })
@@ -746,14 +802,15 @@ function Chat:add_system_prompt(prompt, opts)
     return self
   end
 
-  opts = opts or { visible = false, tag = "from_config" }
+  prompt = prompt or config.opts.system_prompt
+  opts = opts or { visible = false, tag = "system_prompt_from_config" }
 
-  -- Don't add the same system prompt twice
+  -- If the system prompt already exists, update it
   if has_tag(opts.tag, self.messages) then
-    return self
+    self:remove_tagged_message(opts.tag)
   end
 
-  -- Get the index of the last system prompt
+  -- Workout in the message stack the last system prompt is
   local index
   if not opts.index then
     for i = #self.messages, 1, -1 do
@@ -764,18 +821,16 @@ function Chat:add_system_prompt(prompt, opts)
     end
   end
 
-  prompt = prompt or config.opts.system_prompt
-  if prompt ~= "" then
-    if type(prompt) == "function" then
-      prompt = prompt({
-        adapter = self.adapter,
-        language = config.opts.language,
-      })
+  ---Add a system prompt to the messages table
+  ---@param p string
+  ---@return nil
+  local function insert_prompt(p)
+    if not p or p == "" then
+      return
     end
-
     local system_prompt = {
       role = config.constants.SYSTEM_ROLE,
-      content = prompt,
+      content = p,
     }
     system_prompt.id = make_id(system_prompt)
     system_prompt.cycle = self.cycle
@@ -783,6 +838,38 @@ function Chat:add_system_prompt(prompt, opts)
 
     table.insert(self.messages, index or 1, system_prompt)
   end
+
+  -- If prompt is a function, then resolve it asynchronously. This is because
+  -- some adapters, like Copilot, need to make a HTTP request to fetch the
+  -- models and other metadata that the system prompt func will need.
+  if type(prompt) == "function" or prompt == nil then
+    local a = require("codecompanion.utils.async")
+
+    local compute_prompt = a.wrap(function(cb)
+      vim.schedule(function()
+        local ok, out = pcall(prompt, {
+          adapter = self.adapter,
+          language = config.opts.language,
+        })
+        if not ok then
+          log:error("Error inserting the system prompt: %s", out)
+        end
+        cb(out)
+      end)
+    end)
+
+    a.sync(function()
+      local text = a.wait(compute_prompt())
+      a.wait(function(cb)
+        vim.schedule(cb)
+      end)
+      insert_prompt(text)
+    end)()
+
+    return self
+  end
+
+  insert_prompt(prompt)
   return self
 end
 
@@ -793,11 +880,11 @@ function Chat:toggle_system_prompt()
     vim.tbl_map(function(msg)
       return msg.opts.tag
     end, self.messages),
-    "from_config"
+    "system_prompt_from_config"
   )
 
   if has_system_prompt then
-    self:remove_tagged_message("from_config")
+    self:remove_tagged_message("system_prompt_from_config")
     util.notify("Removed system prompt")
   else
     self:add_system_prompt()
@@ -839,6 +926,7 @@ function Chat:add_message(data, opts)
   message.id = make_id(message)
   message.cycle = self.cycle
   message.opts = opts
+  message._meta = {}
   if opts.index then
     table.insert(self.messages, opts.index, message)
   else
@@ -860,6 +948,80 @@ function Chat:replace_vars_and_tools(message)
   end
 end
 
+---Make a request to the LLM using the HTTP client
+---@param payload table The payload to send to the LLM
+---@return nil
+function Chat:_submit_http(payload)
+  local adapter = self.adapter ---@cast adapter CodeCompanion.HTTPAdapter
+
+  local settings = ts_parse_settings(self.bufnr, self.yaml_parser, adapter)
+  self:apply_settings(settings)
+  local mapped_settings = adapter:map_schema_to_params(settings)
+
+  log:trace("Settings:\n%s", mapped_settings)
+
+  local output = {}
+  local reasoning = {}
+  local tools = {}
+  self.current_request = get_client(adapter).new({ adapter = mapped_settings }):request(payload, {
+    ---@param err { message: string, stderr: string }
+    ---@param data table
+    callback = function(err, data)
+      if err and err.stderr ~= "{}" then
+        self.status = CONSTANTS.STATUS_ERROR
+        log:error("[chat::init::_submit_http] Error: %s", err.stderr)
+        return self:done(output)
+      end
+
+      if data then
+        if adapter.features.tokens then
+          local tokens = adapter.handlers.tokens(adapter, data)
+          if tokens then
+            self.ui.tokens = tokens
+          end
+        end
+
+        local result = adapter.handlers.chat_output(adapter, data, tools)
+        if result and result.status then
+          self.status = result.status
+          if self.status == CONSTANTS.STATUS_SUCCESS then
+            if result.output.role then
+              result.output.role = config.constants.LLM_ROLE
+              self._last_role = result.output.role
+            end
+            if result.output.reasoning then
+              table.insert(reasoning, result.output.reasoning)
+              self:add_buf_message({
+                role = config.constants.LLM_ROLE,
+                content = result.output.reasoning.content,
+              }, { type = self.MESSAGE_TYPES.REASONING_MESSAGE })
+            end
+            table.insert(output, result.output.content)
+            self:add_buf_message({
+              role = config.constants.LLM_ROLE,
+              content = result.output.content,
+            }, { type = self.MESSAGE_TYPES.LLM_MESSAGE })
+          elseif self.status == CONSTANTS.STATUS_ERROR then
+            log:error("[chat::init::_submit_http] Error: %s", result.output)
+            return self:done(output)
+          end
+        end
+      end
+    end,
+    done = function()
+      self:done(output, reasoning, tools)
+    end,
+  }, { bufnr = self.bufnr, strategy = "chat" })
+end
+
+---Make a request to the LLM using the ACP client
+---@param payload table The payload to send to the LLM
+---@return nil
+function Chat:_submit_acp(payload)
+  local acp_handler = require("codecompanion.strategies.chat.acp.handler").new(self)
+  self.current_request = acp_handler:submit(payload)
+end
+
 ---Submit the chat buffer's contents to the LLM
 ---@param opts? table
 ---@return nil
@@ -877,40 +1039,36 @@ function Chat:submit(opts)
   -- Refresh tools before submitting to pick up any dynamically added tools
   self.tools:refresh()
 
-  local bufnr = self.bufnr
-
   if opts.auto_submit then
-    self.watchers:check_for_changes(self)
+    self.watched_buffers:check_for_changes(self)
   else
-    local message = ts_parse_messages(self, self.header_line)
-
-    if not message and not helpers.has_user_messages(self) then
+    local message_to_submit = ts_parse_messages(self, self.header_line)
+    if not message_to_submit and not helpers.has_user_messages(self.messages) then
       return log:warn("No messages to submit")
     end
 
-    self.watchers:check_for_changes(self)
+    self.watched_buffers:check_for_changes(self)
 
     -- Allow users to send a blank message to the LLM
     if not opts.regenerate then
       local chat_opts = config.strategies.chat.opts
-      if message and message.content and chat_opts and chat_opts.prompt_decorator then
-        message.content =
-          chat_opts.prompt_decorator(message.content, adapters.make_safe(self.adapter), self.buffer_context)
+      if message_to_submit and message_to_submit.content and chat_opts and chat_opts.prompt_decorator then
+        message_to_submit.content =
+          chat_opts.prompt_decorator(message_to_submit.content, adapters.make_safe(self.adapter), self.buffer_context)
       end
-      self.builder.state.last_type = "user_message"
       self:add_message({
         role = config.constants.USER_ROLE,
-        content = (message and message.content or config.strategies.chat.opts.blank_prompt),
+        content = (message_to_submit and message_to_submit.content or config.strategies.chat.opts.blank_prompt),
       })
     end
 
-    -- NOTE: There are instances when submit is called with no user message. Such
-    -- as in the case of tools auto-submitting responses. Context should be
-    -- excluded and we can do this by checking for user messages.
-    if message then
-      message = self.context:clear(self.messages[#self.messages])
-      self:replace_vars_and_tools(message)
-      self:check_images(message)
+    -- NOTE: There are instances when submit is called with no user message.
+    -- Such as when tools auto-submitting responses. So, we need to ensure
+    -- that we only manage context if the last message was from the user.
+    if message_to_submit then
+      message_to_submit = self.context:clear(self.messages[#self.messages])
+      self:replace_vars_and_tools(message_to_submit)
+      self:check_images(message_to_submit)
       self:check_context()
       add_pins(self)
     end
@@ -924,78 +1082,25 @@ function Chat:submit(opts)
       vim.cmd("stopinsert")
     end
     self.ui:lock_buf()
-
     set_text_editing_area(self, 2) -- this accounts for the LLM header
   end
-
-  local settings = ts_parse_settings(bufnr, self.yaml_parser, self.adapter)
-  self:apply_settings(settings)
-  local mapped_settings = self.adapter:map_schema_to_params(settings)
 
   local payload = {
     messages = self.adapter:map_roles(vim.deepcopy(self.messages)),
     tools = (not vim.tbl_isempty(self.tool_registry.schemas) and { self.tool_registry.schemas } or {}),
   }
 
-  log:trace("Settings:\n%s", mapped_settings)
-  log:trace("Messages:\n%s", self.messages)
+  log:trace("Messages:\n%s", payload.messages)
   log:trace("Tools:\n%s", payload.tools)
   log:info("Chat request started")
 
-  local output = {}
-  local reasoning = {}
-  local tools = {}
-  self.current_request = client.new({ adapter = mapped_settings }):request(payload, {
-    ---@param err { message: string, stderr: string }
-    ---@param data table
-    ---@param adapter CodeCompanion.Adapter The modified adapter from the http client
-    callback = function(err, data, adapter)
-      if err and err.stderr ~= "{}" then
-        self.status = CONSTANTS.STATUS_ERROR
-        log:error("Error: %s", err.stderr)
-        return self:done(output)
-      end
+  if self.adapter.type == "http" then
+    self:_submit_http(payload)
+  elseif self.adapter.type == "acp" then
+    self:_submit_acp(payload)
+  end
 
-      if data then
-        if adapter.features.tokens then
-          local tokens = self.adapter.handlers.tokens(adapter, data)
-          if tokens then
-            self.ui.tokens = tokens
-          end
-        end
-
-        local result = self.adapter.handlers.chat_output(adapter, data, tools)
-        if result and result.status then
-          self.status = result.status
-          if self.status == CONSTANTS.STATUS_SUCCESS then
-            if result.output.role then
-              self._last_role = result.output.role
-              result.output.role = config.constants.LLM_ROLE
-            end
-            if result.output.reasoning then
-              table.insert(reasoning, result.output.reasoning)
-              self:add_buf_message(
-                { role = result.output.role, content = result.output.reasoning.content },
-                { type = self.MESSAGE_TYPES.REASONING_MESSAGE }
-              )
-            end
-            table.insert(output, result.output.content)
-            self:add_buf_message(
-              { role = result.output.role, content = result.output.content },
-              { type = self.MESSAGE_TYPES.LLM_MESSAGE }
-            )
-          elseif self.status == CONSTANTS.STATUS_ERROR then
-            log:error("Error: %s", result.output)
-            return self:done(output)
-          end
-        end
-      end
-    end,
-    done = function()
-      self:done(output, reasoning, tools)
-    end,
-  }, { bufnr = bufnr, strategy = "chat" })
-  util.fire("ChatSubmitted", { bufnr = self.bufnr, id = self.id })
+  util.fire("ChatSubmitted", { bufnr = self.bufnr, id = self.id, type = self.adapter.type })
 end
 
 ---Method to fire when all the tools are done
@@ -1006,12 +1111,25 @@ function Chat:tools_done(opts)
   return ready_chat_buffer(self, opts)
 end
 
+---Label messages that have been sent to the LLM, by the user. For adapters that
+---store state on our behalf, this prevents us from sending the same message
+---multiple times.
+---@return nil
+function Chat:label_sent_items()
+  vim.iter(self.messages):each(function(msg)
+    if msg.role == config.constants.USER_ROLE and (msg._meta and not msg._meta.sent) then
+      msg._meta.sent = true
+    end
+  end)
+end
+
 ---Method to call after the response from the LLM is received
 ---@param output? table The message output from the LLM
 ---@param reasoning? table The reasoning output from the LLM
 ---@param tools? table The tools output from the LLM
+---@param status? "stopped" The reason the done method was called
 ---@return nil
-function Chat:done(output, reasoning, tools)
+function Chat:done(output, reasoning, tools, status)
   self.current_request = nil
 
   -- Commonly, a status may not be set if the message exceeds a token limit
@@ -1040,6 +1158,12 @@ function Chat:done(output, reasoning, tools)
       reasoning = reasoning_content,
     })
     reasoning_content = nil
+  end
+
+  -- If a user stops the request, we should be prepared to send the last message
+  -- again as we can't be sure what the LLM had actually received
+  if not status or status ~= "stopped" then
+    self:label_sent_items()
   end
 
   -- Process tools last
@@ -1186,9 +1310,9 @@ function Chat:check_context()
   -- Clear any tool's schemas
   local schemas_to_keep = {}
   local tools_in_use_to_keep = {}
-  for id, tool_schemas in pairs(self.tool_registry.schemas) do
+  for id, tool_schema in pairs(self.tool_registry.schemas) do
     if not vim.tbl_contains(to_remove, id) then
-      schemas_to_keep[id] = tool_schemas
+      schemas_to_keep[id] = tool_schema
       local tool_name = id:match("<tool>(.*)</tool>")
       if tool_name and self.tool_registry.in_use[tool_name] then
         tools_in_use_to_keep[tool_name] = true
@@ -1236,18 +1360,21 @@ function Chat:stop()
         job:shutdown()
       end)
     end
-    self.adapter.handlers.on_exit(self.adapter)
+
+    if self.adapter.handlers and self.adapter.handlers.on_exit then
+      self.adapter.handlers.on_exit(self.adapter)
+    end
   end
 
   self.subscribers:stop()
 
   vim.schedule(function()
     log:debug("Chat request cancelled")
-    self:done()
+    self:done(nil, nil, nil, "stopped")
   end)
 end
 
----Close the current chat buffer
+---Close the current chat buffer and clean up any resources
 ---@return nil
 function Chat:close()
   if self.current_request then
@@ -1280,6 +1407,10 @@ function Chat:close()
   if self.ui.aug then
     api.nvim_clear_autocmds({ group = self.ui.aug })
   end
+  if self.adapter.type == "acp" and self.acp_connection then
+    self.acp_connection:disconnect()
+  end
+
   util.fire("ChatClosed", { bufnr = self.bufnr, id = self.id })
   util.fire("ChatAdapter", { bufnr = self.bufnr, id = self.id, adapter = nil })
   util.fire("ChatModel", { bufnr = self.bufnr, id = self.id, model = nil })
@@ -1374,16 +1505,27 @@ function Chat:debug()
     return
   end
 
-  return ts_parse_settings(self.bufnr, self.yaml_parser, self.adapter), self.messages
+  local settings = {}
+  if self.adapter.type == "http" then
+    local adapter = self.adapter ---@cast adapter CodeCompanion.HTTPAdapter
+    settings = ts_parse_settings(self.bufnr, self.yaml_parser, adapter)
+  end
+
+  return settings, self.messages
 end
 
 ---Update a global state object that users can access in their config
 ---@return nil
 function Chat:update_metadata()
+  local model
+  if self.adapter.type == "http" then
+    model = self.adapter.schema and self.adapter.schema.model and self.adapter.schema.model.default
+  end
+
   _G.codecompanion_chat_metadata[self.bufnr] = {
     adapter = {
       name = self.adapter.formatted_name,
-      model = self.adapter.schema.model.default,
+      model = model,
     },
     context_items = #self.context_items,
     cycles = self.cycle,
@@ -1394,7 +1536,7 @@ function Chat:update_metadata()
 end
 
 ---Returns the chat object(s) based on the buffer number
----@param bufnr? integer
+---@param bufnr? number
 ---@return CodeCompanion.Chat|table
 function Chat.buf_get_chat(bufnr)
   if not bufnr then

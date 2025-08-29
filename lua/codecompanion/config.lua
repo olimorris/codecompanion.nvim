@@ -1,5 +1,5 @@
 local providers = require("codecompanion.providers")
-local ui_utils = require("codecompanion.utils.ui")
+local ui = require("codecompanion.utils.ui")
 
 local fmt = string.format
 
@@ -11,29 +11,31 @@ local constants = {
 
 local defaults = {
   adapters = {
-    -- LLMs -------------------------------------------------------------------
-    anthropic = "anthropic",
-    azure_openai = "azure_openai",
-    copilot = "copilot",
-    deepseek = "deepseek",
-    gemini = "gemini",
-    githubmodels = "githubmodels",
-    huggingface = "huggingface",
-    novita = "novita",
-    mistral = "mistral",
-    ollama = "ollama",
-    openai = "openai",
-    xai = "xai",
-    -- Non LLMs
-    jina = "jina",
-    tavily = "tavily",
-    -- OPTIONS ----------------------------------------------------------------
-    opts = {
-      allow_insecure = false, -- Allow insecure connections?
-      cache_models_for = 1800, -- Cache adapter models for this long (seconds)
-      proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
-      show_defaults = true, -- Show default adapters
-      show_model_choices = true, -- Show model choices when changing adapter
+    http = {
+      anthropic = "anthropic",
+      azure_openai = "azure_openai",
+      copilot = "copilot",
+      deepseek = "deepseek",
+      gemini = "gemini",
+      githubmodels = "githubmodels",
+      huggingface = "huggingface",
+      novita = "novita",
+      mistral = "mistral",
+      ollama = "ollama",
+      openai = "openai",
+      xai = "xai",
+      jina = "jina",
+      tavily = "tavily",
+      opts = {
+        allow_insecure = false, -- Allow insecure connections?
+        cache_models_for = 1800, -- Cache adapter models for this long (seconds)
+        proxy = nil, -- [protocol://]host[:port] e.g. socks5://127.0.0.1:9999
+        show_defaults = true, -- Show default adapters
+        show_model_choices = true, -- Show model choices when changing adapter
+      },
+    },
+    acp = {
+      gemini_cli = "gemini_cli",
     },
   },
   constants = constants,
@@ -43,7 +45,7 @@ local defaults = {
       adapter = "copilot",
       roles = {
         ---The header name for the LLM's messages
-        ---@type string|fun(adapter: CodeCompanion.Adapter): string
+        ---@type string|fun(adapter: CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter): string
         llm = function(adapter)
           return "CodeCompanion (" .. adapter.formatted_name .. ")"
         end,
@@ -186,8 +188,6 @@ local defaults = {
               "rejected",
             },
           },
-          wait_timeout = 30000, -- How long to wait for user input before timing out (milliseconds)
-
           ---Tools and/or groups that are always loaded in a chat buffer
           ---@type string[]
           default_tools = {},
@@ -459,15 +459,37 @@ local defaults = {
           callback = "keymaps.super_diff",
           description = "Show Super Diff",
         },
+        -- Keymaps for ACP permission requests
+        _acp_allow_always = {
+          modes = { n = "g1" },
+          description = "Allow Always",
+        },
+        _acp_allow_once = {
+          modes = { n = "g2" },
+          description = "Allow Once",
+        },
+        _acp_reject_once = {
+          modes = { n = "g3" },
+          description = "Reject Once",
+        },
+        _acp_reject_always = {
+          modes = { n = "g4" },
+          description = "Reject Always",
+        },
       },
       opts = {
         blank_prompt = "", -- The prompt to use when the user doesn't provide a prompt
         completion_provider = providers.completion, -- blink|cmp|coc|default
         register = "+", -- The register to use for yanking code
-        yank_jump_delay_ms = 400, -- Delay in milliseconds before jumping back from the yanked code
+        yank_jump_delay_ms = 400, -- Delay before jumping back from the yanked code (milliseconds )
+        undo_levels = 10, -- Number of undo levels to add to chat buffers
+        wait_timeout = 2e6, -- Time to wait for user response before timing out (milliseconds)
+
+        -- What to do when an ACP permission request times out? (allow_once|reject_once)
+        acp_timeout_response = "reject_once",
 
         ---@type string|fun(path: string)
-        goto_file_action = ui_utils.tabnew_reuse,
+        goto_file_action = ui.tabnew_reuse,
       },
     },
     -- INLINE STRATEGY --------------------------------------------------------
@@ -489,7 +511,7 @@ local defaults = {
           description = "Reject change",
         },
         always_accept = {
-          modes = { n = "gdt" },
+          modes = { n = "gdy" },
           opts = { nowait = true },
           index = 3,
           callback = "keymaps.always_accept",
@@ -1016,8 +1038,11 @@ You must create or modify a workspace file through a series of prompts over mult
         buffer_pin = " ",
         buffer_watch = "󰂥 ",
         --chat_context = " ",
-        tool_success = " ",
-        tool_failure = " ",
+        chat_fold = " ",
+        tool_pending = " ",
+        tool_in_progress = " ",
+        tool_failure = " ",
+        tool_success = " ",
       },
       -- Window options for the chat buffer
       window = {
@@ -1051,9 +1076,15 @@ You must create or modify a workspace file through a series of prompts over mult
         col = "center",
         relative = "editor",
         opts = {
-          wrap = true,
+          wrap = false,
           number = false,
           relativenumber = false,
+        },
+      },
+      -- You can also extend/override the child_window options for a diff
+      diff_window = {
+        opts = {
+          number = true,
         },
       },
 
@@ -1065,6 +1096,7 @@ You must create or modify a workspace file through a series of prompts over mult
 
       show_context = true, -- Show context (from slash commands and variables) in the chat buffer?
       fold_context = false, -- Fold context in the chat buffer?
+      fold_reasoning = true, -- Fold the reasoning content from the LLM in the chat buffer?
 
       show_settings = false, -- Show LLM settings at the top of the chat buffer?
       show_tools_processing = true, -- Show the loading message when tools are being executed?
@@ -1073,8 +1105,8 @@ You must create or modify a workspace file through a series of prompts over mult
 
       ---The function to display the token count
       ---@param tokens number
-      ---@param adapter CodeCompanion.Adapter
-      token_count = function(tokens, adapter)
+      ---@param adapter CodeCompanion.HTTPAdapter|CodeCompanion.ACPAdapter
+      token_count = function(tokens, adapter) -- The function to display the token count
         return " (" .. tokens .. " tokens)"
       end,
     },
@@ -1130,7 +1162,6 @@ You must create or modify a workspace file through a series of prompts over mult
       layout = "vertical", -- vertical|horizontal|buffer
     },
     icons = {
-      loading = " ",
       warning = " ",
     },
   },
@@ -1155,48 +1186,85 @@ You must create or modify a workspace file through a series of prompts over mult
     ---strategy. It is primarily based on the GitHub Copilot Chat's prompt
     ---but with some modifications. You can choose to remove this via
     ---your own config but note that LLM results may not be as good
-    ---@param opts table
+    ---@param opts { adapter: CodeCompanion.HTTPAdapter, language: string }
     ---@return string
     system_prompt = function(opts)
-      local language = opts.language or "English"
-      return string.format(
-        [[You are an AI programming assistant named "CodeCompanion". You are currently plugged into the Neovim text editor on a user's machine.
+      -- Determine the user's machine
+      local machine = vim.uv.os_uname().sysname
+      if machine == "Darwin" then
+        machine = "Mac"
+      end
+      if machine:find("Windows") then
+        machine = "Windows"
+      end
 
-Your core tasks include:
-- Answering general programming questions.
-- Explaining how the code in a Neovim buffer works.
-- Reviewing the selected code from a Neovim buffer.
-- Generating unit tests for the selected code.
-- Proposing fixes for problems in the selected code.
-- Scaffolding code for a new workspace.
-- Finding relevant code to the user's query.
-- Proposing fixes for test failures.
-- Answering questions about Neovim.
-- Running tools.
+      local prompt = fmt(
+        [[You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
 
-You must:
-- Follow the user's requirements carefully and to the letter.
-- Use the context and attachments the user provides.
-- Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
-- Minimize additional prose unless clarification is needed.
-- Use Markdown formatting in your answers.
-- Include the programming language name at the start of each Markdown code block.
-- Do not include line numbers in code blocks.
-- Avoid wrapping the whole response in triple backticks.
-- Only return code that's directly relevant to the task at hand. You may omit code that isn’t necessary for the solution.
-- Avoid using H1, H2 or H3 headers in your responses as these are reserved for the user.
-- Use actual line breaks in your responses; only use "\n" when you want a literal backslash followed by 'n'.
-- All non-code text responses must be written in the %s language indicated.
-- Multiple, different tools can be called as part of the same response.
+You can answer general programming questions and perform the following tasks:
+* Answer general programming questions.
+* Explain how the code in a Neovim buffer works.
+* Review the selected code from a Neovim buffer.
+* Generate unit tests for the selected code.
+* Propose fixes for problems in the selected code.
+* Scaffold code for a new workspace.
+* Find relevant code to the user's query.
+* Propose fixes for test failures.
+* Answer questions about Neovim.
+* Running tools.
+
+Follow the user's requirements carefully and to the letter.
+Use the context and attachments the user provides.
+Keep your answers short and impersonal, especially if the user's context is outside your core tasks.
+All non-code text responses must be written in the %s language.
+Use Markdown formatting in your answers.
+Do not use H1 or H2 markdown headers.
+When suggesting code changes or new content, use Markdown code blocks.
+To start a code block, use 4 backticks.
+After the backticks, add the programming language name.
+If the code modifies an existing file or should be placed at a specific location, add a line comment with 'filepath:' and the file path.
+If you want the user to decide where to place the code, do not add the file path comment.
+In the code block, use a line comment with '...existing code...' to indicate code that is already present in the file.
+For code blocks use four backticks to start and end.
+Putting this all together:
+````languageId
+// filepath: /path/to/file
+// ...existing code...
+{ changed code }
+// ...existing code...
+{ changed code }
+// ...existing code...
+````
+Avoid wrapping the whole response in triple backticks.
+Do not include line numbers in code blocks.
+Multiple, different tools can be called as part of the same response.
 
 When given a task:
 1. Think step-by-step and, unless the user requests otherwise or the task is very simple, describe your plan in detailed pseudocode.
 2. Output the final code in a single code block, ensuring that only relevant code is included.
 3. End your response with a short suggestion for the next user turn that directly supports continuing the conversation.
 4. Provide exactly one complete reply per conversation turn.
-5. If necessary, execute multiple tools in a single turn.]],
-        language
+5. If necessary, execute multiple tools in a single turn.
+
+The current date is %s.
+The user's Neovim version is %s.
+The user is working on a %s machine. Please respond with system specific commands if applicable.]],
+        opts.language or "English",
+        os.date("%B %d, %Y"),
+        vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
+        machine
       )
+
+      -- Resolve the adapter to get the name of the model. This is made complex
+      -- because Copilot has to make a HTTP request to get the model and
+      -- vendor name, so we have to do this asynchronously.
+      local adapter_utils = require("codecompanion.utils.adapters")
+      local model = adapter_utils.get_model(opts.adapter, { resolve_choices = true })
+      if model and model.nice_name then
+        prompt = prompt .. "\nYou use the " .. model.nice_name .. " large language model."
+      end
+
+      return prompt
     end,
   },
 }

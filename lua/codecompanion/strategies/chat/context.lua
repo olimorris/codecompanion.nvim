@@ -74,7 +74,7 @@ end
 ---Add context to the chat buffer
 ---@param chat CodeCompanion.Chat
 ---@param context CodeCompanion.Chat.ContextItem
----@param row integer
+---@param row number
 local function add(chat, context, row)
   if not context.opts.visible then
     return
@@ -146,7 +146,7 @@ function Context:add(context)
     table.insert(self.Chat.context_items, context)
     -- If it's buffer context and it's being watched, start watching
     if context.bufnr and context.opts.watched then
-      self.Chat.watchers:watch(context.bufnr)
+      self.Chat.watched_buffers:watch(context.bufnr)
     end
   end
 

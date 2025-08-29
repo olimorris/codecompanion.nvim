@@ -1,9 +1,6 @@
 # Using Tools
 
 > [!IMPORTANT]
-> As of `v17.5.0`, tools must be wrapped in curly braces, such as `@{grep_search}` or `@{files}`
-
-> [!IMPORTANT]
 > Not all LLMs support function calling and the use of tools. Please see the [compatibility](#compatibility) section for more information.
 
 <p align="center">
@@ -225,6 +222,9 @@ The plugin allows you to run tools on autopilot. This automatically approves any
 
 ## Compatibility
 
+> [!NOTE]
+> Tools are not supported for ACP adapters.
+
 Below is the tool use status of various adapters and models in CodeCompanion:
 
 | Adapter           | Model             | Supported          | Notes                               |
@@ -239,6 +239,5 @@ Below is the tool use status of various adapters and models in CodeCompanion:
 | Mistral           | All               | :x:                | Not supported yet                   |
 | Novita            |                   | :white_check_mark:                | Dependent on the model  |
 | Ollama            | Tested with Qwen3 | :white_check_mark: | Dependent on the model              |
-| OpenAI Compatible |                   | :exclamation:      | Dependent on the model and provider |
 | OpenAI            |                   | :white_check_mark: | Dependent on the model              |
 | xAI               | All               | :x:                | Not supported yet                   |

@@ -2,6 +2,7 @@
   "name": "CodeCompanion.nvim",
   "version": "1.0.0",
   "workspace_spec": "1.0",
+  "description": "High-level description",
   "system_prompt": "Workspace system prompt",
   "groups": [
     {
