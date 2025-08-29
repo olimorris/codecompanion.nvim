@@ -1,5 +1,5 @@
+local get_models = require("codecompanion.adapters.http.copilot.get_models")
 local log = require("codecompanion.utils.log")
-local models = require("codecompanion.adapters.http.copilot.models")
 local openai = require("codecompanion.adapters.http.openai")
 local stats = require("codecompanion.adapters.http.copilot.stats")
 local token = require("codecompanion.adapters.http.copilot.token")
@@ -128,7 +128,7 @@ return {
       return openai.handlers.inline_output(self, data, context)
     end,
     on_exit = function(self, data)
-      models.reset_cache()
+      get_models.reset_cache()
       return openai.handlers.on_exit(self, data)
     end,
   },
@@ -147,7 +147,7 @@ return {
         if not token.fetch().copilot_token then
           return { ["gpt-4.1"] = { opts = {} } }
         end
-        return models.choices(self, opts)
+        return get_models.choices(self, opts)
       end,
     },
     ---@type CodeCompanion.Schema

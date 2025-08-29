@@ -25,7 +25,7 @@ T["copilot.models"] = new_set()
 
 T["copilot.models"]["choices() synchronous returns expected models"] = function()
   local result = child.lua([[
-    local models_mod = require("codecompanion.adapters.http.copilot.models")
+    local get_models = require("codecompanion.adapters.http.copilot.get_models")
 
     -- Mock token.fetch()
     local token = require("codecompanion.adapters.http.copilot.token")
@@ -86,7 +86,7 @@ T["copilot.models"]["choices() synchronous returns expected models"] = function(
     end
 
     local adapter = { headers = {} }
-    return models_mod.choices(adapter, { async = false })
+    return get_models.choices(adapter, { async = false })
   ]])
 
   local expected = {
@@ -107,7 +107,7 @@ end
 
 T["copilot.models"]["choices() async populates cache and returns later"] = function()
   local first, second = unpack(child.lua([[
-    local models_mod = require("codecompanion.adapters.http.copilot.models")
+    local get_models = require("codecompanion.adapters.http.copilot.get_models")
 
     -- Mock token.fetch()
     local token = require("codecompanion.adapters.http.copilot.token")
@@ -155,13 +155,13 @@ T["copilot.models"]["choices() async populates cache and returns later"] = funct
     local adapter = { headers = {} }
 
     -- Start async fetch: should return nil initially (no cache yet)
-    local first = models_mod.choices(adapter, { async = true })
+    local first = get_models.choices(adapter, { async = true })
 
     -- Give scheduled callback a chance to run and fill cache
     vim.wait(50, function() return false end)
 
     -- Second call should return cached models
-    local second = models_mod.choices(adapter, { async = true })
+    local second = get_models.choices(adapter, { async = true })
 
     return { first, second }
   ]]))
