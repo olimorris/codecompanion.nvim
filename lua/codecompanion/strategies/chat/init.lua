@@ -821,7 +821,6 @@ function Chat:add_system_prompt(prompt, opts)
     end
   end
 
-  prompt = prompt or config.opts.system_prompt
   if prompt ~= "" then
     if type(prompt) == "function" then
       prompt = prompt({
