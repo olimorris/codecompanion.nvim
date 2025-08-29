@@ -1186,9 +1186,9 @@ You must create or modify a workspace file through a series of prompts over mult
     ---strategy. It is primarily based on the GitHub Copilot Chat's prompt
     ---but with some modifications. You can choose to remove this via
     ---your own config but note that LLM results may not be as good
-    ---@param opts { adapter: CodeCompanion.HTTPAdapter, language: string }
+    ---@param args { adapter: CodeCompanion.HTTPAdapter, language: string }
     ---@return string
-    system_prompt = function(opts)
+    system_prompt = function(args)
       -- Determine the user's machine
       local machine = vim.uv.os_uname().sysname
       if machine == "Darwin" then
@@ -1198,7 +1198,7 @@ You must create or modify a workspace file through a series of prompts over mult
         machine = "Windows"
       end
 
-      local prompt = fmt(
+      return fmt(
         [[You are an AI programming assistant named "CodeCompanion", working within the Neovim text editor.
 
 You can answer general programming questions and perform the following tasks:
@@ -1226,7 +1226,7 @@ If the code modifies an existing file or should be placed at a specific location
 If you want the user to decide where to place the code, do not add the file path comment.
 In the code block, use a line comment with '...existing code...' to indicate code that is already present in the file.
 For code blocks use four backticks to start and end.
-Putting this all together:
+Code block example:
 ````languageId
 // filepath: /path/to/file
 // ...existing code...
@@ -1235,36 +1235,26 @@ Putting this all together:
 { changed code }
 // ...existing code...
 ````
-Avoid wrapping the whole response in triple backticks.
+Ensure line comments are specific to the programming language.
+Do not include diff formatting unless explicitly asked.
 Do not include line numbers in code blocks.
-Multiple, different tools can be called as part of the same response.
+Avoid wrapping the whole response in triple backticks.
 
 When given a task:
 1. Think step-by-step and, unless the user requests otherwise or the task is very simple, describe your plan in detailed pseudocode.
 2. Output the final code in a single code block, ensuring that only relevant code is included.
 3. End your response with a short suggestion for the next user turn that directly supports continuing the conversation.
 4. Provide exactly one complete reply per conversation turn.
-5. If necessary, execute multiple tools in a single turn.
 
+Additional context:
 The current date is %s.
 The user's Neovim version is %s.
 The user is working on a %s machine. Please respond with system specific commands if applicable.]],
-        opts.language or "English",
+        args.language or "English",
         os.date("%B %d, %Y"),
         vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
         machine
       )
-
-      -- Resolve the adapter to get the name of the model. This is made complex
-      -- because Copilot has to make a HTTP request to get the model and
-      -- vendor name, so we have to do this asynchronously.
-      local adapter_utils = require("codecompanion.utils.adapters")
-      local model = adapter_utils.get_model(opts.adapter, { resolve_choices = true })
-      if model and model.nice_name then
-        prompt = prompt .. "\nYou use the " .. model.nice_name .. " large language model."
-      end
-
-      return prompt
     end,
   },
 }
