@@ -303,8 +303,8 @@
       "description": "The various ACP methods that can be called by the ACP connection."
     },
     "acp-schema": {
-      "type": "file",
-      "path": ".codecompanion/acp_json_schema.json",
+      "type": "url",
+      "path": "https://raw.githubusercontent.com/zed-industries/agent-client-protocol/refs/heads/main/schema/schema.json",
       "description": "ACP JSON schema defining request, response, and notification types for agent communication."
     },
     "acp-implementation-notes": {
