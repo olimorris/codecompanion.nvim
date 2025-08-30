@@ -54,25 +54,60 @@ function M.read_text_file(path, opts)
   end
 
   local content = data_or_err or ""
+  local lines = vim.split(content, "\n", { plain = true })
 
-  -- If a specific line is requested, return only that line (1-indexed)
-  if opts.line ~= nil then
-    local line_num = tonumber(opts.line) or 0
-    if line_num <= 0 then
+  local has_line = opts.line ~= nil
+  local has_limit = opts.limit ~= nil
+
+  -- Normalize numeric inputs
+  local start = nil
+  if has_line then
+    start = tonumber(opts.line) or 0
+    if start <= 0 then
+      start = 1
+    end
+  else
+    start = 1
+  end
+
+  if has_limit then
+    local limit = tonumber(opts.limit) or 0
+    if limit <= 0 then
       return true, ""
     end
-    local lines = vim.split(content, "\n", { plain = true })
-    return true, lines[line_num] or ""
-  end
-
-  -- If a byte/char limit is requested, truncate the returned content
-  if opts.limit ~= nil then
-    local limit = tonumber(opts.limit) or 0
-    if limit > 0 and #content > limit then
-      return true, content:sub(1, limit)
+    local finish = start + limit - 1
+    if start > #lines then
+      return true, ""
     end
+    if finish >= #lines then
+      -- return from start to EOF
+      local slice = {}
+      for i = start, #lines do
+        table.insert(slice, lines[i] or "")
+      end
+      return true, table.concat(slice, "\n")
+    end
+    -- return start..finish
+    local slice = {}
+    for i = start, finish do
+      table.insert(slice, lines[i] or "")
+    end
+    return true, table.concat(slice, "\n")
   end
 
+  -- no limit: if only line was provided, return from that line to EOF
+  if has_line then
+    if start > #lines then
+      return true, ""
+    end
+    local slice = {}
+    for i = start, #lines do
+      table.insert(slice, lines[i] or "")
+    end
+    return true, table.concat(slice, "\n")
+  end
+
+  -- neither line nor limit: return full content
   return true, content
 end
 

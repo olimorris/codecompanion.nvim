@@ -168,29 +168,58 @@ T["read_text_file returns full content, handles line and limit options"] = funct
     local fs = require("codecompanion.strategies.chat.acp.fs")
 
     local ok_all, all = fs.read_text_file("/some/path")
-    local ok_line, line2 = fs.read_text_file("/some/path", { line = 2 })
-    local ok_line0, line0 = fs.read_text_file("/some/path", { line = 0 })
-    local ok_limit, limit = fs.read_text_file("/some/path", { limit = 5 })
+    local ok_line, from_line2 = fs.read_text_file("/some/path", { line = 2 })
+    local ok_line0, from_line0 = fs.read_text_file("/some/path", { line = 0 })
+    local ok_limit5, limit5 = fs.read_text_file("/some/path", { limit = 5 })
+    local ok_limit2, limit2 = fs.read_text_file("/some/path", { limit = 2 })
+    local ok_line2_lim1, line2lim1 = fs.read_text_file("/some/path", { line = 2, limit = 1 })
+    local ok_limit0, limit0 = fs.read_text_file("/some/path", { limit = 0 })
+    local ok_line4, line4 = fs.read_text_file("/some/path", { line = 4 })
 
     return {
       ok_all = ok_all, all = all,
-      ok_line = ok_line, line2 = line2,
-      ok_line0 = ok_line0, line0 = line0,
-      ok_limit = ok_limit, limit = limit
+      ok_line = ok_line, from_line2 = from_line2,
+      ok_line0 = ok_line0, from_line0 = from_line0,
+      ok_limit5 = ok_limit5, limit5 = limit5,
+      ok_limit2 = ok_limit2, limit2 = limit2,
+      ok_line2_lim1 = ok_line2_lim1, line2lim1 = line2lim1,
+      ok_limit0 = ok_limit0, limit0 = limit0,
+      ok_line4 = ok_line4, line4 = line4
     }
   ]])
 
+  local full = "first line\nsecond line\nthird"
+
   h.is_true(result.ok_all)
-  h.eq("first line\nsecond line\nthird", result.all)
+  h.eq(full, result.all)
 
+  -- line=2 should return from line 2 to EOF
   h.is_true(result.ok_line)
-  h.eq("second line", result.line2)
+  h.eq("second line\nthird", result.from_line2)
 
+  -- line=0 normalizes to 1 => full content
   h.is_true(result.ok_line0)
-  h.eq("", result.line0)
+  h.eq(full, result.from_line0)
 
-  h.is_true(result.ok_limit)
-  h.eq("first", result.limit) -- first 5 characters of "first line..."
+  -- limit=5 (more than number of lines) returns full content
+  h.is_true(result.ok_limit5)
+  h.eq(full, result.limit5)
+
+  -- limit=2 returns first two lines
+  h.is_true(result.ok_limit2)
+  h.eq("first line\nsecond line", result.limit2)
+
+  -- line=2, limit=1 returns only second line
+  h.is_true(result.ok_line2_lim1)
+  h.eq("second line", result.line2lim1)
+
+  -- limit=0 returns empty string
+  h.is_true(result.ok_limit0)
+  h.eq("", result.limit0)
+
+  -- start line beyond EOF returns empty string
+  h.is_true(result.ok_line4)
+  h.eq("", result.line4)
 end
 
 return T
