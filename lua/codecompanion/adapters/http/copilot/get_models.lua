@@ -1,10 +1,8 @@
 local Curl = require("plenary.curl")
 
-local adapters = require("codecompanion.utils.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local token = require("codecompanion.adapters.http.copilot.token")
-local util = require("codecompanion.utils")
 
 local CONSTANTS = {
   TIMEOUT = 3000, -- 3 seconds
@@ -22,13 +20,21 @@ local M = {}
 local _cached_models
 local _cached_adapter
 local _cache_expires
-local _cache_file = vim.fn.tempname()
 local _fetch_in_progress = false
 
 ---Reset the cache
 ---@return nil
 function M.reset_cache()
   _cached_adapter = nil
+end
+
+---Refresh the cache expiry timestamp
+---@param seconds number|nil Number of seconds until the cache expires. Default: 1800
+---@return number
+local function set_cache_expiry(seconds)
+  seconds = seconds or 1800
+  _cache_expires = os.time() + seconds
+  return _cache_expires
 end
 
 ---Return cached models if the cache is still valid.
@@ -44,8 +50,9 @@ end
 
 ---Asynchronously fetch the list of available Copilot
 ---@param adapter table
+---@param provided_token? table
 ---@return boolean
-local function fetch_async(adapter)
+local function fetch_async(adapter, provided_token)
   _cached_models = get_cached_models()
   if _cached_models then
     return true
@@ -59,7 +66,13 @@ local function fetch_async(adapter)
     _cached_adapter = adapter
   end
 
-  local fresh_token = token.fetch()
+  local fresh_token = provided_token or token.fetch()
+
+  if not fresh_token or not fresh_token.copilot_token then
+    log:trace("Copilot Adapter: No copilot token available, skipping async models fetch")
+    _fetch_in_progress = false
+    return false
+  end
 
   local base_url = (fresh_token.endpoints and fresh_token.endpoints.api) or "https://api.githubcopilot.com"
   local url = base_url .. "/models"
@@ -106,12 +119,7 @@ local function fetch_async(adapter)
         end
 
         _cached_models = models
-        _cache_expires = adapters.refresh_cache(_cache_file, config.adapters.http.opts.cache_models_for)
-
-        -- Notify internal listeners
-        pcall(function()
-          util.fire("ChatModelsResolved", { models = _cached_models })
-        end)
+        set_cache_expiry(config.adapters.http.opts.cache_models_for)
       end),
     })
   end)
@@ -127,9 +135,10 @@ end
 
 ---Fetch the list of available Copilot models synchronously.
 ---@param adapter table
+---@param provided_token? table
 ---@return CopilotModels|nil
-local function fetch(adapter)
-  local _ = fetch_async(adapter)
+local function fetch(adapter, provided_token)
+  local _ = fetch_async(adapter, provided_token)
 
   -- Block until models are cached or timeout (milliseconds)
   local ok = vim.wait(CONSTANTS.TIMEOUT, function()
@@ -146,15 +155,16 @@ end
 ---Canonical interface used by adapter.schema.model.choices implementations.
 ---@param adapter table
 ---@param opts? { async: boolean }
+---@param provided_token? table
 ---@return CopilotModels|nil
-function M.choices(adapter, opts)
+function M.choices(adapter, opts, provided_token)
   opts = opts or { async = true }
   if not opts.async or opts.async == false then
-    return fetch(adapter)
+    return fetch(adapter, provided_token)
   end
 
   -- Non-blocking: start async fetching (if possible) and return whatever is cached
-  fetch_async(adapter)
+  fetch_async(adapter, provided_token)
   return get_cached_models()
 end
 
