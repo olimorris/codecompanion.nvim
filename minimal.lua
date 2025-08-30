@@ -16,6 +16,7 @@ local plugins = {
   {
     "olimorris/codecompanion.nvim",
     dependencies = {
+      -- needed to install additional parsers
       { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
       { "nvim-lua/plenary.nvim" },
       -- Test with blink.cmp (delete if not required)

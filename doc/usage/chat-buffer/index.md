@@ -14,7 +14,7 @@ next:
 
 You can open a chat buffer with the `:CodeCompanionChat` command or with `require("codecompanion").chat()`. You can toggle the visibility of the chat buffer with `:CodeCompanionChat Toggle` or `require("codecompanion").toggle()`.
 
-The chat buffer uses markdown as its syntax and `H2` headers separate the user and LLM's responses. The plugin is turn-based, meaning that the user sends a response which is then followed by the LLM's. The user's responses are parsed by [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) and sent via an adapter to an LLM for a response which is then streamed back into the buffer. A response is sent to the LLM by pressing `<CR>` or `<C-s>`. This can of course be changed as per the [keymaps](#keymaps) section.
+The chat buffer uses markdown as its syntax and `H2` headers separate the user and LLM's responses. The plugin is turn-based, meaning that the user sends a response which is then followed by the LLM's. The user's responses are parsed by treesitter and sent via an adapter to an LLM for a response which is then streamed back into the buffer. A response is sent to the LLM by pressing `<CR>` or `<C-s>`. This can of course be changed as per the [keymaps](#keymaps) section.
 
 ## Changing Adapter
 

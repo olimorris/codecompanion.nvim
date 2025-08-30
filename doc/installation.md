@@ -23,7 +23,6 @@ The plugin can be installed with the plugin manager of your choice:
   opts = {},
   dependencies = {
     "nvim-lua/plenary.nvim",
-    "nvim-treesitter/nvim-treesitter",
   },
 },
 ```
@@ -38,7 +37,6 @@ use({
   end,
   requires = {
     "nvim-lua/plenary.nvim",
-    "nvim-treesitter/nvim-treesitter",
   }
 }),
 ```
@@ -49,7 +47,6 @@ use({
 call plug#begin()
 
 Plug 'nvim-lua/plenary.nvim'
-Plug 'nvim-treesitter/nvim-treesitter'
 Plug 'olimorris/codecompanion.nvim'
 
 call plug#end()

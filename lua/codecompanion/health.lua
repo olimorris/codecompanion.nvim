@@ -13,10 +13,6 @@ M.deps = {
     name = "plenary.nvim",
     plugin_name = "plenary",
   },
-  {
-    name = "nvim-treesitter",
-    plugin_name = "nvim-treesitter",
-  },
 }
 
 M.parsers = {
