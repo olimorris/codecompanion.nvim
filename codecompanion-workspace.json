@@ -84,7 +84,8 @@
         "acp-handler",
         "acp-request-permission",
         "acp-fs",
-        "gemini-cli"
+        "gemini-cli",
+        "acp-adapter-helpers"
       ]
     }
   ],
@@ -315,7 +316,12 @@
     "gemini-cli": {
       "type": "file",
       "path": "lua/codecompanion/adapters/acp/gemini_cli.lua",
-      "description": "An example ACP implementation for Google Gemini CLI, demonstrating how to use the ACPAdapter with a specific LLM."
+      "description": "An ACP implementation for Google Gemini CLI, demonstrating how to use the ACPAdapter with a specific agent."
+    },
+    "acp-adapter-helpers": {
+      "type": "file",
+      "path": "lua/codecompanion/adapters/acp/helpers.lua",
+      "description": "File containing helper functions that ACP adapters can utilize."
     }
   }
 }
