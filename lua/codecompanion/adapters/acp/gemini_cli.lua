@@ -1,4 +1,4 @@
-local log = require("codecompanion.utils.log")
+local helpers = require("codecompanion.adapters.acp.helpers")
 
 ---@class CodeCompanion.ACPAdapter.GeminiCLI: CodeCompanion.ACPAdapter
 return {
@@ -52,28 +52,7 @@ return {
     ---@param messages table
     ---@return table
     form_messages = function(self, messages)
-      return vim
-        .iter(messages)
-        :filter(function(msg)
-          -- Ensure we're only sending user messages that Gemini hasn't seen before
-          return msg.role == self.roles.user and not msg._meta.sent
-        end)
-        :map(function(msg)
-          if msg.opts and msg.opts.tag == "image" then
-            return {
-              type = "image",
-              data = msg.content,
-              mimeType = msg.opts.mimetype,
-            }
-          end
-          if msg.content and msg.content ~= "" then
-            return {
-              type = "text",
-              text = msg.content,
-            }
-          end
-        end)
-        :totable()
+      return helpers.form_messages(self, messages)
     end,
 
     ---Function to run when the request has completed. Useful to catch errors
