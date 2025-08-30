@@ -1,5 +1,17 @@
 # Changelog
 
+## [17.19.1](https://github.com/olimorris/codecompanion.nvim/compare/v17.19.0...v17.19.1) (2025-08-30)
+
+
+### Bug Fixes
+
+* **chat:** system prompt resolving ([#2045](https://github.com/olimorris/codecompanion.nvim/issues/2045)) ([c34e496](https://github.com/olimorris/codecompanion.nvim/commit/c34e49676dd9bd44c9a18588167cdc0a31077dbd))
+
+
+### Performance Improvements
+
+* **chat:** improve system prompt resolution ([#2050](https://github.com/olimorris/codecompanion.nvim/issues/2050)) ([6bc1f9f](https://github.com/olimorris/codecompanion.nvim/commit/6bc1f9f6d9f4ac71545b4883caf93181cadf6146))
+
 ## [17.19.0](https://github.com/olimorris/codecompanion.nvim/compare/v17.18.0...v17.19.0) (2025-08-28)
 
 
