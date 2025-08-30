@@ -122,10 +122,10 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   -- 4. write back
   p:write(table.concat(lines, "\n"), "w")
 
-  -- 5. refresh the buffer if the file is open
+  -- 5. refresh and format the buffer if the file is open
   local bufnr = vim.fn.bufnr(p.filename)
   if bufnr ~= -1 and api.nvim_buf_is_loaded(bufnr) then
-    api.nvim_command("checktime " .. bufnr)
+    pcall(api.nvim_command, "checktime " .. bufnr)
   end
 
   -- Auto-save if enabled
@@ -138,6 +138,7 @@ local function edit_file(action, chat_bufnr, output_handler, opts)
   end
 
   -- 6. Create diff for the file using new file path capability
+  helpers.hide_chat_for_floating_diff(chat_bufnr)
   local diff_id = math.random(10000000)
   local should_diff = diff.create(p.filename, diff_id, {
     original_content = original_content,
@@ -253,6 +254,7 @@ local function edit_buffer(bufnr, chat_bufnr, action, output_handler, opts)
 
   -- Create diff with original content
   if original_content then
+    helpers.hide_chat_for_floating_diff(chat_bufnr)
     log:debug("[Insert Edit Into File Tool] Creating diff with original content (%d lines)", #original_content)
     should_diff = diff.create(bufnr, diff_id, {
       original_content = original_content,
