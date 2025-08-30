@@ -162,10 +162,11 @@ return {
       ---@type fun(self: CodeCompanion.HTTPAdapter, opts?: table): table
       choices = function(self, opts)
         -- Ensure token is available before getting models
-        if not token.fetch().copilot_token then
+        local fetched = token.fetch()
+        if not fetched or not fetched.copilot_token then
           return { ["gpt-4.1"] = { opts = {} } }
         end
-        return get_models.choices(self, opts)
+        return get_models.choices(self, opts, fetched)
       end,
     },
     ---@type CodeCompanion.Schema
