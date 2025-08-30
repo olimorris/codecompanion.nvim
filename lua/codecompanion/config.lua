@@ -58,6 +58,7 @@ local defaults = {
         groups = {
           ["full_stack_dev"] = {
             description = "Full Stack Developer - Can run code, edit code and modify files",
+            prompt = "I'm giving you access to ${tools} to help you perform coding tasks",
             tools = {
               "cmd_runner",
               "create_file",
@@ -75,6 +76,7 @@ local defaults = {
           },
           ["files"] = {
             description = "Tools related to creating, reading and editing files",
+            prompt = "I'm giving you access to ${tools} to help you perform file operations",
             tools = {
               "create_file",
               "file_search",
