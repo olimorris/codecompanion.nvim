@@ -4,7 +4,6 @@ local adapters = require("codecompanion.utils.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local token = require("codecompanion.adapters.http.copilot.token")
-local util = require("codecompanion.utils")
 
 local CONSTANTS = {
   TIMEOUT = 3000, -- 3 seconds
@@ -107,11 +106,6 @@ local function fetch_async(adapter)
 
         _cached_models = models
         _cache_expires = adapters.refresh_cache(_cache_file, config.adapters.http.opts.cache_models_for)
-
-        -- Notify internal listeners
-        pcall(function()
-          util.fire("ChatModelsResolved", { models = _cached_models })
-        end)
       end),
     })
   end)
