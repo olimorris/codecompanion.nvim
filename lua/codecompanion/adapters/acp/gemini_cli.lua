@@ -24,7 +24,7 @@ return {
     },
   },
   defaults = {
-    auth_method = "gemini-api-key",
+    auth_method = "oauth-personal", -- One of: "oauth-personal" | "gemini-api-key" | "vertex-ai"
     mcpServers = {},
     timeout = 20000, -- 20 seconds
   },
