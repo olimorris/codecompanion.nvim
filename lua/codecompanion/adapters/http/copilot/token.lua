@@ -36,6 +36,11 @@ M._oauth_token = nil
 ---@type CopilotToken|nil
 M._copilot_token = nil
 
+-- Lock to prevent concurrent token requests
+local _token_fetch_in_progress = false
+local _token_wait_timeout = 5000 -- ms
+local _token_wait_interval = 50 -- ms
+
 ---Finds the configuration path
 ---@return string|nil
 local function find_config_path()
@@ -112,17 +117,29 @@ end
 ---Get a GitHub Copilot token using the OAuth token
 ---@return CopilotToken|nil
 local function get_copilot_token()
-  if M._copilot_token and M._copilot_token.expires_at > os.time() then
-    log:trace("Reusing GitHub Copilot token")
+  if M._copilot_token and M._copilot_token.expires_at and M._copilot_token.expires_at > os.time() then
+    log:trace("Copilot Adapter: Reusing GitHub Copilot token")
     return M._copilot_token
   end
 
+  -- If another fetch is in progress, wait and prevent multiple requests
+  if _token_fetch_in_progress then
+    local ok = vim.wait(_token_wait_timeout, function()
+      return M._copilot_token and M._copilot_token.expires_at and M._copilot_token.expires_at > os.time()
+    end, _token_wait_interval)
+    if ok then
+      log:trace("Copilot Adapter: Using token fetched by concurrent request")
+      return M._copilot_token
+    end
+  end
+
+  _token_fetch_in_progress = true
   log:debug("Authorizing GitHub Copilot token")
 
   local ok, request = pcall(function()
     return Curl.get("https://api.github.com/copilot_internal/v2/token", {
       headers = {
-        Authorization = "Bearer " .. M._oauth_token,
+        Authorization = "Bearer " .. (M._oauth_token or ""),
         Accept = "application/json",
         ["User-Agent"] = "CodeCompanion.nvim",
       },
@@ -134,12 +151,20 @@ local function get_copilot_token()
     })
   end)
 
+  _token_fetch_in_progress = false
+
   if not ok then
     log:error("Copilot Adapter: Could not authorize your GitHub Copilot token: %s", request)
     return nil
   end
 
-  M._copilot_token = vim.json.decode(request.body)
+  local ok, decoded = pcall(vim.json.decode, request.body or "")
+  if not ok or type(decoded) ~= "table" then
+    log:error("Copilot Adapter: Could not decode token response: %s", request.body)
+    return nil
+  end
+
+  M._copilot_token = decoded --[[@as CopilotToken]]
   return M._copilot_token
 end
 
@@ -160,7 +185,7 @@ function M.init(adapter)
   end
 
   if adapter then
-    adapter.url = M._copilot_token.endpoints.api .. "/chat/completions"
+    adapter.url = M._copilot_token.endpoints and (M._copilot_token.endpoints.api .. "/chat/completions") or adapter.url
   end
 
   return true
@@ -169,11 +194,11 @@ end
 ---Return the Copilot tokens
 ---@return {oauth_token: CopilotOAuthToken, copilot_token: CopilotToken|nil}
 function M.fetch()
-  M.init()
+  pcall(M.init)
 
   return {
     oauth_token = M._oauth_token,
-    copilot_token = M._copilot_token.token,
+    copilot_token = (M._copilot_token and M._copilot_token.token) or nil,
   }
 end
 

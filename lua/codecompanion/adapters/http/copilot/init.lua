@@ -5,6 +5,7 @@ local stats = require("codecompanion.adapters.http.copilot.stats")
 local token = require("codecompanion.adapters.http.copilot.token")
 local utils = require("codecompanion.utils.adapters")
 
+local _fetching_models = false
 local version = vim.version()
 
 ---@class CodeCompanion.HTTPAdapter.Copilot: CodeCompanion.HTTPAdapter
@@ -42,6 +43,23 @@ return {
     return stats.show()
   end,
   handlers = {
+    ---Initiate fetching the models in the background as soon as the adapter is resolved
+    ---@param self CodeCompanion.HTTPAdapter
+    ---@return nil
+    resolve = function(self)
+      if _fetching_models then
+        return
+      end
+      _fetching_models = true
+
+      vim.schedule(function()
+        pcall(function()
+          get_models.choices(self, { async = true })
+        end)
+        _fetching_models = false
+      end)
+    end,
+
     ---Check for a token before starting the request
     ---@param self CodeCompanion.HTTPAdapter
     ---@return boolean
@@ -144,10 +162,11 @@ return {
       ---@type fun(self: CodeCompanion.HTTPAdapter, opts?: table): table
       choices = function(self, opts)
         -- Ensure token is available before getting models
-        if not token.fetch().copilot_token then
+        local fetched = token.fetch()
+        if not fetched or not fetched.copilot_token then
           return { ["gpt-4.1"] = { opts = {} } }
         end
-        return get_models.choices(self, opts)
+        return get_models.choices(self, opts, fetched)
       end,
     },
     ---@type CodeCompanion.Schema

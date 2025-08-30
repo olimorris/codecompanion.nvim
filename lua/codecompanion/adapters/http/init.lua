@@ -19,6 +19,7 @@ local shared = require("codecompanion.adapters.shared")
 ---@field opts? table Additional options for the adapter
 ---@field model? { name: string, nice_name?: string, vendor?: string, opts: table } The model to use for the request
 ---@field handlers table Functions which link the output from the request to CodeCompanion
+---@field handlers.resolve? fun(self: CodeCompanion.HTTPAdapter): nil When the adapter is resolved, call this method
 ---@field handlers.setup? fun(self: CodeCompanion.HTTPAdapter): boolean
 ---@field handlers.set_body? fun(self: CodeCompanion.HTTPAdapter, data: table): table|nil
 ---@field handlers.form_parameters fun(self: CodeCompanion.HTTPAdapter, params: table, messages: table): table
@@ -223,6 +224,10 @@ function Adapter.resolve(adapter, opts)
 
   if not adapter.type then
     adapter.type = "http"
+  end
+
+  if adapter.handlers and adapter.handlers.resolve then
+    adapter.handlers.resolve(adapter)
   end
 
   return Adapter.set_model(adapter)
