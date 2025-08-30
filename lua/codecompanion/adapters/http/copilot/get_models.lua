@@ -1,6 +1,5 @@
 local Curl = require("plenary.curl")
 
-local adapters = require("codecompanion.utils.adapters")
 local config = require("codecompanion.config")
 local log = require("codecompanion.utils.log")
 local token = require("codecompanion.adapters.http.copilot.token")
@@ -21,13 +20,21 @@ local M = {}
 local _cached_models
 local _cached_adapter
 local _cache_expires
-local _cache_file = vim.fn.tempname()
 local _fetch_in_progress = false
 
 ---Reset the cache
 ---@return nil
 function M.reset_cache()
   _cached_adapter = nil
+end
+
+---Refresh the cache expiry timestamp
+---@param seconds number|nil Number of seconds until the cache expires. Default: 1800
+---@return number
+local function set_cache_expiry(seconds)
+  seconds = seconds or 1800
+  _cache_expires = os.time() + seconds
+  return _cache_expires
 end
 
 ---Return cached models if the cache is still valid.
@@ -105,7 +112,7 @@ local function fetch_async(adapter)
         end
 
         _cached_models = models
-        _cache_expires = adapters.refresh_cache(_cache_file, config.adapters.http.opts.cache_models_for)
+        set_cache_expiry(config.adapters.http.opts.cache_models_for)
       end),
     })
   end)
