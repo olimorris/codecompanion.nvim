@@ -322,7 +322,7 @@ function Connection:_wait_for_response(id)
     end
   end
 
-  log:error("[acp::_wait_for_response] Request timeout: %s", id)
+  log:error("[acp::_wait_for_response] Request timeout ID %s", id)
   return nil
 end
 
