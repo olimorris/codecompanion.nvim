@@ -382,10 +382,19 @@ function Tools:replace(message)
       message = vim.trim(regex.replace(message, self:_pattern(tool), tool))
     end
   end
+
   for group, _ in pairs(self.tools_config.groups) do
-    local tools = table.concat(self.tools_config.groups[group].tools, ", ")
-    message = vim.trim(regex.replace(message, self:_pattern(group), tools))
+    local replacement
+    local group_config = self.tools_config.groups[group]
+    local tools = table.concat(group_config.tools, ", ")
+
+    if group_config.prompt then
+      replacement = util.replace_placeholders(group_config.prompt, { tools = tools .. " tools" })
+    end
+
+    message = vim.trim(regex.replace(message, self:_pattern(group), replacement or tools))
   end
+
   return message
 end
 

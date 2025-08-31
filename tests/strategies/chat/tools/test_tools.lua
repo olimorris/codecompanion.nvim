@@ -264,4 +264,13 @@ T["Tools"][":replace"]["should be in sync with finding logic"] = function()
   )
 end
 
+T["Tools"][":replace"]["should replace groups with a prompt message"] = function()
+  child.lua([[
+    local message = "@{senior_dev}. Can you help?"
+    _G.result = _G.tools:replace(message)
+  ]])
+
+  h.eq("I'm giving you access to func, cmd tools to help me out. Can you help?", child.lua_get("_G.result"))
+end
+
 return T

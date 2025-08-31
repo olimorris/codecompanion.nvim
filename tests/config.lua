@@ -226,6 +226,15 @@ return {
           description = "Tool group extended",
         },
         groups = {
+          ["senior_dev"] = {
+            description = "Tool Group",
+            prompt = "I'm giving you access to ${tools} to help me out",
+            tools = {
+              "func",
+              "cmd",
+            },
+          },
+
           ["tool_group"] = {
             description = "Tool Group",
             system_prompt = "My tool group system prompt",
