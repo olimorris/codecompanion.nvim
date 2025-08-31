@@ -465,7 +465,7 @@ function Connection:handle_incoming_request_or_notification(notification)
         end
       end,
       [self.METHODS.FS_READ_TEXT_FILE] = function(s, m)
-        s:handle_fs_read_text_file_reqest(m.id, m.params)
+        s:handle_fs_read_text_file_request(m.id, m.params)
       end,
       [self.METHODS.FS_WRITE_TEXT_FILE] = function(s, m)
         s:handle_fs_write_file_request(m.id, m.params)
@@ -506,7 +506,7 @@ end
 ---@param id number
 ---@param params { path: string, sessionId?: string, limit?: number|nil, line?: number|nil }
 ---@return nil
-function Connection:handle_fs_read_text_file_reqest(id, params)
+function Connection:handle_fs_read_text_file_request(id, params)
   if not id or type(params) ~= "table" then
     return
   end
