@@ -5,7 +5,7 @@ local M = {}
 
 ---@param self CodeCompanion.ACPAdapter
 ---@param messages table
----@param capabilities {}
+---@param capabilities ACP.agentCapabilities
 ---@return table
 M.form_messages = function(self, messages, capabilities)
   local has = capabilities and capabilities.promptCapabilities
