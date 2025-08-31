@@ -153,73 +153,229 @@ T["read_text_file returns ENOENT when file missing"] = function()
   h.eq("ENOENT", result.data)
 end
 
-T["read_text_file returns full content, handles line and limit options"] = function()
-  local result = child.lua([[
-    -- Make uv.fs_stat report file exists
+-- Split read_text_file coverage into multiple focused tests
+local content = "first line\nsecond line\nthird"
+
+T["read_text_file returns full content when no opts provided"] = function()
+  local result = child.lua(string.format(
+    [[
     vim.uv = { fs_stat = function(path) return { size = 123 } end }
 
-    -- Provide read implementation returning predictable content
-    local content = "first line\nsecond line\nthird"
     package.loaded["codecompanion.utils.files"] = {
-      read = function(path) return content end,
+      read = function(path) return %q end,
     }
 
     package.loaded["codecompanion.strategies.chat.acp.fs"] = nil
     local fs = require("codecompanion.strategies.chat.acp.fs")
 
-    local ok_all, all = fs.read_text_file("/some/path")
-    local ok_line, from_line2 = fs.read_text_file("/some/path", { line = 2 })
-    local ok_line0, from_line0 = fs.read_text_file("/some/path", { line = 0 })
-    local ok_limit5, limit5 = fs.read_text_file("/some/path", { limit = 5 })
-    local ok_limit2, limit2 = fs.read_text_file("/some/path", { limit = 2 })
-    local ok_line2_lim1, line2lim1 = fs.read_text_file("/some/path", { line = 2, limit = 1 })
-    local ok_limit0, limit0 = fs.read_text_file("/some/path", { limit = 0 })
-    local ok_line4, line4 = fs.read_text_file("/some/path", { line = 4 })
+    local ok, data = fs.read_text_file("/some/path")
+    return { ok = ok, data = data }
+  ]],
+    content
+  ))
 
-    return {
-      ok_all = ok_all, all = all,
-      ok_line = ok_line, from_line2 = from_line2,
-      ok_line0 = ok_line0, from_line0 = from_line0,
-      ok_limit5 = ok_limit5, limit5 = limit5,
-      ok_limit2 = ok_limit2, limit2 = limit2,
-      ok_line2_lim1 = ok_line2_lim1, line2lim1 = line2lim1,
-      ok_limit0 = ok_limit0, limit0 = limit0,
-      ok_line4 = ok_line4, line4 = line4
+  h.is_true(result.ok)
+  h.eq(content, result.data)
+end
+
+T["read_text_file returns from given line to EOF"] = function()
+  local result = child.lua(string.format(
+    [[
+    vim.uv = { fs_stat = function(path) return { size = 123 } end }
+
+    package.loaded["codecompanion.utils.files"] = {
+      read = function(path) return %q end,
     }
+
+    package.loaded["codecompanion.strategies.chat.acp.fs"] = nil
+    local fs = require("codecompanion.strategies.chat.acp.fs")
+
+    local ok, data = fs.read_text_file("/some/path", { line = 2 })
+    return { ok = ok, data = data }
+  ]],
+    content
+  ))
+
+  h.is_true(result.ok)
+  h.eq("second line\nthird", result.data)
+end
+
+T["read_text_file normalizes line 0 to 1"] = function()
+  local result = child.lua(string.format(
+    [[
+    vim.uv = { fs_stat = function(path) return { size = 123 } end }
+
+    package.loaded["codecompanion.utils.files"] = {
+      read = function(path) return %q end,
+    }
+
+    package.loaded["codecompanion.strategies.chat.acp.fs"] = nil
+    local fs = require("codecompanion.strategies.chat.acp.fs")
+
+    local ok, data = fs.read_text_file("/some/path", { line = 0 })
+    return { ok = ok, data = data }
+  ]],
+    content
+  ))
+
+  h.is_true(result.ok)
+  h.eq(content, result.data)
+end
+
+T["read_text_file limit larger than lines returns full content"] = function()
+  local result = child.lua(string.format(
+    [[
+    vim.uv = { fs_stat = function(path) return { size = 123 } end }
+
+    package.loaded["codecompanion.utils.files"] = {
+      read = function(path) return %q end,
+    }
+
+    package.loaded["codecompanion.strategies.chat.acp.fs"] = nil
+    local fs = require("codecompanion.strategies.chat.acp.fs")
+
+    local ok, data = fs.read_text_file("/some/path", { limit = 5 })
+    return { ok = ok, data = data }
+  ]],
+    content
+  ))
+
+  h.is_true(result.ok)
+  h.eq(content, result.data)
+end
+
+T["read_text_file limit 2 returns first two lines"] = function()
+  local result = child.lua(string.format(
+    [[
+    vim.uv = { fs_stat = function(path) return { size = 123 } end }
+
+    package.loaded["codecompanion.utils.files"] = {
+      read = function(path) return %q end,
+    }
+
+    package.loaded["codecompanion.strategies.chat.acp.fs"] = nil
+    local fs = require("codecompanion.strategies.chat.acp.fs")
+
+    local ok, data = fs.read_text_file("/some/path", { limit = 2 })
+    return { ok = ok, data = data }
+  ]],
+    content
+  ))
+
+  h.is_true(result.ok)
+  h.eq("first line\nsecond line", result.data)
+end
+
+T["read_text_file line 2 limit 1 returns only second line"] = function()
+  local result = child.lua(string.format(
+    [[
+    vim.uv = { fs_stat = function(path) return { size = 123 } end }
+
+    package.loaded["codecompanion.utils.files"] = {
+      read = function(path) return %q end,
+    }
+
+    package.loaded["codecompanion.strategies.chat.acp.fs"] = nil
+    local fs = require("codecompanion.strategies.chat.acp.fs")
+
+    local ok, data = fs.read_text_file("/some/path", { line = 2, limit = 1 })
+    return { ok = ok, data = data }
+  ]],
+    content
+  ))
+
+  h.is_true(result.ok)
+  h.eq("second line", result.data)
+end
+
+T["read_text_file limit 0 returns empty string"] = function()
+  local result = child.lua(string.format(
+    [[
+    vim.uv = { fs_stat = function(path) return { size = 123 } end }
+
+    package.loaded["codecompanion.utils.files"] = {
+      read = function(path) return %q end,
+    }
+
+    package.loaded["codecompanion.strategies.chat.acp.fs"] = nil
+    local fs = require("codecompanion.strategies.chat.acp.fs")
+
+    local ok, data = fs.read_text_file("/some/path", { limit = 0 })
+    return { ok = ok, data = data }
+  ]],
+    content
+  ))
+
+  h.is_true(result.ok)
+  h.eq("", result.data)
+end
+
+T["read_text_file start line beyond EOF returns empty string"] = function()
+  local result = child.lua(string.format(
+    [[
+    vim.uv = { fs_stat = function(path) return { size = 123 } end }
+
+    package.loaded["codecompanion.utils.files"] = {
+      read = function(path) return %q end,
+    }
+
+    package.loaded["codecompanion.strategies.chat.acp.fs"] = nil
+    local fs = require("codecompanion.strategies.chat.acp.fs")
+
+    local ok, data = fs.read_text_file("/some/path", { line = 4 })
+    return { ok = ok, data = data }
+  ]],
+    content
+  ))
+
+  h.is_true(result.ok)
+  h.eq("", result.data)
+end
+
+T["read_text_file treats vim.NIL opts as no opts"] = function()
+  local result = child.lua(string.format(
+    [[
+    vim.uv = { fs_stat = function(path) return { size = 123 } end }
+
+    package.loaded["codecompanion.utils.files"] = {
+      read = function(path) return %q end,
+    }
+
+    package.loaded["codecompanion.strategies.chat.acp.fs"] = nil
+    local fs = require("codecompanion.strategies.chat.acp.fs")
+
+    -- Pass vim.NIL as opts to simulate real-world ACP behavior
+    local ok, data = fs.read_text_file("/some/path", vim.NIL)
+    return { ok = ok, data = data }
+  ]],
+    content
+  ))
+
+  h.is_true(result.ok)
+  h.eq(content, result.data)
+end
+
+T["read_text_file integration reads real file"] = function()
+  local result = child.lua([[
+    -- Construct an absolute path to the stub file in the repo
+    local path = vim.fn.getcwd() .. "/tests/stubs/fs_read_text_file.txt"
+
+    -- Ensure the stub file exists for the test to be meaningful
+    local stat = vim.uv.fs_stat(path)
+    if not stat then
+      return { ok = false, err = "stub file missing: " .. path }
+    end
+
+    -- Reload module under test (no mocks)
+    package.loaded["codecompanion.strategies.chat.acp.fs"] = nil
+    local fs = require("codecompanion.strategies.chat.acp.fs")
+
+    local ok, data = fs.read_text_file(path)
+    return { ok = ok, data = data }
   ]])
 
-  local full = "first line\nsecond line\nthird"
-
-  h.is_true(result.ok_all)
-  h.eq(full, result.all)
-
-  -- line=2 should return from line 2 to EOF
-  h.is_true(result.ok_line)
-  h.eq("second line\nthird", result.from_line2)
-
-  -- line=0 normalizes to 1 => full content
-  h.is_true(result.ok_line0)
-  h.eq(full, result.from_line0)
-
-  -- limit=5 (more than number of lines) returns full content
-  h.is_true(result.ok_limit5)
-  h.eq(full, result.limit5)
-
-  -- limit=2 returns first two lines
-  h.is_true(result.ok_limit2)
-  h.eq("first line\nsecond line", result.limit2)
-
-  -- line=2, limit=1 returns only second line
-  h.is_true(result.ok_line2_lim1)
-  h.eq("second line", result.line2lim1)
-
-  -- limit=0 returns empty string
-  h.is_true(result.ok_limit0)
-  h.eq("", result.limit0)
-
-  -- start line beyond EOF returns empty string
-  h.is_true(result.ok_line4)
-  h.eq("", result.line4)
+  h.is_true(result.ok, result.err)
+  h.eq("Hello World\n", result.data)
 end
 
 return T

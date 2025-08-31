@@ -514,14 +514,14 @@ function Connection:_handle_read_file_request(id, params)
     return self:_send_error(id, "invalid params", -32602)
   end
 
-  local fs_api = require("codecompanion.strategies.chat.acp.fs")
-  local ok, content_or_err = fs_api.read_text_file(path, { limit = params.limit, line = params.line })
+  local fs = require("codecompanion.strategies.chat.acp.fs")
+  local ok, content = fs.read_text_file(path, { line = params.line, limit = params.limit })
   if ok then
-    return self:_send_result(id, { content = content_or_err })
+    return self:_send_result(id, { content = content })
   end
 
   -- If the file does not exist we treat it as empty so the agent can create it
-  local errstr = tostring(content_or_err)
+  local errstr = tostring(content)
   if errstr:find("ENOENT", 1, true) then
     self:_send_result(id, { content = "" })
     return
@@ -550,8 +550,8 @@ function Connection:_handle_write_file_request(id, params)
     return self:_send_error(id, "invalid params", -32602)
   end
 
-  local fs_api = require("codecompanion.strategies.chat.acp.fs")
-  local ok, err = fs_api.write_text_file(path, content)
+  local fs = require("codecompanion.strategies.chat.acp.fs")
+  local ok, err = fs.write_text_file(path, content)
   if ok then
     -- Spec: WriteTextFileResponse is null
     self:_send_result(id, vim.NIL)
