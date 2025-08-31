@@ -54,8 +54,13 @@ end
 M.create_float = function(lines, opts)
   local window = opts.window
   local optsWidth = opts.window.width == "auto" and 0.45 or opts.window.width
-  local width = optsWidth > 1 and optsWidth or opts.width or 85
-  local height = window.height > 1 and window.height or opts.height or 17
+
+  local config = require("codecompanion.config")
+  local window_width = config.resolve_value(window.width)
+  local width = window_width and (window_width > 1 and window_width or opts.width or 85) or opts.width or 85
+
+  local window_height = config.resolve_value(window.height)
+  local height = window_height and (window_height > 1 and window_height or opts.height or 17) or opts.height or 17
 
   local bufnr = opts.bufnr or api.nvim_create_buf(false, true)
 
@@ -475,7 +480,7 @@ end
 ---@param bufnr number Buffer to display in the floating window
 ---@param opts table Options for the floating window
 ---@return number|nil winnr Window number of the created floating window
-function M.create_basic_floating_window(bufnr, opts)
+function M.create_diff_dim_floating_win(bufnr, opts)
   opts = opts or {}
 
   -- Create background window for dimming effect
@@ -490,8 +495,8 @@ function M.create_basic_floating_window(bufnr, opts)
   -- Merge configurations with diff_window taking precedence
   local window_config = vim.tbl_deep_extend("force", base_window_config, diff_window_config)
 
-  local width = window_config.width > 1 and window_config.width or vim.o.columns - 14
-  local height = window_config.height > 1 and window_config.height or vim.o.lines - 7
+  local width = config.resolve_value(window_config.width) or vim.o.columns - 14
+  local height = config.resolve_value(window_config.height) or vim.o.lines - 7
   local row = window_config.row == "center" and math.floor((vim.o.lines - height) / 2 - 1) or window_config.row or 10
   local col = window_config.col == "center" and math.floor((vim.o.columns - width) / 2) or window_config.col or 5
 

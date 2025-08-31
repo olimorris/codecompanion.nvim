@@ -1196,8 +1196,15 @@ You must create or modify a workspace file through a series of prompts over mult
       },
       -- Window options for any windows that open within the chat buffer
       child_window = {
-        width = vim.o.columns - 5,
-        height = vim.o.lines - 2,
+        ---functions will make the dimensions dynamic based on the editor's width and height
+        ---@return number|fun(): number
+        width = function()
+          return vim.o.columns - 5
+        end,
+        ---@return number|fun(): number
+        height = function()
+          return vim.o.lines - 2
+        end,
         row = "center",
         col = "center",
         relative = "editor",
@@ -1209,8 +1216,15 @@ You must create or modify a workspace file through a series of prompts over mult
       },
       -- You can also extend/override the child_window options for a diff
       diff_window = {
-        width = vim.o.columns - 20,
-        height = vim.o.lines - 4,
+        ---functions will make the dimensions dynamic based on the editor's width and height
+        ---@return number|fun(): number
+        width = function()
+          return math.min(120, vim.o.columns - 10)
+        end,
+        ---@return number|fun(): number
+        height = function()
+          return vim.o.lines - 4
+        end,
         opts = {
           number = true,
         },
@@ -1346,6 +1360,13 @@ M.can_send_code = function()
     return M.config.opts.send_code()
   end
   return false
+end
+
+---Resolve a config value that might be a function or static value
+---@param value any
+---@return any
+function M.resolve_value(value)
+  return type(value) == "function" and value() or value
 end
 
 return setmetatable(M, {

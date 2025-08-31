@@ -333,7 +333,7 @@ local function show_diff(chat, request)
   api.nvim_buf_set_lines(bufnr, 0, -1, false, new_lines)
 
   -- Create the floating window
-  local winnr = ui.create_basic_floating_window(bufnr, {
+  local winnr = ui.create_diff_dim_floating_win(bufnr, {
     filepath = d.path,
     title_prefix = "Edit Requested",
     show_dim = true,
