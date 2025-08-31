@@ -235,7 +235,7 @@ function Tools:set_autocmds()
             })
           end
 
-          if vim.g.codecompanion_auto_tool_mode then
+          if vim.g.codecompanion_yolo_mode then
             return auto_submit()
           end
           if self.status == CONSTANTS.STATUS_ERROR and self.tools_config.opts.auto_submit_errors then
@@ -379,13 +379,23 @@ end
 function Tools:replace(message)
   for tool, _ in pairs(self.tools_config) do
     if tool ~= "opts" and tool ~= "groups" then
-      message = vim.trim(regex.replace(message, self:_pattern(tool), tool))
+      local replacement = util.replace_placeholders(self.tools_config.opts.tool_replacement_message, { tool = tool })
+      message = vim.trim(regex.replace(message, self:_pattern(tool), replacement))
     end
   end
+
   for group, _ in pairs(self.tools_config.groups) do
-    local tools = table.concat(self.tools_config.groups[group].tools, ", ")
-    message = vim.trim(regex.replace(message, self:_pattern(group), tools))
+    local replacement
+    local group_config = self.tools_config.groups[group]
+    local tools = table.concat(group_config.tools, ", ")
+
+    if group_config.prompt then
+      replacement = util.replace_placeholders(group_config.prompt, { tools = tools .. " tools" })
+    end
+
+    message = vim.trim(regex.replace(message, self:_pattern(group), replacement or tools))
   end
+
   return message
 end
 

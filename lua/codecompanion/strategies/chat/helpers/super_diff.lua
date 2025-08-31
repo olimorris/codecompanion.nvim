@@ -773,8 +773,8 @@ function M.setup_sticky_header(bufnr, winnr, lines)
     local dir_part = relative_dir and relative_dir ~= "" and (" : " .. relative_dir) or ""
     local keymap_part = " | ga: accept all | gr: reject all | gq: quickfix"
     local full_text = filename_part .. dir_part .. keymap_part
-    local auto_mode = vim.g.codecompanion_auto_tool_mode
-    local auto_status = auto_mode and " [AUTO EDIT: ON]" or " [AUTO EDIT: OFF]"
+    local yolo_mode = vim.g.codecompanion_yolo_mode
+    local auto_status = yolo_mode and " [AUTO EDIT: ON]" or " [AUTO EDIT: OFF]"
     local text_width = vim.fn.strdisplaywidth(full_text)
     local padding_left = math.max(0, math.floor((win_width - text_width) / 2))
     local padding_right = math.max(0, win_width - text_width - padding_left)

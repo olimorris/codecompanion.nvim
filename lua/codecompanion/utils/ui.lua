@@ -417,4 +417,15 @@ function M.set_winbar(winnr, text, hl)
   vim.wo[winnr].winbar = centered
 end
 
+---A simple confirmation dialog using vim.fn.confirm
+---@param prompt string The prompt message
+---@param choices table Choices
+---@param opts? {default: number, highlight_group: string}  Additional options (currently unused)
+---@return number The index of the selected choice (1-based), or 0 if cancelled
+function M.confirm(prompt, choices, opts)
+  opts = opts or { default = 1, highlight_group = "Question" }
+  local formatted_choices = table.concat(choices, "\n")
+  return vim.fn.confirm(prompt, formatted_choices, opts.default, opts.highlight_group)
+end
+
 return M
