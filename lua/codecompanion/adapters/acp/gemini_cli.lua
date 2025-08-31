@@ -25,6 +25,7 @@ return {
   },
   defaults = {
     auth_method = "oauth-personal", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
+    oauth_credentials_path = vim.fs.abspath("~/.gemini/oauth_creds.json"),
     mcpServers = {},
     timeout = 20000, -- 20 seconds
   },

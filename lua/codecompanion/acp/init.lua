@@ -155,7 +155,7 @@ function Connection:connect()
       -- Skip OAuth authentication if credentials already exist
       local should_skip_auth = false
       if methodId == "oauth-personal" then
-        local oauth_creds_path = vim.fs.abspath("~/.gemini/oauth_creds.json")
+        local oauth_creds_path = self.adapter_modified.defaults.oauth_credentials_path
         if vim.uv.fs_stat(oauth_creds_path) then
           log:debug("[acp::connect] Found existing OAuth credentials at %s, skipping authentication", oauth_creds_path)
           should_skip_auth = true
