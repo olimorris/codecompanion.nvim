@@ -165,7 +165,7 @@ end
 ---@param filepath string|nil Optional filepath for window title
 ---@return number? winnr Window number of the created floating window
 local function create_diff_floating_window(bufnr, filepath)
-  local winnr = ui.create_basic_floating_window(bufnr, {
+  local winnr = ui.create_diff_dim_floating_win(bufnr, {
     filepath = filepath,
     title_prefix = " Diff:",
     show_dim = true,

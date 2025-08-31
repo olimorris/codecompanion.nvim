@@ -83,7 +83,18 @@ local function with_mocks(opts)
       end,
       create_background_window = function() return nil end,
       close_background_window = function() end,
-      set_winbar = function(_winnr, _text, _hl) end
+      set_winbar = function(_winnr, _text, _hl) end,
+      create_diff_dim_floating_win = function(bufnr, _opts)
+        local w = vim.api.nvim_open_win(bufnr, true, {
+          relative = "editor",
+          width = 60, height = 12,
+          row = 1, col = 1,
+          style = "minimal", border = "single",
+          title = _opts and _opts.title or "Diff",
+          title_pos = "center",
+        })
+        return w
+      end
     }
 
     -- Mock wait helper
