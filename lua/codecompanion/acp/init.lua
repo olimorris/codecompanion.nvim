@@ -152,13 +152,25 @@ function Connection:connect()
       end
       methodId = methodId or (auth_methods[1] and auth_methods[1].id)
 
-      if methodId then
+      -- Skip OAuth authentication if credentials already exist
+      local should_skip_auth = false
+      if methodId == "oauth-personal" then
+        local oauth_creds_path = vim.fs.abspath("~/.gemini/oauth_creds.json")
+        if vim.uv.fs_stat(oauth_creds_path) then
+          log:debug("[acp::connect] Found existing OAuth credentials at %s, skipping authentication", oauth_creds_path)
+          should_skip_auth = true
+        end
+      end
+
+      if methodId and not should_skip_auth then
         local ok = self:_send_request(METHODS.AUTHENTICATE, { methodId = methodId })
         if not ok then
           log:error("[acp::connect] Failed to authenticate with method %s", methodId)
           return nil
         end
         log:debug("[acp::connect] Authenticated using %s", methodId)
+      elseif should_skip_auth then
+        log:debug("[acp::connect] Skipped authentication for %s (existing credentials found)", methodId)
       else
         log:debug("[acp::connect] No compatible auth method; skipping authenticate")
       end
