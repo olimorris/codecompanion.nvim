@@ -303,11 +303,14 @@ end
 ---@param tool_call table
 ---@return table
 local function get_diff(tool_call)
+  local absolute_path = tool_call.locations and tool_call.locations[1] and tool_call.locations[1].path
+  local path = absolute_path or vim.fs.joinpath(vim.fn.getcwd(), tool_call.content[1].path)
+
   return {
     kind = tool_call.kind,
     new = tool_call.content[1].newText,
     old = tool_call.content[1].oldText,
-    path = vim.fs.joinpath(vim.fn.getcwd(), tool_call.content[1].path),
+    path = path,
     status = tool_call.status,
     title = tool_call.title,
     tool_call_id = tool_call.toolCallId,
