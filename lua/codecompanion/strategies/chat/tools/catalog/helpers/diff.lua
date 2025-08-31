@@ -197,10 +197,10 @@ function M.create(bufnr_or_filepath, diff_id, opts)
 
   log:debug("[catalog::helpers::diff::create] Called - diff_id=%s", tostring(diff_id))
 
-  if vim.g.codecompanion_auto_tool_mode or not config.display.diff.enabled then
+  if vim.g.codecompanion_yolo_mode or not config.display.diff.enabled then
     log:trace(
-      "[catalog::helpers::diff::create] Skipping diff - auto_mode=%s, enabled=%s",
-      tostring(vim.g.codecompanion_auto_tool_mode),
+      "[catalog::helpers::diff::create] Skipping diff - yolo_mode=%s, enabled=%s",
+      tostring(vim.g.codecompanion_yolo_mode),
       tostring(config.display.diff.enabled)
     )
     return nil
@@ -268,8 +268,8 @@ end
 ---@return boolean should_create
 ---@return string|nil reason Why diff creation was skipped
 function M.should_create(bufnr)
-  if vim.g.codecompanion_auto_tool_mode then
-    return false, "auto_tool_mode"
+  if vim.g.codecompanion_yolo_mode then
+    return false, "yolo_mode"
   end
 
   if not config.display.diff.enabled then

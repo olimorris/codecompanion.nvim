@@ -28,7 +28,7 @@ Table of Contents                            *codecompanion-table-of-contents*
   - Chat Buffer                      |codecompanion-configuration-chat-buffer|
   - Inline Assistant            |codecompanion-configuration-inline-assistant|
   - Prompt Library                |codecompanion-configuration-prompt-library|
-  - System Prompt                  |codecompanion-configuration-system-prompt|
+  - System Prompts                |codecompanion-configuration-system-prompts|
   - Extensions                        |codecompanion-configuration-extensions|
   - Other Options                  |codecompanion-configuration-other-options|
 5. Usage                                                 |codecompanion-usage|
@@ -1926,7 +1926,10 @@ function:
 Where `docs` is the `short_name` of the prompt.
 
 
-SYSTEM PROMPT                      *codecompanion-configuration-system-prompt*
+SYSTEM PROMPTS                    *codecompanion-configuration-system-prompts*
+
+
+CHAT SYSTEM PROMPT ~
 
 The default system prompt has been carefully curated to deliver terse and
 professional responses that relate to development and Neovim. It is sent with
@@ -1985,11 +1988,56 @@ The plugin comes with the following system prompt:
     The current date is August 28, 2025.
     The user's Neovim version is 0.12.0.
     The user is working on a Mac machine. Please respond with system specific commands if applicable.
-    You use the GPT-4.1 large language model.
 <
 
 
-CHANGING THE SYSTEM PROMPT ~
+TOOL SYSTEM PROMPT ~
+
+CodeCompanion also ships with a separate system prompt when
+|codecompanion-usage-chat-buffer-tools| are used in the chat buffer:
+
+>txt
+    <instructions>
+    You are a highly sophisticated automated coding agent with expert-level knowledge across many different programming languages and frameworks.
+    The user will ask a question, or ask you to perform a task, and it may require lots of research to answer correctly. There is a selection of tools that let you perform actions or retrieve helpful context to answer the user's question.
+    You will be given some context and attachments along with the user prompt. You can use them if they are relevant to the task, and ignore them if not.
+    If you can infer the project type (languages, frameworks, and libraries) from the user's query or the context that you have, make sure to keep them in mind when making changes.
+    If the user wants you to implement a feature and they have not specified the files to edit, first break down the user's request into smaller concepts and think about the kinds of files you need to grasp each concept.
+    If you aren't sure which tool is relevant, you can call multiple tools. You can call tools repeatedly to take actions or gather as much context as needed until you have completed the task fully. Don't give up unless you are sure the request cannot be fulfilled with the tools you have. It's YOUR RESPONSIBILITY to make sure that you have done all you can to collect necessary context.
+    Don't make assumptions about the situation - gather context first, then perform the task or answer the question.
+    Think creatively and explore the workspace in order to make a complete fix.
+    Don't repeat yourself after a tool call, pick up where you left off.
+    NEVER print out a codeblock with a terminal command to run unless the user asked for it.
+    You don't need to read a file if it's already provided in context.
+    </instructions>
+    <toolUseInstructions>
+    When using a tool, follow the json schema very carefully and make sure to include ALL required properties.
+    Always output valid JSON when using a tool.
+    If a tool exists to do a task, use the tool instead of asking the user to manually take an action.
+    If you say that you will take an action, then go ahead and use the tool to do it. No need to ask permission.
+    Never use a tool that does not exist. Use tools using the proper procedure, DO NOT write out a json codeblock with the tool inputs.
+    Never say the name of a tool to a user. For example, instead of saying that you'll use the insert_edit_into_file tool, say "I'll edit the file".
+    If you think running multiple tools can answer the user's question, prefer calling them in parallel whenever possible.
+    When invoking a tool that takes a file path, always use the file path you have been given by the user or by the output of a tool.
+    </toolUseInstructions>
+    <outputFormatting>
+    Use proper Markdown formatting in your answers. When referring to a filename or symbol in the user's workspace, wrap it in backticks.
+    Any code block examples must be wrapped in four backticks with the programming language.
+    <example>
+    ````languageId
+    // Your code here
+    ````
+    </example>
+    The languageId must be the correct identifier for the programming language, e.g. python, javascript, lua, etc.
+    If you are providing code changes, use the insert_edit_into_file tool (if available to you) to make the changes directly instead of printing out a code block with the changes.
+    </outputFormatting>
+<
+
+
+CHANGING SYSTEM PROMPTS ~
+
+
+CHAT
 
 The default system prompt can be changed with:
 
@@ -2026,7 +2074,36 @@ the language (`opts.language`) that the LLM should respond with:
 <
 
 
-WHEN THE SYSTEM PROMPT CHANGES ~
+TOOLS
+
+There are additional options available when working with tool system prompts:
+
+>lua
+    require("codecompanion").setup({
+      strategies = {
+        chat = {
+          tools = {
+            opts = {
+              system_prompt = {
+                enabled = true, -- Enable the tools system prompt?
+                replace_main_system_prompt = false, -- Replace the main system prompt with the tools system prompt?
+    
+                ---The tool system prompt
+                ---@param args { tools: string[]} The tools available
+                ---@return string
+                prompt = function(args)
+                  return "My custom tools prompt"
+                end,
+              },
+            },
+          },
+        },
+      },
+    })
+<
+
+
+WHEN SYSTEM PROMPTS CHANGE ~
 
 There are various scenarios for when the system prompt may change in the chat
 buffer:
@@ -2034,6 +2111,7 @@ buffer:
 - When a user changes adapter
 - When a user changes the model on an adapter
 - When a workspace is added
+- When a tool (with a defined system prompt) is added to the chat buffer
 
 CodeCompanion will always resolve a system prompt change asynchronously, as
 many adapters make a HTTP request to a server in order to obtain the available
@@ -2516,7 +2594,7 @@ added as a participant to the chat buffer by using the `@` key.
   [!IMPORTANT] The use of some tools in the plugin results in you, the developer,
   acting as the human-in-the-loop and approving their use.
 
-HOW TOOLS WORK ~
+HOW THEY WORK ~
 
 Tools make use of an LLM’s function calling
 <https://platform.openai.com/docs/guides/function-calling> ability. All tools
@@ -2535,37 +2613,23 @@ An outline of the architecture can be seen
 |codecompanion-extending-tools-architecture|.
 
 
-COMMUNITY TOOLS ~
+TOOLS ~
 
-There is also a thriving ecosystem of user created tools:
+CodeCompanion replaces the tool call in any prompt you send to the LLM with the
+value of `opts.tool_replacement_message`. This is to ensure that you can call a
+tool efficiently whilst making the prompt readable to the LLM.
 
-- VectorCode <https://github.com/Davidyz/VectorCode/tree/main> - A code repository indexing tool to supercharge your LLM experience
-- mcphub.nvim <https://github.com/ravitemer/mcphub.nvim> - A powerful Neovim plugin for managing MCP (Model Context Protocol) servers
+So calling a tool with:
 
-The section of the discussion forums which is dedicated to user created tools
-can be found here
-<https://github.com/olimorris/codecompanion.nvim/discussions/categories/tools>.
+>md
+    Use @{lorem_ipsum} to generate a random paragraph
+<
 
+will yield:
 
-SECURITY AND APPROVALS ~
-
-CodeCompanion takes security very seriously, especially in a world of agentic
-code development. To that end, every effort is made to ensure that LLMs are
-only given the information that they need to execute a tool successfully.
-CodeCompanion will endeavour to make sure that the full disk path to your
-current working directory (cwd) in Neovim is never shared. The impact of this
-is that the LLM can only work within the cwd when executing tools but will
-minimize actions that are hard to recover from
-<https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7>.
-
-The plugin also puts approvals at the heart of its workflow. Some tools, such
-as the `@cmd_runner`, require the user to approve any actions before they can
-be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt
-you for a response. You may also
-|codecompanion-configuration-chat-buffer-approvals| an approval for `any` tool.
-
-
-AVAILABLE TOOLS ~
+>
+    Use the lorem_ipsum tool to generate a random paragraph
+<
 
 
 CMD_RUNNER
@@ -2574,11 +2638,11 @@ The `@cmd_runner` tool enables an LLM to execute commands on your machine,
 subject to your authorization. For example:
 
 >md
-    Can you use the @{cmd_runner} tool to run my test suite with `pytest`?
+    Can you use @{cmd_runner} to run my test suite with `pytest`?
 <
 
 >md
-    Use the @{cmd_runner} tool to install any missing libraries in my project
+    Use @{cmd_runner} to install any missing libraries in my project
 <
 
 Some commands do not write any data to stdout
@@ -2602,7 +2666,7 @@ CREATE_FILE
 Create a file within the current working directory:
 
 >md
-    Can you create some test fixtures using the @{create_file} tool?
+    Can you create some test fixtures using @{create_file}?
 <
 
 **Options:** - `requires_approval` require approval before creating a file?
@@ -2616,7 +2680,7 @@ return the text in a text format, depending on which adapter you’ve
 configured for the tool.
 
 >md
-    Use the @{fetch_webpage} tool to tell me what the latest version on neovim.io is
+    Use @{fetch_webpage} to tell me what the latest version on neovim.io is
 <
 
 **Options:** - `adapter` The adapter used to fetch, process and format the
@@ -2630,7 +2694,7 @@ by glob pattern. It will return a list of relative paths for any matching
 files.
 
 >md
-    Use the @{file_search} tool to list all the lua files in my project
+    Use @{file_search} to list all the lua files in my project
 <
 
 **Options:** - `max_results` limits the amount of results that can be sent to
@@ -2644,7 +2708,7 @@ working directory. It will return a diff which can contain `staged`, `unstaged`
 and `merge-conflicts`.
 
 >md
-    Use the @{get_changed_files} tool see what's changed
+    Use @{get_changed_files} see what's changed
 <
 
 **Options:** - `max_lines` limits the amount of lines that can be sent to the
@@ -2661,7 +2725,7 @@ working directory. For every match, the output (`{filename}:{line number}
 {relative filepath}`) will be shared with the LLM:
 
 >md
-    Use the @{grep_search} tool to find all occurrences of `buf_add_message`?
+    Use @{grep_search} to find all occurrences of `buf_add_message`?
 <
 
 **Options:** - `max_files` (number) limits the amount of files that can be sent
@@ -2677,11 +2741,11 @@ INSERT_EDIT_INTO_FILE
 This tool can edit buffers and files for code changes from an LLM:
 
 >md
-    Use the @{insert_edit_into_file} tool to refactor the code in #buffer
+    Use @{insert_edit_into_file} to refactor the code in #buffer
 <
 
 >md
-    Can you apply the suggested changes to the buffer with the @{insert_edit_into_file} tool?
+    Can you apply the suggested changes to the buffer with @{insert_edit_into_file}?
 <
 
 **Options:** - `patching_algorithm` (string|table|function) The algorithm to
@@ -2710,7 +2774,7 @@ The tool provides comprehensive information about symbols including:
 - **Documentation**: Hover documentation when available
 
 >md
-    Use the @{list_code_usages} tool to find all usages of the `create_file` function
+    Use @{list_code_usages} to find all usages of the `create_file` function
 <
 
 >md
@@ -2743,11 +2807,11 @@ This tool enables an LLM to search the web for a specific query, enabling it to
 receive up to date information:
 
 >md
-    Use @{search_web} tool to find the latest version of Neovim?
+    Use @{search_web} to find the latest version of Neovim?
 <
 
 >md
-    Use the @{search_web} tool to search neovim.io and explain how I can configure a new language server
+    Use @{search_web} to search neovim.io and explain how I can configure a new language server
 <
 
 Currently, the tool uses tavily <https://www.tavily.com> and you’ll need to
@@ -2755,41 +2819,132 @@ ensure that an API key has been set accordingly, as per the adapter
 <https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/tavily.lua>.
 
 
-GROUPS ~
+TOOL GROUPS ~
 
-CodeCompanion comes with two built-in tool groups:
+Tool Groups are a convenient way to combine multiple tools together in the chat
+buffer. CodeCompanion comes with two built-in ones, `@{full_stack_dev}` and
+`@{files}`.
 
-- `full_stack_dev` - Containing all of the tools
-- `files` - Containing `create_file`, `file_search`, `get_changed_files`, `grep_search`, `insert_edit_into_file` and `read_file` tools
+When you include a tool group in the chat, all tools within that group become
+available to the LLM. By default, all the tools in the group will be shown as a
+single `<group>name</group>` reference in the chat buffer. If you want to show
+all tools as context items in the chat buffer, set the `opts.collapse_tools`
+option to `false` on the group itself.
 
-When you include a tool group in your chat (e.g., `@{files}`), all tools within
-that group become available to the LLM. By default, all the tools in the group
-will be shown as a single `<group>name</group>` reference in the chat buffer.
+Groups may also have a `prompt` field which is used to replace their reference
+in a message in the chat buffer. This ensures that the LLM receives a useful
+message rather than the name of the tools themselves.
 
-If you want to show all tools as context items in the chat buffer, set the
-`opts.collapse_tools` option to `false` on the group itself.
+For example, the following prompt:
+
+>md
+    @{full_stack_dev}. Can you create Snake for me, in Python?
+<
+
+Is replaced by:
+
+>
+    I'm giving you access to the cmd_runner, create_file, file_search, get_changed_files, grep_search, insert_edit_into_file, list_code_usages, read_file tools to help you perform coding tasks. Can you create Snake for me, in Python?
+<
+
+This is because the `@{full_stack_dev}` group has the following prompt set in
+the config:
+
+>lua
+    groups = {
+      ["full_stack_dev"] = {
+        -- ...
+        prompt = "I'm giving you access to the ${tools} to help you perform coding tasks",
+        -- ...
+      }
+    },
+<
+
+
+FULL_STACK_DEV
+
+The `@{full_stack_dev}` is a collection of tools which have been curated to
+enable an LLM to create applications and understand and refactor code bases.
+
+It contains the following tools:
+
+- |codecompanion-usage-chat-buffer-tools-cmd-runner|
+- |codecompanion-usage-chat-buffer-tools-create-file|
+- |codecompanion-usage-chat-buffer-tools-file-search|
+- |codecompanion-usage-chat-buffer-tools-get-changed-files|
+- |codecompanion-usage-chat-buffer-tools-grep-search|
+- |codecompanion-usage-chat-buffer-tools-insert-edit-into-file|
+- |codecompanion-usage-chat-buffer-tools-list-code-usages|
+- |codecompanion-usage-chat-buffer-tools-read-file|
+
+You can use it with:
+
+>md
+    @{full_stack_dev}. Can we create a todo list in Vue.js?
+<
+
+
+FILES
+
+The `@{files}` tool is a collection of tools that allows an LLM to carry out
+file operations in your current working directory. It contains the following
+files:
+
+- |codecompanion-usage-chat-buffer-tools-create-file|
+- |codecompanion-usage-chat-buffer-tools-file-search|
+- |codecompanion-usage-chat-buffer-tools-get-changed-files|
+- |codecompanion-usage-chat-buffer-tools-grep-search|
+- |codecompanion-usage-chat-buffer-tools-insert-edit-into-file|
+- |codecompanion-usage-chat-buffer-tools-read-file|
+
+You can use it with:
+
+>md
+    @{files}. Can you scaffold out the folder structure for a python package?
+<
 
 
 USEFUL TIPS ~
 
 
-COMBINING TOOLS
+YOLO MODE
 
-Consider combining tools for complex tasks:
+The plugin allows you to run tools on autopilot, with YOLO mode. This
+automatically approves any tool use instead of prompting the user, disables any
+diffs, submits errors and success messages and automatically saves any buffers
+that tools may have edited. In the chat buffer, the keymap `gty` will toggle
+YOLO mode on/off. Alternatively, set the global variable
+`vim.g.codecompanion_yolo_mode` to enable this or set it to `nil` to undo this.
 
->md
-    @{full_stack_dev} I want to play Snake. Can you create the game for me in Python and install any packages you need. Let's save it to ~/Code/Snake. When you've finished writing it, can you open it so I can play?
-<
+
+COMMUNITY TOOLS ~
+
+There is also a thriving ecosystem of user created tools:
+
+- VectorCode <https://github.com/Davidyz/VectorCode/tree/main> - A code repository indexing tool to supercharge your LLM experience
+- mcphub.nvim <https://github.com/ravitemer/mcphub.nvim> - A powerful Neovim plugin for managing MCP (Model Context Protocol) servers
+
+The section of the discussion forums which is dedicated to user created tools
+can be found here
+<https://github.com/olimorris/codecompanion.nvim/discussions/categories/tools>.
 
 
-AUTOMATIC TOOL MODE
+SECURITY AND APPROVALS ~
 
-The plugin allows you to run tools on autopilot. This automatically approves
-any tool use instead of prompting the user, disables any diffs, submits errors
-and success messages and automatically saves any buffers that tools may have
-edited. Simply set the global variable `vim.g.codecompanion_auto_tool_mode` to
-enable this or set it to `nil` to undo this. Alternatively, the keymap `gta`
-will toggle the feature whist from the chat buffer.
+CodeCompanion takes security very seriously, especially in a world of agentic
+code development. To that end, every effort is made to ensure that LLMs are
+only given the information that they need to execute a tool successfully.
+CodeCompanion will endeavour to make sure that the full disk path to your
+current working directory (cwd) in Neovim is never shared. The impact of this
+is that the LLM can only work within the cwd when executing tools but will
+minimize actions that are hard to recover from
+<https://www.businessinsider.com/replit-ceo-apologizes-ai-coding-tool-delete-company-database-2025-7>.
+
+The plugin also puts approvals at the heart of its workflow. Some tools, such
+as the `@cmd_runner`, require the user to approve any actions before they can
+be executed. If the tool requires this a `vim.fn.confirm` dialog will prompt
+you for a response. You may also
+|codecompanion-configuration-chat-buffer-approvals| an approval for `any` tool.
 
 
 COMPATIBILITY ~
@@ -5343,8 +5498,8 @@ Let’s breakdown the prompts in that workflow:
           role = constants.USER_ROLE,
           opts = { auto_submit = false },
           content = function()
-            -- Leverage auto_tool_mode which disables the requirement of approvals and automatically saves any edited buffer
-            vim.g.codecompanion_auto_tool_mode = true
+            -- Leverage YOLO mode which disables the requirement of approvals and automatically saves any edited buffer
+            vim.g.codecompanion_yolo_mode = true
     
             -- Some clear instructions for the LLM to follow
             return [[### Instructions

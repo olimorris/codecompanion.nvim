@@ -41,9 +41,9 @@ T = new_set({
 
 T["for_decision()"] = new_set()
 
-T["for_decision()"]["auto-approves when auto_tool_mode is enabled"] = function()
+T["for_decision()"]["auto-approves when yolo_mode is enabled"] = function()
   child.lua([[
-    vim.g.codecompanion_auto_tool_mode = true
+    vim.g.codecompanion_yolo_mode = true
     wait.for_decision("test_id", {"Accept", "Reject"}, _G.test_callback)
   ]])
 
@@ -54,7 +54,7 @@ end
 
 T["for_decision()"]["waits for matching event with correct id"] = function()
   child.lua([[
-    vim.g.codecompanion_auto_tool_mode = false
+    vim.g.codecompanion_yolo_mode = false
     wait.for_decision("test_123", {"CodeCompanionAccept", "CodeCompanionReject"}, _G.test_callback)
   ]])
 
@@ -74,7 +74,7 @@ end
 
 T["for_decision()"]["waits for reject event with correct id"] = function()
   child.lua([[
-    vim.g.codecompanion_auto_tool_mode = false
+    vim.g.codecompanion_yolo_mode = false
     wait.for_decision("test_456", {"CodeCompanionAccept", "CodeCompanionReject"}, _G.test_callback)
   ]])
 
@@ -94,7 +94,7 @@ end
 
 T["for_decision()"]["ignores events with wrong id"] = function()
   child.lua([[
-    vim.g.codecompanion_auto_tool_mode = false
+    vim.g.codecompanion_yolo_mode = false
     wait.for_decision("test_789", {"CodeCompanionAccept", "CodeCompanionReject"}, _G.test_callback)
   ]])
 
@@ -125,7 +125,7 @@ end
 
 T["for_decision()"]["handles notification option"] = function()
   child.lua([[
-    vim.g.codecompanion_auto_tool_mode = false
+    vim.g.codecompanion_yolo_mode = false
     wait.for_decision("test_notify", {"Accept", "Reject"}, _G.test_callback, {
       notify = "Please make a decision..."
     })
@@ -137,7 +137,7 @@ end
 
 T["for_decision()"]["times out after specified duration"] = function()
   child.lua([[
-    vim.g.codecompanion_auto_tool_mode = false
+    vim.g.codecompanion_yolo_mode = false
     wait.for_decision("test_timeout", {"Accept", "Reject"}, _G.test_callback, {
       timeout = 100  -- Very short timeout for testing
     })
@@ -154,7 +154,7 @@ end
 
 T["for_decision()"]["cleans up autocmds after decision"] = function()
   child.lua([[
-    vim.g.codecompanion_auto_tool_mode = false
+    vim.g.codecompanion_yolo_mode = false
     wait.for_decision("test_cleanup", {"Accept", "Reject"}, _G.test_callback)
   ]])
 
@@ -195,7 +195,7 @@ end
 
 T["for_decision()"]["passes event data to callback"] = function()
   child.lua([[
-    vim.g.codecompanion_auto_tool_mode = false
+    vim.g.codecompanion_yolo_mode = false
     wait.for_decision("test_data", {"Accept", "Reject"}, _G.test_callback)
   ]])
 
@@ -220,7 +220,7 @@ end
 
 T["for_decision()"]["uses default timeout from config"] = function()
   child.lua([[
-    vim.g.codecompanion_auto_tool_mode = false
+    vim.g.codecompanion_yolo_mode = false
 
     -- Reload wait module to pick up mocked config
     package.loaded["codecompanion.strategies.chat.helpers.wait"] = nil
