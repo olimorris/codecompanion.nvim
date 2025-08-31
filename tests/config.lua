@@ -272,6 +272,7 @@ return {
               "invalid",
             },
           },
+          tool_replacement_message = "the ${tool} tool", -- The message to use when replacing tool names in the chat buffer
         },
       },
       variables = {
