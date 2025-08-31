@@ -36,7 +36,7 @@
 ---@class CodeCompanion.Chat.Message
 ---@field id number Unique identifier for the message (generated via hash)
 ---@field role string Role of the author (e.g. "user", "llm", "system", "tool")
----@field content? string The raw Markdown/text content of the message (optional for tool-only entries)
+---@field content string The raw Markdown/text content of the message (optional for tool-only entries)
 ---@field cycle number The chat turn cycle when this message was added
 ---@field opts? table Optional metadata used by the UI and processing
 ---@field opts.visible? boolean Whether the message should be shown in the chat UI

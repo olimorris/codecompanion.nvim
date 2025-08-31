@@ -879,7 +879,7 @@ function Chat:remove_tagged_message(tag)
 end
 
 ---Add a message to the message table
----@param data { role: string, content: string, reasoning?: table, tool_calls?: table }
+---@param data { role: string, content: string, reasoning?: CodeCompanion.Chat.Reasoning, tool_calls?: CodeCompanion.Chat.ToolCall[] }
 ---@param opts? table Options for the message
 ---@return CodeCompanion.Chat
 function Chat:add_message(data, opts)
@@ -888,16 +888,19 @@ function Chat:add_message(data, opts)
     opts.visible = true
   end
 
+  ---@type CodeCompanion.Chat.Message
   local message = {
+    id = 1,
+    _meta = {},
     role = data.role,
     content = data.content,
     reasoning = data.reasoning,
+    cycle = self.cycle,
     tool_calls = data.tool_calls,
   }
   message.id = make_id(message)
-  message.cycle = self.cycle
   message.opts = opts
-  message._meta = {}
+
   if opts.index then
     table.insert(self.messages, opts.index, message)
   else
