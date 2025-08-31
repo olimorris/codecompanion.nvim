@@ -68,7 +68,6 @@ local defaults = {
               "insert_edit_into_file",
               "list_code_usages",
               "read_file",
-              "search_web",
             },
             opts = {
               collapse_tools = true,
@@ -239,6 +238,8 @@ Any code block examples must be wrapped in four backticks with the programming l
             ]]
             end,
           },
+
+          tool_replacement_message = "the ${tool} tool", -- The message to use when replacing tool names in the chat buffer
         },
       },
       variables = {

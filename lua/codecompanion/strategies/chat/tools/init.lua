@@ -379,7 +379,8 @@ end
 function Tools:replace(message)
   for tool, _ in pairs(self.tools_config) do
     if tool ~= "opts" and tool ~= "groups" then
-      message = vim.trim(regex.replace(message, self:_pattern(tool), tool))
+      local replacement = util.replace_placeholders(self.tools_config.opts.tool_replacement_message, { tool = tool })
+      message = vim.trim(regex.replace(message, self:_pattern(tool), replacement))
     end
   end
 
