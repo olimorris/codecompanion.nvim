@@ -31,6 +31,44 @@
 
 ---@meta CodeCompanion
 
+---@alias CodeCompanion.Chat.Messages CodeCompanion.Chat.Message[]
+
+---@class CodeCompanion.Chat.Message
+---@field id number Unique identifier for the message (generated via hash)
+---@field role string Role of the author (e.g. "user", "llm", "system", "tool")
+---@field content string The raw Markdown/text content of the message (optional for tool-only entries)
+---@field cycle number The chat turn cycle when this message was added
+---@field opts? table Optional metadata used by the UI and processing
+---@field opts.visible? boolean Whether the message should be shown in the chat UI
+---@field opts.tag? string A tag to identify special messages (e.g. "system_prompt_from_config", "tool")
+---@field opts.context_id? string Link to a context item (used for pinned/context messages)
+---@field opts.pinned? boolean Whether the context message is pinned
+---@field opts.index? number If set, the message was inserted at this index
+---@field opts.watched? boolean Whether the context is being watched for changes
+---@field _meta table Internal metadata (e.g. { sent = true })
+---@field reasoning? CodeCompanion.Chat.Reasoning Optional reasoning object returned by some adapters
+---@field tool_calls? CodeCompanion.Chat.ToolCall[] Array of tool call descriptors attached to this message
+---@field tool_call_id? string Optional single tool call id that this message represents (links tool output -> call)
+---@field type? string Optional message type used by the UI (e.g. "llm_message", "tool_message", "reasoning_message")
+---@field _raw? any Any adapter-specific raw payload stored with the message
+---@field created_at? number Unix timestamp (optional, helpful for sorting/logging)
+---@field tokens? number Optional token count associated with this message
+
+---@class CodeCompanion.Chat.ToolFunctionCall
+---@field name string Name of the function/tool (e.g. "cmd_runner", "grep_search")
+---@field arguments string|table Raw JSON string or parsed table of arguments
+
+---@class CodeCompanion.Chat.ToolCall
+---@field id string Unique tool call identifier (e.g. "call_8Aoq8...")
+---@field type string Typically "function" (adapter/tool-specific)
+---@field _index? number Position index when returned by adapters
+---@field ["function"]? CodeCompanion.Chat.ToolFunctionCall Function descriptor (adapter key name is "function")
+---@field result? any Optional execution result or intermediate payload
+
+---@class CodeCompanion.Chat.Reasoning
+---@field content string The LLM's chain-of-thought / internal reasoning (often markdown)
+---@field meta? table Optional structured reasoning metadata
+
 ---@class CodeCompanion.SlashCommand
 ---@field Chat CodeCompanion.Chat The chat buffer
 ---@field config table The config of the slash command
