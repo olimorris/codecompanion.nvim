@@ -4,8 +4,9 @@ local M = {}
 
 ---@param self CodeCompanion.ACPAdapter
 ---@param messages table
+---@param capabilities {}
 ---@return table
-M.form_messages = function(self, messages)
+M.form_messages = function(self, messages, capabilities)
   return vim
     .iter(messages)
     :filter(function(msg)
