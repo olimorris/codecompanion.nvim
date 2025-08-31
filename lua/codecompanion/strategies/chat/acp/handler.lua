@@ -48,6 +48,7 @@ function ACPHandler:ensure_connection()
     })
 
     local connected = self.chat.acp_connection:connect_and_initialize()
+
     if not connected then
       return false
     end
@@ -62,7 +63,7 @@ function ACPHandler:create_and_send_prompt(payload)
   return self.chat.acp_connection
     :session_prompt(payload.messages)
     :on_message_chunk(function(content)
-      self:chandle_message_chunk(content)
+      self:handle_message_chunk(content)
     end)
     :on_thought_chunk(function(content)
       self:handle_thought_chunk(content)
