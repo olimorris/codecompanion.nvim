@@ -39,7 +39,7 @@ local uv = vim.uv
 ---@field adapter_modified CodeCompanion.ACPAdapter Modified adapter with environment variables set
 ---@field pending_responses table<number, CodeCompanion.ACP.Connection.PendingResponse>
 ---@field session_id string|nil
----@field _agent_info table|nil
+---@field _agent_info {agentCapabilities: ACP.agentCapabilities, authMethods: ACP.authMethods, protocolVersion: number}|nil
 ---@field _initialized boolean
 ---@field _authenticated boolean
 ---@field _active_prompt CodeCompanion.ACP.PromptBuilder|nil
@@ -101,25 +101,25 @@ end
 
 ---Check if the connection is ready
 ---@return boolean
-function Connection:is_ready()
+function Connection:is_connected()
   return self._state.handle and self._initialized and self._authenticated and self.session_id ~= nil
 end
 
----Connect to ACP process and establish session
+---Connect and initialize the ACP process and establish session
 ---@return CodeCompanion.ACP.Connection|nil self for chaining, nil on error
-function Connection:connect()
-  if self:is_ready() then
+function Connection:connect_and_initialize()
+  if self:is_connected() then
     return self
   end
 
-  if not self:_spawn_process() then
+  if not self:start_agent_process() then
     return nil
   end
 
   if not self._initialized then
-    local initialized = self:_send_request(METHODS.INITIALIZE, self.adapter_modified.parameters)
+    local initialized = self:send_rpc_request(METHODS.INITIALIZE, self.adapter_modified.parameters)
     if not initialized then
-      return log:error("[acp::connect] Failed to initialize")
+      return log:error("[acp::connect_and_initialize] Failed to initialize")
     end
     self._agent_info = initialized
 
@@ -128,14 +128,14 @@ function Connection:connect()
       initialized.protocolVersion and initialized.protocolVersion ~= self.adapter_modified.parameters.protocolVersion
     then
       log:warn(
-        "[acp::connect] Agent selected protocolVersion=%s (client sent=%s)",
+        "[acp::connect_and_initialize] Agent selected protocolVersion=%s (client sent=%s)",
         initialized.protocolVersion,
         self.adapter_modified.parameters.protocolVersion
       )
     end
 
     self._initialized = true
-    log:debug("[acp::connect] ACP connection initialized")
+    log:debug("[acp::connect_and_initialize] ACP connection initialized")
   end
 
   -- Authenticate only if agent supports it (authMethods not empty)
@@ -153,17 +153,17 @@ function Connection:connect()
       methodId = methodId or (auth_methods[1] and auth_methods[1].id)
 
       if methodId then
-        local ok = self:_send_request(METHODS.AUTHENTICATE, { methodId = methodId })
+        local ok = self:send_rpc_request(METHODS.AUTHENTICATE, { methodId = methodId })
         if not ok then
-          log:error("[acp::connect] Failed to authenticate with method %s", methodId)
+          log:error("[acp::connect_and_initialize] Failed to authenticate with method %s", methodId)
           return nil
         end
-        log:debug("[acp::connect] Authenticated using %s", methodId)
+        log:debug("[acp::connect_and_initialize] Authenticated using %s", methodId)
       else
-        log:debug("[acp::connect] No compatible auth method; skipping authenticate")
+        log:debug("[acp::connect_and_initialize] No compatible auth method; skipping authenticate")
       end
     else
-      log:debug("[acp::connect] Agent requires no authentication; skipping")
+      log:debug("[acp::connect_and_initialize] Agent requires no authentication; skipping")
     end
     self._authenticated = true
   end
@@ -178,20 +178,22 @@ function Connection:connect()
   }
 
   if self.session_id and can_load then
-    local ok =
-      self:_send_request(METHODS.SESSION_LOAD, vim.tbl_extend("force", session_args, { sessionId = self.session_id }))
+    local ok = self:send_rpc_request(
+      METHODS.SESSION_LOAD,
+      vim.tbl_extend("force", session_args, { sessionId = self.session_id })
+    )
     if ok ~= nil then
-      log:debug("[acp::connect]: Loaded session %s", self.session_id)
+      log:debug("[acp::connect_and_initialize]: Loaded session %s", self.session_id)
     else
-      log:debug("[acp::connect] session/load failed; falling back to session/new")
+      log:debug("[acp::connect_and_initialize] session/load failed; falling back to session/new")
       can_load = false
     end
   end
 
   if not self.session_id or not can_load then
-    local new_session = self:_send_request(METHODS.SESSION_NEW, session_args)
+    local new_session = self:send_rpc_request(METHODS.SESSION_NEW, session_args)
     if not new_session or not new_session.sessionId then
-      log:error("[acp::connect] Failed to create session")
+      log:error("[acp::connect_and_initialize] Failed to create session")
       return nil
     end
     self.session_id = new_session.sessionId
@@ -203,15 +205,15 @@ end
 
 ---Create the ACP process
 ---@return boolean success
-function Connection:_spawn_process()
-  local adapter = self:_setup_adapter()
+function Connection:start_agent_process()
+  local adapter = self:prepare_adapter()
   self.adapter_modified = adapter
 
   log:debug("Starting ACP process: %s", adapter.command)
 
   if adapter.handlers and adapter.handlers.setup then
     if not adapter.handlers.setup(adapter) then
-      log:error("[acp::_spawn_process] Adapter setup failed")
+      log:error("[acp::start_agent_process] Adapter setup failed")
       return false
     end
   end
@@ -227,14 +229,14 @@ function Connection:_spawn_process()
       env = adapter.env_replaced or {},
       stdout = self.methods.schedule_wrap(function(err, data)
         if err then
-          log:error("[acp::_spawn_process::stdout] Error: %s", err)
+          log:error("[acp::start_agent_process::stdout] Error: %s", err)
         elseif data then
-          self:_process_output(data)
+          self:buffer_stdout_and_dispatch(data)
         end
       end),
       stderr = self.methods.schedule_wrap(function(err, data)
         if err then
-          log:error("[acp::_spawn_process::stderr] Error: %s", err)
+          log:error("[acp::start_agent_process::stderr] Error: %s", err)
         elseif data then
           for line in data:gmatch("[^\r\n]+") do
             if line ~= "" then
@@ -245,17 +247,17 @@ function Connection:_spawn_process()
       end),
     },
     self.methods.schedule_wrap(function(obj)
-      self:_handle_exit(obj.code, obj.signal)
+      self:handle_process_exit(obj.code, obj.signal)
     end)
   )
 
   if not ok then
-    log:error("[acp::_spawn_process] Failed: %s", sysobj)
+    log:error("[acp::start_agent_process] Failed: %s", sysobj)
     return false
   end
 
   self._state.handle = sysobj
-  log:debug("[acp::_spawn_process] ACP process started")
+  log:debug("[acp::start_agent_process] ACP process started")
   return true
 end
 
@@ -263,7 +265,7 @@ end
 ---@param method string
 ---@param params table
 ---@return table|nil
-function Connection:_send_request(method, params)
+function Connection:send_rpc_request(method, params)
   if not self._state.handle then
     return nil
   end
@@ -278,20 +280,20 @@ function Connection:_send_request(method, params)
     params = params or {},
   }
 
-  if not self:_write_to_process(self.methods.encode(request) .. "\n") then
+  if not self:write_message(self.methods.encode(request) .. "\n") then
     return nil
   end
 
-  return self:_wait_for_response(id)
+  return self:wait_for_rpc_response(id)
 end
 
 ---Send a result response to the ACP process
 ---@param id number
 ---@param result table
 ---@return nil
-function Connection:_send_result(id, result)
+function Connection:send_result(id, result)
   local msg = { jsonrpc = "2.0", id = id, result = result }
-  self:_write_to_process(self.methods.encode(msg) .. "\n")
+  self:write_message(self.methods.encode(msg) .. "\n")
 end
 
 ---Send an error response to the ACP process
@@ -299,16 +301,16 @@ end
 ---@param message string
 ---@param code? number
 ---@return nil
-function Connection:_send_error(id, message, code)
+function Connection:send_error(id, message, code)
   code = code or -32000
   local msg = { jsonrpc = "2.0", id = id, error = { code = code, message = message } }
-  self:_write_to_process(self.methods.encode(msg) .. "\n")
+  self:write_message(self.methods.encode(msg) .. "\n")
 end
 
 ---Wait for a specific response ID
 ---@param id number
 ---@return nil
-function Connection:_wait_for_response(id)
+function Connection:wait_for_rpc_response(id)
   local start_time = uv.hrtime()
   local timeout = (self.adapter_modified.defaults.timeout or TIMEOUTS.DEFAULT) * 1e6 -- Nanoseconds to milliseconds
 
@@ -322,13 +324,13 @@ function Connection:_wait_for_response(id)
     end
   end
 
-  log:error("[acp::_wait_for_response] Request timeout: %s", id)
+  log:error("[acp::wait_for_rpc_response] Request timeout ID %s", id)
   return nil
 end
 
 ---Setup the adapter, making a copy and setting environment variables
 ---@return CodeCompanion.ACPAdapter
-function Connection:_setup_adapter()
+function Connection:prepare_adapter()
   local adapter = vim.deepcopy(self.adapter)
   adapter = adapter_utils.get_env_vars(adapter)
   adapter.parameters = adapter_utils.set_env_vars(adapter, adapter.parameters)
@@ -349,12 +351,12 @@ end
 ---Process the output - JSON-RPC doesn't guarantee message boundaries align
 ---with I/O boundaries, so we need to buffer and handle this carefully.
 ---@param data string
-function Connection:_process_output(data)
+function Connection:buffer_stdout_and_dispatch(data)
   if not data or data == "" then
     return
   end
 
-  log:debug("Received stdout:\n%s", data)
+  log:debug("[acp::buffer_stdout_and_dispatch] Received stdout:\n%s", data)
   self._state.stdout_buffer = self._state.stdout_buffer .. data
 
   -- Extract complete lines
@@ -368,50 +370,50 @@ function Connection:_process_output(data)
     self._state.stdout_buffer = self._state.stdout_buffer:sub(newline_pos + 1)
 
     if line ~= "" then
-      self:_process_json_message(line)
+      self:handle_rpc_message(line)
     end
   end
 end
 
 ---Handle incoming JSON message
 ---@param line string
-function Connection:_process_json_message(line)
+function Connection:handle_rpc_message(line)
   if not line or line == "" then
     return
   end
 
   -- If it doesn't look like JSON-RPC, then silently log it
   if not line:match("^%s*{") then
-    log:debug("[acp::_process_json_message] Non-JSON output from agent: %s", line)
+    log:debug("[acp::handle_rpc_message] Non-JSON output from agent: %s", line)
     return
   end
 
   local ok, message = pcall(self.methods.decode, line)
   if not ok then
-    return log:error("[acp::_process_json_message] Invalid JSON:\n%s", line)
+    return log:error("[acp::handle_rpc_message] Invalid JSON:\n%s", line)
   end
 
   if message.id and not message.method then
-    self:_store_response(message)
+    self:store_rpc_response(message)
     if message.result and message.result ~= vim.NIL and message.result.stopReason then
-      if self._active_prompt and self._active_prompt._handle_done then
-        self._active_prompt:_handle_done(message.result.stopReason)
+      if self._active_prompt and self._active_prompt.handle_done then
+        self._active_prompt:handle_done(message.result.stopReason)
       end
     end
   elseif message.method then
-    self:_process_incoming(message)
+    self:handle_incoming_request_or_notification(message)
   else
-    log:error("[acp::_process_json_message] Invalid message format: %s", message)
+    log:error("[acp::handle_rpc_message] Invalid message format: %s", message)
   end
 
   if message.error then
-    log:error("[acp::_process_json_message] Error: %s", message.error)
+    log:error("[acp::handle_rpc_message] Error: %s", message.error)
   end
 end
 
 ---Handle response to our request
 ---@param response table
-function Connection:_store_response(response)
+function Connection:store_rpc_response(response)
   if response.error then
     self.pending_responses[response.id] = { nil, response.error }
     return
@@ -423,46 +425,50 @@ end
 ---@param method string
 ---@param params table
 ---@return nil
-function Connection:_notify(method, params)
+function Connection:send_notification(method, params)
   local msg = { jsonrpc = "2.0", method = method, params = params or {} }
-  self:_write_to_process(self.methods.encode(msg) .. "\n")
+  self:write_message(self.methods.encode(msg) .. "\n")
 end
 
 ---Handle incoming requests and notifications from the ACP agent process
 ---@param notification? table
-function Connection:_process_incoming(notification)
+function Connection:handle_incoming_request_or_notification(notification)
   if type(notification) ~= "table" or type(notification.method) ~= "string" then
-    return log:debug("[acp::_process_incoming] Malformed notification")
+    return log:debug("[acp::handle_incoming_request_or_notification] Malformed notification")
   end
 
   local sid = notification.params and notification.params.sessionId
   local is_request = notification.id ~= nil
   if sid and self.session_id and sid ~= self.session_id then
     if is_request then
-      return self:_send_error(notification.id, "invalid sessionId", -32602)
+      return self:send_error(notification.id, "invalid sessionId", -32602)
     end
-    return log:debug("[acp::_process_incoming] Ignoring update for session %s (current: %s)", sid, self.session_id)
+    return log:debug(
+      "[acp::handle_incoming_request_or_notification] Ignoring update for session %s (current: %s)",
+      sid,
+      self.session_id
+    )
   end
 
   local DISPATCH = self._dispatch
     or {
       [self.METHODS.SESSION_UPDATE] = function(s, m)
         if s._active_prompt then
-          s._active_prompt:_handle_session_update(m.params.update)
+          s._active_prompt:handle_session_update(m.params.update)
         end
       end,
       [self.METHODS.SESSION_REQUEST_PERMISSION] = function(s, m)
         if s._active_prompt then
-          s._active_prompt:_handle_permission_request(m.id, m.params)
+          s._active_prompt:handle_permission_request(m.id, m.params)
         else
-          log:debug("[acp::_process_incoming] Permission request with no active prompt; ignoring")
+          log:debug("[acp::handle_incoming_request_or_notification] Permission request with no active prompt; ignoring")
         end
       end,
       [self.METHODS.FS_READ_TEXT_FILE] = function(s, m)
-        s:_handle_read_file_request(m.id, m.params)
+        s:handle_fs_read_text_file_request(m.id, m.params)
       end,
       [self.METHODS.FS_WRITE_TEXT_FILE] = function(s, m)
-        s:_handle_write_file_request(m.id, m.params)
+        s:handle_fs_write_file_request(m.id, m.params)
       end,
     }
   self._dispatch = DISPATCH
@@ -471,25 +477,25 @@ function Connection:_process_incoming(notification)
   if handler then
     return handler(self, notification)
   end
-  log:debug("[acp::_process_incoming] Unhandled notification method: %s", notification.method)
+  log:debug("[acp::handle_incoming_request_or_notification] Unhandled notification method: %s", notification.method)
 end
 
 ---Send data to the ACP process
 ---@param data string
 ---@return boolean
-function Connection:_write_to_process(data)
+function Connection:write_message(data)
   if not self._state.handle then
-    log:error("[acp::_write_to_process] Process not running")
+    log:error("[acp::write_message] Process not running")
     return false
   end
 
   local ok, err = pcall(function()
-    log:debug("[acp::_write_to_process] Sending data: %s", data)
+    log:debug("[acp::write_message] Sending data:\n%s", data)
     self._state.handle:write(data)
   end)
 
   if not ok then
-    log:error("[acp::_write_to_process] Failed to send data: %s", err)
+    log:error("[acp::write_message] Failed to send data: %s", err)
     return false
   end
 
@@ -498,77 +504,77 @@ end
 
 ---Handle fs/read_text_file requests
 ---@param id number
----@param params { path: string, sessionId?: string }
+---@param params { path: string, sessionId?: string, limit?: number|nil, line?: number|nil }
 ---@return nil
-function Connection:_handle_read_file_request(id, params)
+function Connection:handle_fs_read_text_file_request(id, params)
   if not id or type(params) ~= "table" then
     return
   end
 
   if params.sessionId and self.session_id and params.sessionId ~= self.session_id then
-    return self:_send_error(id, "invalid sessionId for fs/read_text_file", -32602)
+    return self:send_error(id, "invalid sessionId for fs/read_text_file", -32602)
   end
 
   local path = params.path
   if type(path) ~= "string" then
-    return self:_send_error(id, "invalid params", -32602)
+    return self:send_error(id, "invalid params", -32602)
   end
 
-  local fs_api = require("codecompanion.strategies.chat.acp.fs")
-  local ok, content_or_err = fs_api.read_text_file(path)
+  local fs = require("codecompanion.strategies.chat.acp.fs")
+  local ok, content = fs.read_text_file(path, { line = params.line, limit = params.limit })
   if ok then
-    return self:_send_result(id, { content = content_or_err })
+    return self:send_result(id, { content = content })
   end
 
   -- If the file does not exist we treat it as empty so the agent can create it
-  local errstr = tostring(content_or_err)
+  local errstr = tostring(content)
   if errstr:find("ENOENT", 1, true) then
-    self:_send_result(id, { content = "" })
+    self:send_result(id, { content = "" })
     return
   end
 
   -- Other errors: send as JSON-RPC error
-  self:_send_error(id, ("fs/read_text_file failed: %s"):format(errstr))
+  self:send_error(id, ("fs/read_text_file failed: %s"):format(errstr))
 end
 
 ---Handle fs/write_text_file requests
 ---We carry this out here as they could arrive outside of the standard prompt flow
 ---@param id number
 ---@param params { path: string, content: string, sessionId?: string }
-function Connection:_handle_write_file_request(id, params)
+function Connection:handle_fs_write_file_request(id, params)
   if not id or type(params) ~= "table" then
     return
   end
 
   if params.sessionId and self.session_id and params.sessionId ~= self.session_id then
-    return self:_send_error(id, "invalid sessionId for fs/write_text_file", -32602)
+    return self:send_error(id, "invalid sessionId for fs/write_text_file", -32602)
   end
 
   local path = params.path
   local content = params.content or ""
   if type(path) ~= "string" or type(content) ~= "string" then
-    return self:_send_error(id, "invalid params", -32602)
+    return self:send_error(id, "invalid params", -32602)
   end
 
-  local fs_api = require("codecompanion.strategies.chat.acp.fs")
-  local ok, err = fs_api.write_text_file(path, content)
+  local fs = require("codecompanion.strategies.chat.acp.fs")
+  local ok, err = fs.write_text_file(path, content)
   if ok then
     -- Spec: WriteTextFileResponse is null
-    self:_send_result(id, vim.NIL)
+    self:send_result(id, vim.NIL)
     local info = { path = path, bytes = #content, sessionId = params.sessionId }
     if self._active_prompt and self._active_prompt.handlers and self._active_prompt.handlers.write_text_file then
       pcall(self._active_prompt.handlers.write_text_file, info)
     end
   else
-    self:_send_error(id, ("fs/write_text_file failed: %s"):format(err or "unknown"))
+    self:send_error(id, ("fs/write_text_file failed: %s"):format(err or "unknown"))
   end
 end
 
 ---Handle process exit
 ---@param code number
 ---@param signal number
-function Connection:_handle_exit(code, signal)
-  log:debug("[acp::_handle_exit] Process exited: code=%d, signal=%d", code, signal or 0)
+function Connection:handle_process_exit(code, signal)
+  log:debug("[acp::handle_process_exit] Process exited: code=%d, signal=%d", code, signal or 0)
 
   if self.adapter_modified and self.adapter_modified.handlers and self.adapter_modified.handlers.on_exit then
     self.adapter_modified.handlers.on_exit(self.adapter_modified, code)
@@ -581,9 +587,9 @@ function Connection:_handle_exit(code, signal)
   self.session_id = nil
   self.pending_responses = {}
 
-  if self._active_prompt and self._active_prompt._handle_done then
+  if self._active_prompt and self._active_prompt.handle_done then
     pcall(function()
-      self._active_prompt:_handle_done("canceled")
+      self._active_prompt:handle_done("canceled")
     end)
   end
   self._active_prompt = nil
@@ -592,9 +598,9 @@ end
 ---Initiate a prompt
 ---@param messages table
 ---@return CodeCompanion.ACP.PromptBuilder
-function Connection:prompt(messages)
+function Connection:session_prompt(messages)
   if not self.session_id then
-    return log:error("[acp::prompt] Connection not established. Call connect() first.")
+    return log:error("[acp::session_prompt] Connection not established. Call connect_and_initialize() first.")
   end
   return PromptBuilder.new(self, messages)
 end

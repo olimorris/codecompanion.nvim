@@ -1,4 +1,4 @@
-*codecompanion.txt*         For NVIM v0.11         Last change: 2025 August 28
+*codecompanion.txt*         For NVIM v0.11         Last change: 2025 August 31
 
 ==============================================================================
 Table of Contents                            *codecompanion-table-of-contents*
@@ -748,7 +748,7 @@ and `model` to the adapter:
         chat = {
           adapter = {
             name = "copilot",
-            model = "claude-sonnet-4-20250514",
+            model = "claude-sonnet-4",
           },
         },
       },
@@ -772,6 +772,40 @@ To change the default model on an adapter you can modify the
         end,
       },
     }),
+<
+
+
+CHANGING AUTH METHOD OF AN ACP ADAPTER ~
+
+
+  [!NOTE] The auth methods for each ACP adapter are output in the
+  |codecompanion-configuration-others-log-level| when the `log_level` is set to
+  `DEBUG`.
+It’s important to note that each agent adapter handles authentication
+differently. CodeCompanion endeavours to share the available options in the
+agent’s adapter as a comment. However, it’s recommended to consult the
+documentation of the agent you’re working with.
+
+An example of changing the Gemini CLI’s auth method to use the API key and a
+1Password vault:
+
+>lua
+    require("codecompanion").setup({
+      adapters = {
+        acp = {
+          gemini_cli = function()
+            return require("codecompanion.adapters").extend("gemini_cli", {
+              defaults = {
+                auth_method = "gemini-api-key", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
+              },
+              env = {
+                GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
+              },
+            })
+          end,
+        },
+      },
+    })
 <
 
 
@@ -2396,15 +2430,11 @@ Protocol <https://agentclientprotocol.com>.
 
 GETTING STARTED ~
 
-To start coding with agents right away, open a chat buffer with
+To start coding with agents right away, ensure you’ve
+|codecompanion-configuration-adapters-changing-auth-method-of-an-acp-adapter|
+on your chosen adapter, correctly. Then, open a chat buffer with
 `:CodeCompanionChat` and |codecompanion-usage-chat-buffer--changing-adapter| to
 an ACP adapter such as `gemini_cli`, if it’s not set as your default.
-
-Currently, CodeCompanion only supports agent authentication via an API key. In
-the case of `gemini_cli`, ensure you’ve
-|codecompanion-configuration-adapters.html-setting-an-api-key| the correct
-<https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/acp/gemini_cli.lua#L31>
-API key.
 
 A key difference in working with agents versus LLMs is the matter of state.
 LLMs, via `http` adapters, are stateless. This means that CodeCompanion sends

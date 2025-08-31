@@ -322,9 +322,9 @@ M.codeblock = {
     local ft = chat.buffer_context.filetype or ""
 
     local codeblock = {
-      "```" .. ft,
+      "````" .. ft,
       "",
-      "```",
+      "````",
     }
 
     api.nvim_buf_set_lines(bufnr, line - 1, line, false, codeblock)
@@ -614,6 +614,7 @@ M.change_adapter = {
             return model ~= new_model
           end)
           :totable()
+        table.sort(models)
         table.insert(models, 1, new_model)
 
         vim.ui.select(models, select_opts("Select Model", new_model), function(selected_model)

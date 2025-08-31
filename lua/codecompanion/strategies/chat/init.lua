@@ -18,7 +18,7 @@
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field header_ns number The namespace for the virtual text that appears in the header
 ---@field id number The unique identifier for the chat
----@field messages? table The messages in the chat buffer
+---@field messages? CodeCompanion.Chat.Messages The messages in the chat buffer
 ---@field opts CodeCompanion.ChatArgs Store all arguments in this table
 ---@field parser vim.treesitter.LanguageTree The Markdown Tree-sitter parser for the chat buffer
 ---@field context CodeCompanion.Chat.Context
@@ -44,7 +44,7 @@
 ---@field from_prompt_library? boolean Whether the chat was initiated from the prompt library
 ---@field ignore_system_prompt? boolean Do not send the default system prompt with the request
 ---@field last_role string The last role that was rendered in the chat buffer-
----@field messages? table The messages to display in the chat buffer
+---@field messages? CodeCompanion.Chat.Messages The messages to display in the chat buffer
 ---@field settings? table The settings that are used in the adapter of the chat buffer
 ---@field status? string The status of any running jobs in the chat buffe
 ---@field stop_context_insertion? boolean Stop any visual selection from being automatically inserted into the chat buffer
@@ -156,7 +156,7 @@ end
 
 ---Find a message in the table that has a specific tool call ID
 ---@param id string
----@param messages table
+---@param messages CodeCompanion.Chat.Messages
 ---@return table|nil
 local function find_tool_call(id, messages)
   for _, msg in ipairs(messages) do
@@ -169,7 +169,7 @@ end
 
 ---Determine if a tag exists in the messages table
 ---@param tag string
----@param messages table
+---@param messages CodeCompanion.Chat.Messages
 ---@return boolean
 local function has_tag(tag, messages)
   return vim.tbl_contains(
@@ -878,7 +878,7 @@ function Chat:remove_tagged_message(tag)
 end
 
 ---Add a message to the message table
----@param data { role: string, content: string, reasoning?: table, tool_calls?: table }
+---@param data { role: string, content: string, reasoning?: CodeCompanion.Chat.Reasoning, tool_calls?: CodeCompanion.Chat.ToolCall[] }
 ---@param opts? table Options for the message
 ---@return CodeCompanion.Chat
 function Chat:add_message(data, opts)
@@ -887,16 +887,19 @@ function Chat:add_message(data, opts)
     opts.visible = true
   end
 
+  ---@type CodeCompanion.Chat.Message
   local message = {
+    id = 1,
+    _meta = {},
     role = data.role,
     content = data.content,
     reasoning = data.reasoning,
+    cycle = self.cycle,
     tool_calls = data.tool_calls,
   }
   message.id = make_id(message)
-  message.cycle = self.cycle
   message.opts = opts
-  message._meta = {}
+
   if opts.index then
     table.insert(self.messages, opts.index, message)
   else

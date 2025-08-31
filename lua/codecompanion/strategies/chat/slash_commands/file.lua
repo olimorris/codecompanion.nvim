@@ -205,7 +205,12 @@ function SlashCommand:output(selected, opts)
   self.Chat:add_message({
     role = config.constants.USER_ROLE,
     content = description or "",
-  }, { context_id = id, visible = false })
+  }, {
+    absolute_path = selected.path,
+    context_id = id,
+    tag = "file",
+    visible = false,
+  })
 
   if opts.pin then
     return
