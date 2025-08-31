@@ -257,7 +257,7 @@ function Connection:start_agent_process()
   end
 
   self._state.handle = sysobj
-  log:debug("[acp::start_agent_proces] ACP process started")
+  log:debug("[acp::start_agent_process] ACP process started")
   return true
 end
 
