@@ -1,4 +1,5 @@
 local file_utils = require("codecompanion.utils.files")
+local log = require("codecompanion.utils.log")
 
 local M = {}
 
@@ -7,6 +8,8 @@ local M = {}
 ---@param capabilities {}
 ---@return table
 M.form_messages = function(self, messages, capabilities)
+  local has = capabilities and capabilities.promptCapabilities
+
   return vim
     .iter(messages)
     :filter(function(msg)
@@ -15,14 +18,29 @@ M.form_messages = function(self, messages, capabilities)
     end)
     :map(function(msg)
       if msg.opts and msg.opts.tag == "image" then
-        return {
-          type = "image",
-          data = msg.content,
-          mimeType = msg.opts.mimetype,
-        }
+        if not has.image then
+          log:warn("The %s agent does not support receiving images", self.formatted_name)
+        else
+          return {
+            type = "image",
+            data = msg.content,
+            mimeType = msg.opts.mimetype,
+          }
+        end
       end
       if msg.content and msg.content ~= "" then
         if msg.opts and msg.opts.tag == "file" then
+          -- If we can't send the file as a resource, send as text
+          if not has.embeddedContext then
+            log:debug(
+              "[adapters::acp::helpers] The %s agent does not support embedded context, sending file content as text",
+              self.formatted_name
+            )
+            return {
+              type = "text",
+              text = msg.content,
+            }
+          end
           -- NOTE: I HATE having to re-read a file that's already been read and
           -- loaded into the chat buffer as context. Alas, for http adapters
           -- the context is wrapped in <attachment> tags so it's clearer
