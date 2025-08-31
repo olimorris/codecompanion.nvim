@@ -39,7 +39,7 @@ local uv = vim.uv
 ---@field adapter_modified CodeCompanion.ACPAdapter Modified adapter with environment variables set
 ---@field pending_responses table<number, CodeCompanion.ACP.Connection.PendingResponse>
 ---@field session_id string|nil
----@field _agent_info table|nil
+---@field _agent_info {agentCapabilities: ACP.agentCapabilities, authMethods: ACP.authMethods, protocolVersion: number}|nil
 ---@field _initialized boolean
 ---@field _authenticated boolean
 ---@field _active_prompt CodeCompanion.ACP.PromptBuilder|nil
