@@ -109,6 +109,34 @@ require("codecompanion").setup({
 }),
 ```
 
+## Changing Auth Method of an ACP Adapter
+
+> [!NOTE]
+> The auth methods for each ACP adapter are output in the [logs](/configuration/others#log-level) when the `log_level` is set to `DEBUG`.
+
+It's important to note that each agent adapter handles authentication differently. CodeCompanion endeavours to share the available options in the agent's adapter as a comment. However, it's recommended to consult the documentation of the agent you're working with.
+
+An example of changing the Gemini CLI's auth method to use the API key and a 1Password vault:
+
+```lua
+require("codecompanion").setup({
+  adapters = {
+    acp = {
+      gemini_cli = function()
+        return require("codecompanion.adapters").extend("gemini_cli", {
+          defaults = {
+            auth_method = "gemini-api-key", -- "oauth-personal"|"gemini-api-key"|"vertex-ai"
+          },
+          env = {
+            GEMINI_API_KEY = "cmd:op read op://personal/Gemini_API/credential --no-newline",
+          },
+        })
+      end,
+    },
+  },
+})
+```
+
 ## Configuring Adapter Settings
 
 > [!NOTE]

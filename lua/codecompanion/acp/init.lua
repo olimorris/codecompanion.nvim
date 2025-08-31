@@ -39,7 +39,7 @@ local uv = vim.uv
 ---@field adapter_modified CodeCompanion.ACPAdapter Modified adapter with environment variables set
 ---@field pending_responses table<number, CodeCompanion.ACP.Connection.PendingResponse>
 ---@field session_id string|nil
----@field _agent_info table|nil
+---@field _agent_info {agentCapabilities: ACP.agentCapabilities, authMethods: ACP.authMethods, protocolVersion: number}|nil
 ---@field _initialized boolean
 ---@field _authenticated boolean
 ---@field _active_prompt CodeCompanion.ACP.PromptBuilder|nil
@@ -322,7 +322,7 @@ function Connection:_wait_for_response(id)
     end
   end
 
-  log:error("[acp::_wait_for_response] Request timeout: %s", id)
+  log:error("[acp::_wait_for_response] Request timeout ID %s", id)
   return nil
 end
 
@@ -498,7 +498,7 @@ end
 
 ---Handle fs/read_text_file requests
 ---@param id number
----@param params { path: string, sessionId?: string }
+---@param params { path: string, sessionId?: string, limit?: number|nil, line?: number|nil }
 ---@return nil
 function Connection:_handle_read_file_request(id, params)
   if not id or type(params) ~= "table" then
@@ -515,7 +515,7 @@ function Connection:_handle_read_file_request(id, params)
   end
 
   local fs_api = require("codecompanion.strategies.chat.acp.fs")
-  local ok, content_or_err = fs_api.read_text_file(path)
+  local ok, content_or_err = fs_api.read_text_file(path, { limit = params.limit, line = params.line })
   if ok then
     return self:_send_result(id, { content = content_or_err })
   end

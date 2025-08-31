@@ -21,7 +21,11 @@ function PromptBuilder.new(connection, messages)
   local self = setmetatable({
     connection = connection,
     handlers = {},
-    messages = connection.adapter.handlers.form_messages(connection.adapter, messages),
+    messages = connection.adapter.handlers.form_messages(
+      connection.adapter,
+      messages,
+      connection._agent_info.agentCapabilities
+    ),
     options = {},
     _sent = false,
   }, { __index = PromptBuilder }) ---@cast self CodeCompanion.ACP.PromptBuilder

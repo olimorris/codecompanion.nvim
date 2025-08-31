@@ -82,9 +82,10 @@
         "acp-methods",
         "acp-prompt-builder",
         "acp-handler",
-        "acp-permissions",
+        "acp-request-permission",
         "acp-fs",
-        "gemini-cli"
+        "gemini-cli",
+        "acp-adapter-helpers"
       ]
     }
   ],
@@ -119,9 +120,9 @@
       "path": "lua/codecompanion/strategies/chat/acp/handler.lua",
       "description": "Extracted ACP submission logic from the chat buffer. Handles ACP connection management, message streaming with multiple handlers (message chunks, thought chunks, tool calls), output collection, error handling, and completion logic. This separation keeps the main chat buffer focused on orchestration while isolating ACP-specific complexity."
     },
-    "acp-permissions": {
+    "acp-request-permission": {
       "type": "file",
-      "path": "lua/codecompanion/strategies/chat/acp/permissions.lua",
+      "path": "lua/codecompanion/strategies/chat/acp/request_permission.lua",
       "description": "Contains helper functions that can be called by the handler to manage permissions from the chat buffer with an ACP adapter and Neovim itself. For example, showing diffs, setting keymaps to accept/reject diffs etc."
     },
     "acp-fs": {
@@ -303,8 +304,8 @@
       "description": "The various ACP methods that can be called by the ACP connection."
     },
     "acp-schema": {
-      "type": "file",
-      "path": ".codecompanion/acp_json_schema.json",
+      "type": "url",
+      "path": "https://raw.githubusercontent.com/zed-industries/agent-client-protocol/refs/heads/main/schema/schema.json",
       "description": "ACP JSON schema defining request, response, and notification types for agent communication."
     },
     "acp-implementation-notes": {
@@ -315,7 +316,12 @@
     "gemini-cli": {
       "type": "file",
       "path": "lua/codecompanion/adapters/acp/gemini_cli.lua",
-      "description": "An example ACP implementation for Google Gemini CLI, demonstrating how to use the ACPAdapter with a specific LLM."
+      "description": "An ACP implementation for Google Gemini CLI, demonstrating how to use the ACPAdapter with a specific agent."
+    },
+    "acp-adapter-helpers": {
+      "type": "file",
+      "path": "lua/codecompanion/adapters/acp/helpers.lua",
+      "description": "File containing helper functions that ACP adapters can utilize."
     }
   }
 }
