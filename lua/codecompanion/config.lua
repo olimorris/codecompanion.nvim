@@ -196,7 +196,7 @@ local defaults = {
 
           system_prompt = {
             enabled = true, -- Enable the tools system prompt?
-            replace_main_system_prompt = true, -- Replace the main system prompt with the tools system prompt?
+            replace_main_system_prompt = false, -- Replace the main system prompt with the tools system prompt?
 
             ---The tool system prompt
             ---@param args { tools: string[]} The tools available
