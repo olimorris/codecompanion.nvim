@@ -248,33 +248,19 @@ function Orchestrator:setup(input)
         prompt = ("Run the %q tool?"):format(self.tool.name)
       end
 
-      vim.ui.select({ "Yes", "No", "Cancel" }, {
-        kind = "codecompanion.nvim",
-        prompt = prompt,
-        format_item = function(item)
-          if item == "Yes" then
-            return "Yes"
-          elseif item == "No" then
-            return "No"
-          else
-            return "Cancel"
-          end
-        end,
-      }, function(choice)
-        if not choice or choice == "Cancel" then -- No selection or cancelled
-          log:debug("Orchestrator:execute - Tool cancelled")
-          self:close()
-          self.output.cancelled(cmd)
-          return self:setup()
-        elseif choice == "Yes" then -- Selected yes
-          log:debug("Orchestrator:execute - Tool approved")
-          self:execute(cmd, input)
-        elseif choice == "No" then -- Selected no
-          log:debug("Orchestrator:execute - Tool rejected")
-          self.output.rejected(cmd)
-          self:setup()
-        end
-      end)
+      local picked = vim.fn.confirm(prompt, table.concat({ "1 Approve", "2 Reject", "3 Cancel" }, "\n"), 1, "Question")
+      if picked == 1 then
+        log:debug("Orchestrator:execute - Tool approved")
+        return self:execute(cmd, input)
+      elseif picked == 2 then
+        self.output.rejected(cmd)
+        return self:setup()
+      else
+        log:debug("Orchestrator:execute - Tool cancelled")
+        self:close()
+        self.output.cancelled(cmd)
+        return self:setup()
+      end
     else
       return self:execute(cmd, input)
     end
