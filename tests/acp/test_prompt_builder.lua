@@ -45,6 +45,31 @@ local T = new_set({
             end
           }
         }
+
+        agent_info = {
+          agentCapabilities = {
+            loadSession = false,
+            promptCapabilities = {
+              audio = true,
+              embeddedContext = true,
+              image = true
+            }
+          },
+          authMethods = { {
+              description = vim.NIL,
+              id = "oauth-personal",
+              name = "Log in with Google"
+            }, {
+              description = "Requires setting the `GEMINI_API_KEY` environment variable",
+              id = "gemini-api-key",
+              name = "Use Gemini API key"
+            }, {
+              description = vim.NIL,
+              id = "vertex-ai",
+              name = "Vertex AI"
+            } },
+          protocolVersion = 1
+        }
       ]])
     end,
     post_once = child.stop,
@@ -59,6 +84,7 @@ T["Prompt Builder"]["PromptBuilder"] = function()
     connection.session_id = "test-session-123"
     connection.process = { next_id = 10 }
     connection.methods = { encode = vim.json.encode }
+    connection._agent_info = agent_info
 
     -- Track handler calls and sent data
     local handler_calls = {}
@@ -121,6 +147,7 @@ T["Prompt Builder"]["extracts text safely from non-text content"] = function()
   local result = child.lua([[
     local connection = ACP.new({ adapter = test_adapter })
     connection.session_id = "test-session-123"
+    connection._agent_info = agent_info
 
     local seen = {}
     local prompt = connection:prompt({ { role = "user", content = "hi" } })
@@ -156,6 +183,7 @@ T["Prompt Builder"]["cancel sends notification (no id)"] = function()
     connection.session_id = "test-session-123"
     connection.methods = { encode = vim.json.encode }
     connection._state = { next_id = 1 } -- ensure state
+    connection._agent_info = agent_info
 
     local sent = {}
     connection._write_to_process = function(self, data)
@@ -180,21 +208,22 @@ T["Prompt Builder"]["Sends selected outcome response"] = function()
     local Connection = require("codecompanion.acp")
 
     local adapter = {
-      handlers = { form_messages = function(_, msgs) return msgs end },
+      handlers = { form_messages = function(_, msgs, capabilities) return msgs end },
       defaults = {},
       commands = { default = "noop" },
     }
 
-    local conn = Connection.new({ adapter = adapter })
-    conn.session_id = "test-session-2"
+    local connection = Connection.new({ adapter = adapter })
+    connection.session_id = "test-session-2"
+    connection._agent_info = agent_info
 
     _G.captured = nil
-    conn._write_to_process = function(self, data)
+    connection._write_to_process = function(self, data)
       _G.captured = data
       return true
     end
 
-    local pb = conn:prompt({ { type = "text", text = "hi" } })
+    local pb = connection:prompt({ { type = "text", text = "hi" } })
 
     pb:on_permission_request(function(req)
       req.respond("opt-2", false)
@@ -240,16 +269,17 @@ T["Prompt Builder"]["Auto-cancels when no handler is registered"] = function()
       commands = { default = "noop" },
     }
 
-    local conn = Connection.new({ adapter = adapter })
-    conn.session_id = "test-session-3"
+    local connection = Connection.new({ adapter = adapter })
+    connection.session_id = "test-session-3"
+    connection._agent_info = agent_info
 
     _G.captured = nil
-    conn._write_to_process = function(self, data)
+    connection._write_to_process = function(self, data)
       _G.captured = data
       return true
     end
 
-    local pb = conn:prompt({ { type = "text", text = "hello" } })
+    local pb = connection:prompt({ { type = "text", text = "hello" } })
 
     local params = {
       sessionId = "sess-3",
