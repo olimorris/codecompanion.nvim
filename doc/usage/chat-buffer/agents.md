@@ -4,9 +4,7 @@ CodeCompanion enables you to work with agents such as [Gemini](https://github.co
 
 ## Getting Started
 
-To start coding with agents right away, open a chat buffer with `:CodeCompanionChat` and [switch](/usage/chat-buffer/#changing-adapter) to an ACP adapter such as `gemini_cli`, if it's not set as your default.
-
-Currently, CodeCompanion only supports agent authentication via an API key. In the case of _gemini_cli_, ensure you've [set](/configuration/adapters.html#setting-an-api-key) the [correct](https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/adapters/acp/gemini_cli.lua#L31) API key.
+To start coding with agents right away, ensure you've [set the authentication method](/configuration/adapters#changing-auth-method-of-an-acp-adapter) on your chosen adapter, correctly. Then, open a chat buffer with `:CodeCompanionChat` and [switch](/usage/chat-buffer/#changing-adapter) to an ACP adapter such as `gemini_cli`, if it's not set as your default.
 
 A key difference in working with agents versus LLMs is the matter of state. LLMs, via _http_ adapters, are stateless. This means that CodeCompanion sends the entire message history over with every request. Agents differ in that they are the ones responsible for managing state. As a result, CodeCompanion only sends the latest messages over with every prompt. From a UX perspective however, neither of these have an impact on how it feels to work with CodeCompanion.
 
