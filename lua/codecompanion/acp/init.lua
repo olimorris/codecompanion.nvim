@@ -356,7 +356,7 @@ function Connection:buffer_stdout_and_dispatch(data)
     return
   end
 
-  log:debug("Received stdout:\n%s", data)
+  log:debug("[acp::buffer_stdout_and_dispatch] Received stdout:\n%s", data)
   self._state.stdout_buffer = self._state.stdout_buffer .. data
 
   -- Extract complete lines
@@ -490,7 +490,7 @@ function Connection:write_message(data)
   end
 
   local ok, err = pcall(function()
-    log:debug("[acp::write_message] Sending data: %s", data)
+    log:debug("[acp::write_message] Sending data:\n%s", data)
     self._state.handle:write(data)
   end)
 
